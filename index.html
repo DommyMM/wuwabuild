@@ -4,31 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wuthering Wave Build Cards</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css">     
+  <link rel="stylesheet" href="css/modal.css">       
+  <link rel="stylesheet" href="css/final.css"> 
 </head>
 <body>
 
-  <!--Tab navigation-->
+  <!--Tabs-->
   <div>
     <div class="tab" onclick="openTab('upload')">Screenshot Builder</div>
     <div class="tab" onclick="openTab('manual')">Manual Input</div>
   </div>
 
-  <!--Tab for Image Uploading-->
+  <!--Image upload-->
   <div id="upload" class="tab-content">
     <h2>Upload Screenshots Here and Combine</h2>
-    
-    <!-- Dropzone -->
+
+    <!--Dropzone-->
     <div id="dropzone" class="dropzone">
       <span>Upload screenshots here</span>
       <input type="file" id="imageUpload" multiple hidden>
     </div>
 
-    <!-- Uploaded files preview -->
+    <!--Preview-->
     <div id="filePreview" class="file-preview"></div>
     <canvas id="canvas" width="400" height="200"></canvas>
 
-    <!-- Modal for full image and category selection -->
+    <!--Modal box-->
     <div id="imageModal" class="modal">
       <div class="modal-content">
         <span id="closeModal" class="close">&times;</span>
@@ -47,29 +49,25 @@
         </div>
       </div>
     </div>
-        <!-- Label for the final result -->
+
+    <!--Label-->
     <h2>Final Result</h2>
 
-    <!-- Container for canvas and buttons -->
-    <div id="finalResultContainer" style="display: flex; align-items: center;">
+    <!--Container-->
+    <div id="finalResultContainer">
 
-      <!-- Canvas for final result -->
+      <!--Canvas for final-->
       <canvas id="finalCanvas" width="1920" height="1080"></canvas>  
 
-      <!-- Buttons for rendering and downloading the image, next to the canvas -->
-      <div id="finalCanvasActions" style="margin-left: 20px;">
+      <!--Buttons-->
+      <div id="finalCanvasActions">
         <button id="downloadButton">Download</button>
         <button id="renderButton">Render</button>
       </div>
-
     </div>
-
   </div>
 
-  
-  
-
-  <!-- Tab content for Manual Input Card Builder -->
+  <!--Manual Input-->
   <div id="manual" class="tab-content">
     <h2>Manual Input Card Builder</h2>
     <div class="card-builder">
@@ -84,6 +82,9 @@
     </div>
   </div>
 
+  <!--Scripts-->
   <script src="js/script.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/final-result.js"></script>
 </body>
 </html>
