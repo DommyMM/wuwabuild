@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual Input</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/manual.css">
+  <link rel="stylesheet" href="css/selection.css">
+</head>
+<body>
+  <!--Return to Automatic Builder-->
+  <div>
+    <a href="index.html" class="tab">Scan Screenshots</a>
+  </div>
+
+  <h2>Manual Selection</h2>
+  
+<!--Character Selection-->
+<div class="manual-section">
+  <label>Select Character:</label>
+  <div class="select-box" id="selectCharacter">
+    <img src="images/Resonator.png" alt="Select Character" class="select-img" id="characterImg">
+  </div>
+</div>
+
+<!--Weapon Selection-->
+<div class="manual-section">
+  <label>Select Weapon:</label>
+  <div class="select-box" id="selectWeapon">
+    <img src="images/Weapon.png" alt="Select Weapon" class="select-img" id="weaponImg">
+  </div>
+</div>
+
+<!--Character Modal-->
+<div id="characterModal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="closeCharacterModal">&times;</span>
+    <div class="character-list">
+    </div>
+  </div>
+</div>
+
+<!--Weapon Modal-->
+<div id="weaponModal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="closeWeaponModal">&times;</span>
+    <div class="weapon-list">
+    </div>
+  </div>
+</div>
+
+
+  <!--Scripts-->
+  <script src="js/selection.js"></script>
+  <script src="js/manual.js"></script>
+</body>
+</html>

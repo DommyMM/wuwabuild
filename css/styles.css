@@ -1,3 +1,24 @@
+@font-face {
+  font-family: 'YRDZST-Semibold';
+  src: url('../fonts/YRDZST-Semibold.ttf') format('truetype'); /*Adjusted path*/
+  font-weight: normal;
+  font-style: normal;
+}
+
+body, h1, h2, h3, h4, h5, h6, p, button, label {
+  font-family: 'YRDZST-Semibold', sans-serif;
+}
+
+
+/*Global Styles*/
+body {
+  background: linear-gradient(to bottom, #1E1E1E, #121212);
+  background-color: #121212; 
+  color: #E0E0E0;           
+  margin: 0;
+  padding: 0;
+}
+
 /*Styling for the tabs*/
 .tab {
   display: inline-block;
@@ -12,87 +33,11 @@
   display: none;
   padding: 20px;
   border: 1px solid #ccc;
-  background-color: #fff;
+  background: transparent; 
+  color: inherit; 
 }
+
 
 .active-tab {
   display: block;
-}
-
-.card-builder {
-  margin-top: 20px;
-}
-
-#cardPreview {
-  margin-top: 20px;
-  border: 1px solid #ccc;
-  padding: 10px;
-}
-
-/*Styling for the dropzone*/
-#dropzone {
-width: 100%;
-height: 150px;
-border: 2px dashed #ccc;
-display: flex;
-justify-content: center;
-align-items: center;
-color: #999;
-cursor: pointer;
-position: relative;
-margin-bottom: 20px;
-}
-
-#dropzone.dragover {
-background-color: #f0f0f0;
-border-color: #000;
-}
-
-#dropzone span {
-font-size: 16px;
-color: #666;
-}
-
-#dropzone input[type="file"] {
-position: absolute;
-top: 0;
-left: 0;
-opacity: 0;
-width: 100%;
-height: 100%;
-}
-
-#upload {
-display: flex;
-justify-content: center;
-align-items: center;
-flex-direction: column; 
-}
-
-/*Preview uploaded files*/
-.file-preview {
-overflow: visible;
-display: flex;
-flex-wrap: wrap;
-gap: 10px;
-justify-content: center; 
-margin-top: 20px;
-}
-
-.file-preview img {
-width: 150px;
-height: auto;
-border: 1px solid #000000; 
-padding: 5px;              
-box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); 
-transition: transform 0.3s ease, padding 0.3s ease, border 0.3s ease;
-}
-
-/*Zoom effect on hover*/
-.file-preview img:hover {
-transform: scale(4); 
-z-index: 10;        
-position: relative;
-border: 0;
-padding: 0;
 }

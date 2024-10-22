@@ -1,0 +1,106 @@
+[
+    {
+        "name": "Aalto",
+        "weaponType": "Pistol"
+    },
+    {
+        "name": "Baizhi",
+        "weaponType": "Rectifier"  
+    },
+    {
+        "name": "Calcharo",
+        "weaponType": "Broadblade"  
+    },
+    {
+        "name": "Camellya",
+        "weaponType": "Sword"  
+    },
+    {
+        "name": "Changli",
+        "weaponType": "Sword"  
+    },
+    {
+        "name": "Chixia",
+        "weaponType": "Pistol"  
+    },
+    {
+        "name": "Danjin",
+        "weaponType": "Sword"  
+    },
+    {
+        "name": "Dengdeng",
+        "weaponType": "Unknown"  
+    },
+    {
+        "name": "Encore",
+        "weaponType": "Rectifier"  
+    },
+    {
+        "name": "Jianxin",
+        "weaponType": "Gauntlet"  
+    },
+    {
+        "name": "Jinhsi",
+        "weaponType": "Broadblade"  
+    },
+    {
+        "name": "Jiyan",
+        "weaponType": "Broadblade"  
+    },
+    {
+        "name": "Lingyang",
+        "weaponType": "Gauntlet"  
+    },
+    {
+        "name": "Mortefi",
+        "weaponType": "Pistol"  
+    },
+    {
+        "name": "Rover (F)",
+        "weaponType": "Sword"  
+    },
+    {
+        "name": "Rover (M)",
+        "weaponType": "Sword"  
+    },
+    {
+        "name": "Sanhua",
+        "weaponType": "Sword"  
+    },
+    {
+        "name": "Shorekeeper",
+        "weaponType": "Rectifier"  
+    },
+    {
+        "name": "Taoqi",
+        "weaponType": "Broadblade"  
+    },
+    {
+        "name": "Verina",
+        "weaponType": "Rectifier"  
+    },
+    {
+        "name": "Xiangli Yao",
+        "weaponType": "Gauntlet"  
+    },
+    {
+        "name": "Yangyang",
+        "weaponType": "Sword"  
+    },
+    {
+        "name": "Yinlin",
+        "weaponType": "Rectifier"  
+    },
+    {
+        "name": "Youhu",
+        "weaponType": "Gauntlet"  
+    },
+    {
+        "name": "Yuanwu",
+        "weaponType": "Gauntlet"  
+    },
+    {
+        "name": "Zezhi",
+        "weaponType": "Rectifier"  
+    }
+]
