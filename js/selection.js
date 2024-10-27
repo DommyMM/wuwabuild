@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
     let selectedCharacter = null;
     let selectedWeapon = null;
+    const progressContainers = document.querySelectorAll('.progress-container');
+    const sliders = document.querySelectorAll('.slider');
+    progressContainers.forEach(container => container.style.display = 'none');
+    sliders.forEach(slider => slider.style.display = 'none');
 
     //Load Characters from the JSON file
     fetch('Data/Characters.json')
@@ -35,21 +39,33 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('characterImg').src = `images/Faces/${character.name}.png`;
                     document.getElementById('characterModal').style.display = 'none';
                     selectedCharacter = character; //Store the selected character
-
+                
                     //Update the label below the selector image
                     const characterSelector = document.getElementById('selectCharacter');
                     let selectedLabel = document.getElementById('selectedCharacterLabel');
-
+                
                     if (!selectedLabel) {
                         selectedLabel = document.createElement('p');
                         selectedLabel.id = 'selectedCharacterLabel';
                         selectedLabel.style.marginTop = '5px';
                         characterSelector.appendChild(selectedLabel);
                     }
-
+                
                     //Update the selected character's name with color
                     selectedLabel.textContent = `Selected: ${character.name}`;
                     selectedLabel.style.color = character.color || 'white'; 
+                
+                    // Show character content instead of using tab system
+                    document.querySelector('.no-character-message').style.display = 'none';
+                    document.querySelector('.character-content').style.display = 'block';
+                    
+                    // Update content with the selected character's details
+                    const characterTabIcon = document.getElementById('selectedCharacterIcon');
+                    characterTabIcon.src = `images/Icons/${character.name}.png`; 
+                    const sequenceImage = document.getElementById('sequenceImage');
+                    sequenceImage.src = `images/Sequences/${character.name}.png`;
+                    updateForteIcons(character.name);
+                    document.querySelector('.character-info').scrollIntoView({ behavior: 'smooth' });
                 });
             });
         })
@@ -69,6 +85,13 @@ document.getElementById('closeCharacterModal').addEventListener('click', () => {
 //Weapon selection behavior
 const weaponModal = document.getElementById('weaponModal');
 const weaponListContainer = document.querySelector('.weapon-list');
+const rarityColors = {
+    "5-star": "#fff7b5",   
+    "4-star": "#e1bef3",   
+    "3-star": "#b4d4da",   
+    "2-star": "#bad1bf",   
+    "1-star": "#868686"    
+};
 
 //Function to load weapons based on the selected character's weapon type
 function loadWeapons() {
@@ -121,10 +144,13 @@ function loadWeapons() {
                     const encodedName = encodeURIComponent(weapon.name); 
                     document.getElementById('weaponImg').src = `images/Weapons/${weaponType}/${encodedName}.png`;
                     weaponModal.style.display = 'none';
+                    const weaponImg = document.getElementById('weaponImg');
+                    weaponImg.style.backgroundColor = rarityColors[weapon.rarity] || "transparent";
 
                     //Update the label below the selector image for the selected weapon
                     const weaponSelector = document.getElementById('selectWeapon');
                     let selectedWeaponLabel = document.getElementById('selectedWeaponLabel');
+                    document.querySelector('.weapon-choice').style.display = 'none';
 
                     if (!selectedWeaponLabel) {
                         selectedWeaponLabel = document.createElement('p');
@@ -134,8 +160,11 @@ function loadWeapons() {
                     }
 
                     //Update the selected weapon's name
-                    selectedWeaponLabel.textContent = `Selected: ${weapon.name}`;
-                    selectedWeaponLabel.style.color = 'white';
+                    selectedWeaponLabel.innerHTML = `<span class="weapon-sig">${weapon.name}</span>`;
+                    const progressContainers = document.querySelectorAll('.progress-container');
+                    const sliders = document.querySelectorAll('.slider');
+                    progressContainers.forEach(container => container.style.display = 'block');
+                    sliders.forEach(slider => slider.style.display = 'flex');
                 });
             });
         })
@@ -150,7 +179,7 @@ const weaponSelector = document.getElementById('selectWeapon');
 weaponSelector.addEventListener('click', () => {
     //If no character is selected, display prompt
     if (!selectedCharacter) {
-        weaponListContainer.innerHTML = '<p style="color: #FFFFFF; font-size: 60px;">Select a resonator first</p>';
+        weaponListContainer.innerHTML = '<p style="color: #FFFFFF; font-size: 60px;">Select a resonator first!</p>';
     } else {
         //Load the appropriate weapons
         loadWeapons();

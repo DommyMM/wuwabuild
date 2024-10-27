@@ -1,0 +1,214 @@
+.forte-group {
+    position: absolute;
+    top: 5%;
+    right: 0%;
+    width: 60%; 
+    height: 85%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.forte-slots {
+    display: flex;
+    position: relative;
+    justify-content: space-between;
+    gap: 30px;
+    width: 100%;
+}
+
+.skill-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+}
+
+.skill-branch:nth-child(1) {
+    top: 20%;
+}
+
+.skill-branch:nth-child(2) {
+    top: 10%;
+}
+
+.skill-branch:nth-child(3) {
+    top: 10%;
+}
+
+.skill-branch:nth-child(4) {
+    top: 10%;
+}
+
+.skill-branch:nth-child(5) {
+    top: 20%;
+}
+
+.connector {
+    height: 60px;
+    margin: 5px 0;
+    width: 2px;
+    background-color: rgba(255, 255, 255, 0.8);  
+    box-shadow: 
+        0 0 5px rgba(255, 255, 255, 0.5),  
+        0 0 10px rgba(255, 255, 255, 0.3),  
+        2px 0 2px rgba(0, 0, 0, 0.2),  
+        -2px 0 2px rgba(0, 0, 0, 0.2);  
+    transition: all 0.3s ease;
+}
+
+
+.node-container {
+    width: 55px;
+    height: 55px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.glowing-node {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background-color: transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.glowing-node:hover {
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.glowing-node.active {
+    background-color: #a69662;
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.diamond-node {
+    width: 60px;
+    height: 60px;
+    background-color: #a69662;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    transform: rotate(45deg);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.diamond-node:not(.active) {
+    background-color: transparent;
+}
+
+.diamond-node:hover {
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.diamond-node.active {
+    background-color: #a69662;
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.forte-slot {
+    width: 75px;
+    height: 75px;
+    background-color: #a69662;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    transform: rotate(45deg);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.forte-slot:hover {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+}
+
+.bottom-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 60px;
+    position: relative;
+}
+
+.skill-info {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+}
+
+.level-display {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 18px;
+    margin-bottom: 2px;
+    z-index: 4;
+}
+
+.skill-name {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 18px;
+    white-space: nowrap;
+    padding: 2px 0;
+    text-align: center;
+}
+
+.skill-input {
+    width: 30px;
+    background: transparent;
+    border: none;
+    color: white;
+    text-align: center;
+    font-size: 14px;
+}
+
+.skill-image{
+    width: 90%; 
+    height: 90%;
+    object-fit: contain;
+    transform: rotate(-45deg); 
+    position: absolute;
+    top: 5%; 
+    left: 5%;
+}
+
+.node-image {
+    width: 80%; 
+    height: 80%; 
+    object-fit: contain;
+    position: absolute;
+    top: 10%; 
+    left: 10%; 
+}
+
+.max-button{
+    position: absolute;
+    top: 95%;
+    left: 40%;
+    width: 10%;
+    height: 5%;
+    font-size: 24px;
+    text-align: center;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.max-button:hover {
+    background-color: #a69662;
+}

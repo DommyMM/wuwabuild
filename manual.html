@@ -4,9 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manual Input</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/manual.css">
   <link rel="stylesheet" href="css/selection.css">
+  <link rel="stylesheet" href="css/tab.css">
+  <link rel="stylesheet" href="css/sequences.css">
+  <link rel="stylesheet" href="css/forte.css">
+  <link rel="stylesheet" href="css/slider.css">
 </head>
 <body>
   <!--Return to Automatic Builder-->
@@ -18,17 +23,221 @@
   
 <!--Character Selection-->
 <div class="manual-section">
-  <label>Select Character:</label>
+  <label>Select Resonator:</label>
   <div class="select-box" id="selectCharacter">
-    <img src="images/Resonator.png" alt="Select Character" class="select-img" id="characterImg">
+    <img src="images/Resources/Resonator.png" alt="Select Character" class="select-img" id="characterImg">
   </div>
 </div>
 
-<!--Weapon Selection-->
-<div class="manual-section">
-  <label>Select Weapon:</label>
-  <div class="select-box" id="selectWeapon">
-    <img src="images/Weapon.png" alt="Select Weapon" class="select-img" id="weaponImg">
+
+<div class="character-info">
+  <div class="no-character-message">Select a resonator first</div>
+  <div class="character-content" style="display: none;">
+    <!--Character Icon-->
+    <img id="selectedCharacterIcon" src="images/Icons/Default.png" alt="Selected Character Icon" class="character-tab-icon">
+    
+    <!--Level Container-->
+    <div class="character-level-container">
+      <span class="level-label">Level</span>
+      <input type="range" min="1" max="90" value="1" class="character-slider" id="characterLevel">
+      <div class="character-level-value">1</div>
+      <div class="star-container">
+        <div class="star-background">
+          <img src="images/Resources/Level.png" alt="Star Background" class="star-background-image">
+        </div>
+        <div class="diamond"></div>
+        <div class="diamond"></div>
+        <div class="diamond"></div>
+        <div class="diamond"></div>
+        <div class="diamond"></div>
+        <div class="diamond"></div>
+      </div>
+    </div>
+
+    <!--Sequence Group-->
+    <div class="sequence-group">
+      <img id="sequenceImage" src="images/Icons/Default.png" alt="Sequence Image">
+      <div class="sequence-selector">
+        <div class="sequence-label">Sequence</div>
+        <div class="sequence-options">
+          <div class="sequence-option" data-sequence="1">1</div>
+          <div class="sequence-option" data-sequence="2">2</div>
+          <div class="sequence-option" data-sequence="3">3</div>
+          <div class="sequence-option" data-sequence="4">4</div>
+          <div class="sequence-option" data-sequence="5">5</div>
+          <div class="sequence-option" data-sequence="6">6</div>
+        </div>
+      </div>
+    </div>
+
+    <!--Weapon Selection-->
+    <div class="weapon-selection">
+      <div class="weapon-choice">Pick a Weapon</div>
+      <div class="weapon-box" id="selectWeapon">
+        <img src="images/Resources/Weapon.png" alt="Select Weapon" class="select-img" id="weaponImg">
+      </div>
+      <div class="progress-container">
+        <div id="progress-fill"></div>
+        <div class="text-vertical" contenteditable="true">1</div>
+        <div class="dragger"></div>
+    </div>
+      <div class="slider">
+        <div class="control-button"contenteditable="true">1</div>
+        <svg class="progress-bar" width="173" height="173">
+            <circle class="progress-circle" cx="87" cy="87" r="81"></circle>
+            <circle id="circle2" class="progress-circle" cx="87" cy="87" r="81" style="stroke: url(#gradient); stroke-width: 9px; stroke-linecap: round;"></circle>
+            <defs>
+                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color: #a9eeff"></stop>
+                    <stop offset="50%" style="stop-color: #9d3be9"></stop>
+                    <stop offset="100%" style="stop-color: #edd72b"></stop>
+                </linearGradient>
+            </defs>
+        </svg>
+      </div>
+    </div>    
+
+    <!--Forte Group-->
+    <div class="forte-group">
+      <div class="forte-slots">
+          <!-- First Skill Branch - Normal Attack -->
+          <div class="skill-branch">
+            <div class="node-container">
+                <div class="glowing-node" data-tree="tree1" data-skill="tree1-top" onclick="this.classList.toggle('active')">
+                    <img class="node-image" alt="Top Node">
+                </div>
+            </div>
+            <div class="connector"></div>
+            <div class="node-container">
+                <div class="glowing-node" data-tree="tree1" data-skill="tree1-middle" onclick="this.classList.toggle('active')">
+                    <img class="node-image" alt="Middle Node">
+                </div>
+            </div>
+            <div class="connector"></div>
+            <div class="bottom-wrapper">
+                <div class="forte-slot" data-skill="normal-attack">
+                    <img class="skill-image" alt="Normal Attack">
+                    <div class="node-content"></div>
+                </div>
+                <div class="skill-info">
+                    <div class="level-display">
+                        Lv. <input type="number" class="skill-input" value="1" min="0" max="10">/10
+                    </div>
+                    <div class="skill-name">Normal Attack</div>
+                </div>
+            </div>
+          </div>
+        <!-- Second Skill Branch - Resonance Skill -->
+        <div class="skill-branch">
+          <div class="node-container">
+            <div class="glowing-node" data-tree="tree2" data-skill="tree2-top" onclick="this.classList.toggle('active')">
+              <img class="node-image" alt="Top Node">
+            </div>
+          </div>
+          <div class="connector"></div>
+          <div class="node-container">
+            <div class="glowing-node" data-tree="tree2" data-skill="tree2-middle" onclick="this.classList.toggle('active')">
+              <img class="node-image" alt="Middle Node">
+            </div>
+          </div>
+          <div class="connector"></div>
+          <div class="bottom-wrapper">
+            <div class="forte-slot" data-skill="skill">
+              <img class="skill-image" alt="Skill">
+              <div class="node-content"></div>
+            </div>
+            <div class="skill-info">
+              <div class="level-display">
+                Lv. <input type="number" class="skill-input" value="1" min="0" max="10">/10
+              </div>
+              <div class="skill-name">Resonance Skill</div>
+            </div>
+          </div>
+        </div>
+        <!--Third Skill Branch - Forte Circuit-->
+        <div class="skill-branch">
+          <div class="node-container">
+            <div class="glowing-node" data-skill="tree3-top" onclick="this.classList.toggle('active')">
+              <img class="node-image" alt="Top Node">
+            </div>
+          </div>
+          <div class="connector"></div>
+          <div class="node-container">
+            <div class="glowing-node" data-skill="tree3-middle" onclick="this.classList.toggle('active')">
+              <img class="node-image" alt="Middle Node">
+            </div>
+          </div>
+          <div class="connector"></div>
+          <div class="bottom-wrapper">
+            <div class="forte-slot" data-skill="circuit">
+              <img class="skill-image" alt="Circuit">
+              <div class="node-content"></div>
+            </div>
+            <div class="skill-info">
+              <div class="level-display">
+                Lv. <input type="number" class="skill-input" value="1" min="0" max="10">/10
+              </div>
+              <div class="skill-name">Forte Circuit</div>
+            </div>
+          </div>
+        </div>
+        <!-- Fourth Skill Branch - Resonance Liberation -->
+        <div class="skill-branch">
+          <div class="node-container">
+              <div class="glowing-node" data-tree="tree4" data-skill="tree4-top" onclick="this.classList.toggle('active')">
+                  <img class="node-image" alt="Top Node">
+              </div>
+          </div>
+          <div class="connector"></div>
+          <div class="node-container">
+              <div class="glowing-node" data-tree="tree4" data-skill="tree4-middle" onclick="this.classList.toggle('active')">
+                  <img class="node-image" alt="Middle Node">
+              </div>
+          </div>
+          <div class="connector"></div>
+          <div class="bottom-wrapper">
+              <div class="forte-slot" data-skill="liberation">
+                  <img class="skill-image" alt="Liberation">
+                  <div class="node-content"></div>
+              </div>
+              <div class="skill-info">
+                  <div class="level-display">
+                      Lv. <input type="number" class="skill-input" value="1" min="0" max="10">/10
+                  </div>
+                  <div class="skill-name">Resonance Liberation</div>
+              </div>
+          </div>
+        </div>
+          <!-- Fifth Skill Branch - Intro Skill -->
+          <div class="skill-branch">
+            <div class="node-container">
+                <div class="glowing-node" data-tree="tree5" data-skill="tree5-top" onclick="this.classList.toggle('active')">
+                    <img class="node-image" alt="Top Node">
+                </div>
+            </div>
+            <div class="connector"></div>
+            <div class="node-container">
+                <div class="glowing-node" data-tree="tree5" data-skill="tree5-middle" onclick="this.classList.toggle('active')">
+                    <img class="node-image" alt="Middle Node">
+                </div>
+            </div>
+            <div class="connector"></div>
+            <div class="bottom-wrapper">
+                <div class="forte-slot" data-skill="intro">
+                    <img class="skill-image" alt="Intro Skill">
+                    <div class="node-content"></div>
+                </div>
+                <div class="skill-info">
+                    <div class="level-display">
+                        Lv. <input type="number" class="skill-input" value="1" min="0" max="10">/10
+                    </div>
+                    <div class="skill-name">Intro Skill</div>
+                </div>
+            </div>
+          </div>
+      </div>
+      <button id="maxButton" class="max-button">Max Forte</button>
+    </div>
   </div>
 </div>
 
@@ -50,8 +259,10 @@
   </div>
 </div>
 
-
   <!--Scripts-->
+  <script src="js/slider.js"></script>
+  <script src="js/forte.js"></script>
+  <script src="js/sequences.js"></script>
   <script src="js/selection.js"></script>
   <script src="js/manual.js"></script>
 </body>

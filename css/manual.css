@@ -1,7 +1,8 @@
-h1,h2, label{
+h1, h2, label {
   font-size: 40px;
   text-align: center;
 }
+
 /*Manual section adjustments*/
 .manual-section {
   margin: 20px;
@@ -25,11 +26,11 @@ h1,h2, label{
   height: 80px;
   border: 2px solid #ccc;
   border-radius: 50%;
-  margin-top: 10px; /
+  margin-top: 10px;
 }
 
 /*Manual section label styling*/
 .manual-section label {
   font-size: 30px;
-  margin-bottom: 5px; 
+  margin-bottom: 5px;
 }
