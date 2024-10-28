@@ -1,8 +1,3 @@
-document.querySelector('.skill-input').addEventListener('input', function(e) {
-    if (e.target.value > 10) e.target.value = 10;
-    if (e.target.value < 1) e.target.value = 1;
-});
-
 function updateForteIcons(characterName) {
     const imagePaths = {
         "normal-attack": `images/Skills/${characterName}/SP_Icon${characterName}A1.png`,
@@ -51,16 +46,44 @@ function updateForteIcons(characterName) {
     });
 }
 
-//Get the max button
+document.querySelectorAll('.skill-input').forEach(input => {
+    input.addEventListener('click', function() {
+        this.value = '';
+        this.focus();
+        this.select();
+    });
+ 
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === 'Escape') {
+            this.blur();  
+        }
+    });
+ 
+    // Check bounds and handle empty when leaving focus
+    input.addEventListener('blur', function() {
+        if (this.value.trim() === '') {
+            this.value = '1';
+        } else {
+            if (this.value > 10) this.value = 10;
+            if (this.value < 1) this.value = 1;
+        }
+    });
+ });
+
 const maxButton = document.getElementById('maxButton');
 let clickCount = 0;
 
-//Add event listener to handle the different click actions
 maxButton.addEventListener('click', () => {
-    clickCount = (clickCount + 1) % 3; 
+    clickCount = (clickCount + 1) % 3;  
+    
+    //Update the image based on click count
+    const maxImage = document.querySelector('.max-frame');
+    maxImage.src = `images/Resources/Max${clickCount === 0 ? '' : clickCount}.png`;
 
+    //Update functionality based on click count
     if (clickCount === 1) {
-        //First click: Set all forte levels to 10/10
+        //First click: Set all levels to 10
         document.querySelectorAll('.skill-input').forEach(input => {
             input.value = 10;
         });
@@ -69,8 +92,8 @@ maxButton.addEventListener('click', () => {
         document.querySelectorAll('.glowing-node').forEach(node => {
             node.classList.add('active');
         });
-    } else {
-        //Third click: Revert to Lv 1 and turn all nodes off
+    } else if (clickCount === 0) {  
+        //Third click: Reset everything and return to empty Max.png
         document.querySelectorAll('.skill-input').forEach(input => {
             input.value = 1;
         });

@@ -34,3 +34,54 @@ h1, h2, label {
   font-size: 30px;
   margin-bottom: 5px;
 }
+
+#selectedCharacterLabel{
+  font-size: 30px;
+  text-align: center;
+}
+
+#selectedCharacterLabel {
+  font-size: 30px;
+  text-align: center;
+}
+
+@keyframes shine {
+  0% {
+      background-position: 0% 50%;
+  }
+  100% {
+      background-position: 200% 50%;
+  }
+}
+
+.char-sig {
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 3s linear infinite;
+}
+
+.char-sig.element-fusion {
+  background-image: linear-gradient(to right, #ff4d00, #ff8c00, #ff4d00);
+}
+
+.char-sig.element-glacio {
+  background-image: linear-gradient(to right, #00ffff, #87ceeb, #00ffff);
+}
+
+.char-sig.element-aero {
+  background-image: linear-gradient(to right, #98ff98, #90ee90, #98ff98);
+}
+
+.char-sig.element-electro {
+  background-image: linear-gradient(to right, #9370db, #ba55d3, #9370db);
+}
+
+.char-sig.element-spectro {
+  background-image: linear-gradient(to right, #ffd700, #ffa500, #ffd700);
+}
+
+.char-sig.element-havoc {
+  background-image: linear-gradient(to right, #ff1493, #ff69b4, #ff1493);
+}

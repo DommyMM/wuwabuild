@@ -78,8 +78,7 @@
       </div>
       <div class="progress-container">
         <div id="progress-fill"></div>
-        <div class="text-vertical" contenteditable="true">1</div>
-        <div class="dragger"></div>
+        <div class="dragger" contenteditable="true">1</div>
     </div>
       <div class="slider">
         <div class="control-button"contenteditable="true">1</div>
@@ -103,17 +102,17 @@
           <!-- First Skill Branch - Normal Attack -->
           <div class="skill-branch">
             <div class="node-container">
+              <div class="upper-line"></div>
                 <div class="glowing-node" data-tree="tree1" data-skill="tree1-top" onclick="this.classList.toggle('active')">
                     <img class="node-image" alt="Top Node">
                 </div>
             </div>
-            <div class="connector"></div>
+            <div class="lower-line"></div>
             <div class="node-container">
                 <div class="glowing-node" data-tree="tree1" data-skill="tree1-middle" onclick="this.classList.toggle('active')">
                     <img class="node-image" alt="Middle Node">
                 </div>
             </div>
-            <div class="connector"></div>
             <div class="bottom-wrapper">
                 <div class="forte-slot" data-skill="normal-attack">
                     <img class="skill-image" alt="Normal Attack">
@@ -130,17 +129,17 @@
         <!-- Second Skill Branch - Resonance Skill -->
         <div class="skill-branch">
           <div class="node-container">
+            <div class="upper-line"></div>
             <div class="glowing-node" data-tree="tree2" data-skill="tree2-top" onclick="this.classList.toggle('active')">
               <img class="node-image" alt="Top Node">
             </div>
           </div>
-          <div class="connector"></div>
+          <div class="lower-line"></div>
           <div class="node-container">
             <div class="glowing-node" data-tree="tree2" data-skill="tree2-middle" onclick="this.classList.toggle('active')">
               <img class="node-image" alt="Middle Node">
             </div>
           </div>
-          <div class="connector"></div>
           <div class="bottom-wrapper">
             <div class="forte-slot" data-skill="skill">
               <img class="skill-image" alt="Skill">
@@ -157,17 +156,17 @@
         <!--Third Skill Branch - Forte Circuit-->
         <div class="skill-branch">
           <div class="node-container">
+            <div class="upper-line"></div>
             <div class="glowing-node" data-skill="tree3-top" onclick="this.classList.toggle('active')">
               <img class="node-image" alt="Top Node">
             </div>
           </div>
-          <div class="connector"></div>
+          <div class="lower-line"></div>
           <div class="node-container">
             <div class="glowing-node" data-skill="tree3-middle" onclick="this.classList.toggle('active')">
               <img class="node-image" alt="Middle Node">
             </div>
           </div>
-          <div class="connector"></div>
           <div class="bottom-wrapper">
             <div class="forte-slot" data-skill="circuit">
               <img class="skill-image" alt="Circuit">
@@ -184,17 +183,17 @@
         <!-- Fourth Skill Branch - Resonance Liberation -->
         <div class="skill-branch">
           <div class="node-container">
+            <div class="upper-line"></div>
               <div class="glowing-node" data-tree="tree4" data-skill="tree4-top" onclick="this.classList.toggle('active')">
                   <img class="node-image" alt="Top Node">
               </div>
           </div>
-          <div class="connector"></div>
+          <div class="lower-line"></div>
           <div class="node-container">
               <div class="glowing-node" data-tree="tree4" data-skill="tree4-middle" onclick="this.classList.toggle('active')">
                   <img class="node-image" alt="Middle Node">
               </div>
           </div>
-          <div class="connector"></div>
           <div class="bottom-wrapper">
               <div class="forte-slot" data-skill="liberation">
                   <img class="skill-image" alt="Liberation">
@@ -211,17 +210,17 @@
           <!-- Fifth Skill Branch - Intro Skill -->
           <div class="skill-branch">
             <div class="node-container">
+              <div class="upper-line"></div>
                 <div class="glowing-node" data-tree="tree5" data-skill="tree5-top" onclick="this.classList.toggle('active')">
                     <img class="node-image" alt="Top Node">
                 </div>
             </div>
-            <div class="connector"></div>
+            <div class="lower-line"></div>
             <div class="node-container">
                 <div class="glowing-node" data-tree="tree5" data-skill="tree5-middle" onclick="this.classList.toggle('active')">
                     <img class="node-image" alt="Middle Node">
                 </div>
             </div>
-            <div class="connector"></div>
             <div class="bottom-wrapper">
                 <div class="forte-slot" data-skill="intro">
                     <img class="skill-image" alt="Intro Skill">
@@ -236,7 +235,9 @@
             </div>
           </div>
       </div>
-      <button id="maxButton" class="max-button">Max Forte</button>
+      <div class="max-wrapper">
+        <img src="images/Resources/Max.png"id="maxButton" class="max-frame" alt="Max Frame" title="First click: Set all levels to 10&#10;Second click: Activate all nodes&#10;Third click: Reset everything">
+    </div>
     </div>
   </div>
 </div>

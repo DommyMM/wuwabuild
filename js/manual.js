@@ -72,8 +72,7 @@ function updateSlider() {
     characterSlider.value = closest;
 
     const valuePercentage = (characterSlider.value / characterSlider.max) * 100;
-    characterSlider.style.background = `linear-gradient(to right, #b69e60 ${valuePercentage}%, #d3d3d3 ${valuePercentage}%)`;
-    
+    characterSlider.style.background = `linear-gradient(to right, #ffd700 0%, #ff8c00 ${valuePercentage}%, #d3d3d3 ${valuePercentage}%)`;
     //Update level display
     characterLevelValue.textContent = characterSlider.value;
     
@@ -94,13 +93,19 @@ characterLevelValue.addEventListener('click', () => {
     input.type = 'number';
     input.min = 1;
     input.max = 90;
-    input.value = characterSlider.value;
-    input.classList.add('level-input'); //Optional: Add class for styling
-    
-    //Replace the current level display with the input field
+    input.value = ''; // Clear the input field for new input
+    input.classList.add('level-input'); // Optional: Add class for styling
+
+    // Store the current value to revert if needed
+    input.dataset.previousValue = characterSlider.value;
+
+    // Replace the current level display with the input field
     characterLevelValue.replaceWith(input);
     input.focus();
-    
+
+    // Select the input content for easy replacement 
+    input.select();
+
     //Function to update level based on input
     function updateLevelFromInput() {
         let typedValue = parseInt(input.value, 10);
@@ -115,12 +120,20 @@ characterLevelValue.addEventListener('click', () => {
         updateSlider(); 
     }
 
-    //Update on each keystroke in real-time
-    input.addEventListener('input', updateLevelFromInput);
-    
+    // **Remove the real-time input event listener**
+    // input.addEventListener('input', updateLevelFromInput); // Remove or comment out this line
+
     //Handle when the user presses Enter or loses focus
     function finalizeLevelFromInput() {
-        updateLevelFromInput(); 
+        if (input.value.trim() === '') {
+            // If input is empty, revert to the previous value
+            input.value = input.dataset.previousValue;
+            characterLevelValue.textContent = input.dataset.previousValue;
+            characterSlider.value = input.dataset.previousValue;
+            updateSlider();
+        } else {
+            updateLevelFromInput(); 
+        }
         input.replaceWith(characterLevelValue); 
     }
 

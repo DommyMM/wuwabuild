@@ -52,8 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 
                     //Update the selected character's name with color
-                    selectedLabel.textContent = `Selected: ${character.name}`;
-                    selectedLabel.style.color = character.color || 'white'; 
+                    selectedLabel.innerHTML = `<span class="char-sig element-${character.element.toLowerCase()}">${character.name}</span>`;
                 
                     // Show character content instead of using tab system
                     document.querySelector('.no-character-message').style.display = 'none';
@@ -160,7 +159,7 @@ function loadWeapons() {
                     }
 
                     //Update the selected weapon's name
-                    selectedWeaponLabel.innerHTML = `<span class="weapon-sig">${weapon.name}</span>`;
+                    selectedWeaponLabel.innerHTML = `<span class="weapon-sig rarity-${weapon.rarity.charAt(0)}">${weapon.name}</span>`;
                     const progressContainers = document.querySelectorAll('.progress-container');
                     const sliders = document.querySelectorAll('.slider');
                     progressContainers.forEach(container => container.style.display = 'block');

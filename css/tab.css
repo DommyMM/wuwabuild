@@ -47,7 +47,7 @@
 .character-slider {
     -webkit-appearance: none; 
     appearance: none;
-    width: calc(min(40vh, 320px)); 
+    width: 80%;
     height: calc(min(0.8vh, 6px)); 
     outline: none; 
     opacity: 0.7; 
@@ -171,12 +171,10 @@
     display: block;
 }
 
-#sequenceImage {
-    position: absolute;
-    top: calc(min(1.3vh, 10px));
-    right: calc(min(1.3vh, 10px));
-    object-fit: contain;
-    z-index: 2;
+.level-input::-webkit-inner-spin-button,
+.level-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .level-label {
@@ -188,4 +186,12 @@
     top: calc(min(12vh, 64px) + 20px);
     left: 50%;
     transform: translateX(-50%);
+}
+
+#sequenceImage {
+    position: absolute;
+    top: calc(min(1.3vh, 10px));
+    right: calc(min(1.3vh, 10px));
+    object-fit: contain;
+    z-index: 2;
 }

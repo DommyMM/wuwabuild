@@ -96,13 +96,13 @@
 }
 
 .progress-container {
-  height: 50%;
+  height: 55%;
   width: 10%;
   background: rgb(222, 222, 222);
   position: relative;
   border-radius: 15px;
   left: 15%;
-  top: 0;
+  top: 0%;
   cursor: pointer;
 }
 
@@ -117,10 +117,10 @@
     pointer-events: none;
 }
 
-.text-vertical {
+.dragger {
     position: absolute;
-    left: -175%;
-    top: -40%;
+    left: -125%;
+    bottom: 0%;
     text-align: center;
     background: #a69662;
     color: white;
@@ -128,28 +128,12 @@
     padding: 5px;
     font-weight: 600;
     font-family: poppins;
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: 14px;
+    width: 13px;
+    height: 13px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0.17mm solid rgba(57, 55, 53);
-    z-index: 3;
-}
-
-.dragger {
-    position: absolute;
-    left: -60%;
-    bottom: 0%;
-    text-align: center;
-    background: #a69662;
-    color: white;
-    border-radius: 50%;
-    padding: 5px;
-    width: 3px;
-    height: 3px;
-    display: flex;
     border: 0.17mm solid rgba(57, 55, 53);
     z-index: 3;
     cursor: grab;
@@ -159,8 +143,4 @@
 .dragger.dragging {
     cursor: grabbing;
     background: #8a7b4e;
-}
-
-.text-vertical:focus {
-    outline: none;
 }

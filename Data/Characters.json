@@ -1,106 +1,132 @@
 [
     {
         "name": "Aalto",
-        "weaponType": "Pistol"
+        "weaponType": "Pistol",
+        "element": "Aero"
     },
     {
         "name": "Baizhi",
-        "weaponType": "Rectifier"  
+        "weaponType": "Rectifier",
+        "element": "Glacio"
     },
     {
         "name": "Calcharo",
-        "weaponType": "Broadblade"  
+        "weaponType": "Broadblade",
+        "element": "Electro"
     },
     {
         "name": "Camellya",
-        "weaponType": "Sword"  
+        "weaponType": "Sword",
+        "element": "Havoc"
     },
     {
         "name": "Changli",
-        "weaponType": "Sword"  
+        "weaponType": "Sword",
+        "element": "Fusion"
     },
     {
         "name": "Chixia",
-        "weaponType": "Pistol"  
+        "weaponType": "Pistol",
+        "element": "Fusion"
     },
     {
         "name": "Danjin",
-        "weaponType": "Sword"  
+        "weaponType": "Sword",
+        "element": "Havoc"
     },
     {
         "name": "Dengdeng",
-        "weaponType": "Broadblade"  
+        "weaponType": "Broadblade",
+        "element": "Electro"
     },
     {
         "name": "Encore",
-        "weaponType": "Rectifier"  
+        "weaponType": "Rectifier",
+        "element": "Fusion"
     },
     {
         "name": "Jianxin",
-        "weaponType": "Gauntlet"  
+        "weaponType": "Gauntlet",
+        "element": "Aero"
     },
     {
         "name": "Jinhsi",
-        "weaponType": "Broadblade"  
+        "weaponType": "Broadblade",
+        "element": "Spectro"
     },
     {
         "name": "Jiyan",
-        "weaponType": "Broadblade"  
+        "weaponType": "Broadblade",
+        "element": "Aero"
     },
     {
         "name": "Lingyang",
-        "weaponType": "Gauntlet"  
+        "weaponType": "Gauntlet",
+        "element": "Glacio"
     },
     {
         "name": "Mortefi",
-        "weaponType": "Pistol"  
+        "weaponType": "Pistol",
+        "element": "Fusion"
     },
     {
         "name": "Rover (F)",
-        "weaponType": "Sword"  
+        "weaponType": "Sword",
+        "element": "Spectro"
     },
     {
         "name": "Rover (M)",
-        "weaponType": "Sword"  
+        "weaponType": "Sword",
+        "element": "Havoc"
     },
     {
         "name": "Sanhua",
-        "weaponType": "Sword"  
+        "weaponType": "Sword",
+        "element": "Glacio"
     },
     {
         "name": "Shorekeeper",
-        "weaponType": "Rectifier"  
+        "weaponType": "Rectifier",
+        "element": "Spectro"
     },
     {
         "name": "Taoqi",
-        "weaponType": "Broadblade"  
+        "weaponType": "Broadblade",
+        "element": "Havoc"
     },
     {
         "name": "Verina",
-        "weaponType": "Rectifier"  
+        "weaponType": "Rectifier",
+        "element": "Spectro"
     },
     {
         "name": "Xiangli Yao",
-        "weaponType": "Gauntlet"  
+        "weaponType": "Gauntlet",
+        "element": "Electro"
     },
     {
         "name": "Yangyang",
-        "weaponType": "Sword"  
+        "weaponType": "Sword",
+        "element": "Aero"
     },
     {
         "name": "Yinlin",
-        "weaponType": "Rectifier"  
+        "weaponType": "Rectifier",
+        "element": "Electro"
     },
     {
         "name": "Youhu",
-        "weaponType": "Gauntlet"  
+        "weaponType": "Gauntlet",
+        "element": "Glacio"
     },
     {
         "name": "Yuanwu",
-        "weaponType": "Gauntlet"  
+        "weaponType": "Gauntlet",
+        "element": "Electro"
     },
     {
         "name": "Zezhi",
-        "weaponType": "Rectifier"  
+        "weaponType": "Rectifier",
+        "element": "Glacio"
     }
 ]
