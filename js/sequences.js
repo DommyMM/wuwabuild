@@ -1,4 +1,21 @@
-let currentSequence = -1;  //Track current sequence level, -1 means none selected
+let currentSequence = 0;  //Track current sequence level
+
+const toggleElement = document.querySelector('.toggle');
+const toggleCircle = toggleElement.querySelector('.toggle-circle');
+toggleCircle.style.backgroundImage = "url('images/Elements/Havoc.png')";
+
+toggleElement.addEventListener('click', () => {
+  toggleElement.classList.add('touched');
+  
+  const isChecked = toggleElement.getAttribute('aria-checked') === 'true';
+  toggleElement.setAttribute('aria-checked', !isChecked);
+  const displayName = isChecked ? "RoverHavoc" : "RoverSpectro";
+
+
+  sequenceImage.src = `images/Sequences/${displayName}.png`;
+  updateForteIcons(displayName);
+  toggleCircle.style.backgroundImage = isChecked ? "url('images/Elements/Havoc.png')" : "url('images/Elements/Spectro.png')";
+});
 
 document.querySelectorAll('.sequence-option').forEach(option => {
     option.addEventListener('click', () => {

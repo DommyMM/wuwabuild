@@ -2,8 +2,11 @@
 .character-info {
     border: calc(min(0.15vh, 1px)) solid grey;
     border-radius: calc(min(1.3vh, 10px));
-    margin: calc(min(2.7vh, 20px)) calc(min(6.7vh, 50px));
+    margin: calc(min(2.7vh, 20px)) auto;
     background-color: #222;
+    width: 90%;
+    max-width: 2000px;
+    min-width: 1800px;
 }
 
 .no-character-message {
@@ -17,7 +20,7 @@
 
 .character-content {
     display: none;
-    height: 600px;
+    height: 650px;
     padding: calc(min(1.3vh, 10px));
     flex-direction: column;
     align-items: center;
@@ -26,166 +29,202 @@
 }
 
 .character-tab-icon {
-    width: calc(min(40vh, 400px));
-    height: auto;
+    height: 85%;
+    width: auto;
     object-fit: cover;
-    object-position: 0 calc(-5vh);
-    border-radius: calc(min(1.3vh, 10px));
+    top: -5%;
+    position: relative;
 }
 
+/* Level Container Base */
 .character-level-container {
     display: flex;
     align-items: center;
-    width: calc(min(40vh, 320px));
-    height: auto;
-    margin-top: calc(-7vh);
-    margin-left: calc(min(13vh, 100px));
-    position: absolute;
-    left: -3%;
-}
-
-.character-slider {
-    -webkit-appearance: none; 
-    appearance: none;
-    width: 80%;
-    height: calc(min(0.8vh, 6px)); 
-    outline: none; 
-    opacity: 0.7; 
-    transition: opacity .2s;
-    border-radius: calc(min(0.7vh, 5px));
-    z-index: 2; 
     position: relative;
-    display: block;
+    width: 20%;
+    height: 20%;
+    bottom: 5%;
 }
 
-.character-slider::-webkit-slider-thumb {
+/* Slider Group */
+.slider-group {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 2%;
+    position: absolute;
+    bottom: 30%;
+}
+
+/* Slider Base Styles */
+.character-slider {
     -webkit-appearance: none;
     appearance: none;
-    width: calc(min(2.7vh, 20px));
-    height: calc(min(2.7vh, 20px));
-    background: #e5d650; 
-    cursor: pointer;
+    width: 82%;
+    height: 6px;
+    background: linear-gradient(to right, #ffd700 0%, #ff8c00 50%, #d3d3d3 50%);
+    border-radius: 5px;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity 0.2s, background 0.2s;
+    z-index: 2;
+}
+
+/* Slider Thumb Styles */
+.character-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #e5d650;
     border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
 .character-slider::-moz-range-thumb {
-    width: calc(min(2.7vh, 20px));
-    height: calc(min(2.7vh, 20px));
-    background: #a69662; 
-    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    background: #a69662;
     border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
 }
 
+/* Level Display */
 .character-level-value {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: calc(min(2.4vh, 18px));
+    width: 15%;
+    right: 0%;
+    height: 25px;
     background-color: #a69662;
     color: white;
-    width: calc(min(6.5vh, 50px));
-    height: calc(min(3.3vh, 25px));
-    border-radius: calc(min(0.7vh, 5px));
-    position: relative;
-    z-index: 2;
+    font-size: 16px;
+    border-radius: 5px;
     cursor: pointer;
-}
-
-.star-background {
-    position: absolute;
-    width: 100%;
-    height: auto;
-    z-index: 1; 
-    opacity: 1; 
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-.star-background-image {
-    width: 100%;
-    height: auto;
-    object-fit: cover;
-}
-
-.star-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between; 
-    margin-bottom: calc(min(8vh, 60px) + 20px);
-    margin-left: calc(min(-26vh, -200px));
-    width: calc(min(40vh, 300px)); 
-    height: calc(min(8vh, 60px)); 
-    padding: calc(min(1.5vh, 10px)) calc(min(3vh, 20px)); 
-    position: relative;
     z-index: 2;
-}
-
-.diamond {
-    width: calc(min(3vh, 24px)); 
-    height: calc(min(3vh, 24px));
-    margin: calc(min(1.5vh, 10px));
-    transform: rotate(45deg); 
-    border: calc(min(0.3vh, 2px)) solid #5e6168; 
-    background-color: #1c282e; 
-    outline: calc(min(0.3vh, 2px)) solid transparent; 
-    transition: background-color 0.3s, border-color 0.3s;
-    box-shadow: 0 0 calc(min(0.7vh, 5px)) rgba(0, 0, 0, 0.3); 
-    position: relative;
-    z-index: 3;
-}
-
-.diamond.filled {
-    background-color: #ffffff; 
-    border-color: #c7c8cb; 
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8); 
-}
-
-.diamond:before {
-    content: "";
     position: absolute;
-    top: calc(min(0.4vh, 3px));
-    left: calc(min(0.4vh, 3px));
-    right: calc(min(0.4vh, 3px));
-    bottom: calc(min(0.4vh, 3px));
-    background-color: #1c282e; 
-    border-radius: calc(min(0.3vh, 2px)); 
-    z-index: -1; 
 }
 
-.diamond.filled:before {
-    background-color: transparent; 
-    box-shadow: none; 
-}
-
+/* Level Input (appears when clicking level value) */
 .level-input {
-    width: calc(min(6.5vh, 50px));
-    height: calc(min(3.3vh, 25px));
-    font-size: calc(min(2.4vh, 18px));
+    width: 15%;
+    min-width: 40px;
+    height: 25px;
+    font-size: 16px;
     text-align: center;
     background-color: #a69662;
     color: white;
     border: none;
-    border-radius: calc(min(0.7vh, 5px));
-    position: relative;
+    border-radius: 5px;
     z-index: 2;
-    display: block;
 }
 
+/* Remove spinner buttons from number input */
 .level-input::-webkit-inner-spin-button,
 .level-input::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
 
+/* Level Label */
 .level-label {
-    color: white;
-    font-size: calc(min(4vh, 30px));
-    text-align: center;
-    width: 100%;
     position: absolute;
-    top: calc(min(12vh, 64px) + 20px);
     left: 50%;
     transform: translateX(-50%);
+    color: white;
+    font-size: 24px;
+    text-align: center;
+    width: 100%;
+    bottom: 0%;
+}
+
+/* Star Container and Diamonds */
+.star-container {
+    width: 100%;
+    height: 50%;
+    left: 0%;
+    top: 0%;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    position: absolute;
+    z-index: 2;
+}
+
+.star-background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 1;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex; 
+    align-items: center;
+    justify-content: flex-start;  
+    gap: 10px;               
+    padding-left: 2%;        
+}
+
+.star-background-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.diamond-container{
+    position: absolute;
+    height: auto;
+    width: 100%;  
+    display: flex;
+    flex-direction: row;  
+    align-items: center;
+    gap: 10px;
+    padding-left: 2%;
+    padding-right: 2%;
+    z-index: 2;
+}
+
+/* Diamond Styles */
+.diamond {
+    height: 24px;
+    width: 24px;
+    margin: 10px;
+    transform: rotate(45deg);
+    border: 2px solid #5e6168;
+    background-color: #1c282e;
+    outline: 2px solid transparent;
+    transition: background-color 0.3s, border-color 0.3s;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 3;
+}
+
+.diamond.filled {
+    background-color: #ffffff;
+    border-color: #c7c8cb;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.diamond::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    background-color: #1c282e;
+    border-radius: 2px;
+    z-index: -1;
+    transition: background-color 0.3s;
+}
+
+.diamond.filled::before {
+    background-color: transparent;
+    box-shadow: none;
 }
 
 #sequenceImage {

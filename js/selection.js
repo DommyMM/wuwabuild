@@ -54,16 +54,24 @@ document.addEventListener('DOMContentLoaded', function () {
                     //Update the selected character's name with color
                     selectedLabel.innerHTML = `<span class="char-sig element-${character.element.toLowerCase()}">${character.name}</span>`;
                 
-                    // Show character content instead of using tab system
+                    //Show character content instead of using tab system
                     document.querySelector('.no-character-message').style.display = 'none';
                     document.querySelector('.character-content').style.display = 'block';
                     
-                    // Update content with the selected character's details
+                    //Update content with the selected character's details
                     const characterTabIcon = document.getElementById('selectedCharacterIcon');
                     characterTabIcon.src = `images/Icons/${character.name}.png`; 
-                    const sequenceImage = document.getElementById('sequenceImage');
-                    sequenceImage.src = `images/Sequences/${character.name}.png`;
-                    updateForteIcons(character.name);
+                    let displayName = character.name;
+                    if (displayName === "Rover (M)" || displayName === "Rover (F)") {
+                        displayName = "RoverHavoc";
+                        const toggleElement = document.querySelector('.toggle');
+                        toggleElement.style.display = 'block';
+                    }else{
+                        toggleElement.style.display = 'none';
+                    }
+                    sequenceImage.src = `images/Sequences/${displayName}.png`;
+                    updateForteIcons(displayName);
+                    displayName = character.name;
                     document.querySelector('.character-info').scrollIntoView({ behavior: 'smooth' });
                 });
             });
@@ -149,7 +157,6 @@ function loadWeapons() {
                     //Update the label below the selector image for the selected weapon
                     const weaponSelector = document.getElementById('selectWeapon');
                     let selectedWeaponLabel = document.getElementById('selectedWeaponLabel');
-                    document.querySelector('.weapon-choice').style.display = 'none';
 
                     if (!selectedWeaponLabel) {
                         selectedWeaponLabel = document.createElement('p');

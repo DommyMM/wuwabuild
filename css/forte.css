@@ -27,11 +27,11 @@
 }
 
 .skill-branch:nth-child(1), .skill-branch:nth-child(5) {
-    top: 15%;
+    top: 20%;
 }
 
 .skill-branch:nth-child(2),.skill-branch:nth-child(4) {
-    top: 5%;
+    top: 10%;
 }
 
 .skill-branch:nth-child(3) {
@@ -118,7 +118,7 @@
     flex-direction: column;
     align-items: center;
     position: relative;
-    top: 5%;
+    top: 10%;
 }
 
 .level-display {
@@ -164,9 +164,6 @@
     top: 37.5%; 
     left: 37.5%; 
     z-index: 1;
-}
-
-.glowing-node.active .node-image {
     filter: invert(1);
 }
 
@@ -187,14 +184,14 @@
 
 
 .upper-line {
-    height: 125%; 
+    height: 130%; 
     top: 65%; 
 }
 
 
 .lower-line {
-    height: 27%; 
-    top: 33%;
+    height: 24%; 
+    top: 31%;
 }
 
 .skill-branch:nth-child(2) .upper-line, .skill-branch:nth-child(4) .upper-line {
@@ -203,8 +200,8 @@
 }
 
 .skill-branch:nth-child(2) .lower-line, .skill-branch:nth-child(4) .lower-line {
-    height: 32%;
-    top: 28%;
+    height: 30%;
+    top: 26%;
 }
 
 .skill-branch:nth-child(3) .upper-line {
@@ -214,17 +211,15 @@
 }
 
 .skill-branch:nth-child(3) .lower-line {
-    height: 22.5%;
-    top: 37%;
+    height: 20%;
+    top: 35%;
     right: 40%;
 }
-
 
 
 .max-wrapper {
     position: absolute;
     top: 83%;
-    left: 40%;
     display: flex;
     align-items: center;
     justify-content: center;

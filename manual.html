@@ -35,44 +35,46 @@
   <div class="character-content" style="display: none;">
     <!--Character Icon-->
     <img id="selectedCharacterIcon" src="images/Icons/Default.png" alt="Selected Character Icon" class="character-tab-icon">
+    <button class="toggle" role="switch" aria-checked="false" tabindex="0" style="display: none;">
+      <div class="toggle-circle"></div>
+    </button>
     
     <!--Level Container-->
     <div class="character-level-container">
       <span class="level-label">Level</span>
-      <input type="range" min="1" max="90" value="1" class="character-slider" id="characterLevel">
-      <div class="character-level-value">1</div>
+      <div class="slider-group">
+          <input type="range" min="1" max="90" value="1" class="character-slider" id="characterLevel">
+          <div class="character-level-value">1</div>
+      </div>
       <div class="star-container">
         <div class="star-background">
-          <img src="images/Resources/Level.png" alt="Star Background" class="star-background-image">
+            <img src="images/Resources/Level.png" alt="Star Background" class="star-background-image">
+            <div class="diamond-container">
+              <div class="diamond"></div>
+              <div class="diamond"></div>
+              <div class="diamond"></div>
+              <div class="diamond"></div>
+              <div class="diamond"></div>
+              <div class="diamond"></div>
+          </div>
         </div>
-        <div class="diamond"></div>
-        <div class="diamond"></div>
-        <div class="diamond"></div>
-        <div class="diamond"></div>
-        <div class="diamond"></div>
-        <div class="diamond"></div>
-      </div>
     </div>
-
+  </div>
     <!--Sequence Group-->
     <div class="sequence-group">
       <img id="sequenceImage" src="images/Icons/Default.png" alt="Sequence Image">
-      <div class="sequence-selector">
         <div class="sequence-label">Sequence</div>
-        <div class="sequence-options">
           <div class="sequence-option" data-sequence="1">1</div>
           <div class="sequence-option" data-sequence="2">2</div>
           <div class="sequence-option" data-sequence="3">3</div>
           <div class="sequence-option" data-sequence="4">4</div>
           <div class="sequence-option" data-sequence="5">5</div>
           <div class="sequence-option" data-sequence="6">6</div>
-        </div>
-      </div>
     </div>
 
     <!--Weapon Selection-->
     <div class="weapon-selection">
-      <div class="weapon-choice">Pick a Weapon</div>
+      <div class="weapon-choice">Weapon</div>
       <div class="weapon-box" id="selectWeapon">
         <img src="images/Resources/Weapon.png" alt="Select Weapon" class="select-img" id="weaponImg">
       </div>

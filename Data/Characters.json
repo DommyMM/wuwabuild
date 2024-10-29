@@ -72,12 +72,12 @@
     {
         "name": "Rover (F)",
         "weaponType": "Sword",
-        "element": "Spectro"
+        "element": "Rover"
     },
     {
         "name": "Rover (M)",
         "weaponType": "Sword",
-        "element": "Havoc"
+        "element": "Rover"
     },
     {
         "name": "Sanhua",
@@ -125,7 +125,7 @@
         "element": "Electro"
     },
     {
-        "name": "Zezhi",
+        "name": "Zhezhi",
         "weaponType": "Rectifier",
         "element": "Glacio"
     }

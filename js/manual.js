@@ -11,25 +11,6 @@ window.addEventListener('click', function(event) {
     }
 });
 
-function handleCharacterSelection(character) {
-    document.getElementById('characterImg').src = `images/Faces/${character.name}.png`;
-    document.getElementById('characterModal').style.display = 'none';
-    selectedCharacter = character; //Store the selected character
-
-    //Update icon and sequence image based on selected character
-    const characterTabIcon = document.getElementById('selectedCharacterIcon');
-    characterTabIcon.src = `images/Icons/${character.name}.png`;
-
-    const sequenceImage = document.getElementById('sequenceImage');
-    sequenceImage.src = `images/Sequences/${character.name}.png`;
-
-    //Enable dropdown (if disabled by default)
-    const sequenceDropdown = document.querySelector(".sequence-dropdown");
-    if (sequenceDropdown) {
-        sequenceDropdown.disabled = false;
-    }
-}
-
 const characterSlider = document.getElementById("characterLevel");
 const characterLevelValue = document.querySelector(".character-level-value");
 const starContainer = document.querySelector(".star-container");
@@ -73,7 +54,6 @@ function updateSlider() {
 
     const valuePercentage = (characterSlider.value / characterSlider.max) * 100;
     characterSlider.style.background = `linear-gradient(to right, #ffd700 0%, #ff8c00 ${valuePercentage}%, #d3d3d3 ${valuePercentage}%)`;
-    //Update level display
     characterLevelValue.textContent = characterSlider.value;
     
     //Update diamonds based on level
@@ -93,17 +73,13 @@ characterLevelValue.addEventListener('click', () => {
     input.type = 'number';
     input.min = 1;
     input.max = 90;
-    input.value = ''; // Clear the input field for new input
-    input.classList.add('level-input'); // Optional: Add class for styling
+    input.value = ''; 
+    input.classList.add('level-input'); 
 
-    // Store the current value to revert if needed
     input.dataset.previousValue = characterSlider.value;
 
-    // Replace the current level display with the input field
     characterLevelValue.replaceWith(input);
     input.focus();
-
-    // Select the input content for easy replacement 
     input.select();
 
     //Function to update level based on input
@@ -119,9 +95,6 @@ characterLevelValue.addEventListener('click', () => {
         characterLevelValue.textContent = typedValue;
         updateSlider(); 
     }
-
-    // **Remove the real-time input event listener**
-    // input.addEventListener('input', updateLevelFromInput); // Remove or comment out this line
 
     //Handle when the user presses Enter or loses focus
     function finalizeLevelFromInput() {
