@@ -84,8 +84,10 @@ function updateValueDropdown(valueDropdown, selectedStat, substatsData) {
 
 async function initializeStatsTab() {
     const substatsData = await loadSubstatsData();
-    if (!substatsData) {
-        console.error('Failed to load substats data');
+    const mainStatsData = await loadMainStatsData();
+    
+    if (!substatsData || !mainStatsData) {
+        console.error('Failed to load data');
         return;
     }
 
@@ -98,7 +100,7 @@ async function initializeStatsTab() {
 
         const statsTab = createStatsContainer(panel);
 
-        statsTab.appendChild(createStatSlot('main-stat', 'Main Stat', substatsData));
+        statsTab.appendChild(createMainStatSection(null, mainStatsData));
         
         for (let j = 1; j <= 5; j++) {
             statsTab.appendChild(createStatSlot('sub-stat', `Substat ${j}`, substatsData));

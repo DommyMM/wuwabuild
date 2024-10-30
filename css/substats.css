@@ -42,3 +42,17 @@
     width: 30%;
     cursor: pointer;
 }
+
+.main-stat-value {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 20px;
+    background-color: #a69662;
+    color: #ffffff;
+    font-size: 14px;
+    border-radius: 5px;
+    padding: 2px 5px;
+    text-align: center;
+}

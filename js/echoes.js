@@ -85,12 +85,86 @@ function setupSingleModal() {
 function openEchoModal(index) {
     const echoModal = document.getElementById('echoModal');
     const echoList = echoModal.querySelector('.echo-list');
-
     echoList.innerHTML = '';
 
-    const echoInfo = document.createElement('p');
-    echoInfo.textContent = `Details for Echo ${index}`;
-    echoList.appendChild(echoInfo);
+    const cost4Section = document.createElement('div');
+    cost4Section.classList.add('echo-cost-section');
+    const cost4Label = document.createElement('div');
+    cost4Label.classList.add('cost-label');
+    cost4Label.textContent = '4 Cost';
+    const cost4Grid = document.createElement('div');
+    cost4Grid.classList.add('echo-grid');
+    cost4Section.appendChild(cost4Label);
+
+    const cost3Section = document.createElement('div');
+    cost3Section.classList.add('echo-cost-section');
+    const cost3Label = document.createElement('div');
+    cost3Label.classList.add('cost-label');
+    cost3Label.textContent = '3 Cost';
+    const cost3Grid = document.createElement('div');
+    cost3Grid.classList.add('echo-grid');
+    cost3Section.appendChild(cost3Label);
+
+    const cost1Section = document.createElement('div');
+    cost1Section.classList.add('echo-cost-section');
+    const cost1Label = document.createElement('div');
+    cost1Label.classList.add('cost-label');
+    cost1Label.textContent = '1 Cost';
+    const cost1Grid = document.createElement('div');
+    cost1Grid.classList.add('echo-grid');
+    cost1Section.appendChild(cost1Label);
+
+    fetch('Data/Echoes.json')
+        .then(response => response.json())
+        .then(echoes => {
+            echoes.forEach(echo => {
+                const echoElement = document.createElement('div');
+                echoElement.classList.add('echo-option');
+
+                const img = document.createElement('img');
+                img.src = `images/Echoes/${echo.name}.png`;
+                img.alt = echo.name;
+                img.classList.add('echo-img');
+
+                echoElement.addEventListener('click', async () => {
+                    const panel = document.getElementById(`panel${index}`);
+                    panel.querySelector('#echoImg').src = `images/Echoes/${echo.name}.png`;
+                    panel.querySelector('#selectedEchoLabel').textContent = echo.name;
+                    const mainStatsData = await loadMainStatsData();
+                    if (mainStatsData) {
+                        updateMainStats(panel, echo.cost, mainStatsData);
+                    }
+                    echoModal.style.display = 'none';
+                });
+
+                echoElement.appendChild(img);
+                const nameLabel = document.createElement('span');
+                nameLabel.className = 'echo-name';
+                nameLabel.textContent = echo.name;
+                echoElement.appendChild(nameLabel);
+
+                switch(echo.cost) {
+                    case 4:
+                        cost4Grid.appendChild(echoElement);
+                        break;
+                    case 3:
+                        cost3Grid.appendChild(echoElement);
+                        break;
+                    case 1:
+                        cost1Grid.appendChild(echoElement);
+                        break;
+                }
+            });
+
+            cost4Section.appendChild(cost4Grid);
+            cost3Section.appendChild(cost3Grid);
+            cost1Section.appendChild(cost1Grid);
+
+            echoList.appendChild(cost4Section);
+            echoList.appendChild(cost3Section);
+            echoList.appendChild(cost1Section);
+        })
+        .catch(error => console.error("Error loading echoes:", error));
 
     echoModal.style.display = 'flex';
 }

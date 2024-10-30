@@ -60,7 +60,7 @@
 
 #selectedEchoLabel{
     position: relative;
-    width: 200%;
+    width: 270px;
     margin: 15px 15px;
 }
 
@@ -127,4 +127,75 @@
     border-radius: 5px;
     padding: 2px 5px;
     text-align: center;
+}
+.echo-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 15px;
+    height: 80vh;
+    overflow: hidden;
+}
+
+.echo-cost-section {
+    background-color: rgba(40, 40, 40, 0.95);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.cost-label {
+    color: #E0E0E0;
+    text-align: center;
+    padding: 10px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #444;
+    font-size: 18px;
+}
+
+.echo-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    overflow-y: auto;
+    padding-right: 10px; 
+    justify-content: center;
+}
+
+.echo-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 5px;
+    gap: 5px;
+}
+
+.echo-option:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.echo-img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+}
+
+.echo-name {
+    color: #E0E0E0;
+    font-size: 18px;
+    text-align: center;
+    max-width: 110px;
+    overflow-wrap: break-word;
+}
+
+.echo-modal-content {
+    width: 90%;
+    max-height: 90vh;
+    background-color: rgb(25, 25, 25);
+    border-radius: 12px;
+    overflow-y: auto;
 }
