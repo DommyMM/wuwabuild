@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="css/sequences.css">
   <link rel="stylesheet" href="css/forte.css">
   <link rel="stylesheet" href="css/slider.css">
+  <link rel="stylesheet" href="css/echoes.css">
+  <link rel="stylesheet" href="css/substats.css">
 </head>
 <body>
   <!--Return to Automatic Builder-->
@@ -19,7 +21,7 @@
     <a href="index.html" class="tab">Scan Screenshots</a>
   </div>
 
-  <h2>Manual Selection</h2>
+  <h2>Edit Stats</h2>
   
 <!--Character Selection-->
 <div class="manual-section">
@@ -59,7 +61,7 @@
           </div>
         </div>
     </div>
-  </div>
+    </div>
     <!--Sequence Group-->
     <div class="sequence-group">
       <img id="sequenceImage" src="images/Icons/Default.png" alt="Sequence Image">
@@ -262,7 +264,27 @@
   </div>
 </div>
 
+<div class="echoes-tab">
+  <div class="no-character-msg">Select a resonator first</div>
+  <div class="echoes-content" style="display: none">
+      <div class="echo-panels-container">
+      </div>
+  </div>
+</div>
+
+<!-- Echo Selection Modal -->
+<div id="echoModal" class="modal">
+  <div class="modal-content">
+      <span id="closeEchoModal" class="close">×</span>
+      <div class="echo-list">
+          <!-- Echo options will be populated here -->
+      </div>
+  </div>
+</div>
+
   <!--Scripts-->
+  <script src="js/substats.js"></script>
+  <script src="js/echoes.js"></script>
   <script src="js/slider.js"></script>
   <script src="js/forte.js"></script>
   <script src="js/sequences.js"></script>

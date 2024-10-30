@@ -57,6 +57,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     //Show character content instead of using tab system
                     document.querySelector('.no-character-message').style.display = 'none';
                     document.querySelector('.character-content').style.display = 'block';
+                    document.querySelector('.no-character-msg').style.display = 'none';
+                    document.querySelector('.echoes-content').style.display = 'block';                    
                     
                     //Update content with the selected character's details
                     const characterTabIcon = document.getElementById('selectedCharacterIcon');

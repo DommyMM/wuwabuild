@@ -10,7 +10,7 @@
 }
 
 .no-character-message {
-    font-size: calc(min(2.7vh, 20px));
+    font-size: 2.7vh;
     background-color: #333;
     color: #fff;
     padding: calc(min(1.3vh, 10px));
@@ -25,7 +25,6 @@
     flex-direction: column;
     align-items: center;
     position: relative;
-
 }
 
 .character-tab-icon {
