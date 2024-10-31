@@ -4,9 +4,15 @@
   font-weight: normal;
   font-style: normal;
 }
+@font-face {
+  font-family: 'Ropa';
+  src: url('../fonts/Ropa.OTF') format('truetype'); /*Adjusted path*/
+  font-weight: normal;
+  font-style: normal;
+}
 
 body, h1, h2, h3, h4, h5, h6, p, button, label {
-  font-family: 'YRDZST-Semibold', sans-serif;
+  font-family: 'Ropa', sans-serif;
 }
 
 

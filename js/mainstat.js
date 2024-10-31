@@ -13,6 +13,20 @@ function calculateMainStatValue(minValue, maxValue, level) {
     return minValue + ((maxValue - minValue) * (level - 1) / 24);
 }
 
+function updateMainStatValue(panel) {
+    const mainStatSelect = panel.querySelector('.main-stat .stat-select');
+    const mainStatValue = panel.querySelector('.main-stat-value');
+    const levelSlider = panel.querySelector('.echo-slider');
+    
+    if (mainStatSelect && mainStatValue && mainStatSelect.selectedIndex > 0) {
+        const selectedOption = mainStatSelect.options[mainStatSelect.selectedIndex];
+        const minValue = parseFloat(selectedOption.dataset.min);
+        const maxValue = parseFloat(selectedOption.dataset.max);
+        const calculatedValue = calculateMainStatValue(minValue, maxValue, parseInt(levelSlider.value));
+        mainStatValue.textContent = `${calculatedValue.toFixed(1)}%`;
+    }
+}
+
 function createMainStatSection(cost, mainStatsData) {
     const mainStatContainer = document.createElement('div');
     mainStatContainer.className = 'stat-slot main-stat';
@@ -43,29 +57,30 @@ function createMainStatSection(cost, mainStatsData) {
     mainStatValue.className = 'main-stat-value';
     mainStatValue.textContent = '0';
 
+    mainStatSelect.addEventListener('change', () => {
+        const panel = mainStatContainer.closest('.echo-panel');
+        updateMainStatValue(panel);
+    });
+
     mainStatContainer.appendChild(mainStatSelect);
     mainStatContainer.appendChild(mainStatValue);
 
     return mainStatContainer;
 }
 
-// Function to update main stat options when an echo is selected
 function updateMainStats(panel, cost, mainStatsData) {
     console.log("Updating main stats for cost:", cost);
     
-    // Get the main stat select in this panel
     const mainStatSelect = panel.querySelector('.main-stat .stat-select');
     if (!mainStatSelect) {
         console.error("Could not find main stat select in panel");
         return;
     }
 
-    // Clear existing options except placeholder
     while (mainStatSelect.options.length > 1) {
         mainStatSelect.remove(1);
     }
 
-    // Add new options based on cost
     const availableStats = mainStatsData[`${cost}cost`].mainStats;
     Object.entries(availableStats).forEach(([statName, [min, max]]) => {
         const option = document.createElement('option');

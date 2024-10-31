@@ -131,13 +131,13 @@
 /* Level Label */
 .level-label {
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-5%);
     color: white;
-    font-size: 24px;
+    font-size: 30px;
     text-align: center;
     width: 100%;
-    bottom: 0%;
+    bottom: 2%;
+    margin: 0 auto;
 }
 
 /* Star Container and Diamonds */

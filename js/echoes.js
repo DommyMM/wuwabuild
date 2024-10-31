@@ -61,6 +61,8 @@ function createEchoPanels() {
             
             const valuePercentage = (value / slider.max) * 100;
             slider.style.background = `linear-gradient(to right, #ffd700 0%, #ff8c00 ${valuePercentage}%, #d3d3d3 ${valuePercentage}%)`;
+            const panel = slider.closest('.echo-panel');
+            updateMainStatValue(panel);
         });
     }
 
