@@ -47,6 +47,7 @@
 
 .echo-panel .manual-section {
     height: 30%;  
+    width: 100%;
     flex-direction: column;
     align-items: center;
     position: relative;
@@ -56,6 +57,8 @@
     margin: 10px;
     position: relative;
     top: -20%;
+    right: 10%;
+    z-index: 4;
 }
 
 #selectedEchoLabel{

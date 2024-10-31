@@ -1,0 +1,119 @@
+.echo-panel .manual-section::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-85%, -30%);
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background-color: #333; 
+    z-index: 2; 
+    pointer-events: none; 
+}
+
+.element-container {
+    width: 100%;
+    height: 50%;
+    position: absolute;
+    transform: translateY(70%);
+    overflow: hidden;
+}
+
+.element-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 25%;
+    transform: translateX(70%);
+}
+
+.element-tab {
+    height: 24px;
+    background-color: #2a2a2a;
+    border: 1px solid;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.element-tab:hover {
+    filter: brightness(1.2);
+}
+
+.element-tab.active {
+    filter: brightness(1.3);
+    background-color: #a69662;
+}
+
+.element-number {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    margin-left: 10%;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+@keyframes shine {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 200% 50%;
+    }
+  }
+
+  .set-name-display {
+    position: absolute;
+    width: 35%;
+    right: 5%;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    font-family: Ropa, sans-serif;
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine 3s linear infinite;
+}
+
+.set-name-display[data-element="Fusion"] {
+    background-image: linear-gradient(to right, #ff4500, #ff8c00, #ffd700, #ff4d00);
+}
+
+.set-name-display[data-element="Glacio"] {
+    background-image: linear-gradient(to right, #00ced1, #87ceeb, #b0e0e6, #ffffff, #00ffff);
+}
+
+.set-name-display[data-element="Aero"] {
+    background-image: linear-gradient(to right, #b0ffb0, #d0f0c0, #ffffff, #90ee90, #b0ffb0);
+}
+
+.set-name-display[data-element="Electro"] {
+    background-image: linear-gradient(to right, #8a2be2, #7b68ee, #9370db, #6a5acd, #8a2be2);
+}
+
+.set-name-display[data-element="Spectro"] {
+    background-image: linear-gradient(to right, #fffacd, #ffd700, #ffa500, #fffacd);
+}
+
+.set-name-display[data-element="Havoc"] {
+    background-image: linear-gradient(to right, #ff1493, #8b008b, #ff69b4, #9400d3, #ff1493);
+}
+
+.set-name-display[data-element="ER"] {
+    background-image: linear-gradient(to right, #ffffff, #c0c0c0, #e8e8e8, #a9a9a9, #ffffff);
+}
+
+.set-name-display[data-element="Attack"] {
+    background-image: linear-gradient(to right, #8b0000, #ffffff, #990000, #f8f8ff, #8b0000);
+}
+
+.set-name-display[data-element="Healing"] {
+    background-image: linear-gradient(to right, #00ff00, #32cd32, #98fb98, #228b22, #00ff00);
+}

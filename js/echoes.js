@@ -132,6 +132,7 @@ function openEchoModal(index) {
                     const panel = document.getElementById(`panel${index}`);
                     panel.querySelector('#echoImg').src = `images/Echoes/${echo.name}.png`;
                     panel.querySelector('#selectedEchoLabel').textContent = echo.name;
+                    createElementTabs(panel, echo.elements);
                     const mainStatsData = await loadMainStatsData();
                     if (mainStatsData) {
                         updateMainStats(panel, echo.cost, mainStatsData);
