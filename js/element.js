@@ -10,6 +10,17 @@ const ELEMENT_SETS = {
     'Healing': 'Rejuvenating Glow'
 };
 
+function adjustFontSize(element) {
+    const text = element.textContent;
+    let baseSize;
+    if (text.length <= 16) {
+        baseSize = 28; 
+    } else {
+        baseSize = 20; 
+    }
+    element.style.fontSize = `${baseSize}px`;
+}
+
 function createElementTabs(panel, elements = []) {
     const manualSection = panel.querySelector('.manual-section');
     if (!manualSection) {
@@ -38,6 +49,7 @@ function createElementTabs(panel, elements = []) {
         setNameDisplay.textContent = ELEMENT_SETS[elements[0]];
         setNameDisplay.dataset.element = elements[0];
         setNameDisplay.style.opacity = '1';
+        adjustFontSize(setNameDisplay);
         tabsContainer.style.display = 'none';
         return;
     }
@@ -63,6 +75,7 @@ function createElementTabs(panel, elements = []) {
                 setNameDisplay.textContent = ELEMENT_SETS[element];
                 setNameDisplay.dataset.element = element;  
                 setNameDisplay.style.opacity = '1';
+                adjustFontSize(setNameDisplay);
             } else {
                 setNameDisplay.style.opacity = '0';
                 setNameDisplay.dataset.element = '';  

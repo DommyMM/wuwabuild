@@ -67,13 +67,12 @@
     }
   }
 
-  .set-name-display {
+.set-name-display {
     position: absolute;
     width: 35%;
     right: 5%;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 20px;
     font-family: Ropa, sans-serif;
     background-size: 200% auto;
     -webkit-background-clip: text;

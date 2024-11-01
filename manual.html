@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manual Input</title>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/manual.css">
   <link rel="stylesheet" href="css/selection.css">
@@ -16,16 +15,15 @@
   <link rel="stylesheet" href="css/substats.css">
   <link rel="stylesheet" href="css/mainstat.css">
   <link rel="stylesheet" href="css/element.css">
+  <link rel="stylesheet" href="css/build.css">
 </head>
 <body>
-  <!--Return to Automatic Builder-->
   <div>
     <a href="index.html" class="tab">Scan Screenshots</a>
   </div>
 
   <h2>Edit Stats</h2>
   
-<!--Character Selection-->
 <div class="manual-section">
   <label>Select Resonator:</label>
   <div class="select-box" id="selectCharacter">
@@ -37,13 +35,10 @@
 <div class="character-info">
   <div class="no-character-message">Select a resonator first</div>
   <div class="character-content" style="display: none;">
-    <!--Character Icon-->
     <img id="selectedCharacterIcon" src="images/Icons/Default.png" alt="Selected Character Icon" class="character-tab-icon">
     <button class="toggle" role="switch" aria-checked="false" tabindex="0" style="display: none;">
       <div class="toggle-circle"></div>
     </button>
-    
-    <!--Level Container-->
     <div class="character-level-container">
       <span class="level-label">Level</span>
       <div class="slider-group">
@@ -64,7 +59,6 @@
         </div>
     </div>
     </div>
-    <!--Sequence Group-->
     <div class="sequence-group">
       <img id="sequenceImage" src="images/Icons/Default.png" alt="Sequence Image">
         <div class="sequence-label">Sequence</div>
@@ -76,7 +70,6 @@
           <div class="sequence-option" data-sequence="6">6</div>
     </div>
 
-    <!--Weapon Selection-->
     <div class="weapon-selection">
       <div class="weapon-choice">Weapon</div>
       <div class="weapon-box" id="selectWeapon">
@@ -101,8 +94,7 @@
         </svg>
       </div>
     </div>    
-
-    <!--Forte Group-->
+    <button id="goNext" class="build-button">Echoes</button>
     <div class="forte-group">
       <div class="forte-slots">
           <!-- First Skill Branch - Normal Attack -->
@@ -245,10 +237,10 @@
         <img src="images/Resources/Max.png"id="maxButton" class="max-frame" alt="Max Frame" title="First click: Set all levels to 10&#10;Second click: Activate all nodes&#10;Third click: Reset everything">
     </div>
     </div>
+    
   </div>
 </div>
 
-<!--Character Modal-->
 <div id="characterModal" class="modal">
   <div class="modal-content">
     <span class="close" id="closeCharacterModal">&times;</span>
@@ -257,7 +249,6 @@
   </div>
 </div>
 
-<!--Weapon Modal-->
 <div id="weaponModal" class="modal">
   <div class="modal-content">
     <span class="close" id="closeWeaponModal">&times;</span>
@@ -266,29 +257,31 @@
   </div>
 </div>
 
-<div class="echoes-tab">
-  <div class="no-character-msg">Select a resonator first</div>
+<div class="echoes-tab" style="display: none;">
+  <div class="no-character-msg" >Select a resonator first</div>
   <div class="echoes-content" style="display: none">
       <div class="echo-panels-container">
       </div>
   </div>
 </div>
 
-<!-- Echo Selection Modal -->
 <div id="echoModal" class="modal">
   <div class="echo-modal-content">
       <span id="closeEchoModal" class="close">×</span>
       <div class="echo-list">
-          <!-- Echo options will be populated here -->
       </div>
   </div>
 </div>
 
 <div class="build-card">
-  
+  <button id="generateDownload" class="build-button" style="display: none;">Generate</button>
+  <div id="build-tab" class="tab" style="display: none;"></div>
+  <button id="downloadButton" class="build-button" style="display: none;">Download</button>
 </div>
 
-  <!--Scripts-->
+
+
+  <script src="js/build.js"></script>
   <script src="js/element.js"></script>
   <script src="js/mainstat.js"></script>
   <script src="js/substats.js"></script>
@@ -298,5 +291,6 @@
   <script src="js/sequences.js"></script>
   <script src="js/selection.js"></script>
   <script src="js/manual.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </body>
 </html>

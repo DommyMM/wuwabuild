@@ -84,37 +84,36 @@ function setupSingleModal() {
     });
 }
 
+function createCostSection(cost) {
+    const section = document.createElement('div');
+    section.classList.add('echo-cost-section');
+    
+    const label = document.createElement('div');
+    label.classList.add('cost-label');
+    label.textContent = `${cost} Cost`;
+    
+    const grid = document.createElement('div');
+    grid.classList.add('echo-grid');
+    
+    section.appendChild(label);
+    section.appendChild(grid);
+    
+    return { section, grid };
+}
+
 function openEchoModal(index) {
     const echoModal = document.getElementById('echoModal');
     const echoList = echoModal.querySelector('.echo-list');
     echoList.innerHTML = '';
 
-    const cost4Section = document.createElement('div');
-    cost4Section.classList.add('echo-cost-section');
-    const cost4Label = document.createElement('div');
-    cost4Label.classList.add('cost-label');
-    cost4Label.textContent = '4 Cost';
-    const cost4Grid = document.createElement('div');
-    cost4Grid.classList.add('echo-grid');
-    cost4Section.appendChild(cost4Label);
-
-    const cost3Section = document.createElement('div');
-    cost3Section.classList.add('echo-cost-section');
-    const cost3Label = document.createElement('div');
-    cost3Label.classList.add('cost-label');
-    cost3Label.textContent = '3 Cost';
-    const cost3Grid = document.createElement('div');
-    cost3Grid.classList.add('echo-grid');
-    cost3Section.appendChild(cost3Label);
-
-    const cost1Section = document.createElement('div');
-    cost1Section.classList.add('echo-cost-section');
-    const cost1Label = document.createElement('div');
-    cost1Label.classList.add('cost-label');
-    cost1Label.textContent = '1 Cost';
-    const cost1Grid = document.createElement('div');
-    cost1Grid.classList.add('echo-grid');
-    cost1Section.appendChild(cost1Label);
+    const costs = [4, 3, 1];  // Array of costs in desired order
+    const costSections = {};
+    
+    // Create sections for each cost
+    costs.forEach(cost => {
+        const { section, grid } = createCostSection(cost);
+        costSections[cost] = { section, grid };
+    });
 
     fetch('Data/Echoes.json')
         .then(response => response.json())
@@ -132,6 +131,7 @@ function openEchoModal(index) {
                     const panel = document.getElementById(`panel${index}`);
                     panel.querySelector('#echoImg').src = `images/Echoes/${echo.name}.png`;
                     panel.querySelector('#selectedEchoLabel').textContent = echo.name;
+                    panel.querySelector('#selectEcho').style.right = '10%'; 
                     createElementTabs(panel, echo.elements);
                     const mainStatsData = await loadMainStatsData();
                     if (mainStatsData) {
@@ -146,26 +146,16 @@ function openEchoModal(index) {
                 nameLabel.textContent = echo.name;
                 echoElement.appendChild(nameLabel);
 
-                switch(echo.cost) {
-                    case 4:
-                        cost4Grid.appendChild(echoElement);
-                        break;
-                    case 3:
-                        cost3Grid.appendChild(echoElement);
-                        break;
-                    case 1:
-                        cost1Grid.appendChild(echoElement);
-                        break;
+                if (costSections[echo.cost]) {
+                    costSections[echo.cost].grid.appendChild(echoElement);
                 }
             });
 
-            cost4Section.appendChild(cost4Grid);
-            cost3Section.appendChild(cost3Grid);
-            cost1Section.appendChild(cost1Grid);
-
-            echoList.appendChild(cost4Section);
-            echoList.appendChild(cost3Section);
-            echoList.appendChild(cost1Section);
+            costs.forEach(cost => {
+                if (costSections[cost]) {
+                    echoList.appendChild(costSections[cost].section);
+                }
+            });
         })
         .catch(error => console.error("Error loading echoes:", error));
 

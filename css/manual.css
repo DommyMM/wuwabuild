@@ -3,7 +3,6 @@ h1, h2, label {
   text-align: center;
 }
 
-/*Manual section adjustments*/
 .manual-section {
   margin: 0 auto;
   text-align: center;
@@ -13,14 +12,12 @@ h1, h2, label {
   width: 20%;
 }
 
-/*Select box styling*/
 .select-box {
   cursor: pointer;
   display: inline-block;
   text-align: center;
 }
 
-/*Selected images in the select box*/
 .select-img {
   width: 80px;
   height: 80px;
@@ -29,7 +26,6 @@ h1, h2, label {
   margin-top: 20px;
 }
 
-/*Manual section label styling*/
 .manual-section label {
   font-size: 30px;
   margin-bottom: 5px;
@@ -88,4 +84,4 @@ h1, h2, label {
 
 .char-sig.element-rover{
   background-image: linear-gradient(to right, #ff4500, #00ced1,#b0ffb0, #8a2be2, #fffacd,#8b008b, #ff69b4);
-  }
+}

@@ -57,8 +57,9 @@
     margin: 10px;
     position: relative;
     top: -20%;
-    right: 10%;
     z-index: 4;
+    transition: right 0.3s ease; 
+    right: 0;
 }
 
 #selectedEchoLabel{

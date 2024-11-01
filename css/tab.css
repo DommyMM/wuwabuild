@@ -233,3 +233,9 @@
     object-fit: contain;
     z-index: 2;
 }
+
+#goNext{
+    position: absolute;
+    left: 48%;
+    z-index: 3;
+}

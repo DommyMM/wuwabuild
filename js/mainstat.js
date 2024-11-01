@@ -68,9 +68,7 @@ function createMainStatSection(cost, mainStatsData) {
     return mainStatContainer;
 }
 
-function updateMainStats(panel, cost, mainStatsData) {
-    console.log("Updating main stats for cost:", cost);
-    
+function updateMainStats(panel, cost, mainStatsData) {    
     const mainStatSelect = panel.querySelector('.main-stat .stat-select');
     if (!mainStatSelect) {
         console.error("Could not find main stat select in panel");
