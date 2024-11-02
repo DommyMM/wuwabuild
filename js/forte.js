@@ -1,25 +1,26 @@
+
+const forteImagePaths = {
+    imagePaths: {
+        "normal-attack": (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}A1.png`,
+        "skill": (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}B1.png`,
+        "tree3-top": (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}D2.png`,
+        "tree3-middle": (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}D1.png`,
+        "circuit": (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}Y.png`,
+        "liberation": (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}C1.png`,
+        "intro": (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}QTE.png`
+    },
+    sharedImages: {
+        "tree1": (characterName) => `images/Skills/${characterName}/Bonus1.png`,
+        "tree5": (characterName) => `images/Skills/${characterName}/Bonus1.png`,
+        "tree2": (characterName) => `images/Skills/${characterName}/Bonus2.png`,
+        "tree4": (characterName) => `images/Skills/${characterName}/Bonus2.png`
+    }
+};
+
 function updateForteIcons(characterName) {
-    const imagePaths = {
-        "normal-attack": `images/Skills/${characterName}/SP_Icon${characterName}A1.png`,
-        "skill": `images/Skills/${characterName}/SP_Icon${characterName}B1.png`,
-        "tree3-top": `images/Skills/${characterName}/SP_Icon${characterName}D2.png`,
-        "tree3-middle": `images/Skills/${characterName}/SP_Icon${characterName}D1.png`,
-        "circuit": `images/Skills/${characterName}/SP_Icon${characterName}Y.png`,
-        "liberation": `images/Skills/${characterName}/SP_Icon${characterName}C1.png`,
-        "intro": `images/Skills/${characterName}/SP_Icon${characterName}QTE.png`
-    };
-
-    const sharedImages = {
-        "tree1": `images/Skills/${characterName}/Bonus1.png`,
-        "tree5": `images/Skills/${characterName}/Bonus1.png`,
-        "tree2": `images/Skills/${characterName}/Bonus2.png`,
-        "tree4": `images/Skills/${characterName}/Bonus2.png`
-    };
-
-    //Assign unique images to forte slots
     document.querySelectorAll(".forte-slot").forEach(slot => {
         const skillType = slot.getAttribute("data-skill");
-        const imagePath = imagePaths[skillType];
+        const imagePath = forteImagePaths.imagePaths[skillType]?.(characterName);
         
         if (imagePath) {
             const imgElement = slot.querySelector(".skill-image");
@@ -28,13 +29,12 @@ function updateForteIcons(characterName) {
         }
     });
 
-    //Assign shared and custom images to glowing nodes
     document.querySelectorAll(".glowing-node").forEach(node => {
         const tree = node.getAttribute("data-tree");
         const skillType = node.getAttribute("data-skill");
 
-        //Check if the node should have a unique image or shared image
-        const imagePath = imagePaths[skillType] || sharedImages[tree];
+        const imagePath = forteImagePaths.imagePaths[skillType]?.(characterName) || 
+                         forteImagePaths.sharedImages[tree]?.(characterName);
         
         if (imagePath) {
             const imgElement = node.querySelector("img");
@@ -52,7 +52,6 @@ document.querySelectorAll('.skill-input').forEach(input => {
         this.focus();
         this.select();
     });
- 
 
     input.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' || e.key === 'Escape') {
@@ -60,7 +59,6 @@ document.querySelectorAll('.skill-input').forEach(input => {
         }
     });
  
-    // Check bounds and handle empty when leaving focus
     input.addEventListener('blur', function() {
         if (this.value.trim() === '') {
             this.value = '1';
@@ -69,7 +67,7 @@ document.querySelectorAll('.skill-input').forEach(input => {
             if (this.value < 1) this.value = 1;
         }
     });
- });
+});
 
 const maxButton = document.getElementById('maxButton');
 let clickCount = 0;
@@ -77,23 +75,18 @@ let clickCount = 0;
 maxButton.addEventListener('click', () => {
     clickCount = (clickCount + 1) % 3;  
     
-    //Update the image based on click count
     const maxImage = document.querySelector('.max-frame');
     maxImage.src = `images/Resources/Max${clickCount === 0 ? '' : clickCount}.png`;
 
-    //Update functionality based on click count
     if (clickCount === 1) {
-        //First click: Set all levels to 10
         document.querySelectorAll('.skill-input').forEach(input => {
             input.value = 10;
         });
     } else if (clickCount === 2) {
-        //Second click: Toggle all nodes on
         document.querySelectorAll('.glowing-node').forEach(node => {
             node.classList.add('active');
         });
     } else if (clickCount === 0) {  
-        //Third click: Reset everything and return to empty Max.png
         document.querySelectorAll('.skill-input').forEach(input => {
             input.value = 1;
         });
@@ -102,3 +95,89 @@ maxButton.addEventListener('click', () => {
         });
     }
 });
+
+function createSimplifiedForte(characterName) {
+    const forteContainer = document.createElement('div');
+    forteContainer.className = 'simplified-forte';
+
+    const branches = [
+        { type: 'circle', name: 'normal-attack', tree: 'tree1' },
+        { type: 'circle', name: 'skill', tree: 'tree2' },
+        { type: 'square', name: 'circuit', tree: 'tree3' },  
+        { type: 'circle', name: 'liberation', tree: 'tree4' },
+        { type: 'circle', name: 'intro', tree: 'tree5' }
+    ];
+
+    branches.forEach(branch => {
+        const originalTopNode = document.querySelector(`.glowing-node[data-skill="${branch.tree}-top"]`);
+        const originalMiddleNode = document.querySelector(`.glowing-node[data-skill="${branch.tree}-middle"]`);
+        const originalLevel = document.querySelector(`.forte-slot[data-skill="${branch.name}"] ~ .skill-info .skill-input`);
+        
+
+        const branchDiv = document.createElement('div');
+        branchDiv.className = 'simplified-branch';
+
+        const topNode = document.createElement('div');
+        topNode.className = `simplified-node ${branch.type}`;
+        if(originalTopNode?.classList.contains('active')) {
+            topNode.classList.add('active');
+        }
+        const topImg = document.createElement('img');
+        topImg.className = 'node-image';
+        topImg.src = branch.name === 'circuit' ? 
+            forteImagePaths.imagePaths['tree3-top'](characterName) :
+            forteImagePaths.sharedImages[branch.tree](characterName);
+        topNode.appendChild(topImg);
+
+        if (branch.name === 'circuit') {
+            const topInnerDiamond = document.createElement('div');
+            topInnerDiamond.className = 'inner-diamond';
+            topNode.appendChild(topInnerDiamond);
+        }
+
+        const middleNode = document.createElement('div');
+        middleNode.className = `simplified-node ${branch.type}`;
+        if(originalMiddleNode?.classList.contains('active')) {
+            middleNode.classList.add('active');
+        }
+        const middleImg = document.createElement('img');
+        middleImg.className = 'node-image';
+        middleImg.src = branch.name === 'circuit' ? 
+            forteImagePaths.imagePaths['tree3-middle'](characterName) :
+            forteImagePaths.sharedImages[branch.tree](characterName);
+        middleNode.appendChild(middleImg);
+
+        if (branch.name === 'circuit') {
+            const bottomInnerDiamond = document.createElement('div');
+            bottomInnerDiamond.className = 'inner-diamond';
+            middleNode.appendChild(bottomInnerDiamond);
+        }
+
+        const baseNode = document.createElement('div');
+        baseNode.className = 'simplified-base';
+        const baseImg = document.createElement('img');
+        baseImg.className = 'skill-image';
+        baseImg.src = forteImagePaths.imagePaths[branch.name](characterName);
+        baseNode.appendChild(baseImg);
+
+        const levelIndicator = document.createElement('div');
+        levelIndicator.className = 'level-indicator';
+        levelIndicator.textContent = originalLevel ? originalLevel.value : '1';
+        baseNode.appendChild(levelIndicator);
+
+        const topLine = document.createElement('div');
+        topLine.className = 'top-line';
+        const bottomLine = document.createElement('div');
+        bottomLine.className = 'bottom-line';
+
+        branchDiv.appendChild(topNode);
+        branchDiv.appendChild(topLine);
+        branchDiv.appendChild(middleNode);
+        branchDiv.appendChild(bottomLine);
+        branchDiv.appendChild(baseNode);
+
+        forteContainer.appendChild(branchDiv);
+    });
+
+    return forteContainer;
+}

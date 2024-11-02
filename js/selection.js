@@ -33,7 +33,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('characterImg').src = `images/Faces/${character.name}.png`;
                     document.getElementById('characterModal').style.display = 'none';
                     selectedCharacter = character; 
-                
+                    document.getElementById('weaponImg').src = 'images/Resources/Weapon.png';
+                    const weaponImg = document.getElementById('weaponImg');
+                    weaponImg.style.backgroundColor = '';  
+                    weaponImg.style.border = ''; 
                     const characterSelector = document.getElementById('selectCharacter');
                     let selectedLabel = document.getElementById('selectedCharacterLabel');
                 

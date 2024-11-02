@@ -1,58 +1,86 @@
 [
     {
         "name": "Blazing Brilliance",
-        "rarity": "5-star"
-    },
-    {
-        "name": "Commando of Conviction",
-        "rarity": "4-star"
+        "rarity": "5-star",
+        "main_stat": "Crit Damage",
+        "base_main": ""
     },
     {
         "name": "Emerald of Genesis",
-        "rarity": "5-star"
+        "rarity": "5-star",
+        "main_stat": "",
+        "base_main": ""
+    },
+    {
+        "name": "Commando of Conviction",
+        "rarity": "4-star",
+        "main_stat": "",
+        "base_main": ""
     },
     {
         "name": "Endless Collapse",
-        "rarity": "4-star"
-    },
-    {
-        "name": "Guardian Sword",
-        "rarity": "3-star"
+        "rarity": "4-star",
+        "main_stat": "",
+        "base_main": ""
     },
     {
         "name": "Lumingloss",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "main_stat": "",
+        "base_main": ""
     },
     {
         "name": "Lunar Cutter",
-        "rarity": "4-star"
-    },
-    {
-        "name": "Sword of Night",
-        "rarity": "3-star"
-    },
-    {
-        "name": "Originite Type II",
-        "rarity": "3-star"
+        "rarity": "4-star",
+        "main_stat": "",
+        "base_main": ""
     },
     {
         "name": "Overture",
-        "rarity": "4-star"
-    },
-    {
-        "name": "Sword of Voyager",
-        "rarity": "3-star"
+        "rarity": "4-star",
+        "main_stat": "",
+        "base_main": ""
     },
     {
         "name": "Sword#18",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "main_stat": "",
+        "base_main": ""
     },
     {
-        "name": "Training Sword",
-        "rarity": "1-star"
+        "name": "Guardian Sword",
+        "rarity": "3-star",
+        "main_stat": "",
+        "base_main": ""
+    },
+    {
+        "name": "Sword of Night",
+        "rarity": "3-star",
+        "main_stat": "",
+        "base_main": ""
+    },
+    {
+        "name": "Originite Type II",
+        "rarity": "3-star",
+        "main_stat": "",
+        "base_main": ""
+    },
+    {
+        "name": "Sword of Voyager",
+        "rarity": "3-star",
+        "main_stat": "",
+        "base_main": ""
     },
     {
         "name": "Tyro Sword",
-        "rarity": "2-star"
+        "rarity": "2-star",
+        "main_stat": "",
+        "base_main": ""
+    },
+    {
+        "name": "Training Sword",
+        "rarity": "1-star",
+        "main_stat": "",
+        "base_main": ""
     }
 ]
