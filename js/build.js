@@ -21,7 +21,15 @@ function generateBuildTabContent() {
     tab.innerHTML = '';
     tab.style.backgroundColor = '#333';
     
-    tab.className = `tab ${document.querySelector('#selectedCharacterLabel span').className}`;
+    const characterLabel = document.querySelector('#selectedCharacterLabel span');
+    let characterName = characterLabel.textContent;
+    
+    if (characterName === "Rover (M)" || characterName === "Rover (F)") {
+        const isHavoc = document.querySelector('.toggle').getAttribute('aria-checked') === 'true';
+        characterName = isHavoc ? "RoverSpectro" : "RoverHavoc";
+    }
+    
+    tab.className = `tab ${characterLabel.className}`;
     
     const characterSection = document.createElement('div');
     characterSection.className = 'build-character-section';
@@ -36,8 +44,7 @@ function generateBuildTabContent() {
     
     const nameDiv = document.createElement('div');
     nameDiv.className = 'build-character-name';
-    const characterName = document.querySelector('#selectedCharacterLabel span').textContent;
-    nameDiv.textContent = characterName;
+    nameDiv.textContent = characterLabel.textContent;  
     introSection.appendChild(nameDiv);
     
     const levelDiv = document.createElement('div');
@@ -51,7 +58,6 @@ function generateBuildTabContent() {
     const sequenceContainer = document.createElement('div');
     sequenceContainer.className = 'build-sequence-container';
 
-    // Generate sequence nodes and set active state based on currentSequence
     for(let i = 1; i <= 6; i++) {
         const sequenceNode = document.createElement('div');
         sequenceNode.className = 'build-sequence-node';
@@ -62,7 +68,6 @@ function generateBuildTabContent() {
         sequenceImg.className = 'sequence-icon';
         sequenceNode.appendChild(sequenceImg);
 
-        // Apply active class to nodes up to the current sequence level
         if (i <= currentSequence) {
             sequenceNode.classList.add('active');
         }
