@@ -47,7 +47,7 @@ function createSequenceSection(characterName) {
         sequenceNode.setAttribute('data-sequence', i);
 
         const sequenceImg = document.createElement('img');
-        sequenceImg.src = `images/SequenceIcons/T_IconDevice_${characterName}M${i}_UI.png`;
+        sequenceImg.src = `images/Sequences/T_IconDevice_${characterName}M${i}_UI.png`;
         sequenceImg.className = 'sequence-icon';
         sequenceNode.appendChild(sequenceImg);
 

@@ -2,131 +2,183 @@
     {
         "name": "Aalto",
         "weaponType": "Pistol",
-        "element": "Aero"
+        "element": "Aero",
+        "Bonus1": "Aero",
+        "Bonus2": "ATK"
     },
     {
         "name": "Baizhi",
         "weaponType": "Rectifier",
-        "element": "Glacio"
+        "element": "Glacio",
+        "Bonus1": "Healing",
+        "Bonus2": "HP"
     },
     {
         "name": "Calcharo",
         "weaponType": "Broadblade",
-        "element": "Electro"
+        "element": "Electro",
+        "Bonus1": "Crit DMG",
+        "Bonus2": "ATK"
     },
     {
         "name": "Camellya",
         "weaponType": "Sword",
-        "element": "Havoc"
+        "element": "Havoc",
+        "Bonus1": "",
+        "Bonus2": "ATK"
     },
     {
         "name": "Changli",
         "weaponType": "Sword",
-        "element": "Fusion"
+        "element": "Fusion",
+        "Bonus1": "Crit Rate",
+        "Bonus2": "ATK"
     },
     {
         "name": "Chixia",
         "weaponType": "Pistol",
-        "element": "Fusion"
+        "element": "Fusion",
+        "Bonus1": "Fusion",
+        "Bonus2": "ATK"
     },
     {
         "name": "Danjin",
         "weaponType": "Sword",
-        "element": "Havoc"
+        "element": "Havoc",
+        "Bonus1": "Havoc",
+        "Bonus2": "ATK"
     },
     {
         "name": "Dengdeng",
         "weaponType": "Broadblade",
-        "element": "Electro"
+        "element": "Electro",
+        "Bonus1": "",
+        "Bonus2": "ATK"
     },
     {
         "name": "Encore",
         "weaponType": "Rectifier",
-        "element": "Fusion"
+        "element": "Fusion",
+        "Bonus1": "Fusion",
+        "Bonus2": "ATK"
     },
     {
         "name": "Jianxin",
         "weaponType": "Gauntlet",
-        "element": "Aero"
+        "element": "Aero",
+        "Bonus1": "Crit Rate",
+        "Bonus2": "ATK"
     },
     {
         "name": "Jinhsi",
         "weaponType": "Broadblade",
-        "element": "Spectro"
+        "element": "Spectro",
+        "Bonus1": "Crit Rate",
+        "Bonus2": "ATK"
     },
     {
         "name": "Jiyan",
         "weaponType": "Broadblade",
-        "element": "Aero"
+        "element": "Aero",
+        "Bonus1": "Crit Rate",
+        "Bonus2": "ATK"
     },
     {
         "name": "Lingyang",
         "weaponType": "Gauntlet",
-        "element": "Glacio"
+        "element": "Glacio",
+        "Bonus1": "Glacio",
+        "Bonus2": "ATK"
     },
     {
         "name": "Mortefi",
         "weaponType": "Pistol",
-        "element": "Fusion"
+        "element": "Fusion",
+        "Bonus1": "Fusion",
+        "Bonus2": "ATK"
     },
     {
         "name": "Rover (F)",
         "weaponType": "Sword",
-        "element": "Rover"
+        "element": "Rover",
+        "Bonus1": "Havoc",
+        "Bonus2": "ATK"
     },
     {
         "name": "Rover (M)",
         "weaponType": "Sword",
-        "element": "Rover"
+        "element": "Rover",
+        "Bonus1": "Havoc",
+        "Bonus2": "ATK"
     },
     {
         "name": "Sanhua",
         "weaponType": "Sword",
-        "element": "Glacio"
+        "element": "Glacio",
+        "Bonus1": "Glacio",
+        "Bonus2": "ATK"
     },
     {
         "name": "Shorekeeper",
         "weaponType": "Rectifier",
-        "element": "Spectro"
+        "element": "Spectro",
+        "Bonus1": "Healing",
+        "Bonus2": "HP"
     },
     {
         "name": "Taoqi",
         "weaponType": "Broadblade",
-        "element": "Havoc"
+        "element": "Havoc",
+        "Bonus1": "Havoc",
+        "Bonus2": "DEF"
     },
     {
         "name": "Verina",
         "weaponType": "Rectifier",
-        "element": "Spectro"
+        "element": "Spectro",
+        "Bonus1": "Healing",
+        "Bonus2": "ATK"
     },
     {
         "name": "Xiangli Yao",
         "weaponType": "Gauntlet",
-        "element": "Electro"
+        "element": "Electro",
+        "Bonus1": "Crit DMG",
+        "Bonus2": "ATK"
     },
     {
         "name": "Yangyang",
         "weaponType": "Sword",
-        "element": "Aero"
+        "element": "Aero",
+        "Bonus1": "Aero",
+        "Bonus2": "ATK"
     },
     {
         "name": "Yinlin",
         "weaponType": "Rectifier",
-        "element": "Electro"
+        "element": "Electro",
+        "Bonus1": "Crit Rate",
+        "Bonus2": "ATK"
     },
     {
         "name": "Youhu",
         "weaponType": "Gauntlet",
-        "element": "Glacio"
+        "element": "Glacio",
+        "Bonus1": "Crit Rate",
+        "Bonus2": "ATK"
     },
     {
         "name": "Yuanwu",
         "weaponType": "Gauntlet",
-        "element": "Electro"
+        "element": "Electro",
+        "Bonus1": "Electro",
+        "Bonus2": "DEF"
     },
     {
         "name": "Zhezhi",
         "weaponType": "Rectifier",
-        "element": "Glacio"
+        "element": "Glacio",
+        "Bonus1": "Crit Rate",
+        "Bonus2": "ATK"
     }
 ]

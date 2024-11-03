@@ -12,7 +12,7 @@ toggleElement.addEventListener('click', () => {
   const displayName = isChecked ? "RoverHavoc" : "RoverSpectro";
 
 
-  sequenceImage.src = `images/Sequences/${displayName}.png`;
+  sequenceImage.src = `images/Wavebands/${displayName}.png`;
   updateForteIcons(displayName);
   toggleCircle.style.backgroundImage = isChecked ? "url('images/Elements/Havoc.png')" : "url('images/Elements/Spectro.png')";
 });
@@ -41,7 +41,7 @@ document.querySelectorAll('.sequence-option').forEach(option => {
         const sequenceImage = document.getElementById('sequenceImage');
         
         if (selectedCharacterName && sequenceImage) {
-            sequenceImage.src = `images/Sequences/${selectedCharacterName}.png`;
+            sequenceImage.src = `images/Wavebands/${selectedCharacterName}.png`;
         }
     });
 });

@@ -1,3 +1,11 @@
+let characters = [];
+
+fetch('Data/Characters.json')
+    .then(response => response.json())
+    .then(data => {
+        characters = data;
+    })
+    .catch(error => console.error('Error loading characters:', error));
 
 const forteImagePaths = {
     imagePaths: {
@@ -10,14 +18,46 @@ const forteImagePaths = {
         "intro": (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}QTE.png`
     },
     sharedImages: {
-        "tree1": (characterName) => `images/Skills/${characterName}/Bonus1.png`,
-        "tree5": (characterName) => `images/Skills/${characterName}/Bonus1.png`,
-        "tree2": (characterName) => `images/Skills/${characterName}/Bonus2.png`,
-        "tree4": (characterName) => `images/Skills/${characterName}/Bonus2.png`
+        "tree1": (characterName) => {
+            const character = characters.find(char => char.name === characterName);
+            return character && character.Bonus1 ? 
+                `images/Stats/${character.Bonus1}.png` : '';
+        },
+        "tree5": (characterName) => {
+            const character = characters.find(char => char.name === characterName);
+            return character && character.Bonus1 ? 
+                `images/Stats/${character.Bonus1}.png` : '';
+        },
+        "tree2": (characterName) => {
+            const character = characters.find(char => char.name === characterName);
+            return character && character.Bonus2 ? 
+                `images/Stats/${character.Bonus2}.png` : '';
+        },
+        "tree4": (characterName) => {
+            const character = characters.find(char => char.name === characterName);
+            return character && character.Bonus2 ? 
+                `images/Stats/${character.Bonus2}.png` : '';
+        }
     }
 };
 
 function updateForteIcons(characterName) {
+    let characterBonus1 = "";
+    let characterBonus2 = "";
+    let elementImage = "";
+
+    if (characterName === 'RoverHavoc') {
+        elementImage = 'Havoc';
+        characterBonus1 = 'Havoc';
+        characterBonus2 = 'ATK';
+    } else if (characterName === 'RoverSpectro') {
+        elementImage = 'Spectro';
+        characterBonus1 = 'Spectro';
+        
+    } else {
+        const character = characters.find(char => char.name === characterName);
+        characterBonus1 = character ? character.Bonus1 : "";
+    }
     document.querySelectorAll(".forte-slot").forEach(slot => {
         const skillType = slot.getAttribute("data-skill");
         const imagePath = forteImagePaths.imagePaths[skillType]?.(characterName);
@@ -32,10 +72,16 @@ function updateForteIcons(characterName) {
     document.querySelectorAll(".glowing-node").forEach(node => {
         const tree = node.getAttribute("data-tree");
         const skillType = node.getAttribute("data-skill");
+        let imagePath;
 
-        const imagePath = forteImagePaths.imagePaths[skillType]?.(characterName) || 
-                         forteImagePaths.sharedImages[tree]?.(characterName);
-        
+        if ((characterName === 'RoverHavoc' || characterName === 'RoverSpectro') && (tree === 'tree1' || tree === 'tree5')) {
+            imagePath = `images/Stats/${elementImage}.png`;
+        } else if ((characterName === 'RoverHavoc' || characterName === 'RoverSpectro') && (tree === 'tree2' || tree === 'tree4')) {
+            imagePath = `images/Stats/ATK.png`;  
+        }else {
+            imagePath = forteImagePaths.imagePaths[skillType]?.(characterName) || 
+                        forteImagePaths.sharedImages[tree]?.(characterName);
+        }
         if (imagePath) {
             const imgElement = node.querySelector("img");
             if (imgElement) {
@@ -108,25 +154,45 @@ function createSimplifiedForte(characterName) {
         { type: 'circle', name: 'intro', tree: 'tree5' }
     ];
 
+    let characterBonus1 = "";
+    let elementImage = "";
+
+    if (characterName === 'RoverHavoc') {
+        elementImage = 'Havoc';
+        characterBonus1 = 'Havoc';
+    } else if (characterName === 'RoverSpectro') {
+        elementImage = 'Spectro';
+        characterBonus1 = 'Spectro';
+    } else {
+        const character = characters.find(char => char.name === characterName);
+        characterBonus1 = character ? character.Bonus1 : "";
+    }
+
     branches.forEach(branch => {
         const originalTopNode = document.querySelector(`.glowing-node[data-skill="${branch.tree}-top"]`);
         const originalMiddleNode = document.querySelector(`.glowing-node[data-skill="${branch.tree}-middle"]`);
         const originalLevel = document.querySelector(`.forte-slot[data-skill="${branch.name}"] ~ .skill-info .skill-input`);
-        
 
         const branchDiv = document.createElement('div');
         branchDiv.className = 'simplified-branch';
 
         const topNode = document.createElement('div');
         topNode.className = `simplified-node ${branch.type}`;
-        if(originalTopNode?.classList.contains('active')) {
+        if (originalTopNode?.classList.contains('active')) {
             topNode.classList.add('active');
         }
         const topImg = document.createElement('img');
         topImg.className = 'node-image';
-        topImg.src = branch.name === 'circuit' ? 
-            forteImagePaths.imagePaths['tree3-top'](characterName) :
-            forteImagePaths.sharedImages[branch.tree](characterName);
+        
+        if ((branch.tree === 'tree1' || branch.tree === 'tree5') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
+            topImg.src = `images/Stats/${elementImage}.png`;
+        } else if ((branch.tree === 'tree2' || branch.tree === 'tree4') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
+            topImg.src = `images/Stats/ATK.png`;  
+        } else {
+            topImg.src = branch.name === 'circuit' ? 
+                forteImagePaths.imagePaths['tree3-top'](characterName) :
+                forteImagePaths.sharedImages[branch.tree](characterName);
+        }
         topNode.appendChild(topImg);
 
         if (branch.name === 'circuit') {
@@ -137,14 +203,21 @@ function createSimplifiedForte(characterName) {
 
         const middleNode = document.createElement('div');
         middleNode.className = `simplified-node ${branch.type}`;
-        if(originalMiddleNode?.classList.contains('active')) {
+        if (originalMiddleNode?.classList.contains('active')) {
             middleNode.classList.add('active');
         }
         const middleImg = document.createElement('img');
         middleImg.className = 'node-image';
-        middleImg.src = branch.name === 'circuit' ? 
-            forteImagePaths.imagePaths['tree3-middle'](characterName) :
-            forteImagePaths.sharedImages[branch.tree](characterName);
+
+        if ((branch.tree === 'tree1' || branch.tree === 'tree5') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
+            middleImg.src = `images/Stats/${elementImage}.png`;
+        } else if ((branch.tree === 'tree2' || branch.tree === 'tree4') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
+            middleImg.src = `images/Stats/ATK.png`;  
+        } else {
+            middleImg.src = branch.name === 'circuit' ? 
+                forteImagePaths.imagePaths['tree3-middle'](characterName) :
+                forteImagePaths.sharedImages[branch.tree](characterName);
+        }
         middleNode.appendChild(middleImg);
 
         if (branch.name === 'circuit') {
@@ -157,7 +230,14 @@ function createSimplifiedForte(characterName) {
         baseNode.className = 'simplified-base';
         const baseImg = document.createElement('img');
         baseImg.className = 'skill-image';
-        baseImg.src = forteImagePaths.imagePaths[branch.name](characterName);
+
+        if ((branch.tree === 'tree1' || branch.tree === 'tree5') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
+            baseImg.src = `images/Stats/${elementImage}.png`;
+        } else if ((branch.tree === 'tree2' || branch.tree === 'tree4') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
+            baseImg.src = `images/Stats/ATK.png`;
+        } else {
+            baseImg.src = forteImagePaths.imagePaths[branch.name](characterName);
+        }
         baseNode.appendChild(baseImg);
 
         const levelIndicator = document.createElement('div');

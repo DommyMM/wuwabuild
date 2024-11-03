@@ -62,10 +62,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     }else{
                         toggleElement.style.display = 'none';
                     }
-                    sequenceImage.src = `images/Sequences/${displayName}.png`;
+                    sequenceImage.src = `images/Wavebands/${displayName}.png`;
                     updateForteIcons(displayName);
                     displayName = character.name;
-                    document.querySelector('.character-info').scrollIntoView({ behavior: 'smooth' });
                 });
             });
         })
