@@ -40,10 +40,14 @@ function createCharacterLevelSection() {
 function createSequenceSection(characterName) {
     const sequenceContainer = document.createElement('div');
     sequenceContainer.className = 'build-sequence-container';
+    
+    const Label = document.querySelector('#selectedCharacterLabel span');
+    const elementValue = Label.getAttribute('data-element');  
+    const elementClass = elementValue ? `element-${elementValue.toLowerCase()}` : 'element-default';
 
-    for(let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 6; i++) {
         const sequenceNode = document.createElement('div');
-        sequenceNode.className = 'build-sequence-node';
+        sequenceNode.className = `build-sequence-node ${elementClass}`;
         sequenceNode.setAttribute('data-sequence', i);
 
         const sequenceImg = document.createElement('img');
@@ -53,8 +57,9 @@ function createSequenceSection(characterName) {
 
         if (i <= currentSequence) {
             sequenceNode.classList.add('active');
+        } else {
+            sequenceNode.classList.add('inactive');
         }
-
         sequenceContainer.appendChild(sequenceNode);
     }
     return sequenceContainer;
@@ -73,34 +78,55 @@ async function generateBuildTabContent() {
     const tab = document.getElementById('build-tab');
     tab.innerHTML = '';
     tab.style.backgroundColor = '#333';
-    
+
     const characterLabel = document.querySelector('#selectedCharacterLabel span');
     const characterName = getCharacterName(characterLabel);
     tab.className = `tab ${characterLabel.className}`;
-    
+
+    const roleValue = characterLabel.getAttribute('data-role'); 
+    const elementValue = characterLabel.getAttribute('data-element'); 
+
     const characterSection = document.createElement('div');
     characterSection.className = 'build-character-section';
     characterSection.appendChild(createCharacterIcon());
     characterSection.appendChild(createSequenceSection(characterName));
-    
+
     const introSection = document.createElement('div');
     introSection.className = 'build-intro';
     introSection.appendChild(createCharacterNameSection(characterLabel));
     introSection.appendChild(createCharacterLevelSection());
+
+    introSection.appendChild(createRoleImage(roleValue));  
+    introSection.appendChild(createElementImage(elementValue));  
+
     introSection.appendChild(createSimplifiedForte(characterName));
-    
+
     tab.appendChild(characterSection);
     tab.appendChild(introSection);
-    
+
     const weaponSection = await generateWeaponSection();
     tab.appendChild(weaponSection);
-    
+
     const watermark = document.createElement('div');
     watermark.className = 'watermark';
-    watermark.innerText = 'Dommyflex';
+    watermark.innerText = 'Dommy';
     tab.appendChild(watermark);
 }
 
+function createElementImage(element) {
+    const elementImage = document.createElement('img');
+    elementImage.src = `images/Elements/${element}.png`; 
+    elementImage.className = 'element-icon';
+
+    return elementImage;
+}
+
+function createRoleImage(role) {
+    const roleImage = document.createElement('img');
+    roleImage.src = `images/Roles/${role}.png`;
+    roleImage.className = 'role-icon';
+    return roleImage;
+}
 
 function createWeaponIcon(weaponImg) {
     const weaponClone = document.createElement('img');
@@ -237,9 +263,20 @@ async function generateWeaponSection() {
 
 function downloadBuildTab() {
     const tab = document.getElementById('build-tab');
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0'); 
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
     html2canvas(tab).then(canvas => {
         const link = document.createElement('a');
-        link.download = 'build_tab.png';
+        link.download = `${formattedDateTime}.png`; 
         link.href = canvas.toDataURL('image/png');
         link.click();
     });

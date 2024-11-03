@@ -4,181 +4,207 @@
         "weaponType": "Pistol",
         "element": "Aero",
         "Bonus1": "Aero",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Concerto"
     },
     {
         "name": "Baizhi",
         "weaponType": "Rectifier",
         "element": "Glacio",
         "Bonus1": "Healing",
-        "Bonus2": "HP"
+        "Bonus2": "HP",
+        "Role": "Support"
     },
     {
         "name": "Calcharo",
         "weaponType": "Broadblade",
         "element": "Electro",
         "Bonus1": "Crit DMG",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "DPS"
     },
     {
         "name": "Camellya",
         "weaponType": "Sword",
         "element": "Havoc",
         "Bonus1": "",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "DPS"
     },
     {
         "name": "Changli",
         "weaponType": "Sword",
         "element": "Fusion",
         "Bonus1": "Crit Rate",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "DPS"
     },
     {
         "name": "Chixia",
         "weaponType": "Pistol",
         "element": "Fusion",
         "Bonus1": "Fusion",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "DPS"
     },
     {
         "name": "Danjin",
         "weaponType": "Sword",
         "element": "Havoc",
         "Bonus1": "Havoc",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Concerto"
     },
     {
         "name": "Dengdeng",
         "weaponType": "Broadblade",
         "element": "Electro",
         "Bonus1": "",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Concerto"
     },
     {
         "name": "Encore",
         "weaponType": "Rectifier",
         "element": "Fusion",
         "Bonus1": "Fusion",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "DPS"
     },
     {
         "name": "Jianxin",
         "weaponType": "Gauntlet",
         "element": "Aero",
         "Bonus1": "Crit Rate",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Support"
     },
     {
         "name": "Jinhsi",
         "weaponType": "Broadblade",
         "element": "Spectro",
         "Bonus1": "Crit Rate",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "DPS"
     },
     {
         "name": "Jiyan",
         "weaponType": "Broadblade",
         "element": "Aero",
         "Bonus1": "Crit Rate",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "DPS"
     },
     {
         "name": "Lingyang",
         "weaponType": "Gauntlet",
         "element": "Glacio",
         "Bonus1": "Glacio",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "DPS"
     },
     {
         "name": "Mortefi",
         "weaponType": "Pistol",
         "element": "Fusion",
         "Bonus1": "Fusion",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Concerto"
     },
     {
         "name": "Rover (F)",
         "weaponType": "Sword",
         "element": "Rover",
         "Bonus1": "Havoc",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Concerto"
     },
     {
         "name": "Rover (M)",
         "weaponType": "Sword",
         "element": "Rover",
         "Bonus1": "Havoc",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Concerto"
     },
     {
         "name": "Sanhua",
         "weaponType": "Sword",
         "element": "Glacio",
         "Bonus1": "Glacio",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Concerto"
     },
     {
         "name": "Shorekeeper",
         "weaponType": "Rectifier",
         "element": "Spectro",
         "Bonus1": "Healing",
-        "Bonus2": "HP"
+        "Bonus2": "HP",
+        "Role": "Support"
     },
     {
         "name": "Taoqi",
         "weaponType": "Broadblade",
         "element": "Havoc",
         "Bonus1": "Havoc",
-        "Bonus2": "DEF"
+        "Bonus2": "DEF",
+        "Role": "Support"
     },
     {
         "name": "Verina",
         "weaponType": "Rectifier",
         "element": "Spectro",
         "Bonus1": "Healing",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Support"
     },
     {
         "name": "Xiangli Yao",
         "weaponType": "Gauntlet",
         "element": "Electro",
         "Bonus1": "Crit DMG",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "DPS"
     },
     {
         "name": "Yangyang",
         "weaponType": "Sword",
         "element": "Aero",
         "Bonus1": "Aero",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Concerto"
     },
     {
         "name": "Yinlin",
         "weaponType": "Rectifier",
         "element": "Electro",
         "Bonus1": "Crit Rate",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Concerto"
     },
     {
         "name": "Youhu",
         "weaponType": "Gauntlet",
         "element": "Glacio",
         "Bonus1": "Crit Rate",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Support"
     },
     {
         "name": "Yuanwu",
         "weaponType": "Gauntlet",
         "element": "Electro",
         "Bonus1": "Electro",
-        "Bonus2": "DEF"
+        "Bonus2": "DEF",
+        "Role": "Support"
     },
     {
         "name": "Zhezhi",
         "weaponType": "Rectifier",
         "element": "Glacio",
         "Bonus1": "Crit Rate",
-        "Bonus2": "ATK"
+        "Bonus2": "ATK",
+        "Role": "Concerto"
     }
 ]
