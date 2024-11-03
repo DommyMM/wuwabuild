@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         characterSelector.appendChild(selectedLabel);
                     }
                 
-                    selectedLabel.innerHTML = `<span class="char-sig element-${character.element.toLowerCase()}">${character.name}</span>`;
+                    selectedLabel.innerHTML = `<span class="char-sig element-${character.element.toLowerCase()}" data-weapontype="${character.weaponType}">${character.name}</span>`;
                 
                     document.querySelector('.no-character-message').style.display = 'none';
                     document.querySelector('.character-content').style.display = 'block';  

@@ -2,85 +2,99 @@
     {
         "name": "Blazing Brilliance",
         "rarity": "5-star",
-        "main_stat": "Crit Damage",
-        "base_main": ""
+        "ATK": "47",
+        "main_stat": "Crit DMG",
+        "base_main": "10.8"
     },
     {
         "name": "Emerald of Genesis",
         "rarity": "5-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "47",
+        "main_stat": "Crit Rate",
+        "base_main": "5.4"
     },
     {
         "name": "Commando of Conviction",
         "rarity": "4-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "33",
+        "main_stat": "ATK",
+        "base_main": "6.7"
     },
     {
         "name": "Endless Collapse",
         "rarity": "4-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "37",
+        "main_stat": "ATK",
+        "base_main": "4"
     },
     {
         "name": "Lumingloss",
         "rarity": "4-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "31",
+        "main_stat": "ATK",
+        "base_main": "8.1"
     },
     {
         "name": "Lunar Cutter",
         "rarity": "4-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "33",
+        "main_stat": "ATK",
+        "base_main": "6.7"
     },
     {
         "name": "Overture",
         "rarity": "4-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "27",
+        "main_stat": "ER",
+        "base_main": "11.5"
     },
     {
         "name": "Sword#18",
         "rarity": "4-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "31",
+        "main_stat": "ATK",
+        "base_main": "8.1"
     },
     {
         "name": "Guardian Sword",
         "rarity": "3-star",
-        "main_stat": "",
-        "base_main": ""
-    },
-    {
-        "name": "Sword of Night",
-        "rarity": "3-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "24",
+        "main_stat": "HP",
+        "base_main": "6.7"
     },
     {
         "name": "Originite Type II",
         "rarity": "3-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "26",
+        "main_stat": "ATK",
+        "base_main": "5.4"
+    },
+    {
+        "name": "Sword of Night",
+        "rarity": "3-star",
+        "ATK": "26",
+        "main_stat": "ATK",
+        "base_main": "5.4"
     },
     {
         "name": "Sword of Voyager",
         "rarity": "3-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "24",
+        "main_stat": "ER",
+        "base_main": "7.2"
     },
     {
         "name": "Tyro Sword",
         "rarity": "2-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "22",
+        "main_stat": "ATK",
+        "base_main": "3.2"
     },
     {
         "name": "Training Sword",
         "rarity": "1-star",
-        "main_stat": "",
-        "base_main": ""
+        "ATK": "20",
+        "main_stat": "ATK",
+        "base_main": "2.5"
     }
 ]

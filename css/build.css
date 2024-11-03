@@ -429,16 +429,15 @@
     position: absolute;
 }
 
-.weapon-stat{
-    font-size:28px;
+.weapon-stat {
+    font-size: 28px;
 }
 
-.weapon-stat.weapon-rank{
+.weapon-stat.weapon-rank {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 20%;
-    right: 20%;
+    width: 20%; 
     height: 30px;
     background-color: #a69662;
     font-size: 24px;
@@ -447,12 +446,11 @@
     z-index: 2;
 }
 
-.weapon-stat.weapon-level{
+.weapon-stat.weapon-level {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 46%;
-    right: 20%;
+    width: 46%; 
     height: 30px;
     background-color: #a69662;
     font-size: 24px;
@@ -463,7 +461,7 @@
 
 .weapon-stat-row {
     display: flex;
-    gap: 30px;
+    justify-content: space-between; 
     margin-bottom: 10px;
 }
 
@@ -471,8 +469,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 35%;  
-    right: 20%;
+    width: 40%; 
     height: 30px;
     background-color: #a69662;
     font-size: 24px;
@@ -485,10 +482,10 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 40%;  
+    width: 50%; 
     height: 30px;
     background-color: #a69662;
-    font-size: 24px;
+    font-size: 22px;
     border-radius: 5px;
     cursor: pointer;
     z-index: 2;

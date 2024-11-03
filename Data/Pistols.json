@@ -1,54 +1,93 @@
 [
     {
         "name": "Static Mist",
-        "rarity": "5-star"
+        "rarity": "5-star",
+        "ATK": "47",
+        "main_stat": "Crit Rate",
+        "base_main": "5.4"
     },
     {
         "name": "Cadenza",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "27",
+        "main_stat": "ER",
+        "base_main": "11.5"
     },
     {
         "name": "Novaburst",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "33",
+        "main_stat": "ATK",
+        "base_main": "6.7"
     },
     {
         "name": "Pistol#26",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "31",
+        "main_stat": "ATK",
+        "base_main": "8.1"
     },
     {
         "name": "Relativistic Jet",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "37",
+        "main_stat": "ATK",
+        "base_main": "4"
     },
     {
         "name": "Thunderbolt",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "31",
+        "main_stat": "ATK",
+        "base_main": "8.1"
     },
     {
         "name": "Undying Flame",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "33",
+        "main_stat": "ATK",
+        "base_main": "6.7"
     },
     {
         "name": "Guardian Pistols",
-        "rarity": "3-star"
+        "rarity": "3-star",
+        "ATK": "24",
+        "main_stat": "ATK",
+        "base_main": "6.7"
     },
     {
         "name": "Originite Type III",
-        "rarity": "3-star"
+        "rarity": "3-star",
+        "ATK": "26",
+        "main_stat": "ATK",
+        "base_main": "5.4"
     },
     {
         "name": "Pistols of Night",
-        "rarity": "3-star"
+        "rarity": "3-star",
+        "ATK": "26",
+        "main_stat": "ATK",
+        "base_main": "5.4"
     },
     {
         "name": "Pistols of Voyager",
-        "rarity": "3-star"
+        "rarity": "3-star",
+        "ATK": "24",
+        "main_stat": "ATK",
+        "base_main": "6.7"
     },
     {
         "name": "Tyro Pistols",
-        "rarity": "2-star"
+        "rarity": "2-star",
+        "ATK": "22",
+        "main_stat": "ATK",
+        "base_main": "3.2"
     },
     {
         "name": "Training Pistols",
-        "rarity": "1-star"
+        "rarity": "1-star",
+        "ATK": "20",
+        "main_stat": "ATK",
+        "base_main": "2.5"
     }
 ]

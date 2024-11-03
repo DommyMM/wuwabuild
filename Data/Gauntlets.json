@@ -1,58 +1,100 @@
 [
     {
         "name": "Abyss Surges",
-        "rarity": "5-star"
+        "rarity": "5-star",
+        "ATK": "47",
+        "main_stat": "ATK",
+        "base_main": "8.1"
     },
     {
         "name": "Verity's Handle",
-        "rarity": "5-star"
+        "rarity": "5-star",
+        "ATK": "47",
+        "main_stat": "Crit Rate",
+        "base_main": "5.4"
     },
     {
         "name": "Amity Accord",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "27",
+        "main_stat": "DEF",
+        "base_main": "13.6"
     },
     {
         "name": "Celestial Spiral",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "37",
+        "main_stat": "ATK",
+        "base_main": "4"
     },
     {
         "name": "Gauntlet#21D",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "31",
+        "main_stat": "ER",
+        "base_main": "8.6"
     },
     {
         "name": "Hollow Mirage",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "33",
+        "main_stat": "ATK",
+        "base_main": "6.7"
     },
     {
         "name": "Marcato",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "27",
+        "main_stat": "ER",
+        "base_main": "11.5"
     },
     {
         "name": "Stonard",
-        "rarity": "4-star"
+        "rarity": "4-star",
+        "ATK": "33",
+        "main_stat": "Crit Rate",
+        "base_main": "4.5"
     },
     {
         "name": "Gauntlets of Night",
-        "rarity": "3-star"
+        "rarity": "3-star",
+        "ATK": "26",
+        "main_stat": "ATK",
+        "base_main": "5.4"
     },
     {
         "name": "Gauntlets of Voyager",
-        "rarity": "3-star"
+        "rarity": "3-star",
+        "ATK": "26",
+        "main_stat": "DEF",
+        "base_main": "6.8"
     },
     {
         "name": "Guardian Gauntlets",
-        "rarity": "3-star"
+        "rarity": "3-star",
+        "ATK": "24",
+        "main_stat": "DEF",
+        "base_main": "8.5"
     },
     {
         "name": "Originite Type IV",
-        "rarity": "3-star"
+        "rarity": "3-star",
+        "ATK": "24",
+        "main_stat": "Crit DMG",
+        "base_main": "9"
     },
     {
         "name": "Tyro Gauntlets",
-        "rarity": "2-star"
+        "rarity": "2-star",
+        "ATK": "22",
+        "main_stat": "ATK",
+        "base_main": "3.2"
     },
     {
         "name": "Training Gauntlets",
-        "rarity": "1-star"
+        "rarity": "1-star",
+        "ATK": "20",
+        "main_stat": "ATK",
+        "base_main": "2.5"
     }
 ]
