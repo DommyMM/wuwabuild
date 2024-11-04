@@ -5,7 +5,11 @@
         "element": "Aero",
         "Bonus1": "Aero",
         "Bonus2": "ATK",
-        "Role": "Concerto"
+        "Role": "Concerto",
+        "HP": 788,
+        "ATK": 21,
+        "DEF": 88,
+        "ER": 150
     },
     {
         "name": "Baizhi",
@@ -13,7 +17,11 @@
         "element": "Glacio",
         "Bonus1": "Healing",
         "Bonus2": "HP",
-        "Role": "Support"
+        "Role": "Support",
+        "HP": 1025,
+        "ATK": 17,
+        "DEF": 82,
+        "ER": 175
     },
     {
         "name": "Calcharo",
@@ -21,15 +29,23 @@
         "element": "Electro",
         "Bonus1": "Crit DMG",
         "Bonus2": "ATK",
-        "Role": "DPS"
+        "Role": "DPS",
+        "HP": 840,
+        "ATK": 35,
+        "DEF": 97,
+        "ER": 125
     },
     {
         "name": "Camellya",
         "weaponType": "Sword",
         "element": "Havoc",
-        "Bonus1": "",
+        "Bonus1": "Crit DMG",
         "Bonus2": "ATK",
-        "Role": "DPS"
+        "Role": "DPS",
+        "HP": 826,
+        "ATK": 36,
+        "DEF": 95,
+        "ER": 125
     },
     {
         "name": "Changli",
@@ -37,7 +53,11 @@
         "element": "Fusion",
         "Bonus1": "Crit Rate",
         "Bonus2": "ATK",
-        "Role": "DPS"
+        "Role": "DPS",
+        "HP": 831,
+        "ATK": 37,
+        "DEF": 90,
+        "ER": 100
     },
     {
         "name": "Chixia",
@@ -45,7 +65,11 @@
         "element": "Fusion",
         "Bonus1": "Fusion",
         "Bonus2": "ATK",
-        "Role": "DPS"
+        "Role": "DPS",
+        "HP": 727,
+        "ATK": 24,
+        "DEF": 78,
+        "ER": 150
     },
     {
         "name": "Danjin",
@@ -53,15 +77,11 @@
         "element": "Havoc",
         "Bonus1": "Havoc",
         "Bonus2": "ATK",
-        "Role": "Concerto"
-    },
-    {
-        "name": "Dengdeng",
-        "weaponType": "Broadblade",
-        "element": "Electro",
-        "Bonus1": "",
-        "Bonus2": "ATK",
-        "Role": "Concerto"
+        "Role": "Concerto",
+        "HP": 755,
+        "ATK": 21,
+        "DEF": 94,
+        "ER": 100
     },
     {
         "name": "Encore",
@@ -69,7 +89,11 @@
         "element": "Fusion",
         "Bonus1": "Fusion",
         "Bonus2": "ATK",
-        "Role": "DPS"
+        "Role": "DPS",
+        "HP": 841,
+        "ATK": 34,
+        "DEF": 102,
+        "ER": 125
     },
     {
         "name": "Jianxin",
@@ -77,7 +101,11 @@
         "element": "Aero",
         "Bonus1": "Crit Rate",
         "Bonus2": "ATK",
-        "Role": "Support"
+        "Role": "Support",
+        "HP": 1129,
+        "ATK": 27,
+        "DEF": 92,
+        "ER": 150
     },
     {
         "name": "Jinhsi",
@@ -85,7 +113,11 @@
         "element": "Spectro",
         "Bonus1": "Crit Rate",
         "Bonus2": "ATK",
-        "Role": "DPS"
+        "Role": "DPS",
+        "HP": 866,
+        "ATK": 33,
+        "DEF": 103,
+        "ER": 100
     },
     {
         "name": "Jiyan",
@@ -93,7 +125,11 @@
         "element": "Aero",
         "Bonus1": "Crit Rate",
         "Bonus2": "ATK",
-        "Role": "DPS"
+        "Role": "DPS",
+        "HP": 839,
+        "ATK": 35,
+        "DEF": 97,
+        "ER": 125
     },
     {
         "name": "Lingyang",
@@ -101,7 +137,23 @@
         "element": "Glacio",
         "Bonus1": "Glacio",
         "Bonus2": "ATK",
-        "Role": "DPS"
+        "Role": "DPS",
+        "HP": 831,
+        "ATK": 35,
+        "DEF": 99,
+        "ER": 125
+    },
+    {
+        "name": "Lumi",
+        "weaponType": "Broadblade",
+        "element": "Electro",
+        "Bonus1": "Crit Rate",
+        "Bonus2": "ATK",
+        "Role": "Concerto",
+        "HP": 680,
+        "ATK": 27,
+        "DEF": 72,
+        "ER": 150
     },
     {
         "name": "Mortefi",
@@ -109,7 +161,11 @@
         "element": "Fusion",
         "Bonus1": "Fusion",
         "Bonus2": "ATK",
-        "Role": "Concerto"
+        "Role": "Concerto",
+        "HP": 802,
+        "ATK": 20,
+        "DEF": 93,
+        "ER": 125
     },
     {
         "name": "Rover (F)",
@@ -117,7 +173,11 @@
         "element": "Rover",
         "Bonus1": "Havoc",
         "Bonus2": "ATK",
-        "Role": "Concerto"
+        "Role": "Concerto",
+        "HP": 866,
+        "ATK": 33,
+        "DEF": 103,
+        "ER": 125
     },
     {
         "name": "Rover (M)",
@@ -125,7 +185,11 @@
         "element": "Rover",
         "Bonus1": "Havoc",
         "Bonus2": "ATK",
-        "Role": "Concerto"
+        "Role": "Concerto",
+        "HP": 912,
+        "ATK": 30,
+        "DEF": 112,
+        "ER": 125
     },
     {
         "name": "Sanhua",
@@ -133,7 +197,11 @@
         "element": "Glacio",
         "Bonus1": "Glacio",
         "Bonus2": "ATK",
-        "Role": "Concerto"
+        "Role": "Concerto",
+        "HP": 805,
+        "ATK": 22,
+        "DEF": 77,
+        "ER": 100
     },
     {
         "name": "Shorekeeper",
@@ -141,7 +209,11 @@
         "element": "Spectro",
         "Bonus1": "Healing",
         "Bonus2": "HP",
-        "Role": "Support"
+        "Role": "Support",
+        "HP": 1337,
+        "ATK": 23,
+        "DEF": 90,
+        "ER": 125
     },
     {
         "name": "Taoqi",
@@ -149,7 +221,11 @@
         "element": "Havoc",
         "Bonus1": "Havoc",
         "Bonus2": "DEF",
-        "Role": "Support"
+        "Role": "Support",
+        "HP": 716,
+        "ATK": 18,
+        "DEF": 128,
+        "ER": 125
     },
     {
         "name": "Verina",
@@ -157,7 +233,11 @@
         "element": "Spectro",
         "Bonus1": "Healing",
         "Bonus2": "ATK",
-        "Role": "Support"
+        "Role": "Support",
+        "HP": 1139,
+        "ATK": 27,
+        "DEF": 90,
+        "ER": 175
     },
     {
         "name": "Xiangli Yao",
@@ -165,7 +245,11 @@
         "element": "Electro",
         "Bonus1": "Crit DMG",
         "Bonus2": "ATK",
-        "Role": "DPS"
+        "Role": "DPS",
+        "HP": 850,
+        "ATK": 34,
+        "DEF": 100,
+        "ER": 125
     },
     {
         "name": "Yangyang",
@@ -173,7 +257,11 @@
         "element": "Aero",
         "Bonus1": "Aero",
         "Bonus2": "ATK",
-        "Role": "Concerto"
+        "Role": "Concerto",
+        "HP": 816,
+        "ATK": 20,
+        "DEF": 90,
+        "ER": 100
     },
     {
         "name": "Yinlin",
@@ -181,7 +269,11 @@
         "element": "Electro",
         "Bonus1": "Crit Rate",
         "Bonus2": "ATK",
-        "Role": "Concerto"
+        "Role": "Concerto",
+        "HP": 880,
+        "ATK": 32,
+        "DEF": 105,
+        "ER": 125
     },
     {
         "name": "Youhu",
@@ -189,7 +281,11 @@
         "element": "Glacio",
         "Bonus1": "Crit Rate",
         "Bonus2": "ATK",
-        "Role": "Support"
+        "Role": "Support",
+        "HP": 980,
+        "ATK": 30,
+        "DEF": 98,
+        "ER": 125
     },
     {
         "name": "Yuanwu",
@@ -197,7 +293,11 @@
         "element": "Electro",
         "Bonus1": "Electro",
         "Bonus2": "DEF",
-        "Role": "Support"
+        "Role": "Support",
+        "HP": 682,
+        "ATK": 18,
+        "DEF": 134,
+        "ER": 125
     },
     {
         "name": "Zhezhi",
@@ -205,6 +305,10 @@
         "element": "Glacio",
         "Bonus1": "Crit Rate",
         "Bonus2": "ATK",
-        "Role": "Concerto"
+        "Role": "Concerto",
+        "HP": 980,
+        "ATK": 30,
+        "DEF": 98,
+        "ER": 125
     }
 ]

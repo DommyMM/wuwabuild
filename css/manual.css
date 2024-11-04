@@ -1,6 +1,11 @@
 h1, h2, label {
   font-size: 40px;
   text-align: center;
+  margin: 1% auto;
+}
+
+h2{
+  width: 20%;
 }
 
 .manual-section {

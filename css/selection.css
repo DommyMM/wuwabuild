@@ -123,18 +123,12 @@
 }
 
 .weapon-choice{
-  background-image: linear-gradient(to right, #ffd700, #fff7b5, #c468e9, #e1bef3, #6ebfce, #b4d4da, #7ab488, #bad1bf, #595959, #868686);
   font-size: 40px;
   text-align: center;
   position: absolute;
   top: -20%;
   left: 55%;
   transform: translateX(-50%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shine 3s linear infinite;
 }
 
 .weapon-box{
@@ -166,7 +160,6 @@
   width: 200px;
   text-align: center;
   position: absolute;
-  top: 120%;
   left: -40%;
 }
 

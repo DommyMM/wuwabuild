@@ -1,12 +1,19 @@
 @font-face {
   font-family: 'YRDZST-Semibold';
-  src: url('../fonts/YRDZST-Semibold.ttf') format('truetype'); /*Adjusted path*/
+  src: url('../fonts/YRDZST-Semibold.ttf') format('truetype'); 
   font-weight: normal;
   font-style: normal;
 }
 @font-face {
   font-family: 'Ropa';
-  src: url('../fonts/Ropa.OTF') format('truetype'); /*Adjusted path*/
+  src: url('../fonts/Ropa.OTF') format('truetype'); 
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Gowun';
+  src: url('../fonts/GowunDodum-Regular.ttf') format('truetype'); 
   font-weight: normal;
   font-style: normal;
 }
@@ -16,7 +23,6 @@ body, h1, h2, h3, h4, h5, h6, p, button, label {
 }
 
 
-/*Global Styles*/
 body {
   background: linear-gradient(to bottom, #1E1E1E, #121212);
   background-color: #121212; 
@@ -25,7 +31,6 @@ body {
   padding: 0;
 }
 
-/*Styling for the tabs*/
 .tab {
   display: inline-block;
   margin-right: 10px;

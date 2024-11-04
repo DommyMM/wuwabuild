@@ -11,112 +11,24 @@
     margin: 0 auto;
 }
 
-#build-tab.tab {
+#build-tab {
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     width: 90%;
     height: 600px;
-    margin-top: 2%;
     position: relative;
     border-radius: 8px;
-    opacity: 0;
     transition: opacity 0.3s ease, transform 0.3s ease;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
     animation: fadeIn 0.3s forwards;
-    margin-right: 0;
-    padding: 0;   
-    -webkit-text-fill-color: black;
+    -webkit-text-fill-color: white;
     overflow: hidden;
     background: #333;
-}
-
-#build-tab.tab.char-sig.element-fusion::before,
-#build-tab.tab.char-sig.element-glacio::before,
-#build-tab.tab.char-sig.element-aero::before,
-#build-tab.tab.char-sig.element-electro::before,
-#build-tab.tab.char-sig.element-spectro::before,
-#build-tab.tab.char-sig.element-havoc::before,
-#build-tab.tab.char-sig.element-rover::before {
-    border-radius: 8px;
-}
-
-#build-tab.tab.char-sig.element-fusion::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to right, rgba(255, 69, 0, 0.5), rgba(255, 140, 0, 0.5), rgba(255, 77, 0, 0.5)); 
-    z-index: 1;
-}
-
-#build-tab.tab.char-sig.element-glacio::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to right, rgba(0, 206, 209, 0.5), rgba(135, 206, 235, 0.5), rgba(0, 255, 255, 0.5)); 
-    z-index: 1;
-}
-
-#build-tab.tab.char-sig.element-aero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to right, rgba(176, 255, 176, 0.5), rgba(144, 238, 144, 0.5)); 
-    z-index: 1;
-}
-
-#build-tab.tab.char-sig.element-electro::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to right, rgba(138, 43, 226, 0.5), rgba(123, 104, 238, 0.5), rgba(106, 90, 205, 0.5)); 
-    z-index: 1;
-}
-
-#build-tab.tab.char-sig.element-spectro::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to right, rgba(255, 250, 205, 0.5), rgba(255, 215, 0, 0.5)); 
-    z-index: 1;
-}
-
-#build-tab.tab.char-sig.element-havoc::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to right, rgba(255, 20, 147, 0.5), rgba(139, 0, 139, 0.5), rgba(255, 105, 180, 0.5)); 
-    z-index: 1;
-}
-
-#build-tab.tab.char-sig.element-rover::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to right, rgba(255, 69, 0, 0.5), rgba(0, 206, 209, 0.5), rgba(176, 255, 176, 0.5)); 
-    z-index: 1;
+    background-image: url('/images/Resources/T_Bg1_UI.png');
+    background-size: cover;
+    background-position: center;
 }
 
 .build-button {
@@ -153,7 +65,6 @@
     text-align: center;
     font-family: 'Ropa', sans-serif;
     font-size: 24px;
-    color: black;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     z-index: 5; 
 }
@@ -192,7 +103,7 @@
     position: absolute;
     height: 60%;
     width: 23%; 
-    left: 30%;
+    left: 28%;
     top: 0%;
     z-index: 2;
 }
@@ -200,7 +111,6 @@
 .build-character-name, 
 .build-character-level {
     position: absolute;
-    color: black;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     z-index: 2;
 }
@@ -221,11 +131,9 @@
     width: 50px;
     top: 15%;
     left: 35%;
-    filter: invert(1)
 }
 
 .element-icon{
-    filter: invert(0);
     transform: translateX(50px);
 }
 
@@ -233,7 +141,7 @@
     position: absolute;
     height: 35%;
     width: 23%; 
-    left: 30%;   
+    left: 28%;   
     bottom: 5%; 
     z-index: 2;
 }
@@ -245,29 +153,15 @@
     top: 0%;
     display: flex;
     align-items: center;
-    justify-content: space-evenly;
-    z-index: 2;
-}
-
-.build-weapon-star-background {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-    opacity: 1;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
     justify-content: flex-start;
-    gap: 5px;  
-    padding-left: 2%;
+    z-index: 2;
 }
 
 .build-weapon-diamond-container {
     position: absolute;
     top: -10%;
     width: 50%;
+    max-width: 180px;
     left: 0%;
     display: flex;
     flex-direction: row;
@@ -281,12 +175,10 @@
     bottom: 0%;
     z-index: 2;
     object-fit: contain;
-    border: 2px solid black;  
 }
 
 .build-weapon-diamond-container .diamond {
-    width: 18%;
-    height: 20px;
+    height: 15px;
     aspect-ratio: 1;  
     transform: rotate(45deg);
     background-color: white;
@@ -428,6 +320,7 @@
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+    filter: invert(1);
 }
 
 .simplified-base .skill-image {
@@ -438,6 +331,7 @@
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%) rotate(-45deg);
+    filter: invert(1);
 }
 
 .weapon-info{
@@ -445,7 +339,6 @@
     right: 0%;
     top: 10%;
     position: absolute;
-    color: black;
 }
 
 .weapon-stat {
@@ -515,7 +408,6 @@
     height: 20px;
     object-fit: contain;
     transform: translateX(-5px);
-    filter: invert(1);
 }
 
 .build-sequence-container {
@@ -546,35 +438,35 @@
 }
 
 .build-sequence-node.inactive .sequence-icon{
-    filter:blur(1px) invert(0.3);
+    filter:blur(2px) invert(0.3);
 }
 
-.element-fusion .build-sequence-node.active {
+.build-sequence-node.element-fusion.active {
     border: 2px solid #ff4d00;
     background-color: #ff4500; 
 }
 
-.element-glacio .build-sequence-node.active {
+.build-sequence-node.element-glacio.active {
     border: 2px solid #00ced1; 
     background-color: rgba(0, 206, 209, 0.5); 
 }
 
-.element-aero .build-sequence-node.active {
+.build-sequence-node.element-aero.active {
     border: 2px solid #90ee90; 
     background-color: rgba(0, 128, 128, 0.5); 
 }
 
-.element-electro .build-sequence-node.active {
+.build-sequence-node.element-electro.active {
     border: 2px solid #8a2be2;
     background-color: rgba(138, 43, 226, 0.9);
 }
 
-.element-spectro .build-sequence-node.active {
+.build-sequence-node.element-spectro.active {
     border: 2px solid #ffd700; 
     background-color: rgba(255, 215, 0, 0.3); 
 }
 
-.element-havoc .build-sequence-node.active {
+.build-sequence-node.element-havoc.active {
     border: 2px solid #ff1493;
     background-color: #ff69b4;
 }

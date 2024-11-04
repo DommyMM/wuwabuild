@@ -77,12 +77,9 @@ function getCharacterName(characterLabel) {
 async function generateBuildTabContent() {
     const tab = document.getElementById('build-tab');
     tab.innerHTML = '';
-    tab.style.backgroundColor = '#333';
 
     const characterLabel = document.querySelector('#selectedCharacterLabel span');
     const characterName = getCharacterName(characterLabel);
-    tab.className = `tab ${characterLabel.className}`;
-
     const roleValue = characterLabel.getAttribute('data-role'); 
     const elementValue = characterLabel.getAttribute('data-element'); 
 
@@ -95,10 +92,8 @@ async function generateBuildTabContent() {
     introSection.className = 'build-intro';
     introSection.appendChild(createCharacterNameSection(characterLabel));
     introSection.appendChild(createCharacterLevelSection());
-
     introSection.appendChild(createRoleImage(roleValue));  
     introSection.appendChild(createElementImage(elementValue));  
-
     introSection.appendChild(createSimplifiedForte(characterName));
 
     tab.appendChild(characterSection);
@@ -106,6 +101,9 @@ async function generateBuildTabContent() {
 
     const weaponSection = await generateWeaponSection();
     tab.appendChild(weaponSection);
+
+    const statsSection = createStatsMenuSection();
+    tab.appendChild(statsSection);
 
     const watermark = document.createElement('div');
     watermark.className = 'watermark';
@@ -163,7 +161,7 @@ function createRankLevelSection() {
     return rankLevelContainer;
 }
 
-async function createStatsSection() {
+async function createWeaponStats() {
     const characterLabel = document.querySelector('#selectedCharacterLabel span');
     const weaponLabel = document.querySelector('#selectedWeaponLabel span');
     const controlButton = document.querySelector('.control-button');
@@ -253,7 +251,7 @@ async function generateWeaponSection() {
 
         weaponInfo.appendChild(createWeaponNameSection(weaponLabel));
         weaponInfo.appendChild(createRankLevelSection());
-        weaponInfo.appendChild(await createStatsSection());  
+        weaponInfo.appendChild(await createWeaponStats());  
         
         weaponSection.appendChild(weaponInfo);
         weaponSection.appendChild(createRaritySection(weaponLabel));
@@ -263,7 +261,7 @@ async function generateWeaponSection() {
 
 function downloadBuildTab() {
     const tab = document.getElementById('build-tab');
-
+    
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0'); 
@@ -271,13 +269,16 @@ function downloadBuildTab() {
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const seconds = String(now.getSeconds()).padStart(2, '0');
-
     const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
-    html2canvas(tab).then(canvas => {
-        const link = document.createElement('a');
-        link.download = `${formattedDateTime}.png`; 
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-    });
+    domtoimage.toPng(tab)
+        .then(function (dataUrl) {
+            const link = document.createElement('a');
+            link.download = `${formattedDateTime}.png`;  
+            link.href = dataUrl;
+            link.click();  
+        })
+        .catch(function (error) {
+            console.error('Error capturing build-tab:', error);
+        });
 }
