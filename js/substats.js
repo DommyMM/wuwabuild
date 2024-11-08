@@ -16,6 +16,8 @@ function createStatsContainer(panel) {
     return statsTab;
 }
 
+const selectedOptions = new Set();
+
 function createStatSlot(statType, labelText, substatsData) {
     const statSlot = document.createElement('div');
     statSlot.className = `stat-slot ${statType}`;
@@ -39,7 +41,7 @@ function createStatSlot(statType, labelText, substatsData) {
 
     const valueDropdown = document.createElement('select');
     valueDropdown.className = 'stat-value';
-    valueDropdown.disabled = true; 
+    valueDropdown.disabled = true;
 
     const defaultValueOption = document.createElement('option');
     defaultValueOption.textContent = 'Select';
@@ -47,7 +49,17 @@ function createStatSlot(statType, labelText, substatsData) {
 
     select.addEventListener('change', (event) => {
         const selectedStat = event.target.value;
+
+        const previousSelection = event.target.dataset.selected;
+        if (previousSelection) {
+            selectedOptions.delete(previousSelection);
+        }
+
+        selectedOptions.add(selectedStat);
+        event.target.dataset.selected = selectedStat;
+
         updateValueDropdown(valueDropdown, selectedStat, substatsData);
+        refreshAllDropdowns();
     });
 
     statSlot.appendChild(select);
@@ -81,6 +93,22 @@ function updateValueDropdown(valueDropdown, selectedStat, substatsData) {
         valueDropdown.appendChild(option);
     });
 }
+
+function refreshAllDropdowns() {
+    const allDropdowns = document.querySelectorAll('.stat-select');
+    
+    allDropdowns.forEach(dropdown => {
+        const currentSelection = dropdown.value;
+        dropdown.querySelectorAll('option').forEach(option => {
+            if (selectedOptions.has(option.value) && option.value !== currentSelection) {
+                option.disabled = true;
+            } else {
+                option.disabled = false;
+            }
+        });
+    });
+}
+
 
 async function initializeStatsTab() {
     const substatsData = await loadSubstatsData();

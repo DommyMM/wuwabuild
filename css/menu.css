@@ -1,6 +1,114 @@
-.stats-section{ 
+.stats-section {
     width: 20%;
     height: 100%;
     position: relative;
-    left: 13%;
+    left: 11.5%;
+}
+
+.stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 100px auto;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+}
+
+.stat-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stat-number, .stat-name{
+    color: #E2E8F0;
+    font-size: 28px;
+}
+
+.stat-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.set-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.set-icon-container {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.set-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.set-name {
+    color: #E2E8F0;
+    font-size: 42px;
+    text-align: center;
+}
+
+.set-aero {
+    border: 2px solid #98FB98;
+    background: #2E4D2E;
+}
+.set-er {
+    border: 2px solid white;
+    background: #444;
+}
+
+.set-electro {
+    border: 2px solid #BA55D3;
+    background: #351830;
+}
+
+.set-spectro {
+    border: 2px solid #FFD700;
+    background: #4D4000;
+}
+
+.set-glacio {
+    border: 2px solid #87CEEB;
+    background: #1B4B66;
+}
+
+.set-attack {
+    border: 2px solid #bc2514;
+    background: #5C2A26;
+}
+
+.set-fusion {
+    border: 2px solid #d5740c;
+    background: #6A2F1A;
+}
+
+
+.set-havoc {
+    border: 2px solid #ff1493;
+    background: #4D2A00;
+}
+
+.set-healing {
+    border: 2px solid #2fe32f;
+    background: #2B472B;
+}
+
+.set-default{
+    background: rgba(30, 30, 40, 0.8);
 }

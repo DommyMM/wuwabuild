@@ -7,6 +7,13 @@
         "base_main": "10.8"
     },
     {
+        "name": "Red Spring",
+        "rarity": "5-star",
+        "ATK": "47",
+        "main_stat": "Crit Rate",
+        "base_main": "5.4"
+    },
+    {
         "name": "Emerald of Genesis",
         "rarity": "5-star",
         "ATK": "47",

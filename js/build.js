@@ -105,6 +105,9 @@ async function generateBuildTabContent() {
     const statsSection = createStatsMenuSection();
     tab.appendChild(statsSection);
 
+    const echoDisplay = createEchoDisplay();
+    tab.appendChild(echoDisplay);
+
     const watermark = document.createElement('div');
     watermark.className = 'watermark';
     watermark.innerText = 'Dommy';
