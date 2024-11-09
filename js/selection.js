@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         toggleElement.style.display = 'none';
                     }
                     sequenceImage.src = `images/Wavebands/${displayName}.png`;
+                    createForteGroup();
                     updateForteIcons(displayName);
                     displayName = character.name;
                 });
