@@ -16,9 +16,9 @@ function createStatsContainer(panel) {
     return statsTab;
 }
 
-const selectedOptions = new Set();
+const panelSelections = new Map();
 
-function createStatSlot(statType, labelText, substatsData) {
+function createStatSlot(statType, labelText, substatsData, panel) {
     const statSlot = document.createElement('div');
     statSlot.className = `stat-slot ${statType}`;
     
@@ -47,19 +47,25 @@ function createStatSlot(statType, labelText, substatsData) {
     defaultValueOption.textContent = 'Select';
     valueDropdown.appendChild(defaultValueOption);
 
+    const panelId = panel.id;
+    if (!panelSelections.has(panelId)) {
+        panelSelections.set(panelId, new Set());
+    }
+
     select.addEventListener('change', (event) => {
         const selectedStat = event.target.value;
+        const panelSelectedOptions = panelSelections.get(panelId);
 
         const previousSelection = event.target.dataset.selected;
         if (previousSelection) {
-            selectedOptions.delete(previousSelection);
+            panelSelectedOptions.delete(previousSelection);
         }
 
-        selectedOptions.add(selectedStat);
+        panelSelectedOptions.add(selectedStat);
         event.target.dataset.selected = selectedStat;
 
         updateValueDropdown(valueDropdown, selectedStat, substatsData);
-        refreshAllDropdowns();
+        refreshPanelDropdowns(panel);
     });
 
     statSlot.appendChild(select);
@@ -94,13 +100,15 @@ function updateValueDropdown(valueDropdown, selectedStat, substatsData) {
     });
 }
 
-function refreshAllDropdowns() {
-    const allDropdowns = document.querySelectorAll('.stat-select');
+function refreshPanelDropdowns(panel) {
+    const panelId = panel.id;
+    const panelSelectedOptions = panelSelections.get(panelId);
+    const allDropdowns = panel.querySelectorAll('.stat-select');
     
     allDropdowns.forEach(dropdown => {
         const currentSelection = dropdown.value;
         dropdown.querySelectorAll('option').forEach(option => {
-            if (selectedOptions.has(option.value) && option.value !== currentSelection) {
+            if (panelSelectedOptions.has(option.value) && option.value !== currentSelection) {
                 option.disabled = true;
             } else {
                 option.disabled = false;
@@ -108,7 +116,6 @@ function refreshAllDropdowns() {
         });
     });
 }
-
 
 async function initializeStatsTab() {
     const substatsData = await loadSubstatsData();
@@ -131,7 +138,7 @@ async function initializeStatsTab() {
         statsTab.appendChild(createMainStatSection(null, mainStatsData));
         
         for (let j = 1; j <= 5; j++) {
-            statsTab.appendChild(createStatSlot('sub-stat', `Substat ${j}`, substatsData));
+            statsTab.appendChild(createStatSlot('sub-stat', `Substat ${j}`, substatsData, panel));
         }
     }
 }
