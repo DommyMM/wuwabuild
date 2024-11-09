@@ -26,39 +26,41 @@
 }
 
 .echo-display-icon {
-    height: 80%;
-    transform: translateY(10.5%);
+    height: 100%;
     display: block;
-    left: 0%;
+    left: 4%;
+    border-radius: 8px;
 }
 
 .echo-level-indicator {
     position: absolute;
-    bottom: 5px;
-    right: 5px;
-    padding: 2px 6px;
-    font-size: 20px;
+    bottom: 7px;
+    right: 0px;
+    padding: 0 4px;
+    font-size: 24px;
+    background: rgba(0, 0, 0, .5);
+    border-radius: 10px;
 }
 
 .main-stat-icon {
     position: absolute;
     top: 5px;
-    right: 5px;
+    right: -5px;
     height: 36px;
     width: 36px;
 }
 
 .main-stat-display {
     position: absolute;
-    top: 40px;
-    right: 5px;
+    top: 35px;
+    right: -5px;
     color: white;
     font-size: 30px;
     text-shadow: 
-    -1px -1px 0 #000,
-    1px -1px 0 #000,
-    -1px 1px 0 #000,
-    1px 1px 0 #000;
+    -2px -2px 4px #000,
+    2px -2px 4px #000,
+    -2px 2px 4px #000,
+    2px 2px 4px #000;
 }
 
 .echo-divider {
@@ -96,6 +98,9 @@
     align-items: center;
     gap: 5px;
     flex: 1; 
+    border-radius: 4px;
+    padding-bottom: 5px;
+    background-position: center;
 }
 
 .substat-icon {
@@ -123,4 +128,17 @@
 
 .center-align {
     justify-content: center;
+    transform: translateY(-5px)
+}
+
+.substat-container.left-align, .substat-container.right-align, .substat-container.center-align {
+    max-width: 90px;
+}
+
+.echo-right .substat-row:nth-of-type(1) {
+    transform: translateY(5px); 
+}
+
+.echo-right .substat-row:nth-of-type(2) {
+    transform: translateY(10px); 
 }
