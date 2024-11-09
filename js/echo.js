@@ -112,11 +112,44 @@ function createEchoDivider() {
     return echoDivider;
 }
 
+let subStats;
+
+async function loadSubstatsData() {
+    try {
+        const response = await fetch('Data/Substats.json');
+        const data = await response.json();
+        subStats = data.subStats;
+    } catch (error) {
+        console.error('Error loading substats data:', error);
+    }
+}
+
 function createSubstatDisplay(substatSelect, substatValue, alignment) {
     if (substatSelect.selectedIndex === 0) return null;
     
     const substatContainer = document.createElement('div');
     substatContainer.className = `substat-container ${alignment}-align`;
+    
+    // Get values from the value dropdown instead of stat select
+    const allValues = Array.from(substatValue.options)
+        .map(option => parseFloat(option.value))
+        .filter(value => !isNaN(value)); // Remove non-numeric values
+    
+    const currentValue = parseFloat(substatValue.value);
+    const index = allValues.indexOf(currentValue);
+    
+    // Determine quality tier
+    let quality;
+    const length = allValues.length;
+    if (index < length/4) quality = "2-star";
+    else if (index < length/2) quality = "3-star";
+    else if (index < length * 3/4) quality = "4-star";
+    else quality = "5-star";
+    
+    // Apply background
+    substatContainer.style.backgroundImage = `url('images/Quality/${quality}.png')`;
+    substatContainer.style.backgroundSize = 'cover';
+    substatContainer.style.backgroundPosition = 'center';
     
     const statIcon = document.createElement('img');
     statIcon.src = `images/Stats/${getStatIconName(substatSelect.value)}.png`;
@@ -133,7 +166,7 @@ function createSubstatDisplay(substatSelect, substatValue, alignment) {
     substatContainer.appendChild(valueDisplay);
     
     return substatContainer;
-}
+ }
 
 
 function createSubstatRow(substats, startIndex, alignment = 'space-between') {
