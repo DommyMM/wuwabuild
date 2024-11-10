@@ -4,21 +4,27 @@
         "rarity": "5-star",
         "ATK": "47",
         "main_stat": "Crit DMG",
-        "base_main": "10.8"
-    },
-    {
-        "name": "Red Spring",
-        "rarity": "5-star",
-        "ATK": "47",
-        "main_stat": "Crit Rate",
-        "base_main": "5.4"
+        "base_main": "10.8",
+        "passive": "ATK",
+        "passive_stat": "12"
     },
     {
         "name": "Emerald of Genesis",
         "rarity": "5-star",
         "ATK": "47",
         "main_stat": "Crit Rate",
-        "base_main": "5.4"
+        "base_main": "5.4",
+        "passive": "ER",
+        "passive_stat": "12.8"
+    },
+    {
+        "name": "Red Spring",
+        "rarity": "5-star",
+        "ATK": "47",
+        "main_stat": "Crit Rate",
+        "base_main": "5.4",
+        "passive": "ATK",
+        "passive_stat": "12"
     },
     {
         "name": "Commando of Conviction",
@@ -67,7 +73,9 @@
         "rarity": "3-star",
         "ATK": "24",
         "main_stat": "HP",
-        "base_main": "6.7"
+        "base_main": "6.7",
+        "passive": "Skill",
+        "passive_stat": "12"
     },
     {
         "name": "Originite Type II",
@@ -95,13 +103,17 @@
         "rarity": "2-star",
         "ATK": "22",
         "main_stat": "ATK",
-        "base_main": "3.2"
+        "base_main": "3.2",
+        "passive": "ATK",
+        "passive_stat": "5"
     },
     {
         "name": "Training Sword",
         "rarity": "1-star",
         "ATK": "20",
         "main_stat": "ATK",
-        "base_main": "2.5"
+        "base_main": "2.5",
+        "passive": "ATK",
+        "passive_stat": "4"
     }
 ]

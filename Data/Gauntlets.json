@@ -4,14 +4,18 @@
         "rarity": "5-star",
         "ATK": "47",
         "main_stat": "ATK",
-        "base_main": "8.1"
+        "base_main": "8.1",
+        "passive": "ER",
+        "passive_stat": "12.8"
     },
     {
         "name": "Verity's Handle",
         "rarity": "5-star",
         "ATK": "47",
         "main_stat": "Crit Rate",
-        "base_main": "5.4"
+        "base_main": "5.4",
+        "passive": "Attribute",
+        "passive_stat": "12"
     },
     {
         "name": "Amity Accord",
@@ -74,7 +78,9 @@
         "rarity": "3-star",
         "ATK": "24",
         "main_stat": "DEF",
-        "base_main": "8.5"
+        "base_main": "8.5",
+        "passive": "Liberation",
+        "passive_stat": "12"
     },
     {
         "name": "Originite Type IV",
@@ -88,13 +94,17 @@
         "rarity": "2-star",
         "ATK": "22",
         "main_stat": "ATK",
-        "base_main": "3.2"
+        "base_main": "3.2",
+        "passive": "ATK",
+        "passive_stat": "5"
     },
     {
         "name": "Training Gauntlets",
         "rarity": "1-star",
         "ATK": "20",
         "main_stat": "ATK",
-        "base_main": "2.5"
+        "base_main": "2.5",
+        "passive": "ATK",
+        "passive_stat": "4"
     }
 ]

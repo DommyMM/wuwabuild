@@ -4,28 +4,36 @@
         "rarity": "5-star",
         "ATK": "40",
         "main_stat": "ATK",
-        "base_main": "11.9"
+        "base_main": "11.9",
+        "passive": "ER",
+        "passive_stat": "12.8"
     },
     {
         "name": "Rime-Draped Sprouts",
         "rarity": "5-star",
         "ATK": "40",
         "main_stat": "Crit DMG",
-        "base_main": "16"
+        "base_main": "16",
+        "passive": "ATK",
+        "passive_stat": "12"
     },
     {
         "name": "Stellar Symphony",
         "rarity": "5-star",
         "ATK": "33",
         "main_stat": "ER",
-        "base_main": "17.1"
+        "base_main": "17.1",
+        "passive": "HP",
+        "passive_stat": "12"
     },
     {
         "name": "Stringmaster",
         "rarity": "5-star",
         "ATK": "40",
         "main_stat": "Crit Rate",
-        "base_main": "8"
+        "base_main": "8",
+        "passive": "Attribute",
+        "passive_stat": "12"
     },
     {
         "name": "Augment",
@@ -74,7 +82,11 @@
         "rarity": "3-star",
         "ATK": "26",
         "main_stat": "ATK",
-        "base_main": "5.4"
+        "base_main": "5.4",
+        "passive": "Basic Attack",
+        "passive_stat": "12",
+        "passive2": "Heavy Attack",
+        "passive_stat2": "12"
     },
     {
         "name": "Originite Type V",
@@ -102,13 +114,17 @@
         "rarity": "2-star",
         "ATK": "22",
         "main_stat": "ATK",
-        "base_main": "3.2"
+        "base_main": "3.2",
+        "passive": "ATK",
+        "passive_stat": "5"
     },
     {
         "name": "Training Rectifier",
         "rarity": "1-star",
         "ATK": "20",
         "main_stat": "ATK",
-        "base_main": "2.5"
+        "base_main": "2.5",
+        "passive": "ATK",
+        "passive_stat": "4"
     }
 ]

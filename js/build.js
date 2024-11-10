@@ -104,7 +104,7 @@ async function generateBuildTabContent() {
     const weaponSection = await generateWeaponSection();
     tab.appendChild(weaponSection);
 
-    const statsSection = createStatsMenuSection();
+    const statsSection = await createStatsMenuSection();
     tab.appendChild(statsSection);
 
     const echoDisplay = createEchoDisplay();

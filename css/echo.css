@@ -36,7 +36,7 @@
     position: absolute;
     bottom: 7px;
     right: 0px;
-    padding: 0 4px;
+    padding: 2px 6px;
     font-size: 24px;
     background: rgba(0, 0, 0, .5);
     border-radius: 10px;
@@ -46,8 +46,8 @@
     position: absolute;
     top: 5px;
     right: -5px;
-    height: 36px;
-    width: 36px;
+    height: 32px;
+    width: 32px;
 }
 
 .main-stat-display {

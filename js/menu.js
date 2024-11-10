@@ -7,14 +7,87 @@ async function loadEchoData() {
     }
 }
 
-const statsData = [
-    { icon: 'HP', name: 'HP', value: '19,218' },
-    { icon: 'ATK', name: 'ATK', value: '2,244' },
-    { icon: 'DEF', name: 'DEF', value: '908' },
-    { icon: 'Crit Rate', name: 'Crit Rate', value: '73.8%' },
-    { icon: 'Crit DMG', name: 'CRIT DMG', value: '188.4%' },
-    { icon: 'ER', name: 'ER', value: '277.1%' }
-];
+function getBaseStats(character) {
+    return [
+        { icon: 'HP', name: 'HP', value: character.HP },
+        { icon: 'ATK', name: 'ATK', value: character.ATK },
+        { icon: 'DEF', name: 'DEF', value: character.DEF },
+        { icon: 'Crit Rate', name: 'Crit Rate', value: `${calculateCritRate(5.0, character.Bonus1, character.Bonus2).toFixed(1)}%` },
+        { icon: 'Crit DMG', name: 'Crit DMG', value: `${calculateCritDMG(150.0, character.Bonus1, character.Bonus2).toFixed(1)}%` },        
+        { icon: 'ER', name: 'Energy Recharge', value: `${calculateER(character.ER).toFixed(1)}%` }
+    ];
+}
+
+function getBonusStat(character) {
+    if (character.Bonus1 === 'Healing') {
+        return { icon: 'Healing', name: 'Healing Bonus', value: '0.0%' };
+    }
+    return { 
+        icon: character.element, 
+        name: `${character.element} DMG Bonus`, 
+        value: `${calculateElementalDMG(character.element, character.Bonus1, character.Bonus2).toFixed(1)}%` 
+    };
+}
+
+function checkAdditionalStats(panel, statsData) {
+    const additionalStats = new Set();
+    const specialStats = {
+        'Basic Attack': 'Basic Attack DMG Bonus',
+        'Heavy Attack': 'Heavy Attack DMG Bonus',
+        'Skill': 'Resonance Skill DMG Bonus',
+        'Liberation': 'Resonance Liberation Bonus'
+    };
+
+    const mainStatSelect = panel.querySelector('.main-stat .stat-select');
+    if (mainStatSelect) {
+        const mainStatValue = mainStatSelect.value;
+        if (specialStats[mainStatValue]) {
+            const specialStatName = specialStats[mainStatValue];
+            if (!statsData.some(stat => stat.name === specialStatName)) {
+                additionalStats.add(specialStatName);
+            }
+        } else if (mainStatValue.endsWith('DMG')) {
+            const dmgBonusName = mainStatValue + ' Bonus';
+            if (!statsData.some(stat => stat.name === dmgBonusName)) {
+                additionalStats.add(dmgBonusName);
+            }
+        }
+    }
+
+    const subStatSelects = Array.from(panel.querySelectorAll('.sub-stat .stat-select'));
+    subStatSelects.forEach(select => {
+        if (select.value && specialStats[select.value]) {
+            const specialStatName = specialStats[select.value];
+            if (!statsData.some(stat => stat.name === specialStatName)) {
+                additionalStats.add(specialStatName);
+            }
+        }
+    });
+
+    return [...additionalStats];
+}
+
+async function generateStatsData() {
+    const characterLabel = document.querySelector('#selectedCharacterLabel span');
+    const characterName = characterLabel.textContent;
+    
+    const response = await fetch('Data/Characters.json');
+    const characters = await response.json();
+    const character = characters.find(c => c.name === characterName);
+
+    if (!character) return [];
+
+    const statsData = getBaseStats(character);
+    statsData.push(getBonusStat(character));
+
+    const panels = Array.from(document.querySelectorAll('.echo-panel'));
+    panels.forEach(panel => {
+        const panelStats = checkAdditionalStats(panel, statsData);
+        panelStats.forEach(stat => statsData.push(createAdditionalStatData(stat)));
+    });
+
+    return statsData;
+}
 
 function createStatIcon(iconName) {
     const statIcon = document.createElement('img');
@@ -26,14 +99,23 @@ function createStatIcon(iconName) {
 function createStatLeft(stat) {
     const statLeft = document.createElement('div');
     statLeft.className = 'stat-left';
-    
+
     statLeft.appendChild(createStatIcon(stat.icon));
-    
+
     const statName = document.createElement('span');
     statName.className = 'stat-name';
     statName.textContent = stat.name;
+
+    if (statName.textContent.length <= 18) {
+    } else if (statName.textContent.length <= 21) {
+        statName.classList.add('short');
+    } else if (statName.textContent.length <= 24) {
+        statName.classList.add('medium');
+    } else {
+        statName.classList.add('long');
+    }
+
     statLeft.appendChild(statName);
-    
     return statLeft;
 }
 
@@ -54,9 +136,11 @@ function createStatRow(stat) {
     return statRow;
 }
 
-function createStatsGridContainer() {
+async function createStatsGridContainer() {
     const statsContainer = document.createElement('div');
     statsContainer.className = 'stats-container';
+    
+    const statsData = await generateStatsData();
     
     statsData.forEach(stat => {
         statsContainer.appendChild(createStatRow(stat));
@@ -135,11 +219,12 @@ function countUniqueSets(panels) {
     return setContainer;
  }
 
-function createStatsMenuSection() {
+ async function createStatsMenuSection() {
     const statsSection = document.createElement('div');
     statsSection.className = 'stats-section';
     
-    statsSection.appendChild(createStatsGridContainer());
+    const statsGrid = await createStatsGridContainer();
+    statsSection.appendChild(statsGrid);
     statsSection.appendChild(createSetDisplay());
     
     return statsSection;
