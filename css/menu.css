@@ -38,9 +38,20 @@
 
 .set-container {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    transform: translateY(-10px);
+}
+
+.set-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 50px;
+    width: 100%;
 }
 
 .set-icon-container {
@@ -62,6 +73,14 @@
     color: #E2E8F0;
     font-size: 42px;
     text-align: center;
+}
+
+.set-count{
+    font-size: 28px;
+    text-align: center;
+    padding: 2px 12px;
+    background: rgba(0, 0, 0, .5);
+    border-radius: 10px;
 }
 
 .set-aero {
@@ -111,4 +130,40 @@
 
 .set-default{
     background: rgba(30, 30, 40, 0.8);
+}
+
+.popuptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: #E2E8F0;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.popuptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+}
+
+.show {
+    visibility: visible;
+    animation: fadeIn 1s;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
 }

@@ -1,3 +1,5 @@
+let echoData = null;
+
 function createEchoPanels() {
     const container = document.querySelector('.echo-panels-container');
     if (!container) {
@@ -106,60 +108,57 @@ function openEchoModal(index) {
     const echoList = echoModal.querySelector('.echo-list');
     echoList.innerHTML = '';
 
-    const costs = [4, 3, 1];  // Array of costs in desired order
+    const costs = [4, 3, 1];
     const costSections = {};
     
-    // Create sections for each cost
     costs.forEach(cost => {
         const { section, grid } = createCostSection(cost);
         costSections[cost] = { section, grid };
     });
 
-    fetch('Data/Echoes.json')
-        .then(response => response.json())
-        .then(echoes => {
-            echoes.forEach(echo => {
-                const echoElement = document.createElement('div');
-                echoElement.classList.add('echo-option');
-
-                const img = document.createElement('img');
-                img.src = `images/Echoes/${echo.name}.png`;
-                img.alt = echo.name;
-                img.classList.add('echo-img');
-
-                echoElement.addEventListener('click', async () => {
-                    const panel = document.getElementById(`panel${index}`);
-                    panel.querySelector('#echoImg').src = `images/Echoes/${echo.name}.png`;
-                    panel.querySelector('#selectedEchoLabel').textContent = echo.name;
-                    panel.querySelector('#selectEcho').style.right = '10%'; 
-                    createElementTabs(panel, echo.elements);
-                    const mainStatsData = await loadMainStatsData();
-                    if (mainStatsData) {
-                        updateMainStats(panel, echo.cost, mainStatsData);
-                    }
-                    echoModal.style.display = 'none';
-                });
-
-                echoElement.appendChild(img);
-                const nameLabel = document.createElement('span');
-                nameLabel.className = 'echo-name';
-                nameLabel.textContent = echo.name;
-                echoElement.appendChild(nameLabel);
-
-                if (costSections[echo.cost]) {
-                    costSections[echo.cost].grid.appendChild(echoElement);
-                }
-            });
-
-            costs.forEach(cost => {
-                if (costSections[cost]) {
-                    echoList.appendChild(costSections[cost].section);
-                }
-            });
-        })
-        .catch(error => console.error("Error loading echoes:", error));
-
+    populateEchoModal(echoData, index, costSections, costs, echoList, echoModal);
     echoModal.style.display = 'flex';
+}
+
+function populateEchoModal(echoes, index, costSections, costs, echoList, echoModal) {
+    echoes.forEach(echo => {
+        const echoElement = document.createElement('div');
+        echoElement.classList.add('echo-option');
+
+        const img = document.createElement('img');
+        img.src = `images/Echoes/${echo.name}.png`;
+        img.alt = echo.name;
+        img.classList.add('echo-img');
+
+        echoElement.addEventListener('click', async () => {
+            const panel = document.getElementById(`panel${index}`);
+            panel.querySelector('#echoImg').src = `images/Echoes/${echo.name}.png`;
+            panel.querySelector('#selectedEchoLabel').textContent = echo.name;
+            panel.querySelector('#selectEcho').style.right = '10%'; 
+            createElementTabs(panel, echo.elements);
+            const mainStatsData = await loadMainStatsData();
+            if (mainStatsData) {
+                updateMainStats(panel, echo.cost, mainStatsData);
+            }
+            echoModal.style.display = 'none';
+        });
+
+        echoElement.appendChild(img);
+        const nameLabel = document.createElement('span');
+        nameLabel.className = 'echo-name';
+        nameLabel.textContent = echo.name;
+        echoElement.appendChild(nameLabel);
+
+        if (costSections[echo.cost]) {
+            costSections[echo.cost].grid.appendChild(echoElement);
+        }
+    });
+
+    costs.forEach(cost => {
+        if (costSections[cost]) {
+            echoList.appendChild(costSections[cost].section);
+        }
+    });
 }
 
 createEchoPanels();

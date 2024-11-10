@@ -130,15 +130,13 @@ function createSubstatDisplay(substatSelect, substatValue, alignment) {
     const substatContainer = document.createElement('div');
     substatContainer.className = `substat-container ${alignment}-align`;
     
-    // Get values from the value dropdown instead of stat select
     const allValues = Array.from(substatValue.options)
         .map(option => parseFloat(option.value))
-        .filter(value => !isNaN(value)); // Remove non-numeric values
+        .filter(value => !isNaN(value)); 
     
     const currentValue = parseFloat(substatValue.value);
     const index = allValues.indexOf(currentValue);
     
-    // Determine quality tier
     let quality;
     const length = allValues.length;
     if (index < length/4) quality = "2-star";
@@ -146,7 +144,6 @@ function createSubstatDisplay(substatSelect, substatValue, alignment) {
     else if (index < length * 3/4) quality = "4-star";
     else quality = "5-star";
     
-    // Apply background
     substatContainer.style.backgroundImage = `url('images/Quality/${quality}.png')`;
     substatContainer.style.backgroundSize = 'cover';
     substatContainer.style.backgroundPosition = 'center';

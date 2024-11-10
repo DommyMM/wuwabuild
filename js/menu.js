@@ -1,4 +1,12 @@
-// menu.js
+async function loadEchoData() {
+    try {
+        const response = await fetch('Data/Echoes.json');
+        echoData = await response.json();
+    } catch (error) {
+        console.error('Error loading echo data:', error);
+    }
+}
+
 const statsData = [
     { icon: 'HP', name: 'HP', value: '19,218' },
     { icon: 'ATK', name: 'ATK', value: '2,244' },
@@ -57,41 +65,75 @@ function createStatsGridContainer() {
     return statsContainer;
 }
 
-function createSetDisplay() {
-    const setContainer = document.createElement('div');
-    setContainer.className = 'set-container';
-    setContainer.style.display = 'none'; 
-
+function countUniqueSets(panels) {
+    const elementCounts = {};
+    const usedEchoes = new Set();
+ 
+    panels.forEach(panel => {
+        const element = panel.querySelector('.set-name-display')?.dataset.element;
+        const echoLabel = panel.querySelector('#selectedEchoLabel');
+        const echoName = echoLabel?.textContent;
+        
+        if (element && echoName && !echoName.startsWith('Echo ') && !usedEchoes.has(echoName)) {
+            elementCounts[element] = (elementCounts[element] || 0) + 1;
+            usedEchoes.add(echoName);
+        }
+    });
+ 
+    return Object.entries(elementCounts)
+        .filter(([_, count]) => count >= 2)
+        .sort((a, b) => b[1] - a[1]);
+ }
+ 
+ function createSetRow(element, count) {
+    const setRow = document.createElement('div');
+    setRow.className = 'set-row';
+ 
     const setIconContainer = document.createElement('div');
     setIconContainer.className = 'set-icon-container';
-
-    const panels = Array.from(document.querySelectorAll('.echo-panel'));
-    const elements = panels.map(panel => panel.querySelector('.set-name-display')?.dataset.element);
-
-    const allMatch = elements.every(element => element && element === elements[0]);
-
-    if (allMatch) {
-        const selectedElement = elements[0];  
-
-        setIconContainer.classList.add(`set-${selectedElement.toLowerCase()}`);
-        setContainer.style.display = 'flex'; 
-
-        const setIcon = document.createElement('img');
-        setIcon.src = `images/Sets/${selectedElement}.png`;
-        setIcon.className = 'set-icon';
-        
-        const setText = document.createElement('span');
-        setText.className = 'set-name';
-        setText.textContent = ELEMENT_SETS[selectedElement] || 'Lingering Tunes';
-
-        setIconContainer.appendChild(setIcon);
-        setContainer.appendChild(setIconContainer);
-        setContainer.appendChild(setText);
+    setIconContainer.classList.add(`set-${element.toLowerCase()}`);
+ 
+    const setIcon = document.createElement('img');
+    setIcon.src = `images/Sets/${element}.png`;
+    setIcon.className = 'set-icon';
+    
+    const setText = document.createElement('span');
+    setText.className = 'set-name';
+    setText.textContent = ELEMENT_SETS[element];
+ 
+    if (setText.textContent.length > 15) {
+        setText.style.fontSize = '32px';
     }
-
+ 
+    const setCount = document.createElement('span');
+    setCount.className = 'set-count';
+    setCount.textContent = count >= 5 ? '5' : '2';
+ 
+    setIconContainer.appendChild(setIcon);
+    setRow.appendChild(setIconContainer);
+    setRow.appendChild(setText);
+    setRow.appendChild(setCount);
+ 
+    return setRow;
+ }
+ 
+ function createSetDisplay() {
+    const setContainer = document.createElement('div');
+    setContainer.className = 'set-container';
+    setContainer.style.display = 'none';
+ 
+    const panels = Array.from(document.querySelectorAll('.echo-panel'));
+    const qualifyingSets = countUniqueSets(panels);
+ 
+    if (qualifyingSets.length > 0) {
+        setContainer.style.display = 'flex';
+        qualifyingSets.forEach(([element, count]) => {
+            setContainer.appendChild(createSetRow(element, count));
+        });
+    }
+ 
     return setContainer;
-}
-
+ }
 
 function createStatsMenuSection() {
     const statsSection = document.createElement('div');
@@ -101,4 +143,49 @@ function createStatsMenuSection() {
     statsSection.appendChild(createSetDisplay());
     
     return statsSection;
+}
+
+async function checkEchoCosts() {
+    const panels = Array.from(document.querySelectorAll('.echo-panel'));
+    if (!echoData) await loadEchoData();
+    
+    let totalCost = 0;
+    panels.forEach(panel => {
+        const echoLabel = panel.querySelector('#selectedEchoLabel');
+        const echoName = echoLabel?.textContent;
+        
+        if (echoName && !echoName.startsWith('Echo ')) {
+            const cost = getEchoCost(echoName);
+            if (cost) totalCost += cost;
+        }
+    });
+
+    if (totalCost > 12) {
+        showCostWarning(totalCost);
+        return false;
+    }
+    return true;
+}
+
+function getEchoCost(echoName) {
+    if (!echoData) return null;
+    const echo = echoData.find(e => e.name === echoName);
+    return echo ? echo.cost : null;
+}
+
+function showCostWarning(totalCost) {
+    const generateBtn = document.getElementById('generateDownload');
+    const popupText = document.createElement('span');
+    popupText.className = 'popuptext';
+    popupText.textContent = `Echo Cost (${totalCost}) exceeds maximum of 12!`;
+    
+    generateBtn.appendChild(popupText);
+    
+    void popupText.offsetWidth;
+    popupText.classList.add('show');
+    
+    setTimeout(() => {
+        popupText.classList.remove('show');
+        setTimeout(() => popupText.remove(), 1000);
+    }, 3000);
 }

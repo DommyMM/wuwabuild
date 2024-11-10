@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const buildTab = document.getElementById('build-tab');
     
     generateBtn.addEventListener('click', async () => {
+        if (!await checkEchoCosts()) return;
+
         await generateBuildTabContent();
         buildTab.style.display = 'flex'; 
         buildTab.style.opacity = '1';
