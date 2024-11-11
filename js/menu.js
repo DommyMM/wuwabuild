@@ -7,64 +7,21 @@ async function loadEchoData() {
     }
 }
 
-function getBaseStats(character) {
-    return [
-        { icon: 'HP', name: 'HP', value: character.HP },
-        { icon: 'ATK', name: 'ATK', value: character.ATK },
-        { icon: 'DEF', name: 'DEF', value: character.DEF },
-        { icon: 'Crit Rate', name: 'Crit Rate', value: `${calculateCritRate(5.0, character.Bonus1, character.Bonus2).toFixed(1)}%` },
-        { icon: 'Crit DMG', name: 'Crit DMG', value: `${calculateCritDMG(150.0, character.Bonus1, character.Bonus2).toFixed(1)}%` },        
-        { icon: 'ER', name: 'Energy Recharge', value: `${calculateER(character.ER).toFixed(1)}%` }
-    ];
-}
-
-function getBonusStat(character) {
-    if (character.Bonus1 === 'Healing') {
-        return { icon: 'Healing', name: 'Healing Bonus', value: '0.0%' };
+function getDisplayName(stat) {
+    switch(stat) {
+        case 'Energy Regen':
+            return 'Energy Recharge';
+        case 'Basic Attack':
+            return 'Basic Attack DMG Bonus';
+        case 'Heavy Attack':
+            return 'Heavy Attack DMG Bonus';
+        case 'Skill':
+            return 'Resonance Skill DMG Bonus';
+        case 'Liberation':
+            return 'Resonance Liberation Bonus';
+        default:
+            return stat;
     }
-    return { 
-        icon: character.element, 
-        name: `${character.element} DMG Bonus`, 
-        value: `${calculateElementalDMG(character.element, character.Bonus1, character.Bonus2).toFixed(1)}%` 
-    };
-}
-
-function checkAdditionalStats(panel, statsData) {
-    const additionalStats = new Set();
-    const specialStats = {
-        'Basic Attack': 'Basic Attack DMG Bonus',
-        'Heavy Attack': 'Heavy Attack DMG Bonus',
-        'Skill': 'Resonance Skill DMG Bonus',
-        'Liberation': 'Resonance Liberation Bonus'
-    };
-
-    const mainStatSelect = panel.querySelector('.main-stat .stat-select');
-    if (mainStatSelect) {
-        const mainStatValue = mainStatSelect.value;
-        if (specialStats[mainStatValue]) {
-            const specialStatName = specialStats[mainStatValue];
-            if (!statsData.some(stat => stat.name === specialStatName)) {
-                additionalStats.add(specialStatName);
-            }
-        } else if (mainStatValue.endsWith('DMG')) {
-            const dmgBonusName = mainStatValue + ' Bonus';
-            if (!statsData.some(stat => stat.name === dmgBonusName)) {
-                additionalStats.add(dmgBonusName);
-            }
-        }
-    }
-
-    const subStatSelects = Array.from(panel.querySelectorAll('.sub-stat .stat-select'));
-    subStatSelects.forEach(select => {
-        if (select.value && specialStats[select.value]) {
-            const specialStatName = specialStats[select.value];
-            if (!statsData.some(stat => stat.name === specialStatName)) {
-                additionalStats.add(specialStatName);
-            }
-        }
-    });
-
-    return [...additionalStats];
 }
 
 async function generateStatsData() {
@@ -77,16 +34,20 @@ async function generateStatsData() {
 
     if (!character) return [];
 
-    const statsData = getBaseStats(character);
-    statsData.push(getBonusStat(character));
+    if (!statsData) {
+        await loadStatsDefinition(); 
+    }
 
-    const panels = Array.from(document.querySelectorAll('.echo-panel'));
-    panels.forEach(panel => {
-        const panelStats = checkAdditionalStats(panel, statsData);
-        panelStats.forEach(stat => statsData.push(createAdditionalStatData(stat)));
-    });
+    initializeAllStats();
+    await initializeBaseStats(character);
 
-    return statsData;
+    return statsData.stats
+        .filter(stat => statValues[stat] !== 0)
+        .map(stat => ({
+            icon: getStatIconName(stat),
+            name: getDisplayName(stat),
+            value: formatStatValue(stat, statValues[stat])
+        }));
 }
 
 function createStatIcon(iconName) {
@@ -241,7 +202,9 @@ async function checkEchoCosts() {
         
         if (echoName && !echoName.startsWith('Echo ')) {
             const cost = getEchoCost(echoName);
-            if (cost) totalCost += cost;
+            if (cost) {
+                totalCost += Number(cost);
+            }
         }
     });
 

@@ -237,7 +237,7 @@
     {
         "name": "Spectro Prism",
         "cost": 1,
-        "elements": ["Havoc", "Spectro", "Fusion"]
+        "elements": ["Electro", "Spectro", "Fusion"]
     },
     {
         "name": "Stonewall Bracer",

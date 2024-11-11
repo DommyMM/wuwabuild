@@ -43,8 +43,8 @@ function createEchoPanels() {
 
         levelContainer.innerHTML = `
             <div class="echo-slider-group">
-                <input type="range" min="1" max="25" value="1" class="echo-slider" id="echoLevel${i}">
-                <div class="echo-level-value">1</div>
+                <input type="range" min="0" max="25" value="0" class="echo-slider" id="echoLevel${i}">
+                <div class="echo-level-value">0</div>
             </div>
         `;
         

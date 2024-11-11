@@ -110,7 +110,7 @@
 
 .substat-value {
     color: white;
-    font-size: 26px;
+    font-size: 24px;
     text-shadow: 
         -1px -1px 0 #000,
         1px -1px 0 #000,
@@ -119,11 +119,11 @@
 }
 
 .left-align {
-    justify-content: flex-start;
+    justify-content: center;
 }
 
 .right-align {
-    justify-content: flex-end;
+    justify-content: center;
 }
 
 .center-align {

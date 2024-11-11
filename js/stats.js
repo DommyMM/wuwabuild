@@ -1,10 +1,101 @@
-const specialStats = {
-    'Energy Regen': 'Energy Recharge',
-    'Basic Attack': 'Basic Attack DMG Bonus',
-    'Heavy Attack': 'Heavy Attack DMG Bonus',
-    'Skill': 'Resonance Skill DMG Bonus',
-    'Liberation': 'Resonance Liberation Bonus'
-};
+let statsData = null;
+let statValues = {};
+
+async function loadStatsDefinition() {
+    try {
+        const response = await fetch('Data/Stats.json');
+        statsData = await response.json();
+        
+        statsData.stats.forEach(stat => {
+            statValues[stat] = 0;
+        });
+    } catch (error) {
+        console.error('Error loading stats definition:', error);
+    }
+}
+
+function initializeAllStats() {
+    if (!statsData) return;    
+    statsData.stats.forEach(stat => {
+        statValues[stat] = 0;
+    });
+}
+
+async function initializeBaseStats(character) {
+    const levelElement = document.querySelector('.build-character-level');
+    let characterLevel = 1;
+
+    if (levelElement) {
+        const levelText = levelElement.textContent;
+        const levelMatch = levelText.match(/Lv\.(\d+)/);
+        if (levelMatch) {
+            characterLevel = parseInt(levelMatch[1], 10);
+        }
+    }
+    statValues['HP'] = await statScaling(character, characterLevel, 'HP');
+    statValues['ATK'] = await statScaling(character, characterLevel, 'ATK') + calculateWeaponAttack();
+    statValues['DEF'] = await statScaling(character, characterLevel, 'DEF');
+
+    const echoStats = sumEchoDefaultStats();
+    hp_flat = sumMainstatValue('HP') + sumSubstatsValue('HP') + echoStats.hp;
+    hp_percent = sumMainstatValue('HP%') + sumSubstatsValue('HP%');
+    atk_flat = sumMainstatValue('ATK') + sumSubstatsValue('ATK') + echoStats.atk;
+    atk_percent = sumMainstatValue('ATK%') + sumSubstatsValue('ATK%');
+    def_flat = sumMainstatValue('DEF') + sumSubstatsValue('DEF');
+    def_percent = sumMainstatValue('DEF%') + sumSubstatsValue('DEF%');
+
+    statValues['Crit Rate'] = 5.0 + sumMainstatValue('Crit Rate') + sumSubstatsValue('Crit Rate');
+    statValues['Crit DMG'] = 150.0 + sumMainstatValue('Crit DMG') + sumSubstatsValue('Crit DMG');
+    statValues['Energy Regen'] = character.ER + sumMainstatValue('Energy Regen') + sumSubstatsValue('Energy Regen');
+    statValues['Healing Bonus'] = sumMainstatValue('Healing Bonus');
+
+    ['Aero', 'Glacio', 'Fusion', 'Electro', 'Havoc', 'Spectro'].forEach(element => {
+        statValues[`${element} DMG`] = sumMainstatValue(`${element} DMG`);
+    });
+
+    statValues['Basic Attack'] = sumSubstatsValue('Basic Attack');
+    statValues['Heavy Attack'] = sumSubstatsValue('Heavy Attack');
+    statValues['Skill'] = sumSubstatsValue('Skill');
+    statValues['Liberation'] = sumSubstatsValue('Liberation');
+    getWeaponStats();
+    setBonus();
+    forteBonus();
+
+    statValues['HP'] = statValues['HP'] * (1 + hp_percent/100) + hp_flat;
+    statValues['ATK'] = statValues['ATK'] * (1 + atk_percent/100) + atk_flat;
+    statValues['DEF'] = statValues['DEF'] * (1 + def_percent/100) + def_flat;
+}
+
+function statScaling(character, characterLevel, statName) {
+    return fetch('Data/CharacterCurve.json')
+        .then(response => response.json())
+        .then(curveData => {
+            const curve = curveData.CHARACTER_CURVE[characterLevel.toString()];
+            if (!curve) {
+                console.error(`No scaling data found for level ${characterLevel}`);
+                return NaN;
+            }
+
+            let scaledValue;
+            if (statName === 'HP') {
+                scaledValue = character.HP * (curve.HP / 10000);
+            } else if (statName === 'ATK') {
+                scaledValue = character.ATK * (curve.ATK / 10000);
+            } else if (statName === 'DEF') {
+                scaledValue = character.DEF * (curve.DEF / 10000);
+            }
+            return scaledValue;
+        })
+        .catch(error => {
+            console.error('Error fetching character curve data:', error);
+            return NaN;
+        });
+}
+
+function formatStatValue(stat, value) {
+    const flatStats = ['HP', 'ATK', 'DEF'];
+    return flatStats.includes(stat) ? Math.round(value).toString() : `${value.toFixed(1)}%`;
+}
 
 function sumMainstatValue(statName) {
     const panels = Array.from(document.querySelectorAll('.echo-panel'));
@@ -26,68 +117,155 @@ function sumSubstatsValue(statName) {
     let total = 0;
     
     panels.forEach(panel => {
-        const mainStatSelect = panel.querySelector('.main-stat .stat-select');
-        const mainStatValue = panel.querySelector('.main-stat-value');
-        if (mainStatSelect && mainStatValue && mainStatSelect.value === statName) {
-            total += parseFloat(mainStatValue.textContent) || 0;
-        }
         const substatSelects = Array.from(panel.querySelectorAll('.sub-stat .stat-select'));
         const substatValues = Array.from(panel.querySelectorAll('.sub-stat .stat-value'));
-        
+
         substatSelects.forEach((select, index) => {
             if (select.value === statName) {
-                total += parseFloat(substatValues[index].value) || 0;
+                const value = parseFloat(substatValues[index].value) || 0;
+                total += value;
             }
         });
     });
+
+    return total; 
+}
+
+function sumEchoDefaultStats() {
+    const panels = Array.from(document.querySelectorAll('.echo-panel'));
+    let totalATK = 0;
+    let totalHP = 0;
     
-    return total;
+    panels.forEach(panel => {
+        const echoLabel = panel.querySelector('#selectedEchoLabel');
+        const echoLevel = panel.querySelector('.echo-level-value');
+        const echoName = echoLabel?.textContent;
+        
+        if (echoName && !echoName.startsWith('Echo ') && echoLevel) {
+            const cost = getEchoCost(echoName);
+            const level = parseInt(echoLevel.textContent);
+            
+            if (cost && !isNaN(level)) {
+                const defaultStat = calculateEchoDefaultStat(cost, level);
+                if (cost === 4 || cost === 3) {
+                    totalATK += defaultStat;
+                } else if (cost === 1) {
+                    totalHP += defaultStat;
+                }
+            }
+        }
+    });
+
+    return { atk: totalATK, hp: totalHP };
 }
 
-function createAdditionalStatData(statName) {
-    let iconName;
-    if (statName.startsWith('Basic Attack')) {
-        iconName = 'Basic';
-    } else if (statName.startsWith('Heavy Attack')) {
-        iconName = 'Heavy';
-    } else if (statName.startsWith('Resonance Skill')) {
-        iconName = 'Skill';
-    } else if (statName.startsWith('Resonance Liberation')) {
-        iconName = 'Liberation';
-    } else if (statName.includes('DMG Bonus')) {
-        iconName = statName.split(' ')[0];
+function calculateEchoDefaultStat(cost, level) {
+    const normalLevels = Math.floor(level - Math.floor(level/5));
+    const bonusLevels = Math.floor(level/5);
+    
+    switch(cost) {
+        case 4:
+            return 30 + (normalLevels * 4.5) + (bonusLevels * 6);
+        case 3:
+            return 20 + (normalLevels * 3) + (bonusLevels * 4);
+        case 1:
+            if (level === 0) return 456;
+            return 456 + 72 + ((level - 1) * 73);
     }
-
-    const baseStatName = Object.entries(specialStats)
-        .find(([_, full]) => full === statName)?.[0];
-
-    const totalValue = baseStatName ? sumSubstatsValue(baseStatName) : 0;
-
-    return {
-        icon: iconName,
-        name: statName,
-        value: `${totalValue.toFixed(1)}%`
-    };
 }
 
-function countSetBonus(element) {
+function getWeaponStats() {
+    const mainStatElement = document.querySelector('.weapon-stat.weapon-main-stat');
+    if (mainStatElement) {
+        const mainStatValue = parseFloat(mainStatElement.textContent.trim());
+        const mainStatType = mainStatElement.getAttribute('data-main');
+        
+        if (mainStatType) {
+            if (mainStatType === 'ER') {
+                statValues['Energy Regen'] = (statValues['Energy Regen'] || 0) + mainStatValue;
+            } else {
+                statValues[mainStatType] = (statValues[mainStatType] || 0) + mainStatValue;
+            }
+        }
+
+        const rankElement = document.querySelector('.weapon-stat.weapon-rank');
+        const rank = parseInt(rankElement.textContent.replace('R', '')) || 1;
+        const rankMultiplier = 1 + ((rank - 1) * 0.25);
+ 
+        const passiveType = mainStatElement.getAttribute('data-passive');
+        const passiveValue = parseFloat(mainStatElement.getAttribute('data-passive-value')) * rankMultiplier;
+        
+        if (passiveType && passiveValue) {
+            if (passiveType === 'Attribute') {
+                const characterElement = document.querySelector('.char-sig').getAttribute('data-element');
+                statValues[`${characterElement} DMG`] = (statValues[`${characterElement} DMG`] || 0) + passiveValue;
+            } else if (passiveType === 'ATK%') {
+                atk_percent += passiveValue;
+            } else if (passiveType === 'HP%') {
+                hp_percent += passiveValue;
+            } else if (passiveType === 'DEF%') {
+                def_percent += passiveValue;
+            } else {
+                statValues[passiveType] = (statValues[passiveType] || 0) + passiveValue;
+            }
+        }
+
+        const passive2Type = mainStatElement.getAttribute('data-passive2');
+        const passive2Value = parseFloat(mainStatElement.getAttribute('data-passive2-value')) * rankMultiplier;
+        if (passive2Type && passive2Value) {
+            statValues[passive2Type] = (statValues[passive2Type] || 0) + passive2Value;
+        }
+    }
+}
+
+ function calculateWeaponAttack() {
+    const attackElement = document.querySelector('.weapon-stat.weapon-attack');
+    if (attackElement) {
+        const Attack = parseFloat(attackElement.getAttribute('data-precise'));
+        return Attack;
+    }
+    return 0;
+}
+
+const SET_TO_STAT_MAPPING = {
+    'Sierra Gale': 'Aero DMG',
+    'Moonlit Clouds': 'Energy Regen',
+    'Void Thunder': 'Electro DMG',
+    'Celestial Light': 'Spectro DMG',
+    'Freezing Frost': 'Glacio DMG',
+    'Lingering Tunes': 'ATK%',
+    'Molten Rift': 'Fusion DMG',
+    'Sun-sinking Eclipse': 'Havoc DMG',
+    'Rejuvenating Glow': 'Healing Bonus'
+};
+
+function setBonus() {
     const panels = Array.from(document.querySelectorAll('.echo-panel'));
     const elementCounts = {};
     const usedEchoes = new Set();
-    
+
     panels.forEach(panel => {
         const setElement = panel.querySelector('.set-name-display')?.dataset.element;
         const echoLabel = panel.querySelector('#selectedEchoLabel');
         const echoName = echoLabel?.textContent;
-        
+
         if (setElement && echoName && !echoName.startsWith('Echo ') && !usedEchoes.has(echoName)) {
             elementCounts[setElement] = (elementCounts[setElement] || 0) + 1;
             usedEchoes.add(echoName);
         }
     });
 
-    if (element === 'Attack') return 0;  //Skip Attack set for now
-    return (elementCounts[element] >= 2) ? 10 : 0;
+    for (const element in elementCounts) {
+        if (elementCounts[element] >= 2) {
+            const setName = ELEMENT_SETS[element];
+            const statToUpdate = SET_TO_STAT_MAPPING[setName];
+            if (setName === 'Lingering Tunes') {
+                atk_percent += 10;
+            } else if (statValues.hasOwnProperty(statToUpdate)) {
+                statValues[statToUpdate] = (statValues[statToUpdate] || 0) + 10;
+            }
+        }
+    }
 }
 
 function getActiveForteNodes(treeNumber) {
@@ -98,58 +276,49 @@ function getActiveForteNodes(treeNumber) {
         topActive: topNode?.classList.contains('active') || false,
         middleActive: middleNode?.classList.contains('active') || false
     };
- }
+}
 
- function calculateForteBonus(statType, characterForte1, characterForte2) {
-    if (statType !== characterForte1 && statType !== characterForte2) return 0;
+function forteBonus() {
+    const character = characters.find(c => c.name === document.querySelector('#selectedCharacterLabel span').textContent);
+    if (!character) return;
 
-    let baseValue;
-    switch(statType) {
-        case 'Crit Rate': baseValue = 4.0; break;
-        case 'Crit DMG': baseValue = 8.0; break;
-        case 'DEF%': baseValue = 7.6; break;
-        default: baseValue = 6.0;
+    let bonus1Total = 0;
+    let bonus2Total = 0;
+    
+    let baseValue1;
+    switch(character.Bonus1) {
+        case 'Crit Rate': baseValue1 = 4.0; break;
+        case 'Crit DMG': baseValue1 = 8.0; break;
+        default: baseValue1 = 6.0; 
     }
 
-    let total = 0;
-    
-    [1, 5].forEach(treeNum => {
+    let baseValue2 = character.Bonus2 === 'DEF' ? 7.6 : 6.0;
+
+    [1, 2, 4, 5].forEach(treeNum => {
         const { topActive, middleActive } = getActiveForteNodes(treeNum);
-        if (topActive) total += baseValue * 0.7; 
-        if (middleActive) total += baseValue * 0.3;
+        if ([1, 5].includes(treeNum)) {
+            if (topActive) bonus1Total += baseValue1 * 0.7;
+            if (middleActive) bonus1Total += baseValue1 * 0.3;
+        } else { 
+            if (topActive) bonus2Total += baseValue2 * 0.7;
+            if (middleActive) bonus2Total += baseValue2 * 0.3;
+        }
     });
 
-    return total;
+    const bonus1Type = character.Bonus1;
+    if (bonus1Type === 'Crit Rate') {
+        statValues['Crit Rate'] += bonus1Total;
+    } else if (bonus1Type === 'Crit DMG') {
+        statValues['Crit DMG'] += bonus1Total;
+    } else if (bonus1Type === 'Healing') {
+        statValues['Healing Bonus'] += bonus1Total;
+    } else if (['Aero', 'Glacio', 'Fusion', 'Electro', 'Havoc', 'Spectro'].includes(bonus1Type)) {
+        statValues[`${bonus1Type} DMG`] += bonus1Total;
+    }
+
+    switch(character.Bonus2) {
+        case 'ATK': atk_percent += bonus2Total; break;
+        case 'HP': hp_percent += bonus2Total; break;
+        case 'DEF': def_percent += bonus2Total; break;
+    }
 }
-
-
-function calculateER(baseER) {
-    const additionalER = sumSubstatsValue('Energy Regen');
-    const setBonus = countSetBonus('ER');
-    return baseER + additionalER + setBonus;
-}
-
-function calculateElementalDMG(element, characterForte1, characterForte2) {
-    const statName = `${element} DMG`;
-    const mainstatTotal = sumMainstatValue(statName);
-    const setBonus = countSetBonus(element);
-    const forteBonus = calculateForteBonus(statName, characterForte1, characterForte2);
-    return mainstatTotal + setBonus + forteBonus;
-}
-
- function calculateCritRate(baseCR, characterForte1, characterForte2) {
-    const mainstatTotal = sumMainstatValue('Crit Rate');
-    const forteBonus = calculateForteBonus('Crit Rate', characterForte1, characterForte2);
-    return baseCR + mainstatTotal + forteBonus;
-}
-
-function calculateCritDMG(baseCD, characterForte1, characterForte2) {
-    const mainstatTotal = sumMainstatValue('Crit DMG');
-    const forteBonus = calculateForteBonus('Crit DMG', characterForte1, characterForte2);
-    return baseCD + mainstatTotal + forteBonus;
-}
-
-function calculateATK(baseATK) {
-    const forteBonus = calculateForteBonus('ATK%');
-    return baseATK + forteBonus;
- }

@@ -142,7 +142,6 @@
     width: 23%; 
     left: 28%;   
     bottom: 5%; 
-    z-index: 2;
 }
 
 .build-weapon-level-container {
@@ -153,7 +152,6 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    z-index: 2;
 }
 
 .build-weapon-diamond-container {
@@ -165,14 +163,12 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    z-index: 2;
 }
 
 .build-weapon-icon {
     position: absolute;
     max-height: 180px;
     bottom: 0%;
-    z-index: 2;
     object-fit: contain;
 }
 

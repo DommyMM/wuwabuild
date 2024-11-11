@@ -207,10 +207,20 @@ async function createWeaponStats() {
     attackIconImg.className = 'stat-icon-img';
     
     weaponAttack.appendChild(attackIconImg);
-    weaponAttack.appendChild(document.createTextNode(Math.floor(scaledAtk))); 
+    weaponAttack.setAttribute('data-precise', scaledAtk); 
+    weaponAttack.appendChild(document.createTextNode(Math.floor(scaledAtk)));
     
     const weaponMainStat = document.createElement('div');
     weaponMainStat.className = 'weapon-stat weapon-main-stat';
+    weaponMainStat.setAttribute('data-main', weaponData.main_stat);
+    if (weaponData.passive) {
+        weaponMainStat.setAttribute('data-passive', weaponData.passive);
+        weaponMainStat.setAttribute('data-passive-value', weaponData.passive_stat);
+    }
+    if (weaponData.passive2) {
+        weaponMainStat.setAttribute('data-passive2', weaponData.passive2);
+        weaponMainStat.setAttribute('data-passive2-value', weaponData.passive_stat2);
+    }
     
     const mainStatIconImg = document.createElement('img');
     mainStatIconImg.src = `images/Stats/${weaponData.main_stat}.png`;

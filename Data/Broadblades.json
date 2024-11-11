@@ -39,7 +39,7 @@
         "ATK": "33",
         "main_stat": "ER",
         "base_main": "7.2",
-        "passive": "ATK",
+        "passive": "ATK%",
         "passive_stat": "12"
     },
     {
@@ -115,7 +115,7 @@
         "ATK": "22",
         "main_stat": "ATK",
         "base_main": "3.2",
-        "passive": "ATK",
+        "passive": "ATK%",
         "passive_stat": "5"
     },
     {
@@ -124,7 +124,7 @@
         "ATK": "20",
         "main_stat": "ATK",
         "base_main": "2.5",
-        "passive": "ATK",
+        "passive": "ATK%",
         "passive_stat": "4"
     }
 ]

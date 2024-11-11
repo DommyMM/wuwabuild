@@ -10,7 +10,7 @@ async function loadMainStatsData() {
 }
 
 function calculateMainStatValue(minValue, maxValue, level) {
-    return minValue + ((maxValue - minValue) * (level - 1) / 24);
+    return minValue + ((maxValue - minValue) * level / 25);
 }
 
 function updateMainStatValue(panel) {
