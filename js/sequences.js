@@ -41,7 +41,20 @@ document.querySelectorAll('.sequence-option').forEach(option => {
         const sequenceImage = document.getElementById('sequenceImage');
         
         if (selectedCharacterName && sequenceImage) {
-            sequenceImage.src = `images/Wavebands/${selectedCharacterName}.png`;
+            if (selectedCharacterName.startsWith("Rover")) {
+                const isSpectro = document.querySelector('.toggle').getAttribute('aria-checked') === 'true';
+                const displayName = isSpectro ? "RoverSpectro" : "RoverHavoc";
+                sequenceImage.src = `images/Wavebands/${displayName}.png`;
+            } else {
+                sequenceImage.src = `images/Wavebands/${selectedCharacterName}.png`;
+            }
         }
     });
 });
+
+function resetSequences() {
+    currentSequence = 0;
+    document.querySelectorAll('.sequence-option').forEach(opt => {
+        opt.classList.remove('active');
+    });
+}

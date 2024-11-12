@@ -104,6 +104,13 @@ characterLevelValue.addEventListener('click', () => {
     });
 });
 
+function resetSlider() {
+    characterSlider.value = 1;
+    characterLevelValue.textContent = '1';
+    updateDiamonds(getDiamondLevel(1));
+    characterSlider.style.background = `linear-gradient(to right, #ffd700 0%, #ff8c00 0%, #d3d3d3 0%)`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const tab = document.getElementById('echoes-tab');
     const goNextButton = document.getElementById('goNext'); 

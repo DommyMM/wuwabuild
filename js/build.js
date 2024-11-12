@@ -52,7 +52,9 @@ function createSequenceSection(characterName) {
     sequenceContainer.className = 'build-sequence-container';
     
     const Label = document.querySelector('#selectedCharacterLabel span');
-    const elementValue = Label.getAttribute('data-element');  
+    const elementValue = characterName.startsWith("Rover") ? 
+        (document.querySelector('.toggle').getAttribute('aria-checked') === 'true' ? "Spectro" : "Havoc") : 
+        Label.getAttribute('data-element');
     const elementClass = elementValue ? `element-${elementValue.toLowerCase()}` : 'element-default';
 
     for (let i = 1; i <= 6; i++) {
@@ -91,7 +93,9 @@ async function generateBuildTabContent() {
     const characterLabel = document.querySelector('#selectedCharacterLabel span');
     const characterName = getCharacterName(characterLabel);
     const roleValue = characterLabel.getAttribute('data-role'); 
-    const elementValue = characterLabel.getAttribute('data-element'); 
+    const elementValue = characterName.startsWith("Rover") ? 
+        (document.querySelector('.toggle').getAttribute('aria-checked') === 'true' ? "Spectro" : "Havoc") : 
+        characterLabel.getAttribute('data-element');
 
     const characterSection = document.createElement('div');
     characterSection.className = 'build-character-section';
