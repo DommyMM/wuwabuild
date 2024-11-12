@@ -3,6 +3,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('downloadButton');
     const buildTab = document.getElementById('build-tab');
     
+    const generateContainer = document.createElement('div');
+    generateContainer.className = 'generate-container';
+    generateContainer.style.display = 'none';
+    generateBtn.parentNode.insertBefore(generateContainer, generateBtn);
+    generateContainer.appendChild(generateBtn);
+    
+    generateContainer.insertBefore(createInputFields(), generateBtn);
+
     generateBtn.addEventListener('click', async () => {
         if (!await checkEchoCosts()) return;
 
@@ -110,10 +118,7 @@ async function generateBuildTabContent() {
     const echoDisplay = createEchoDisplay();
     tab.appendChild(echoDisplay);
 
-    const watermark = document.createElement('div');
-    watermark.className = 'watermark';
-    watermark.innerText = 'Dommy';
-    tab.appendChild(watermark);
+    createWatermark(tab);
 }
 
 function createElementImage(element) {
@@ -296,4 +301,43 @@ function downloadBuildTab() {
         .catch(function (error) {
             console.error('Error capturing build-tab:', error);
         });
+}
+
+function createInputFields() {
+    const inputContainer = document.createElement('div');
+    inputContainer.className = 'input-container';
+
+    const usernameInput = document.createElement('input');
+    usernameInput.type = 'text';
+    usernameInput.placeholder = 'Username';
+    usernameInput.maxLength = 12;
+    usernameInput.id = 'build-username';
+    
+    const uidInput = document.createElement('input');
+    uidInput.type = 'text';
+    uidInput.placeholder = 'UID';
+    uidInput.maxLength = 9;
+    uidInput.id = 'build-uid';
+
+    inputContainer.appendChild(usernameInput);
+    inputContainer.appendChild(uidInput);
+    return inputContainer;
+}
+
+function createWatermark(tab) {
+    const watermarkContainer = document.createElement('div');
+    watermarkContainer.className = 'watermark-container';
+
+    const usernameText = document.createElement('div');
+    usernameText.className = 'watermark-username';
+    usernameText.innerText = document.getElementById('build-username').value || '';
+    
+    const uidText = document.createElement('div');
+    uidText.className = 'watermark-uid';
+    uidText.innerText = document.getElementById('build-uid').value || '';
+
+    watermarkContainer.appendChild(usernameText);
+    watermarkContainer.appendChild(uidText);
+    
+    tab.appendChild(watermarkContainer);
 }

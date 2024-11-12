@@ -9,8 +9,6 @@ async function loadEchoData() {
 
 function getDisplayName(stat) {
     switch(stat) {
-        case 'Energy Regen':
-            return 'Energy Recharge';
         case 'Basic Attack':
             return 'Basic Attack DMG Bonus';
         case 'Heavy Attack':
