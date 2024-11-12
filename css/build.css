@@ -207,26 +207,6 @@ input:-webkit-autofill {
     bottom: 5%; 
 }
 
-.build-weapon-level-container {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-}
-
-.build-weapon-diamond-container {
-    position: absolute;
-    top: 0%;
-    width: 50%;
-    max-width: 180px;
-    left: 0%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-}
 
 .build-weapon-icon {
     position: absolute;
@@ -235,18 +215,22 @@ input:-webkit-autofill {
     object-fit: contain;
 }
 
-.build-weapon-diamond-container .diamond {
-    height: 15px;
-    aspect-ratio: 1;  
-    transform: rotate(45deg);
-    background-color: white;
-    border: 2px solid #5e6168;
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+.build-weapon-star-container {
+    position: absolute;
+    top: 0%;
+    width: 180px;
+    left: 0%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
 }
 
-.build-weapon-diamond-container .diamond.filled {
-    background-color: white;
-    border-color: #c7c8cb;
+.star-icon {
+    height: 36px;
+    width: 36x;
+    object-fit: contain;
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
 }
 
 .simplified-forte {
@@ -435,6 +419,11 @@ input:-webkit-autofill {
     margin-bottom: 10px;
 }
 
+.weapon-stat.weapon-name{
+    text-align: center;
+    justify-content: center;
+}
+
 .weapon-stat.weapon-attack {
     display: flex;
     justify-content: center;
@@ -459,6 +448,16 @@ input:-webkit-autofill {
     border-radius: 5px;
     cursor: pointer;
     z-index: 2;
+}
+
+.weapon-passive{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    white-space: pre-line;
+    text-align: center;
 }
 
 .stat-icon-img {

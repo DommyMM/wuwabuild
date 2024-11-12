@@ -53,6 +53,24 @@
     position: relative;
 }
 
+.clear-button {
+    position: absolute;
+    right: 5%;
+    transform: translateY(-26px);
+    padding: 5px 10px;
+    margin: 5px;
+    background-color: #a69662;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    clip-path: inset(0 0 20% 0);
+}
+
+.clear-button:hover {
+    background-color: #ff5252;
+}
+
 .echo-panel .select-box {
     margin: 10px;
     position: relative;

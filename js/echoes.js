@@ -45,9 +45,65 @@ function createManualSection(index) {
 
     const selectBox = createSelectBox(index);
     
+    const clearButton = document.createElement('button');
+    clearButton.className = 'clear-button';
+    clearButton.textContent = 'Clear';
+    clearButton.addEventListener('click', () => clearPanel(index));
+    
     manualSection.appendChild(label);
     manualSection.appendChild(selectBox);
+    manualSection.appendChild(clearButton);
     return manualSection;
+}
+
+function clearPanel(index) {
+    const panel = document.getElementById(`panel${index}`);
+    if (!panel) return;
+    
+    const label = panel.querySelector('#selectedEchoLabel');
+    if (label) label.textContent = `Echo ${index}`;
+    
+    const img = panel.querySelector('#echoImg');
+    if (img) img.src = 'images/Resources/Echo.png';
+    
+    const slider = panel.querySelector(`#echoLevel${index}`);
+    if (slider) {
+        slider.value = 0;
+        slider.style.background = '#d3d3d3';
+        const levelValue = panel.querySelector('.echo-level-value');
+        if (levelValue) levelValue.textContent = '0';
+    }
+    
+    const selectBox = panel.querySelector('#selectEcho');
+    if (selectBox) selectBox.style.right = '';
+    
+    const elementContainer = panel.querySelector('.element-container');
+    if (elementContainer) elementContainer.remove();
+    
+    const statsTab = panel.querySelector('.stats-tab');
+    if (statsTab) {
+        const mainStatSelect = statsTab.querySelector('.main-stat .stat-select');
+        const mainStatValue = statsTab.querySelector('.main-stat-value');
+        if (mainStatSelect) mainStatSelect.value = '';
+        if (mainStatValue) mainStatValue.textContent = '0';
+
+        const statSelects = statsTab.querySelectorAll('.sub-stat .stat-select');
+        const statValues = statsTab.querySelectorAll('.stat-value');
+        
+        statSelects.forEach(select => {
+            select.value = '';
+            select.dataset.selected = '';
+        });
+        
+        statValues.forEach(value => {
+            value.innerHTML = '<option>Select</option>';
+            value.disabled = true;
+        });
+        
+        panelSelections.set(panel.id, new Set());
+    }
+    
+    updateMainStatValue(panel);
 }
 
 function createSelectBox(index) {

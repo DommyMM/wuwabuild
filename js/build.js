@@ -248,19 +248,19 @@ async function createWeaponStats() {
  }
 
 function createRaritySection(weaponLabel) {
-    const levelContainer = document.createElement('div');
-    levelContainer.className = 'build-weapon-level-container';
-    const diamondContainer = document.createElement('div');
-    diamondContainer.className = 'build-weapon-diamond-container';
+    const starContainer = document.createElement('div');
+    starContainer.className = 'build-weapon-star-container';
+    
     const rarityClass = weaponLabel.className.match(/rarity-(\d)/);
     const weaponRarity = rarityClass ? parseInt(rarityClass[1]) : 0;
     for (let i = 0; i < weaponRarity; i++) {
-        const diamond = document.createElement('div');
-        diamond.className = 'diamond filled';  
-        diamondContainer.appendChild(diamond);
+        const star = document.createElement('img');
+        star.src = 'images/Resources/Star.png';
+        star.className = 'star-icon';
+        starContainer.appendChild(star);
     }
-    levelContainer.appendChild(diamondContainer);
-    return levelContainer;
+    
+    return starContainer;
 }
 
 async function generateWeaponSection() {
@@ -277,8 +277,29 @@ async function generateWeaponSection() {
         weaponInfo.className = 'weapon-info';
 
         weaponInfo.appendChild(createWeaponNameSection(weaponLabel));
+        
+        const progressValue = document.querySelector('.dragger')?.innerHTML || '1';
+        const rank = parseInt(progressValue);
+        
         weaponInfo.appendChild(createRankLevelSection());
-        weaponInfo.appendChild(await createWeaponStats());  
+        const statsSection = await createWeaponStats();
+        weaponInfo.appendChild(statsSection);
+
+        const mainStat = statsSection.querySelector('.weapon-main-stat');
+        if (mainStat && mainStat.hasAttribute('data-passive')) {
+            const rankMultiplier = 1 + ((rank - 1) * 0.25);
+            
+            const basePassiveValue = parseFloat(mainStat.getAttribute('data-passive-value'));
+            const scaledPassiveValue = Math.floor(basePassiveValue * rankMultiplier);
+            
+            const passiveText = document.createElement('div');
+            passiveText.className = 'weapon-passive';
+            
+            const passiveName = mainStat.getAttribute('data-passive').replace('%', '');
+            passiveText.textContent = `Passive:\n${scaledPassiveValue}% ${passiveName}`;
+            
+            weaponInfo.appendChild(passiveText);
+        }
         
         weaponSection.appendChild(weaponInfo);
         weaponSection.appendChild(createRaritySection(weaponLabel));
