@@ -64,18 +64,19 @@
     }
 }
 
-.input-container{
+.input-container {
     display: flex;
     width: 250px;
     height: 100%;
     justify-content: space-between;
     position: absolute;
-    left: 20%;
+    left: 15%;
+    gap: 25px;
     align-items: center;
     margin: 0 auto;
 }
 
-#build-username, #build-uid{
+#build-username, #build-uid {
     border-radius: 4px;
     padding: 5px;
     width: 100px;
@@ -86,6 +87,35 @@
 input:-webkit-autofill {
     -webkit-box-shadow: 0 0 0px 1000px #333 inset;
     -webkit-text-fill-color: white;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    width: 140px;
+    padding: 5px;
+    transform: translateX(200%);
+}
+
+.roll-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 2px solid white;
+    border-radius: 2px;
+}
+
+.roll-checkbox:checked {
+    background-color: #00ced1;
+}
+
+.roll-label {
+    color: white;
+    user-select: none;
+    font-size: 24px;
+    width: 120px;
 }
 
 .watermark-container {

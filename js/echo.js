@@ -138,15 +138,19 @@ function createSubstatDisplay(substatSelect, substatValue, alignment) {
     const index = allValues.indexOf(currentValue);
     
     let quality;
-    const length = allValues.length;
-    if (index < length/4) quality = "2-star";
-    else if (index < length/2) quality = "3-star";
-    else if (index < length * 3/4) quality = "4-star";
-    else quality = "5-star";
+    const showRollValue = document.getElementById('roll-value').checked;
     
-    substatContainer.style.backgroundImage = `url('images/Quality/${quality}.png')`;
-    substatContainer.style.backgroundSize = 'cover';
-    substatContainer.style.backgroundPosition = 'center';
+    if (showRollValue) {
+        const length = allValues.length;
+        if (index < length/4) quality = "2-star";
+        else if (index < length/2) quality = "3-star";
+        else if (index < length * 3/4) quality = "4-star";
+        else quality = "5-star";
+        
+        substatContainer.style.backgroundImage = `url('images/Quality/${quality}.png')`;
+        substatContainer.style.backgroundSize = 'cover';
+        substatContainer.style.backgroundPosition = 'center';
+    }
     
     const statIcon = document.createElement('img');
     statIcon.src = `images/Stats/${getStatIconName(substatSelect.value)}.png`;
@@ -163,7 +167,7 @@ function createSubstatDisplay(substatSelect, substatValue, alignment) {
     substatContainer.appendChild(valueDisplay);
     
     return substatContainer;
- }
+}
 
 
 function createSubstatRow(substats, startIndex, alignment = 'space-between') {

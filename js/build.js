@@ -36,7 +36,10 @@ function createCharacterIcon() {
 function createCharacterNameSection(characterLabel) {
     const nameDiv = document.createElement('div');
     nameDiv.className = 'build-character-name';
-    nameDiv.textContent = characterLabel.textContent;
+    
+    const characterName = characterLabel.textContent;
+    nameDiv.textContent = characterName.startsWith('Rover') ? 'Rover' : characterName;
+    
     return nameDiv;
 }
 
@@ -315,16 +318,36 @@ function createInputFields() {
     usernameInput.type = 'text';
     usernameInput.placeholder = 'Username';
     usernameInput.maxLength = 12;
+    usernameInput.className = 'build-input username-input';
     usernameInput.id = 'build-username';
     
     const uidInput = document.createElement('input');
     uidInput.type = 'text';
     uidInput.placeholder = 'UID';
     uidInput.maxLength = 9;
+    uidInput.className = 'build-input uid-input';
     uidInput.id = 'build-uid';
+
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.className = 'checkbox-container';
+
+    const rollValueCheckbox = document.createElement('input');
+    rollValueCheckbox.type = 'checkbox';
+    rollValueCheckbox.id = 'roll-value';
+    rollValueCheckbox.className = 'roll-checkbox';
+
+    const checkboxLabel = document.createElement('label');
+    checkboxLabel.htmlFor = 'roll-value';
+    checkboxLabel.textContent = 'Roll Value';
+    checkboxLabel.className = 'roll-label';
+
+    checkboxContainer.appendChild(rollValueCheckbox);
+    checkboxContainer.appendChild(checkboxLabel);
 
     inputContainer.appendChild(usernameInput);
     inputContainer.appendChild(uidInput);
+    inputContainer.appendChild(checkboxContainer);
+    
     return inputContainer;
 }
 

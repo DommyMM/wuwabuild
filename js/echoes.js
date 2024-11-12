@@ -1,74 +1,101 @@
 let echoData = null;
 
-function createEchoPanels() {
+async function createEchoPanels() {
+    if (!echoData) {
+        await loadEchoData();
+    }
     const container = document.querySelector('.echo-panels-container');
     if (!container) {
         console.error('Echo panels container not found');
         return;
     }
-    
     container.innerHTML = '';
     
     for (let i = 1; i <= 5; i++) {
-        const panel = document.createElement('div');
-        panel.className = 'echo-panel';
-        panel.id = `panel${i}`;
-        
-        const manualSection = document.createElement('div');
-        manualSection.className = 'manual-section';
-
-        const label = document.createElement('p');
-        label.id = `selectedEchoLabel`;
-        label.textContent = `Echo ${i}`;
-        label.style.fontSize = '30px';
-        label.style.textAlign = 'center';
-
-        const selectBox = document.createElement('div');
-        selectBox.className = 'select-box';
-        selectBox.id = `selectEcho`;
-
-        const img = document.createElement('img');
-        img.src = 'images/Resources/Echo.png';
-        img.alt = `Select Echo`;
-        img.className = 'select-img';
-        img.id = `echoImg`;
-
-        selectBox.appendChild(img);
-        manualSection.appendChild(label);
-        manualSection.appendChild(selectBox);
-        panel.appendChild(manualSection);
-
-        const levelContainer = document.createElement('div');
-        levelContainer.className = 'echo-level-container';
-
-        levelContainer.innerHTML = `
-            <div class="echo-slider-group">
-                <input type="range" min="0" max="25" value="0" class="echo-slider" id="echoLevel${i}">
-                <div class="echo-level-value">0</div>
-            </div>
-        `;
-        
-        panel.appendChild(levelContainer);
+        const panel = createEchoPanel(i);
         container.appendChild(panel);
-
-        selectBox.addEventListener('click', () => {
-            openEchoModal(i);
-        });
-
-        levelContainer.querySelector(`#echoLevel${i}`).addEventListener('input', (event) => {
-            const slider = event.target;
-            const value = slider.value;
-            
-            levelContainer.querySelector('.echo-level-value').textContent = value;
-            
-            const valuePercentage = (value / slider.max) * 100;
-            slider.style.background = `linear-gradient(to right, #ffd700 0%, #ff8c00 ${valuePercentage}%, #d3d3d3 ${valuePercentage}%)`;
-            const panel = slider.closest('.echo-panel');
-            updateMainStatValue(panel);
-        });
     }
 
     setupSingleModal();
+}
+
+function createEchoPanel(index) {
+    const panel = document.createElement('div');
+    panel.className = 'echo-panel';
+    panel.id = `panel${index}`;
+    
+    const manualSection = createManualSection(index);
+    const levelContainer = createLevelContainer(index);
+    
+    panel.appendChild(manualSection);
+    panel.appendChild(levelContainer);
+    
+    return panel;
+}
+
+function createManualSection(index) {
+    const manualSection = document.createElement('div');
+    manualSection.className = 'manual-section';
+
+    const label = document.createElement('p');
+    label.id = 'selectedEchoLabel';
+    label.textContent = `Echo ${index}`;
+    label.style.fontSize = '30px';
+    label.style.textAlign = 'center';
+
+    const selectBox = createSelectBox(index);
+    
+    manualSection.appendChild(label);
+    manualSection.appendChild(selectBox);
+    return manualSection;
+}
+
+function createSelectBox(index) {
+    const selectBox = document.createElement('div');
+    selectBox.className = 'select-box';
+    selectBox.id = 'selectEcho';
+
+    const img = document.createElement('img');
+    img.src = 'images/Resources/Echo.png';
+    img.alt = 'Select Echo';
+    img.className = 'select-img';
+    img.id = 'echoImg';
+
+    selectBox.appendChild(img);
+    selectBox.addEventListener('click', () => openEchoModal(index));
+    return selectBox;
+}
+
+function createLevelContainer(index) {
+    const levelContainer = document.createElement('div');
+    levelContainer.className = 'echo-level-container';
+
+    levelContainer.innerHTML = `
+        <div class="echo-slider-group">
+            <input type="range" min="0" max="25" value="0" class="echo-slider" id="echoLevel${index}">
+            <div class="echo-level-value">0</div>
+        </div>
+    `;
+
+    const slider = levelContainer.querySelector(`#echoLevel${index}`);
+    setupSliderEvents(slider);
+    
+    return levelContainer;
+}
+
+function setupSliderEvents(slider) {
+    slider.addEventListener('input', (event) => {
+        const value = event.target.value;
+        const levelContainer = event.target.closest('.echo-level-container');
+        
+        levelContainer.querySelector('.echo-level-value').textContent = value;
+        
+        const valuePercentage = (value / event.target.max) * 100;
+        event.target.style.background = `linear-gradient(to right, #ffd700 0%, #ff8c00 ${valuePercentage}%, #d3d3d3 ${valuePercentage}%)`;
+        
+        const panel = event.target.closest('.echo-panel');
+        updateMainStatValue(panel);
+    });
 }
 
 function setupSingleModal() {
@@ -122,44 +149,64 @@ function openEchoModal(index) {
 
 function populateEchoModal(echoes, index, costSections, costs, echoList, echoModal) {
     echoes.forEach(echo => {
-        const echoElement = document.createElement('div');
-        echoElement.classList.add('echo-option');
-
-        const img = document.createElement('img');
-        img.src = `images/Echoes/${echo.name}.png`;
-        img.alt = echo.name;
-        img.classList.add('echo-img');
-
-        echoElement.addEventListener('click', async () => {
-            const panel = document.getElementById(`panel${index}`);
-            panel.querySelector('#echoImg').src = `images/Echoes/${echo.name}.png`;
-            panel.querySelector('#selectedEchoLabel').textContent = echo.name;
-            panel.querySelector('#selectEcho').style.right = '10%'; 
-            createElementTabs(panel, echo.elements);
-            const mainStatsData = await loadMainStatsData();
-            if (mainStatsData) {
-                updateMainStats(panel, echo.cost, mainStatsData);
-            }
-            echoModal.style.display = 'none';
-        });
-
-        echoElement.appendChild(img);
-        const nameLabel = document.createElement('span');
-        nameLabel.className = 'echo-name';
-        nameLabel.textContent = echo.name;
-        echoElement.appendChild(nameLabel);
-
-        if (costSections[echo.cost]) {
-            costSections[echo.cost].grid.appendChild(echoElement);
-        }
+        const echoElement = createEchoElement(echo);
+        setupEchoClickHandler(echoElement, echo, index, echoModal);
+        addToEchoCostSection(echoElement, echo, costSections);
     });
 
+    appendCostSections(costs, costSections, echoList);
+}
+
+function createEchoElement(echo) {
+    const echoElement = document.createElement('div');
+    echoElement.classList.add('echo-option');
+
+    const img = document.createElement('img');
+    img.src = `images/Echoes/${echo.name}.png`;
+    img.alt = echo.name;
+    img.classList.add('echo-img');
+    
+    const nameLabel = document.createElement('span');
+    nameLabel.className = 'echo-name';
+    nameLabel.textContent = echo.name;
+
+    echoElement.appendChild(img);
+    echoElement.appendChild(nameLabel);
+    
+    return echoElement;
+}
+
+function setupEchoClickHandler(echoElement, echo, index, echoModal) {
+    echoElement.addEventListener('click', async () => {
+        const panel = document.getElementById(`panel${index}`);
+        await updatePanelContent(panel, echo);
+        echoModal.style.display = 'none';
+    });
+}
+
+async function updatePanelContent(panel, echo) {
+    panel.querySelector('#echoImg').src = `images/Echoes/${echo.name}.png`;
+    panel.querySelector('#selectedEchoLabel').textContent = echo.name;
+    panel.querySelector('#selectEcho').style.right = '10%';
+    
+    createElementTabs(panel, echo.elements);
+    
+    const mainStatsData = await loadMainStatsData();
+    if (mainStatsData) {
+        updateMainStats(panel, echo.cost, mainStatsData);
+    }
+}
+
+function addToEchoCostSection(echoElement, echo, costSections) {
+    if (costSections[echo.cost]) {
+        costSections[echo.cost].grid.appendChild(echoElement);
+    }
+}
+
+function appendCostSections(costs, costSections, echoList) {
     costs.forEach(cost => {
         if (costSections[cost]) {
             echoList.appendChild(costSections[cost].section);
         }
     });
 }
-
-createEchoPanels();
-initializeStatsTab();

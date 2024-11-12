@@ -208,7 +208,6 @@ async function checkEchoCosts() {
 
     if (totalCost > 12) {
         showCostWarning(totalCost);
-        return false;
     }
     return true;
 }
@@ -223,7 +222,7 @@ function showCostWarning(totalCost) {
     const generateBtn = document.getElementById('generateDownload');
     const popupText = document.createElement('span');
     popupText.className = 'popuptext';
-    popupText.textContent = `Echo Cost (${totalCost}) exceeds maximum of 12!`;
+    popupText.textContent = `Warning: Echo Cost exceeds limit`;
     
     generateBtn.appendChild(popupText);
     

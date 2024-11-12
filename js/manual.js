@@ -115,6 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tab = document.getElementById('echoes-tab');
     const goNextButton = document.getElementById('goNext'); 
     goNextButton.addEventListener('click', () => {
+        createEchoPanels();
+        initializeStatsTab();
         document.querySelector('.no-character-msg').style.display = 'none';
         document.querySelector('.echoes-tab').style.display = 'block';
         document.querySelector('.echoes-content').style.display = 'block';
