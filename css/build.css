@@ -18,25 +18,24 @@
     align-items: center;
     width: 90%;
     height: 600px;
-    position: relative;
     border-radius: 8px;
     transition: opacity 0.3s ease, transform 0.3s ease;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
     animation: fadeIn 0.3s forwards;
     -webkit-text-fill-color: white;
-    overflow: hidden;
     background: #333;
     background-image: url('/images/Resources/T_Bg1_UI.png');
     background-size: cover;
     background-position: center;
 }
 
-.generate-container {
-    justify-content: center;
-    position: absolute;
-    width: 60%;
+.options-container {
+    justify-content: flex-start;
+    width: 25%;
     height: 37px;
     top: 0%;
+    position: absolute;
+    left: 10%;
 }
 
 .build-button {
@@ -51,6 +50,7 @@
 
 #generateDownload {
     top: 0%;
+    position: absolute;
 }
 
 .build-button:hover {
@@ -66,11 +66,8 @@
 
 .input-container {
     display: flex;
-    width: 250px;
-    height: 100%;
     justify-content: space-between;
     position: absolute;
-    left: 15%;
     gap: 25px;
     align-items: center;
     margin: 0 auto;
@@ -93,8 +90,7 @@ input:-webkit-autofill {
     display: flex;
     align-items: center;
     width: 140px;
-    padding: 5px;
-    transform: translateX(200%);
+    padding: 5px 0px;
 }
 
 .roll-checkbox {
@@ -115,7 +111,6 @@ input:-webkit-autofill {
     color: white;
     user-select: none;
     font-size: 24px;
-    width: 120px;
 }
 
 .watermark-container {
@@ -173,12 +168,12 @@ input:-webkit-autofill {
 .build-character-name, 
 .build-character-level {
     position: absolute;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    z-index: 2;
+    font-family: 'Gowun', sans-serif;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
 .build-character-name {
-    top: 3%;
+    top: 0%;
     font-size: 45px;
     letter-spacing: 2px;
 }
@@ -191,7 +186,7 @@ input:-webkit-autofill {
 .element-icon, .role-icon{
     position: absolute;
     width: 50px;
-    top: 15%;
+    top: 16%;
     left: 35%;
 }
 

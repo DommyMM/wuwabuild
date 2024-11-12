@@ -1,5 +1,6 @@
 let statsData = null;
 let statValues = {};
+let statUpdates = {};
 
 async function loadStatsDefinition() {
     try {
@@ -35,6 +36,9 @@ async function initializeBaseStats(character) {
     statValues['HP'] = await statScaling(character, characterLevel, 'HP');
     statValues['ATK'] = await statScaling(character, characterLevel, 'ATK') + calculateWeaponAttack();
     statValues['DEF'] = await statScaling(character, characterLevel, 'DEF');
+    statUpdates['baseHP'] = statValues['HP'];
+    statUpdates['baseATK'] = statValues['ATK'];
+    statUpdates['baseDEF'] = statValues['DEF'];
 
     const echoStats = sumEchoDefaultStats();
     hp_flat = sumMainstatValue('HP') + sumSubstatsValue('HP') + echoStats.hp;
@@ -44,26 +48,35 @@ async function initializeBaseStats(character) {
     def_flat = sumMainstatValue('DEF') + sumSubstatsValue('DEF');
     def_percent = sumMainstatValue('DEF%') + sumSubstatsValue('DEF%');
 
-    statValues['Crit Rate'] = 5.0 + sumMainstatValue('Crit Rate') + sumSubstatsValue('Crit Rate');
-    statValues['Crit DMG'] = 150.0 + sumMainstatValue('Crit DMG') + sumSubstatsValue('Crit DMG');
-    statValues['Energy Regen'] = character.ER + sumMainstatValue('Energy Regen') + sumSubstatsValue('Energy Regen');
+    
+    getWeaponStats();
+    setBonus();
+    forteBonus();
+
+    statUpdates['Crit Rate'] = sumMainstatValue('Crit Rate') + sumSubstatsValue('Crit Rate');
+    statValues['Crit Rate'] = 5.0 + statUpdates['Crit Rate'];
+
+    statUpdates['Crit DMG'] = sumMainstatValue('Crit DMG') + sumSubstatsValue('Crit DMG'); 
+    statValues['Crit DMG'] = 150.0 + statUpdates['Crit DMG'];
+
+    statUpdates['Energy Regen'] = sumMainstatValue('Energy Regen') + sumSubstatsValue('Energy Regen');
+    statValues['Energy Regen'] = character.ER + statUpdates['Energy Regen'];
     statValues['Healing Bonus'] = sumMainstatValue('Healing Bonus');
 
     ['Aero', 'Glacio', 'Fusion', 'Electro', 'Havoc', 'Spectro'].forEach(element => {
         statValues[`${element} DMG`] = sumMainstatValue(`${element} DMG`);
     });
-
-    statValues['Basic Attack'] = sumSubstatsValue('Basic Attack');
-    statValues['Heavy Attack'] = sumSubstatsValue('Heavy Attack');
-    statValues['Skill'] = sumSubstatsValue('Skill');
-    statValues['Liberation'] = sumSubstatsValue('Liberation');
-    getWeaponStats();
-    setBonus();
-    forteBonus();
+    
+    ['Basic Attack', 'Heavy Attack', 'Skill', 'Liberation'].forEach(attack => {
+        statValues[attack] = sumSubstatsValue(attack);
+    });
 
     statValues['HP'] = statValues['HP'] * (1 + hp_percent/100) + hp_flat;
     statValues['ATK'] = statValues['ATK'] * (1 + atk_percent/100) + atk_flat;
     statValues['DEF'] = statValues['DEF'] * (1 + def_percent/100) + def_flat;
+    statUpdates['HP'] = statValues['HP'] - statUpdates['baseHP'];
+    statUpdates['ATK'] = statValues['ATK'] - statUpdates['baseATK'];
+    statUpdates['DEF'] = statValues['DEF'] - statUpdates['baseDEF'];
 }
 
 function statScaling(character, characterLevel, statName) {

@@ -120,7 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.no-character-msg').style.display = 'none';
         document.querySelector('.echoes-tab').style.display = 'block';
         document.querySelector('.echoes-content').style.display = 'block';
-        document.querySelector('.generate-container').style.display = 'flex';
+        document.querySelector('.options-container').style.display = 'flex';
+        document.querySelector('#generateDownload').style.display = 'block';
         document.querySelector('.echoes-tab').scrollIntoView({ behavior: 'smooth' });
     });
 });

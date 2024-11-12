@@ -3,13 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('downloadButton');
     const buildTab = document.getElementById('build-tab');
     
-    const generateContainer = document.createElement('div');
-    generateContainer.className = 'generate-container';
-    generateContainer.style.display = 'none';
-    generateBtn.parentNode.insertBefore(generateContainer, generateBtn);
-    generateContainer.appendChild(generateBtn);
+    const optionsContainer = document.createElement('div');
+    optionsContainer.className = 'options-container';
+    optionsContainer.style.display = 'none';
+    generateBtn.parentNode.insertBefore(optionsContainer, generateBtn);
     
-    generateContainer.insertBefore(createInputFields(), generateBtn);
+    optionsContainer.appendChild(createInputFields());
 
     generateBtn.addEventListener('click', async () => {
         if (!await checkEchoCosts()) return;
@@ -331,16 +330,24 @@ function downloadBuildTab() {
         });
 }
 
-function createInputFields() {
-    const inputContainer = document.createElement('div');
-    inputContainer.className = 'input-container';
+function updateWatermarkText() {
+    const usernameText = document.querySelector('.watermark-username');
+    const uidText = document.querySelector('.watermark-uid');
+    
+    if (usernameText && uidText) {
+        usernameText.innerText = document.getElementById('build-username').value || '';
+        uidText.innerText = document.getElementById('build-uid').value || '';
+    }
+}
 
+function createTextInputs() {
     const usernameInput = document.createElement('input');
     usernameInput.type = 'text';
     usernameInput.placeholder = 'Username';
     usernameInput.maxLength = 12;
     usernameInput.className = 'build-input username-input';
     usernameInput.id = 'build-username';
+    usernameInput.addEventListener('input', updateWatermarkText);
     
     const uidInput = document.createElement('input');
     uidInput.type = 'text';
@@ -348,7 +355,12 @@ function createInputFields() {
     uidInput.maxLength = 9;
     uidInput.className = 'build-input uid-input';
     uidInput.id = 'build-uid';
+    uidInput.addEventListener('input', updateWatermarkText);
 
+    return { usernameInput, uidInput };
+}
+
+function createCheckboxes() {
     const checkboxContainer = document.createElement('div');
     checkboxContainer.className = 'checkbox-container';
 
@@ -359,11 +371,21 @@ function createInputFields() {
 
     const checkboxLabel = document.createElement('label');
     checkboxLabel.htmlFor = 'roll-value';
-    checkboxLabel.textContent = 'Roll Value';
+    checkboxLabel.textContent = 'Roll Quality';
     checkboxLabel.className = 'roll-label';
 
     checkboxContainer.appendChild(rollValueCheckbox);
     checkboxContainer.appendChild(checkboxLabel);
+
+    return checkboxContainer;
+}
+
+function createInputFields() {
+    const inputContainer = document.createElement('div');
+    inputContainer.className = 'input-container';
+
+    const { usernameInput, uidInput } = createTextInputs();
+    const checkboxContainer = createCheckboxes();
 
     inputContainer.appendChild(usernameInput);
     inputContainer.appendChild(uidInput);

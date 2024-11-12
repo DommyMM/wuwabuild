@@ -65,11 +65,25 @@
     object-fit: contain;
 }
 
+.stat-value-container{
+    text-align: center;
+}
+
+.stat-breakdown{
+    text-align: right;
+    font-size: 14px;
+}
+
+.update-value{
+    -webkit-text-fill-color: #a69662;
+}
+
 .set-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    height: 108px;
     gap: 8px;
 }
 

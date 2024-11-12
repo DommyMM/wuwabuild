@@ -27,8 +27,14 @@ function createEchoPanel(index) {
     const manualSection = createManualSection(index);
     const levelContainer = createLevelContainer(index);
     
+    const clearButton = document.createElement('button');
+    clearButton.className = 'clear-button';
+    clearButton.textContent = 'Reset';
+    clearButton.addEventListener('click', () => clearPanel(index));
+    
     panel.appendChild(manualSection);
     panel.appendChild(levelContainer);
+    panel.appendChild(clearButton);
     
     return panel;
 }
@@ -45,14 +51,8 @@ function createManualSection(index) {
 
     const selectBox = createSelectBox(index);
     
-    const clearButton = document.createElement('button');
-    clearButton.className = 'clear-button';
-    clearButton.textContent = 'Clear';
-    clearButton.addEventListener('click', () => clearPanel(index));
-    
     manualSection.appendChild(label);
     manualSection.appendChild(selectBox);
-    manualSection.appendChild(clearButton);
     return manualSection;
 }
 

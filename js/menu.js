@@ -90,10 +90,42 @@ function createStatRow(stat) {
     statRow.className = 'stat-row';
     
     statRow.appendChild(createStatLeft(stat));
-    statRow.appendChild(createStatValue(stat.value));
     
+    const valueContainer = document.createElement('div');
+    valueContainer.className = 'stat-value-container';
+    valueContainer.appendChild(createStatValue(stat.value));
+    
+    if (['HP', 'ATK', 'DEF'].includes(stat.name) && statUpdates[`base${stat.name}`]) {
+        const breakdown = document.createElement('div');
+        breakdown.className = 'stat-breakdown';
+ 
+        const baseText = document.createElement('span');
+        baseText.className = 'base-value';
+        baseText.textContent = Math.round(statUpdates[`base${stat.name}`]);
+ 
+        const updateText = document.createElement('span');
+        updateText.className = 'update-value';
+        updateText.textContent = ` + ${Math.round(statUpdates[stat.name])}`;
+ 
+        breakdown.appendChild(baseText);
+        breakdown.appendChild(updateText);
+        valueContainer.appendChild(breakdown);
+    }
+    else if (statUpdates[stat.name]) {
+        const breakdown = document.createElement('div');
+        breakdown.className = 'stat-breakdown';
+        
+        const updateText = document.createElement('span');
+        updateText.className = 'update-value';
+        updateText.textContent = `+${statUpdates[stat.name].toFixed(1)}%`;
+        
+        breakdown.appendChild(updateText);
+        valueContainer.appendChild(breakdown);
+    }
+    
+    statRow.appendChild(valueContainer);
     return statRow;
-}
+ }
 
 async function createStatsGridContainer() {
     const statsContainer = document.createElement('div');
@@ -125,8 +157,13 @@ function countUniqueSets(panels) {
  
     return Object.entries(elementCounts)
         .filter(([_, count]) => count >= 2)
-        .sort((a, b) => b[1] - a[1]);
- }
+        .sort((a, b) => {
+            const aIsFiveSet = a[1] >= 5;
+            const bIsFiveSet = b[1] >= 5;
+            if (aIsFiveSet !== bIsFiveSet) return bIsFiveSet ? 1 : -1;
+            return b[1] - a[1];
+        });
+}
  
  function createSetRow(element, count) {
     const setRow = document.createElement('div');

@@ -11,7 +11,6 @@
     align-items: center;
 }
   
-  /*Modal content box*/
   .modal-content {
     background-color: #1E1E1E;
     color: #E0E0E0;
@@ -24,27 +23,25 @@
     text-align: center;
   }
   
-  /*Close button*/
   .close {
     color: #aaa;
     float: right;
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
+    transform: translateX(-10px);
   }
   
   .close:hover {
     color: #000;
   }
   
-/*Character container to hold image and label*/
 .character-container {
     display: inline-block;
     text-align: center;
     margin: 10px;
 }
 
-/*Character and weapon options*/
 .character-option{
     width: 100px;
     height: 100px;
@@ -53,7 +50,6 @@
     text-align: center;
 }
 
-/*Character and weapon images*/
 .char-img{
     width: 80px;
     height: 80px;
@@ -61,13 +57,11 @@
     border: 2px solid #999;
 }
 
-/*Labels under the images*/
 .char-label{
     font-size: 20px;
     color: #E0E0E0;
 }
 
-/*Character list grid*/
 .character-list, .weapon-list {
     display: flex;
     flex-wrap: wrap;
@@ -81,7 +75,6 @@
     margin-top: 10px;
 }
 
-/*Adjust weapon container for consistent sizing*/
 .weapon-option {
   width: 120px;
   height: 150px; 
@@ -92,7 +85,6 @@
   background-repeat: no-repeat;
 }
 
-/*Ensure images are properly contained*/
 .weapon-img {
   width: 100px;
   height: 100px;
@@ -101,7 +93,6 @@
   margin-bottom: 5px;
 }
 
-/*Better spacing and size for labels*/
 .weapon-label {
   text-align: center; 
   display: flex; 
