@@ -22,6 +22,10 @@ body, h1, h2, h3, h4, h5, h6, p, button, label {
   font-family: 'Ropa', sans-serif;
 }
 
+h2{
+  align-content: center;
+  text-align: center;
+}
 
 body {
   background: linear-gradient(to bottom, #1E1E1E, #121212);

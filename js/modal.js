@@ -1,31 +1,51 @@
 let currentImage = null; 
 const imageAssignments = {}; 
 
-function handleFiles(files) {
+async function handleFiles(files) {
   const filePreview = document.getElementById('filePreview');
 
   for (let i = 0; i < files.length; i++) {
-    const file = files[i];
+      const file = files[i];
+      if (file.type.startsWith('image/')) {
+          const ocrResult = await performMultiRegionOCR(file);
+          
+          const reader = new FileReader();
+          reader.onload = function (event) {
+              const imgContainer = document.createElement('div');
+              imgContainer.classList.add('image-container');
+              
+              const img = document.createElement('img');
+              img.src = event.target.result;
+              img.classList.add('preview-image');
 
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = function (event) {
-        const imgContainer = document.createElement('div');
-        imgContainer.classList.add('image-container');
-        
-        const img = document.createElement('img');
-        img.src = event.target.result;
-        img.classList.add('preview-image');
+              if (ocrResult?.analysis) {
+                  const category = ocrResult.analysis.type === 'character' ? 'Character' : 
+                                 ocrResult.analysis.type === 'weapon' ? 'Weapon' : null;
+                  
+                  if (category) {
+                      img.setAttribute('data-category', category);
+                      imageAssignments[category] = img;
 
-        img.addEventListener('click', function () {
-          openModal(img.src, img); 
-        });
+                      const categoryLabel = document.createElement('div');
+                      categoryLabel.classList.add('category-label');
+                      categoryLabel.textContent = `Detected: ${category}`;
+                      imgContainer.appendChild(categoryLabel);
+                  }
 
-        imgContainer.appendChild(img);
-        filePreview.appendChild(imgContainer);
-      };
-      reader.readAsDataURL(file); 
-    }
+                  Object.entries(ocrResult.analysis).forEach(([key, value]) => {
+                      img.setAttribute(`data-ocr-${key}`, value);
+                  });
+              }
+
+              img.addEventListener('click', function() {
+                  openModal(img.src, img);
+              });
+
+              imgContainer.appendChild(img);
+              filePreview.appendChild(imgContainer);
+          };
+          reader.readAsDataURL(file);
+      }
   }
 }
 
