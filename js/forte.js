@@ -309,21 +309,30 @@ function createSimplifiedForte(characterName) {
         
         if ((branch.tree === 'tree1' || branch.tree === 'tree5') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
             topImg.src = `images/Stats/${elementImage}.png`;
+            topNode.classList.add(elementImage.toLowerCase());
+            topNode.classList.add('attribute');
         } else if ((branch.tree === 'tree2' || branch.tree === 'tree4') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
-            topImg.src = `images/Stats/ATK.png`;  
+            topImg.src = `images/Stats/ATK.png`;
+            topNode.classList.add('atk');
         } else {
             topImg.src = branch.name === 'circuit' ? 
                 forteImagePaths.imagePaths['tree3-top'](characterName) :
                 forteImagePaths.sharedImages[branch.tree](characterName);
+            const statName = topImg.src.split('/Stats/')[1]
+                ?.replace('.png', '')
+                .toLowerCase()
+                .replace(/\s+/g, '-') 
+                .replace(/%20/g, '-')
+                .replace('-dmg', '');
+            if (statName) {
+                topNode.classList.add(statName);
+                if (['aero', 'glacio', 'fusion', 'electro', 'havoc', 'spectro'].includes(statName)) {
+                    topNode.classList.add('attribute');
+                }
+            }
         }
         topNode.appendChild(topImg);
-
-        if (branch.name === 'circuit') {
-            const topInnerDiamond = document.createElement('div');
-            topInnerDiamond.className = 'inner-diamond';
-            topNode.appendChild(topInnerDiamond);
-        }
-
+        
         const middleNode = document.createElement('div');
         middleNode.className = `simplified-node ${branch.type}`;
         if (originalMiddleNode?.classList.contains('active')) {
@@ -331,15 +340,30 @@ function createSimplifiedForte(characterName) {
         }
         const middleImg = document.createElement('img');
         middleImg.className = 'node-image';
-
+        
         if ((branch.tree === 'tree1' || branch.tree === 'tree5') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
             middleImg.src = `images/Stats/${elementImage}.png`;
+            middleNode.classList.add(elementImage.toLowerCase());
+            middleNode.classList.add('attribute');
         } else if ((branch.tree === 'tree2' || branch.tree === 'tree4') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
-            middleImg.src = `images/Stats/ATK.png`;  
+            middleImg.src = `images/Stats/ATK.png`;
+            middleNode.classList.add('atk');
         } else {
             middleImg.src = branch.name === 'circuit' ? 
                 forteImagePaths.imagePaths['tree3-middle'](characterName) :
                 forteImagePaths.sharedImages[branch.tree](characterName);
+            const statName = middleImg.src.split('/Stats/')[1]
+                ?.replace('.png', '')
+                .toLowerCase()
+                .replace(/\s+/g, '-') 
+                .replace(/%20/g, '-')
+                .replace('-dmg', '');
+            if (statName) {
+                middleNode.classList.add(statName);
+                if (['aero', 'glacio', 'fusion', 'electro', 'havoc', 'spectro'].includes(statName)) {
+                    middleNode.classList.add('attribute');
+                }
+            }
         }
         middleNode.appendChild(middleImg);
 

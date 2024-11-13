@@ -76,7 +76,11 @@ function createMainStatDisplay(mainStatSelect) {
     container.appendChild(mainStatIcon);
     
     const mainStatDisplay = document.createElement('span');
-    mainStatDisplay.className = 'main-stat-display';
+    const statClass = mainStatName.toLowerCase().replace(/\s+/g, '-').replace(/%/g, '').replace('-dmg', '');
+    mainStatDisplay.className = `main-stat-display ${statClass}`;
+    if (isElementStat(mainStatName)) {
+        mainStatDisplay.classList.add('attribute');
+    }
     mainStatDisplay.textContent = mainStatValue;
     container.appendChild(mainStatDisplay);
     
@@ -128,7 +132,8 @@ function createSubstatDisplay(substatSelect, substatValue, alignment) {
     if (substatSelect.selectedIndex === 0) return null;
     
     const substatContainer = document.createElement('div');
-    substatContainer.className = `substat-container ${alignment}-align`;
+    const statClass = substatSelect.value.toLowerCase().replace(/\s+/g, '-').replace(/%/g, '').replace('-dmg', '');
+    substatContainer.className = `substat-container ${alignment}-align ${statClass}`;
     
     const allValues = Array.from(substatValue.options)
         .map(option => parseFloat(option.value))

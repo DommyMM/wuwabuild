@@ -48,35 +48,33 @@ async function initializeBaseStats(character) {
     def_flat = sumMainstatValue('DEF') + sumSubstatsValue('DEF');
     def_percent = sumMainstatValue('DEF%') + sumSubstatsValue('DEF%');
 
-    
-    getWeaponStats();
-    setBonus();
-    forteBonus();
-
-    statUpdates['Crit Rate'] = sumMainstatValue('Crit Rate') + sumSubstatsValue('Crit Rate');
-    statValues['Crit Rate'] = 5.0 + statUpdates['Crit Rate'];
-
-    statUpdates['Crit DMG'] = sumMainstatValue('Crit DMG') + sumSubstatsValue('Crit DMG'); 
-    statValues['Crit DMG'] = 150.0 + statUpdates['Crit DMG'];
-
-    statUpdates['Energy Regen'] = sumMainstatValue('Energy Regen') + sumSubstatsValue('Energy Regen');
-    statValues['Energy Regen'] = character.ER + statUpdates['Energy Regen'];
-    statValues['Healing Bonus'] = sumMainstatValue('Healing Bonus');
+    ['Crit Rate', 'Crit DMG', 'Energy Regen'].forEach(stat => {
+        statUpdates[stat] = sumMainstatValue(stat) + sumSubstatsValue(stat);
+        statValues[stat] = (stat === 'Crit Rate' ? 5.0 : 
+                          stat === 'Crit DMG' ? 150.0 :  
+                          character.ER) + statUpdates[stat];
+    });
 
     ['Aero', 'Glacio', 'Fusion', 'Electro', 'Havoc', 'Spectro'].forEach(element => {
         statValues[`${element} DMG`] = sumMainstatValue(`${element} DMG`);
+        statUpdates[`${element} DMG`] = statValues[`${element} DMG`];
     });
     
     ['Basic Attack', 'Heavy Attack', 'Skill', 'Liberation'].forEach(attack => {
         statValues[attack] = sumSubstatsValue(attack);
+        statUpdates[attack] = statValues[attack];
     });
 
-    statValues['HP'] = statValues['HP'] * (1 + hp_percent/100) + hp_flat;
-    statValues['ATK'] = statValues['ATK'] * (1 + atk_percent/100) + atk_flat;
-    statValues['DEF'] = statValues['DEF'] * (1 + def_percent/100) + def_flat;
-    statUpdates['HP'] = statValues['HP'] - statUpdates['baseHP'];
-    statUpdates['ATK'] = statValues['ATK'] - statUpdates['baseATK'];
-    statUpdates['DEF'] = statValues['DEF'] - statUpdates['baseDEF'];
+    getWeaponStats();
+    setBonus(); 
+    forteBonus(); 
+
+    ['HP', 'ATK', 'DEF'].forEach(stat => {
+        const flat = eval(`${stat.toLowerCase()}_flat`);
+        const percent = eval(`${stat.toLowerCase()}_percent`);
+        statValues[stat] = statValues[stat] * (1 + percent/100) + flat;
+        statUpdates[stat] = statValues[stat] - statUpdates[`base${stat}`];
+    });
 }
 
 function statScaling(character, characterLevel, statName) {
@@ -195,9 +193,17 @@ function getWeaponStats() {
         
         if (mainStatType) {
             if (mainStatType === 'ER') {
-                statValues['Energy Regen'] = (statValues['Energy Regen'] || 0) + mainStatValue;
+                statValues['Energy Regen'] = (statValues['Energy Regen']) + mainStatValue;
+                statUpdates['Energy Regen'] = statValues['Energy Regen'] - 100;
+            } else if (mainStatType === 'Crit Rate') {
+                statValues[mainStatType] = (statValues[mainStatType] || 5) + mainStatValue;
+                statUpdates[mainStatType] = statValues[mainStatType] - 5;
+            } else if (mainStatType === 'Crit DMG') {
+                statValues[mainStatType] = (statValues[mainStatType]) + mainStatValue;
+                statUpdates[mainStatType] = statValues[mainStatType] - 150;
             } else {
-                statValues[mainStatType] = (statValues[mainStatType] || 0) + mainStatValue;
+                statValues[mainStatType] = (statValues[mainStatType]) + mainStatValue;
+                statUpdates[mainStatType] = statValues[mainStatType];
             }
         }
 
@@ -268,7 +274,7 @@ function setBonus() {
         }
     });
 
-    for (const element in elementCounts) {
+        for (const element in elementCounts) {
         if (elementCounts[element] >= 2) {
             const setName = ELEMENT_SETS[element];
             const statToUpdate = SET_TO_STAT_MAPPING[setName];
@@ -276,6 +282,9 @@ function setBonus() {
                 atk_percent += 10;
             } else if (statValues.hasOwnProperty(statToUpdate)) {
                 statValues[statToUpdate] = (statValues[statToUpdate] || 0) + 10;
+                if (statToUpdate.endsWith('DMG')) {
+                    statUpdates[statToUpdate] = statValues[statToUpdate];
+                }
             }
         }
     }

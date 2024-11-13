@@ -209,20 +209,24 @@ async function createWeaponStats() {
  
     const statsContainer = document.createElement('div');
     statsContainer.className = 'weapon-stat-row';
-    
+
     const weaponAttack = document.createElement('div');
     weaponAttack.className = 'weapon-stat weapon-attack';
-    
+    weaponAttack.classList.add('atk');
+
     const attackIconImg = document.createElement('img');
     attackIconImg.src = 'images/Resources/Attack.png';
     attackIconImg.className = 'stat-icon-img';
-    
+
     weaponAttack.appendChild(attackIconImg);
     weaponAttack.setAttribute('data-precise', scaledAtk); 
     weaponAttack.appendChild(document.createTextNode(Math.floor(scaledAtk)));
-    
+
     const weaponMainStat = document.createElement('div');
     weaponMainStat.className = 'weapon-stat weapon-main-stat';
+    const mainStatClass = weaponData.main_stat.toLowerCase().replace(/\s+/g, '-').replace(/%/g, '').replace('-dmg', '');
+    weaponMainStat.classList.add(mainStatClass);
+
     weaponMainStat.setAttribute('data-main', weaponData.main_stat);
     if (weaponData.passive) {
         weaponMainStat.setAttribute('data-passive', weaponData.passive);
@@ -232,17 +236,17 @@ async function createWeaponStats() {
         weaponMainStat.setAttribute('data-passive2', weaponData.passive2);
         weaponMainStat.setAttribute('data-passive2-value', weaponData.passive_stat2);
     }
-    
+
     const mainStatIconImg = document.createElement('img');
     mainStatIconImg.src = `images/Stats/${weaponData.main_stat}.png`;
     mainStatIconImg.className = 'stat-icon-img';
-    
+
     weaponMainStat.appendChild(mainStatIconImg);
     weaponMainStat.appendChild(document.createTextNode(`${scaledMainStat}%`));
-    
+
     statsContainer.appendChild(weaponAttack);
     statsContainer.appendChild(weaponMainStat);
-    
+
     return statsContainer;
  }
 
@@ -295,6 +299,14 @@ async function generateWeaponSection() {
             passiveText.className = 'weapon-passive';
             
             const passiveName = mainStat.getAttribute('data-passive').replace('%', '');
+            const passiveClass = passiveName.toLowerCase().replace(/\s+/g, '-').replace('-dmg', '');
+            passiveText.classList.add(passiveClass);
+            
+            if (passiveName === 'Attribute') {
+                const characterElement = document.querySelector('.char-sig').getAttribute('data-element').toLowerCase();
+                passiveText.classList.add('attribute', characterElement);
+            }
+            
             passiveText.textContent = `Passive:\n${scaledPassiveValue}% ${passiveName}`;
             
             weaponInfo.appendChild(passiveText);

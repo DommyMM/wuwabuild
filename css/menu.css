@@ -20,6 +20,17 @@
     justify-content: space-between;
     align-items: center;
     padding: 4px 8px;
+    transition: background-color 0.2s ease;
+}
+
+.substat-container.hover-highlight,  .stat-row.hover-highlight, .main-stat-display.hover-highlight, .set-row.hover-highlight{
+    background-color: #8a7b4e;
+}
+
+.weapon-stat.weapon-attack.hover-highlight,.weapon-stat.weapon-main-stat.hover-highlight, 
+.weapon-passive.hover-highlight, .simplified-node.circle.active.hover-highlight {
+    background-color: rgba(17, 194, 238, 1);
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
 .stat-left {
@@ -94,6 +105,7 @@
     gap: 8px;
     height: 50px;
     width: 100%;
+    border-radius: 8px;
 }
 
 .set-icon-container {

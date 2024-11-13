@@ -85,9 +85,21 @@ function createStatValue(value) {
     return statValue;
 }
 
+function isElementStat(statName) {
+    const elements = ['Aero', 'Glacio', 'Fusion', 'Electro', 'Havoc', 'Spectro'];
+    return elements.some(element => statName.includes(element));
+}
+
 function createStatRow(stat) {
     const statRow = document.createElement('div');
     statRow.className = 'stat-row';
+    const statClass = stat.name.toLowerCase().replace(/\s+/g, '-').replace(/%/g, '').replace('-dmg', '').replace('-bonus', '').replace('resonance-', '');
+    if (isElementStat(stat.name)) {
+        statRow.classList.add('attribute');
+        statRow.classList.add(statClass);
+    } else {
+        statRow.classList.add(statClass);
+    }
     
     statRow.appendChild(createStatLeft(stat));
     
@@ -165,9 +177,10 @@ function countUniqueSets(panels) {
         });
 }
  
- function createSetRow(element, count) {
+function createSetRow(element, count) {
     const setRow = document.createElement('div');
-    setRow.className = 'set-row';
+    const elementClass = element.toLowerCase().replace(/\s+/g, '-');
+    setRow.className = `set-row attribute ${elementClass}`;
  
     const setIconContainer = document.createElement('div');
     setIconContainer.className = 'set-icon-container';
@@ -195,7 +208,7 @@ function countUniqueSets(panels) {
     setRow.appendChild(setCount);
  
     return setRow;
- }
+}
  
  function createSetDisplay() {
     const setContainer = document.createElement('div');
@@ -222,7 +235,6 @@ function countUniqueSets(panels) {
     const statsGrid = await createStatsGridContainer();
     statsSection.appendChild(statsGrid);
     statsSection.appendChild(createSetDisplay());
-    
     return statsSection;
 }
 
@@ -271,3 +283,54 @@ function showCostWarning(totalCost) {
         setTimeout(() => popupText.remove(), 1000);
     }, 3000);
 }
+function setupHoverLinks() {
+    document.addEventListener('mouseover', (event) => {
+        const element = event.target.closest('.weapon-stat.weapon-attack, .weapon-stat.weapon-main-stat, .stat-row, .substat-container, .weapon-passive, .main-stat-display');
+        if (!element) return;
+
+        const statClass = Array.from(element.classList)
+            .find(cls => !['stat-row', 'substat-container', 'weapon-stat', 'weapon-attack', 'weapon-main-stat', 'weapon-passive', 'main-stat-display', 'left-align', 'right-align', 'center-align'].includes(cls));
+
+        if (statClass) {
+            const selector = `.stat-row.${statClass}, ` + 
+                            `.substat-container.${statClass}, ` + 
+                            `.weapon-stat.weapon-attack.${statClass}, ` + 
+                            `.weapon-stat.weapon-main-stat.${statClass}, ` +
+                            `.weapon-passive.${statClass}, ` +
+                            `.main-stat-display.${statClass}, ` +
+                            `.set-row.${statClass}, ` +
+                            `.simplified-node.active.${statClass}`;
+            
+            const relatedElements = document.querySelectorAll(selector);
+            relatedElements.forEach(related => {
+                related.classList.add('hover-highlight');
+            });
+        }
+    });
+
+    document.addEventListener('mouseout', (event) => {
+        const element = event.target.closest('.weapon-stat.weapon-attack, .weapon-stat.weapon-main-stat, .stat-row, .substat-container, .weapon-passive, .main-stat-display');
+        if (!element) return;
+
+        const statClass = Array.from(element.classList)
+            .find(cls => !['stat-row', 'substat-container', 'weapon-stat', 'weapon-attack', 'weapon-main-stat', 'weapon-passive', 'main-stat-display', 'left-align', 'right-align', 'center-align'].includes(cls));
+
+        if (statClass) {
+            const selector = `.stat-row.${statClass}, ` + 
+                           `.substat-container.${statClass}, ` + 
+                           `.weapon-stat.weapon-attack.${statClass}, ` + 
+                           `.weapon-stat.weapon-main-stat.${statClass}, ` +
+                           `.weapon-passive.${statClass}, ` +
+                           `.main-stat-display.${statClass}, ` +
+                           `.set-row.${statClass}, ` +
+                            `.simplified-node.active.${statClass}`;
+            
+            const relatedElements = document.querySelectorAll(selector);
+            relatedElements.forEach(related => {
+                related.classList.remove('hover-highlight');
+            });
+        }
+    });
+}
+
+setupHoverLinks();
