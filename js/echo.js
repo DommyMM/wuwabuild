@@ -78,9 +78,6 @@ function createMainStatDisplay(mainStatSelect) {
     const mainStatDisplay = document.createElement('span');
     const statClass = mainStatName.toLowerCase().replace(/\s+/g, '-').replace(/%/g, '').replace('-dmg', '');
     mainStatDisplay.className = `main-stat-display ${statClass}`;
-    if (isElementStat(mainStatName)) {
-        mainStatDisplay.classList.add('attribute');
-    }
     mainStatDisplay.textContent = mainStatValue;
     container.appendChild(mainStatDisplay);
     

@@ -299,12 +299,12 @@ async function generateWeaponSection() {
             passiveText.className = 'weapon-passive';
             
             const passiveName = mainStat.getAttribute('data-passive').replace('%', '');
-            const passiveClass = passiveName.toLowerCase().replace(/\s+/g, '-').replace('-dmg', '');
+            const passiveClass = passiveName === 'ER' ? 'energy-regen' : passiveName.toLowerCase().replace(/\s+/g, '-').replace('-dmg', '');
             passiveText.classList.add(passiveClass);
             
             if (passiveName === 'Attribute') {
                 const characterElement = document.querySelector('.char-sig').getAttribute('data-element').toLowerCase();
-                passiveText.classList.add('attribute', characterElement);
+                passiveText.classList.add(characterElement);
             }
             
             passiveText.textContent = `Passive:\n${scaledPassiveValue}% ${passiveName}`;
@@ -380,6 +380,7 @@ function createCheckboxes() {
     rollValueCheckbox.type = 'checkbox';
     rollValueCheckbox.id = 'roll-value';
     rollValueCheckbox.className = 'roll-checkbox';
+    rollValueCheckbox.checked = true;
 
     const checkboxLabel = document.createElement('label');
     checkboxLabel.htmlFor = 'roll-value';

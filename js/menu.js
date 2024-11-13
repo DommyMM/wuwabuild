@@ -95,7 +95,6 @@ function createStatRow(stat) {
     statRow.className = 'stat-row';
     const statClass = stat.name.toLowerCase().replace(/\s+/g, '-').replace(/%/g, '').replace('-dmg', '').replace('-bonus', '').replace('resonance-', '');
     if (isElementStat(stat.name)) {
-        statRow.classList.add('attribute');
         statRow.classList.add(statClass);
     } else {
         statRow.classList.add(statClass);
@@ -180,7 +179,7 @@ function countUniqueSets(panels) {
 function createSetRow(element, count) {
     const setRow = document.createElement('div');
     const elementClass = element.toLowerCase().replace(/\s+/g, '-');
-    setRow.className = `set-row attribute ${elementClass}`;
+    setRow.className = `set-row ${elementClass}`;
  
     const setIconContainer = document.createElement('div');
     setIconContainer.className = 'set-icon-container';

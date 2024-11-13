@@ -218,6 +218,9 @@ function getWeaponStats() {
             if (passiveType === 'Attribute') {
                 const characterElement = document.querySelector('.char-sig').getAttribute('data-element');
                 statValues[`${characterElement} DMG`] = (statValues[`${characterElement} DMG`] || 0) + passiveValue;
+            } else if (passiveType === 'ER') {
+                statValues['Energy Regen'] = (statValues['Energy Regen']) + passiveValue;
+                statUpdates['Energy Regen'] = statValues['Energy Regen'] - 100;
             } else if (passiveType === 'ATK%') {
                 atk_percent += passiveValue;
             } else if (passiveType === 'HP%') {
@@ -301,7 +304,9 @@ function getActiveForteNodes(treeNumber) {
 }
 
 function forteBonus() {
-    const character = characters.find(c => c.name === document.querySelector('#selectedCharacterLabel span').textContent);
+    const characterLabel = document.querySelector('#selectedCharacterLabel span');
+    const characterName = characterLabel.textContent;
+    const character = characters.find(c => c.name === characterName);
     if (!character) return;
 
     let bonus1Total = 0;
@@ -327,20 +332,35 @@ function forteBonus() {
         }
     });
 
-    const bonus1Type = character.Bonus1;
+    let bonus1Type = character.Bonus1;
+    if (characterName.startsWith('Rover')) {
+        const isSpectro = document.querySelector('.toggle')?.getAttribute('aria-checked') === 'true';
+        bonus1Type = isSpectro ? 'Spectro' : 'Havoc';
+    }
+
     if (bonus1Type === 'Crit Rate') {
         statValues['Crit Rate'] += bonus1Total;
+        statUpdates['Crit Rate'] = statValues['Crit Rate'] - 5;
     } else if (bonus1Type === 'Crit DMG') {
         statValues['Crit DMG'] += bonus1Total;
+        statUpdates['Crit DMG'] = statValues['Crit DMG'] - 150;
     } else if (bonus1Type === 'Healing') {
         statValues['Healing Bonus'] += bonus1Total;
+        statUpdates['Healing Bonus'] = statValues['Healing Bonus'];
     } else if (['Aero', 'Glacio', 'Fusion', 'Electro', 'Havoc', 'Spectro'].includes(bonus1Type)) {
         statValues[`${bonus1Type} DMG`] += bonus1Total;
+        statUpdates[`${bonus1Type} DMG`] = statValues[`${bonus1Type} DMG`];
     }
 
     switch(character.Bonus2) {
-        case 'ATK': atk_percent += bonus2Total; break;
-        case 'HP': hp_percent += bonus2Total; break;
-        case 'DEF': def_percent += bonus2Total; break;
+        case 'ATK': 
+            atk_percent += bonus2Total;
+            break;
+        case 'HP': 
+            hp_percent += bonus2Total;
+            break;
+        case 'DEF': 
+            def_percent += bonus2Total;
+            break;
     }
 }

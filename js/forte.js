@@ -310,7 +310,6 @@ function createSimplifiedForte(characterName) {
         if ((branch.tree === 'tree1' || branch.tree === 'tree5') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
             topImg.src = `images/Stats/${elementImage}.png`;
             topNode.classList.add(elementImage.toLowerCase());
-            topNode.classList.add('attribute');
         } else if ((branch.tree === 'tree2' || branch.tree === 'tree4') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
             topImg.src = `images/Stats/ATK.png`;
             topNode.classList.add('atk');
@@ -324,12 +323,7 @@ function createSimplifiedForte(characterName) {
                 .replace(/\s+/g, '-') 
                 .replace(/%20/g, '-')
                 .replace('-dmg', '');
-            if (statName) {
-                topNode.classList.add(statName);
-                if (['aero', 'glacio', 'fusion', 'electro', 'havoc', 'spectro'].includes(statName)) {
-                    topNode.classList.add('attribute');
-                }
-            }
+            if (statName) topNode.classList.add(statName);
         }
         topNode.appendChild(topImg);
         
@@ -344,7 +338,6 @@ function createSimplifiedForte(characterName) {
         if ((branch.tree === 'tree1' || branch.tree === 'tree5') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
             middleImg.src = `images/Stats/${elementImage}.png`;
             middleNode.classList.add(elementImage.toLowerCase());
-            middleNode.classList.add('attribute');
         } else if ((branch.tree === 'tree2' || branch.tree === 'tree4') && (characterName === 'RoverHavoc' || characterName === 'RoverSpectro')) {
             middleImg.src = `images/Stats/ATK.png`;
             middleNode.classList.add('atk');
@@ -358,12 +351,7 @@ function createSimplifiedForte(characterName) {
                 .replace(/\s+/g, '-') 
                 .replace(/%20/g, '-')
                 .replace('-dmg', '');
-            if (statName) {
-                middleNode.classList.add(statName);
-                if (['aero', 'glacio', 'fusion', 'electro', 'havoc', 'spectro'].includes(statName)) {
-                    middleNode.classList.add('attribute');
-                }
-            }
+            if (statName) middleNode.classList.add(statName);
         }
         middleNode.appendChild(middleImg);
 
