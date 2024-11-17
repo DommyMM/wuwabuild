@@ -12,7 +12,6 @@ body{
     padding: 10px;
   }
   
-  /*Styling for the dropzone*/
   #dropzone {
     width: 30%; 
     height: 100px; 
@@ -53,7 +52,6 @@ body{
   flex-direction: column; 
   }
   
-  /*Preview uploaded files*/
   .file-preview {
   overflow: visible;
   display: flex;
@@ -61,6 +59,8 @@ body{
   gap: 10px;
   justify-content: center; 
   margin-top: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
   }
   
   .file-preview img {
@@ -72,12 +72,10 @@ body{
   transition: transform 0.3s ease, padding 0.3s ease, border 0.3s ease;
   }
   
-  /*Zoom effect on hover*/
   .file-preview img:hover {
-  transform: scale(2.5); 
+  transform: scale(1.5); 
   z-index: 10;        
   position: relative;
   border: 0;
   padding: 0;
   }
-  

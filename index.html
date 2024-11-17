@@ -4,11 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wuthering Wave Build Cards</title>
-  <link rel="stylesheet" href="css/styles.css">     
-  <link rel="stylesheet" href="css/modal.css">       
-  <link rel="stylesheet" href="css/final.css"> 
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/modal.css">
   <link rel="stylesheet" href="css/index.css">
-  <link rel="stylesheet" href="css/ocr.css">
 </head>
 <body>
 
@@ -18,14 +16,14 @@
     <h2>Upload Images</h2>
 
     <div id="dropzone" class="dropzone">
-      <span>Upload screenshots of stat pages</span>
+      <span>Drag, Upload or Paste</span>
       <input type="file" id="imageUpload" multiple hidden>
     </div>
 
     <div id="filePreview" class="file-preview"></div>
     <canvas id="canvas" width="400" height="200"></canvas>
 
-    <div id="imageModal" class="modal">
+        <div id="imageModal" class="modal">
       <div class="modal-content">
         <span id="closeModal" class="close">&times;</span>
         <img id="modalImage" class="modal-image" src="">
@@ -34,19 +32,11 @@
           <button class="category-btn" data-category="Weapon">Weapon</button>
           <button class="category-btn" data-category="Sequences">Sequences</button>
           <button class="category-btn" data-category="Forte">Forte</button>
-          <button class="category-btn" data-category="Echo1">Echo 1</button>
-          <button class="category-btn" data-category="Echo2">Echo 2</button>
-          <button class="category-btn" data-category="Echo3">Echo 3</button>
-          <button class="category-btn" data-category="Echo4">Echo 4</button>
-          <button class="category-btn" data-category="Echo5">Echo 5</button>
+          <button class="category-btn" data-category="Echo">Echo</button>
         </div>
       </div>
     </div>
-  <script src="https://docs.opencv.org/4.5.5/opencv.js"></script>
-  <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
-  <script src="js/ocr.js"></script>
-  <script src="js/script.js"></script>
   <script src="js/modal.js"></script>
-  <script src="js/final.js"></script>
+  <script src="js/script.js"></script>
 </body>
 </html>

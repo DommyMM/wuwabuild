@@ -11,7 +11,6 @@
     align-items: center;
     }
     
-    /*Modal content*/
     .modal-content {
     background-color: 1E1E1E;
     color: #E0E0E0;
@@ -23,7 +22,6 @@
     position: relative;
     }
     
-    /*Modal close button*/
     .close {
     position: absolute;
     top: 10px;
@@ -37,14 +35,12 @@
     color: white;
     }
     
-    /*Full-size image inside modal*/
     .modal-image {
     max-width: 100%;
     height: auto;
     margin-bottom: 20px;
     }
     
-    /*Category buttons*/
     .modal-categories {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -65,13 +61,12 @@
     background-color: #555;
     }
     
-    /*Image preview container*/
     .image-container {
     margin: 10px;
     text-align: center;
+    position: relative;
     }
     
-    /*Preview*/
     .preview-image {
     width: 150px;
     height: auto;
@@ -80,9 +75,41 @@
     padding: 5px;
     }
     
-    /*Label*/
     .category-label {
-    margin-top: 5px;
     font-size: 18px;
     color: #E0E0E0;
+    }
+
+    .category-label.loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        opacity: 0.7;
+    }
+    
+    .loading-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .category-label.error {
+        color: #e74c3c;
+    }
+
+        #error-log {
+        z-index: 9999;
+        max-width: 300px;
+        word-wrap: break-word;
+        font-family: monospace;
+        border: 1px solid red;
     }
