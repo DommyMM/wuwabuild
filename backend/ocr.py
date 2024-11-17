@@ -18,6 +18,21 @@ SCAN_REGIONS = {
     "s4": {"top": 0.682, "left": 0.734, "width": 0.025, "height": 0.0454},
     "s5": {"top": 0.8364, "left": 0.645, "width": 0.029, "height": 0.046},
     "s6": {"top": 0.895, "left": 0.527, "width": 0.025, "height": 0.047},
+    "normal-base": {"top": 0.88, "left": 0.2, "width": 0.074, "height": 0.1},
+    "normal-mid": {"top": 0.568, "left": 0.22, "width": 0.038, "height": 0.067},
+    "normal-top": {"top": 0.36, "left": 0.22, "width": 0.038, "height": 0.067},
+    "skill-base": {"top": 0.75, "left": 0.323, "width": 0.074, "height": 0.1},
+    "skill-mid": {"top": 0.438, "left": 0.343, "width": 0.038, "height": 0.067},
+    "skill-top": {"top": 0.23, "left": 0.343, "width": 0.038, "height": 0.067},
+    "circuit-base": {"top": 0.683, "left": 0.463, "width": 0.074, "height": 0.1},
+    "circuit-mid": {"top": 0.37, "left": 0.477, "width": 0.05, "height": 0.09},
+    "circuit-top": {"top": 0.16, "left": 0.477, "width": 0.05, "height": 0.09},
+    "liberation-base": {"top": 0.754, "left": 0.6067, "width": 0.074, "height": 0.1},
+    "liberation-mid": {"top": 0.438, "left": 0.6267, "width": 0.038, "height": 0.067},
+    "liberation-top": {"top": 0.23, "left": 0.6267, "width": 0.038, "height": 0.067},
+    "intro-base": {"top": 0.88, "left": 0.727, "width": 0.074, "height": 0.07},
+    "intro-mid": {"top": 0.568, "left": 0.747, "width": 0.038, "height": 0.067},
+    "intro-top": {"top": 0.36, "left": 0.747, "width": 0.038, "height": 0.067}
 }
 
 BACKEND_DIR = Path(__file__).parent
@@ -98,7 +113,12 @@ def process_image(image):
             'Character': 'characterPage',
             'Weapon': 'weaponPage',
             'Echo': 'echoPage',
-            'Sequences': ['s1', 's2', 's3', 's4', 's5', 's6']
+            'Sequences': ['s1', 's2', 's3', 's4', 's5', 's6'],
+            'Forte': ['normal-base', 'normal-mid', 'normal-top', 
+                      'skill-base', 'skill-mid', 'skill-top', 
+                      'circuit-base', 'circuit-mid', 'circuit-top',
+                      'liberation-base', 'liberation-mid', 'liberation-top',
+                      'intro-base', 'intro-mid', 'intro-top']
         }.get(image_type)
 
         details = {}
@@ -112,9 +132,13 @@ def process_image(image):
                     slots.append(slot_img)
                 details = get_sequence_info(slots)
             elif image_type == 'Forte':
-                debug_name = 'forte_original.jpg'
-                cv2.imwrite(str(DEBUG_DIR / debug_name), detail_img)
-                details = extract_details(detail_img, image_type)
+                slots = {}
+                for region_name in region_key:
+                    slot_coords = SCAN_REGIONS[region_name]
+                    slot_img = crop_region(image, slot_coords)
+                    cv2.imwrite(str(DEBUG_DIR / f'{region_name}_original.jpg'), slot_img)
+                    slots[region_name] = slot_img
+                details = get_forte_info(slots)
             else:
                 region_coords = SCAN_REGIONS[region_key]
                 detail_img = crop_region(image, region_coords)
@@ -125,8 +149,6 @@ def process_image(image):
                 print("================")
                 details = extract_details(processed_detail, image_type)
             
-            print("\nExtracted Info:")
-            print(json.dumps(details, indent=2))
 
         print("\n=== Final Response ===")
         response = {
@@ -293,12 +315,109 @@ def get_sequence_info(slots):
         'sequence': count
     }
 
-def get_forte_info(image):
-    """Extract forte information"""
-    return {
-        'type': 'Forte',
-        'skills': []
+def get_forte_info(slots):
+    branches = {
+        'normalAttack': {'level': 1, 'middleNode': False, 'topNode': False},
+        'skill': {'level': 1, 'middleNode': False, 'topNode': False},
+        'circuit': {'level': 1, 'middleNode': False, 'topNode': False},
+        'liberation': {'level': 1, 'middleNode': False, 'topNode': False},
+        'introSkill': {'level': 1, 'middleNode': False, 'topNode': False}
     }
+
+    slot_to_branch = {
+        'normal-base': 'normalAttack',
+        'skill-base': 'skill',
+        'circuit-base': 'circuit', 
+        'liberation-base': 'liberation',
+        'intro-base': 'introSkill'
+    }
+
+    level_patterns = [
+        r'(\d+)/[\s]*(?:10|110)',
+        r'Lv[:\.]\s*(\d+)/',
+        r'v[:\.]\s*(\d+)/',
+        r'Lv[:\.]\s*(\d+)',
+        r'v[:\.]\s*(\d+)',
+    ]
+
+    for slot_name, image in slots.items():
+        branch_name = None
+        
+        if 'base' in slot_name:
+            branch_name = slot_to_branch.get(slot_name)
+            if branch_name:
+                text = pytesseract.image_to_string(image)
+                text = text.replace('\\', '').replace('"', '').replace("'", '')
+                
+                level = None
+                for pattern in level_patterns:
+                    match = re.search(pattern, text)
+                    if match:
+                        try:
+                            level = int(match.group(1))
+                            if 1 <= level <= 10:
+                                branches[branch_name]['level'] = level
+                                break
+                        except ValueError:
+                            continue
+                            
+        elif 'mid' in slot_name or 'top' in slot_name:
+            branch_base = slot_name.split('-')[0]
+            branch_name = slot_to_branch.get(f'{branch_base}-base')
+            
+            if branch_name:
+                is_active = is_node_active(image, slot_name)
+                
+                if 'mid' in slot_name:
+                    branches[branch_name]['middleNode'] = is_active
+                else:
+                    branches[branch_name]['topNode'] = is_active
+
+    result = {
+        'type': 'Forte',
+        **{
+            name: [
+                branches[branch]['level'],
+                1 if branches[branch]['middleNode'] else 0,
+                1 if branches[branch]['topNode'] else 0
+            ] for name, branch in {
+                'normal': 'normalAttack',
+                'skill': 'skill', 
+                'circuit': 'circuit',
+                'liberation': 'liberation',
+                'intro': 'introSkill'
+            }.items()
+        }
+    }
+
+    return result
+
+def is_node_active(image, slot_name="unknown"):
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    
+    if 'circuit' in slot_name:
+        white_lower = np.array([0, 0, 180])
+        white_upper = np.array([180, 30, 255])
+        blue_lower = np.array([100, 30, 30])
+        blue_upper = np.array([130, 255, 255])
+        
+        white_mask = cv2.inRange(hsv, white_lower, white_upper)
+        blue_mask = cv2.inRange(hsv, blue_lower, blue_upper)
+        
+        white_ratio = (np.count_nonzero(white_mask) / (image.shape[0] * image.shape[1])) * 100
+        blue_ratio = (np.count_nonzero(blue_mask) / (image.shape[0] * image.shape[1])) * 100
+        
+        return white_ratio > 20 and white_ratio < 35 and blue_ratio < 60
+    else:
+        on_color_rgb = [243, 243, 244]
+        on_color_hsv = cv2.cvtColor(np.uint8([[on_color_rgb]]), cv2.COLOR_RGB2HSV)[0][0]
+        lower_white = np.array([on_color_hsv[0] - 10, 0, 200])
+        upper_white = np.array([on_color_hsv[0] + 10, 30, 255])
+        
+        white_mask = cv2.inRange(hsv, lower_white, upper_white)
+        white_ratio = (np.count_nonzero(white_mask) / (image.shape[0] * image.shape[1])) * 100
+        
+        return white_ratio > 15
 
 def extract_details(image, image_type):
     """Extract details based on image type"""
