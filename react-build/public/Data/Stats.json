@@ -1,0 +1,21 @@
+{
+    "stats": [
+        "HP",
+        "ATK",
+        "DEF",
+        "Crit Rate",
+        "Crit DMG",
+        "Energy Regen",
+        "Healing Bonus",
+        "Aero DMG",
+        "Glacio DMG",
+        "Fusion DMG",
+        "Electro DMG",
+        "Havoc DMG",
+        "Spectro DMG",
+        "Basic Attack",
+        "Heavy Attack",
+        "Skill",
+        "Liberation"
+    ]
+}

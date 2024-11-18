@@ -117,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
     goNextButton.addEventListener('click', () => {
         createEchoPanels();
         initializeStatsTab();
-        document.querySelector('.no-character-msg').style.display = 'none';
         document.querySelector('.echoes-tab').style.display = 'block';
         document.querySelector('.echoes-content').style.display = 'block';
         document.querySelector('.options-container').style.display = 'flex';

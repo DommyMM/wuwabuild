@@ -1,0 +1,11 @@
+.tab {
+  text-decoration: none;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: black;
+}
+
+h2 {
+  margin: 20px;
+}
