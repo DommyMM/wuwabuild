@@ -20,6 +20,15 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ onSelect }
     setSelectedCharacter(character);
     setIsModalOpen(false);
     onSelect(character);
+    setTimeout(() => {
+      const manualSection = document.querySelector('.manual-section');
+      if (manualSection) {
+        manualSection.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    }, 0);
   };
 
   return (

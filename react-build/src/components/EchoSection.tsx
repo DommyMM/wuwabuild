@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, forwardRef } from 'react';
 import { Echo } from '../types/echo';
 import { useEchoes } from '../hooks/useEchoes';
 import { useModalClose } from '../hooks/useModalClose';
@@ -108,6 +108,12 @@ interface PanelData {
   };
 }
 
+const sliderStyles = {
+  background: (level: number): React.CSSProperties => ({
+    background: `linear-gradient(to right, #ffd700 0%, #ff8c00 ${(level/25)*100}%, #d3d3d3 ${(level/25)*100}%)`
+  })
+};
+
 export const EchoPanel: React.FC<EchoPanelProps> = ({
   index,
   panelData,
@@ -120,9 +126,6 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
     onLevelChange(value);
-    
-    const valuePercentage = (value / 25) * 100;
-    e.target.style.background = `linear-gradient(to right, #ffd700 0%, #ff8c00 ${valuePercentage}%, #d3d3d3 ${valuePercentage}%)`;
   };
 
   return (
@@ -160,7 +163,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
             max="25"
             value={panelData.level}
             className="echo-slider"
-            id={`echoLevel${index}`}
+            style={sliderStyles.background(panelData.level)}
             onChange={handleSliderChange}
           />
           <div className="echo-level-value">{panelData.level}</div>
@@ -181,34 +184,14 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   );
 };
 
-export const EchoesSection: React.FC<EchoesSectionProps> = ({ isVisible }) => {
-  const { echoesByCost, loading, error } = useEchoes();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPanelIndex, setSelectedPanelIndex] = useState<number | null>(null);
-  
-  const [panels, setPanels] = useState<PanelData[]>(
-    Array(5).fill(null).map(() => ({
-      echo: null,
-      level: 0,
-      selectedElement: null,
-      stats: {
-        mainStat: { type: null, value: null },
-        subStats: Array(5).fill(null).map(() => ({ type: null, value: null }))
-      }
-    }))
-  );
-
-  useModalClose(isModalOpen, () => setIsModalOpen(false));
-
-  const handleReset = (index: number) => {
-    const slider = document.getElementById(`echoLevel${index}`) as HTMLInputElement;
-    if (slider) {
-        slider.style.background = '#d3d3d3';
-    }
-
-    setPanels(prev => {
-      const newPanels = [...prev];
-      newPanels[index] = {
+export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
+  ({ isVisible }, ref) => {
+    const { echoesByCost, loading, error } = useEchoes();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedPanelIndex, setSelectedPanelIndex] = useState<number | null>(null);
+    
+    const [panels, setPanels] = useState<PanelData[]>(
+      Array(5).fill(null).map(() => ({
         echo: null,
         level: 0,
         selectedElement: null,
@@ -216,98 +199,121 @@ export const EchoesSection: React.FC<EchoesSectionProps> = ({ isVisible }) => {
           mainStat: { type: null, value: null },
           subStats: Array(5).fill(null).map(() => ({ type: null, value: null }))
         }
-      };
-      return newPanels;
-    });
-  };
+      }))
+    );
 
-  const handleSelectEcho = (echo: Echo) => {
-    if (selectedPanelIndex === null) return;
-    setPanels(prev => {
-      const newPanels = [...prev];
-      newPanels[selectedPanelIndex] = {
-        ...newPanels[selectedPanelIndex],
-        echo
-      };
-      return newPanels;
-    });
-    setIsModalOpen(false);
-  };
+    useModalClose(isModalOpen, () => setIsModalOpen(false));
 
-  return (
-    <>
-      <div className="echoes-tab" style={{ display: isVisible ? 'block' : 'none' }}>
-        <div className="echoes-content" style={{ display: isVisible ? 'flex' : 'none' }}>
-          <div className="echo-panels-container">
-            {panels.map((panel, i) => (
-              <EchoPanel
-                key={i}
-                index={i + 1}
-                panelData={panel}
-                onSelect={() => {
-                  setSelectedPanelIndex(i);
-                  setIsModalOpen(true);
-                }}
-                onReset={() => handleReset(i)}
-                onStatsChange={(stats) => {
-                  setPanels(prev => {
-                    const newPanels = [...prev];
-                    newPanels[i] = { ...newPanels[i], stats };
-                    return newPanels;
-                  });
-                }}
-                onLevelChange={(level) => {
-                  setPanels(prev => {
-                    const newPanels = [...prev];
-                    newPanels[i] = { ...newPanels[i], level };
-                    return newPanels;
-                  });
-                }}
-                onElementSelect={(element) => {
-                  setPanels(prev => {
-                    const newPanels = [...prev];
-                    newPanels[i] = { ...newPanels[i], selectedElement: element };
-                    return newPanels;
-                  });
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+    const handleReset = useCallback((index: number) => {
+      setPanels(prev => {
+        const newPanels = [...prev];
+        newPanels[index] = {
+          echo: null,
+          level: 0,
+          selectedElement: null,
+          stats: {
+            mainStat: { type: null, value: null },
+            subStats: Array(5).fill(null).map(() => ({ type: null, value: null }))
+          }
+        };
+        return newPanels;
+      });
+    }, []);
 
-      {isModalOpen && (
-        <div className="modal">
-          <div className="echo-modal-content">
-            <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
-            <div className="echo-list">
-              {loading && <div>Loading echoes...</div>}
-              {error && <div className="error">{error}</div>}
-              {COST_SECTIONS.map((cost: CostSection) => (
-                <div key={cost} className="echo-cost-section">
-                  <div className="cost-label">{cost} Cost</div>
-                  <div className="echo-grid">
-                    {echoesByCost[cost]?.map(echo => (
-                      <div 
-                        key={echo.name}
-                        className="echo-option"
-                        onClick={() => handleSelectEcho(echo)}
-                      >
-                        <img
-                          src={`images/Echoes/${echo.name}.png`}
-                          alt={echo.name}
-                          className="echo-img"
-                        />
-                        <span className="echo-name">{echo.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+    const handleStatsChange = useCallback((index: number, stats: PanelData['stats']) => {
+      setPanels(prev => {
+        const newPanels = [...prev];
+        newPanels[index] = { ...newPanels[index], stats };
+        return newPanels;
+      });
+    }, []);
+
+    const handleLevelChange = useCallback((index: number, level: number) => {
+      setPanels(prev => {
+        const newPanels = [...prev];
+        newPanels[index] = { ...newPanels[index], level };
+        return newPanels;
+      });
+    }, []);
+
+    const handleElementSelect = useCallback((index: number, element: ElementType | null) => {
+      setPanels(prev => {
+        const newPanels = [...prev];
+        newPanels[index] = { ...newPanels[index], selectedElement: element };
+        return newPanels;
+      });
+    }, []);
+
+    const handleSelectEcho = useCallback((echo: Echo) => {
+      if (selectedPanelIndex === null) return;
+      setPanels(prev => {
+        const newPanels = [...prev];
+        newPanels[selectedPanelIndex] = {
+          ...newPanels[selectedPanelIndex],
+          echo
+        };
+        return newPanels;
+      });
+      setIsModalOpen(false);
+    }, [selectedPanelIndex]);
+
+    return (
+      <>
+        <section className="echoes-tab" style={{ display: isVisible ? 'block' : 'none' }} ref={ref}>
+          <div className="echoes-content" style={{ display: isVisible ? 'flex' : 'none' }}>
+            <div className="echo-panels-container">
+              {panels.map((panel, i) => (
+                <EchoPanel
+                  key={i}
+                  index={i + 1}
+                  panelData={panel}
+                  onSelect={() => {
+                    setSelectedPanelIndex(i);
+                    setIsModalOpen(true);
+                  }}
+                  onReset={() => handleReset(i)}
+                  onStatsChange={(stats) => handleStatsChange(i, stats)}
+                  onLevelChange={(level) => handleLevelChange(i, level)}
+                  onElementSelect={(element) => handleElementSelect(i, element)}
+                />
               ))}
             </div>
           </div>
-        </div>
-      )}
-    </>
-  );
-};
+        </section>
+
+        {isModalOpen && (
+          <div className="modal">
+            <div className="echo-modal-content">
+              <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
+              <div className="echo-list">
+                {loading && <div>Loading echoes...</div>}
+                {error && <div className="error">{error}</div>}
+                {COST_SECTIONS.map((cost: CostSection) => (
+                  <div key={cost} className="echo-cost-section">
+                    <div className="cost-label">{cost} Cost</div>
+                    <div className="echo-grid">
+                      {echoesByCost[cost]?.map(echo => (
+                        <div 
+                          key={echo.name}
+                          className="echo-option"
+                          onClick={() => handleSelectEcho(echo)}
+                        >
+                          <img
+                            src={`images/Echoes/${echo.name}.png`}
+                            alt={echo.name}
+                            className="echo-img"
+                          />
+                          <span className="echo-name">{echo.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+);

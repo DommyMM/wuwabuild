@@ -11,11 +11,17 @@ import '../styles/SequenceGroup.css';
 interface CharacterInfoProps {
   selectedCharacter: Character | null;
   onEchoesClick: () => void;
+  onGenerateClick?: (level: number) => void;
+  onSpectroToggle?: (value: boolean) => void;
+  onSequenceChange?: (sequence: number) => void;
 }
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
   selectedCharacter, 
-  onEchoesClick 
+  onEchoesClick,
+  onGenerateClick,
+  onSpectroToggle,
+  onSequenceChange
 }) => {
   const [level, setLevel] = useState(1);
   const [sequence, setSequence] = useState(0);
@@ -35,10 +41,16 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
 
   const handleLevelChange = (newLevel: number): void => {
     setLevel(newLevel);
+    if (onGenerateClick) {
+      onGenerateClick(newLevel);
+    }
   };
 
   const handleSequenceChange = (newSequence: number): void => {
     setSequence(newSequence);
+    if (onSequenceChange) {
+      onSequenceChange(newSequence);
+    }
   };
 
   const handleWeaponSelect = (weapon: Weapon): void => {
@@ -47,6 +59,9 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
 
   const handleToggleSpectro = (): void => {
     setIsSpectro(prev => !prev);
+    if (onSpectroToggle) {
+      onSpectroToggle(!isSpectro);
+    }
   };
 
   const displayName = selectedCharacter?.name.startsWith('Rover')

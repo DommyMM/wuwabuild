@@ -8,28 +8,13 @@ interface WeaponSliderProps {
 export const WeaponSlider: React.FC<WeaponSliderProps> = ({ value, onLevelChange }) => {
   const [isCircleDragging, setIsCircleDragging] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [startY, setStartY] = useState(0);
-  const [currentDragPosition, setCurrentDragPosition] = useState(0);
-  const [circleValue, setCircleValue] = useState(1);
-  const [draggerValue, setDraggerValue] = useState(1);
+  const [circleValue, setCircleValue] = useState(value <= 90 ? value : 1);
+  const [draggerValue, setDraggerValue] = useState(value <= 5 ? value : 1);
   
   const circleRef = useRef<SVGCircleElement>(null);
   const controlButtonRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const draggerRef = useRef<HTMLDivElement>(null);
-
-  const updateProgressBar = (value: number) => {
-    const heightPercentage = ((value - 1) / 4) * 90;
-    
-    const progressFill = progressRef.current?.querySelector('#progress-fill');
-    if (progressFill instanceof HTMLElement) {
-      progressFill.style.height = `${heightPercentage}%`;
-    }
-    if (draggerRef.current) {
-      draggerRef.current.style.bottom = `${heightPercentage}%`;
-    }
-    setDraggerValue(value);
-  };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -55,19 +40,13 @@ export const WeaponSlider: React.FC<WeaponSliderProps> = ({ value, onLevelChange
 
         const newCircleValue = Math.round(progressPercent * 89 + 1);
         setCircleValue(newCircleValue);
+        onLevelChange(newCircleValue);
 
         rotationAngle -= 92;
         if (controlButtonRef.current) {
-          if (newCircleValue < 30) {
-            controlButtonRef.current.style.transform = 
-              `translate(-50%, -50%) rotate(${rotationAngle}deg) translate(81px) rotate(90deg)`;
-          } else if (newCircleValue > 69) {
-            controlButtonRef.current.style.transform = 
-              `translate(-50%, -50%) rotate(${rotationAngle}deg) translate(81px) rotate(-30deg)`;
-          } else {
-            controlButtonRef.current.style.transform = 
-              `translate(-50%, -50%) rotate(${rotationAngle}deg) translate(81px) rotate(0deg)`;
-          }
+          const rotation = newCircleValue < 30 ? 90 : newCircleValue > 69 ? -30 : 0;
+          controlButtonRef.current.style.transform = 
+            `translate(-50%, -50%) rotate(${rotationAngle}deg) translate(81px) rotate(${rotation}deg)`;
         }
       }
 
@@ -77,14 +56,21 @@ export const WeaponSlider: React.FC<WeaponSliderProps> = ({ value, onLevelChange
         const percentage = (clickY / rect.height) * 100;
         const constrainedPercentage = Math.min(Math.max(percentage, 0), 90);
         
-        const progressFill = progressRef.current.querySelector('#progress-fill');
+        const value = 1 + (4 * constrainedPercentage / 90);
+        const roundedValue = Math.min(Math.max(Math.round(value), 1), 5);
+        
+        if (draggerRef.current) {
+          draggerRef.current.style.bottom = `${constrainedPercentage}%`;
+        }
+        const progressFill = progressRef.current?.querySelector('#progress-fill');
         if (progressFill instanceof HTMLElement) {
           progressFill.style.height = `${constrainedPercentage}%`;
         }
-        draggerRef.current.style.bottom = `${constrainedPercentage}%`;
-        
-        const newValue = Math.min(Math.max(Math.round((constrainedPercentage / 90) * 4) + 1, 1), 5);
-        setDraggerValue(newValue);
+
+        if (roundedValue !== draggerValue) {
+          setDraggerValue(roundedValue);
+          onLevelChange(roundedValue);
+        }
       }
     };
 
@@ -102,27 +88,11 @@ export const WeaponSlider: React.FC<WeaponSliderProps> = ({ value, onLevelChange
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isCircleDragging, isDragging, setCircleValue, setDraggerValue]);
+  }, [isCircleDragging, isDragging, draggerValue, onLevelChange]);
 
   return (
     <>
-      <div 
-        className="progress-container" 
-        ref={progressRef}
-        onClick={(e) => {
-          if (e.target === draggerRef.current) return;
-          
-          const rect = progressRef.current?.getBoundingClientRect();
-          if (!rect) return;
-          
-          const clickY = rect.bottom - e.clientY;
-          const percentage = (clickY / rect.height) * 100;
-          const constrainedPercentage = Math.min(Math.max(percentage, 0), 90);
-          
-          const value = Math.min(Math.max(Math.round((constrainedPercentage / 90) * 4) + 1, 1), 5);
-          updateProgressBar(value);
-        }}
-      >
+      <div className="progress-container" ref={progressRef}>
         <div id="progress-fill"></div>
         <div 
           ref={draggerRef}
@@ -130,8 +100,6 @@ export const WeaponSlider: React.FC<WeaponSliderProps> = ({ value, onLevelChange
           contentEditable 
           onMouseDown={(e) => {
             setIsDragging(true);
-            setStartY(e.clientY);
-            setCurrentDragPosition(parseInt(draggerRef.current?.style.bottom || '0'));
             e.preventDefault();
           }}
         >

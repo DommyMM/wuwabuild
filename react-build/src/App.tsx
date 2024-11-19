@@ -1,55 +1,17 @@
-import React, { useState, useRef } from 'react';
-import { Character } from './types/character';
-import { CharacterSelector } from './components/CharacterSelector';
-import { CharacterInfo } from './components/CharacterInfo';
-import { EchoesSection } from './components/EchoSection';
-import './styles/App.css';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { EditPage } from './pages/EditPage';
+import { ScanPage } from './pages/ScanPage';
 
-function App() {
-  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
-  const [isEchoesVisible, setIsEchoesVisible] = useState(false);
-  const [isOptionsVisible, setIsOptionsVisible] = useState(false);
-  const echoesRef = useRef<HTMLDivElement>(null);
-
-  const handleEchoesClick = () => {
-    setIsEchoesVisible(true);
-    setIsOptionsVisible(true);
-    setTimeout(() => {
-      echoesRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 0);
-  };
-
+const App: React.FC = () => {
   return (
-    <div className="app-container">
-      <div>
-        <a href="/" className="tab">Scan Screenshots</a>
-      </div>
-      
-      <h2>Edit Stats</h2>
-
-      <div className="manual-section">
-        <CharacterSelector onSelect={setSelectedCharacter} />
-      </div>
-
-      <CharacterInfo 
-        selectedCharacter={selectedCharacter} 
-        onEchoesClick={handleEchoesClick}  
-      />
-
-      <div ref={echoesRef}>
-        <EchoesSection isVisible={isEchoesVisible} />
-      </div>
-      
-      {isOptionsVisible && (
-        <>
-          <div className="options-container" style={{ display: 'flex' }}></div>
-          <button id="generateDownload" style={{ display: 'block' }}>
-            Generate
-          </button>
-        </>
-      )}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/edit" replace />} />
+        <Route path="/scan" element={<ScanPage />} />
+        <Route path="/edit" element={<EditPage />} />
+      </Routes>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;

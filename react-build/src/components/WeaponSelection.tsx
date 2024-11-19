@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Character } from '../types/character';
 import { Weapon } from '../types/weapon';
 import { useWeapons } from '../hooks/useWeapons';
@@ -32,9 +32,9 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
     return rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity);
   });
 
-  const handleLevelChange = (level: number) => {
+  const handleLevelChange = useCallback((level: number) => {
     setWeaponLevel(level);
-  };
+  }, []);
 
   return (
     <>
