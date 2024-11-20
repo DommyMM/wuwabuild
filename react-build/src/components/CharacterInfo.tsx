@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Character } from '../types/character';
-import { Weapon } from '../types/weapon';
+import { Weapon, WeaponState } from '../types/weapon';
 import { LevelSlider } from './LevelSlider';
 import { SequenceGroup } from './SequenceGroup';
 import { WeaponSelection } from './WeaponSelection';
@@ -14,6 +14,9 @@ interface CharacterInfoProps {
   onGenerateClick?: (level: number) => void;
   onSpectroToggle?: (value: boolean) => void;
   onSequenceChange?: (sequence: number) => void;
+  onWeaponSelect: (weapon: Weapon | null) => void;
+  onWeaponConfigChange: (level: number, rank: number) => void;
+  weaponState: WeaponState;
 }
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
@@ -21,12 +24,14 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   onEchoesClick,
   onGenerateClick,
   onSpectroToggle,
-  onSequenceChange
+  onSequenceChange,
+  onWeaponSelect,
+  onWeaponConfigChange,
+  weaponState
 }) => {
   const [level, setLevel] = useState(1);
   const [sequence, setSequence] = useState(0);
   const [isSpectro, setIsSpectro] = useState(false);
-  const [selectedWeapon, setSelectedWeapon] = useState<Weapon | null>(null);
   const forteRef = useRef<ForteGroupRef>(null);
 
   useEffect(() => {
@@ -34,7 +39,6 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
       setLevel(1);
       setSequence(0);
       setIsSpectro(false);
-      setSelectedWeapon(null);
       forteRef.current?.reset();
     }
   }, [selectedCharacter]);
@@ -54,7 +58,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   };
 
   const handleWeaponSelect = (weapon: Weapon): void => {
-    setSelectedWeapon(weapon);
+    onWeaponSelect(weapon);
   };
 
   const handleToggleSpectro = (): void => {
@@ -62,6 +66,10 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
     if (onSpectroToggle) {
       onSpectroToggle(!isSpectro);
     }
+  };
+
+  const handleWeaponConfigChange = (level: number, rank: number) => {
+    onWeaponConfigChange(level, rank);
   };
 
   const displayName = selectedCharacter?.name.startsWith('Rover')
@@ -114,8 +122,10 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
           />
           <WeaponSelection
             selectedCharacter={selectedCharacter}
-            selectedWeapon={selectedWeapon}
+            selectedWeapon={weaponState.selectedWeapon}
             onWeaponSelect={handleWeaponSelect}
+            weaponConfig={weaponState.config}
+            onWeaponConfigChange={handleWeaponConfigChange}
           />
           <button 
             id="goNext" 

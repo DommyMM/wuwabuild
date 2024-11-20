@@ -6,13 +6,6 @@ export const useWeapons = (weaponType: WeaponType | null) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const sortWeaponsByRarity = (weapons: Weapon[]) => {
-    const rarityOrder = ["5-star", "4-star", "3-star", "2-star", "1-star"];
-    return [...weapons].sort((a, b) => 
-      rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity)
-    );
-  };
-
   useEffect(() => {
     const loadWeapons = async () => {
       if (!weaponType) {
@@ -26,12 +19,21 @@ export const useWeapons = (weaponType: WeaponType | null) => {
       try {
         const response = await fetch(`/Data/${weaponType}s.json`);
         if (!response.ok) {
-          throw new Error(`Failed to load ${weaponType} weapons (${response.status})`);
+          throw new Error(`Failed to load ${weaponType} weapons`);
         }
+        
         const data = await response.json();
-        setWeapons(sortWeaponsByRarity(data));
+        const weaponsWithType = data.map((weapon: Omit<Weapon, 'type'>) => ({
+          ...weapon,
+          type: weaponType,
+          ATK: Number(weapon.ATK),
+          base_main: Number(weapon.base_main),
+          passive_stat: weapon.passive_stat ? Number(weapon.passive_stat) : undefined,
+          passive_stat2: weapon.passive_stat2 ? Number(weapon.passive_stat2) : undefined,
+        }));
+        
+        setWeapons(weaponsWithType);
       } catch (err) {
-        console.error("Error loading weapons:", err);
         setError(err instanceof Error ? err.message : 'Failed to load weapons');
         setWeapons([]);
       } finally {

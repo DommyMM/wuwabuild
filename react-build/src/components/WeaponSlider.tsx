@@ -1,15 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 interface WeaponSliderProps {
-  value: number;
+  level: number;
+  rank: number;
   onLevelChange: (level: number) => void;
+  onRankChange: (rank: number) => void;
 }
 
-export const WeaponSlider: React.FC<WeaponSliderProps> = ({ value, onLevelChange }) => {
+export const WeaponSlider: React.FC<WeaponSliderProps> = ({
+  level,
+  rank,
+  onLevelChange,
+  onRankChange
+}) => {
   const [isCircleDragging, setIsCircleDragging] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [circleValue, setCircleValue] = useState(value <= 90 ? value : 1);
-  const [draggerValue, setDraggerValue] = useState(value <= 5 ? value : 1);
+  const [circleValue, setCircleValue] = useState(level <= 90 ? level : 1);
+  const [draggerValue, setDraggerValue] = useState(rank <= 5 ? rank : 1);
   
   const circleRef = useRef<SVGCircleElement>(null);
   const controlButtonRef = useRef<HTMLDivElement>(null);
@@ -69,7 +76,7 @@ export const WeaponSlider: React.FC<WeaponSliderProps> = ({ value, onLevelChange
 
         if (roundedValue !== draggerValue) {
           setDraggerValue(roundedValue);
-          onLevelChange(roundedValue);
+          onRankChange(roundedValue);
         }
       }
     };
@@ -88,7 +95,7 @@ export const WeaponSlider: React.FC<WeaponSliderProps> = ({ value, onLevelChange
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isCircleDragging, isDragging, draggerValue, onLevelChange]);
+  }, [isCircleDragging, isDragging, draggerValue, onLevelChange, onRankChange]);
 
   return (
     <>

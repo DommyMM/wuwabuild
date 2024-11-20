@@ -418,6 +418,9 @@ input:-webkit-autofill {
 .weapon-stat.weapon-name{
     text-align: center;
     justify-content: center;
+    font-size: 36px;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    font-family: 'Gowun', sans-serif;
 }
 
 .weapon-stat.weapon-attack {

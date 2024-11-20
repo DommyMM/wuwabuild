@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import domtoimage from 'dom-to-image';
 import { Options } from './Build/Options';
 import { CharacterSection } from './Build/CharacterSection';
+import { WeaponSection } from './Build/WeaponSection';
 import { Character } from '../types/character';
+import { Weapon } from '../types/weapon';
 import '../styles/Build.css';
 
 interface BuildCardProps {
@@ -11,6 +13,11 @@ interface BuildCardProps {
   characterLevel: string;
   isSpectro: boolean;
   currentSequence: number;
+  selectedWeapon: Weapon | null;
+  weaponConfig: {
+    level: number;
+    rank: number;
+  };
 }
 
 interface WatermarkData {
@@ -23,7 +30,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   selectedCharacter,
   characterLevel,
   isSpectro,
-  currentSequence
+  currentSequence,
+  selectedWeapon,
+  weaponConfig
 }) => {
   const [isTabVisible, setIsTabVisible] = useState(false);
   const [watermark, setWatermark] = useState<WatermarkData>({
@@ -51,6 +60,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
 
   const handleGenerate = () => {
     setIsTabVisible(true);
+    setTimeout(() => {
+      tabRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 0);
   };
 
   const handleDownload = () => {
@@ -101,11 +113,18 @@ return (
       {isTabVisible && selectedCharacter && (
         <>
           <CharacterSection 
-            character={selectedCharacter!} 
-            level={characterLevel || '90'}
+            character={selectedCharacter} 
+            level={characterLevel}
             isSpectro={isSpectro}
             currentSequence={currentSequence}
           />
+          {selectedWeapon && (
+            <WeaponSection
+              weapon={selectedWeapon}
+              level={weaponConfig.level}
+              rank={weaponConfig.rank}
+            />
+          )}
           <div className="watermark-container">
             <div className="watermark-username">{watermark.username}</div>
             <div className="watermark-uid">{watermark.uid}</div>

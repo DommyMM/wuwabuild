@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Character } from '../types/character';
+import { Weapon, WeaponState } from '../types/weapon';
 import { CharacterSelector } from '../components/CharacterSelector';
 import { CharacterInfo } from '../components/CharacterInfo';
 import { EchoesSection } from '../components/EchoSection';
@@ -15,6 +16,11 @@ export const EditPage: React.FC = () => {
   const [isSpectro, setIsSpectro] = useState(false);
   const [currentSequence, setCurrentSequence] = useState(0);
   const echoesRef = useRef<HTMLElement>(null);
+
+  const [weaponState, setWeaponState] = useState<WeaponState>({
+    selectedWeapon: null,
+    config: { level: 1, rank: 1 }
+  });
 
   useEffect(() => {
     if (selectedCharacter) {
@@ -42,10 +48,28 @@ export const EditPage: React.FC = () => {
   const handleCharacterSelect = (character: Character | null) => {
     setSelectedCharacter(character);
     setCharacterLevel('1');
+    setWeaponState({
+      selectedWeapon: null,
+      config: { level: 1, rank: 1 }
+    });
   };
 
   const handleSequenceChange = (sequence: number) => {
     setCurrentSequence(sequence);
+  };
+
+  const handleWeaponSelect = (weapon: Weapon | null) => {
+    setWeaponState(prev => ({
+      ...prev,
+      selectedWeapon: weapon
+    }));
+  };
+
+  const handleWeaponConfigChange = (level: number, rank: number) => {
+    setWeaponState(prev => ({
+      ...prev,
+      config: { level, rank }
+    }));
   };
 
   return (
@@ -66,6 +90,9 @@ export const EditPage: React.FC = () => {
         onGenerateClick={handleGenerateClick}
         onSpectroToggle={handleSpectroToggle}
         onSequenceChange={handleSequenceChange}
+        onWeaponSelect={handleWeaponSelect}
+        onWeaponConfigChange={handleWeaponConfigChange}
+        weaponState={weaponState}
       />
 
       <EchoesSection 
@@ -79,6 +106,8 @@ export const EditPage: React.FC = () => {
         characterLevel={characterLevel}
         isSpectro={isSpectro}
         currentSequence={currentSequence}
+        selectedWeapon={weaponState.selectedWeapon}
+        weaponConfig={weaponState.config}
       />
     </div>
   );

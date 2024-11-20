@@ -12,15 +12,21 @@ interface WeaponSelectionProps {
   selectedCharacter: Character;
   selectedWeapon: Weapon | null;
   onWeaponSelect: (weapon: Weapon) => void;
+  weaponConfig: {
+    level: number;
+    rank: number;
+  };
+  onWeaponConfigChange: (level: number, rank: number) => void;
 }
 
 export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
   selectedCharacter,
   selectedWeapon,
-  onWeaponSelect
+  onWeaponSelect,
+  weaponConfig,
+  onWeaponConfigChange
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [weaponLevel, setWeaponLevel] = useState(1);
   const { weapons, loading, error } = useWeapons(
     isModalOpen ? selectedCharacter.weaponType : null
   );
@@ -33,8 +39,12 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
   });
 
   const handleLevelChange = useCallback((level: number) => {
-    setWeaponLevel(level);
-  }, []);
+    onWeaponConfigChange(level, weaponConfig.rank);
+  }, [weaponConfig.rank, onWeaponConfigChange]);
+
+  const handleRankChange = useCallback((rank: number) => {
+    onWeaponConfigChange(weaponConfig.level, rank);
+  }, [weaponConfig.level, onWeaponConfigChange]);
 
   return (
     <>
@@ -64,8 +74,10 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
         </div>
         {selectedWeapon && (
           <WeaponSlider 
-            value={weaponLevel} 
-            onLevelChange={handleLevelChange} 
+            level={weaponConfig.level}
+            rank={weaponConfig.rank}
+            onLevelChange={handleLevelChange}
+            onRankChange={handleRankChange}
           />
         )}
       </div>
