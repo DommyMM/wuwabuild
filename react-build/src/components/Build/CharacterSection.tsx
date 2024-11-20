@@ -17,7 +17,8 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   currentSequence,
   children
 }) => {
-  const displayName = isRover(character) ? 'Rover' : character.name;
+  const characterName = character.name;
+  
   const elementValue = isRover(character) 
     ? (isSpectro ? "Spectro" : "Havoc")
     : character.element;
@@ -28,7 +29,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         <img 
           src={getCharacterIconPath(character)}
           className="build-character-icon"
-          alt={character.name}
+          alt={characterName}
         />
         <SequenceSection
           character={character}
@@ -38,7 +39,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
       </div>
 
       <div className="build-intro">
-        <div className="build-character-name">{displayName}</div>
+        <div className="build-character-name">{characterName}</div>
         <div className="build-character-level">Lv.{level}/90</div>
         <img 
           src={`images/Roles/${character.Role}.png`}

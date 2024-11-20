@@ -4,15 +4,17 @@ import { Options } from './Build/Options';
 import { CharacterSection } from './Build/CharacterSection';
 import { WeaponSection } from './Build/WeaponSection';
 import { ForteSection } from './Build/ForteSection';
-import { Character } from '../types/character';
+import { Character, isRover } from '../types/character';
 import { Weapon } from '../types/weapon';
 import '../styles/Build.css';
 
 interface BuildCardProps {
   isVisible: boolean;
   selectedCharacter: Character | null;
+  displayName: string | undefined;
   characterLevel: string;
   isSpectro: boolean;
+  elementValue: string | undefined;
   currentSequence: number;
   selectedWeapon: Weapon | null;
   weaponConfig: {
@@ -31,8 +33,10 @@ interface WatermarkData {
 export const BuildCard: React.FC<BuildCardProps> = ({
   isVisible,
   selectedCharacter,
+  displayName,
   characterLevel,
   isSpectro,
+  elementValue,
   currentSequence,
   selectedWeapon,
   weaponConfig,
@@ -89,71 +93,75 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   };
 
   if (!isVisible) return null;
-return (
-  <div className="build-card">
-    <Options
-      watermark={watermark}
-      showRollQuality={showRollQuality}
-      onWatermarkChange={handleWatermarkChange}
-      onRollQualityChange={setShowRollQuality}
-    />
 
-    <button
-      id="generateDownload"
-      className="build-button"
-      onClick={handleGenerate}
-    >
-      Generate
-    </button>
+  return (
+    <div className="build-card">
+      <Options
+        watermark={watermark}
+        showRollQuality={showRollQuality}
+        onWatermarkChange={handleWatermarkChange}
+        onRollQualityChange={setShowRollQuality}
+      />
 
-    <div
-      ref={tabRef}
-      id="build-tab"
-      className="tab"
-      style={{ 
-        display: isTabVisible ? 'flex' : 'none',
-        opacity: isTabVisible ? 1 : 0
-      }}
-    >
-      {isTabVisible && selectedCharacter && (
-        <>
-          <CharacterSection 
-            character={selectedCharacter} 
-            level={characterLevel}
-            isSpectro={isSpectro}
-            currentSequence={currentSequence}
-          >
-            <ForteSection
-              character={selectedCharacter}
+      <button
+        id="generateDownload"
+        className="build-button"
+        onClick={handleGenerate}
+      >
+        Generate
+      </button>
+
+      <div
+        ref={tabRef}
+        id="build-tab"
+        className="tab"
+        style={{ 
+          display: isTabVisible ? 'flex' : 'none',
+          opacity: isTabVisible ? 1 : 0
+        }}
+      >
+        {isTabVisible && selectedCharacter && elementValue && (
+          <>
+            <CharacterSection 
+              character={selectedCharacter} 
+              level={characterLevel}
               isSpectro={isSpectro}
-              nodeStates={nodeStates}
-              levels={levels}
-            />
-          </CharacterSection>
-          {selectedWeapon && (
-            <WeaponSection
-              weapon={selectedWeapon}
-              level={weaponConfig.level}
-              rank={weaponConfig.rank}
-            />
-          )}
-          <div className="watermark-container">
-            <div className="watermark-username">{watermark.username}</div>
-            <div className="watermark-uid">{watermark.uid}</div>
-          </div>
-        </>
+              currentSequence={currentSequence}
+            >
+              <ForteSection
+                character={{
+                  ...selectedCharacter,
+                  name: displayName || selectedCharacter.name
+                }}
+                elementValue={elementValue}
+                nodeStates={nodeStates}
+                levels={levels}
+              />
+            </CharacterSection>
+            {selectedWeapon && (
+              <WeaponSection
+                weapon={selectedWeapon}
+                level={weaponConfig.level}
+                rank={weaponConfig.rank}
+              />
+            )}
+            <div className="watermark-container">
+              <div className="watermark-username">{watermark.username}</div>
+              <div className="watermark-uid">{watermark.uid}</div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {isTabVisible && (
+        <button
+          id="downloadButton"
+          className="build-button"
+          onClick={handleDownload}
+        >
+          Download
+        </button>
       )}
     </div>
-
-    {isTabVisible && (
-      <button
-        id="downloadButton"
-        className="build-button"
-        onClick={handleDownload}
-      >
-        Download
-      </button>
-    )}
-  </div>
-);
+  );
 };

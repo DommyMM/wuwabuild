@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Character } from '../types/character';
+import { Character, isRover } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
 import { CharacterSelector } from '../components/CharacterSelector';
 import { CharacterInfo } from '../components/CharacterInfo';
@@ -8,12 +8,24 @@ import { EchoesSection } from '../components/EchoSection';
 import { BuildCard } from '../components/BuildCard';
 import '../styles/App.css';
 
+interface ElementState {
+  selectedCharacter: Character | null;
+  isSpectro: boolean;
+  elementValue: string | undefined;
+  displayName: string | undefined;
+}
+
 export const EditPage: React.FC = () => {
-  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+  const [elementState, setElementState] = useState<ElementState>({
+    selectedCharacter: null,
+    isSpectro: false,
+    elementValue: undefined,
+    displayName: undefined
+  });
+
   const [characterLevel, setCharacterLevel] = useState('90');
   const [isEchoesVisible, setIsEchoesVisible] = useState(false);
   const [isOptionsVisible, setIsOptionsVisible] = useState(false);
-  const [isSpectro, setIsSpectro] = useState(false);
   const [currentSequence, setCurrentSequence] = useState(0);
   const echoesRef = useRef<HTMLElement>(null);
 
@@ -35,14 +47,14 @@ export const EditPage: React.FC = () => {
   ];
 
   useEffect(() => {
-    if (selectedCharacter) {
+    if (elementState.selectedCharacter) {
       setCharacterLevel('1');
       setCurrentSequence(0);
       setClickCount(0);
       setNodeStates({});
       setForteLevels({});
     }
-  }, [selectedCharacter]);
+  }, [elementState.selectedCharacter]);
 
   const handleEchoesClick = () => {
     setIsEchoesVisible(true);
@@ -57,11 +69,35 @@ export const EditPage: React.FC = () => {
   };
 
   const handleSpectroToggle = (value: boolean) => {
-    setIsSpectro(value);
+    setElementState(prev => {
+      const newElementValue = prev.selectedCharacter && isRover(prev.selectedCharacter) ?
+        (value ? "Spectro" : "Havoc") : 
+        prev.elementValue;
+      
+      const newDisplayName = prev.selectedCharacter?.name.startsWith('Rover') ?
+        `Rover${value ? 'Spectro' : 'Havoc'}` :
+        prev.selectedCharacter?.name;
+  
+      return {
+        ...prev,
+        isSpectro: value,
+        elementValue: newElementValue,
+        displayName: newDisplayName
+      };
+    });
   };
 
   const handleCharacterSelect = (character: Character | null) => {
-    setSelectedCharacter(character);
+    setElementState({
+      selectedCharacter: character,
+      isSpectro: false,
+      elementValue: character ? 
+        (isRover(character) ? "Havoc" : character.element) : 
+        undefined,
+      displayName: character?.name.startsWith('Rover') ? 
+        'RoverHavoc' : 
+        character?.name
+    });
     setCharacterLevel('1');
     setWeaponState({
       selectedWeapon: null,
@@ -127,7 +163,10 @@ export const EditPage: React.FC = () => {
       </div>
 
       <CharacterInfo 
-        selectedCharacter={selectedCharacter} 
+        selectedCharacter={elementState.selectedCharacter} 
+        displayName={elementState.displayName}
+        isSpectro={elementState.isSpectro}
+        elementValue={elementState.elementValue}
         onEchoesClick={handleEchoesClick}
         onGenerateClick={handleGenerateClick}
         onSpectroToggle={handleSpectroToggle}
@@ -149,9 +188,11 @@ export const EditPage: React.FC = () => {
       
       <BuildCard 
         isVisible={isOptionsVisible}
-        selectedCharacter={selectedCharacter}
+        selectedCharacter={elementState.selectedCharacter}
+        displayName={elementState.displayName}
         characterLevel={characterLevel}
-        isSpectro={isSpectro}
+        isSpectro={elementState.isSpectro}
+        elementValue={elementState.elementValue}
         currentSequence={currentSequence}
         selectedWeapon={weaponState.selectedWeapon}
         weaponConfig={weaponState.config}

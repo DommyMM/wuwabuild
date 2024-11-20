@@ -6,7 +6,8 @@ import '../styles/forte.css';
 
 interface ForteGroupProps {
   selectedCharacter: Character | null;
-  isSpectro?: boolean;
+  displayName: string | undefined;
+  elementValue: string | undefined;
   nodeStates: Record<string, Record<string, boolean>>;
   levels: Record<string, number>;
   clickCount: number;
@@ -22,27 +23,25 @@ interface GlowingNodeProps {
   skillKey: string;
   character: Character | null;
   altText: string;
-  isSpectro?: boolean;
+  elementValue: string | undefined;
   isActive: boolean;
   onChange: (treeKey: string, position: 'top' | 'middle') => void;
 }
 
 const GlowingNode: React.FC<GlowingNodeProps> = ({
-  treeKey, skillKey, character, altText, isSpectro, isActive, onChange
+  treeKey, skillKey, character, altText, elementValue, isActive, onChange
 }) => {
-  if (!character) return null;
+  if (!character || !elementValue) return null;
 
   let imagePath;
   if (character.name.startsWith('Rover')) {
-    const elementImage = isSpectro ? 'Spectro' : 'Havoc';
-    const displayName = `Rover${elementImage}`;
-    
+    const roverName = `Rover${elementValue}`;
     if (treeKey === 'tree1' || treeKey === 'tree5') {
-      imagePath = `images/Stats/${elementImage}.png`;
+      imagePath = `images/Stats/${elementValue}.png`;
     } else if (treeKey === 'tree2' || treeKey === 'tree4') {
       imagePath = 'images/Stats/ATK.png';
     } else {
-      imagePath = forteImagePaths.imagePaths[skillKey]?.(displayName);
+      imagePath = forteImagePaths.imagePaths[skillKey]?.(roverName);
     }
   } else {
     imagePath = forteImagePaths.sharedImages[treeKey]?.(character) ||
@@ -70,7 +69,8 @@ interface SkillBranchComponentProps {
   skillKey: keyof ForteImagePaths['imagePaths'];
   treeKey: string;
   character: Character | null;
-  isSpectro?: boolean;
+  displayName: string | undefined;
+  elementValue: string | undefined;
   isActive: { top: boolean; middle: boolean };
   level: number;
   onNodeClick: (position: 'top' | 'middle') => void;
@@ -82,13 +82,14 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
   skillKey,
   treeKey,
   character,
-  isSpectro,
+  displayName,
+  elementValue,
   isActive,
   level,
   onNodeClick,
   onInputChange
 }) => {
-  if (!character) return null;
+  if (!character || !elementValue) return null;
 
   return (
     <div className="skill-branch">
@@ -98,7 +99,7 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
           treeKey={treeKey}
           skillKey={`${treeKey}-top`}
           character={character}
-          isSpectro={isSpectro}
+          elementValue={elementValue}
           altText="Top Node"
           isActive={isActive.top}
           onChange={() => onNodeClick('top')}
@@ -112,7 +113,7 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
           treeKey={treeKey}
           skillKey={`${treeKey}-middle`}
           character={character}
-          isSpectro={isSpectro}
+          elementValue={elementValue}
           altText="Middle Node"
           isActive={isActive.middle}
           onChange={() => onNodeClick('middle')}
@@ -123,7 +124,7 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
         <div className="forte-slot" data-skill={skillKey}>
           <img 
             className="skill-image"
-            src={forteImagePaths.imagePaths[skillKey](character.name)}
+            src={forteImagePaths.imagePaths[skillKey](displayName || character.name)}
             alt={skillName}
           />
           <div className="node-content" />
@@ -148,7 +149,8 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
 
 export const ForteGroup: React.FC<ForteGroupProps> = ({
   selectedCharacter,
-  isSpectro = false,
+  displayName,
+  elementValue,
   nodeStates,
   levels,
   clickCount,
@@ -190,7 +192,8 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
             key={branch.skillKey}
             {...branch}
             character={selectedCharacter}
-            isSpectro={isSpectro}
+            displayName={displayName}
+            elementValue={elementValue}
             isActive={{
               top: nodeStates[branch.treeKey]?.top || false,
               middle: nodeStates[branch.treeKey]?.middle || false

@@ -2,14 +2,14 @@ import React from 'react';
 
 interface SequenceGroupProps {
   characterName: string;
-  isSpectro?: boolean;
+  elementValue: string | undefined;
   onSequenceChange: (sequence: number) => void;
   sequence: number;
 }
 
 export const SequenceGroup: React.FC<SequenceGroupProps> = ({ 
   characterName, 
-  isSpectro,
+  elementValue,
   onSequenceChange,
   sequence 
 }) => {
@@ -22,7 +22,7 @@ export const SequenceGroup: React.FC<SequenceGroupProps> = ({
   };
 
   const displayName = characterName.startsWith('Rover') 
-    ? `Rover${isSpectro ? 'Spectro' : 'Havoc'}`
+    ? `Rover${elementValue}`
     : characterName;
 
   return (

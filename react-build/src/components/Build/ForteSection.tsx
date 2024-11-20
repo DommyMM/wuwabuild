@@ -1,10 +1,10 @@
 import React from 'react';
-import { Character } from '../../types/character';
+import { Character, isRover } from '../../types/character';
 import { forteImagePaths } from '../../types/node';
 
 interface ForteSectionProps {
   character: Character;
-  isSpectro: boolean;
+  elementValue: string;
   nodeStates: Record<string, Record<string, boolean>>;
   levels: Record<string, number>;
 }
@@ -24,19 +24,25 @@ const SimplifiedNode: React.FC<{
   </div>
 );
 
-const SimplifiedBranch: React.FC<{
+interface SimplifiedBranchProps {
   branch: { type: string; name: string; tree: string };
   character: Character;
-  isSpectro: boolean;
+  elementValue: string;
   isActive: { top: boolean; middle: boolean };
   level: number;
-}> = ({ branch, character, isSpectro, isActive, level }) => {
-  const elementImage = isSpectro ? 'Spectro' : 'Havoc';
-  
+}
+
+const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({ 
+  branch, 
+  character, 
+  elementValue,
+  isActive, 
+  level 
+}) => {
   const getNodeImage = (position: 'top' | 'middle') => {
-    if (character.name.startsWith('Rover')) {
+    if (isRover(character)) {
       if (branch.tree === 'tree1' || branch.tree === 'tree5') {
-        return `images/Stats/${elementImage}.png`;
+        return `images/Stats/${elementValue}.png`;
       }
       if (branch.tree === 'tree2' || branch.tree === 'tree4') {
         return 'images/Stats/ATK.png';
@@ -47,12 +53,20 @@ const SimplifiedBranch: React.FC<{
       : forteImagePaths.sharedImages[branch.tree](character);
   };
 
+  const getNodeClassName = () => {
+    if (isRover(character)) {
+      return elementValue.toLowerCase();
+    }
+    return '';
+  };
+
   return (
     <div className="simplified-branch">
       <SimplifiedNode
         type={branch.type}
         imagePath={getNodeImage('top')}
         isActive={isActive.top}
+        className={getNodeClassName()}
         showDiamond={branch.name === 'circuit'}
       />
       <div className="top-line" />
@@ -77,7 +91,7 @@ const SimplifiedBranch: React.FC<{
 
 export const ForteSection: React.FC<ForteSectionProps> = ({
   character,
-  isSpectro,
+  elementValue,
   nodeStates,
   levels
 }) => {
@@ -96,7 +110,7 @@ export const ForteSection: React.FC<ForteSectionProps> = ({
           key={branch.name}
           branch={branch}
           character={character}
-          isSpectro={isSpectro}
+          elementValue={elementValue}
           isActive={{
             top: nodeStates[branch.tree]?.top || false,
             middle: nodeStates[branch.tree]?.middle || false

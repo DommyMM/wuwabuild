@@ -10,6 +10,9 @@ import '../styles/SequenceGroup.css';
 
 interface CharacterInfoProps {
   selectedCharacter: Character | null;
+  displayName: string | undefined;
+  isSpectro: boolean;
+  elementValue: string | undefined;
   onEchoesClick: () => void;
   onGenerateClick?: (level: number) => void;
   onSpectroToggle?: (value: boolean) => void;
@@ -29,6 +32,9 @@ interface CharacterInfoProps {
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
   selectedCharacter, 
+  displayName,
+  isSpectro,
+  elementValue,
   onEchoesClick,
   onGenerateClick,
   onSpectroToggle,
@@ -44,13 +50,11 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
 }) => {
   const [level, setLevel] = useState(1);
   const [sequence, setSequence] = useState(0);
-  const [isSpectro, setIsSpectro] = useState(false);
 
   useEffect(() => {
     if (selectedCharacter) {
       setLevel(1);
       setSequence(0);
-      setIsSpectro(false);
     }
   }, [selectedCharacter]);
 
@@ -73,7 +77,6 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   };
 
   const handleToggleSpectro = (): void => {
-    setIsSpectro(prev => !prev);
     if (onSpectroToggle) {
       onSpectroToggle(!isSpectro);
     }
@@ -82,10 +85,6 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   const handleWeaponConfigChange = (level: number, rank: number) => {
     onWeaponConfigChange(level, rank);
   };
-
-  const displayName = selectedCharacter?.name.startsWith('Rover')
-    ? `Rover${isSpectro ? 'Spectro' : 'Havoc'}`
-    : selectedCharacter?.name;
 
   return (
     <div className="character-info">
@@ -109,8 +108,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
             >
               <div className="toggle-circle">
                 <img
-                  src={`images/Elements/${isSpectro ? 'Spectro' : 'Havoc'}.png`}
-                  alt={isSpectro ? 'Spectro' : 'Havoc'}
+                  src={`images/Elements/${elementValue}.png`}
+                  alt={elementValue}
                   style={{
                     width: '100%',
                     height: '100%',
@@ -127,7 +126,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
           />
           <SequenceGroup
             characterName={displayName || ''}
-            isSpectro={isSpectro}
+            elementValue={elementValue}
             onSequenceChange={handleSequenceChange}
             sequence={sequence}
           />
@@ -150,7 +149,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
               ...selectedCharacter,
               name: displayName || selectedCharacter.name
             }}
-            isSpectro={isSpectro}
+            displayName={displayName}
+            elementValue={elementValue}
             nodeStates={nodeStates}
             levels={forteLevels}
             clickCount={clickCount}
