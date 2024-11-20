@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import React from 'react';
 import { Character } from '../types/character';
 import { forteImagePaths } from '../types/node';
 import type { ForteImagePaths, SkillBranch } from '../types/node';
@@ -7,22 +7,29 @@ import '../styles/forte.css';
 interface ForteGroupProps {
   selectedCharacter: Character | null;
   isSpectro?: boolean;
+  nodeStates: Record<string, Record<string, boolean>>;
+  levels: Record<string, number>;
+  clickCount: number;
+  onMaxClick: () => void;
+  onChange: (
+    nodeStates: Record<string, Record<string, boolean>>,
+    levels: Record<string, number>
+  ) => void;
 }
 
-export interface ForteGroupRef {
-  reset: () => void;
-}
-
-const GlowingNode = forwardRef<HTMLDivElement, {
+interface GlowingNodeProps {
   treeKey: string;
   skillKey: string;
   character: Character | null;
   altText: string;
   isSpectro?: boolean;
-}>((props, ref) => {
-  const { treeKey, skillKey, character, altText, isSpectro } = props;
-  const [isActive, setIsActive] = useState(false);
-  
+  isActive: boolean;
+  onChange: (treeKey: string, position: 'top' | 'middle') => void;
+}
+
+const GlowingNode: React.FC<GlowingNodeProps> = ({
+  treeKey, skillKey, character, altText, isSpectro, isActive, onChange
+}) => {
   if (!character) return null;
 
   let imagePath;
@@ -44,11 +51,10 @@ const GlowingNode = forwardRef<HTMLDivElement, {
 
   return (
     <div 
-      ref={ref}
       className={`glowing-node ${isActive ? 'active' : ''}`}
       data-tree={treeKey}
       data-skill={skillKey}
-      onClick={() => setIsActive(!isActive)}
+      onClick={() => onChange(treeKey, 'top')}
     >
       <img 
         className="node-image"
@@ -57,18 +63,31 @@ const GlowingNode = forwardRef<HTMLDivElement, {
       />
     </div>
   );
-});
+};
 
-const SkillBranchComponent: React.FC<{
+interface SkillBranchComponentProps {
   skillName: string;
   skillKey: keyof ForteImagePaths['imagePaths'];
   treeKey: string;
   character: Character | null;
   isSpectro?: boolean;
-  topRef?: (el: HTMLDivElement | null) => void;
-  middleRef?: (el: HTMLDivElement | null) => void;
-  inputRef?: (el: HTMLInputElement | null) => void;
-}> = ({ skillName, skillKey, treeKey, character, isSpectro, topRef, middleRef, inputRef }) => {
+  isActive: { top: boolean; middle: boolean };
+  level: number;
+  onNodeClick: (position: 'top' | 'middle') => void;
+  onInputChange: (value: string) => void;
+}
+
+const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
+  skillName,
+  skillKey,
+  treeKey,
+  character,
+  isSpectro,
+  isActive,
+  level,
+  onNodeClick,
+  onInputChange
+}) => {
   if (!character) return null;
 
   return (
@@ -76,12 +95,13 @@ const SkillBranchComponent: React.FC<{
       <div className="node-container">
         <div className="upper-line" />
         <GlowingNode 
-          ref={topRef}
           treeKey={treeKey}
           skillKey={`${treeKey}-top`}
           character={character}
           isSpectro={isSpectro}
           altText="Top Node"
+          isActive={isActive.top}
+          onChange={() => onNodeClick('top')}
         />
       </div>
       
@@ -89,12 +109,13 @@ const SkillBranchComponent: React.FC<{
       
       <div className="node-container">
         <GlowingNode 
-          ref={middleRef}
           treeKey={treeKey}
           skillKey={`${treeKey}-middle`}
           character={character}
           isSpectro={isSpectro}
           altText="Middle Node"
+          isActive={isActive.middle}
+          onChange={() => onNodeClick('middle')}
         />
       </div>
 
@@ -110,12 +131,12 @@ const SkillBranchComponent: React.FC<{
         <div className="skill-info">
           <div className="level-display">
             Lv. <input 
-              ref={inputRef}
               type="number"
               className="skill-input"
-              defaultValue={1}
+              value={level}
               min={0}
               max={10}
+              onChange={(e) => onInputChange(e.target.value)}
             />/10
           </div>
           <div className="skill-name">{skillName}</div>
@@ -125,29 +146,15 @@ const SkillBranchComponent: React.FC<{
   );
 };
 
-export const ForteGroup = forwardRef<ForteGroupRef, ForteGroupProps>(({ 
+export const ForteGroup: React.FC<ForteGroupProps> = ({
   selectedCharacter,
-  isSpectro = false 
-}, ref) => {
-  const [clickCount, setClickCount] = useState(0);
-  const nodeRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-
-  nodeRefs.current = Array(10).fill(null);
-  inputRefs.current = Array(5).fill(null);
-
-  const setNodeRef = (index: number) => (el: HTMLDivElement | null) => {
-    if (nodeRefs.current) {
-      nodeRefs.current[index] = el;
-    }
-  };
-
-  const setInputRef = (index: number) => (el: HTMLInputElement | null) => {
-    if (inputRefs.current) {
-      inputRefs.current[index] = el;
-    }
-  };
-
+  isSpectro = false,
+  nodeStates,
+  levels,
+  clickCount,
+  onMaxClick,
+  onChange
+}) => {
   const skillBranches: SkillBranch[] = [
     { skillName: 'Normal Attack', skillKey: 'normal-attack', treeKey: 'tree1' },
     { skillName: 'Resonance Skill', skillKey: 'skill', treeKey: 'tree2' },
@@ -156,54 +163,41 @@ export const ForteGroup = forwardRef<ForteGroupRef, ForteGroupProps>(({
     { skillName: 'Intro Skill', skillKey: 'intro', treeKey: 'tree5' }
   ];
 
-  const handleMaxClick = () => {
-    const newCount = (clickCount + 1) % 3;
-    setClickCount(newCount);
-
-    if (newCount === 1) {
-      inputRefs.current.forEach(input => {
-        if (input) input.value = '10';
-      });
-    } else if (newCount === 2) {
-      nodeRefs.current.forEach(node => {
-        if (node) node.classList.add('active');
-      });
-    } else {
-      inputRefs.current.forEach(input => {
-        if (input) input.value = '1';
-      });
-      nodeRefs.current.forEach(node => {
-        if (node) node.classList.remove('active');
-      });
-    }
+  const handleNodeClick = (treeKey: string, position: 'top' | 'middle') => {
+    const newNodeStates = {
+      ...nodeStates,
+      [treeKey]: {
+        ...nodeStates[treeKey],
+        [position]: !nodeStates[treeKey]?.[position]
+      }
+    };
+    onChange(newNodeStates, levels);
   };
 
-  const reset = () => {
-    setClickCount(0);
-    inputRefs.current.forEach(input => {
-      if (input) input.value = '1';
-    });
-    nodeRefs.current.forEach(node => {
-      if (node) node.classList.remove('active');
-    });
+  const handleInputChange = (skillKey: string, value: string) => {
+    const newLevels = {
+      ...levels,
+      [skillKey]: Number(value) || 1
+    };
+    onChange(nodeStates, newLevels);
   };
-
-  useImperativeHandle(ref, () => ({
-    reset
-  }));
 
   return (
     <div className="forte-group">
       <div className="forte-slots">
-        {skillBranches.map((branch, index) => (
+        {skillBranches.map((branch) => (
           <SkillBranchComponent 
             key={branch.skillKey}
             {...branch}
             character={selectedCharacter}
             isSpectro={isSpectro}
-            topRef={setNodeRef(index * 2)}
-            middleRef={setNodeRef(index * 2 + 1)}
-            inputRef={setInputRef(index)}
+            isActive={{
+              top: nodeStates[branch.treeKey]?.top || false,
+              middle: nodeStates[branch.treeKey]?.middle || false
+            }}
+            level={levels[branch.skillKey] || 1}
+            onNodeClick={(position) => handleNodeClick(branch.treeKey, position)}
+            onInputChange={(value) => handleInputChange(branch.skillKey, value)}
           />
         ))}
       </div>
@@ -211,12 +205,12 @@ export const ForteGroup = forwardRef<ForteGroupRef, ForteGroupProps>(({
         <img
           id="maxButton"
           className="max-frame"
-          src={`images/Resources/Max${clickCount === 0 ? '' : clickCount}.png`}
+          src={`images/Resources/Max${clickCount || ''}.png`} 
           alt="Max Frame"
           title="First click: Set all levels to 10&#10;Second click: Activate all nodes&#10;Third click: Reset everything"
-          onClick={handleMaxClick}
+          onClick={onMaxClick}
         />
       </div>
     </div>
   );
-});
+};

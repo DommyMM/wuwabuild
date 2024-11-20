@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Character } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
 import { LevelSlider } from './LevelSlider';
 import { SequenceGroup } from './SequenceGroup';
 import { WeaponSelection } from './WeaponSelection';
-import { ForteGroup, ForteGroupRef } from './ForteGroup';
+import { ForteGroup } from './ForteGroup';
 import '../styles/CharacterInfo.css';
 import '../styles/SequenceGroup.css';
 
@@ -17,6 +17,14 @@ interface CharacterInfoProps {
   onWeaponSelect: (weapon: Weapon | null) => void;
   onWeaponConfigChange: (level: number, rank: number) => void;
   weaponState: WeaponState;
+  nodeStates: Record<string, Record<string, boolean>>;
+  forteLevels: Record<string, number>;
+  onMaxClick: () => void;
+  onForteChange: (
+    nodeStates: Record<string, Record<string, boolean>>,
+    levels: Record<string, number>
+  ) => void;
+  clickCount: number;
 }
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
@@ -27,19 +35,22 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   onSequenceChange,
   onWeaponSelect,
   onWeaponConfigChange,
-  weaponState
+  weaponState,
+  nodeStates,
+  forteLevels,
+  clickCount,
+  onMaxClick,
+  onForteChange
 }) => {
   const [level, setLevel] = useState(1);
   const [sequence, setSequence] = useState(0);
   const [isSpectro, setIsSpectro] = useState(false);
-  const forteRef = useRef<ForteGroupRef>(null);
 
   useEffect(() => {
     if (selectedCharacter) {
       setLevel(1);
       setSequence(0);
       setIsSpectro(false);
-      forteRef.current?.reset();
     }
   }, [selectedCharacter]);
 
@@ -140,7 +151,11 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
               name: displayName || selectedCharacter.name
             }}
             isSpectro={isSpectro}
-            ref={forteRef}
+            nodeStates={nodeStates}
+            levels={forteLevels}
+            clickCount={clickCount}
+            onMaxClick={onMaxClick}
+            onChange={onForteChange}
           />
         </div>
       )}

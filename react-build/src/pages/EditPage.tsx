@@ -22,10 +22,25 @@ export const EditPage: React.FC = () => {
     config: { level: 1, rank: 1 }
   });
 
+  const [clickCount, setClickCount] = useState(0);
+  const [nodeStates, setNodeStates] = useState<Record<string, Record<string, boolean>>>({});
+  const [forteLevels, setForteLevels] = useState<Record<string, number>>({});
+
+  const skillBranches = [
+    { skillName: 'Normal Attack', skillKey: 'normal-attack', treeKey: 'tree1' },
+    { skillName: 'Resonance Skill', skillKey: 'skill', treeKey: 'tree2' },
+    { skillName: 'Forte Circuit', skillKey: 'circuit', treeKey: 'tree3' },
+    { skillName: 'Resonance Liberation', skillKey: 'liberation', treeKey: 'tree4' },
+    { skillName: 'Intro Skill', skillKey: 'intro', treeKey: 'tree5' }
+  ];
+
   useEffect(() => {
     if (selectedCharacter) {
       setCharacterLevel('1');
       setCurrentSequence(0);
+      setClickCount(0);
+      setNodeStates({});
+      setForteLevels({});
     }
   }, [selectedCharacter]);
 
@@ -72,6 +87,33 @@ export const EditPage: React.FC = () => {
     }));
   };
 
+  const handleMaxClick = () => {
+    const newCount = (clickCount + 1) % 3;
+    setClickCount(newCount);
+
+    const newNodeStates: Record<string, Record<string, boolean>> = {};
+    const newLevels: Record<string, number> = {};
+
+    skillBranches.forEach((branch) => {
+      newNodeStates[branch.treeKey] = {
+        top: newCount === 2,
+        middle: newCount === 2
+      };
+      newLevels[branch.skillKey] = newCount === 1 || newCount === 2 ? 10 : 1;
+    });
+
+    setNodeStates(newNodeStates);
+    setForteLevels(newLevels);
+  };
+
+  const handleForteChange = (
+    newNodeStates: Record<string, Record<string, boolean>>,
+    newLevels: Record<string, number>
+  ) => {
+    setNodeStates(newNodeStates);
+    setForteLevels(newLevels);
+  };
+
   return (
     <div className="app-container">
       <nav>
@@ -93,6 +135,11 @@ export const EditPage: React.FC = () => {
         onWeaponSelect={handleWeaponSelect}
         onWeaponConfigChange={handleWeaponConfigChange}
         weaponState={weaponState}
+        nodeStates={nodeStates}
+        forteLevels={forteLevels}
+        clickCount={clickCount}
+        onMaxClick={handleMaxClick}
+        onForteChange={handleForteChange}
       />
 
       <EchoesSection 
@@ -108,6 +155,8 @@ export const EditPage: React.FC = () => {
         currentSequence={currentSequence}
         selectedWeapon={weaponState.selectedWeapon}
         weaponConfig={weaponState.config}
+        nodeStates={nodeStates}
+        levels={forteLevels}
       />
     </div>
   );

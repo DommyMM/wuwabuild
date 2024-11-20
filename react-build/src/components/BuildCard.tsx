@@ -3,6 +3,7 @@ import domtoimage from 'dom-to-image';
 import { Options } from './Build/Options';
 import { CharacterSection } from './Build/CharacterSection';
 import { WeaponSection } from './Build/WeaponSection';
+import { ForteSection } from './Build/ForteSection';
 import { Character } from '../types/character';
 import { Weapon } from '../types/weapon';
 import '../styles/Build.css';
@@ -18,6 +19,8 @@ interface BuildCardProps {
     level: number;
     rank: number;
   };
+  nodeStates: Record<string, Record<string, boolean>>;
+  levels: Record<string, number>;
 }
 
 interface WatermarkData {
@@ -32,7 +35,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   isSpectro,
   currentSequence,
   selectedWeapon,
-  weaponConfig
+  weaponConfig,
+  nodeStates,
+  levels
 }) => {
   const [isTabVisible, setIsTabVisible] = useState(false);
   const [watermark, setWatermark] = useState<WatermarkData>({
@@ -117,7 +122,14 @@ return (
             level={characterLevel}
             isSpectro={isSpectro}
             currentSequence={currentSequence}
-          />
+          >
+            <ForteSection
+              character={selectedCharacter}
+              isSpectro={isSpectro}
+              nodeStates={nodeStates}
+              levels={levels}
+            />
+          </CharacterSection>
           {selectedWeapon && (
             <WeaponSection
               weapon={selectedWeapon}

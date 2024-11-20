@@ -1,19 +1,21 @@
 import React from 'react';
 import { Character, getCharacterIconPath, isRover } from '../../types/character';
-import { SequenceSection } from './SequenceSection';  // Add import
+import { SequenceSection } from './SequenceSection';
 
 interface CharacterSectionProps {
   character: Character;
-  level?: string;
-  isSpectro?: boolean;
+  level: string;
+  isSpectro: boolean;
   currentSequence: number;
+  children?: React.ReactNode;
 }
 
 export const CharacterSection: React.FC<CharacterSectionProps> = ({ 
   character,
   level = '1',
   isSpectro = false,
-  currentSequence
+  currentSequence,
+  children
 }) => {
   const displayName = isRover(character) ? 'Rover' : character.name;
   const elementValue = isRover(character) 
@@ -48,6 +50,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
           className="element-icon" 
           alt={elementValue}
         />
+        {children}
       </div>
     </>
   );
