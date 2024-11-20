@@ -71,6 +71,10 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ onSelect }
                   className="character-option"
                   onClick={() => handleCharacterSelect(character)}
                 >
+                  <div 
+                    className="border-wrapper"
+                    data-element={character.element}
+                  ></div>
                   <img 
                     src={`images/Faces/${character.name}.png`}
                     alt={character.name}
