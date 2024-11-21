@@ -4,7 +4,7 @@ import { Options } from './Build/Options';
 import { CharacterSection } from './Build/CharacterSection';
 import { WeaponSection } from './Build/WeaponSection';
 import { ForteSection } from './Build/ForteSection';
-import { Character, isRover } from '../types/character';
+import { Character } from '../types/character';
 import { Weapon } from '../types/weapon';
 import '../styles/Build.css';
 
