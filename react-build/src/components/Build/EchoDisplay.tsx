@@ -98,7 +98,7 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
         style={showRollQuality && quality ? {
           backgroundImage: `url('images/Quality/${quality}.png')`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center'
+          backgroundPosition: 'center bottom'
         } : undefined}
       >
         <img 
@@ -115,16 +115,14 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
 
   return (
     <div className="echo-right">
-      <div className="substat-row" style={{ justifyContent: 'space-between' }}>
+      <div className="substat-row">
         <SubstatDisplay stat={panel.stats.subStats[0]} alignment="left" />
-        <SubstatDisplay stat={panel.stats.subStats[1]} alignment="right" />
+        <SubstatDisplay stat={panel.stats.subStats[1]} alignment="center" />
+        <SubstatDisplay stat={panel.stats.subStats[2]} alignment="right" />
       </div>
-      <div className="substat-row" style={{ justifyContent: 'space-between' }}>
-        <SubstatDisplay stat={panel.stats.subStats[2]} alignment="left" />
-        <SubstatDisplay stat={panel.stats.subStats[3]} alignment="right" />
-      </div>
-      <div className="substat-row" style={{ justifyContent: 'center' }}>
-        <SubstatDisplay stat={panel.stats.subStats[4]} alignment="center" />
+      <div className="substat-row">
+        <SubstatDisplay stat={panel.stats.subStats[3]} alignment="left" />
+        <SubstatDisplay stat={panel.stats.subStats[4]} alignment="right" />
       </div>
     </div>
   );
@@ -136,13 +134,24 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
 const EchoRow: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> = ({ 
   panel, 
   showRollQuality 
-}) => (
-  <div className={`echo-row ${panel.selectedElement?.toLowerCase() || ''}`}>
-    <EchoLeft panel={panel} />
-    <EchoDivider />
-    <EchoRight panel={panel} showRollQuality={showRollQuality} />
-  </div>
-);
+}) => {
+  const isSingleElement = panel.echo?.elements.length === 1;
+  const element = isSingleElement && panel.echo ? 
+    panel.echo?.elements[0] : 
+    panel.selectedElement;
+  
+  const setClass = element ? 
+    `set-${element.toLowerCase()}` : 
+    'default';
+
+  return (
+    <div className={`echo-row ${setClass}`}>
+      <EchoLeft panel={panel} />
+      <EchoDivider />
+      <EchoRight panel={panel} showRollQuality={showRollQuality} />
+    </div>
+  );
+};
 
 export const EchoDisplay: React.FC<EchoDisplayProps> = ({
   isVisible,

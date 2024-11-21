@@ -304,39 +304,39 @@
     animation: shine 3s linear infinite;
 }
 
-.set-name-display[data-element="Fusion"] {
+.set-name-display.fusion {
     background-image: linear-gradient(to right, #ff4500, #ff8c00, #ffd700, #ff4d00);
 }
 
-.set-name-display[data-element="Glacio"] {
+.set-name-display.glacio {
     background-image: linear-gradient(to right, #00ced1, #87ceeb, #b0e0e6, #ffffff, #00ffff);
 }
 
-.set-name-display[data-element="Aero"] {
+.set-name-display.aero {
     background-image: linear-gradient(to right, #b0ffb0, #d0f0c0, #ffffff, #90ee90, #b0ffb0);
 }
 
-.set-name-display[data-element="Electro"] {
+.set-name-display.electro {
     background-image: linear-gradient(to right, #8a2be2, #7b68ee, #9370db, #6a5acd, #8a2be2);
 }
 
-.set-name-display[data-element="Spectro"] {
+.set-name-display.spectro {
     background-image: linear-gradient(to right, #fffacd, #ffd700, #ffa500, #fffacd);
 }
 
-.set-name-display[data-element="Havoc"] {
+.set-name-display.havoc {
     background-image: linear-gradient(to right, #ff1493, #8b008b, #ff69b4, #9400d3, #ff1493);
 }
 
-.set-name-display[data-element="ER"] {
+.set-name-display.er {
     background-image: linear-gradient(to right, #ffffff, #c0c0c0, #e8e8e8, #a9a9a9, #ffffff);
 }
 
-.set-name-display[data-element="Attack"] {
+.set-name-display.attack {
     background-image: linear-gradient(to right, #8b0000, #ffffff, #990000, #f8f8ff, #8b0000);
 }
 
-.set-name-display[data-element="Healing"] {
+.set-name-display.healing {
     background-image: linear-gradient(to right, #00ff00, #32cd32, #98fb98, #228b22, #00ff00);
 }
 

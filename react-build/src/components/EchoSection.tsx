@@ -20,12 +20,11 @@ const ElementTabs: React.FC<ElementTabsProps> = ({ elements, onElementSelect, se
     return (
       <div className="element-container">
         <div 
-          className="set-name-display"
+          className={`set-name-display ${elements[0].toLowerCase()}`}
           style={{ 
             opacity: 1,
             fontSize: getFontSize(setName)
           }}
-          data-element={elements[0]}
         >
           {setName}
         </div>
@@ -36,12 +35,11 @@ const ElementTabs: React.FC<ElementTabsProps> = ({ elements, onElementSelect, se
   return (
     <div className="element-container">
       <div 
-        className="set-name-display"
+        className={`set-name-display ${selectedElement?.toLowerCase() || 'default'}`}
         style={{ 
           opacity: selectedElement ? 1 : 0,
           fontSize: selectedElement ? getFontSize(ELEMENT_SETS[selectedElement]) : undefined
         }}
-        data-element={selectedElement || ''}
       >
         {selectedElement ? ELEMENT_SETS[selectedElement] : ''}
       </div>
@@ -50,11 +48,7 @@ const ElementTabs: React.FC<ElementTabsProps> = ({ elements, onElementSelect, se
           <div
             key={element}
             className={`element-tab ${selectedElement === element ? 'active' : ''}`}
-            data-element={element}
-            onClick={() => {
-              const newElement = selectedElement === element ? null : element;
-              onElementSelect?.(newElement);
-            }}
+            onClick={() => onElementSelect?.(selectedElement === element ? null : element)}
           >
             <div className="element-number">{index + 1}</div>
           </div>
@@ -223,7 +217,8 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
         const newPanels = [...prev];
         newPanels[selectedPanelIndex] = {
           ...newPanels[selectedPanelIndex],
-          echo
+          echo,
+          selectedElement: null
         };
         return newPanels;
       });

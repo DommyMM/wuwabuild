@@ -25,6 +25,8 @@
 
 .weapon-name{
   font-size: 16px;
+  letter-spacing: 0.25px;
+  transform: translateY(-2px);
 }
 
 .weapon-label {

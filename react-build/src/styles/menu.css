@@ -148,38 +148,37 @@
 
 .set-electro {
     border: 2px solid #BA55D3;
-    background: #351830;
+    background: #2B1226;
 }
 
 .set-spectro {
     border: 2px solid #FFD700;
-    background: #4D4000;
+    background: #3E3600;
 }
 
 .set-glacio {
     border: 2px solid #87CEEB;
-    background: #1B4B66;
+    background: #163C50;
 }
 
 .set-attack {
-    border: 2px solid #bc2514;
-    background: #5C2A26;
+    border: 2px solid #BC2514;
+    background: #4A1E1A;
 }
 
 .set-fusion {
-    border: 2px solid #d5740c;
-    background: #6A2F1A;
+    border: 2px solid #D5740C;
+    background: #53271A;
 }
 
-
 .set-havoc {
-    border: 2px solid #ff1493;
-    background: #4D2A00;
+    border: 2px solid #FF1493;
+    background: #3C1E00;
 }
 
 .set-healing {
-    border: 2px solid #2fe32f;
-    background: #2B472B;
+    border: 2px solid #2FE32F;
+    background: #243A24;
 }
 
 .echo-row{
