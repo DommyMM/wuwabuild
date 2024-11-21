@@ -9,16 +9,18 @@ interface OptionsProps {
   showRollQuality: boolean;
   onWatermarkChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRollQualityChange: (checked: boolean) => void;
+  className?: string;
 }
 
 export const Options: React.FC<OptionsProps> = ({
   watermark,
   showRollQuality,
   onWatermarkChange,
-  onRollQualityChange
+  onRollQualityChange,
+  className
 }) => {
   return (
-    <div className="options-container">
+    <div className={`options-container ${className || ''}`}>
       <div className="input-container">
         <input
           id="build-username"

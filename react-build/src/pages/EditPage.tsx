@@ -7,6 +7,7 @@ import { CharacterInfo } from '../components/CharacterInfo';
 import { EchoesSection } from '../components/EchoSection';
 import { BuildCard } from '../components/BuildCard';
 import '../styles/App.css';
+import { EchoPanelState } from '../types/echo';
 
 interface ElementState {
   selectedCharacter: Character | null;
@@ -25,7 +26,6 @@ export const EditPage: React.FC = () => {
 
   const [characterLevel, setCharacterLevel] = useState('90');
   const [isEchoesVisible, setIsEchoesVisible] = useState(false);
-  const [isOptionsVisible, setIsOptionsVisible] = useState(false);
   const [currentSequence, setCurrentSequence] = useState(0);
   const echoesRef = useRef<HTMLElement>(null);
 
@@ -37,6 +37,18 @@ export const EditPage: React.FC = () => {
   const [clickCount, setClickCount] = useState(0);
   const [nodeStates, setNodeStates] = useState<Record<string, Record<string, boolean>>>({});
   const [forteLevels, setForteLevels] = useState<Record<string, number>>({});
+
+  const [echoPanels, setEchoPanels] = useState<EchoPanelState[]>(
+    Array(5).fill(null).map(() => ({
+      echo: null,
+      level: 0,
+      selectedElement: null,
+      stats: {
+        mainStat: { type: null, value: null },
+        subStats: Array(5).fill({ type: null, value: null })
+      }
+    }))
+  );
 
   const skillBranches = [
     { skillName: 'Normal Attack', skillKey: 'normal-attack', treeKey: 'tree1' },
@@ -53,12 +65,20 @@ export const EditPage: React.FC = () => {
       setClickCount(0);
       setNodeStates({});
       setForteLevels({});
+      setEchoPanels(Array(5).fill(null).map(() => ({
+        echo: null,
+        level: 0,
+        selectedElement: null,
+        stats: {
+          mainStat: { type: null, value: null },
+          subStats: Array(5).fill({ type: null, value: null })
+        }
+      })));
     }
   }, [elementState.selectedCharacter]);
 
   const handleEchoesClick = () => {
     setIsEchoesVisible(true);
-    setIsOptionsVisible(true);
     setTimeout(() => {
       echoesRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -151,54 +171,60 @@ export const EditPage: React.FC = () => {
   };
 
   return (
-    <div className="app-container">
-      <nav>
-        <Link to="/scan" className="tab">Scan Screenshots</Link>
-      </nav>
-      
-      <h2>Edit Stats</h2>
+    <div className="edit-page">
+      <div className="content">
+        <nav>
+          <Link to="/scan" className="tab">Scan Screenshots</Link>
+        </nav>
+        
+        <h2>Edit Stats</h2>
 
-      <div className="manual-section">
-        <CharacterSelector onSelect={handleCharacterSelect} />
+        <div className="manual-section">
+          <CharacterSelector onSelect={handleCharacterSelect} />
+        </div>
+
+        <CharacterInfo 
+          selectedCharacter={elementState.selectedCharacter} 
+          displayName={elementState.displayName}
+          isSpectro={elementState.isSpectro}
+          elementValue={elementState.elementValue}
+          onEchoesClick={handleEchoesClick}
+          onGenerateClick={handleGenerateClick}
+          onSpectroToggle={handleSpectroToggle}
+          onSequenceChange={handleSequenceChange}
+          onWeaponSelect={handleWeaponSelect}
+          onWeaponConfigChange={handleWeaponConfigChange}
+          weaponState={weaponState}
+          nodeStates={nodeStates}
+          forteLevels={forteLevels}
+          clickCount={clickCount}
+          onMaxClick={handleMaxClick}
+          onForteChange={handleForteChange}
+        />
+
+        <EchoesSection 
+          ref={echoesRef}  
+          isVisible={isEchoesVisible}
+          onPanelChange={setEchoPanels}
+          initialPanels={echoPanels}
+        />
+        
+        <BuildCard 
+          isVisible={true}
+          isEchoesVisible={isEchoesVisible}
+          selectedCharacter={elementState.selectedCharacter}
+          displayName={elementState.displayName}
+          characterLevel={characterLevel}
+          isSpectro={elementState.isSpectro}
+          elementValue={elementState.elementValue}
+          currentSequence={currentSequence}
+          selectedWeapon={weaponState.selectedWeapon}
+          weaponConfig={weaponState.config}
+          nodeStates={nodeStates}
+          levels={forteLevels}
+          echoPanels={echoPanels}
+        />
       </div>
-
-      <CharacterInfo 
-        selectedCharacter={elementState.selectedCharacter} 
-        displayName={elementState.displayName}
-        isSpectro={elementState.isSpectro}
-        elementValue={elementState.elementValue}
-        onEchoesClick={handleEchoesClick}
-        onGenerateClick={handleGenerateClick}
-        onSpectroToggle={handleSpectroToggle}
-        onSequenceChange={handleSequenceChange}
-        onWeaponSelect={handleWeaponSelect}
-        onWeaponConfigChange={handleWeaponConfigChange}
-        weaponState={weaponState}
-        nodeStates={nodeStates}
-        forteLevels={forteLevels}
-        clickCount={clickCount}
-        onMaxClick={handleMaxClick}
-        onForteChange={handleForteChange}
-      />
-
-      <EchoesSection 
-        ref={echoesRef}  
-        isVisible={isEchoesVisible} 
-      />
-      
-      <BuildCard 
-        isVisible={isOptionsVisible}
-        selectedCharacter={elementState.selectedCharacter}
-        displayName={elementState.displayName}
-        characterLevel={characterLevel}
-        isSpectro={elementState.isSpectro}
-        elementValue={elementState.elementValue}
-        currentSequence={currentSequence}
-        selectedWeapon={weaponState.selectedWeapon}
-        weaponConfig={weaponState.config}
-        nodeStates={nodeStates}
-        levels={forteLevels}
-      />
     </div>
   );
 };

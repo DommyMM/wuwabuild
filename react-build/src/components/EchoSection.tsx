@@ -1,37 +1,18 @@
-import React, { useState, useCallback, forwardRef } from 'react';
-import { Echo } from '../types/echo';
+import React, { useState, useCallback, forwardRef, useEffect } from 'react';
+import { Echo, ElementType, ELEMENT_SETS, EchoPanelState as PanelData, COST_SECTIONS, CostSection } from '../types/echo';
 import { useEchoes } from '../hooks/useEchoes';
 import { useModalClose } from '../hooks/useModalClose';
 import { StatsTab } from './StatsTab';
 import '../styles/echoes.css';
-
-const COST_SECTIONS = [4, 3, 1] as const;
-type CostSection = typeof COST_SECTIONS[number];
-
-const ELEMENT_SETS = {
-  'Aero': 'Sierra Gale',
-  'ER': 'Moonlit Clouds',
-  'Electro': 'Void Thunder',
-  'Spectro': 'Celestial Light',
-  'Glacio': 'Freezing Frost',
-  'Attack': 'Lingering Tunes', 
-  'Fusion': 'Molten Rift',
-  'Havoc': 'Sun-sinking Eclipse',
-  'Healing': 'Rejuvenating Glow'
-} as const;
-
-type ElementType = keyof typeof ELEMENT_SETS;
+import '../styles/menu.css';
 
 interface ElementTabsProps {
   elements: ElementType[];
   onElementSelect?: (element: ElementType | null) => void;
+  selectedElement: ElementType | null;
 }
 
-const ElementTabs: React.FC<ElementTabsProps> = ({ elements, onElementSelect }) => {
-  const [selectedElement, setSelectedElement] = useState<ElementType | null>(
-    elements.length === 1 ? elements[0] : null
-  );
-
+const ElementTabs: React.FC<ElementTabsProps> = ({ elements, onElementSelect, selectedElement }) => {
   const getFontSize = (text: string) => text.length <= 16 ? '28px' : '20px';
 
   if (elements.length === 1) {
@@ -72,7 +53,6 @@ const ElementTabs: React.FC<ElementTabsProps> = ({ elements, onElementSelect }) 
             data-element={element}
             onClick={() => {
               const newElement = selectedElement === element ? null : element;
-              setSelectedElement(newElement);
               onElementSelect?.(newElement);
             }}
           >
@@ -86,6 +66,8 @@ const ElementTabs: React.FC<ElementTabsProps> = ({ elements, onElementSelect }) 
 
 interface EchoesSectionProps {
   isVisible: boolean;
+  onPanelChange?: (panels: PanelData[]) => void;
+  initialPanels?: PanelData[];
 }
 
 interface EchoPanelProps {
@@ -97,22 +79,6 @@ interface EchoPanelProps {
   onLevelChange: (level: number) => void;
   onElementSelect: (element: ElementType | null) => void;
 }
-
-interface PanelData {
-  echo: Echo | null;
-  level: number;
-  selectedElement: ElementType | null;
-  stats: {
-    mainStat: { type: string | null; value: number | null };
-    subStats: Array<{ type: string | null; value: number | null }>;
-  };
-}
-
-const sliderStyles = {
-  background: (level: number): React.CSSProperties => ({
-    background: `linear-gradient(to right, #ffd700 0%, #ff8c00 ${(level/25)*100}%, #d3d3d3 ${(level/25)*100}%)`
-  })
-};
 
 export const EchoPanel: React.FC<EchoPanelProps> = ({
   index,
@@ -151,6 +117,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
           <ElementTabs 
             elements={panelData.echo.elements} 
             onElementSelect={onElementSelect}
+            selectedElement={panelData.selectedElement}
           />
         )}
       </div>
@@ -161,9 +128,11 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
             type="range"
             min="0"
             max="25"
-            value={panelData.level}
+            value={panelData.level || 0}
             className="echo-slider"
-            style={sliderStyles.background(panelData.level)}
+            style={{
+              background: `linear-gradient(to right, #ffd700 0%, #ff8c00 ${((panelData.level || 0)/25)*100}%, #d3d3d3 ${((panelData.level || 0)/25)*100}%)`
+            }}
             onChange={handleSliderChange}
           />
           <div className="echo-level-value">{panelData.level}</div>
@@ -185,13 +154,13 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
 };
 
 export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
-  ({ isVisible }, ref) => {
+  ({ isVisible, onPanelChange, initialPanels }, ref) => {
     const { echoesByCost, loading, error } = useEchoes();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPanelIndex, setSelectedPanelIndex] = useState<number | null>(null);
     
-    const [panels, setPanels] = useState<PanelData[]>(
-      Array(5).fill(null).map(() => ({
+    const [panels, setPanels] = useState<PanelData[]>(() => 
+      initialPanels || Array(5).fill(null).map(() => ({
         echo: null,
         level: 0,
         selectedElement: null,
@@ -201,6 +170,10 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
         }
       }))
     );
+
+    useEffect(() => {
+      onPanelChange?.(panels);
+    }, [panels, onPanelChange]);
 
     useModalClose(isModalOpen, () => setIsModalOpen(false));
 
@@ -317,3 +290,5 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
     );
   }
 );
+
+export type { PanelData, ElementType };

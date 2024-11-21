@@ -4,12 +4,15 @@ import { Options } from './Build/Options';
 import { CharacterSection } from './Build/CharacterSection';
 import { WeaponSection } from './Build/WeaponSection';
 import { ForteSection } from './Build/ForteSection';
+import { EchoDisplay } from './Build/EchoDisplay';
 import { Character } from '../types/character';
 import { Weapon } from '../types/weapon';
+import { EchoPanelState } from '../types/echo';
 import '../styles/Build.css';
 
 interface BuildCardProps {
   isVisible: boolean;
+  isEchoesVisible: boolean;
   selectedCharacter: Character | null;
   displayName: string | undefined;
   characterLevel: string;
@@ -23,6 +26,7 @@ interface BuildCardProps {
   };
   nodeStates: Record<string, Record<string, boolean>>;
   levels: Record<string, number>;
+  echoPanels: EchoPanelState[];
 }
 
 interface WatermarkData {
@@ -32,6 +36,7 @@ interface WatermarkData {
 
 export const BuildCard: React.FC<BuildCardProps> = ({
   isVisible,
+  isEchoesVisible,
   selectedCharacter,
   displayName,
   characterLevel,
@@ -41,7 +46,8 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   selectedWeapon,
   weaponConfig,
   nodeStates,
-  levels
+  levels,
+  echoPanels
 }) => {
   const [isTabVisible, setIsTabVisible] = useState(false);
   const [watermark, setWatermark] = useState<WatermarkData>({
@@ -101,12 +107,16 @@ export const BuildCard: React.FC<BuildCardProps> = ({
         showRollQuality={showRollQuality}
         onWatermarkChange={handleWatermarkChange}
         onRollQualityChange={setShowRollQuality}
+        className={isEchoesVisible ? 'visible' : 'hidden'}
       />
 
       <button
         id="generateDownload"
         className="build-button"
         onClick={handleGenerate}
+        style={{ 
+          display: isEchoesVisible ? 'block' : 'none'
+        }}
       >
         Generate
       </button>
@@ -145,6 +155,11 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                 rank={weaponConfig.rank}
               />
             )}
+            <EchoDisplay 
+              isVisible={isTabVisible}
+              echoPanels={echoPanels}
+              showRollQuality={showRollQuality}
+            />
             <div className="watermark-container">
               <div className="watermark-username">{watermark.username}</div>
               <div className="watermark-uid">{watermark.uid}</div>
