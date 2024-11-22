@@ -1,13 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import domtoimage from 'dom-to-image';
 import { Options } from './Build/Options';
 import { CharacterSection } from './Build/CharacterSection';
 import { WeaponSection } from './Build/WeaponSection';
 import { ForteSection } from './Build/ForteSection';
 import { EchoDisplay } from './Build/EchoDisplay';
+import { StatSection } from './Build/StatSection';
 import { Character } from '../types/character';
-import { Weapon } from '../types/weapon';
-import { EchoPanelState } from '../types/echo';
+import { Weapon, ScaledWeaponStats } from '../types/weapon';
+import { EchoPanelState, ElementType } from '../types/echo';
+import { useStats } from '../hooks/useStats';
+import { StatName } from '../types/stats';
+import { useLevelCurves } from '../hooks/useLevelCurves';
 import '../styles/Build.css';
 
 interface BuildCardProps {
@@ -57,6 +61,48 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const [showRollQuality, setShowRollQuality] = useState(true);
   const tabRef = useRef<HTMLDivElement>(null);
 
+  const { scaleAtk, scaleStat } = useLevelCurves();
+
+  const weaponStats: ScaledWeaponStats | undefined = useMemo(() => 
+    selectedWeapon ? {
+      scaledAtk: scaleAtk(selectedWeapon.ATK, weaponConfig.level),
+      scaledMainStat: scaleStat(selectedWeapon.base_main, weaponConfig.level),
+      scaledPassive: selectedWeapon.passive_stat 
+        ? Math.floor(selectedWeapon.passive_stat * (1 + ((weaponConfig.rank - 1) * 0.25)))
+        : undefined,
+      scaledPassive2: selectedWeapon.passive_stat2
+        ? Math.floor(selectedWeapon.passive_stat2 * (1 + ((weaponConfig.rank - 1) * 0.25)))
+        : undefined
+    } : undefined,
+    [selectedWeapon, weaponConfig.level, weaponConfig.rank, scaleAtk, scaleStat]
+  );
+
+  const { values, baseValues, updates } = useStats({
+    character: selectedCharacter,
+    level: characterLevel,
+    weapon: selectedWeapon,
+    weaponStats,
+    echoPanels,
+    nodeStates,
+    isSpectro
+  });
+
+  const formatStatValue = (stat: StatName, value: number): string => {
+    const flatStats = ['HP', 'ATK', 'DEF'];
+    return flatStats.includes(stat) 
+      ? Math.round(value).toString() 
+      : `${value.toFixed(1)}%`;
+  };
+
+  const displayStats = Object.entries(values)
+    .filter(([_, value]) => value !== 0)
+    .map(([stat, value]) => ({
+      name: stat as StatName,
+      value: formatStatValue(stat as StatName, value as number),
+      baseValue: baseValues[stat as StatName],
+      update: updates[stat as StatName]
+    }));
+
   useEffect(() => {
     if (isTabVisible && tabRef.current) {
       setTimeout(() => {
@@ -95,6 +141,37 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       })
       .catch((error: Error) => {
         console.error('Error capturing build-tab:', error);
+      });
+  };
+
+  const calculateSets = (): Array<{ element: ElementType; count: number }> => {
+    const elementCounts: Record<ElementType, number> = {} as Record<ElementType, number>;
+    const usedEchoes = new Set();
+  
+    echoPanels.forEach(panel => {
+      if (panel.echo && !usedEchoes.has(panel.echo.name)) {
+        const element = panel.echo.elements.length === 1 ? 
+          panel.echo.elements[0] : 
+          panel.selectedElement;
+        
+        if (element) {
+          elementCounts[element] = (elementCounts[element] || 0) + 1;
+          usedEchoes.add(panel.echo.name);
+        }
+      }
+    });
+  
+    return Object.entries(elementCounts)
+      .filter(([_, count]) => count >= 2)
+      .map(([element, count]) => ({
+        element: element as ElementType,
+        count
+      }))
+      .sort((a, b) => {
+        const aIsFiveSet = a.count >= 5;
+        const bIsFiveSet = b.count >= 5;
+        if (aIsFiveSet !== bIsFiveSet) return bIsFiveSet ? 1 : -1;
+        return b.count - a.count;
       });
   };
 
@@ -148,13 +225,19 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                 levels={levels}
               />
             </CharacterSection>
-            {selectedWeapon && (
+            {selectedWeapon && weaponStats && (
               <WeaponSection
                 weapon={selectedWeapon}
                 level={weaponConfig.level}
                 rank={weaponConfig.rank}
+                scaledStats={weaponStats}
               />
             )}
+            <StatSection 
+              isVisible={isTabVisible}
+              stats={displayStats}
+              sets={calculateSets()}
+            />
             <EchoDisplay 
               isVisible={isTabVisible}
               echoPanels={echoPanels}

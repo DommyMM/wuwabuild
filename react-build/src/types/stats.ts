@@ -3,16 +3,23 @@ export interface StatValue {
   value: number | null;
 }
 
-export type StatName = 
-  | 'HP' | 'HP%' 
-  | 'ATK' | 'ATK%' 
-  | 'DEF' | 'DEF%'
-  | 'Crit Rate' | 'Crit Damage' | 'Crit DMG'
-  | 'Basic Attack' | 'Heavy Attack' | 'Skill'
-  | 'Liberation' | 'Energy Regen'
+export type BaseStatName = 'HP' | 'ATK' | 'DEF';
+
+export type StatName =
+  | BaseStatName
+  | `${BaseStatName}%`
+  | 'Crit Rate' | 'Crit DMG'
+  | 'Energy Regen'
+  | 'Basic Attack' | 'Basic Attack DMG Bonus'
+  | 'Heavy Attack' | 'Heavy Attack DMG Bonus'
+  | 'Skill' | 'Resonance Skill DMG Bonus'
+  | 'Liberation' | 'Resonance Liberation Bonus'
   | 'Aero DMG' | 'Glacio DMG' | 'Fusion DMG'
   | 'Electro DMG' | 'Havoc DMG' | 'Spectro DMG'
   | 'Healing Bonus';
+
+export const getPercentVariant = (stat: BaseStatName): StatName => 
+  `${stat}%` as StatName;
 
 export const getStatIconName = (statName: string | null): string => {
   if (!statName) return 'ATK';
@@ -27,11 +34,15 @@ export const getStatIconName = (statName: string | null): string => {
     'Crit Rate': 'Crit Rate',
     'Crit Damage': 'Crit DMG',
     'Crit DMG': 'Crit DMG',
-    'Basic Attack': 'Basic',
-    'Heavy Attack': 'Heavy',
-    'Skill': 'Skill',
-    'Liberation': 'Liberation',
     'Energy Regen': 'ER',
+    'Basic Attack': 'Basic',
+    'Basic Attack DMG Bonus': 'Basic',
+    'Heavy Attack': 'Heavy',
+    'Heavy Attack DMG Bonus': 'Heavy',
+    'Skill': 'Skill',
+    'Resonance Skill DMG Bonus': 'Skill',
+    'Liberation': 'Liberation',
+    'Resonance Liberation Bonus': 'Liberation',
     'Aero DMG': 'Aero',
     'Glacio DMG': 'Glacio',
     'Fusion DMG': 'Fusion',

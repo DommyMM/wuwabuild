@@ -1,11 +1,11 @@
 import React from 'react';
-import { Weapon } from '../../types/weapon';
-import { useLevelCurves } from '../../hooks/useLevelCurves';
+import { Weapon, ScaledWeaponStats } from '../../types/weapon';
 
 interface WeaponSectionProps {
   weapon: Weapon;
   rank: number;
   level: number;
+  scaledStats: ScaledWeaponStats;
 }
 
 const WeaponIcon: React.FC<{ src: string }> = ({ src }) => (
@@ -39,45 +39,39 @@ const RarityStars: React.FC<{ rarity: string }> = ({ rarity }) => {
   );
 };
 
-const WeaponStats: React.FC<{ weapon: Weapon; level: number }> = ({ weapon, level }) => {
-  const { scaleAtk, scaleStat, loading, error } = useLevelCurves();
-
-  if (loading || error) return null;
-
-  const scaledAtk = scaleAtk(weapon.ATK, level);
-  const scaledMainStat = scaleStat(weapon.base_main, level);
-
-  return (
-    <div className="weapon-stat-row">
-      <div className="weapon-stat weapon-attack atk">
-        <img 
-          src="images/Resources/Attack.png" 
-          className="stat-icon-img" 
-          alt="ATK"
-        />
-        {Math.floor(scaledAtk)}
-      </div>
-      <div className={`weapon-stat weapon-main-stat ${weapon.main_stat.toLowerCase().replace(/\s+/g, '-').replace(/%/g, '').replace('-dmg', '')}`}>
-        <img 
-          src={`images/Stats/${weapon.main_stat}.png`}
-          className="stat-icon-img" 
-          alt={weapon.main_stat}
-        />
-        {`${scaledMainStat}%`}
-      </div>
+const WeaponStats: React.FC<{ 
+  weapon: Weapon; 
+  scaledStats: ScaledWeaponStats;
+}> = ({ weapon, scaledStats }) => (
+  <div className="weapon-stat-row">
+    <div className="weapon-stat weapon-attack atk">
+      <img 
+        src="images/Resources/Attack.png" 
+        className="stat-icon-img" 
+        alt="ATK"
+      />
+      {Math.floor(scaledStats.scaledAtk)}
     </div>
-  );
-};
+    <div className={`weapon-stat weapon-main-stat ${weapon.main_stat.toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/%/g, '')
+      .replace('-dmg', '')}`}>
+      <img 
+        src={`images/Stats/${weapon.main_stat}.png`}
+        className="stat-icon-img" 
+        alt={weapon.main_stat}
+      />
+      {`${scaledStats.scaledMainStat}%`}
+    </div>
+  </div>
+);
 
 const PassiveText: React.FC<{ 
   weapon: Weapon;
-  rank: number;
+  scaledStats: ScaledWeaponStats;
   characterElement?: string;
-}> = ({ weapon, rank, characterElement }) => {
+}> = ({ weapon, scaledStats, characterElement }) => {
   if (!weapon.passive || !weapon.passive_stat) return null;
-
-  const rankMultiplier = 1 + ((rank - 1) * 0.25);
-  const scaledPassiveValue = Math.floor(weapon.passive_stat * rankMultiplier);
   
   const passiveName = weapon.passive.replace('%', '');
   const passiveClass = passiveName === 'ER' 
@@ -90,7 +84,7 @@ const PassiveText: React.FC<{
         ? characterElement.toLowerCase() 
         : passiveClass
     }`}>
-      {`Passive:\n${scaledPassiveValue}% ${passiveName}`}
+      {`Passive:\n${scaledStats.scaledPassive}% ${passiveName}`}
     </div>
   );
 };
@@ -98,7 +92,8 @@ const PassiveText: React.FC<{
 export const WeaponSection: React.FC<WeaponSectionProps> = ({
   weapon,
   rank,
-  level
+  level,
+  scaledStats
 }) => {
   return (
     <div className="build-weapon-container">
@@ -107,10 +102,10 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
       <div className="weapon-info">
         <WeaponName name={weapon.name} />
         <RankLevel rank={rank} level={level} />
-        <WeaponStats weapon={weapon} level={level} />
+        <WeaponStats weapon={weapon} scaledStats={scaledStats} />
         <PassiveText 
           weapon={weapon} 
-          rank={rank}
+          scaledStats={scaledStats}
           characterElement={weapon.main_stat === 'Attribute' ? weapon.main_stat : undefined}
         />
       </div>

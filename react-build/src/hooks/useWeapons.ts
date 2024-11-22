@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Weapon, WeaponType } from '../types/weapon';
+import { Weapon, WeaponType, WeaponConfig, WeaponState } from '../types/weapon';
+import { useLevelCurves } from './useLevelCurves';
 
-export const useWeapons = (weaponType: WeaponType | null) => {
+export const useWeapons = (weaponType: WeaponType | null, config?: WeaponConfig) => {
   const [weapons, setWeapons] = useState<Weapon[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { scaleWeaponStats, loading: curvesLoading } = useLevelCurves();
+
+  const getWeaponState = (weapon: Weapon): WeaponState => ({
+    selectedWeapon: weapon,
+    config: config || { level: 1, rank: 1 },
+    scaledStats: config ? scaleWeaponStats(weapon, config) : undefined
+  });
 
   useEffect(() => {
     const loadWeapons = async () => {
@@ -42,7 +50,12 @@ export const useWeapons = (weaponType: WeaponType | null) => {
     };
 
     loadWeapons();
-  }, [weaponType]);
+  }, [weaponType, config]);
 
-  return { weapons, loading, error };
+  return {
+    weapons,
+    loading: loading || curvesLoading,
+    error,
+    getWeaponState
+  };
 };

@@ -8,6 +8,13 @@ export enum WeaponType {
 
 export type WeaponRarity = "1-star" | "2-star" | "3-star" | "4-star" | "5-star";
 
+export interface ScaledWeaponStats {
+  scaledAtk: number;
+  scaledMainStat: number;
+  scaledPassive?: number;
+  scaledPassive2?: number;
+}
+
 export interface Weapon {
   name: string;
   type: WeaponType;
@@ -21,10 +28,13 @@ export interface Weapon {
   passive_stat2?: number;
 }
 
+export interface WeaponConfig {
+  level: number;
+  rank: number;
+}
+
 export interface WeaponState {
   selectedWeapon: Weapon | null;
-  config: {
-    level: number;
-    rank: number;
-  };
+  config: WeaponConfig;
+  scaledStats?: ScaledWeaponStats;
 }

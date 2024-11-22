@@ -76,9 +76,13 @@
     object-fit: contain;
 }
 
-.stat-value-container{
-    text-align: center;
+.stat-value-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    letter-spacing: 1px;
 }
+
 
 .stat-breakdown{
     text-align: right;
@@ -187,28 +191,23 @@
 
 .popuptext {
     visibility: hidden;
-    width: 200px;
-    background-color: rgba(0, 0, 0, 0.9);
-    color: #E2E8F0;
+    width: 92%;
+    height: 85%;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    color: red;
+    font-size: 50px;
     text-align: center;
+    align-content: center;
     border-radius: 6px;
     padding: 8px;
     position: absolute;
     z-index: 1000;
-    bottom: 125%;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
-}
-
-.popuptext::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
 }
 
 .show {

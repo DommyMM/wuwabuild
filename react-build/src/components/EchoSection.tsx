@@ -4,7 +4,6 @@ import { useEchoes } from '../hooks/useEchoes';
 import { useModalClose } from '../hooks/useModalClose';
 import { StatsTab } from './StatsTab';
 import '../styles/echoes.css';
-import '../styles/menu.css';
 
 interface ElementTabsProps {
   elements: ElementType[];
@@ -152,6 +151,7 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
     const { echoesByCost, loading, error } = useEchoes();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPanelIndex, setSelectedPanelIndex] = useState<number | null>(null);
+    const [showWarning, setShowWarning] = useState(false);
     
     const [panels, setPanels] = useState<PanelData[]>(() => 
       initialPanels || Array(5).fill(null).map(() => ({
@@ -213,6 +213,14 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
 
     const handleSelectEcho = useCallback((echo: Echo) => {
       if (selectedPanelIndex === null) return;
+      
+      const totalCost = panels.reduce((sum, panel, index) => 
+        sum + (index === selectedPanelIndex ? echo.cost : (panel.echo?.cost || 0)), 0);
+
+      if (totalCost > 12) {
+        setShowWarning(true);
+      }
+
       setPanels(prev => {
         const newPanels = [...prev];
         newPanels[selectedPanelIndex] = {
@@ -223,12 +231,23 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
         return newPanels;
       });
       setIsModalOpen(false);
-    }, [selectedPanelIndex]);
+    }, [selectedPanelIndex, panels]);
 
     return (
       <>
         <section className="echoes-tab" style={{ display: isVisible ? 'block' : 'none' }} ref={ref}>
-          <div className="echoes-content" style={{ display: isVisible ? 'flex' : 'none' }}>
+          <div className="echoes-content" style={{ display: isVisible ? 'flex' : 'none', flexDirection: 'column' }}>
+            {showWarning && (
+              <div onClick={() => setShowWarning(false)}>
+                <span className="popuptext show">
+                  Warning: Echo Cost exceeds limit
+                  <br/>
+                  <span>
+                    Click to dismiss
+                  </span>
+                </span>
+              </div>
+            )}
             <div className="echo-panels-container">
               {panels.map((panel, i) => (
                 <EchoPanel

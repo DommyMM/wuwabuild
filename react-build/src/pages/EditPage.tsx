@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Character, isRover } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
+import { EchoPanelState } from '../types/echo';
 import { CharacterSelector } from '../components/CharacterSelector';
 import { CharacterInfo } from '../components/CharacterInfo';
 import { EchoesSection } from '../components/EchoSection';
 import { BuildCard } from '../components/BuildCard';
 import '../styles/App.css';
-import { EchoPanelState } from '../types/echo';
 
 interface ElementState {
   selectedCharacter: Character | null;
