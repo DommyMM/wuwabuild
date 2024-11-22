@@ -9,9 +9,10 @@ import { StatSection } from './Build/StatSection';
 import { Character } from '../types/character';
 import { Weapon, ScaledWeaponStats } from '../types/weapon';
 import { EchoPanelState, ElementType } from '../types/echo';
-import { useStats } from '../hooks/useStats';
 import { StatName } from '../types/stats';
+import { useStats } from '../hooks/useStats';
 import { useLevelCurves } from '../hooks/useLevelCurves';
+import { useStatHighlight } from '../hooks/useHighlight';
 import '../styles/Build.css';
 
 interface BuildCardProps {
@@ -53,6 +54,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   levels,
   echoPanels
 }) => {
+  useStatHighlight();
   const [isTabVisible, setIsTabVisible] = useState(false);
   const [watermark, setWatermark] = useState<WatermarkData>({
     username: '',

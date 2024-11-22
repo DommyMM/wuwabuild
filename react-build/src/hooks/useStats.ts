@@ -109,6 +109,36 @@ const calculateForteBonus = (
   return { bonus1Total, bonus2Total, bonus1Type };
 };
 
+const sumMainStats = (statType: StatName, panels: EchoPanelState[]): number => {
+  return panels.reduce((total, panel) => {
+    if (panel.stats.mainStat.type === statType && panel.stats.mainStat.value) {
+      return total + panel.stats.mainStat.value;
+    }
+    return total;
+  }, 0);
+};
+
+const sumSubStats = (statType: StatName, panels: EchoPanelState[]): number => {
+  return panels.reduce((total, panel) => (
+    total + panel.stats.subStats.reduce((subTotal, stat) => {
+      if (stat.type === statType && stat.value) {
+        return subTotal + stat.value;
+      }
+      return subTotal;
+    }, 0)
+  ), 0);
+};
+
+const getDisplayName = (stat: StatName): StatName => {
+  switch(stat) {
+    case 'Basic Attack': return 'Basic Attack DMG Bonus';
+    case 'Heavy Attack': return 'Heavy Attack DMG Bonus';
+    case 'Skill': return 'Resonance Skill DMG Bonus';
+    case 'Liberation': return 'Resonance Liberation Bonus';
+    default: return stat;
+  }
+};
+
 export const useStats = ({
   character,
   level,
@@ -144,38 +174,8 @@ export const useStats = ({
     return () => controller.abort();
   }, []);
 
-  const getDisplayName = (stat: StatName): StatName => {
-    switch(stat) {
-      case 'Basic Attack': return 'Basic Attack DMG Bonus';
-      case 'Heavy Attack': return 'Heavy Attack DMG Bonus';
-      case 'Skill': return 'Resonance Skill DMG Bonus';
-      case 'Liberation': return 'Resonance Liberation Bonus';
-      default: return stat;
-    }
-  };
-
   useEffect(() => {
     if (!character || !statsData || curveLoading) return;
-
-    const sumMainStats = (statType: StatName): number => {
-      return echoPanels.reduce((total, panel) => {
-        if (panel.stats.mainStat.type === statType && panel.stats.mainStat.value) {
-          return total + panel.stats.mainStat.value;
-        }
-        return total;
-      }, 0);
-    };
-
-    const sumSubStats = (statType: StatName): number => {
-      return echoPanels.reduce((total, panel) => (
-        total + panel.stats.subStats.reduce((subTotal, stat) => {
-          if (stat.type === statType && stat.value) {
-            return subTotal + stat.value;
-          }
-          return subTotal;
-        }, 0)
-      ), 0);
-    };
 
     try {
       const levelNum = parseInt(level) || 1;
@@ -225,11 +225,11 @@ export const useStats = ({
                                    displayStat === 'ATK' ? baseATK : baseDEF;
           
           const echoStats = sumEchoDefaultStats(echoPanels);
-          const flat = sumMainStats(baseStat) + sumSubStats(baseStat) + 
+          const flat = sumMainStats(baseStat, echoPanels) + sumSubStats(baseStat, echoPanels) + 
                       (baseStat === 'HP' ? echoStats.hp : 
                        baseStat === 'ATK' ? echoStats.atk : 0);
-          let percent = sumMainStats(getPercentVariant(baseStat)) + 
-                        sumSubStats(getPercentVariant(baseStat));
+          let percent = sumMainStats(getPercentVariant(baseStat), echoPanels) + 
+                        sumSubStats(getPercentVariant(baseStat), echoPanels);
 
           if (weapon && weaponStats) {
             const percentStatName = `${displayStat}%`;
@@ -260,7 +260,7 @@ export const useStats = ({
           else if (displayStat === 'Energy Regen') baseValues[displayStat] = character.ER;
           else baseValues[displayStat] = 0;
 
-          updates[displayStat] = sumMainStats(stat) + sumSubStats(stat);
+          updates[displayStat] = sumMainStats(stat, echoPanels) + sumSubStats(stat, echoPanels);
 
           if (weapon && weaponStats) {
             const weaponStatName = displayStat === 'Energy Regen' ? 'ER' : displayStat;

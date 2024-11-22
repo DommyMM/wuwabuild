@@ -12,6 +12,10 @@ interface StatRowProps {
 
 const StatRow: React.FC<StatRowProps> = ({ name, value, baseValue, update }) => {
   const isBaseStatType = ['HP', 'ATK', 'DEF'].includes(name);
+  const showBreakdown = isBaseStatType || 
+                       name === 'Energy Regen' ||
+                       name === 'Crit Rate' ||
+                       name === 'Crit DMG';
   
   const getNameClass = (name: string) => {
     const length = name.length;
@@ -34,7 +38,7 @@ const StatRow: React.FC<StatRowProps> = ({ name, value, baseValue, update }) => 
       
       <div className="stat-value-container">
         <span className="stat-number">{value}</span>
-        {update !== undefined && update !== 0 && (
+        {showBreakdown && update !== undefined && update !== 0 && (
           <div className="stat-breakdown">
             {isBaseStatType && baseValue !== undefined && (
               <span className="base-value">{Number(baseValue).toFixed(1)}</span>

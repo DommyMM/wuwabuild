@@ -16,21 +16,28 @@
 }
 
 .stat-row {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 4px 8px;
     transition: background-color 0.2s ease;
+    border-radius: 8px;
 }
 
-.substat-container.hover-highlight,  .stat-row.hover-highlight, .main-stat-display.hover-highlight, .set-row.hover-highlight{
-    background-color: #8a7b4e;
+.stat-row:hover .stat-breakdown {
+    transform: scale(1.2); 
+    transition: transform 0.2s ease, font-size 0.2s ease;
+    font-size: 16px;
+    margin-right: 5px;
+    letter-spacing: 1px;
 }
 
-.weapon-stat.weapon-attack.hover-highlight,.weapon-stat.weapon-main-stat.hover-highlight, 
-.weapon-passive.hover-highlight, .simplified-node.circle.active.hover-highlight {
+.weapon-stat.weapon-attack.hover-highlight,.weapon-stat.weapon-main-stat.hover-highlight, .stat-row.hover-highlight, .main-stat-display.hover-highlight, .set-row.hover-highlight,
+.weapon-passive.hover-highlight, .simplified-node.circle.active.hover-highlight, .substat-container.hover-highlight {
     background-color: rgba(17, 194, 238, 1);
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    background-image: none !important;
 }
 
 .stat-left {
@@ -63,11 +70,11 @@
 }
 
 .stat-name.medium {
-    font-size: 20px;
+    font-size: 21px;
 }
 
 .stat-name.long {
-    font-size: 18px;
+    font-size: 19px;
 }
 
 .stat-icon {
@@ -80,13 +87,15 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 
-.stat-breakdown{
+.stat-breakdown {
     text-align: right;
     font-size: 14px;
+    transform: scale(1);
+    transition: transform 0.2s ease, font-size 0.2s ease;
 }
 
 .update-value{

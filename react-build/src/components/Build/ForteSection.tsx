@@ -9,6 +9,15 @@ interface ForteSectionProps {
   levels: Record<string, number>;
 }
 
+const getStatClass = (imagePath: string) => {
+  return imagePath.split('/Stats/')[1]
+    ?.replace('.png', '')
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/%20/g, '-')
+    .replace('-dmg', '');
+};
+
 const SimplifiedNode: React.FC<{
   type: string;
   imagePath: string;
@@ -16,13 +25,17 @@ const SimplifiedNode: React.FC<{
   className?: string;
   children?: React.ReactNode;
   showDiamond?: boolean;
-}> = ({ type, imagePath, isActive, className, children, showDiamond }) => (
-  <div className={`simplified-node ${type} ${isActive ? 'active' : ''} ${className || ''}`}>
-    <img className="node-image" src={imagePath} alt="" />
-    {showDiamond && <div className="inner-diamond" />}
-    {children}
-  </div>
-);
+}> = ({ type, imagePath, isActive, className, children, showDiamond }) => {
+  const statClass = getStatClass(imagePath);
+  
+  return (
+    <div className={`simplified-node ${type} ${isActive ? 'active' : ''} ${className || ''} ${statClass || ''}`}>
+      <img className="node-image" src={imagePath} alt="" />
+      {showDiamond && <div className="inner-diamond" />}
+      {children}
+    </div>
+  );
+};
 
 interface SimplifiedBranchProps {
   branch: { type: string; name: string; tree: string };
