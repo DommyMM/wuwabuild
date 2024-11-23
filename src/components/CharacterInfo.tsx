@@ -34,7 +34,6 @@ type OCRData =
 interface CharacterInfoProps {
   selectedCharacter: Character | null;
   displayName: string | undefined;
-  isSpectro: boolean;
   elementValue: string | undefined;
   onEchoesClick: () => void;
   onGenerateClick?: (level: number) => void;
@@ -58,7 +57,6 @@ interface CharacterInfoProps {
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
   selectedCharacter, 
   displayName,
-  isSpectro,
   elementValue,
   initialLevel,
   onEchoesClick,
@@ -118,7 +116,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
 
   const handleToggleSpectro = (): void => {
     if (onSpectroToggle) {
-      onSpectroToggle(!isSpectro);
+      onSpectroToggle(elementValue !== "Spectro");
     }
   };
 
@@ -142,7 +140,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
             <button 
               className="toggle" 
               role="switch"
-              aria-checked={isSpectro}
+              aria-checked={elementValue === "Spectro"}
               tabIndex={0}
               onClick={handleToggleSpectro}
             >

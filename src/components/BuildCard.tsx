@@ -216,6 +216,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
               level={characterLevel}
               isSpectro={isSpectro}
               currentSequence={currentSequence}
+              username={watermark.username}
             >
               <ForteSection
                 character={{

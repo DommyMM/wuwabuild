@@ -6,6 +6,7 @@ export interface CharacterAnalysis extends BaseAnalysis {
   type: 'Character';
   name: string;
   level: number;
+  element: string;
 }
 
 export interface WeaponAnalysis extends BaseAnalysis {
@@ -81,9 +82,15 @@ export const validateForteNode = (state: number | undefined): number => {
   return state === 0 || state === 1 ? state : 0;
 };
 
+export const validateElement = (element: string | undefined): string => {
+  const validElements = ['Havoc', 'Spectro', 'Electro', 'Fusion', 'Glacio', 'Aero'];
+  return validElements.includes(element || '') ? element! : 'Unknown';
+};
+
 export const isCharacterAnalysis = (analysis: OCRAnalysis): analysis is CharacterAnalysis => 
   analysis.type === 'Character' && 
   typeof analysis.name === 'string' &&
+  typeof analysis.element === 'string' &&
   (!analysis.level || (typeof analysis.level === 'number' && analysis.level >= 1 && analysis.level <= 90));
 
 export const isWeaponAnalysis = (analysis: OCRAnalysis): analysis is WeaponAnalysis =>

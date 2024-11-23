@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ImagePreview, ImageUploader } from './ImageComponents';
 import { useOCRContext } from '../contexts/OCRContext';
-import { OCRResponse, OCRAnalysis, WeaponAnalysis } from '../types/ocr';
+import { OCRResponse, OCRAnalysis, CharacterAnalysis, WeaponAnalysis } from '../types/ocr';
 import { useCharacters } from '../hooks/useCharacters';
 import '../styles/Scan.css';
 
@@ -79,14 +79,22 @@ export const Scan: React.FC = () => {
       }
 
       if (result.analysis?.type === 'Character') {
-        const characterName = result.analysis.name;
+        const characterAnalysis = result.analysis as CharacterAnalysis;
+        
+        if (characterAnalysis.name === 'Rover') {
+          setErrorMessages(prev => [...prev,
+            `Rover detected\nSelect gender --->`
+          ]);
+          characterAnalysis.name = 'Rover (F)';
+        }
+      
         const matchedCharacter = characters.find(
-          char => char.name.toLowerCase() === characterName.toLowerCase()
+          char => char.name.toLowerCase() === characterAnalysis.name.toLowerCase()
         );
         if (matchedCharacter) {
           setCurrentCharacterType(matchedCharacter.weaponType.replace(/s$/, ''));
         }
-      } 
+      }
       else if (result.analysis?.type === 'Weapon' && currentCharacterType) {
         const weaponAnalysis = result.analysis as WeaponAnalysis;
         const normalizedWeaponType = weaponAnalysis.weaponType.replace(/s$/, '');

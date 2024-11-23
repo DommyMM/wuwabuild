@@ -10,7 +10,7 @@ interface CharacterSelectorProps {
 }
 
 interface OCRCharacterProps extends CharacterSelectorProps {
-  ocrData?: { name: string; level: number };
+  ocrData?: { name: string; level: number; element?: string;};
 }
 
 export const CharacterSelector: React.FC<OCRCharacterProps> = ({ onSelect, ocrData }) => {

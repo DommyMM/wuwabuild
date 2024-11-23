@@ -7,6 +7,7 @@ interface CharacterSectionProps {
   level: string;
   isSpectro: boolean;
   currentSequence: number;
+  username?: string;
   children?: React.ReactNode;
 }
 
@@ -15,9 +16,12 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   level = '1',
   isSpectro = false,
   currentSequence,
+  username,
   children
 }) => {
-  const characterName = character.name;
+  const characterName = isRover(character) 
+    ? username || "Rover" 
+    : character.name;
   
   const elementValue = isRover(character) 
     ? (isSpectro ? "Spectro" : "Havoc")

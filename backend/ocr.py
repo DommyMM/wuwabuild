@@ -244,6 +244,12 @@ def get_character_info(text):
     """Extract character name and level from OCR text"""
     text = text.replace(':', '').replace('.',' ').replace('  ', ' ')
     
+    element_pattern = r'["\'\s]*(?:Havoc|Spectro|Electro|Fusion|Glacio|Aero)["\'\s—]*'
+    element_match = re.search(element_pattern, text, re.IGNORECASE)
+    element = element_match.group(0).strip(' "\'—\n') if element_match else None
+    if element:
+        element = ' '.join(element.split())
+    
     level_patterns = [
         r'Lv[\.|\s]*(\d+)[\s/]+(\d+)', 
         r'v[\.]?(\d+)[\s/]+(\d+)',
@@ -254,18 +260,27 @@ def get_character_info(text):
     for pattern in level_patterns:
         match = re.search(pattern, text)
         if match:
-            level = match.groups()
-            break
+            try:
+                level_num = int(match.groups()[0])
+                if 1 <= level_num <= 90:
+                    level = match.groups()
+                    break
+            except ValueError:
+                continue
     
     name = None
     for character in CHARACTERS:
         if character['name'].lower() in text.lower():
             name = character['name']
             break
+    
+    if level and element and element.strip() in ['Havoc', 'Spectro'] and not name:
+        name = "Rover"
             
     return {
         'name': name,
-        'level': level[0] if level else None
+        'level': level[0] if level else None,
+        'element': element
     }
 
 def get_weapon_info(text):
@@ -487,7 +502,6 @@ def get_element_info(element_img):
         ratio = (np.count_nonzero(mask) / (element_img.shape[0] * element_img.shape[1])) * 100
         ratios[element] = ratio
         
-        cv2.imwrite(str(DEBUG_DIR / f'echo_element_{element}_mask.png'), mask)
         print(f"{element} ratio: {ratio:.2f}%")
     
     sorted_elements = sorted(ratios.items(), key=lambda x: x[1], reverse=True)
@@ -533,12 +547,20 @@ def get_echo_info(text, element):
     }
 
 def extract_details(image, image_type, element=None):
+    """Extract details from image based on type"""
+    if image_type in ['Character', 'Weapon', 'Echo']:
+        text = pytesseract.image_to_string(image)
+    
     if image_type == 'Character':
         return get_character_info(text)
     elif image_type == 'Weapon':
         return get_weapon_info(text)
+    elif image_type == 'Sequences':
+        return get_sequence_info(image)
+    elif image_type == 'Forte':
+        return get_forte_info(image)
     elif image_type == 'Echo':
-        text = pytesseract.image_to_string(image)
         return get_echo_info(text, element)
     else:
+        text = pytesseract.image_to_string(image)
         return {'raw_text': clean_text(text)}

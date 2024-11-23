@@ -13,7 +13,6 @@ import '../styles/App.css';
 
 export interface ElementState {
   selectedCharacter: Character | null;
-  isSpectro: boolean;
   elementValue: string | undefined;
   displayName: string | undefined;
 }
@@ -23,7 +22,6 @@ export const EditPage: React.FC = () => {
   
   const [elementState, setElementState] = useState<ElementState>({
     selectedCharacter: null,
-    isSpectro: false,
     elementValue: undefined,
     displayName: undefined
   });
@@ -151,28 +149,19 @@ export const EditPage: React.FC = () => {
   };
 
   const handleSpectroToggle = (value: boolean) => {
-    setElementState(prev => {
-      const newElementValue = prev.selectedCharacter && isRover(prev.selectedCharacter) ?
-        (value ? "Spectro" : "Havoc") : 
-        prev.elementValue;
-      
-      const newDisplayName = prev.selectedCharacter?.name.startsWith('Rover') ?
+    setElementState(prev => ({
+      ...prev,
+      elementValue: prev.selectedCharacter && isRover(prev.selectedCharacter) ?
+        (value ? "Spectro" : "Havoc") : prev.elementValue,
+      displayName: prev.selectedCharacter?.name.startsWith('Rover') ?
         `Rover${value ? 'Spectro' : 'Havoc'}` :
-        prev.selectedCharacter?.name;
-  
-      return {
-        ...prev,
-        isSpectro: value,
-        elementValue: newElementValue,
-        displayName: newDisplayName
-      };
-    });
+        prev.selectedCharacter?.name
+    }));
   };
 
   const handleCharacterSelect = (character: Character | null) => {
     setElementState({
       selectedCharacter: character,
-      isSpectro: false,
       elementValue: character ? 
         (isRover(character) ? "Havoc" : character.element) : 
         undefined,
@@ -269,7 +258,6 @@ export const EditPage: React.FC = () => {
         <CharacterInfo
           selectedCharacter={elementState.selectedCharacter} 
           displayName={elementState.displayName}
-          isSpectro={elementState.isSpectro}
           elementValue={elementState.elementValue}
           onEchoesClick={handleEchoesClick}
           onGenerateClick={handleGenerateClick}
@@ -300,7 +288,7 @@ export const EditPage: React.FC = () => {
           selectedCharacter={elementState.selectedCharacter}
           displayName={elementState.displayName}
           characterLevel={characterLevel}
-          isSpectro={elementState.isSpectro}
+          isSpectro={elementState.elementValue === "Spectro"}
           elementValue={elementState.elementValue}
           currentSequence={currentSequence}
           selectedWeapon={weaponState.selectedWeapon}
