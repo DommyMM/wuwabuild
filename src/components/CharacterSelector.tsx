@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Character } from '../types/character';
 import { useCharacters } from '../hooks/useCharacters';
 import { useModalClose } from '../hooks/useModalClose';
@@ -9,27 +9,39 @@ interface CharacterSelectorProps {
   onSelect: (character: Character | null) => void;
 }
 
-export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ onSelect }) => {
+interface OCRCharacterProps extends CharacterSelectorProps {
+  ocrData?: { name: string; level: number };
+}
+
+export const CharacterSelector: React.FC<OCRCharacterProps> = ({ onSelect, ocrData }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const { characters, loading, error } = useCharacters();
+  const initialSelectionMade = useRef(false);
 
   useModalClose(isModalOpen, () => setIsModalOpen(false));
 
-  const handleCharacterSelect = (character: Character) => {
+  const handleCharacterSelect = useCallback((character: Character) => {
     setSelectedCharacter(character);
     setIsModalOpen(false);
     onSelect(character);
-    setTimeout(() => {
-      const manualSection = document.querySelector('.manual-section');
-      if (manualSection) {
-        manualSection.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'start'
-        });
+  }, [onSelect]);
+
+  useEffect(() => {
+    if (ocrData?.name && characters.length > 0 && !initialSelectionMade.current) {
+      const matchedCharacter = characters.find(
+        char => char.name.toLowerCase() === ocrData.name.toLowerCase()
+      );
+      if (matchedCharacter) {
+        initialSelectionMade.current = true;
+        handleCharacterSelect(matchedCharacter);
       }
-    }, 0);
-  };
+    }
+  }, [ocrData, characters, handleCharacterSelect]);
+
+  useEffect(() => {
+    initialSelectionMade.current = false;
+  }, [ocrData]);
 
   return (
     <>
@@ -60,7 +72,10 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ onSelect }
 
       {isModalOpen && (
         <div className="modal">
-          <div className="modal-content">
+          <div 
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
             <div className="character-list">
               {loading && <div className="loading">Loading...</div>}

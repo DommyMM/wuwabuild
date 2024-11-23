@@ -49,8 +49,10 @@ export const useWeapons = (weaponType: WeaponType | null, config?: WeaponConfig)
       }
     };
 
-    loadWeapons();
-  }, [weaponType, config]);
+    if (weaponType) {
+      loadWeapons();
+    }
+  }, [weaponType]);
 
   return {
     weapons,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Character } from '../types/character';
 import { forteImagePaths } from '../types/node';
 import type { ForteImagePaths, SkillBranch } from '../types/node';
@@ -16,6 +16,11 @@ interface ForteGroupProps {
     nodeStates: Record<string, Record<string, boolean>>,
     levels: Record<string, number>
   ) => void;
+  ocrData?: {
+    type: 'Forte';
+    nodeStates: Record<string, Record<string, boolean>>;
+    levels: Record<string, number>;
+  };
 }
 
 interface GlowingNodeProps {
@@ -155,8 +160,15 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
   levels,
   clickCount,
   onMaxClick,
-  onChange
+  onChange,
+  ocrData
 }) => {
+  useEffect(() => {
+    if (ocrData?.type === 'Forte') {
+      onChange(ocrData.nodeStates, ocrData.levels);
+    }
+  }, [ocrData, onChange]);
+
   const skillBranches: SkillBranch[] = [
     { skillName: 'Normal Attack', skillKey: 'normal-attack', treeKey: 'tree1' },
     { skillName: 'Resonance Skill', skillKey: 'skill', treeKey: 'tree2' },

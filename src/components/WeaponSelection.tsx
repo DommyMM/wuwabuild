@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Character } from '../types/character';
 import { Weapon } from '../types/weapon';
 import { useWeapons } from '../hooks/useWeapons';
@@ -17,6 +17,13 @@ interface WeaponSelectionProps {
     rank: number;
   };
   onWeaponConfigChange: (level: number, rank: number) => void;
+  ocrData?: {
+    type: 'Weapon';
+    name: string;
+    weaponType: string;
+    level: number;
+    rank: number;
+  };
 }
 
 export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
@@ -24,19 +31,44 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
   selectedWeapon,
   onWeaponSelect,
   weaponConfig,
-  onWeaponConfigChange
+  onWeaponConfigChange,
+  ocrData
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const initialSelectionMade = useRef(false);
+
   const { weapons, loading, error } = useWeapons(
-    isModalOpen ? selectedCharacter.weaponType : null
+    isModalOpen || ocrData?.type === 'Weapon' ? selectedCharacter.weaponType : null
   );
+
+  useEffect(() => {
+    if (ocrData?.name && weapons.length > 0 && !initialSelectionMade.current) {
+      const matchedWeapon = weapons.find(
+        weapon => weapon.name.toLowerCase() === ocrData.name.toLowerCase()
+      );
+      if (matchedWeapon) {
+        initialSelectionMade.current = true;
+        onWeaponSelect(matchedWeapon);
+        onWeaponConfigChange(ocrData.level, ocrData.rank);
+      }
+    }
+  }, [ocrData, weapons, onWeaponSelect, onWeaponConfigChange]);
+
+  useEffect(() => {
+    initialSelectionMade.current = false;
+  }, [ocrData]);
 
   useModalClose(isModalOpen, () => setIsModalOpen(false));
 
-  const sortedWeapons = weapons.sort((a, b) => {
-    const rarityOrder = ["5-star", "4-star", "3-star", "2-star", "1-star"];
-    return rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity);
-  });
+  const rarityOrder = useMemo(() => 
+    ["5-star", "4-star", "3-star", "2-star", "1-star"], 
+  []); 
+
+  const sortedWeapons = useMemo(() => 
+    [...weapons].sort((a, b) => 
+      rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity)
+    ), 
+  [weapons, rarityOrder]);
 
   const handleLevelChange = useCallback((level: number) => {
     onWeaponConfigChange(level, weaponConfig.rank);

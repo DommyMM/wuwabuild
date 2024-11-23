@@ -1,199 +1,180 @@
-body{
-    font-size:30px;
+body {
+  font-size: 30px;
 }
-h2{
+
+h2 {
   margin-bottom: 20px !important;
 }
+
 .card-builder {
-    margin-top: 20px;
-  }
-  
-  .cardPreview {
-    margin-top: 20px;
-    border: 1px solid #ccc;
-    padding: 10px;
-  }
-  
-  .dropzone {
-    width: 30%; 
-    height: 100px; 
-    border: 2px dashed #ccc;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #999;
-    cursor: pointer;
-    position: relative;
-    margin: 0 auto 20px auto; 
-  }
-  
-  
-  .dropzone.dragover {
+  margin-top: 20px;
+}
+
+.cardPreview {
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  padding: 10px;
+}
+
+.dropzone {
+  width: 40%;
+  height: 100px;
+  border: 2px dashed #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #999;
+  cursor: pointer;
+  position: relative;
+  margin: 0 auto 20px auto;
+}
+
+.dropzone.dragover {
   background-color: #f0f0f0;
   border-color: #000;
-  }
-  
-  .dropzone span {
+}
+
+.dropzone span {
   font-size: 24px;
   color: #666;
-  }
-  
-  .dropzone input[type="file"] {
+}
+
+.dropzone input[type="file"] {
   position: absolute;
   top: 0;
   left: 0;
   opacity: 0;
   width: 100%;
   height: 100%;
-  }
-  
-  .upload {
+}
+
+.upload {
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-direction: column; 
-  }
-  
-  .file-preview {
+  flex-direction: column;
+}
+
+.file-preview {
   overflow: visible;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  justify-content: center; 
+  justify-content: center;
   margin-top: 20px;
   max-width: 1200px;
   margin: 0 auto;
-  }
-  
-  .file-preview img {
+}
+
+.processing-status {
+  position: sticky;
+  top: 0;
+  text-align: center;
+  animation: pulse 2s infinite ease-in-out;
+  margin: 8px auto;
+  width: fit-content;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.image-container {
+  margin: 10px;
+  text-align: center;
+  position: relative;
+}
+
+.preview-image {
   width: 150px;
   height: auto;
-  border: 1px solid #000000; 
-  padding: 5px;              
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); 
-  transition: transform 0.3s ease, padding 0.3s ease, border 0.3s ease;
-  }
-  
-  .file-preview img:hover {
-  transform: scale(1.5); 
-  z-index: 10;        
-  position: relative;
-  border: 0;
-  padding: 0;
-  }
+  cursor: pointer;
+  border: 1px solid #000;
+  padding: 5px;
+}
 
-  .category-modal {
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(18, 18, 18, 0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    }
-    
-    .category-modal-content {
-      background-color: #1E1E1E;
-      color: #E0E0E0;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 90%;
-      width: 800px;
-      text-align: center;
-      position: relative;
-    }
-    
-    .close {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 30px;
-    color: #aaa;
-    cursor: pointer;
-    }
-    
-    .close:hover {
-    color: white;
-    }
-    
-    .category-modal-image {
-    max-width: 100%;
-    height: auto;
-    margin-bottom: 20px;
-    }
-    
-    .category-modal-categories {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
-    }
-    
-    .category-btn {
-    padding: 10px;
-    font-size: 20px;
-    background-color: #333;
-    color: #E0E0E0;
-    border: 1px solid #444;
-    cursor: pointer;
-    border-radius: 5px;
-    }
-    
-    .category-btn:hover {
-    background-color: #555;
-    }
-    
-    .image-container {
-    margin: 10px;
-    text-align: center;
-    position: relative;
-    }
-    
-    .preview-image {
-    width: 150px;
-    height: auto;
-    cursor: pointer;
-    border: 1px solid #000;
-    padding: 5px;
-    }
-    
-    .category-label {
-    font-size: 18px;
-    color: #E0E0E0;
-    }
+.preview-thumbnail {
+  width: 150px;
+  height: auto;
+  cursor: pointer;
+  border: 1px solid #000;
+  padding: 5px;
+}
 
-    .category-label.loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        opacity: 0.7;
-    }
-    
-    .loading-spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid #f3f3f3;
-        border-top: 2px solid #3498db;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    .category-label.error {
-        color: #e74c3c;
-    }
+.category-label {
+  font-size: 18px;
+  color: #E0E0E0;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  white-space: pre-line;
+  gap: 4px;
+}
 
-        #error-log {
-        z-index: 9999;
-        max-width: 300px;
-        word-wrap: break-word;
-        font-family: monospace;
-        border: 1px solid red;
-    }
+.category-label .details {
+  font-size: 14px;
+  color: #B0B0B0;
+}
+
+.category-label.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0.7;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.category-label.error {
+  color: #e74c3c;
+}
+
+#error-log {
+  z-index: 9999;
+  max-width: 300px;
+  word-wrap: break-word;
+  font-family: monospace;
+  border: 1px solid red;
+}
+
+.fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.fullscreen-image {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  cursor: default;
+}
+
+.modal-image {
+  max-width: 75vw;
+  max-height: 75vh;
+  object-fit: contain;
+}

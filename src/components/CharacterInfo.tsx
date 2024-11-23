@@ -8,6 +8,29 @@ import { ForteGroup } from './ForteGroup';
 import '../styles/CharacterInfo.css';
 import '../styles/SequenceGroup.css';
 
+type OCRData = 
+  | {
+      type: 'Character';
+      name: string;
+      level: number;
+    }
+  | {
+      type: 'Weapon';
+      name: string;
+      level: number;
+      weaponType: string;
+      rank: number;
+    }
+  | {
+      type: 'Sequences';
+      sequence: number;
+    }
+  | {
+      type: 'Forte';
+      nodeStates: Record<string, Record<string, boolean>>;
+      levels: Record<string, number>;
+    };
+
 interface CharacterInfoProps {
   selectedCharacter: Character | null;
   displayName: string | undefined;
@@ -28,6 +51,8 @@ interface CharacterInfoProps {
     levels: Record<string, number>
   ) => void;
   clickCount: number;
+  initialLevel?: number; 
+  ocrData?: OCRData;
 }
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
@@ -35,6 +60,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   displayName,
   isSpectro,
   elementValue,
+  initialLevel,
   onEchoesClick,
   onGenerateClick,
   onSpectroToggle,
@@ -46,17 +72,31 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   forteLevels,
   clickCount,
   onMaxClick,
-  onForteChange
+  onForteChange,
+  ocrData
 }) => {
-  const [level, setLevel] = useState(1);
+  const [level, setLevel] = useState(initialLevel || 1);
   const [sequence, setSequence] = useState(0);
 
   useEffect(() => {
     if (selectedCharacter) {
-      setLevel(1);
-      setSequence(0);
+      if (!ocrData) {
+        setLevel(initialLevel || 1);
+        setSequence(0);
+      }
     }
-  }, [selectedCharacter]);
+  }, [selectedCharacter, initialLevel, ocrData]);
+
+  useEffect(() => {
+    if (ocrData?.type === 'Character') {
+      setLevel(ocrData.level);
+    } else if (ocrData?.type === 'Sequences') {
+      setSequence(ocrData.sequence);
+      if (onSequenceChange) {
+        onSequenceChange(ocrData.sequence);
+      }
+    }
+  }, [ocrData, onSequenceChange]);
 
   const handleLevelChange = (newLevel: number): void => {
     setLevel(newLevel);
@@ -123,6 +163,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
           <LevelSlider 
             value={level}
             onLevelChange={handleLevelChange}
+            initialLevel={initialLevel}
           />
           <SequenceGroup
             characterName={displayName || ''}
@@ -136,6 +177,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
             onWeaponSelect={handleWeaponSelect}
             weaponConfig={weaponState.config}
             onWeaponConfigChange={handleWeaponConfigChange}
+            ocrData={ocrData?.type === 'Weapon' ? ocrData : undefined}
           />
           <button 
             id="goNext" 
@@ -156,6 +198,11 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
             clickCount={clickCount}
             onMaxClick={onMaxClick}
             onChange={onForteChange}
+            ocrData={ocrData?.type === 'Forte' ? {
+              type: 'Forte',
+              nodeStates: ocrData.nodeStates,
+              levels: ocrData.levels
+            } : undefined}
           />
         </div>
       )}

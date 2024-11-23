@@ -1,15 +1,24 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 
 interface LevelSliderProps {
   value: number;
   onLevelChange: (level: number) => void;
+  initialLevel?: number;
 }
 
-export const LevelSlider: React.FC<LevelSliderProps> = ({ value, onLevelChange }) => {
+export const LevelSlider: React.FC<LevelSliderProps> = ({ value, onLevelChange, initialLevel }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const previousValueRef = useRef(value);
+  const initialized = useRef(false);
   const snapValues = useMemo(() => [1, 20, 40, 50, 60, 70, 80, 90], []);
+
+  useEffect(() => {
+    if (initialLevel && !initialized.current) {
+      initialized.current = true;
+      onLevelChange(initialLevel);
+    }
+  }, [initialLevel, onLevelChange]);
 
   const getDiamondLevel = (level: number) => {
     if (level <= 20) return 0;

@@ -37,8 +37,8 @@ SCAN_REGIONS = {
 
 BACKEND_DIR = Path(__file__).parent
 ROOT_DIR = BACKEND_DIR.parent
-DATA_DIR = ROOT_DIR / 'Data'
-DOWNLOADS_DIR = ROOT_DIR.parent 
+DOWNLOADS_DIR = ROOT_DIR.parent
+DATA_DIR = ROOT_DIR / 'public' / 'Data' 
 DEBUG_DIR = DOWNLOADS_DIR / 'wuwa_debug'
 
 try:

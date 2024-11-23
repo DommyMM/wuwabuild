@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 import { Character, isRover } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
 import { EchoPanelState } from '../types/echo';
@@ -7,9 +7,11 @@ import { CharacterSelector } from '../components/CharacterSelector';
 import { CharacterInfo } from '../components/CharacterInfo';
 import { EchoesSection } from '../components/EchoSection';
 import { BuildCard } from '../components/BuildCard';
+import { Scan } from '../components/Scan';
+import { useOCRContext } from '../contexts/OCRContext';
 import '../styles/App.css';
 
-interface ElementState {
+export interface ElementState {
   selectedCharacter: Character | null;
   isSpectro: boolean;
   elementValue: string | undefined;
@@ -17,6 +19,8 @@ interface ElementState {
 }
 
 export const EditPage: React.FC = () => {
+  const [isOCRPanelOpen, setIsOCRPanelOpen] = useState(false);
+  
   const [elementState, setElementState] = useState<ElementState>({
     selectedCharacter: null,
     isSpectro: false,
@@ -58,6 +62,58 @@ export const EditPage: React.FC = () => {
     { skillName: 'Intro Skill', skillKey: 'intro', treeKey: 'tree5' }
   ];
 
+  const { ocrResult } = useOCRContext();
+  
+  const ocrData = React.useMemo(() => {
+    if (!ocrResult?.success || !ocrResult.analysis) return undefined;
+  
+    switch (ocrResult.analysis.type) {
+      case 'Character':
+        return {
+          type: 'Character' as const,
+          name: ocrResult.analysis.name,
+          level: ocrResult.analysis.level
+        };
+      case 'Weapon':
+        return {
+          type: 'Weapon' as const,
+          name: ocrResult.analysis.name,
+          weaponType: ocrResult.analysis.weaponType,
+          level: ocrResult.analysis.level,
+          rank: ocrResult.analysis.rank
+        };
+      case 'Sequences':
+        return {
+          type: 'Sequences' as const,
+          sequence: ocrResult.analysis.sequence
+        };
+      case 'Forte':
+        const nodeStates = {
+          tree1: { top: ocrResult.analysis.normal[1] === 1, middle: ocrResult.analysis.normal[2] === 1 },
+          tree2: { top: ocrResult.analysis.skill[1] === 1, middle: ocrResult.analysis.skill[2] === 1 },
+          tree3: { top: ocrResult.analysis.circuit[1] === 1, middle: ocrResult.analysis.circuit[2] === 1 },
+          tree4: { top: ocrResult.analysis.liberation[1] === 1, middle: ocrResult.analysis.liberation[2] === 1 },
+          tree5: { top: ocrResult.analysis.intro[1] === 1, middle: ocrResult.analysis.intro[2] === 1 }
+        };
+
+        const levels = {
+          'normal-attack': ocrResult.analysis.normal[0],
+          'skill': ocrResult.analysis.skill[0],
+          'circuit': ocrResult.analysis.circuit[0], 
+          'liberation': ocrResult.analysis.liberation[0],
+          'intro': ocrResult.analysis.intro[0]
+        };
+
+        return {
+          type: 'Forte' as const,
+          nodeStates,
+          levels
+        };
+      default:
+        return undefined;
+    }
+  }, [ocrResult]);
+
   useEffect(() => {
     if (elementState.selectedCharacter) {
       setCharacterLevel('1');
@@ -76,6 +132,12 @@ export const EditPage: React.FC = () => {
       })));
     }
   }, [elementState.selectedCharacter]);
+
+  useEffect(() => {
+    if (ocrData?.level) {
+      setCharacterLevel(ocrData.level.toString());
+    }
+  }, [ocrData]);
 
   const handleEchoesClick = () => {
     setIsEchoesVisible(true);
@@ -170,20 +232,41 @@ export const EditPage: React.FC = () => {
     setForteLevels(newLevels);
   };
 
+  const toggleOCRPanel = () => {
+    setIsOCRPanelOpen(!isOCRPanelOpen);
+  };
+
   return (
     <div className="edit-page">
-      <div className="content">
-        <nav>
-          <Link to="/scan" className="tab">Scan Screenshots</Link>
-        </nav>
-        
+      <div className="content">        
         <h2>Edit Stats</h2>
-
-        <div className="manual-section">
-          <CharacterSelector onSelect={handleCharacterSelect} />
+        <div className="sticky-container">
+          <div className="ocr-panel-container">
+            <button 
+              onClick={toggleOCRPanel}
+              className="switch"
+            >
+              {isOCRPanelOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+              Scan Images
+            </button>
+            
+            <div className={`ocr-panel${isOCRPanelOpen ? ' open' : ''}`}>
+              <div className="panel-content">
+                <Scan />
+              </div>
+            </div>
+          </div>
         </div>
-
-        <CharacterInfo 
+  
+        <CharacterSelector 
+          onSelect={handleCharacterSelect}
+          ocrData={ocrData?.type === 'Character' ? {
+            name: ocrData.name,
+            level: ocrData.level
+          } : undefined}
+        />
+  
+        <CharacterInfo
           selectedCharacter={elementState.selectedCharacter} 
           displayName={elementState.displayName}
           isSpectro={elementState.isSpectro}
@@ -200,6 +283,8 @@ export const EditPage: React.FC = () => {
           clickCount={clickCount}
           onMaxClick={handleMaxClick}
           onForteChange={handleForteChange}
+          initialLevel={ocrData?.type === 'Character' ? ocrData.level : undefined}
+          ocrData={ocrData}
         />
 
         <EchoesSection 
