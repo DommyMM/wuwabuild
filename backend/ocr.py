@@ -11,7 +11,8 @@ SCAN_REGIONS = {
     "info": {"top": 0, "left": 0, "width": 0.13, "height": 0.11},
     "characterPage": {"top": 0.09, "left": 0.09, "width": 0.22, "height": 0.18},
     "weaponPage": {"top": 0.11, "left": 0.09, "width": 0.215, "height": 0.25},
-    "echoPage": {"top": 0.12, "left": 0.73, "width": 0.23, "height": 0.34},
+    "echoPage": {"top": 0.11, "left": 0.71, "width": 0.27, "height": 0.35},
+    "element": {"top": 0.138, "left": 0.933, "width": 0.021, "height": 0.036},
     "s1": {"top": 0.1047, "left": 0.647, "width": 0.0234, "height": 0.0454},
     "s2": {"top": 0.259, "left": 0.733, "width": 0.028, "height": 0.047},
     "s3": {"top": 0.473, "left": 0.765, "width": 0.0234, "height": 0.0454},
@@ -139,6 +140,41 @@ def process_image(image):
                     cv2.imwrite(str(DEBUG_DIR / f'{region_name}_original.jpg'), slot_img)
                     slots[region_name] = slot_img
                 details = get_forte_info(slots)
+            elif image_type == 'Echo':
+                element_coords = SCAN_REGIONS["element"]
+                element_img = crop_region(image, element_coords)
+                
+                h, w = element_img.shape[:2]
+                center = (w//2, h//2)
+                radius = min(w, h)//2
+                
+                circle_mask = np.zeros((h, w, 4), dtype=np.uint8)
+                cv2.circle(circle_mask, center, radius, (255, 255, 255, 255), -1)
+                circle_bgra = cv2.cvtColor(element_img, cv2.COLOR_BGR2BGRA)
+                circle_bgra[:, :, 3] = circle_mask[:, :, 3]
+                cv2.imwrite(str(DEBUG_DIR / f'echo_element_circle.png'), circle_bgra)
+                
+                rim_thickness = 9
+                donut_mask = circle_mask.copy()
+                cv2.circle(donut_mask, center, radius-rim_thickness, (0, 0, 0, 0), -1)
+                donut_bgra = cv2.cvtColor(element_img, cv2.COLOR_BGR2BGRA)
+                donut_bgra[:, :, 3] = donut_mask[:, :, 3]
+                
+                elements = get_element_info(donut_bgra)
+                if len(elements) > 1:
+                    element = get_icon(circle_bgra, elements)
+                else:
+                    element = elements[0]
+                print(f"\nDetected Element: {element}")
+            
+                region_coords = SCAN_REGIONS[region_key]
+                detail_img = crop_region(image, region_coords)
+                processed_detail = preprocess_image(detail_img, region_key)
+                detail_text = pytesseract.image_to_string(processed_detail)
+                print("\nRegion Raw Text:")
+                print(detail_text)
+                print("================")
+                details = extract_details(processed_detail, image_type, element)
             else:
                 region_coords = SCAN_REGIONS[region_key]
                 detail_img = crop_region(image, region_coords)
@@ -173,12 +209,22 @@ def process_image(image):
         return response
 
 def determine_type(text):
-    cost_patterns = ['cost', 'ost', '€ost', 'cst']
-    has_cost = any(pattern in text for pattern in cost_patterns)
-    has_cost_number = '/12' in text
-    has_all_or_at = any(word in ['all', 'at'] for word in text.split())
+    text = text.lower().replace('©', '').replace('€', '')
+    cost_patterns = [
+        'cost', 'ost', 'cst', 'cos',
+        'c0st', 'co5t', 'c05t', 
+        '-cost', 'cost-', 
+        '(cost', 'cost)',
+    ]
     
-    if sum([has_cost, has_cost_number, has_all_or_at]) >= 2:
+    has_cost = any(pattern in text for pattern in cost_patterns)
+    
+    cost_number_patterns = ['/12', '112', '|12', '(12']
+    has_cost_number = any(pattern in text for pattern in cost_number_patterns)
+    
+    all_patterns = ['all', 'al', 'ail', 'ali', 'at', '(all', 'all)']
+    has_all = any(pattern in text.split() for pattern in all_patterns)
+    if sum([has_cost, has_cost_number, has_all]) >= 2:
         return 'Echo'
         
     type_mappings = {
@@ -418,18 +464,81 @@ def is_node_active(image, slot_name="unknown"):
         white_ratio = (np.count_nonzero(white_mask) / (image.shape[0] * image.shape[1])) * 100
         
         return white_ratio > 15
-
-def extract_details(image, image_type):
-    """Extract details based on image type"""
-    text = pytesseract.image_to_string(image)
     
+
+def get_element_info(element_img):
+    hsv = cv2.cvtColor(element_img, cv2.COLOR_BGR2HSV)
+    
+    element_colors = {
+        'healing': {'lower': np.array([40, 0, 0]), 'upper': np.array([94, 255, 255])},
+        'attack': {'lower': np.array([0, 36, 139]), 'upper': np.array([5, 225, 221])},
+        'electro': {'lower': np.array([130, 40, 150]), 'upper': np.array([145, 255, 255])},
+        'er': {'lower': np.array([0, 0, 180]), 'upper': np.array([180, 30, 255])},
+        'fusion': {'lower': np.array([0, 62, 123]), 'upper': np.array([68, 175, 255])},
+        'glacio': {'lower': np.array([85, 40, 150]), 'upper': np.array([115, 255, 255])},
+        'havoc': {'lower': np.array([150, 0, 150]), 'upper': np.array([180, 255, 255])},
+        'aero': {'lower': np.array([68, 120, 52]), 'upper': np.array([88, 220, 152])},
+        'spectro': {'lower': np.array([10, 101, 86]), 'upper': np.array([33, 173, 255])} 
+    }
+    
+    ratios = {}
+    for element, ranges in element_colors.items():
+        mask = cv2.inRange(hsv, ranges['lower'], ranges['upper'])
+        ratio = (np.count_nonzero(mask) / (element_img.shape[0] * element_img.shape[1])) * 100
+        ratios[element] = ratio
+        
+        cv2.imwrite(str(DEBUG_DIR / f'echo_element_{element}_mask.png'), mask)
+        print(f"{element} ratio: {ratio:.2f}%")
+    
+    sorted_elements = sorted(ratios.items(), key=lambda x: x[1], reverse=True)
+    highest = sorted_elements[0]
+    second = sorted_elements[1] if len(sorted_elements) > 1 else None
+    
+    if highest[1] > 22.4:
+        if second and second[1] > 23:
+            return [highest[0], second[0]]
+        return [highest[0]]
+    elif second:
+        return [highest[0], second[0]]
+    return [highest[0]]
+
+def get_icon(circle_bgra, possible_elements):
+    h, w = circle_bgra.shape[:2]
+    
+    best_match = None
+    best_score = float('inf')
+    
+    
+    for element in possible_elements:
+        template_path = ROOT_DIR / 'public' / 'images' / 'Sets' / f'{element.capitalize()}.png'
+        template = cv2.imread(str(template_path))
+        template = cv2.resize(template, (w, h))
+        template_bgra = cv2.cvtColor(template, cv2.COLOR_BGR2BGRA)
+        
+        result = cv2.matchTemplate(circle_bgra, template_bgra, cv2.TM_CCOEFF_NORMED)
+        score = result.max()
+        print(f"{element}: {score:.4f}")
+        
+        if score < best_score:
+            best_score = score
+            best_match = element
+      
+    return best_match
+
+def get_echo_info(text, element):
+    return {
+        'type': 'Echo',
+        'element': element,
+        'raw_text': clean_text(text)
+    }
+
+def extract_details(image, image_type, element=None):
     if image_type == 'Character':
         return get_character_info(text)
     elif image_type == 'Weapon':
         return get_weapon_info(text)
-    elif image_type == 'Sequences':
-        return get_sequence_info(image)
-    elif image_type == 'Forte':
-        return get_forte_info(image)
+    elif image_type == 'Echo':
+        text = pytesseract.image_to_string(image)
+        return get_echo_info(text, element)
     else:
         return {'raw_text': clean_text(text)}
