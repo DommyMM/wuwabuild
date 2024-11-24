@@ -1,5 +1,23 @@
+export type OCRData = 
+  | { type: 'Character'; name: string; level: number }
+  | { type: 'Weapon'; name: string; weaponType: string; level: number; rank: number }
+  | { type: 'Sequences'; sequence: number }
+  | { 
+      type: 'Forte'; 
+      nodeStates: Record<string, { top: boolean; middle: boolean }>; 
+      levels: Record<string, number> 
+    }
+  | { 
+      type: 'Echo'; 
+      name: string; 
+      level: number; 
+      element: string;
+      mainStat: { name: string; value: string };
+      subs: Array<{ name: string; value: string }> 
+    };
+
 export interface BaseAnalysis {
-  type: 'Character' | 'Weapon' | 'Sequences' | 'Forte' | 'unknown';
+  type: 'Character' | 'Weapon' | 'Sequences' | 'Forte' | 'Echo' | 'unknown';
 }
 
 export interface CharacterAnalysis extends BaseAnalysis {
@@ -31,6 +49,23 @@ export interface ForteAnalysis extends BaseAnalysis {
   intro: [number, number, number];
 }
 
+export interface EchoAnalysis extends BaseAnalysis {
+  type: 'Echo';
+  element: string;
+  raw_texts: {
+    name: string;
+    level: string;
+    main: {
+      name: string;
+      value: string;
+    };
+    subs: Array<{
+      name: string;
+      value: string;
+    }>;
+  };
+}
+
 export interface UnknownAnalysis extends BaseAnalysis {
   type: 'unknown';
 }
@@ -40,6 +75,7 @@ export type OCRAnalysis =
   | WeaponAnalysis 
   | SequenceAnalysis 
   | ForteAnalysis
+  | EchoAnalysis
   | UnknownAnalysis;
 
 export interface OCRResponse {
@@ -87,6 +123,30 @@ export const validateElement = (element: string | undefined): string => {
   return validElements.includes(element || '') ? element! : 'Unknown';
 };
 
+export const validateEchoLevel = (level: string | undefined): number => {
+  if (!level) return 0;
+  const match = level.match(/\+(\d+)/);
+  const parsed = match ? parseInt(match[1], 10) : 0;
+  return isNaN(parsed) || parsed < 0 || parsed > 25 ? 0 : parsed;
+};
+
+export const validateEchoElement = (element: string | undefined): string => {
+  const validElements = ['healing', 'attack', 'electro', 'er', 'fusion', 'glacio', 'havoc', 'aero', 'spectro'];
+  return validElements.includes(element?.toLowerCase() || '') ? element! : 'unknown';
+};
+
+export const validateEchoStatValue = (value: string): string | null => {
+  const isPercent = value.endsWith('%');
+  const numStr = isPercent ? value.slice(0, -1) : value;
+  const num = parseFloat(numStr);
+  
+  if (isNaN(num) || num < 0) {
+    return null;
+  }
+  
+  return isPercent ? `${num}%` : `${num}`;
+};
+
 export const isCharacterAnalysis = (analysis: OCRAnalysis): analysis is CharacterAnalysis => 
   analysis.type === 'Character' && 
   typeof analysis.name === 'string' &&
@@ -123,6 +183,25 @@ export const isForteAnalysis = (analysis: OCRAnalysis): analysis is ForteAnalysi
       typeof values[2] === 'number' && (values[2] === 0 || values[2] === 1)
     );
   });
+};
+
+export const isEchoAnalysis = (analysis: OCRAnalysis): analysis is EchoAnalysis => {
+  if (analysis.type !== 'Echo') return false;
+
+  const mainValue = validateEchoStatValue(analysis.raw_texts?.main?.value);
+  
+  return (
+    typeof analysis.element === 'string' &&
+    typeof analysis.raw_texts?.name === 'string' &&
+    typeof analysis.raw_texts?.level === 'string' &&
+    typeof analysis.raw_texts?.main?.name === 'string' &&
+    mainValue !== null &&
+    Array.isArray(analysis.raw_texts?.subs) &&
+    analysis.raw_texts.subs.every(sub => 
+      typeof sub?.name === 'string' &&
+      validateEchoStatValue(sub.value) !== null
+    )
+  );
 };
 
 export const isUnknownAnalysis = (analysis: OCRAnalysis): analysis is UnknownAnalysis =>

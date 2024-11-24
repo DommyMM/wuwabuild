@@ -10,9 +10,16 @@ interface StatsTabProps {
   level: number;
   panelId: string;
   onStatsChange: (stats: StatsState) => void;
+  initialStats?: StatsState;
 }
 
-export const StatsTab: React.FC<StatsTabProps> = ({ cost, level, panelId, onStatsChange }) => {
+export const StatsTab: React.FC<StatsTabProps> = ({
+  cost,
+  level,
+  panelId,
+  onStatsChange,
+  initialStats
+}) => {
   const { mainStatsData, calculateValue } = useMain();
   const { substatsData, selectStatForPanel, unselectStatForPanel, isStatAvailableForPanel } = useSubstats();
 
@@ -20,6 +27,19 @@ export const StatsTab: React.FC<StatsTabProps> = ({ cost, level, panelId, onStat
     mainStat: { type: null, value: null },
     subStats: Array(5).fill({ type: null, value: null })
   });
+
+  useEffect(() => {
+    if (initialStats) {
+      setStats(prev => ({
+        ...prev,
+        mainStat: initialStats.mainStat,
+        subStats: initialStats.subStats.map(substat => ({
+          type: substat.type,
+          value: substat.value
+        }))
+      }));
+    }
+  }, [initialStats]);
 
   useEffect(() => {
     if (!cost) {
@@ -38,26 +58,43 @@ export const StatsTab: React.FC<StatsTabProps> = ({ cost, level, panelId, onStat
 
   useEffect(() => {
     if (!stats.mainStat.type || !cost || !mainStatsData) return;
-
+  
     const [min, max] = mainStatsData[`${cost}cost`].mainStats[stats.mainStat.type];
-    const value = calculateValue(min, max, level);
-    
-    setStats(prev => {
-      const newStats = {
-        ...prev,
-        mainStat: { ...prev.mainStat, value }
-      };
-      onStatsChange(newStats);
-      return newStats;
+    const newValue = calculateValue(min, max, level);
+  
+    if (stats.mainStat.value !== newValue) {
+      setStats(prev => {
+        const newStats = {
+          ...prev,
+          mainStat: { ...prev.mainStat, value: newValue }
+        };
+        onStatsChange(newStats);
+        return newStats;
+      });
+    }
+  }, [level, cost, mainStatsData, stats.mainStat.type, stats.mainStat.value, calculateValue, onStatsChange]);
+
+  useEffect(() => {
+    if (!cost || !substatsData) return;
+
+    const newSubStats = stats.subStats.map(substat => {
+      if (!substat.type) return substat;
+      
+      const validValues = substatsData[substat.type];
+      if (!validValues || !validValues.length) return substat;
+
+      const value = substat.value ?? validValues[0];
+      return { ...substat, value };
     });
-  }, [
-    level, 
-    cost, 
-    mainStatsData, 
-    stats.mainStat.type, 
-    calculateValue, 
-    onStatsChange
-  ]);
+
+    if (JSON.stringify(newSubStats) !== JSON.stringify(stats.subStats)) {
+      setStats(prev => {
+        const newStats = { ...prev, subStats: newSubStats };
+        onStatsChange(newStats);
+        return newStats;
+      });
+    }
+  }, [cost, substatsData, stats.subStats, onStatsChange]);
 
   const handleMainStatChange = (type: string | null) => {
     if (!type || !mainStatsData || !cost) {
@@ -91,7 +128,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({ cost, level, panelId, onStat
   return (
     <div className="stats-tab">
       <div className="stat-slot main-stat">
-        <select 
+        <select
           value={stats.mainStat.type || ''}
           onChange={(e) => handleMainStatChange(e.target.value || null)}
           className="stat-select"
@@ -126,7 +163,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({ cost, level, panelId, onStat
             ))}
           </select>
           
-          <select 
+          <select
             className="stat-value"
             disabled={!stats.subStats[index].type}
             value={stats.subStats[index].value?.toString() || ''}

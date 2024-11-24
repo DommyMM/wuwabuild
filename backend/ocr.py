@@ -11,7 +11,7 @@ SCAN_REGIONS = {
     "info": {"top": 0, "left": 0, "width": 0.13, "height": 0.11},
     "characterPage": {"top": 0.09, "left": 0.09, "width": 0.22, "height": 0.18},
     "weaponPage": {"top": 0.11, "left": 0.09, "width": 0.215, "height": 0.25},
-    "echoPage": {"top": 0.11, "left": 0.71, "width": 0.27, "height": 0.35},
+    "echoPage": {"top": 0.11, "left": 0.72, "width": 0.25, "height": 0.35},
     "element": {"top": 0.138, "left": 0.933, "width": 0.021, "height": 0.036},
     "s1": {"top": 0.1047, "left": 0.647, "width": 0.0234, "height": 0.0454},
     "s2": {"top": 0.259, "left": 0.733, "width": 0.028, "height": 0.047},
@@ -34,6 +34,17 @@ SCAN_REGIONS = {
     "intro-base": {"top": 0.88, "left": 0.727, "width": 0.074, "height": 0.07},
     "intro-mid": {"top": 0.568, "left": 0.747, "width": 0.038, "height": 0.067},
     "intro-top": {"top": 0.36, "left": 0.747, "width": 0.038, "height": 0.067}
+}
+
+ECHO_REGIONS = {
+    "name": {"top": 0.052, "left": 0.055, "width": 0.8, "height": 0.11},
+    "level": {"top": 0.23, "left": 0.08, "width": 0.1, "height": 0.08},
+    "main": {"top": 0.31, "left": 0.145, "width": 0.78, "height": 0.085},
+    "sub1": {"top": 0.53, "left": 0.115, "width": 0.81, "height": 0.08},
+    "sub2": {"top": 0.6, "left": 0.115, "width": 0.81, "height": 0.09},
+    "sub3": {"top": 0.685, "left": 0.115, "width": 0.81, "height": 0.09},
+    "sub4": {"top": 0.773, "left": 0.115, "width": 0.81, "height": 0.09},
+    "sub5": {"top": 0.86, "left": 0.115, "width": 0.81, "height": 0.09}
 }
 
 BACKEND_DIR = Path(__file__).parent
@@ -74,6 +85,20 @@ def preprocess_image(image, region_name=None):
         cv2.imwrite(str(debug_processed), thresh)
     
     return thresh
+
+def preprocess_echo_image(image):
+    DEBUG_DIR.mkdir(exist_ok=True)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    bilateral = cv2.bilateralFilter(gray, d=9, sigmaColor=75, sigmaSpace=75)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4,4))
+    enhanced = clahe.apply(bilateral)
+    _, thresh1 = cv2.threshold(enhanced, 180, 255, cv2.THRESH_BINARY_INV)
+    _, thresh = cv2.threshold(thresh1, 200, 255, cv2.THRESH_BINARY)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 1))
+    clean = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    cv2.imwrite(str(DEBUG_DIR / f'echoPage_final.png'), clean)
+        
+    return clean
 
 def crop_region(image, region):
     height, width = image.shape[:2]
@@ -141,40 +166,7 @@ def process_image(image):
                     slots[region_name] = slot_img
                 details = get_forte_info(slots)
             elif image_type == 'Echo':
-                element_coords = SCAN_REGIONS["element"]
-                element_img = crop_region(image, element_coords)
-                
-                h, w = element_img.shape[:2]
-                center = (w//2, h//2)
-                radius = min(w, h)//2
-                
-                circle_mask = np.zeros((h, w, 4), dtype=np.uint8)
-                cv2.circle(circle_mask, center, radius, (255, 255, 255, 255), -1)
-                circle_bgra = cv2.cvtColor(element_img, cv2.COLOR_BGR2BGRA)
-                circle_bgra[:, :, 3] = circle_mask[:, :, 3]
-                cv2.imwrite(str(DEBUG_DIR / f'echo_element_circle.png'), circle_bgra)
-                
-                rim_thickness = 9
-                donut_mask = circle_mask.copy()
-                cv2.circle(donut_mask, center, radius-rim_thickness, (0, 0, 0, 0), -1)
-                donut_bgra = cv2.cvtColor(element_img, cv2.COLOR_BGR2BGRA)
-                donut_bgra[:, :, 3] = donut_mask[:, :, 3]
-                
-                elements = get_element_info(donut_bgra)
-                if len(elements) > 1:
-                    element = get_icon(circle_bgra, elements)
-                else:
-                    element = elements[0]
-                print(f"\nDetected Element: {element}")
-            
-                region_coords = SCAN_REGIONS[region_key]
-                detail_img = crop_region(image, region_coords)
-                processed_detail = preprocess_image(detail_img, region_key)
-                detail_text = pytesseract.image_to_string(processed_detail)
-                print("\nRegion Raw Text:")
-                print(detail_text)
-                print("================")
-                details = extract_details(processed_detail, image_type, element)
+                details = process_echo_image(image, region_key)
             else:
                 region_coords = SCAN_REGIONS[region_key]
                 detail_img = crop_region(image, region_coords)
@@ -355,13 +347,11 @@ def get_sequence_info(slots):
             
             yellow_ratio = (np.count_nonzero(yellow_mask) / (slot_img.shape[0] * slot_img.shape[1])) * 100
             blue_ratio = (np.count_nonzero(blue_mask) / (slot_img.shape[0] * slot_img.shape[1])) * 100
-            
-            print(f"Slot 6 yellow ratio: {yellow_ratio}%, blue ratio: {blue_ratio}%")
+
             sequence_states.append(1 if yellow_ratio > blue_ratio else 0)
         else:
             yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
             yellow_ratio = (np.count_nonzero(yellow_mask) / (slot_img.shape[0] * slot_img.shape[1])) * 100
-            print(f"Slot {i+1} yellow ratio: {yellow_ratio}%")
             sequence_states.append(1 if yellow_ratio > 0.1 else 0)
     
     count = 0
@@ -481,6 +471,34 @@ def is_node_active(image, slot_name="unknown"):
         return white_ratio > 15
     
 
+def process_echo_image(image, region_key):
+    element_coords = SCAN_REGIONS["element"]
+    element_img = crop_region(image, element_coords)
+    
+    h, w = element_img.shape[:2]
+    center = (w//2, h//2)
+    radius = min(w, h)//2
+    
+    circle_mask = np.zeros((h, w, 4), dtype=np.uint8)
+    cv2.circle(circle_mask, center, radius, (255, 255, 255, 255), -1)
+    circle_bgra = cv2.cvtColor(element_img, cv2.COLOR_BGR2BGRA)
+    circle_bgra[:, :, 3] = circle_mask[:, :, 3]
+    
+    rim_thickness = 9
+    donut_mask = circle_mask.copy()
+    cv2.circle(donut_mask, center, radius-rim_thickness, (0, 0, 0, 0), -1)
+    donut_bgra = cv2.cvtColor(element_img, cv2.COLOR_BGR2BGRA)
+    donut_bgra[:, :, 3] = donut_mask[:, :, 3]
+    
+    elements = get_element_info(donut_bgra)
+    element = get_icon(circle_bgra, elements) if len(elements) > 1 else elements[0]
+
+    region_coords = SCAN_REGIONS[region_key]
+    detail_img = crop_region(image, region_coords)
+    processed_detail = preprocess_echo_image(detail_img)
+    
+    return get_echo_info(processed_detail, element)
+
 def get_element_info(element_img):
     hsv = cv2.cvtColor(element_img, cv2.COLOR_BGR2HSV)
     
@@ -501,8 +519,6 @@ def get_element_info(element_img):
         mask = cv2.inRange(hsv, ranges['lower'], ranges['upper'])
         ratio = (np.count_nonzero(mask) / (element_img.shape[0] * element_img.shape[1])) * 100
         ratios[element] = ratio
-        
-        print(f"{element} ratio: {ratio:.2f}%")
     
     sorted_elements = sorted(ratios.items(), key=lambda x: x[1], reverse=True)
     highest = sorted_elements[0]
@@ -531,7 +547,6 @@ def get_icon(circle_bgra, possible_elements):
         
         result = cv2.matchTemplate(circle_bgra, template_bgra, cv2.TM_CCOEFF_NORMED)
         score = result.max()
-        print(f"{element}: {score:.4f}")
         
         if score < best_score:
             best_score = score
@@ -539,11 +554,53 @@ def get_icon(circle_bgra, possible_elements):
       
     return best_match
 
-def get_echo_info(text, element):
+
+def get_echo_info(processed_image, element):
+    name_img = crop_region(processed_image, ECHO_REGIONS["name"])
+    cost_img = crop_region(processed_image, ECHO_REGIONS["level"]) 
+    main_img = crop_region(processed_image, ECHO_REGIONS["main"])
+    
+    sub_images = []
+    sub_stats = []
+    for i in range(1, 6):
+        sub_key = f"sub{i}"
+        sub_img = crop_region(processed_image, ECHO_REGIONS[sub_key])
+        sub_images.append(sub_img)
+        cv2.imwrite(str(DEBUG_DIR / f'echo_{sub_key}.png'), sub_img)
+        sub_text = pytesseract.image_to_string(sub_img).strip().replace('\n', ' ')
+        
+        if sub_text:
+            if match := re.search(r'(.*?)(\d+\.?\d*\%?)$', sub_text):
+                name, value = match.groups()
+                name = name.replace('.', '').replace('DMG Bonus', '').strip()
+                name = name if name else "HP"
+                sub_stats.append({'name': name, 'value': value.strip()})
+    
+    cv2.imwrite(str(DEBUG_DIR / 'echo_name.png'), name_img)
+    cv2.imwrite(str(DEBUG_DIR / 'echo_level.png'), cost_img)
+    cv2.imwrite(str(DEBUG_DIR / 'echo_main.png'), main_img)
+
+    name_text = pytesseract.image_to_string(name_img).strip()
+    if name_text.startswith('Phantom:'):
+        name_text = name_text[8:].strip()
+        
+    main_text = pytesseract.image_to_string(main_img).strip().replace('\n', ' ')
+    
+    main_stat = {}
+    if match := re.search(r'(.*?)(\d+\.?\d*\%?)$', main_text):
+        name, value = match.groups()
+        name = name.replace('.', '').replace('DMG Bonus', 'DMG').strip()
+        main_stat = {'name': name if name else 'HP', 'value': value.strip()}
+
     return {
         'type': 'Echo',
         'element': element,
-        'raw_text': clean_text(text)
+        'raw_texts': {
+            'name': name_text,
+            'level': pytesseract.image_to_string(cost_img).strip().replace('\n', ' '),
+            'main': main_stat,
+            'subs': sub_stats
+        }
     }
 
 def extract_details(image, image_type, element=None):
@@ -560,7 +617,7 @@ def extract_details(image, image_type, element=None):
     elif image_type == 'Forte':
         return get_forte_info(image)
     elif image_type == 'Echo':
-        return get_echo_info(text, element)
+        return get_echo_info(image, element)
     else:
         text = pytesseract.image_to_string(image)
         return {'raw_text': clean_text(text)}

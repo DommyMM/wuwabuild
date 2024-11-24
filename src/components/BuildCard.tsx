@@ -60,7 +60,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     username: '',
     uid: ''
   });
-  const [showRollQuality, setShowRollQuality] = useState(true);
+  const [showRollQuality, setShowRollQuality] = useState(false);
   const tabRef = useRef<HTMLDivElement>(null);
 
   const { scaleAtk, scaleStat } = useLevelCurves();
@@ -234,6 +234,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                 level={weaponConfig.level}
                 rank={weaponConfig.rank}
                 scaledStats={weaponStats}
+                characterElement={elementValue} 
               />
             )}
             <StatSection 

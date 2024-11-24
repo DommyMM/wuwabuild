@@ -54,6 +54,10 @@ export const Scan: React.FC = () => {
         return `Sequence ${analysis.sequence}`;
       case 'Forte':
         return 'Forte Tree';
+      case 'Echo':
+        const level = analysis.raw_texts.level.replace('+', '');
+        const capitalizedElement = analysis.element.charAt(0).toUpperCase() + analysis.element.slice(1);
+        return `Lv.${level} ${analysis.raw_texts.name}\n${capitalizedElement}`;
       default:
         return undefined;
     }

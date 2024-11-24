@@ -6,6 +6,7 @@ interface WeaponSectionProps {
   rank: number;
   level: number;
   scaledStats: ScaledWeaponStats;
+  characterElement?: string;
 }
 
 const WeaponIcon: React.FC<{ src: string }> = ({ src }) => (
@@ -78,12 +79,18 @@ const PassiveText: React.FC<{
     ? 'energy-regen' 
     : passiveName.toLowerCase().replace(/\s+/g, '-').replace('-dmg', '');
 
+  const classNames = [
+    'weapon-passive'
+  ];
+
+  if (passiveName === 'Attribute' && characterElement) {
+    classNames.push(characterElement.toLowerCase());
+  }
+
+  classNames.push(passiveClass);
+
   return (
-    <div className={`weapon-passive ${
-      passiveName === 'Attribute' && characterElement 
-        ? characterElement.toLowerCase() 
-        : passiveClass
-    }`}>
+    <div className={classNames.join(' ')}>
       {`Passive:\n${scaledStats.scaledPassive}% ${passiveName}`}
     </div>
   );
@@ -93,7 +100,8 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
   weapon,
   rank,
   level,
-  scaledStats
+  scaledStats,
+  characterElement
 }) => {
   return (
     <div className="build-weapon-container">
@@ -106,7 +114,7 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
         <PassiveText 
           weapon={weapon} 
           scaledStats={scaledStats}
-          characterElement={weapon.main_stat === 'Attribute' ? weapon.main_stat : undefined}
+          characterElement={characterElement}
         />
       </div>
       

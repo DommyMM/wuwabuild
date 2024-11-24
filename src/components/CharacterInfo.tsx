@@ -1,35 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Character } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
+import { OCRAnalysis } from '../types/ocr';
 import { LevelSlider } from './LevelSlider';
 import { SequenceGroup } from './SequenceGroup';
 import { WeaponSelection } from './WeaponSelection';
 import { ForteGroup } from './ForteGroup';
 import '../styles/CharacterInfo.css';
 import '../styles/SequenceGroup.css';
-
-type OCRData = 
-  | {
-      type: 'Character';
-      name: string;
-      level: number;
-    }
-  | {
-      type: 'Weapon';
-      name: string;
-      level: number;
-      weaponType: string;
-      rank: number;
-    }
-  | {
-      type: 'Sequences';
-      sequence: number;
-    }
-  | {
-      type: 'Forte';
-      nodeStates: Record<string, Record<string, boolean>>;
-      levels: Record<string, number>;
-    };
 
 interface CharacterInfoProps {
   selectedCharacter: Character | null;
@@ -51,7 +29,7 @@ interface CharacterInfoProps {
   ) => void;
   clickCount: number;
   initialLevel?: number; 
-  ocrData?: OCRData;
+  ocrData?: OCRAnalysis;
 }
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
@@ -198,8 +176,20 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
             onChange={onForteChange}
             ocrData={ocrData?.type === 'Forte' ? {
               type: 'Forte',
-              nodeStates: ocrData.nodeStates,
-              levels: ocrData.levels
+              nodeStates: {
+                tree1: { top: ocrData.normal[1] === 1, middle: ocrData.normal[2] === 1 },
+                tree2: { top: ocrData.skill[1] === 1, middle: ocrData.skill[2] === 1 },
+                tree3: { top: ocrData.circuit[1] === 1, middle: ocrData.circuit[2] === 1 },
+                tree4: { top: ocrData.liberation[1] === 1, middle: ocrData.liberation[2] === 1 },
+                tree5: { top: ocrData.intro[1] === 1, middle: ocrData.intro[2] === 1 }
+              },
+              levels: {
+                'normal-attack': ocrData.normal[0],
+                'skill': ocrData.skill[0],
+                'circuit': ocrData.circuit[0],
+                'liberation': ocrData.liberation[0],
+                'intro': ocrData.intro[0]
+              }
             } : undefined}
           />
         </div>

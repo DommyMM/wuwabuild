@@ -9,15 +9,18 @@ export interface EchoDisplayProps {
   showRollQuality: boolean;
 }
 
-const EchoLeft: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
-  const statClass = panel.stats.mainStat.type?.toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/%/g, '')
-    .replace('-dmg', '');
+const EchoLeft: React.FC<{ panel: EchoPanelState }> = React.memo(({ panel }) => {
+  const statClass = React.useMemo(() => 
+    panel.stats.mainStat.type?.toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/%/g, '')
+      .replace('-dmg', ''),
+    [panel.stats.mainStat.type]
+  );
 
-  const formatMainStatValue = (value: number | null): string => {
-    return value !== null ? `${value.toFixed(1)}%` : '';
-  };
+  const formatMainStatValue = React.useCallback((value: number | null): string => {
+    return value ? `${value.toFixed(1)}%` : '0';
+  }, []);
 
   return (
     <div className="echo-left">
@@ -45,7 +48,12 @@ const EchoLeft: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  return prevProps.panel.level === nextProps.panel.level &&
+         prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
+         prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
+         prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value;
+});
 
 const EchoDivider = () => <div className="echo-divider" />;
 
