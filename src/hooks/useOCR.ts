@@ -1,7 +1,6 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { OCRResponse, OCRAnalysis } from '../types/ocr';
 import { useOCRContext } from '../contexts/OCRContext';
-import { OCRData } from '../types/ocr';
 
 interface OCRState {
   processOCR: (result: OCRResponse) => void;

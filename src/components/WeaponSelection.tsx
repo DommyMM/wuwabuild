@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Character } from '../types/character';
 import { Weapon } from '../types/weapon';
 import { useWeapons } from '../hooks/useWeapons';
@@ -21,9 +21,10 @@ interface WeaponSelectionProps {
     type: 'Weapon';
     name: string;
     weaponType: string;
-    level: number;
+    weaponLevel: number;
     rank: number;
   };
+  preloadedWeapons?: Weapon[];
 }
 
 export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
@@ -32,31 +33,32 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
   onWeaponSelect,
   weaponConfig,
   onWeaponConfigChange,
-  ocrData
+  ocrData,
+  preloadedWeapons
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const initialSelectionMade = useRef(false);
-
-  const { weapons, loading, error } = useWeapons(
-    isModalOpen || ocrData?.type === 'Weapon' ? selectedCharacter.weaponType : null
-  );
+  const [lastOcrWeapon, setLastOcrWeapon] = useState<string | undefined>();
 
   useEffect(() => {
-    if (ocrData?.name && weapons.length > 0 && !initialSelectionMade.current) {
-      const matchedWeapon = weapons.find(
-        weapon => weapon.name.toLowerCase() === ocrData.name.toLowerCase()
-      );
-      if (matchedWeapon) {
-        initialSelectionMade.current = true;
-        onWeaponSelect(matchedWeapon);
-        onWeaponConfigChange(ocrData.level, ocrData.rank);
-      }
+    setLastOcrWeapon(undefined);
+  }, [selectedCharacter.name]);
+
+  const { weapons, loading, error } = useWeapons({
+    weaponType: selectedCharacter.weaponType,
+    config: weaponConfig,
+    preloadedWeapons: preloadedWeapons
+  });
+
+  if (ocrData?.name && ocrData.name !== lastOcrWeapon && weapons.length > 0) {
+    const matchedWeapon = weapons.find(
+      weapon => weapon.name.toLowerCase() === ocrData.name.toLowerCase()
+    );
+    if (matchedWeapon) {
+      setLastOcrWeapon(ocrData.name);
+      onWeaponSelect(matchedWeapon);
+      onWeaponConfigChange(ocrData.weaponLevel, ocrData.rank);
     }
-  }, [ocrData, weapons, onWeaponSelect, onWeaponConfigChange]);
-
-  useEffect(() => {
-    initialSelectionMade.current = false;
-  }, [ocrData]);
+  }
 
   useModalClose(isModalOpen, () => setIsModalOpen(false));
 

@@ -5,6 +5,7 @@ interface SequenceGroupProps {
   elementValue: string | undefined;
   onSequenceChange: (sequence: number) => void;
   sequence: number;
+  ocrSequence?: number;
 }
 
 export const SequenceGroup: React.FC<SequenceGroupProps> = ({ 

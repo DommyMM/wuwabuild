@@ -8,14 +8,17 @@ import '../styles/modal.css';
 interface CharacterSelectorProps {
   onSelect: (character: Character | null) => void;
   ocrName?: string;
+  onLevelReset?: () => void;
 }
 
 export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ 
   onSelect, 
-  ocrName 
+  ocrName,
+  onLevelReset 
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+  const [lastOcrName, setLastOcrName] = useState<string | undefined>();
   const { characters, loading, error } = useCharacters();
 
   useModalClose(isModalOpen, () => setIsModalOpen(false));
@@ -24,15 +27,17 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     setSelectedCharacter(character);
     setIsModalOpen(false);
     onSelect(character);
-  }, [onSelect]);
+    onLevelReset?.();
+  }, [onSelect, onLevelReset]);
 
   if (ocrName && 
-      characters.length > 0 && 
-      (!selectedCharacter || selectedCharacter.name.toLowerCase() !== ocrName.toLowerCase())) {
+      ocrName !== lastOcrName &&
+      characters.length > 0) {
     const matchedCharacter = characters.find(
       char => char.name.toLowerCase() === ocrName.toLowerCase()
     );
     if (matchedCharacter) {
+      setLastOcrName(ocrName);
       handleCharacterSelect(matchedCharacter);
     }
   }

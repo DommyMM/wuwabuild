@@ -125,7 +125,7 @@ def process_image(image):
         if region_img.size == 0:
             raise ValueError("Failed to crop info region")
 
-        processed = preprocess_image(region_img, "info")
+        processed = preprocess_echo_image(region_img)
         info_text = pytesseract.image_to_string(processed)
         
         print("\n=== OCR Debug ===")
@@ -202,23 +202,7 @@ def process_image(image):
 
 def determine_type(text):
     text = text.lower().replace('©', '').replace('€', '')
-    cost_patterns = [
-        'cost', 'ost', 'cst', 'cos',
-        'c0st', 'co5t', 'c05t', 
-        '-cost', 'cost-', 
-        '(cost', 'cost)',
-    ]
-    
-    has_cost = any(pattern in text for pattern in cost_patterns)
-    
-    cost_number_patterns = ['/12', '112', '|12', '(12']
-    has_cost_number = any(pattern in text for pattern in cost_number_patterns)
-    
-    all_patterns = ['all', 'al', 'ail', 'ali', 'at', '(all', 'all)']
-    has_all = any(pattern in text.split() for pattern in all_patterns)
-    if sum([has_cost, has_cost_number, has_all]) >= 2:
-        return 'Echo'
-        
+
     type_mappings = {
         'overview': 'Character',
         'weapon': 'Weapon',
@@ -229,6 +213,17 @@ def determine_type(text):
     for key, value in type_mappings.items():
         if key in text:
             return value
+    text = text.lower().replace('©', '').replace('€', '')
+    all_patterns = [
+        'cost', 'ost', 'cst', 'cos',
+        'c0st', 'co5t', 'c05t',
+        '-cost', 'cost-',
+        '(cost', 'cost)',
+        '/12', '112', '|12', '(12', '12/12', '12',
+        'all', 'al', 'ail', 'ali', 'at', '(all', 'all)'
+    ]
+    if any(pattern in text for pattern in all_patterns):
+        return 'Echo'
             
     return "unknown"
 
@@ -307,7 +302,11 @@ def get_weapon_info(text):
     level_patterns = [
         r'Lv[\.|\s]*(\d+)[\s/]+(\d+)',
         r'v[\.]?(\d+)[\s/]+(\d+)',
-        r'Level[\s]*(\d+)[\s/]+(\d+)'
+        r'Level[\s]*(\d+)[\s/]+(\d+)',
+        r'[X\s]*[Ll]yv\.?(\d+)[\s/]+(\d+)', 
+        r'[X\s]*[Ll]y?v\.?(\d+)[\s/]+(\d+)',
+        r'.*v.*?(\d+)/90',
+        r'(\d+)/90'
     ]
     
     level = None
@@ -406,6 +405,8 @@ def get_forte_info(slots):
                     if match:
                         try:
                             level = int(match.group(1))
+                            if level > 10:
+                                level = 10
                             if 1 <= level <= 10:
                                 branches[branch_name]['level'] = level
                                 break
@@ -444,32 +445,33 @@ def get_forte_info(slots):
     return result
 
 def is_node_active(image, slot_name="unknown"):
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    h, w = image.shape[:2]
+    center = (w//2, h//2)
+    radius = min(w, h)//2
+    circle_mask = np.zeros((h, w), dtype=np.uint8)
+    cv2.circle(circle_mask, center, radius, 255, -1)
+    masked_image = cv2.bitwise_and(image, image, mask=circle_mask)
+    hsv = cv2.cvtColor(masked_image, cv2.COLOR_BGR2HSV)
     
     if 'circuit' in slot_name:
-        white_lower = np.array([0, 0, 180])
-        white_upper = np.array([180, 30, 255])
-        blue_lower = np.array([100, 30, 30])
-        blue_upper = np.array([130, 255, 255])
-        
-        white_mask = cv2.inRange(hsv, white_lower, white_upper)
-        blue_mask = cv2.inRange(hsv, blue_lower, blue_upper)
-        
-        white_ratio = (np.count_nonzero(white_mask) / (image.shape[0] * image.shape[1])) * 100
-        blue_ratio = (np.count_nonzero(blue_mask) / (image.shape[0] * image.shape[1])) * 100
-        
-        return white_ratio > 20 and white_ratio < 35 and blue_ratio < 60
+        dark_blue_lower = np.array([100, 50, 50])
+        dark_blue_upper = np.array([140, 150, 150])
+        dark_mask = cv2.inRange(hsv, dark_blue_lower, dark_blue_upper)
+        circle_area = np.count_nonzero(circle_mask)
+        dark_ratio = (np.count_nonzero(dark_mask) / circle_area) * 100
+        return dark_ratio < 30 
     else:
-        on_color_rgb = [243, 243, 244]
-        on_color_hsv = cv2.cvtColor(np.uint8([[on_color_rgb]]), cv2.COLOR_RGB2HSV)[0][0]
-        lower_white = np.array([on_color_hsv[0] - 10, 0, 200])
-        upper_white = np.array([on_color_hsv[0] + 10, 30, 255])
+        red_lower1 = np.array([0, 50, 50])
+        red_upper1 = np.array([20, 255, 255])
+        red_lower2 = np.array([160, 50, 50])
+        red_upper2 = np.array([180, 255, 255])
+        red_mask1 = cv2.inRange(hsv, red_lower1, red_upper1)
+        red_mask2 = cv2.inRange(hsv, red_lower2, red_upper2)
+        red_mask = cv2.bitwise_or(red_mask1, red_mask2)        
+        circle_area = np.count_nonzero(circle_mask)
+        red_ratio = (np.count_nonzero(red_mask) / circle_area) * 100
         
-        white_mask = cv2.inRange(hsv, lower_white, upper_white)
-        white_ratio = (np.count_nonzero(white_mask) / (image.shape[0] * image.shape[1])) * 100
-        
-        return white_ratio > 15
-    
+        return red_ratio > 5
 
 def process_echo_image(image, region_key):
     element_coords = SCAN_REGIONS["element"]
@@ -484,7 +486,7 @@ def process_echo_image(image, region_key):
     circle_bgra = cv2.cvtColor(element_img, cv2.COLOR_BGR2BGRA)
     circle_bgra[:, :, 3] = circle_mask[:, :, 3]
     
-    rim_thickness = 9
+    rim_thickness = max(int(min(w, h) * 0.115), 1)
     donut_mask = circle_mask.copy()
     cv2.circle(donut_mask, center, radius-rim_thickness, (0, 0, 0, 0), -1)
     donut_bgra = cv2.cvtColor(element_img, cv2.COLOR_BGR2BGRA)
@@ -504,10 +506,10 @@ def get_element_info(element_img):
     
     element_colors = {
         'healing': {'lower': np.array([40, 0, 0]), 'upper': np.array([94, 255, 255])},
-        'attack': {'lower': np.array([0, 36, 139]), 'upper': np.array([5, 225, 221])},
+        'attack': {'lower': np.array([0, 150, 100]), 'upper': np.array([5, 255, 200])},
         'electro': {'lower': np.array([130, 40, 150]), 'upper': np.array([145, 255, 255])},
         'er': {'lower': np.array([0, 0, 180]), 'upper': np.array([180, 30, 255])},
-        'fusion': {'lower': np.array([0, 62, 123]), 'upper': np.array([68, 175, 255])},
+        'fusion': {'lower': np.array([5, 50, 150]), 'upper': np.array([25, 255, 255])},
         'glacio': {'lower': np.array([85, 40, 150]), 'upper': np.array([115, 255, 255])},
         'havoc': {'lower': np.array([150, 0, 150]), 'upper': np.array([180, 255, 255])},
         'aero': {'lower': np.array([68, 120, 52]), 'upper': np.array([88, 220, 152])},
@@ -524,12 +526,15 @@ def get_element_info(element_img):
     highest = sorted_elements[0]
     second = sorted_elements[1] if len(sorted_elements) > 1 else None
     
-    if highest[1] > 22.4:
-        if second and second[1] > 23:
+    print(f"\nElement Detection Ratios:")
+    print(f"Highest: {highest[0]} - {highest[1]:.2f}%")
+    if second:
+        print(f"Second: {second[0]} - {second[1]:.2f}%")
+    
+    if highest[1] > 33:
+        if second and second[1] > 30:
             return [highest[0], second[0]]
         return [highest[0]]
-    elif second:
-        return [highest[0], second[0]]
     return [highest[0]]
 
 def get_icon(circle_bgra, possible_elements):

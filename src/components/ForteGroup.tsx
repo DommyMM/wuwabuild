@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { Character } from '../types/character';
 import { forteImagePaths } from '../types/node';
 import type { ForteImagePaths, SkillBranch } from '../types/node';
@@ -163,11 +163,13 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
   onChange,
   ocrData
 }) => {
-  useEffect(() => {
-    if (ocrData?.type === 'Forte') {
-      onChange(ocrData.nodeStates, ocrData.levels);
-    }
-  }, [ocrData, onChange]);
+  const [lastOcrData, setLastOcrData] = useState<string | undefined>();
+
+  if (ocrData?.type === 'Forte' && 
+      JSON.stringify(ocrData) !== lastOcrData) {
+    setLastOcrData(JSON.stringify(ocrData));
+    onChange(ocrData.nodeStates, ocrData.levels);
+  }
 
   const skillBranches: SkillBranch[] = [
     { skillName: 'Normal Attack', skillKey: 'normal-attack', treeKey: 'tree1' },

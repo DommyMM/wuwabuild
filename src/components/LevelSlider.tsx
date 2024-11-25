@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 
 interface LevelSliderProps {
   value: number;
@@ -13,8 +13,24 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [lastOcrLevel, setLastOcrLevel] = useState<string | undefined>();
   const previousValueRef = useRef(value);
   const snapValues = useMemo(() => [1, 20, 40, 50, 60, 70, 80, 90], []);
+
+  useEffect(() => {
+    if (value === 1) {
+      setLastOcrLevel(undefined);
+    }
+  }, [value]);
+
+  useEffect(() => {
+    if (ocrLevel && 
+        ocrLevel !== lastOcrLevel && 
+        parseInt(ocrLevel) !== value) {
+      setLastOcrLevel(ocrLevel);
+      onLevelChange(parseInt(ocrLevel));
+    }
+  }, [ocrLevel, lastOcrLevel, value, onLevelChange]);
 
   const getDiamondLevel = (level: number) => {
     if (level <= 20) return 0;
@@ -98,10 +114,7 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
             autoFocus
           />
         ) : (
-          <div 
-            className="character-level-value"
-            onClick={startEditing}
-          >
+          <div className="character-level-value" onClick={startEditing}>
             {value}
           </div>
         )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Character } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
 import { OCRAnalysis } from '../types/ocr';
@@ -31,6 +31,9 @@ interface CharacterInfoProps {
   ocrData?: OCRAnalysis;
   characterLevel: string;
   onLevelChange?: (level: number) => void;
+  currentSequence: number;
+  preloadedWeapons?: Weapon[];
+  onWeaponDataReady?: (ready: boolean) => void;
 }
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
@@ -51,19 +54,18 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   onForteChange,
   ocrData,
   characterLevel,
-  onLevelChange
+  onLevelChange,
+  currentSequence,
+  preloadedWeapons,
+  onWeaponDataReady
 }) => {
-  const [sequence, setSequence] = useState(0);
 
   const handleLevelChange = (newLevel: number): void => {
     onLevelChange?.(newLevel);
   };
 
   const handleSequenceChange = (newSequence: number): void => {
-    setSequence(newSequence);
-    if (onSequenceChange) {
-      onSequenceChange(newSequence);
-    }
+    onSequenceChange?.(newSequence);
   };
 
   const handleWeaponSelect = (weapon: Weapon): void => {
@@ -124,7 +126,9 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
             characterName={displayName || ''}
             elementValue={elementValue}
             onSequenceChange={handleSequenceChange}
-            sequence={sequence}
+            sequence={currentSequence}
+            ocrSequence={ocrData?.type === 'Sequences' ? 
+              ocrData.sequence : undefined}
           />
           <WeaponSelection
             selectedCharacter={selectedCharacter}
@@ -132,13 +136,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
             onWeaponSelect={handleWeaponSelect}
             weaponConfig={weaponState.config}
             onWeaponConfigChange={handleWeaponConfigChange}
-            ocrData={ocrData?.type === 'Weapon' ? {
-              type: 'Weapon' as const,
-              name: ocrData.name,
-              weaponType: ocrData.weaponType,
-              level: ocrData.weaponLevel,
-              rank: ocrData.rank
-            } : undefined}
+            ocrData={ocrData?.type === 'Weapon' ? ocrData : undefined}
+            preloadedWeapons={preloadedWeapons}
           />
           <button 
             id="goNext" 

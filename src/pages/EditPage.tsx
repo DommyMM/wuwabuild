@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { Character, isRover } from '../types/character';
-import { Weapon, WeaponState } from '../types/weapon';
+import { Weapon, WeaponType, WeaponState } from '../types/weapon';
 import { EchoPanelState } from '../types/echo';
 import { OCRResponse, OCRAnalysis } from '../types/ocr';
 import { CharacterSelector } from '../components/CharacterSelector';
@@ -65,18 +65,33 @@ export const EditPage: React.FC = () => {
 
   const [ocrName, setOcrName] = useState<string | undefined>();
   const [ocrAnalysis, setOCRAnalysis] = useState<OCRAnalysis | undefined>();
+  const [weaponCache, setWeaponCache] = useState<Record<WeaponType, Weapon[]>>({} as Record<WeaponType, Weapon[]>);
 
   const handleOCRResult = useCallback((result: OCRResponse) => {
     if (result.success && result.analysis) {
       if (result.analysis.type === 'Character') {
         setOcrName(result.analysis.name);
-        if (characterLevel !== result.analysis.characterLevel.toString()) {
-          setCharacterLevel(result.analysis.characterLevel.toString());
+        setCharacterLevel(result.analysis.characterLevel.toString());
+      } 
+      else if (result.analysis.type === 'Weapon') {
+        const weaponAnalysis = result.analysis;
+        if (elementState.selectedCharacter?.weaponType === weaponAnalysis.weaponType) {
+          setWeaponState(prev => ({
+            ...prev,
+            config: {
+              level: weaponAnalysis.weaponLevel,
+              rank: weaponAnalysis.rank
+            }
+          }));
+        }
+      } else if (result.analysis.type === 'Sequences') {
+        if (currentSequence !== result.analysis.sequence) {
+          setCurrentSequence(result.analysis.sequence);
         }
       }
       setOCRAnalysis(result.analysis);
     }
-  }, [characterLevel]);
+  }, [currentSequence, elementState.selectedCharacter?.weaponType]);
 
   const handleEchoesClick = () => {
     setIsEchoesVisible(true);
@@ -100,20 +115,50 @@ export const EditPage: React.FC = () => {
     }));
   };
 
-  const handleCharacterSelect = useCallback((character: Character | null) => {
+  const handleCharacterSelect = useCallback(async (character: Character | null) => {
     if (character) {
       unlock();
+      if (!weaponCache[character.weaponType]) {
+        try {
+          const response = await fetch(`/Data/${character.weaponType}s.json`);
+          const data = await response.json();
+          setWeaponCache(prev => ({
+            ...prev,
+            [character.weaponType]: data
+          }));
+        } catch (error) {
+          console.error('Failed to load weapons:', error);
+        }
+      }
+
       setElementState({
         selectedCharacter: character,
         elementValue: isRover(character) ? "Havoc" : character.element,
         displayName: character.name.startsWith('Rover') ? 'RoverHavoc' : character.name
       });
+      setWeaponState({
+        selectedWeapon: null,
+        config: { level: 1, rank: 1 }
+      });
+      setCharacterLevel('1');
+      setCurrentSequence(0);
+      setNodeStates({});
+      setForteLevels({});
+      setEchoPanels(Array(5).fill(null).map(() => ({
+        echo: null,
+        level: 0,
+        selectedElement: null,
+        stats: {
+          mainStat: { type: null, value: null },
+          subStats: Array(5).fill({ type: null, value: null })
+        }
+      })));
     }
-  }, [unlock]);
+  }, [unlock, weaponCache]);
 
-  const handleSequenceChange = (sequence: number) => {
+  const handleSequenceChange = useCallback((sequence: number) => {
     setCurrentSequence(sequence);
-  };
+  }, []);
 
   const handleWeaponSelect = (weapon: Weapon | null) => {
     setWeaponState(prev => ({
@@ -166,7 +211,7 @@ export const EditPage: React.FC = () => {
 
   return (
     <div className="edit-page">
-      <div className="content">        
+      <div className="content">
         <h2>Edit Stats</h2>
         <div className="sticky-container">
           <div className="ocr-panel-container">
@@ -185,10 +230,7 @@ export const EditPage: React.FC = () => {
           </div>
         </div>
   
-        <CharacterSelector 
-          onSelect={handleCharacterSelect}
-          ocrName={ocrName}
-        />
+        <CharacterSelector onSelect={handleCharacterSelect} ocrName={ocrName} onLevelReset={() => setCharacterLevel('1')}/>
   
         <CharacterInfo
           selectedCharacter={elementState.selectedCharacter} 
@@ -209,6 +251,8 @@ export const EditPage: React.FC = () => {
           ocrData={ocrAnalysis}
           characterLevel={characterLevel}
           onLevelChange={handleLevelChange} 
+          currentSequence={currentSequence}
+          preloadedWeapons={elementState.selectedCharacter ? weaponCache[elementState.selectedCharacter.weaponType] : undefined}
         />
 
         <EchoesSection 
