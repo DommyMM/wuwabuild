@@ -23,78 +23,38 @@ export const StatsTab: React.FC<StatsTabProps> = ({
   const { mainStatsData, calculateValue } = useMain();
   const { substatsData, selectStatForPanel, unselectStatForPanel, isStatAvailableForPanel } = useSubstats();
 
-  const [stats, setStats] = useState<StatsState>({
-    mainStat: { type: null, value: null },
-    subStats: Array(5).fill({ type: null, value: null })
-  });
-
-  useEffect(() => {
-    if (initialStats) {
-      setStats(prev => ({
-        ...prev,
-        mainStat: initialStats.mainStat,
-        subStats: initialStats.subStats.map(substat => ({
-          type: substat.type,
-          value: substat.value
-        }))
-      }));
+  const [stats, setStats] = useState<StatsState>(() => 
+    initialStats || {
+      mainStat: { type: null, value: null },
+      subStats: Array(5).fill({ type: null, value: null })
     }
-  }, [initialStats]);
+  );
 
-  useEffect(() => {
-    if (!cost) {
-      const resetStats = {
-        mainStat: { type: null, value: null },
-        subStats: Array(5).fill({ type: null, value: null })
-      };
-      resetStats.subStats.forEach(substat => {
-        if (substat.type) unselectStatForPanel(panelId, substat.type);
-      });
-
-      setStats(resetStats);
-      onStatsChange(resetStats);
-    }
-  }, [cost, panelId, unselectStatForPanel, onStatsChange]);
-
-  useEffect(() => {
-    if (!stats.mainStat.type || !cost || !mainStatsData) return;
-  
-    const [min, max] = mainStatsData[`${cost}cost`].mainStats[stats.mainStat.type];
-    const newValue = calculateValue(min, max, level);
-  
-    if (stats.mainStat.value !== newValue) {
-      setStats(prev => {
+  const handleLevelChange = React.useCallback(() => {
+    setStats(currentStats => {
+      const { type, value } = currentStats.mainStat;
+      
+      if (!type || !cost || !mainStatsData) return currentStats;
+      
+      const [min, max] = mainStatsData[`${cost}cost`].mainStats[type];
+      const newValue = calculateValue(min, max, level);
+      
+      if (Math.abs((value || 0) - newValue) > 0.001) {
         const newStats = {
-          ...prev,
-          mainStat: { ...prev.mainStat, value: newValue }
+          ...currentStats,
+          mainStat: { ...currentStats.mainStat, value: newValue }
         };
         onStatsChange(newStats);
         return newStats;
-      });
-    }
-  }, [level, cost, mainStatsData, stats.mainStat.type, stats.mainStat.value, calculateValue, onStatsChange]);
+      }
+      
+      return currentStats;
+    });
+  }, [cost, level, mainStatsData, calculateValue, onStatsChange]);
 
   useEffect(() => {
-    if (!cost || !substatsData) return;
-
-    const newSubStats = stats.subStats.map(substat => {
-      if (!substat.type) return substat;
-      
-      const validValues = substatsData[substat.type];
-      if (!validValues || !validValues.length) return substat;
-
-      const value = substat.value ?? validValues[0];
-      return { ...substat, value };
-    });
-
-    if (JSON.stringify(newSubStats) !== JSON.stringify(stats.subStats)) {
-      setStats(prev => {
-        const newStats = { ...prev, subStats: newSubStats };
-        onStatsChange(newStats);
-        return newStats;
-      });
-    }
-  }, [cost, substatsData, stats.subStats, onStatsChange]);
+    handleLevelChange();
+  }, [handleLevelChange]);
 
   const handleMainStatChange = (type: string | null) => {
     if (!type || !mainStatsData || !cost) {
@@ -118,12 +78,61 @@ export const StatsTab: React.FC<StatsTabProps> = ({
     if (oldType) unselectStatForPanel(panelId, oldType);
     if (type) selectStatForPanel(panelId, type, oldType || undefined);
 
+    let newValue: number | null = value;
+    if (!newValue && type && substatsData) {
+      newValue = substatsData[type]?.[0] || null;
+    }
+
     const newSubStats = [...stats.subStats];
-    newSubStats[index] = { type, value };
+    newSubStats[index] = { 
+      type,
+      value: newValue
+    };
+    
     const newStats = { ...stats, subStats: newSubStats };
     setStats(newStats);
     onStatsChange(newStats);
   };
+
+  const handleReset = React.useCallback(() => {
+    if (!cost) {
+      const resetStats = {
+        mainStat: { type: null, value: null },
+        subStats: Array(5).fill({ type: null, value: null })
+      };
+      stats.subStats.forEach(substat => {
+        if (substat.type) unselectStatForPanel(panelId, substat.type);
+      });
+      setStats(resetStats);
+      onStatsChange(resetStats);
+    }
+  }, [cost, stats.subStats, panelId, unselectStatForPanel, onStatsChange]);
+
+  useEffect(() => {
+    handleReset();
+  }, [handleReset]);
+
+  useEffect(() => {
+    if (!cost || !substatsData) return;
+
+    const newSubStats = stats.subStats.map(substat => {
+      if (!substat.type) return substat;
+      
+      const validValues = substatsData[substat.type];
+      if (!validValues || !validValues.length) return substat;
+
+      const value = substat.value ?? validValues[0];
+      return { ...substat, value };
+    });
+
+    if (JSON.stringify(newSubStats) !== JSON.stringify(stats.subStats)) {
+      setStats(prev => {
+        const newStats = { ...prev, subStats: newSubStats };
+        onStatsChange(newStats);
+        return newStats;
+      });
+    }
+  }, [cost, substatsData, stats.subStats, onStatsChange]);
 
   return (
     <div className="stats-tab">

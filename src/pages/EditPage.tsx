@@ -1,18 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { Character, isRover } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
-import { OCRData } from '../types/ocr';
-import { EchoPanelState, ElementType, Echo, COST_SECTIONS } from '../types/echo';
+import { EchoPanelState } from '../types/echo';
+import { OCRResponse, OCRAnalysis } from '../types/ocr';
 import { CharacterSelector } from '../components/CharacterSelector';
 import { CharacterInfo } from '../components/CharacterInfo';
 import { EchoesSection } from '../components/EchoSection';
 import { BuildCard } from '../components/BuildCard';
 import { Scan } from '../components/Scan';
 import { useOCRContext } from '../contexts/OCRContext';
-import { useEchoes } from '../hooks/useEchoes';
-import { useMain } from '../hooks/useMain';
-import { useSubstats } from '../hooks/useSub';
 import '../styles/App.css';
 
 export interface ElementState {
@@ -21,55 +18,8 @@ export interface ElementState {
   displayName: string | undefined;
 }
 
-const hasLevel = (data: OCRData): data is Extract<OCRData, { level: number }> => 
-  'level' in data;
-
-interface SubstatData {
-  name: string;
-  value: string;
-}
-
-const findClosestValue = (target: number, values: number[]): number => {
-  return values.reduce((prev, curr) => 
-    Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev
-  );
-};
-
-const matchSubstat = (substat: SubstatData, substatsData: any) => {
-  const numberValue = parseFloat(substat.value.replace('%', ''));
-  const isPercentage = substat.value.includes('%');
-  
-  let searchStatName = substat.name;
-  if (['HP', 'ATK', 'DEF'].includes(searchStatName) && isPercentage) {
-    searchStatName = `${searchStatName}%`;
-  }
-  if (searchStatName.startsWith('Resonance ')) {
-    searchStatName = searchStatName.replace('Resonance ', '');
-  }
-
-  const validSubstats = Object.keys(substatsData);
-  const matchedStatName = validSubstats.find(stat => 
-    searchStatName.toLowerCase() === stat.toLowerCase()
-  );
-
-  if (!matchedStatName) {
-    console.log('Failed to match substat:', { 
-      original: substat.name,
-      searched: searchStatName,
-      value: substat.value 
-    });
-  }
-
-  if (matchedStatName) {
-    const validValues = substatsData[matchedStatName];
-    const matchedValue = findClosestValue(numberValue, validValues);
-    return { type: matchedStatName, value: matchedValue };
-  }
-
-  return { type: null, value: null };
-};
-
 export const EditPage: React.FC = () => {
+  const { unlock } = useOCRContext();
   const [isOCRPanelOpen, setIsOCRPanelOpen] = useState(false);
   
   const [elementState, setElementState] = useState<ElementState>({
@@ -78,7 +28,7 @@ export const EditPage: React.FC = () => {
     displayName: undefined
   });
 
-  const [characterLevel, setCharacterLevel] = useState('90');
+  const [characterLevel, setCharacterLevel] = useState('1');
   const [isEchoesVisible, setIsEchoesVisible] = useState(false);
   const [currentSequence, setCurrentSequence] = useState(0);
   const echoesRef = useRef<HTMLElement>(null);
@@ -113,178 +63,20 @@ export const EditPage: React.FC = () => {
     { skillName: 'Intro Skill', skillKey: 'intro', treeKey: 'tree5' }
   ];
 
-  const { ocrResult } = useOCRContext();
-  
-  const ocrData = React.useMemo<OCRData | undefined>(() => {
-    if (!ocrResult?.success || !ocrResult.analysis) return undefined;
-  
-    switch (ocrResult.analysis.type) {
-      case 'Character':
-        return {
-          type: 'Character' as const,
-          name: ocrResult.analysis.name,
-          level: ocrResult.analysis.level
-        };
-      case 'Weapon':
-        return {
-          type: 'Weapon' as const,
-          name: ocrResult.analysis.name,
-          weaponType: ocrResult.analysis.weaponType,
-          level: ocrResult.analysis.level,
-          rank: ocrResult.analysis.rank
-        };
-      case 'Sequences':
-        return {
-          type: 'Sequences' as const,
-          sequence: ocrResult.analysis.sequence
-        };
-      case 'Forte':
-        const nodeStates = {
-          tree1: { top: ocrResult.analysis.normal[1] === 1, middle: ocrResult.analysis.normal[2] === 1 },
-          tree2: { top: ocrResult.analysis.skill[1] === 1, middle: ocrResult.analysis.skill[2] === 1 },
-          tree3: { top: ocrResult.analysis.circuit[1] === 1, middle: ocrResult.analysis.circuit[2] === 1 },
-          tree4: { top: ocrResult.analysis.liberation[1] === 1, middle: ocrResult.analysis.liberation[2] === 1 },
-          tree5: { top: ocrResult.analysis.intro[1] === 1, middle: ocrResult.analysis.intro[2] === 1 }
-        };
+  const [ocrName, setOcrName] = useState<string | undefined>();
+  const [ocrAnalysis, setOCRAnalysis] = useState<OCRAnalysis | undefined>();
 
-        const levels = {
-          'normal-attack': ocrResult.analysis.normal[0],
-          'skill': ocrResult.analysis.skill[0],
-          'circuit': ocrResult.analysis.circuit[0], 
-          'liberation': ocrResult.analysis.liberation[0],
-          'intro': ocrResult.analysis.intro[0]
-        };
-
-        return {
-          type: 'Forte' as const,
-          nodeStates,
-          levels
-        };
-      case 'Echo':
-        if (!hasScrolledToEchoes.current) {
-          setTimeout(() => {
-            echoesRef.current?.scrollIntoView({ behavior: 'smooth' });
-            hasScrolledToEchoes.current = true;
-          }, 100);
+  const handleOCRResult = useCallback((result: OCRResponse) => {
+    if (result.success && result.analysis) {
+      if (result.analysis.type === 'Character') {
+        setOcrName(result.analysis.name);
+        if (characterLevel !== result.analysis.characterLevel.toString()) {
+          setCharacterLevel(result.analysis.characterLevel.toString());
         }
-        return {
-          type: 'Echo' as const,
-          name: ocrResult.analysis.raw_texts.name,
-          level: parseInt(ocrResult.analysis.raw_texts.level.replace('+', ''), 10),
-          element: ocrResult.analysis.element,
-          mainStat: ocrResult.analysis.raw_texts.main,
-          subs: ocrResult.analysis.raw_texts.subs
-        } as const;
-      default:
-        return undefined;
+      }
+      setOCRAnalysis(result.analysis);
     }
-  }, [ocrResult]);
-
-  useEffect(() => {
-    if (elementState.selectedCharacter) {
-      setCharacterLevel('1');
-      setCurrentSequence(0);
-      setClickCount(0);
-      setNodeStates({});
-      setForteLevels({});
-      setEchoPanels(Array(5).fill(null).map(() => ({
-        echo: null,
-        level: 0,
-        selectedElement: null,
-        stats: {
-          mainStat: { type: null, value: null },
-          subStats: Array(5).fill({ type: null, value: null })
-        }
-      })));
-    }
-  }, [elementState.selectedCharacter]);
-
-  useEffect(() => {
-    if (ocrData && hasLevel(ocrData)) {
-      setCharacterLevel(ocrData.level.toString());
-    }
-  }, [ocrData]);
-
-  const { echoesByCost } = useEchoes();
-  const { mainStatsData } = useMain();
-  const { substatsData } = useSubstats();
-
-  useEffect(() => {
-    if (ocrData?.type === 'Echo') {
-      setEchoPanels(prev => {
-        const newPanels = [...prev];
-        const emptyIndex = prev.findIndex(p => !p.echo);
-        if (emptyIndex === -1) return prev;
-  
-        let foundEcho: Echo | null = null;
-        for (const cost of COST_SECTIONS) {
-          foundEcho = echoesByCost[cost]?.find((e: Echo) => 
-            e.name.toLowerCase() === ocrData.name.toLowerCase()
-          ) ?? null;
-          if (foundEcho) break;
-        }
-  
-        if (!foundEcho) return prev;
-  
-        const mainStats = mainStatsData?.[`${foundEcho.cost}cost`]?.mainStats || {};
-        const validMainStats = Object.keys(mainStats);
-        let searchMainStat = ocrData.mainStat.name;
-        if (['HP', 'ATK', 'DEF'].includes(searchMainStat)) {
-          searchMainStat = `${searchMainStat}%`;
-        }
-  
-        const matchedMainStat = validMainStats.find(stat => 
-          searchMainStat.toLowerCase().includes(stat.toLowerCase())
-        ) || null;
-  
-        const elementType = ocrData.element.charAt(0).toUpperCase() + 
-                           ocrData.element.slice(1) as ElementType;
-  
-        const matchedSubstats = ocrData.subs.map((substat: SubstatData) =>
-          matchSubstat(substat, substatsData)
-        ).filter(result => result.type !== null); 
-
-        newPanels[emptyIndex] = {
-          ...newPanels[emptyIndex],
-          echo: foundEcho,
-          level: ocrData.level,
-          selectedElement: elementType,
-          stats: {
-            mainStat: { 
-              type: matchedMainStat,
-              value: null 
-            },
-            subStats: [
-              ...matchedSubstats,
-              ...Array(5 - matchedSubstats.length).fill({ type: null, value: null })
-            ]
-          }
-        };
-
-        setTimeout(() => {
-          const panelId = `panel${emptyIndex + 1}`;
-          matchedSubstats.forEach((substat, index) => {
-            const select = document.querySelector(
-              `#${panelId} .substat-${index} select`
-            ) as HTMLSelectElement;
-            
-            if (select && substat.type) {
-              select.value = substat.type;
-              select.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          });
-        }, 0);
-  
-        return newPanels;
-      });
-    }
-  }, [ocrData, echoesByCost, mainStatsData, substatsData]);
-
-  useEffect(() => {
-    if (ocrResult?.success && ocrResult.analysis?.type === 'Echo') {
-      setIsEchoesVisible(true);
-    }
-  }, [ocrResult]);
+  }, [characterLevel]);
 
   const handleEchoesClick = () => {
     setIsEchoesVisible(true);
@@ -308,22 +100,16 @@ export const EditPage: React.FC = () => {
     }));
   };
 
-  const handleCharacterSelect = (character: Character | null) => {
-    setElementState({
-      selectedCharacter: character,
-      elementValue: character ? 
-        (isRover(character) ? "Havoc" : character.element) : 
-        undefined,
-      displayName: character?.name.startsWith('Rover') ? 
-        'RoverHavoc' : 
-        character?.name
-    });
-    setCharacterLevel('1');
-    setWeaponState({
-      selectedWeapon: null,
-      config: { level: 1, rank: 1 }
-    });
-  };
+  const handleCharacterSelect = useCallback((character: Character | null) => {
+    if (character) {
+      unlock();
+      setElementState({
+        selectedCharacter: character,
+        elementValue: isRover(character) ? "Havoc" : character.element,
+        displayName: character.name.startsWith('Rover') ? 'RoverHavoc' : character.name
+      });
+    }
+  }, [unlock]);
 
   const handleSequenceChange = (sequence: number) => {
     setCurrentSequence(sequence);
@@ -374,23 +160,26 @@ export const EditPage: React.FC = () => {
     setIsOCRPanelOpen(!isOCRPanelOpen);
   };
 
+  const handleLevelChange = useCallback((level: number) => {
+    setCharacterLevel(level.toString());
+  }, []);
+
   return (
     <div className="edit-page">
       <div className="content">        
         <h2>Edit Stats</h2>
         <div className="sticky-container">
           <div className="ocr-panel-container">
-            <button 
-              onClick={toggleOCRPanel}
-              className="switch"
-            >
+            <button onClick={toggleOCRPanel} className="switch">
               {isOCRPanelOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
               Scan Images
             </button>
-            
             <div className={`ocr-panel${isOCRPanelOpen ? ' open' : ''}`}>
               <div className="panel-content">
-                <Scan />
+                <Scan 
+                  onOCRComplete={handleOCRResult}
+                  currentCharacterType={elementState.selectedCharacter?.weaponType.replace(/s$/, '')}
+                />
               </div>
             </div>
           </div>
@@ -398,10 +187,7 @@ export const EditPage: React.FC = () => {
   
         <CharacterSelector 
           onSelect={handleCharacterSelect}
-          ocrData={ocrData?.type === 'Character' ? {
-            name: ocrData.name,
-            level: ocrData.level
-          } : undefined}
+          ocrName={ocrName}
         />
   
         <CharacterInfo
@@ -420,8 +206,9 @@ export const EditPage: React.FC = () => {
           clickCount={clickCount}
           onMaxClick={handleMaxClick}
           onForteChange={handleForteChange}
-          initialLevel={ocrData?.type === 'Character' ? ocrData.level : undefined}
-          ocrData={ocrResult?.analysis}
+          ocrData={ocrAnalysis}
+          characterLevel={characterLevel}
+          onLevelChange={handleLevelChange} 
         />
 
         <EchoesSection 

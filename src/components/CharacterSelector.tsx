@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Character } from '../types/character';
 import { useCharacters } from '../hooks/useCharacters';
 import { useModalClose } from '../hooks/useModalClose';
@@ -7,17 +7,16 @@ import '../styles/modal.css';
 
 interface CharacterSelectorProps {
   onSelect: (character: Character | null) => void;
+  ocrName?: string;
 }
 
-interface OCRCharacterProps extends CharacterSelectorProps {
-  ocrData?: { name: string; level: number; element?: string;};
-}
-
-export const CharacterSelector: React.FC<OCRCharacterProps> = ({ onSelect, ocrData }) => {
+export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ 
+  onSelect, 
+  ocrName 
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const { characters, loading, error } = useCharacters();
-  const initialSelectionMade = useRef(false);
 
   useModalClose(isModalOpen, () => setIsModalOpen(false));
 
@@ -27,21 +26,16 @@ export const CharacterSelector: React.FC<OCRCharacterProps> = ({ onSelect, ocrDa
     onSelect(character);
   }, [onSelect]);
 
-  useEffect(() => {
-    if (ocrData?.name && characters.length > 0 && !initialSelectionMade.current) {
-      const matchedCharacter = characters.find(
-        char => char.name.toLowerCase() === ocrData.name.toLowerCase()
-      );
-      if (matchedCharacter) {
-        initialSelectionMade.current = true;
-        handleCharacterSelect(matchedCharacter);
-      }
+  if (ocrName && 
+      characters.length > 0 && 
+      (!selectedCharacter || selectedCharacter.name.toLowerCase() !== ocrName.toLowerCase())) {
+    const matchedCharacter = characters.find(
+      char => char.name.toLowerCase() === ocrName.toLowerCase()
+    );
+    if (matchedCharacter) {
+      handleCharacterSelect(matchedCharacter);
     }
-  }, [ocrData, characters, handleCharacterSelect]);
-
-  useEffect(() => {
-    initialSelectionMade.current = false;
-  }, [ocrData]);
+  }
 
   return (
     <>

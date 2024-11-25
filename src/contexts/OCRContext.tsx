@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState } from 'react';
-import type { 
-  OCRResponse, 
-  OCRContextType
-} from '../types/ocr';
+import type { OCRResponse, OCRContextType } from '../types/ocr';
 import { 
   isCharacterAnalysis, 
   isWeaponAnalysis,
-  validateLevel,
-  validateRank 
+  isEchoAnalysis,
+  validateCharacterLevel,
+  validateWeaponLevel,
+  validateRank,
+  validateEchoLevel,
+  validateEchoElement
 } from '../types/ocr';
 
 const OCRContext = createContext<OCRContextType | null>(null);
@@ -22,6 +23,7 @@ export const useOCRContext = () => {
 
 export const OCRProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [ocrResult, setOCRResult] = useState<OCRResponse | null>(null);
+  const [isLocked, setIsLocked] = useState(true);
   
   const setValidatedOCRResult = (result: OCRResponse) => {
     if (!result.success || !result.analysis) {
@@ -30,24 +32,40 @@ export const OCRProvider: React.FC<{children: React.ReactNode}> = ({ children })
     }
 
     if (isCharacterAnalysis(result.analysis)) {
-      const validatedLevel = validateLevel(result.analysis.level);
+      const validatedLevel = validateCharacterLevel(result.analysis.characterLevel);
       setOCRResult({
         ...result,
         analysis: {
           ...result.analysis,
-          level: validatedLevel
+          characterLevel: validatedLevel
         }
       });
+      setIsLocked(false);
     } 
     else if (isWeaponAnalysis(result.analysis)) {
-      const validatedLevel = validateLevel(result.analysis.level);
+      const validatedLevel = validateWeaponLevel(result.analysis.weaponLevel);
       const validatedRank = validateRank(result.analysis.rank);
       setOCRResult({
         ...result,
         analysis: {
           ...result.analysis,
-          level: validatedLevel,
+          weaponLevel: validatedLevel,
           rank: validatedRank
+        }
+      });
+    }
+    else if (isEchoAnalysis(result.analysis)) {
+      const validatedLevel = validateEchoLevel(result.analysis.raw_texts.echoLevel);
+      const validatedElement = validateEchoElement(result.analysis.element);
+      setOCRResult({
+        ...result,
+        analysis: {
+          ...result.analysis,
+          element: validatedElement,
+          raw_texts: {
+            ...result.analysis.raw_texts,
+            echoLevel: `+${validatedLevel}`
+          }
         }
       });
     }
@@ -56,13 +74,13 @@ export const OCRProvider: React.FC<{children: React.ReactNode}> = ({ children })
     }
   };
 
-  const clearOCRResult = () => setOCRResult(null);
-
   return (
     <OCRContext.Provider value={{ 
       ocrResult, 
       setOCRResult: setValidatedOCRResult, 
-      clearOCRResult 
+      clearOCRResult: () => setOCRResult(null),
+      isLocked,
+      unlock: () => setIsLocked(false)
     }}>
       {children}
     </OCRContext.Provider>

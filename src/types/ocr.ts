@@ -1,6 +1,6 @@
 export type OCRData = 
-  | { type: 'Character'; name: string; level: number }
-  | { type: 'Weapon'; name: string; weaponType: string; level: number; rank: number }
+  | { type: 'Character'; name: string; characterLevel: number}
+  | { type: 'Weapon'; name: string; weaponType: string; weaponLevel: number; rank: number }
   | { type: 'Sequences'; sequence: number }
   | { 
       type: 'Forte'; 
@@ -10,7 +10,7 @@ export type OCRData =
   | { 
       type: 'Echo'; 
       name: string; 
-      level: number; 
+      echoLevel: number; 
       element: string;
       mainStat: { name: string; value: string };
       subs: Array<{ name: string; value: string }> 
@@ -23,7 +23,7 @@ export interface BaseAnalysis {
 export interface CharacterAnalysis extends BaseAnalysis {
   type: 'Character';
   name: string;
-  level: number;
+  characterLevel: number;
   element: string;
 }
 
@@ -31,7 +31,7 @@ export interface WeaponAnalysis extends BaseAnalysis {
   type: 'Weapon';
   name: string;
   weaponType: string;
-  level: number;
+  weaponLevel: number;
   rank: number;
 }
 
@@ -54,7 +54,7 @@ export interface EchoAnalysis extends BaseAnalysis {
   element: string;
   raw_texts: {
     name: string;
-    level: string;
+    echoLevel: string;
     main: {
       name: string;
       value: string;
@@ -88,6 +88,8 @@ export interface OCRContextType {
   ocrResult: OCRResponse | null;
   setOCRResult: (result: OCRResponse) => void;
   clearOCRResult: () => void;
+  isLocked: boolean;
+  unlock: () => void;
 }
 
 export const validateLevel = (level: string | number | undefined): number => {
@@ -147,17 +149,25 @@ export const validateEchoStatValue = (value: string): string | null => {
   return isPercent ? `${num}%` : `${num}`;
 };
 
+export const validateCharacterLevel = (level: string | number | undefined): number => {
+  if (!level) return 1;
+  const parsed = typeof level === 'string' ? parseInt(level, 10) : level;
+  return isNaN(parsed) || parsed < 1 || parsed > 90 ? 1 : parsed;
+};
+
+export const validateWeaponLevel = validateCharacterLevel;
+
 export const isCharacterAnalysis = (analysis: OCRAnalysis): analysis is CharacterAnalysis => 
   analysis.type === 'Character' && 
   typeof analysis.name === 'string' &&
   typeof analysis.element === 'string' &&
-  (!analysis.level || (typeof analysis.level === 'number' && analysis.level >= 1 && analysis.level <= 90));
+  (!analysis.characterLevel || (typeof analysis.characterLevel === 'number' && analysis.characterLevel >= 1 && analysis.characterLevel <= 90));
 
 export const isWeaponAnalysis = (analysis: OCRAnalysis): analysis is WeaponAnalysis =>
   analysis.type === 'Weapon' &&
   typeof analysis.name === 'string' &&
   typeof analysis.weaponType === 'string' &&
-  (!analysis.level || (typeof analysis.level === 'number' && analysis.level >= 1 && analysis.level <= 90)) &&
+  (!analysis.weaponLevel || (typeof analysis.weaponLevel === 'number' && analysis.weaponLevel >= 1 && analysis.weaponLevel <= 90)) &&
   (!analysis.rank || (typeof analysis.rank === 'number' && analysis.rank >= 1 && analysis.rank <= 5));
 
 export const isSequenceAnalysis = (analysis: OCRAnalysis): analysis is SequenceAnalysis =>
@@ -193,7 +203,7 @@ export const isEchoAnalysis = (analysis: OCRAnalysis): analysis is EchoAnalysis 
   return (
     typeof analysis.element === 'string' &&
     typeof analysis.raw_texts?.name === 'string' &&
-    typeof analysis.raw_texts?.level === 'string' &&
+    typeof analysis.raw_texts?.echoLevel === 'string' &&
     typeof analysis.raw_texts?.main?.name === 'string' &&
     mainValue !== null &&
     Array.isArray(analysis.raw_texts?.subs) &&

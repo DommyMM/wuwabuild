@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Character } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
 import { OCRAnalysis } from '../types/ocr';
@@ -28,15 +28,15 @@ interface CharacterInfoProps {
     levels: Record<string, number>
   ) => void;
   clickCount: number;
-  initialLevel?: number; 
   ocrData?: OCRAnalysis;
+  characterLevel: string;
+  onLevelChange?: (level: number) => void;
 }
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
   selectedCharacter, 
   displayName,
   elementValue,
-  initialLevel,
   onEchoesClick,
   onGenerateClick,
   onSpectroToggle,
@@ -49,36 +49,14 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   clickCount,
   onMaxClick,
   onForteChange,
-  ocrData
+  ocrData,
+  characterLevel,
+  onLevelChange
 }) => {
-  const [level, setLevel] = useState(initialLevel || 1);
   const [sequence, setSequence] = useState(0);
 
-  useEffect(() => {
-    if (selectedCharacter) {
-      if (!ocrData) {
-        setLevel(initialLevel || 1);
-        setSequence(0);
-      }
-    }
-  }, [selectedCharacter, initialLevel, ocrData]);
-
-  useEffect(() => {
-    if (ocrData?.type === 'Character') {
-      setLevel(ocrData.level);
-    } else if (ocrData?.type === 'Sequences') {
-      setSequence(ocrData.sequence);
-      if (onSequenceChange) {
-        onSequenceChange(ocrData.sequence);
-      }
-    }
-  }, [ocrData, onSequenceChange]);
-
   const handleLevelChange = (newLevel: number): void => {
-    setLevel(newLevel);
-    if (onGenerateClick) {
-      onGenerateClick(newLevel);
-    }
+    onLevelChange?.(newLevel);
   };
 
   const handleSequenceChange = (newSequence: number): void => {
@@ -137,9 +115,10 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
             </button>
           )}
           <LevelSlider 
-            value={level}
+            value={parseInt(characterLevel)}
             onLevelChange={handleLevelChange}
-            initialLevel={initialLevel}
+            ocrLevel={ocrData?.type === 'Character' ? 
+              ocrData.characterLevel.toString() : undefined}
           />
           <SequenceGroup
             characterName={displayName || ''}
@@ -153,7 +132,13 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
             onWeaponSelect={handleWeaponSelect}
             weaponConfig={weaponState.config}
             onWeaponConfigChange={handleWeaponConfigChange}
-            ocrData={ocrData?.type === 'Weapon' ? ocrData : undefined}
+            ocrData={ocrData?.type === 'Weapon' ? {
+              type: 'Weapon' as const,
+              name: ocrData.name,
+              weaponType: ocrData.weaponType,
+              level: ocrData.weaponLevel,
+              rank: ocrData.rank
+            } : undefined}
           />
           <button 
             id="goNext" 

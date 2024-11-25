@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ImagePreview, ImageUploader } from './ImageComponents';
 import { useOCRContext } from '../contexts/OCRContext';
 import { OCRResponse, OCRAnalysis, CharacterAnalysis, WeaponAnalysis } from '../types/ocr';
@@ -15,6 +15,11 @@ interface ImageData {
   details?: string;
 }
 
+interface ScanProps {
+  onOCRComplete: (result: OCRResponse) => void;
+  currentCharacterType?: string;
+}
+
 const MAX_IMAGES = 10;
 const TIMEOUT_MS = 30000;
 
@@ -27,44 +32,47 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-export const Scan: React.FC = () => {
+const getAnalysisDetails = (analysis?: OCRAnalysis): string | undefined => {
+  if (!analysis) return undefined;
+  
+  switch (analysis.type) {
+    case 'Character':
+      return `Lv.${analysis.characterLevel} ${analysis.name}`;
+    case 'Weapon':
+      return `${analysis.weaponType}: ${analysis.name}\nLv.${analysis.weaponLevel} R${analysis.rank}`;
+    case 'Sequences':
+      return `Sequence ${analysis.sequence}`;
+    case 'Forte':
+      return 'Forte Tree';
+    case 'Echo':
+      return `Lv.${analysis.raw_texts.echoLevel} ${analysis.raw_texts.name}\n${analysis.element.charAt(0).toUpperCase() + analysis.element.slice(1)}`;
+    default:
+      return undefined;
+  }
+};
+
+export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType }) => {
+  const { setOCRResult, isLocked } = useOCRContext();
   const [images, setImages] = useState<ImageData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
   const blobUrlsRef = useRef<string[]>([]);
-  const { setOCRResult } = useOCRContext();
-  const [currentCharacterType, setCurrentCharacterType] = useState<string | null>(null);
   const { characters } = useCharacters();
+  const processingQueueRef = useRef<ImageData[]>([]);
+  const [hasQueueMessage, setHasQueueMessage] = useState(false);
 
   const clearImages = () => {
     blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
     blobUrlsRef.current = [];
     setImages([]);
     setErrorMessages([]);
-  };
-
-  const getAnalysisDetails = (analysis?: OCRAnalysis): string | undefined => {
-    if (!analysis) return undefined;
-    switch (analysis.type) {
-      case 'Character':
-        return `Lv.${analysis.level} ${analysis.name}`;
-      case 'Weapon':
-        return `${analysis.weaponType}: ${analysis.name}\nLv.${analysis.level} R${analysis.rank}`;
-      case 'Sequences':
-        return `Sequence ${analysis.sequence}`;
-      case 'Forte':
-        return 'Forte Tree';
-      case 'Echo':
-        const level = analysis.raw_texts.level.replace('+', '');
-        const capitalizedElement = analysis.element.charAt(0).toUpperCase() + analysis.element.slice(1);
-        return `Lv.${level} ${analysis.raw_texts.name}\n${capitalizedElement}`;
-      default:
-        return undefined;
-    }
+    setHasQueueMessage(false);
   };
 
   const processImage = async (image: ImageData) => {
     try {
+      setErrorMessages([]);
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -86,31 +94,37 @@ export const Scan: React.FC = () => {
         const characterAnalysis = result.analysis as CharacterAnalysis;
         
         if (characterAnalysis.name === 'Rover') {
-          setErrorMessages(prev => [...prev,
-            `Rover detected\nSelect gender --->`
-          ]);
+          setErrorMessages(['Rover detected\nSelect gender --->']);
           characterAnalysis.name = 'Rover (F)';
         }
       
         const matchedCharacter = characters.find(
           char => char.name.toLowerCase() === characterAnalysis.name.toLowerCase()
         );
-        if (matchedCharacter) {
-          setCurrentCharacterType(matchedCharacter.weaponType.replace(/s$/, ''));
+        if (!matchedCharacter) {
+          setErrorMessages(['Character not found']);
+          return;
         }
+      }
+      else if (isLocked) {
+        processingQueueRef.current.push(image);
+        setHasQueueMessage(true);
+        setErrorMessages(['Select character first']);
+        return;
       }
       else if (result.analysis?.type === 'Weapon' && currentCharacterType) {
         const weaponAnalysis = result.analysis as WeaponAnalysis;
         const normalizedWeaponType = weaponAnalysis.weaponType.replace(/s$/, '');
         
         if (normalizedWeaponType !== currentCharacterType) {
-          setErrorMessages(prev => [...prev, 
-            `Weapon type mismatch:\nExpected: ${currentCharacterType}\n Scanned: ${weaponAnalysis.weaponType}`
+          setErrorMessages([
+            `Weapon mismatch:\nExpected: ${currentCharacterType}\nScanned: ${weaponAnalysis.weaponType}`
           ]);
         }
       }
 
       setOCRResult(result);
+      onOCRComplete(result);
 
       setImages(prev => prev.map(img => 
         img.id === image.id ? 
@@ -130,6 +144,77 @@ export const Scan: React.FC = () => {
       ));
     }
   };
+
+  const processQueue = useCallback(async () => {
+    if (!isLocked && processingQueueRef.current.length > 0) {
+      const queuedImages = [...processingQueueRef.current];
+      processingQueueRef.current = [];
+      
+      try {
+        await Promise.all(queuedImages.map(async (image) => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+          const response = await fetch('http://localhost:5000/api/ocr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: await fileToBase64(image.file) }),
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          const result: OCRResponse = await response.json();
+          if (!result.success) {
+            throw new Error(result.error || 'OCR processing failed');
+          }
+
+          if (result.analysis?.type === 'Weapon' && currentCharacterType) {
+            const weaponAnalysis = result.analysis as WeaponAnalysis;
+            const normalizedWeaponType = weaponAnalysis.weaponType.replace(/s$/, '');
+            
+            if (normalizedWeaponType !== currentCharacterType) {
+              setErrorMessages(prev => [...prev, 
+                `Weapon type mismatch:\nExpected: ${currentCharacterType}\nScanned: ${weaponAnalysis.weaponType}`
+              ]);
+            }
+          }
+
+          setOCRResult(result);
+
+          setImages(prev => prev.map(img => 
+            img.id === image.id ? 
+              { 
+                ...img, 
+                category: result.analysis?.type,
+                details: result.analysis ? getAnalysisDetails(result.analysis) : undefined,
+                isLoading: false 
+              } : 
+              img
+          ));
+        }));
+      } catch (error) {
+        setImages(prev => prev.map(img => ({
+          ...img,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          isLoading: false
+        })));
+      }
+    }
+  }, [isLocked, currentCharacterType, setOCRResult, setErrorMessages]);
+
+  useEffect(() => {
+    if (!isLocked) {
+      processQueue();
+    }
+  }, [isLocked, processQueue]);
+
+  useEffect(() => {
+    if (!isLocked && hasQueueMessage) {
+      setHasQueueMessage(false);
+      setErrorMessages(prev => prev.filter(msg => msg !== 'Select character first'));
+    }
+  }, [isLocked, hasQueueMessage]);
 
   const handleFiles = async (files: File[]) => {
     if (images.length + files.length > MAX_IMAGES) {
@@ -159,9 +244,7 @@ export const Scan: React.FC = () => {
       blobUrlsRef.current = [...blobUrlsRef.current, ...newBlobUrls];
       setImages(prev => [...prev, ...newImages]);
     
-      for (const image of newImages) {
-        await processImage(image);
-      }
+      await Promise.all(newImages.map(processImage));
     } finally {
       setIsProcessing(false);
     }

@@ -271,7 +271,7 @@ def get_character_info(text):
             
     return {
         'name': name,
-        'level': level[0] if level else None,
+        'characterLevel': level[0] if level else None,
         'element': element
     }
 
@@ -279,7 +279,7 @@ def get_weapon_info(text):
     """Extract weapon info from OCR text"""
     lines = text.split('\n')
     if not lines:
-        return {'name': None, 'weaponType': None, 'level': None, 'rank': None}
+        return {'name': None, 'weaponType': None, 'weaponLevel': None, 'rank': None}
         
     first_line = lines[0].strip()\
                         .replace('©', '')\
@@ -324,7 +324,7 @@ def get_weapon_info(text):
         'type': 'Weapon', 
         'name': name,
         'weaponType': weapon_type,
-        'level': level[0] if level else None,
+        'weaponLevel': level[0] if level else None,
         'rank': rank
     }
 
@@ -597,7 +597,7 @@ def get_echo_info(processed_image, element):
         'element': element,
         'raw_texts': {
             'name': name_text,
-            'level': pytesseract.image_to_string(cost_img).strip().replace('\n', ' '),
+            'echoLevel': pytesseract.image_to_string(cost_img).strip().replace('\n', ' '),
             'main': main_stat,
             'subs': sub_stats
         }
