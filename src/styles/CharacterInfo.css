@@ -8,22 +8,67 @@
     min-width: 1800px;
 }
 
-.no-character-message {
-    font-size: 2.7vh;
+.character-header {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+    padding: 8px 16px;
+    border: 1px solid #444;
+    border-radius: 8px;
     background-color: #333;
     color: #fff;
-    padding: calc(min(1.3vh, 10px));
-    border-radius: calc(min(1.3vh, 10px));
+    font-family: 'Gowun', sans-serif;
+    font-size: 28px;
+    font-weight: bold;
     text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.character-header.with-chevron {
+    cursor: pointer;
+}
+
+.character-header:not(.with-chevron) {
+    cursor: default;
+}
+
+.character-header svg {
+    position: absolute;
+    left: 16px;
+    width: 28px;
+    height: 28px;
+    color: #888;
+    stroke-width: 2.5px;
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+}
+
+.character-header:hover svg {
+    color: #fff;
+}
+
+.character-header:hover {
+    background-color: #444;
+    border-color: #555;
 }
 
 .character-content {
-    display: none;
-    height: 650px;
-    padding: calc(min(1.3vh, 10px));
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    display: flex;
     flex-direction: column;
     align-items: center;
     position: relative;
+}
+
+.character-content.open {
+    max-height: 800px;
+    opacity: 1;
+    height: 675px;
 }
 
 .character-tab-icon {

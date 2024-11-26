@@ -164,7 +164,7 @@
     top: 37.5%; 
     left: 37.5%; 
     z-index: 1;
-    filter: invert(1);
+    filter: brightness(0);
 }
 
 .skill-branch:not(:nth-child(3)) .glowing-node.active .node-image {

@@ -33,7 +33,6 @@ export const EditPage: React.FC = () => {
   });
 
   const [characterLevel, setCharacterLevel] = useState('1');
-  const [isEchoesVisible, setIsEchoesVisible] = useState(false);
   const [currentSequence, setCurrentSequence] = useState(0);
   const echoesRef = useRef<HTMLElement>(null);
   const { echoesByCost } = useEchoes();
@@ -99,7 +98,8 @@ export const EditPage: React.FC = () => {
       else if (result.analysis.type === 'Echo') {
         const echoAnalysis = result.analysis;
         if (!hasScrolledToEchoes.current) {
-          handleEchoesClick();
+          echoesRef.current?.scrollIntoView({ behavior: 'smooth' });
+          setIsEchoesMinimized(false);
           hasScrolledToEchoes.current = true;
         }
 
@@ -132,13 +132,6 @@ export const EditPage: React.FC = () => {
     }
   }, [currentSequence, elementState.selectedCharacter?.weaponType, echoesByCost, mainStatsData, substatsData, calculateValue]);
 
-  const handleEchoesClick = () => {
-    setIsEchoesVisible(true);
-    setTimeout(() => {
-      echoesRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
-
   const handleGenerateClick = (level: number) => {
     setCharacterLevel(level.toString());
   };
@@ -155,26 +148,28 @@ export const EditPage: React.FC = () => {
   };
 
   const handleCharacterSelect = useCallback(async (character: Character | null) => {
-    if (character) {
-      unlock();
-      if (!weaponCache[character.weaponType]) {
-        try {
-          const response = await fetch(`/Data/${character.weaponType}s.json`);
-          const data = await response.json();
-          setWeaponCache(prev => ({
-            ...prev,
-            [character.weaponType]: data
-          }));
-        } catch (error) {
-          console.error('Failed to load weapons:', error);
+      if (character) {
+        unlock();
+        if (!weaponCache[character.weaponType]) {
+          try {
+            const response = await fetch(`/Data/${character.weaponType}s.json`);
+            const data = await response.json();
+            setWeaponCache(prev => ({
+              ...prev,
+              [character.weaponType]: data
+            }));
+          } catch (error) {
+            console.error('Failed to load weapons:', error);
+          }
         }
-      }
-
-      setElementState({
-        selectedCharacter: character,
-        elementValue: isRover(character) ? "Havoc" : character.element,
-        displayName: character.name.startsWith('Rover') ? 'RoverHavoc' : character.name
-      });
+  
+        setIsCharacterMinimized(false);
+        setIsEchoesMinimized(true); 
+        setElementState({
+          selectedCharacter: character,
+          elementValue: isRover(character) ? "Havoc" : character.element,
+          displayName: character.name.startsWith('Rover') ? 'RoverHavoc' : character.name
+        });
       setWeaponState({
         selectedWeapon: null,
         config: { level: 1, rank: 1 }
@@ -306,6 +301,9 @@ export const EditPage: React.FC = () => {
     }));
   }, []);
 
+  const [isCharacterMinimized, setIsCharacterMinimized] = useState(true);
+  const [isEchoesMinimized, setIsEchoesMinimized] = useState(true);
+
   return (
     <div className="edit-page">
       <div className="content">
@@ -333,7 +331,6 @@ export const EditPage: React.FC = () => {
           selectedCharacter={elementState.selectedCharacter} 
           displayName={elementState.displayName}
           elementValue={elementState.elementValue}
-          onEchoesClick={handleEchoesClick}
           onGenerateClick={handleGenerateClick}
           onSpectroToggle={handleSpectroToggle}
           onSequenceChange={handleSequenceChange}
@@ -350,23 +347,27 @@ export const EditPage: React.FC = () => {
           onLevelChange={handleLevelChange} 
           currentSequence={currentSequence}
           preloadedWeapons={elementState.selectedCharacter ? weaponCache[elementState.selectedCharacter.weaponType] : undefined}
+          isMinimized={isCharacterMinimized}
+          onMinimize={() => setIsCharacterMinimized(!isCharacterMinimized)}
         />
 
         <EchoesSection 
-          ref={echoesRef}  
-          isVisible={isEchoesVisible}
+          ref={echoesRef}
+          isVisible={elementState.selectedCharacter !== null}
+          isMinimized={isEchoesMinimized}
+          onMinimize={() => setIsEchoesMinimized(!isEchoesMinimized)}
           initialPanels={echoPanels}
           onLevelChange={handleEchoLevelChange}
           onElementSelect={handleEchoElementSelect} 
           onEchoSelect={handleEchoSelect}
           onMainStatChange={handleMainStatChange}
           onSubStatChange={handleSubStatChange}
-          onPanelChange={setEchoPanels} 
+          onPanelChange={setEchoPanels}
         />
         
         <BuildCard 
           isVisible={true}
-          isEchoesVisible={isEchoesVisible}
+          isEchoesVisible={!isEchoesMinimized && elementState.selectedCharacter !== null}
           selectedCharacter={elementState.selectedCharacter}
           displayName={elementState.displayName}
           characterLevel={characterLevel}

@@ -1,4 +1,8 @@
 import React, { useState, useCallback, forwardRef } from 'react';
+import { ChevronLeft, ChevronDown } from 'lucide-react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState as PanelData, COST_SECTIONS, CostSection } from '../types/echo';
 import { useEchoes } from '../hooks/useEchoes';
 import { StatsTab } from './StatsTab';
@@ -58,6 +62,8 @@ const ElementTabs: React.FC<ElementTabsProps> = ({ elements, onElementSelect, se
 
 interface EchoesSectionProps {
   isVisible: boolean;
+  isMinimized: boolean;
+  onMinimize: () => void;
   initialPanels: PanelData[];
   onLevelChange?: (index: number, level: number) => void;
   onElementSelect?: (index: number, element: ElementType | null) => void;
@@ -76,6 +82,7 @@ interface EchoPanelProps {
   onElementSelect: (element: ElementType | null) => void;
   onMainStatChange: (type: string | null) => void;
   onSubStatChange: (subIndex: number, type: string | null, value: number | null) => void;
+  listener?: Record<string, any>;
 }
 
 export const EchoPanel: React.FC<EchoPanelProps> = ({
@@ -86,7 +93,8 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   onLevelChange,
   onElementSelect,
   onMainStatChange,
-  onSubStatChange
+  onSubStatChange,
+  listener
 }) => {
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,7 +105,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   return (
     <div className="echo-panel" id={`panel${index}`}>
       <div className="manual-section">
-        <p id="selectedEchoLabel" style={{ fontSize: '30px', textAlign: 'center' }}>
+        <p id="selectedEchoLabel" style={{ fontSize: '30px', textAlign: 'center' }}{...listener}>
           {panelData.echo?.name || `Echo ${index}`}
         </p>
         <div 
@@ -155,133 +163,204 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   );
 };
 
-export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
-  ({ 
-    isVisible, 
-    onPanelChange, 
-    initialPanels,
-    onLevelChange,
-    onElementSelect,
-    onEchoSelect,
-    onMainStatChange,
-    onSubStatChange
-  }, ref) => {
-    const { echoesByCost, loading, error } = useEchoes();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedPanelIndex, setSelectedPanelIndex] = useState<number | null>(null);
-    const [showWarning, setShowWarning] = useState(false);
+const SortablePanel = ({ id, children }: { id: string; children: React.ReactNode }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? transition : 'none',
+    width: '17.5%',
+    position: 'relative' as const,
+    opacity: isDragging ? 0.8 : 1,
+    zIndex: isDragging ? 999 : 'auto'
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      {React.cloneElement(children as React.ReactElement, { listener: listeners })}
+    </div>
+  );
+};
+
+export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({ 
+  isVisible,
+  isMinimized,
+  onMinimize,
+  onPanelChange, 
+  initialPanels,
+  onLevelChange,
+  onElementSelect,
+  onEchoSelect,
+  onMainStatChange,
+  onSubStatChange
+}, ref) => {
+  const { echoesByCost, loading, error } = useEchoes();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPanelIndex, setSelectedPanelIndex] = useState<number | null>(null);
+  const [showWarning, setShowWarning] = useState(false);
+  
+  const panels = initialPanels;
+
+  const handleReset = useCallback((index: number) => {
+    onPanelChange?.(panels.map((panel, i) => 
+      i === index ? {
+        echo: null,
+        level: 0,
+        selectedElement: null,
+        stats: {
+          mainStat: { type: null, value: null },
+          subStats: Array(5).fill(null).map(() => ({ type: null, value: null }))
+        }
+      } : panel
+    ));
+  }, [panels, onPanelChange]);
+
+  const handleLevelChange = useCallback((index: number, level: number) => {
+    onLevelChange?.(index, level);
+  }, [onLevelChange]);
+
+  const handleElementSelect = useCallback((index: number, element: ElementType | null) => {
+    onElementSelect?.(index, element);
+  }, [onElementSelect]);
+
+  const handleSelectEcho = useCallback((echo: Echo) => {
+    if (selectedPanelIndex === null) return;
     
-    const panels = initialPanels;
+    const totalCost = panels.reduce((sum, panel, index) => 
+      sum + (index === selectedPanelIndex ? echo.cost : (panel.echo?.cost || 0)), 0);
 
-    const handleReset = useCallback((index: number) => {
-      onPanelChange?.(panels.map((panel, i) => 
-        i === index ? {
-          echo: null,
-          level: 0,
-          selectedElement: null,
-          stats: {
-            mainStat: { type: null, value: null },
-            subStats: Array(5).fill(null).map(() => ({ type: null, value: null }))
-          }
-        } : panel
-      ));
-    }, [panels, onPanelChange]);
+    if (totalCost > 12) {
+      setShowWarning(true);
+      return;
+    }
 
-    const handleLevelChange = useCallback((index: number, level: number) => {
-      onLevelChange?.(index, level);
-    }, [onLevelChange]);
+    onEchoSelect?.(selectedPanelIndex, echo);
+    setIsModalOpen(false);
+  }, [selectedPanelIndex, panels, onEchoSelect]);
 
-    const handleElementSelect = useCallback((index: number, element: ElementType | null) => {
-      onElementSelect?.(index, element);
-    }, [onElementSelect]);
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-    const handleSelectEcho = useCallback((echo: Echo) => {
-      if (selectedPanelIndex === null) return;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const {active, over} = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = parseInt(active.id.toString().replace('panel-', ''));
+      const newIndex = parseInt(over.id.toString().replace('panel-', ''));
       
-      const totalCost = panels.reduce((sum, panel, index) => 
-        sum + (index === selectedPanelIndex ? echo.cost : (panel.echo?.cost || 0)), 0);
+      const newPanels = arrayMove(initialPanels, oldIndex, newIndex);
+      onPanelChange?.(newPanels);
+    }
+  };
 
-      if (totalCost > 12) {
-        setShowWarning(true);
-        return;
-      }
+  const handleMinimize = () => {
+    if (isMinimized) {
+      (ref as React.RefObject<HTMLElement>)?.current?.scrollIntoView({ 
+        behavior: 'smooth' 
+      });
+    }
+    onMinimize();
+  };
 
-      onEchoSelect?.(selectedPanelIndex, echo);
-      setIsModalOpen(false);
-    }, [selectedPanelIndex, panels, onEchoSelect]);
-
-    return (
-      <>
-        <section className="echoes-tab" style={{ display: isVisible ? 'block' : 'none' }} ref={ref}>
-          <div className="echoes-content" style={{ display: isVisible ? 'flex' : 'none', flexDirection: 'column' }}>
-            {showWarning && (
-              <div onClick={() => setShowWarning(false)}>
-                <span className="popuptext show">
-                  Warning: Echo Cost exceeds limit
-                  <br/>
-                  <span>
-                    Click to dismiss
-                  </span>
-                </span>
-              </div>
+  return (
+    <section className={`echoes-tab${isVisible ? ' visible' : ''}`} ref={ref}>
+      {isVisible && (
+        <>
+          <button 
+            onClick={handleMinimize}
+            className="echoes-header with-chevron"
+          >
+            Echoes Info
+            {isMinimized ? <ChevronLeft size={20} /> : <ChevronDown size={20} />}
+          </button>
+          <div className={`echoes-content${isMinimized ? '' : ' open'}`}>
+            {!isMinimized && (
+              <>
+                {showWarning && (
+                  <div onClick={() => setShowWarning(false)}>
+                    <span className="popuptext show">
+                      Warning: Echo Cost exceeds limit
+                      <br/>
+                      <span>Click to dismiss</span>
+                    </span>
+                  </div>
+                )}
+                
+                <DndContext 
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext 
+                    items={initialPanels.map((_, i) => `panel-${i}`)}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    <div className="echo-panels-container">
+                      {panels.map((panel, i) => (
+                        <SortablePanel key={`panel-${i}`} id={`panel-${i}`}>
+                          <EchoPanel
+                            index={i + 1}
+                            panelData={panel}
+                            onSelect={() => {
+                              setSelectedPanelIndex(i);
+                              setIsModalOpen(true);
+                            }}
+                            onReset={() => handleReset(i)}
+                            onLevelChange={(level) => handleLevelChange(i, level)}
+                            onElementSelect={(element) => handleElementSelect(i, element)}
+                            onMainStatChange={(type) => onMainStatChange?.(i, type)}
+                            onSubStatChange={(subIndex, type, value) => 
+                              onSubStatChange?.(i, subIndex, type, value)}
+                          />
+                        </SortablePanel>
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              </>
             )}
-            <div className="echo-panels-container">
-              {panels.map((panel, i) => (
-                <EchoPanel
-                  key={i}
-                  index={i + 1}
-                  panelData={panel}
-                  onSelect={() => {
-                    setSelectedPanelIndex(i);
-                    setIsModalOpen(true);
-                  }}
-                  onReset={() => handleReset(i)}
-                  onLevelChange={(level) => handleLevelChange(i, level)}
-                  onElementSelect={(element) => handleElementSelect(i, element)}
-                  onMainStatChange={(type) => onMainStatChange?.(i, type)}
-                  onSubStatChange={(subIndex, type, value) => 
-                    onSubStatChange?.(i, subIndex, type, value)}
-                />
+          </div>
+        </>
+      )}
+  
+      {isModalOpen && (
+        <div className="modal">
+          <div className="echo-modal-content">
+            <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
+            <div className="echo-list">
+              {loading && <div>Loading echoes...</div>}
+              {error && <div className="error">{error}</div>}
+              {COST_SECTIONS.map((cost: CostSection) => (
+                <div key={cost} className="echo-cost-section">
+                  <div className="cost-label">{cost} Cost</div>
+                  <div className="echo-grid">
+                    {echoesByCost[cost]?.map(echo => (
+                      <div 
+                        key={echo.name}
+                        className="echo-option"
+                        onClick={() => handleSelectEcho(echo)}
+                      >
+                        <img
+                          src={`images/Echoes/${echo.name}.png`}
+                          alt={echo.name}
+                          className="echo-img"
+                        />
+                        <span className="echo-name">{echo.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
-        </section>
-
-        {isModalOpen && (
-          <div className="modal">
-            <div className="echo-modal-content">
-              <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
-              <div className="echo-list">
-                {loading && <div>Loading echoes...</div>}
-                {error && <div className="error">{error}</div>}
-                {COST_SECTIONS.map((cost: CostSection) => (
-                  <div key={cost} className="echo-cost-section">
-                    <div className="cost-label">{cost} Cost</div>
-                    <div className="echo-grid">
-                      {echoesByCost[cost]?.map(echo => (
-                        <div 
-                          key={echo.name}
-                          className="echo-option"
-                          onClick={() => handleSelectEcho(echo)}
-                        >
-                          <img
-                            src={`images/Echoes/${echo.name}.png`}
-                            alt={echo.name}
-                            className="echo-img"
-                          />
-                          <span className="echo-name">{echo.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  }
-);
+        </div>
+      )}
+    </section>
+  );
+});
 
 export type { PanelData, ElementType };

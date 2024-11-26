@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 import { Character } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
 import { OCRAnalysis } from '../types/ocr';
@@ -13,7 +14,6 @@ interface CharacterInfoProps {
   selectedCharacter: Character | null;
   displayName: string | undefined;
   elementValue: string | undefined;
-  onEchoesClick: () => void;
   onGenerateClick?: (level: number) => void;
   onSpectroToggle?: (value: boolean) => void;
   onSequenceChange?: (sequence: number) => void;
@@ -34,13 +34,14 @@ interface CharacterInfoProps {
   currentSequence: number;
   preloadedWeapons?: Weapon[];
   onWeaponDataReady?: (ready: boolean) => void;
+  isMinimized: boolean;
+  onMinimize: () => void;
 }
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
   selectedCharacter, 
   displayName,
   elementValue,
-  onEchoesClick,
   onGenerateClick,
   onSpectroToggle,
   onSequenceChange,
@@ -57,7 +58,9 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   onLevelChange,
   currentSequence,
   preloadedWeapons,
-  onWeaponDataReady
+  onWeaponDataReady,
+  isMinimized,
+  onMinimize
 }) => {
 
   const handleLevelChange = (newLevel: number): void => {
@@ -84,100 +87,106 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
 
   return (
     <div className="character-info">
-      {!selectedCharacter ? (
-        <div className="no-character-message">Select a resonator first</div>
-      ) : (
-        <div className="character-content" style={{ display: 'flex' }}>
-          <img 
-            id="selectedCharacterIcon" 
-            src={`images/Icons/${selectedCharacter.name}.png`}
-            alt="Selected Character Icon" 
-            className="character-tab-icon"
-          />
-          {selectedCharacter.name.startsWith('Rover') && (
-            <button 
-              className="toggle" 
-              role="switch"
-              aria-checked={elementValue === "Spectro"}
-              tabIndex={0}
-              onClick={handleToggleSpectro}
-            >
-              <div className="toggle-circle">
-                <img
-                  src={`images/Elements/${elementValue}.png`}
-                  alt={elementValue}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    borderRadius: '999px'
-                  }}
-                />
-              </div>
-            </button>
-          )}
-          <LevelSlider 
-            value={parseInt(characterLevel)}
-            onLevelChange={handleLevelChange}
-            ocrLevel={ocrData?.type === 'Character' ? 
-              ocrData.characterLevel.toString() : undefined}
-          />
-          <SequenceGroup
-            characterName={displayName || ''}
-            elementValue={elementValue}
-            onSequenceChange={handleSequenceChange}
-            sequence={currentSequence}
-            ocrSequence={ocrData?.type === 'Sequences' ? 
-              ocrData.sequence : undefined}
-          />
-          <WeaponSelection
-            selectedCharacter={selectedCharacter}
-            selectedWeapon={weaponState.selectedWeapon}
-            onWeaponSelect={handleWeaponSelect}
-            weaponConfig={weaponState.config}
-            onWeaponConfigChange={handleWeaponConfigChange}
-            ocrData={ocrData?.type === 'Weapon' ? ocrData : undefined}
-            preloadedWeapons={preloadedWeapons}
-          />
-          <button 
-            id="goNext" 
-            className="build-button"
-            onClick={onEchoesClick}
-          >
-            Echoes
-          </button>
-          <ForteGroup 
-            selectedCharacter={{
-              ...selectedCharacter,
-              name: displayName || selectedCharacter.name
-            }}
-            displayName={displayName}
-            elementValue={elementValue}
-            nodeStates={nodeStates}
-            levels={forteLevels}
-            clickCount={clickCount}
-            onMaxClick={onMaxClick}
-            onChange={onForteChange}
-            ocrData={ocrData?.type === 'Forte' ? {
-              type: 'Forte',
-              nodeStates: {
-                tree1: { top: ocrData.normal[1] === 1, middle: ocrData.normal[2] === 1 },
-                tree2: { top: ocrData.skill[1] === 1, middle: ocrData.skill[2] === 1 },
-                tree3: { top: ocrData.circuit[1] === 1, middle: ocrData.circuit[2] === 1 },
-                tree4: { top: ocrData.liberation[1] === 1, middle: ocrData.liberation[2] === 1 },
-                tree5: { top: ocrData.intro[1] === 1, middle: ocrData.intro[2] === 1 }
-              },
-              levels: {
-                'normal-attack': ocrData.normal[0],
-                'skill': ocrData.skill[0],
-                'circuit': ocrData.circuit[0],
-                'liberation': ocrData.liberation[0],
-                'intro': ocrData.intro[0]
-              }
-            } : undefined}
-          />
-        </div>
-      )}
+      <button 
+        onClick={selectedCharacter ? onMinimize : undefined} 
+        className={`character-header${selectedCharacter ? ' with-chevron' : ''}`}
+      >
+        {selectedCharacter ? (
+          <>
+            {selectedCharacter.name} Info
+            {isMinimized ? <ChevronRight size={20} /> : <ChevronDown size={20} />}
+          </>
+        ) : (
+          'Select a resonator first'
+        )}
+      </button>
+      <div className={`character-content${isMinimized ? '' : ' open'}`}>
+        {selectedCharacter && (
+          <>
+            <img 
+              id="selectedCharacterIcon" 
+              src={`images/Icons/${selectedCharacter.name}.png`}
+              alt="Selected Character Icon" 
+              className="character-tab-icon"
+            />
+            {selectedCharacter.name.startsWith('Rover') && (
+              <button 
+                className="toggle" 
+                role="switch"
+                aria-checked={elementValue === "Spectro"}
+                tabIndex={0}
+                onClick={handleToggleSpectro}
+              >
+                <div className="toggle-circle">
+                  <img
+                    src={`images/Elements/${elementValue}.png`}
+                    alt={elementValue}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      borderRadius: '999px'
+                    }}
+                  />
+                </div>
+              </button>
+            )}
+            <LevelSlider 
+              value={parseInt(characterLevel)}
+              onLevelChange={handleLevelChange}
+              ocrLevel={ocrData?.type === 'Character' ? 
+                ocrData.characterLevel.toString() : undefined}
+            />
+            <SequenceGroup
+              characterName={displayName || ''}
+              elementValue={elementValue}
+              onSequenceChange={handleSequenceChange}
+              sequence={currentSequence}
+              ocrSequence={ocrData?.type === 'Sequences' ? 
+                ocrData.sequence : undefined}
+            />
+            <WeaponSelection
+              selectedCharacter={selectedCharacter}
+              selectedWeapon={weaponState.selectedWeapon}
+              onWeaponSelect={handleWeaponSelect}
+              weaponConfig={weaponState.config}
+              onWeaponConfigChange={handleWeaponConfigChange}
+              ocrData={ocrData?.type === 'Weapon' ? ocrData : undefined}
+              preloadedWeapons={preloadedWeapons}
+            />
+            <ForteGroup 
+              selectedCharacter={{
+                ...selectedCharacter,
+                name: displayName || selectedCharacter.name
+              }}
+              displayName={displayName}
+              elementValue={elementValue}
+              nodeStates={nodeStates}
+              levels={forteLevels}
+              clickCount={clickCount}
+              onMaxClick={onMaxClick}
+              onChange={onForteChange}
+              ocrData={ocrData?.type === 'Forte' ? {
+                type: 'Forte',
+                nodeStates: {
+                  tree1: { top: ocrData.normal[1] === 1, middle: ocrData.normal[2] === 1 },
+                  tree2: { top: ocrData.skill[1] === 1, middle: ocrData.skill[2] === 1 },
+                  tree3: { top: ocrData.circuit[1] === 1, middle: ocrData.circuit[2] === 1 },
+                  tree4: { top: ocrData.liberation[1] === 1, middle: ocrData.liberation[2] === 1 },
+                  tree5: { top: ocrData.intro[1] === 1, middle: ocrData.intro[2] === 1 }
+                },
+                levels: {
+                  'normal-attack': ocrData.normal[0],
+                  'skill': ocrData.skill[0],
+                  'circuit': ocrData.circuit[0],
+                  'liberation': ocrData.liberation[0],
+                  'intro': ocrData.intro[0]
+                }
+              } : undefined}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 };

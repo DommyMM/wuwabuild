@@ -580,6 +580,7 @@ def get_echo_info(processed_image, element):
                 name, value = match.groups()
                 name = name.replace('.', '')\
                           .replace('DMG Bonus', '')\
+                          .replace('BMG', 'DMG')\
                           .replace('Resonance', '')\
                           .replace('—', '')\
                           .replace(':', '')\
@@ -600,7 +601,10 @@ def get_echo_info(processed_image, element):
     main_stat = {}
     if match := re.search(r'(.*?)(\d+\.?\d*\%?)$', main_text):
         name, value = match.groups()
-        name = name.replace('.', '').replace('DMG Bonus', 'DMG').strip()
+        name = name.replace('.', '')\
+                  .replace('DMG Bonus', 'DMG')\
+                  .replace('BMG', 'DMG')\
+                  .strip()
         main_stat = {'name': name if name else 'HP', 'value': value.strip()}
 
     return {
