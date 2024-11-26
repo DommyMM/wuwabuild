@@ -55,17 +55,14 @@ export const OCRProvider: React.FC<{children: React.ReactNode}> = ({ children })
       });
     }
     else if (isEchoAnalysis(result.analysis)) {
-      const validatedLevel = validateEchoLevel(result.analysis.raw_texts.echoLevel);
+      const validatedLevel = validateEchoLevel(result.analysis.echoLevel);
       const validatedElement = validateEchoElement(result.analysis.element);
       setOCRResult({
         ...result,
         analysis: {
           ...result.analysis,
-          element: validatedElement,
-          raw_texts: {
-            ...result.analysis.raw_texts,
-            echoLevel: `+${validatedLevel}`
-          }
+          echoLevel: validatedLevel,
+          element: validatedElement
         }
       });
     }

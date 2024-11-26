@@ -9,11 +9,17 @@ export type OCRData =
     }
   | { 
       type: 'Echo'; 
-      name: string; 
-      echoLevel: number; 
       element: string;
-      mainStat: { name: string; value: string };
-      subs: Array<{ name: string; value: string }> 
+      name: string; 
+      echoLevel: number;
+      main: {
+        name: string; 
+        value: string
+      };
+      subs: Array<{
+        name: string;
+        value: string
+      }> 
     };
 
 export interface BaseAnalysis {
@@ -52,18 +58,16 @@ export interface ForteAnalysis extends BaseAnalysis {
 export interface EchoAnalysis extends BaseAnalysis {
   type: 'Echo';
   element: string;
-  raw_texts: {
+  name: string;
+  echoLevel: number;
+  main: {
     name: string;
-    echoLevel: string;
-    main: {
-      name: string;
-      value: string;
-    };
-    subs: Array<{
-      name: string;
-      value: string;
-    }>;
+    value: string;
   };
+  subs: Array<{
+    name: string;
+    value: string;
+  }>;
 }
 
 export interface UnknownAnalysis extends BaseAnalysis {
@@ -125,10 +129,11 @@ export const validateElement = (element: string | undefined): string => {
   return validElements.includes(element || '') ? element! : 'Unknown';
 };
 
-export const validateEchoLevel = (level: string | undefined): number => {
+export const validateEchoLevel = (level: string | number | undefined): number => {
   if (!level) return 0;
-  const match = level.match(/\+(\d+)/);
-  const parsed = match ? parseInt(match[1], 10) : 0;
+  const parsed = typeof level === 'string' 
+    ? parseInt(level.replace(/^\+/, ''), 10) 
+    : level;
   return isNaN(parsed) || parsed < 0 || parsed > 25 ? 0 : parsed;
 };
 
@@ -198,16 +203,19 @@ export const isForteAnalysis = (analysis: OCRAnalysis): analysis is ForteAnalysi
 export const isEchoAnalysis = (analysis: OCRAnalysis): analysis is EchoAnalysis => {
   if (analysis.type !== 'Echo') return false;
 
-  const mainValue = validateEchoStatValue(analysis.raw_texts?.main?.value);
+  const mainValue = validateEchoStatValue(analysis.main?.value);
+  const validEchoLevel = typeof analysis.echoLevel === 'number' && 
+                        analysis.echoLevel >= 0 && 
+                        analysis.echoLevel <= 25;
   
   return (
     typeof analysis.element === 'string' &&
-    typeof analysis.raw_texts?.name === 'string' &&
-    typeof analysis.raw_texts?.echoLevel === 'string' &&
-    typeof analysis.raw_texts?.main?.name === 'string' &&
+    typeof analysis.name === 'string' &&
+    validEchoLevel &&
+    typeof analysis.main?.name === 'string' &&
     mainValue !== null &&
-    Array.isArray(analysis.raw_texts?.subs) &&
-    analysis.raw_texts.subs.every(sub => 
+    Array.isArray(analysis.subs) &&
+    analysis.subs.every(sub => 
       typeof sub?.name === 'string' &&
       validateEchoStatValue(sub.value) !== null
     )

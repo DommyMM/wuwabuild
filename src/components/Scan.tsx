@@ -45,11 +45,10 @@ const getAnalysisDetails = (analysis?: OCRAnalysis): string | undefined => {
     case 'Forte':
       return 'Forte Tree';
     case 'Echo':
-      return `Lv.${analysis.raw_texts.echoLevel} ${analysis.raw_texts.name}\n${
-        analysis.element.charAt(0).toUpperCase() + analysis.element.slice(1)
-      } - ${analysis.raw_texts.main.name}\n${analysis.raw_texts.subs.length > 0 
-          ? analysis.raw_texts.subs.map(sub => sub.name).join(', ')
-          : ''}`;
+      const subStats = analysis.subs.map(sub => `${sub.name}: ${sub.value}`).join(', ');
+      return `Lv.${analysis.echoLevel} ${analysis.name}\n${
+        analysis.element.charAt(0).toUpperCase() + analysis.element.slice(1)} | ${analysis.main.name}: ${analysis.main.value}\n${
+        subStats}`;
     default:
       return undefined;
   }

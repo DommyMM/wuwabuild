@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Character } from '../types/character';
 import { useCharacters } from '../hooks/useCharacters';
 import { useModalClose } from '../hooks/useModalClose';
@@ -30,17 +30,19 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     onLevelReset?.();
   }, [onSelect, onLevelReset]);
 
-  if (ocrName && 
-      ocrName !== lastOcrName &&
-      characters.length > 0) {
-    const matchedCharacter = characters.find(
-      char => char.name.toLowerCase() === ocrName.toLowerCase()
-    );
-    if (matchedCharacter) {
-      setLastOcrName(ocrName);
-      handleCharacterSelect(matchedCharacter);
+  useEffect(() => {
+    if (ocrName && 
+        ocrName !== lastOcrName &&
+        characters.length > 0) {
+      const matchedCharacter = characters.find(
+        char => char.name.toLowerCase() === ocrName.toLowerCase()
+      );
+      if (matchedCharacter) {
+        setLastOcrName(ocrName);
+        handleCharacterSelect(matchedCharacter);
+      }
     }
-  }
+  }, [ocrName, lastOcrName, characters, handleCharacterSelect]);
 
   return (
     <>

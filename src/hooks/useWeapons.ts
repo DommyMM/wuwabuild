@@ -8,7 +8,7 @@ interface UseWeaponsProps {
   preloadedWeapons?: Weapon[];
 }
 
-const weaponCache = new Map<WeaponType, Weapon[]>();
+export const weaponCache = new Map<WeaponType, Weapon[]>();
 
 export const useWeapons = ({ weaponType, config, preloadedWeapons }: UseWeaponsProps) => {
   const [weapons, setWeapons] = useState<Weapon[]>([]);

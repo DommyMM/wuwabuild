@@ -31,7 +31,7 @@ SCAN_REGIONS = {
     "liberation-base": {"top": 0.754, "left": 0.6067, "width": 0.074, "height": 0.1},
     "liberation-mid": {"top": 0.438, "left": 0.6267, "width": 0.038, "height": 0.067},
     "liberation-top": {"top": 0.23, "left": 0.6267, "width": 0.038, "height": 0.067},
-    "intro-base": {"top": 0.88, "left": 0.727, "width": 0.074, "height": 0.07},
+    "intro-base": {"top": 0.88, "left": 0.725, "width": 0.077, "height": 0.073},
     "intro-mid": {"top": 0.568, "left": 0.747, "width": 0.038, "height": 0.067},
     "intro-top": {"top": 0.36, "left": 0.747, "width": 0.038, "height": 0.067}
 }
@@ -396,7 +396,8 @@ def get_forte_info(slots):
         if 'base' in slot_name:
             branch_name = slot_to_branch.get(slot_name)
             if branch_name:
-                text = pytesseract.image_to_string(image)
+                processed_image = preprocess_echo_image(image)
+                text = pytesseract.image_to_string(processed_image)
                 text = text.replace('\\', '').replace('"', '').replace("'", '')
                 
                 level = None
@@ -562,7 +563,7 @@ def get_icon(circle_bgra, possible_elements):
 
 def get_echo_info(processed_image, element):
     name_img = crop_region(processed_image, ECHO_REGIONS["name"])
-    cost_img = crop_region(processed_image, ECHO_REGIONS["level"]) 
+    lv_img = crop_region(processed_image, ECHO_REGIONS["level"]) 
     main_img = crop_region(processed_image, ECHO_REGIONS["main"])
     
     sub_images = []
@@ -575,14 +576,19 @@ def get_echo_info(processed_image, element):
         sub_text = pytesseract.image_to_string(sub_img).strip().replace('\n', ' ')
         
         if sub_text:
-            if match := re.search(r'(.*?)(\d+\.?\d*\%?)$', sub_text):
+            if match := re.search(r'(.*?)[\s—:]*(\d+\.?\d*\%?)$', sub_text):
                 name, value = match.groups()
-                name = name.replace('.', '').replace('DMG Bonus', '').strip()
+                name = name.replace('.', '')\
+                          .replace('DMG Bonus', '')\
+                          .replace('Resonance', '')\
+                          .replace('—', '')\
+                          .replace(':', '')\
+                          .strip()
                 name = name if name else "HP"
                 sub_stats.append({'name': name, 'value': value.strip()})
     
     cv2.imwrite(str(DEBUG_DIR / 'echo_name.png'), name_img)
-    cv2.imwrite(str(DEBUG_DIR / 'echo_level.png'), cost_img)
+    cv2.imwrite(str(DEBUG_DIR / 'echo_level.png'), lv_img)
     cv2.imwrite(str(DEBUG_DIR / 'echo_main.png'), main_img)
 
     name_text = pytesseract.image_to_string(name_img).strip()
@@ -600,12 +606,10 @@ def get_echo_info(processed_image, element):
     return {
         'type': 'Echo',
         'element': element,
-        'raw_texts': {
-            'name': name_text,
-            'echoLevel': pytesseract.image_to_string(cost_img).strip().replace('\n', ' '),
-            'main': main_stat,
-            'subs': sub_stats
-        }
+        'name': name_text,
+        'echoLevel': pytesseract.image_to_string(lv_img).strip().replace('\n', ' ').lstrip('+'),
+        'main': main_stat,
+        'subs': sub_stats
     }
 
 def extract_details(image, image_type, element=None):

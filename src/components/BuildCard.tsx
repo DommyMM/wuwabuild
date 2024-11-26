@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import domtoimage from 'dom-to-image';
 import { Options } from './Build/Options';
 import { CharacterSection } from './Build/CharacterSection';
@@ -96,20 +96,24 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       : `${value.toFixed(1)}%`;
   };
 
-  const displayStats = Object.entries(values)
-    .filter(([_, value]) => value !== 0)
-    .map(([stat, value]) => ({
-      name: stat as StatName,
-      value: formatStatValue(stat as StatName, value as number),
-      baseValue: baseValues[stat as StatName],
-      update: updates[stat as StatName]
-    }));
+  const displayStats = useMemo(() => 
+    Object.entries(values)
+      .filter(([_, value]) => value !== 0)
+      .map(([stat, value]) => ({
+        name: stat as StatName,
+        value: formatStatValue(stat as StatName, value as number),
+        baseValue: baseValues[stat as StatName],
+        update: updates[stat as StatName]
+      })),
+    [values, baseValues, updates]
+  );
 
   useEffect(() => {
     if (isTabVisible && tabRef.current) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         tabRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isTabVisible]);
 
@@ -121,12 +125,11 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     }));
   };
 
-  const handleGenerate = () => {
-    setIsTabVisible(true);
-    setTimeout(() => {
-      tabRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 0);
-  };
+  const handleGenerate = useCallback(() => {
+    if (!isTabVisible) {
+      setIsTabVisible(true);
+    }
+  }, [isTabVisible]);
 
   const handleDownload = () => {
     if (!tabRef.current) return;

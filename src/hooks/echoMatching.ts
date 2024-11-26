@@ -15,15 +15,18 @@ interface MainStatData {
   }
 }
 
+type SubstatsData = Record<string, number[]>;
+
 export const matchEchoData = (
-    ocrData: Extract<OCRData, { type: 'Echo' }>,
-    echoesByCost: Record<number, Echo[]>,
-    mainStatsData: MainStatData | null,
-    substatsData: Record<string, number[]> | null,
-    calculateValue: (min: number, max: number, level: number) => number
-  ): EchoPanelState | null => {
+  ocrData: Extract<OCRData, { type: 'Echo' }>,
+  echoesByCost: Record<number, Echo[]>,
+  mainStatsData: MainStatData | null,
+  substatsData: SubstatsData | null,
+  calculateValue: (min: number, max: number, level: number) => number
+): EchoPanelState | null => {
+  try {
     if (!substatsData || !mainStatsData) return null;
-  
+
     let foundEcho: Echo | null = null;
     for (const cost of COST_SECTIONS) {
       foundEcho = echoesByCost[cost]?.find(e => 
@@ -32,25 +35,25 @@ export const matchEchoData = (
       if (foundEcho) break;
     }
     if (!foundEcho) return null;
-  
+
     const mainStats = mainStatsData[`${foundEcho.cost}cost`]?.mainStats || {};
-    let searchMainStat = ocrData.mainStat.name;
+    let searchMainStat = ocrData.main.name;
     if (['HP', 'ATK', 'DEF'].includes(searchMainStat)) {
       searchMainStat = `${searchMainStat}%`;
     }
-  
+
     const matchedMainStat = Object.keys(mainStats).find(stat => 
       searchMainStat.toLowerCase().includes(stat.toLowerCase())
     ) || null;
-  
+
     const mainStatValue = matchedMainStat ? 
       calculateValue(mainStats[matchedMainStat][0], mainStats[matchedMainStat][1], ocrData.echoLevel) : 
       null;
-  
+
     const matchedSubstats = ocrData.subs
       .map(substat => matchSubstat(substat, substatsData))
       .filter(result => result.type !== null);
-  
+
     return {
       echo: foundEcho,
       level: ocrData.echoLevel,
@@ -67,44 +70,48 @@ export const matchEchoData = (
         ]
       }
     };
-  };
+  } catch (error) {
+    console.error('Error matching echo data:', error);
+    return null;
+  }
+};
 
-  const findClosestValue = (target: number, values: number[]): number => {
-    return values.reduce((prev, curr) => 
-      Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev
-    );
-  };
-  
-  const matchSubstat = (substat: SubstatData, substatsData: any) => {
-    const numberValue = parseFloat(substat.value.replace('%', ''));
-    const isPercentage = substat.value.includes('%');
-    
-    let searchStatName = substat.name;
-    if (['HP', 'ATK', 'DEF'].includes(searchStatName) && isPercentage) {
-      searchStatName = `${searchStatName}%`;
-    }
-    if (searchStatName.startsWith('Resonance ')) {
-      searchStatName = searchStatName.replace('Resonance ', '');
-    }
-  
-    const validSubstats = Object.keys(substatsData);
-    const matchedStatName = validSubstats.find(stat => 
-      searchStatName.toLowerCase() === stat.toLowerCase()
-    );
-  
-    if (!matchedStatName) {
-      console.log('Failed to match substat:', { 
-        original: substat.name,
-        searched: searchStatName,
-        value: substat.value 
-      });
-    }
-  
-    if (matchedStatName) {
-      const validValues = substatsData[matchedStatName];
-      const matchedValue = findClosestValue(numberValue, validValues);
-      return { type: matchedStatName, value: matchedValue };
-    }
-  
-    return { type: null, value: null };
-  };
+export const findClosestValue = (target: number, values: number[]): number => {
+  return values.reduce((prev, curr) => 
+    Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev
+  );
+};
+
+export const matchSubstat = (
+  substat: SubstatData, 
+  substatsData: SubstatsData
+) => {
+  const numberValue = parseFloat(substat.value.replace('%', ''));
+  const isPercentage = substat.value.includes('%');
+
+  let searchStatName = substat.name;
+  if (['HP', 'ATK', 'DEF'].includes(searchStatName) && isPercentage) {
+    searchStatName = `${searchStatName}%`;
+  }
+
+  const validSubstats = Object.keys(substatsData);
+  const matchedStatName = validSubstats.find(stat => 
+    searchStatName.toLowerCase() === stat.toLowerCase()
+  );
+
+  if (!matchedStatName) {
+    console.log('Failed to match substat:', { 
+      original: substat.name,
+      searched: searchStatName,
+      value: substat.value 
+    });
+  }
+
+  if (matchedStatName) {
+    const validValues = substatsData[matchedStatName];
+    const matchedValue = findClosestValue(numberValue, validValues);
+    return { type: matchedStatName, value: matchedValue };
+  }
+
+  return { type: null, value: null };
+};

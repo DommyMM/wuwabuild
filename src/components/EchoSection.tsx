@@ -58,8 +58,13 @@ const ElementTabs: React.FC<ElementTabsProps> = ({ elements, onElementSelect, se
 
 interface EchoesSectionProps {
   isVisible: boolean;
+  initialPanels: PanelData[];
+  onLevelChange?: (index: number, level: number) => void;
+  onElementSelect?: (index: number, element: ElementType | null) => void;
+  onEchoSelect?: (index: number, echo: Echo) => void;
+  onMainStatChange?: (index: number, type: string | null) => void;
+  onSubStatChange?: (index: number, subIndex: number, type: string | null, value: number | null) => void;
   onPanelChange?: (panels: PanelData[]) => void;
-  initialPanels?: PanelData[];
 }
 
 interface EchoPanelProps {
@@ -67,9 +72,10 @@ interface EchoPanelProps {
   panelData: PanelData;
   onSelect: () => void;
   onReset: () => void;
-  onStatsChange: (stats: PanelData['stats']) => void;
   onLevelChange: (level: number) => void;
   onElementSelect: (element: ElementType | null) => void;
+  onMainStatChange: (type: string | null) => void;
+  onSubStatChange: (subIndex: number, type: string | null, value: number | null) => void;
 }
 
 export const EchoPanel: React.FC<EchoPanelProps> = ({
@@ -77,9 +83,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   panelData,
   onSelect,
   onReset,
-  onStatsChange,
   onLevelChange,
-  onElementSelect
+  onElementSelect,
+  onMainStatChange,
+  onSubStatChange
 }) => {
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,8 +143,9 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
         panelId={`panel${index}`}
         cost={panelData.echo?.cost ?? null}
         level={panelData.level}
-        onStatsChange={onStatsChange}
-        initialStats={panelData.stats}
+        stats={panelData.stats}
+        onMainStatChange={onMainStatChange}
+        onSubStatChange={onSubStatChange}
       />
 
       <button className="clear-button" onClick={onReset}>
@@ -148,21 +156,22 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
 };
 
 export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
-  ({ isVisible, onPanelChange, initialPanels }, ref) => {
+  ({ 
+    isVisible, 
+    onPanelChange, 
+    initialPanels,
+    onLevelChange,
+    onElementSelect,
+    onEchoSelect,
+    onMainStatChange,
+    onSubStatChange
+  }, ref) => {
     const { echoesByCost, loading, error } = useEchoes();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPanelIndex, setSelectedPanelIndex] = useState<number | null>(null);
     const [showWarning, setShowWarning] = useState(false);
     
-    const panels = initialPanels || Array(5).fill(null).map(() => ({
-      echo: null,
-      level: 0,
-      selectedElement: null,
-      stats: {
-        mainStat: { type: null, value: null },
-        subStats: Array(5).fill(null).map(() => ({ type: null, value: null }))
-      }
-    }));
+    const panels = initialPanels;
 
     const handleReset = useCallback((index: number) => {
       onPanelChange?.(panels.map((panel, i) => 
@@ -178,23 +187,13 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
       ));
     }, [panels, onPanelChange]);
 
-    const handleStatsChange = useCallback((index: number, stats: PanelData['stats']) => {
-      onPanelChange?.(panels.map((panel, i) => 
-        i === index ? { ...panel, stats } : panel
-      ));
-    }, [panels, onPanelChange]);
-
     const handleLevelChange = useCallback((index: number, level: number) => {
-      onPanelChange?.(panels.map((panel, i) => 
-        i === index ? { ...panel, level } : panel
-      ));
-    }, [panels, onPanelChange]);
+      onLevelChange?.(index, level);
+    }, [onLevelChange]);
 
     const handleElementSelect = useCallback((index: number, element: ElementType | null) => {
-      onPanelChange?.(panels.map((panel, i) => 
-        i === index ? { ...panel, selectedElement: element } : panel
-      ));
-    }, [panels, onPanelChange]);
+      onElementSelect?.(index, element);
+    }, [onElementSelect]);
 
     const handleSelectEcho = useCallback((echo: Echo) => {
       if (selectedPanelIndex === null) return;
@@ -204,17 +203,12 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
 
       if (totalCost > 12) {
         setShowWarning(true);
+        return;
       }
 
-      onPanelChange?.(panels.map((panel, i) => 
-        i === selectedPanelIndex ? {
-          ...panel,
-          echo,
-          selectedElement: null
-        } : panel
-      ));
+      onEchoSelect?.(selectedPanelIndex, echo);
       setIsModalOpen(false);
-    }, [selectedPanelIndex, panels, onPanelChange]);
+    }, [selectedPanelIndex, panels, onEchoSelect]);
 
     return (
       <>
@@ -242,9 +236,11 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(
                     setIsModalOpen(true);
                   }}
                   onReset={() => handleReset(i)}
-                  onStatsChange={(stats) => handleStatsChange(i, stats)}
                   onLevelChange={(level) => handleLevelChange(i, level)}
                   onElementSelect={(element) => handleElementSelect(i, element)}
+                  onMainStatChange={(type) => onMainStatChange?.(i, type)}
+                  onSubStatChange={(subIndex, type, value) => 
+                    onSubStatChange?.(i, subIndex, type, value)}
                 />
               ))}
             </div>

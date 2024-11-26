@@ -30,13 +30,31 @@ h2 {
 .panel-content {
   position: relative;
   margin-top: 2px;
-  padding: 1rem;
+  padding: 1rem 1rem 0 1rem;
   width: 85vh;
   min-height: 25vh;
+  max-height: 780px;
+  overflow-y: auto;
   background-color: #444;
   border-radius: 12px;
   border: 1px solid white;
   -webkit-text-fill-color: white;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 12px;
+  border: 2px solid #444;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+.panel-content::-webkit-scrollbar-track {
+  background: #444;
+  border-radius: 12px;
+  margin: 3px;
 }
 
 .switch {

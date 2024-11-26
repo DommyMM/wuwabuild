@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { Character, isRover } from '../types/character';
 import { Weapon, WeaponType, WeaponState } from '../types/weapon';
-import { EchoPanelState } from '../types/echo';
+import { EchoPanelState, Echo, ElementType } from '../types/echo';
 import { OCRResponse, OCRAnalysis } from '../types/ocr';
 import { CharacterSelector } from '../components/CharacterSelector';
 import { CharacterInfo } from '../components/CharacterInfo';
@@ -10,6 +10,10 @@ import { EchoesSection } from '../components/EchoSection';
 import { BuildCard } from '../components/BuildCard';
 import { Scan } from '../components/Scan';
 import { useOCRContext } from '../contexts/OCRContext';
+import { useEchoes } from '../hooks/useEchoes';
+import { matchEchoData } from '../hooks/echoMatching';
+import { useMain } from '../hooks/useMain';
+import { useSubstats } from '../hooks/useSub';
 import '../styles/App.css';
 
 export interface ElementState {
@@ -32,6 +36,9 @@ export const EditPage: React.FC = () => {
   const [isEchoesVisible, setIsEchoesVisible] = useState(false);
   const [currentSequence, setCurrentSequence] = useState(0);
   const echoesRef = useRef<HTMLElement>(null);
+  const { echoesByCost } = useEchoes();
+  const { mainStatsData, calculateValue } = useMain();
+  const { substatsData } = useSubstats();
   const hasScrolledToEchoes = useRef(false);
 
   const [weaponState, setWeaponState] = useState<WeaponState>({
@@ -89,9 +96,41 @@ export const EditPage: React.FC = () => {
           setCurrentSequence(result.analysis.sequence);
         }
       }
+      else if (result.analysis.type === 'Echo') {
+        const echoAnalysis = result.analysis;
+        if (!hasScrolledToEchoes.current) {
+          handleEchoesClick();
+          hasScrolledToEchoes.current = true;
+        }
+
+        setEchoPanels(prev => {
+          const emptyIndex = prev.findIndex(p => !p.echo);
+          
+          if (emptyIndex === -1) {
+            return prev;
+          }
+      
+          const matchedPanel = matchEchoData(
+            echoAnalysis, 
+            echoesByCost,
+            mainStatsData, 
+            substatsData,
+            calculateValue
+          );
+      
+          if (!matchedPanel) {
+            return prev;
+          }
+      
+          const newPanels = prev.map((panel, i) => 
+            i === emptyIndex ? matchedPanel : panel
+          );
+          return newPanels;
+        });
+      }
       setOCRAnalysis(result.analysis);
     }
-  }, [currentSequence, elementState.selectedCharacter?.weaponType]);
+  }, [currentSequence, elementState.selectedCharacter?.weaponType, echoesByCost, mainStatsData, substatsData, calculateValue]);
 
   const handleEchoesClick = () => {
     setIsEchoesVisible(true);
@@ -144,15 +183,6 @@ export const EditPage: React.FC = () => {
       setCurrentSequence(0);
       setNodeStates({});
       setForteLevels({});
-      setEchoPanels(Array(5).fill(null).map(() => ({
-        echo: null,
-        level: 0,
-        selectedElement: null,
-        stats: {
-          mainStat: { type: null, value: null },
-          subStats: Array(5).fill({ type: null, value: null })
-        }
-      })));
     }
   }, [unlock, weaponCache]);
 
@@ -208,6 +238,73 @@ export const EditPage: React.FC = () => {
   const handleLevelChange = useCallback((level: number) => {
     setCharacterLevel(level.toString());
   }, []);
+  
+  const handleEchoLevelChange = useCallback((index: number, level: number) => {
+    setEchoPanels(prev => prev.map((panel, i) => 
+      i === index ? { ...panel, level } : panel
+    ));
+  }, []);
+  
+  const handleEchoElementSelect = useCallback((index: number, element: ElementType | null) => {
+    setEchoPanels(prev => prev.map((panel, i) => 
+      i === index ? { ...panel, selectedElement: element } : panel
+    ));
+  }, []);
+  
+  const handleEchoSelect = useCallback((index: number, echo: Echo) => {
+    setEchoPanels(prev => prev.map((panel, i) => 
+      i === index ? { ...panel, echo, selectedElement: null } : panel
+    ));
+  }, []);
+
+  const handleMainStatChange = useCallback((index: number, type: string | null) => {
+    setEchoPanels(prev => prev.map((panel, i) => {
+      if (i !== index) return panel;
+      
+      if (!type || !mainStatsData || !panel.echo?.cost) {
+        return {
+          ...panel,
+          stats: {
+            ...panel.stats,
+            mainStat: { type: null, value: null }
+          }
+        };
+      }
+  
+      const [min, max] = mainStatsData[`${panel.echo.cost}cost`].mainStats[type];
+      const value = calculateValue(min, max, panel.level);
+  
+      return {
+        ...panel,
+        stats: {
+          ...panel.stats,
+          mainStat: { type, value }
+        }
+      };
+    }));
+  }, [mainStatsData, calculateValue]);
+  
+  const handleSubStatChange = useCallback((
+    panelIndex: number, 
+    substatIndex: number, 
+    type: string | null, 
+    value: number | null
+  ) => {
+    setEchoPanels(prev => prev.map((panel, i) => {
+      if (i !== panelIndex) return panel;
+      
+      const newSubStats = [...panel.stats.subStats];
+      newSubStats[substatIndex] = { type, value };
+  
+      return {
+        ...panel,
+        stats: {
+          ...panel.stats,
+          subStats: newSubStats
+        }
+      };
+    }));
+  }, []);
 
   return (
     <div className="edit-page">
@@ -258,8 +355,13 @@ export const EditPage: React.FC = () => {
         <EchoesSection 
           ref={echoesRef}  
           isVisible={isEchoesVisible}
-          onPanelChange={setEchoPanels}
           initialPanels={echoPanels}
+          onLevelChange={handleEchoLevelChange}
+          onElementSelect={handleEchoElementSelect} 
+          onEchoSelect={handleEchoSelect}
+          onMainStatChange={handleMainStatChange}
+          onSubStatChange={handleSubStatChange}
+          onPanelChange={setEchoPanels} 
         />
         
         <BuildCard 
