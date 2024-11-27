@@ -1,5 +1,5 @@
 export type OCRData = 
-  | { type: 'Character'; name: string; characterLevel: number}
+  | { type: 'Character'; name: string; characterLevel: number; uid: string}
   | { type: 'Weapon'; name: string; weaponType: string; weaponLevel: number; rank: number }
   | { type: 'Sequences'; sequence: number }
   | { 
@@ -31,6 +31,7 @@ export interface CharacterAnalysis extends BaseAnalysis {
   name: string;
   characterLevel: number;
   element: string;
+  uid?: string;
 }
 
 export interface WeaponAnalysis extends BaseAnalysis {
@@ -96,6 +97,12 @@ export interface OCRContextType {
   unlock: () => void;
 }
 
+export const validateUID = (uid: string | undefined): string | undefined => {
+  if (!uid) return undefined;
+  const cleaned = uid.replace(/\D/g, '');
+  return /^\d{9}$/.test(cleaned) ? cleaned : undefined;
+};
+
 export const validateLevel = (level: string | number | undefined): number => {
   if (!level) return 1;
   const parsed = typeof level === 'string' ? parseInt(level, 10) : level;
@@ -131,9 +138,7 @@ export const validateElement = (element: string | undefined): string => {
 
 export const validateEchoLevel = (level: string | number | undefined): number => {
   if (!level) return 0;
-  const parsed = typeof level === 'string' 
-    ? parseInt(level.replace(/^\+/, ''), 10) 
-    : level;
+  const parsed = typeof level === 'string' ? parseInt(level.replace(/^\+/, ''), 10) : level;
   return isNaN(parsed) || parsed < 0 || parsed > 25 ? 0 : parsed;
 };
 
@@ -163,25 +168,19 @@ export const validateCharacterLevel = (level: string | number | undefined): numb
 export const validateWeaponLevel = validateCharacterLevel;
 
 export const isCharacterAnalysis = (analysis: OCRAnalysis): analysis is CharacterAnalysis => 
-  analysis.type === 'Character' && 
-  typeof analysis.name === 'string' &&
-  typeof analysis.element === 'string' &&
-  (!analysis.characterLevel || (typeof analysis.characterLevel === 'number' && analysis.characterLevel >= 1 && analysis.characterLevel <= 90));
+  analysis.type === 'Character' &&  typeof analysis.name === 'string' && typeof analysis.element === 'string' &&
+  (!analysis.characterLevel || (typeof analysis.characterLevel === 'number' && analysis.characterLevel >= 1 && analysis.characterLevel <= 90)) &&
+  (!analysis.uid || /^\d{9}$/.test(analysis.uid));
 
 export const isWeaponAnalysis = (analysis: OCRAnalysis): analysis is WeaponAnalysis =>
   analysis.type === 'Weapon' &&
-  typeof analysis.name === 'string' &&
-  typeof analysis.weaponType === 'string' &&
+  typeof analysis.name === 'string' && typeof analysis.weaponType === 'string' &&
   (!analysis.weaponLevel || (typeof analysis.weaponLevel === 'number' && analysis.weaponLevel >= 1 && analysis.weaponLevel <= 90)) &&
   (!analysis.rank || (typeof analysis.rank === 'number' && analysis.rank >= 1 && analysis.rank <= 5));
 
 export const isSequenceAnalysis = (analysis: OCRAnalysis): analysis is SequenceAnalysis =>
   analysis.type === 'Sequences' && 
-  (!analysis.sequence || (
-    typeof analysis.sequence === 'number' && 
-    analysis.sequence >= 0 && 
-    analysis.sequence <= 6
-  ));
+  (!analysis.sequence || (typeof analysis.sequence === 'number' && analysis.sequence >= 0 && analysis.sequence <= 6));
 
 export const isForteAnalysis = (analysis: OCRAnalysis): analysis is ForteAnalysis => {
   if (analysis.type !== 'Forte') return false;
@@ -204,9 +203,7 @@ export const isEchoAnalysis = (analysis: OCRAnalysis): analysis is EchoAnalysis 
   if (analysis.type !== 'Echo') return false;
 
   const mainValue = validateEchoStatValue(analysis.main?.value);
-  const validEchoLevel = typeof analysis.echoLevel === 'number' && 
-                        analysis.echoLevel >= 0 && 
-                        analysis.echoLevel <= 25;
+  const validEchoLevel = typeof analysis.echoLevel === 'number' && analysis.echoLevel >= 0 && analysis.echoLevel <= 25;
   
   return (
     typeof analysis.element === 'string' &&

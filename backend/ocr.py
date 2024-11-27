@@ -9,6 +9,7 @@ from pathlib import Path
 
 SCAN_REGIONS = {
     "info": {"top": 0, "left": 0, "width": 0.13, "height": 0.11},
+    "uid": {"top": 0.97, "left": 0.913, "width": 0.075, "height": 0.03},
     "characterPage": {"top": 0.09, "left": 0.09, "width": 0.22, "height": 0.18},
     "weaponPage": {"top": 0.11, "left": 0.09, "width": 0.215, "height": 0.25},
     "echoPage": {"top": 0.11, "left": 0.72, "width": 0.25, "height": 0.35},
@@ -52,6 +53,8 @@ ROOT_DIR = BACKEND_DIR.parent
 DOWNLOADS_DIR = ROOT_DIR.parent
 DATA_DIR = ROOT_DIR / 'public' / 'Data' 
 DEBUG_DIR = DOWNLOADS_DIR / 'wuwa_debug'
+
+ORIGINAL_IMAGE = None
 
 try:
     with open(DATA_DIR / 'Characters.json', 'r', encoding='utf-8') as f:
@@ -112,12 +115,18 @@ def clean_text(text):
     return ' '.join(word for word in text.lower().split() 
                 if len(word) > 2)
 
+def upscale_image(image):
+    """Upscale image by using cubic interpolation"""
+    return cv2.resize(image, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
+
 def process_image(image):
+    global ORIGINAL_IMAGE
     if image is None or image.size == 0:
         raise ValueError("Invalid image input")
     
     try:
         DEBUG_DIR.mkdir(exist_ok=True)
+        ORIGINAL_IMAGE = image.copy()
         cv2.imwrite(str(DEBUG_DIR / 'full_original.jpg'), image)
 
         info_coords = SCAN_REGIONS["info"]
@@ -154,6 +163,7 @@ def process_image(image):
                 for slot_key in region_key:
                     slot_coords = SCAN_REGIONS[slot_key]
                     slot_img = crop_region(image, slot_coords)
+                    slot_img = upscale_image(slot_img)
                     cv2.imwrite(str(DEBUG_DIR / f'{slot_key}_original.jpg'), slot_img)
                     slots.append(slot_img)
                 details = get_sequence_info(slots)
@@ -228,7 +238,8 @@ def determine_type(text):
     return "unknown"
 
 def get_character_info(text):
-    """Extract character name and level from OCR text"""
+    """Extract character name, level and UID from OCR text"""
+    global ORIGINAL_IMAGE
     text = text.replace(':', '').replace('.',' ').replace('  ', ' ')
     
     element_pattern = r'["\'\s]*(?:Havoc|Spectro|Electro|Fusion|Glacio|Aero)["\'\s—]*'
@@ -263,12 +274,68 @@ def get_character_info(text):
     
     if level and element and element.strip() in ['Havoc', 'Spectro'] and not name:
         name = "Rover"
-            
+        gender = detect_rover_gender()
+        name = f"Rover{gender}"
+    
+    uid = None
+    try:
+        uid_img = crop_region(ORIGINAL_IMAGE, SCAN_REGIONS["uid"])
+        uid_img = upscale_image(uid_img)
+        
+        processed_uid = preprocess_image(uid_img)
+        cv2.imwrite(str(DEBUG_DIR / 'uid_processed.jpg'), processed_uid)
+        uid_text = pytesseract.image_to_string(processed_uid)
+        print(f"UID OCR Text: {uid_text}")
+        uid_match = re.search(r'\d{9}', uid_text.replace(' ', ''))
+        if uid_match:
+            uid = uid_match.group(0)
+    except Exception as e:
+        print(f"UID extraction failed: {e}")
+    
     return {
         'name': name,
         'characterLevel': level[0] if level else None,
-        'element': element
+        'element': element,
+        'uid': uid
     }
+    
+def detect_rover_gender():
+    """Detect Rover's gender based on dark clothing colors"""
+    global ORIGINAL_IMAGE
+    
+    regions = {
+        "shoulders_left": {"top": 0.4, "left": 0.45, "width": 0.02, "height": 0.04},
+        "shoulders_right": {"top": 0.4, "left": 0.555, "width": 0.02, "height": 0.04},
+        "right_thigh": {"top": 0.87, "left": 0.54, "width": 0.04, "height": 0.095}
+    }
+    
+    dark_colors = [
+        (38, 34, 34),
+        (36, 48, 46)
+    ]
+    
+    tolerance = 25
+    
+    male_matches = []
+    for region_name, coords in regions.items():
+        region_img = crop_region(ORIGINAL_IMAGE, coords)
+        cv2.imwrite(str(DEBUG_DIR / f'rover_{region_name}.jpg'), region_img)
+        
+        dark_pixels = 0
+        for color in dark_colors:
+            mask = cv2.inRange(
+                region_img,
+                np.array([max(0, c - tolerance) for c in color]),
+                np.array([min(255, c + tolerance) for c in color])
+            )
+            dark_pixels += np.count_nonzero(mask)
+            cv2.imwrite(str(DEBUG_DIR / f'rover_{region_name}_mask.jpg'), mask)
+        
+        total_pixels = region_img.shape[0] * region_img.shape[1]
+        dark_ratio = dark_pixels / total_pixels
+        male_matches.append(dark_ratio > 0.4)
+    
+    return " (M)" if sum(male_matches) >= 2 else " (F)"
 
 def get_weapon_info(text):
     """Extract weapon info from OCR text"""
@@ -329,37 +396,28 @@ def get_weapon_info(text):
 
 def get_sequence_info(slots):
     sequence_states = []
-    yellow_lower = np.array([45, 100, 150])
-    yellow_upper = np.array([65, 255, 255])
+    yellow_lower = np.array([20, 103, 214])
+    yellow_upper = np.array([27, 227, 242])
     
     for i, slot_img in enumerate(slots):
         hsv = cv2.cvtColor(slot_img, cv2.COLOR_BGR2HSV)
-        
-        if i == 5:
+        if i == 5: 
             yellow_lower_s6 = np.array([30, 50, 100])
             yellow_upper_s6 = np.array([75, 255, 255])
-            blue_lower = np.array([100, 30, 30])
-            blue_upper = np.array([130, 255, 255])
+            blue_lower = np.array([0, 0, 76])
+            blue_upper = np.array([123, 54, 151])
             
             yellow_mask = cv2.inRange(hsv, yellow_lower_s6, yellow_upper_s6)
             blue_mask = cv2.inRange(hsv, blue_lower, blue_upper)
             
             yellow_ratio = (np.count_nonzero(yellow_mask) / (slot_img.shape[0] * slot_img.shape[1])) * 100
-            blue_ratio = (np.count_nonzero(blue_mask) / (slot_img.shape[0] * slot_img.shape[1])) * 100
-
+            blue_ratio = (np.count_nonzero(blue_mask) / (slot_img.shape[0] * slot_img.shape[1])) * 100            
             sequence_states.append(1 if yellow_ratio > blue_ratio else 0)
         else:
             yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
-            yellow_ratio = (np.count_nonzero(yellow_mask) / (slot_img.shape[0] * slot_img.shape[1])) * 100
-            sequence_states.append(1 if yellow_ratio > 0.1 else 0)
-    
-    count = 0
-    for state in sequence_states:
-        if state == 1:
-            count += 1
-        else:
-            break
-    
+            yellow_ratio = (np.count_nonzero(yellow_mask) / (slot_img.shape[0] * slot_img.shape[1])) * 100            
+            sequence_states.append(1 if yellow_ratio > 10 else 0)
+    count = sum(1 for state in sequence_states if state == 1)    
     return {
         'type': 'Sequences',
         'sequence': count
@@ -561,15 +619,15 @@ def get_icon(circle_bgra, possible_elements):
 
 
 def get_echo_info(processed_image, element):
-    name_img = crop_region(processed_image, ECHO_REGIONS["name"])
-    lv_img = crop_region(processed_image, ECHO_REGIONS["level"]) 
-    main_img = crop_region(processed_image, ECHO_REGIONS["main"])
+    name_img = upscale_image(crop_region(processed_image, ECHO_REGIONS["name"]))
+    lv_img = upscale_image(crop_region(processed_image, ECHO_REGIONS["level"]))
+    main_img = upscale_image(crop_region(processed_image, ECHO_REGIONS["main"]))
     
     sub_images = []
     sub_stats = []
     for i in range(1, 6):
         sub_key = f"sub{i}"
-        sub_img = crop_region(processed_image, ECHO_REGIONS[sub_key])
+        sub_img = upscale_image(crop_region(processed_image, ECHO_REGIONS[sub_key]))
         sub_images.append(sub_img)
         cv2.imwrite(str(DEBUG_DIR / f'echo_{sub_key}.png'), sub_img)
         sub_text = pytesseract.image_to_string(sub_img).strip().replace('\n', ' ')
@@ -594,6 +652,8 @@ def get_echo_info(processed_image, element):
     name_text = pytesseract.image_to_string(name_img).strip()
     if name_text.startswith('Phantom:'):
         name_text = name_text[8:].strip()
+    if not name_text:
+        name_text = 'Jue'
         
     main_text = pytesseract.image_to_string(main_img).strip().replace('\n', ' ')
     

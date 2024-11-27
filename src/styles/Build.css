@@ -125,11 +125,11 @@ input:-webkit-autofill {
 .watermark-container {
     position: absolute;
     width: 150px;
-    top: 50%;
-    left: 33%;
+    top: 2%;
+    left: 1.5%;
     display: flex;
     flex-direction: column;
-    text-align: center;
+    text-align: left;
     font-size: 24px;
     font-family: 'Ropa', sans-serif;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
@@ -371,7 +371,7 @@ input:-webkit-autofill {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    filter: invert(1);
+    filter: brightness(0);
 }
 
 .simplified-base .skill-image {

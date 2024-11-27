@@ -490,3 +490,55 @@
     padding: 2px 5px;
     text-align: center;
 }
+
+.substats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stat-slot {
+    cursor: grab;
+    user-select: none;
+    background-color: #444;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-slot:active {
+    cursor: grabbing;
+}
+
+.stat-slot[data-dragging="true"] {
+    background-color: #555;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transform: scale(1.02);
+    z-index: 100;
+}
+
+.stat-slot {
+    transform: translate3d(0, 0, 0);
+    transition: transform 200ms ease;
+}
+
+.sortable-ghost {
+    opacity: 0.4;
+}
+
+.sortable-drag {
+    opacity: 0.9;
+    background-color: #666;
+    }
+
+.stat-slot:hover {
+    background-color: #4a4a4a;
+}
+
+.stat-select,
+.stat-value {
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.stats-tab {
+    padding: 10px 0;
+}

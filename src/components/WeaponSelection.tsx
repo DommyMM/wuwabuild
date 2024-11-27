@@ -27,6 +27,14 @@ interface WeaponSelectionProps {
   preloadedWeapons?: Weapon[];
 }
 
+const rarityColors = {
+  "5-star": "#fff7b5",
+  "4-star": "#e1bef3",
+  "3-star": "#b4d4da",
+  "2-star": "#bad1bf",
+  "1-star": "#868686"
+};
+
 export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
   selectedCharacter,
   selectedWeapon,
@@ -153,12 +161,4 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
       )}
     </>
   );
-};
-
-const rarityColors = {
-  "5-star": "#fff7b5",
-  "4-star": "#e1bef3",
-  "3-star": "#b4d4da",
-  "2-star": "#bad1bf",
-  "1-star": "#868686"
 };

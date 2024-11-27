@@ -166,23 +166,6 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
               clickCount={clickCount}
               onMaxClick={onMaxClick}
               onChange={onForteChange}
-              ocrData={ocrData?.type === 'Forte' ? {
-                type: 'Forte',
-                nodeStates: {
-                  tree1: { top: ocrData.normal[1] === 1, middle: ocrData.normal[2] === 1 },
-                  tree2: { top: ocrData.skill[1] === 1, middle: ocrData.skill[2] === 1 },
-                  tree3: { top: ocrData.circuit[1] === 1, middle: ocrData.circuit[2] === 1 },
-                  tree4: { top: ocrData.liberation[1] === 1, middle: ocrData.liberation[2] === 1 },
-                  tree5: { top: ocrData.intro[1] === 1, middle: ocrData.intro[2] === 1 }
-                },
-                levels: {
-                  'normal-attack': ocrData.normal[0],
-                  'skill': ocrData.skill[0],
-                  'circuit': ocrData.circuit[0],
-                  'liberation': ocrData.liberation[0],
-                  'intro': ocrData.intro[0]
-                }
-              } : undefined}
             />
           </>
         )}

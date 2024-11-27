@@ -7,7 +7,7 @@ interface OptionsProps {
     uid: string;
   };
   showRollQuality: boolean;
-  onWatermarkChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onWatermarkChange: (watermark: { username: string; uid: string }) => void;
   onRollQualityChange: (checked: boolean) => void;
   className?: string;
 }
@@ -19,6 +19,24 @@ export const Options: React.FC<OptionsProps> = ({
   onRollQualityChange,
   className
 }) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    onWatermarkChange({
+      ...watermark,
+      [id.replace('build-', '')]: value
+    });
+  };
+
+  const handlePaste = (field: 'username' | 'uid') => (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const maxLength = field === 'username' ? 12 : 9;
+    const pastedText = e.clipboardData.getData('text').slice(0, maxLength);
+    onWatermarkChange({
+      ...watermark,
+      [field]: pastedText
+    });
+  };
+
   return (
     <div className={`options-container ${className || ''}`}>
       <div className="input-container">
@@ -28,7 +46,8 @@ export const Options: React.FC<OptionsProps> = ({
           placeholder="Username"
           maxLength={12}
           value={watermark.username}
-          onChange={onWatermarkChange}
+          onChange={handleInputChange}
+          onPaste={handlePaste('username')}
           className="build-input username-input"
         />
         <input
@@ -37,7 +56,8 @@ export const Options: React.FC<OptionsProps> = ({
           placeholder="UID"
           maxLength={9}
           value={watermark.uid}
-          onChange={onWatermarkChange}
+          onChange={handleInputChange}
+          onPaste={handlePaste('uid')}
           className="build-input uid-input"
         />
         <div className="checkbox-container">

@@ -37,7 +37,7 @@ const getAnalysisDetails = (analysis?: OCRAnalysis): string | undefined => {
   
   switch (analysis.type) {
     case 'Character':
-      return `Lv.${analysis.characterLevel} ${analysis.name}`;
+      return `Lv.${analysis.characterLevel} ${analysis.name}\nUID: ${analysis.uid}`;
     case 'Weapon':
       return `${analysis.weaponType}: ${analysis.name}\nLv.${analysis.weaponLevel} R${analysis.rank}`;
     case 'Sequences':
@@ -92,14 +92,6 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
 
       if (result.analysis?.type === 'Character') {
         const characterAnalysis = result.analysis as CharacterAnalysis;
-        
-        if (characterAnalysis.name === 'Rover') {
-          setErrorMessages(['Rover detected\nSelect gender --->']);
-          setTimeout(() => {
-            setErrorMessages([]);
-          }, 5000);
-          characterAnalysis.name = 'Rover (F)';
-        }
         const matchedCharacter = characters.find(char => char.name.toLowerCase() === characterAnalysis.name.toLowerCase()
         );
         if (!matchedCharacter) {

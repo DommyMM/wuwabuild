@@ -22,6 +22,11 @@ export interface ElementState {
   displayName: string | undefined;
 }
 
+export interface WatermarkState {
+  username: string;
+  uid: string;
+}
+
 export const EditPage: React.FC = () => {
   const { unlock } = useOCRContext();
   const [isOCRPanelOpen, setIsOCRPanelOpen] = useState(false);
@@ -73,11 +78,36 @@ export const EditPage: React.FC = () => {
   const [ocrAnalysis, setOCRAnalysis] = useState<OCRAnalysis | undefined>();
   const [weaponCache, setWeaponCache] = useState<Record<WeaponType, Weapon[]>>({} as Record<WeaponType, Weapon[]>);
 
+  const [watermark, setWatermark] = useState<WatermarkState>({
+    username: '',
+    uid: ''
+  });
+
+  const handleWatermarkChange = useCallback((newWatermark: WatermarkState) => {
+    setWatermark(newWatermark);
+  }, []);
+
   const handleOCRResult = useCallback((result: OCRResponse) => {
     if (result.success && result.analysis) {
       if (result.analysis.type === 'Character') {
+        const characterAnalysis = result.analysis;
         setOcrName(result.analysis.name);
         setCharacterLevel(result.analysis.characterLevel.toString());
+        if (characterAnalysis.uid?.length === 9) {
+          setWatermark(prev => ({
+            ...prev,
+            uid: characterAnalysis.uid!
+          }));
+        }
+        if (elementState.selectedCharacter && 
+            isRover(elementState.selectedCharacter) && 
+            result.analysis.element === "Spectro") {
+          setElementState(prev => ({
+            ...prev,
+            elementValue: "Spectro",
+            displayName: "RoverSpectro"
+          }));
+        }
       } 
       else if (result.analysis.type === 'Weapon') {
         const weaponAnalysis = result.analysis;
@@ -130,7 +160,7 @@ export const EditPage: React.FC = () => {
       }
       setOCRAnalysis(result.analysis);
     }
-  }, [currentSequence, elementState.selectedCharacter?.weaponType, echoesByCost, mainStatsData, substatsData, calculateValue]);
+  }, [currentSequence, elementState.selectedCharacter, echoesByCost, mainStatsData, substatsData, calculateValue]);
 
   const handleGenerateClick = (level: number) => {
     setCharacterLevel(level.toString());
@@ -162,7 +192,6 @@ export const EditPage: React.FC = () => {
             console.error('Failed to load weapons:', error);
           }
         }
-  
         setIsCharacterMinimized(false);
         setIsEchoesMinimized(true); 
         setElementState({
@@ -384,6 +413,8 @@ export const EditPage: React.FC = () => {
           isVisible={true}
           isEchoesVisible={!isEchoesMinimized && elementState.selectedCharacter !== null}
           selectedCharacter={elementState.selectedCharacter}
+          watermark={watermark}
+          onWatermarkChange={handleWatermarkChange}
           displayName={elementState.displayName}
           characterLevel={characterLevel}
           isSpectro={elementState.elementValue === "Spectro"}

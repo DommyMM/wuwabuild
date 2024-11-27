@@ -32,11 +32,11 @@ interface BuildCardProps {
   nodeStates: Record<string, Record<string, boolean>>;
   levels: Record<string, number>;
   echoPanels: EchoPanelState[];
-}
-
-interface WatermarkData {
-  username: string;
-  uid: string;
+  watermark: {
+    username: string;
+    uid: string;
+  };
+  onWatermarkChange: (watermark: { username: string; uid: string }) => void;
 }
 
 export const BuildCard: React.FC<BuildCardProps> = ({
@@ -52,15 +52,14 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   weaponConfig,
   nodeStates,
   levels,
-  echoPanels
+  echoPanels,
+  watermark,
+  onWatermarkChange
 }) => {
   useStatHighlight();
   const [isTabVisible, setIsTabVisible] = useState(false);
-  const [watermark, setWatermark] = useState<WatermarkData>({
-    username: '',
-    uid: ''
-  });
   const [showRollQuality, setShowRollQuality] = useState(false);
+  const [hasBeenVisible, setHasBeenVisible] = useState(false);
   const tabRef = useRef<HTMLDivElement>(null);
 
   const { scaleAtk, scaleStat } = useLevelCurves();
@@ -70,11 +69,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       scaledAtk: scaleAtk(selectedWeapon.ATK, weaponConfig.level),
       scaledMainStat: scaleStat(selectedWeapon.base_main, weaponConfig.level),
       scaledPassive: selectedWeapon.passive_stat 
-        ? Math.floor(selectedWeapon.passive_stat * (1 + ((weaponConfig.rank - 1) * 0.25)))
-        : undefined,
+        ? Number((selectedWeapon.passive_stat * (1 + ((weaponConfig.rank - 1) * 0.25))).toFixed(1)) : undefined,
       scaledPassive2: selectedWeapon.passive_stat2
-        ? Math.floor(selectedWeapon.passive_stat2 * (1 + ((weaponConfig.rank - 1) * 0.25)))
-        : undefined
+        ? Number((selectedWeapon.passive_stat2 * (1 + ((weaponConfig.rank - 1) * 0.25))).toFixed(1)) : undefined
     } : undefined,
     [selectedWeapon, weaponConfig.level, weaponConfig.rank, scaleAtk, scaleStat]
   );
@@ -91,9 +88,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
 
   const formatStatValue = (stat: StatName, value: number): string => {
     const flatStats = ['HP', 'ATK', 'DEF'];
-    return flatStats.includes(stat) 
-      ? Math.round(value).toString() 
-      : `${value.toFixed(1)}%`;
+    return flatStats.includes(stat) ? Math.round(value).toString() : `${value.toFixed(1)}%`;
   };
 
   const displayStats = useMemo(() => 
@@ -117,13 +112,11 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     }
   }, [isTabVisible]);
 
-  const handleWatermarkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setWatermark(prev => ({
-      ...prev,
-      [id.replace('build-', '')]: value
-    }));
-  };
+  useEffect(() => {
+    if (isEchoesVisible && !hasBeenVisible) {
+      setHasBeenVisible(true);
+    }
+  }, [isEchoesVisible, hasBeenVisible]);
 
   const handleGenerate = useCallback(() => {
     if (!isTabVisible) {
@@ -152,13 +145,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const calculateSets = (): Array<{ element: ElementType; count: number }> => {
     const elementCounts: Record<ElementType, number> = {} as Record<ElementType, number>;
     const usedEchoes = new Set();
-  
     echoPanels.forEach(panel => {
       if (panel.echo && !usedEchoes.has(panel.echo.name)) {
-        const element = panel.echo.elements.length === 1 ? 
-          panel.echo.elements[0] : 
-          panel.selectedElement;
-        
+        const element = panel.echo.elements.length === 1 ? panel.echo.elements[0] : panel.selectedElement;
         if (element) {
           elementCounts[element] = (elementCounts[element] || 0) + 1;
           usedEchoes.add(panel.echo.name);
@@ -187,9 +176,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       <Options
         watermark={watermark}
         showRollQuality={showRollQuality}
-        onWatermarkChange={handleWatermarkChange}
+        onWatermarkChange={onWatermarkChange}
         onRollQualityChange={setShowRollQuality}
-        className={isEchoesVisible ? 'visible' : 'hidden'}
+        className={hasBeenVisible ? 'visible' : 'hidden'}
       />
 
       <button
@@ -197,7 +186,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
         className="build-button"
         onClick={handleGenerate}
         style={{ 
-          display: isEchoesVisible ? 'block' : 'none'
+          display: hasBeenVisible ? 'block' : 'none'
         }}
       >
         Generate

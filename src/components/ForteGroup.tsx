@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Character } from '../types/character';
 import { forteImagePaths } from '../types/node';
 import type { ForteImagePaths, SkillBranch } from '../types/node';
@@ -16,11 +16,6 @@ interface ForteGroupProps {
     nodeStates: Record<string, Record<string, boolean>>,
     levels: Record<string, number>
   ) => void;
-  ocrData?: {
-    type: 'Forte';
-    nodeStates: Record<string, Record<string, boolean>>;
-    levels: Record<string, number>;
-  };
 }
 
 interface GlowingNodeProps {
@@ -49,8 +44,7 @@ const GlowingNode: React.FC<GlowingNodeProps> = ({
       imagePath = forteImagePaths.imagePaths[skillKey]?.(roverName);
     }
   } else {
-    imagePath = forteImagePaths.sharedImages[treeKey]?.(character) ||
-                forteImagePaths.imagePaths[skillKey]?.(character.name);
+    imagePath = forteImagePaths.sharedImages[treeKey]?.(character) || forteImagePaths.imagePaths[skillKey]?.(character.name);
   }
 
   return (
@@ -161,16 +155,7 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
   clickCount,
   onMaxClick,
   onChange,
-  ocrData
 }) => {
-  const [lastOcrData, setLastOcrData] = useState<string | undefined>();
-
-  if (ocrData?.type === 'Forte' && 
-      JSON.stringify(ocrData) !== lastOcrData) {
-    setLastOcrData(JSON.stringify(ocrData));
-    onChange(ocrData.nodeStates, ocrData.levels);
-  }
-
   const skillBranches: SkillBranch[] = [
     { skillName: 'Normal Attack', skillKey: 'normal-attack', treeKey: 'tree1' },
     { skillName: 'Resonance Skill', skillKey: 'skill', treeKey: 'tree2' },
