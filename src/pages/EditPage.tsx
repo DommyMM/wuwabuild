@@ -235,10 +235,25 @@ export const EditPage: React.FC = () => {
   }, []);
   
   const handleEchoLevelChange = useCallback((index: number, level: number) => {
-    setEchoPanels(prev => prev.map((panel, i) => 
-      i === index ? { ...panel, level } : panel
-    ));
-  }, []);
+    setEchoPanels(prev => prev.map((panel, i) => {
+      if (i !== index) return panel;
+      
+      const updatedPanel = { ...panel, level };
+
+      if (panel.stats.mainStat.type && panel.echo?.cost && mainStatsData) {
+        const [min, max] = mainStatsData[`${panel.echo.cost}cost`].mainStats[panel.stats.mainStat.type];
+        updatedPanel.stats = {
+          ...updatedPanel.stats,
+          mainStat: {
+            ...updatedPanel.stats.mainStat,
+            value: calculateValue(min, max, level)
+          }
+        };
+      }
+
+      return updatedPanel;
+    }));
+  }, [mainStatsData, calculateValue]);
   
   const handleEchoElementSelect = useCallback((index: number, element: ElementType | null) => {
     setEchoPanels(prev => prev.map((panel, i) => 

@@ -45,8 +45,7 @@ const getAnalysisDetails = (analysis?: OCRAnalysis): string | undefined => {
     case 'Forte':
       return 'Forte Tree';
     case 'Echo':
-      return `Lv.${analysis.echoLevel} ${analysis.name}\n${
-        analysis.element.charAt(0).toUpperCase() + analysis.element.slice(1)} | ${analysis.main.name}: ${analysis.main.value}`;
+      return `Lv.${analysis.echoLevel} ${analysis.name}\n${analysis.element.charAt(0).toUpperCase() + analysis.element.slice(1)} | ${analysis.main.name}: ${analysis.main.value}`;
     default:
       return undefined;
   }
@@ -101,8 +100,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
           }, 5000);
           characterAnalysis.name = 'Rover (F)';
         }
-        const matchedCharacter = characters.find(
-          char => char.name.toLowerCase() === characterAnalysis.name.toLowerCase()
+        const matchedCharacter = characters.find(char => char.name.toLowerCase() === characterAnalysis.name.toLowerCase()
         );
         if (!matchedCharacter) {
           setErrorMessages(['Character not found']);
@@ -177,8 +175,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
             const normalizedWeaponType = weaponAnalysis.weaponType.replace(/s$/, '');
             
             if (normalizedWeaponType !== currentCharacterType) {
-              setErrorMessages(prev => [...prev, 
-                `Weapon type mismatch:\nExpected: ${currentCharacterType}\nScanned: ${weaponAnalysis.weaponType}`
+              setErrorMessages(prev => [...prev, `Weapon type mismatch:\nExpected: ${currentCharacterType}\nScanned: ${weaponAnalysis.weaponType}`
               ]);
             }
           }

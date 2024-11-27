@@ -110,7 +110,7 @@ def crop_region(image, region):
 
 def clean_text(text):
     return ' '.join(word for word in text.lower().split() 
-                   if len(word) > 2)
+                if len(word) > 2)
 
 def process_image(image):
     if image is None or image.size == 0:
@@ -141,10 +141,10 @@ def process_image(image):
             'Echo': 'echoPage',
             'Sequences': ['s1', 's2', 's3', 's4', 's5', 's6'],
             'Forte': ['normal-base', 'normal-mid', 'normal-top', 
-                      'skill-base', 'skill-mid', 'skill-top', 
-                      'circuit-base', 'circuit-mid', 'circuit-top',
-                      'liberation-base', 'liberation-mid', 'liberation-top',
-                      'intro-base', 'intro-mid', 'intro-top']
+                    'skill-base', 'skill-mid', 'skill-top', 
+                    'circuit-base', 'circuit-mid', 'circuit-top',
+                    'liberation-base', 'liberation-mid', 'liberation-top',
+                    'intro-base', 'intro-mid', 'intro-top']
         }.get(image_type)
 
         details = {}
@@ -557,7 +557,6 @@ def get_icon(circle_bgra, possible_elements):
         if score < best_score:
             best_score = score
             best_match = element
-      
     return best_match
 
 
@@ -579,12 +578,12 @@ def get_echo_info(processed_image, element):
             if match := re.search(r'(.*?)[\s—:]*(\d+\.?\d*\%?)$', sub_text):
                 name, value = match.groups()
                 name = name.replace('.', '')\
-                          .replace('DMG Bonus', '')\
-                          .replace('BMG', 'DMG')\
-                          .replace('Resonance', '')\
-                          .replace('—', '')\
-                          .replace(':', '')\
-                          .strip()
+                        .replace('DMG Bonus', '')\
+                        .replace('BMG', 'DMG')\
+                        .replace('Resonance', '')\
+                        .replace('—', '')\
+                        .replace(':', '')\
+                        .strip()
                 name = name if name else "HP"
                 sub_stats.append({'name': name, 'value': value.strip()})
     
@@ -602,9 +601,9 @@ def get_echo_info(processed_image, element):
     if match := re.search(r'(.*?)(\d+\.?\d*\%?)$', main_text):
         name, value = match.groups()
         name = name.replace('.', '')\
-                  .replace('DMG Bonus', 'DMG')\
-                  .replace('BMG', 'DMG')\
-                  .strip()
+                .replace('DMG Bonus', 'DMG')\
+                .replace('BMG', 'DMG')\
+                .strip()
         main_stat = {'name': name if name else 'HP', 'value': value.strip()}
 
     return {

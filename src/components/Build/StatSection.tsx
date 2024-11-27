@@ -37,8 +37,7 @@ const useStatClasses = (name: string) => {
 
 const StatRow: React.FC<StatRowProps> = ({ name, value, baseValue, update }) => {
   const isBaseStatType = ['HP', 'ATK', 'DEF'].includes(name);
-  const showBreakdown = isBaseStatType || 
-                       ['Energy Regen', 'Crit Rate', 'Crit DMG'].includes(name);
+  const showBreakdown = isBaseStatType || ['Energy Regen', 'Crit Rate', 'Crit DMG'].includes(name);
   const { statClassName, nameClass } = useStatClasses(name);
 
   return (

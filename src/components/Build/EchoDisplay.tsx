@@ -50,9 +50,9 @@ const EchoLeft: React.FC<{ panel: EchoPanelState }> = React.memo(({ panel }) => 
   );
 }, (prevProps, nextProps) => {
   return prevProps.panel.level === nextProps.panel.level &&
-         prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
-         prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
-         prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value;
+        prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
+        prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
+        prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value;
 });
 
 const EchoDivider = () => <div className="echo-divider" />;
@@ -136,7 +136,7 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
   );
 }, (prevProps, nextProps) => {
   return prevProps.showRollQuality === nextProps.showRollQuality &&
-         JSON.stringify(prevProps.panel) === JSON.stringify(nextProps.panel);
+        JSON.stringify(prevProps.panel) === JSON.stringify(nextProps.panel);
 });
 
 const EchoRow: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> = ({ 

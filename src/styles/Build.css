@@ -32,11 +32,11 @@
 
 .options-container.visible {
     display: block;
-  }
-  
-  .options-container.hidden {
+}
+
+.options-container.hidden {
     display: none;
-  }
+}
 
 .options-container {
     justify-content: flex-start;

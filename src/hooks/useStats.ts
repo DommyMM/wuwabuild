@@ -84,8 +84,7 @@ const calculateForteBonus = (
   nodeStates: Record<string, Record<string, boolean>>,
   isSpectro?: boolean
 ) => {
-  const baseValue1 = character.Bonus1 === 'Crit Rate' ? 4.0 :
-                    character.Bonus1 === 'Crit DMG' ? 8.0 : 6.0;
+  const baseValue1 = character.Bonus1 === 'Crit Rate' ? 4.0 : character.Bonus1 === 'Crit DMG' ? 8.0 : 6.0;
   const baseValue2 = character.Bonus2 === 'DEF' ? 7.6 : 6.0;
 
   let bonus1Total = 0;
@@ -102,9 +101,7 @@ const calculateForteBonus = (
     }
   });
 
-  const bonus1Type = character.name.startsWith('Rover') 
-    ? (isSpectro ? 'Spectro' : 'Havoc')
-    : character.Bonus1;
+  const bonus1Type = character.name.startsWith('Rover') ? (isSpectro ? 'Spectro' : 'Havoc') : character.Bonus1;
 
   return { bonus1Total, bonus2Total, bonus1Type };
 };
@@ -191,9 +188,7 @@ export const useStats = ({
 
       echoPanels.forEach(panel => {
         if (panel.echo && !usedEchoes.has(panel.echo.name)) {
-          const element = panel.echo.elements.length === 1 ? 
-            panel.echo.elements[0] : 
-            panel.selectedElement;
+          const element = panel.echo.elements.length === 1 ? panel.echo.elements[0] : panel.selectedElement;
           
           if (element) {
             elementCounts[element] = (elementCounts[element] || 0) + 1;
@@ -221,15 +216,11 @@ export const useStats = ({
         
         if (['HP', 'ATK', 'DEF'].includes(displayStat)) {
           const baseStat = displayStat as BaseStatName;
-          baseValues[displayStat] = displayStat === 'HP' ? baseHP :
-                                   displayStat === 'ATK' ? baseATK : baseDEF;
+          baseValues[displayStat] = displayStat === 'HP' ? baseHP : displayStat === 'ATK' ? baseATK : baseDEF;
           
           const echoStats = sumEchoDefaultStats(echoPanels);
-          const flat = sumMainStats(baseStat, echoPanels) + sumSubStats(baseStat, echoPanels) + 
-                      (baseStat === 'HP' ? echoStats.hp : 
-                       baseStat === 'ATK' ? echoStats.atk : 0);
-          let percent = sumMainStats(getPercentVariant(baseStat), echoPanels) + 
-                        sumSubStats(getPercentVariant(baseStat), echoPanels);
+          const flat = sumMainStats(baseStat, echoPanels) + sumSubStats(baseStat, echoPanels) + (baseStat === 'HP' ? echoStats.hp : baseStat === 'ATK' ? echoStats.atk : 0);
+          let percent = sumMainStats(getPercentVariant(baseStat), echoPanels) + sumSubStats(getPercentVariant(baseStat), echoPanels);
 
           if (weapon && weaponStats) {
             const percentStatName = `${displayStat}%`;

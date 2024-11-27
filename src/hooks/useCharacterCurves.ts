@@ -41,10 +41,7 @@ export const useCharacterCurves = () => {
     if (!curves) return baseStat;
     if (level < 1 || level > 90) return baseStat;
     
-    const levelKey = level === 20 || level === 40 || level === 50 || 
-                    level === 60 || level === 70 || level === 80 ? 
-                    `${level}/${level}` : level.toString();
-                    
+    const levelKey = level === 20 || level === 40 || level === 50 || level === 60 || level === 70 || level === 80 ? `${level}/${level}` : level.toString();
     const curve = curves.CHARACTER_CURVE[levelKey];
     if (!curve) return baseStat;
 

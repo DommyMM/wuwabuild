@@ -22,8 +22,7 @@ export const matchEchoData = (
   echoesByCost: Record<number, Echo[]>,
   mainStatsData: MainStatData | null,
   substatsData: SubstatsData | null,
-  calculateValue: (min: number, max: number, level: number) => number
-): EchoPanelState | null => {
+  calculateValue: (min: number, max: number, level: number) => number): EchoPanelState | null => {
   try {
     if (!substatsData || !mainStatsData) return null;
 
@@ -57,8 +56,7 @@ export const matchEchoData = (
     return {
       echo: foundEcho,
       level: ocrData.echoLevel,
-      selectedElement: (ocrData.element.charAt(0).toUpperCase() + 
-                       ocrData.element.slice(1)) as ElementType,
+      selectedElement: (ocrData.element.charAt(0).toUpperCase() + ocrData.element.slice(1)) as ElementType,
       stats: {
         mainStat: { 
           type: matchedMainStat,
