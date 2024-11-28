@@ -68,7 +68,7 @@ interface PendingResult {
   result: OCRResponse;
 }
 
-const API_URL = 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 interface OCRError extends Error {
   status?: number;

@@ -114,7 +114,7 @@ export const EditPage: React.FC = () => {
           break;
         case 'Weapon':
           const weaponAnalysis = result.analysis;
-          console.log(`Weapon scan - Name: ${weaponAnalysis.name}, Type: ${weaponAnalysis.weaponType}, Level: ${weaponAnalysis.weaponLevel}, Rank: ${weaponAnalysis.rank}`);
+          console.log(`Setting Weapon - Name: ${weaponAnalysis.name}, Type: ${weaponAnalysis.weaponType}, Level: ${weaponAnalysis.weaponLevel}, Rank: ${weaponAnalysis.rank}`);
           if (elementState.selectedCharacter?.weaponType.replace(/s$/, '') === weaponAnalysis.weaponType.replace(/s$/, '')) {
             setWeaponState(prev => ({
               ...prev,
@@ -127,14 +127,14 @@ export const EditPage: React.FC = () => {
           break;
         case 'Sequences':
           const sequenceAnalysis = result.analysis;
-          console.log(`Updating sequence counter to: ${sequenceAnalysis.sequence}`);
+          console.log(`Setting Sequence: ${sequenceAnalysis.sequence}`);
           setCurrentSequence(prev => 
             Math.max(prev, sequenceAnalysis.sequence)
           );
           break;
         case 'Forte':
           const forteAnalysis = result.analysis;
-          console.group('Processing Forte tree updates');
+          console.group('Setting Forte');
           Object.entries(forteAnalysis).forEach(([skill, values]) => {
             if (skill === 'type') return;
             console.log(`${skill}: Level ${values[0]}, Top: ${values[1]}, Middle: ${values[2]}`);
@@ -166,7 +166,7 @@ export const EditPage: React.FC = () => {
           break;
       case 'Echo':
         const echoAnalysis = result.analysis;
-        console.group('Processing Echo scan:');
+        console.group('Setting Echo:');
         console.log(`Name: ${echoAnalysis.name}, Element: ${echoAnalysis.element}, Level: ${echoAnalysis.echoLevel}`);
         console.log(`Main stat: ${echoAnalysis.main.name} = ${echoAnalysis.main.value}`);
         console.log('Sub stats:', echoAnalysis.subs.map(sub => 
