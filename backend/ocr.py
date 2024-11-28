@@ -75,17 +75,12 @@ def preprocess_image(image, region_name=None):
     
     if region_name:
         debug_original = DEBUG_DIR / f'{region_name}_original.jpg'
-        cv2.imwrite(str(debug_original), image)
     
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     denoised = cv2.fastNlMeansDenoising(gray)
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
     enhanced = clahe.apply(denoised)
     thresh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-    
-    if region_name:
-        debug_processed = DEBUG_DIR / f'{region_name}_processed.jpg'
-        cv2.imwrite(str(debug_processed), thresh)
     
     return thresh
 
@@ -99,7 +94,6 @@ def preprocess_echo_image(image):
     _, thresh = cv2.threshold(thresh1, 200, 255, cv2.THRESH_BINARY)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 1))
     clean = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-    cv2.imwrite(str(DEBUG_DIR / f'echoPage_final.png'), clean)
         
     return clean
 
@@ -125,9 +119,7 @@ def process_image(image):
         raise ValueError("Invalid image input")
     
     try:
-        DEBUG_DIR.mkdir(exist_ok=True)
         ORIGINAL_IMAGE = image.copy()
-        cv2.imwrite(str(DEBUG_DIR / 'full_original.jpg'), image)
 
         info_coords = SCAN_REGIONS["info"]
         region_img = crop_region(image, info_coords)
@@ -164,7 +156,6 @@ def process_image(image):
                     slot_coords = SCAN_REGIONS[slot_key]
                     slot_img = crop_region(image, slot_coords)
                     slot_img = upscale_image(slot_img)
-                    cv2.imwrite(str(DEBUG_DIR / f'{slot_key}_original.jpg'), slot_img)
                     slots.append(slot_img)
                 details = get_sequence_info(slots)
             elif image_type == 'Forte':
@@ -172,7 +163,6 @@ def process_image(image):
                 for region_name in region_key:
                     slot_coords = SCAN_REGIONS[region_name]
                     slot_img = crop_region(image, slot_coords)
-                    cv2.imwrite(str(DEBUG_DIR / f'{region_name}_original.jpg'), slot_img)
                     slots[region_name] = slot_img
                 details = get_forte_info(slots)
             elif image_type == 'Echo':
@@ -285,7 +275,6 @@ def get_character_info(text):
         clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4,4))
         enhanced = clahe.apply(gray)
         _, thresh = cv2.threshold(enhanced, 115, 255, cv2.THRESH_BINARY)
-        cv2.imwrite(str(DEBUG_DIR / 'uid_processed.jpg'), thresh)
         uid_text = pytesseract.image_to_string(thresh, config='--psm 7 -c tessedit_char_whitelist=0123456789')
         
         digits = ''.join(filter(str.isdigit, uid_text))
@@ -629,7 +618,6 @@ def get_echo_info(processed_image, element):
         sub_key = f"sub{i}"
         sub_img = crop_region(processed_image, ECHO_REGIONS[sub_key])
         sub_images.append(sub_img)
-        cv2.imwrite(str(DEBUG_DIR / f'echo_{sub_key}.png'), sub_img)
         sub_text = pytesseract.image_to_string(sub_img).strip().replace('\n', ' ')
         
         if sub_text:
@@ -651,10 +639,6 @@ def get_echo_info(processed_image, element):
                         .strip()
                 name = name if name else "HP"
                 sub_stats.append({'name': name, 'value': value.strip()})
-    
-    cv2.imwrite(str(DEBUG_DIR / 'echo_name.png'), name_img)
-    cv2.imwrite(str(DEBUG_DIR / 'echo_level.png'), lv_img)
-    cv2.imwrite(str(DEBUG_DIR / 'echo_main.png'), main_img)
 
     name_text = pytesseract.image_to_string(name_img).strip()
     if 'phantom:' in name_text.lower() or ':' in name_text:

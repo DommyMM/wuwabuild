@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { StatName, BaseStatName, getPercentVariant } from '../types/stats';
 import { Character } from '../types/character';
 import { Weapon, ScaledWeaponStats } from '../types/weapon';
@@ -149,8 +149,146 @@ export const useStats = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statState, setStatState] = useState<StatState>(initialStatState);
+  const prevValuesRef = useRef<string>('');
 
   const { scaleStat, loading: curveLoading } = useCharacterCurves();
+
+  const baseStats = useMemo(() => {
+    if (!character) return null;
+    
+    const levelNum = parseInt(level) || 1;
+    const characterAtk = scaleStat(character.ATK, levelNum, 'ATK');
+    const weaponAtk = weaponStats?.scaledAtk ?? 0;
+    
+    return {
+      levelNum,
+      baseHP: scaleStat(character.HP, levelNum, 'HP'),
+      baseATK: characterAtk + weaponAtk,
+      baseDEF: scaleStat(character.DEF, levelNum, 'DEF')
+    };
+  }, [character, level, weaponStats?.scaledAtk, scaleStat]);
+
+  const { elementCounts, atkPercentBonus } = useMemo(() => {
+    const counts: Record<ElementType, number> = {} as Record<ElementType, number>;
+    const usedEchoes = new Set();
+    let bonus = 0;
+
+    echoPanels.forEach(panel => {
+      if (panel.echo && !usedEchoes.has(panel.echo.name)) {
+        const element = panel.echo.elements.length === 1 ? 
+          panel.echo.elements[0] : panel.selectedElement;
+        
+        if (element) {
+          counts[element] = (counts[element] || 0) + 1;
+          usedEchoes.add(panel.echo.name);
+          
+          if (element === 'Attack' && counts[element] >= 2) {
+            bonus = 10;
+          }
+        }
+      }
+    });
+
+    return { elementCounts: counts, atkPercentBonus: bonus };
+  }, [echoPanels]);
+
+  const forteBonus = useMemo(() => {
+    if (!character) return null;
+    return calculateForteBonus(character, nodeStates, isSpectro);
+  }, [character, nodeStates, isSpectro]);
+
+  const echoStats = useMemo(() => {
+    return sumEchoDefaultStats(echoPanels);
+  }, [echoPanels]);
+
+  const calculateStats = useCallback((stat: StatName) => {
+    if (!character || !baseStats || !forteBonus) return null;
+
+    const displayStat = getDisplayName(stat);
+    const result = {
+      value: 0,
+      update: 0,
+      baseValue: 0
+    };
+
+    if (['HP', 'ATK', 'DEF'].includes(displayStat)) {
+      const baseStat = displayStat as BaseStatName;
+      result.baseValue = displayStat === 'HP' ? baseStats.baseHP : 
+                        displayStat === 'ATK' ? baseStats.baseATK : 
+                        baseStats.baseDEF;
+
+      const flat = sumMainStats(baseStat, echoPanels) + sumSubStats(baseStat, echoPanels) + (baseStat === 'HP' ? echoStats.hp : baseStat === 'ATK' ? echoStats.atk : 0);
+
+      let percent = sumMainStats(getPercentVariant(baseStat), echoPanels) + sumSubStats(getPercentVariant(baseStat), echoPanels);
+
+      if (weapon && weaponStats) {
+        const percentStatName = `${displayStat}%`;
+        if (weapon.main_stat === percentStatName) {
+          percent += weaponStats.scaledMainStat;
+        }
+        if (weapon.passive === percentStatName) {
+          percent += weaponStats.scaledPassive ?? 0;
+        }
+        if (displayStat === 'ATK') {
+          percent += atkPercentBonus;
+        }
+      }
+
+      if (character.Bonus2 === displayStat) {
+        percent += forteBonus.bonus2Total;
+      }
+
+      result.value = result.baseValue * (1 + percent/100) + flat;
+      result.update = result.value - result.baseValue;
+
+    } else {
+      result.baseValue = displayStat === 'Crit Rate' ? 5.0 : displayStat === 'Crit DMG' ? 150.0 : displayStat === 'Energy Regen' ? character.ER : 0;
+
+      result.update = sumMainStats(stat, echoPanels) + sumSubStats(stat, echoPanels);
+
+      if (weapon && weaponStats) {
+        const weaponStatName = displayStat === 'Energy Regen' ? 'ER' : displayStat;
+        
+        if (weaponStatName === weapon.main_stat) {
+          result.update += weaponStats.scaledMainStat;
+        }
+        
+        if (weapon.passive === weaponStatName) {
+          result.update += weaponStats.scaledPassive ?? 0;
+        }
+        
+        if (weapon.passive2 === weaponStatName) {
+          result.update += weaponStats.scaledPassive2 ?? 0;
+        }
+        
+        if (weapon.passive === 'Attribute' && displayStat.endsWith('DMG')) {
+          const element = displayStat.split(' ')[0];
+          if (element === character.element) {
+            result.update += weaponStats.scaledPassive ?? 0;
+          }
+        }
+
+        Object.entries(elementCounts).forEach(([element, count]) => {
+          if (count >= 2) {
+            const setName = ELEMENT_SETS[element as ElementType];
+            const statToUpdate = SET_TO_STAT_MAPPING[setName as keyof typeof SET_TO_STAT_MAPPING];
+            if (statToUpdate === displayStat) {
+              result.update += 10;
+            }
+          }
+        });
+
+        if ((forteBonus.bonus1Type === 'Crit Rate' && displayStat === 'Crit Rate') || (forteBonus.bonus1Type === 'Crit DMG' && displayStat === 'Crit DMG') || 
+            (forteBonus.bonus1Type === 'Healing' && displayStat === 'Healing Bonus') || (displayStat === `${forteBonus.bonus1Type} DMG`)) {
+          result.update += forteBonus.bonus1Total;
+        }
+      }
+
+      result.value = result.baseValue + result.update;
+    }
+
+    return result;
+  }, [character, baseStats, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -175,136 +313,38 @@ export const useStats = ({
     if (!character || !statsData || curveLoading) return;
 
     try {
-      const levelNum = parseInt(level) || 1;
-      const characterAtk = scaleStat(character.ATK, levelNum, 'ATK');
-      const weaponAtk = weaponStats?.scaledAtk ?? 0;
-      const baseHP = scaleStat(character.HP, levelNum, 'HP');
-      const baseATK = characterAtk + weaponAtk;
-      const baseDEF = scaleStat(character.DEF, levelNum, 'DEF');
-
-      const elementCounts: Record<ElementType, number> = {} as Record<ElementType, number>;
-      const usedEchoes = new Set();
-      let atkPercentBonus = 0;
-
-      echoPanels.forEach(panel => {
-        if (panel.echo && !usedEchoes.has(panel.echo.name)) {
-          const element = panel.echo.elements.length === 1 ? panel.echo.elements[0] : panel.selectedElement;
-          
-          if (element) {
-            elementCounts[element] = (elementCounts[element] || 0) + 1;
-            usedEchoes.add(panel.echo.name);
-            
-            if (element === 'Attack' && elementCounts[element] >= 2) {
-              atkPercentBonus = 10;
-            }
-          }
-        }
-      });
-
-      const { bonus1Total, bonus2Total, bonus1Type } = calculateForteBonus(
-        character, 
-        nodeStates, 
-        isSpectro
-      );
-
-      const values = {} as Record<StatName, number>;
-      const updates = {} as Record<StatName, number>;
-      const baseValues = {} as Record<StatName, number>;
+      const newValues = {} as Record<StatName, number>;
+      const newUpdates = {} as Record<StatName, number>;
+      const newBaseValues = {} as Record<StatName, number>;
 
       statsData.stats.forEach(stat => {
-        const displayStat = getDisplayName(stat);
-        
-        if (['HP', 'ATK', 'DEF'].includes(displayStat)) {
-          const baseStat = displayStat as BaseStatName;
-          baseValues[displayStat] = displayStat === 'HP' ? baseHP : displayStat === 'ATK' ? baseATK : baseDEF;
-          
-          const echoStats = sumEchoDefaultStats(echoPanels);
-          const flat = sumMainStats(baseStat, echoPanels) + sumSubStats(baseStat, echoPanels) + (baseStat === 'HP' ? echoStats.hp : baseStat === 'ATK' ? echoStats.atk : 0);
-          let percent = sumMainStats(getPercentVariant(baseStat), echoPanels) + sumSubStats(getPercentVariant(baseStat), echoPanels);
-
-          if (weapon && weaponStats) {
-            const percentStatName = `${displayStat}%`;
-            
-            if (weapon.main_stat === percentStatName) {
-              percent += weaponStats.scaledMainStat;
-            }
-            
-            if (weapon.passive === percentStatName) {
-              percent += weaponStats.scaledPassive ?? 0;
-            }
-            
-            if (displayStat === 'ATK') {
-              percent += atkPercentBonus;
-            }
-          }
-
-          if (character.Bonus2 === displayStat) {
-            percent += bonus2Total;
-          }
-
-          values[displayStat] = baseValues[displayStat] * (1 + percent/100) + flat;
-          updates[displayStat] = values[displayStat] - baseValues[displayStat];
-        } 
-        else {
-          if (displayStat === 'Crit Rate') baseValues[displayStat] = 5.0;
-          else if (displayStat === 'Crit DMG') baseValues[displayStat] = 150.0;
-          else if (displayStat === 'Energy Regen') baseValues[displayStat] = character.ER;
-          else baseValues[displayStat] = 0;
-
-          updates[displayStat] = sumMainStats(stat, echoPanels) + sumSubStats(stat, echoPanels);
-
-          if (weapon && weaponStats) {
-            const weaponStatName = displayStat === 'Energy Regen' ? 'ER' : displayStat;
-            
-            if (weaponStatName === weapon.main_stat) {
-              updates[displayStat] += weaponStats.scaledMainStat;
-            }
-
-            if (weapon.passive === weaponStatName) {
-              updates[displayStat] += weaponStats.scaledPassive ?? 0;
-            }
-
-            if (weapon.passive === 'Attribute' && displayStat.endsWith('DMG')) {
-              const element = displayStat.split(' ')[0];
-              if (element === character.element) {
-                updates[displayStat] += weaponStats.scaledPassive ?? 0;
-              }
-            }
-
-            if (weapon.passive2 === weaponStatName) {
-              updates[displayStat] += weaponStats.scaledPassive2 ?? 0;
-            }
-          }
-
-          Object.entries(elementCounts).forEach(([element, count]) => {
-            if (count >= 2) {
-              const setName = ELEMENT_SETS[element as ElementType];
-              const statToUpdate = SET_TO_STAT_MAPPING[setName as keyof typeof SET_TO_STAT_MAPPING];
-              if (statToUpdate === displayStat) {
-                updates[displayStat] += 10;
-              }
-            }
-          });
-
-          if ((bonus1Type === 'Crit Rate' && displayStat === 'Crit Rate') ||
-              (bonus1Type === 'Crit DMG' && displayStat === 'Crit DMG') ||
-              (bonus1Type === 'Healing' && displayStat === 'Healing Bonus') ||
-              (displayStat === `${bonus1Type} DMG`)) {
-            updates[displayStat] += bonus1Total;
-          }
-
-          values[displayStat] = baseValues[displayStat] + updates[displayStat];
+        const result = calculateStats(stat);
+        if (result) {
+          const displayStat = getDisplayName(stat);
+          newValues[displayStat] = result.value;
+          newUpdates[displayStat] = result.update;
+          newBaseValues[displayStat] = result.baseValue;
         }
       });
 
-      setStatState({ values, updates, baseValues });
-      setLoading(false);
+      const newValuesString = JSON.stringify(newValues);
+      const hasChanged = newValuesString !== prevValuesRef.current;
+      
+      if (hasChanged) {
+        prevValuesRef.current = newValuesString;
+        setStatState({ 
+          values: newValues, 
+          updates: newUpdates, 
+          baseValues: newBaseValues 
+        });
+      }
 
+      setLoading(false);
     } catch (err) {
       setError('Error calculating stats');
       setLoading(false);
     }
-  }, [character, level, weapon, weaponStats, statsData, curveLoading, scaleStat, echoPanels, nodeStates, isSpectro]);
+  }, [character, statsData, curveLoading, calculateStats]);
 
   return {
     loading: loading || curveLoading,

@@ -6,6 +6,7 @@ interface ImagePreviewProps {
   details?: string;
   isLoading?: boolean;
   error?: boolean;
+  errorMessage?: string;
 }
 
 interface ImageUploaderProps {
@@ -14,9 +15,20 @@ interface ImageUploaderProps {
 }
 
 export const ImagePreview: React.FC<ImagePreviewProps> = ({
-  src, category, details, isLoading, error
+  src, category, details, isLoading, error, errorMessage
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const getErrorMessage = () => {
+    if (!errorMessage) return 'Unable to analyze';
+    if (errorMessage.includes('Rate limit')) {
+      return 'Server busy - please wait';
+    }
+    if (errorMessage.includes('timeout')) {
+      return 'Request timed out';
+    }
+    return errorMessage;
+  };
 
   return (
     <>
@@ -33,14 +45,16 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               <div className="loading-spinner" />
               <span>Analyzing...</span>
             </>
-          ) : error ? 'Unable to analyze' 
-            : category ? (
-              <>
-                <div>Detected: {category}</div>
-                {details && <div className="details">{details}</div>}
-              </>
-            ) 
-            : null}
+          ) : error ? (
+            <div className="error-message">
+              {getErrorMessage()}
+            </div>
+          ) : category ? (
+            <>
+              <div>Detected: {category}</div>
+              {details && <div className="details">{details}</div>}
+            </>
+          ) : null}
         </div>
       </div>
       {isFullscreen && (

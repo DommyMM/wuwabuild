@@ -22,6 +22,8 @@ interface ScanProps {
 
 const MAX_IMAGES = 10;
 const TIMEOUT_MS = 30000;
+const MAX_FILE_SIZE = 30 * 1024 * 1024;
+const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
 
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -30,6 +32,16 @@ const fileToBase64 = (file: File): Promise<string> => {
     reader.onerror = (error) => reject(new Error('File reading failed: ' + error));
     reader.readAsDataURL(file);
   });
+};
+
+const validateFile = (file: File): string | null => {
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return 'Invalid file type. Only JPEG and PNG files are allowed.';
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    return 'File too large. Maximum size is 30MB.';
+  }
+  return null;
 };
 
 const getAnalysisDetails = (analysis?: OCRAnalysis): string | undefined => {
@@ -56,6 +68,58 @@ interface PendingResult {
   result: OCRResponse;
 }
 
+const API_URL = 'http://localhost:5000';
+
+interface OCRError extends Error {
+  status?: number;
+  retryAfter?: number;
+}
+
+const fetchOCRResult = async (image: ImageData, retries = 3): Promise<PendingResult> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${API_URL}/api/ocr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: await fileToBase64(image.file) }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const error = new Error() as OCRError;
+      error.status = response.status;
+      
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get('Retry-After') || '5');
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+          return fetchOCRResult(image, retries - 1);
+        }
+        error.message = 'Rate limit exceeded';
+      } else {
+        error.message = 'OCR request failed';
+      }
+      throw error;
+    }
+
+    const result: OCRResponse = await response.json();
+    return { image, result };
+  } catch (e) {
+    const error = e as OCRError;
+    return {
+      image,
+      result: {
+        success: false,
+        error: error.message || 'Request failed'
+      }
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType }) => {
   const { setOCRResult, isLocked } = useOCRContext();
   const [images, setImages] = useState<ImageData[]>([]);
@@ -72,25 +136,6 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
     setImages([]);
     setErrorMessages([]);
     setHasQueueMessage(false);
-  };
-
-  const fetchOCRResult = async (image: ImageData): Promise<PendingResult> => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    try {
-      const response = await fetch('http://localhost:5000/api/ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: await fileToBase64(image.file) }),
-        signal: controller.signal
-      });
-      
-      const result: OCRResponse = await response.json();
-      return { image, result };
-    } finally {
-      clearTimeout(timeoutId);
-    }
   };
 
   const processResult = useCallback(async ({ image, result }: PendingResult) => {
@@ -175,19 +220,6 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
       }
     }
   }, [isLocked, processResult]); 
-
-  const createImagePreviews = (files: File[]): ImageData[] => {
-    return files.map(file => {
-      const blobUrl = URL.createObjectURL(file);
-      blobUrlsRef.current.push(blobUrl);
-      return {
-        id: Math.random().toString(36).substring(2),
-        file,
-        preview: blobUrl,
-        isLoading: true
-      };
-    });
-  };
   
   const handleFiles = async (files: File[]) => {
     if (images.length + files.length > MAX_IMAGES) {
@@ -199,7 +231,30 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
     setErrorMessages([]);
   
     try {
-      const newImages = createImagePreviews(files);
+      const validFiles = files.filter(file => {
+        const error = validateFile(file);
+        if (error) {
+          setErrorMessages(prev => [...prev, `${file.name}: ${error}`]);
+          return false;
+        }
+        return true;
+      });
+  
+      if (validFiles.length === 0) {
+        return;
+      }
+  
+      const newImages = validFiles.map(file => {
+        const blobUrl = URL.createObjectURL(file);
+        blobUrlsRef.current.push(blobUrl);
+        return {
+          id: Math.random().toString(36).substring(2),
+          file,
+          preview: blobUrl,
+          isLoading: true
+        };
+      });
+  
       setImages(prev => [...prev, ...newImages]);
   
       const results = await Promise.all(
@@ -288,6 +343,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
             details={image.details}
             isLoading={image.isLoading}
             error={!!image.error}
+            errorMessage={image.error}
           />
         ))}
       </div>

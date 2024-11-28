@@ -89,10 +89,10 @@ export const EditPage: React.FC = () => {
 
   const handleOCRResult = useCallback((result: OCRResponse) => {
       if (!result.success || !result.analysis) return;
-  
       switch (result.analysis.type) {
         case 'Character':
           const characterAnalysis = result.analysis;
+          console.log(`Setting character: ${characterAnalysis.name}, Level: ${characterAnalysis.characterLevel}`);
           setOcrName(characterAnalysis.name);
           setCharacterLevel(prev => {
             const newLevel = characterAnalysis.characterLevel;
@@ -112,9 +112,9 @@ export const EditPage: React.FC = () => {
             }));
           }
           break;
-      
         case 'Weapon':
           const weaponAnalysis = result.analysis;
+          console.log(`Weapon scan - Name: ${weaponAnalysis.name}, Type: ${weaponAnalysis.weaponType}, Level: ${weaponAnalysis.weaponLevel}, Rank: ${weaponAnalysis.rank}`);
           if (elementState.selectedCharacter?.weaponType.replace(/s$/, '') === weaponAnalysis.weaponType.replace(/s$/, '')) {
             setWeaponState(prev => ({
               ...prev,
@@ -125,16 +125,21 @@ export const EditPage: React.FC = () => {
             }));
           }
           break;
-      
         case 'Sequences':
           const sequenceAnalysis = result.analysis;
+          console.log(`Updating sequence counter to: ${sequenceAnalysis.sequence}`);
           setCurrentSequence(prev => 
             Math.max(prev, sequenceAnalysis.sequence)
           );
           break;
-          
         case 'Forte':
           const forteAnalysis = result.analysis;
+          console.group('Processing Forte tree updates');
+          Object.entries(forteAnalysis).forEach(([skill, values]) => {
+            if (skill === 'type') return;
+            console.log(`${skill}: Level ${values[0]}, Top: ${values[1]}, Middle: ${values[2]}`);
+          });
+          console.groupEnd();
           const skillToTree = {
             normal: 'tree1',
             skill: 'tree2',
@@ -142,13 +147,10 @@ export const EditPage: React.FC = () => {
             liberation: 'tree4',
             intro: 'tree5'
           };
-        
           const newNodeStates: Record<string, Record<string, boolean>> = {};
           const newForteLevels: Record<string, number> = {};
-        
           Object.entries(forteAnalysis).forEach(([skill, values]) => {
             if (skill === 'type') return;
-        
             const [level, top, middle] = values;
             const treeKey = skillToTree[skill as keyof typeof skillToTree];
             const skillKey = skill === 'normal' ? 'normal-attack' : skill;
@@ -159,25 +161,29 @@ export const EditPage: React.FC = () => {
             };
             newForteLevels[skillKey] = level;
           });
-        
           setNodeStates(newNodeStates);
           setForteLevels(newForteLevels);
           break;
       case 'Echo':
         const echoAnalysis = result.analysis;
+        console.group('Processing Echo scan:');
+        console.log(`Name: ${echoAnalysis.name}, Element: ${echoAnalysis.element}, Level: ${echoAnalysis.echoLevel}`);
+        console.log(`Main stat: ${echoAnalysis.main.name} = ${echoAnalysis.main.value}`);
+        console.log('Sub stats:', echoAnalysis.subs.map(sub => 
+          `${sub.name} = ${sub.value}`
+        ).join(', '));
+        console.groupEnd();
         if (!hasScrolledToEchoes.current) {
           echoesRef.current?.scrollIntoView({ behavior: 'smooth' });
           setIsEchoesMinimized(false);
           hasScrolledToEchoes.current = true;
         }
-    
         setEchoPanels(prev => {
           const emptyIndex = prev.findIndex(p => !p.echo);
           
           if (emptyIndex === -1) {
             return prev;
           }
-      
           const matchedPanel = matchEchoData(
             echoAnalysis, 
             echoesByCost,
@@ -185,18 +191,15 @@ export const EditPage: React.FC = () => {
             substatsData,
             calculateValue
           );
-      
           if (!matchedPanel) {
             return prev;
           }
-      
           const newPanels = prev.map((panel, i) => 
             i === emptyIndex ? matchedPanel : panel
           );
           return newPanels;
         });
     }
-
     setOCRAnalysis(result.analysis);
   }, [elementState.selectedCharacter, echoesByCost, mainStatsData, substatsData, calculateValue]);
 
