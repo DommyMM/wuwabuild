@@ -49,10 +49,7 @@ ECHO_REGIONS = {
 }
 
 BACKEND_DIR = Path(__file__).parent
-ROOT_DIR = BACKEND_DIR.parent
-DOWNLOADS_DIR = ROOT_DIR.parent
-DATA_DIR = ROOT_DIR / 'public' / 'Data' 
-DEBUG_DIR = DOWNLOADS_DIR / 'wuwa_debug'
+DATA_DIR = BACKEND_DIR/ 'Public' / 'Data'
 
 ORIGINAL_IMAGE = None
 
@@ -70,12 +67,7 @@ except json.JSONDecodeError as e:
     CHARACTERS = []
     WEAPONS = {}
 
-def preprocess_image(image, region_name=None):
-    DEBUG_DIR.mkdir(exist_ok=True)
-    
-    if region_name:
-        debug_original = DEBUG_DIR / f'{region_name}_original.jpg'
-    
+def preprocess_image(image, region_name=None):    
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     denoised = cv2.fastNlMeansDenoising(gray)
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
@@ -85,7 +77,6 @@ def preprocess_image(image, region_name=None):
     return thresh
 
 def preprocess_echo_image(image):
-    DEBUG_DIR.mkdir(exist_ok=True)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     bilateral = cv2.bilateralFilter(gray, d=9, sigmaColor=75, sigmaSpace=75)
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4,4))
@@ -593,7 +584,7 @@ def get_icon(circle_bgra, possible_elements):
     
     
     for element in possible_elements:
-        template_path = ROOT_DIR / 'public' / 'images' / 'Sets' / f'{element.capitalize()}.png'
+        template_path = BACKEND_DIR / 'Public' / 'Sets' / f'{element.capitalize()}.png'
         template = cv2.imread(str(template_path))
         template = cv2.resize(template, (w, h))
         template_bgra = cv2.cvtColor(template, cv2.COLOR_BGR2BGRA)
