@@ -7,7 +7,7 @@ import { ForteSection } from './Build/ForteSection';
 import { EchoDisplay } from './Build/EchoDisplay';
 import { StatSection } from './Build/StatSection';
 import { Character } from '../types/character';
-import { Weapon, ScaledWeaponStats } from '../types/weapon';
+import { Weapon } from '../types/weapon';
 import { EchoPanelState, ElementType } from '../types/echo';
 import { StatName } from '../types/stats';
 import { useStats } from '../hooks/useStats';
@@ -64,19 +64,26 @@ export const BuildCard: React.FC<BuildCardProps> = ({
 
   const { scaleAtk, scaleStat } = useLevelCurves();
 
-  const weaponStats: ScaledWeaponStats | undefined = useMemo(() => 
+  const weaponConfigMemo = useMemo(() => ({
+    level: weaponConfig.level,
+    rank: weaponConfig.rank
+  }), [weaponConfig.level, weaponConfig.rank]);
+
+  const weaponStats = useMemo(() => 
     selectedWeapon ? {
-      scaledAtk: scaleAtk(selectedWeapon.ATK, weaponConfig.level),
-      scaledMainStat: scaleStat(selectedWeapon.base_main, weaponConfig.level),
+      scaledAtk: scaleAtk(selectedWeapon.ATK, weaponConfigMemo.level),
+      scaledMainStat: scaleStat(selectedWeapon.base_main, weaponConfigMemo.level),
       scaledPassive: selectedWeapon.passive_stat 
-        ? Number((selectedWeapon.passive_stat * (1 + ((weaponConfig.rank - 1) * 0.25))).toFixed(1)) : undefined,
+        ? Number((selectedWeapon.passive_stat * (1 + ((weaponConfigMemo.rank - 1) * 0.25))).toFixed(1)) 
+        : undefined,
       scaledPassive2: selectedWeapon.passive_stat2
-        ? Number((selectedWeapon.passive_stat2 * (1 + ((weaponConfig.rank - 1) * 0.25))).toFixed(1)) : undefined
+        ? Number((selectedWeapon.passive_stat2 * (1 + ((weaponConfigMemo.rank - 1) * 0.25))).toFixed(1)) 
+        : undefined
     } : undefined,
-    [selectedWeapon, weaponConfig.level, weaponConfig.rank, scaleAtk, scaleStat]
+    [selectedWeapon, weaponConfigMemo, scaleAtk, scaleStat]
   );
 
-  const { values, baseValues, updates } = useStats({
+  const statsInput = useMemo(() => ({
     character: selectedCharacter,
     level: characterLevel,
     weapon: selectedWeapon,
@@ -84,70 +91,27 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     echoPanels,
     nodeStates,
     isSpectro
-  });
+  }), [
+    selectedCharacter,
+    characterLevel,
+    selectedWeapon,
+    weaponStats,
+    echoPanels,
+    nodeStates,
+    isSpectro
+  ]);
 
-  const formatStatValue = (stat: StatName, value: number): string => {
-    const flatStats = ['HP', 'ATK', 'DEF'];
-    return flatStats.includes(stat) ? Math.round(value).toString() : `${value.toFixed(1)}%`;
-  };
+  const { values, baseValues, updates } = useStats(statsInput);
 
-  const displayStats = useMemo(() => 
-    Object.entries(values)
-      .filter(([_, value]) => value !== 0)
-      .map(([stat, value]) => ({
-        name: stat as StatName,
-        value: formatStatValue(stat as StatName, value as number),
-        baseValue: baseValues[stat as StatName],
-        update: updates[stat as StatName]
-      })),
-    [values, baseValues, updates]
-  );
-
-  useEffect(() => {
-    if (isTabVisible && tabRef.current) {
-      const timer = setTimeout(() => {
-        tabRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [isTabVisible]);
-
-  useEffect(() => {
-    if (isEchoesVisible && !hasBeenVisible) {
-      setHasBeenVisible(true);
-    }
-  }, [isEchoesVisible, hasBeenVisible]);
-
-  const handleGenerate = useCallback(() => {
-    if (!isTabVisible) {
-      setIsTabVisible(true);
-    }
-  }, [isTabVisible]);
-
-  const handleDownload = () => {
-    if (!tabRef.current) return;
-
-    const now = new Date();
-    const timestamp = now.toISOString().slice(0,19).replace(/[T:]/g, ' ');
-    
-    domtoimage.toPng(tabRef.current)
-      .then((dataUrl: string) => {
-        const link = document.createElement('a');
-        link.download = `${timestamp}.png`;
-        link.href = dataUrl;
-        link.click();
-      })
-      .catch((error: Error) => {
-        console.error('Error capturing build-tab:', error);
-      });
-  };
-
-  const calculateSets = (): Array<{ element: ElementType; count: number }> => {
+  const calculateSets = useCallback((): Array<{ element: ElementType; count: number }> => {
     const elementCounts: Record<ElementType, number> = {} as Record<ElementType, number>;
     const usedEchoes = new Set();
+    
     echoPanels.forEach(panel => {
       if (panel.echo && !usedEchoes.has(panel.echo.name)) {
-        const element = panel.echo.elements.length === 1 ? panel.echo.elements[0] : panel.selectedElement;
+        const element = panel.echo.elements.length === 1 
+          ? panel.echo.elements[0] 
+          : panel.selectedElement;
         if (element) {
           elementCounts[element] = (elementCounts[element] || 0) + 1;
           usedEchoes.add(panel.echo.name);
@@ -167,7 +131,63 @@ export const BuildCard: React.FC<BuildCardProps> = ({
         if (aIsFiveSet !== bIsFiveSet) return bIsFiveSet ? 1 : -1;
         return b.count - a.count;
       });
+  }, [echoPanels]);
+
+  const formatStatValue = (stat: StatName, value: number): string => {
+    const flatStats = ['HP', 'ATK', 'DEF'];
+    return flatStats.includes(stat) ? Math.round(value).toString() : `${value.toFixed(1)}%`;
   };
+
+  const displayStats = useMemo(() => 
+    Object.entries(values)
+      .filter(([_, value]) => value !== 0)
+      .map(([stat, value]) => ({
+        name: stat as StatName,
+        value: formatStatValue(stat as StatName, value as number),
+        baseValue: baseValues[stat as StatName],
+        update: updates[stat as StatName]
+      })),
+    [values, baseValues, updates]
+  );
+
+  const elementSets = useMemo(() => calculateSets(), [calculateSets]);
+
+  const handleGenerate = useCallback(() => {
+    if (!isTabVisible) setIsTabVisible(true);
+  }, [isTabVisible]);
+
+  const handleDownload = useCallback(() => {
+    if (!tabRef.current) return;
+
+    const now = new Date();
+    const timestamp = now.toISOString().slice(0,19).replace(/[T:]/g, ' ');
+    
+    domtoimage.toPng(tabRef.current)
+      .then((dataUrl: string) => {
+        const link = document.createElement('a');
+        link.download = `${timestamp}.png`;
+        link.href = dataUrl;
+        link.click();
+      })
+      .catch((error: Error) => {
+        console.error('Error capturing build-tab:', error);
+      });
+  }, [tabRef]);
+
+  useEffect(() => {
+    if (isTabVisible && tabRef.current) {
+      const timer = setTimeout(() => {
+        tabRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isTabVisible]);
+
+  useEffect(() => {
+    if (isEchoesVisible && !hasBeenVisible) {
+      setHasBeenVisible(true);
+    }
+  }, [isEchoesVisible, hasBeenVisible]);
 
   if (!isVisible) return null;
 
@@ -232,7 +252,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
             <StatSection 
               isVisible={isTabVisible}
               stats={displayStats}
-              sets={calculateSets()}
+              sets={elementSets}
             />
             <EchoDisplay 
               isVisible={isTabVisible}

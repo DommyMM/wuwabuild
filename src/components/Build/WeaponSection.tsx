@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Weapon, ScaledWeaponStats } from '../../types/weapon';
 
 interface WeaponSectionProps {
@@ -9,20 +9,20 @@ interface WeaponSectionProps {
   characterElement?: string;
 }
 
-const WeaponIcon: React.FC<{ src: string }> = ({ src }) => (
+const WeaponIcon = React.memo<{ src: string }>(({ src }) => (
   <img src={src} className="build-weapon-icon" alt="Weapon" />
-);
+));
 
-const WeaponName: React.FC<{ name: string }> = ({ name }) => (
+const WeaponName = React.memo<{ name: string }>(({ name }) => (
   <div className="weapon-stat weapon-name">{name}</div>
-);
+));
 
-const RankLevel: React.FC<{ rank: number; level: number }> = ({ rank, level }) => (
+const RankLevel = React.memo<{ rank: number; level: number }>(({ rank, level }) => (
   <div className="weapon-stat-row">
     <div className="weapon-stat weapon-rank">R{rank}</div>
     <div className="weapon-stat weapon-level">Lv.{level}/90</div>
   </div>
-);
+));
 
 const RarityStars: React.FC<{ rarity: string }> = ({ rarity }) => {
   const starCount = parseInt(rarity.charAt(0));
@@ -40,10 +40,10 @@ const RarityStars: React.FC<{ rarity: string }> = ({ rarity }) => {
   );
 };
 
-const WeaponStats: React.FC<{ 
+const WeaponStats = React.memo<{ 
   weapon: Weapon; 
   scaledStats: ScaledWeaponStats;
-}> = ({ weapon, scaledStats }) => (
+}>(({ weapon, scaledStats }) => (
   <div className="weapon-stat-row">
     <div className="weapon-stat weapon-attack atk">
       <img 
@@ -65,36 +65,7 @@ const WeaponStats: React.FC<{
       {`${scaledStats.scaledMainStat}%`}
     </div>
   </div>
-);
-
-const PassiveText: React.FC<{ 
-  weapon: Weapon;
-  scaledStats: ScaledWeaponStats;
-  characterElement?: string;
-}> = ({ weapon, scaledStats, characterElement }) => {
-  if (!weapon.passive || !weapon.passive_stat) return null;
-  
-  const passiveName = weapon.passive.replace('%', '');
-  const passiveClass = passiveName === 'ER' 
-    ? 'energy-regen' 
-    : passiveName.toLowerCase().replace(/\s+/g, '-').replace('-dmg', '');
-
-  const classNames = [
-    'weapon-passive'
-  ];
-
-  if (passiveName === 'Attribute' && characterElement) {
-    classNames.push(characterElement.toLowerCase());
-  }
-
-  classNames.push(passiveClass);
-
-  return (
-    <div className={classNames.join(' ')}>
-      {`Passive:\n${scaledStats.scaledPassive}% ${passiveName}`}
-    </div>
-  );
-};
+));
 
 export const WeaponSection: React.FC<WeaponSectionProps> = ({
   weapon,
@@ -103,6 +74,38 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
   scaledStats,
   characterElement
 }) => {
+  const getPassiveClasses = useCallback((
+    passiveName: string, 
+    characterElement?: string
+  ) => {
+    const classNames = ['weapon-passive'];
+    if (passiveName === 'Attribute' && characterElement) {
+      classNames.push(characterElement.toLowerCase());
+    }
+    classNames.push(passiveName === 'ER' ? 
+      'energy-regen' : 
+      passiveName.toLowerCase().replace(/\s+/g, '-').replace('-dmg', '')
+    );
+    return classNames;
+  }, []);
+
+  const PassiveText = React.memo<{ 
+    weapon: Weapon;
+    scaledStats: ScaledWeaponStats;
+    characterElement?: string;
+  }>(({ weapon, scaledStats, characterElement }) => {
+    if (!weapon.passive || !weapon.passive_stat) return null;
+    
+    const passiveName = weapon.passive.replace('%', '');
+    const classNames = getPassiveClasses(passiveName, characterElement);
+
+    return (
+      <div className={classNames.join(' ')}>
+        {`Passive:\n${scaledStats.scaledPassive}% ${passiveName}`}
+      </div>
+    );
+  });
+
   return (
     <div className="build-weapon-container">
       <WeaponIcon src={`images/Weapons/${weapon.type}/${encodeURIComponent(weapon.name)}.png`} />

@@ -42,7 +42,13 @@ export const StatsTab: React.FC<StatsTabProps> = ({
   onSubStatChange
 }) => {
   const { mainStatsData } = useMain();
-  const { substatsData, selectStatForPanel, unselectStatForPanel, isStatAvailableForPanel } = useSubstats();
+  const { 
+    substatsData, 
+    selectStatForPanel, 
+    unselectStatForPanel, 
+    isStatAvailableForPanel,
+    getLowestValue 
+  } = useSubstats();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -105,9 +111,16 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                       value={substatType || ''}
                       onChange={(e) => {
                         const oldType = substatType;
+                        const newType = e.target.value;
+                        
                         if (oldType) unselectStatForPanel(panelId, oldType);
-                        if (e.target.value) selectStatForPanel(panelId, e.target.value);
-                        onSubStatChange(index, e.target.value || null, null);
+                        if (newType) {
+                          selectStatForPanel(panelId, newType);
+                          const defaultValue = getLowestValue(newType);
+                          onSubStatChange(index, newType, defaultValue);
+                        } else {
+                          onSubStatChange(index, null, null);
+                        }
                       }}
                     >
                       <option value="">Substat {index + 1}</option>
@@ -121,18 +134,20 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                         </option>
                       ))}
                     </select>
-                    
                     <select
                       className="stat-value"
                       disabled={!substatType}
                       value={stats.subStats[index].value?.toString() || ''}
-                      onChange={(e) => onSubStatChange(
-                        index,
-                        substatType,
-                        e.target.value ? Number(e.target.value) : null
-                      )}
+                      onChange={(e) => {
+                        if (!substatType) return;
+                        onSubStatChange(
+                          index,
+                          substatType,
+                          e.target.value ? Number(e.target.value) : getLowestValue(substatType)
+                        );
+                      }}
                     >
-                      <option value="">Select</option>
+                      <option value="" disabled>{substatType ? 'Select Value' : 'Select'}</option>
                       {substatType && substatsData && substatsData[substatType]?.map(value => (
                         <option key={value} value={value}>
                           {['ATK', 'HP', 'DEF'].includes(substatType) ? value : `${value}%`}

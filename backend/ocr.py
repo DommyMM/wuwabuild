@@ -9,7 +9,7 @@ from pathlib import Path
 
 SCAN_REGIONS = {
     "info": {"top": 0, "left": 0, "width": 0.13, "height": 0.11},
-    "uid": {"top": 0.97, "left": 0.913, "width": 0.075, "height": 0.03},
+    "uid": {"top": 0.975, "left": 0.915, "width": 0.07, "height": 0.025},
     "characterPage": {"top": 0.09, "left": 0.09, "width": 0.22, "height": 0.18},
     "weaponPage": {"top": 0.11, "left": 0.09, "width": 0.215, "height": 0.25},
     "echoPage": {"top": 0.11, "left": 0.72, "width": 0.25, "height": 0.35},
@@ -276,19 +276,21 @@ def get_character_info(text):
         name = "Rover"
         gender = detect_rover_gender()
         name = f"Rover{gender}"
-    
+        
     uid = None
     try:
         uid_img = crop_region(ORIGINAL_IMAGE, SCAN_REGIONS["uid"])
         uid_img = upscale_image(uid_img)
+        gray = cv2.cvtColor(uid_img, cv2.COLOR_BGR2GRAY)
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4,4))
+        enhanced = clahe.apply(gray)
+        _, thresh = cv2.threshold(enhanced, 115, 255, cv2.THRESH_BINARY)
+        cv2.imwrite(str(DEBUG_DIR / 'uid_processed.jpg'), thresh)
+        uid_text = pytesseract.image_to_string(thresh, config='--psm 7 -c tessedit_char_whitelist=0123456789')
         
-        processed_uid = preprocess_image(uid_img)
-        cv2.imwrite(str(DEBUG_DIR / 'uid_processed.jpg'), processed_uid)
-        uid_text = pytesseract.image_to_string(processed_uid)
-        print(f"UID OCR Text: {uid_text}")
-        uid_match = re.search(r'\d{9}', uid_text.replace(' ', ''))
-        if uid_match:
-            uid = uid_match.group(0)
+        digits = ''.join(filter(str.isdigit, uid_text))
+        if len(digits) >= 9:
+            uid = digits[-9:]
     except Exception as e:
         print(f"UID extraction failed: {e}")
     
@@ -319,7 +321,6 @@ def detect_rover_gender():
     male_matches = []
     for region_name, coords in regions.items():
         region_img = crop_region(ORIGINAL_IMAGE, coords)
-        cv2.imwrite(str(DEBUG_DIR / f'rover_{region_name}.jpg'), region_img)
         
         dark_pixels = 0
         for color in dark_colors:
@@ -329,7 +330,6 @@ def detect_rover_gender():
                 np.array([min(255, c + tolerance) for c in color])
             )
             dark_pixels += np.count_nonzero(mask)
-            cv2.imwrite(str(DEBUG_DIR / f'rover_{region_name}_mask.jpg'), mask)
         
         total_pixels = region_img.shape[0] * region_img.shape[1]
         dark_ratio = dark_pixels / total_pixels
@@ -627,7 +627,7 @@ def get_echo_info(processed_image, element):
     sub_stats = []
     for i in range(1, 6):
         sub_key = f"sub{i}"
-        sub_img = upscale_image(crop_region(processed_image, ECHO_REGIONS[sub_key]))
+        sub_img = crop_region(processed_image, ECHO_REGIONS[sub_key])
         sub_images.append(sub_img)
         cv2.imwrite(str(DEBUG_DIR / f'echo_{sub_key}.png'), sub_img)
         sub_text = pytesseract.image_to_string(sub_img).strip().replace('\n', ' ')
@@ -635,10 +635,17 @@ def get_echo_info(processed_image, element):
         if sub_text:
             if match := re.search(r'(.*?)[\s—:]*(\d+\.?\d*\%?)$', sub_text):
                 name, value = match.groups()
+                name = re.sub(r'[\\\\][u]?[0-9A-Fa-f]*', '', name)
                 name = name.replace('.', '')\
                         .replace('DMG Bonus', '')\
                         .replace('BMG', 'DMG')\
                         .replace('Resonance', '')\
+                        .replace('Regonance', '')\
+                        .replace('Gr', 'Crit')\
+                        .replace('CritDMGN', 'Crit DMG')\
+                        .replace('SNON', '')\
+                        .replace(' N', '')\
+                        .replace(' a', '')\
                         .replace('—', '')\
                         .replace(':', '')\
                         .strip()
@@ -650,20 +657,24 @@ def get_echo_info(processed_image, element):
     cv2.imwrite(str(DEBUG_DIR / 'echo_main.png'), main_img)
 
     name_text = pytesseract.image_to_string(name_img).strip()
-    if name_text.startswith('Phantom:'):
-        name_text = name_text[8:].strip()
+    if 'phantom:' in name_text.lower() or ':' in name_text:
+        name_text = name_text.split(':', 1)[-1].strip()    
     if not name_text:
         name_text = 'Jue'
-        
+    
     main_text = pytesseract.image_to_string(main_img).strip().replace('\n', ' ')
     
     main_stat = {}
     if match := re.search(r'(.*?)(\d+\.?\d*\%?)$', main_text):
         name, value = match.groups()
-        name = name.replace('.', '')\
-                .replace('DMG Bonus', 'DMG')\
+        name = name.replace('DMG Bonus', 'DMG')\
                 .replace('BMG', 'DMG')\
+                .replace('.', '')\
                 .strip()
+        if 'DMG' in name:
+            name = re.sub(r'(DMG).*', r'\1', name)
+        name = name.replace('CritDMG', 'Crit DMG')\
+                .replace('  ', ' ')
         main_stat = {'name': name if name else 'HP', 'value': value.strip()}
 
     return {

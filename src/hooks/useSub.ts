@@ -18,6 +18,7 @@ interface SubstatsHook {
   isStatAvailableForPanel: (panelId: string, stat: string, currentStat?: string) => boolean;
   getAvailableStats: () => string[];
   getStatValues: (stat: string) => number[] | null;
+  getLowestValue: (stat: string) => number | null;
 }
 
 export const useSubstats = (): SubstatsHook => {
@@ -75,6 +76,10 @@ export const useSubstats = (): SubstatsHook => {
     return substatsData?.[stat] || null;
   };
 
+  const getLowestValue = (stat: string): number | null => {
+    return substatsData?.[stat]?.[0] ?? null;
+  };
+
   return {
     substatsData,
     loading,
@@ -84,6 +89,7 @@ export const useSubstats = (): SubstatsHook => {
     unselectStatForPanel,
     isStatAvailableForPanel,
     getAvailableStats,
-    getStatValues
+    getStatValues,
+    getLowestValue
   };
 };

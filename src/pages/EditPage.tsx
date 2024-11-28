@@ -88,51 +88,89 @@ export const EditPage: React.FC = () => {
   }, []);
 
   const handleOCRResult = useCallback((result: OCRResponse) => {
-    if (result.success && result.analysis) {
-      if (result.analysis.type === 'Character') {
-        const characterAnalysis = result.analysis;
-        setOcrName(result.analysis.name);
-        setCharacterLevel(result.analysis.characterLevel.toString());
-        if (characterAnalysis.uid?.length === 9) {
-          setWatermark(prev => ({
-            ...prev,
-            uid: characterAnalysis.uid!
-          }));
-        }
-        if (elementState.selectedCharacter && 
-            isRover(elementState.selectedCharacter) && 
-            result.analysis.element === "Spectro") {
-          setElementState(prev => ({
-            ...prev,
-            elementValue: "Spectro",
-            displayName: "RoverSpectro"
-          }));
-        }
-      } 
-      else if (result.analysis.type === 'Weapon') {
-        const weaponAnalysis = result.analysis;
-        if (elementState.selectedCharacter?.weaponType === weaponAnalysis.weaponType) {
-          setWeaponState(prev => ({
-            ...prev,
-            config: {
-              level: weaponAnalysis.weaponLevel,
-              rank: weaponAnalysis.rank
-            }
-          }));
-        }
-      } else if (result.analysis.type === 'Sequences') {
-        if (currentSequence !== result.analysis.sequence) {
-          setCurrentSequence(result.analysis.sequence);
-        }
-      }
-      else if (result.analysis.type === 'Echo') {
+      if (!result.success || !result.analysis) return;
+  
+      switch (result.analysis.type) {
+        case 'Character':
+          const characterAnalysis = result.analysis;
+          setOcrName(characterAnalysis.name);
+          setCharacterLevel(prev => {
+            const newLevel = characterAnalysis.characterLevel;
+            const currentLevel = parseInt(prev);
+            return newLevel > currentLevel ? newLevel.toString() : prev;
+          });
+          if (characterAnalysis.uid?.length === 9) {
+            setWatermark(prev => ({...prev, uid: characterAnalysis.uid!}));
+          }
+          if (elementState.selectedCharacter && 
+              isRover(elementState.selectedCharacter) && 
+              characterAnalysis.element === "Spectro") {
+            setElementState(prev => ({
+              ...prev,
+              elementValue: "Spectro",
+              displayName: "RoverSpectro"
+            }));
+          }
+          break;
+      
+        case 'Weapon':
+          const weaponAnalysis = result.analysis;
+          if (elementState.selectedCharacter?.weaponType.replace(/s$/, '') === weaponAnalysis.weaponType.replace(/s$/, '')) {
+            setWeaponState(prev => ({
+              ...prev,
+              config: {
+                level: Math.max(prev.config.level, weaponAnalysis.weaponLevel),
+                rank: Math.max(prev.config.rank, weaponAnalysis.rank)
+              }
+            }));
+          }
+          break;
+      
+        case 'Sequences':
+          const sequenceAnalysis = result.analysis;
+          setCurrentSequence(prev => 
+            Math.max(prev, sequenceAnalysis.sequence)
+          );
+          break;
+          
+        case 'Forte':
+          const forteAnalysis = result.analysis;
+          const skillToTree = {
+            normal: 'tree1',
+            skill: 'tree2',
+            circuit: 'tree3',
+            liberation: 'tree4',
+            intro: 'tree5'
+          };
+        
+          const newNodeStates: Record<string, Record<string, boolean>> = {};
+          const newForteLevels: Record<string, number> = {};
+        
+          Object.entries(forteAnalysis).forEach(([skill, values]) => {
+            if (skill === 'type') return;
+        
+            const [level, top, middle] = values;
+            const treeKey = skillToTree[skill as keyof typeof skillToTree];
+            const skillKey = skill === 'normal' ? 'normal-attack' : skill;
+        
+            newNodeStates[treeKey] = {
+              top: Boolean(top),
+              middle: Boolean(middle)
+            };
+            newForteLevels[skillKey] = level;
+          });
+        
+          setNodeStates(newNodeStates);
+          setForteLevels(newForteLevels);
+          break;
+      case 'Echo':
         const echoAnalysis = result.analysis;
         if (!hasScrolledToEchoes.current) {
           echoesRef.current?.scrollIntoView({ behavior: 'smooth' });
           setIsEchoesMinimized(false);
           hasScrolledToEchoes.current = true;
         }
-
+    
         setEchoPanels(prev => {
           const emptyIndex = prev.findIndex(p => !p.echo);
           
@@ -157,10 +195,10 @@ export const EditPage: React.FC = () => {
           );
           return newPanels;
         });
-      }
-      setOCRAnalysis(result.analysis);
     }
-  }, [currentSequence, elementState.selectedCharacter, echoesByCost, mainStatsData, substatsData, calculateValue]);
+
+    setOCRAnalysis(result.analysis);
+  }, [elementState.selectedCharacter, echoesByCost, mainStatsData, substatsData, calculateValue]);
 
   const handleGenerateClick = (level: number) => {
     setCharacterLevel(level.toString());
@@ -179,7 +217,6 @@ export const EditPage: React.FC = () => {
 
   const handleCharacterSelect = useCallback(async (character: Character | null) => {
       if (character) {
-        unlock();
         if (!weaponCache[character.weaponType]) {
           try {
             const response = await fetch(`/Data/${character.weaponType}s.json`);
@@ -207,6 +244,7 @@ export const EditPage: React.FC = () => {
       setCurrentSequence(0);
       setNodeStates({});
       setForteLevels({});
+      unlock();
     }
   }, [unlock, weaponCache]);
 

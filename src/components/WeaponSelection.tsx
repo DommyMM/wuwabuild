@@ -57,16 +57,18 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
     preloadedWeapons: preloadedWeapons
   });
 
-  if (ocrData?.name && ocrData.name !== lastOcrWeapon && weapons.length > 0) {
-    const matchedWeapon = weapons.find(
-      weapon => weapon.name.toLowerCase() === ocrData.name.toLowerCase()
-    );
-    if (matchedWeapon) {
-      setLastOcrWeapon(ocrData.name);
-      onWeaponSelect(matchedWeapon);
-      onWeaponConfigChange(ocrData.weaponLevel, ocrData.rank);
+  useEffect(() => {
+    if (ocrData?.name && weapons.length > 0 && !lastOcrWeapon) {
+      const matchedWeapon = weapons.find(
+        weapon => weapon.name.toLowerCase() === ocrData.name.toLowerCase()
+      );
+      if (matchedWeapon) {
+        setLastOcrWeapon(ocrData.name);
+        onWeaponSelect(matchedWeapon);
+        onWeaponConfigChange(ocrData.weaponLevel, ocrData.rank);
+      }
     }
-  }
+  }, [ocrData, weapons, lastOcrWeapon, onWeaponSelect, onWeaponConfigChange]);
 
   useModalClose(isModalOpen, () => setIsModalOpen(false));
 
