@@ -118,6 +118,12 @@ h2 {
   color: #B0B0B0;
 }
 
+.loading-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .category-label.loading {
   display: flex;
   align-items: center;

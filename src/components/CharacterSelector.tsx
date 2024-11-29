@@ -47,7 +47,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   return (
     <>
       <div className="manual-section">
-        <label>Select Resonator:</label>
+        <div>Select Resonator:</div>
         <div className="select-box" onClick={() => setIsModalOpen(true)}>
           <img 
             src={selectedCharacter 

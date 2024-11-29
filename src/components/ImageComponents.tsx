@@ -41,10 +41,10 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
         />
         <div className={`category-label ${isLoading ? 'loading' : ''} ${error ? 'error' : ''}`}>
           {isLoading ? (
-            <>
+            <div className="loading-container">
               <div className="loading-spinner" />
               <span>Analyzing...</span>
-            </>
+            </div>
           ) : error ? (
             <div className="error-message">
               {getErrorMessage()}
