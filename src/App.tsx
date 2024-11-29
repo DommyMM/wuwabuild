@@ -1,6 +1,8 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { EditPage } from './pages/EditPage';
 import { OCRProvider } from './contexts/OCRContext';
+import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 const router = createBrowserRouter(
   [
@@ -24,6 +26,8 @@ const App: React.FC = () => {
   return (
     <OCRProvider>
       <RouterProvider router={router} />
+      <Analytics />
+      <SpeedInsights />
     </OCRProvider>
   );
 };
