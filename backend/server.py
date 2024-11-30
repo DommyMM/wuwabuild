@@ -13,10 +13,12 @@ from ocr import process_image
 from contextlib import asynccontextmanager
 import time
 from collections import defaultdict
+import os
 
 MAX_WORKERS = max(2, multiprocessing.cpu_count() - 1)
 PROCESS_TIMEOUT = 30
 REQUESTS_PER_MINUTE = 20
+PORT = int(os.getenv("PORT", "5000"))
 
 class RateLimiter:
     def __init__(self):
@@ -137,4 +139,4 @@ async def process_image_request(request: Request, image_data: ImageRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+    uvicorn.run(app, host="0.0.0.0", port=PORT)

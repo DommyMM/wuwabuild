@@ -109,3 +109,76 @@ h2 {
   padding: 8px;
   white-space: pre-line;
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.mobile-notice {
+  visibility: hidden;
+  width: 92%;
+  height: 85%;
+  background-color: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  color: red;
+  font-size: 50px;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px;
+  position: fixed;
+  z-index: 1000;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.mobile-notice.visible {
+  visibility: visible;
+  animation: fadeIn 1s;
+}
+
+.mobile-notice-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.mobile-notice-close:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.mobile-notice-title {
+  color: red;
+  font-size: 50px;
+}
+
+.mobile-notice-text {
+  font-size: 24px;
+  margin-top: 20px;
+  font-family: 'Gowun', sans-serif;
+  color: white;
+}
+
+.mobile-notice-info {
+  font-size: 24px;
+  margin-top: 10px;
+  font-family: 'Gowun', sans-serif;
+  color: white;
+}

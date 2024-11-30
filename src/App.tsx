@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { EditPage } from './pages/EditPage';
 import { OCRProvider } from './contexts/OCRContext';
+import MobileNotice from './components/MobileNotice';
 
 const router = createBrowserRouter(
   [
@@ -22,9 +23,12 @@ const router = createBrowserRouter(
 
 const App: React.FC = () => {
   return (
-    <OCRProvider>
-      <RouterProvider router={router} />
-    </OCRProvider>
+    <>
+      <MobileNotice />
+      <OCRProvider>
+        <RouterProvider router={router} />
+      </OCRProvider>
+    </>
   );
 };
 
