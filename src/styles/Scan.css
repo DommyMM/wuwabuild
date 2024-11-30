@@ -184,3 +184,25 @@ h2 {
   max-height: 75vh;
   object-fit: contain;
 }
+
+.scan-notice {
+  background-color: rgba(255, 204, 0, 0.1);
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+  text-align: center;
+  color: #ffc107;
+  font-family: 'Gowun', sans-serif;
+  font-weight: bold;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scan-notice-detail {
+  color: #aaa;
+  font-size: 14px;
+  font-weight: normal;
+}

@@ -8,10 +8,18 @@ const MobileNotice: React.FC = () => {
 
   useEffect(() => {
     const checkMobile = () => {
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const isMobileWidth = window.innerWidth < 1800;
+      const width = window.screen.width;
       const isPortrait = window.matchMedia("(orientation: portrait)").matches;
-      setIsMobile(isTouchDevice && isMobileWidth && isPortrait);
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (width < 1200 && isTouchDevice) {
+        setIsMobile(true);
+        return;
+      }
+      if (width < 1800 && isTouchDevice) {
+        setIsMobile(isPortrait);
+        return;
+      }
+      setIsMobile(false);
     };
 
     checkMobile();
@@ -27,7 +35,6 @@ const MobileNotice: React.FC = () => {
       window.matchMedia("(orientation: portrait)").removeEventListener('change', checkMobile);
     };
   }, []);
-
   if (!isMobile || isDismissed) return null;
 
   return (
@@ -41,14 +48,14 @@ const MobileNotice: React.FC = () => {
       >
         <X size={32} />
       </button>
-      <div className="mobile-notice-title">Desktop Version Only</div>
+      <div className="mobile-notice-title">Mobile Detected</div>
       <span className="mobile-notice-text">
-        {window.innerWidth > 1200 ? 
+        {window.screen.width > 1200 ? 
           "Please rotate your device to landscape mode" : 
-          "Please use a desktop browser"}
+          "Unoptimized for mobile\nPlease use a desktop browser"}
       </span>
       <span className="mobile-notice-info">
-        Current size: {window.innerWidth}x{window.innerHeight}px
+        Current size: {window.screen.width}x{window.screen.height}px
         <br />
         Orientation: {window.matchMedia("(orientation: portrait)").matches ? "Portrait" : "Landscape"}
       </span>

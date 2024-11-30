@@ -22,7 +22,7 @@ interface ScanProps {
 
 const MAX_IMAGES = 10;
 const TIMEOUT_MS = 30000;
-const MAX_FILE_SIZE = 30 * 1024 * 1024;
+const MAX_FILE_SIZE = 40 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
 
 const fileToBase64 = (file: File): Promise<string> => {
@@ -39,7 +39,7 @@ const validateFile = (file: File): string | null => {
     return 'Invalid file type. Only JPEG and PNG files are allowed.';
   }
   if (file.size > MAX_FILE_SIZE) {
-    return 'File too large. Maximum size is 30MB.';
+    return 'File too large. Maximum size is 40MB.';
   }
   return null;
 };
@@ -129,6 +129,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
   const { characters } = useCharacters();
   const [hasQueueMessage, setHasQueueMessage] = useState(false);
   const pendingResultsRef = useRef<PendingResult[]>([]);
+  const [showNotice, setShowNotice] = useState(true);
 
   const clearImages = () => {
     blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
@@ -136,6 +137,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
     setImages([]);
     setErrorMessages([]);
     setHasQueueMessage(false);
+    setShowNotice(true);
   };
 
   const processResult = useCallback(async ({ image, result }: PendingResult) => {
@@ -229,6 +231,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
   
     setIsProcessing(true);
     setErrorMessages([]);
+    setShowNotice(false);
   
     try {
       const validFiles = files.filter(file => {
@@ -305,6 +308,14 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
 
   return (
     <div className="scan-component">
+      {showNotice && (
+        <div className="scan-notice">
+          ⚠️ Important: Use FULL SCREEN screenshots only
+          <span className="scan-notice-detail">
+            Cropped or partial screenshots will not be recognized
+          </span>
+        </div>
+      )}
       <div className="scan-controls">
         <ImageUploader 
           onFilesSelected={handleFiles} 
