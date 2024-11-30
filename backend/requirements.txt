@@ -6,3 +6,4 @@ opencv-python-headless==4.10.0.84
 numpy==1.26.4
 Pillow==10.4.0
 pytesseract==0.3.10
+pydantic

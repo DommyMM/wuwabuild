@@ -25,11 +25,7 @@ class RateLimiter:
     def is_allowed(self, ip: str) -> bool:
         now = time.time()
         minute_ago = now - 60
-        
-        # Clean old requests
         self.requests[ip] = [req_time for req_time in self.requests[ip] if req_time > minute_ago]
-        
-        # Check if under limit
         if len(self.requests[ip]) < REQUESTS_PER_MINUTE:
             self.requests[ip].append(now)
             return True
