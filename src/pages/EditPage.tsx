@@ -102,13 +102,13 @@ export const EditPage: React.FC = () => {
           if (characterAnalysis.uid?.length === 9) {
             setWatermark(prev => ({...prev, uid: characterAnalysis.uid!}));
           }
-          if (elementState.selectedCharacter && 
-              isRover(elementState.selectedCharacter) && 
-              characterAnalysis.element === "Spectro") {
+          if (characterAnalysis.name.startsWith('Rover')) {
+            const elementValue = characterAnalysis.element === "Spectro" ? "Spectro" : "Havoc";
+            console.log(`Rover detected with element: ${elementValue}`);
             setElementState(prev => ({
               ...prev,
-              elementValue: "Spectro",
-              displayName: "RoverSpectro"
+              elementValue: elementValue,
+              displayName: `Rover${elementValue}`
             }));
           }
           break;
@@ -234,11 +234,11 @@ export const EditPage: React.FC = () => {
         }
         setIsCharacterMinimized(false);
         setIsEchoesMinimized(true); 
-        setElementState({
+        setElementState(prev => ({
           selectedCharacter: character,
-          elementValue: isRover(character) ? "Havoc" : character.element,
-          displayName: character.name.startsWith('Rover') ? 'RoverHavoc' : character.name
-        });
+          elementValue: isRover(character) ? prev.elementValue || "Havoc" : character.element,
+          displayName: isRover(character) ? `Rover${prev.elementValue || "Havoc"}` : character.name
+        }));
       setWeaponState({
         selectedWeapon: null,
         config: { level: 1, rank: 1 }
