@@ -7,6 +7,7 @@ interface ImagePreviewProps {
   isLoading?: boolean;
   error?: boolean;
   errorMessage?: string;
+  status: 'uploading' | 'ready' | 'processing' | 'complete' | 'error';
 }
 
 interface ImageUploaderProps {
@@ -15,19 +16,38 @@ interface ImageUploaderProps {
 }
 
 export const ImagePreview: React.FC<ImagePreviewProps> = ({
-  src, category, details, isLoading, error, errorMessage
+  src, category, details, status, error, errorMessage
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const getErrorMessage = () => {
-    if (!errorMessage) return 'Unable to analyze';
-    if (errorMessage.includes('Rate limit')) {
-      return 'Server busy - please wait';
+  const getStatusMessage = () => {
+    switch (status) {
+      case 'uploading':
+        return (
+          <div className="loading-container">
+            <div className="loading-spinner" />
+            <span>Uploading...</span>
+          </div>
+        );
+      case 'ready':
+        return <div>Ready</div>;
+      case 'processing':
+        return (
+          <div className="loading-container">
+            <div className="loading-spinner" />
+            <span>Analyzing...</span>
+          </div>
+        );
+      case 'complete':
+        return (
+          <>
+            <div>Detected: {category}</div>
+            {details && <div className="details">{details}</div>}
+          </>
+        );
+      case 'error':
+        return <div className="error-message">{errorMessage || 'Error'}</div>;
     }
-    if (errorMessage.includes('timeout')) {
-      return 'Request timed out';
-    }
-    return errorMessage;
   };
 
   return (
@@ -39,22 +59,8 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
           alt="Preview" 
           onClick={() => setIsFullscreen(true)}
         />
-        <div className={`category-label ${isLoading ? 'loading' : ''} ${error ? 'error' : ''}`}>
-          {isLoading ? (
-            <div className="loading-container">
-              <div className="loading-spinner" />
-              <span>Analyzing...</span>
-            </div>
-          ) : error ? (
-            <div className="error-message">
-              {getErrorMessage()}
-            </div>
-          ) : category ? (
-            <>
-              <div>Detected: {category}</div>
-              {details && <div className="details">{details}</div>}
-            </>
-          ) : null}
+        <div className={`category-label ${status}`}>
+          {getStatusMessage()}
         </div>
       </div>
       {isFullscreen && (

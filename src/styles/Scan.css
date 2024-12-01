@@ -206,3 +206,21 @@ h2 {
   font-size: 14px;
   font-weight: normal;
 }
+
+.process-button {
+  display: inline-block;
+  position: absolute;
+  top: 70px;
+  left: calc(10% - 6.43px); 
+  padding: 8px 16px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.process-button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}

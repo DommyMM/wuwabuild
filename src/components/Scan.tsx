@@ -13,6 +13,9 @@ interface ImageData {
   error?: string;
   category?: string;
   details?: string;
+  base64?: string;
+  readyToProcess: boolean;
+  status: 'uploading' | 'ready' | 'processing' | 'complete' | 'error';
 }
 
 interface ScanProps {
@@ -83,7 +86,7 @@ const fetchOCRResult = async (image: ImageData, retries = 3): Promise<PendingRes
     const response = await fetch(`${API_URL}/api/ocr`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: await fileToBase64(image.file) }),
+      body: JSON.stringify({ image: image.base64 }),
       signal: controller.signal
     });
 
@@ -126,9 +129,7 @@ const wakeupServer = async () => {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
-    console.log('Server awakened');
   } catch (error) {
-    console.log('Server wake-up attempt made');
   }
 };
 
@@ -142,6 +143,13 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
   const [hasQueueMessage, setHasQueueMessage] = useState(false);
   const pendingResultsRef = useRef<PendingResult[]>([]);
   const [showNotice, setShowNotice] = useState(true);
+  const [hasReadyImages, setHasReadyImages] = useState(false);
+
+  const areAllImagesReady = useCallback(() => {
+    return images.length > 0 && images.every(img => 
+      img.status === 'ready' || img.status === 'error'
+    );
+  }, [images]);
 
   useEffect(() => {
     wakeupServer();
@@ -154,6 +162,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
     setErrorMessages([]);
     setHasQueueMessage(false);
     setShowNotice(true);
+    setHasReadyImages(false);
   };
 
   const processResult = useCallback(async ({ image, result }: PendingResult) => {
@@ -237,60 +246,100 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
         await processResult(weaponResult);
       }
     }
-  }, [isLocked, processResult]); 
-  
-  const handleFiles = async (files: File[]) => {
+  }, [isLocked, processResult]);
+
+  const handleFiles = (files: File[]) => {
     if (images.length + files.length > MAX_IMAGES) {
       alert(`Maximum ${MAX_IMAGES} images allowed`);
       return;
     }
-  
-    setIsProcessing(true);
     setErrorMessages([]);
     setShowNotice(false);
-  
-    try {
-      const validFiles = files.filter(file => {
-        const error = validateFile(file);
-        if (error) {
-          setErrorMessages(prev => [...prev, `${file.name}: ${error}`]);
-          return false;
-        }
-        return true;
-      });
-  
-      if (validFiles.length === 0) {
-        return;
+    const validFiles = files.filter(file => {
+      const error = validateFile(file);
+      if (error) {
+        setErrorMessages(prev => [...prev, `${file.name}: ${error}`]);
+        return false;
       }
-  
-      const newImages = validFiles.map(file => {
-        const blobUrl = URL.createObjectURL(file);
-        blobUrlsRef.current.push(blobUrl);
-        return {
-          id: Math.random().toString(36).substring(2),
-          file,
-          preview: blobUrl,
-          isLoading: true
-        };
-      });
-  
-      setImages(prev => [...prev, ...newImages]);
-  
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    const newImages = validFiles.map(file => {
+      const blobUrl = URL.createObjectURL(file);
+      blobUrlsRef.current.push(blobUrl);
+      return {
+        id: Math.random().toString(36).substring(2),
+        file,
+        preview: blobUrl,
+        status: 'uploading' as const,
+        isLoading: true,
+        readyToProcess: false
+      };
+    });
+
+    setImages(prev => [...prev, ...newImages]);
+
+    newImages.forEach(img => {
+      fileToBase64(img.file)
+        .then(base64 => {
+          setImages(prev => prev.map(p => 
+            p.id === img.id ? {
+              ...p,
+              base64,
+              isLoading: false,
+              readyToProcess: true,
+              status: 'ready'
+            } : p
+          ));
+          setHasReadyImages(true);
+        })
+        .catch(error => {
+          setImages(prev => prev.map(p => 
+            p.id === img.id ? {
+              ...p,
+              error: 'Failed to prepare image',
+              isLoading: false,
+              status: 'error'
+            } : p
+          ));
+        });
+    });
+  };
+
+  const processImages = async () => {
+    setErrorMessages([]);
+    if (isLocked) {
+      setErrorMessages(['Select character first']);
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const readyImages = images.filter(img => img.readyToProcess && img.base64);
+      
+      setImages(prev => prev.map(img => 
+        readyImages.find(ri => ri.id === img.id) 
+          ? { ...img, status: 'processing' } 
+          : img
+      ));
+
       const results = await Promise.all(
-        newImages.map(img => fetchOCRResult(img))
+        readyImages.map(img => fetchOCRResult(img))
       );
-  
+      
       await processResults(results);
+      setHasReadyImages(false);
     } finally {
       setIsProcessing(false);
     }
   };
-  
+
   const processQueue = useCallback(async () => {
     if (!isLocked && pendingResultsRef.current.length > 0) {
       const queuedResults = [...pendingResultsRef.current];
       pendingResultsRef.current = [];
-      
       try {
         await processResults(queuedResults);
       } catch (error) {
@@ -322,6 +371,12 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
     };
   }, []);
 
+  useEffect(() => {
+    if (hasReadyImages && areAllImagesReady()) {
+      setErrorMessages(['Click process to analyze images']);
+    }
+  }, [hasReadyImages, areAllImagesReady]);
+
   return (
     <div className="scan-component">
       {showNotice && (
@@ -337,14 +392,14 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
           onFilesSelected={handleFiles} 
           disabled={isProcessing} 
         />
-        {errorMessages.length > 0 && (
-          <div className="scan-errors">
-            {errorMessages.map((message, index) => (
-              <div key={index} className="error-message">
-                {message}
-              </div>
-            ))}
-          </div>
+        {hasReadyImages && (
+          <button
+            className="process-button"
+            onClick={processImages}
+            disabled={isProcessing || !areAllImagesReady()}
+          >
+            {isProcessing ? 'Processing...' : 'Process Images'}
+          </button>
         )}
         {images.length > 0 && (
           <button 
@@ -356,9 +411,13 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
           </button>
         )}
       </div>
-      {isProcessing && (
-        <div className="processing-status">
-          Processing images...
+      {errorMessages.length > 0 && (
+        <div className="scan-errors">
+          {errorMessages.map((message, index) => (
+            <div key={index} className="error-message">
+              {message}
+            </div>
+          ))}
         </div>
       )}
       <div className="file-preview">
@@ -368,7 +427,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
             src={image.preview}
             category={image.category}
             details={image.details}
-            isLoading={image.isLoading}
+            status={image.status}
             error={!!image.error}
             errorMessage={image.error}
           />
