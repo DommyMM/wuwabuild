@@ -7,7 +7,8 @@ interface ImagePreviewProps {
   isLoading?: boolean;
   error?: boolean;
   errorMessage?: string;
-  status: 'uploading' | 'ready' | 'processing' | 'complete' | 'error';
+  status: 'uploading' | 'ready' | 'processing' | 'queued' | 'complete' | 'error';
+  onDelete?: () => void;
 }
 
 interface ImageUploaderProps {
@@ -16,7 +17,7 @@ interface ImageUploaderProps {
 }
 
 export const ImagePreview: React.FC<ImagePreviewProps> = ({
-  src, category, details, status, error, errorMessage
+  src, category, details, status, error, errorMessage, onDelete
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -38,6 +39,13 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             <span>Analyzing...</span>
           </div>
         );
+      case 'queued':
+        return (
+          <div className="loading-container">
+            <div className="loading-spinner" />
+            <span>Waiting...</span>
+          </div>
+        );
       case 'complete':
         return (
           <>
@@ -53,6 +61,14 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   return (
     <>
       <div className="image-container">
+        {onDelete && (
+          <button 
+            className="delete-button"
+            onClick={onDelete}
+          >
+            ×
+          </button>
+        )}
         <img 
           src={src} 
           className="preview-thumbnail"

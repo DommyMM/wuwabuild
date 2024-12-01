@@ -15,7 +15,7 @@ interface ImageData {
   details?: string;
   base64?: string;
   readyToProcess: boolean;
-  status: 'uploading' | 'ready' | 'processing' | 'complete' | 'error';
+  status: 'uploading' | 'ready' | 'processing' | 'queued' | 'complete' | 'error';
 }
 
 interface ScanProps {
@@ -147,7 +147,10 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
 
   const areAllImagesReady = useCallback(() => {
     return images.length > 0 && images.every(img => 
-      img.status === 'ready' || img.status === 'error'
+      img.status === 'ready' || 
+      img.status === 'error' || 
+      img.status === 'processing' ||
+      img.status === 'queued' 
     );
   }, [images]);
 
@@ -201,14 +204,20 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
             ...img, 
             category: result.analysis?.type,
             details: result.analysis ? getAnalysisDetails(result.analysis) : undefined,
-            isLoading: false 
+            isLoading: false,
+            status: 'complete'
           } : 
           img
       ));
     } catch (error) {
       setImages(prev => prev.map(img =>
         img.id === image.id ? 
-          { ...img, error: error instanceof Error ? error.message : 'Unknown error', isLoading: false } : 
+          { 
+            ...img, 
+            error: error instanceof Error ? error.message : 'Unknown error', 
+            isLoading: false,
+            status: 'error'
+          } : 
           img
       ));
     }
@@ -223,6 +232,11 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
       pendingResultsRef.current.push(...results);
       setHasQueueMessage(true);
       setErrorMessages(['Select character first']);
+      setImages(prev => prev.map(img => 
+        results.find(r => r.image.id === img.id)
+          ? { ...img, status: 'queued' }
+          : img
+      ));
       return;
     }
   
@@ -312,7 +326,9 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
     setErrorMessages([]);
     setIsProcessing(true);
     try {
-      const readyImages = images.filter(img => img.readyToProcess && img.base64);
+      const readyImages = images.filter(img => 
+        img.readyToProcess && img.base64 && img.status === 'ready'
+      );
       
       setImages(prev => prev.map(img => 
         readyImages.find(ri => ri.id === img.id) 
@@ -367,10 +383,27 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
   }, []);
 
   useEffect(() => {
-    if (hasReadyImages && areAllImagesReady()) {
+    if (hasReadyImages && images.some(img => img.status === 'ready')) {
       setErrorMessages(['Click process to analyze images']);
     }
-  }, [hasReadyImages, areAllImagesReady]);
+  }, [hasReadyImages, images]);
+
+  const deleteImage = useCallback((id: string) => {
+    setImages(prev => {
+      const newImages = prev.filter(img => img.id !== id);
+      if (newImages.length === 0) {
+        setHasReadyImages(false);
+        setShowNotice(true);
+      }
+      return newImages;
+    });
+    
+    const imageToDelete = images.find(img => img.id === id);
+    if (imageToDelete?.preview) {
+      URL.revokeObjectURL(imageToDelete.preview);
+      blobUrlsRef.current = blobUrlsRef.current.filter(url => url !== imageToDelete.preview);
+    }
+  }, [images]);
 
   return (
     <div className="scan-component">
@@ -425,6 +458,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
             status={image.status}
             error={!!image.error}
             errorMessage={image.error}
+            onDelete={() => deleteImage(image.id)}
           />
         ))}
       </div>
