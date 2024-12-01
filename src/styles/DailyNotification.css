@@ -1,0 +1,46 @@
+.notification-overlay {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    animation: slideIn 0.5s ease-out;
+}
+
+.notification-card {
+background: #2a2a2a;
+color: white;
+padding: 0px 20px;
+border-radius: 8px;
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+display: flex;
+gap: 10px;
+align-items: center;
+}
+
+.notification-card button {
+background: #444;
+border: none;
+padding: 5px 10px;
+border-radius: 4px;
+color: white;
+cursor: pointer;
+}
+
+.notification-card button:hover {
+background: #555;
+}
+
+.highlight-name {
+    color: #00c8ff;
+}
+
+@keyframes slideIn {
+from {
+    transform: translateX(100%);
+    opacity: 0;
+}
+to {
+    transform: translateX(0);
+    opacity: 1;
+}
+}

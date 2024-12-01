@@ -4,7 +4,9 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState as PanelData, COST_SECTIONS, CostSection } from '../types/echo';
+import { SavedEchoData } from '../types/SavedState';
 import { useEchoes } from '../hooks/useEchoes';
+import { useModalClose } from '../hooks/useModalClose';
 import { StatsTab } from './StatsTab';
 import '../styles/echoes.css';
 
@@ -71,6 +73,10 @@ interface EchoesSectionProps {
   onMainStatChange?: (index: number, type: string | null) => void;
   onSubStatChange?: (index: number, subIndex: number, type: string | null, value: number | null) => void;
   onPanelChange?: (panels: PanelData[]) => void;
+  savedEchoes?: SavedEchoData[];
+  onSaveEcho?: (index: number) => void;
+  onLoadEcho?: (savedEcho: SavedEchoData) => void;
+  onDeleteEcho?: (echoId: string) => void;
 }
 
 interface EchoPanelProps {
@@ -83,6 +89,8 @@ interface EchoPanelProps {
   onMainStatChange: (type: string | null) => void;
   onSubStatChange: (subIndex: number, type: string | null, value: number | null) => void;
   listener?: Record<string, any>;
+  onSave?: () => void;
+  onLoad?: () => void;
 }
 
 export const EchoPanel: React.FC<EchoPanelProps> = ({
@@ -94,7 +102,9 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   onElementSelect,
   onMainStatChange,
   onSubStatChange,
-  listener
+  listener,
+  onSave,
+  onLoad
 }) => {
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,6 +169,22 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
       <button className="clear-button" onClick={onReset}>
         Reset
       </button>
+
+      <div className="panel-actions">
+        <button 
+          className="action-button save"
+          onClick={onSave}
+          disabled={!panelData.echo}
+        >
+          Save
+        </button>
+        <button 
+          className="action-button load"
+          onClick={onLoad}
+        >
+          Load
+        </button>
+      </div>
     </div>
   );
 };
@@ -192,14 +218,23 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
   onElementSelect,
   onEchoSelect,
   onMainStatChange,
-  onSubStatChange
+  onSubStatChange,
+  savedEchoes = [],
+  onSaveEcho,
+  onLoadEcho,
+  onDeleteEcho
 }, ref) => {
   const { echoesByCost, loading, error } = useEchoes();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPanelIndex, setSelectedPanelIndex] = useState<number | null>(null);
   const [showWarning, setShowWarning] = useState(false);
+  const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
+  const [selectedLoadPanelIndex, setSelectedLoadPanelIndex] = useState<number | null>(null);
   
   const panels = initialPanels;
+
+  useModalClose(isModalOpen, () => setIsModalOpen(false));
+  useModalClose(isLoadModalOpen, () => setIsLoadModalOpen(false));
 
   const handleReset = useCallback((index: number) => {
     onPanelChange?.(panels.map((panel, i) => 
@@ -313,8 +348,12 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                             onLevelChange={(level) => handleLevelChange(i, level)}
                             onElementSelect={(element) => handleElementSelect(i, element)}
                             onMainStatChange={(type) => onMainStatChange?.(i, type)}
-                            onSubStatChange={(subIndex, type, value) => 
-                              onSubStatChange?.(i, subIndex, type, value)}
+                            onSubStatChange={(subIndex, type, value) => onSubStatChange?.(i, subIndex, type, value)}
+                            onSave={() => onSaveEcho?.(i)}
+                            onLoad={() => {
+                              setSelectedLoadPanelIndex(i);
+                              setIsLoadModalOpen(true);
+                            }}
                           />
                         </SortablePanel>
                       ))}
@@ -328,7 +367,7 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
       )}
   
       {isModalOpen && (
-        <div className="modal">
+        <div className="modal" data-testid="echo-select-modal">
           <div className="echo-modal-content">
             <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
             <div className="echo-list">
@@ -355,6 +394,70 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLoadModalOpen && (
+        <div className="modal" data-testid="echo-load-modal">
+          <div className="echo-modal-content">
+            <span className="close" onClick={() => setIsLoadModalOpen(false)}>&times;</span>
+            <div className="saved-echo-list">
+              {savedEchoes.map(savedEcho => {
+                const echo = savedEcho.panelData;
+                const stats = echo.stats;
+                const element = echo.selectedElement;
+                const mainStat = stats.mainStat.type;
+                const subStats = stats.subStats.map(sub => sub.type).filter(Boolean);
+                
+                return (
+                  <div 
+                    key={savedEcho.id}
+                    className="echo-option"
+                    onClick={(e) => {
+                      if (!(e.target as HTMLElement).closest('.delete-button')) {
+                        if (selectedLoadPanelIndex !== null) {
+                          onLoadEcho?.({
+                            ...savedEcho,
+                            panelIndex: selectedLoadPanelIndex
+                          });
+                        }
+                        setIsLoadModalOpen(false);
+                      }
+                    }}
+                  >
+                    <img
+                      src={echo.echo ? 
+                        `images/Echoes/${echo.echo.name}.png` : 
+                        'images/Resources/Echo.png'
+                      }
+                      alt={echo.echo?.name || 'Empty Echo'}
+                      className="echo-img"
+                    />
+                    <div className="echo-info">
+                      <div className="echo-name">
+                        {echo.echo?.name || 'Empty Echo'}
+                      </div>
+                      <div className="echo-stats">
+                        <div>{element} • {mainStat}</div>
+                        <div>{subStats.slice(0, 3).join(' • ')}</div>
+                        <div>{subStats.slice(3, 5).join(' • ')}</div>
+                      </div>
+                    </div>
+                    <button 
+                      className="delete-button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onDeleteEcho?.(savedEcho.id);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

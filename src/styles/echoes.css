@@ -140,6 +140,109 @@
     right: 0;
 }
 
+.panel-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    margin-top: auto;
+    transform: translateY(45px);
+    justify-content: center;
+}
+
+.action-button {
+    width: 40%;
+    height: 25px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.action-button.save {
+    background: #a69662;
+    color: white;
+}
+
+.action-button.save:hover {
+    background: #9d8538;
+}
+
+.action-button.load {
+    background: #a10909;
+    color: white;
+}
+
+.action-button.load:hover {
+    background: rgb(14, 6, 230);
+}
+
+.saved-echo-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 16px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.saved-echo-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+    padding: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.saved-echo-item:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.saved-echo-list .echo-name {
+    max-width: 100%;
+}
+
+.echo-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.echo-stats {
+    font-size: 14px;
+    color: #aaa;
+    text-align: center;
+}
+
+.echo-stats > div {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.delete-button {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: #a10909;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: opacity 0.2s;
+    opacity: 0;
+}
+
+.saved-echo-item:hover .delete-button {
+    opacity: 1;
+}
+
+.delete-button:hover {
+    background: #c41111;
+}
+
 #selectedEchoLabel {
     position: relative;
     width: 270px;
@@ -283,6 +386,7 @@
     cursor: pointer;
     padding: 5px;
     gap: 5px;
+    position: relative;
 }
 
 .echo-option:hover {
@@ -302,6 +406,10 @@
     text-align: center;
     max-width: 110px;
     overflow-wrap: break-word;
+}
+
+.echo-option:hover .delete-button {
+    opacity: 1;
 }
 
 .echo-modal-content {

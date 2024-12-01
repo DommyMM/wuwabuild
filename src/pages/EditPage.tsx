@@ -1,14 +1,17 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { Character, isRover } from '../types/character';
 import { Weapon, WeaponType, WeaponState } from '../types/weapon';
 import { EchoPanelState, Echo, ElementType } from '../types/echo';
 import { OCRResponse, OCRAnalysis } from '../types/ocr';
+import { SavedState, SavedEchoData } from '../types/SavedState';
 import { CharacterSelector } from '../components/CharacterSelector';
 import { CharacterInfo } from '../components/CharacterInfo';
 import { EchoesSection } from '../components/EchoSection';
 import { BuildCard } from '../components/BuildCard';
 import { Scan } from '../components/Scan';
+import { DailyNotification } from '../components/DailyNotification';
+import { RestorePrompt } from '../components/Restore';
 import { useOCRContext } from '../contexts/OCRContext';
 import { useEchoes } from '../hooks/useEchoes';
 import { matchEchoData } from '../hooks/echoMatching';
@@ -389,10 +392,95 @@ export const EditPage: React.FC = () => {
   const [isCharacterMinimized, setIsCharacterMinimized] = useState(true);
   const [isEchoesMinimized, setIsEchoesMinimized] = useState(true);
 
+  const [showRestore, setShowRestore] = useState(false);
+  const [savedState, setSavedState] = useState<SavedState | null>(null);
+
+  const [savedEchoes, setSavedEchoes] = useState<SavedEchoData[]>([]);
+
+  const handleSaveEcho = useCallback((panelIndex: number) => {
+    const newEcho: SavedEchoData = {
+      id: crypto.randomUUID(),
+      date: new Date().toISOString(),
+      panelIndex,
+      panelData: echoPanels[panelIndex]
+    };
+    
+    setSavedEchoes(prev => [...prev, newEcho]);
+  }, [echoPanels]);
+
+  const handleLoadEcho = useCallback((savedEcho: SavedEchoData) => {
+    setEchoPanels(prev => prev.map((panel, idx) => 
+      idx === savedEcho.panelIndex ? savedEcho.panelData : panel
+    ));
+  }, []);
+
+  const handleDeleteEcho = useCallback((echoId: string) => {
+    setSavedEchoes(prev => prev.filter(echo => echo.id !== echoId));
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('wuwabuilds_state');
+      if (saved) {
+        const state = JSON.parse(saved);
+        setSavedState(state);
+        setShowRestore(true);
+        if (state.savedEchoes) {
+          setSavedEchoes(state.savedEchoes);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load saved state:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!elementState.selectedCharacter) return;
+    
+    try {
+      const state: SavedState = {
+        elementState,
+        characterLevel,
+        currentSequence,
+        weaponState,
+        nodeStates,
+        forteLevels,
+        echoPanels,
+        watermark,
+        savedEchoes
+      };
+      localStorage.setItem('wuwabuilds_state', JSON.stringify(state));
+    } catch (error) {
+      console.error('Failed to save state:', error);
+    }
+  }, [elementState, characterLevel, currentSequence, weaponState, 
+      nodeStates, forteLevels, echoPanels, watermark, savedEchoes]);
+
+  const handleRestore = useCallback(() => {
+    if (savedState) {
+      setElementState(savedState.elementState);
+      setCharacterLevel(savedState.characterLevel);
+      setCurrentSequence(savedState.currentSequence);
+      setWeaponState(savedState.weaponState);
+      setNodeStates(savedState.nodeStates);
+      setForteLevels(savedState.forteLevels);
+      setEchoPanels(savedState.echoPanels);
+      setWatermark(savedState.watermark);
+    }
+    setShowRestore(false);
+  }, [savedState]);
+
+  const handleDecline = useCallback(() => {
+    localStorage.removeItem('wuwabuilds_state');
+    setShowRestore(false);
+  }, []);
+
   return (
-    <div className="edit-page">
+    <main className="edit-page" aria-label="Wuthering Waves Build Editor">
+      {showRestore && <RestorePrompt onRestore={handleRestore} onDecline={handleDecline} />}
+      <DailyNotification />
       <div className="content">
-        <h2>Edit Stats</h2>
+        <h1>Edit Stats</h1>
         <div className="sticky-container">
           <div className="ocr-panel-container">
             <button onClick={toggleOCRPanel} className="switch">
@@ -448,6 +536,10 @@ export const EditPage: React.FC = () => {
           onMainStatChange={handleMainStatChange}
           onSubStatChange={handleSubStatChange}
           onPanelChange={setEchoPanels}
+          savedEchoes={savedEchoes}
+          onSaveEcho={handleSaveEcho}
+          onLoadEcho={handleLoadEcho}
+          onDeleteEcho={handleDeleteEcho}
         />
         
         <BuildCard 
@@ -468,6 +560,6 @@ export const EditPage: React.FC = () => {
           echoPanels={echoPanels}
         />
       </div>
-    </div>
+    </main>
   );
 };
