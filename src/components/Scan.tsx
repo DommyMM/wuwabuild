@@ -120,6 +120,18 @@ const fetchOCRResult = async (image: ImageData, retries = 3): Promise<PendingRes
   }
 };
 
+const wakeupServer = async () => {
+  try {
+    await fetch(`${API_URL}/health`, { 
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    console.log('Server awakened');
+  } catch (error) {
+    console.log('Server wake-up attempt made');
+  }
+};
+
 export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType }) => {
   const { setOCRResult, isLocked } = useOCRContext();
   const [images, setImages] = useState<ImageData[]>([]);
@@ -130,6 +142,10 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
   const [hasQueueMessage, setHasQueueMessage] = useState(false);
   const pendingResultsRef = useRef<PendingResult[]>([]);
   const [showNotice, setShowNotice] = useState(true);
+
+  useEffect(() => {
+    wakeupServer();
+  }, []);
 
   const clearImages = () => {
     blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
