@@ -87,7 +87,12 @@ export const matchSubstat = (
   const numberValue = parseFloat(substat.value.replace('%', ''));
   const isPercentage = substat.value.includes('%');
 
-  let searchStatName = substat.name;
+  let searchStatName = substat.name
+    .replace(/[*~\s]+/g, ' ')
+    .replace(/ATKON/g, 'ATK')
+    .replace(/BMG/g, 'DMG')
+    .trim();
+
   if (['HP', 'ATK', 'DEF'].includes(searchStatName) && isPercentage) {
     searchStatName = `${searchStatName}%`;
   }
