@@ -310,11 +310,6 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
 
   const processImages = async () => {
     setErrorMessages([]);
-    if (isLocked) {
-      setErrorMessages(['Select character first']);
-      return;
-    }
-
     setIsProcessing(true);
     try {
       const readyImages = images.filter(img => img.readyToProcess && img.base64);
