@@ -23,7 +23,6 @@
     transition: opacity 0.3s ease, transform 0.3s ease;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
     animation: fadeIn 0.3s forwards;
-    -webkit-text-fill-color: white;
     background: #333;
     background-image: url('../../public/images/Resources/T_Bg1_UI.png');
     background-size: cover;
@@ -55,6 +54,11 @@
     border-radius: 5px;
     cursor: pointer;
     transition: background 0.3s ease;
+    min-width: 80px;
+}
+
+.build-button:hover {
+    background: #8a7b4e;
 }
 
 #generateDownload {
@@ -62,8 +66,103 @@
     position: absolute;
 }
 
-.build-button:hover {
-    background: #8a7b4e;
+.button-group {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    width: 20%;
+}
+
+.character-dropzone {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, 100%);
+    width: 50%;
+    border: 2px dashed rgba(166, 150, 98, 0.3);
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 3;
+}
+
+.character-dropzone:hover,
+.character-dropzone.dragover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: #a69662;
+}
+
+.character-dropzone span {
+    color: #b4b2b2;
+    font-size: 36px;
+    text-align: center;
+    pointer-events: none;
+    opacity: inherit;
+}
+
+.build-character-icon.editable:hover + .character-dropzone {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.8);
+    border-color: #a69662;
+}
+
+.image-reset-button {
+    position: absolute;
+    top: 25px;
+    right: 60px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(233, 8, 8, 0.3);
+    color: rgba(166, 150, 98, 0.3);
+    font-size: 50px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 3;
+}
+
+.image-reset-button:hover {
+    background: #a69662;
+    color: red;
+}
+
+.image-zoom-controls {
+    position: absolute;
+    top: 25px;
+    right: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 4;
+    transform: translateY(350px);
+}
+
+.image-zoom-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(233, 8, 8, 0.3);
+    color: rgba(166, 150, 98, 0.3);
+    font-size: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.image-zoom-button:hover {
+    background: #a69662;
+    color: red;
 }
 
 @keyframes fadeIn {
@@ -152,18 +251,28 @@ input:-webkit-autofill {
     height: 100%;
     left: 0%;
     z-index: 2;
+    overflow: hidden;
 }
 
 .build-character-icon {
     position: absolute;
     max-height: 600px;
-    left: 5%;
-    top: -5%;
     width: 90%;
     z-index: 2;
     object-fit: contain;
+    transform: translate(5%, -5%);
+    transition: transform 0.1s ease, cursor 0.3s ease;
+    user-select: none;
+    will-change: transform;
 }
 
+.build-character-icon.editable {
+    cursor: move;
+}
+
+.build-character-icon.dragging {
+    transition: none;
+}
 
 .build-intro {
     position: absolute;
@@ -487,6 +596,7 @@ input:-webkit-autofill {
     left: 15%;
     bottom: 0%;
     transform: translateY(-30%);
+    z-index: 5;
 }
 
 .build-sequence-node {
@@ -679,4 +789,23 @@ input:-webkit-autofill {
         1px -1px 0 #000,
         -1px 1px 0 #000,
         1px 1px 0 #000;
+}
+
+.site-watermark {
+    position: absolute;
+    top: 52%;
+    left: 31.4%;
+    height: 34px;
+    display: flex;
+    align-items: center;   
+    text-align: center;
+    font-family: 'Gowun', sans-serif;
+    letter-spacing: 1px;
+    font-size: 26px;
+    color: rgba(255, 255, 255, 0.2);
+    user-select: none;
+    padding: 0.5px 3.5px;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(0.5px);
+    transition: opacity 0.3s ease;
 }

@@ -60,6 +60,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const [isTabVisible, setIsTabVisible] = useState(false);
   const [showRollQuality, setShowRollQuality] = useState(false);
   const [hasBeenVisible, setHasBeenVisible] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [customImage, setCustomImage] = useState<File | undefined>(undefined);
+  const [savedCustomImage, setSavedCustomImage] = useState<File | undefined>(undefined);
   const tabRef = useRef<HTMLDivElement>(null);
 
   const { scaleAtk, scaleStat } = useLevelCurves();
@@ -174,6 +177,20 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       });
   }, [tabRef]);
 
+  const handleImageChange = (file: File | undefined) => {
+    if (isEditMode) {
+      setCustomImage(file);
+      setSavedCustomImage(file);
+    }
+  };
+
+  const handleEditToggle = () => {
+    if (isEditMode) {
+      setSavedCustomImage(customImage);
+    }
+    setIsEditMode(!isEditMode);
+  };
+
   useEffect(() => {
     if (isTabVisible && tabRef.current) {
       const timer = setTimeout(() => {
@@ -229,6 +246,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
               isSpectro={isSpectro}
               currentSequence={currentSequence}
               username={watermark.username}
+              isEditMode={isEditMode}
+              onImageChange={handleImageChange}
+              customImage={savedCustomImage}
             >
               <ForteSection
                 character={{
@@ -263,18 +283,24 @@ export const BuildCard: React.FC<BuildCardProps> = ({
               <div className="watermark-username">{watermark.username}</div>
               <div className="watermark-uid">{watermark.uid}</div>
             </div>
+            <div className="site-watermark">wuwabuilds.moe</div>
           </>
         )}
       </div>
 
       {isTabVisible && (
-        <button
-          id="downloadButton"
-          className="build-button"
-          onClick={handleDownload}
-        >
-          Download
-        </button>
+        <div className="button-group">
+          <button id="editButton" className="build-button" onClick={handleEditToggle}>
+          {isEditMode ? 'Save' : 'Edit'}
+          </button>
+          <button
+            id="downloadButton"
+            className="build-button"
+            onClick={handleDownload}
+          >
+            Download
+          </button>
+        </div>
       )}
     </div>
   );

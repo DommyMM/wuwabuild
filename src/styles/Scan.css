@@ -241,6 +241,7 @@ h2 {
 .process-button {
   display: inline-block;
   position: absolute;
+  width: 108.22px;
   top: 70px;
   left: calc(10% - 6.43px); 
   padding: 8px 16px;
