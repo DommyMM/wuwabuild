@@ -27,7 +27,11 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState(
+    customImage 
+      ? { x: 0, y: 0 }
+      : { x: 20, y: -20 }
+  );
   const [scale, setScale] = useState(1);
   
   const characterName = isRover(character) 
@@ -46,6 +50,8 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
 
   const handleImageChange = useCallback((file: File) => {
     if (onImageChange) {
+      setPosition({ x: 0, y: 0 });
+      setScale(1);
       onImageChange(file);
     }
   }, [onImageChange]);
@@ -68,17 +74,20 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
     }
   };
 
-  const handleReset = useCallback(() => {
-    setPosition({ x: 0, y: 0 });
+  const handlePositionReset = useCallback(() => {
+    const defaultPosition = customImage ? { x: 0, y: 0 } : { x: 20, y: -20 };
+    setPosition(defaultPosition);
     setScale(1);
-    
+  }, [customImage]);
+
+  const handleImageReset = useCallback(() => {
     if (onImageChange) {
       onImageChange(undefined);
     }
   }, [onImageChange]);
 
   const handleZoomIn = () => setScale(prev => Math.min(prev + 0.1, 2));
-  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.1, 0.5));
+  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.1, 1));
 
   React.useEffect(() => {
     if (!isEditMode) return;
@@ -114,8 +123,8 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
-    const newX = Math.min(Math.max(e.clientX - dragOffset.x, -100), 100);
-    const newY = Math.min(Math.max(e.clientY - dragOffset.y, -100), 100);
+    const newX = Math.min(Math.max(e.clientX - dragOffset.x, -400), 400);
+    const newY = Math.min(Math.max(e.clientY - dragOffset.y, -400), 400);
     
     setPosition({ x: newX, y: newY });
   }, [isDragging, dragOffset]);
@@ -155,18 +164,41 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
           draggable={false}
           onDragStart={(e) => e.preventDefault()}
         />
+        <svg className="fade-overlay" xmlns="http://www.w3.org/2000/svg" width="515" height="596" viewBox="0 0 136.26 157.692">
+          <defs>
+            <clipPath id="a" clipPathUnits="userSpaceOnUse">
+              <path d="M0 0h136.26v157.692H0z" />
+            </clipPath>
+            <filter id="b" width="1.285" height="1.248" x="-.143" y="-.124" style={{colorInterpolation: 'sRGB'}}>
+              <feGaussianBlur stdDeviation="11.948"/>
+            </filter>
+          </defs>
+          <path 
+            d="M23.9 133.254C6.144 109.126 10.415 49.44 38.903 23.5 62.722-.756 157.412-35.53 181.544-46.292L-19.41-26.26v211.105l164.577-.979c-16.631-6.196-98.961-26.949-121.267-50.612Z" 
+            clipPath="url(#a)" 
+            style={{
+              opacity: 1,
+              mixBlendMode: 'normal',
+              fill: '#000',
+              fillOpacity: 1,
+              stroke: 'none',
+              strokeWidth: 0.214241,
+              strokeLinecap: 'butt',
+              strokeLinejoin: 'miter',
+              strokeOpacity: 1,
+              filter: 'url(#b)'
+            }}
+          />
+        </svg>
         {isEditMode && (
           <>
-            <button className="image-reset-button" onClick={handleReset} title="Reset">
-              ×
-            </button>
+            <div className="image-controls">
+              <button className="image-control-button" onClick={handleImageReset} title="Remove Image"> X </button>
+              <button className="image-control-button" onClick={handlePositionReset} title="Reset Position"> ↺ </button>
+            </div>
             <div className="image-zoom-controls">
-              <button className="image-zoom-button" onClick={handleZoomIn} title="Zoom in">
-                +
-              </button>
-              <button className="image-zoom-button" onClick={handleZoomOut} title="Zoom out">
-                -
-              </button>
+              <button className="image-zoom-button" onClick={handleZoomIn} title="Zoom in"> + </button>
+              <button className="image-zoom-button" onClick={handleZoomOut} title="Zoom out"> - </button>
             </div>
           </>
         )}

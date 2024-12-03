@@ -110,26 +110,32 @@
     border-color: #a69662;
 }
 
-.image-reset-button {
+.image-controls {
     position: absolute;
     top: 25px;
-    right: 60px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 3;
+}
+
+.image-control-button {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.3);
     border: 2px solid rgba(233, 8, 8, 0.3);
     color: rgba(166, 150, 98, 0.3);
-    font-size: 50px;
+    font-size: 28px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
-    z-index: 3;
 }
 
-.image-reset-button:hover {
+.image-control-button:hover {
     background: #a69662;
     color: red;
 }
@@ -137,7 +143,7 @@
 .image-zoom-controls {
     position: absolute;
     top: 25px;
-    right: 60px;
+    right: 10px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -163,6 +169,12 @@
 .image-zoom-button:hover {
     background: #a69662;
     color: red;
+}
+
+.fade-overlay{
+    height: 650px;
+    opacity: 0.35;
+    line-height: 0;
 }
 
 @keyframes fadeIn {
@@ -232,6 +244,7 @@ input:-webkit-autofill {
     font-size: 24px;
     font-family: 'Ropa', sans-serif;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    z-index: 5;
 }
 
 .icon-container {
@@ -247,17 +260,18 @@ input:-webkit-autofill {
 
 .build-character-section {
     position: absolute;
-    width: 30%;
+    width: 28%;
     height: 100%;
     left: 0%;
     z-index: 2;
+    border-radius: 8px;
     overflow: hidden;
 }
 
 .build-character-icon {
     position: absolute;
-    max-height: 600px;
-    width: 90%;
+    height: 620px;
+    width: auto;
     z-index: 2;
     object-fit: contain;
     transform: translate(5%, -5%);
@@ -627,12 +641,12 @@ input:-webkit-autofill {
 
 .build-sequence-node.element-glacio.active {
     border: 2px solid #00ced1; 
-    background-color: rgba(0, 206, 209, 0.5); 
+    background-color: rgba(0, 206, 209, 0.9); 
 }
 
 .build-sequence-node.element-aero.active {
     border: 2px solid #90ee90; 
-    background-color: rgba(0, 128, 128, 0.5); 
+    background-color: rgba(0, 128, 128, 0.9); 
 }
 
 .build-sequence-node.element-electro.active {
@@ -642,7 +656,7 @@ input:-webkit-autofill {
 
 .build-sequence-node.element-spectro.active {
     border: 2px solid #ffd700; 
-    background-color: rgba(255, 215, 0, 0.3); 
+    background-color: rgba(255, 215, 0, 0.7); 
 }
 
 .build-sequence-node.element-havoc.active {
@@ -658,7 +672,7 @@ input:-webkit-autofill {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    filter: brightness(1.5); 
+    filter: brightness(2); 
     z-index: 4;
 }
 
