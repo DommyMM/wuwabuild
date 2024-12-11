@@ -104,7 +104,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     isSpectro
   ]);
 
-  const { values, baseValues, updates } = useStats(statsInput);
+  const { values, baseValues, updates, cv } = useStats(statsInput);
 
   const calculateSets = useCallback((): Array<{ element: ElementType; count: number }> => {
     const elementCounts: Record<ElementType, number> = {} as Record<ElementType, number>;
@@ -206,6 +206,21 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     }
   }, [isEchoesVisible, hasBeenVisible]);
 
+  const hasTwoFourCosts = (panels: EchoPanelState[]): boolean => {
+    return panels.filter(panel => panel.echo?.cost === 4).length === 2;
+  };
+  
+  const getCVClass = (cv: number): string => {
+    const hasDouble4Cost = hasTwoFourCosts(echoPanels);
+    const adjustedCV = hasDouble4Cost ? cv - 44 : cv;
+  
+    if (adjustedCV >= 232) return 'goat';
+    if (adjustedCV >= 220) return 'excellent';
+    if (adjustedCV >= 205) return 'high'; 
+    if (adjustedCV >= 195) return 'good';
+    if (adjustedCV >= 175) return 'decent';
+    return 'low';
+  };
   if (!isVisible) return null;
 
   return (
@@ -274,6 +289,14 @@ export const BuildCard: React.FC<BuildCardProps> = ({
               stats={displayStats}
               sets={elementSets}
             />
+            {isTabVisible && (
+              <div className="cv-container">
+                <span className="cv-text">CV:</span>
+                <span className={`cv-value ${getCVClass(cv)}`}>
+                  {cv.toFixed(1)}
+                </span>
+              </div>
+            )}
             <EchoDisplay 
               isVisible={isTabVisible}
               echoPanels={echoPanels}

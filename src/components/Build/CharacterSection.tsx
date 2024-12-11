@@ -164,7 +164,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
           draggable={false}
           onDragStart={(e) => e.preventDefault()}
         />
-        <svg className="fade-overlay" xmlns="http://www.w3.org/2000/svg" width="515" height="596" viewBox="0 0 136.26 157.692">
+        <svg className="fade-overlay" xmlns="http://www.w3.org/2000/svg" width="515" height="620" viewBox="0 0 136.26 152.595" preserveAspectRatio="none">
           <defs>
             <clipPath id="a" clipPathUnits="userSpaceOnUse">
               <path d="M0 0h136.26v157.692H0z" />

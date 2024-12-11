@@ -466,6 +466,8 @@ export const EditPage: React.FC = () => {
       setForteLevels(savedState.forteLevels);
       setEchoPanels(savedState.echoPanels);
       setWatermark(savedState.watermark);
+      setIsCharacterMinimized(false);
+      setIsEchoesMinimized(false);
     }
     setShowRestore(false);
   }, [savedState]);
@@ -474,6 +476,17 @@ export const EditPage: React.FC = () => {
     localStorage.removeItem('wuwabuilds_state');
     setShowRestore(false);
   }, []);
+
+  const [showEchoCostWarning, setShowEchoCostWarning] = useState(false);
+
+  useEffect(() => {
+    const totalCost = echoPanels.reduce((sum, panel) => 
+      sum + (panel.echo?.cost || 0), 0);
+    
+    if (totalCost > 12) {
+      setShowEchoCostWarning(true);
+    }
+  }, [echoPanels]);
 
   return (
     <main className="edit-page" aria-label="Wuthering Waves Build Editor">
@@ -540,6 +553,8 @@ export const EditPage: React.FC = () => {
           onSaveEcho={handleSaveEcho}
           onLoadEcho={handleLoadEcho}
           onDeleteEcho={handleDeleteEcho}
+          showCostWarning={showEchoCostWarning}
+          onCostWarningDismiss={() => setShowEchoCostWarning(false)}
         />
         
         <BuildCard 

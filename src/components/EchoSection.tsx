@@ -77,6 +77,8 @@ interface EchoesSectionProps {
   onSaveEcho?: (index: number) => void;
   onLoadEcho?: (savedEcho: SavedEchoData) => void;
   onDeleteEcho?: (echoId: string) => void;
+  showCostWarning?: boolean;
+  onCostWarningDismiss?: () => void;
 }
 
 interface EchoPanelProps {
@@ -222,7 +224,9 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
   savedEchoes = [],
   onSaveEcho,
   onLoadEcho,
-  onDeleteEcho
+  onDeleteEcho,
+  showCostWarning,
+  onCostWarningDismiss
 }, ref) => {
   const { echoesByCost, loading, error } = useEchoes();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -325,6 +329,16 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                   </div>
                 )}
                 
+                {showCostWarning && (
+                  <div onClick={onCostWarningDismiss}>
+                    <span className="popuptext show">
+                      Warning: Echo Cost exceeds limit
+                      <br/>
+                      <span>Click to dismiss</span>
+                    </span>
+                  </div>
+                )}
+
                 <DndContext 
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -453,7 +467,7 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                         onDeleteEcho?.(savedEcho.id);
                       }}
                     >
-                      Delete
+                      X
                     </button>
                   </div>
                 );

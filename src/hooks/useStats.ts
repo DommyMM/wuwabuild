@@ -290,6 +290,12 @@ export const useStats = ({
     return result;
   }, [character, baseStats, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats]);
 
+  const calculateCV = useCallback(() => {
+    const critRate = sumMainStats('Crit Rate', echoPanels) + sumSubStats('Crit Rate', echoPanels);
+    const critDmg = sumMainStats('Crit DMG', echoPanels) + sumSubStats('Crit DMG', echoPanels);
+    return 2 * critRate + critDmg;
+  }, [echoPanels]);
+
   useEffect(() => {
     const controller = new AbortController();
     const loadStats = async () => {
@@ -347,8 +353,9 @@ export const useStats = ({
   }, [character, statsData, curveLoading, calculateStats]);
 
   return {
-    loading: loading || curveLoading,
+    loading,
     error,
-    ...statState
+    ...statState,
+    cv: calculateCV()
   };
 };

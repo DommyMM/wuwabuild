@@ -823,3 +823,54 @@ input:-webkit-autofill {
     backdrop-filter: blur(0.5px);
     transition: opacity 0.3s ease;
 }
+
+.cv-container {
+    font-family: 'Gowun', sans-serif;
+    position: absolute;
+    top: 2.5%;
+    left: 45%;
+    padding: 4px 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 10;
+}
+
+.cv-text {
+    color: #E2E8F0;
+    font-size: 20px;
+    text-shadow: 
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
+}
+
+.cv-value {
+    font-size: 24px;
+    text-shadow: 
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
+}
+
+.cv-value.goat {
+    color: #FF00FF;
+}
+.cv-value.excellent {
+    color: #00FFFF;
+}
+.cv-value.high {
+    color: #00FF00;
+}
+.cv-value.good {
+    color: #E6B800;
+}
+.cv-value.decent {
+    color: #FF8C00;
+}
+.cv-value.low {
+    color: #666;
+}

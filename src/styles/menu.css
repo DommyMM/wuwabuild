@@ -6,6 +6,81 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    
+    --base-stat-height: 54px;
+    --reg-stat-height: 37px;
+    --gap-height: 4px;
+    --set-height: 51px;
+    --second-set-height: 57px;
+    
+    --twelve-stat-scale: 0.925;
+    --two-set-scale: 0.9;
+    
+    --base-stat-count: 6;
+    --reg-stat-count: 5;
+    --gap-count: 10;
+    --extra-stats: 0;
+    --has-second-set: 0;
+    
+    --base-height: calc(
+        (var(--base-stat-height) * var(--base-stat-count)) +
+        (var(--reg-stat-height) * var(--reg-stat-count)) +
+        (var(--gap-height) * var(--gap-count)) +
+        var(--set-height)
+    );
+    
+    --extra-height: calc(
+        (var(--extra-stats) * (var(--reg-stat-height) + var(--gap-height))) +
+        (var(--has-second-set) * var(--second-set-height))
+    );
+    
+    --natural-height: calc(var(--base-height) + var(--extra-height));
+    
+    transform-origin: top;
+}
+
+.stats-section:has(.stat-row:nth-child(12)) {
+    --extra-stats: 1;
+    transform: scale(var(--twelve-stat-scale));
+    
+    .stat-name.medium {
+        font-size: 20px;
+    }
+    
+    .stat-name.long {
+        font-size: 18px;
+    }
+    
+    .stat-icon { 
+        width: 26px;
+        height: 26px;
+    }
+}
+
+.stats-section:has(.set-row:nth-child(2)) {
+    --has-second-set: 1;
+    transform: scale(var(--two-set-scale));
+    
+    .stat-name.medium {
+        font-size: 19px;
+    }
+    
+    .stat-name.long {
+        font-size: 17px;
+    }
+    
+    .stat-icon { 
+        width: 24px;
+        height: 24px;
+    }
+    
+    .set-container {
+        gap: 3px;
+    }
+    
+    .set-row {
+        height: 42px;
+    }
 }
 
 .stats-container {
