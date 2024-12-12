@@ -59,30 +59,31 @@
 
 .stats-section:has(.set-row:nth-child(2)) {
     --has-second-set: 1;
-    transform: scale(var(--two-set-scale));
-    
-    .stat-name.medium {
-        font-size: 19px;
-    }
-    
-    .stat-name.long {
-        font-size: 17px;
-    }
-    
-    .stat-icon { 
-        width: 24px;
-        height: 24px;
-    }
-    
-    .set-container {
-        gap: 3px;
-    }
-    
-    .set-row {
-        height: 42px;
+    &:has(.stat-row:nth-child(11)) {
+        transform: scale(var(--two-set-scale));
+        
+        .stat-name.medium {
+            font-size: 19px;
+        }
+        
+        .stat-name.long {
+            font-size: 17px;
+        }
+        
+        .stat-icon { 
+            width: 24px;
+            height: 24px;
+        }
+        
+        .set-container {
+            gap: 3px;
+        }
+        
+        .set-row {
+            height: 42px;
+        }
     }
 }
-
 .stats-container {
     display: flex;
     flex-direction: column;

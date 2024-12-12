@@ -32,3 +32,5 @@
 ![ocr priority](https://github.com/user-attachments/assets/18a4caa1-9f28-4eb2-a2cb-a0550796ba24)
 - Meaningful console logs
 ![ocr-console](https://github.com/user-attachments/assets/3147ddb9-0ac9-49b5-8126-0dad21aace3f)
+
+All images on this website are sourced from a repository of in-game assets. Wuthering Waves and all associated trademarks and assets are the property of Kuro Games. This website is a fan-made tool and is not affiliated with or endorsed by Kuro Games and Tencent by extension
