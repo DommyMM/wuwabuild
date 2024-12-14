@@ -18,6 +18,8 @@
     "@vercel/blob": "^0.26.0",
     "@vercel/speed-insights": "^1.1.0",
     "dom-to-image": "^2.6.0",
+    "fuse.js": "^7.0.0",
+    "fuzzysearch": "^1.0.3",
     "lucide-react": "^0.460.0",
     "nth-check": "^2.1.1",
     "postcss": "^8.4.49",
@@ -55,6 +57,7 @@
     ]
   },
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@types/fuzzysearch": "^1.0.2"
   }
 }

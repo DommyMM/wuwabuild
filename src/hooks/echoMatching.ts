@@ -1,5 +1,6 @@
 import { OCRData } from '../types/ocr';
 import { Echo, EchoPanelState, ElementType, COST_SECTIONS } from '../types/echo';
+import Fuse from 'fuse.js';
 
 interface SubstatData {
   name: string;
@@ -17,6 +18,13 @@ interface MainStatData {
 
 type SubstatsData = Record<string, number[]>;
 
+const fuseOptions = {
+  keys: ['name'],
+  threshold: 0.3,
+  ignoreLocation: true,
+  shouldSort: true
+};
+
 export const matchEchoData = (
   ocrData: Extract<OCRData, { type: 'Echo' }>,
   echoesByCost: Record<number, Echo[]>,
@@ -28,10 +36,14 @@ export const matchEchoData = (
 
     let foundEcho: Echo | null = null;
     for (const cost of COST_SECTIONS) {
-      foundEcho = echoesByCost[cost]?.find(e => 
-        e.name.toLowerCase() === ocrData.name.toLowerCase()
-      ) ?? null;
-      if (foundEcho) break;
+      const echoes = echoesByCost[cost] ?? [];
+      const fuse = new Fuse(echoes, fuseOptions);
+      const results = fuse.search(ocrData.name);
+      
+      if (results.length > 0 && (results[0].score === undefined || results[0].score < 0.3)) {
+        foundEcho = results[0].item;
+        break;
+      }
     }
     if (!foundEcho) return null;
 
@@ -53,10 +65,15 @@ export const matchEchoData = (
       .map(substat => matchSubstat(substat, substatsData))
       .filter(result => result.type !== null);
 
+    const normalizeElement = (element: string): ElementType => {
+      if (element.toLowerCase() === 'er') return 'ER';
+      return element.charAt(0).toUpperCase() + element.slice(1) as ElementType;
+    };
+
     return {
       echo: foundEcho,
       level: ocrData.echoLevel,
-      selectedElement: (ocrData.element.charAt(0).toUpperCase() + ocrData.element.slice(1)) as ElementType,
+      selectedElement: normalizeElement(ocrData.element),
       stats: {
         mainStat: { 
           type: matchedMainStat,
