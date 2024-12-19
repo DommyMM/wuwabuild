@@ -35,17 +35,33 @@ export const matchEchoData = (
     if (!substatsData || !mainStatsData) return null;
 
     let foundEcho: Echo | null = null;
-    for (const cost of COST_SECTIONS) {
-      const echoes = echoesByCost[cost] ?? [];
-      const fuse = new Fuse(echoes, fuseOptions);
-      const results = fuse.search(ocrData.name);
-      
-      if (results.length > 0 && (results[0].score === undefined || results[0].score < 0.3)) {
-        foundEcho = results[0].item;
-        break;
-      }
-    }
-    if (!foundEcho) return null;
+    
+        for (const cost of COST_SECTIONS) {
+          const echoes = echoesByCost[cost] ?? [];
+          const exactMatch = echoes.find(e => 
+            e.name.toLowerCase() === ocrData.name.toLowerCase()
+          );
+          if (exactMatch) {
+            foundEcho = exactMatch;
+            break;
+          }
+        }
+    
+        if (!foundEcho) {
+          for (const cost of COST_SECTIONS) {
+            const echoes = echoesByCost[cost] ?? [];
+            const fuse = new Fuse(echoes, fuseOptions);
+            const results = fuse.search(ocrData.name);
+            
+            if (results.length > 0 && (results[0].score === undefined || results[0].score < 0.3)) {
+              foundEcho = results[0].item;
+              console.log('Found fuzzy match:', foundEcho.name);
+              break;
+            }
+          }
+        }
+    
+        if (!foundEcho) return null;
 
     const mainStats = mainStatsData[`${foundEcho.cost}cost`]?.mainStats || {};
     let searchMainStat = ocrData.main.name;

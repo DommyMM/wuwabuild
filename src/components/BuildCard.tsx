@@ -58,7 +58,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
 }) => {
   useStatHighlight();
   const [isTabVisible, setIsTabVisible] = useState(false);
-  const [showRollQuality, setShowRollQuality] = useState(false);
+  const [showRollQuality, setShowRollQuality] = useState(true);
   const [hasBeenVisible, setHasBeenVisible] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [customImage, setCustomImage] = useState<File | undefined>(undefined);

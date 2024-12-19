@@ -143,16 +143,6 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
   const [hasQueueMessage, setHasQueueMessage] = useState(false);
   const pendingResultsRef = useRef<PendingResult[]>([]);
   const [showNotice, setShowNotice] = useState(true);
-  const [hasReadyImages, setHasReadyImages] = useState(false);
-
-  const areAllImagesReady = useCallback(() => {
-    return images.length > 0 && images.every(img => 
-      img.status === 'ready' || 
-      img.status === 'error' || 
-      img.status === 'processing' ||
-      img.status === 'queued' 
-    );
-  }, [images]);
 
   useEffect(() => {
     wakeupServer();
@@ -165,7 +155,6 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
     setErrorMessages([]);
     setHasQueueMessage(false);
     setShowNotice(true);
-    setHasReadyImages(false);
   };
 
   const processResult = useCallback(async ({ image, result }: PendingResult) => {
@@ -306,8 +295,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
               readyToProcess: true,
               status: 'ready'
             } : p
-          ));
-          setHasReadyImages(true);
+           ));
         })
         .catch(error => {
           setImages(prev => prev.map(p => 
@@ -341,7 +329,6 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
       );
       
       await processResults(results);
-      setHasReadyImages(false);
     } finally {
       setIsProcessing(false);
     }
@@ -382,17 +369,10 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
     };
   }, []);
 
-  useEffect(() => {
-    if (hasReadyImages && images.some(img => img.status === 'ready')) {
-      setErrorMessages(['Click process to analyze images']);
-    }
-  }, [hasReadyImages, images]);
-
   const deleteImage = useCallback((id: string) => {
     setImages(prev => {
       const newImages = prev.filter(img => img.id !== id);
       if (newImages.length === 0) {
-        setHasReadyImages(false);
         setShowNotice(true);
       }
       return newImages;
@@ -420,11 +400,11 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
           onFilesSelected={handleFiles} 
           disabled={isProcessing} 
         />
-        {hasReadyImages && (
+        {images.some(img => img.status === 'ready') && (
           <button
             className="process-button"
             onClick={processImages}
-            disabled={isProcessing || !areAllImagesReady()}
+            disabled={isProcessing}
           >
             {isProcessing ? 'Processing...' : 'Process Images'}
           </button>
