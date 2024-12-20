@@ -3,6 +3,7 @@ import { ImagePreview, ImageUploader } from './ImageComponents';
 import { useOCRContext } from '../contexts/OCRContext';
 import { OCRResponse, OCRAnalysis, CharacterAnalysis, WeaponAnalysis } from '../types/ocr';
 import { useCharacters } from '../hooks/useCharacters';
+import { performOCR } from './OCR';
 import '../styles/Scan.css';
 
 interface ImageData {
@@ -251,63 +252,78 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
     }
   }, [isLocked, processResult]);
 
-  const handleFiles = (files: File[]) => {
-    if (images.length + files.length > MAX_IMAGES) {
-      alert(`Maximum ${MAX_IMAGES} images allowed`);
-      return;
-    }
-    setErrorMessages([]);
-    setShowNotice(false);
-    const validFiles = files.filter(file => {
-      const error = validateFile(file);
-      if (error) {
-        setErrorMessages(prev => [...prev, `${file.name}: ${error}`]);
-        return false;
+  const handleFiles = async (files: File[]) => {
+      if (images.length + files.length > MAX_IMAGES) {
+          alert(`Maximum ${MAX_IMAGES} images allowed`);
+          return;
       }
-      return true;
-    });
-
-    if (validFiles.length === 0) return;
-
-    const newImages = validFiles.map(file => {
-      const blobUrl = URL.createObjectURL(file);
-      blobUrlsRef.current.push(blobUrl);
-      return {
-        id: Math.random().toString(36).substring(2),
-        file,
-        preview: blobUrl,
-        status: 'uploading' as const,
-        isLoading: true,
-        readyToProcess: false
-      };
-    });
-
-    setImages(prev => [...prev, ...newImages]);
-
-    newImages.forEach(img => {
-      fileToBase64(img.file)
-        .then(base64 => {
-          setImages(prev => prev.map(p => 
-            p.id === img.id ? {
-              ...p,
-              base64,
-              isLoading: false,
-              readyToProcess: true,
-              status: 'ready'
-            } : p
-           ));
-        })
-        .catch(error => {
-          setImages(prev => prev.map(p => 
-            p.id === img.id ? {
-              ...p,
-              error: 'Failed to prepare image',
-              isLoading: false,
-              status: 'error'
-            } : p
-          ));
-        });
-    });
+      
+      setErrorMessages([]);
+      setShowNotice(false);
+  
+      const validFiles = files.filter(file => {
+          const error = validateFile(file);
+          if (error) {
+              setErrorMessages(prev => [...prev, `${file.name}: ${error}`]);
+              return false;
+          }
+          return true;
+      });
+  
+      if (validFiles.length === 0) return;
+  
+      const newImages = validFiles.map(file => ({
+          id: Math.random().toString(36).substring(2),
+          file,
+          preview: URL.createObjectURL(file),
+          status: 'uploading' as const,
+          isLoading: true,
+          readyToProcess: false
+      }));
+  
+      setImages(prev => [...prev, ...newImages]);
+  
+      for (const img of newImages) {
+          try {
+              const base64 = await fileToBase64(img.file);
+              const ocrResult = await performOCR({ imageData: base64, characters });
+              
+              if (ocrResult.type === 'Character' || ocrResult.type === 'Weapon') {
+                  await processResults([{
+                      image: {
+                          ...img,
+                          base64,
+                          isLoading: false,
+                          readyToProcess: true,
+                          status: 'processing'
+                      },
+                      result: {
+                          success: true,
+                          analysis: ocrResult as CharacterAnalysis | WeaponAnalysis
+                      }
+                  }]);
+              } else {
+                  setImages(prev => prev.map(p => 
+                      p.id === img.id ? {
+                          ...p,
+                          base64,
+                          isLoading: false,
+                          readyToProcess: true,
+                          status: 'ready'
+                      } : p
+                  ));
+              }
+          } catch (error) {
+              setImages(prev => prev.map(p => 
+                  p.id === img.id ? {
+                      ...p,
+                      error: 'Failed to prepare image',
+                      isLoading: false,
+                      status: 'error'
+                  } : p
+              ));
+          }
+      }
   };
 
   const processImages = async () => {

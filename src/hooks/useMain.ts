@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 
+let cachedMainStats: MainStatData | null = null;
+let loadError: string | null = null;
+
 interface MainStatData {
   [key: string]: {
     default: [string, number, number],
@@ -19,19 +22,24 @@ interface MainStatsHook {
 }
 
 export const useMain = (): MainStatsHook => {
-  const [mainStatsData, setMainStatsData] = useState<MainStatData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [mainStatsData, setMainStatsData] = useState<MainStatData | null>(cachedMainStats);
+  const [loading, setLoading] = useState(!cachedMainStats);
+  const [error, setError] = useState<string | null>(loadError);
 
   useEffect(() => {
+    if (cachedMainStats) return;
+
     const fetchData = async () => {
       try {
         const response = await fetch('Data/Mainstat.json');
         if (!response.ok) throw new Error('Failed to fetch main stats');
         const data = await response.json();
+        cachedMainStats = data;
         setMainStatsData(data);
       } catch (err) {
-        setError('Error loading main stats data');
+        const errorMsg = 'Error loading main stats data';
+        loadError = errorMsg;
+        setError(errorMsg);
         console.error(err);
       } finally {
         setLoading(false);

@@ -12,20 +12,28 @@ export interface CharacterCurve {
   }
 }
 
+let cachedCurves: CharacterCurve | null = null;
+let loadError: string | null = null;
+
 export const useCharacterCurves = () => {
-  const [curves, setCurves] = useState<CharacterCurve | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [curves, setCurves] = useState<CharacterCurve | null>(cachedCurves);
+  const [loading, setLoading] = useState(!cachedCurves);
+  const [error, setError] = useState<string | null>(loadError);
 
   useEffect(() => {
+    if (cachedCurves) return;
+
     const loadCurves = async () => {
       try {
         const response = await fetch('/Data/CharacterCurve.json');
         if (!response.ok) throw new Error('Failed to load character curves');
         const data = await response.json();
+        cachedCurves = data;
         setCurves(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load curves');
+        const errorMsg = err instanceof Error ? err.message : 'Failed to load curves';
+        loadError = errorMsg;
+        setError(errorMsg);
       } finally {
         setLoading(false);
       }

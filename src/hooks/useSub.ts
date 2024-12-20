@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 
+let cachedSubstatsData: SubstatData | null = null;
+let loadError: string | null = null;
+
 interface SubstatData {
   [statName: string]: number[];
 }
@@ -22,20 +25,25 @@ interface SubstatsHook {
 }
 
 export const useSubstats = (): SubstatsHook => {
-  const [substatsData, setSubstatsData] = useState<SubstatData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [substatsData, setSubstatsData] = useState<SubstatData | null>(cachedSubstatsData);
+  const [loading, setLoading] = useState(!cachedSubstatsData);
+  const [error, setError] = useState<string | null>(loadError);
   const [panelSelections, setPanelSelections] = useState<PanelSelections>({});
 
   useEffect(() => {
+    if (cachedSubstatsData) return;
+
     const fetchData = async () => {
       try {
         const response = await fetch('Data/Substats.json');
         if (!response.ok) throw new Error('Failed to fetch substats');
         const data = await response.json();
+        cachedSubstatsData = data.subStats;
         setSubstatsData(data.subStats);
       } catch (err) {
-        setError('Error loading substats data');
+        const errorMsg = 'Error loading substats data';
+        loadError = errorMsg;
+        setError(errorMsg);
         console.error(err);
       } finally {
         setLoading(false);

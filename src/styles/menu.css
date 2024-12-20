@@ -84,12 +84,13 @@
         }
     }
 }
+
 .stats-container {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     gap: 4px;
-    margin-top: auto;
-    margin-bottom: 0;
+    height: 100%;
 }
 
 .stat-row {

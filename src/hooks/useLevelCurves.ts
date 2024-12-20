@@ -6,23 +6,30 @@ interface LevelCurves {
   STAT_CURVE: { [key: string]: number };
 }
 
+let cachedCurves: LevelCurves | null = null;
+let loadError: string | null = null;
+
 export const useLevelCurves = () => {
-  const [curves, setCurves] = useState<LevelCurves | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [curves, setCurves] = useState<LevelCurves | null>(cachedCurves);
+  const [loading, setLoading] = useState(!cachedCurves);
+  const [error, setError] = useState<string | null>(loadError);
   
   useEffect(() => {
+    if (cachedCurves) return;
+
     const loadCurves = async () => {
       try {
-        setLoading(true);
         const response = await fetch('/Data/LevelCurve.json');
         if (!response.ok) {
           throw new Error('Failed to load level curves');
         }
         const data = await response.json();
+        cachedCurves = data;
         setCurves(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load curves');
+        const errorMsg = err instanceof Error ? err.message : 'Failed to load curves';
+        loadError = errorMsg;
+        setError(errorMsg);
       } finally {
         setLoading(false);
       }
