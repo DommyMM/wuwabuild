@@ -247,9 +247,6 @@ export const EditPage: React.FC = () => {
         config: { level: 1, rank: 1 }
       });
       setCharacterLevel('1');
-      setCurrentSequence(0);
-      setNodeStates({});
-      setForteLevels({});
       unlock();
     }
   }, [unlock, weaponCache]);

@@ -28,7 +28,28 @@ const SCAN_REGIONS = {
     weaponPage: { top: 0.11, left: 0.09, width: 0.215, height: 0.25 },
     shoulders_left: { top: 0.4, left: 0.45, width: 0.02, height: 0.04 },
     shoulders_right: { top: 0.4, left: 0.555, width: 0.02, height: 0.04 },
-    right_thigh: { top: 0.87, left: 0.54, width: 0.04, height: 0.095 }
+    right_thigh: { top: 0.87, left: 0.54, width: 0.04, height: 0.095 },
+    s1: { top: 0.1047, left: 0.647, width: 0.0234, height: 0.0454 },
+    s2: { top: 0.259, left: 0.733, width: 0.028, height: 0.047 },
+    s3: { top: 0.473, left: 0.765, width: 0.0234, height: 0.0454 },
+    s4: { top: 0.682, left: 0.734, width: 0.025, height: 0.0454 },
+    s5: { top: 0.8364, left: 0.645, width: 0.029, height: 0.046 },
+    s6: { top: 0.895, left: 0.527, width: 0.025, height: 0.047 },
+    normalBase: { top: 0.88, left: 0.2, width: 0.074, height: 0.1 },
+    normalMid: { top: 0.568, left: 0.22, width: 0.038, height: 0.067 },
+    normalTop: { top: 0.36, left: 0.22, width: 0.038, height: 0.067 },
+    skillBase: { top: 0.75, left: 0.323, width: 0.074, height: 0.1 },
+    skillMid: { top: 0.438, left: 0.343, width: 0.038, height: 0.067 },
+    skillTop: { top: 0.23, left: 0.343, width: 0.038, height: 0.067 },
+    circuitBase: { top: 0.683, left: 0.463, width: 0.074, height: 0.1 },
+    circuitMid: { top: 0.37, left: 0.477, width: 0.05, height: 0.09 },
+    circuitTop: { top: 0.16, left: 0.477, width: 0.05, height: 0.09 },
+    liberationBase: { top: 0.754, left: 0.6067, width: 0.074, height: 0.1 },
+    liberationMid: { top: 0.438, left: 0.6267, width: 0.038, height: 0.067 },
+    liberationTop: { top: 0.23, left: 0.6267, width: 0.038, height: 0.067 },
+    introBase: { top: 0.88, left: 0.725, width: 0.077, height: 0.073 },
+    introMid: { top: 0.568, left: 0.747, width: 0.038, height: 0.067 },
+    introTop: { top: 0.36, left: 0.747, width: 0.038, height: 0.067 }
 } as const;
 
 const TYPE_PATTERNS = {
@@ -125,6 +146,33 @@ const isDarkPixel = (data: Uint8ClampedArray, i: number): boolean => {
     );
 };
 
+const isYellowPixel = (data: Uint8ClampedArray, i: number): boolean => {
+    const [h, s, v] = rgbToHsv(data[i], data[i + 1], data[i + 2]);
+    return h >= 30 && h <= 75 && s >= 50 && s <= 255 && v >= 100 && v <= 255;
+};
+
+const rgbToHsv = (r: number, g: number, b: number): [number, number, number] => {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const diff = max - min;
+
+    let h = 0;
+    if (diff === 0) h = 0;
+    else if (max === r) h = 60 * ((g - b) / diff % 6);
+    else if (max === g) h = 60 * ((b - r) / diff + 2);
+    else if (max === b) h = 60 * ((r - g) / diff + 4);
+    if (h < 0) h += 360;
+
+    const s = max === 0 ? 0 : diff / max * 255;
+    const v = max * 255;
+
+    return [h, s, v];
+};
+
 const detectGender = async (imageData: string): Promise<string> => {
     const roverRegions = ['shoulders_left', 'shoulders_right', 'right_thigh'] as const;
     const maleMatches = await Promise.all(
@@ -150,12 +198,7 @@ const getValidElements = (): string[] => {
         .filter(e => e !== Element.Rover);
 };
 
-const extractCharacterInfo = async (
-    text: string, 
-    characters: Character[], 
-    imageData: string,
-    worker: Tesseract.Worker
-): Promise<Pick<OCRResult, 'name' | 'characterLevel' | 'element' | 'uid'>> => {
+const extractCharacterInfo = async (text: string, characters: Character[], imageData: string, worker: Tesseract.Worker): Promise<Pick<OCRResult, 'name' | 'characterLevel' | 'element' | 'uid'>> => {
     const elementPattern = new RegExp(getValidElements().join('|'), 'i');
     const elementMatch = text.match(elementPattern);
     const element = elementMatch?.[0].toLowerCase() as Element | undefined;
@@ -251,6 +294,41 @@ const extractUID = async (imageData: string, worker: Tesseract.Worker): Promise<
     return digits.length >= 9 ? digits.slice(-9) : undefined;
 };
 
+type SequenceSlot = 0 | 1;
+
+const extractSequenceInfo = async (imageData: string): Promise<{ sequence: number }> => {
+    const slots = ['s1', 's2', 's3', 's4', 's5', 's6'] as const;
+    const debugInfo: Record<string, { active: boolean, yellowRatio: number }> = {};
+    
+    const states: SequenceSlot[] = await Promise.all(slots.map(async (slot) => {
+        const canvas = await preprocessImage(imageData, slot);
+        const ctx = canvas.getContext('2d')!;
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const total = canvas.width * canvas.height;
+        
+        let yellowCount = 0;
+        for (let i = 0; i < pixels.data.length; i += 4) {
+            if (isYellowPixel(pixels.data, i)) yellowCount++;
+        }
+        
+        const yellowRatio = yellowCount / total;
+        const isActive = yellowRatio > 0.5;
+        
+        debugInfo[slot] = { active: isActive, yellowRatio };
+        return isActive ? 1 : 0;
+    }));
+
+    const sum = states.reduce((acc, state) => acc + state, 0 as number);
+    
+    console.group(`Sequence Detection: ${sum}/6 active`);
+    console.log(slots.map(slot => 
+        `${slot}: ${debugInfo[slot].active ? '✓' : '✗'} (${debugInfo[slot].yellowRatio.toFixed(3)})`
+    ).join('\n'));
+    console.groupEnd();
+
+    return { sequence: sum };
+};
+
 export const performOCR = async ({ imageData, characters = [] }: OCRProps): Promise<OCRResult> => {
     await initWorkerPool();
     const weapons = await loadWeapons();
@@ -293,6 +371,13 @@ export const performOCR = async ({ imageData, characters = [] }: OCRProps): Prom
                 type: 'Weapon',
                 ...extractWeaponInfo(weaponText, weapons),
                 raw: weaponText
+            };
+        }
+
+        if (bestMatch.type === 'Sequences') {
+            return {
+                type: 'Sequences',
+                ...await extractSequenceInfo(imageData)
             };
         }
 
