@@ -14,6 +14,13 @@ type OCRResult = {
     uid?: string;
     confidence?: number;
     raw?: string;
+    forte?: {
+        normal: [number, number, number];
+        skill: [number, number, number];
+        circuit: [number, number, number];
+        liberation: [number, number, number];
+        intro: [number, number, number];
+    };
 };
 
 interface OCRProps {
@@ -224,10 +231,7 @@ const extractCharacterInfo = async (text: string, characters: Character[], image
     return result;
 };
 
-const extractWeaponInfo = (
-    text: string, 
-    weapons: Record<string, string[]>
-): Pick<OCRResult, 'name' | 'weaponType' | 'weaponLevel' | 'rank' | 'confidence'> => {
+const extractWeaponInfo = (text: string, weapons: Record<string, string[]>): Pick<OCRResult, 'name' | 'weaponType' | 'weaponLevel' | 'rank' | 'confidence'> => {
     const firstLine = text.split('\n')[0]
         .replace(/[©\\%:]/g, '')
         .replace(/\s+/g, ' ')
@@ -329,6 +333,100 @@ const extractSequenceInfo = async (imageData: string): Promise<{ sequence: numbe
     return { sequence: sum };
 };
 
+const isWhitePixel = (data: Uint8ClampedArray, i: number): boolean => {
+    const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+    return (
+        r >= 160 && r <= 255 &&
+        g >= 180 && g <= 255 &&
+        b >= 145 && b <= 255
+    );
+};
+
+const processNode = async (imageData: string, regionKey: string, isCircuit: boolean): Promise<number> => {
+    const canvas = await preprocessImage(imageData, regionKey as keyof typeof SCAN_REGIONS);
+    const ctx = canvas.getContext('2d')!;
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+    let activeCount = 0;
+    const total = canvas.width * canvas.height;
+
+    for (let i = 0; i < pixels.data.length; i += 4) {
+        if (isCircuit) {
+            if (isDarkPixel(pixels.data, i)) activeCount++;
+        } else {
+            if (isWhitePixel(pixels.data, i)) activeCount++;
+        }
+    }
+
+    const ratio = activeCount / total;
+    const threshold = isCircuit ? 0.5 : 0.4;
+    const isActive = isCircuit ? ratio < threshold : ratio > threshold;
+    
+    console.log(`Node ${regionKey}:`, {
+        type: isCircuit ? 'Circuit' : 'White',
+        ratio: `${(ratio * 100).toFixed(1)}%`,
+        threshold: `${(threshold * 100).toFixed(1)}%`,
+        active: isActive ? '✓' : '✗'
+    });
+
+    return isActive ? 1 : 0;
+};
+
+const extractForteInfo = async (imageData: string, worker: Tesseract.Worker): Promise<OCRResult['forte']> => {
+    const branches = ['normal', 'skill', 'circuit', 'liberation', 'intro'] as const;
+    const results: Record<typeof branches[number], [number, number, number]> = {
+        normal: [1, 0, 0],
+        skill: [1, 0, 0],
+        circuit: [1, 0, 0],
+        liberation: [1, 0, 0],
+        intro: [1, 0, 0]
+    };
+    
+    const levelPatterns = [
+        /Lv:?\s*(\d+)/i,
+        /Lv\.?\s*(\d+)\s*\/\s*10/i,
+        /(\d+)\s*\/\s*10/i,
+        /Lv\.?\s*(\d)710/i,
+        /(\d)710/i,
+        /(\d+)/
+    ];
+    
+    const extractLevel = (text: string): number => {
+        const cleanText = text.replace(/[\\'"]/g, '').trim();
+        
+        for (const pattern of levelPatterns) {
+            const match = cleanText.match(pattern);
+            if (match) {
+                const parsed = parseInt(match[1]);
+                if (parsed >= 1 && parsed <= 10) {
+                    return parsed;
+                }
+            }
+        }
+        
+        return 10;
+    };
+    
+    console.group('Forte Detection');
+    
+    for (const branch of branches) {
+        const baseCanvas = await preprocessImage(imageData, `${branch}Base` as keyof typeof SCAN_REGIONS);
+        const { data: { text } } = await worker.recognize(baseCanvas);
+        const level = extractLevel(text);
+        
+        const isCircuit = branch === 'circuit';
+        const topActive = await processNode(imageData, `${branch}Top`, isCircuit);
+        const midActive = await processNode(imageData, `${branch}Mid`, isCircuit);
+
+        console.log(`${branch}:`, { level, top: topActive, mid: midActive });
+        
+        results[branch] = [level, topActive, midActive];
+    }
+    console.groupEnd();
+    
+    return results;
+};
+
 export const performOCR = async ({ imageData, characters = [] }: OCRProps): Promise<OCRResult> => {
     await initWorkerPool();
     const weapons = await loadWeapons();
@@ -378,6 +476,13 @@ export const performOCR = async ({ imageData, characters = [] }: OCRProps): Prom
             return {
                 type: 'Sequences',
                 ...await extractSequenceInfo(imageData)
+            };
+        }
+
+        if (bestMatch.type === 'Forte') {
+            return {
+                type: 'Forte',
+                ...await extractForteInfo(imageData, worker)
             };
         }
 

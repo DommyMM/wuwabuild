@@ -140,7 +140,8 @@ export const EditPage: React.FC = () => {
           console.group('Setting Forte');
           Object.entries(forteAnalysis).forEach(([skill, values]) => {
             if (skill === 'type') return;
-            console.log(`${skill}: Level ${values[0]}, Top: ${values[1]}, Middle: ${values[2]}`);
+            const [level, top, middle] = values;
+            console.log(`${skill}: Level ${level}, Top: ${top === 1 ? 'On' : 'Off'}, Middle: ${middle === 1 ? 'On' : 'Off'}`);
           });
           console.groupEnd();
           const skillToTree = {

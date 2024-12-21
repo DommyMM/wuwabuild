@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ImagePreview, ImageUploader } from './ImageComponents';
 import { useOCRContext } from '../contexts/OCRContext';
-import { OCRResponse, OCRAnalysis, CharacterAnalysis, WeaponAnalysis, SequenceAnalysis } from '../types/ocr';
+import { OCRResponse, OCRAnalysis, CharacterAnalysis, WeaponAnalysis, SequenceAnalysis, ForteAnalysis } from '../types/ocr';
 import { useCharacters } from '../hooks/useCharacters';
 import { performOCR } from './OCR';
 import '../styles/Scan.css';
@@ -288,7 +288,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
               const base64 = await fileToBase64(img.file);
               const ocrResult = await performOCR({ imageData: base64, characters });
               
-              if (ocrResult.type === 'Character' || ocrResult.type === 'Weapon' || ocrResult.type === 'Sequences') {
+              if (ocrResult.type === 'Character' || ocrResult.type === 'Weapon' || ocrResult.type === 'Sequences' || ocrResult.type === 'Forte') {
                   await processResults([{
                       image: {
                           ...img,
@@ -299,7 +299,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
                       },
                       result: {
                           success: true,
-                          analysis: ocrResult as CharacterAnalysis | WeaponAnalysis | SequenceAnalysis
+                          analysis: ocrResult as CharacterAnalysis | WeaponAnalysis | SequenceAnalysis | ForteAnalysis
                       }
                   }]);
               } else {
