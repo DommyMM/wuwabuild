@@ -106,12 +106,14 @@ export const EditPage: React.FC = () => {
             setWatermark(prev => ({...prev, uid: characterAnalysis.uid!}));
           }
           if (characterAnalysis.name.startsWith('Rover')) {
-            const elementValue = characterAnalysis.element === "Spectro" ? "Spectro" : "Havoc";
+            const elementValue = characterAnalysis.element?.toLowerCase() === "spectro" 
+                ? "Spectro" 
+                : "Havoc";
             console.log(`Rover detected with element: ${elementValue}`);
             setElementState(prev => ({
-              ...prev,
-              elementValue: elementValue,
-              displayName: `Rover${elementValue}`
+                ...prev,
+                elementValue: elementValue,
+                displayName: `Rover (${elementValue})`
             }));
           }
           break;

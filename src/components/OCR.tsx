@@ -206,15 +206,19 @@ const getValidElements = (): string[] => {
 };
 
 const extractCharacterInfo = async (text: string, characters: Character[], imageData: string, worker: Tesseract.Worker): Promise<Pick<OCRResult, 'name' | 'characterLevel' | 'element' | 'uid'>> => {
+    const lines = text.split('\n').map(line => line.trim());
+    const elementLine = lines[1] || '';
     const elementPattern = new RegExp(getValidElements().join('|'), 'i');
-    const elementMatch = text.match(elementPattern);
+    console.log('Raw text:', text);
+    
+    const elementMatch = elementLine.match(elementPattern) || text.match(elementPattern);
     const element = elementMatch?.[0].toLowerCase() as Element | undefined;
 
     const numbers = text.match(/\d+/g)?.reverse();
     const characterLevel = numbers ? parseInt(numbers.find(n => {
         const num = parseInt(n);
         return num >= 1 && num <= 90;
-    }) || '') : undefined;
+    }) || '') : 1;
 
     let name = characters.find(char => 
         text.toLowerCase().includes(char.name.toLowerCase())
@@ -462,7 +466,7 @@ export const performOCR = async ({ imageData, characters = [] }: OCRProps): Prom
             };
         }
 
-        if (bestMatch.type === 'Weapon') {
+        else if (bestMatch.type === 'Weapon') {
             const weaponCanvas = await preprocessImage(imageData, 'weaponPage');
             const { data: { text: weaponText } } = await worker.recognize(weaponCanvas);
             return {
@@ -472,14 +476,14 @@ export const performOCR = async ({ imageData, characters = [] }: OCRProps): Prom
             };
         }
 
-        if (bestMatch.type === 'Sequences') {
+        else if (bestMatch.type === 'Sequences') {
             return {
                 type: 'Sequences',
                 ...await extractSequenceInfo(imageData)
             };
         }
 
-        if (bestMatch.type === 'Forte') {
+        else if (bestMatch.type === 'Forte') {
             return {
                 type: 'Forte',
                 ...await extractForteInfo(imageData, worker)
