@@ -445,7 +445,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
         <div className="scan-notice">
           ⚠️ Important: Use FULL SCREEN screenshots only
           <span className="scan-notice-detail">
-            Cropped or partial screenshots will not be recognized
+            Echo detection a lot faster and better but elements default to just the first option for now, fix WiP
           </span>
         </div>
       )}

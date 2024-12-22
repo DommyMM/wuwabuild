@@ -58,7 +58,7 @@ const SCAN_REGIONS = {
     introBase: { top: 0.88, left: 0.725, width: 0.077, height: 0.073 },
     introMid: { top: 0.568, left: 0.747, width: 0.038, height: 0.067 },
     introTop: { top: 0.36, left: 0.747, width: 0.038, height: 0.067 },
-    echo: { top: 0.11, left: 0.072, width: 0.25, height: 0.35 }
+    echo: { top: 0.11, left: 0.72, width: 0.25, height: 0.35 }
 } as const;
 
 const TYPE_PATTERNS = {
