@@ -4,7 +4,7 @@ import { Character, Element } from '../types/character';
 import { WeaponType } from '../types/weapon';
 
 type OCRResult = {
-    type: 'Character' | 'Weapon' | 'Echo' | 'Sequences' | 'Forte' | 'unknown';
+    type: 'Character' | 'Weapon' | 'Sequences' | 'Forte' | 'Echo' | 'unknown';
     name?: string;
     characterLevel?: number;
     element?: Element;
@@ -21,6 +21,7 @@ type OCRResult = {
         liberation: [number, number, number];
         intro: [number, number, number];
     };
+    image?: string;
 };
 
 interface OCRProps {
@@ -56,7 +57,8 @@ const SCAN_REGIONS = {
     liberationTop: { top: 0.23, left: 0.6267, width: 0.038, height: 0.067 },
     introBase: { top: 0.88, left: 0.725, width: 0.077, height: 0.073 },
     introMid: { top: 0.568, left: 0.747, width: 0.038, height: 0.067 },
-    introTop: { top: 0.36, left: 0.747, width: 0.038, height: 0.067 }
+    introTop: { top: 0.36, left: 0.747, width: 0.038, height: 0.067 },
+    echo: { top: 0.11, left: 0.072, width: 0.25, height: 0.35 }
 } as const;
 
 const TYPE_PATTERNS = {
@@ -127,14 +129,8 @@ const preprocessImage = async (base64Image: string, regionKey: keyof typeof SCAN
     const croppedCtx = croppedCanvas.getContext('2d')!;
     croppedCtx.drawImage(
         canvas,
-        region.x,
-        region.y,
-        region.width,
-        region.height,
-        0,
-        0,
-        region.width,
-        region.height
+        region.x, region.y, region.width, region.height,
+        0, 0, region.width, region.height
     );
     return croppedCanvas;
 };
@@ -167,15 +163,10 @@ const rgbToHsv = (r: number, g: number, b: number): [number, number, number] => 
     const diff = max - min;
 
     let h = 0;
-    if (diff === 0) {
-        h = 0;
-    } else if (max === r) {
-        h = 60 * (((g - b) / diff) % 6);
-    } else if (max === g) {
-        h = 60 * ((b - r) / diff + 2);
-    } else if (max === b) {
-        h = 60 * ((r - g) / diff + 4);
-    }
+    if (diff === 0) h = 0;
+    else if (max === r) h = 60 * ((g - b) / diff % 6);
+    else if (max === g) h = 60 * ((b - r) / diff + 2);
+    else if (max === b) h = 60 * ((r - g) / diff + 4);
     if (h < 0) h += 360;
 
     const s = max === 0 ? 0 : (diff / max) * 255;
@@ -337,8 +328,8 @@ const extractSequenceInfo = async (imageData: string): Promise<{ sequence: numbe
     const sum = states.reduce((acc, state) => acc + state, 0 as number);
     console.group(`Sequence Detection: ${sum}/6 active`);
     console.log(slots.map(slot => 
-                `${slot}: ${debugInfo[slot].active ? '✓' : '✗'} (${debugInfo[slot].yellowRatio.toFixed(3)})`).join('\n')
-    );
+        `${slot}: ${debugInfo[slot].active ? '✓' : '✗'} (${debugInfo[slot].yellowRatio.toFixed(3)})`)
+        .join('\n'));
     console.groupEnd();
 
     return { sequence: sum };
@@ -422,10 +413,7 @@ const extractForteInfo = async (imageData: string, worker: Tesseract.Worker): Pr
 
     console.group('Forte Detection');
     for (const branch of branches) {
-        const baseCanvas = await preprocessImage(
-            imageData,
-            `${branch}Base` as keyof typeof SCAN_REGIONS
-        );
+        const baseCanvas = await preprocessImage(imageData, `${branch}Base` as keyof typeof SCAN_REGIONS);
 
         const { data: { text } } = await worker.recognize(baseCanvas);
         const level = extractLevel(text);
@@ -440,6 +428,14 @@ const extractForteInfo = async (imageData: string, worker: Tesseract.Worker): Pr
     console.groupEnd();
 
     return results;
+};
+
+const extractEchoInfo = async (imageData: string): Promise<Pick<OCRResult, 'type' | 'image'>> => {
+    const echoCanvas = await preprocessImage(imageData, 'echo');
+    return {
+        type: 'Echo',
+        image: echoCanvas.toDataURL('image/png')
+    };
 };
 
 export const performOCR = async ({ imageData, characters = [] }: OCRProps): Promise<OCRResult> => {
@@ -492,6 +488,11 @@ export const performOCR = async ({ imageData, characters = [] }: OCRProps): Prom
             return { type: 'Forte', ...forteInfo };
         }
 
+        if (bestMatch.type === 'Echo') {
+            const echoInfo = await extractEchoInfo(imageData);
+            return echoInfo;
+        }
+        
         return { type: bestMatch.type };
     } catch (error) {
         console.error('OCR processing error:', error);

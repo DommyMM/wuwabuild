@@ -57,7 +57,7 @@ const getAnalysisDetails = (analysis?: OCRAnalysis): string | undefined => {
   
   switch (analysis.type) {
     case 'Character':
-      return `Lv.${analysis.characterLevel} ${analysis.name}\nUID: ${analysis.uid}`;
+      return `Lv.${analysis.characterLevel} ${analysis.name}`;
     case 'Weapon':
       return `${analysis.weaponType}: ${analysis.name}\nLv.${analysis.weaponLevel} R${analysis.rank}`;
     case 'Sequences':
@@ -78,15 +78,25 @@ interface OCRError extends Error {
   retryAfter?: number;
 }
 
-const fetchOCRResult = async (base64: string, retries = 3): Promise<OCRResponse> => {
+interface OCRRequestBody {
+  image: string;
+  type?: 'Echo';
+}
+
+const fetchOCRResult = async (base64: string, type?: 'Echo', retries = 3): Promise<OCRResponse> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
+    const body: OCRRequestBody = {
+      image: base64,
+      ...(type === 'Echo' ? { type } : {})
+    };
+
     const response = await fetch(`${API_URL}/api/ocr`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: base64 }),
+      body: JSON.stringify(body),
       signal: controller.signal
     });
 
@@ -98,7 +108,7 @@ const fetchOCRResult = async (base64: string, retries = 3): Promise<OCRResponse>
         const retryAfter = parseInt(response.headers.get('Retry-After') || '5');
         if (retries > 0) {
           await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-          return fetchOCRResult(base64, retries - 1);
+          return fetchOCRResult(base64, type, retries - 1);
         }
         error.message = 'Rate limit exceeded';
       } else {
@@ -233,7 +243,13 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
   
       const results = await Promise.all(
         readyImages.map(async img => {
-          const result = await fetchOCRResult(img.base64!);
+          const ocrResult = await performOCR({ imageData: img.base64!, characters });
+          const serverImage = ocrResult.type === 'Echo' && ocrResult.image 
+            ? ocrResult.image : img.base64!;
+          const result = await fetchOCRResult(
+            serverImage,
+            ocrResult.type === 'Echo' ? 'Echo' : undefined
+          );
           return { image: img, result };
         })
       );
