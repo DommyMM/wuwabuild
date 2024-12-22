@@ -78,20 +78,16 @@ interface OCRError extends Error {
   retryAfter?: number;
 }
 
-interface OCRRequestBody {
-  image: string;
-  type?: 'Echo';
+interface BatchOCRRequestBody {
+  images: string[];
 }
 
-const fetchOCRResult = async (base64: string, type?: 'Echo', retries = 3): Promise<OCRResponse> => {
+const fetchOCRBatchResult = async (images: string[]): Promise<OCRResponse[]> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const body: OCRRequestBody = {
-      image: base64,
-      ...(type === 'Echo' ? { type } : {})
-    };
+    const body: BatchOCRRequestBody = { images };
 
     const response = await fetch(`${API_URL}/api/ocr`, {
       method: 'POST',
@@ -105,25 +101,18 @@ const fetchOCRResult = async (base64: string, type?: 'Echo', retries = 3): Promi
       error.status = response.status;
       
       if (response.status === 429) {
-        const retryAfter = parseInt(response.headers.get('Retry-After') || '5');
-        if (retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-          return fetchOCRResult(base64, type, retries - 1);
-        }
-        error.message = 'Rate limit exceeded';
-      } else {
-        error.message = 'OCR request failed';
-      }
+        throw error;
+      } 
       throw error;
     }
 
     return await response.json();
   } catch (e) {
     const error = e as OCRError;
-    return {
+    return images.map(() => ({
       success: false,
       error: error.message || 'Request failed'
-    };
+    }));
   } finally {
     clearTimeout(timeoutId);
   }
@@ -241,27 +230,32 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
           : img
       ));
   
-      const results = await Promise.all(
-        readyImages.map(async img => {
-          const ocrResult = await performOCR({ imageData: img.base64!, characters });
-          const serverImage = ocrResult.type === 'Echo' && ocrResult.image 
-            ? ocrResult.image : img.base64!;
-          const result = await fetchOCRResult(
-            serverImage,
-            ocrResult.type === 'Echo' ? 'Echo' : undefined
-          );
-          return { image: img, result };
-        })
+      const processedImages = await Promise.all(
+        readyImages.map(async img => ({
+          image: img,
+          ocrResult: await performOCR({ imageData: img.base64!, characters })
+        }))
       );
   
-      for (const pendingResult of results) {
+      const batchImages = processedImages.map(({ ocrResult, image }) => 
+        ocrResult.type === 'Echo' && ocrResult.image ? ocrResult.image : image.base64!
+      );
+  
+      const results = await fetchOCRBatchResult(batchImages);
+  
+      for (let i = 0; i < readyImages.length; i++) {
+        const result = {
+          image: readyImages[i],
+          result: results[i]
+        };
+        
         if (isLocked) {
-          pendingResultsRef.current.push(pendingResult);
+          pendingResultsRef.current.push(result);
           setImages(prev => prev.map(img => 
-            img.id === pendingResult.image.id ? { ...img, status: 'queued' } : img
+            img.id === result.image.id ? { ...img, status: 'queued' } : img
           ));
         } else {
-          await processResult(pendingResult);
+          await processResult(result);
         }
       }
     } finally {
