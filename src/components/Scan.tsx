@@ -139,104 +139,105 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
   const { characters } = useCharacters();
   const [showNotice, setShowNotice] = useState(true);
 
-  const processResult = useCallback(async ({ image, result }: PendingResult) => {
-    try {
-      if (!result.success) {
-        throw new Error(result.error || 'OCR processing failed');
-      }
+  const processResult = useCallback(
+    async ({ image, result }: PendingResult) => {
+      try {
+        if (!result.success) {
+          throw new Error(result.error || 'OCR processing failed');
+        }
 
-      if (result.analysis?.type === 'Character') {
-        const characterAnalysis = result.analysis as CharacterAnalysis;
-        const matchedCharacter = characters.find(char => 
-          char.name.toLowerCase() === characterAnalysis.name.toLowerCase()
+        if (result.analysis?.type === 'Character') {
+          const characterAnalysis = result.analysis as CharacterAnalysis;
+          const matchedCharacter = characters.find(
+            (char) => char.name.toLowerCase() === characterAnalysis.name.toLowerCase()
+          );
+          if (!matchedCharacter) {
+            setErrorMessages(['Character not found']);
+            return;
+          }
+        } else if (result.analysis?.type === 'Weapon' && currentCharacterType) {
+          const weaponAnalysis = result.analysis as WeaponAnalysis;
+          const normalizedWeaponType = weaponAnalysis.weaponType.replace(/s$/, '');
+
+          if (normalizedWeaponType !== currentCharacterType) {
+            setErrorMessages((prev) => [
+              ...prev,
+              `Weapon mismatch:\nExpected: ${currentCharacterType}\nScanned: ${weaponAnalysis.weaponType}`
+            ]);
+          }
+        }
+
+        setOCRResult(result);
+        onOCRComplete(result);
+
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === image.id
+              ? {
+                  ...img,
+                  category: result.analysis?.type,
+                  details: result.analysis ? getAnalysisDetails(result.analysis) : undefined,
+                  isLoading: false,
+                  status: 'complete'
+                }
+              : img
+          )
         );
-        if (!matchedCharacter) {
-          setErrorMessages(['Character not found']);
-          return;
-        }
+      } catch (error) {
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === image.id
+              ? {
+                  ...img,
+                  error: error instanceof Error ? error.message : 'Unknown error',
+                  isLoading: false,
+                  status: 'error'
+                }
+              : img
+          )
+        );
       }
-      else if (result.analysis?.type === 'Weapon' && currentCharacterType) {
-        const weaponAnalysis = result.analysis as WeaponAnalysis;
-        const normalizedWeaponType = weaponAnalysis.weaponType.replace(/s$/, '');
-        
-        if (normalizedWeaponType !== currentCharacterType) {
-          setErrorMessages(prev => [...prev, 
-            `Weapon mismatch:\nExpected: ${currentCharacterType}\nScanned: ${weaponAnalysis.weaponType}`
-          ]);
-        }
-      }
-
-      setOCRResult(result);
-      onOCRComplete(result);
-
-      setImages(prev => prev.map(img => 
-        img.id === image.id ? 
-          { 
-            ...img, 
-            category: result.analysis?.type,
-            details: result.analysis ? getAnalysisDetails(result.analysis) : undefined,
-            isLoading: false,
-            status: 'complete'
-          } : 
-          img
-      ));
-    } catch (error) {
-      setImages(prev => prev.map(img =>
-        img.id === image.id ? 
-          { 
-            ...img, 
-            error: error instanceof Error ? error.message : 'Unknown error', 
-            isLoading: false,
-            status: 'error'
-          } : 
-          img
-      ));
-    }
-  }, [characters, currentCharacterType, onOCRComplete, setOCRResult]);
+    },
+    [characters, currentCharacterType, onOCRComplete, setOCRResult]
+  );
 
   const processQueue = useCallback(async () => {
-    if (pendingResultsRef.current.length === 0) return;
-    
-    const queuedResults = [...pendingResultsRef.current];
-    pendingResultsRef.current = [];
-    
-    await Promise.all(queuedResults.map(result => {
-      setImages(prev => prev.map(img => 
-        img.id === result.image.id ? { ...img, status: 'processing' } : img
-      ));
-      return processResult(result);
-    }));
-  }, [processResult]);
+    if (!isLocked && pendingResultsRef.current.length > 0) {
+      const queuedResults = [...pendingResultsRef.current];
+      pendingResultsRef.current = [];
+      
+      for (const result of queuedResults) {
+        await processResult(result);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  }, [isLocked, processResult]);
 
-  const processRemoteQueue = async () => {
+  const processImages = async () => {
     if (images.length === 0) return;
-    
+  
     setErrorMessages([]);
     setIsProcessing(true);
     try {
-      // Get all Echo/Unknown images that are ready
-      const remoteImages = images.filter(img => 
+      const readyImages = images.filter(img => 
         img.base64 && 
         img.status === 'ready' && 
         (!img.category || ['Echo', 'unknown'].includes(img.category))
       );
-      
-      // Update status to processing
+  
       setImages(prev => prev.map(img => 
-        remoteImages.find(ri => ri.id === img.id) 
+        readyImages.find(ri => ri.id === img.id) 
           ? { ...img, status: 'processing' } 
           : img
       ));
   
-      // Process through backend
       const results = await Promise.all(
-        remoteImages.map(async img => {
+        readyImages.map(async img => {
           const result = await fetchOCRResult(img.base64!);
           return { image: img, result };
         })
       );
-      
-      // Queue or process based on lock
+  
       for (const pendingResult of results) {
         if (isLocked) {
           pendingResultsRef.current.push(pendingResult);
@@ -257,79 +258,129 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
       alert(`Maximum ${MAX_IMAGES} images allowed`);
       return;
     }
-    
+  
     setErrorMessages([]);
     setShowNotice(false);
     setIsProcessing(true);
   
     try {
-      await Promise.all(files.map(async file => {
-        const error = validateFile(file);
-        if (error) {
-          setErrorMessages(prev => [...prev, `${file.name}: ${error}`]);
-          return;
+      const validFiles = files.filter((file) => {
+        const err = validateFile(file);
+        if (err) {
+          setErrorMessages((prev) => [...prev, `${file.name}: ${err}`]);
+          return false;
         }
+        return true;
+      });
+      if (validFiles.length === 0) return;
   
-        const base64 = await fileToBase64(file);
-        const newImage: ImageData = {
+      const newImages: ImageData[] = validFiles.map((file) => {
+        const blobUrl = URL.createObjectURL(file);
+        blobUrlsRef.current.push(blobUrl);
+        return {
           id: Math.random().toString(36).substring(2),
           file,
-          preview: URL.createObjectURL(file),
-          base64,
+          preview: blobUrl,
+          base64: undefined,
           isLoading: true,
-          status: 'uploading'
+          status: 'uploading' as const
         };
-        blobUrlsRef.current.push(newImage.preview);
-        setImages(prev => [...prev, newImage]);
+      });
   
+      setImages((prev) => [...prev, ...newImages]);
+  
+      const results: PendingResult[] = [];
+      for (const img of newImages) {
         try {
+          const base64 = await fileToBase64(img.file);
+          setImages((prev) =>
+            prev.map((p) =>
+              p.id === img.id
+                ? { ...p, base64, status: 'processing' as const }
+                : p
+            )
+          );
+  
           const localResult = await performOCR({ imageData: base64, characters });
-          const response: OCRResponse = {
-            success: true,
-            analysis: {
-              ...localResult,
-              type: localResult.type
-            } as OCRAnalysis
-          };
   
-          switch(localResult.type) {
-            case 'Character':
-              await processResult({ image: newImage, result: response });
-              await processQueue();
-              break;
-  
-            case 'Weapon':
-            case 'Forte':
-            case 'Sequences':
-              if (isLocked) {
-                pendingResultsRef.current.push({ image: newImage, result: response });
-                setImages(prev => prev.map(img => 
-                  img.id === newImage.id ? { ...img, status: 'queued' } : img
-                ));
-              } else {
-                await processResult({ image: newImage, result: response });
-              }
-              break;
-  
-            default:
-              setImages(prev => prev.map(img => 
-                img.id === newImage.id ? { 
-                  ...img, 
-                  status: 'ready',
-                  category: localResult.type 
-                } : img
-              ));
+          if (!localResult.type || localResult.type === 'Echo') {
+            setImages((prev) =>
+              prev.map((p) =>
+                p.id === img.id
+                  ? {
+                      ...p,
+                      status: 'ready' as const,
+                      category: localResult.type
+                    }
+                  : p
+              )
+            );
+            continue;
           }
+  
+          results.push({
+            image: { ...img, base64 },
+            result: {
+              success: true,
+              analysis: {
+                ...localResult,
+                type: localResult.type
+              } as OCRAnalysis
+            }
+          });
         } catch (error) {
-          setImages(prev => prev.map(img =>
-            img.id === newImage.id ? {
-              ...img,
-              error: 'Processing failed',
-              status: 'error'
-            } : img
-          ));
+          setImages((prev) =>
+            prev.map((p) =>
+              p.id === img.id
+                ? { ...p, error: 'Processing failed', status: 'error' as const }
+                : p
+            )
+          );
         }
-      }));
+      }
+  
+      const characterResults = results.filter(
+        (r) => r.result.success && r.result.analysis?.type === 'Character'
+      );
+  
+      const alreadyUnlocked = !isLocked;
+  
+      if (characterResults.length > 0 || alreadyUnlocked) {
+        for (const charResult of characterResults) {
+          await processResult(charResult);
+          await new Promise(resolve => setTimeout(resolve, 10));
+          if (!isLocked) {
+            await processQueue();
+          }
+        }
+  
+        const otherResults = results.filter((r) => !characterResults.includes(r));
+        if (isLocked) {
+          pendingResultsRef.current.push(...otherResults);
+          setImages((prev) =>
+            prev.map((img) =>
+              otherResults.find((o) => o.image.id === img.id)
+                ? { ...img, status: 'queued' as const }
+                : img
+            )
+          );
+        } else {
+          for (const item of otherResults) {
+            await processResult(item);
+            await new Promise((res) => setTimeout(res, 100));
+          }
+        }
+      } else {
+        pendingResultsRef.current.push(...results);
+        setErrorMessages(['Select character first']);
+        setImages((prev) =>
+          prev.map((img) =>
+            results.find((r) => r.image.id === img.id)
+              ? { ...img, status: 'queued' as const }
+              : img
+          )
+        );
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -341,25 +392,36 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
 
   useEffect(() => {
     return () => {
-      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
 
-  const deleteImage = useCallback((id: string) => {
-    setImages(prev => {
-      const newImages = prev.filter(img => img.id !== id);
-      if (newImages.length === 0) {
-        setShowNotice(true);
-      }
-      return newImages;
-    });
-    
-    const imageToDelete = images.find(img => img.id === id);
-    if (imageToDelete?.preview) {
-      URL.revokeObjectURL(imageToDelete.preview);
-      blobUrlsRef.current = blobUrlsRef.current.filter(url => url !== imageToDelete.preview);
+  useEffect(() => {
+    if (!isLocked) {
+      processQueue();
     }
-  }, [images]);
+  }, [isLocked, processQueue]);
+
+  const deleteImage = useCallback(
+    (id: string) => {
+      setImages((prev) => {
+        const newImages = prev.filter((img) => img.id !== id);
+        if (newImages.length === 0) {
+          setShowNotice(true);
+        }
+        return newImages;
+      });
+
+      const imageToDelete = images.find((img) => img.id === id);
+      if (imageToDelete?.preview) {
+        URL.revokeObjectURL(imageToDelete.preview);
+        blobUrlsRef.current = blobUrlsRef.current.filter(
+          (url) => url !== imageToDelete.preview
+        );
+      }
+    },
+    [images]
+  );
 
   return (
     <div className="scan-component">
@@ -372,27 +434,25 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
         </div>
       )}
       <div className="scan-controls">
-        <ImageUploader 
-          onFilesSelected={handleFiles} 
-          disabled={isProcessing} 
-        />
-        {images.some(img => 
-          img.status === 'ready' && 
-          ['Echo', 'unknown'].includes(img.category || '')
+        <ImageUploader onFilesSelected={handleFiles} disabled={isProcessing} />
+        {images.some(
+          (img) =>
+            img.status === 'ready' &&
+            (img.category === 'unknown' || img.category === 'Echo')
         ) && (
           <button
             className="process-button"
-            onClick={processRemoteQueue}
+            onClick={processImages}
             disabled={isProcessing}
           >
             {isProcessing ? 'Processing...' : 'Process Images'}
           </button>
         )}
         {images.length > 0 && (
-          <button 
+          <button
             className="clear-button"
             onClick={() => {
-              blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+              blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
               blobUrlsRef.current = [];
               setImages([]);
               setErrorMessages([]);
@@ -414,7 +474,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
         </div>
       )}
       <div className="file-preview">
-        {images.map(image => (
+        {images.map((image) => (
           <ImagePreview
             key={image.id}
             src={image.preview}

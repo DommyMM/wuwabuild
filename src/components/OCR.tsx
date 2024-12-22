@@ -68,9 +68,7 @@ const TYPE_PATTERNS = {
 } as const;
 
 const patternSearch = new Fuse(
-    Object.entries(TYPE_PATTERNS).flatMap(([type, patterns]) => 
-        patterns.map(pattern => ({ type, pattern }))
-    ),
+    Object.entries(TYPE_PATTERNS).flatMap(([type, patterns]) => patterns.map((pattern) => ({ type, pattern }))),
     {
         keys: ['pattern'],
         includeScore: true,
@@ -79,33 +77,23 @@ const patternSearch = new Fuse(
     }
 );
 
-const MAX_WORKERS = 3;
-let workerPool: Tesseract.Worker[] = [];
-let currentWorkerIndex = 0;
+let worker: Tesseract.Worker | null = null;
 
-const getNextWorker = () => {
-    const worker = workerPool[currentWorkerIndex];
-    currentWorkerIndex = (currentWorkerIndex + 1) % MAX_WORKERS;
+const initWorker = async () => {
+    if (!worker) {
+        worker = await createWorker('eng');
+    }
     return worker;
 };
 
-const initWorkerPool = async () => {
-    if (workerPool.length === MAX_WORKERS) return workerPool;
-    
-    workerPool = await Promise.all(
-        Array(MAX_WORKERS).fill(0).map(() => createWorker('eng'))
-    );
-    return workerPool;
-};
-
-const cleanupWorkerPool = async () => {
-    await Promise.all(workerPool.map(w => w.terminate()));
-    workerPool = [];
-    currentWorkerIndex = 0;
+const cleanupWorker = async () => {
+    if (worker) {
+        await worker.terminate();
+        worker = null;
+    }
 };
 
 let weaponListCache: Record<string, string[]> | null = null;
-
 const loadWeapons = async () => {
     if (weaponListCache) return weaponListCache;
     const response = await fetch('/Data/Weapons.json');
@@ -117,8 +105,8 @@ const loadWeapons = async () => {
 const preprocessImage = async (base64Image: string, regionKey: keyof typeof SCAN_REGIONS): Promise<HTMLCanvasElement> => {
     const img = new Image();
     img.src = base64Image;
-    await new Promise(resolve => img.onload = resolve);
-    
+    await new Promise((resolve) => (img.onload = resolve));
+
     const canvas = document.createElement('canvas');
     canvas.width = img.width;
     canvas.height = img.height;
@@ -138,9 +126,15 @@ const preprocessImage = async (base64Image: string, regionKey: keyof typeof SCAN
     croppedCanvas.height = region.height;
     const croppedCtx = croppedCanvas.getContext('2d')!;
     croppedCtx.drawImage(
-        canvas, 
-        region.x, region.y, region.width, region.height,
-        0, 0, region.width, region.height
+        canvas,
+        region.x,
+        region.y,
+        region.width,
+        region.height,
+        0,
+        0,
+        region.width,
+        region.height
     );
     return croppedCanvas;
 };
@@ -151,6 +145,11 @@ const isDarkPixel = (data: Uint8ClampedArray, i: number): boolean => {
         (Math.abs(r - 38) <= 25 && Math.abs(g - 34) <= 25 && Math.abs(b - 34) <= 25) ||
         (Math.abs(r - 36) <= 25 && Math.abs(g - 48) <= 25 && Math.abs(b - 46) <= 25)
     );
+};
+
+const isWhitePixel = (data: Uint8ClampedArray, i: number): boolean => {
+    const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+    return r >= 160 && g >= 180 && b >= 145;
 };
 
 const isYellowPixel = (data: Uint8ClampedArray, i: number): boolean => {
@@ -168,13 +167,18 @@ const rgbToHsv = (r: number, g: number, b: number): [number, number, number] => 
     const diff = max - min;
 
     let h = 0;
-    if (diff === 0) h = 0;
-    else if (max === r) h = 60 * ((g - b) / diff % 6);
-    else if (max === g) h = 60 * ((b - r) / diff + 2);
-    else if (max === b) h = 60 * ((r - g) / diff + 4);
+    if (diff === 0) {
+        h = 0;
+    } else if (max === r) {
+        h = 60 * (((g - b) / diff) % 6);
+    } else if (max === g) {
+        h = 60 * ((b - r) / diff + 2);
+    } else if (max === b) {
+        h = 60 * ((r - g) / diff + 4);
+    }
     if (h < 0) h += 360;
 
-    const s = max === 0 ? 0 : diff / max * 255;
+    const s = max === 0 ? 0 : (diff / max) * 255;
     const v = max * 255;
 
     return [h, s, v];
@@ -183,44 +187,62 @@ const rgbToHsv = (r: number, g: number, b: number): [number, number, number] => 
 const detectGender = async (imageData: string): Promise<string> => {
     const roverRegions = ['shoulders_left', 'shoulders_right', 'right_thigh'] as const;
     const maleMatches = await Promise.all(
-        roverRegions.map(async region => {
+        roverRegions.map(async (region) => {
             const canvas = await preprocessImage(imageData, region);
             const ctx = canvas.getContext('2d')!;
             const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            
+
             let darkCount = 0;
             for (let i = 0; i < pixels.data.length; i += 4) {
                 if (isDarkPixel(pixels.data, i)) darkCount++;
             }
-            
             return darkCount / (canvas.width * canvas.height) > 0.4;
         })
     );
-    
+
     return maleMatches.filter(Boolean).length >= 2 ? ' (M)' : ' (F)';
 };
 
 const getValidElements = (): string[] => {
-    return Object.values(Element)
-        .filter(e => e !== Element.Rover);
+    return Object.values(Element).filter((e) => e !== Element.Rover);
+};
+
+const extractUID = async (imageData: string, worker: Tesseract.Worker): Promise<string | undefined> => {
+    const uidCanvas = await preprocessImage(imageData, 'uid');
+
+    await worker.setParameters({
+        tessedit_char_whitelist: '0123456789'
+    });
+
+    const {
+        data: { text }
+    } = await worker.recognize(uidCanvas);
+
+    await worker.setParameters({
+        tessedit_char_whitelist: ''
+    });
+
+    const digits = text.replace(/\D/g, '');
+    return digits.length >= 9 ? digits.slice(-9) : undefined;
 };
 
 const extractCharacterInfo = async (text: string, characters: Character[], imageData: string, worker: Tesseract.Worker): Promise<Pick<OCRResult, 'name' | 'characterLevel' | 'element' | 'uid'>> => {
-    const lines = text.split('\n').map(line => line.trim());
+    const lines = text.split('\n').map((line) => line.trim());
     const elementLine = lines[1] || '';
     const elementPattern = new RegExp(getValidElements().join('|'), 'i');
     console.log('Raw text:', text);
-    
+
     const elementMatch = elementLine.match(elementPattern) || text.match(elementPattern);
     const element = elementMatch?.[0].toLowerCase() as Element | undefined;
 
     const numbers = text.match(/\d+/g)?.reverse();
-    const characterLevel = numbers ? parseInt(numbers.find(n => {
-        const num = parseInt(n);
-        return num >= 1 && num <= 90;
-    }) || '') : 1;
+    const characterLevel = numbers ? parseInt(
+            numbers.find((n) => {
+                const num = parseInt(n);
+                return num >= 1 && num <= 90;
+            }) || ''): 1;
 
-    let name = characters.find(char => 
+    let name = characters.find((char) =>
         text.toLowerCase().includes(char.name.toLowerCase())
     )?.name;
 
@@ -286,74 +308,49 @@ const extractWeaponInfo = (text: string, weapons: Record<string, string[]>): Pic
     return result;
 };
 
-const extractUID = async (imageData: string, worker: Tesseract.Worker): Promise<string | undefined> => {
-    const uidCanvas = await preprocessImage(imageData, 'uid');
-    
-    await worker.setParameters({
-        tessedit_char_whitelist: '0123456789',
-    });
-    
-    const { data: { text } } = await worker.recognize(uidCanvas);
-    await worker.setParameters({
-        tessedit_char_whitelist: '',
-    });
-    
-    const digits = text.replace(/\D/g, '');
-    return digits.length >= 9 ? digits.slice(-9) : undefined;
-};
-
 type SequenceSlot = 0 | 1;
 
 const extractSequenceInfo = async (imageData: string): Promise<{ sequence: number }> => {
     const slots = ['s1', 's2', 's3', 's4', 's5', 's6'] as const;
-    const debugInfo: Record<string, { active: boolean, yellowRatio: number }> = {};
-    
-    const states: SequenceSlot[] = await Promise.all(slots.map(async (slot) => {
-        const canvas = await preprocessImage(imageData, slot);
-        const ctx = canvas.getContext('2d')!;
-        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const total = canvas.width * canvas.height;
-        
-        let yellowCount = 0;
-        for (let i = 0; i < pixels.data.length; i += 4) {
-            if (isYellowPixel(pixels.data, i)) yellowCount++;
-        }
-        
-        const yellowRatio = yellowCount / total;
-        const isActive = yellowRatio > 0.5;
-        
-        debugInfo[slot] = { active: isActive, yellowRatio };
-        return isActive ? 1 : 0;
-    }));
+    const debugInfo: Record<string, { active: boolean; yellowRatio: number }> = {};
+
+    const states: SequenceSlot[] = await Promise.all(
+        slots.map(async (slot) => {
+            const canvas = await preprocessImage(imageData, slot);
+            const ctx = canvas.getContext('2d')!;
+            const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const total = canvas.width * canvas.height;
+
+            let yellowCount = 0;
+            for (let i = 0; i < pixels.data.length; i += 4) {
+                if (isYellowPixel(pixels.data, i)) yellowCount++;
+            }
+
+            const yellowRatio = yellowCount / total;
+            const isActive = yellowRatio > 0.5;
+
+            debugInfo[slot] = { active: isActive, yellowRatio };
+            return isActive ? 1 : 0;
+        })
+    );
 
     const sum = states.reduce((acc, state) => acc + state, 0 as number);
-    
     console.group(`Sequence Detection: ${sum}/6 active`);
     console.log(slots.map(slot => 
-        `${slot}: ${debugInfo[slot].active ? '✓' : '✗'} (${debugInfo[slot].yellowRatio.toFixed(3)})`
-    ).join('\n'));
+                `${slot}: ${debugInfo[slot].active ? '✓' : '✗'} (${debugInfo[slot].yellowRatio.toFixed(3)})`).join('\n')
+    );
     console.groupEnd();
 
     return { sequence: sum };
-};
-
-const isWhitePixel = (data: Uint8ClampedArray, i: number): boolean => {
-    const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
-    return (
-        r >= 160 && r <= 255 &&
-        g >= 180 && g <= 255 &&
-        b >= 145 && b <= 255
-    );
 };
 
 const processNode = async (imageData: string, regionKey: string, isCircuit: boolean): Promise<number> => {
     const canvas = await preprocessImage(imageData, regionKey as keyof typeof SCAN_REGIONS);
     const ctx = canvas.getContext('2d')!;
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
-    let activeCount = 0;
     const total = canvas.width * canvas.height;
 
+    let activeCount = 0;
     for (let i = 0; i < pixels.data.length; i += 4) {
         if (isCircuit) {
             if (isDarkPixel(pixels.data, i)) activeCount++;
@@ -365,7 +362,7 @@ const processNode = async (imageData: string, regionKey: string, isCircuit: bool
     const ratio = activeCount / total;
     const threshold = isCircuit ? 0.5 : 0.4;
     const isActive = isCircuit ? ratio < threshold : ratio > threshold;
-    
+
     console.log(`Node ${regionKey}:`, {
         type: isCircuit ? 'Circuit' : 'White',
         ratio: `${(ratio * 100).toFixed(1)}%`,
@@ -385,11 +382,13 @@ const extractForteInfo = async (imageData: string, worker: Tesseract.Worker): Pr
         liberation: [1, 0, 0],
         intro: [1, 0, 0]
     };
-    
+
     const levelPatterns = [
+        /Lv\.?\s+(\d+)(?:\s|$)/i,
         /Lv:?\s*(\d+)/i,
         /Lv\.?\s*(\d+)\s*\/\s*10/i,
         /(\d+)\s*\/\s*10/i,
+        /(\d+)\/(?:\s|$)/i,
         /Lv\.?\s*(\d)710/i,
         /(\d)710/i,
         /(\d+)/
@@ -397,55 +396,68 @@ const extractForteInfo = async (imageData: string, worker: Tesseract.Worker): Pr
     
     const extractLevel = (text: string): number => {
         const cleanText = text.replace(/[\\'"]/g, '').trim();
-        
         for (const pattern of levelPatterns) {
             const match = cleanText.match(pattern);
             if (match) {
-                const parsed = parseInt(match[1]);
+                let value = match[1];
+                if (value.length > 2 && value.includes('7')) {
+                    value = value.replace('7', '');
+                }
+                
+                const parsed = parseInt(value);
+                if (parsed.toString().length > 2) continue;
+                
                 if (parsed >= 1 && parsed <= 10) {
+                    if (match[0].toLowerCase().startsWith('lv')) {
+                        console.log(`Found valid Lv-prefixed level: ${parsed} from match "${match[0]}"`);
+                        return parsed;
+                    }
+                    console.log(`Found valid level: ${parsed} from match "${match[0]}"`);
                     return parsed;
                 }
             }
         }
-        
         return 10;
     };
-    
+
     console.group('Forte Detection');
-    
     for (const branch of branches) {
-        const baseCanvas = await preprocessImage(imageData, `${branch}Base` as keyof typeof SCAN_REGIONS);
+        const baseCanvas = await preprocessImage(
+            imageData,
+            `${branch}Base` as keyof typeof SCAN_REGIONS
+        );
+
         const { data: { text } } = await worker.recognize(baseCanvas);
         const level = extractLevel(text);
-        
-        const isCircuit = branch === 'circuit';
-        const topActive = await processNode(imageData, `${branch}Top`, isCircuit);
-        const midActive = await processNode(imageData, `${branch}Mid`, isCircuit);
+        const isCircuitBranch = branch === 'circuit';
+
+        const topActive = await processNode(imageData, `${branch}Top`, isCircuitBranch);
+        const midActive = await processNode(imageData, `${branch}Mid`, isCircuitBranch);
 
         console.log(`${branch}:`, { level, top: topActive, mid: midActive });
-        
         results[branch] = [level, topActive, midActive];
     }
     console.groupEnd();
-    
+
     return results;
 };
 
 export const performOCR = async ({ imageData, characters = [] }: OCRProps): Promise<OCRResult> => {
-    await initWorkerPool();
+    const worker = await initWorker();
     const weapons = await loadWeapons();
     if (!weapons) throw new Error('Failed to load weapons data');
 
     try {
-        const worker = getNextWorker();
         const processedCanvas = await preprocessImage(imageData, 'info');
         const { data: { text } } = await worker.recognize(processedCanvas);
-        const words = text.toLowerCase()
+
+        const words = text
+            .toLowerCase()
             .replace(/[©€\-_()|\\/]/g, '')
             .split(/\s+/)
             .filter(Boolean);
+
         let bestMatch = { type: 'unknown' as OCRResult['type'], score: 1 };
-        
         for (const word of words) {
             const results = patternSearch.search(word);
             if (results.length > 0 && results[0].score! < bestMatch.score) {
@@ -459,44 +471,32 @@ export const performOCR = async ({ imageData, characters = [] }: OCRProps): Prom
         if (bestMatch.type === 'Character') {
             const characterCanvas = await preprocessImage(imageData, 'characterPage');
             const { data: { text: characterText } } = await worker.recognize(characterCanvas);
-            return {
-                type: 'Character',
-                ...await extractCharacterInfo(characterText, characters, imageData, worker),
-                raw: characterText
-            };
+            const charInfo = await extractCharacterInfo(characterText, characters, imageData, worker);
+            return { type: 'Character', ...charInfo, raw: characterText };
         }
-
-        else if (bestMatch.type === 'Weapon') {
+        
+        if (bestMatch.type === 'Weapon') {
             const weaponCanvas = await preprocessImage(imageData, 'weaponPage');
             const { data: { text: weaponText } } = await worker.recognize(weaponCanvas);
-            return {
-                type: 'Weapon',
-                ...extractWeaponInfo(weaponText, weapons),
-                raw: weaponText
-            };
+            const weaponInfo = extractWeaponInfo(weaponText, weapons);
+            return { type: 'Weapon', ...weaponInfo, raw: weaponText };
         }
-
-        else if (bestMatch.type === 'Sequences') {
-            return {
-                type: 'Sequences',
-                ...await extractSequenceInfo(imageData)
-            };
+        
+        if (bestMatch.type === 'Sequences') {
+            const sequenceInfo = await extractSequenceInfo(imageData);
+            return { type: 'Sequences', ...sequenceInfo };
         }
-
-        else if (bestMatch.type === 'Forte') {
-            return {
-                type: 'Forte',
-                ...await extractForteInfo(imageData, worker)
-            };
+        
+        if (bestMatch.type === 'Forte') {
+            const forteInfo = await extractForteInfo(imageData, worker);
+            return { type: 'Forte', ...forteInfo };
         }
 
         return { type: bestMatch.type };
     } catch (error) {
         console.error('OCR processing error:', error);
-        return { 
-            type: 'unknown'
-        };
+        return { type: 'unknown' };
     }
 };
 
-export { cleanupWorkerPool as cleanupOCR };
+export { cleanupWorker as cleanupOCR };
