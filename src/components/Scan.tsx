@@ -29,7 +29,7 @@ interface ScanProps {
 }
 
 const MAX_IMAGES = 10;
-const TIMEOUT_MS = 30000;
+const TIMEOUT_MS = 60000;
 const MAX_FILE_SIZE = 40 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
 

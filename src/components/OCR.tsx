@@ -104,16 +104,10 @@ const loadWeapons = async () => {
     return weaponListCache;
 };
 
-const preprocessImage = async (base64Image: string, regionKey: keyof typeof SCAN_REGIONS): Promise<HTMLCanvasElement> => {
+const cropImage = async (base64Image: string, regionKey: keyof typeof SCAN_REGIONS): Promise<HTMLCanvasElement> => {
     const img = new Image();
     img.src = base64Image;
     await new Promise((resolve) => (img.onload = resolve));
-
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(img, 0, 0);
 
     const regionDef = SCAN_REGIONS[regionKey];
     const region = {
@@ -123,16 +117,17 @@ const preprocessImage = async (base64Image: string, regionKey: keyof typeof SCAN
         height: Math.floor(img.height * regionDef.height)
     };
 
-    const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = region.width;
-    croppedCanvas.height = region.height;
-    const croppedCtx = croppedCanvas.getContext('2d')!;
-    croppedCtx.drawImage(
-        canvas,
+    const canvas = document.createElement('canvas');
+    canvas.width = region.width;
+    canvas.height = region.height;
+    const ctx = canvas.getContext('2d')!;
+    
+    ctx.drawImage(img,
         region.x, region.y, region.width, region.height,
         0, 0, region.width, region.height
     );
-    return croppedCanvas;
+    
+    return canvas;
 };
 
 const isDarkPixel = (data: Uint8ClampedArray, i: number): boolean => {
@@ -179,7 +174,7 @@ const detectGender = async (imageData: string): Promise<string> => {
     const roverRegions = ['shoulders_left', 'shoulders_right', 'right_thigh'] as const;
     const maleMatches = await Promise.all(
         roverRegions.map(async (region) => {
-            const canvas = await preprocessImage(imageData, region);
+            const canvas = await cropImage(imageData, region);
             const ctx = canvas.getContext('2d')!;
             const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
@@ -199,7 +194,7 @@ const getValidElements = (): string[] => {
 };
 
 const extractUID = async (imageData: string, worker: Tesseract.Worker): Promise<string | undefined> => {
-    const uidCanvas = await preprocessImage(imageData, 'uid');
+    const uidCanvas = await cropImage(imageData, 'uid');
 
     await worker.setParameters({
         tessedit_char_whitelist: '0123456789'
@@ -307,7 +302,7 @@ const extractSequenceInfo = async (imageData: string): Promise<{ sequence: numbe
 
     const states: SequenceSlot[] = await Promise.all(
         slots.map(async (slot) => {
-            const canvas = await preprocessImage(imageData, slot);
+            const canvas = await cropImage(imageData, slot);
             const ctx = canvas.getContext('2d')!;
             const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const total = canvas.width * canvas.height;
@@ -336,7 +331,7 @@ const extractSequenceInfo = async (imageData: string): Promise<{ sequence: numbe
 };
 
 const processNode = async (imageData: string, regionKey: string, isCircuit: boolean): Promise<number> => {
-    const canvas = await preprocessImage(imageData, regionKey as keyof typeof SCAN_REGIONS);
+    const canvas = await cropImage(imageData, regionKey as keyof typeof SCAN_REGIONS);
     const ctx = canvas.getContext('2d')!;
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const total = canvas.width * canvas.height;
@@ -413,7 +408,7 @@ const extractForteInfo = async (imageData: string, worker: Tesseract.Worker): Pr
 
     console.group('Forte Detection');
     for (const branch of branches) {
-        const baseCanvas = await preprocessImage(imageData, `${branch}Base` as keyof typeof SCAN_REGIONS);
+        const baseCanvas = await cropImage(imageData, `${branch}Base` as keyof typeof SCAN_REGIONS);
 
         const { data: { text } } = await worker.recognize(baseCanvas);
         const level = extractLevel(text);
@@ -431,7 +426,7 @@ const extractForteInfo = async (imageData: string, worker: Tesseract.Worker): Pr
 };
 
 const extractEchoInfo = async (imageData: string): Promise<Pick<OCRResult, 'type' | 'image'>> => {
-    const echoCanvas = await preprocessImage(imageData, 'echo');
+    const echoCanvas = await cropImage(imageData, 'echo');
     return {
         type: 'Echo',
         image: echoCanvas.toDataURL('image/png')
@@ -444,7 +439,7 @@ export const performOCR = async ({ imageData, characters = [] }: OCRProps): Prom
     if (!weapons) throw new Error('Failed to load weapons data');
 
     try {
-        const processedCanvas = await preprocessImage(imageData, 'info');
+        const processedCanvas = await cropImage(imageData, 'info');
         const { data: { text } } = await worker.recognize(processedCanvas);
 
         const words = text
@@ -465,14 +460,14 @@ export const performOCR = async ({ imageData, characters = [] }: OCRProps): Prom
         }
 
         if (bestMatch.type === 'Character') {
-            const characterCanvas = await preprocessImage(imageData, 'characterPage');
+            const characterCanvas = await cropImage(imageData, 'characterPage');
             const { data: { text: characterText } } = await worker.recognize(characterCanvas);
             const charInfo = await extractCharacterInfo(characterText, characters, imageData, worker);
             return { type: 'Character', ...charInfo, raw: characterText };
         }
         
         if (bestMatch.type === 'Weapon') {
-            const weaponCanvas = await preprocessImage(imageData, 'weaponPage');
+            const weaponCanvas = await cropImage(imageData, 'weaponPage');
             const { data: { text: weaponText } } = await worker.recognize(weaponCanvas);
             const weaponInfo = extractWeaponInfo(weaponText, weapons);
             return { type: 'Weapon', ...weaponInfo, raw: weaponText };
