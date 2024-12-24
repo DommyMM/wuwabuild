@@ -18,25 +18,59 @@ h2 {
 
 .dropzone {
   width: 40%;
-  height: 100px;
-  border: 2px dashed #ccc;
+  min-height: 100px;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: #999;
-  cursor: pointer;
-  position: relative;
-  margin: 0 auto 20px auto;
+  gap: 16px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  margin: 20px auto;
+}
+
+.dropzone:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .dropzone.dragover {
-  background-color: #f0f0f0;
-  border-color: #000;
+  border-style: solid;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.06));
+  transform: scale(1.02);
+}
+
+.dropzone.disabled {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: not-allowed;
 }
 
 .dropzone span {
-  font-size: 24px;
-  color: #666;
+  font-size: 30px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.dropzone.disabled span {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 1200px) {
+  .dropzone {
+    font-size: 20px;
+  }
+  .scan-component:has(.scan-errors) .dropzone {
+    margin: 20px auto 20px 0;
+  }
+  .dropzone span {
+    font-size: 18px;
+  }
 }
 
 .dropzone input[type="file"] {
@@ -242,7 +276,7 @@ h2 {
   display: inline-block;
   position: absolute;
   width: 108.22px;
-  top: 70px;
+  top: 100px;
   left: calc(10% - 6.43px); 
   padding: 8px 16px;
   background: #4CAF50;

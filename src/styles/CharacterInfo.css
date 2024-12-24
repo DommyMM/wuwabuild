@@ -1,11 +1,40 @@
+.section {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    display: flex;
+    justify-content: flex-start;
+    scrollbar-width: thin;
+    position: relative;
+    margin-bottom: 20px;
+}
+
 .character-info {
     border: calc(min(0.15vh, 1px)) solid grey;
     border-radius: calc(min(1.3vh, 10px));
-    margin: calc(min(2.7vh, 20px)) auto;
+    margin: calc(min(2.7vh, 20px)) auto 0;
     background-color: #222;
     width: 90%;
     max-width: 2000px;
     min-width: 1800px;
+    display: inline-block;
+}
+
+.character-content {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.character-content.open {
+    max-height: 800px;
+    opacity: 1;
+    height: 675px;
 }
 
 .character-header {
@@ -25,6 +54,13 @@
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
+}
+
+@media (max-width: 1200px) {
+    .character-header {
+        justify-content: flex-start;
+        padding-left: calc(45vw);
+    }
 }
 
 .character-header.with-chevron {
@@ -52,23 +88,6 @@
 .character-header:hover {
     background-color: #444;
     border-color: #555;
-}
-
-.character-content {
-    overflow: hidden;
-    max-height: 0;
-    opacity: 0;
-    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-}
-
-.character-content.open {
-    max-height: 800px;
-    opacity: 1;
-    height: 675px;
 }
 
 .character-tab-icon {

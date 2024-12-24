@@ -491,7 +491,7 @@ export const EditPage: React.FC = () => {
       {showRestore && <RestorePrompt onRestore={handleRestore} onDecline={handleDecline} />}
       <DailyNotification />
       <div className="content">
-        <h1>Edit Stats</h1>
+        <h1>Wuthering Waves Builds</h1>
         <div className="sticky-container">
           <div className="ocr-panel-container">
             <button onClick={toggleOCRPanel} className="switch">

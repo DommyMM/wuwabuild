@@ -1,10 +1,20 @@
+.build-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    justify-content: center;
+    scrollbar-width: thin;
+    position: relative;
+}
+
 .build-card {
     position: relative;
     height: 800px;
+    width: 90%;
     max-width: 1920px;
-    max-height: 800px;
-    width: 100%;
-    display: flex;
+    min-width: 1800px;
+    display: inline-flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -15,10 +25,13 @@
 #build-tab {
     position: relative;
     display: flex;
-    justify-content: center;
     align-items: center;
-    width: 90%;
+    justify-content: center;
+    width: 1719px;
+    min-width: 1719px;
     height: 600px;
+    margin-right: 10px;
+    padding: 10px;
     border-radius: 8px;
     transition: opacity 0.3s ease, transform 0.3s ease;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
@@ -873,4 +886,27 @@ input:-webkit-autofill {
 }
 .cv-value.low {
     color: #666;
+}
+
+@media (max-width: 1200px) {
+    .build-wrapper {
+        justify-content: flex-start;
+    }
+    .build-card{
+        margin-top: 20px;
+    }
+    .input-container {
+        display: block;
+        top: -60%;
+        left: -30%;
+    }
+    #generateDownload{
+        left: 300px;
+        transform: translateY(-20px);
+    }
+    .button-group{
+        position: absolute;
+        left: 0%;
+        bottom: 25px;
+    }
 }

@@ -154,7 +154,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
           if (normalizedWeaponType !== currentCharacterType) {
             setErrorMessages((prev) => [
               ...prev,
-              `Weapon mismatch:\nExpected: ${currentCharacterType}\nScanned: ${weaponAnalysis.weaponType}`
+              `Weapon mismatch\nExpected: ${currentCharacterType}\nScanned: ${weaponAnalysis.weaponType}`
             ]);
           }
         }
@@ -215,7 +215,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
       const readyImages = images.filter(img => 
         img.base64 && 
         img.status === 'ready' && 
-        (!img.category || ['Echo', 'unknown'].includes(img.category))
+        (!img.category || ['Echo'].includes(img.category))
       );
   
       setImages(prev => prev.map(i => 
@@ -300,7 +300,23 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
   
           const localResult = await performOCR({ imageData: base64, characters });
   
-          if (!localResult.type || localResult.type === 'Echo') {
+          if (localResult.type === 'unknown') {
+            setImages((prev) =>
+              prev.map((p) =>
+                p.id === img.id
+                  ? {
+                      ...p,
+                      status: 'complete' as const,
+                      category: 'unknown',
+                      details: 'Unknown image type'
+                    }
+                  : p
+              )
+            );
+            continue;
+          }
+  
+          if (localResult.type === 'Echo') {
             setImages((prev) =>
               prev.map((p) =>
                 p.id === img.id
@@ -426,7 +442,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
         <div className="scan-notice">
           ⚠️ Important: Use FULL SCREEN screenshots only
           <span className="scan-notice-detail">
-            Echo detection a lot faster and better but elements default to just the first option for now, fix WiP
+            OCR scans for specific sections of the screen and will not work with cropped images
           </span>
         </div>
       )}

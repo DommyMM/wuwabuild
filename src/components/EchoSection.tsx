@@ -306,177 +306,179 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
   };
 
   return (
-    <section className={`echoes-tab${isVisible ? ' visible' : ''}`} ref={ref}>
-      {isVisible && (
-        <>
-          <button 
-            onClick={handleMinimize}
-            className="echoes-header with-chevron"
-          >
-            Echoes Info
-            {isMinimized ? <ChevronLeft size={20} /> : <ChevronDown size={20} />}
-          </button>
-          <div className={`echoes-content${isMinimized ? '' : ' open'}`}>
-            {!isMinimized && (
-              <>
-                {showWarning && (
-                  <div onClick={() => setShowWarning(false)}>
-                    <span className="popuptext show">
-                      Warning: Echo Cost exceeds limit
-                      <br/>
-                      <span>Click to dismiss</span>
-                    </span>
-                  </div>
-                )}
-                
-                {showCostWarning && (
-                  <div onClick={onCostWarningDismiss}>
-                    <span className="popuptext show">
-                      Warning: Echo Cost exceeds limit
-                      <br/>
-                      <span>Click to dismiss</span>
-                    </span>
-                  </div>
-                )}
+    <div className={`echo-section${isVisible ? ' visible' : ''}`}>
+      <section className={`echoes-tab${isVisible ? ' visible' : ''}`} ref={ref}>
+        {isVisible && (
+          <>
+            <button 
+              onClick={handleMinimize}
+              className="echoes-header with-chevron"
+            >
+              Echoes Info
+              {isMinimized ? <ChevronLeft size={20} /> : <ChevronDown size={20} />}
+            </button>
+            <div className={`echoes-content${isMinimized ? '' : ' open'}`}>
+              {!isMinimized && (
+                <>
+                  {showWarning && (
+                    <div onClick={() => setShowWarning(false)}>
+                      <span className="popuptext show">
+                        Warning: Echo Cost exceeds limit
+                        <br/>
+                        <span>Click to dismiss</span>
+                      </span>
+                    </div>
+                  )}
+                  
+                  {showCostWarning && (
+                    <div onClick={onCostWarningDismiss}>
+                      <span className="popuptext show">
+                        Warning: Echo Cost exceeds limit
+                        <br/>
+                        <span>Click to dismiss</span>
+                      </span>
+                    </div>
+                  )}
 
-                <DndContext 
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext 
-                    items={initialPanels.map((_, i) => `panel-${i}`)}
-                    strategy={horizontalListSortingStrategy}
+                  <DndContext 
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
                   >
-                    <div className="echo-panels-container">
-                      {panels.map((panel, i) => (
-                        <SortablePanel key={`panel-${i}`} id={`panel-${i}`}>
-                          <EchoPanel
-                            index={i + 1}
-                            panelData={panel}
-                            onSelect={() => {
-                              setSelectedPanelIndex(i);
-                              setIsModalOpen(true);
-                            }}
-                            onReset={() => handleReset(i)}
-                            onLevelChange={(level) => handleLevelChange(i, level)}
-                            onElementSelect={(element) => handleElementSelect(i, element)}
-                            onMainStatChange={(type) => onMainStatChange?.(i, type)}
-                            onSubStatChange={(subIndex, type, value) => onSubStatChange?.(i, subIndex, type, value)}
-                            onSave={() => onSaveEcho?.(i)}
-                            onLoad={() => {
-                              setSelectedLoadPanelIndex(i);
-                              setIsLoadModalOpen(true);
-                            }}
+                    <SortableContext 
+                      items={initialPanels.map((_, i) => `panel-${i}`)}
+                      strategy={horizontalListSortingStrategy}
+                    >
+                      <div className="echo-panels-container">
+                        {panels.map((panel, i) => (
+                          <SortablePanel key={`panel-${i}`} id={`panel-${i}`}>
+                            <EchoPanel
+                              index={i + 1}
+                              panelData={panel}
+                              onSelect={() => {
+                                setSelectedPanelIndex(i);
+                                setIsModalOpen(true);
+                              }}
+                              onReset={() => handleReset(i)}
+                              onLevelChange={(level) => handleLevelChange(i, level)}
+                              onElementSelect={(element) => handleElementSelect(i, element)}
+                              onMainStatChange={(type) => onMainStatChange?.(i, type)}
+                              onSubStatChange={(subIndex, type, value) => onSubStatChange?.(i, subIndex, type, value)}
+                              onSave={() => onSaveEcho?.(i)}
+                              onLoad={() => {
+                                setSelectedLoadPanelIndex(i);
+                                setIsLoadModalOpen(true);
+                              }}
+                            />
+                          </SortablePanel>
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                </>
+              )}
+            </div>
+          </>
+        )}
+    
+        {isModalOpen && (
+          <div className="modal" data-testid="echo-select-modal">
+            <div className="echo-modal-content">
+              <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
+              <div className="echo-list">
+                {loading && <div>Loading echoes...</div>}
+                {error && <div className="error">{error}</div>}
+                {COST_SECTIONS.map((cost: CostSection) => (
+                  <div key={cost} className="echo-cost-section">
+                    <div className="cost-label">{cost} Cost</div>
+                    <div className="echo-grid">
+                      {echoesByCost[cost]?.map(echo => (
+                        <div 
+                          key={echo.name}
+                          className="echo-option"
+                          onClick={() => handleSelectEcho(echo)}
+                        >
+                          <img
+                            src={`images/Echoes/${echo.name}.png`}
+                            alt={echo.name}
+                            className="echo-img"
                           />
-                        </SortablePanel>
+                          <span className="echo-name">{echo.name}</span>
+                        </div>
                       ))}
                     </div>
-                  </SortableContext>
-                </DndContext>
-              </>
-            )}
-          </div>
-        </>
-      )}
-  
-      {isModalOpen && (
-        <div className="modal" data-testid="echo-select-modal">
-          <div className="echo-modal-content">
-            <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
-            <div className="echo-list">
-              {loading && <div>Loading echoes...</div>}
-              {error && <div className="error">{error}</div>}
-              {COST_SECTIONS.map((cost: CostSection) => (
-                <div key={cost} className="echo-cost-section">
-                  <div className="cost-label">{cost} Cost</div>
-                  <div className="echo-grid">
-                    {echoesByCost[cost]?.map(echo => (
-                      <div 
-                        key={echo.name}
-                        className="echo-option"
-                        onClick={() => handleSelectEcho(echo)}
-                      >
-                        <img
-                          src={`images/Echoes/${echo.name}.png`}
-                          alt={echo.name}
-                          className="echo-img"
-                        />
-                        <span className="echo-name">{echo.name}</span>
-                      </div>
-                    ))}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {isLoadModalOpen && (
-        <div className="modal" data-testid="echo-load-modal">
-          <div className="echo-modal-content">
-            <span className="close" onClick={() => setIsLoadModalOpen(false)}>&times;</span>
-            <div className="saved-echo-list">
-              {savedEchoes.map(savedEcho => {
-                const echo = savedEcho.panelData;
-                const stats = echo.stats;
-                const element = echo.selectedElement;
-                const mainStat = stats.mainStat.type;
-                const subStats = stats.subStats.map(sub => sub.type).filter(Boolean);
-                
-                return (
-                  <div 
-                    key={savedEcho.id}
-                    className="echo-option"
-                    onClick={(e) => {
-                      if (!(e.target as HTMLElement).closest('.delete-button')) {
-                        if (selectedLoadPanelIndex !== null) {
-                          onLoadEcho?.({
-                            ...savedEcho,
-                            panelIndex: selectedLoadPanelIndex
-                          });
-                        }
-                        setIsLoadModalOpen(false);
-                      }
-                    }}
-                  >
-                    <img
-                      src={echo.echo ? 
-                        `images/Echoes/${echo.echo.name}.png` : 
-                        'images/Resources/Echo.png'
-                      }
-                      alt={echo.echo?.name || 'Empty Echo'}
-                      className="echo-img"
-                    />
-                    <div className="echo-info">
-                      <div className="echo-name">
-                        {echo.echo?.name || 'Empty Echo'}
-                      </div>
-                      <div className="echo-stats">
-                        <div>{element} • {mainStat}</div>
-                        <div>{subStats.slice(0, 3).join(' • ')}</div>
-                        <div>{subStats.slice(3, 5).join(' • ')}</div>
-                      </div>
-                    </div>
-                    <button 
-                      className="delete-button"
+        {isLoadModalOpen && (
+          <div className="modal" data-testid="echo-load-modal">
+            <div className="echo-modal-content">
+              <span className="close" onClick={() => setIsLoadModalOpen(false)}>&times;</span>
+              <div className="saved-echo-list">
+                {savedEchoes.map(savedEcho => {
+                  const echo = savedEcho.panelData;
+                  const stats = echo.stats;
+                  const element = echo.selectedElement;
+                  const mainStat = stats.mainStat.type;
+                  const subStats = stats.subStats.map(sub => sub.type).filter(Boolean);
+                  
+                  return (
+                    <div 
+                      key={savedEcho.id}
+                      className="echo-option"
                       onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onDeleteEcho?.(savedEcho.id);
+                        if (!(e.target as HTMLElement).closest('.delete-button')) {
+                          if (selectedLoadPanelIndex !== null) {
+                            onLoadEcho?.({
+                              ...savedEcho,
+                              panelIndex: selectedLoadPanelIndex
+                            });
+                          }
+                          setIsLoadModalOpen(false);
+                        }
                       }}
                     >
-                      X
-                    </button>
-                  </div>
-                );
-              })}
+                      <img
+                        src={echo.echo ? 
+                          `images/Echoes/${echo.echo.name}.png` : 
+                          'images/Resources/Echo.png'
+                        }
+                        alt={echo.echo?.name || 'Empty Echo'}
+                        className="echo-img"
+                      />
+                      <div className="echo-info">
+                        <div className="echo-name">
+                          {echo.echo?.name || 'Empty Echo'}
+                        </div>
+                        <div className="echo-stats">
+                          <div>{element} • {mainStat}</div>
+                          <div>{subStats.slice(0, 3).join(' • ')}</div>
+                          <div>{subStats.slice(3, 5).join(' • ')}</div>
+                        </div>
+                      </div>
+                      <button 
+                        className="delete-button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDeleteEcho?.(savedEcho.id);
+                        }}
+                      >
+                        X
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </section>
+        )}
+      </section>
+    </div>
   );
 });
 

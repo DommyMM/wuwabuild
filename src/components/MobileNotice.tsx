@@ -9,55 +9,38 @@ const MobileNotice: React.FC = () => {
   useEffect(() => {
     const checkMobile = () => {
       const width = window.screen.width;
-      const isPortrait = window.matchMedia("(orientation: portrait)").matches;
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (width < 1200 && isTouchDevice) {
-        setIsMobile(true);
-        return;
-      }
-      if (width < 1800 && isTouchDevice) {
-        setIsMobile(isPortrait);
-        return;
-      }
-      setIsMobile(false);
+      setIsMobile(width < 1200 && isTouchDevice);
     };
 
     checkMobile();
     setTimeout(() => setIsVisible(true), 100);
+    const timer = setTimeout(() => setIsDismissed(true), 7000);
     
     window.addEventListener('resize', checkMobile);
-    window.addEventListener('orientationchange', checkMobile);
-    window.matchMedia("(orientation: portrait)").addEventListener('change', checkMobile);
 
     return () => {
       window.removeEventListener('resize', checkMobile);
-      window.removeEventListener('orientationchange', checkMobile);
-      window.matchMedia("(orientation: portrait)").removeEventListener('change', checkMobile);
+      clearTimeout(timer);
     };
   }, []);
+
   if (!isMobile || isDismissed) return null;
 
   return (
-    <div className={`mobile-notice${isVisible ? ' visible' : ''}`} onClick={() => setIsDismissed(true)}>
+    <div className={`mobile-notice${isVisible ? ' visible' : ''}`}>
       <button 
         className="mobile-notice-close"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsDismissed(true);
-        }}
+        onClick={() => setIsDismissed(true)}
       >
-        <X size={32} />
+        <X size={24} />
       </button>
-      <div className="mobile-notice-title">Mobile Detected</div>
+      <div className="mobile-notice-title">
+        Small Screen Detected
+      </div>
       <span className="mobile-notice-text">
-        {window.screen.width > 1200 ? 
-          "Please rotate your device to landscape mode" : 
-          "Unoptimized for mobile\nPlease use a desktop browser"}
-      </span>
-      <span className="mobile-notice-info">
-        Current size: {window.screen.width}x{window.screen.height}px
-        <br />
-        Orientation: {window.matchMedia("(orientation: portrait)").matches ? "Portrait" : "Landscape"}
+        Content will scroll sideways → <br />
+        Use computer for best experience
       </span>
     </div>
   );
