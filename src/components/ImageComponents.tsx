@@ -151,7 +151,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         multiple
         hidden
         accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-        capture="environment"
         disabled={disabled}
         onChange={(e) => onFilesSelected(Array.from(e.target.files || []))}
       />
