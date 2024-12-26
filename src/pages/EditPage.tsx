@@ -172,9 +172,9 @@ export const EditPage: React.FC = () => {
         const echoAnalysis = result.analysis;
         console.group('Setting Echo:');
         console.log(`Name: ${echoAnalysis.name}, Element: ${echoAnalysis.element}, Level: ${echoAnalysis.echoLevel}`);
-        console.log(`Main stat: ${echoAnalysis.main.name} = ${echoAnalysis.main.value}`);
+        console.log(`Main stat: ${echoAnalysis.main.name}: ${echoAnalysis.main.value}`);
         console.log('Sub stats:', echoAnalysis.subs.map(sub => 
-          `${sub.name} = ${sub.value}`
+          `${sub.name}: ${sub.value}`
         ).join(', '));
         console.groupEnd();
         if (!hasScrolledToEchoes.current) {
@@ -492,7 +492,7 @@ export const EditPage: React.FC = () => {
       <DailyNotification />
       <div className="content">
         <h1>Wuthering Waves Builds</h1>
-        <div className="sticky-container">
+        <div className="scan-container">
           <div className="ocr-panel-container">
             <button onClick={toggleOCRPanel} className="switch">
               {isOCRPanelOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}

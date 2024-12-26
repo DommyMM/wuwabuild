@@ -224,7 +224,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div className="build-wrapper">
+    <div className="build-section">
       <div className="build-card">
         <Options
           watermark={watermark}

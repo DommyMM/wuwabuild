@@ -2,7 +2,7 @@ h2 {
   margin: 20px;
 }
 
-.sticky-container{
+.scan-container{
   position: sticky;
   top: 0;
   z-index: 9999;
@@ -100,7 +100,7 @@ h2 {
 }
 
 .scan-errors {
-  width: 30%;
+  width: 27.5%;
   position: absolute;
   height: 120px;
   top: 45px;

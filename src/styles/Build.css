@@ -1,4 +1,4 @@
-.build-wrapper {
+.build-section {
     width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
@@ -618,75 +618,64 @@ input:-webkit-autofill {
 .build-sequence-container {
     position: absolute;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     gap: 10px;
-    left: 15%;
-    bottom: 0%;
-    transform: translateY(-30%);
+    top: 17.5%;
+    left: 2%;
     z-index: 5;
 }
 
 .build-sequence-node {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    z-index: 4;
+    width: 60px;
+    height: 60px;
     position: relative;
+    z-index: 4;
 }
 
-.build-sequence-node.active{
-    box-shadow: 
-    0 0 10px rgba(255, 255, 255, 0.8),   
-    0 0 20px rgba(255, 255, 255, 0.6),   
-    inset 0 0 15px rgba(255, 255, 255, 0.4); 
-    transition: transform 0.2s ease-in-out;
-}
-
-.build-sequence-node.inactive .sequence-icon{
-    filter:blur(2px) invert(0.3);
-}
-
-.build-sequence-node.element-fusion.active {
-    border: 2px solid #ff4d00;
-    background-color: #ff4500; 
-}
-
-.build-sequence-node.element-glacio.active {
-    border: 2px solid #00ced1; 
-    background-color: rgba(0, 206, 209, 0.9); 
-}
-
-.build-sequence-node.element-aero.active {
-    border: 2px solid #90ee90; 
-    background-color: rgba(0, 128, 128, 0.9); 
-}
-
-.build-sequence-node.element-electro.active {
-    border: 2px solid #8a2be2;
-    background-color: rgba(138, 43, 226, 0.9);
-}
-
-.build-sequence-node.element-spectro.active {
-    border: 2px solid #ffd700; 
-    background-color: rgba(255, 215, 0, 0.7); 
-}
-
-.build-sequence-node.element-havoc.active {
-    border: 2px solid #ff1493;
-    background-color: #ff69b4;
+.sequence-medallion {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
 }
 
 .sequence-icon {
-    width: 60%;
-    height: 60%;
+    width: 40%;
+    height: 40%;
     object-fit: contain;
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    filter: brightness(2); 
-    z-index: 4;
+    z-index: 2;
+}
+
+.element-fusion .sequence-medallion {
+    color: #ff4500;
+}
+
+.element-glacio .sequence-medallion {
+    color: #00ced1;
+}
+
+.element-aero .sequence-medallion {
+    color: #90ee90;
+}
+
+.element-electro .sequence-medallion {
+    color: #8a2be2;
+}
+
+.element-spectro .sequence-medallion {
+    color: #ffd700;
+}
+
+.element-havoc .sequence-medallion {
+    color: #ff1493;
+}
+
+.build-sequence-node.inactive .sequence-icon {
+    filter: blur(1px) invert(0.3);
 }
 
 .echo-display {

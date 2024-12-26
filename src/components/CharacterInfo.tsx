@@ -86,7 +86,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   };
 
   return (
-    <div className="section">
+    <div className="character-section">
       <div className="character-info">
         <button 
           onClick={selectedCharacter ? onMinimize : undefined} 
