@@ -27,6 +27,9 @@
   font-size: 16px;
   letter-spacing: 0.25px;
   transform: translateY(-2px);
+  width: 120px;
+  word-wrap: break-word;
+  white-space: normal;
 }
 
 .weapon-label {
@@ -82,12 +85,17 @@
   top: 100%;
 }
 
-.weapon-sig{
+.weapon-sig {
   font-size: 24px;
   width: 200px;
   text-align: center;
   position: absolute;
   left: -40%;
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 3s linear infinite;
 }
 
 @keyframes shine {
@@ -101,45 +109,36 @@
 
 .weapon-sig.rarity-5 {
   background-image: linear-gradient(to right, #ffd700, #fff7b5, #ffd700);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shine 3s linear infinite;
 }
 
 .weapon-sig.rarity-4 {
   background-image: linear-gradient(to right, #c468e9, #e1bef3, #c468e9);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shine 3s linear infinite;
 }
 
 .weapon-sig.rarity-3 {
   background-image: linear-gradient(to right, #6ebfce, #b4d4da, #6ebfce);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shine 3s linear infinite;
 }
 
 .weapon-sig.rarity-2 {
   background-image: linear-gradient(to right, #7ab488, #bad1bf, #7ab488);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shine 3s linear infinite;
 }
 
 .weapon-sig.rarity-1 {
   background-image: linear-gradient(to right, #595959, #868686, #595959);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shine 3s linear infinite;
+}
+
+@media (max-width: 1200px) {
+  .weapon-option {
+    width: 90px;
+    height: 120px;
+    margin: 10px;
+  }
+  .weapon-img {
+    width: 70px;
+    height: 70px;
+  }
+  .weapon-name {
+    font-size: 15px;
+    width: 90px;
+  }
 }

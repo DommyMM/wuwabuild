@@ -1,11 +1,9 @@
 .build-section {
     width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
     display: flex;
     justify-content: center;
-    scrollbar-width: thin;
     position: relative;
+    overflow: hidden;
 }
 
 .build-card {
@@ -22,6 +20,15 @@
     margin: 0 auto;
 }
 
+.card {
+    width: 100vw;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    justify-content: center;
+    scrollbar-width: thin;
+}
+
 #build-tab {
     position: relative;
     display: flex;
@@ -30,7 +37,7 @@
     width: 1719px;
     min-width: 1719px;
     height: 600px;
-    margin-right: 10px;
+    margin-right: 0px;
     padding: 10px;
     border-radius: 8px;
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -878,24 +885,32 @@ input:-webkit-autofill {
 }
 
 @media (max-width: 1200px) {
-    .build-wrapper {
+    .build-section {
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+    .build-card {
+        margin: 20px;
+        align-items: flex-start;
         justify-content: flex-start;
     }
-    .build-card{
-        margin-top: 20px;
+    .card {
+        justify-content: flex-start;
+        margin-left: 0;
+        transform: translateY(75px);
+    }
+    .options-container{
+        left: 1%;
     }
     .input-container {
         display: block;
-        top: -60%;
-        left: -30%;
+        transform: translateY(-15px);
     }
     #generateDownload{
-        left: 300px;
-        transform: translateY(-20px);
+        transform: translate(275px, -10px)
     }
     .button-group{
         position: absolute;
-        left: 0%;
-        bottom: 25px;
+        bottom: 0;
     }
 }

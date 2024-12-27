@@ -126,7 +126,7 @@ h2 {
 
 @media (max-width: 1200px) {
   .panel-content {
-    width: 95vw;
+    width: 91vw;
     margin-left: 0;
   }
   .sticky-container {
@@ -136,12 +136,12 @@ h2 {
     left: 0;
   }
   .scan-controls .clear-button {
-    left: 25%;
+    left: 24%;
     top: 5%;
   }
   .process-button{
     top: 5px;
-    left: calc(25% + 97.36px);
+    left: calc(24% + 97.36px);
   }
   .scan-controls .clear-button, .process-button{
     z-index: 5;

@@ -214,7 +214,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     const hasDouble4Cost = hasTwoFourCosts(echoPanels);
     const adjustedCV = hasDouble4Cost ? cv - 44 : cv;
   
-    if (adjustedCV >= 232) return 'goat';
+    if (adjustedCV >= 230) return 'goat';
     if (adjustedCV >= 220) return 'excellent';
     if (adjustedCV >= 205) return 'high'; 
     if (adjustedCV >= 195) return 'good';
@@ -245,71 +245,73 @@ export const BuildCard: React.FC<BuildCardProps> = ({
           Generate
         </button>
 
-        <div
-          ref={tabRef}
-          id="build-tab"
-          className="tab"
-          style={{ 
-            display: isTabVisible ? 'flex' : 'none',
-            opacity: isTabVisible ? 1 : 0
-          }}
-        >
-          {isTabVisible && selectedCharacter && elementValue && (
-            <>
-              <CharacterSection 
-                character={selectedCharacter} 
-                level={characterLevel}
-                isSpectro={isSpectro}
-                currentSequence={currentSequence}
-                username={watermark.username}
-                isEditMode={isEditMode}
-                onImageChange={handleImageChange}
-                customImage={savedCustomImage}
-              >
-                <ForteSection
-                  character={{
-                    ...selectedCharacter,
-                    name: displayName || selectedCharacter.name
-                  }}
-                  elementValue={elementValue}
-                  nodeStates={nodeStates}
-                  levels={levels}
+        <div className="card">
+          <div
+            ref={tabRef}
+            id="build-tab"
+            className="tab"
+            style={{ 
+              display: isTabVisible ? 'flex' : 'none',
+              opacity: isTabVisible ? 1 : 0
+            }}
+          >
+            {isTabVisible && selectedCharacter && elementValue && (
+              <>
+                <CharacterSection 
+                  character={selectedCharacter} 
+                  level={characterLevel}
+                  isSpectro={isSpectro}
+                  currentSequence={currentSequence}
+                  username={watermark.username}
+                  isEditMode={isEditMode}
+                  onImageChange={handleImageChange}
+                  customImage={savedCustomImage}
+                >
+                  <ForteSection
+                    character={{
+                      ...selectedCharacter,
+                      name: displayName || selectedCharacter.name
+                    }}
+                    elementValue={elementValue}
+                    nodeStates={nodeStates}
+                    levels={levels}
+                  />
+                </CharacterSection>
+                {selectedWeapon && weaponStats && (
+                  <WeaponSection
+                    weapon={selectedWeapon}
+                    level={weaponConfig.level}
+                    rank={weaponConfig.rank}
+                    scaledStats={weaponStats}
+                    characterElement={elementValue} 
+                  />
+                )}
+                <StatSection 
+                  isVisible={isTabVisible}
+                  stats={displayStats}
+                  sets={elementSets}
                 />
-              </CharacterSection>
-              {selectedWeapon && weaponStats && (
-                <WeaponSection
-                  weapon={selectedWeapon}
-                  level={weaponConfig.level}
-                  rank={weaponConfig.rank}
-                  scaledStats={weaponStats}
-                  characterElement={elementValue} 
+                {isTabVisible && (
+                  <div className="cv-container">
+                    <span className="cv-text">CV:</span>
+                    <span className={`cv-value ${getCVClass(cv)}`}>
+                      {cv.toFixed(1)}
+                    </span>
+                  </div>
+                )}
+                <EchoDisplay 
+                  isVisible={isTabVisible}
+                  echoPanels={echoPanels}
+                  showRollQuality={showRollQuality}
                 />
-              )}
-              <StatSection 
-                isVisible={isTabVisible}
-                stats={displayStats}
-                sets={elementSets}
-              />
-              {isTabVisible && (
-                <div className="cv-container">
-                  <span className="cv-text">CV:</span>
-                  <span className={`cv-value ${getCVClass(cv)}`}>
-                    {cv.toFixed(1)}
-                  </span>
+                <div className="watermark-container">
+                  <div className="watermark-username">{watermark.username}</div>
+                  <div className="watermark-uid">{watermark.uid}</div>
                 </div>
-              )}
-              <EchoDisplay 
-                isVisible={isTabVisible}
-                echoPanels={echoPanels}
-                showRollQuality={showRollQuality}
-              />
-              <div className="watermark-container">
-                <div className="watermark-username">{watermark.username}</div>
-                <div className="watermark-uid">{watermark.uid}</div>
-              </div>
-              <div className="site-watermark">wuwabuilds.moe</div>
-            </>
-          )}
+                <div className="site-watermark">wuwabuilds.moe</div>
+              </>
+            )}
+          </div>
         </div>
 
         {isTabVisible && (

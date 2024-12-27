@@ -61,18 +61,6 @@ h2 {
   color: rgba(255, 255, 255, 0.3);
 }
 
-@media (max-width: 1200px) {
-  .dropzone {
-    font-size: 20px;
-  }
-  .scan-component:has(.scan-errors) .dropzone {
-    margin: 20px auto 20px 0;
-  }
-  .dropzone span {
-    font-size: 18px;
-  }
-}
-
 .dropzone input[type="file"] {
   position: absolute;
   top: 0;
@@ -289,4 +277,19 @@ h2 {
 .process-button:disabled {
   background: #cccccc;
   cursor: not-allowed;
+}
+
+@media (max-width: 1200px) {
+  .dropzone {
+    font-size: 20px;
+  }
+  .scan-component:has(.scan-errors) .dropzone {
+    margin: 20px auto 20px 0;
+  }
+  .dropzone span {
+    font-size: 18px;
+  }
+  .image-container{
+    margin: 5px;
+  }
 }
