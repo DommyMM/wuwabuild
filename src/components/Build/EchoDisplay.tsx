@@ -9,7 +9,10 @@ export interface EchoDisplayProps {
   showRollQuality: boolean;
 }
 
-const EchoLeft: React.FC<{ panel: EchoPanelState }> = React.memo(({ panel }) => {
+const EchoLeft: React.FC<{ 
+  panel: EchoPanelState;
+  element: string | null;
+}> = React.memo(({ panel, element }) => {
   const statClass = React.useMemo(() => 
     panel.stats.mainStat.type?.toLowerCase()
       .replace(/\s+/g, '-')
@@ -26,18 +29,20 @@ const EchoLeft: React.FC<{ panel: EchoPanelState }> = React.memo(({ panel }) => 
     <div className="echo-left">
       {panel.echo && (
         <>
-          <img 
-            src={`images/Echoes/${panel.echo.name}.png`}
+          <img src={`images/Echoes/${panel.echo.name}.png`}
             alt={panel.echo.name}
             className="echo-display-icon"
           />
           <div className="echo-level-indicator">+{panel.level}</div>
           {panel.stats.mainStat.type && (
-            <div>
-              <img 
-                src={`images/Stats/${getStatIconName(panel.stats.mainStat.type)}.png`}
+            <div className="main-stat-wrapper">
+              <img src={`images/SetIcons/${element}.png`}
+                alt={`${element} Set Icon`}
+                className="set"
+              />
+              <img src={`images/Stats/${getStatIconName(panel.stats.mainStat.type)}.png`}
                 alt={panel.stats.mainStat.type}
-                className="main-stat-icon"
+                className={`main-stat-icon ${statClass}`}
               />
               <span className={`main-stat-display ${statClass}`}>
                 {formatMainStatValue(panel.stats.mainStat.value)}
@@ -50,9 +55,10 @@ const EchoLeft: React.FC<{ panel: EchoPanelState }> = React.memo(({ panel }) => 
   );
 }, (prevProps, nextProps) => {
   return prevProps.panel.level === nextProps.panel.level &&
-        prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
-        prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
-        prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value;
+         prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
+         prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
+         prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value &&
+         prevProps.element === nextProps.element;
 });
 
 const EchoDivider = () => <div className="echo-divider" />;
@@ -89,8 +95,7 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
 
   const SubstatDisplay = React.memo<{
     stat: { type: string | null; value: number | null };
-    alignment: 'left' | 'right' | 'center';
-  }>(({ stat, alignment }) => {
+  }>(({ stat }) => {
     if (!stat.type) return null;
 
     const statClass = stat.type.toLowerCase()
@@ -102,15 +107,14 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
 
     return (
       <div 
-        className={`substat-container ${alignment}-align ${statClass}`}
+        className={`substat-container ${statClass}`}
         style={showRollQuality && quality ? {
           backgroundImage: `url('images/Quality/${quality}.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center bottom'
         } : undefined}
       >
-        <img 
-          src={`images/Stats/${getStatIconName(stat.type)}.png`}
+        <img src={`images/Stats/${getStatIconName(stat.type)}.png`}
           alt={stat.type}
           className="substat-icon"
         />
@@ -123,20 +127,18 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
 
   return (
     <div className="echo-right">
-      <div className="substat-row">
-        <SubstatDisplay stat={panel.stats.subStats[0]} alignment="left" />
-        <SubstatDisplay stat={panel.stats.subStats[1]} alignment="center" />
-        <SubstatDisplay stat={panel.stats.subStats[2]} alignment="right" />
-      </div>
-      <div className="substat-row">
-        <SubstatDisplay stat={panel.stats.subStats[3]} alignment="left" />
-        <SubstatDisplay stat={panel.stats.subStats[4]} alignment="right" />
+      <div className="substat-grid">
+        <SubstatDisplay stat={panel.stats.subStats[0]} />
+        <SubstatDisplay stat={panel.stats.subStats[1]} />
+        <SubstatDisplay stat={panel.stats.subStats[2]} />
+        <SubstatDisplay stat={panel.stats.subStats[3]} />
+        <SubstatDisplay stat={panel.stats.subStats[4]} />
       </div>
     </div>
   );
 }, (prevProps, nextProps) => {
-  return prevProps.showRollQuality === nextProps.showRollQuality &&
-        JSON.stringify(prevProps.panel) === JSON.stringify(nextProps.panel);
+  return prevProps.showRollQuality === nextProps.showRollQuality && 
+  JSON.stringify(prevProps.panel) === JSON.stringify(nextProps.panel);
 });
 
 const EchoRow: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> = ({ 
@@ -148,13 +150,11 @@ const EchoRow: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> = (
     panel.echo?.elements[0] : 
     panel.selectedElement;
   
-  const setClass = element ? 
-    `set-${element.toLowerCase()}` : 
-    'default';
+  const setClass = element ? `set-${element.toLowerCase()}` : 'default';
 
   return (
     <div className={`echo-row ${setClass}`}>
-      <EchoLeft panel={panel} />
+      <EchoLeft panel={panel} element={element} />
       <EchoDivider />
       <EchoRight panel={panel} showRollQuality={showRollQuality} />
     </div>

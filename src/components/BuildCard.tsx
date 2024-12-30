@@ -6,6 +6,7 @@ import { WeaponSection } from './Build/WeaponSection';
 import { ForteSection } from './Build/ForteSection';
 import { EchoDisplay } from './Build/EchoDisplay';
 import { StatSection } from './Build/StatSection';
+import { SetSection } from './Build/SetSection';
 import { Character } from '../types/character';
 import { Weapon } from '../types/weapon';
 import { EchoPanelState, ElementType } from '../types/echo';
@@ -161,19 +162,26 @@ export const BuildCard: React.FC<BuildCardProps> = ({
 
   const handleDownload = useCallback(() => {
     if (!tabRef.current) return;
-
+  
     const now = new Date();
     const timestamp = now.toISOString().slice(0,19).replace(/[T:]/g, ' ');
     
+    tabRef.current.classList.add('downloading');
     domtoimage.toPng(tabRef.current)
       .then((dataUrl: string) => {
         const link = document.createElement('a');
         link.download = `${timestamp}.png`;
         link.href = dataUrl;
         link.click();
+        if (tabRef.current) {
+          tabRef.current.classList.remove('downloading');
+        }
       })
       .catch((error: Error) => {
         console.error('Error capturing build-tab:', error);
+        if (tabRef.current) {
+          tabRef.current.classList.remove('downloading');
+        }
       });
   }, [tabRef]);
 
@@ -213,7 +221,6 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const getCVClass = (cv: number): string => {
     const hasDouble4Cost = hasTwoFourCosts(echoPanels);
     const adjustedCV = hasDouble4Cost ? cv - 44 : cv;
-  
     if (adjustedCV >= 230) return 'goat';
     if (adjustedCV >= 220) return 'excellent';
     if (adjustedCV >= 205) return 'high'; 
@@ -226,14 +233,12 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   return (
     <div className="build-section">
       <div className="build-card">
-        <Options
-          watermark={watermark}
+        <Options watermark={watermark}
           showRollQuality={showRollQuality}
           onWatermarkChange={onWatermarkChange}
           onRollQualityChange={setShowRollQuality}
           className={hasBeenVisible ? 'visible' : 'hidden'}
         />
-
         <button
           id="generateDownload"
           className="build-button"
@@ -241,13 +246,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
           style={{ 
             display: hasBeenVisible ? 'block' : 'none'
           }}
-        >
-          Generate
-        </button>
-
+        > Generate </button>
         <div className="card">
-          <div
-            ref={tabRef}
+          <div ref={tabRef}
             id="build-tab"
             className="tab"
             style={{ 
@@ -257,8 +258,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
           >
             {isTabVisible && selectedCharacter && elementValue && (
               <>
-                <CharacterSection 
-                  character={selectedCharacter} 
+                <CharacterSection character={selectedCharacter} 
                   level={characterLevel}
                   isSpectro={isSpectro}
                   currentSequence={currentSequence}
@@ -267,43 +267,29 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                   onImageChange={handleImageChange}
                   customImage={savedCustomImage}
                 >
-                  <ForteSection
-                    character={{
-                      ...selectedCharacter,
-                      name: displayName || selectedCharacter.name
-                    }}
-                    elementValue={elementValue}
-                    nodeStates={nodeStates}
-                    levels={levels}
-                  />
-                </CharacterSection>
                 {selectedWeapon && weaponStats && (
-                  <WeaponSection
-                    weapon={selectedWeapon}
+                  <WeaponSection weapon={selectedWeapon}
                     level={weaponConfig.level}
                     rank={weaponConfig.rank}
                     scaledStats={weaponStats}
                     characterElement={elementValue} 
                   />
                 )}
-                <StatSection 
-                  isVisible={isTabVisible}
-                  stats={displayStats}
-                  sets={elementSets}
+                <ForteSection character={{...selectedCharacter, name: displayName || selectedCharacter.name}}
+                  elementValue={elementValue}
+                  nodeStates={nodeStates}
+                  levels={levels}
                 />
-                {isTabVisible && (
-                  <div className="cv-container">
-                    <span className="cv-text">CV:</span>
-                    <span className={`cv-value ${getCVClass(cv)}`}>
-                      {cv.toFixed(1)}
-                    </span>
-                  </div>
-                )}
-                <EchoDisplay 
-                  isVisible={isTabVisible}
-                  echoPanels={echoPanels}
-                  showRollQuality={showRollQuality}
-                />
+                </CharacterSection>
+                <StatSection isVisible={isTabVisible} stats={displayStats}/>
+                <EchoDisplay isVisible={isTabVisible} echoPanels={echoPanels} showRollQuality={showRollQuality} />
+                <SetSection sets={elementSets} />
+                <div className="cv-container">
+                  <span className="cv-text">CV:</span>
+                  <span className={`cv-value ${getCVClass(cv)}`}>
+                    {cv.toFixed(1)}
+                  </span>
+                </div>
                 <div className="watermark-container">
                   <div className="watermark-username">{watermark.username}</div>
                   <div className="watermark-uid">{watermark.uid}</div>
@@ -313,17 +299,12 @@ export const BuildCard: React.FC<BuildCardProps> = ({
             )}
           </div>
         </div>
-
         {isTabVisible && (
           <div className="button-group">
             <button id="editButton" className="build-button" onClick={handleEditToggle}>
             {isEditMode ? 'Save' : 'Edit'}
             </button>
-            <button
-              id="downloadButton"
-              className="build-button"
-              onClick={handleDownload}
-            >
+            <button id="downloadButton" className="build-button" onClick={handleDownload}>
               Download
             </button>
           </div>

@@ -19,7 +19,8 @@ export const forteImagePaths: ForteImagePaths = {
     'tree3-middle': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}D1.png`,
     'circuit': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}Y.png`,
     'liberation': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}C1.png`,  
-    'intro': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}QTE.png`
+    'intro': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}QTE.png`,
+    'base': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}T.png`
   },
   sharedImages: {
     'tree1': (character) => `images/Stats/${character.Bonus1}.png`,

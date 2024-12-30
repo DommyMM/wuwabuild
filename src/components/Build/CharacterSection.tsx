@@ -30,7 +30,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   const [position, setPosition] = useState(
     customImage 
       ? { x: 0, y: 0 }
-      : { x: 20, y: -20 }
+      : { x: 0, y: -20 }
   );
   const [scale, setScale] = useState(1);
   
@@ -75,7 +75,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   };
 
   const handlePositionReset = useCallback(() => {
-    const defaultPosition = customImage ? { x: 0, y: 0 } : { x: 20, y: -20 };
+    const defaultPosition = customImage ? { x: 0, y: 0 } : { x: 0, y: -20 };
     setPosition(defaultPosition);
     setScale(1);
   }, [customImage]);
@@ -146,20 +146,27 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
 
   return (
     <>
-      <div 
-        className="build-character-section"
+      <div className="build-character-section"
+        data-element={elementValue}
         onDragOver={handleDrag}
         onDragLeave={handleDrag}
         onDrop={handleDrop}
+        style={{
+          '--tx': `${position.x}px`,
+          '--ty': `${position.y}px`,
+          '--scale': scale
+        } as React.CSSProperties}
       >
-        <img 
-          src={customImage ? URL.createObjectURL(customImage) : getCharacterIconPath(character)}
+        {!customImage && (
+          <img src={getCharacterIconPath(character)}
+            className="build-character-icon shadow"
+            alt="Character Shadow"
+          />
+        )}
+        <img src={getCharacterIconPath(character)}
           className={`build-character-icon ${isEditMode ? 'editable' : ''}`}
           alt={characterName}
-          style={{
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-            cursor: isEditMode ? 'move' : 'default'
-          }}
+          style={{ cursor: isEditMode ? 'move' : 'default' }}
           onMouseDown={handleMouseDown}
           draggable={false}
           onDragStart={(e) => e.preventDefault()}
@@ -203,8 +210,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
           </>
         )}
         {isEditMode && (
-          <div 
-            className={`character-dropzone ${isDragging ? 'dragover' : ''}`}
+          <div className={`character-dropzone ${isDragging ? 'dragover' : ''}`}
             onClick={() => document.getElementById('characterImageUpload')?.click()}>
             <span>Choose, drag or paste image...</span>
             <input
@@ -215,12 +221,9 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
               style={{ display: 'none' }}/>
           </div>
         )}
-        <SequenceSection
-          character={character}
-          isSpectro={isSpectro}
-          currentSequence={currentSequence}
-        />
       </div>
+      
+      <SequenceSection character={character} isSpectro={isSpectro} currentSequence={currentSequence} />
 
       <div className="build-intro">
         <div className="build-character-name">{characterName}</div>

@@ -17,10 +17,30 @@ const WeaponName = React.memo<{ name: string }>(({ name }) => (
   <div className="weapon-stat weapon-name">{name}</div>
 ));
 
-const RankLevel = React.memo<{ rank: number; level: number }>(({ rank, level }) => (
+const StatsTopRow = React.memo<{
+  scaledAtk: number;
+  weapon: Weapon;
+  scaledMainStat: number;
+}>(({ scaledAtk, weapon, scaledMainStat }) => (
+  <div className="weapon-stat-row">
+    <div className="weapon-stat weapon-attack atk">
+      <img src="images/Resources/Attack.png" className="stat-icon-img" alt="ATK"/>
+      {Math.floor(scaledAtk)}
+    </div>
+    <div className={`weapon-stat weapon-main-stat ${weapon.main_stat.toLowerCase()}`}>
+      <img src={`images/Stats/${weapon.main_stat}.png`} className="stat-icon-img" alt={weapon.main_stat}/>
+      {`${scaledMainStat}%`}
+    </div>
+  </div>
+));
+
+const StatsBottomRow = React.memo<{
+  level: number;
+  rank: number;
+}>(({ level, rank }) => (
   <div className="weapon-stat-row">
     <div className="weapon-stat weapon-rank">R{rank}</div>
-    <div className="weapon-stat weapon-level">Lv.{level}/90</div>
+    <div className="weapon-stat weapon-level">Lv.{level}</div>
   </div>
 ));
 
@@ -39,33 +59,6 @@ const RarityStars: React.FC<{ rarity: string }> = ({ rarity }) => {
     </div>
   );
 };
-
-const WeaponStats = React.memo<{ 
-  weapon: Weapon; 
-  scaledStats: ScaledWeaponStats;
-}>(({ weapon, scaledStats }) => (
-  <div className="weapon-stat-row">
-    <div className="weapon-stat weapon-attack atk">
-      <img 
-        src="images/Resources/Attack.png" 
-        className="stat-icon-img" 
-        alt="ATK"
-      />
-      {Math.floor(scaledStats.scaledAtk)}
-    </div>
-    <div className={`weapon-stat weapon-main-stat ${weapon.main_stat.toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/%/g, '')
-      .replace('-dmg', '')}`}>
-      <img 
-        src={`images/Stats/${weapon.main_stat}.png`}
-        className="stat-icon-img" 
-        alt={weapon.main_stat}
-      />
-      {`${scaledStats.scaledMainStat}%`}
-    </div>
-  </div>
-));
 
 export const WeaponSection: React.FC<WeaponSectionProps> = ({
   weapon,
@@ -101,27 +94,21 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
 
     return (
       <div className={classNames.join(' ')}>
-        {`Passive:\n${scaledStats.scaledPassive}% ${passiveName}`}
+        {`${scaledStats.scaledPassive}% ${passiveName}`}
       </div>
     );
   });
 
   return (
     <div className="build-weapon-container">
-      <WeaponIcon src={`images/Weapons/${weapon.type}/${encodeURIComponent(weapon.name)}.png`} />
-      
       <div className="weapon-info">
         <WeaponName name={weapon.name} />
-        <RankLevel rank={rank} level={level} />
-        <WeaponStats weapon={weapon} scaledStats={scaledStats} />
-        <PassiveText 
-          weapon={weapon} 
-          scaledStats={scaledStats}
-          characterElement={characterElement}
-        />
+        <StatsTopRow scaledAtk={scaledStats.scaledAtk} weapon={weapon} scaledMainStat={scaledStats.scaledMainStat} />
+        <StatsBottomRow level={level} rank={rank} />
+        <PassiveText weapon={weapon} scaledStats={scaledStats} characterElement={characterElement} />
       </div>
-      
       <RarityStars rarity={weapon.rarity} />
+      <WeaponIcon src={`images/Weapons/${weapon.type}/${encodeURIComponent(weapon.name)}.png`} />
     </div>
   );
 };

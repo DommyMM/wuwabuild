@@ -131,7 +131,7 @@ const getDisplayName = (stat: StatName): StatName => {
     case 'Basic Attack': return 'Basic Attack DMG Bonus';
     case 'Heavy Attack': return 'Heavy Attack DMG Bonus';
     case 'Skill': return 'Resonance Skill DMG Bonus';
-    case 'Liberation': return 'Resonance Liberation Bonus';
+    case 'Liberation': return 'Resonance Liberation DMG Bonus';
     default: return stat;
   }
 };

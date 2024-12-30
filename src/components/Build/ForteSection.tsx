@@ -91,13 +91,20 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
       />
       <div className="bottom-line" />
       <div className="simplified-base">
-        <img 
-          className="skill-image"
+        <img className="skill-image"
           src={forteImagePaths.imagePaths[branch.name](character.name)}
-          alt=""
+          alt={`${character.name} ${branch.name}`}
         />
         <div className="level-indicator">{level}</div>
       </div>
+      {branch.name === 'circuit' && (
+        <div className="base">
+          <img className="skill-image"
+            src={forteImagePaths.imagePaths.base(character.name)}
+            alt={`${character.name} base`}
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -131,6 +138,10 @@ export const ForteSection: React.FC<ForteSectionProps> = ({
           level={levels[branch.name] || 1}
         />
       ))}
+      <img className="max"
+        src="images/Resources/Max.png"
+        alt="Forte Max Frame"
+      />
     </div>
   );
 };

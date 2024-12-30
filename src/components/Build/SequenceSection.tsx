@@ -21,10 +21,7 @@ export const SequenceSection: React.FC<SequenceSectionProps> = ({
   return (
     <div className="build-sequence-container">
       {[1, 2, 3, 4, 5, 6].map((i) => (
-        <div 
-          key={i}
-          className={`build-sequence-node ${elementClass} ${i <= currentSequence ? 'active' : 'inactive'}`}
-        >
+        <div key={i} className={`build-sequence-node ${elementClass} ${i <= currentSequence ? 'active' : 'inactive'}`}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 49 49" className="sequence-medallion">
             <defs>
               <filter id={`techGlow-${i}`} colorInterpolationFilters="sRGB">
@@ -94,14 +91,13 @@ export const SequenceSection: React.FC<SequenceSectionProps> = ({
               />
             )}
           </svg>
-
-          <img
-            src={`images/Sequences/T_IconDevice_${displayName}M${i}_UI.png`}
+          <img src={`images/Sequences/T_IconDevice_${displayName}M${i}_UI.png`}
             className="sequence-icon"
             alt={`Sequence ${i}`}
           />
         </div>
       ))}
+      <div className='sequence-image'></div>
     </div>
   );
 };

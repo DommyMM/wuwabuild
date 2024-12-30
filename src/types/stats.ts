@@ -13,7 +13,7 @@ export type StatName =
   | 'Basic Attack' | 'Basic Attack DMG Bonus'
   | 'Heavy Attack' | 'Heavy Attack DMG Bonus'
   | 'Skill' | 'Resonance Skill DMG Bonus'
-  | 'Liberation' | 'Resonance Liberation Bonus'
+  | 'Liberation' | 'Resonance Liberation DMG Bonus'
   | 'Aero DMG' | 'Glacio DMG' | 'Fusion DMG'
   | 'Electro DMG' | 'Havoc DMG' | 'Spectro DMG'
   | 'Healing Bonus';
@@ -32,7 +32,6 @@ export const getStatIconName = (statName: string | null): string => {
     'DEF': 'DEF',
     'DEF%': 'DEF',
     'Crit Rate': 'Crit Rate',
-    'Crit Damage': 'Crit DMG',
     'Crit DMG': 'Crit DMG',
     'Energy Regen': 'ER',
     'Basic Attack': 'Basic',
@@ -42,7 +41,7 @@ export const getStatIconName = (statName: string | null): string => {
     'Skill': 'Skill',
     'Resonance Skill DMG Bonus': 'Skill',
     'Liberation': 'Liberation',
-    'Resonance Liberation Bonus': 'Liberation',
+    'Resonance Liberation DMG Bonus': 'Liberation',
     'Aero DMG': 'Aero',
     'Glacio DMG': 'Glacio',
     'Fusion DMG': 'Fusion',

@@ -1,96 +1,12 @@
 .stats-section {
+    position: absolute;
     width: 20%;
-    height: 100%;
-    position: relative;
-    left: 11.5%;
+    height: 98%;
+    padding: 0.357% 0;
+    left: 50%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    
-    --base-stat-height: 54px;
-    --reg-stat-height: 37px;
-    --gap-height: 4px;
-    --set-height: 51px;
-    --second-set-height: 57px;
-    
-    --twelve-stat-scale: 0.925;
-    --two-set-scale: 0.9;
-    
-    --base-stat-count: 6;
-    --reg-stat-count: 5;
-    --gap-count: 10;
-    --extra-stats: 0;
-    --has-second-set: 0;
-    
-    --base-height: calc(
-        (var(--base-stat-height) * var(--base-stat-count)) +
-        (var(--reg-stat-height) * var(--reg-stat-count)) +
-        (var(--gap-height) * var(--gap-count)) +
-        var(--set-height)
-    );
-    
-    --extra-height: calc(
-        (var(--extra-stats) * (var(--reg-stat-height) + var(--gap-height))) +
-        (var(--has-second-set) * var(--second-set-height))
-    );
-    
-    --natural-height: calc(var(--base-height) + var(--extra-height));
-    
-    transform-origin: top;
-}
-
-.stats-section:has(.stat-row:nth-child(12)) {
-    --extra-stats: 1;
-    transform: scale(var(--twelve-stat-scale));
-    
-    .stat-name.medium {
-        font-size: 20px;
-    }
-    
-    .stat-name.long {
-        font-size: 18px;
-    }
-    
-    .stat-icon { 
-        width: 26px;
-        height: 26px;
-    }
-}
-
-.stats-section:has(.set-row:nth-child(2)) {
-    --has-second-set: 1;
-    &:has(.stat-row:nth-child(11)) {
-        transform: scale(var(--two-set-scale));
-        
-        .stat-name.medium {
-            font-size: 19px;
-        }
-        
-        .stat-name.long {
-            font-size: 17px;
-        }
-        
-        .stat-icon { 
-            width: 24px;
-            height: 24px;
-        }
-        
-        .set-container {
-            gap: 3px;
-        }
-        
-        .set-row {
-            height: 42px;
-        }
-    }
-}
-
-.stats-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    height: 100%;
 }
 
 .stat-row {
@@ -98,34 +14,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 8px;
     transition: background-color 0.2s ease;
     border-radius: 8px;
-}
-
-.stat-row:hover .stat-breakdown {
-    transform: scale(1.2); 
-    transition: transform 0.2s ease, font-size 0.2s ease;
-    font-size: 16px;
-    margin-right: 5px;
-    letter-spacing: 1px;
-}
-
-.weapon-stat.weapon-attack.hover-highlight,.weapon-stat.weapon-main-stat.hover-highlight, .stat-row.hover-highlight, .main-stat-display.hover-highlight, .set-row.hover-highlight,
-.weapon-passive.hover-highlight, .simplified-node.circle.active.hover-highlight, .substat-container.hover-highlight {
-    background-color: rgba(17, 194, 238, 1);
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-    background-image: none !important;
-}
-
-.stat-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.stat-number, .stat-name{
-    color: #E2E8F0;
+    height: 7.5%;
+    width: 100%;
     text-shadow: 
         -1px -1px 0 #000,
         1px -1px 0 #000,
@@ -133,31 +25,38 @@
         1px 1px 0 #000;
 }
 
+.stat-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    max-width: 60%;
+}
+
+.stat-row.liberation .stat-left{
+    max-width: 70%;
+}
+
 .stat-number{
     font-size: 24px;
 }
 
-.stat-name{
-    transition: font-size 0.3s;
-    max-width: 200px;
+.stat-name {
+    color: #E2E8F0;
     font-size: 24px;
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1;
 }
 
-.stat-name.short {
-    font-size: 22px;
-}
-
-.stat-name.medium {
-    font-size: 21px;
-}
-
-.stat-name.long {
-    font-size: 19px;
+#build-tab.downloading .stat-name{
+    font-size: 28px;
 }
 
 .stat-icon {
-    width: 28px;
-    height: 28px;
+    aspect-ratio: 1;
+    height: 62%;
+    width: auto;
     object-fit: contain;
 }
 
@@ -167,7 +66,6 @@
     align-items: flex-end;
     letter-spacing: 0.5px;
 }
-
 
 .stat-breakdown {
     text-align: right;
@@ -180,28 +78,59 @@
     -webkit-text-fill-color: #a69662;
 }
 
-.set-container {
+.stat-row.fusion .stat-icon {
+    filter: brightness(0) saturate(100%) invert(62%) sepia(74%) saturate(2505%) hue-rotate(328deg) brightness(98%) contrast(93%);
+}
+
+.stat-row.aero .stat-icon {
+    filter: brightness(0) saturate(100%) invert(85%) sepia(10%) saturate(2204%) hue-rotate(92deg) brightness(99%) contrast(103%);
+}
+
+.stat-row.electro .stat-icon {
+    filter: brightness(0) saturate(100%) invert(56%) sepia(83%) saturate(3816%) hue-rotate(235deg) brightness(102%) contrast(100%);
+}
+
+.stat-row.healing .stat-icon {
+    filter: brightness(0) saturate(100%) invert(98%) sepia(39%) saturate(5256%) hue-rotate(22deg) brightness(101%) contrast(74%);
+}
+
+.stat-row.spectro .stat-icon {
+    filter: brightness(0) saturate(100%) invert(86%) sepia(48%) saturate(471%) hue-rotate(355deg) brightness(99%) contrast(97%);
+}
+
+.stat-row.havoc .stat-icon {
+    filter: brightness(0) saturate(100%) invert(79%) sepia(93%) saturate(407%) hue-rotate(279deg) brightness(85%) contrast(90%);
+}
+
+.stat-row.glacio .stat-icon {
+    filter: brightness(0) saturate(100%) invert(53%) sepia(66%) saturate(1335%) hue-rotate(183deg) brightness(105%) contrast(97%);
+}
+
+.set-section {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
-    height: 108px;
+    justify-content: flex-start;
     gap: 8px;
+    height: 4%;
+    width: 21%;
+    position: absolute;
+    bottom: 0;
+    left: 72.5%;
 }
 
 .set-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 8px;
-    height: 50px;
     width: 100%;
     border-radius: 8px;
 }
 
 .set-icon-container {
-    width: 32px;
-    height: 32px;
+    width: 16px;
+    height: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -209,19 +138,23 @@
 }
 
 .set-icon {
-    width: 32px;
-    height: 32px;
+    width: 16px;
+    height: 16px;
     object-fit: contain;
 }
 
 .set-name {
     color: #E2E8F0;
-    font-size: 42px;
     text-align: center;
+    font-size: 16px;
+}
+
+#build-tab.downloading .set-name{
+    font-size: 18px;
 }
 
 .set-count{
-    font-size: 28px;
+    font-size: 14px;
     text-align: center;
     padding: 2px 12px;
     background: rgba(0, 0, 0, .5);
@@ -305,4 +238,19 @@
 @keyframes fadeIn {
     from {opacity: 0;}
     to {opacity: 1;}
+}
+
+
+.stat-row:hover .stat-breakdown {
+    transform: scale(1.2); 
+    transition: transform 0.2s ease, font-size 0.2s ease;
+    font-size: 16px;
+    margin-right: 5px;
+    letter-spacing: 1px;
+}
+
+.weapon-stat.weapon-attack.hover-highlight,.weapon-stat.weapon-main-stat.hover-highlight, .stat-row.hover-highlight, .main-stat-display.hover-highlight, .set-row.hover-highlight,
+.weapon-passive.hover-highlight, .simplified-node.circle.active.hover-highlight, .substat-container.hover-highlight, .main-stat-icon.hover-highlight {
+    background-color: rgba(17, 194, 238, 1);
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
