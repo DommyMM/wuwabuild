@@ -108,33 +108,21 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const { values, baseValues, updates, cv } = useStats(statsInput);
 
   const calculateSets = useCallback((): Array<{ element: ElementType; count: number }> => {
-    const elementCounts: Record<ElementType, number> = {} as Record<ElementType, number>;
-    const usedEchoes = new Set();
-    
-    echoPanels.forEach(panel => {
-      if (panel.echo && !usedEchoes.has(panel.echo.name)) {
-        const element = panel.echo.elements.length === 1 
-          ? panel.echo.elements[0] 
-          : panel.selectedElement;
-        if (element) {
-          elementCounts[element] = (elementCounts[element] || 0) + 1;
-          usedEchoes.add(panel.echo.name);
-        }
-      }
-    });
+    const elementCounts = echoPanels.reduce((counts, panel) => {
+      if (!panel.echo) return counts;
+      const element = panel.selectedElement || panel.echo.elements[0];
+      counts[element] = (counts[element] || 0) + 1;
+      return counts;
+    }, {} as Record<ElementType, number>);
   
     return Object.entries(elementCounts)
       .filter(([_, count]) => count >= 2)
       .map(([element, count]) => ({
         element: element as ElementType,
-        count
+        count: count >= 5 ? 5 : 2
       }))
-      .sort((a, b) => {
-        const aIsFiveSet = a.count >= 5;
-        const bIsFiveSet = b.count >= 5;
-        if (aIsFiveSet !== bIsFiveSet) return bIsFiveSet ? 1 : -1;
-        return b.count - a.count;
-      });
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 2);
   }, [echoPanels]);
 
   const formatStatValue = (stat: StatName, value: number): string => {

@@ -33,12 +33,11 @@
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 1719px;
-    min-width: 1719px;
-    height: 600px;
+    width: 1739px;
+    min-width: 1739px;
+    height: 620px;
+    padding: 0px;
     margin-right: 0px;
-    padding: 10px;
     border-radius: 8px;
     transition: opacity 0.3s ease, transform 0.3s ease;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
@@ -51,7 +50,7 @@
 
 #build-tab.downloading {
     width: 1920px;
-    height: 670px;
+    height: 690px;
 }
 
 .options-container.visible {
@@ -284,7 +283,8 @@ input:-webkit-autofill {
 }
 
 .build-character-section {
-    position: absolute;
+    position: relative;
+    display: flex;
     width: 25%;
     height: 100%;
     left: 0%;
@@ -341,10 +341,9 @@ input:-webkit-autofill {
 }
 
 .build-intro {
-    position: absolute;
+    position: relative;
     height: 100%;
-    width: 20.5%; 
-    left: 29.25%;
+    width: 20.5%;
     top: 0%;
     z-index: 2;
     display: flex;
@@ -508,14 +507,14 @@ input:-webkit-autofill {
 }
 
 .build-sequence-container {
-    position: absolute;
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    left: 25.5%;
     z-index: 5;
     height: 100%;
     width: 3.5%;
+    margin: 0 .25% 0 .45%;
 }
 
 .build-sequence-node {
@@ -745,23 +744,36 @@ input:-webkit-autofill {
 }
 
 .echo-display {
-    width: 28%;
-    height: 95%;
-    position: absolute;
-    right: 0;
+    width: 30.25%;
+    height: 100%;
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 2%;
-    padding: 0 1% 1% 1%;
+    justify-content: center;
+    gap: 2.5%;
+}
+
+.row-container {
+    height: 17%;
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
 }
 
 .echo-row {
-    width: 95%;
-    height: 17.74%;  
+    width: 88%;
+    height: 100%;
     display: flex;
     align-items: center;
     border-radius: 8px;
     margin: 0 auto;
+}
+
+.connector-segment {
+    position: relative;
+    height: 100%;
+    width: 6%;
 }
 
 .echo-left {

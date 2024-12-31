@@ -7,6 +7,8 @@ export interface EchoDisplayProps {
   isVisible: boolean;
   echoPanels: EchoPanelState[];
   showRollQuality: boolean;
+  leftStates?: Array<'start' | 'continue' | 'end' | 'none'>;
+  rightStates?: Array<'start' | 'continue' | 'end' | 'none'>;
 }
 
 const EchoLeft: React.FC<{ 
@@ -55,10 +57,10 @@ const EchoLeft: React.FC<{
   );
 }, (prevProps, nextProps) => {
   return prevProps.panel.level === nextProps.panel.level &&
-         prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
-         prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
-         prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value &&
-         prevProps.element === nextProps.element;
+  prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
+  prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
+  prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value &&
+  prevProps.element === nextProps.element;
 });
 
 const EchoDivider = () => <div className="echo-divider" />;
@@ -164,18 +166,20 @@ const EchoRow: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> = (
 export const EchoDisplay: React.FC<EchoDisplayProps> = ({
   isVisible,
   echoPanels,
-  showRollQuality
+  showRollQuality,
+  leftStates = Array(5).fill('none'),
+  rightStates = Array(5).fill('none')
 }) => {
   if (!isVisible) return null;
 
   return (
     <div className="echo-display">
       {echoPanels.map((panel, index) => (
-        <EchoRow 
-          key={index}
-          panel={panel}
-          showRollQuality={showRollQuality}
-        />
+        <div key={index} className="row-container">
+          <div className={`connector-segment left ${leftStates[index]} ${panel.selectedElement?.toLowerCase() || ''}`} />
+          <EchoRow panel={panel} showRollQuality={showRollQuality} />
+          <div className={`connector-segment right ${rightStates[index]} ${panel.selectedElement?.toLowerCase() || ''}`} />
+        </div>
       ))}
     </div>
   );
