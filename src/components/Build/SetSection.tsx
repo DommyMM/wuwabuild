@@ -11,13 +11,6 @@ const SetRow: React.FC<SetRowProps> = ({ element, count }) => {
 
     return (
         <div className={`set-row ${element.toLowerCase()}`}>
-        <div className={`set-icon-container set-${element.toLowerCase()}`}>
-            <img
-            src={`images/Sets/${element}.png`}
-            alt={`${element} set icon`}
-            className="set-icon"
-            />
-        </div>
         <span className="set-name">{setName}</span>
         <span className="set-count">{count >= 5 ? '5' : '2'}</span>
         </div>
@@ -25,22 +18,29 @@ const SetRow: React.FC<SetRowProps> = ({ element, count }) => {
 };
 
 interface SetSectionProps {
-    sets: Array<{
-        element: ElementType;
-        count: number;
-    }>;
+    sets: Array<{ element: ElementType; count: number }>;
+    cv: number;
+    getCVClass: (cv: number) => string;
 }
-
-export const SetSection: React.FC<SetSectionProps> = ({ sets }) => {
-    if (sets.length === 0) return null;
+export const SetSection: React.FC<SetSectionProps> = ({ sets, cv, getCVClass }) => {
     return (
-        <div className="set-section">
-        {sets.map(set => (
-            <SetRow key={`set-${set.element}`}
-            element={set.element}
-            count={set.count}
-            />
-        ))}
+        <div className="stats-footer">
+            {sets[0] && (
+                <div className="set-info left">
+                    <SetRow element={sets[0].element} count={sets[0].count} />
+                </div>
+            )}
+            <div className="cv-container">
+                <span className="cv-text">CV:</span>
+                <span className={`cv-value ${getCVClass(cv)}`}>
+                    {cv.toFixed(1)}
+                </span>
+            </div>
+            {sets[1] && (
+                <div className="set-info right">
+                    <SetRow element={sets[1].element} count={sets[1].count} />
+                </div>
+            )}
         </div>
     );
 };

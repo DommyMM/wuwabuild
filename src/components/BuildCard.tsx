@@ -142,7 +142,38 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     [values, baseValues, updates]
   );
 
-  const elementSets = useMemo(() => calculateSets(), [calculateSets]);
+  const { elementSets, leftStates, rightStates } = useMemo(() => {
+    const sets = calculateSets();
+    const leftStates = Array(5).fill('none');
+    const rightStates = Array(5).fill('none');
+    sets.forEach((set, setIndex) => {
+      const states = setIndex === 0 ? leftStates : rightStates;
+      const element = set.element;
+      let startIndex = -1;
+      for (let i = 0; i < echoPanels.length; i++) {
+        const panelElement = echoPanels[i].selectedElement || echoPanels[i].echo?.elements[0];
+        if (panelElement === element) {
+          states[i] = 'start';
+          startIndex = i;
+          break;
+        }
+      }
+      if (startIndex !== -1) {
+        for (let i = echoPanels.length - 1; i > startIndex; i--) {
+          const panelElement = echoPanels[i].selectedElement || echoPanels[i].echo?.elements[0];
+          if (panelElement === element) {
+            states[i] = 'end';
+            for (let j = startIndex + 1; j < i; j++) {
+              const middleElement = echoPanels[j].selectedElement || echoPanels[j].echo?.elements[0];
+              states[j] = 'continue' + (middleElement === element ? ' connect' : '');
+            }
+            break;
+          }
+        }
+      }
+    });
+    return { elementSets: sets, leftStates, rightStates };
+  }, [echoPanels, calculateSets]);
 
   const handleGenerate = useCallback(() => {
     if (!isTabVisible) setIsTabVisible(true);
@@ -255,6 +286,11 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                   onImageChange={handleImageChange}
                   customImage={savedCustomImage}
                 >
+                <ForteSection character={{...selectedCharacter, name: displayName || selectedCharacter.name}}
+                  elementValue={elementValue}
+                  nodeStates={nodeStates}
+                  levels={levels}
+                />
                 {selectedWeapon && weaponStats && (
                   <WeaponSection weapon={selectedWeapon}
                     level={weaponConfig.level}
@@ -263,21 +299,10 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                     characterElement={elementValue} 
                   />
                 )}
-                <ForteSection character={{...selectedCharacter, name: displayName || selectedCharacter.name}}
-                  elementValue={elementValue}
-                  nodeStates={nodeStates}
-                  levels={levels}
-                />
                 </CharacterSection>
                 <StatSection isVisible={isTabVisible} stats={displayStats}/>
-                <EchoDisplay isVisible={isTabVisible} echoPanels={echoPanels} showRollQuality={showRollQuality} />
-                <SetSection sets={elementSets} />
-                <div className="cv-container">
-                  <span className="cv-text">CV:</span>
-                  <span className={`cv-value ${getCVClass(cv)}`}>
-                    {cv.toFixed(1)}
-                  </span>
-                </div>
+                <EchoDisplay isVisible={isTabVisible} echoPanels={echoPanels} showRollQuality={showRollQuality} leftStates={leftStates} rightStates={rightStates} />
+                <SetSection sets={elementSets} cv={cv} getCVClass={getCVClass} />
                 <div className="watermark-container">
                   <div className="watermark-username">{watermark.username}</div>
                   <div className="watermark-uid">{watermark.uid}</div>

@@ -172,13 +172,21 @@ export const EchoDisplay: React.FC<EchoDisplayProps> = ({
 }) => {
   if (!isVisible) return null;
 
+  const leftElement = leftStates.some(state => state !== 'none') ? 
+    (echoPanels.find(panel => panel.selectedElement || panel.echo?.elements[0])?.selectedElement || 
+    echoPanels.find(panel => panel.selectedElement || panel.echo?.elements[0])?.echo?.elements[0])?.toLowerCase() : '';
+
+  const rightElement = rightStates.some(state => state !== 'none') ? 
+    (echoPanels.find((panel, i) => rightStates[i] !== 'none')?.selectedElement || 
+    echoPanels.find((panel, i) => rightStates[i] !== 'none')?.echo?.elements[0])?.toLowerCase() : '';
+
   return (
     <div className="echo-display">
       {echoPanels.map((panel, index) => (
         <div key={index} className="row-container">
-          <div className={`connector-segment left ${leftStates[index]} ${panel.selectedElement?.toLowerCase() || ''}`} />
+          <div className={`connector-segment left ${leftStates[index]} ${leftElement}`} />
           <EchoRow panel={panel} showRollQuality={showRollQuality} />
-          <div className={`connector-segment right ${rightStates[index]} ${panel.selectedElement?.toLowerCase() || ''}`} />
+          <div className={`connector-segment right ${rightStates[index]} ${rightElement}`} />
         </div>
       ))}
     </div>

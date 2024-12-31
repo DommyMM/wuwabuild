@@ -19,6 +19,20 @@ export interface EchoPanelState {
   };
 }
 
+export interface SetInfo {
+  element: ElementType;
+  count: number;
+}
+
+export interface SetRowProps {
+  element: ElementType;
+  count: number;
+}
+
+export interface SetSectionProps {
+  sets: SetInfo[];
+}
+
 export const ELEMENT_SETS = {
   'Aero': 'Sierra Gale',
   'ER': 'Moonlit Clouds',
