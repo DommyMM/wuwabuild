@@ -123,11 +123,11 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
-    const newX = Math.min(Math.max(e.clientX - dragOffset.x, -400), 400);
-    const newY = Math.min(Math.max(e.clientY - dragOffset.y, -400), 400);
+    const newX = Math.min(Math.max(e.clientX - dragOffset.x, -300), 300);
+    const newY = Math.min(Math.max(e.clientY - dragOffset.y, -300), 300);
     
     setPosition({ x: newX, y: newY });
-  }, [isDragging, dragOffset]);
+    }, [isDragging, dragOffset]);
 
   const handleMouseUp = () => {
     setIsDragging(false);

@@ -1,8 +1,8 @@
 .stats-section {
     position: relative;
     width: 20%;
-    height: 96%;
-    padding: 0.714% 0;
+    height: 94%;
+    padding: 1.071% 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -42,14 +42,14 @@
 
 .stat-name {
     color: #E2E8F0;
-    font-size: 24px;
+    font-size: 22px;
     white-space: normal;
     word-wrap: break-word;
     line-height: 1;
 }
 
 #build-tab.downloading .stat-name, #build-tab.downloading .stat-number{
-    font-size: 28px;
+    font-size: 24px;
 }
 
 #build-tab.downloading .base-value, #build-tab.downloading .update-value{
@@ -111,12 +111,12 @@
 
 .echo-display {
     width: 30.25%;
-    height: 98%;
+    height: 94%;
     position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 0.33% 0 0.66% 0;
+    justify-content: space-between;
+    padding: 1.071% 0;
 }
 
 .row-container {
@@ -134,10 +134,6 @@
     align-items: center;
     border-radius: 8px;
     background: rgba(30, 30, 40, 0.8);
-}
-
-.row-container:nth-child(5) .echo-row {
-    transform: translateY(-5%);
 }
 
 .connector-segment {
