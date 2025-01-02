@@ -1,7 +1,8 @@
 import React from 'react';
-import { EchoPanelState } from '../../types/echo';
+import { EchoPanelState, ElementType } from '../../types/echo';
 import { getStatIconName } from '../../types/stats';
 import { useSubstats } from '../../hooks/useSub';
+import { SetSection } from './SetSection';
 
 export interface EchoDisplayProps {
   isVisible: boolean;
@@ -9,6 +10,9 @@ export interface EchoDisplayProps {
   showRollQuality: boolean;
   leftStates?: Array<'start' | 'continue' | 'end' | 'none'>;
   rightStates?: Array<'start' | 'continue' | 'end' | 'none'>;
+  sets: Array<{ element: ElementType; count: number }>;
+  cv: number;
+  getCVClass: (cv: number) => string;
 }
 
 const EchoLeft: React.FC<{ 
@@ -168,7 +172,10 @@ export const EchoDisplay: React.FC<EchoDisplayProps> = ({
   echoPanels,
   showRollQuality,
   leftStates = Array(5).fill('none'),
-  rightStates = Array(5).fill('none')
+  rightStates = Array(5).fill('none'),
+  sets,
+  cv,
+  getCVClass
 }) => {
   if (!isVisible) return null;
 
@@ -189,6 +196,7 @@ export const EchoDisplay: React.FC<EchoDisplayProps> = ({
           <div className={`connector-segment right ${rightStates[index]} ${rightElement}`} />
         </div>
       ))}
+      <SetSection sets={sets} cv={cv} getCVClass={getCVClass} />
     </div>
   );
 };

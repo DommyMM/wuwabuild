@@ -146,8 +146,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
 
   return (
     <>
-      <div className="build-character-section"
-        data-element={elementValue}
+      <div className="character-display" data-element={elementValue}
         onDragOver={handleDrag}
         onDragLeave={handleDrag}
         onDrop={handleDrop}
@@ -159,12 +158,12 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
       >
         {!customImage && (
           <img src={getCharacterIconPath(character)}
-            className="build-character-icon shadow"
+            className="character-icon shadow"
             alt="Character Shadow"
           />
         )}
         <img src={getCharacterIconPath(character)}
-          className={`build-character-icon ${isEditMode ? 'editable' : ''}`}
+          className={`character-icon ${isEditMode ? 'editable' : ''}`}
           alt={characterName}
           style={{ cursor: isEditMode ? 'move' : 'default' }}
           onMouseDown={handleMouseDown}

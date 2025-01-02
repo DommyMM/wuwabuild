@@ -6,7 +6,6 @@ import { WeaponSection } from './Build/WeaponSection';
 import { ForteSection } from './Build/ForteSection';
 import { EchoDisplay } from './Build/EchoDisplay';
 import { StatSection } from './Build/StatSection';
-import { SetSection } from './Build/SetSection';
 import { Character } from '../types/character';
 import { Weapon } from '../types/weapon';
 import { EchoPanelState, ElementType } from '../types/echo';
@@ -301,8 +300,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                 )}
                 </CharacterSection>
                 <StatSection isVisible={isTabVisible} stats={displayStats}/>
-                <EchoDisplay isVisible={isTabVisible} echoPanels={echoPanels} showRollQuality={showRollQuality} leftStates={leftStates} rightStates={rightStates} />
-                <SetSection sets={elementSets} cv={cv} getCVClass={getCVClass} />
+                <EchoDisplay isVisible={isTabVisible} echoPanels={echoPanels} showRollQuality={showRollQuality} leftStates={leftStates} rightStates={rightStates} sets={elementSets} cv={cv} getCVClass={getCVClass}/>
                 <div className="watermark-container">
                   <div className="watermark-username">{watermark.username}</div>
                   <div className="watermark-uid">{watermark.uid}</div>

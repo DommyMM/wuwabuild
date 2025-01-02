@@ -268,7 +268,6 @@ input:-webkit-autofill {
     font-size: 24px;
     font-family: 'Ropa', sans-serif;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-    z-index: 5;
 }
 
 .icon-container {
@@ -279,41 +278,39 @@ input:-webkit-autofill {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2;
 }
 
-.build-character-section {
+.character-display {
     position: relative;
     display: flex;
     width: 25%;
     height: 100%;
     left: 0%;
-    z-index: 2;
     border-radius: 0 16px 16px 0;
     overflow: hidden;
 }
 
-.build-character-section[data-element="Fusion"] {
+.character-display[data-element="Fusion"] {
     box-shadow: 2px 0 10px -2px rgb(240, 116, 78);
     border-right: 1.8px solid rgb(240, 116, 78);
 }
 
-.build-character-section[data-element="Glacio"] {
+.character-display[data-element="Glacio"] {
     box-shadow: 2px 0 10px -2px rgb(89, 207, 255);
     border-right: 1.8px solid rgb(89, 207, 255);
 }
 
-.build-character-section[data-element="Aero"] {
+.character-display[data-element="Aero"] {
     box-shadow: 2px 0 10px -2px rgb(106, 255, 154);
     border-right: 1.8px solid rgb(106, 255, 154);
 }
 
-.build-character-section[data-element="Electro"] {
+.character-display[data-element="Electro"] {
     box-shadow: 2px 0 10px -2px rgb(198, 127, 255);
     border-right: 1.8px solid rgb(198, 127, 255);
 }
 
-.build-character-icon {
+.character-icon {
     position: absolute;
     height: 100%;
     width: auto;
@@ -325,18 +322,17 @@ input:-webkit-autofill {
     z-index: 2;
 }
 
-.build-character-icon.shadow {
-    z-index: 1;
+.character-icon.shadow {
     opacity: 0.15;
     pointer-events: none;
     transform: translate(calc(var(--tx) + 75px), calc(var(--ty) - 60px)) scale(var(--scale));
 }
 
-.build-character-icon.editable {
+.character-icon.editable {
     cursor: move;
 }
 
-.build-character-icon.dragging {
+.character-icon.dragging {
     transition: none;
 }
 
@@ -345,7 +341,6 @@ input:-webkit-autofill {
     height: 100%;
     width: 20.5%;
     top: 0%;
-    z-index: 2;
     display: flex;
 }
 
@@ -431,7 +426,6 @@ input:-webkit-autofill {
     font-size: 26px;
     border-radius: 5px;
     cursor: pointer;
-    z-index: 2;
     background: rgba(0, 0, 0, .5);
 }
 
@@ -444,7 +438,6 @@ input:-webkit-autofill {
     font-size: 25px;
     border-radius: 5px;
     cursor: pointer;
-    z-index: 2;
     background: rgba(0, 0, 0, .5);
 }
 
@@ -472,7 +465,6 @@ input:-webkit-autofill {
     font-size: 26px;
     border-radius: 5px;
     cursor: pointer;
-    z-index: 2;
 }
 
 .weapon-stat.weapon-main-stat {
@@ -484,7 +476,6 @@ input:-webkit-autofill {
     font-size: 26px;
     border-radius: 5px;
     cursor: pointer;
-    z-index: 2;
 }
 
 .weapon-passive{
@@ -504,28 +495,25 @@ input:-webkit-autofill {
     transform: translateX(-5px);
 }
 
-.build-sequence-container {
+.sequence-display {
     position: relative;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    z-index: 5;
     height: 100%;
     width: 3.5%;
     margin: 0 .25% 0 .45%;
 }
 
-.build-sequence-node {
+.sequence-node {
     height: calc((100% - 50px)/6);
     position: relative;
-    z-index: 4;
 }
 
 .sequence-medallion {
     position: absolute;
     width: 100%;
     height: 100%;
-    z-index: 1;
 }
 
 .sequence-icon {
@@ -536,7 +524,6 @@ input:-webkit-autofill {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    z-index: 2;
 }
 
 .element-fusion .sequence-medallion {
@@ -563,8 +550,29 @@ input:-webkit-autofill {
     color: #ff1493;
 }
 
-.build-sequence-node.inactive .sequence-icon {
-    filter: blur(1px) invert(0.3);
+.sequence-node.inactive .sequence-icon {
+    filter: blur(1px) opacity(0.5);
+}
+
+.spikes, .accent {
+    opacity: 0.4;
+}
+
+.sequence-node.inactive .spike-border {
+    opacity: 0.3;
+}
+
+.lock {
+    color: #ffffff;
+    display: none;
+}
+
+.sequence-node.inactive .lock {
+    display: inline;
+}
+
+.lock-key {
+    color: #000000;
 }
 
 .sequence-image {
