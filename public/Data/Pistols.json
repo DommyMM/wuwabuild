@@ -9,6 +9,15 @@
         "passive_stat": "12.8"
     },
     {
+        "name": "The Last Dance",
+        "rarity": "5-star",
+        "ATK": "40",
+        "main_stat": "Crit DMG",
+        "base_main": "16",
+        "passive": "ATK%",
+        "passive_stat": "12"
+    },
+    {
         "name": "Cadenza",
         "rarity": "4-star",
         "ATK": "27",
@@ -35,6 +44,13 @@
         "ATK": "37",
         "main_stat": "ATK",
         "base_main": "4"
+    },
+    {
+        "name": "Romance in Farewell",
+        "rarity": "4-star",
+        "ATK": "37",
+        "main_stat": "ATK",
+        "base_main": "4.1"
     },
     {
         "name": "Thunderbolt",

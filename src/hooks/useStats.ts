@@ -14,7 +14,12 @@ const SET_TO_STAT_MAPPING = {
   'Lingering Tunes': 'ATK%',
   'Molten Rift': 'Fusion DMG',
   'Sun-sinking Eclipse': 'Havoc DMG',
-  'Rejuvenating Glow': 'Healing Bonus'
+  'Rejuvenating Glow': 'Healing Bonus',
+  'Midnight Veil': 'Havoc DMG',
+  'Empyrean Anthem': 'Energy Regen',
+  'Tidebreaking Courage': 'Energy Regen',
+  'Frosty Resolve': 'Resonance Skill DMG Bonus',
+  'Eternal Radiance': 'Spectro DMG'
 } as const;
 
 const calculateEchoDefaultStat = (cost: number, level: number): number => {
@@ -182,7 +187,9 @@ export const useStats = ({
           counts[element] = (counts[element] || 0) + 1;
           usedEchoes.add(panel.echo.name);
           
-          if (element === 'Attack' && counts[element] >= 2) {
+          if (element === 'Tidebreaking' && counts[element] === 5) {
+            bonus = 15;
+          } else if (element === 'Attack' && counts[element] >= 2) {
             bonus = 10;
           }
         }
@@ -216,9 +223,7 @@ export const useStats = ({
       result.baseValue = displayStat === 'HP' ? baseStats.baseHP : 
                         displayStat === 'ATK' ? baseStats.baseATK : 
                         baseStats.baseDEF;
-
       const flat = sumMainStats(baseStat, echoPanels) + sumSubStats(baseStat, echoPanels) + (baseStat === 'HP' ? echoStats.hp : baseStat === 'ATK' ? echoStats.atk : 0);
-
       let percent = sumMainStats(getPercentVariant(baseStat), echoPanels) + sumSubStats(getPercentVariant(baseStat), echoPanels);
 
       if (weapon && weaponStats) {
@@ -233,17 +238,13 @@ export const useStats = ({
           percent += atkPercentBonus;
         }
       }
-
       if (character.Bonus2 === displayStat) {
         percent += forteBonus.bonus2Total;
       }
-
       result.value = result.baseValue * (1 + percent/100) + flat;
       result.update = result.value - result.baseValue;
-
     } else {
       result.baseValue = displayStat === 'Crit Rate' ? 5.0 : displayStat === 'Crit DMG' ? 150.0 : displayStat === 'Energy Regen' ? character.ER : 0;
-
       result.update = sumMainStats(stat, echoPanels) + sumSubStats(stat, echoPanels);
 
       if (weapon && weaponStats) {
@@ -273,7 +274,11 @@ export const useStats = ({
             const setName = ELEMENT_SETS[element as ElementType];
             const statToUpdate = SET_TO_STAT_MAPPING[setName as keyof typeof SET_TO_STAT_MAPPING];
             if (statToUpdate === displayStat) {
-              result.update += 10;
+              if (setName === 'Frosty Resolve' && displayStat === 'Resonance Skill DMG Bonus') {
+                result.update += 12;
+              } else {
+                result.update += 10;
+              }
             }
           }
         });

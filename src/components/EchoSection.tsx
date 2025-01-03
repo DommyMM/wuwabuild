@@ -95,6 +95,12 @@ interface EchoPanelProps {
   onLoad?: () => void;
 }
 
+const getEchoLabelFontSize = (name?: string) => {
+  if (!name) return '30px';
+  if (name.length >= 26) return '22px';
+  return name.length < 24 ? '30px' : '26px';
+};
+
 export const EchoPanel: React.FC<EchoPanelProps> = ({
   index,
   panelData,
@@ -117,39 +123,24 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   return (
     <div className="echo-panel" id={`panel${index}`}>
       <div className="manual-section">
-        <p id="selectedEchoLabel" style={{ fontSize: '30px', textAlign: 'center' }}{...listener}>
+        <div id="selectedEchoLabel" style={{ fontSize: getEchoLabelFontSize(panelData.echo?.name) }}{...listener}>
           {panelData.echo?.name || `Echo ${index}`}
-        </p>
-        <div 
-          className="select-box" 
-          id="selectEcho" 
-          onClick={onSelect}
-          style={{ right: panelData.echo ? '10%' : '0' }}
+        </div>
+        <div className="select-box" id="selectEcho" 
+          onClick={onSelect} style={{ right: panelData.echo ? '10%' : '0' }}
         >
-          <img
-            src={panelData.echo ? `images/Echoes/${panelData.echo.name}.png` : 'images/Resources/Echo.png'}
+          <img src={panelData.echo ? `images/Echoes/${panelData.echo.name}.png` : 'images/Resources/Echo.png'}
             alt={panelData.echo?.name || 'Select Echo'}
-            className="select-img"
-            id="echoImg"
+            className="select-img" id="echoImg"
           />
         </div>
         {panelData.echo && (
-          <ElementTabs 
-            elements={panelData.echo.elements} 
-            onElementSelect={onElementSelect}
-            selectedElement={panelData.selectedElement}
-          />
+          <ElementTabs elements={panelData.echo.elements} onElementSelect={onElementSelect} selectedElement={panelData.selectedElement} />
         )}
       </div>
-      
       <div className="echo-level-container">
         <div className="echo-slider-group">
-          <input
-            type="range"
-            min="0"
-            max="25"
-            value={panelData.level || 0}
-            className="echo-slider"
+          <input type="range" min="0" max="25" value={panelData.level || 0} className="echo-slider"
             style={{
               background: `linear-gradient(to right, #ffd700 0%, #ff8c00 ${((panelData.level || 0)/25)*100}%, #d3d3d3 ${((panelData.level || 0)/25)*100}%)`
             }}
@@ -159,31 +150,15 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
         </div>
       </div>
       
-      <StatsTab
-        panelId={`panel${index}`}
-        cost={panelData.echo?.cost ?? null}
-        level={panelData.level}
-        stats={panelData.stats}
-        onMainStatChange={onMainStatChange}
-        onSubStatChange={onSubStatChange}
-      />
+      <StatsTab panelId={`panel${index}`} cost={panelData.echo?.cost ?? null} level={panelData.level} stats={panelData.stats} onMainStatChange={onMainStatChange} onSubStatChange={onSubStatChange}/>
 
-      <button className="clear-button" onClick={onReset}>
-        Reset
-      </button>
+      <button className="clear-button" onClick={onReset}> Reset </button>
 
       <div className="panel-actions">
-        <button 
-          className="action-button save"
-          onClick={onSave}
-          disabled={!panelData.echo}
-        >
+        <button className="action-button save" onClick={onSave} disabled={!panelData.echo}>
           Save
         </button>
-        <button 
-          className="action-button load"
-          onClick={onLoad}
-        >
+        <button className="action-button load" onClick={onLoad}>
           Load
         </button>
       </div>
@@ -310,10 +285,7 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
       <section className={`echoes-tab${isVisible ? ' visible' : ''}`} ref={ref}>
         {isVisible && (
           <>
-            <button 
-              onClick={handleMinimize}
-              className="echoes-header with-chevron"
-            >
+            <button onClick={handleMinimize} className="echoes-header with-chevron">
               Echoes Info
               {isMinimized ? <ChevronLeft size={20} /> : <ChevronDown size={20} />}
             </button>
@@ -340,15 +312,8 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                     </div>
                   )}
 
-                  <DndContext 
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext 
-                      items={initialPanels.map((_, i) => `panel-${i}`)}
-                      strategy={horizontalListSortingStrategy}
-                    >
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={initialPanels.map((_, i) => `panel-${i}`)} strategy={horizontalListSortingStrategy}>
                       <div className="echo-panels-container">
                         {panels.map((panel, i) => (
                           <SortablePanel key={`panel-${i}`} id={`panel-${i}`}>
@@ -393,15 +358,8 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                     <div className="cost-label">{cost} Cost</div>
                     <div className="echo-grid">
                       {echoesByCost[cost]?.map(echo => (
-                        <div 
-                          key={echo.name}
-                          className="echo-option"
-                          onClick={() => handleSelectEcho(echo)}
-                        >
-                          <img
-                            src={`images/Echoes/${echo.name}.png`}
-                            alt={echo.name}
-                            className="echo-img"
+                        <div key={echo.name} className="echo-option" onClick={() => handleSelectEcho(echo)}>
+                          <img src={`images/Echoes/${echo.name}.png`} alt={echo.name} className="echo-img"
                           />
                           <span className="echo-name">{echo.name}</span>
                         </div>
@@ -442,11 +400,7 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                         }
                       }}
                     >
-                      <img
-                        src={echo.echo ? 
-                          `images/Echoes/${echo.echo.name}.png` : 
-                          'images/Resources/Echo.png'
-                        }
+                      <img src={echo.echo ? `images/Echoes/${echo.echo.name}.png` : 'images/Resources/Echo.png'}
                         alt={echo.echo?.name || 'Empty Echo'}
                         className="echo-img"
                       />

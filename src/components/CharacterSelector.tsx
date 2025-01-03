@@ -49,21 +49,15 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
       <div className="manual-section">
         <div>Select Resonator:</div>
         <div className="select-box" onClick={() => setIsModalOpen(true)}>
-          <img 
-            src={selectedCharacter 
-              ? `images/Faces/${selectedCharacter.name}.png` 
-              : "/images/Resources/Resonator.png"} 
-            alt="Select Character" 
-            className="select-img"
-          />
+          <div className="select-img">
+            <img src={selectedCharacter ? `images/Faces/${selectedCharacter.name}.png` : "/images/Resources/Resonator.png"} 
+              alt="Select Character" className="select-img-inner" />
+          </div>
           {selectedCharacter && (
             <p id="selectedCharacterLabel">
-              <span 
-                className={`char-sig element-${selectedCharacter.element.toLowerCase()}`}
-                data-element={selectedCharacter.element}
-                data-weapontype={selectedCharacter.weaponType}
-                data-role={selectedCharacter.Role}
-              >
+              <span className={`char-sig element-${selectedCharacter.element.toLowerCase()}`}
+                data-element={selectedCharacter.element} data-weapontype={selectedCharacter.weaponType}
+                data-role={selectedCharacter.Role}>
                 {selectedCharacter.name}
               </span>
             </p>
@@ -73,29 +67,15 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
       {isModalOpen && (
         <div className="modal">
-          <div 
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} >
             <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
             <div className="character-list">
               {loading && <div className="loading">Loading...</div>}
               {error && <div className="error">{error}</div>}
               {characters.map(character => (
-                <div 
-                  key={character.name}
-                  className="character-option"
-                  onClick={() => handleCharacterSelect(character)}
-                >
-                  <div 
-                    className="border-wrapper"
-                    data-element={character.element}
-                  ></div>
-                  <img 
-                    src={`images/Faces/${character.name}.png`}
-                    alt={character.name}
-                    className="char-img"
-                  />
+                <div key={character.name} className="character-option" onClick={() => handleCharacterSelect(character)}>
+                  <div className="border-wrapper" data-element={character.element}></div>
+                  <img src={`images/Faces/${character.name}.png`} alt={character.name} className="char-img" />
                   <div className="char-label">{character.name}</div>
                 </div>
               ))}

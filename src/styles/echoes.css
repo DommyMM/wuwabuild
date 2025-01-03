@@ -277,9 +277,13 @@
 
 #selectedEchoLabel {
     position: relative;
-    width: 270px;
-    margin: 15px 15px;
+    width: 100%;
+    min-height: 36px;
+    margin: 15px 0;
     cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #selectedEchoLabel::before {
@@ -480,15 +484,17 @@
     gap: 2px;
     width: 25%;
     transform: translateX(70%);
+    height: 84px;
 }
 
 .element-tab {
-    height: 24px;
+    flex: 1;
     background-color: #2a2a2a;
     border: 1px solid;
     cursor: pointer;
     position: relative;
     transition: all 0.2s ease;
+    max-height: 28px;
 }
 
 .element-tab:hover {
@@ -569,6 +575,26 @@
 
 .set-name-display.healing {
     background-image: linear-gradient(to right, #00ff00, #32cd32, #98fb98, #228b22, #00ff00);
+}
+
+.set-name-display.empyrean {
+    background-image: linear-gradient(to right, #4ba3ff, #ffffff, #c6e2ff, #91c3ff, #4ba3ff);
+}
+
+.set-name-display.frosty {
+    background-image: linear-gradient(to right, #00ced1, #87ceeb, #b0e0e6, #ffffff, #00ffff);
+}
+
+.set-name-display.midnight {
+    background-image: linear-gradient(to right, #e086e0, #dda0dd, #ffffff, #d8bfd8, #e086e0);
+}
+
+.set-name-display.radiance {
+    background-image: linear-gradient(to right, #ffd700, #fff5b0, #ffffff, #ffe87c, #ffd700);
+}
+
+.set-name-display.tidebreaking {
+    background-image: linear-gradient(to right, #ffffff, #c0c0c0, #e8e8e8, #a9a9a9, #ffffff);
 }
 
 .stats-tab {

@@ -74,6 +74,7 @@
     text-align: right;
     font-size: 14px;
     transform: scale(1);
+    margin-right: 5px;
     transition: transform 0.2s ease, font-size 0.2s ease;
 }
 
@@ -294,6 +295,26 @@
 
 .connector-segment.healing {
     border-color: #2FE32F;
+}
+
+.connector-segment.empyrean {
+    border-color: #4ba3ff;
+}
+
+.connector-segment.frosty {
+    border-color: #87CEEB;
+}
+
+.connector-segment.midnight {
+    border-color: #e086e0;
+}
+
+.connector-segment.radiance {
+    border-color: #ffd54f;
+}
+
+.connector-segment.tidebreaking {
+    border-color: white;
 }
 
 .echo-left {
@@ -578,6 +599,26 @@
     border: 2px solid #2FE32F;
 }
 
+.set-empyrean {
+    border: 2px solid #4ba3ff;
+}
+
+.set-frosty {
+    border: 2px solid #87CEEB;
+}
+
+.set-midnight {
+    border: 2px solid #e086e0;
+}
+
+.set-radiance {
+    border: 2px solid #ffd54f;
+}
+
+.set-tidebreaking {
+    border: 2px solid white;
+}
+
 .set-row.aero .set-name { color: #98FB98; }
 .set-row.er .set-name { color: white; }
 .set-row.electro .set-name { color: #BA55D3; }
@@ -587,6 +628,11 @@
 .set-row.fusion .set-name { color: #D5740C; }
 .set-row.havoc .set-name { color: #FF1493; }
 .set-row.healing .set-name { color: #2FE32F; }
+.set-row.empyrean .set-name { color: #4ba3ff; }
+.set-row.frosty .set-name { color: #87CEEB; }
+.set-row.midnight .set-name { color: #e086e0; }
+.set-row.radiance .set-name { color: #ffd54f; }
+.set-row.tidebreaking .set-name { color: white; }
 
 .popuptext {
     visibility: hidden;
@@ -626,10 +672,9 @@
 }
 
 .stat-row:hover .stat-breakdown {
-    transform: scale(1.2) translate(-8px, -2px);
+    transform: scale(1.2) translate(-5px, -2px);
     transition: transform 0.2s ease, font-size 0.2s ease;
     font-size: 16px;
-    margin-right: 5px;
     letter-spacing: 1px;
     filter: drop-shadow(-0.3px -0.3px 0 #000) 
             drop-shadow(0.3px -0.3px 0 #000) 

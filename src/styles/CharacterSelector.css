@@ -31,6 +31,12 @@ h2 {
   margin-top: 20px;
 }
 
+.select-img-inner {
+  width: 90px;
+  object-fit: cover;
+  transform: translate(-5px);
+}
+
 .manual-section label {
   font-size: 30px;
   margin-bottom: 5px;
@@ -52,12 +58,11 @@ h2 {
 .char-label {
   font-size: 20px;
   color: #E0E0E0;
-  margin-top: 5px;
+  transform: translateY(-10px);
 }
 
 .char-img {
-  width: 80px;
-  height: 80px;
+  width: 100px;
   border-radius: 50%;
   position: relative;
   z-index: 2;
@@ -71,11 +76,14 @@ h2 {
   cursor: pointer;
   text-align: center;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .character-option .char-img {
-  transform: translateX(-2px);
-  transition: all 0.3s ease;
+  transform: translate(-1px, -8px);
+  transition: transform 0.3s ease;
+  transform-origin: center;
   object-fit: cover;
 }
 
@@ -168,10 +176,10 @@ h2 {
 
 @keyframes zoom {
   0% {
-    transform: scale(1);
+    transform: translate(-1px, -8px) scale(1);
   }
   100% {
-    transform: scale(1.2);
+    transform: translate(-1px, -8px) scale(1.2);
   }
 }
 
@@ -213,8 +221,7 @@ h2 {
     margin: 10px;
   }
   .char-img {
-    width: 60px;
-    height: 60px;
+    width: 80px;
   }
   .border-wrapper {
     width: 60px;

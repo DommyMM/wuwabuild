@@ -9,6 +9,15 @@
         "passive_stat": "12.8"
     },
     {
+        "name": "Tragicomedy",
+        "rarity": "5-star",
+        "ATK": "47",
+        "main_stat": "Crit Rate",
+        "base_main": "5.4",
+        "passive": "ATK%",
+        "passive_stat": "12"
+    },
+    {
         "name": "Verity's Handle",
         "rarity": "5-star",
         "ATK": "47",
@@ -44,6 +53,13 @@
         "ATK": "33",
         "main_stat": "ATK",
         "base_main": "6.7"
+    },
+    {
+        "name": "Legend of Drunken Hero",
+        "rarity": "4-star",
+        "ATK": "37",
+        "main_stat": "ATK",
+        "base_main": "4.1"
     },
     {
         "name": "Marcato",

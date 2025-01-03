@@ -41,10 +41,17 @@ export const ELEMENT_SETS = {
   'Glacio': 'Freezing Frost',
   'Attack': 'Lingering Tunes', 
   'Fusion': 'Molten Rift',
-  'Havoc': 'Sun-sinking Eclipse',
-  'Healing': 'Rejuvenating Glow'
+  'Havoc': 'Havoc Eclipse',
+  'Healing': 'Rejuvenating Glow',
+  'Empyrean': 'Empyrean Anthem',
+  'Frosty': 'Frosty Resolve',
+  'Midnight': 'Midnight Veil',
+  'Radiance': 'Eternal Radiance',
+  'Tidebreaking': 'Tidebreaking Courage'
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
 export type CostSection = typeof COST_SECTIONS[number];
-export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' | 'Attack' | 'Fusion' | 'Havoc' | 'Healing';
+export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' | 
+'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 
+'Frosty' | 'Midnight' | 'Radiance' | 'Tidebreaking';

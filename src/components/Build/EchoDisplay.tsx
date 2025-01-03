@@ -40,21 +40,23 @@ const EchoLeft: React.FC<{
             className="echo-display-icon"
           />
           <div className="echo-level-indicator">+{panel.level}</div>
-          {panel.stats.mainStat.type && (
-            <div className="main-stat-wrapper">
-              <img src={`images/SetIcons/${element}.png`}
-                alt={`${element} Set Icon`}
-                className="set"
-              />
-              <img src={`images/Stats/${getStatIconName(panel.stats.mainStat.type)}.png`}
-                alt={panel.stats.mainStat.type}
-                className={`main-stat-icon ${statClass}`}
-              />
-              <span className={`main-stat-display ${statClass}`}>
-                {formatMainStatValue(panel.stats.mainStat.value)}
-              </span>
-            </div>
-          )}
+          <div className="main-stat-wrapper">
+            <img src={`images/SetIcons/${element}.png`}
+              alt={`${element} Set Icon`}
+              className="set"
+            />
+            {panel.stats.mainStat.type && (
+              <>
+                <img src={`images/Stats/${getStatIconName(panel.stats.mainStat.type)}.png`}
+                  alt={panel.stats.mainStat.type}
+                  className={`main-stat-icon ${statClass}`}
+                />
+                <span className={`main-stat-display ${statClass}`}>
+                  {formatMainStatValue(panel.stats.mainStat.value)}
+                </span>
+              </>
+            )}
+          </div>
         </>
       )}
     </div>

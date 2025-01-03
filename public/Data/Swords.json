@@ -41,6 +41,13 @@
         "base_main": "4"
     },
     {
+        "name": "Fables of Wisdom",
+        "rarity": "4-star",
+        "ATK": "37",
+        "main_stat": "ATK",
+        "base_main": "4.1"
+    },
+    {
         "name": "Lumingloss",
         "rarity": "4-star",
         "ATK": "31",
