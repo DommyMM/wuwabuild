@@ -195,10 +195,23 @@
     color: red;
 }
 
-.fade-overlay{
+.fade-overlay {
     height: 105%;
     opacity: 0.35;
     line-height: 0;
+}
+
+.fade-overlay path {
+    opacity: 1;
+    mix-blend-mode: normal;
+    fill: #000;
+    fill-opacity: 1;
+    stroke: none;
+    stroke-width: 0.214241;
+    stroke-linecap: butt;
+    stroke-linejoin: miter;
+    stroke-opacity: 1;
+    filter: url(#b);
 }
 
 @keyframes fadeIn {
@@ -283,7 +296,7 @@ input:-webkit-autofill {
 .character-display {
     position: relative;
     display: flex;
-    width: 25%;
+    width: 26%;
     height: 100%;
     left: 0%;
     border-radius: 0 16px 16px 0;
@@ -334,165 +347,6 @@ input:-webkit-autofill {
 
 .character-icon.dragging {
     transition: none;
-}
-
-.build-intro {
-    position: relative;
-    height: 100%;
-    width: 20.5%;
-    top: 0%;
-    display: flex;
-}
-
-.build-character-name, .build-character-level {
-    position: absolute;
-    font-family: 'Gowun', sans-serif;
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-}
-
-.build-character-name {
-    top: 0%;
-    font-size: 45px;
-    letter-spacing: 2px;
-}
-
-.build-character-level {
-    top: 10%;
-    font-size: 36px;
-}
-
-.element-icon, .role-icon{
-    position: absolute;
-    width: 50px;
-    top: 10%;
-    left: 40%;
-}
-
-.element-icon{
-    transform: translateX(50px);
-}
-
-.build-weapon-container {
-    position: absolute;
-    height: 30%;
-    width: 100%;
-    left: 0%;
-    bottom: 5%;
-    display: flex;
-}
-
-.build-weapon-icon {
-    position: absolute;
-    max-height: 83%;
-    bottom: 0%;
-    object-fit: contain;
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 8px; 
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.build-weapon-star-container {
-    position: absolute;
-    width: 45%;
-    left: 0%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 2px;
-}
-
-.star-icon {
-    width: calc((100% - 8px)/5);
-    object-fit: contain;
-    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
-}
-
-.weapon-info{
-    width: 52.5%;
-    height: 74.2%;
-    left: 47%;
-    bottom: 10%;
-    position: absolute;
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-}
-
-.weapon-stat.weapon-rank {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 20%; 
-    height: 30px;
-    font-size: 26px;
-    border-radius: 5px;
-    cursor: pointer;
-    background: rgba(0, 0, 0, .5);
-}
-
-.weapon-stat.weapon-level {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 30%; 
-    height: 30px;
-    font-size: 25px;
-    border-radius: 5px;
-    cursor: pointer;
-    background: rgba(0, 0, 0, .5);
-}
-
-.weapon-stat-row {
-    display: flex;
-    justify-content: flex-start;
-    gap: 10%;
-    margin-bottom: 5px;
-}
-
-.weapon-stat.weapon-name{
-    width: 100%;
-    text-align: center;
-    justify-content: flex-start;
-    font-size: 28px;
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-}
-
-.weapon-stat.weapon-attack {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 35%; 
-    height: 30px;
-    font-size: 26px;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.weapon-stat.weapon-main-stat {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 50%; 
-    height: 30px;
-    font-size: 26px;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.weapon-passive{
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    font-size: 28px;
-    white-space: pre-line;
-    text-align: center;
-    border-radius: 8px;
-}
-
-.stat-icon-img {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-    transform: translateX(-5px);
 }
 
 .sequence-display {
@@ -584,11 +438,50 @@ input:-webkit-autofill {
     background-repeat: no-repeat;
 }
 
+.char-intro {
+    position: relative;
+    height: 100%;
+    width: 20.5%;
+    display: flex;
+    flex-direction: column;
+    gap: 2%;
+}
+
+.char-header {
+    width: 98%;
+    height: 18%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: 'Gowun', sans-serif;
+    font-size: 45px;
+    letter-spacing: 2px;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    padding-left: 2%;
+}
+
+.character-name {
+    height: 50%;
+}
+
+.char-header-bottom {
+    display: flex;
+    align-items: center;
+    height: 50%;
+}
+
+.character-level {
+    font-size: 36px;
+    margin-right: 15px;
+}
+
+.element-icon, .role-icon {
+    height: 50px;
+}
+
 .simplified-forte {
-    position: absolute;
-    width: 100%;
+    position: relative;
     height: 39%;
-    top: 20%;
     display: flex;
     justify-content: flex-start;
 }
@@ -607,8 +500,7 @@ input:-webkit-autofill {
     margin-right: 1%;
 }
 
-.simplified-branch:nth-child(2),
-.simplified-branch:nth-child(3) {
+.simplified-branch:nth-child(2), .simplified-branch:nth-child(3) {
     margin-right: 3%;
 }
 
@@ -747,6 +639,127 @@ input:-webkit-autofill {
     left: 45.25%;
     transform: translate(-50%, 30%);
     z-index: 0.5;
+}
+
+.weapon-container {
+    position: relative;
+    height: 30%;
+    margin-top: 7%;
+    display: flex;
+}
+
+.weapon-icon {
+    position: absolute;
+    max-height: 83%;
+    bottom: 0%;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 8px; 
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.weapon-star-container {
+    position: absolute;
+    width: 45%;
+    left: 0%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+}
+
+.star-icon {
+    width: calc((100% - 8px)/5);
+    object-fit: contain;
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+}
+
+.weapon-info{
+    width: 52.5%;
+    height: 74.2%;
+    left: 47%;
+    bottom: 10%;
+    position: absolute;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.weapon-stat.weapon-rank {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 20%; 
+    height: 30px;
+    font-size: 26px;
+    border-radius: 5px;
+    cursor: pointer;
+    background: rgba(0, 0, 0, .5);
+}
+
+.weapon-stat.weapon-level {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 30%; 
+    height: 30px;
+    font-size: 25px;
+    border-radius: 5px;
+    cursor: pointer;
+    background: rgba(0, 0, 0, .5);
+}
+
+.weapon-stat-row {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10%;
+    margin-bottom: 5px;
+}
+
+.weapon-stat.weapon-name{
+    width: 100%;
+    text-align: center;
+    justify-content: flex-start;
+    font-size: 28px;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.weapon-stat.weapon-attack {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 35%; 
+    height: 30px;
+    font-size: 26px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.weapon-stat.weapon-main-stat {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50%; 
+    height: 30px;
+    font-size: 26px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.weapon-passive{
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    font-size: 28px;
+    white-space: pre-line;
+    text-align: center;
+    border-radius: 8px;
+}
+
+.stat-icon-img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    transform: translateX(-5px);
 }
 
 @media (max-width: 1200px) {

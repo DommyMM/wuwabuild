@@ -138,10 +138,7 @@ export const ForteSection: React.FC<ForteSectionProps> = ({
           level={levels[branch.name] || 1}
         />
       ))}
-      <img className="max"
-        src="images/Resources/Max.png"
-        alt="Forte Max Frame"
-      />
+      <img className="max" src="images/Resources/Max.png" alt="Forte Max Frame" />
     </div>
   );
 };

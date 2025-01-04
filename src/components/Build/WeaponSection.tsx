@@ -10,7 +10,7 @@ interface WeaponSectionProps {
 }
 
 const WeaponIcon = React.memo<{ src: string }>(({ src }) => (
-  <img src={src} className="build-weapon-icon" alt="Weapon" />
+  <img src={src} className="weapon-icon" alt="Weapon" />
 ));
 
 const WeaponName = React.memo<{ name: string }>(({ name }) => (
@@ -47,7 +47,7 @@ const StatsBottomRow = React.memo<{
 const RarityStars: React.FC<{ rarity: string }> = ({ rarity }) => {
   const starCount = parseInt(rarity.charAt(0));
   return (
-    <div className="build-weapon-star-container">
+    <div className="weapon-star-container">
       {[...Array(starCount)].map((_, i) => (
         <img 
           key={i} 
@@ -100,7 +100,7 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
   });
 
   return (
-    <div className="build-weapon-container">
+    <div className="weapon-container">
       <div className="weapon-info">
         <WeaponName name={weapon.name} />
         <StatsTopRow scaledAtk={scaledStats.scaledAtk} weapon={weapon} scaledMainStat={scaledStats.scaledMainStat} />

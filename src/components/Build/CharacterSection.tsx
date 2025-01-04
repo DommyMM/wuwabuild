@@ -172,29 +172,14 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         />
         <svg className="fade-overlay" xmlns="http://www.w3.org/2000/svg" width="515" height="620" viewBox="0 0 136.26 152.595" preserveAspectRatio="none">
           <defs>
-            <clipPath id="a" clipPathUnits="userSpaceOnUse">
-              <path d="M0 0h136.26v157.692H0z" />
-            </clipPath>
-            <filter id="b" width="1.285" height="1.248" x="-.143" y="-.124" style={{colorInterpolation: 'sRGB'}}>
-              <feGaussianBlur stdDeviation="11.948"/>
-            </filter>
+              <clipPath id="a" clipPathUnits="userSpaceOnUse">
+                  <path d="M0 0h136.26v157.692H0z" />
+              </clipPath>
+              <filter id="b" width="1.285" height="1.248" x="-.143" y="-.124" style={{colorInterpolation: 'sRGB'}}>
+                  <feGaussianBlur stdDeviation="11.948"/>
+              </filter>
           </defs>
-          <path 
-            d="M23.9 133.254C6.144 109.126 10.415 49.44 38.903 23.5 62.722-.756 157.412-35.53 181.544-46.292L-19.41-26.26v211.105l164.577-.979c-16.631-6.196-98.961-26.949-121.267-50.612Z" 
-            clipPath="url(#a)" 
-            style={{
-              opacity: 1,
-              mixBlendMode: 'normal',
-              fill: '#000',
-              fillOpacity: 1,
-              stroke: 'none',
-              strokeWidth: 0.214241,
-              strokeLinecap: 'butt',
-              strokeLinejoin: 'miter',
-              strokeOpacity: 1,
-              filter: 'url(#b)'
-            }}
-          />
+          <path d="M23.9 133.254C6.144 109.126 10.415 49.44 38.903 23.5 62.722-.756 157.412-35.53 181.544-46.292L-19.41-26.26v211.105l164.577-.979c-16.631-6.196-98.961-26.949-121.267-50.612Z" clipPath="url(#a)" />
         </svg>
         {isEditMode && (
           <>
@@ -221,18 +206,18 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
           </div>
         )}
       </div>
-      
       <SequenceSection character={character} isSpectro={isSpectro} currentSequence={currentSequence} />
-
-      <div className="build-intro">
-        <div className="build-character-name">{characterName}</div>
-        <div className="build-character-level">Lv.{level}/90</div>
-        <img 
-          src={`images/Roles/${character.Role}.png`}
-          className="role-icon"
-          alt={character.Role}/>
-        <img src={`images/Elements/${elementValue}.png`}
-          className="element-icon" alt={elementValue}/>
+      <div className="char-intro">
+        <div className='char-header'>
+            <div className="character-name">{characterName}</div>
+            <div className="char-header-bottom">
+                <div className="character-level">Lv.{level}/90</div>
+                <img src={`images/Roles/${character.Role}.png`}
+                    className="role-icon" alt={character.Role}/>
+                <img src={`images/Elements/${elementValue}.png`}
+                    className="element-icon" alt={elementValue}/>
+            </div>
+        </div>
         {children}
       </div>
     </>
