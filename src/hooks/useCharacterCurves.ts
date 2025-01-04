@@ -53,7 +53,7 @@ export const useCharacterCurves = () => {
     const curve = curves.CHARACTER_CURVE[levelKey];
     if (!curve) return baseStat;
 
-    return baseStat * (curve[statType] / 10000);
+    return Math.floor(baseStat * (curve[statType] / 10000));
   }, [curves]);
 
   return {

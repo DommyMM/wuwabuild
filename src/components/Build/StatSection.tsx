@@ -47,10 +47,10 @@ const StatRow: React.FC<StatRowProps> = ({ name, value, baseValue, update }) => 
         {showBreakdown && typeof update === 'number' && update !== 0 && (
           <div className="stat-breakdown">
             {isBaseStatType && typeof baseValue === 'number' && (
-              <span className="base-value">{baseValue.toFixed(1)}</span>
+              <span className="base-value">{baseValue}</span>
             )}
             <span className="update-value">
-              {isBaseStatType ? ` + ${update.toFixed(1)}` : `+${update.toFixed(1)}%`}
+              {isBaseStatType ? ` + ${update}` : `+${update}%`}
             </span>
           </div>
         )}

@@ -60,9 +60,9 @@ export const useLevelCurves = () => {
   };
 
   const scaleAtk = (baseAtk: number, level: number): number => {
-    if (!curves) return baseAtk;
-    const key = getLevelKey(level);
-    return parseFloat((baseAtk * curves.ATK_CURVE[key]).toFixed(1));
+      if (!curves) return baseAtk;
+      const key = getLevelKey(level);
+      return Math.floor(baseAtk * curves.ATK_CURVE[key]);
   };
 
   const scaleStat = (baseStat: number, level: number): number => {

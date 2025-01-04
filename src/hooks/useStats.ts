@@ -241,7 +241,7 @@ export const useStats = ({
       if (character.Bonus2 === displayStat) {
         percent += forteBonus.bonus2Total;
       }
-      result.value = result.baseValue * (1 + percent/100) + flat;
+      result.value = Math.round(result.baseValue * (1 + percent/100)) + flat;
       result.update = result.value - result.baseValue;
     } else {
       result.baseValue = displayStat === 'Crit Rate' ? 5.0 : displayStat === 'Crit DMG' ? 150.0 : displayStat === 'Energy Regen' ? character.ER : 0;

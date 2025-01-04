@@ -170,6 +170,14 @@
     border-radius: 2px;
 }
 
+.connector-segment.left.start{
+    border-top-left-radius: 8px;
+}
+
+.connector-segment.right.start{
+    border-top-right-radius: 8px;
+}
+
 .connector-segment.left.start::before {
     right: 0;
 }
@@ -261,6 +269,18 @@
     width: 0;
 }
 
+.connector-segment.left.end {
+    border-bottom-left-radius: 8px;
+}
+
+.connector-segment.right.end {
+    border-bottom-right-radius: 8px;
+}
+
+.row-container:nth-child(5) .connector-segment.end {
+    border-radius: 0;
+}
+
 .connector-segment.aero {
     border-color: #98FB98;
 }
@@ -335,8 +355,7 @@
 
 .set {
     margin: 3px 0;
-    height: 32px;
-    width: 32px;
+    height: 28px;
 }
 
 .main-stat-wrapper {
@@ -348,22 +367,25 @@
 }
 
 .main-stat-icon {
-    height: 30px;
-    width: 30px;
+    height: 26px;
     border-radius: 8px 8px 0 0;
+}
+
+#build-tab.downloading .main-stat-icon {
+    height: 30px;
 }
 
 .main-stat-display {
     color: white;
-    font-size: 30px;
-    text-shadow: 
-        -2px -2px 4px #000,
-        2px -2px 4px #000,
-        -2px 2px 4px #000,
-        2px 2px 4px #000;
+    font-size: 28px;
+    text-shadow: -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000, 2px 2px 4px #000;
     border-radius: 8px 0 8px 8px;
     padding-left: 6px;
     padding-right: 2px;
+}
+
+#build-tab.downloading .main-stat-display {
+    font-size: 30px;
 }
 
 .echo-level-indicator {
@@ -373,8 +395,9 @@
     padding: 2px 4px;
     font-size: 24px;
     background: rgba(0, 0, 0, .2);
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(1px);
     border-radius: 4px;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
 .echo-divider {
@@ -431,11 +454,7 @@
 .substat-value {
     color: white;
     font-size: 24px;
-    text-shadow: 
-        -1px -1px 0 #000,
-        1px -1px 0 #000,
-        -1px 1px 0 #000,
-        1px 1px 0 #000;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
 #build-tab.downloading .substat-value {
