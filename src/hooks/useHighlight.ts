@@ -20,7 +20,7 @@ export const useStatHighlight = () => {
           `.stat-row.${statClass}`, `.substat-container.${statClass}`, `.weapon-stat.weapon-attack.${statClass}`,
           `.weapon-stat.weapon-main-stat.${statClass}`, `.weapon-passive.${statClass}`, `.main-stat-display.${statClass}`,
           `.main-stat-icon.${statClass}`, `.set-row.${statClass}`, `.simplified-node.active.${statClass}`,
-          `.connector-segment.${statClass}`
+          `.connector-segment.${statClass}`, `.echo-display-icon.${statClass}`
         ].join(', ');
         
         const relatedElements = document.querySelectorAll(selector);

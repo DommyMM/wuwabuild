@@ -3,7 +3,7 @@ import { StatName, BaseStatName, getPercentVariant } from '../types/stats';
 import { Character } from '../types/character';
 import { Weapon, ScaledWeaponStats } from '../types/weapon';
 import { useCharacterCurves } from './useCharacterCurves';
-import { EchoPanelState, ELEMENT_SETS, ElementType } from '../types/echo';
+import { EchoPanelState, ELEMENT_SETS, ElementType, ECHO_BONUSES } from '../types/echo';
 
 const SET_TO_STAT_MAPPING = {
   'Sierra Gale': 'Aero DMG',
@@ -208,6 +208,9 @@ export const useStats = ({
     return sumEchoDefaultStats(echoPanels);
   }, [echoPanels]);
 
+  const firstPanelName = echoPanels[0]?.echo?.name;
+  const firstPanelBonus = useMemo(() => firstPanelName ? ECHO_BONUSES[firstPanelName] : null, [firstPanelName]);
+
   const calculateStats = useCallback((stat: StatName) => {
     if (!character || !baseStats || !forteBonus) return null;
 
@@ -244,8 +247,18 @@ export const useStats = ({
       result.value = Math.round(result.baseValue * (1 + percent/100)) + flat;
       result.update = result.value - result.baseValue;
     } else {
-      result.baseValue = displayStat === 'Crit Rate' ? 5.0 : displayStat === 'Crit DMG' ? 150.0 : displayStat === 'Energy Regen' ? character.ER : 0;
+      result.baseValue = displayStat === 'Crit Rate' ? 5.0 : 
+                        displayStat === 'Crit DMG' ? 150.0 : 
+                        displayStat === 'Energy Regen' ? character.ER : 0;
+      
       result.update = sumMainStats(stat, echoPanels) + sumSubStats(stat, echoPanels);
+
+      if (firstPanelBonus) {
+        const bonusForStat = firstPanelBonus.find(bonus => bonus.stat === displayStat);
+        if (bonusForStat) {
+          result.update += bonusForStat.value;
+        }
+      }
 
       if (weapon && weaponStats) {
         const weaponStatName = displayStat === 'Energy Regen' ? 'ER' : displayStat;
@@ -293,7 +306,7 @@ export const useStats = ({
     }
 
     return result;
-  }, [character, baseStats, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats]);
+  }, [character, baseStats, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats, firstPanelBonus]);
 
   const calculateCV = useCallback(() => {
     const critRate = sumMainStats('Crit Rate', echoPanels) + sumSubStats('Crit Rate', echoPanels);

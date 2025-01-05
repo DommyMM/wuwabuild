@@ -349,6 +349,7 @@
 .echo-display-icon {
     height: 100%;
     border-radius: 8px;
+    padding-right: 13.525%;
     mask: linear-gradient(to right, black 30%, transparent 90%);
     -webkit-mask: linear-gradient(to right, black 30%, transparent 90%);
 }
@@ -685,9 +686,11 @@
 }
 
 .weapon-stat.weapon-attack.hover-highlight,.weapon-stat.weapon-main-stat.hover-highlight, .stat-row.hover-highlight, .main-stat-display.hover-highlight, .connector-segment:not(.none).hover-highlight,
-.weapon-passive.hover-highlight, .simplified-node.circle.active.hover-highlight, .substat-container.hover-highlight, .main-stat-icon.hover-highlight , .set-row.hover-highlight {
+.weapon-passive.hover-highlight, .simplified-node.circle.active.hover-highlight, .substat-container.hover-highlight, .main-stat-icon.hover-highlight , .set-row.hover-highlight, 
+.row-container:nth-child(1) .echo-display-icon.hover-highlight {
     background-color: rgba(17, 194, 238, 1);
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    mask-image: none;
 }
 
 .stat-row:hover .stat-breakdown {

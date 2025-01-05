@@ -1,3 +1,5 @@
+import { StatName } from './stats';
+
 export interface Echo {
   name: string;
   cost: number;
@@ -55,3 +57,47 @@ export type CostSection = typeof COST_SECTIONS[number];
 export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' | 
 'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 
 'Frosty' | 'Midnight' | 'Radiance' | 'Tidebreaking';
+
+interface EchoBonus {
+  stat: StatName;
+  value: number;
+}
+
+export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = {
+  'Lorelei': [
+    { stat: 'Havoc DMG', value: 12 },
+    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
+  ],
+  'Sentry Construct': [
+    { stat: 'Glacio DMG', value: 12 },
+    { stat: 'Resonance Skill DMG Bonus', value: 12 }
+  ],
+  'Dragon of Dirge': [
+    { stat: 'Fusion DMG', value: 12 },
+    { stat: 'Basic Attack DMG Bonus', value: 12 }
+  ],
+  'Nightmare Feilian': [
+    { stat: 'Aero DMG', value: 12 },
+    { stat: 'Heavy Attack DMG Bonus', value: 12 }
+  ],
+  'Nightmare Impermanence': [
+    { stat: 'Havoc DMG', value: 12 },
+    { stat: 'Heavy Attack DMG Bonus', value: 12 }
+  ],
+  'Nightmare Thundering Mephis': [
+    { stat: 'Electro DMG', value: 12 },
+    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
+  ],
+  'Nightmare Tempest Mephis': [
+    { stat: 'Electro DMG', value: 12 },
+    { stat: 'Resonance Skill DMG Bonus', value: 12 }
+  ],
+  'Nightmare Crownless': [
+    { stat: 'Havoc DMG', value: 12 },
+    { stat: 'Basic Attack DMG Bonus', value: 12 }
+  ],
+  'Nightmare Ride': [
+    { stat: 'Fusion DMG', value: 12 },
+    { stat: 'Resonance Skill DMG Bonus', value: 12 }
+  ]
+} as const;

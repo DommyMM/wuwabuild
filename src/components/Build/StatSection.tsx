@@ -17,7 +17,6 @@ const formatClassName = (name: string): string => {
     .replace(/(\s|%)+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
-    
   return cleanedName;
 };
 

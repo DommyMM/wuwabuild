@@ -3,6 +3,7 @@ import { EchoPanelState, ElementType } from '../../types/echo';
 import { getStatIconName } from '../../types/stats';
 import { useSubstats } from '../../hooks/useSub';
 import { SetSection } from './SetSection';
+import { ECHO_BONUSES } from '../../types/echo';
 
 export interface EchoDisplayProps {
   isVisible: boolean;
@@ -27,6 +28,21 @@ const EchoLeft: React.FC<{
     [panel.stats.mainStat.type]
   );
 
+  const bonusClasses = React.useMemo(() => {
+    if (!panel.echo?.name) return '';
+    const bonuses = ECHO_BONUSES[panel.echo.name];
+    if (!bonuses) return '';
+
+    return bonuses
+      .map(bonus => bonus.stat.toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/%/g, '')
+        .replace('-dmg', '')
+        .replace('resonance-', '')
+        .replace('-bonus', ''))
+      .join(' ');
+  }, [panel.echo?.name]);
+
   const formatMainStatValue = React.useCallback((value: number | null): string => {
     return value ? `${value.toFixed(1)}%` : '0';
   }, []);
@@ -37,7 +53,7 @@ const EchoLeft: React.FC<{
         <>
           <img src={`images/Echoes/${panel.echo.name}.png`}
             alt={panel.echo.name}
-            className="echo-display-icon"
+            className={`echo-display-icon ${bonusClasses}`}
           />
           <div className="echo-level-indicator">+{panel.level}</div>
           <div className="main-stat-wrapper">
@@ -63,10 +79,10 @@ const EchoLeft: React.FC<{
   );
 }, (prevProps, nextProps) => {
   return prevProps.panel.level === nextProps.panel.level &&
-  prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
-  prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
-  prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value &&
-  prevProps.element === nextProps.element;
+    prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
+    prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
+    prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value &&
+    prevProps.element === nextProps.element;
 });
 
 const EchoDivider = () => <div className="echo-divider" />;
