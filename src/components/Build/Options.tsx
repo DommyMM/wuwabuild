@@ -7,16 +7,20 @@ interface OptionsProps {
     uid: string;
   };
   showRollQuality: boolean;
+  useAltSkin: boolean;
   onWatermarkChange: (watermark: { username: string; uid: string }) => void;
   onRollQualityChange: (checked: boolean) => void;
+  onSkinChange: (checked: boolean) => void;
   className?: string;
 }
 
 export const Options: React.FC<OptionsProps> = ({
   watermark,
   showRollQuality,
+  useAltSkin,
   onWatermarkChange,
   onRollQualityChange,
+  onSkinChange,
   className
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,6 +74,17 @@ export const Options: React.FC<OptionsProps> = ({
           />
           <label htmlFor="roll-value" className="roll-label">
             Roll Quality
+          </label>
+        </div>
+        <div className="checkbox-container">
+          <input type="checkbox"
+            id="alt-skin"
+            className="roll-checkbox"
+            checked={useAltSkin}
+            onChange={(e) => onSkinChange(e.target.checked)}
+          />
+          <label htmlFor="alt-skin" className="roll-label">
+            Use Skin
           </label>
         </div>
       </div>

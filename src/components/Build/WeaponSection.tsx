@@ -7,11 +7,25 @@ interface WeaponSectionProps {
   level: number;
   scaledStats: ScaledWeaponStats;
   characterElement?: string;
+  useAltSkin?: boolean;
 }
 
-const WeaponIcon = React.memo<{ src: string }>(({ src }) => (
-  <img src={src} className="weapon-icon" alt="Weapon" />
-));
+const getWeaponPath = (weapon: Weapon, useAltSkin: boolean = false) => {
+  const basePath = `images/Weapons/${weapon.type}/${encodeURIComponent(weapon.name)}`;
+  if (useAltSkin) {
+    const skinPath = `${basePath}2.png`;
+    const img = new Image();
+    img.src = skinPath;
+    return img.complete ? skinPath : `${basePath}.png`;
+  }
+  return `${basePath}.png`;
+};
+
+const WeaponIcon = React.memo<{ weapon: Weapon; useAltSkin?: boolean }>(
+  ({ weapon, useAltSkin = false }) => (
+    <img src={getWeaponPath(weapon, useAltSkin)} className="weapon-icon" alt="Weapon" />
+  )
+);
 
 const WeaponName = React.memo<{ name: string }>(({ name }) => (
   <div className="weapon-stat weapon-name">{name}</div>
@@ -65,7 +79,8 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
   rank,
   level,
   scaledStats,
-  characterElement
+  characterElement,
+  useAltSkin = false
 }) => {
   const getPassiveClasses = useCallback((
     passiveName: string, 
@@ -108,7 +123,7 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
         <PassiveText weapon={weapon} scaledStats={scaledStats} characterElement={characterElement} />
       </div>
       <RarityStars rarity={weapon.rarity} />
-      <WeaponIcon src={`images/Weapons/${weapon.type}/${encodeURIComponent(weapon.name)}.png`} />
+      <WeaponIcon weapon={weapon} useAltSkin={useAltSkin} />
     </div>
   );
 };

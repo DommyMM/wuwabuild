@@ -63,6 +63,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [customImage, setCustomImage] = useState<File | undefined>(undefined);
   const [savedCustomImage, setSavedCustomImage] = useState<File | undefined>(undefined);
+  const [useAltSkin, setUseAltSkin] = useState(false);
   const tabRef = useRef<HTMLDivElement>(null);
 
   const { scaleAtk, scaleStat } = useLevelCurves();
@@ -253,8 +254,10 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       <div className="build-card">
         <Options watermark={watermark}
           showRollQuality={showRollQuality}
+          useAltSkin={useAltSkin}
           onWatermarkChange={onWatermarkChange}
           onRollQualityChange={setShowRollQuality}
+          onSkinChange={setUseAltSkin}
           className={hasBeenVisible ? 'visible' : 'hidden'}
         />
         <button
@@ -284,6 +287,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                   isEditMode={isEditMode}
                   onImageChange={handleImageChange}
                   customImage={savedCustomImage}
+                  useAltSkin={useAltSkin}
                 >
                 <ForteSection character={{...selectedCharacter, name: displayName || selectedCharacter.name}}
                   elementValue={elementValue}
@@ -295,7 +299,8 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                     level={weaponConfig.level}
                     rank={weaponConfig.rank}
                     scaledStats={weaponStats}
-                    characterElement={elementValue} 
+                    characterElement={elementValue}
+                    useAltSkin={useAltSkin}
                   />
                 )}
                 </CharacterSection>

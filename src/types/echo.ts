@@ -76,11 +76,11 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
     { stat: 'Fusion DMG', value: 12 },
     { stat: 'Basic Attack DMG Bonus', value: 12 }
   ],
-  'Nightmare Feilian': [
+'Nightmare Feilian Beringal': [
     { stat: 'Aero DMG', value: 12 },
     { stat: 'Heavy Attack DMG Bonus', value: 12 }
   ],
-  'Nightmare Impermanence': [
+  'Nightmare Impermanence Heron': [
     { stat: 'Havoc DMG', value: 12 },
     { stat: 'Heavy Attack DMG Bonus', value: 12 }
   ],
@@ -96,7 +96,7 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
     { stat: 'Havoc DMG', value: 12 },
     { stat: 'Basic Attack DMG Bonus', value: 12 }
   ],
-  'Nightmare Ride': [
+  'Nightmare Inferno Rider': [
     { stat: 'Fusion DMG', value: 12 },
     { stat: 'Resonance Skill DMG Bonus', value: 12 }
   ]

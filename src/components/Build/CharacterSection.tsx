@@ -12,6 +12,7 @@ interface CharacterSectionProps {
   onImageChange?: (file: File | undefined) => void;
   customImage?: File; 
   children?: React.ReactNode;
+  useAltSkin?: boolean;
 }
 
 export const CharacterSection: React.FC<CharacterSectionProps> = ({ 
@@ -23,6 +24,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   isEditMode = false,
   onImageChange,
   customImage,
+  useAltSkin = false,
   children
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -144,6 +146,19 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
     };
   }, [isDragging, handleMouseMove]);
 
+  const getImagePath = useCallback(() => {
+    if (customImage) return URL.createObjectURL(customImage);
+    
+    const basePath = getCharacterIconPath(character);
+    if (useAltSkin) {
+      const skinPath = basePath.replace('.png', '2.png');
+      const img = new Image();
+      img.src = skinPath;
+      return img.complete ? skinPath : basePath;
+    }
+    return basePath;
+  }, [character, customImage, useAltSkin]);
+
   return (
     <>
       <div className="character-display" data-element={elementValue}
@@ -157,12 +172,12 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         } as React.CSSProperties}
       >
         {!customImage && (
-          <img src={getCharacterIconPath(character)}
+          <img src={getImagePath()}
             className="character-icon shadow"
             alt="Character Shadow"
           />
         )}
-        <img src={getCharacterIconPath(character)}
+        <img src={getImagePath()}
           className={`character-icon ${isEditMode ? 'editable' : ''}`}
           alt={characterName}
           style={{ cursor: isEditMode ? 'move' : 'default' }}

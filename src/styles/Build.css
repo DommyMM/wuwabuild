@@ -63,7 +63,7 @@
 
 .options-container {
     justify-content: flex-start;
-    width: 25%;
+    width: 31%;
     height: 37px;
     top: 0%;
     position: absolute;
@@ -223,6 +223,7 @@
 
 .input-container {
     display: flex;
+    width: 100%;
     justify-content: space-between;
     position: absolute;
     gap: 25px;
@@ -246,8 +247,15 @@ input:-webkit-autofill {
 .checkbox-container {
     display: flex;
     align-items: center;
-    width: 140px;
     padding: 5px 0px;
+}
+
+.checkbox-container:first-of-type {
+    width: 140px;
+}
+
+.checkbox-container:last-of-type {
+    width: 110px;
 }
 
 .roll-checkbox {
@@ -273,7 +281,7 @@ input:-webkit-autofill {
 .watermark-container {
     position: absolute;
     width: 150px;
-    top: 2%;
+    bottom: 2%;
     left: 1.5%;
     display: flex;
     flex-direction: column;
@@ -281,6 +289,7 @@ input:-webkit-autofill {
     font-size: 24px;
     font-family: 'Ropa', sans-serif;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    z-index: 2;
 }
 
 .icon-container {
@@ -779,10 +788,17 @@ input:-webkit-autofill {
     }
     .options-container{
         left: 1%;
+        width: 60vw;
+        transform: translateY(-10px);
     }
     .input-container {
-        display: block;
-        transform: translateY(-15px);
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 5px;
+        width: 100%;
+    }
+    .checkbox-container:first-of-type {
+        width: 130px;
     }
     #generateDownload{
         transform: translate(275px, -10px)
