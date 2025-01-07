@@ -99,7 +99,8 @@ export const matchEchoData = (
           ...matchedSubstats,
           ...Array(5 - matchedSubstats.length).fill({ type: null, value: null })
         ]
-      }
+      },
+      phantom: false
     };
   } catch (error) {
     console.error('Error matching echo data:', error);

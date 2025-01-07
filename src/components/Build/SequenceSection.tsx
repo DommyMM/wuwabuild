@@ -46,14 +46,14 @@ export const SequenceSection: React.FC<SequenceSectionProps> = ({
               d="m 24.5,6.503 c 9.933,0 17.93,8.13 17.93,18.06 0,9.933 -7.997,17.93 -17.93,17.93 -9.933,0 -18.06,-7.997 -18.06,-17.93 0,-9.933 8.13,-18.06 18.06,-18.06 z" style={{filter: `url(#techGlow-${i})`, opacity: 0.4}}
             />
             <g className="spike-border">
-              <g className="upper-spike" transform="rotate(30, 24.5, 24.5)">
+              <g className="upper-spike" transform="rotate(0, 24.5, 24.5)">
                 <path className="spikes" fill="currentColor"
                   d="M24.5 0.224L21.7 6.125l1.05 0.532C18.55 7.21 14.7 8.88 12.12 11.29l0.49 0.962C15.33 9.64 18.91 7.917 22.89 7.567L24.5 9.52l1.61-1.95c3.983 0.35 7.581 2.083 10.304 4.704l0.497-0.984C34.3 8.88 30.975 7.21 26.775 6.657L28 6.125 24.5 0.224z"
                 />
                 <path className="accent" fill="currentColor" d="M41.3 10.15l-3.15 1.4-0.7 2.8 3.15-1.4z" />
                 <path className="accent" fill="currentColor" d="M7.35 10.15l0.7 2.8 3.15 1.4-0.7-2.8z" />
               </g>
-              <g className="lower-spikes" transform="rotate(150, 24.5, 24.5)">
+              <g className="lower-spikes" transform="rotate(180, 24.5, 24.5)">
                 <path className="spikes" fill="currentColor"
                   d="M24.5 0.224L21.7 6.125l1.05 0.532C18.55 7.21 14.7 8.88 12.12 11.29l0.49 0.962C15.33 9.64 18.91 7.917 22.89 7.567L24.5 9.52l1.61-1.95c3.983 0.35 7.581 2.083 10.304 4.704l0.497-0.984C34.3 8.88 30.975 7.21 26.775 6.657L28 6.125 24.5 0.224z"
                 />
@@ -73,13 +73,6 @@ export const SequenceSection: React.FC<SequenceSectionProps> = ({
             <path className="innerRing" fill="currentColor" style={{filter: `url(#sharpGlow-${i})`}}
               d="M24.5 10.384c-7.78 0-14.164 6.384-14.164 14.164 0 7.78 6.384 14.07 14.164 14.07 7.78 0 14.07-6.29 14.07-14.07 0-7.78-6.29-14.164-14.07-14.164zm0 0.955c7.262 0 13.111 5.943 13.111 13.209 0 7.262-5.849 13.111-13.111 13.111-7.262 0-13.209-5.849-13.209-13.111 0-7.262 5.943-13.209 13.209-13.209z"
             />
-            {i > currentSequence && (
-              <g className='lock' transform="translate(14.25, 12) scale(0.5)">
-                <path className="lock-top" fill="currentColor" transform="translate(-1.23, 1)" d="M17.3 17v-2.5c0-2.7 2.2-4.8 4.8-4.8s4.8 2.2 4.8 4.8v2.5c0.7 0.3 1.3 0.6 2 1v-3.5c0-3.8-3.1-6.8-6.8-6.8s-6.8 3.1-6.8 6.8v3.5c0.7-0.4 1.3-0.7 2-1z" />
-                <path className="lock-body" fill="currentColor" d="M20.8 18c-5.8 0-10.5 4.7-10.5 10.5S15 39 20.8 39s10.5-4.7 10.5-10.5S26.6 18 20.8 18z" />
-                <path className="lock-key" fill="currentColor" d="M21.8 29v3.6h-2v-3.6c-0.8-0.4-1.3-1.2-1.3-2.1c0-1.3 1-2.3 2.3-2.3s2.3 1 2.3 2.3c0 0.9-0.5 1.7-1.3 2.1z" />
-              </g>
-            )}
           </svg>
           <img src={`images/Sequences/T_IconDevice_${displayName}M${i}_UI.png`}
             className="sequence-icon"

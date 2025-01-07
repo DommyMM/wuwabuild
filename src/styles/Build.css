@@ -254,7 +254,7 @@ input:-webkit-autofill {
     width: 140px;
 }
 
-.checkbox-container:last-of-type {
+.checkbox-container:nth-of-type(2) {
     width: 110px;
 }
 
@@ -312,24 +312,34 @@ input:-webkit-autofill {
     overflow: hidden;
 }
 
-.character-display[data-element="Fusion"] {
-    box-shadow: 2px 0 10px -2px rgb(240, 116, 78);
-    border-right: 1.8px solid rgb(240, 116, 78);
+.character-display.aero {
+    box-shadow: 2px 0 10px -2px #98FB98;
+    border-right: 1.8px solid #98FB98;
 }
 
-.character-display[data-element="Glacio"] {
-    box-shadow: 2px 0 10px -2px rgb(89, 207, 255);
-    border-right: 1.8px solid rgb(89, 207, 255);
+.character-display.electro {
+    box-shadow: 2px 0 10px -2px #BA55D3;
+    border-right: 1.8px solid #BA55D3;
 }
 
-.character-display[data-element="Aero"] {
-    box-shadow: 2px 0 10px -2px rgb(106, 255, 154);
-    border-right: 1.8px solid rgb(106, 255, 154);
+.character-display.spectro {
+    box-shadow: 2px 0 10px -2px #FFD700;
+    border-right: 1.8px solid #FFD700;
 }
 
-.character-display[data-element="Electro"] {
-    box-shadow: 2px 0 10px -2px rgb(198, 127, 255);
-    border-right: 1.8px solid rgb(198, 127, 255);
+.character-display.glacio {
+    box-shadow: 2px 0 10px -2px #87CEEB;
+    border-right: 1.8px solid #87CEEB;
+}
+
+.character-display.fusion {
+    box-shadow: 2px 0 10px -2px #D5740C;
+    border-right: 1.8px solid #D5740C;
+}
+
+.character-display.havoc {
+    box-shadow: 2px 0 10px -2px #FF1493;
+    border-right: 1.8px solid #FF1493;
 }
 
 .character-icon {
@@ -413,8 +423,17 @@ input:-webkit-autofill {
     color: #ff1493;
 }
 
+.spikes, .accent {
+    opacity: 0.4;
+}
+
 .sequence-node.inactive .sequence-icon {
-    filter: blur(1px) opacity(0.5);
+    filter: blur(1px) invert(0.8);
+}
+
+.sequence-node.inactive {
+    opacity: 0.4;
+    filter: grayscale(100%);
 }
 
 .spikes, .accent {
@@ -423,19 +442,6 @@ input:-webkit-autofill {
 
 .sequence-node.inactive .spike-border {
     opacity: 0.3;
-}
-
-.lock {
-    color: #ffffff;
-    display: none;
-}
-
-.sequence-node.inactive .lock {
-    display: inline;
-}
-
-.lock-key {
-    color: #000000;
 }
 
 .sequence-image {

@@ -1,5 +1,6 @@
 import React from 'react';
 import '../../styles/Build.css';
+import { SKIN_CHARACTERS } from '../../types/character';
 
 interface OptionsProps {
   watermark: {
@@ -12,6 +13,7 @@ interface OptionsProps {
   onRollQualityChange: (checked: boolean) => void;
   onSkinChange: (checked: boolean) => void;
   className?: string;
+  characterName?: string; 
 }
 
 export const Options: React.FC<OptionsProps> = ({
@@ -21,7 +23,8 @@ export const Options: React.FC<OptionsProps> = ({
   onWatermarkChange,
   onRollQualityChange,
   onSkinChange,
-  className
+  className,
+  characterName
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -44,8 +47,7 @@ export const Options: React.FC<OptionsProps> = ({
   return (
     <div className={`options-container ${className || ''}`}>
       <div className="input-container">
-        <input
-          id="build-username"
+        <input id="build-username"
           type="text"
           placeholder="Username"
           maxLength={12}
@@ -54,8 +56,7 @@ export const Options: React.FC<OptionsProps> = ({
           onPaste={handlePaste('username')}
           className="build-input username-input"
         />
-        <input
-          id="build-uid"
+        <input id="build-uid"
           type="text"
           placeholder="UID"
           maxLength={9}
@@ -65,8 +66,7 @@ export const Options: React.FC<OptionsProps> = ({
           className="build-input uid-input"
         />
         <div className="checkbox-container">
-          <input
-            type="checkbox"
+          <input type="checkbox"
             id="roll-value"
             className="roll-checkbox"
             checked={showRollQuality}
@@ -76,7 +76,7 @@ export const Options: React.FC<OptionsProps> = ({
             Roll Quality
           </label>
         </div>
-        <div className="checkbox-container">
+        <div className="checkbox-container" style={{ visibility: characterName && SKIN_CHARACTERS.includes(characterName) ? 'visible' : 'hidden' }}>
           <input type="checkbox"
             id="alt-skin"
             className="roll-checkbox"

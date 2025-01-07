@@ -16,6 +16,12 @@ export interface EchoDisplayProps {
   getCVClass: (cv: number) => string;
 }
 
+const getEchoPath = (echoName: string, isPhantom: boolean = false) => {
+  return isPhantom ? 
+    `images/Echoes/Phantom ${echoName}.png` : 
+    `images/Echoes/${echoName}.png`;
+};
+
 const EchoLeft: React.FC<{ 
   panel: EchoPanelState;
   element: string | null;
@@ -51,7 +57,7 @@ const EchoLeft: React.FC<{
     <div className="echo-left">
       {panel.echo && (
         <>
-          <img src={`images/Echoes/${panel.echo.name}.png`}
+          <img src={getEchoPath(panel.echo.name, panel.phantom)}
             alt={panel.echo.name}
             className={`echo-display-icon ${bonusClasses}`}
           />
@@ -82,7 +88,8 @@ const EchoLeft: React.FC<{
     prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
     prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
     prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value &&
-    prevProps.element === nextProps.element;
+    prevProps.element === nextProps.element &&
+    prevProps.panel.phantom === nextProps.panel.phantom;
 });
 
 const EchoDivider = () => <div className="echo-divider" />;
@@ -165,9 +172,12 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
   JSON.stringify(prevProps.panel) === JSON.stringify(nextProps.panel);
 });
 
-const EchoRow: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> = ({ 
+const EchoRow: React.FC<{ 
+  panel: EchoPanelState; 
+  showRollQuality: boolean;
+}> = ({ 
   panel, 
-  showRollQuality 
+  showRollQuality
 }) => {
   const isSingleElement = panel.echo?.elements.length === 1;
   const element = isSingleElement && panel.echo ? 
@@ -210,7 +220,10 @@ export const EchoDisplay: React.FC<EchoDisplayProps> = ({
       {echoPanels.map((panel, index) => (
         <div key={index} className="row-container">
           <div className={`connector-segment left ${leftStates[index]} ${leftElement}`} />
-          <EchoRow panel={panel} showRollQuality={showRollQuality} />
+          <EchoRow 
+            panel={panel} 
+            showRollQuality={showRollQuality} 
+          />
           <div className={`connector-segment right ${rightStates[index]} ${rightElement}`} />
         </div>
       ))}

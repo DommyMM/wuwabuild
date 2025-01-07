@@ -259,6 +259,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
           onRollQualityChange={setShowRollQuality}
           onSkinChange={setUseAltSkin}
           className={hasBeenVisible ? 'visible' : 'hidden'}
+          characterName={selectedCharacter?.name}
         />
         <button
           id="generateDownload"

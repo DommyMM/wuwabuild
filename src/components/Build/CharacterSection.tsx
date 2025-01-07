@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { Character, getCharacterIconPath, isRover } from '../../types/character';
+import { Character, SKIN_CHARACTERS, isRover } from '../../types/character';
 import { SequenceSection } from './SequenceSection';
 
 interface CharacterSectionProps {
@@ -149,19 +149,15 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   const getImagePath = useCallback(() => {
     if (customImage) return URL.createObjectURL(customImage);
     
-    const basePath = getCharacterIconPath(character);
-    if (useAltSkin) {
-      const skinPath = basePath.replace('.png', '2.png');
-      const img = new Image();
-      img.src = skinPath;
-      return img.complete ? skinPath : basePath;
-    }
-    return basePath;
+    const basePath = `/images/Icons/${character.name}`;
+    return useAltSkin && SKIN_CHARACTERS.includes(character.name) ? 
+      `${basePath}2.png` : 
+      `${basePath}.png`;
   }, [character, customImage, useAltSkin]);
 
   return (
     <>
-      <div className="character-display" data-element={elementValue}
+      <div className={`character-display ${elementValue?.toLowerCase()}`}
         onDragOver={handleDrag}
         onDragLeave={handleDrag}
         onDrop={handleDrop}

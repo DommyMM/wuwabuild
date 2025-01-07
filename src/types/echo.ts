@@ -19,6 +19,7 @@ export interface EchoPanelState {
     mainStat: { type: string | null; value: number | null };
     subStats: Array<{ type: string | null; value: number | null }>;
   };
+  phantom: boolean;
 }
 
 export interface SetInfo {
@@ -101,3 +102,22 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
     { stat: 'Resonance Skill DMG Bonus', value: 12 }
   ]
 } as const;
+
+export const PHANTOM_ECHOES = [
+  'Clang Bang',
+  'Diggy Duggy',
+  'Dreamless',
+  'Feilian Beringal',
+  'Gulpuff',
+  'Hoartoise',
+  'Impermanence Heron',
+  'Inferno Rider',
+  'Lightcrusher',
+  'Lumiscale Construct',
+  'Mourning Aix',
+  'Questless Knight',
+  'Rocksteady Guardian',
+  'Sentry Construct',
+  'Thundering Mephis',
+  'Vitreum Dancer'
+] as readonly string[];

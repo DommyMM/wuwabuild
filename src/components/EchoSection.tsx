@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronDown } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Echo, ElementType, ELEMENT_SETS, EchoPanelState as PanelData, COST_SECTIONS, CostSection } from '../types/echo';
+import { Echo, ElementType, ELEMENT_SETS, EchoPanelState as PanelData, COST_SECTIONS, CostSection, PHANTOM_ECHOES } from '../types/echo';
 import { SavedEchoData } from '../types/SavedState';
 import { useEchoes } from '../hooks/useEchoes';
 import { useModalClose } from '../hooks/useModalClose';
@@ -23,8 +23,7 @@ const ElementTabs: React.FC<ElementTabsProps> = ({ elements, onElementSelect, se
     const setName = ELEMENT_SETS[elements[0]];
     return (
       <div className="element-container">
-        <div 
-          className={`set-name-display ${elements[0].toLowerCase()}`}
+        <div className={`set-name-display ${elements[0].toLowerCase()}`}
           style={{ 
             opacity: 1,
             fontSize: getFontSize(setName)
@@ -93,6 +92,7 @@ interface EchoPanelProps {
   listener?: Record<string, any>;
   onSave?: () => void;
   onLoad?: () => void;
+  onPhantomChange: (value: boolean) => void;
 }
 
 const getEchoLabelFontSize = (name?: string) => {
@@ -112,7 +112,8 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   onSubStatChange,
   listener,
   onSave,
-  onLoad
+  onLoad,
+  onPhantomChange
 }) => {
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,9 +152,19 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
       </div>
       
       <StatsTab panelId={`panel${index}`} cost={panelData.echo?.cost ?? null} level={panelData.level} stats={panelData.stats} onMainStatChange={onMainStatChange} onSubStatChange={onSubStatChange}/>
-
       <button className="clear-button" onClick={onReset}> Reset </button>
-
+      {panelData.echo?.name && PHANTOM_ECHOES.includes(panelData.echo.name) && (
+        <div className="phantom-container">
+          <input type="checkbox"
+            id={`phantom-${index}`}
+            checked={panelData.phantom}
+            onChange={(e) => onPhantomChange(e.target.checked)}
+          />
+          <label htmlFor={`phantom-${index}`}>
+            Phantom
+          </label>
+        </div>
+      )}
       <div className="panel-actions">
         <button className="action-button save" onClick={onSave} disabled={!panelData.echo}>
           Save
@@ -224,7 +235,8 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
         stats: {
           mainStat: { type: null, value: null },
           subStats: Array(5).fill(null).map(() => ({ type: null, value: null }))
-        }
+        },
+        phantom: false
       } : panel
     ));
   }, [panels, onPanelChange]);
@@ -232,7 +244,7 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
   const handleLevelChange = useCallback((index: number, level: number) => {
     onLevelChange?.(index, level);
   }, [onLevelChange]);
-
+  
   const handleElementSelect = useCallback((index: number, element: ElementType | null) => {
     onElementSelect?.(index, element);
   }, [onElementSelect]);
@@ -248,9 +260,17 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
       return;
     }
 
+    const hasPhantom = PHANTOM_ECHOES.includes(echo.name);
+    onPanelChange?.(panels.map((panel, i) => 
+      i === selectedPanelIndex ? {
+        ...panel,
+        echo,
+        phantom: hasPhantom
+      } : panel
+    ));
     onEchoSelect?.(selectedPanelIndex, echo);
     setIsModalOpen(false);
-  }, [selectedPanelIndex, panels, onEchoSelect]);
+  }, [selectedPanelIndex, panels, onEchoSelect, onPanelChange]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -334,6 +354,9 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                                 setSelectedLoadPanelIndex(i);
                                 setIsLoadModalOpen(true);
                               }}
+                              onPhantomChange={(value) => onPanelChange?.(panels.map((panel, idx) => 
+                                idx === i ? { ...panel, phantom: value } : panel
+                              ))}
                             />
                           </SortablePanel>
                         ))}
@@ -345,7 +368,7 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
             </div>
           </>
         )}
-    
+
         {isModalOpen && (
           <div className="modal" data-testid="echo-select-modal">
             <div className="echo-modal-content">
@@ -383,10 +406,8 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                   const element = echo.selectedElement;
                   const mainStat = stats.mainStat.type;
                   const subStats = stats.subStats.map(sub => sub.type).filter(Boolean);
-                  
                   return (
-                    <div 
-                      key={savedEcho.id}
+                    <div key={savedEcho.id}
                       className="echo-option"
                       onClick={(e) => {
                         if (!(e.target as HTMLElement).closest('.delete-button')) {
@@ -414,8 +435,7 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                           <div>{subStats.slice(3, 5).join(' • ')}</div>
                         </div>
                       </div>
-                      <button 
-                        className="delete-button"
+                      <button className="delete-button"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();

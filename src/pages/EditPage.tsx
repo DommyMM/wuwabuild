@@ -65,7 +65,8 @@ export const EditPage: React.FC = () => {
       stats: {
         mainStat: { type: null, value: null },
         subStats: Array(5).fill({ type: null, value: null })
-      }
+      },
+      phantom: false
     }))
   );
 

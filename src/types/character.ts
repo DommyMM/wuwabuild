@@ -40,8 +40,7 @@ export interface Character {
 export const getCharacterImagePath = (character: Character) => 
   `/images/Faces/${character.name}.png`;
 
-export const getCharacterIconPath = (character: Character) => 
-  `/images/Icons/${character.name}.png`;
+export const SKIN_CHARACTERS = ['Jinhsi', 'Sanhua'] as readonly string[];
 
 export const isRover = (character: Character): boolean => 
   character.name.startsWith("Rover");
