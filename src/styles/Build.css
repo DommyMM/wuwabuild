@@ -226,12 +226,11 @@
     width: 100%;
     justify-content: space-between;
     position: absolute;
-    gap: 25px;
     align-items: center;
     margin: 0 auto;
 }
 
-#build-username, #build-uid {
+#build-username, #build-uid, #art-source {
     border-radius: 4px;
     padding: 5px;
     width: 100px;
@@ -248,14 +247,11 @@ input:-webkit-autofill {
     display: flex;
     align-items: center;
     padding: 5px 0px;
+    width: 115px;
 }
 
-.checkbox-container:first-of-type {
+.checkbox-container:has(.roll-checkbox) {
     width: 140px;
-}
-
-.checkbox-container:nth-of-type(2) {
-    width: 110px;
 }
 
 .roll-checkbox {
@@ -280,12 +276,21 @@ input:-webkit-autofill {
 
 .watermark-container {
     position: absolute;
-    width: 150px;
-    bottom: 2%;
+    top: 2%;
     left: 1.5%;
     display: flex;
     flex-direction: column;
     text-align: left;
+    font-size: 24px;
+    font-family: 'Ropa', sans-serif;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    z-index: 2;
+}
+
+.art-source {
+    position: absolute;
+    bottom: 1%;
+    right: 2.5%;
     font-size: 24px;
     font-family: 'Ropa', sans-serif;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
@@ -423,26 +428,60 @@ input:-webkit-autofill {
     color: #ff1493;
 }
 
-.spikes, .accent {
+.arc{
+    opacity: 0.6;
+}
+
+.accent, .spike-diamond {
     opacity: 0.4;
 }
 
 .sequence-node.inactive .sequence-icon {
-    filter: blur(1px) invert(0.8);
+    filter: blur(1px) opacity(0.3);
 }
 
 .sequence-node.inactive {
-    opacity: 0.4;
     filter: grayscale(100%);
-}
-
-.spikes, .accent {
-    opacity: 0.4;
 }
 
 .sequence-node.inactive .spike-border {
     opacity: 0.3;
 }
+
+.lock {
+    color: #ffffff;
+    display: none;
+}
+
+.sequence-node.inactive .lock {
+    display: inline;
+}
+
+.lock-key {
+    color: #000000;
+}
+
+.upper-spike, .lower-spikes {
+    transform-origin: 24.5px 24.5px;
+}
+
+.sequence-node:nth-child(1) .upper-spike { transform: rotate(30deg); }
+.sequence-node:nth-child(1) .lower-spikes { transform: rotate(210deg); }
+
+.sequence-node:nth-child(2) .upper-spike { transform: rotate(60deg); }
+.sequence-node:nth-child(2) .lower-spikes { transform: rotate(240deg); }
+
+.sequence-node:nth-child(3) .upper-spike { transform: rotate(90deg); }
+.sequence-node:nth-child(3) .lower-spikes { transform: rotate(270deg); }
+
+.sequence-node:nth-child(4) .upper-spike { transform: rotate(120deg); }
+.sequence-node:nth-child(4) .lower-spikes { transform: rotate(300deg); }
+
+.sequence-node:nth-child(5) .upper-spike { transform: rotate(150deg); }
+.sequence-node:nth-child(5) .lower-spikes { transform: rotate(330deg); }
+
+.sequence-node:nth-child(6) .upper-spike { transform: rotate(180deg); }
+.sequence-node:nth-child(6) .lower-spikes { transform: rotate(0deg); }
 
 .sequence-image {
     width: 100%;

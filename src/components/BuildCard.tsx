@@ -64,6 +64,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const [customImage, setCustomImage] = useState<File | undefined>(undefined);
   const [savedCustomImage, setSavedCustomImage] = useState<File | undefined>(undefined);
   const [useAltSkin, setUseAltSkin] = useState(false);
+  const [artSource, setArtSource] = useState<string>('');
   const tabRef = useRef<HTMLDivElement>(null);
 
   const { scaleAtk, scaleStat } = useLevelCurves();
@@ -255,9 +256,11 @@ export const BuildCard: React.FC<BuildCardProps> = ({
         <Options watermark={watermark}
           showRollQuality={showRollQuality}
           useAltSkin={useAltSkin}
+          artSource={artSource}
           onWatermarkChange={onWatermarkChange}
           onRollQualityChange={setShowRollQuality}
           onSkinChange={setUseAltSkin}
+          onArtSourceChange={setArtSource}
           className={hasBeenVisible ? 'visible' : 'hidden'}
           characterName={selectedCharacter?.name}
         />
@@ -289,6 +292,8 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                   onImageChange={handleImageChange}
                   customImage={savedCustomImage}
                   useAltSkin={useAltSkin}
+                  artSource={artSource}
+                  onArtSourceChange={setArtSource}
                 >
                 <ForteSection character={{...selectedCharacter, name: displayName || selectedCharacter.name}}
                   elementValue={elementValue}
@@ -308,8 +313,8 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                 <StatSection isVisible={isTabVisible} stats={displayStats}/>
                 <EchoDisplay isVisible={isTabVisible} echoPanels={echoPanels} showRollQuality={showRollQuality} leftStates={leftStates} rightStates={rightStates} sets={elementSets} cv={cv} getCVClass={getCVClass}/>
                 <div className="watermark-container">
-                  <div className="watermark-username">{watermark.username}</div>
-                  <div className="watermark-uid">{watermark.uid}</div>
+                  <div className="username">{watermark.username}</div>
+                  <div className="uid">{watermark.uid}</div>
                 </div>
                 <div className="site-watermark">wuwabuilds.moe</div>
               </>

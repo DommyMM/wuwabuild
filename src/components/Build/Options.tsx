@@ -13,7 +13,9 @@ interface OptionsProps {
   onRollQualityChange: (checked: boolean) => void;
   onSkinChange: (checked: boolean) => void;
   className?: string;
-  characterName?: string; 
+  characterName?: string;
+  artSource: string;
+  onArtSourceChange: (source: string) => void;
 }
 
 export const Options: React.FC<OptionsProps> = ({
@@ -24,7 +26,9 @@ export const Options: React.FC<OptionsProps> = ({
   onRollQualityChange,
   onSkinChange,
   className,
-  characterName
+  characterName,
+  artSource,
+  onArtSourceChange
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -54,7 +58,7 @@ export const Options: React.FC<OptionsProps> = ({
           value={watermark.username}
           onChange={handleInputChange}
           onPaste={handlePaste('username')}
-          className="build-input username-input"
+          className="username-input"
         />
         <input id="build-uid"
           type="text"
@@ -63,8 +67,33 @@ export const Options: React.FC<OptionsProps> = ({
           value={watermark.uid}
           onChange={handleInputChange}
           onPaste={handlePaste('uid')}
-          className="build-input uid-input"
+          className="uid-input"
         />
+        <div className="checkbox-container">
+          {characterName && SKIN_CHARACTERS.includes(characterName) ? (
+            <>
+              <input type="checkbox"
+                id="alt-skin"
+                className="roll-checkbox"
+                checked={useAltSkin}
+                onChange={(e) => onSkinChange(e.target.checked)}
+              />
+              <label htmlFor="alt-skin" className="roll-label">
+                Use Skin
+              </label>
+            </>
+          ) : (
+            <>
+              <input type="text"
+                id="art-source"
+                placeholder="Art Source"
+                value={artSource}
+                onChange={(e) => onArtSourceChange(e.target.value)}
+                className="art-input"
+              />
+            </>
+          )}
+        </div>
         <div className="checkbox-container">
           <input type="checkbox"
             id="roll-value"
@@ -74,17 +103,6 @@ export const Options: React.FC<OptionsProps> = ({
           />
           <label htmlFor="roll-value" className="roll-label">
             Roll Quality
-          </label>
-        </div>
-        <div className="checkbox-container" style={{ visibility: characterName && SKIN_CHARACTERS.includes(characterName) ? 'visible' : 'hidden' }}>
-          <input type="checkbox"
-            id="alt-skin"
-            className="roll-checkbox"
-            checked={useAltSkin}
-            onChange={(e) => onSkinChange(e.target.checked)}
-          />
-          <label htmlFor="alt-skin" className="roll-label">
-            Use Skin
           </label>
         </div>
       </div>

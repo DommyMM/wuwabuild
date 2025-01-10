@@ -13,6 +13,8 @@ interface CharacterSectionProps {
   customImage?: File; 
   children?: React.ReactNode;
   useAltSkin?: boolean;
+  artSource?: string;
+  onArtSourceChange?: (source: string) => void;
 }
 
 export const CharacterSection: React.FC<CharacterSectionProps> = ({ 
@@ -25,7 +27,9 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   onImageChange,
   customImage,
   useAltSkin = false,
-  children
+  children,
+  artSource = '',
+  onArtSourceChange
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -161,11 +165,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         onDragOver={handleDrag}
         onDragLeave={handleDrag}
         onDrop={handleDrop}
-        style={{
-          '--tx': `${position.x}px`,
-          '--ty': `${position.y}px`,
-          '--scale': scale
-        } as React.CSSProperties}
+        style={{'--tx': `${position.x}px`, '--ty': `${position.y}px`, '--scale': scale } as React.CSSProperties}
       >
         {!customImage && (
           <img src={getImagePath()}
@@ -181,7 +181,8 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
           draggable={false}
           onDragStart={(e) => e.preventDefault()}
         />
-        <svg className="fade-overlay" xmlns="http://www.w3.org/2000/svg" width="515" height="620" viewBox="0 0 136.26 152.595" preserveAspectRatio="none">
+        <svg className="fade-overlay" xmlns="http://www.w3.org/2000/svg" width="515" height="620" viewBox="0 0 136.26 152.595" preserveAspectRatio="none"   style={{ opacity: (customImage || useAltSkin) ? 0 : 0.35 }}
+        >
           <defs>
               <clipPath id="a" clipPathUnits="userSpaceOnUse">
                   <path d="M0 0h136.26v157.692H0z" />
@@ -216,6 +217,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
               style={{ display: 'none' }}/>
           </div>
         )}
+        {artSource && (<div className="art-source"> 🎨 {artSource} </div> )}
       </div>
       <SequenceSection character={character} isSpectro={isSpectro} currentSequence={currentSequence} />
       <div className="char-intro">
