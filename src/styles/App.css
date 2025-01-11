@@ -4,7 +4,7 @@ h2 {
 
 .scan-container{
   position: sticky;
-  top: 0;
+  top: 61px;
   z-index: 9999;
   width: 100%;
 }
@@ -124,37 +124,6 @@ h2 {
   to { opacity: 1; }
 }
 
-@media (max-width: 1200px) {
-  .panel-content {
-    width: 91vw;
-    margin-left: 0;
-  }
-  .sticky-container {
-    top: 8%;
-  }
-  .ocr-panel-container {
-    left: 0;
-  }
-  .scan-controls .clear-button {
-    left: 24%;
-    top: 5%;
-  }
-  .process-button{
-    top: 5px;
-    left: calc(24% + 97.36px);
-  }
-  .scan-controls .clear-button, .process-button{
-    z-index: 5;
-  }
-  .scan-errors {
-    width: 45%;
-    top: 7.5%;
-  }
-  .error-message {
-    font-size: 20px;
-  }
-}
-
 .mobile-notice {
   visibility: hidden;
   position: fixed;
@@ -203,4 +172,102 @@ h2 {
   font-family: 'Gowun', sans-serif;
   color: white;
   white-space: pre-line;
+}
+
+.nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: #1E1E1E;
+  padding: 4px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 20px;
+}
+
+.nav-content {
+  width: calc(100% - 36px);
+  margin: 0 0 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.nav-title {
+  font-size: 36px;
+  font-weight: bold;
+  font-family: 'Gowun', sans-serif;
+  color: #E0E0E0;
+  text-decoration: none;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.nav-title:hover {
+  color: #a69662;
+  text-shadow: 0 0 8px rgba(166, 150, 98, 0.3);
+}
+
+.nav-links {
+  display: flex;
+}
+
+.nav-links a {
+  color: #E0E0E0;
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.nav-links a:hover {
+  color: #bfad7d;
+  background: rgba(166, 150, 98, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(166, 150, 98, 0.2);
+}
+
+.nav-links a.active {
+  color: #a69662;
+  background: rgba(166, 150, 98, 0.15);
+  font-weight: 600;
+  border-bottom: 2px solid #a69662;
+}
+
+@media (max-width: 1200px) {
+  .panel-content {
+    width: 91vw;
+    margin-left: 0;
+  }
+  .sticky-container {
+    top: 8%;
+  }
+  .ocr-panel-container {
+    left: 0;
+  }
+  .scan-controls .clear-button {
+    left: 24%;
+    top: 5%;
+  }
+  .process-button{
+    top: 5px;
+    left: calc(24% + 97.36px);
+  }
+  .scan-controls .clear-button, .process-button{
+    z-index: 5;
+  }
+  .scan-errors {
+    width: 45%;
+    top: 7.5%;
+  }
+  .error-message {
+    font-size: 20px;
+  }
+  .nav-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .scan-container{
+    top: 115px;
+  }
 }
