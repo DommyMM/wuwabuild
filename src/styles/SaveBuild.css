@@ -1,0 +1,65 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.save-build-modal {
+    background: #1E1E1E;
+    padding: 24px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    width: 400px;
+}
+
+.save-build-modal h2{
+    width: 100%;
+}
+
+.build-name-input {
+    width: 100%;
+    padding: 8px;
+    margin: 16px 0;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #E0E0E0;
+    border-radius: 4px;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.save-button, .cancel-button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.save-button {
+    background: #a69662;
+    color: #fff;
+}
+
+.cancel-button {
+    background: #333;
+    color: #E0E0E0;
+}
+
+.error {
+    color: #ff6b6b;
+    margin: 8px 0;
+    font-size: 14px;
+}

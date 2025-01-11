@@ -208,12 +208,13 @@ h2 {
 
 .nav-links {
   display: flex;
+  gap: 4px;
 }
 
 .nav-links a {
   color: #E0E0E0;
   text-decoration: none;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 500;
   padding: 8px 16px;
   border-radius: 4px;

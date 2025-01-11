@@ -23,6 +23,15 @@
 :root {
   --havoc: #f7eb95;
   --spectro: #f2b6de;
+  --toastify-font-family: 'Gowun', sans-serif;
+  --toastify-color-success: #a69662 !important;
+  --toastify-color-error: #dc2626 !important;
+}
+
+.Toastify__toast {
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .toggle {

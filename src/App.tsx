@@ -1,10 +1,12 @@
 import { createBrowserRouter, RouterProvider, Outlet, Link, useLocation } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
 import { EditPage } from './pages/EditPage';
 import { OCRProvider } from './contexts/OCRContext';
 import { HomePage } from './pages/HomePage';
 import { BuildsPage } from './pages/BuildPage';
 import MobileNotice from './components/MobileNotice';
 import './styles/App.css';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Layout = () => {
   const location = useLocation();
@@ -70,6 +72,15 @@ const App: React.FC = () => {
       <OCRProvider>
         <RouterProvider router={router} />
       </OCRProvider>
+      <ToastContainer position="bottom-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="dark"
+          toastStyle={{ fontFamily: 'Gowun' }}
+      />
     </>
   );
 };

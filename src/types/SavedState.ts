@@ -20,3 +20,14 @@ export interface SavedState {
     watermark: WatermarkState;
     savedEchoes: SavedEchoData[];
 }
+
+export interface SavedBuild {
+    id: string;
+    name: string;
+    date: string;
+    state: SavedState;
+}
+
+export interface SavedBuilds {
+    builds: SavedBuild[];
+}

@@ -13,6 +13,9 @@ import { StatName } from '../types/stats';
 import { useStats } from '../hooks/useStats';
 import { useLevelCurves } from '../hooks/useLevelCurves';
 import { useStatHighlight } from '../hooks/useHighlight';
+import { SaveBuild } from './SaveBuild';
+import { SavedState } from '../types/SavedState';
+import { toast } from 'react-toastify';
 import '../styles/Build.css';
 
 interface BuildCardProps {
@@ -37,6 +40,7 @@ interface BuildCardProps {
     uid: string;
   };
   onWatermarkChange: (watermark: { username: string; uid: string }) => void;
+  onSaveBuild?: () => void;
 }
 
 export const BuildCard: React.FC<BuildCardProps> = ({
@@ -54,7 +58,8 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   levels,
   echoPanels,
   watermark,
-  onWatermarkChange
+  onWatermarkChange,
+  onSaveBuild
 }) => {
   useStatHighlight();
   const [isTabVisible, setIsTabVisible] = useState(false);
@@ -65,6 +70,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const [savedCustomImage, setSavedCustomImage] = useState<File | undefined>(undefined);
   const [useAltSkin, setUseAltSkin] = useState(false);
   const [artSource, setArtSource] = useState<string>('');
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const tabRef = useRef<HTMLDivElement>(null);
 
   const { scaleAtk, scaleStat } = useLevelCurves();
@@ -219,6 +225,49 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     setIsEditMode(!isEditMode);
   };
 
+  const handleSaveBuildClick = () => {
+    setIsSaveModalOpen(true);
+  };
+
+  const handleSaveConfirm = (name: string) => {
+    const state: SavedState = {
+      elementState: {
+        selectedCharacter,
+        elementValue,
+        displayName
+      },
+      characterLevel,
+      currentSequence,
+      weaponState: {
+        selectedWeapon,
+        config: {
+          level: weaponConfig.level,
+          rank: weaponConfig.rank
+      }
+      }, 
+      nodeStates,
+      forteLevels: levels,
+      echoPanels,
+      watermark,
+      savedEchoes: []
+    };
+    try {
+      const builds = JSON.parse(localStorage.getItem('wuwabuilds_builds') || '{"builds":[]}');
+      builds.builds.push({
+          id: crypto.randomUUID(),
+          name,
+          date: new Date().toISOString(),
+          state
+      });
+      localStorage.setItem('wuwabuilds_builds', JSON.stringify(builds));
+      toast.success('Build saved');
+      setIsSaveModalOpen(false);
+  } catch (error) {
+      toast.error('Save failed');
+      console.error('Failed to save build:', error);
+  }
+};
+
   useEffect(() => {
     if (isTabVisible && tabRef.current) {
       const timer = setTimeout(() => {
@@ -329,8 +378,16 @@ export const BuildCard: React.FC<BuildCardProps> = ({
             <button id="downloadButton" className="build-button" onClick={handleDownload}>
               Download
             </button>
+            <button id="saveBuildButton" className="build-button" onClick={handleSaveBuildClick}>
+              Save Build
+            </button>
           </div>
         )}
+        <SaveBuild isOpen={isSaveModalOpen}
+          onClose={() => setIsSaveModalOpen(false)}
+          onSave={handleSaveConfirm}
+          defaultName={selectedCharacter?.name ? `${selectedCharacter.name} Build` : undefined}
+        />
       </div>
     </div>
   );
