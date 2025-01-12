@@ -28,19 +28,62 @@
     border: 1px solid #333;
     border-radius: 8px;
     padding: 20px;
-    transition: all 0.2s ease-out;
-    animation: fadeSlideIn 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform, opacity;
+    position: relative;
+    cursor: pointer;
+    z-index: 1;
+    transform-origin: top left;
 }
 
-.build-preview:hover {
+.build-preview:hover:not(.expanded) {
     border-color: #a69662;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(166, 150, 98, 0.1);
 }
 
-.build-preview h3{
-    margin: 0px;
+.build-preview.expanded {
+    position: relative;
+    transform: scale(2);
+    z-index: 100;
+    cursor: default;
+    border-color: #a69662;
+    box-shadow: 0 8px 24px rgba(166, 150, 98, 0.2);
+}
+
+.preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(30, 30, 30, 0.98);
+    border-radius: 8px;
+    z-index: -1;
+    opacity: 0;
+    animation: fadeIn 0.2s ease forwards;
+}
+
+.expanded-content {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #333;
+    opacity: 0;
+    animation: slideIn 0.3s ease forwards;
+    animation-delay: 0.1s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .build-info {
@@ -55,7 +98,8 @@
 
 .build-actions button {
     flex: 1;
-    padding: 8px;
+    padding: 5.5px 5px;
+    font-size: 18px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -91,10 +135,36 @@
 .build-header h3 {
     font-size: 30px;
     font-family: 'Gowun', sans-serif;
+    width: 66.66%;
+    margin: 0;
+    position: relative;
+}
+
+.marquee-wrap {
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    height: 1.4em;
+}
+
+.marquee-text {
+    position: absolute;
+    display: inline-block;
+    transform: translateX(0);
+}
+
+.marquee-text.animate {
+    transform: translateX(100%);
+    animation: scroll-left 5.4s linear infinite;
+}
+
+@keyframes scroll-left {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
 }
 
 .build-date {
-    font-size: 18px;
+    font-size: 16px;
     color: #666;
 }
 
@@ -194,10 +264,12 @@
 
 .search-icon, .sort-icon {
     color: #666;
+    transition: color 0.2s ease;
 }
 
 .search-control:focus-within .search-icon,
-.sort-control:focus-within .sort-icon {
+.sort-control:focus-within .sort-icon,
+.sort-icon:hover {
     color: #a69662;
 }
 
@@ -278,6 +350,27 @@
     animation: pulse 2s infinite;
 }
 
+.delete-all {
+    background: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #E0E0E0;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s ease;
+}
+
+.delete-all:hover {
+    border-color: #dc2626;
+}
+
+.delete-all.danger {
+    background: #dc2626;
+    border-color: #dc2626;
+    animation: pulse 2s infinite;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -315,6 +408,9 @@
     font-size: 18px;
     padding: 8px 16px;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .backup-button:hover {
@@ -352,13 +448,18 @@
     transition: all 0.2s ease;
 }
 
-.pagination button:hover:not(:disabled) {
-    border-color: #a69662;
-    color: #a69662;
+.pagination .current-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    background: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: #E0E0E0;
 }
 
-.pagination button.active {
-    background: #a69662;
+.pagination button:hover:not(:disabled) {
     border-color: #a69662;
 }
 
@@ -380,6 +481,7 @@
     }
     .build-header h3 {
         font-size: 20px;
+        width: 55%;
     }
     .info-row span:first-child {
         font-size: 18px;
@@ -388,13 +490,13 @@
         font-size: 14px;
     }
     .build-date {
-        font-size: 14px;
+        font-size: 12px;
     }
     
     .builds-controls {
         flex-wrap: wrap;
         gap: 12px;
-        padding: 0 10px;
+        padding: 0;
     }
     .search-control {
         flex: 1;
@@ -413,10 +515,19 @@
     .backup-button {
         flex: 1;
         font-size: 16px;
-        padding: 8px 12px;
+        padding: 8px 10px;
     }
     .search-control input,
     .sort-control select {
         font-size: 16px;
+    }
+    .delete-all{
+        font-size: 16px;
+    }
+    .weap{
+        font-size: 16px !important;
+    }
+    .build-sets.healing{
+        font-size: 14px !important;
     }
 }

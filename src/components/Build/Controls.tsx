@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, SortAsc } from 'lucide-react';
+import { Search, SortAsc, SortDesc } from 'lucide-react';
 import { BuildBackup } from './Backup';
 import { SavedBuilds } from '../../types/SavedState';
 
@@ -7,17 +7,27 @@ interface BuildControlsProps {
     searchTerm: string;
     onSearchChange: (term: string) => void;
     sortBy: 'date' | 'name' | 'character' | 'cv';
-    onSortChange: (sort: 'date' | 'name' | 'character' | 'cv') => void;
+    sortDirection: 'asc' | 'desc';
+    onSortChange: (sort: 'date' | 'name' | 'character' | 'cv', direction: 'asc' | 'desc') => void;
     onImport: (builds: SavedBuilds) => void;
+    onDeleteAll: () => void;
+    deleteAllConfirm: boolean;
 }
 
 export const BuildControls: React.FC<BuildControlsProps> = ({
     searchTerm,
     onSearchChange,
     sortBy,
+    sortDirection,
     onSortChange,
-    onImport
+    onImport,
+    onDeleteAll,
+    deleteAllConfirm
 }) => {
+    const toggleSort = () => {
+        onSortChange(sortBy, sortDirection === 'asc' ? 'desc' : 'asc');
+    };
+
     return (
         <div className="builds-controls">
             <div className="search-control">
@@ -28,12 +38,21 @@ export const BuildControls: React.FC<BuildControlsProps> = ({
                     onChange={(e) => onSearchChange(e.target.value)}
                 />
             </div>
-            <BuildBackup onImport={onImport} />
+            <div className="backup-controls">
+                <BuildBackup onImport={onImport} />
+                <button onClick={onDeleteAll} className={`delete-all ${deleteAllConfirm ? 'danger' : ''}`}>
+                    {deleteAllConfirm ? 'Confirm Delete All?' : 'Delete All'}
+                </button>
+            </div>
             <div className="sort-control">
-                <SortAsc size={20} className="sort-icon" />
+                {sortDirection === 'asc' ? (
+                    <SortAsc size={20} className="sort-icon" onClick={toggleSort} />
+                ) : (
+                    <SortDesc size={20} className="sort-icon" onClick={toggleSort} />
+                )}
                 <select 
                     value={sortBy} 
-                    onChange={(e) => onSortChange(e.target.value as any)}
+                    onChange={(e) => onSortChange(e.target.value as any, sortDirection)}
                 >
                     <option value="date">Date</option>
                     <option value="name">Name</option>

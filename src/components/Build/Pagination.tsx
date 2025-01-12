@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronFirst, ChevronLast } from 'lucide-react';
 
 interface PaginationProps {
     currentPage: number;
@@ -16,25 +16,30 @@ export const Pagination: React.FC<PaginationProps> = ({
 
     return (
         <div className="pagination">
+            <button onClick={() => onPageChange(1)}
+                disabled={currentPage === 1}
+                aria-label="First page"
+            >
+                <ChevronFirst size={20} />
+            </button>
             <button onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
                 aria-label="Previous page"
             >
                 <ChevronLeft size={20} />
             </button>
-            {Array.from({ length: pageCount }, (_, i) => i + 1).map(page => (
-                <button key={page} onClick={() => onPageChange(page)}
-                    className={page === currentPage ? 'active' : ''}
-                >
-                    {page}
-                </button>
-            ))}
-            
+            <span className="current-page">{currentPage}</span>
             <button onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === pageCount}
                 aria-label="Next page"
             >
                 <ChevronRight size={20} />
+            </button>
+            <button onClick={() => onPageChange(pageCount)}
+                disabled={currentPage === pageCount}
+                aria-label="Last page"
+            >
+                <ChevronLast size={20} />
             </button>
         </div>
     );

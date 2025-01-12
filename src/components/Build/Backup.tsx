@@ -104,17 +104,13 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
         }
     };
     return (
-        <div className="backup-controls">
-            <button 
-                className="backup-button" 
-                onClick={handleExport}
-            >
+        <>
+            <button className="backup-button" onClick={handleExport}>
                 Export Builds
             </button>
             <label className="backup-button">
                 Import Builds
-                <input
-                    type="file"
+                <input type="file"
                     accept=".json"
                     style={{ display: 'none' }}
                     onChange={(e) => {
@@ -124,6 +120,6 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
                     }}
                 />
             </label>
-        </div>
+        </>
     );
 };

@@ -12,9 +12,11 @@ export const BuildsPage: React.FC = () => {
     const [builds, setBuilds] = useState<SavedBuild[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState<'date' | 'name' | 'character' | 'cv'>('date');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [buildsPerPage, setBuildsPerPage] = useState(10);
+    const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
     const navigate = useNavigate();
 
     const calculateCV = (echoPanels: EchoPanelState[]) => {
@@ -50,27 +52,29 @@ export const BuildsPage: React.FC = () => {
                     
                     const gridStyles = window.getComputedStyle(grid);
                     const columns = gridStyles.gridTemplateColumns.split(' ').length;
+                    const minItemsPerPage = columns * 2;
                     const gridRect = grid.getBoundingClientRect();
                     const itemHeight = document.querySelector('.build-preview')?.getBoundingClientRect().height ?? 0;
                     const availableHeight = window.innerHeight - gridRect.top - 100;
-                    const visibleRows = Math.floor(availableHeight / (itemHeight + 24)); 
+                    const maxRows = Math.max(2, Math.floor(availableHeight / (itemHeight + 24)));
                     
-                    setBuildsPerPage(columns * visibleRows);
+                    setBuildsPerPage(Math.max(minItemsPerPage, columns * maxRows));
                 });
             }, 100);
-            const resizeObserver = new ResizeObserver(() => {
-                requestAnimationFrame(updateGridLayout);
-            });
+    
+            const resizeObserver = new ResizeObserver(updateGridLayout);
             const grid = document.querySelector('.builds-grid');
             if (grid) {
                 resizeObserver.observe(grid);
                 updateGridLayout();
             }
+            
             return () => {
                 resizeObserver.disconnect();
                 updateGridLayout.cancel();
             };
         }, 50);
+        
         return () => clearTimeout(timer);
     }, []);
 
@@ -99,6 +103,17 @@ export const BuildsPage: React.FC = () => {
         setBuilds(mergedBuilds.builds);
     };
 
+    const handleDeleteAll = () => {
+        if (!deleteAllConfirm) {
+            setDeleteAllConfirm(true);
+            setTimeout(() => setDeleteAllConfirm(false), 3000);
+            return;
+        }
+        localStorage.removeItem('wuwabuilds_builds');
+        setBuilds([]);
+        setDeleteAllConfirm(false);
+    };
+
     const filteredAndSortedBuilds = builds
         .filter(build => {
             const searchLower = searchTerm.toLowerCase();
@@ -109,13 +124,22 @@ export const BuildsPage: React.FC = () => {
             );
         })
         .sort((a, b) => {
+            let comparison = 0;
             switch (sortBy) {
-                case 'name': return a.name.localeCompare(b.name);
-                case 'character': return (a.state.elementState.selectedCharacter?.name ?? '')
-                    .localeCompare(b.state.elementState.selectedCharacter?.name ?? '');
-                case 'cv': return Number(calculateCV(b.state.echoPanels)) - Number(calculateCV(a.state.echoPanels));
-                default: return new Date(b.date).getTime() - new Date(a.date).getTime();
+                case 'name': 
+                    comparison = a.name.localeCompare(b.name);
+                    break;
+                case 'character': 
+                    comparison = (a.state.elementState.selectedCharacter?.name ?? '')
+                        .localeCompare(b.state.elementState.selectedCharacter?.name ?? '');
+                    break;
+                case 'cv': 
+                    comparison = Number(calculateCV(b.state.echoPanels)) - Number(calculateCV(a.state.echoPanels));
+                    break;
+                default: 
+                    comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
             }
+            return sortDirection === 'asc' ? comparison : -comparison;
         });
 
     const pageCount = Math.ceil(filteredAndSortedBuilds.length / buildsPerPage);
@@ -140,8 +164,14 @@ export const BuildsPage: React.FC = () => {
             <BuildControls searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
                 sortBy={sortBy}
-                onSortChange={setSortBy}
+                sortDirection={sortDirection}
+                onSortChange={(sort, direction) => {
+                    setSortBy(sort);
+                    setSortDirection(direction);
+                }}
                 onImport={handleImport}
+                onDeleteAll={handleDeleteAll}
+                deleteAllConfirm={deleteAllConfirm}
             />
             <div className="builds-grid">
                 {currentBuilds.map(build => (

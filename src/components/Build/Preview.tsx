@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { SavedBuild } from '../../types/SavedState';
 import { EchoPanelState, ELEMENT_SETS } from '../../types/echo';
+import '../../styles/Preview.css';
 
 interface BuildPreviewProps {
     build: SavedBuild;
@@ -55,10 +56,46 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({
     deleteConfirm,
     cv
 }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [shouldAnimate, setShouldAnimate] = useState(false);
+    const textRef = useRef<HTMLSpanElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    const handleClick = (e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).closest('.build-actions')) return;
+        setIsExpanded(!isExpanded);
+    };
+
+    useEffect(() => {
+        if (textRef.current && wrapperRef.current) {
+            const textWidth = textRef.current.offsetWidth;
+            const wrapperWidth = wrapperRef.current.offsetWidth;
+            setShouldAnimate(textWidth > wrapperWidth + 5);
+        }
+    }, [build.name]);
+
+    if (isExpanded) {
+        return (
+            <div className="build-preview expanded" onClick={handleClick}>
+                {/* Empty for now, will add content later */}
+            </div>
+        );
+    }
     return (
-        <div key={build.id} className="build-preview">
+        <div className="build-preview"
+            onClick={handleClick}
+        >
             <div className="build-header">
-                <h3>{build.name}</h3>
+                <h3>
+                    <div className='marquee-wrap' ref={wrapperRef}>
+                        <span 
+                            ref={textRef}
+                            className={`marquee-text ${shouldAnimate ? 'animate' : ''}`}
+                        >
+                            {build.name}
+                        </span>
+                    </div>
+                </h3>
                 <span className="build-date">{formatDate(build.date)}</span>
             </div>
             <div className="build-info">
@@ -66,7 +103,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({
                     <span className={`char char-sig ${(build.state.elementState.elementValue || '').toLowerCase()}`}>
                         {build.state.elementState.selectedCharacter?.name}
                     </span>
-                    <span>Lv.{build.state.characterLevel} • Sequence {build.state.currentSequence}</span>
+                    <span>Lv.{build.state.characterLevel} • S{build.state.currentSequence}</span>
                 </div>
                 <div className="info-row">
                     <span className='weap'>{build.state.weaponState.selectedWeapon?.name || 'No Weapon'}</span>
