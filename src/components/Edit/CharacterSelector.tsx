@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Character } from '../types/character';
-import { useCharacters } from '../hooks/useCharacters';
-import { useModalClose } from '../hooks/useModalClose';
-import '../styles/CharacterSelector.css';
-import '../styles/modal.css';
+import { Character } from '../../types/character';
+import { useCharacters } from '../../hooks/useCharacters';
+import { useModalClose } from '../../hooks/useModalClose';
+import '../../styles/CharacterSelector.css';
+import '../../styles/modal.css';
 
 interface CharacterSelectorProps {
   onSelect: (character: Character | null) => void;
@@ -55,7 +55,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           </div>
           {selectedCharacter && (
             <p id="selectedCharacterLabel">
-              <span className={`char-sig element-${selectedCharacter.element.toLowerCase()}`}
+              <span className={`char-sig ${selectedCharacter.element.toLowerCase()}`}
                 data-element={selectedCharacter.element} data-weapontype={selectedCharacter.weaponType}
                 data-role={selectedCharacter.Role}>
                 {selectedCharacter.name}

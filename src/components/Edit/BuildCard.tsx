@@ -1,22 +1,22 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import domtoimage from 'dom-to-image';
-import { Options } from './Build/Options';
-import { CharacterSection } from './Build/CharacterSection';
-import { WeaponSection } from './Build/WeaponSection';
-import { ForteSection } from './Build/ForteSection';
-import { EchoDisplay } from './Build/EchoDisplay';
-import { StatSection } from './Build/StatSection';
-import { Character } from '../types/character';
-import { Weapon } from '../types/weapon';
-import { EchoPanelState, ElementType } from '../types/echo';
-import { StatName } from '../types/stats';
-import { useStats } from '../hooks/useStats';
-import { useLevelCurves } from '../hooks/useLevelCurves';
-import { useStatHighlight } from '../hooks/useHighlight';
-import { SaveBuild } from './SaveBuild';
-import { SavedState } from '../types/SavedState';
+import { Options } from '../Card/Options';
+import { CharacterSection } from '../Card/CharacterSection';
+import { WeaponSection } from '../Card/WeaponSection';
+import { ForteSection } from '../Card/ForteSection';
+import { EchoDisplay } from '../Card/EchoDisplay';
+import { StatSection } from '../Card/StatSection';
+import { Character } from '../../types/character';
+import { Weapon } from '../../types/weapon';
+import { EchoPanelState, ElementType } from '../../types/echo';
+import { StatName } from '../../types/stats';
+import { useStats } from '../../hooks/useStats';
+import { useLevelCurves } from '../../hooks/useLevelCurves';
+import { useStatHighlight } from '../../hooks/useHighlight';
+import { SaveBuild } from '../Edit/SaveBuild';
+import { SavedState } from '../../types/SavedState';
 import { toast } from 'react-toastify';
-import '../styles/Build.css';
+import '../../styles/Build.css';
 
 interface BuildCardProps {
   isVisible: boolean;

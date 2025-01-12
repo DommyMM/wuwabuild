@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ImagePreview, ImageUploader } from './ImageComponents';
-import { useOCRContext } from '../contexts/OCRContext';
-import { OCRResponse, OCRAnalysis, CharacterAnalysis, WeaponAnalysis } from '../types/ocr';
-import { useCharacters } from '../hooks/useCharacters';
+import { useOCRContext } from '../../contexts/OCRContext';
+import { OCRResponse, OCRAnalysis, CharacterAnalysis, WeaponAnalysis } from '../../types/ocr';
+import { useCharacters } from '../../hooks/useCharacters';
 import { performOCR } from './OCR';
-import '../styles/Scan.css';
+import '../../styles/Scan.css';
 
 interface ImageData {
   id: string;

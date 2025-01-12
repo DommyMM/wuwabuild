@@ -1,14 +1,14 @@
 import React from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
-import { Character } from '../types/character';
-import { Weapon, WeaponState } from '../types/weapon';
-import { OCRAnalysis } from '../types/ocr';
+import { Character } from '../../types/character';
+import { Weapon, WeaponState } from '../../types/weapon';
+import { OCRAnalysis } from '../../types/ocr';
 import { LevelSlider } from './LevelSlider';
 import { SequenceGroup } from './SequenceGroup';
 import { WeaponSelection } from './WeaponSelection';
 import { ForteGroup } from './ForteGroup';
-import '../styles/CharacterInfo.css';
-import '../styles/SequenceGroup.css';
+import '../../styles/CharacterInfo.css';
+import '../../styles/SequenceGroup.css';
 
 interface CharacterInfoProps {
   selectedCharacter: Character | null;

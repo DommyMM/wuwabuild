@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Character } from '../types/character';
-import { Weapon } from '../types/weapon';
-import { useWeapons } from '../hooks/useWeapons';
-import { useModalClose } from '../hooks/useModalClose';
+import { Character } from '../../types/character';
+import { Weapon } from '../../types/weapon';
+import { useWeapons } from '../../hooks/useWeapons';
+import { useModalClose } from '../../hooks/useModalClose';
 import { WeaponSlider } from './WeaponSlider';
-import '../styles/WeaponSelection.css';
-import '../styles/modal.css';
-import '../styles/WeaponSlider.css';
+import '../../styles/WeaponSelection.css';
+import '../../styles/modal.css';
+import '../../styles/WeaponSlider.css';
 
 interface WeaponSelectionProps {
   selectedCharacter: Character;

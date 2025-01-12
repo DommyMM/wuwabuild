@@ -1,7 +1,7 @@
 import { createWorker } from 'tesseract.js';
 import Fuse from 'fuse.js';
-import { Character, Element } from '../types/character';
-import { WeaponType } from '../types/weapon';
+import { Character, Element } from '../../types/character';
+import { WeaponType } from '../../types/weapon';
 
 type OCRResult = {
     type: 'Character' | 'Weapon' | 'Sequences' | 'Forte' | 'Echo' | 'unknown';
@@ -287,7 +287,7 @@ const extractWeaponInfo = (text: string, weapons: Record<string, string[]>): Pic
     if (!weaponLevel) weaponLevel = 90;
 
     const rankMatch = text.toLowerCase().match(/rank\s*(\d+)/);
-    const rank = rankMatch ? parseInt(rankMatch[1]) : undefined;
+    const rank = rankMatch ? parseInt(rankMatch[1]) : 1;
 
     const result = { name, weaponType, weaponLevel, rank, confidence };
     console.log('Weapon Extract:', result);

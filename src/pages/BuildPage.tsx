@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { debounce } from 'lodash';
+import { Pagination } from '../components/Build/Pagination';
+import { BuildControls } from '../components/Build/Controls';
+import { BuildPreview } from '../components/Build/Preview';
 import { SavedBuild, SavedBuilds } from '../types/SavedState';
-import { ELEMENT_SETS, EchoPanelState } from '../types/echo';
-import { Search, SortAsc } from 'lucide-react';
+import { EchoPanelState } from '../types/echo';
 import '../styles/BuildPage.css';
 
 export const BuildsPage: React.FC = () => {
@@ -10,41 +13,9 @@ export const BuildsPage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState<'date' | 'name' | 'character' | 'cv'>('date');
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [buildsPerPage, setBuildsPerPage] = useState(10);
     const navigate = useNavigate();
-
-    useEffect(() => {
-        const savedBuilds = localStorage.getItem('wuwabuilds_builds');
-        if (savedBuilds) {
-            const { builds: loadedBuilds } = JSON.parse(savedBuilds) as SavedBuilds;
-            setBuilds(loadedBuilds);
-        }
-    }, []);
-
-    const handleDelete = (id: string) => {
-        if (deleteConfirm !== id) {
-            setDeleteConfirm(id);
-            return;
-        }
-
-        const newBuilds = builds.filter(build => build.id !== id);
-        localStorage.setItem('wuwabuilds_builds', JSON.stringify({ builds: newBuilds }));
-        setBuilds(newBuilds);
-        setDeleteConfirm(null);
-    };
-
-    const handleLoad = (build: SavedBuild) => {
-        localStorage.setItem('wuwabuilds_state', JSON.stringify(build.state));
-        navigate('/edit');
-    };
-
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
 
     const calculateCV = (echoPanels: EchoPanelState[]) => {
         const sumStats = (stat: string) => 
@@ -62,32 +33,70 @@ export const BuildsPage: React.FC = () => {
         return (2 * critRate + critDmg).toFixed(1);
     };
 
-    const getSetInfo = (echoPanels: EchoPanelState[]) => {
-        const setCounts = echoPanels.reduce((counts, panel) => {
-            if (!panel.echo) return counts;
-            const element = panel.selectedElement || panel.echo.elements[0];
-            counts[element] = (counts[element] || 0) + 1;
-            return counts;
-        }, {} as Record<string, number>);
+    useEffect(() => {
+        const savedBuilds = localStorage.getItem('wuwabuilds_builds');
+        if (savedBuilds) {
+            const { builds: loadedBuilds } = JSON.parse(savedBuilds) as SavedBuilds;
+            setBuilds(loadedBuilds);
+        }
+    }, []);
     
-        return Object.entries(setCounts)
-            .filter(([_, count]) => count >= 2)
-            .map(([element, count], index, array) => (
-                <React.Fragment key={element}>
-                    <span className={`build-sets ${element.toLowerCase()}`}>
-                        {ELEMENT_SETS[element as keyof typeof ELEMENT_SETS]} ({count})
-                    </span>
-                    {index < array.length - 1 && " • "}
-                </React.Fragment>
-            ));
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const updateGridLayout = debounce(() => {
+                requestAnimationFrame(() => {
+                    const grid = document.querySelector('.builds-grid');
+                    if (!grid) return;
+                    
+                    const gridStyles = window.getComputedStyle(grid);
+                    const columns = gridStyles.gridTemplateColumns.split(' ').length;
+                    const gridRect = grid.getBoundingClientRect();
+                    const itemHeight = document.querySelector('.build-preview')?.getBoundingClientRect().height ?? 0;
+                    const availableHeight = window.innerHeight - gridRect.top - 100;
+                    const visibleRows = Math.floor(availableHeight / (itemHeight + 24)); 
+                    
+                    setBuildsPerPage(columns * visibleRows);
+                });
+            }, 100);
+            const resizeObserver = new ResizeObserver(() => {
+                requestAnimationFrame(updateGridLayout);
+            });
+            const grid = document.querySelector('.builds-grid');
+            if (grid) {
+                resizeObserver.observe(grid);
+                updateGridLayout();
+            }
+            return () => {
+                resizeObserver.disconnect();
+                updateGridLayout.cancel();
+            };
+        }, 50);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const handleDelete = (id: string) => {
+        if (deleteConfirm !== id) {
+            setDeleteConfirm(id);
+            return;
+        }
+        const newBuilds = builds.filter(build => build.id !== id);
+        localStorage.setItem('wuwabuilds_builds', JSON.stringify({ builds: newBuilds }));
+        setBuilds(newBuilds);
+        setDeleteConfirm(null);
     };
-    const getCVClass = (cv: number): string => {
-        if (cv >= 230) return 'cv-value goat';
-        if (cv >= 220) return 'cv-value excellent';
-        if (cv >= 205) return 'cv-value high';
-        if (cv >= 195) return 'cv-value good';
-        if (cv >= 175) return 'cv-value decent';
-        return 'cv-value low';
+
+    const handleLoad = (build: SavedBuild) => {
+        localStorage.setItem('wuwabuilds_state', JSON.stringify(build.state));
+        navigate('/edit');
+    };
+
+    const handleImport = (importedData: SavedBuilds) => {
+        const mergedBuilds = {
+            builds: [...builds, ...importedData.builds]
+                .filter((build, index, self) => index === self.findIndex(b => b.id === build.id))
+        };
+        localStorage.setItem('wuwabuilds_builds', JSON.stringify(mergedBuilds));
+        setBuilds(mergedBuilds.builds);
     };
 
     const filteredAndSortedBuilds = builds
@@ -109,62 +118,40 @@ export const BuildsPage: React.FC = () => {
             }
         });
 
+    const pageCount = Math.ceil(filteredAndSortedBuilds.length / buildsPerPage);
+    const currentBuilds = filteredAndSortedBuilds.slice(
+        (currentPage - 1) * buildsPerPage,
+        currentPage * buildsPerPage
+    );
+
+    const handlePageChange = (page: number) => {
+        const grid = document.querySelector('.builds-grid');
+        grid?.classList.add('page-exit');
+        setTimeout(() => {
+            setCurrentPage(page);
+            grid?.classList.remove('page-exit');
+            grid?.classList.add('page-enter');
+            window.scrollTo(0, 0);
+        }, 50);
+    };
+
     return (
         <div className="builds-page">
-            <div className="builds-controls">
-                <div className="search-control">
-                    <Search size={20} className="search-icon" />
-                    <input
-                        type="text"
-                        placeholder="Search builds..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div className="sort-control">
-                    <SortAsc size={20} className="sort-icon" />
-                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
-                        <option value="date">Date</option>
-                        <option value="name">Name</option>
-                        <option value="character">Character</option>
-                        <option value="cv">CV</option>
-                    </select>
-                </div>
-            </div>
-
+            <BuildControls searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                onImport={handleImport}
+            />
             <div className="builds-grid">
-                {filteredAndSortedBuilds.map(build => (
-                    <div key={build.id} className="build-preview">
-                        <div className="build-header">
-                            <h3>{build.name}</h3>
-                            <span className="build-date">{formatDate(build.date)}</span>
-                        </div>
-                        <div className="build-info">
-                            <div className="info-row">
-                                <span className="char">{build.state.elementState.selectedCharacter?.name}</span>
-                                <span>Lv.{build.state.characterLevel} • Sequence {build.state.currentSequence}</span>
-                            </div>
-                            <div className="info-row">
-                                <span className='weap'>{build.state.weaponState.selectedWeapon?.name || 'No Weapon'}</span>
-                                <span>Lv.{build.state.weaponState.config.level} • R{build.state.weaponState.config.rank}</span>
-                            </div>
-                            <div className="info-row">
-                                {getSetInfo(build.state.echoPanels)}
-                                <span className={getCVClass(Number(calculateCV(build.state.echoPanels)))}>
-                                    CV: {calculateCV(build.state.echoPanels)}
-                                </span>
-                            </div>
-                        </div>
-                        <div className="build-actions">
-                            <button onClick={() => handleLoad(build)}>Load</button>
-                            <button 
-                                onClick={() => handleDelete(build.id)}
-                                className={deleteConfirm === build.id ? 'danger' : ''}
-                            >
-                                {deleteConfirm === build.id ? 'Confirm Delete?' : 'Delete'}
-                            </button>
-                        </div>
-                    </div>
+                {currentBuilds.map(build => (
+                    <BuildPreview key={build.id}
+                        build={build}
+                        onLoad={handleLoad}
+                        onDelete={handleDelete}
+                        deleteConfirm={deleteConfirm}
+                        cv={calculateCV(build.state.echoPanels)}
+                    />
                 ))}
                 {builds.length === 0 && (
                     <p className="no-builds">No saved builds yet.</p>
@@ -173,6 +160,7 @@ export const BuildsPage: React.FC = () => {
                     <p className="no-builds">No builds match your search.</p>
                 )}
             </div>
+            <Pagination currentPage={currentPage} pageCount={pageCount} onPageChange={handlePageChange} />
         </div>
     );
 };

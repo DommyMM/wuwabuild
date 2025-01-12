@@ -3,12 +3,12 @@ import { ChevronLeft, ChevronDown } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Echo, ElementType, ELEMENT_SETS, EchoPanelState as PanelData, COST_SECTIONS, CostSection, PHANTOM_ECHOES } from '../types/echo';
-import { SavedEchoData } from '../types/SavedState';
-import { useEchoes } from '../hooks/useEchoes';
-import { useModalClose } from '../hooks/useModalClose';
+import { Echo, ElementType, ELEMENT_SETS, EchoPanelState as PanelData, COST_SECTIONS, CostSection, PHANTOM_ECHOES } from '../../types/echo';
+import { SavedEchoData } from '../../types/SavedState';
+import { useEchoes } from '../../hooks/useEchoes';
+import { useModalClose } from '../../hooks/useModalClose';
 import { StatsTab } from './StatsTab';
-import '../styles/echoes.css';
+import '../../styles/echoes.css';
 
 interface ElementTabsProps {
   elements: ElementType[];

@@ -12,6 +12,15 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 24px;
+    transition: all 0.2s ease-out;
+}
+
+.builds-grid.page-exit {
+    opacity: 0;
+}
+
+.builds-grid.page-enter {
+    opacity: 1;
 }
 
 .build-preview {
@@ -19,7 +28,9 @@
     border: 1px solid #333;
     border-radius: 8px;
     padding: 20px;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease-out;
+    animation: fadeSlideIn 0.3s ease;
+    will-change: transform, opacity;
 }
 
 .build-preview:hover {
@@ -78,8 +89,8 @@
 }
 
 .build-header h3 {
-    color: #a69662;
-    font-size: 24px;
+    font-size: 30px;
+    font-family: 'Gowun', sans-serif;
 }
 
 .build-date {
@@ -95,17 +106,20 @@
 }
 
 .info-row span {
-    font-size: 18px;
+    font-size: 20px;
 }
 
-.char, .weap {
-    color: #a69662;
+.info-row span:first-child {
+    font-size: 28px;
+}
+
+.char, .weap, .build-cv {
     font-weight: 500;
+    color: #a69662;
 }
 
 .build-cv {
     color: #bfad7d;
-    font-weight: 500;
 }
 
 .build-sets.aero { color: #98FB98; }
@@ -121,15 +135,13 @@
 .build-sets.midnight { color: #e086e0; }
 .build-sets.radiance { color: #ffd54f; }
 
-/* Add to your existing CSS */
-
 .builds-controls {
+    width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
     gap: 16px;
-    padding: 0 20px;
 }
 
 .search-control, .sort-control {
@@ -150,7 +162,7 @@
 
 .search-control {
     flex: 1;
-    max-width: 400px;
+    max-width: 300px;
 }
 
 .search-control input {
@@ -173,7 +185,7 @@
     font-size: 18px;
     cursor: pointer;
     font-family: inherit;
-    min-width: 120px;
+    min-width: 90px;
 }
 
 .sort-control select:focus {
@@ -273,6 +285,138 @@
 
 @keyframes pulse {
     0% { background: #dc2626; }
-    50% { background: #ef4444; }
+    50% { background: #ff6b2b; }
     100% { background: #dc2626; }
+}
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.backup-controls {
+    display: flex;
+    gap: 12px;
+}
+
+.backup-button {
+    background: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #E0E0E0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 18px;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
+}
+
+.backup-button:hover {
+    border-color: #a69662;
+    box-shadow: 0 0 0 2px rgba(166, 150, 98, 0.1);
+}
+
+.backup-button:active {
+    background: #333;
+}
+
+.backup-button input[type="file"] {
+    display: none;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 24px 0;
+}
+
+.pagination button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    min-width: 40px;
+    height: 40px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #2a2a2a;
+    color: #E0E0E0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+    border-color: #a69662;
+    color: #a69662;
+}
+
+.pagination button.active {
+    background: #a69662;
+    border-color: #a69662;
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .builds-page {
+        padding: 10px;
+    }
+    .builds-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+    }
+    .build-preview {
+        padding: 10px;
+    }
+    .build-header h3 {
+        font-size: 20px;
+    }
+    .info-row span:first-child {
+        font-size: 18px;
+    }
+    .info-row span {
+        font-size: 14px;
+    }
+    .build-date {
+        font-size: 14px;
+    }
+    
+    .builds-controls {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 0 10px;
+    }
+    .search-control {
+        flex: 1;
+        min-width: 0;
+        max-width: none;
+        width: calc(100% - 160px);
+    }
+    .sort-control {
+        width: 150px;
+    }
+    .backup-controls {
+        order: 1;
+        width: 100%;
+        justify-content: stretch;
+    }
+    .backup-button {
+        flex: 1;
+        font-size: 16px;
+        padding: 8px 12px;
+    }
+    .search-control input,
+    .sort-control select {
+        font-size: 16px;
+    }
 }

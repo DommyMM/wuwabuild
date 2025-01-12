@@ -2,9 +2,9 @@ import React from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useMain } from '../hooks/useMain';
-import { useSubstats } from '../hooks/useSub';
-import { StatsState } from '../types/stats';
+import { useMain } from '../../hooks/useMain';
+import { useSubstats } from '../../hooks/useSub';
+import { StatsState } from '../../types/stats';
 
 interface StatsTabProps {
   panelId: string;

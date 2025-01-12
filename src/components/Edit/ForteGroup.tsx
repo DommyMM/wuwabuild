@@ -1,8 +1,8 @@
 import React from 'react';
-import { Character } from '../types/character';
-import { forteImagePaths } from '../types/node';
-import type { ForteImagePaths, SkillBranch } from '../types/node';
-import '../styles/forte.css';
+import { Character } from '../../types/character';
+import { forteImagePaths } from '../../types/node';
+import type { ForteImagePaths, SkillBranch } from '../../types/node';
+import '../../styles/forte.css';
 
 interface ForteGroupProps {
   selectedCharacter: Character | null;
