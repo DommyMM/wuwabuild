@@ -26,6 +26,8 @@ export type BonusType = Element | "Crit Rate" | "Crit DMG" | "Healing" | "ATK" |
 
 export interface Character {
   name: string;
+  id: string;
+  title: string;
   weaponType: WeaponType;
   element: Element;
   Role: Role;
@@ -36,9 +38,6 @@ export interface Character {
   DEF: number;
   ER: number;
 }
-
-export const getCharacterImagePath = (character: Character) => 
-  `/images/Faces/${character.name}.png`;
 
 export const SKIN_CHARACTERS = ['Jinhsi', 'Sanhua'] as readonly string[];
 

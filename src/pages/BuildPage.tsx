@@ -114,6 +114,14 @@ export const BuildsPage: React.FC = () => {
         setDeleteAllConfirm(false);
     };
 
+    const handleNameChange = (id: string, newName: string) => {
+        const newBuilds = builds.map(build => 
+            build.id === id ? { ...build, name: newName } : build
+        );
+        localStorage.setItem('wuwabuilds_builds', JSON.stringify({ builds: newBuilds }));
+        setBuilds(newBuilds);
+    };
+
     const filteredAndSortedBuilds = builds
         .filter(build => {
             const searchLower = searchTerm.toLowerCase();
@@ -179,6 +187,7 @@ export const BuildsPage: React.FC = () => {
                         build={build}
                         onLoad={handleLoad}
                         onDelete={handleDelete}
+                        onNameChange={handleNameChange}
                         deleteConfirm={deleteConfirm}
                         cv={calculateCV(build.state.echoPanels)}
                     />

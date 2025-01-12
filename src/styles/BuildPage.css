@@ -42,50 +42,6 @@
     box-shadow: 0 4px 12px rgba(166, 150, 98, 0.1);
 }
 
-.build-preview.expanded {
-    position: relative;
-    transform: scale(2);
-    z-index: 100;
-    cursor: default;
-    border-color: #a69662;
-    box-shadow: 0 8px 24px rgba(166, 150, 98, 0.2);
-}
-
-.preview-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(30, 30, 30, 0.98);
-    border-radius: 8px;
-    z-index: -1;
-    opacity: 0;
-    animation: fadeIn 0.2s ease forwards;
-}
-
-.expanded-content {
-    margin-top: 24px;
-    padding-top: 24px;
-    border-top: 1px solid #333;
-    opacity: 0;
-    animation: slideIn 0.3s ease forwards;
-    animation-delay: 0.1s;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 .build-info {
     margin: 16px 0;
     color: #E0E0E0;

@@ -16,6 +16,7 @@ import { useStatHighlight } from '../../hooks/useHighlight';
 import { SaveBuild } from '../Edit/SaveBuild';
 import { SavedState } from '../../types/SavedState';
 import { toast } from 'react-toastify';
+import { Pencil, ImageDownIcon, Download, Database } from 'lucide-react';
 import '../../styles/Build.css';
 
 interface BuildCardProps {
@@ -373,13 +374,14 @@ export const BuildCard: React.FC<BuildCardProps> = ({
         {isTabVisible && (
           <div className="button-group">
             <button id="editButton" className="build-button" onClick={handleEditToggle}>
-            {isEditMode ? 'Save' : 'Edit'}
+            {isEditMode ? (<><ImageDownIcon size={20} /> Save Image</>) : 
+              (<><Pencil size={20} /> Edit</>)}
             </button>
             <button id="downloadButton" className="build-button" onClick={handleDownload}>
-              Download
+              <Download size={20}/> Download
             </button>
             <button id="saveBuildButton" className="build-button" onClick={handleSaveBuildClick}>
-              Save Build
+              <Database size={20}/>Save Build
             </button>
           </div>
         )}

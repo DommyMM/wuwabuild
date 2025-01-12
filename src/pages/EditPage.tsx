@@ -508,11 +508,8 @@ export const EditPage: React.FC = () => {
             </div>
           </div>
         </div>
-  
-        <CharacterSelector onSelect={handleCharacterSelect} ocrName={ocrName} onLevelReset={() => setCharacterLevel('1')}/>
-  
-        <CharacterInfo
-          selectedCharacter={elementState.selectedCharacter} 
+        <CharacterSelector onSelect={handleCharacterSelect} ocrName={ocrName} onLevelReset={() => setCharacterLevel('1')} initialCharacter={elementState.selectedCharacter}/>
+        <CharacterInfo selectedCharacter={elementState.selectedCharacter} 
           displayName={elementState.displayName}
           elementValue={elementState.elementValue}
           onGenerateClick={handleGenerateClick}
@@ -534,9 +531,7 @@ export const EditPage: React.FC = () => {
           isMinimized={isCharacterMinimized}
           onMinimize={() => setIsCharacterMinimized(!isCharacterMinimized)}
         />
-
-        <EchoesSection 
-          ref={echoesRef}
+        <EchoesSection ref={echoesRef}
           isVisible={elementState.selectedCharacter !== null}
           isMinimized={isEchoesMinimized}
           onMinimize={() => setIsEchoesMinimized(!isEchoesMinimized)}
@@ -554,9 +549,7 @@ export const EditPage: React.FC = () => {
           showCostWarning={showEchoCostWarning}
           onCostWarningDismiss={() => setShowEchoCostWarning(false)}
         />
-        
-        <BuildCard 
-          isVisible={true}
+        <BuildCard isVisible={true}
           isEchoesVisible={!isEchoesMinimized && elementState.selectedCharacter !== null}
           selectedCharacter={elementState.selectedCharacter}
           watermark={watermark}

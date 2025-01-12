@@ -1,0 +1,251 @@
+.build-preview.expanded {
+    transform: scale(2);
+    z-index: 100;
+    cursor: default;
+    border-color: #a69662;
+    box-shadow: 0 8px 24px rgba(166, 150, 98, 0.2);
+    padding: 0 10px 10px 10px;
+}
+
+.build-preview.expanded .build-header {
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+
+.name-section {
+    display: flex;
+    align-items: center;
+    width: 66.66%;
+}
+
+.name-display {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 4px;
+}
+
+.name-display h3 {
+    margin: 0 0 0 8px;
+    flex: 1;
+    min-width: 0;
+    font-size: 28px;
+    overflow: hidden;
+}
+
+.name-marquee {
+    min-width: 100%;
+    max-width: 100%;
+}
+
+.name-marquee > div {
+    min-width: unset !important;
+    width: auto !important;
+}
+
+.edit-button {
+    background: none;
+    border: none;
+    color: #666;
+    padding: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.edit-button:hover {
+    color: #a69662;
+}
+
+.name-edit {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.name-edit input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #444;
+    color: #E0E0E0;
+    font-size: 28px;
+    font-family: inherit;
+    padding: 4px;
+    margin-left: 8px;
+    min-width: 0;
+}
+
+.name-edit input:focus {
+    outline: none;
+    border-bottom-color: #a69662;
+}
+
+.edit-actions {
+    display: flex;
+    gap: 2px;
+    margin-left: 4px;
+}
+
+.edit-actions button {
+    background: transparent;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.edit-actions button:first-child:hover {
+    color: #4CAF50;
+}
+
+.edit-actions button:last-child:hover {
+    color: #f44336;
+}
+
+.build-preview.expanded .build-date {
+    color: #888;
+    font-size: 16px;
+}
+
+.build-preview.expanded .build-info{
+    margin: 8px 0;
+}
+
+.build-preview.expanded .info-row{
+    position: relative;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 0px;
+}
+
+.char-container, .weap-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.char-portrait, .weap-portrait {
+    width: 90px;
+    border-radius: 8px;
+    background: #2a2a2a;
+}
+
+.build-preview.expanded .set-display {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -22.5%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.build-preview.expanded .build-sets {
+    font-size: 16px;
+    text-align: center;
+}
+
+.echo-group {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin: 8px 0;
+    position: relative;
+}
+
+.preview-echo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: calc((100% - 32px) / 5);
+}
+
+.echo-circle {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #2a2a2a;
+    overflow: hidden;
+    position: relative;
+}
+
+.echo-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.echo-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.main-stat {
+    font-size: 12px !important;
+    color: #E0E0E0;
+}
+
+.echo-cv {
+    font-size: 11px !important;
+    color: #888;
+}
+
+.echo-icon.electro { border: 2px solid #BA55D3; }
+.echo-icon.er { border: 2px solid white; }
+.echo-icon.attack { border: 2px solid #BC2514; }
+.echo-icon.glacio { border: 2px solid #87CEEB; }
+.echo-icon.aero { border: 2px solid #98FB98; }
+.echo-icon.fusion { border: 2px solid #D5740C; }
+.echo-icon.havoc { border: 2px solid #FF1493; }
+.echo-icon.healing { border: 2px solid #2FE32F; }
+.echo-icon.empyrean { border: 2px solid #4ba3ff; }
+.echo-icon.frosty { border: 2px solid #87CEEB; }
+.echo-icon.midnight { border: 2px solid #e086e0; }
+.echo-icon.radiance { border: 2px solid #ffd54f; }
+.echo-icon.tidebreaking { border: 2px solid white; }
+.echo-icon.spectro { border: 2px solid #FFD700; }
+
+@media (max-width: 600px) {
+    .build-preview.expanded h3 {
+        font-size: 14px;
+        width: 60%;
+    }
+    .build-preview.expanded .build-date {
+        font-size: 8px;
+    }
+    .char-portrait, .weap-portrait {
+        width: 50px;
+    }
+    .build-preview.expanded .weap {
+        font-size: 12px !important;
+        height: 17px;
+        display: flex;
+        align-items: center;
+    }
+    .main-stat, .echo-cv{
+        font-size: 6px !important;
+    }
+    .build-preview.expanded .build-sets {
+        transform: translateY(90%);
+        width: 100px;
+    }
+    .name-edit input {
+        font-size: 14px;
+        padding: 2px 4px;
+    }
+    
+    .edit-actions button {
+        padding: 2px 4px;
+        font-size: 12px;
+    }
+}

@@ -9,27 +9,22 @@ interface RestorePromptProps {
 export const RestorePrompt: React.FC<RestorePromptProps> = ({ onRestore, onDecline }) => {
     useEffect(() => {
         document.body.style.overflow = 'hidden';
-
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onDecline();
         };
-
         const handleClickOutside = (e: MouseEvent) => {
             if ((e.target as HTMLElement).className === 'restore-overlay') {
                 onDecline();
             }
         };
-
         document.addEventListener('keydown', handleEscape);
         document.addEventListener('click', handleClickOutside);
-
         return () => {
             document.removeEventListener('keydown', handleEscape);
             document.removeEventListener('click', handleClickOutside);
             document.body.style.overflow = 'unset';
         };
     }, [onDecline]);
-
     return (
         <div className="restore-overlay">
             <div className="restore-card">

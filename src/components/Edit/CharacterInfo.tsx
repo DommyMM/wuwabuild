@@ -7,6 +7,7 @@ import { LevelSlider } from './LevelSlider';
 import { SequenceGroup } from './SequenceGroup';
 import { WeaponSelection } from './WeaponSelection';
 import { ForteGroup } from './ForteGroup';
+import { getAssetPath } from '../../types/paths';
 import '../../styles/CharacterInfo.css';
 import '../../styles/SequenceGroup.css';
 
@@ -104,30 +105,27 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
         <div className={`character-content${isMinimized ? '' : ' open'}`}>
           {selectedCharacter && (
             <>
-              <img 
-                id="selectedCharacterIcon" 
-                src={`images/Icons/${selectedCharacter.name}.png`}
+              <img id="selectedCharacterIcon" 
+                src={getAssetPath('icons', selectedCharacter).cdn}
                 alt="Selected Character Icon" 
                 className="character-tab-icon"
               />
               {selectedCharacter.name.startsWith('Rover') && (
-                <button 
-                  className="toggle" 
+                <button className="toggle" 
                   role="switch"
                   aria-checked={elementValue === "Spectro"}
                   tabIndex={0}
                   onClick={handleToggleSpectro}
                 >
                   <div className="toggle-circle">
-                    <img
-                      src={`images/Elements/${elementValue}.png`}
-                      alt={elementValue}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '999px'
-                      }}
+                    <img src={getAssetPath('elements', elementValue || '').cdn}
+                        alt={elementValue}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            borderRadius: '999px'
+                        }}
                     />
                   </div>
                 </button>

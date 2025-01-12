@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { Character, SKIN_CHARACTERS, isRover } from '../../types/character';
 import { SequenceSection } from './SequenceSection';
+import { Delete, RefreshCcw, ZoomIn, ZoomOut, Upload } from 'lucide-react';
 
 interface CharacterSectionProps {
   character: Character;
@@ -196,25 +197,26 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         {isEditMode && (
           <>
             <div className="image-controls">
-              <button className="image-control-button" onClick={handleImageReset} title="Remove Image"> X </button>
-              <button className="image-control-button" onClick={handlePositionReset} title="Reset Position"> ↺ </button>
+              <button className="image-control-button" onClick={handleImageReset} title="Remove Image"><Delete size={20} /></button>
+              <button className="image-control-button" onClick={handlePositionReset} title="Reset Position"><RefreshCcw size={20} /></button>
             </div>
             <div className="image-zoom-controls">
-              <button className="image-zoom-button" onClick={handleZoomIn} title="Zoom in"> + </button>
-              <button className="image-zoom-button" onClick={handleZoomOut} title="Zoom out"> - </button>
+              <button className="image-zoom-button" onClick={handleZoomIn} title="Zoom in"><ZoomIn size={20} /></button>
+              <button className="image-zoom-button" onClick={handleZoomOut} title="Zoom out"><ZoomOut size={20} /></button>
             </div>
           </>
         )}
         {isEditMode && (
           <div className={`character-dropzone ${isDragging ? 'dragover' : ''}`}
             onClick={() => document.getElementById('characterImageUpload')?.click()}>
-            <span>Choose, drag or paste image...</span>
+            <span><Upload size={30} /> Upload or Drag Image</span>
             <input
               id="characterImageUpload"
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
-              style={{ display: 'none' }}/>
+              style={{ display: 'none' }}
+            />
           </div>
         )}
         {artSource && (<div className="art-source"> 🎨 {artSource} </div> )}

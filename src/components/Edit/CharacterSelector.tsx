@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Character } from '../../types/character';
 import { useCharacters } from '../../hooks/useCharacters';
 import { useModalClose } from '../../hooks/useModalClose';
+import { getAssetPath } from '../../types/paths';
 import '../../styles/CharacterSelector.css';
 import '../../styles/modal.css';
 
@@ -9,15 +10,17 @@ interface CharacterSelectorProps {
   onSelect: (character: Character | null) => void;
   ocrName?: string;
   onLevelReset?: () => void;
+  initialCharacter: Character | null;
 }
 
 export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ 
   onSelect, 
   ocrName,
-  onLevelReset 
+  onLevelReset,
+  initialCharacter 
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(initialCharacter);
   const [lastOcrName, setLastOcrName] = useState<string | undefined>();
   const { characters, loading, error } = useCharacters();
 
@@ -44,13 +47,19 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     }
   }, [ocrName, lastOcrName, characters, handleCharacterSelect]);
 
+  useEffect(() => {
+    if (initialCharacter) {
+      setSelectedCharacter(initialCharacter);
+    }
+  }, [initialCharacter]);
+
   return (
     <>
       <div className="manual-section">
         <div>Select Resonator:</div>
         <div className="select-box" onClick={() => setIsModalOpen(true)}>
           <div className="select-img">
-            <img src={selectedCharacter ? `images/Faces/${selectedCharacter.name}.png` : "/images/Resources/Resonator.png"} 
+            <img src={selectedCharacter ? getAssetPath('faces', selectedCharacter).cdn : "/images/Resources/Resonator.png"}
               alt="Select Character" className="select-img-inner" />
           </div>
           {selectedCharacter && (
@@ -75,7 +84,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
               {characters.map(character => (
                 <div key={character.name} className="character-option" onClick={() => handleCharacterSelect(character)}>
                   <div className="border-wrapper" data-element={character.element}></div>
-                  <img src={`images/Faces/${character.name}.png`} alt={character.name} className="char-img" />
+                  <img src={getAssetPath('faces', character).cdn} alt={character.name} className="char-img" />
                   <div className="char-label">{character.name}</div>
                 </div>
               ))}
