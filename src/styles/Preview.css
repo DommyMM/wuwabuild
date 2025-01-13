@@ -406,7 +406,7 @@
     }
     .build-preview-expanded .info-row:first-of-type {
         display: grid;
-        grid-template-columns: 0.75fr 1fr .9fr 2.2fr 0.15fr;
+        grid-template-columns: 0.75fr 1fr .5fr 2.75fr 0fr;
     }
     .char-container {
         grid-column: 2;
@@ -419,6 +419,7 @@
     }
     .build-preview-expanded .set-display{
         transform: translate(-50%, 70%);
+        width: 100%;
     }
     .name-edit input {
         font-size: 14px;

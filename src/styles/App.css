@@ -190,12 +190,12 @@ h2 {
   display: flex;
   align-items: center;
   gap: 20px;
+  font-family: 'Gowun', sans-serif;
 }
 
 .nav-title {
   font-size: 36px;
   font-weight: bold;
-  font-family: 'Gowun', sans-serif;
   color: #E0E0E0;
   text-decoration: none;
   transition: color 0.2s ease, text-shadow 0.2s ease;
@@ -269,6 +269,6 @@ h2 {
     gap: 16px;
   }
   .scan-container{
-    top: 115px;
+    top: 132px;
   }
 }
