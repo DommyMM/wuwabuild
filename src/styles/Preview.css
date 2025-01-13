@@ -6,6 +6,30 @@
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1;
+    visibility: visible;
+    transform: scale(1);
+    opacity: 1;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+}
+
+.build-preview.animating {
+    transform: scale(0.95);
+    opacity: 0;
+}
+
+.build-preview.appearing {
+    animation: appearIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes appearIn {
+    0% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 .build-preview:hover {
@@ -37,6 +61,14 @@
     will-change: transform;
 }
 
+.preview-backdrop.fade-out {
+    animation: fadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.build-preview-expanded.collapse-out {
+    animation: collapseOut 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -58,37 +90,27 @@
     }
 }
 
-/* Quicker Animation (Simple)
-.build-preview-expanded {
-    position: fixed;
-    z-index: 99;
-    background: #1E1E1E;
-    border: 1px solid #a69662;
-    border-radius: 8px;
-    padding: 20px 20px 40px 20px;
-    box-shadow: 0 8px 24px rgba(166, 150, 98, 0.2);
-    transform: scale(1.8);
-    transform-origin: var(--transform-origin, center);
-    animation: expandIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: default;
-    will-change: transform;
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes expandIn {
-    from {
-        transform: scale(1);
-        opacity: 0;
-    }
-    to {
+@keyframes collapseOut {
+    0% {
         transform: scale(1.8);
         opacity: 1;
     }
-} */
+    25% {
+        transform: scale(1.85);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+}
 
 .build-preview-expanded .build-header {
     padding-bottom: 2px;
@@ -272,34 +294,68 @@
 
 .build-preview-expanded .build-date {
     color: #888;
-    font-size: 16px;
 }
 
 .build-preview-expanded .build-info{
     margin: 8px 0;
 }
 
-.build-preview-expanded .info-row{
+.build-preview-expanded .info-row {
     position: relative;
+    display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    width: 100%;
     padding: 0;
 }
 
-.build-preview-expanded .info-row:first-of-type {
-    display: grid;
-    grid-template-columns: 0.75fr 1fr .755fr 2.4fr 0.05fr;
-}
-
 .char-container, .weap-container {
-    grid-column: 2;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-.weap-container {
-    grid-column: 4;
+.stats-menu {
+    display: flex;
+    flex-direction: column;
+    width: 30%;
+    padding: 0;
+}
+
+.stats-menu .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .01vh 0;
+    background-color: rgba(20, 20, 25, 0.6); 
+}
+
+.stats-menu .stat-row:nth-child(odd) {
+    background-color: rgba(30, 30, 35, 0.6); 
+}
+
+.stats-menu .stat-type {
+    display: flex;
+    align-items: center;
+    font-size: 10px !important;
+    color: #E0E0E0;
+}
+
+.preview-values {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.preview-value {
+    font-size: 7px !important;
+    text-shadow: -0.33px -0.33px 0 #000, 0.33px -0.33px 0 #000, -0.33px 0.33px 0 #000, 0.33px 0.33px 0 #000;
+    text-align: right;
+}
+
+.preview-value.flat {
+    color: #FFD700;
 }
 
 .char-portrait, .weap-portrait {
@@ -324,75 +380,9 @@
     text-align: center;
 }
 
-.echo-group {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    margin: 8px 0;
-    position: relative;
-}
-
-.preview-echo {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    width: calc((100% - 32px) / 5);
-}
-
-.echo-circle {
-    width: 100%;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: #2a2a2a;
-    overflow: hidden;
-    position: relative;
-}
-
-.echo-icon {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    box-sizing: border-box;
-}
-
-.echo-stats {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-}
-
-.main-stat {
-    font-size: 12px !important;
-    color: #E0E0E0;
-}
-
-.echo-cv {
-    font-size: 11px !important;
-    color: #888;
-}
-
-.echo-icon.electro { border: 2px solid #BA55D3; }
-.echo-icon.er { border: 2px solid white; }
-.echo-icon.attack { border: 2px solid #BC2514; }
-.echo-icon.glacio { border: 2px solid #87CEEB; }
-.echo-icon.aero { border: 2px solid #98FB98; }
-.echo-icon.fusion { border: 2px solid #D5740C; }
-.echo-icon.havoc { border: 2px solid #FF1493; }
-.echo-icon.healing { border: 2px solid #2FE32F; }
-.echo-icon.empyrean { border: 2px solid #4ba3ff; }
-.echo-icon.frosty { border: 2px solid #87CEEB; }
-.echo-icon.midnight { border: 2px solid #e086e0; }
-.echo-icon.radiance { border: 2px solid #ffd54f; }
-.echo-icon.tidebreaking { border: 2px solid white; }
-.echo-icon.spectro { border: 2px solid #FFD700; }
-
 @media (max-width: 600px) {
     .build-preview-expanded{
-        transform: scale(1.75);
+        transform: scale(1.95);
         padding: 5px 5px 0 5px;
     }
     .build-preview-expanded h3 {
@@ -411,11 +401,21 @@
         display: flex;
         align-items: center;
     }
-    .build-preview-expanded .info-row:first-of-type {
-        grid-template-columns: 0.75fr 1fr .9fr 2.2fr 0.15fr;
-    }
     .main-stat, .echo-cv{
         font-size: 6px !important;
+    }
+    .build-preview-expanded .info-row:first-of-type {
+        display: grid;
+        grid-template-columns: 0.75fr 1fr .9fr 2.2fr 0.15fr;
+    }
+    .char-container {
+        grid-column: 2;
+    }
+    .weap-container {
+        grid-column: 4;
+    }
+    .stats-menu{
+        display: none;
     }
     .build-preview-expanded .set-display{
         transform: translate(-50%, 70%);
@@ -428,12 +428,24 @@
         padding: 2px 4px;
         font-size: 12px;
     }
+    @keyframes expandIn {
+        0% {
+            transform: scale(0.95);
+            opacity: 0;
+        }
+        50% {
+            opacity: 1;
+        }
+        75% {
+            transform: scale(2.1);
+        }
+        100% {
+            transform: scale(1.95);
+        }
+    }
 }
 
 @media(min-width: 2560px){
-    .build-preview-expanded .info-row:first-of-type {
-        grid-template-columns: 0.75fr 1fr .65fr 2.6fr 0fr;
-    }
     .main-stat {
         font-size: 11px !important;
     }

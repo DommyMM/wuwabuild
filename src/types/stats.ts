@@ -50,7 +50,6 @@ export const getStatIconName = (statName: string | null): string => {
     'Spectro DMG': 'Spectro',
     'Healing Bonus': 'Healing'
   };
-
   return statMap[statName] || 'ATK';
 };
 

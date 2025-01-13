@@ -9,7 +9,6 @@ html, body, #root {
   background: #121212;
   background-color: #121212;
   max-width: 100%;
-  overflow-x: hidden;
 }
 
 body {
@@ -18,6 +17,7 @@ body {
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 .tab {

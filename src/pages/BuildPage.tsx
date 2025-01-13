@@ -184,8 +184,7 @@ export const BuildsPage: React.FC = () => {
             />
             <div className="builds-grid">
                 {currentBuilds.map((build, index) => (
-                    <BuildPreview 
-                        key={build.id}
+                    <BuildPreview key={build.id}
                         build={build}
                         onLoad={handleLoad}
                         onDelete={handleDelete}

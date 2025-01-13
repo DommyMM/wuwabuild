@@ -5,7 +5,27 @@ import { Weapon, ScaledWeaponStats } from '../types/weapon';
 import { useCharacterCurves } from './useCharacterCurves';
 import { EchoPanelState, ELEMENT_SETS, ElementType, ECHO_BONUSES } from '../types/echo';
 
-const SET_TO_STAT_MAPPING = {
+export interface StatsData {
+  stats: StatName[];
+}
+
+export interface StatState {
+  values: Record<StatName, number>;
+  updates: Record<StatName, number>;
+  baseValues: Record<StatName, number>;
+}
+
+export interface UseStatsProps {
+  character: Character | null;
+  level: string;
+  weapon: Weapon | null;
+  weaponStats?: ScaledWeaponStats;
+  echoPanels?: EchoPanelState[];
+  nodeStates: Record<string, Record<string, boolean>>;
+  isSpectro?: boolean;
+}
+
+export const SET_TO_STAT_MAPPING = {
   'Sierra Gale': 'Aero DMG',
   'Moonlit Clouds': 'Energy Regen',
   'Void Thunder': 'Electro DMG',
@@ -22,7 +42,13 @@ const SET_TO_STAT_MAPPING = {
   'Eternal Radiance': 'Spectro DMG'
 } as const;
 
-const calculateEchoDefaultStat = (cost: number, level: number): number => {
+export const initialStatState: StatState = {
+  values: {} as Record<StatName, number>,
+  updates: {} as Record<StatName, number>,
+  baseValues: {} as Record<StatName, number>
+};
+
+export const calculateEchoDefaultStat = (cost: number, level: number): number => {
   const normalLevels = Math.floor(level - Math.floor(level/5));
   const bonusLevels = Math.floor(level/5);
   
@@ -39,7 +65,7 @@ const calculateEchoDefaultStat = (cost: number, level: number): number => {
   }
 };
 
-const sumEchoDefaultStats = (echoPanels: EchoPanelState[]): { atk: number; hp: number } => {
+export const sumEchoDefaultStats = (echoPanels: EchoPanelState[]): { atk: number; hp: number } => {
   let totalATK = 0;
   let totalHP = 0;
   
@@ -58,33 +84,7 @@ const sumEchoDefaultStats = (echoPanels: EchoPanelState[]): { atk: number; hp: n
   return { atk: totalATK, hp: totalHP };
 };
 
-interface StatsData {
-  stats: StatName[];
-}
-
-interface StatState {
-  values: Record<StatName, number>;
-  updates: Record<StatName, number>;
-  baseValues: Record<StatName, number>;
-}
-
-interface UseStatsProps {
-  character: Character | null;
-  level: string;
-  weapon: Weapon | null;
-  weaponStats?: ScaledWeaponStats;
-  echoPanels?: EchoPanelState[];
-  nodeStates: Record<string, Record<string, boolean>>;
-  isSpectro?: boolean;
-}
-
-const initialStatState: StatState = {
-  values: {} as Record<StatName, number>,
-  updates: {} as Record<StatName, number>,
-  baseValues: {} as Record<StatName, number>
-};
-
-const calculateForteBonus = (
+export const calculateForteBonus = (
   character: Character,
   nodeStates: Record<string, Record<string, boolean>>,
   isSpectro?: boolean
@@ -111,7 +111,7 @@ const calculateForteBonus = (
   return { bonus1Total, bonus2Total, bonus1Type };
 };
 
-const sumMainStats = (statType: StatName, panels: EchoPanelState[]): number => {
+export const sumMainStats = (statType: StatName, panels: EchoPanelState[]): number => {
   return panels.reduce((total, panel) => {
     if (panel.stats.mainStat.type === statType && panel.stats.mainStat.value) {
       return total + panel.stats.mainStat.value;
@@ -120,7 +120,7 @@ const sumMainStats = (statType: StatName, panels: EchoPanelState[]): number => {
   }, 0);
 };
 
-const sumSubStats = (statType: StatName, panels: EchoPanelState[]): number => {
+export const sumSubStats = (statType: StatName, panels: EchoPanelState[]): number => {
   return panels.reduce((total, panel) => (
     total + panel.stats.subStats.reduce((subTotal, stat) => {
       if (stat.type === statType && stat.value) {
@@ -131,7 +131,7 @@ const sumSubStats = (statType: StatName, panels: EchoPanelState[]): number => {
   ), 0);
 };
 
-const getDisplayName = (stat: StatName): StatName => {
+export const getDisplayName = (stat: StatName): StatName => {
   switch(stat) {
     case 'Basic Attack': return 'Basic Attack DMG Bonus';
     case 'Heavy Attack': return 'Heavy Attack DMG Bonus';
@@ -139,6 +139,23 @@ const getDisplayName = (stat: StatName): StatName => {
     case 'Liberation': return 'Resonance Liberation DMG Bonus';
     default: return stat;
   }
+};
+
+export const calculateCV = (echoPanels: EchoPanelState[]): number => {
+  const critRate = sumMainStats('Crit Rate', echoPanels) + sumSubStats('Crit Rate', echoPanels);
+  const critDmg = sumMainStats('Crit DMG', echoPanels) + sumSubStats('Crit DMG', echoPanels);
+  return 2 * critRate + critDmg;
+};
+
+let statsDataCache: StatsData | null = null;
+
+export const getStatsData = async () => {
+    if (statsDataCache) return statsDataCache;
+    
+    const response = await fetch('/Data/Stats.json');
+    const data = await response.json();
+    statsDataCache = data;
+    return data;
 };
 
 export const useStats = ({
@@ -223,12 +240,10 @@ export const useStats = ({
 
     if (['HP', 'ATK', 'DEF'].includes(displayStat)) {
       const baseStat = displayStat as BaseStatName;
-      result.baseValue = displayStat === 'HP' ? baseStats.baseHP : 
-                        displayStat === 'ATK' ? baseStats.baseATK : 
-                        baseStats.baseDEF;
+      result.baseValue = displayStat === 'HP' ? baseStats.baseHP : displayStat === 'ATK' ? baseStats.baseATK : baseStats.baseDEF;
       const flat = sumMainStats(baseStat, echoPanels) + sumSubStats(baseStat, echoPanels) + (baseStat === 'HP' ? echoStats.hp : baseStat === 'ATK' ? echoStats.atk : 0);
       let percent = sumMainStats(getPercentVariant(baseStat), echoPanels) + sumSubStats(getPercentVariant(baseStat), echoPanels);
-
+      
       if (weapon && weaponStats) {
         const percentStatName = `${displayStat}%`;
         if (weapon.main_stat === percentStatName) {
@@ -247,19 +262,17 @@ export const useStats = ({
       result.value = Math.round(result.baseValue * (1 + percent/100)) + flat;
       result.update = result.value - result.baseValue;
     } else {
-      result.baseValue = displayStat === 'Crit Rate' ? 5.0 : 
-                        displayStat === 'Crit DMG' ? 150.0 : 
-                        displayStat === 'Energy Regen' ? character.ER : 0;
+      result.baseValue = displayStat === 'Crit Rate' ? 5.0 : displayStat === 'Crit DMG' ? 150.0 : displayStat === 'Energy Regen' ? character.ER : 0;
       
       result.update = sumMainStats(stat, echoPanels) + sumSubStats(stat, echoPanels);
-
+      
       if (firstPanelBonus) {
         const bonusForStat = firstPanelBonus.find(bonus => bonus.stat === displayStat);
         if (bonusForStat) {
           result.update += bonusForStat.value;
         }
       }
-
+      
       if (weapon && weaponStats) {
         const weaponStatName = displayStat === 'Energy Regen' ? 'ER' : displayStat;
         
@@ -281,7 +294,7 @@ export const useStats = ({
             result.update += weaponStats.scaledPassive ?? 0;
           }
         }
-
+        
         Object.entries(elementCounts).forEach(([element, count]) => {
           if (count >= 2) {
             const setName = ELEMENT_SETS[element as ElementType];
@@ -295,33 +308,25 @@ export const useStats = ({
             }
           }
         });
-
         if ((forteBonus.bonus1Type === 'Crit Rate' && displayStat === 'Crit Rate') || (forteBonus.bonus1Type === 'Crit DMG' && displayStat === 'Crit DMG') || 
             (forteBonus.bonus1Type === 'Healing' && displayStat === 'Healing Bonus') || (displayStat === `${forteBonus.bonus1Type} DMG`)) {
           result.update += forteBonus.bonus1Total;
         }
       }
-
       result.value = result.baseValue + result.update;
     }
-
     return result;
   }, [character, baseStats, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats, firstPanelBonus]);
 
-  const calculateCV = useCallback(() => {
-    const critRate = sumMainStats('Crit Rate', echoPanels) + sumSubStats('Crit Rate', echoPanels);
-    const critDmg = sumMainStats('Crit DMG', echoPanels) + sumSubStats('Crit DMG', echoPanels);
-    return 2 * critRate + critDmg;
+  const calculateCVValue = useCallback((): number => {
+    return calculateCV(echoPanels);
   }, [echoPanels]);
 
   useEffect(() => {
     const controller = new AbortController();
     const loadStats = async () => {
       try {
-        const response = await fetch('/Data/Stats.json', {
-          signal: controller.signal
-        });
-        const data = await response.json();
+        const data = await getStatsData();
         setStatsData(data);
       } catch (err) {
         setError('Failed to load stats');
@@ -374,6 +379,6 @@ export const useStats = ({
     loading,
     error,
     ...statState,
-    cv: calculateCV()
+    cv: calculateCVValue()
   };
 };

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { formatDate, getSetInfo, getCVClass, PreviewEcho, ExpandedStyle, StatsMenu } from './Card';
 import { SavedBuild } from '../../types/SavedState';
-import { EchoPanelState, ELEMENT_SETS } from '../../types/echo';
 import { getAssetPath } from '../../types/paths';
 import { Character } from '../../types/character';
 import Marquee from 'react-fast-marquee';
@@ -15,81 +15,9 @@ interface BuildPreviewProps {
     cv: string;
 }
 
-interface ExpandedStyle {
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-}
-
-const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-};
-
-const getSetInfo = (echoPanels: EchoPanelState[]) => {
-    const setCounts = echoPanels.reduce((counts, panel) => {
-        if (!panel.echo) return counts;
-        const element = panel.selectedElement || panel.echo.elements[0];
-        counts[element] = (counts[element] || 0) + 1;
-        return counts;
-    }, {} as Record<string, number>);
-
-    return Object.entries(setCounts)
-        .filter(([_, count]) => count >= 2)
-        .map(([element, count], index, array) => (
-            <React.Fragment key={element}>
-                <span className={`build-sets ${element.toLowerCase()}`}>
-                    {ELEMENT_SETS[element as keyof typeof ELEMENT_SETS]} ({count})
-                </span>
-                {index < array.length - 1 && " • "}
-            </React.Fragment>
-        ));
-};
-
-const getCVClass = (cv: number): string => {
-    if (cv >= 230) return 'cv-value goat';
-    if (cv >= 220) return 'cv-value excellent';
-    if (cv >= 205) return 'cv-value high';
-    if (cv >= 195) return 'cv-value good';
-    if (cv >= 175) return 'cv-value decent';
-    return 'cv-value low';
-};
-
-const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
-    const calculateCV = () => {
-        return panel.stats.subStats
-            .filter(s => s.type && ['Crit Rate', 'Crit DMG'].includes(s.type))
-            .reduce((sum, s) => {
-                if (s.type === 'Crit Rate') return sum + ((s.value || 0) * 2);
-                return sum + (s.value || 0);
-            }, 0)
-            .toFixed(1);
-    };
-    if (!panel.echo) return null;
-    return (
-        <div className="preview-echo">
-            <div className="echo-circle">
-                <img src={`images/Echoes/${panel.echo.name}.png`}
-                    alt={panel.echo.name}
-                    className={`echo-icon ${panel.selectedElement?.toLowerCase() || ''}`}
-                />
-            </div>
-            <div className="echo-stats">
-                <span className="main-stat">{panel.stats.mainStat.type}</span>
-                <span className="echo-cv">CV: {calculateCV()}</span>
-            </div>
-        </div>
-    );
-};
-
-export const BuildPreview: React.FC<BuildPreviewProps> = ({...props}) => {
-    const { build, onLoad, onDelete, onNameChange, deleteConfirm, cv } = props;
+export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDelete, onNameChange, deleteConfirm, cv }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isAnimatingOut, setIsAnimatingOut] = useState(false);
     const [expandedStyle, setExpandedStyle] = useState<ExpandedStyle | null>(null);
     const previewRef = useRef<HTMLDivElement>(null);
     const [shouldAnimate, setShouldAnimate] = useState(false);
@@ -215,6 +143,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({...props}) => {
                         <span className={`char-sig ${elementClass}`}>{character?.name}</span>
                         <span>Lv.{build.state.characterLevel} • S{build.state.currentSequence}</span>
                     </div>
+                    <StatsMenu weapon={build.state.weaponState.selectedWeapon} echoPanels={build.state.echoPanels} />
                     {weapon && (
                         <div className="weap-container">
                             <img src={`images/Weapons/${weapon.type}/${encodeURIComponent(weapon.name)}.png`}
@@ -263,12 +192,24 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({...props}) => {
     const handleExpand = (e: React.MouseEvent) => {
         if ((e.target as HTMLElement).closest('.build-actions')) return;
         
-        if (!isExpanded && previewRef.current) {
+        if (isExpanded && previewRef.current) {
+            setIsAnimatingOut(true);
+            previewRef.current.classList.add('animating');
+            setTimeout(() => {
+                setIsExpanded(false);
+                setIsAnimatingOut(false);
+                previewRef.current?.classList.remove('animating');
+                previewRef.current?.classList.add('appearing');
+                setTimeout(() => {
+                    previewRef.current?.classList.remove('appearing');
+                }, 300);
+            }, 500);
+        } else if (!isExpanded && previewRef.current) {
             const rect = previewRef.current.getBoundingClientRect();
             const position = calculatePosition();
             const origin = getTransformOrigin(position);
-            let leftOffset = origin.includes('right') ? rect.width < 300 
-                    ? rect.left - 10 : rect.left - 42
+            let leftOffset = origin.includes('right') ? 
+                rect.width < 300 ? rect.left - 10 : rect.left - 42
                 : rect.left;
             
             setExpandedStyle({
@@ -278,8 +219,8 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({...props}) => {
                 height: rect.height,
                 '--transform-origin': origin
             } as any);
+            setIsExpanded(true);
         }
-        setIsExpanded(!isExpanded);
     };
     return (
         <>
@@ -298,11 +239,21 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({...props}) => {
                     </button>
                 </div>
             </div>
-            {isExpanded && expandedStyle && (
+            {(isExpanded || isAnimatingOut) && expandedStyle && (
                 <>
-                    <div className="preview-backdrop" onClick={() => setIsExpanded(false)}/>
-                    <div className="build-preview-expanded"
-                        style={expandedStyle}>
+                    <div 
+                        className={`preview-backdrop ${isAnimatingOut ? 'fade-out' : ''}`} 
+                        onClick={handleExpand} 
+                    />
+                    <div 
+                        className={`build-preview-expanded ${isAnimatingOut ? 'collapse-out' : ''}`}
+                        onClick={(e) => {
+                            if (!(e.target as HTMLElement).closest('.build-actions')) {
+                                handleExpand(e);
+                            }
+                        }}
+                        style={expandedStyle}
+                    >
                         <div className="build-header">
                             <div className="name-section">
                                 {renderName()}
