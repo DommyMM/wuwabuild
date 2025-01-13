@@ -35,6 +35,40 @@ export const BuildsPage: React.FC = () => {
         return (2 * critRate + critDmg).toFixed(1);
     };
 
+    const filteredAndSortedBuilds = builds
+        .filter(build => {
+            const searchLower = searchTerm.toLowerCase();
+            return (
+                build.name.toLowerCase().includes(searchLower) ||
+                build.state.elementState.selectedCharacter?.name.toLowerCase().includes(searchLower) ||
+                build.state.weaponState.selectedWeapon?.name.toLowerCase().includes(searchLower)
+            );
+        })
+        .sort((a, b) => {
+            let comparison = 0;
+            switch (sortBy) {
+                case 'name': 
+                    comparison = a.name.localeCompare(b.name);
+                    break;
+                case 'character': 
+                    comparison = (a.state.elementState.selectedCharacter?.name ?? '')
+                        .localeCompare(b.state.elementState.selectedCharacter?.name ?? '');
+                    break;
+                case 'cv': 
+                    comparison = Number(calculateCV(b.state.echoPanels)) - Number(calculateCV(a.state.echoPanels));
+                    break;
+                default: 
+                    comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+            }
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+
+    const pageCount = Math.ceil(filteredAndSortedBuilds.length / buildsPerPage);
+    const currentBuilds = filteredAndSortedBuilds.slice(
+        (currentPage - 1) * buildsPerPage,
+        currentPage * buildsPerPage
+    );
+
     useEffect(() => {
         const savedBuilds = localStorage.getItem('wuwabuilds_builds');
         if (savedBuilds) {
@@ -52,6 +86,7 @@ export const BuildsPage: React.FC = () => {
                     
                     const gridStyles = window.getComputedStyle(grid);
                     const columns = gridStyles.gridTemplateColumns.split(' ').length;
+                    
                     const minItemsPerPage = columns * 2;
                     const gridRect = grid.getBoundingClientRect();
                     const itemHeight = document.querySelector('.build-preview')?.getBoundingClientRect().height ?? 0;
@@ -76,7 +111,7 @@ export const BuildsPage: React.FC = () => {
         }, 50);
         
         return () => clearTimeout(timer);
-    }, []);
+    }, [filteredAndSortedBuilds.length]);
 
     const handleDelete = (id: string) => {
         if (deleteConfirm !== id) {
@@ -122,40 +157,6 @@ export const BuildsPage: React.FC = () => {
         setBuilds(newBuilds);
     };
 
-    const filteredAndSortedBuilds = builds
-        .filter(build => {
-            const searchLower = searchTerm.toLowerCase();
-            return (
-                build.name.toLowerCase().includes(searchLower) ||
-                build.state.elementState.selectedCharacter?.name.toLowerCase().includes(searchLower) ||
-                build.state.weaponState.selectedWeapon?.name.toLowerCase().includes(searchLower)
-            );
-        })
-        .sort((a, b) => {
-            let comparison = 0;
-            switch (sortBy) {
-                case 'name': 
-                    comparison = a.name.localeCompare(b.name);
-                    break;
-                case 'character': 
-                    comparison = (a.state.elementState.selectedCharacter?.name ?? '')
-                        .localeCompare(b.state.elementState.selectedCharacter?.name ?? '');
-                    break;
-                case 'cv': 
-                    comparison = Number(calculateCV(b.state.echoPanels)) - Number(calculateCV(a.state.echoPanels));
-                    break;
-                default: 
-                    comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
-            }
-            return sortDirection === 'asc' ? comparison : -comparison;
-        });
-
-    const pageCount = Math.ceil(filteredAndSortedBuilds.length / buildsPerPage);
-    const currentBuilds = filteredAndSortedBuilds.slice(
-        (currentPage - 1) * buildsPerPage,
-        currentPage * buildsPerPage
-    );
-
     const handlePageChange = (page: number) => {
         const grid = document.querySelector('.builds-grid');
         grid?.classList.add('page-exit');
@@ -182,8 +183,9 @@ export const BuildsPage: React.FC = () => {
                 deleteAllConfirm={deleteAllConfirm}
             />
             <div className="builds-grid">
-                {currentBuilds.map(build => (
-                    <BuildPreview key={build.id}
+                {currentBuilds.map((build, index) => (
+                    <BuildPreview 
+                        key={build.id}
                         build={build}
                         onLoad={handleLoad}
                         onDelete={handleDelete}

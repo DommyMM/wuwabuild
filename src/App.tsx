@@ -4,7 +4,6 @@ import { EditPage } from './pages/EditPage';
 import { OCRProvider } from './contexts/OCRContext';
 import { HomePage } from './pages/HomePage';
 import { BuildsPage } from './pages/BuildPage';
-import MobileNotice from './components/Edit/MobileNotice';
 import './styles/App.css';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -68,7 +67,6 @@ const router = createBrowserRouter([
 const App: React.FC = () => {
   return (
     <>
-      <MobileNotice />
       <OCRProvider>
         <RouterProvider router={router} />
       </OCRProvider>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SavedBuild } from '../../types/SavedState';
 import { EchoPanelState, ELEMENT_SETS } from '../../types/echo';
 import { getAssetPath } from '../../types/paths';
@@ -13,6 +13,13 @@ interface BuildPreviewProps {
     onNameChange: (id: string, newName: string) => void;
     deleteConfirm: string | null;
     cv: string;
+}
+
+interface ExpandedStyle {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
 }
 
 const formatDate = (dateStr: string) => {
@@ -80,15 +87,11 @@ const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
     );
 };
 
-export const BuildPreview: React.FC<BuildPreviewProps> = ({
-    build,
-    onLoad,
-    onDelete,
-    onNameChange,
-    deleteConfirm,
-    cv
-}) => {
+export const BuildPreview: React.FC<BuildPreviewProps> = ({...props}) => {
+    const { build, onLoad, onDelete, onNameChange, deleteConfirm, cv } = props;
     const [isExpanded, setIsExpanded] = useState(false);
+    const [expandedStyle, setExpandedStyle] = useState<ExpandedStyle | null>(null);
+    const previewRef = useRef<HTMLDivElement>(null);
     const [shouldAnimate, setShouldAnimate] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [tempName, setTempName] = useState(build.name);
@@ -97,10 +100,6 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({
     const character = build.state.elementState.selectedCharacter;
     const elementClass = (build.state.elementState.elementValue || '').toLowerCase();
     const weapon = build.state.weaponState.selectedWeapon;
-    const handleClick = (e: React.MouseEvent) => {
-        if ((e.target as HTMLElement).closest('.build-actions')) return;
-        setIsExpanded(!isExpanded);
-    };
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsEditing(true);
@@ -184,8 +183,8 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({
             </div>
         );
     };
-    const renderContent = () => {
-        if (!isExpanded) {
+    const renderContent = (expanded: boolean) => {
+        if (!expanded) {
             return (
                 <>
                     <div className="info-row">
@@ -229,31 +228,95 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({
                 </div>
                 <div className='info-row'>
                     <div className="echo-group">
-                        <div className="set-display">{getSetInfo(build.state.echoPanels)}</div>
                         {build.state.echoPanels.map((panel, index) => (
                             <PreviewEcho key={index} panel={panel} />
                         ))}
+                        <div className="set-display"> {getSetInfo(build.state.echoPanels)}
+                            <span className={getCVClass(Number(cv))}>CV: {cv}</span>
+                        </div>
                     </div>
                 </div>
             </>
         );
     };
+    const calculatePosition = useCallback(() => {
+        if (!previewRef.current) return null;
+        
+        const grid = previewRef.current.closest('.builds-grid');
+        if (!grid) return null;
+        const items = Array.from(grid.children);
+        const gridStyles = window.getComputedStyle(grid);
+        const columns = gridStyles.gridTemplateColumns.split(' ').length;
+        
+        const index = items.indexOf(previewRef.current);
+        const row = Math.floor(index / columns);
+        const col = index % columns;
+        const totalRows = Math.ceil(items.length / columns);
+        return { row, col, columns, totalRows };
+    }, []);
+    const getTransformOrigin = (position: ReturnType<typeof calculatePosition>) => {
+        if (!position) return 'center';
+        const vertical = position.row === 0 ? 'top' : position.row === position.totalRows - 1 ? 'bottom' : 'center';
+        const horizontal = position.col === 0 ? 'left' : position.col === position.columns - 1 ? 'right' : 'center';
+        return `${horizontal} ${vertical}`;
+    };
+    const handleExpand = (e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).closest('.build-actions')) return;
+        
+        if (!isExpanded && previewRef.current) {
+            const rect = previewRef.current.getBoundingClientRect();
+            const position = calculatePosition();
+            const origin = getTransformOrigin(position);
+            let leftOffset = origin.includes('right') ? rect.width < 300 
+                    ? rect.left - 10 : rect.left - 42
+                : rect.left;
+            
+            setExpandedStyle({
+                top: rect.top,
+                left: leftOffset,
+                width: rect.width,
+                height: rect.height,
+                '--transform-origin': origin
+            } as any);
+        }
+        setIsExpanded(!isExpanded);
+    };
     return (
-        <div className={`build-preview${isExpanded ? ' expanded' : ''}`} onClick={handleClick}>
-            <div className="build-header">
-                {isExpanded && <div className="name-section">{renderName()}</div>}
-                {!isExpanded && renderName()}
-                <span className="build-date">{formatDate(build.date)}</span>
-            </div>
-            <div className="build-info">{renderContent()}</div>
-            {!isExpanded && (
+        <>
+            <div ref={previewRef} className="build-preview" onClick={handleExpand}>
+                <div className="build-header">
+                    {renderName()}
+                    <span className="build-date">{formatDate(build.date)}</span>
+                </div>
+                <div className="build-info">
+                    {renderContent(false)}
+                </div>
                 <div className="build-actions">
                     <button onClick={() => onLoad(build)}>Load</button>
                     <button onClick={() => onDelete(build.id)} className={deleteConfirm === build.id ? 'danger' : ''}>
                         {deleteConfirm === build.id ? 'Confirm Delete?' : 'Delete'}
                     </button>
                 </div>
+            </div>
+            {isExpanded && expandedStyle && (
+                <>
+                    <div className="preview-backdrop" onClick={() => setIsExpanded(false)}/>
+                    <div className="build-preview-expanded"
+                        style={expandedStyle}>
+                        <div className="build-header">
+                            <div className="name-section">
+                                {renderName()}
+                            </div>
+                            <span className="build-date">
+                                {formatDate(build.date)}
+                            </span>
+                        </div>
+                        <div className="build-info">
+                            {renderContent(true)}
+                        </div>
+                    </div>
+                </>
             )}
-        </div>
+        </>
     );
 };
