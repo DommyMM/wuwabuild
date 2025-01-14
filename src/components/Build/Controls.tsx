@@ -30,13 +30,20 @@ export const BuildControls: React.FC<BuildControlsProps> = ({
 
     return (
         <div className="builds-controls">
-            <div className="search-control">
-                <Search size={20} className="search-icon" />
-                <input type="text"
-                    placeholder="Search builds..."
-                    value={searchTerm}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                />
+            <div className="sort-control">
+                {sortDirection === 'asc' ? (
+                    <SortAsc size={20} className="sort-icon" onClick={toggleSort} />
+                ) : (
+                    <SortDesc size={20} className="sort-icon" onClick={toggleSort} />
+                )}
+                <select value={sortBy} 
+                    onChange={(e) => onSortChange(e.target.value as any, sortDirection)}
+                >
+                    <option value="name">Name</option>
+                    <option value="character">Character</option>
+                    <option value="cv">CV</option>
+                    <option value="date">Date</option>
+                </select>
             </div>
             <div className="backup-controls">
                 <BuildBackup onImport={onImport} />
@@ -44,21 +51,13 @@ export const BuildControls: React.FC<BuildControlsProps> = ({
                     {deleteAllConfirm ? 'Confirm Delete All?' : 'Delete All'}
                 </button>
             </div>
-            <div className="sort-control">
-                {sortDirection === 'asc' ? (
-                    <SortAsc size={20} className="sort-icon" onClick={toggleSort} />
-                ) : (
-                    <SortDesc size={20} className="sort-icon" onClick={toggleSort} />
-                )}
-                <select 
-                    value={sortBy} 
-                    onChange={(e) => onSortChange(e.target.value as any, sortDirection)}
-                >
-                    <option value="date">Date</option>
-                    <option value="name">Name</option>
-                    <option value="character">Character</option>
-                    <option value="cv">CV</option>
-                </select>
+            <div className="search-control">
+                <Search size={20} className="search-icon" />
+                <input type="text"
+                    placeholder="Search builds..."
+                    value={searchTerm}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                />
             </div>
         </div>
     );

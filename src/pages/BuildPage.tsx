@@ -11,8 +11,8 @@ import '../styles/BuildPage.css';
 export const BuildsPage: React.FC = () => {
     const [builds, setBuilds] = useState<SavedBuild[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState<'date' | 'name' | 'character' | 'cv'>('date');
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+    const [sortBy, setSortBy] = useState<'name' | 'date' | 'character' | 'cv'>('name');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [buildsPerPage, setBuildsPerPage] = useState(10);

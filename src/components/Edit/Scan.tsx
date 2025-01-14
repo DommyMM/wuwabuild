@@ -380,7 +380,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
         } else {
           for (const item of otherResults) {
             await processResult(item);
-            await new Promise((res) => setTimeout(res, 100));
+            await new Promise((res) => setTimeout(res, 200));
           }
         }
       } else {
