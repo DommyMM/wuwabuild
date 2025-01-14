@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { debounce } from 'lodash';
 import { Pagination } from '../components/Build/Pagination';
 import { BuildControls } from '../components/Build/Controls';
 import { BuildPreview } from '../components/Build/Preview';
 import { SavedBuild, SavedBuilds } from '../types/SavedState';
-import { EchoPanelState } from '../types/echo';
+import { calculateCV } from '../hooks/useStats';
 import '../styles/BuildPage.css';
 
 export const BuildsPage: React.FC = () => {
@@ -18,24 +18,14 @@ export const BuildsPage: React.FC = () => {
     const [buildsPerPage, setBuildsPerPage] = useState(10);
     const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
     const navigate = useNavigate();
+    const buildCVs = useMemo(() => {
+        return builds.reduce((acc, build) => ({
+            ...acc,
+            [build.id]: calculateCV(build.state.echoPanels)
+        }), {} as Record<string, number>);
+    }, [builds]);
 
-    const calculateCV = (echoPanels: EchoPanelState[]) => {
-        const sumStats = (stat: string) => 
-            echoPanels.reduce((total, panel) => {
-                const mainValue = panel.stats.mainStat.type === stat 
-                    ? (panel.stats.mainStat.value ?? 0) 
-                    : 0;
-                const subValues = panel.stats.subStats
-                    .filter(s => s.type === stat)
-                    .reduce((sum, s) => sum + (s.value ?? 0), 0);
-                return total + mainValue + subValues;
-            }, 0);
-        const critRate = sumStats('Crit Rate');
-        const critDmg = sumStats('Crit DMG');
-        return (2 * critRate + critDmg).toFixed(1);
-    };
-
-    const filteredAndSortedBuilds = builds
+    const filteredAndSortedBuilds = useMemo(() => builds
         .filter(build => {
             const searchLower = searchTerm.toLowerCase();
             return (
@@ -55,19 +45,22 @@ export const BuildsPage: React.FC = () => {
                         .localeCompare(b.state.elementState.selectedCharacter?.name ?? '');
                     break;
                 case 'cv': 
-                    comparison = Number(calculateCV(b.state.echoPanels)) - Number(calculateCV(a.state.echoPanels));
+                    comparison = buildCVs[b.id] - buildCVs[a.id];
                     break;
                 default: 
                     comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
             }
             return sortDirection === 'asc' ? comparison : -comparison;
-        });
+        }), [builds, searchTerm, sortBy, sortDirection, buildCVs]);
+
+    const currentBuilds = useMemo(() => 
+        filteredAndSortedBuilds.slice(
+            (currentPage - 1) * buildsPerPage,
+            currentPage * buildsPerPage
+        ), [filteredAndSortedBuilds, currentPage, buildsPerPage]
+    );
 
     const pageCount = Math.ceil(filteredAndSortedBuilds.length / buildsPerPage);
-    const currentBuilds = filteredAndSortedBuilds.slice(
-        (currentPage - 1) * buildsPerPage,
-        currentPage * buildsPerPage
-    );
 
     useEffect(() => {
         const savedBuilds = localStorage.getItem('wuwabuilds_builds');
@@ -190,8 +183,8 @@ export const BuildsPage: React.FC = () => {
                         onDelete={handleDelete}
                         onNameChange={handleNameChange}
                         deleteConfirm={deleteConfirm}
-                        cv={calculateCV(build.state.echoPanels)}
-                    />
+                        cv={buildCVs[build.id].toFixed(1)}
+                        />
                 ))}
                 {builds.length === 0 && (
                     <p className="no-builds">No saved builds yet.</p>

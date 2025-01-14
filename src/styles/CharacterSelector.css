@@ -185,11 +185,11 @@ h2 {
 }
 
 .character-option:hover .border-wrapper {
-  animation: rotate 2s linear infinite, zoomIn 0.3s forwards ease-out;
+  animation: rotate 2s linear infinite, rotateIn 0.3s forwards ease-out;
   transform-origin: center;
 }
 
-@keyframes zoomIn {
+@keyframes rotateIn {
   0% {
     transform: translate(-50%, -50%) scale(1) rotate(0deg);
   }

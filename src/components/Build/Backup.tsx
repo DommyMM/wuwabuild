@@ -1,6 +1,11 @@
 import React from 'react';
 import { SavedBuilds } from '../../types/SavedState';
 import { toast } from 'react-toastify';
+import { cachedCharacters } from '../../hooks/useCharacters';
+import { cachedEchoes } from '../../hooks/useEchoes';
+import { weaponList } from '../../hooks/useWeapons';
+import { isRover } from '../../types/character';
+import { ELEMENT_SETS } from '../../types/echo';
 
 interface BuildBackupProps {
     onImport: (builds: SavedBuilds) => void;
@@ -22,6 +27,7 @@ export const STAT_MAP = {
     "Havoc DMG": "HD",
     "Basic Attack": "BA",
     "Heavy Attack": "HA",
+    "Liberation" : "L",
     "Energy Regen": "ER",
     "Healing Bonus": "HB"
 } as const;
@@ -37,28 +43,90 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
         type: REVERSE_STAT_MAP[stat.t] || stat.t,
         value: stat.v
     });
+    const ELEMENT_KEYS = Object.keys(ELEMENT_SETS) as (keyof typeof ELEMENT_SETS)[];
+    const compressData = (build: any) => ({
+        ...build,
+        state: {
+            ...build.state,
+            elementState: {
+                selectedCharacter: build.state.elementState.selectedCharacter?.id || null,
+                ...(isRover(build.state.elementState.selectedCharacter) && {
+                    isSpectro: build.state.elementState.elementValue === 'Spectro'
+                })
+            },
+            weaponState: {
+                selectedWeapon: weaponList.findIndex(w => 
+                    w.name === build.state.weaponState.selectedWeapon.name),
+                config: build.state.weaponState.config
+            },
+            echoPanels: build.state.echoPanels.map((panel: any) => ({
+                ...panel,
+                echo: {
+                    name: cachedEchoes!.findIndex(e => e.name === panel.echo.name)
+                },
+                se: ELEMENT_KEYS.indexOf(panel.selectedElement),
+                stats: {
+                    mainStat: compressStats(panel.stats.mainStat),
+                    subStats: panel.stats.subStats.map(compressStats)
+                }
+            }))
+        }
+    });
+    const decompressData = (build: any) => {
+        const character = cachedCharacters!.find(c => c.id === build.state.elementState.selectedCharacter);
+        if (!character) return build;
+        const weapon = weaponList[build.state.weaponState.selectedWeapon];
+        const elementValue = isRover(character) 
+            ? (build.state.elementState.isSpectro ? 'Spectro' : 'Havoc')
+            : character.element;
+        return {
+            ...build,
+            state: {
+                ...build.state,
+                elementState: {
+                    selectedCharacter: character,
+                    elementValue,
+                    displayName: isRover(character) ? `Rover (${elementValue})` : character.name
+                },
+                weaponState: {
+                    selectedWeapon: weapon,
+                    config: build.state.weaponState.config
+                },
+                echoPanels: build.state.echoPanels.map((panel: any) => {
+                    const echo = cachedEchoes![panel.echo.name];
+                    return {
+                        ...panel,
+                        echo: {
+                            ...echo,
+                            name: echo.name,
+                            cost: echo.cost,
+                            elements: echo.elements
+                        },
+                        selectedElement: ELEMENT_KEYS[panel.se],
+                        stats: {
+                            mainStat: decompressStats(panel.stats.mainStat),
+                            subStats: panel.stats.subStats.map(decompressStats)
+                        }
+                    };
+                })
+            }
+        };
+    };
     const handleExport = () => {
         const savedBuilds = localStorage.getItem('wuwabuilds_builds');
         if (!savedBuilds) {
             toast.error('No builds to export');
             return;
         }
+        if (!cachedCharacters || !cachedEchoes) {
+            toast.error('Reference data not loaded');
+            return;
+        }
         try {
             const builds = JSON.parse(savedBuilds);
             const compressed = {
-                builds: builds.builds.map((build: any) => ({
-                    ...build,
-                    state: {
-                        ...build.state,
-                        echoPanels: build.state.echoPanels.map((panel: any) => ({
-                            ...panel,
-                            stats: {
-                                mainStat: compressStats(panel.stats.mainStat),
-                                subStats: panel.stats.subStats.map(compressStats)
-                            }
-                        }))
-                    }
-                }))
+                version: '1.0.0',
+                builds: builds.builds.map(compressData)
             };
             const timestamp = new Date().toISOString().slice(0,19).replace(/[T:]/g, ' ');
             const blob = new Blob([JSON.stringify(compressed)], { type: 'application/json' });
@@ -76,25 +144,23 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
             toast.error('Failed to export builds');
         }
     };
+
     const handleImport = async (file: File) => {
+        if (!cachedCharacters || !cachedEchoes) {
+            toast.error('Reference data not loaded');
+            return;
+        }
+
         try {
             const text = await file.text();
             const data = JSON.parse(text);
             
+            if (data.version && data.version !== '1.0.0') {
+                toast.warning('Importing from different version');
+            }
+
             const decompressed = {
-                builds: data.builds.map((build: any) => ({
-                    ...build,
-                    state: {
-                        ...build.state,
-                        echoPanels: build.state.echoPanels.map((panel: any) => ({
-                            ...panel,
-                            stats: {
-                                mainStat: decompressStats(panel.stats.mainStat),
-                                subStats: panel.stats.subStats.map(decompressStats)
-                            }
-                        }))
-                    }
-                }))
+                builds: data.builds.map(decompressData)
             };
             onImport(decompressed);
             toast.success('Builds imported');

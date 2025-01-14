@@ -765,7 +765,7 @@ input:-webkit-autofill {
 
 .weapon-stat.weapon-name{
     width: 100%;
-    text-align: center;
+    text-align: left;
     justify-content: flex-start;
     font-size: 28px;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;

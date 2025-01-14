@@ -9,6 +9,7 @@ interface UseWeaponsProps {
 }
 
 export const weaponCache = new Map<WeaponType, Weapon[]>();
+export const weaponList: Weapon[] = [];
 
 export const useWeapons = ({ weaponType, config, preloadedWeapons }: UseWeaponsProps) => {
   const [weapons, setWeapons] = useState<Weapon[]>([]);
@@ -17,7 +18,7 @@ export const useWeapons = ({ weaponType, config, preloadedWeapons }: UseWeaponsP
   const { scaleWeaponStats, loading: curvesLoading } = useLevelCurves();
 
   const processWeapons = useCallback((data: Omit<Weapon, 'type'>[]): Weapon[] => {
-    return data.map(weapon => ({
+    const processed = data.map(weapon => ({
       ...weapon,
       type: weaponType as WeaponType,
       ATK: Number(weapon.ATK),
@@ -25,6 +26,8 @@ export const useWeapons = ({ weaponType, config, preloadedWeapons }: UseWeaponsP
       passive_stat: weapon.passive_stat ? Number(weapon.passive_stat) : undefined,
       passive_stat2: weapon.passive_stat2 ? Number(weapon.passive_stat2) : undefined,
     }));
+    weaponList.push(...processed);
+    return processed;
   }, [weaponType]);
 
   useEffect(() => {

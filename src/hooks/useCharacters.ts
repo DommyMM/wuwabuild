@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Character, validateCharacter } from '../types/character';
 
-let cachedCharacters: Character[] | null = null;
-let loadError: string | null = null;
+export let cachedCharacters: Character[] | null = null;
+export let loadError: string | null = null;
 
 export const useCharacters = () => {
   const [characters, setCharacters] = useState<Character[]>(cachedCharacters || []);
   const [loading, setLoading] = useState(!cachedCharacters);
   const [error, setError] = useState<string | null>(loadError);
-
   useEffect(() => {
     if (cachedCharacters) return;
-
     const loadCharacters = async () => {
       try {
         const response = await fetch('/Data/Characters.json');
@@ -19,7 +17,6 @@ export const useCharacters = () => {
         
         const data = await response.json();
         if (!Array.isArray(data)) throw new Error('Invalid data format');
-
         const validCharacters = data.filter(validateCharacter);
         cachedCharacters = validCharacters;
         
@@ -32,9 +29,7 @@ export const useCharacters = () => {
         setLoading(false);
       }
     };
-
     loadCharacters();
   }, []);
-
   return { characters, loading, error };
 };

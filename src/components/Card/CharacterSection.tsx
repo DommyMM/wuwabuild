@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { Character, SKIN_CHARACTERS, isRover } from '../../types/character';
+import { Character, isRover } from '../../types/character';
 import { SequenceSection } from './SequenceSection';
+import { getAssetPath } from '../../types/paths';
 import { Delete, RefreshCcw, ZoomIn, ZoomOut, Upload } from 'lucide-react';
 
 interface CharacterSectionProps {
@@ -152,14 +153,9 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   }, [isDragging, handleMouseMove]);
 
   const getImagePath = useCallback(() => {
-    if (customImage) return URL.createObjectURL(customImage);
-    
-    const basePath = `/images/Icons/${character.name}`;
-    return useAltSkin && SKIN_CHARACTERS.includes(character.name) ? 
-      `${basePath}2.png` : 
-      `${basePath}.png`;
+      if (customImage) return URL.createObjectURL(customImage);
+      return getAssetPath('icons', character, useAltSkin).cdn;
   }, [character, customImage, useAltSkin]);
-
   return (
     <>
       <div className={`character-display ${elementValue?.toLowerCase()}`}

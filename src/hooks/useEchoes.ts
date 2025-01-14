@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Echo, COST_SECTIONS } from '../types/echo';
 
-let cachedEchoes: Echo[] | null = null;
-let loadError: string | null = null;
+export let cachedEchoes: Echo[] | null = null;
+export let loadError: string | null = null;
 
 interface EchoesData {
   echoesByCost: Record<number, Echo[]>;

@@ -4,6 +4,10 @@ import { EditPage } from './pages/EditPage';
 import { OCRProvider } from './contexts/OCRContext';
 import { HomePage } from './pages/HomePage';
 import { BuildsPage } from './pages/BuildPage';
+import { useCharacters } from './hooks/useCharacters';
+import { useWeapons } from './hooks/useWeapons';
+import { useEchoes } from './hooks/useEchoes';
+import { WeaponType } from './types/weapon';
 import './styles/App.css';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -65,6 +69,13 @@ const router = createBrowserRouter([
 });
 
 const App: React.FC = () => {
+  useCharacters();
+  useEchoes();
+  useWeapons({ weaponType: WeaponType.Sword });
+  useWeapons({ weaponType: WeaponType.Pistol });
+  useWeapons({ weaponType: WeaponType.Rectifier });
+  useWeapons({ weaponType: WeaponType.Gauntlet });
+  useWeapons({ weaponType: WeaponType.Broadblade });
   return (
     <>
       <OCRProvider>
