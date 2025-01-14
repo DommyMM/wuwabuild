@@ -28,6 +28,9 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
     const character = build.state.elementState.selectedCharacter;
     const elementClass = (build.state.elementState.elementValue || '').toLowerCase();
     const weapon = build.state.weaponState.selectedWeapon;
+    const expandedTextRef = useRef<HTMLSpanElement>(null);
+    const expandedWrapperRef = useRef<HTMLDivElement>(null);
+    const [shouldAnimateExpanded, setShouldAnimateExpanded] = useState(false);
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsEditing(true);
@@ -59,9 +62,20 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
             return (
                 <h3>
                     <div className='marquee-wrap' ref={wrapperRef}>
-                        <span ref={textRef} className={`marquee-text ${shouldAnimate ? 'animate' : ''}`}>
-                            {build.name}
-                        </span>
+                        {shouldAnimate ? (
+                            <Marquee gradient={false} 
+                                speed={100} 
+                                delay={0} 
+                                className="name-marquee" 
+                                pauseOnHover
+                            >
+                                {build.name}&nbsp;&nbsp;&nbsp;
+                            </Marquee>
+                        ) : (
+                            <span ref={textRef} className="marquee-text">
+                                {build.name}
+                            </span>
+                        )}
                     </div>
                 </h3>
             );
@@ -94,19 +108,17 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
         }
         return (
             <div className="name-display">
-                <button className="edit-button"
-                    onClick={handleEditClick}
-                    title="Edit Name"
-                >✎</button>
+                <button className="edit-button" onClick={handleEditClick} title="Edit Name">✎</button>
                 <h3>
-                    <Marquee gradient={false}
-                        speed={100}
-                        delay={0}
-                        className="name-marquee"
-                        pauseOnHover
-                    >
-                        {build.name}&nbsp;&nbsp;&nbsp;
-                    </Marquee>
+                    <div className="marquee-wrap" ref={expandedWrapperRef}>
+                        {shouldAnimateExpanded ? (
+                            <Marquee gradient={false} speed={100} delay={0} className="name-marquee" pauseOnHover>
+                                {build.name}&nbsp;&nbsp;&nbsp;
+                            </Marquee>
+                        ) : (
+                            <span ref={expandedTextRef}>{build.name}</span>
+                        )}
+                    </div>
                 </h3>
             </div>
         );
@@ -222,6 +234,18 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
             setIsExpanded(true);
         }
     };
+        useEffect(() => {
+        if (textRef.current && wrapperRef.current) {
+            const textWidth = textRef.current.offsetWidth;
+            const wrapperWidth = wrapperRef.current.offsetWidth;
+            setShouldAnimate(textWidth > wrapperWidth + 5);
+        }
+        if (isExpanded && expandedTextRef.current && expandedWrapperRef.current) {
+            const textWidth = expandedTextRef.current.offsetWidth;
+            const wrapperWidth = expandedWrapperRef.current.offsetWidth;
+            setShouldAnimateExpanded(textWidth > wrapperWidth + 5);
+        }
+    }, [build.name, isExpanded]);
     return (
         <>
             <div ref={previewRef} className="build-preview" onClick={handleExpand}>

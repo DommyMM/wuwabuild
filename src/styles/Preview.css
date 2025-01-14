@@ -142,19 +142,8 @@
 }
 
 .marquee-text {
-    position: absolute;
+    position: relative;
     display: inline-block;
-    transform: translateX(0);
-}
-
-.marquee-text.animate {
-    transform: translateX(100%);
-    animation: scroll-left 5.4s linear infinite;
-}
-
-@keyframes scroll-left {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
 }
 
 .build-date {

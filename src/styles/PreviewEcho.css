@@ -71,7 +71,7 @@
 
 .echo-details {
     position: absolute;
-    top: calc(75% + 8px);
+    top: calc(50% + 8px);
     left: 50%;
     transform: translateX(-50%) scale(0.95);
     opacity: 0;
@@ -94,7 +94,7 @@
     visibility: visible;
 }
 
-.preview-echo:nth-child(1) .echo-details {
+.preview-echo:nth-child(1) .echo-details.visible {
     transform: translateX(-23%) scale(1);
 }
 
