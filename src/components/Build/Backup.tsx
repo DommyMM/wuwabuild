@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 import { cachedCharacters } from '../../hooks/useCharacters';
 import { cachedEchoes } from '../../hooks/useEchoes';
 import { weaponList } from '../../hooks/useWeapons';
-import { isRover } from '../../types/character';
 import { ELEMENT_SETS } from '../../types/echo';
 
 interface BuildBackupProps {
@@ -47,71 +46,104 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
     const compressData = (build: any) => ({
         ...build,
         state: {
-            ...build.state,
-            elementState: {
-                selectedCharacter: build.state.elementState.selectedCharacter?.id || null,
-                ...(isRover(build.state.elementState.selectedCharacter) && {
-                    isSpectro: build.state.elementState.elementValue === 'Spectro'
-                })
+            c: {
+                i: build.state.characterState.id,
+                l: build.state.characterState.level,
+                e: build.state.characterState.element
             },
-            weaponState: {
-                selectedWeapon: weaponList.findIndex(w => 
-                    w.name === build.state.weaponState.selectedWeapon.name),
-                config: build.state.weaponState.config
-            },
-            echoPanels: build.state.echoPanels.map((panel: any) => ({
-                ...panel,
-                echo: {
-                    name: cachedEchoes!.findIndex(e => e.name === panel.echo.name)
-                },
-                se: ELEMENT_KEYS.indexOf(panel.selectedElement),
-                stats: {
-                    mainStat: compressStats(panel.stats.mainStat),
-                    subStats: panel.stats.subStats.map(compressStats)
+            w: {
+                s: build.state.weaponState.selectedWeapon ? 
+                    weaponList.findIndex(w => w.name === build.state.weaponState.selectedWeapon.name) : -1,
+                c: {
+                    l: build.state.weaponState.config.level,
+                    r: build.state.weaponState.config.rank
                 }
-            }))
+            },
+            e: build.state.echoPanels.map((panel: any) => ({
+                e: panel.echo ? {
+                    n: cachedEchoes?.findIndex(e => e.name === panel.echo.name) ?? -1
+                } : null,
+                l: panel.level,
+                s: panel.selectedElement ? ELEMENT_KEYS.indexOf(panel.selectedElement) : -1,
+                t: panel.stats ? {
+                    m: compressStats(panel.stats.mainStat),
+                    s: panel.stats.subStats?.map(compressStats) || []
+                } : null,
+                p: panel.phantom || false
+            })),
+            q: build.state.currentSequence,
+            n: {
+                t1: build.state.nodeStates.tree1,
+                t2: build.state.nodeStates.tree2,
+                t3: build.state.nodeStates.tree3,
+                t4: build.state.nodeStates.tree4,
+                t5: build.state.nodeStates.tree5
+            },
+            f: {
+                na: build.state.forteLevels['normal-attack'],
+                sk: build.state.forteLevels.skill,
+                ci: build.state.forteLevels.circuit,
+                li: build.state.forteLevels.liberation,
+                in: build.state.forteLevels.intro
+            },
+            m: build.state.watermark
         }
     });
-    const decompressData = (build: any) => {
-        const character = cachedCharacters!.find(c => c.id === build.state.elementState.selectedCharacter);
-        if (!character) return build;
-        const weapon = weaponList[build.state.weaponState.selectedWeapon];
-        const elementValue = isRover(character) 
-            ? (build.state.elementState.isSpectro ? 'Spectro' : 'Havoc')
-            : character.element;
-        return {
-            ...build,
-            state: {
-                ...build.state,
-                elementState: {
-                    selectedCharacter: character,
-                    elementValue,
-                    displayName: isRover(character) ? `Rover (${elementValue})` : character.name
-                },
-                weaponState: {
-                    selectedWeapon: weapon,
-                    config: build.state.weaponState.config
-                },
-                echoPanels: build.state.echoPanels.map((panel: any) => {
-                    const echo = cachedEchoes![panel.echo.name];
-                    return {
-                        ...panel,
-                        echo: {
-                            ...echo,
-                            name: echo.name,
-                            cost: echo.cost,
-                            elements: echo.elements
-                        },
-                        selectedElement: ELEMENT_KEYS[panel.se],
-                        stats: {
-                            mainStat: decompressStats(panel.stats.mainStat),
-                            subStats: panel.stats.subStats.map(decompressStats)
-                        }
-                    };
-                })
-            }
-        };
-    };
+    const decompressData = (build: any) => ({
+        ...build,
+        state: {
+            characterState: {
+                id: build.state.c.i,
+                level: build.state.c.l,
+                element: build.state.c.e
+            },
+            weaponState: {
+                selectedWeapon: build.state.w.s !== -1 ? weaponList[build.state.w.s] : null,
+                config: {
+                    level: build.state.w.c.l,
+                    rank: build.state.w.c.r
+                }
+            },
+            echoPanels: build.state.e.map((panel: any) => {
+                const echoIndex = panel.e?.n ?? -1;
+                const echo = echoIndex !== -1 ? cachedEchoes![echoIndex] : null;
+                return {
+                    echo: echo ? {
+                        ...echo,
+                        name: echo.name,
+                        cost: echo.cost,
+                        elements: echo.elements
+                    } : null,
+                    level: panel.l,
+                    selectedElement: panel.s !== -1 ? ELEMENT_KEYS[panel.s] : null,
+                    stats: panel.t ? {
+                        mainStat: decompressStats(panel.t.m),
+                        subStats: panel.t.s.map(decompressStats)
+                    } : {
+                        mainStat: { type: null, value: null },
+                        subStats: Array(5).fill({ type: null, value: null })
+                    },
+                    phantom: panel.p || false
+                };
+            }),
+            currentSequence: build.state.q,
+            nodeStates: {
+                tree1: build.state.n.t1,
+                tree2: build.state.n.t2,
+                tree3: build.state.n.t3,
+                tree4: build.state.n.t4,
+                tree5: build.state.n.t5
+            },
+            forteLevels: {
+                'normal-attack': build.state.f.na,
+                skill: build.state.f.sk,
+                circuit: build.state.f.ci,
+                liberation: build.state.f.li,
+                intro: build.state.f.in
+            },
+            watermark: build.state.m
+        }
+    });
     const handleExport = () => {
         const savedBuilds = localStorage.getItem('wuwabuilds_builds');
         if (!savedBuilds) {

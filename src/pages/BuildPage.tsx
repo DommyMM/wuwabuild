@@ -6,6 +6,7 @@ import { BuildControls } from '../components/Build/Controls';
 import { BuildPreview } from '../components/Build/Preview';
 import { SavedBuild, SavedBuilds } from '../types/SavedState';
 import { calculateCV } from '../hooks/useStats';
+import { cachedCharacters } from '../hooks/useCharacters';
 import '../styles/BuildPage.css';
 
 export const BuildsPage: React.FC = () => {
@@ -28,9 +29,11 @@ export const BuildsPage: React.FC = () => {
     const filteredAndSortedBuilds = useMemo(() => builds
         .filter(build => {
             const searchLower = searchTerm.toLowerCase();
+            const character = build.state.characterState.id ? 
+                cachedCharacters?.find(c => c.id === build.state.characterState.id) : null;
             return (
                 build.name.toLowerCase().includes(searchLower) ||
-                build.state.elementState.selectedCharacter?.name.toLowerCase().includes(searchLower) ||
+                character?.name.toLowerCase().includes(searchLower) ||
                 build.state.weaponState.selectedWeapon?.name.toLowerCase().includes(searchLower)
             );
         })
@@ -40,9 +43,10 @@ export const BuildsPage: React.FC = () => {
                 case 'name': 
                     comparison = a.name.localeCompare(b.name);
                     break;
-                case 'character': 
-                    comparison = (a.state.elementState.selectedCharacter?.name ?? '')
-                        .localeCompare(b.state.elementState.selectedCharacter?.name ?? '');
+                case 'character':
+                    const charA = cachedCharacters?.find(c => c.id === a.state.characterState.id)?.name ?? '';
+                    const charB = cachedCharacters?.find(c => c.id === b.state.characterState.id)?.name ?? '';
+                    comparison = charA.localeCompare(charB);
                     break;
                 case 'cv': 
                     comparison = buildCVs[b.id] - buildCVs[a.id];

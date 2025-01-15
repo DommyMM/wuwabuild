@@ -7,29 +7,29 @@ import '../../styles/CharacterSelector.css';
 import '../../styles/modal.css';
 
 interface CharacterSelectorProps {
-  onSelect: (character: Character | null) => void;
+  onSelect: (characterId: string | null) => void;
+  selectedCharacter: Character | null;
   ocrName?: string;
   onLevelReset?: () => void;
-  initialCharacter: Character | null;
+  initialCharacterId: string | null;
 }
 
 export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ 
-  onSelect, 
+  onSelect,
+  selectedCharacter,
   ocrName,
   onLevelReset,
-  initialCharacter 
+  initialCharacterId 
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(initialCharacter);
   const [lastOcrName, setLastOcrName] = useState<string | undefined>();
   const { characters, loading, error } = useCharacters();
 
   useModalClose(isModalOpen, () => setIsModalOpen(false));
 
   const handleCharacterSelect = useCallback((character: Character) => {
-    setSelectedCharacter(character);
     setIsModalOpen(false);
-    onSelect(character);
+    onSelect(character.id);
     onLevelReset?.();
   }, [onSelect, onLevelReset]);
 
@@ -47,12 +47,6 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     }
   }, [ocrName, lastOcrName, characters, handleCharacterSelect]);
 
-  useEffect(() => {
-    if (initialCharacter) {
-      setSelectedCharacter(initialCharacter);
-    }
-  }, [initialCharacter]);
-
   return (
     <>
       <div className="manual-section">
@@ -64,8 +58,8 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           </div>
           {selectedCharacter && (
             <p id="selectedCharacterLabel">
-              <span className={`char-sig ${selectedCharacter.element.toLowerCase()}`}
-                data-element={selectedCharacter.element} data-weapontype={selectedCharacter.weaponType}
+              <span className={`char-sig ${selectedCharacter.element.toLowerCase()}`} 
+                data-weapontype={selectedCharacter.weaponType}
                 data-role={selectedCharacter.Role}>
                 {selectedCharacter.name}
               </span>

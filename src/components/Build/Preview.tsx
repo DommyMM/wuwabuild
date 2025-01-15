@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { formatDate, getSetInfo, getCVClass, PreviewEcho, ExpandedStyle, StatsMenu } from './Card';
+import { cachedCharacters } from '../../hooks/useCharacters';
 import { SavedBuild } from '../../types/SavedState';
 import { getAssetPath } from '../../types/paths';
 import { Character } from '../../types/character';
@@ -25,8 +26,8 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
     const [tempName, setTempName] = useState(build.name);
     const textRef = useRef<HTMLSpanElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
-    const character = build.state.elementState.selectedCharacter;
-    const elementClass = (build.state.elementState.elementValue || '').toLowerCase();
+    const character = build.state.characterState.id ? cachedCharacters?.find(c => c.id === build.state.characterState.id) : null;
+    const elementClass = useMemo(() => build.state.characterState.element ? build.state.characterState.element.toLowerCase() : '', [build.state.characterState.element]);
     const weapon = build.state.weaponState.selectedWeapon;
     const expandedTextRef = useRef<HTMLSpanElement>(null);
     const expandedWrapperRef = useRef<HTMLDivElement>(null);
@@ -36,6 +37,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
         setIsEditing(true);
         setTempName(build.name);
     };
+
     const handleSave = async () => {
         try {
             if (tempName.trim()) {
@@ -131,7 +133,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
                         <span className={`char-sig ${elementClass}`}>
                             {character?.name}
                         </span>
-                        <span>Lv.{build.state.characterLevel} • S{build.state.currentSequence}</span>
+                        <span>Lv.{build.state.characterState.level} • S{build.state.currentSequence}</span>
                     </div>
                     <div className="info-row">
                         <span className='weap'>{weapon?.name || 'No Weapon'}</span>
@@ -153,7 +155,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
                             className={`char-portrait ${elementClass}`}
                         />
                         <span className={`char-sig ${elementClass}`}>{character?.name}</span>
-                        <span>Lv.{build.state.characterLevel} • S{build.state.currentSequence}</span>
+                        <span>Lv.{build.state.characterState.level} • S{build.state.currentSequence}</span>
                     </div>
                     <StatsMenu weapon={build.state.weaponState.selectedWeapon} echoPanels={build.state.echoPanels} />
                     {weapon && (

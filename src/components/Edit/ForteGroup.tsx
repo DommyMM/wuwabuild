@@ -5,9 +5,9 @@ import type { ForteImagePaths, SkillBranch } from '../../types/node';
 import '../../styles/forte.css';
 
 interface ForteGroupProps {
-  selectedCharacter: Character | null;
-  displayName: string | undefined;
-  elementValue: string | undefined;
+  selectedCharacter: Character;
+  displayName: string;
+  elementValue: string;
   nodeStates: Record<string, Record<string, boolean>>;
   levels: Record<string, number>;
   clickCount: number;
@@ -21,9 +21,9 @@ interface ForteGroupProps {
 interface GlowingNodeProps {
   treeKey: string;
   skillKey: string;
-  character: Character | null;
+  character: Character;
   altText: string;
-  elementValue: string | undefined;
+  elementValue: string; 
   isActive: boolean;
   onChange: (treeKey: string, position: 'top' | 'middle') => void;
 }
@@ -31,7 +31,6 @@ interface GlowingNodeProps {
 const GlowingNode: React.FC<GlowingNodeProps> = ({
   treeKey, skillKey, character, altText, elementValue, isActive, onChange
 }) => {
-  if (!character || !elementValue) return null;
 
   let imagePath;
   if (character.name.startsWith('Rover')) {
@@ -67,9 +66,9 @@ interface SkillBranchComponentProps {
   skillName: string;
   skillKey: keyof ForteImagePaths['imagePaths'];
   treeKey: string;
-  character: Character | null;
-  displayName: string | undefined;
-  elementValue: string | undefined;
+  character: Character;
+  displayName: string;
+  elementValue: string;
   isActive: { top: boolean; middle: boolean };
   level: number;
   onNodeClick: (position: 'top' | 'middle') => void;
@@ -88,8 +87,6 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
   onNodeClick,
   onInputChange
 }) => {
-  if (!character || !elementValue) return null;
-
   return (
     <div className="skill-branch">
       <div className="node-container">

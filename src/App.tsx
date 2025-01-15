@@ -12,23 +12,16 @@ import './styles/App.css';
 
 const Layout = () => {
   const location = useLocation();
-
   return (
     <>
       <nav className="nav-bar">
         <div className="nav-content">
           <Link to="/" className="nav-title">WuWa Builds</Link>
           <div className="nav-links">
-            <Link 
-              to="/edit" 
-              className={location.pathname === '/edit' ? 'active' : ''}
-            >
+            <Link to="/edit" className={location.pathname === '/edit' ? 'active' : ''}>
               Create Build
             </Link>
-            <Link 
-              to="/builds" 
-              className={location.pathname === '/builds' ? 'active' : ''}
-            >
+            <Link to="/builds" className={location.pathname === '/builds' ? 'active' : ''}>
               Saved Builds
             </Link>
           </div>
@@ -68,9 +61,13 @@ const router = createBrowserRouter([
 });
 
 const App: React.FC = () => {
-  useCharacters();
-  useEchoes();
-  useWeapons({ weaponType: WeaponType.Sword });
+  const { loading: charLoading } = useCharacters();
+  const { loading: echoLoading } = useEchoes();
+  const { loading: weaponLoading } = useWeapons({ weaponType: WeaponType.Sword });
+  const isLoading = charLoading || echoLoading || weaponLoading;
+  if (isLoading) {
+    return <div className="loading">Loading game data...</div>;
+  }
   return (
     <>
       <OCRProvider>

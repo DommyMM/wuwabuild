@@ -1,4 +1,4 @@
-import { ElementState, WatermarkState } from '../pages/EditPage';
+import { CharacterState, WatermarkState } from '../pages/EditPage';
 import { WeaponState } from '../types/weapon';
 import { EchoPanelState } from '../types/echo';
 
@@ -10,8 +10,7 @@ export interface SavedEchoData {
 }
 
 export interface SavedState {
-    elementState: ElementState;
-    characterLevel: string;
+    characterState: CharacterState;
     currentSequence: number;
     weaponState: WeaponState;
     nodeStates: Record<string, Record<string, boolean>>;

@@ -20,13 +20,12 @@ import { Pencil, ImageDownIcon, Download, Database } from 'lucide-react';
 import '../../styles/Build.css';
 
 interface BuildCardProps {
+  characterId: string | null;
+  selectedCharacter: Character | null;
+  characterLevel: string;
+  element?: string;
   isVisible: boolean;
   isEchoesVisible: boolean;
-  selectedCharacter: Character | null;
-  displayName: string | undefined;
-  characterLevel: string;
-  isSpectro: boolean;
-  elementValue: string | undefined;
   currentSequence: number;
   selectedWeapon: Weapon | null;
   weaponConfig: {
@@ -44,14 +43,14 @@ interface BuildCardProps {
   onSaveBuild?: () => void;
 }
 
+
 export const BuildCard: React.FC<BuildCardProps> = ({
   isVisible,
   isEchoesVisible,
+  characterId,
   selectedCharacter,
-  displayName,
   characterLevel,
-  isSpectro,
-  elementValue,
+  element,
   currentSequence,
   selectedWeapon,
   weaponConfig,
@@ -94,6 +93,13 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     } : undefined,
     [selectedWeapon, weaponConfigMemo, scaleAtk, scaleStat]
   );
+  const displayName = selectedCharacter ? 
+    (selectedCharacter.name.startsWith('Rover') ? `Rover${element || "Havoc"}` : selectedCharacter.name) : 
+    undefined;
+  const isSpectro = element === "Spectro";
+  const elementValue = selectedCharacter?.name.startsWith('Rover') ? 
+    element || "Havoc" : 
+    selectedCharacter?.element;
 
   const statsInput = useMemo(() => ({
     character: selectedCharacter,
@@ -232,20 +238,16 @@ export const BuildCard: React.FC<BuildCardProps> = ({
 
   const handleSaveConfirm = (name: string) => {
     const state: SavedState = {
-      elementState: {
-        selectedCharacter,
-        elementValue,
-        displayName
+      characterState: {
+        id: characterId,
+        level: characterLevel,  
+        element
       },
-      characterLevel,
       currentSequence,
       weaponState: {
         selectedWeapon,
-        config: {
-          level: weaponConfig.level,
-          rank: weaponConfig.rank
-      }
-      }, 
+        config: weaponConfig
+      },
       nodeStates,
       forteLevels: levels,
       echoPanels,

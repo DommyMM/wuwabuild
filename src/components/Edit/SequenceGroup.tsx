@@ -2,15 +2,13 @@ import React from 'react';
 
 interface SequenceGroupProps {
   characterName: string;
-  elementValue: string | undefined;
   onSequenceChange: (sequence: number) => void;
   sequence: number;
   ocrSequence?: number;
 }
 
 export const SequenceGroup: React.FC<SequenceGroupProps> = ({ 
-  characterName, 
-  elementValue,
+  characterName,
   onSequenceChange,
   sequence 
 }) => {
@@ -22,15 +20,11 @@ export const SequenceGroup: React.FC<SequenceGroupProps> = ({
     onSequenceChange(newSequence);
   };
 
-  const displayName = characterName.startsWith('Rover') 
-    ? `Rover${elementValue}`
-    : characterName;
-
   return (
     <div className="sequence-group">
       <img 
         id="sequenceImage"
-        src={`images/Wavebands/${displayName}.png`}
+        src={`images/Wavebands/${characterName}.png`}
         alt=""
         className="sequence-image"
       />

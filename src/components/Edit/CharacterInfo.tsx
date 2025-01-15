@@ -12,9 +12,10 @@ import '../../styles/CharacterInfo.css';
 import '../../styles/SequenceGroup.css';
 
 interface CharacterInfoProps {
+  characterId: string | null;
   selectedCharacter: Character | null;
-  displayName: string | undefined;
-  elementValue: string | undefined;
+  characterLevel: string;
+  element?: string;
   onGenerateClick?: (level: number) => void;
   onSpectroToggle?: (value: boolean) => void;
   onSequenceChange?: (sequence: number) => void;
@@ -30,7 +31,6 @@ interface CharacterInfoProps {
   ) => void;
   clickCount: number;
   ocrData?: OCRAnalysis;
-  characterLevel: string;
   onLevelChange?: (level: number) => void;
   currentSequence: number;
   isMinimized: boolean;
@@ -38,67 +38,68 @@ interface CharacterInfoProps {
 }
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
-  selectedCharacter, 
-  displayName,
-  elementValue,
-  onGenerateClick,
-  onSpectroToggle,
-  onSequenceChange,
-  onWeaponSelect,
-  onWeaponConfigChange,
-  weaponState,
-  nodeStates,
-  forteLevels,
-  clickCount,
-  onMaxClick,
-  onForteChange,
-  ocrData,
+  characterId,
+  selectedCharacter,
   characterLevel,
-  onLevelChange,
-  currentSequence,
-  isMinimized,
-  onMinimize
+  element,
+  ...props
 }) => {
+  
+  if (!selectedCharacter) {
+    return <div className="character-section">
+      <div className="character-info">
+        <button className="character-header">Select a resonator first</button>
+      </div>
+    </div>;
+  }
+  
+  const displayName = selectedCharacter.name.startsWith('Rover') ? 
+    `Rover${element || "Havoc"}` : 
+    selectedCharacter.name;
+
+  const elementValue = selectedCharacter.name.startsWith('Rover') ? 
+    element || "Havoc" : 
+    selectedCharacter.element;
 
   const handleLevelChange = (newLevel: number): void => {
-    onLevelChange?.(newLevel);
+    props.onLevelChange?.(newLevel);
   };
 
   const handleSequenceChange = (newSequence: number): void => {
-    onSequenceChange?.(newSequence);
+    props.onSequenceChange?.(newSequence);
   };
 
   const handleWeaponSelect = (weapon: Weapon): void => {
-    onWeaponSelect(weapon);
+    props.onWeaponSelect(weapon);
   };
 
   const handleToggleSpectro = (): void => {
-    if (onSpectroToggle) {
-      onSpectroToggle(elementValue !== "Spectro");
+    if (props.onSpectroToggle) {
+      props.onSpectroToggle(element !== "Spectro");
     }
   };
 
   const handleWeaponConfigChange = (level: number, rank: number) => {
-    onWeaponConfigChange(level, rank);
+    props.onWeaponConfigChange(level, rank);
   };
 
   return (
     <div className="character-section">
       <div className="character-info">
         <button 
-          onClick={selectedCharacter ? onMinimize : undefined} 
+          onClick={selectedCharacter ? props.onMinimize : undefined} 
           className={`character-header${selectedCharacter ? ' with-chevron' : ''}`}
         >
           {selectedCharacter ? (
             <>
               {selectedCharacter.name} Info
-              {isMinimized ? <ChevronRight size={20} /> : <ChevronDown size={20} />}
+              {props.isMinimized ? <ChevronRight size={20} /> : <ChevronDown size={20} />}
             </>
           ) : (
             'Select a resonator first'
           )}
         </button>
-        <div className={`character-content${isMinimized ? '' : ' open'}`}>
+        <div className={`character-content${props.isMinimized ? '' : ' open'}`}>
           {selectedCharacter && (
             <>
               <img id="selectedCharacterIcon" 
@@ -109,13 +110,13 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
               {selectedCharacter.name.startsWith('Rover') && (
                 <button className="toggle" 
                   role="switch"
-                  aria-checked={elementValue === "Spectro"}
+                  aria-checked={element === "Spectro"}
                   tabIndex={0}
                   onClick={handleToggleSpectro}
                 >
                   <div className="toggle-circle">
-                    <img src={getAssetPath('elements', elementValue || '').cdn}
-                        alt={elementValue}
+                    <img src={getAssetPath('elements', element || '').cdn}
+                        alt={element}
                         style={{
                             width: '100%',
                             height: '100%',
@@ -128,35 +129,33 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
               )}
               <LevelSlider value={parseInt(characterLevel)}
                 onLevelChange={handleLevelChange}
-                ocrLevel={ocrData?.type === 'Character' ? 
-                  ocrData.characterLevel.toString() : undefined}
+                ocrLevel={props.ocrData?.type === 'Character' ? 
+                  props.ocrData.characterLevel.toString() : undefined}
               />
-              <SequenceGroup
-                characterName={displayName || ''}
-                elementValue={elementValue}
+              <SequenceGroup characterName={displayName}
                 onSequenceChange={handleSequenceChange}
-                sequence={currentSequence}
-                ocrSequence={ocrData?.type === 'Sequences' ? 
-                  ocrData.sequence : undefined}
+                sequence={props.currentSequence}
+                ocrSequence={props.ocrData?.type === 'Sequences' ? 
+                  props.ocrData.sequence : undefined}
               />
               <WeaponSelection selectedCharacter={selectedCharacter}
-                selectedWeapon={weaponState.selectedWeapon}
+                selectedWeapon={props.weaponState.selectedWeapon}
                 onWeaponSelect={handleWeaponSelect}
-                weaponConfig={weaponState.config}
+                weaponConfig={props.weaponState.config}
                 onWeaponConfigChange={handleWeaponConfigChange}
-                ocrData={ocrData?.type === 'Weapon' ? ocrData : undefined}
+                ocrData={props.ocrData?.type === 'Weapon' ? props.ocrData : undefined}
               />
               <ForteGroup selectedCharacter={{
                   ...selectedCharacter,
-                  name: displayName || selectedCharacter.name
+                  name: displayName
                 }}
                 displayName={displayName}
                 elementValue={elementValue}
-                nodeStates={nodeStates}
-                levels={forteLevels}
-                clickCount={clickCount}
-                onMaxClick={onMaxClick}
-                onChange={onForteChange}
+                nodeStates={props.nodeStates}
+                levels={props.forteLevels}
+                clickCount={props.clickCount}
+                onMaxClick={props.onMaxClick}
+                onChange={props.onForteChange}
               />
             </>
           )}

@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
-import { Character, isRover } from '../types/character';
+import { isRover } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
 import { EchoPanelState, Echo, ElementType } from '../types/echo';
 import { OCRResponse, OCRAnalysis } from '../types/ocr';
@@ -16,13 +16,14 @@ import { useOCRContext } from '../contexts/OCRContext';
 import { useEchoes } from '../hooks/useEchoes';
 import { matchEchoData } from '../hooks/echoMatching';
 import { useMain } from '../hooks/useMain';
+import { cachedCharacters } from '../hooks/useCharacters';
 import { useSubstats } from '../hooks/useSub';
 import '../styles/App.css';
 
-export interface ElementState {
-  selectedCharacter: Character | null;
-  elementValue: string | undefined;
-  displayName: string | undefined;
+export interface CharacterState {
+  id: string | null;
+  level: string;
+  element?: string;
 }
 
 export interface WatermarkState {
@@ -33,30 +34,25 @@ export interface WatermarkState {
 export const EditPage: React.FC = () => {
   const { unlock } = useOCRContext();
   const [isOCRPanelOpen, setIsOCRPanelOpen] = useState(false);
-  
-  const [elementState, setElementState] = useState<ElementState>({
-    selectedCharacter: null,
-    elementValue: undefined,
-    displayName: undefined
+  const [characterState, setCharacterState] = useState<CharacterState>({
+    id: null,
+    level: '1',
+    element: undefined
   });
-
-  const [characterLevel, setCharacterLevel] = useState('1');
+  const selectedCharacter = useMemo(() => characterState.id ? cachedCharacters?.find(c => c.id === characterState.id) ?? null : null, [characterState.id]);
   const [currentSequence, setCurrentSequence] = useState(0);
   const echoesRef = useRef<HTMLElement>(null);
   const { echoesByCost } = useEchoes();
   const { mainStatsData, calculateValue } = useMain();
   const { substatsData } = useSubstats();
   const hasScrolledToEchoes = useRef(false);
-
   const [weaponState, setWeaponState] = useState<WeaponState>({
     selectedWeapon: null,
     config: { level: 1, rank: 1 }
   });
-
   const [clickCount, setClickCount] = useState(0);
   const [nodeStates, setNodeStates] = useState<Record<string, Record<string, boolean>>>({});
   const [forteLevels, setForteLevels] = useState<Record<string, number>>({});
-
   const [echoPanels, setEchoPanels] = useState<EchoPanelState[]>(
     Array(5).fill(null).map(() => ({
       echo: null,
@@ -69,7 +65,6 @@ export const EditPage: React.FC = () => {
       phantom: false
     }))
   );
-
   const skillBranches = [
     { skillName: 'Normal Attack', skillKey: 'normal-attack', treeKey: 'tree1' },
     { skillName: 'Resonance Skill', skillKey: 'skill', treeKey: 'tree2' },
@@ -77,48 +72,36 @@ export const EditPage: React.FC = () => {
     { skillName: 'Resonance Liberation', skillKey: 'liberation', treeKey: 'tree4' },
     { skillName: 'Intro Skill', skillKey: 'intro', treeKey: 'tree5' }
   ];
-
   const [ocrName, setOcrName] = useState<string | undefined>();
   const [ocrAnalysis, setOCRAnalysis] = useState<OCRAnalysis | undefined>();
-
   const [watermark, setWatermark] = useState<WatermarkState>({
     username: '',
     uid: ''
   });
-
   const handleWatermarkChange = useCallback((newWatermark: WatermarkState) => {
     setWatermark(newWatermark);
   }, []);
-
   const handleOCRResult = useCallback((result: OCRResponse) => {
-      if (!result.success || !result.analysis) return;
-      switch (result.analysis.type) {
-        case 'Character':
-          const characterAnalysis = result.analysis;
-          console.log(`Setting character: ${characterAnalysis.name}, Level: ${characterAnalysis.characterLevel}`);
-          setOcrName(characterAnalysis.name);
-          setCharacterLevel(prev => {
-            const newLevel = characterAnalysis.characterLevel;
-            const currentLevel = parseInt(prev);
-            return newLevel > currentLevel ? newLevel.toString() : prev;
-          });
-          if (characterAnalysis.uid?.length === 9) {
-            setWatermark(prev => ({...prev, uid: characterAnalysis.uid!}));
-          }
-          if (characterAnalysis.name.startsWith('Rover')) {
-            const elementValue = characterAnalysis.element?.toLowerCase() === "spectro" ? "Spectro" : "Havoc";
-            console.log(`Rover detected with element: ${elementValue}`);
-            setElementState(prev => ({
-                ...prev,
-                elementValue: elementValue,
-                displayName: `Rover (${elementValue})`
-            }));
-          }
-          break;
+    if (!result.success || !result.analysis) return;
+    switch (result.analysis.type) {
+      case 'Character':
+        const characterAnalysis = result.analysis;
+        setOcrName(characterAnalysis.name);
+        setCharacterState(prev => ({
+          ...prev,
+          level: characterAnalysis.characterLevel.toString(),
+          element: characterAnalysis.name.startsWith('Rover') ? 
+            (characterAnalysis.element?.toLowerCase() === "spectro" ? "Spectro" : "Havoc") :
+            undefined
+        }));
+        if (characterAnalysis.uid?.length === 9) {
+          setWatermark(prev => ({...prev, uid: characterAnalysis.uid!}));
+        }
+        break;
         case 'Weapon':
           const weaponAnalysis = result.analysis;
-          console.log(`Setting Weapon - Name: ${weaponAnalysis.name}, Type: ${weaponAnalysis.weaponType}, Level: ${weaponAnalysis.weaponLevel}, Rank: ${weaponAnalysis.rank}`);
-          if (elementState.selectedCharacter?.weaponType.replace(/s$/, '') === weaponAnalysis.weaponType.replace(/s$/, '')) {
+          const character = characterState.id ? cachedCharacters!.find(c => c.id === characterState.id) : null;
+          if (character?.weaponType.replace(/s$/, '') === weaponAnalysis.weaponType.replace(/s$/, '')) {
             setWeaponState(prev => ({
               ...prev,
               config: {
@@ -130,7 +113,6 @@ export const EditPage: React.FC = () => {
           break;
         case 'Sequences':
           const sequenceAnalysis = result.analysis;
-          console.log(`Setting Sequence: ${sequenceAnalysis.sequence}`);
           setCurrentSequence(prev => 
             Math.max(prev, sequenceAnalysis.sequence)
           );
@@ -158,7 +140,6 @@ export const EditPage: React.FC = () => {
             const [level, top, middle] = values;
             const treeKey = skillToTree[skill as keyof typeof skillToTree];
             const skillKey = skill === 'normal' ? 'normal-attack' : skill;
-        
             newNodeStates[treeKey] = {
               top: Boolean(top),
               middle: Boolean(middle)
@@ -205,66 +186,53 @@ export const EditPage: React.FC = () => {
         });
     }
     setOCRAnalysis(result.analysis);
-  }, [elementState.selectedCharacter, echoesByCost, mainStatsData, substatsData, calculateValue]);
-
-  const handleGenerateClick = (level: number) => {
-    setCharacterLevel(level.toString());
-  };
-
-  const handleSpectroToggle = (value: boolean) => {
-    setElementState(prev => ({
-      ...prev,
-      elementValue: prev.selectedCharacter && isRover(prev.selectedCharacter) ?
-        (value ? "Spectro" : "Havoc") : prev.elementValue,
-      displayName: prev.selectedCharacter?.name.startsWith('Rover') ?
-        `Rover${value ? 'Spectro' : 'Havoc'}` :
-        prev.selectedCharacter?.name
-    }));
-  };
-
-  const handleCharacterSelect = useCallback(async (character: Character | null) => {
-    if (character) {
+  }, [characterState.id, echoesByCost, mainStatsData, substatsData, calculateValue]);
+  const handleCharacterSelect = useCallback((characterId: string | null) => {
+    if (characterId) {
+      const character = cachedCharacters!.find(c => c.id === characterId);
+      if (!character) return;
+      
       setIsCharacterMinimized(false);
       setIsEchoesMinimized(true); 
-      setElementState(prev => ({
-        selectedCharacter: character,
-        elementValue: isRover(character) ? prev.elementValue || "Havoc" : character.element,
-        displayName: isRover(character) ? `Rover${prev.elementValue || "Havoc"}` : character.name
-      }));
+      setCharacterState({
+        id: characterId,
+        level: '1',
+        element: isRover(character) ? "Havoc" : character.element
+      });
       setWeaponState({
         selectedWeapon: null,
         config: { level: 1, rank: 1 }
       });
-      setCharacterLevel('1');
       unlock();
     }
   }, [unlock]);
-
+  
+  const handleSpectroToggle = (value: boolean) => {
+    setCharacterState(prev => ({
+      ...prev,
+      element: value ? "Spectro" : "Havoc"
+    }));
+  };
   const handleSequenceChange = useCallback((sequence: number) => {
     setCurrentSequence(sequence);
   }, []);
-
   const handleWeaponSelect = (weapon: Weapon | null) => {
     setWeaponState(prev => ({
       ...prev,
       selectedWeapon: weapon
     }));
   };
-
   const handleWeaponConfigChange = (level: number, rank: number) => {
     setWeaponState(prev => ({
       ...prev,
       config: { level, rank }
     }));
   };
-
   const handleMaxClick = () => {
     const newCount = (clickCount + 1) % 3;
     setClickCount(newCount);
-
     const newNodeStates: Record<string, Record<string, boolean>> = {};
     const newLevels: Record<string, number> = {};
-
     skillBranches.forEach((branch) => {
       newNodeStates[branch.treeKey] = {
         top: newCount === 2,
@@ -272,11 +240,9 @@ export const EditPage: React.FC = () => {
       };
       newLevels[branch.skillKey] = newCount === 1 || newCount === 2 ? 10 : 1;
     });
-
     setNodeStates(newNodeStates);
     setForteLevels(newLevels);
   };
-
   const handleForteChange = (
     newNodeStates: Record<string, Record<string, boolean>>,
     newLevels: Record<string, number>
@@ -284,13 +250,14 @@ export const EditPage: React.FC = () => {
     setNodeStates(newNodeStates);
     setForteLevels(newLevels);
   };
-
   const toggleOCRPanel = () => {
     setIsOCRPanelOpen(!isOCRPanelOpen);
   };
-
   const handleLevelChange = useCallback((level: number) => {
-    setCharacterLevel(level.toString());
+    setCharacterState(prev => ({
+      ...prev,
+      level: level.toString()
+    }));
   }, []);
   
   const handleEchoLevelChange = useCallback((index: number, level: number) => {
@@ -298,7 +265,6 @@ export const EditPage: React.FC = () => {
       if (i !== index) return panel;
       
       const updatedPanel = { ...panel, level };
-
       if (panel.stats.mainStat.type && panel.echo?.cost && mainStatsData) {
         const [min, max] = mainStatsData[`${panel.echo.cost}cost`].mainStats[panel.stats.mainStat.type];
         updatedPanel.stats = {
@@ -309,7 +275,6 @@ export const EditPage: React.FC = () => {
           }
         };
       }
-
       return updatedPanel;
     }));
   }, [mainStatsData, calculateValue]);
@@ -325,7 +290,6 @@ export const EditPage: React.FC = () => {
       i === index ? { ...panel, echo, selectedElement: null } : panel
     ));
   }, []);
-
   const handleMainStatChange = useCallback((index: number, type: string | null) => {
     setEchoPanels(prev => prev.map((panel, i) => {
       if (i !== index) return panel;
@@ -377,12 +341,9 @@ export const EditPage: React.FC = () => {
 
   const [isCharacterMinimized, setIsCharacterMinimized] = useState(true);
   const [isEchoesMinimized, setIsEchoesMinimized] = useState(true);
-
   const [showRestore, setShowRestore] = useState(false);
   const [savedState, setSavedState] = useState<SavedState | null>(null);
-
   const [savedEchoes, setSavedEchoes] = useState<SavedEchoData[]>([]);
-
   const handleSaveEcho = useCallback((panelIndex: number) => {
     const newEcho: SavedEchoData = {
       id: crypto.randomUUID(),
@@ -393,17 +354,14 @@ export const EditPage: React.FC = () => {
     
     setSavedEchoes(prev => [...prev, newEcho]);
   }, [echoPanels]);
-
   const handleLoadEcho = useCallback((savedEcho: SavedEchoData) => {
     setEchoPanels(prev => prev.map((panel, idx) => 
       idx === savedEcho.panelIndex ? savedEcho.panelData : panel
     ));
   }, []);
-
   const handleDeleteEcho = useCallback((echoId: string) => {
     setSavedEchoes(prev => prev.filter(echo => echo.id !== echoId));
   }, []);
-
   useEffect(() => {
     try {
       const saved = localStorage.getItem('wuwabuilds_state');
@@ -419,14 +377,12 @@ export const EditPage: React.FC = () => {
       console.error('Failed to load saved state:', error);
     }
   }, []);
-
   useEffect(() => {
-    if (!elementState.selectedCharacter) return;
+    if (!characterState.id) return;
     
     try {
       const state: SavedState = {
-        elementState,
-        characterLevel,
+        characterState,
         currentSequence,
         weaponState,
         nodeStates,
@@ -439,13 +395,11 @@ export const EditPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to save state:', error);
     }
-  }, [elementState, characterLevel, currentSequence, weaponState, 
-      nodeStates, forteLevels, echoPanels, watermark, savedEchoes]);
-
+  }, [characterState, currentSequence, weaponState, nodeStates, forteLevels, echoPanels, watermark, savedEchoes]);
+  
   const handleRestore = useCallback(() => {
     if (savedState) {
-      setElementState(savedState.elementState);
-      setCharacterLevel(savedState.characterLevel);
+      setCharacterState(savedState.characterState);
       setCurrentSequence(savedState.currentSequence);
       setWeaponState(savedState.weaponState);
       setNodeStates(savedState.nodeStates);
@@ -473,7 +427,7 @@ export const EditPage: React.FC = () => {
       setShowEchoCostWarning(true);
     }
   }, [echoPanels]);
-
+  
   return (
     <main className="edit-page" aria-label="Wuthering Waves Build Editor">
       {showRestore && <RestorePrompt onRestore={handleRestore} onDecline={handleDecline} />}
@@ -488,17 +442,24 @@ export const EditPage: React.FC = () => {
             <div className={`ocr-panel${isOCRPanelOpen ? ' open' : ''}`}>
               <div className="panel-content">
                 <Scan onOCRComplete={handleOCRResult}
-                  currentCharacterType={elementState.selectedCharacter?.weaponType.replace(/s$/, '')}
+                  currentCharacterType={characterState.id ? 
+                    cachedCharacters!.find(c => c.id === characterState.id)?.weaponType.replace(/s$/, '') : 
+                    undefined}
                 />
               </div>
             </div>
           </div>
         </div>
-        <CharacterSelector onSelect={handleCharacterSelect} ocrName={ocrName} onLevelReset={() => setCharacterLevel('1')} initialCharacter={elementState.selectedCharacter}/>
-        <CharacterInfo selectedCharacter={elementState.selectedCharacter} 
-          displayName={elementState.displayName}
-          elementValue={elementState.elementValue}
-          onGenerateClick={handleGenerateClick}
+        <CharacterSelector onSelect={handleCharacterSelect}
+          selectedCharacter={selectedCharacter}
+          ocrName={ocrName} 
+          onLevelReset={() => setCharacterState(prev => ({ ...prev, level: '1' }))} 
+          initialCharacterId={characterState.id}
+        />
+        <CharacterInfo characterId={characterState.id}
+          selectedCharacter={selectedCharacter}
+          characterLevel={characterState.level}
+          element={characterState.element}
           onSpectroToggle={handleSpectroToggle}
           onSequenceChange={handleSequenceChange}
           onWeaponSelect={handleWeaponSelect}
@@ -510,14 +471,13 @@ export const EditPage: React.FC = () => {
           onMaxClick={handleMaxClick}
           onForteChange={handleForteChange}
           ocrData={ocrAnalysis}
-          characterLevel={characterLevel}
-          onLevelChange={handleLevelChange} 
+          onLevelChange={handleLevelChange}
           currentSequence={currentSequence}
           isMinimized={isCharacterMinimized}
           onMinimize={() => setIsCharacterMinimized(!isCharacterMinimized)}
         />
         <EchoesSection ref={echoesRef}
-          isVisible={elementState.selectedCharacter !== null}
+          isVisible={characterState.id !== null}
           isMinimized={isEchoesMinimized}
           onMinimize={() => setIsEchoesMinimized(!isEchoesMinimized)}
           initialPanels={echoPanels}
@@ -534,21 +494,20 @@ export const EditPage: React.FC = () => {
           showCostWarning={showEchoCostWarning}
           onCostWarningDismiss={() => setShowEchoCostWarning(false)}
         />
-        <BuildCard isVisible={true}
-          isEchoesVisible={!isEchoesMinimized && elementState.selectedCharacter !== null}
-          selectedCharacter={elementState.selectedCharacter}
+        <BuildCard characterId={characterState.id}
+          selectedCharacter={selectedCharacter}
+          characterLevel={characterState.level}
+          element={characterState.element}
           watermark={watermark}
           onWatermarkChange={handleWatermarkChange}
-          displayName={elementState.displayName}
-          characterLevel={characterLevel}
-          isSpectro={elementState.elementValue === "Spectro"}
-          elementValue={elementState.elementValue}
           currentSequence={currentSequence}
           selectedWeapon={weaponState.selectedWeapon}
           weaponConfig={weaponState.config}
           nodeStates={nodeStates}
           levels={forteLevels}
           echoPanels={echoPanels}
+          isVisible={true}
+          isEchoesVisible={!isEchoesMinimized && characterState.id !== null}
         />
       </div>
     </main>
