@@ -67,7 +67,7 @@ export const BuildsPage: React.FC = () => {
     const pageCount = Math.ceil(filteredAndSortedBuilds.length / buildsPerPage);
 
     useEffect(() => {
-        const savedBuilds = localStorage.getItem('wuwabuilds_builds');
+        const savedBuilds = localStorage.getItem('saved_builds');
         if (savedBuilds) {
             const { builds: loadedBuilds } = JSON.parse(savedBuilds) as SavedBuilds;
             setBuilds(loadedBuilds);
@@ -116,13 +116,13 @@ export const BuildsPage: React.FC = () => {
             return;
         }
         const newBuilds = builds.filter(build => build.id !== id);
-        localStorage.setItem('wuwabuilds_builds', JSON.stringify({ builds: newBuilds }));
+        localStorage.setItem('saved_builds', JSON.stringify({ builds: newBuilds }));
         setBuilds(newBuilds);
         setDeleteConfirm(null);
     };
 
     const handleLoad = (build: SavedBuild) => {
-        localStorage.setItem('wuwabuilds_state', JSON.stringify(build.state));
+        localStorage.setItem('last_build', JSON.stringify(build.state));
         navigate('/edit');
     };
 
@@ -131,7 +131,7 @@ export const BuildsPage: React.FC = () => {
             builds: [...builds, ...importedData.builds]
                 .filter((build, index, self) => index === self.findIndex(b => b.id === build.id))
         };
-        localStorage.setItem('wuwabuilds_builds', JSON.stringify(mergedBuilds));
+        localStorage.setItem('saved_builds', JSON.stringify(mergedBuilds));
         setBuilds(mergedBuilds.builds);
     };
 
@@ -141,7 +141,7 @@ export const BuildsPage: React.FC = () => {
             setTimeout(() => setDeleteAllConfirm(false), 3000);
             return;
         }
-        localStorage.removeItem('wuwabuilds_builds');
+        localStorage.removeItem('saved_builds');
         setBuilds([]);
         setDeleteAllConfirm(false);
     };
@@ -150,7 +150,7 @@ export const BuildsPage: React.FC = () => {
         const newBuilds = builds.map(build => 
             build.id === id ? { ...build, name: newName } : build
         );
-        localStorage.setItem('wuwabuilds_builds', JSON.stringify({ builds: newBuilds }));
+        localStorage.setItem('saved_builds', JSON.stringify({ builds: newBuilds }));
         setBuilds(newBuilds);
     };
 

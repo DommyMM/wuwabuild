@@ -362,9 +362,10 @@ export const EditPage: React.FC = () => {
   const handleDeleteEcho = useCallback((echoId: string) => {
     setSavedEchoes(prev => prev.filter(echo => echo.id !== echoId));
   }, []);
+
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('wuwabuilds_state');
+      const saved = localStorage.getItem('last_build');
       if (saved) {
         const state = JSON.parse(saved);
         setSavedState(state);
@@ -377,25 +378,27 @@ export const EditPage: React.FC = () => {
       console.error('Failed to load saved state:', error);
     }
   }, []);
+
+  const buildState = useMemo(() => ({
+    version: '1.0.0',
+    characterState,
+    currentSequence,
+    weaponState,
+    nodeStates,
+    forteLevels,
+    echoPanels,
+    watermark,
+    savedEchoes
+  }), [characterState, currentSequence, weaponState, nodeStates, forteLevels, echoPanels, watermark, savedEchoes]);
+  
   useEffect(() => {
     if (!characterState.id) return;
-    
     try {
-      const state: SavedState = {
-        characterState,
-        currentSequence,
-        weaponState,
-        nodeStates,
-        forteLevels,
-        echoPanels,
-        watermark,
-        savedEchoes
-      };
-      localStorage.setItem('wuwabuilds_state', JSON.stringify(state));
+      localStorage.setItem('last_build', JSON.stringify(buildState));
     } catch (error) {
       console.error('Failed to save state:', error);
     }
-  }, [characterState, currentSequence, weaponState, nodeStates, forteLevels, echoPanels, watermark, savedEchoes]);
+  }, [characterState.id, buildState]);
   
   const handleRestore = useCallback(() => {
     if (savedState) {
@@ -413,7 +416,7 @@ export const EditPage: React.FC = () => {
   }, [savedState]);
 
   const handleDecline = useCallback(() => {
-    localStorage.removeItem('wuwabuilds_state');
+    localStorage.removeItem('last_build');
     setShowRestore(false);
   }, []);
 

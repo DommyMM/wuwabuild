@@ -255,14 +255,14 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       savedEchoes: []
     };
     try {
-      const builds = JSON.parse(localStorage.getItem('wuwabuilds_builds') || '{"builds":[]}');
+      const builds = JSON.parse(localStorage.getItem('saved_builds') || '{"builds":[]}');
       builds.builds.push({
           id: crypto.randomUUID(),
           name,
           date: new Date().toISOString(),
           state
       });
-      localStorage.setItem('wuwabuilds_builds', JSON.stringify(builds));
+      localStorage.setItem('saved_builds', JSON.stringify(builds));
       toast.success('Build saved');
       setIsSaveModalOpen(false);
   } catch (error) {

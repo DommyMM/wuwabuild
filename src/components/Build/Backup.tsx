@@ -145,7 +145,7 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
         }
     });
     const handleExport = () => {
-        const savedBuilds = localStorage.getItem('wuwabuilds_builds');
+        const savedBuilds = localStorage.getItem('saved_builds');
         if (!savedBuilds) {
             toast.error('No builds to export');
             return;

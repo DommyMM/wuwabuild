@@ -10,6 +10,7 @@ export interface SavedEchoData {
 }
 
 export interface SavedState {
+    version?: string;
     characterState: CharacterState;
     currentSequence: number;
     weaponState: WeaponState;
