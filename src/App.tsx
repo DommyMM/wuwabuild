@@ -9,7 +9,6 @@ import { useWeapons } from './hooks/useWeapons';
 import { useEchoes } from './hooks/useEchoes';
 import { WeaponType } from './types/weapon';
 import './styles/App.css';
-import 'react-toastify/dist/ReactToastify.css';
 
 const Layout = () => {
   const location = useLocation();
@@ -72,24 +71,12 @@ const App: React.FC = () => {
   useCharacters();
   useEchoes();
   useWeapons({ weaponType: WeaponType.Sword });
-  useWeapons({ weaponType: WeaponType.Pistol });
-  useWeapons({ weaponType: WeaponType.Rectifier });
-  useWeapons({ weaponType: WeaponType.Gauntlet });
-  useWeapons({ weaponType: WeaponType.Broadblade });
   return (
     <>
       <OCRProvider>
         <RouterProvider router={router} />
       </OCRProvider>
-      <ToastContainer position="bottom-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          closeOnClick
-          pauseOnHover
-          draggable
-          theme="dark"
-          toastStyle={{ fontFamily: 'Gowun' }}
-      />
+      <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} closeOnClick pauseOnHover draggable theme="dark" toastStyle={{ fontFamily: 'Gowun' }}/>
     </>
   );
 };

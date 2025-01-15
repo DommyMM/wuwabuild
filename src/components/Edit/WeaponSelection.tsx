@@ -24,7 +24,6 @@ interface WeaponSelectionProps {
     weaponLevel: number;
     rank: number;
   };
-  preloadedWeapons?: Weapon[];
 }
 
 const rarityColors = {
@@ -41,8 +40,7 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
   onWeaponSelect,
   weaponConfig,
   onWeaponConfigChange,
-  ocrData,
-  preloadedWeapons
+  ocrData
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [lastOcrWeapon, setLastOcrWeapon] = useState<string | undefined>();
@@ -53,8 +51,7 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
 
   const { weapons, loading, error } = useWeapons({
     weaponType: selectedCharacter.weaponType,
-    config: weaponConfig,
-    preloadedWeapons: preloadedWeapons
+    config: weaponConfig
   });
 
   useEffect(() => {

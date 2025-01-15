@@ -33,8 +33,6 @@ interface CharacterInfoProps {
   characterLevel: string;
   onLevelChange?: (level: number) => void;
   currentSequence: number;
-  preloadedWeapons?: Weapon[];
-  onWeaponDataReady?: (ready: boolean) => void;
   isMinimized: boolean;
   onMinimize: () => void;
 }
@@ -58,8 +56,6 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   characterLevel,
   onLevelChange,
   currentSequence,
-  preloadedWeapons,
-  onWeaponDataReady,
   isMinimized,
   onMinimize
 }) => {
@@ -130,8 +126,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                   </div>
                 </button>
               )}
-              <LevelSlider 
-                value={parseInt(characterLevel)}
+              <LevelSlider value={parseInt(characterLevel)}
                 onLevelChange={handleLevelChange}
                 ocrLevel={ocrData?.type === 'Character' ? 
                   ocrData.characterLevel.toString() : undefined}
@@ -144,17 +139,14 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                 ocrSequence={ocrData?.type === 'Sequences' ? 
                   ocrData.sequence : undefined}
               />
-              <WeaponSelection
-                selectedCharacter={selectedCharacter}
+              <WeaponSelection selectedCharacter={selectedCharacter}
                 selectedWeapon={weaponState.selectedWeapon}
                 onWeaponSelect={handleWeaponSelect}
                 weaponConfig={weaponState.config}
                 onWeaponConfigChange={handleWeaponConfigChange}
                 ocrData={ocrData?.type === 'Weapon' ? ocrData : undefined}
-                preloadedWeapons={preloadedWeapons}
               />
-              <ForteGroup 
-                selectedCharacter={{
+              <ForteGroup selectedCharacter={{
                   ...selectedCharacter,
                   name: displayName || selectedCharacter.name
                 }}

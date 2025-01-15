@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { Character, isRover } from '../types/character';
-import { Weapon, WeaponType, WeaponState } from '../types/weapon';
+import { Weapon, WeaponState } from '../types/weapon';
 import { EchoPanelState, Echo, ElementType } from '../types/echo';
 import { OCRResponse, OCRAnalysis } from '../types/ocr';
 import { SavedState, SavedEchoData } from '../types/SavedState';
@@ -80,7 +80,6 @@ export const EditPage: React.FC = () => {
 
   const [ocrName, setOcrName] = useState<string | undefined>();
   const [ocrAnalysis, setOCRAnalysis] = useState<OCRAnalysis | undefined>();
-  const [weaponCache, setWeaponCache] = useState<Record<WeaponType, Weapon[]>>({} as Record<WeaponType, Weapon[]>);
 
   const [watermark, setWatermark] = useState<WatermarkState>({
     username: '',
@@ -224,26 +223,14 @@ export const EditPage: React.FC = () => {
   };
 
   const handleCharacterSelect = useCallback(async (character: Character | null) => {
-      if (character) {
-        if (!weaponCache[character.weaponType]) {
-          try {
-            const response = await fetch(`/Data/${character.weaponType}s.json`);
-            const data = await response.json();
-            setWeaponCache(prev => ({
-              ...prev,
-              [character.weaponType]: data
-            }));
-          } catch (error) {
-            console.error('Failed to load weapons:', error);
-          }
-        }
-        setIsCharacterMinimized(false);
-        setIsEchoesMinimized(true); 
-        setElementState(prev => ({
-          selectedCharacter: character,
-          elementValue: isRover(character) ? prev.elementValue || "Havoc" : character.element,
-          displayName: isRover(character) ? `Rover${prev.elementValue || "Havoc"}` : character.name
-        }));
+    if (character) {
+      setIsCharacterMinimized(false);
+      setIsEchoesMinimized(true); 
+      setElementState(prev => ({
+        selectedCharacter: character,
+        elementValue: isRover(character) ? prev.elementValue || "Havoc" : character.element,
+        displayName: isRover(character) ? `Rover${prev.elementValue || "Havoc"}` : character.name
+      }));
       setWeaponState({
         selectedWeapon: null,
         config: { level: 1, rank: 1 }
@@ -251,7 +238,7 @@ export const EditPage: React.FC = () => {
       setCharacterLevel('1');
       unlock();
     }
-  }, [unlock, weaponCache]);
+  }, [unlock]);
 
   const handleSequenceChange = useCallback((sequence: number) => {
     setCurrentSequence(sequence);
@@ -500,8 +487,7 @@ export const EditPage: React.FC = () => {
             </button>
             <div className={`ocr-panel${isOCRPanelOpen ? ' open' : ''}`}>
               <div className="panel-content">
-                <Scan 
-                  onOCRComplete={handleOCRResult}
+                <Scan onOCRComplete={handleOCRResult}
                   currentCharacterType={elementState.selectedCharacter?.weaponType.replace(/s$/, '')}
                 />
               </div>
@@ -527,7 +513,6 @@ export const EditPage: React.FC = () => {
           characterLevel={characterLevel}
           onLevelChange={handleLevelChange} 
           currentSequence={currentSequence}
-          preloadedWeapons={elementState.selectedCharacter ? weaponCache[elementState.selectedCharacter.weaponType] : undefined}
           isMinimized={isCharacterMinimized}
           onMinimize={() => setIsCharacterMinimized(!isCharacterMinimized)}
         />

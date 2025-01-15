@@ -17,10 +17,10 @@ export const useWeapons = ({ weaponType, config, preloadedWeapons }: UseWeaponsP
   const [error, setError] = useState<string | null>(null);
   const { scaleWeaponStats, loading: curvesLoading } = useLevelCurves();
 
-  const processWeapons = useCallback((data: Omit<Weapon, 'type'>[]): Weapon[] => {
+  const processWeapons = useCallback((data: Omit<Weapon, 'type'>[], type: WeaponType): Weapon[] => {
     const processed = data.map(weapon => ({
       ...weapon,
-      type: weaponType as WeaponType,
+      type: type,
       ATK: Number(weapon.ATK),
       base_main: Number(weapon.base_main),
       passive_stat: weapon.passive_stat ? Number(weapon.passive_stat) : undefined,
@@ -28,7 +28,7 @@ export const useWeapons = ({ weaponType, config, preloadedWeapons }: UseWeaponsP
     }));
     weaponList.push(...processed);
     return processed;
-  }, [weaponType]);
+  }, []);
 
   useEffect(() => {
     if (!weaponType) {
@@ -44,7 +44,8 @@ export const useWeapons = ({ weaponType, config, preloadedWeapons }: UseWeaponsP
     }
 
     if (preloadedWeapons) {
-      setWeapons(processWeapons(preloadedWeapons));
+      const processed = processWeapons(preloadedWeapons, weaponType);
+      setWeapons(processed);
       setLoading(false);
       return;
     }
@@ -54,15 +55,17 @@ export const useWeapons = ({ weaponType, config, preloadedWeapons }: UseWeaponsP
       setError(null);
 
       try {
-        const response = await fetch(`/Data/${weaponType}s.json`);
-        if (!response.ok) {
-          throw new Error(`Failed to load ${weaponType} weapons`);
-        }
+        const response = await fetch('/Data/Weapons.json');
+        if (!response.ok) throw new Error('Failed to load weapons');
         
         const data = await response.json();
-        const processedWeapons = processWeapons(data);
-        weaponCache.set(weaponType, processedWeapons);
-        setWeapons(processedWeapons);
+        
+        Object.entries(data).forEach(([key, weapons]) => {
+          const type = key.slice(0, -1) as WeaponType;
+          const processed = processWeapons(weapons as Omit<Weapon, 'type'>[], type);
+          weaponCache.set(type, processed);
+        });
+        setWeapons(weaponCache.get(weaponType)!);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load weapons');
         setWeapons([]);

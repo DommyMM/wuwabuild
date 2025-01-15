@@ -2,6 +2,7 @@ import { createWorker } from 'tesseract.js';
 import Fuse from 'fuse.js';
 import { Character, Element } from '../../types/character';
 import { WeaponType } from '../../types/weapon';
+import { weaponList } from '../../hooks/useWeapons';
 
 type OCRResult = {
     type: 'Character' | 'Weapon' | 'Sequences' | 'Forte' | 'Echo' | 'unknown';
@@ -95,14 +96,6 @@ const cleanupWorker = async () => {
     }
 };
 
-let weaponListCache: Record<string, string[]> | null = null;
-const loadWeapons = async () => {
-    if (weaponListCache) return weaponListCache;
-    const response = await fetch('/Data/Weapons.json');
-    if (!response.ok) throw new Error('Failed to load weapons');
-    weaponListCache = await response.json();
-    return weaponListCache;
-};
 
 const cropImage = async (base64Image: string, regionKey: keyof typeof SCAN_REGIONS): Promise<HTMLCanvasElement> => {
     const img = new Image();
@@ -243,16 +236,12 @@ const extractCharacterInfo = async (text: string, characters: Character[], image
     return result;
 };
 
-const extractWeaponInfo = (text: string, weapons: Record<string, string[]>): Pick<OCRResult, 'name' | 'weaponType' | 'weaponLevel' | 'rank' | 'confidence'> => {
+const extractWeaponInfo = (text: string): Pick<OCRResult, 'name' | 'weaponType' | 'weaponLevel' | 'rank' | 'confidence'> => {
     const firstLine = text.split('\n')[0]
         .replace(/[©\\%:]/g, '')
         .replace(/\s+/g, ' ')
         .replace('q', 'g')
         .trim();
-
-    const weaponList = Object.entries(weapons).flatMap(([type, names]) =>
-        names.map(name => ({ type, name }))
-    );
 
     const weaponSearch = new Fuse(weaponList, {
         keys: ['name'],
@@ -264,7 +253,7 @@ const extractWeaponInfo = (text: string, weapons: Record<string, string[]>): Pic
     const bestMatch = results[0]?.item;
     const confidence = results[0] ? 1 - results[0].score! : undefined;
     const name = bestMatch?.name;
-    const weaponType = bestMatch?.type as WeaponType;
+    const weaponType = bestMatch?.type;
 
     const levelPatterns = [
         /Lv[.\s]*(\d+)[\s/]+\d+/i,
@@ -435,8 +424,6 @@ const extractEchoInfo = async (imageData: string): Promise<Pick<OCRResult, 'type
 
 export const performOCR = async ({ imageData, characters = [] }: OCRProps): Promise<OCRResult> => {
     const worker = await initWorker();
-    const weapons = await loadWeapons();
-    if (!weapons) throw new Error('Failed to load weapons data');
 
     try {
         const processedCanvas = await cropImage(imageData, 'info');
@@ -469,7 +456,7 @@ export const performOCR = async ({ imageData, characters = [] }: OCRProps): Prom
         if (bestMatch.type === 'Weapon') {
             const weaponCanvas = await cropImage(imageData, 'weaponPage');
             const { data: { text: weaponText } } = await worker.recognize(weaponCanvas);
-            const weaponInfo = extractWeaponInfo(weaponText, weapons);
+            const weaponInfo = extractWeaponInfo(weaponText);
             return { type: 'Weapon', ...weaponInfo, raw: weaponText };
         }
         
