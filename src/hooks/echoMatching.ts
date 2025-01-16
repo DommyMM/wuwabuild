@@ -1,6 +1,7 @@
 import { OCRData } from '../types/ocr';
-import { Echo, EchoPanelState, ElementType, COST_SECTIONS } from '../types/echo';
+import { EchoPanelState, ElementType } from '../types/echo';
 import Fuse from 'fuse.js';
+import { cachedEchoes } from './useEchoes';
 
 interface SubstatData {
   name: string;
@@ -27,41 +28,28 @@ const fuseOptions = {
 
 export const matchEchoData = (
   ocrData: Extract<OCRData, { type: 'Echo' }>,
-  echoesByCost: Record<number, Echo[]>,
   mainStatsData: MainStatData | null,
   substatsData: SubstatsData | null,
-  calculateValue: (min: number, max: number, level: number) => number): EchoPanelState | null => {
+  calculateValue: (min: number, max: number, level: number) => number
+): EchoPanelState | null => {
   try {
-    if (!substatsData || !mainStatsData) return null;
+    if (!substatsData || !mainStatsData || !cachedEchoes) return null;
 
-    let foundEcho: Echo | null = null;
-    
-        for (const cost of COST_SECTIONS) {
-          const echoes = echoesByCost[cost] ?? [];
-          const exactMatch = echoes.find(e => 
-            e.name.toLowerCase() === ocrData.name.toLowerCase()
-          );
-          if (exactMatch) {
-            foundEcho = exactMatch;
-            break;
-          }
-        }
-    
-        if (!foundEcho) {
-          for (const cost of COST_SECTIONS) {
-            const echoes = echoesByCost[cost] ?? [];
-            const fuse = new Fuse(echoes, fuseOptions);
-            const results = fuse.search(ocrData.name);
-            
-            if (results.length > 0 && (results[0].score === undefined || results[0].score < 0.3)) {
-              foundEcho = results[0].item;
-              console.log('Found fuzzy match:', foundEcho.name);
-              break;
-            }
-          }
-        }
-    
-        if (!foundEcho) return null;
+    const exactMatch = cachedEchoes.find(e => 
+      e.name.toLowerCase() === ocrData.name.toLowerCase()
+    );
+
+    let foundEcho = exactMatch;
+    if (!foundEcho) {
+      const fuse = new Fuse(cachedEchoes, fuseOptions);
+      const results = fuse.search(ocrData.name);
+      if (results.length > 0 && (results[0].score === undefined || results[0].score < 0.3)) {
+        foundEcho = results[0].item;
+        console.log('Found fuzzy match:', foundEcho.name);
+      }
+    }
+
+    if (!foundEcho) return null;
 
     const mainStats = mainStatsData[`${foundEcho.cost}cost`]?.mainStats || {};
     let searchMainStat = ocrData.main.name;
@@ -87,7 +75,7 @@ export const matchEchoData = (
     };
 
     return {
-      echo: foundEcho,
+      id: foundEcho.id,
       level: ocrData.echoLevel,
       selectedElement: normalizeElement(ocrData.element),
       stats: {

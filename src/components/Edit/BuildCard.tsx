@@ -9,6 +9,7 @@ import { StatSection } from '../Card/StatSection';
 import { Character } from '../../types/character';
 import { WeaponState } from '../../types/weapon';
 import { getCachedWeapon } from '../../hooks/useWeapons';
+import { getCachedEchoes } from '../../hooks/useEchoes';
 import { EchoPanelState, ElementType } from '../../types/echo';
 import { StatName } from '../../types/stats';
 import { useStats } from '../../hooks/useStats';
@@ -118,8 +119,10 @@ export const BuildCard: React.FC<BuildCardProps> = ({
 
   const calculateSets = useCallback((): Array<{ element: ElementType; count: number }> => {
     const elementCounts = echoPanels.reduce((counts, panel) => {
-      if (!panel.echo) return counts;
-      const element = panel.selectedElement || panel.echo.elements[0];
+      if (!panel.id) return counts;
+      const echo = getCachedEchoes(panel.id);
+      if (!echo) return counts;
+      const element = panel.selectedElement || echo.elements[0];
       counts[element] = (counts[element] || 0) + 1;
       return counts;
     }, {} as Record<ElementType, number>);
@@ -160,7 +163,10 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       const element = set.element;
       let startIndex = -1;
       for (let i = 0; i < echoPanels.length; i++) {
-        const panelElement = echoPanels[i].selectedElement || echoPanels[i].echo?.elements[0];
+        const panelElement = (() => {
+          const echo = getCachedEchoes(echoPanels[i].id);
+          return echoPanels[i].selectedElement || (echo?.elements[0] ?? null);
+        })();
         if (panelElement === element) {
           states[i] = 'start';
           startIndex = i;
@@ -169,11 +175,17 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       }
       if (startIndex !== -1) {
         for (let i = echoPanels.length - 1; i > startIndex; i--) {
-          const panelElement = echoPanels[i].selectedElement || echoPanels[i].echo?.elements[0];
+          const panelElement = (() => {
+            const echo = getCachedEchoes(echoPanels[i].id);
+            return echoPanels[i].selectedElement || (echo?.elements[0] ?? null);
+          })();
           if (panelElement === element) {
             states[i] = 'end';
             for (let j = startIndex + 1; j < i; j++) {
-              const middleElement = echoPanels[j].selectedElement || echoPanels[j].echo?.elements[0];
+              const middleElement = (() => {
+                const echo = getCachedEchoes(echoPanels[j].id);
+                return echoPanels[j].selectedElement || (echo?.elements[0] ?? null);
+              })();
               states[j] = 'continue' + (middleElement === element ? ' connect' : '');
             }
             break;
@@ -279,7 +291,10 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   }, [isEchoesVisible, hasBeenVisible]);
 
   const hasTwoFourCosts = (panels: EchoPanelState[]): boolean => {
-    return panels.filter(panel => panel.echo?.cost === 4).length === 2;
+    return panels.filter(panel => {
+      const echo = getCachedEchoes(panel.id);
+      return echo?.cost === 4;
+    }).length === 2;
   };
   
   const getCVClass = (cv: number): string => {

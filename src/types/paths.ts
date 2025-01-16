@@ -1,7 +1,8 @@
 import { Character, SKIN_CHARACTERS } from "./character";
 import { Weapon } from "./weapon";
+import { Echo } from "./echo";
 
-export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons';
+export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes';
 
 interface PathConfig {
     base: string;
@@ -10,6 +11,7 @@ interface PathConfig {
     elements: string;
     face1: string;
     weapons: string;
+    echoes: string;
 }
 
 interface ElementMapping {
@@ -38,6 +40,7 @@ export const PATHS = {
         elements: 'GameData/UIResources/Common/Image/IconElementShine',
         face1: 'GameData/UIResources/Common/Image/IconRoleHead256',
         weapons: 'GameData/UIResources/Common/Image/IconWeapon',
+        echoes: 'GameData/UIResources/Common/Image/IconMonsterHead'
     } as PathConfig,
     local: {
         base: '/images',
@@ -45,11 +48,12 @@ export const PATHS = {
         icons: 'Icons',
         elements: 'Elements',
         face1: 'Face1',
-        weapons: 'Weapons'
+        weapons: 'Weapons',
+        echoes: 'Echoes'
     } as PathConfig
 };
 
-export const getAssetPath = (category: ImageCategory, input: string | Character | Weapon, useAltSkin?: boolean): ImagePaths => {
+export const getAssetPath = (category: ImageCategory, input: string | Character | Weapon | Echo, useAltSkin?: boolean, isPhantom?: boolean): ImagePaths => {
     const name = typeof input === 'string' ? input : input.name;
     const id = typeof input === 'string' ? input : input.id;
     const title = typeof input === 'string' ? input : (input as Character).title ?? id;
@@ -85,6 +89,35 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
                 cdn: `${PATHS.cdn.base}/${PATHS.cdn.weapons}/T_IconWeapon${weapon.id}_UI.png`,
                 local: `${PATHS.local.base}/${PATHS.local.weapons}/${weapon.type}/${encodeURIComponent(weapon.name)}.png`
             };
+        }        
+        case 'echoes': {
+            const echo = input as Echo;
+            const localName = isPhantom ? `Phantom ${echo.name}` : echo.name;
+            const echocdn = isPhantom && echo.name in PHANTOM_CDN_IDS ? PHANTOM_CDN_IDS[echo.name] : echo.id;
+            return {
+                cdn: `${PATHS.cdn.base}/${PATHS.cdn.echoes}/T_IconMonsterHead_${echocdn}_UI.png`,
+                local: `${PATHS.local.base}/${PATHS.local.echoes}/${localName}.png`
+            };
         }
     }
+};
+
+const PHANTOM_CDN_IDS: Record<string, string> = {
+    'Clang Bang': '1015',
+    'Diggy Duggy': 'SG_31047',
+    'Dreamless': '998_1',
+    'Feilian Beringal': '1009',
+    'Gulpuff': '115_1',
+    'Hoartoise': '1010',
+    'Impermanence Heron': '1014',
+    'Inferno Rider': '325_1',
+    'Lightcrusher': '1016',
+    'Lumiscale Construct': '329_1',
+    'Mourning Aix': '1006',
+    'Questless Knight': 'SG_32022',
+    'Rocksteady Guardian': '1007',
+    'Sentry Construct': 'SG_33009',
+    'Thundering Mephis': '1008',
+    'Vitreum Dancer': 'SG_32029',
+    'Lorelei': 'SG_33011'
 };

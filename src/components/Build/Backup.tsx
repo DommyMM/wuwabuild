@@ -55,9 +55,7 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
                 r: build.state.weaponState.rank
             },
             e: build.state.echoPanels.map((panel: any) => ({
-                e: panel.echo ? {
-                    n: cachedEchoes?.findIndex(e => e.name === panel.echo.name) ?? -1
-                } : null,
+                i: panel.id,
                 l: panel.level,
                 s: panel.selectedElement ? ELEMENT_KEYS.indexOf(panel.selectedElement) : -1,
                 t: panel.stats ? {
@@ -67,13 +65,7 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
                 p: panel.phantom || false
             })),
             q: build.state.currentSequence,
-            n: {
-                t1: build.state.nodeStates.tree1,
-                t2: build.state.nodeStates.tree2,
-                t3: build.state.nodeStates.tree3,
-                t4: build.state.nodeStates.tree4,
-                t5: build.state.nodeStates.tree5
-            },
+            n: build.state.nodeStates,
             f: {
                 na: build.state.forteLevels['normal-attack'],
                 sk: build.state.forteLevels.skill,
@@ -97,36 +89,21 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
                 level: build.state.w.l,
                 rank: build.state.w.r
             },
-            echoPanels: build.state.e.map((panel: any) => {
-                const echoIndex = panel.e?.n ?? -1;
-                const echo = echoIndex !== -1 ? cachedEchoes![echoIndex] : null;
-                return {
-                    echo: echo ? {
-                        ...echo,
-                        name: echo.name,
-                        cost: echo.cost,
-                        elements: echo.elements
-                    } : null,
-                    level: panel.l,
-                    selectedElement: panel.s !== -1 ? ELEMENT_KEYS[panel.s] : null,
-                    stats: panel.t ? {
-                        mainStat: decompressStats(panel.t.m),
-                        subStats: panel.t.s.map(decompressStats)
-                    } : {
-                        mainStat: { type: null, value: null },
-                        subStats: Array(5).fill({ type: null, value: null })
-                    },
-                    phantom: panel.p || false
-                };
-            }),
+            echoPanels: build.state.e.map((panel: any) => ({
+                id: panel.i,
+                level: panel.l,
+                selectedElement: panel.s !== -1 ? ELEMENT_KEYS[panel.s] : null,
+                stats: panel.t ? {
+                    mainStat: decompressStats(panel.t.m),
+                    subStats: panel.t.s.map(decompressStats)
+                } : {
+                    mainStat: { type: null, value: null },
+                    subStats: Array(5).fill({ type: null, value: null })
+                },
+                phantom: panel.p || false
+            })),
             currentSequence: build.state.q,
-            nodeStates: {
-                tree1: build.state.n.t1,
-                tree2: build.state.n.t2,
-                tree3: build.state.n.t3,
-                tree4: build.state.n.t4,
-                tree5: build.state.n.t5
-            },
+            nodeStates: build.state.n,
             forteLevels: {
                 'normal-attack': build.state.f.na,
                 skill: build.state.f.sk,
@@ -146,7 +123,7 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
         try {
             const builds = JSON.parse(savedBuilds);
             const compressed = {
-                version: '1.0.1',
+                version: '1.0.2',
                 builds: builds.builds.map(compressData)
             };
             const timestamp = new Date().toISOString().slice(0,19).replace(/[T:]/g, ' ');
@@ -169,19 +146,42 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
     const handleImport = async (file: File) => {
         try {
             const text = await file.text();
-            const data = JSON.parse(text);
-            
-            if (data.version && data.version !== '1.0.1') {
-                toast.warning('Importing from different version');
+            let importedData = JSON.parse(text);
+            if (importedData.version === '1.0.1') {
+                importedData = {
+                    version: '1.0.2',
+                    builds: importedData.builds.map((build: any) => ({
+                        ...build,
+                        state: {
+                            ...build.state,
+                            e: build.state.e.map((panel: any) => {
+                                if (panel.e && panel.e.n !== undefined && panel.e.n !== -1) {
+                                    const echo = cachedEchoes?.[panel.e.n];
+                                    return {
+                                        ...panel,
+                                        i: echo?.id || null,
+                                        e: undefined
+                                    };
+                                }
+                                return panel;
+                            })
+                        }
+                    }))
+                };
+                toast.info('Migrated to v1.0.2');
+            } else if (importedData.version !== '1.0.2') {
+                toast.error('Unsupported version');
+                return;
             }
             const decompressed = {
-                builds: data.builds.map(decompressData)
+                version: '1.0.2',
+                builds: importedData.builds.map(decompressData)
             };
             onImport(decompressed);
             toast.success('Builds imported');
         } catch (error) {
             console.error('Import error:', error);
-            toast.error('Failed to import');
+            toast.error('Failed to import builds');
         }
     };
     return (

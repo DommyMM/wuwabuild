@@ -4,6 +4,7 @@ import { Character } from '../types/character';
 import { Weapon, ScaledStats } from '../types/weapon';
 import { useCharacterCurves } from './useCharacterCurves';
 import { EchoPanelState, ELEMENT_SETS, ElementType, ECHO_BONUSES } from '../types/echo';
+import { getCachedEchoes } from './useEchoes';
 
 export interface StatsData {
   stats: StatName[];
@@ -70,14 +71,15 @@ export const sumEchoDefaultStats = (echoPanels: EchoPanelState[]): { atk: number
   let totalHP = 0;
   
   echoPanels.forEach(panel => {
-    if (panel.echo && panel.level !== undefined) {
-      const cost = panel.echo.cost;
-      const defaultStat = calculateEchoDefaultStat(cost, panel.level);
-      if (cost === 4 || cost === 3) {
-        totalATK += defaultStat;
-      } else if (cost === 1) {
-        totalHP += defaultStat;
-      }
+    if (!panel.id || panel.level === undefined) return;
+    const echo = getCachedEchoes(panel.id);
+    if (!echo) return;
+
+    const defaultStat = calculateEchoDefaultStat(echo.cost, panel.level);
+    if (echo.cost === 4 || echo.cost === 3) {
+      totalATK += defaultStat;
+    } else if (echo.cost === 1) {
+      totalHP += defaultStat;
     }
   });
 
@@ -196,19 +198,21 @@ export const useStats = ({
     let bonus = 0;
 
     echoPanels.forEach(panel => {
-      if (panel.echo && !usedEchoes.has(panel.echo.name)) {
-        const element = panel.echo.elements.length === 1 ? 
-          panel.echo.elements[0] : panel.selectedElement;
+      if (!panel.id) return;
+      const echo = getCachedEchoes(panel.id);
+      if (!echo || usedEchoes.has(echo.name)) return;
+
+      const element = echo.elements.length === 1 ? 
+        echo.elements[0] : panel.selectedElement;
+      
+      if (element) {
+        counts[element] = (counts[element] || 0) + 1;
+        usedEchoes.add(echo.name);
         
-        if (element) {
-          counts[element] = (counts[element] || 0) + 1;
-          usedEchoes.add(panel.echo.name);
-          
-          if (element === 'Tidebreaking' && counts[element] === 5) {
-            bonus = 15;
-          } else if (element === 'Attack' && counts[element] >= 2) {
-            bonus = 10;
-          }
+        if (element === 'Tidebreaking' && counts[element] === 5) {
+          bonus = 15;
+        } else if (element === 'Attack' && counts[element] >= 2) {
+          bonus = 10;
         }
       }
     });
@@ -225,8 +229,12 @@ export const useStats = ({
     return sumEchoDefaultStats(echoPanels);
   }, [echoPanels]);
 
-  const firstPanelName = echoPanels[0]?.echo?.name;
-  const firstPanelBonus = useMemo(() => firstPanelName ? ECHO_BONUSES[firstPanelName] : null, [firstPanelName]);
+  const firstPanelId = echoPanels[0]?.id;
+  const firstEcho = firstPanelId ? getCachedEchoes(firstPanelId) : null;
+  const firstPanelBonus = useMemo(() => 
+    firstEcho ? ECHO_BONUSES[firstEcho.name] : null, 
+    [firstEcho]
+  );
 
   const calculateStats = useCallback((stat: StatName) => {
     if (!character || !baseStats || !forteBonus) return null;

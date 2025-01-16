@@ -5,9 +5,10 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalList
 import { CSS } from '@dnd-kit/utilities';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState as PanelData, COST_SECTIONS, CostSection, PHANTOM_ECHOES } from '../../types/echo';
 import { SavedEchoData } from '../../types/SavedState';
-import { useEchoes } from '../../hooks/useEchoes';
+import { cachedEchoes, getCachedEchoes } from '../../hooks/useEchoes';
 import { useModalClose } from '../../hooks/useModalClose';
 import { StatsTab } from './StatsTab';
+import { getAssetPath } from '../../types/paths';
 import '../../styles/echoes.css';
 
 interface ElementTabsProps {
@@ -68,7 +69,7 @@ interface EchoesSectionProps {
   initialPanels: PanelData[];
   onLevelChange?: (index: number, level: number) => void;
   onElementSelect?: (index: number, element: ElementType | null) => void;
-  onEchoSelect?: (index: number, echo: Echo) => void;
+  onEchoSelect?: (index: number, id: string) => void;
   onMainStatChange?: (index: number, type: string | null) => void;
   onSubStatChange?: (index: number, subIndex: number, type: string | null, value: number | null) => void;
   onPanelChange?: (panels: PanelData[]) => void;
@@ -115,6 +116,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   onLoad,
   onPhantomChange
 }) => {
+  const echo = getCachedEchoes(panelData.id);
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
@@ -124,19 +126,19 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   return (
     <div className="echo-panel" id={`panel${index}`}>
       <div className="manual-section">
-        <div id="selectedEchoLabel" style={{ fontSize: getEchoLabelFontSize(panelData.echo?.name) }}{...listener}>
-          {panelData.echo?.name || `Echo ${index}`}
+        <div id="selectedEchoLabel" style={{ fontSize: getEchoLabelFontSize(echo?.name) }}{...listener}>
+          {echo?.name || `Echo ${index}`}
         </div>
         <div className="select-box" id="selectEcho" 
-          onClick={onSelect} style={{ right: panelData.echo ? '10%' : '0' }}
+          onClick={onSelect} style={{ right: echo ? '10%' : '0' }}
         >
-          <img src={panelData.echo ? `images/Echoes/${panelData.echo.name}.png` : 'images/Resources/Echo.png'}
-            alt={panelData.echo?.name || 'Select Echo'}
+          <img src={echo ? getAssetPath('echoes', echo).cdn : 'images/Resources/Echo.png'}
+            alt={echo?.name || 'Select Echo'}
             className="select-img" id="echoImg"
           />
         </div>
-        {panelData.echo && (
-          <ElementTabs elements={panelData.echo.elements} onElementSelect={onElementSelect} selectedElement={panelData.selectedElement} />
+        {echo && (
+          <ElementTabs elements={echo.elements} onElementSelect={onElementSelect} selectedElement={panelData.selectedElement} />
         )}
       </div>
       <div className="echo-level-container">
@@ -151,9 +153,9 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
         </div>
       </div>
       
-      <StatsTab panelId={`panel${index}`} cost={panelData.echo?.cost ?? null} level={panelData.level} stats={panelData.stats} onMainStatChange={onMainStatChange} onSubStatChange={onSubStatChange}/>
+      <StatsTab panelId={`panel${index}`} cost={echo?.cost ?? null} level={panelData.level} stats={panelData.stats} onMainStatChange={onMainStatChange} onSubStatChange={onSubStatChange}/>
       <button className="clear-button" onClick={onReset}> Reset </button>
-      {panelData.echo?.name && PHANTOM_ECHOES.includes(panelData.echo.name) && (
+      {echo?.name && PHANTOM_ECHOES.includes(echo.name) && (
         <div className="phantom-container">
           <input type="checkbox"
             id={`phantom-${index}`}
@@ -166,7 +168,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
         </div>
       )}
       <div className="panel-actions">
-        <button className="action-button save" onClick={onSave} disabled={!panelData.echo}>
+        <button className="action-button save" onClick={onSave} disabled={!panelData.id}>
           Save
         </button>
         <button className="action-button load" onClick={onLoad}>
@@ -214,7 +216,6 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
   showCostWarning,
   onCostWarningDismiss
 }, ref) => {
-  const { echoesByCost, loading, error } = useEchoes();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPanelIndex, setSelectedPanelIndex] = useState<number | null>(null);
   const [showWarning, setShowWarning] = useState(false);
@@ -229,7 +230,7 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
   const handleReset = useCallback((index: number) => {
     onPanelChange?.(panels.map((panel, i) => 
       i === index ? {
-        echo: null,
+        id: null,
         level: 0,
         selectedElement: null,
         stats: {
@@ -252,8 +253,12 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
   const handleSelectEcho = useCallback((echo: Echo) => {
     if (selectedPanelIndex === null) return;
     
-    const totalCost = panels.reduce((sum, panel, index) => 
-      sum + (index === selectedPanelIndex ? echo.cost : (panel.echo?.cost || 0)), 0);
+    const totalCost = panels.reduce((sum, panel, index) => {
+      const currentEcho = index === selectedPanelIndex ? 
+        echo : 
+        getCachedEchoes(panel.id);
+      return sum + (currentEcho?.cost || 0);
+    }, 0);
 
     if (totalCost > 12) {
       setShowWarning(true);
@@ -261,14 +266,14 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
     }
 
     const hasPhantom = PHANTOM_ECHOES.includes(echo.name);
+    onEchoSelect?.(selectedPanelIndex, echo.id);
     onPanelChange?.(panels.map((panel, i) => 
       i === selectedPanelIndex ? {
         ...panel,
-        echo,
+        id: echo.id,
         phantom: hasPhantom
       } : panel
     ));
-    onEchoSelect?.(selectedPanelIndex, echo);
     setIsModalOpen(false);
   }, [selectedPanelIndex, panels, onEchoSelect, onPanelChange]);
 
@@ -370,40 +375,44 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
         )}
 
         {isModalOpen && (
-          <div className="modal" data-testid="echo-select-modal">
+          <div className="modal" data-id="echo-select-modal">
             <div className="echo-modal-content">
               <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
               <div className="echo-list">
-                {loading && <div>Loading echoes...</div>}
-                {error && <div className="error">{error}</div>}
-                {COST_SECTIONS.map((cost: CostSection) => (
-                  <div key={cost} className="echo-cost-section">
-                    <div className="cost-label">{cost} Cost</div>
-                    <div className="echo-grid">
-                      {echoesByCost[cost]?.map(echo => (
+                {COST_SECTIONS.map((cost: CostSection) => {
+                  const costEchoes = (cachedEchoes || [])
+                    .filter(echo => echo.cost === cost)
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                  return (
+                    <div key={cost} className="echo-cost-section">
+                      <div className="cost-label">{cost} Cost</div>
+                      <div className="echo-grid">
+                        {costEchoes.map(echo => (
                         <div key={echo.name} className="echo-option" onClick={() => handleSelectEcho(echo)}>
-                          <img src={`images/Echoes/${echo.name}.png`} alt={echo.name} className="echo-img"
-                          />
-                          <span className="echo-name">{echo.name}</span>
-                        </div>
-                      ))}
+                        <img src={getAssetPath('echoes', echo as Echo).cdn} alt={echo.name} className="echo-img"
+                        />
+                        <span className="echo-name">{echo.name}</span>
+                      </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
         )}
 
         {isLoadModalOpen && (
-          <div className="modal" data-testid="echo-load-modal">
+          <div className="modal" data-id="echo-load-modal">
             <div className="echo-modal-content">
               <span className="close" onClick={() => setIsLoadModalOpen(false)}>&times;</span>
               <div className="saved-echo-list">
                 {savedEchoes.map(savedEcho => {
-                  const echo = savedEcho.panelData;
-                  const stats = echo.stats;
-                  const element = echo.selectedElement;
+                  const panel = savedEcho.panelData;
+                  const savedEchoData = getCachedEchoes(panel.id);
+                  const stats = panel.stats;
+                  const element = panel.selectedElement;
                   const mainStat = stats.mainStat.type;
                   const subStats = stats.subStats.map(sub => sub.type).filter(Boolean);
                   return (
@@ -421,13 +430,13 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                         }
                       }}
                     >
-                      <img src={echo.echo ? `images/Echoes/${echo.echo.name}.png` : 'images/Resources/Echo.png'}
-                        alt={echo.echo?.name || 'Empty Echo'}
+                      <img src={savedEchoData ? getAssetPath('echoes', savedEchoData).cdn : 'images/Resources/Echo.png'}
+                        alt={savedEchoData?.name || 'Empty Echo'}
                         className="echo-img"
                       />
                       <div className="echo-info">
                         <div className="echo-name">
-                          {echo.echo?.name || 'Empty Echo'}
+                          {savedEchoData?.name || 'Empty Echo'}
                         </div>
                         <div className="echo-stats">
                           <div>{element} • {mainStat}</div>
@@ -435,7 +444,8 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                           <div>{subStats.slice(3, 5).join(' • ')}</div>
                         </div>
                       </div>
-                      <button className="delete-button"
+                      <button 
+                        className="delete-button"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();

@@ -237,7 +237,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
             setIsExpanded(true);
         }
     };
-        useEffect(() => {
+    useEffect(() => {
         if (textRef.current && wrapperRef.current) {
             const textWidth = textRef.current.offsetWidth;
             const wrapperWidth = wrapperRef.current.offsetWidth;

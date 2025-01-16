@@ -1,9 +1,11 @@
 import { calculateCV as calculateTotalCV, sumMainStats, sumSubStats, getDisplayName, getStatsData } from '../../hooks/useStats';
 import { EchoPanelState, ELEMENT_SETS } from '../../types/echo';
+import { getCachedEchoes } from '../../hooks/useEchoes';
 import { StatName, getStatIconName } from '../../types/stats';
 import React, { useState, useEffect } from 'react';
-import '../../styles/PreviewEcho.css';
+import { getAssetPath } from '../../types/paths';
 import { useSubstats } from '../../hooks/useSub';
+import '../../styles/PreviewEcho.css';
 
 export interface ExpandedStyle {
     top: number;
@@ -24,8 +26,9 @@ export const formatDate = (dateStr: string) => {
 
 export const getSetInfo = (echoPanels: EchoPanelState[]) => {
     const setCounts = echoPanels.reduce((counts, panel) => {
-        if (!panel.echo) return counts;
-        const element = panel.selectedElement || panel.echo.elements[0];
+        const echo = getCachedEchoes(panel.id);
+        if (!echo) return counts;
+        const element = panel.selectedElement || echo.elements[0];
         counts[element] = (counts[element] || 0) + 1;
         return counts;
     }, {} as Record<string, number>);
@@ -63,6 +66,7 @@ export const getEchoCVClass = (cv: number): string => {
 export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
     const [isHovered, setIsHovered] = useState(false);
     const { substatsData } = useSubstats();
+    const echo = getCachedEchoes(panel.id);
     
     const getQualityClass = (value: number, type: string): string => {
         if (!substatsData || !substatsData[type]) return '';
@@ -83,17 +87,17 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
         return (baseCV - (mainStat?.includes('Crit') ? 44 : 0)).toFixed(1);
     };
     
-    if (!panel.echo) return null;
+    if (!echo) return null;
     return (
         <div className="preview-echo">
             <div className="echo-circle" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-                <img src={`images/Echoes/${panel.echo.name}.png`}
-                    alt={panel.echo.name}
+                <img  src={getAssetPath('echoes', echo, false, panel.phantom).cdn}
+                    alt={echo.name}
                     className={`echo-icon ${panel.selectedElement?.toLowerCase() || ''}`}
                 />
                 <div className={`echo-details ${isHovered ? 'visible' : ''}`}>
                     <div className="echo-header">
-                        <h4>{panel.echo.name}</h4>
+                        <h4>{echo.name}</h4>
                         <div className="echo-intro">
                             <span className="echo-level">Lv. {panel.level}</span>
                             <span className={getEchoCVClass(Number(calculatePanelCV()))}> {calculatePanelCV()} CV</span>

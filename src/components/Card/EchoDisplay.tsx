@@ -2,8 +2,10 @@ import React from 'react';
 import { EchoPanelState, ElementType } from '../../types/echo';
 import { getStatIconName } from '../../types/stats';
 import { useSubstats } from '../../hooks/useSub';
+import { getCachedEchoes } from '../../hooks/useEchoes';
 import { SetSection } from './SetSection';
-import { ECHO_BONUSES } from '../../types/echo';
+import { Echo, ECHO_BONUSES } from '../../types/echo';
+import { getAssetPath } from '../../types/paths';
 
 export interface EchoDisplayProps {
   isVisible: boolean;
@@ -16,16 +18,15 @@ export interface EchoDisplayProps {
   getCVClass: (cv: number) => string;
 }
 
-const getEchoPath = (echoName: string, isPhantom: boolean = false) => {
-  return isPhantom ? 
-    `images/Echoes/Phantom ${echoName}.png` : 
-    `images/Echoes/${echoName}.png`;
+const getEchoPath = (echo: Echo, isPhantom: boolean = false) => {
+  return getAssetPath('echoes', echo, false, isPhantom).cdn;
 };
 
 const EchoLeft: React.FC<{ 
   panel: EchoPanelState;
   element: string | null;
 }> = React.memo(({ panel, element }) => {
+  const echo = getCachedEchoes(panel.id);
   const statClass = React.useMemo(() => 
     panel.stats.mainStat.type?.toLowerCase()
       .replace(/\s+/g, '-')
@@ -35,8 +36,8 @@ const EchoLeft: React.FC<{
   );
 
   const bonusClasses = React.useMemo(() => {
-    if (!panel.echo?.name) return '';
-    const bonuses = ECHO_BONUSES[panel.echo.name];
+    if (!echo?.name) return '';
+    const bonuses = ECHO_BONUSES[echo.name];
     if (!bonuses) return '';
 
     return bonuses
@@ -47,7 +48,7 @@ const EchoLeft: React.FC<{
         .replace('resonance-', '')
         .replace('-bonus', ''))
       .join(' ');
-  }, [panel.echo?.name]);
+  }, [echo?.name]);
 
   const formatMainStatValue = React.useCallback((value: number | null): string => {
     return value ? `${value.toFixed(1)}%` : '0';
@@ -55,10 +56,10 @@ const EchoLeft: React.FC<{
 
   return (
     <div className="echo-left">
-      {panel.echo && (
+      {echo && (
         <>
-          <img src={getEchoPath(panel.echo.name, panel.phantom)}
-            alt={panel.echo.name}
+          <img src={getEchoPath(echo, panel.phantom)}
+            alt={echo.name}
             className={`echo-display-icon ${bonusClasses}`}
           />
           <div className="echo-level-indicator">+{panel.level}</div>
@@ -84,8 +85,10 @@ const EchoLeft: React.FC<{
     </div>
   );
 }, (prevProps, nextProps) => {
+  const prevEcho = getCachedEchoes(prevProps.panel.id);
+  const nextEcho = getCachedEchoes(nextProps.panel.id);
   return prevProps.panel.level === nextProps.panel.level &&
-    prevProps.panel.echo?.name === nextProps.panel.echo?.name &&
+    prevEcho?.name === nextEcho?.name &&
     prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
     prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value &&
     prevProps.element === nextProps.element &&
@@ -172,16 +175,11 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
   JSON.stringify(prevProps.panel) === JSON.stringify(nextProps.panel);
 });
 
-const EchoRow: React.FC<{ 
-  panel: EchoPanelState; 
-  showRollQuality: boolean;
-}> = ({ 
-  panel, 
-  showRollQuality
-}) => {
-  const isSingleElement = panel.echo?.elements.length === 1;
-  const element = isSingleElement && panel.echo ? 
-    panel.echo?.elements[0] : 
+const EchoRow: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> = ({ panel, showRollQuality }) => {
+  const echo = getCachedEchoes(panel.id);
+  const isSingleElement = echo?.elements.length === 1;
+  const element = isSingleElement && echo ? 
+    echo.elements[0] : 
     panel.selectedElement;
   
   const setClass = element ? `set-${element.toLowerCase()}` : 'default';
@@ -208,12 +206,21 @@ export const EchoDisplay: React.FC<EchoDisplayProps> = ({
   if (!isVisible) return null;
 
   const leftElement = leftStates.some(state => state !== 'none') ? 
-    (echoPanels.find(panel => panel.selectedElement || panel.echo?.elements[0])?.selectedElement || 
-    echoPanels.find(panel => panel.selectedElement || panel.echo?.elements[0])?.echo?.elements[0])?.toLowerCase() : '';
-
+    (echoPanels.find(panel => {
+      const echo = getCachedEchoes(panel.id);
+      return panel.selectedElement || echo?.elements[0];
+    })?.selectedElement || 
+    getCachedEchoes(echoPanels[0]?.id)?.elements[0])?.toLowerCase() : '';
+  
   const rightElement = rightStates.some(state => state !== 'none') ? 
-    (echoPanels.find((panel, i) => rightStates[i] !== 'none')?.selectedElement || 
-    echoPanels.find((panel, i) => rightStates[i] !== 'none')?.echo?.elements[0])?.toLowerCase() : '';
+    (echoPanels.find((panel, i) => {
+      if (rightStates[i] !== 'none') {
+        const echo = getCachedEchoes(panel.id);
+        return panel.selectedElement || echo?.elements[0];
+      }
+      return false;
+    })?.selectedElement || 
+    getCachedEchoes(echoPanels[0]?.id)?.elements[0])?.toLowerCase() : '';
 
   return (
     <div className="echo-display">

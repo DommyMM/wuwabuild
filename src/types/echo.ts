@@ -2,17 +2,18 @@ import { StatName } from './stats';
 
 export interface Echo {
   name: string;
+  id: string;
   cost: number;
   elements: ElementType[];
 }
 
 export type EchoPanel = {
   index: number;
-  echo: Echo | null;
+  id: string | null;
 };
 
 export interface EchoPanelState {
-  echo: Echo | null;
+  id: string | null;
   level: number;
   selectedElement: ElementType | null;
   stats: {
@@ -119,5 +120,6 @@ export const PHANTOM_ECHOES = [
   'Rocksteady Guardian',
   'Sentry Construct',
   'Thundering Mephis',
-  'Vitreum Dancer'
+  'Vitreum Dancer',
+  'Lorelei'
 ] as readonly string[];

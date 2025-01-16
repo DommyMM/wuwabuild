@@ -4,10 +4,16 @@ import { Echo, COST_SECTIONS } from '../types/echo';
 export let cachedEchoes: Echo[] | null = null;
 export let loadError: string | null = null;
 
+export const getCachedEchoes = (id: string | null): Echo | null => {
+  if (!id || !cachedEchoes) return null;
+  return cachedEchoes.find(echo => echo.id === id) ?? null;
+};
+
 interface EchoesData {
   echoesByCost: Record<number, Echo[]>;
   loading: boolean;
   error: string | null;
+  getEcho: typeof getCachedEchoes;
 }
 
 export const useEchoes = (): EchoesData => {
@@ -47,5 +53,5 @@ export const useEchoes = (): EchoesData => {
     return grouped;
   }, [echoes]);
 
-  return { echoesByCost, loading, error };
+  return { echoesByCost, loading, error, getEcho: getCachedEchoes };
 };
