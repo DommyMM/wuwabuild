@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { Weapon, ScaledWeaponStats } from '../../types/weapon';
+import { getAssetPath } from '../../types/paths';
 
 interface WeaponSectionProps {
   weapon: Weapon;
@@ -11,14 +12,7 @@ interface WeaponSectionProps {
 }
 
 const getWeaponPath = (weapon: Weapon, useAltSkin: boolean = false) => {
-  const basePath = `images/Weapons/${weapon.type}/${encodeURIComponent(weapon.name)}`;
-  if (useAltSkin) {
-    const skinPath = `${basePath}2.png`;
-    const img = new Image();
-    img.src = skinPath;
-    return img.complete ? skinPath : `${basePath}.png`;
-  }
-  return `${basePath}.png`;
+  return getAssetPath('weapons', weapon).cdn;
 };
 
 const WeaponIcon = React.memo<{ weapon: Weapon; useAltSkin?: boolean }>(

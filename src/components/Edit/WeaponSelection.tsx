@@ -4,6 +4,7 @@ import { Weapon } from '../../types/weapon';
 import { useWeapons } from '../../hooks/useWeapons';
 import { useModalClose } from '../../hooks/useModalClose';
 import { WeaponSlider } from './WeaponSlider';
+import { getAssetPath } from '../../types/paths';
 import '../../styles/WeaponSelection.css';
 import '../../styles/modal.css';
 import '../../styles/WeaponSlider.css';
@@ -94,8 +95,7 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
         <div className="weapon-box" id="selectWeapon" onClick={() => setIsModalOpen(true)}>
           <img
             id="weaponImg"
-            src={selectedWeapon 
-              ? `images/Weapons/${selectedCharacter.weaponType}/${encodeURIComponent(selectedWeapon.name)}.png`
+            src={selectedWeapon ? getAssetPath('weapons', selectedWeapon).cdn
               : 'images/Resources/Weapon.png'
             }
             alt={selectedWeapon?.name || 'Select Weapon'}
@@ -114,8 +114,7 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
           )}
         </div>
         {selectedWeapon && (
-          <WeaponSlider 
-            level={weaponConfig.level}
+          <WeaponSlider level={weaponConfig.level}
             rank={weaponConfig.rank}
             onLevelChange={handleLevelChange}
             onRankChange={handleRankChange}
@@ -131,8 +130,7 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
               {loading && <div className="loading">Loading weapons...</div>}
               {error && <div className="error">{error}</div>}
               {selectedCharacter && sortedWeapons.map(weapon => (
-                <div
-                  key={weapon.name}
+                <div key={weapon.name}
                   className="weapon-option"
                   style={{
                     backgroundImage: `url('images/Quality/${weapon.rarity}.png')`,
@@ -146,8 +144,7 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
                     setIsModalOpen(false);
                   }}
                 >
-                  <img
-                    src={`images/Weapons/${selectedCharacter.weaponType}/${encodeURIComponent(weapon.name)}.png`}
+                  <img src={getAssetPath('weapons', weapon).cdn}
                     alt={weapon.name}
                     className="weapon-img"
                   />

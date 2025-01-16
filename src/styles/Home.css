@@ -485,7 +485,9 @@
         transform: scale(1.2);
         box-shadow: 0 0 8px rgba(166, 150, 98, 0.4);
     }
-    .disclaimer {
+    .disclaimer, .screenshot-disclaimer {
         font-size: 10px;
+        bottom: 20%;
+        padding: 6px;
     }
 }

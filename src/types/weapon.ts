@@ -17,6 +17,7 @@ export interface ScaledWeaponStats {
 
 export interface Weapon {
   name: string;
+  id: string;
   type: WeaponType;
   rarity: WeaponRarity;
   ATK: number;

@@ -1,7 +1,6 @@
 import React from 'react';
 import { SavedBuilds } from '../../types/SavedState';
 import { toast } from 'react-toastify';
-import { cachedCharacters } from '../../hooks/useCharacters';
 import { cachedEchoes } from '../../hooks/useEchoes';
 import { weaponList } from '../../hooks/useWeapons';
 import { ELEMENT_SETS } from '../../types/echo';
@@ -150,10 +149,6 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
             toast.error('No builds to export');
             return;
         }
-        if (!cachedCharacters || !cachedEchoes) {
-            toast.error('Reference data not loaded');
-            return;
-        }
         try {
             const builds = JSON.parse(savedBuilds);
             const compressed = {
@@ -178,11 +173,6 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
     };
 
     const handleImport = async (file: File) => {
-        if (!cachedCharacters || !cachedEchoes) {
-            toast.error('Reference data not loaded');
-            return;
-        }
-
         try {
             const text = await file.text();
             const data = JSON.parse(text);

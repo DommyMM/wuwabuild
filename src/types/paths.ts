@@ -1,5 +1,7 @@
 import { Character, SKIN_CHARACTERS } from "./character";
-export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1';
+import { Weapon } from "./weapon";
+
+export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons';
 
 interface PathConfig {
     base: string;
@@ -7,6 +9,7 @@ interface PathConfig {
     icons: string;
     elements: string;
     face1: string;
+    weapons: string;
 }
 
 interface ElementMapping {
@@ -33,21 +36,23 @@ export const PATHS = {
         faces: 'GameData/UIResources/Common/Image/IconRoleHeadCircle256',
         icons: 'GameData/UIResources/Common/Image/IconRolePile',
         elements: 'GameData/UIResources/Common/Image/IconElementShine',
-        face1: 'GameData/UIResources/Common/Image/IconRoleHead256'
+        face1: 'GameData/UIResources/Common/Image/IconRoleHead256',
+        weapons: 'GameData/UIResources/Common/Image/IconWeapon',
     } as PathConfig,
     local: {
         base: '/images',
         faces: 'Faces',
         icons: 'Icons',
         elements: 'Elements',
-        face1: 'Face1'
+        face1: 'Face1',
+        weapons: 'Weapons'
     } as PathConfig
 };
 
-export const getAssetPath = (category: ImageCategory, input: string | Character, useAltSkin?: boolean): ImagePaths => {
+export const getAssetPath = (category: ImageCategory, input: string | Character | Weapon, useAltSkin?: boolean): ImagePaths => {
     const name = typeof input === 'string' ? input : input.name;
     const id = typeof input === 'string' ? input : input.id;
-    const title = typeof input === 'string' ? input : input.title;
+    const title = typeof input === 'string' ? input : (input as Character).title ?? id;
 
     switch (category) {
         case 'elements': {
@@ -74,5 +79,12 @@ export const getAssetPath = (category: ImageCategory, input: string | Character,
                 cdn: `${PATHS.cdn.base}/${PATHS.cdn.face1}/T_IconRoleHead256_${id}_UI.png`,
                 local: `${PATHS.local.base}/${PATHS.local.face1}/${name}.png`
             };
+        case 'weapons': {
+            const weapon = input as Weapon;
+            return {
+                cdn: `${PATHS.cdn.base}/${PATHS.cdn.weapons}/T_IconWeapon${weapon.id}_UI.png`,
+                local: `${PATHS.local.base}/${PATHS.local.weapons}/${weapon.type}/${encodeURIComponent(weapon.name)}.png`
+            };
+        }
     }
 };

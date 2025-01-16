@@ -1,5 +1,4 @@
 import { createBrowserRouter, RouterProvider, Outlet, Link, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import { EditPage } from './pages/EditPage';
 import { OCRProvider } from './contexts/OCRContext';
@@ -62,10 +61,6 @@ const router = createBrowserRouter([
 });
 
 const App: React.FC = () => {
-  useEffect(() => {
-    localStorage.removeItem('wuwabuilds_state');
-    localStorage.removeItem('wuwabuilds_builds');
-  }, []);
   const { loading: charLoading } = useCharacters();
   const { loading: echoLoading } = useEchoes();
   const { loading: weaponLoading } = useWeapons({ weaponType: WeaponType.Sword });
