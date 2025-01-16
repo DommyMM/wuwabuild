@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Weapon, ScaledWeaponStats, WeaponConfig } from '../types/weapon';
+import { Weapon } from '../types/weapon';
 
 interface LevelCurves {
   ATK_CURVE: { [key: string]: number };
@@ -71,20 +71,16 @@ export const useLevelCurves = () => {
     return parseFloat((baseStat * curves.STAT_CURVE[key]).toFixed(1));
   };
 
-  const scaleWeaponStats = (weapon: Weapon, config: WeaponConfig): ScaledWeaponStats => {
-    const rankMultiplier = 1 + ((config.rank - 1) * 0.25);
-    
-    return {
-      scaledAtk: scaleAtk(weapon.ATK, config.level),
-      scaledMainStat: scaleStat(weapon.base_main, config.level),
-      scaledPassive: weapon.passive_stat 
-        ? Math.floor(weapon.passive_stat * rankMultiplier) 
-        : undefined,
-      scaledPassive2: weapon.passive_stat2 
-        ? Math.floor(weapon.passive_stat2 * rankMultiplier) 
-        : undefined
-    };
-  };
+  const scaleWeaponStats = (weapon: Weapon, level: number, rank: number) => ({
+    scaledAtk: scaleAtk(weapon.ATK, level),
+    scaledMainStat: scaleStat(weapon.base_main, level),
+    scaledPassive: weapon.passive_stat 
+      ? Math.floor(weapon.passive_stat * (1 + ((rank - 1) * 0.25))) 
+      : undefined,
+    scaledPassive2: weapon.passive_stat2 
+      ? Math.floor(weapon.passive_stat2 * (1 + ((rank - 1) * 0.25))) 
+      : undefined
+  });
 
   return { 
     curves, 

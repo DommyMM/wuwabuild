@@ -69,8 +69,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
     props.onSequenceChange?.(newSequence);
   };
 
-  const handleWeaponSelect = (weapon: Weapon): void => {
-    props.onWeaponSelect(weapon);
+  const handleWeaponSelect = (weapon: Weapon | null): void => {
+    props.onWeaponSelect(weapon?.id ? weapon : null);
   };
 
   const handleToggleSpectro = (): void => {
@@ -139,9 +139,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                   props.ocrData.sequence : undefined}
               />
               <WeaponSelection selectedCharacter={selectedCharacter}
-                selectedWeapon={props.weaponState.selectedWeapon}
+                weaponState={props.weaponState}
                 onWeaponSelect={handleWeaponSelect}
-                weaponConfig={props.weaponState.config}
                 onWeaponConfigChange={handleWeaponConfigChange}
                 ocrData={props.ocrData?.type === 'Weapon' ? props.ocrData : undefined}
               />

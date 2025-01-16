@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { StatName, BaseStatName, getPercentVariant } from '../types/stats';
 import { Character } from '../types/character';
-import { Weapon, ScaledWeaponStats } from '../types/weapon';
+import { Weapon, ScaledStats } from '../types/weapon';
 import { useCharacterCurves } from './useCharacterCurves';
 import { EchoPanelState, ELEMENT_SETS, ElementType, ECHO_BONUSES } from '../types/echo';
 
@@ -19,7 +19,7 @@ export interface UseStatsProps {
   character: Character | null;
   level: string;
   weapon: Weapon | null;
-  weaponStats?: ScaledWeaponStats;
+  weaponStats?: ScaledStats;
   echoPanels?: EchoPanelState[];
   nodeStates: Record<string, Record<string, boolean>>;
   isSpectro?: boolean;

@@ -7,6 +7,7 @@ import { BuildPreview } from '../components/Build/Preview';
 import { SavedBuild, SavedBuilds } from '../types/SavedState';
 import { calculateCV } from '../hooks/useStats';
 import { cachedCharacters } from '../hooks/useCharacters';
+import { getCachedWeapon } from '../hooks/useWeapons';
 import '../styles/BuildPage.css';
 
 export const BuildsPage: React.FC = () => {
@@ -31,10 +32,12 @@ export const BuildsPage: React.FC = () => {
             const searchLower = searchTerm.toLowerCase();
             const character = build.state.characterState.id ? 
                 cachedCharacters?.find(c => c.id === build.state.characterState.id) : null;
+            const weapon = getCachedWeapon(build.state.weaponState.id);
+            
             return (
                 build.name.toLowerCase().includes(searchLower) ||
                 character?.name.toLowerCase().includes(searchLower) ||
-                build.state.weaponState.selectedWeapon?.name.toLowerCase().includes(searchLower)
+                weapon?.name.toLowerCase().includes(searchLower)
             );
         })
         .sort((a, b) => {

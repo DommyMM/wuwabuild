@@ -2,7 +2,6 @@ import React from 'react';
 import { SavedBuilds } from '../../types/SavedState';
 import { toast } from 'react-toastify';
 import { cachedEchoes } from '../../hooks/useEchoes';
-import { weaponList } from '../../hooks/useWeapons';
 import { ELEMENT_SETS } from '../../types/echo';
 
 interface BuildBackupProps {
@@ -51,12 +50,9 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
                 e: build.state.characterState.element
             },
             w: {
-                s: build.state.weaponState.selectedWeapon ? 
-                    weaponList.findIndex(w => w.name === build.state.weaponState.selectedWeapon.name) : -1,
-                c: {
-                    l: build.state.weaponState.config.level,
-                    r: build.state.weaponState.config.rank
-                }
+                i: build.state.weaponState.id,
+                l: build.state.weaponState.level,
+                r: build.state.weaponState.rank
             },
             e: build.state.echoPanels.map((panel: any) => ({
                 e: panel.echo ? {
@@ -97,11 +93,9 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
                 element: build.state.c.e
             },
             weaponState: {
-                selectedWeapon: build.state.w.s !== -1 ? weaponList[build.state.w.s] : null,
-                config: {
-                    level: build.state.w.c.l,
-                    rank: build.state.w.c.r
-                }
+                id: build.state.w.i,
+                level: build.state.w.l,
+                rank: build.state.w.r
             },
             echoPanels: build.state.e.map((panel: any) => {
                 const echoIndex = panel.e?.n ?? -1;
@@ -152,7 +146,7 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
         try {
             const builds = JSON.parse(savedBuilds);
             const compressed = {
-                version: '1.0.0',
+                version: '1.0.1',
                 builds: builds.builds.map(compressData)
             };
             const timestamp = new Date().toISOString().slice(0,19).replace(/[T:]/g, ' ');
@@ -177,10 +171,9 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
             const text = await file.text();
             const data = JSON.parse(text);
             
-            if (data.version && data.version !== '1.0.0') {
+            if (data.version && data.version !== '1.0.1') {
                 toast.warning('Importing from different version');
             }
-
             const decompressed = {
                 builds: data.builds.map(decompressData)
             };

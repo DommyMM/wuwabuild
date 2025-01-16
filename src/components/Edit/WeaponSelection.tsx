@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Character } from '../../types/character';
-import { Weapon } from '../../types/weapon';
-import { useWeapons } from '../../hooks/useWeapons';
+import { Weapon, WeaponState } from '../../types/weapon';
+import { getCachedWeapon, weaponCache } from '../../hooks/useWeapons';
 import { useModalClose } from '../../hooks/useModalClose';
 import { WeaponSlider } from './WeaponSlider';
 import { getAssetPath } from '../../types/paths';
@@ -11,12 +11,8 @@ import '../../styles/WeaponSlider.css';
 
 interface WeaponSelectionProps {
   selectedCharacter: Character;
-  selectedWeapon: Weapon | null;
-  onWeaponSelect: (weapon: Weapon) => void;
-  weaponConfig: {
-    level: number;
-    rank: number;
-  };
+  weaponState: WeaponState;
+  onWeaponSelect: (weapon: Weapon | null) => void;
   onWeaponConfigChange: (level: number, rank: number) => void;
   ocrData?: {
     type: 'Weapon';
@@ -37,26 +33,40 @@ const rarityColors = {
 
 export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
   selectedCharacter,
-  selectedWeapon,
+  weaponState,
   onWeaponSelect,
-  weaponConfig,
   onWeaponConfigChange,
   ocrData
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [lastOcrWeapon, setLastOcrWeapon] = useState<string | undefined>();
 
+  const weapons = useMemo(() => 
+    weaponCache.get(selectedCharacter.weaponType) ?? [],
+    [selectedCharacter.weaponType]
+  );
+
+  const selectedWeapon = useMemo(() => 
+    getCachedWeapon(weaponState.id),
+    [weaponState.id]
+  );
+
+  const rarityOrder = useMemo(() => 
+    ["5-star", "4-star", "3-star", "2-star", "1-star"], 
+  []); 
+
+  const sortedWeapons = useMemo(() => 
+    [...weapons].sort((a, b) => 
+      rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity)
+    ), 
+  [weapons, rarityOrder]);
+
   useEffect(() => {
     setLastOcrWeapon(undefined);
   }, [selectedCharacter.name]);
 
-  const { weapons, loading, error } = useWeapons({
-    weaponType: selectedCharacter.weaponType,
-    config: weaponConfig
-  });
-
   useEffect(() => {
-    if (ocrData?.name && weapons.length > 0 && !lastOcrWeapon) {
+    if (ocrData?.name && !lastOcrWeapon) {
       const matchedWeapon = weapons.find(
         weapon => weapon.name.toLowerCase() === ocrData.name.toLowerCase()
       );
@@ -70,23 +80,13 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
 
   useModalClose(isModalOpen, () => setIsModalOpen(false));
 
-  const rarityOrder = useMemo(() => 
-    ["5-star", "4-star", "3-star", "2-star", "1-star"], 
-  []); 
-
-  const sortedWeapons = useMemo(() => 
-    [...weapons].sort((a, b) => 
-      rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity)
-    ), 
-  [weapons, rarityOrder]);
-
   const handleLevelChange = useCallback((level: number) => {
-    onWeaponConfigChange(level, weaponConfig.rank);
-  }, [weaponConfig.rank, onWeaponConfigChange]);
+    onWeaponConfigChange(level, weaponState.rank);
+  }, [weaponState.rank, onWeaponConfigChange]);
 
   const handleRankChange = useCallback((rank: number) => {
-    onWeaponConfigChange(weaponConfig.level, rank);
-  }, [weaponConfig.level, onWeaponConfigChange]);
+    onWeaponConfigChange(weaponState.level, rank);
+  }, [weaponState.level, onWeaponConfigChange]);
 
   return (
     <>
@@ -114,8 +114,8 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
           )}
         </div>
         {selectedWeapon && (
-          <WeaponSlider level={weaponConfig.level}
-            rank={weaponConfig.rank}
+          <WeaponSlider level={weaponState.level}
+            rank={weaponState.rank}
             onLevelChange={handleLevelChange}
             onRankChange={handleRankChange}
           />
@@ -127,9 +127,7 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
           <div className="modal-content">
             <span className="close" onClick={() => setIsModalOpen(false)}>&times;</span>
             <div className="weapon-list">
-              {loading && <div className="loading">Loading weapons...</div>}
-              {error && <div className="error">{error}</div>}
-              {selectedCharacter && sortedWeapons.map(weapon => (
+              {sortedWeapons.map(weapon => (
                 <div key={weapon.name}
                   className="weapon-option"
                   style={{

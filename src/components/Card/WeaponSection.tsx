@@ -1,12 +1,12 @@
 import React, { useCallback } from 'react';
-import { Weapon, ScaledWeaponStats } from '../../types/weapon';
+import { ScaledStats, Weapon } from '../../types/weapon';
 import { getAssetPath } from '../../types/paths';
 
 interface WeaponSectionProps {
   weapon: Weapon;
   rank: number;
   level: number;
-  scaledStats: ScaledWeaponStats;
+  scaledStats: ScaledStats;
   characterElement?: string;
   useAltSkin?: boolean;
 }
@@ -93,9 +93,12 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
 
   const PassiveText = React.memo<{ 
     weapon: Weapon;
-    scaledStats: ScaledWeaponStats;
+    stats: {
+      scaledPassive?: number;
+      scaledPassive2?: number;
+    };
     characterElement?: string;
-  }>(({ weapon, scaledStats, characterElement }) => {
+  }>(({ weapon, stats, characterElement }) => {
     if (!weapon.passive || !weapon.passive_stat) return null;
     
     const passiveName = weapon.passive.replace('%', '');
@@ -103,7 +106,7 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
 
     return (
       <div className={classNames.join(' ')}>
-        {`${scaledStats.scaledPassive}% ${passiveName}`}
+        {`${stats.scaledPassive}% ${passiveName}`}
       </div>
     );
   });
@@ -114,7 +117,7 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
         <WeaponName name={weapon.name} />
         <StatsTopRow scaledAtk={scaledStats.scaledAtk} weapon={weapon} scaledMainStat={scaledStats.scaledMainStat} />
         <StatsBottomRow level={level} rank={rank} />
-        <PassiveText weapon={weapon} scaledStats={scaledStats} characterElement={characterElement} />
+        <PassiveText weapon={weapon} stats={scaledStats} characterElement={characterElement} />
       </div>
       <RarityStars rarity={weapon.rarity} />
       <WeaponIcon weapon={weapon} useAltSkin={useAltSkin} />

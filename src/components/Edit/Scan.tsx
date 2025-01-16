@@ -488,8 +488,7 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
       )}
       <div className="file-preview">
         {images.map((image) => (
-          <ImagePreview
-            key={image.id}
+          <ImagePreview key={image.id}
             src={image.preview}
             category={image.category}
             details={image.details}

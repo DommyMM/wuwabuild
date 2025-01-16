@@ -17,6 +17,7 @@ import { useEchoes } from '../hooks/useEchoes';
 import { matchEchoData } from '../hooks/echoMatching';
 import { useMain } from '../hooks/useMain';
 import { cachedCharacters } from '../hooks/useCharacters';
+import { weaponCache } from '../hooks/useWeapons';
 import { useSubstats } from '../hooks/useSub';
 import '../styles/App.css';
 
@@ -47,8 +48,9 @@ export const EditPage: React.FC = () => {
   const { substatsData } = useSubstats();
   const hasScrolledToEchoes = useRef(false);
   const [weaponState, setWeaponState] = useState<WeaponState>({
-    selectedWeapon: null,
-    config: { level: 1, rank: 1 }
+    id: null,
+    level: 1,
+    rank: 1
   });
   const [clickCount, setClickCount] = useState(0);
   const [nodeStates, setNodeStates] = useState<Record<string, Record<string, boolean>>>({});
@@ -98,57 +100,59 @@ export const EditPage: React.FC = () => {
           setWatermark(prev => ({...prev, uid: characterAnalysis.uid!}));
         }
         break;
-        case 'Weapon':
-          const weaponAnalysis = result.analysis;
-          const character = characterState.id ? cachedCharacters!.find(c => c.id === characterState.id) : null;
-          if (character?.weaponType.replace(/s$/, '') === weaponAnalysis.weaponType.replace(/s$/, '')) {
-            setWeaponState(prev => ({
-              ...prev,
-              config: {
-                level: Math.max(prev.config.level, weaponAnalysis.weaponLevel),
-                rank: Math.max(prev.config.rank, weaponAnalysis.rank)
-              }
-            }));
-          }
-          break;
-        case 'Sequences':
-          const sequenceAnalysis = result.analysis;
-          setCurrentSequence(prev => 
-            Math.max(prev, sequenceAnalysis.sequence)
+      case 'Weapon':
+        const weaponAnalysis = result.analysis;
+        const character = characterState.id ? cachedCharacters!.find(c => c.id === characterState.id) : null;
+        if (character?.weaponType.replace(/s$/, '') === weaponAnalysis.weaponType.replace(/s$/, '')) {
+          const weapons = weaponCache.get(character.weaponType) ?? [];
+          const matchedWeapon = weapons.find(w => 
+            w.name.toLowerCase() === weaponAnalysis.name.toLowerCase()
           );
-          break;
-        case 'Forte':
-          const forteAnalysis = result.analysis;
-          console.group('Setting Forte');
-          Object.entries(forteAnalysis).forEach(([skill, values]) => {
-            if (skill === 'type') return;
-            const [level, top, middle] = values;
-            console.log(`${skill}: Level ${level}, Top: ${top === 1 ? 'On' : 'Off'}, Middle: ${middle === 1 ? 'On' : 'Off'}`);
-          });
-          console.groupEnd();
-          const skillToTree = {
-            normal: 'tree1',
-            skill: 'tree2',
-            circuit: 'tree3',
-            liberation: 'tree4',
-            intro: 'tree5'
+          setWeaponState(prev => ({
+            id: matchedWeapon?.id ?? prev.id,
+            level: Math.max(prev.level, weaponAnalysis.weaponLevel),
+            rank: Math.max(prev.rank, weaponAnalysis.rank)
+          }));
+        }
+        break;
+      case 'Sequences':
+        const sequenceAnalysis = result.analysis;
+        setCurrentSequence(prev => 
+          Math.max(prev, sequenceAnalysis.sequence)
+        );
+        break;
+      case 'Forte':
+        const forteAnalysis = result.analysis;
+        console.group('Setting Forte');
+        Object.entries(forteAnalysis).forEach(([skill, values]) => {
+          if (skill === 'type') return;
+          const [level, top, middle] = values;
+          console.log(`${skill}: Level ${level}, Top: ${top === 1 ? 'On' : 'Off'}, Middle: ${middle === 1 ? 'On' : 'Off'}`);
+        });
+        console.groupEnd();
+        const skillToTree = {
+          normal: 'tree1',
+          skill: 'tree2',
+          circuit: 'tree3',
+          liberation: 'tree4',
+          intro: 'tree5'
+        };
+        const newNodeStates: Record<string, Record<string, boolean>> = {};
+        const newForteLevels: Record<string, number> = {};
+        Object.entries(forteAnalysis).forEach(([skill, values]) => {
+          if (skill === 'type') return;
+          const [level, top, middle] = values;
+          const treeKey = skillToTree[skill as keyof typeof skillToTree];
+          const skillKey = skill === 'normal' ? 'normal-attack' : skill;
+          newNodeStates[treeKey] = {
+            top: Boolean(top),
+            middle: Boolean(middle)
           };
-          const newNodeStates: Record<string, Record<string, boolean>> = {};
-          const newForteLevels: Record<string, number> = {};
-          Object.entries(forteAnalysis).forEach(([skill, values]) => {
-            if (skill === 'type') return;
-            const [level, top, middle] = values;
-            const treeKey = skillToTree[skill as keyof typeof skillToTree];
-            const skillKey = skill === 'normal' ? 'normal-attack' : skill;
-            newNodeStates[treeKey] = {
-              top: Boolean(top),
-              middle: Boolean(middle)
-            };
-            newForteLevels[skillKey] = level;
-          });
-          setNodeStates(newNodeStates);
-          setForteLevels(newForteLevels);
-          break;
+          newForteLevels[skillKey] = level;
+        });
+        setNodeStates(newNodeStates);
+        setForteLevels(newForteLevels);
+        break;
       case 'Echo':
         const echoAnalysis = result.analysis;
         console.group('Setting Echo:');
@@ -200,8 +204,9 @@ export const EditPage: React.FC = () => {
         element: isRover(character) ? "Havoc" : character.element
       });
       setWeaponState({
-        selectedWeapon: null,
-        config: { level: 1, rank: 1 }
+        id: null,
+        level: 1,
+        rank: 1
       });
       unlock();
     }
@@ -219,14 +224,16 @@ export const EditPage: React.FC = () => {
   const handleWeaponSelect = (weapon: Weapon | null) => {
     setWeaponState(prev => ({
       ...prev,
-      selectedWeapon: weapon
+      id: weapon?.id ?? null
     }));
   };
+
   const handleWeaponConfigChange = (level: number, rank: number) => {
-    setWeaponState(prev => ({
-      ...prev,
-      config: { level, rank }
-    }));
+    setWeaponState({
+      ...weaponState,
+      level,
+      rank
+    });
   };
   const handleMaxClick = () => {
     const newCount = (clickCount + 1) % 3;
@@ -504,8 +511,7 @@ export const EditPage: React.FC = () => {
           watermark={watermark}
           onWatermarkChange={handleWatermarkChange}
           currentSequence={currentSequence}
-          selectedWeapon={weaponState.selectedWeapon}
-          weaponConfig={weaponState.config}
+          weaponState={weaponState}
           nodeStates={nodeStates}
           levels={forteLevels}
           echoPanels={echoPanels}

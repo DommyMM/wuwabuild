@@ -7,7 +7,8 @@ import { ForteSection } from '../Card/ForteSection';
 import { EchoDisplay } from '../Card/EchoDisplay';
 import { StatSection } from '../Card/StatSection';
 import { Character } from '../../types/character';
-import { Weapon } from '../../types/weapon';
+import { WeaponState } from '../../types/weapon';
+import { getCachedWeapon } from '../../hooks/useWeapons';
 import { EchoPanelState, ElementType } from '../../types/echo';
 import { StatName } from '../../types/stats';
 import { useStats } from '../../hooks/useStats';
@@ -27,11 +28,6 @@ interface BuildCardProps {
   isVisible: boolean;
   isEchoesVisible: boolean;
   currentSequence: number;
-  selectedWeapon: Weapon | null;
-  weaponConfig: {
-    level: number;
-    rank: number;
-  };
   nodeStates: Record<string, Record<string, boolean>>;
   levels: Record<string, number>;
   echoPanels: EchoPanelState[];
@@ -41,8 +37,8 @@ interface BuildCardProps {
   };
   onWatermarkChange: (watermark: { username: string; uid: string }) => void;
   onSaveBuild?: () => void;
+  weaponState: WeaponState; 
 }
-
 
 export const BuildCard: React.FC<BuildCardProps> = ({
   isVisible,
@@ -52,14 +48,13 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   characterLevel,
   element,
   currentSequence,
-  selectedWeapon,
-  weaponConfig,
   nodeStates,
   levels,
   echoPanels,
   watermark,
   onWatermarkChange,
-  onSaveBuild
+  onSaveBuild,
+  weaponState
 }) => {
   useStatHighlight();
   const [isTabVisible, setIsTabVisible] = useState(false);
@@ -75,23 +70,23 @@ export const BuildCard: React.FC<BuildCardProps> = ({
 
   const { scaleAtk, scaleStat } = useLevelCurves();
 
-  const weaponConfigMemo = useMemo(() => ({
-    level: weaponConfig.level,
-    rank: weaponConfig.rank
-  }), [weaponConfig.level, weaponConfig.rank]);
+  const selectedWeapon = useMemo(() => 
+    getCachedWeapon(weaponState.id),
+    [weaponState.id]
+  );
 
   const weaponStats = useMemo(() => 
     selectedWeapon ? {
-      scaledAtk: scaleAtk(selectedWeapon.ATK, weaponConfigMemo.level),
-      scaledMainStat: scaleStat(selectedWeapon.base_main, weaponConfigMemo.level),
+      scaledAtk: scaleAtk(selectedWeapon.ATK, weaponState.level),
+      scaledMainStat: scaleStat(selectedWeapon.base_main, weaponState.level),
       scaledPassive: selectedWeapon.passive_stat 
-        ? Number((selectedWeapon.passive_stat * (1 + ((weaponConfigMemo.rank - 1) * 0.25))).toFixed(1)) 
+        ? Number((selectedWeapon.passive_stat * (1 + ((weaponState.rank - 1) * 0.25))).toFixed(1)) 
         : undefined,
       scaledPassive2: selectedWeapon.passive_stat2
-        ? Number((selectedWeapon.passive_stat2 * (1 + ((weaponConfigMemo.rank - 1) * 0.25))).toFixed(1)) 
+        ? Number((selectedWeapon.passive_stat2 * (1 + ((weaponState.rank - 1) * 0.25))).toFixed(1)) 
         : undefined
     } : undefined,
-    [selectedWeapon, weaponConfigMemo, scaleAtk, scaleStat]
+    [selectedWeapon, weaponState, scaleAtk, scaleStat]
   );
   const displayName = selectedCharacter ? 
     (selectedCharacter.name.startsWith('Rover') ? `Rover${element || "Havoc"}` : selectedCharacter.name) : 
@@ -244,10 +239,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
         element
       },
       currentSequence,
-      weaponState: {
-        selectedWeapon,
-        config: weaponConfig
-      },
+      weaponState,
       nodeStates,
       forteLevels: levels,
       echoPanels,
@@ -354,8 +346,8 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                 />
                 {selectedWeapon && weaponStats && (
                   <WeaponSection weapon={selectedWeapon}
-                    level={weaponConfig.level}
-                    rank={weaponConfig.rank}
+                    level={weaponState.level}
+                    rank={weaponState.rank}
                     scaledStats={weaponStats}
                     characterElement={elementValue}
                     useAltSkin={useAltSkin}

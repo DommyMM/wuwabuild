@@ -4,6 +4,7 @@ import { cachedCharacters } from '../../hooks/useCharacters';
 import { SavedBuild } from '../../types/SavedState';
 import { getAssetPath } from '../../types/paths';
 import { Character } from '../../types/character';
+import { getCachedWeapon } from '../../hooks/useWeapons';
 import Marquee from 'react-fast-marquee';
 import '../../styles/Preview.css';
 
@@ -28,7 +29,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
     const wrapperRef = useRef<HTMLDivElement>(null);
     const character = build.state.characterState.id ? cachedCharacters?.find(c => c.id === build.state.characterState.id) : null;
     const elementClass = useMemo(() => build.state.characterState.element ? build.state.characterState.element.toLowerCase() : '', [build.state.characterState.element]);
-    const weapon = build.state.weaponState.selectedWeapon;
+    const weapon = useMemo(() => getCachedWeapon(build.state.weaponState.id), [build.state.weaponState.id]);
     const expandedTextRef = useRef<HTMLSpanElement>(null);
     const expandedWrapperRef = useRef<HTMLDivElement>(null);
     const [shouldAnimateExpanded, setShouldAnimateExpanded] = useState(false);
@@ -137,7 +138,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
                     </div>
                     <div className="info-row">
                         <span className='weap'>{weapon?.name || 'No Weapon'}</span>
-                        <span>Lv.{build.state.weaponState.config.level} • R{build.state.weaponState.config.rank}</span>
+                        <span>Lv.{build.state.weaponState.level} • R{build.state.weaponState.rank}</span>
                     </div>
                     <div className="info-row">
                         {getSetInfo(build.state.echoPanels)}
@@ -157,15 +158,15 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
                         <span className={`char-sig ${elementClass}`}>{character?.name}</span>
                         <span>Lv.{build.state.characterState.level} • S{build.state.currentSequence}</span>
                     </div>
-                    <StatsMenu weapon={build.state.weaponState.selectedWeapon} echoPanels={build.state.echoPanels} />
+                    <StatsMenu weapon={weapon} echoPanels={build.state.echoPanels} />
                     {weapon && (
                         <div className="weap-container">
-                            <img src={`images/Weapons/${weapon.type}/${encodeURIComponent(weapon.name)}.png`}
+                            <img src={getAssetPath('weapons', weapon).cdn}
                                 alt={weapon.name}
                                 className="weap-portrait"
                             />
                             <span className="weap">{weapon.name}</span>
-                            <span>Lv.{build.state.weaponState.config.level} • R{build.state.weaponState.config.rank}</span>
+                            <span>Lv.{build.state.weaponState.level} • R{build.state.weaponState.rank}</span>
                         </div>
                     )}
                 </div>

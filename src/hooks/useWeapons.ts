@@ -1,21 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Weapon, WeaponType, WeaponConfig, WeaponState } from '../types/weapon';
-import { useLevelCurves } from './useLevelCurves';
+import { Weapon, WeaponType, WeaponState } from '../types/weapon';
 
 interface UseWeaponsProps {
   weaponType: WeaponType;
-  config?: WeaponConfig;
   preloadedWeapons?: Weapon[];
 }
 
 export const weaponCache = new Map<WeaponType, Weapon[]>();
 export const weaponList: Weapon[] = [];
 
-export const useWeapons = ({ weaponType, config, preloadedWeapons }: UseWeaponsProps) => {
+export const getCachedWeapon = (id: string | null): Weapon | null => {
+  if (!id) return null;
+  return weaponList.find(w => w.id === id) ?? null;
+};
+
+export const useWeapons = ({ weaponType, preloadedWeapons }: UseWeaponsProps) => {
   const [weapons, setWeapons] = useState<Weapon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { scaleWeaponStats, loading: curvesLoading } = useLevelCurves();
 
   const processWeapons = useCallback((data: Omit<Weapon, 'type'>[], type: WeaponType): Weapon[] => {
     const processed = data.map(weapon => ({
@@ -78,18 +80,19 @@ export const useWeapons = ({ weaponType, config, preloadedWeapons }: UseWeaponsP
   }, [weaponType, preloadedWeapons, processWeapons]);
 
   const getWeaponState = (weapon: Weapon): WeaponState => ({
-    selectedWeapon: weapon,
-    config: config || { level: 1, rank: 1 },
-    scaledStats: config ? scaleWeaponStats(weapon, config) : undefined
+    id: weapon.id,
+    level: 1,
+    rank: 1
   });
 
   const getCachedWeapons = (type: WeaponType) => weaponCache.get(type);
 
   return {
     weapons,
-    loading: loading || curvesLoading,
+    loading,
     error,
     getWeaponState,
-    getCachedWeapons
+    getCachedWeapons,
+    getCachedWeapon
   };
 };
