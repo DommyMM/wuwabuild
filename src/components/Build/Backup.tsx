@@ -1,8 +1,8 @@
 import React from 'react';
 import { SavedBuilds } from '../../types/SavedState';
 import { toast } from 'react-toastify';
-import { cachedEchoes } from '../../hooks/useEchoes';
 import { ELEMENT_SETS } from '../../types/echo';
+import { useMigrate } from '../../hooks/useMigrate';
 
 interface BuildBackupProps {
     onImport: (builds: SavedBuilds) => void;
@@ -32,6 +32,8 @@ export const STAT_MAP = {
 export const REVERSE_STAT_MAP = Object.entries(STAT_MAP).reduce((acc, [key, value]) => ({ ...acc, [value]: key }), {} as Record<string, string>);
 
 export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
+    const { migrateData } = useMigrate();
+    
     const compressStats = (stat: any) => ({
         t: STAT_MAP[stat.type as keyof typeof STAT_MAP] || stat.type,
         v: stat.value
@@ -147,36 +149,14 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
         try {
             const text = await file.text();
             let importedData = JSON.parse(text);
-            if (importedData.version === '1.0.1') {
-                importedData = {
-                    version: '1.0.2',
-                    builds: importedData.builds.map((build: any) => ({
-                        ...build,
-                        state: {
-                            ...build.state,
-                            e: build.state.e.map((panel: any) => {
-                                if (panel.e && panel.e.n !== undefined && panel.e.n !== -1) {
-                                    const echo = cachedEchoes?.[panel.e.n];
-                                    return {
-                                        ...panel,
-                                        i: echo?.id || null,
-                                        e: undefined
-                                    };
-                                }
-                                return panel;
-                            })
-                        }
-                    }))
-                };
-                toast.info('Migrated to v1.0.2');
-            } else if (importedData.version !== '1.0.2') {
-                toast.error('Unsupported version');
-                return;
-            }
+            
+            importedData = migrateData(importedData);
+            
             const decompressed = {
                 version: '1.0.2',
                 builds: importedData.builds.map(decompressData)
             };
+            
             onImport(decompressed);
             toast.success('Builds imported');
         } catch (error) {
