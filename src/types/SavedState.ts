@@ -30,4 +30,5 @@ export interface SavedBuild {
 
 export interface SavedBuilds {
     builds: SavedBuild[];
+    version: string;
 }

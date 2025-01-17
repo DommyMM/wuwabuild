@@ -259,21 +259,22 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       savedEchoes: []
     };
     try {
-      const builds = JSON.parse(localStorage.getItem('saved_builds') || '{"builds":[]}');
+      const builds = JSON.parse(localStorage.getItem('saved_builds') || '{"version":"1.0.2","builds":[]}');
       builds.builds.push({
           id: crypto.randomUUID(),
           name,
           date: new Date().toISOString(),
           state
       });
+      builds.version = '1.0.2';
       localStorage.setItem('saved_builds', JSON.stringify(builds));
       toast.success('Build saved');
       setIsSaveModalOpen(false);
   } catch (error) {
       toast.error('Save failed');
       console.error('Failed to save build:', error);
-  }
-};
+    }
+  };
 
   useEffect(() => {
     if (isTabVisible && tabRef.current) {

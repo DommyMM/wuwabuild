@@ -1,163 +1,73 @@
 # WuWaBuilds
 
-A comprehensive build management tool for Wuthering Waves featuring manual build creation, OCR-based scanning, and build sharing capabilities.
+A web application for Wuthering Waves players to create, customize, and share character builds through manual input or screenshot scanning.
 
 Live at: [wuwabuilds.moe](https://wuwabuilds.moe)
 
-## Overview
+## Features
 
-WuWaBuilds is a web application designed to help Wuthering Waves players create, customize, save, and share character builds. It offers manual build creation, automatic scanning of in-game screenshots using OCR technology, and a full build management system.
+### Home Page
+- Example build showcase
+- Screenshot guide
+- Getting started tutorial
+- Mobile-responsive design
 
-## Core Features
+### Build Editor
+User-friendly, intuitive and aesthetic interface for creating and customizing character builds:
 
-### Pages and Navigation
+#### Character & Weapon
+- Full character roster with element variants
+- Weapon selection with type filtering
+- Level and refinement adjustments
+- Auto-validation of objects to maintain integrity
+- Custom portrait upload support
 
-#### Home Page
-- Quick overview and getting started guide
-- Screenshot scanning instructions
-- Mobile device compatibility notices
-- Example build showcases
+#### Echo System
+- Five configurable echo panels
+- Main/substat management with CV calculation
+- Element set tracking and phantom support
+- Drag-and-drop organization with presets
+- Cost validation and set bonuses
 
-#### Build Editor
-- Complete build creation and customization
-- OCR scanning integration
-- Real-time stat calculations
-- Build preview and export system
+#### Talent System
+- Visual skill tree with node tracking
+- Branch-specific animations and effects
+- Quick actions (max/reset)
+- Node stat contribution tracking
 
-#### Builds Page
-- Saved build management
-- Expandable build previews with detailed stats
-- Search and sort functionality
-- Build backup and restore system
+#### Real-Time Calculations
+- Automatic CV and set bonus tracking
+- Dynamic stat totals from all sources
+- Cost validation for echoes and nodes
+- Element bonus calculations
+- Sequence effect tracking
 
-### Build Creation
-
-#### Character Customization
-- Comprehensive character selection with special support for variant characters
-- Advanced level progression with diamond indicators
-- Weapon selection filtered by character compatibility
-- Dual-slider system for weapon level (1-90) and rank (1-5)
-- Real-time stat calculations with weapon scaling
-
-#### Forte System
-- Complete talent tree management
-- Visual node activation tracking
-- Skill level management
-- Automatic stat bonus calculations
-
-#### Echo Management
-- Drag-and-drop interface for echo organization
-- Main stat and substat optimization
-- Roll quality tracking and validation
-- Set bonus calculation and visualization
-- Echo save/load system with presets
-- Cost limit and set bonus tracking
+#### Build Tools
+- Screenshot OCR integration
+- Local storage with compression
+- Elegant image exports
+- Build state migration
+- Username watermark customization
 
 ### Build Management
+- Build save/load functionality
+- Search and sort capabilities
+- Backup/restore system
+- Build preview cards
 
-#### Save System
-- Local storage for build persistence
-- Build naming and organization
-- JSON backup/restore functionality
-- Advanced search and sort options
+## Technical Stack
+- React/TypeScript frontend
+- Custom hooks and context providers
+- Local storage with data migration
+- OCR integration using [ocr.wuwabuilds.moe](https://ocr.wuwabuilds.moe)
 
-#### Build Preview
-- Expandable build cards with detailed information
-- Interactive stat tooltips and calculations
-- Echo details with hover tooltips
-- Set bonus and CV score tracking
-- Dynamic stat highlighting system
-
-#### Build Export
-- High-quality PNG image generation
-- Customizable watermark and credits
-- JSON data export/import
-- Mobile-optimized preview system
-
-### OCR Integration
-
-#### Input Methods
-- Drag-and-drop file upload
-- Direct clipboard paste support
-- Traditional file selection
-- Real-time processing feedback
-
-#### Processing Features
-- Smart queue system prioritizing character data
-- Batch processing capability
-- Advanced stat recognition and normalization
-- Element and gender detection
-- Comprehensive error handling
-
-### User Interface
-
-#### Navigation
-- Responsive header with page navigation
-- Mobile-aware layout adjustments
-- Smooth transitions between pages
-- Collapsible sections
-
-#### Build Cards
-- Compact and expanded view modes
-- Interactive stat highlighting
-- Dynamic Echo previews
-- Real-time set bonus tracking
-
-## Technical Details
-### Environment Setup
+## Environment
 ```env
-REACT_APP_API_URL= # OCR API endpoint (optional, can use https://ocr.wuwabuilds.moe)
+REACT_APP_API_URL= # OCR API endpoint (defaults to https://ocr.wuwabuilds.moe)
 ```
 
-### Development Stack
-
-#### Frontend
-- React with TypeScript
-- Custom hooks for state management
-- @dnd-kit for drag-and-drop functionality
-- Tesseract.js for local OCR preprocessing
-- Recharts for data visualization
-- React Router for navigation
-- Responsive design with mobile support
-
-#### Backend
-- Python FastAPI server
-- Custom OCR processing pipeline
-- Rate limiting and error recovery
-- OpenCV for image processing
-- [API Documentation](https://ocr.wuwabuilds.moe)
-
-### Key Features
-
-#### User Experience
-- Mobile-responsive design with warning system
-- Collapsible sections for organization
-- Comprehensive error handling
-- Persistent local storage
-- Real-time calculations and updates
-
-#### Build Management
-- Build data persistence
-- Custom image support
-- Watermark customization
-- Interactive highlighting system
-
-### Upcoming Features
-- User authentication system
-- Online build sharing platform
-- Enhanced mobile experience
-- Community features
-- Build comparison tools
-
-## Usage Guidelines
-- Use high-quality, full-screen screenshots for best OCR results
-- Recommended browser: Chrome or Firefox for optimal performance
-- Mobile users: Use landscape orientation for better experience
-- Enable clipboard permissions for paste functionality
-
 ## Credits
-All game assets, images, and related content are the property of Kuro Games. WuWaBuilds is a fan-made tool and is not affiliated with or endorsed by Kuro Games or Tencent.
+All game assets are property of Kuro Games. WuWaBuilds is a fan-made tool and is not affiliated with Kuro Games or Tencent.
 
 ## Contact
-For bug reports and feature requests, please use the GitHub issues system.
-For other inquiries, reach out on Discord: Dommynation
+Discord: Dommynation

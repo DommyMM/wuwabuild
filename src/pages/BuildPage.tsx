@@ -8,6 +8,7 @@ import { SavedBuild, SavedBuilds } from '../types/SavedState';
 import { calculateCV } from '../hooks/useStats';
 import { cachedCharacters } from '../hooks/useCharacters';
 import { getCachedWeapon } from '../hooks/useWeapons';
+import { toast } from 'react-toastify';
 import '../styles/BuildPage.css';
 
 export const BuildsPage: React.FC = () => {
@@ -128,16 +129,21 @@ export const BuildsPage: React.FC = () => {
         localStorage.setItem('last_build', JSON.stringify(build.state));
         navigate('/edit');
     };
-
+    
     const handleImport = (importedData: SavedBuilds) => {
-        const mergedBuilds = {
-            builds: [...builds, ...importedData.builds]
-                .filter((build, index, self) => index === self.findIndex(b => b.id === build.id))
+        if (!importedData?.builds?.length) {
+            toast.error('No builds to import');
+            return;
+        }
+        const newBuilds = {
+            version: '1.0.2',
+            builds: importedData.builds
         };
-        localStorage.setItem('saved_builds', JSON.stringify(mergedBuilds));
-        setBuilds(mergedBuilds.builds);
+        
+        localStorage.setItem('saved_builds', JSON.stringify(newBuilds));
+        setBuilds(newBuilds.builds);
+        toast.success(`Imported ${importedData.builds.length} builds`);
     };
-
     const handleDeleteAll = () => {
         if (!deleteAllConfirm) {
             setDeleteAllConfirm(true);

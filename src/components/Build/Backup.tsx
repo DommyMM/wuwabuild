@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SavedBuilds } from '../../types/SavedState';
 import { toast } from 'react-toastify';
 import { ELEMENT_SETS } from '../../types/echo';
 import { useMigrate } from '../../hooks/useMigrate';
+import { ImportModal } from './Import';
 
 interface BuildBackupProps {
     onImport: (builds: SavedBuilds) => void;
@@ -33,6 +34,7 @@ export const REVERSE_STAT_MAP = Object.entries(STAT_MAP).reduce((acc, [key, valu
 
 export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
     const { migrateData } = useMigrate();
+    const [importData, setImportData] = useState<SavedBuilds | null>(null);
     
     const compressStats = (stat: any) => ({
         t: STAT_MAP[stat.type as keyof typeof STAT_MAP] || stat.type,
@@ -145,20 +147,18 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
         }
     };
 
-    const handleImport = async (file: File) => {
+    const processImport = async (file: File) => {
         try {
             const text = await file.text();
-            let importedData = JSON.parse(text);
-            
-            importedData = migrateData(importedData);
+            let imported = JSON.parse(text);
+            imported = migrateData(imported);
             
             const decompressed = {
                 version: '1.0.2',
-                builds: importedData.builds.map(decompressData)
+                builds: imported.builds.map(decompressData)
             };
             
-            onImport(decompressed);
-            toast.success('Builds imported');
+            setImportData(decompressed);
         } catch (error) {
             console.error('Import error:', error);
             toast.error('Failed to import builds');
@@ -176,11 +176,27 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
                     style={{ display: 'none' }}
                     onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) handleImport(file);
+                        if (file) processImport(file);
                         e.target.value = '';
                     }}
                 />
             </label>
+            {importData && (
+                <ImportModal buildCount={importData.builds.length}
+                    onMerge={() => {
+                        onImport(importData);
+                        setImportData(null);
+                        toast.success('Builds merged');
+                    }}
+                    onReplace={() => {
+                        localStorage.removeItem('saved_builds');
+                        onImport(importData);
+                        setImportData(null);
+                        toast.success('All builds replaced');
+                    }}
+                    onClose={() => setImportData(null)}
+                />
+            )}
         </>
     );
 };

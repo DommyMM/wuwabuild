@@ -1,4 +1,4 @@
-.modal-overlay {
+.import-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -33,7 +33,7 @@
     border-radius: 4px;
 }
 
-.modal-buttons {
+.import-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
@@ -62,4 +62,62 @@
     color: #ff6b6b;
     margin: 8px 0;
     font-size: 14px;
+}
+
+.import {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.import-content {
+    background: #121212;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    min-width: 300px;
+    text-align: center;
+}
+
+.import h3 {
+    margin: 0 0 1.5rem;
+    color: white;
+    font-size: 1.25rem;
+    font-family: 'Gowun', sans-serif;
+    font-weight: normal;
+}
+
+.import-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.import-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-family: 'Gowun', sans-serif;
+    background: #2196f3; 
+    color: white; 
+    transition: all 0.2s;
+    text-align: center;
+    min-width: 100px;
+}
+
+.import-button:hover {
+    background: #1976d2;
+}
+
+.import-button.danger {
+    background: #dc3545;
+}
+
+.import-button.danger:hover {
+    background: #bb2d3b;
 }
