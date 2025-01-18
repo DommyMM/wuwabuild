@@ -52,7 +52,7 @@
     background: #1E1E1E;
     border: 1px solid #a69662;
     border-radius: 8px;
-    padding: 20px 20px 40px 20px;
+    padding: 10px 20px 50px 20px;
     box-shadow: 0 8px 24px rgba(166, 150, 98, 0.2);
     transform: scale(1.8);
     transform-origin: var(--transform-origin, center);

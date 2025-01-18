@@ -1,4 +1,4 @@
-.import-overlay {
+.modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -33,15 +33,15 @@
     border-radius: 4px;
 }
 
-.import-buttons {
+.modal-buttons {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 12px;
-    margin-top: 24px;
+    margin-top: 12px;
 }
 
 .save-button, .cancel-button {
-    padding: 8px 16px;
+    padding: 12px 20px;
     border-radius: 4px;
     border: none;
     cursor: pointer;

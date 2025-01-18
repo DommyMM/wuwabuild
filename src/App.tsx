@@ -17,7 +17,7 @@ const Layout = () => {
     <>
       <nav className="nav-bar">
         <div className="nav-content">
-          <Link to="/" className="nav-title">WuWa Builds</Link>
+          <Link to="/" className="nav-title">WuWaBuilds</Link>
           <div className="nav-links">
             <Link to="/edit" className={location.pathname === '/edit' ? 'active' : ''}>
               Create Build
