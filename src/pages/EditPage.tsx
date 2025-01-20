@@ -350,24 +350,56 @@ export const EditPage: React.FC = () => {
   const [isEchoesMinimized, setIsEchoesMinimized] = useState(true);
   const [showRestore, setShowRestore] = useState(false);
   const [savedState, setSavedState] = useState<SavedState | null>(null);
-  const [savedEchoes, setSavedEchoes] = useState<SavedEchoData[]>([]);
+  const [savedEchoes, setSavedEchoes] = useState<SavedEchoData[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('saved_echoes') || '[]');
+    } catch (error) {
+      console.error('Failed to load saved echoes:', error);
+      return [];
+    }
+  });
+  const hashPanelData = (panel: EchoPanelState): string => {
+    const mainStat = `${panel.stats.mainStat.type}-${panel.stats.mainStat.value}`;
+    const subStats = panel.stats.subStats
+      .map(sub => `${sub.type}-${sub.value}`)
+      .join('_');
+      
+    const data = [panel.id, panel.level, panel.selectedElement, panel.phantom ? 1 : 0, mainStat, subStats].join('-');
+  
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36).slice(0, 6);
+  };
+
+  
   const handleSaveEcho = useCallback((panelIndex: number) => {
     const newEcho: SavedEchoData = {
-      id: crypto.randomUUID(),
-      date: new Date().toISOString(),
-      panelIndex,
+      id: hashPanelData(echoPanels[panelIndex]),
       panelData: echoPanels[panelIndex]
     };
-    
-    setSavedEchoes(prev => [...prev, newEcho]);
+    setSavedEchoes(prev => {
+      const newEchoes = [...prev, newEcho];
+      localStorage.setItem('saved_echoes', JSON.stringify(newEchoes));
+      return newEchoes;
+    });
   }, [echoPanels]);
-  const handleLoadEcho = useCallback((savedEcho: SavedEchoData) => {
+  
+  const handleLoadEcho = useCallback((savedEcho: SavedEchoData, targetIndex: number) => {
     setEchoPanels(prev => prev.map((panel, idx) => 
-      idx === savedEcho.panelIndex ? savedEcho.panelData : panel
+      idx === targetIndex ? savedEcho.panelData : panel
     ));
   }, []);
+  
   const handleDeleteEcho = useCallback((echoId: string) => {
-    setSavedEchoes(prev => prev.filter(echo => echo.id !== echoId));
+    setSavedEchoes(prev => {
+      const newEchoes = prev.filter(echo => echo.id !== echoId);
+      localStorage.setItem('saved_echoes', JSON.stringify(newEchoes));
+      return newEchoes;
+    });
   }, []);
 
   useEffect(() => {
@@ -377,9 +409,6 @@ export const EditPage: React.FC = () => {
         const state = JSON.parse(saved);
         setSavedState(state);
         setShowRestore(true);
-        if (state.savedEchoes) {
-          setSavedEchoes(state.savedEchoes);
-        }
       }
     } catch (error) {
       console.error('Failed to load saved state:', error);
@@ -387,16 +416,14 @@ export const EditPage: React.FC = () => {
   }, []);
 
   const buildState = useMemo(() => ({
-    version: '1.0.2',
     characterState,
     currentSequence,
     weaponState,
     nodeStates,
     forteLevels,
     echoPanels,
-    watermark,
-    savedEchoes
-  }), [characterState, currentSequence, weaponState, nodeStates, forteLevels, echoPanels, watermark, savedEchoes]);
+    watermark
+  }), [characterState, currentSequence, weaponState, nodeStates, forteLevels, echoPanels, watermark]);
   
   useEffect(() => {
     if (!characterState.id) return;
@@ -406,7 +433,7 @@ export const EditPage: React.FC = () => {
       console.error('Failed to save state:', error);
     }
   }, [characterState.id, buildState]);
-  
+
   const handleRestore = useCallback(() => {
     if (savedState) {
       setCharacterState(savedState.characterState);
@@ -418,9 +445,10 @@ export const EditPage: React.FC = () => {
       setWatermark(savedState.watermark);
       setIsCharacterMinimized(false);
       setIsEchoesMinimized(false);
+      unlock();
     }
     setShowRestore(false);
-  }, [savedState]);
+  }, [savedState, unlock]);
 
   const handleDecline = useCallback(() => {
     localStorage.removeItem('last_build');

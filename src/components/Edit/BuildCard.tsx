@@ -243,6 +243,28 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     setIsSaveModalOpen(true);
   };
 
+  const hashBuildData = (state: SavedState): string => {
+    const data = [state.characterState.id, 
+      state.characterState.level,
+      state.characterState.element,
+      state.weaponState.id,
+      state.weaponState.level,
+      state.weaponState.rank,
+      state.currentSequence,
+      JSON.stringify(state.echoPanels),
+      JSON.stringify(state.nodeStates),
+      JSON.stringify(state.forteLevels)
+    ].join('-');
+  
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36).slice(0, 6);
+  };
+  
   const handleSaveConfirm = (name: string) => {
     const state: SavedState = {
       characterState: {
@@ -255,22 +277,21 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       nodeStates,
       forteLevels: levels,
       echoPanels,
-      watermark,
-      savedEchoes: []
+      watermark
     };
     try {
       const builds = JSON.parse(localStorage.getItem('saved_builds') || '{"version":"1.0.2","builds":[]}');
       builds.builds.push({
-          id: crypto.randomUUID(),
-          name,
-          date: new Date().toISOString(),
-          state
+        id: hashBuildData(state),
+        name,
+        date: new Date().toISOString(),
+        state
       });
       builds.version = '1.0.2';
       localStorage.setItem('saved_builds', JSON.stringify(builds));
       toast.success('Build saved');
       setIsSaveModalOpen(false);
-  } catch (error) {
+    } catch (error) {
       toast.error('Save failed');
       console.error('Failed to save build:', error);
     }

@@ -5,6 +5,7 @@ import { EditPage } from './pages/EditPage';
 import { OCRProvider } from './contexts/OCRContext';
 import { HomePage } from './pages/HomePage';
 import { BuildsPage } from './pages/BuildPage';
+import { ImportPage } from './pages/ImportPage';
 import { useCharacters } from './hooks/useCharacters';
 import { useWeapons } from './hooks/useWeapons';
 import { useEchoes } from './hooks/useEchoes';
@@ -24,6 +25,9 @@ const Layout = () => {
             </Link>
             <Link to="/builds" className={location.pathname === '/builds' ? 'active' : ''}>
               Saved Builds
+            </Link>
+            <Link to="/import" className={location.pathname === '/import' ? 'active' : ''}>
+              Import Build
             </Link>
           </div>
         </div>
@@ -48,6 +52,14 @@ const router = createBrowserRouter([
       {
         path: "/builds",
         element: <BuildsPage />
+      },
+      {
+        path: "/import",
+        element: (
+          <OCRProvider>
+            <ImportPage />
+          </OCRProvider>
+        )
       }
     ]
   }

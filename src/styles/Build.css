@@ -371,15 +371,29 @@ input:-webkit-autofill {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 7px;
     height: 100%;
     width: 3.5%;
     margin: 0 .25% 0 .45%;
 }
 
 .sequence-node {
-    height: calc((100% - 50px)/6);
+    height: calc((100% - 30px)/6);
     position: relative;
+}
+
+.sequence-count {
+    text-align: center;
+    color: #ffffff;
+    font-weight: bold;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px;
+    box-shadow: 0 0 6px rgba(166, 150, 98, 0.2), inset 0 0 4px rgba(255, 255, 255, 0.1);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    width: fit-content;
+    padding: 0px 6px;
+    margin: -5px auto 0;
 }
 
 .sequence-medallion {
@@ -732,28 +746,23 @@ input:-webkit-autofill {
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
-.weapon-stat.weapon-rank {
+.weapon-stat.weapon-rank, .weapon-stat.weapon-level {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 20%; 
     height: 30px;
-    font-size: 26px;
-    border-radius: 5px;
+    width: 20%;
+    font-size: 25px;
+    border-radius: 10px;
     cursor: pointer;
-    background: rgba(0, 0, 0, .5);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 6px rgba(166, 150, 98, 0.2), inset 0 0 4px rgba(255, 255, 255, 0.1);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .weapon-stat.weapon-level {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 30%; 
-    height: 30px;
-    font-size: 25px;
-    border-radius: 5px;
-    cursor: pointer;
-    background: rgba(0, 0, 0, .5);
+    width: 30%;
 }
 
 .weapon-stat-row {

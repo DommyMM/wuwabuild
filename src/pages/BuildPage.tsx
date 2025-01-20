@@ -139,10 +139,15 @@ export const BuildsPage: React.FC = () => {
             version: '1.0.2',
             builds: importedData.builds
         };
-        
         localStorage.setItem('saved_builds', JSON.stringify(newBuilds));
         setBuilds(newBuilds.builds);
+        if (importedData.savedEchoes?.length) {
+            localStorage.setItem('saved_echoes', JSON.stringify(importedData.savedEchoes));
+        }
         toast.success(`Imported ${importedData.builds.length} builds`);
+        if (importedData.savedEchoes?.length) {
+            toast.success(`Imported ${importedData.savedEchoes.length} echoes`);
+        }
     };
     const handleDeleteAll = () => {
         if (!deleteAllConfirm) {

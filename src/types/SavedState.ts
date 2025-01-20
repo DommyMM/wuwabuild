@@ -4,8 +4,6 @@ import { EchoPanelState } from '../types/echo';
 
 export interface SavedEchoData {
     id: string;
-    date: string;
-    panelIndex: number;
     panelData: EchoPanelState;
 }
 
@@ -18,7 +16,6 @@ export interface SavedState {
     forteLevels: Record<string, number>;
     echoPanels: EchoPanelState[];
     watermark: WatermarkState;
-    savedEchoes: SavedEchoData[];
 }
 
 export interface SavedBuild {
@@ -30,5 +27,6 @@ export interface SavedBuild {
 
 export interface SavedBuilds {
     builds: SavedBuild[];
+    savedEchoes?: SavedEchoData[];
     version: string;
 }

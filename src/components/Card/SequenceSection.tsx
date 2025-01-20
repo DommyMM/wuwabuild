@@ -93,6 +93,7 @@ export const SequenceSection: React.FC<SequenceSectionProps> = ({
           />
         </div>
       ))}
+      <div className='sequence-count'> S{currentSequence}</div>
       <div className='sequence-image'></div>
     </div>
   );

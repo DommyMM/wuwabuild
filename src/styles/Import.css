@@ -1,0 +1,14 @@
+.import-section {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+    color: white;
+}
+
+.page-title {
+    color: white;
+    text-align: center;
+    margin: 20px 0;
+}

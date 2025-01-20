@@ -75,7 +75,7 @@ interface EchoesSectionProps {
   onPanelChange?: (panels: PanelData[]) => void;
   savedEchoes?: SavedEchoData[];
   onSaveEcho?: (index: number) => void;
-  onLoadEcho?: (savedEcho: SavedEchoData) => void;
+  onLoadEcho?: (savedEcho: SavedEchoData, targetIndex: number) => void;
   onDeleteEcho?: (echoId: string) => void;
   showCostWarning?: boolean;
   onCostWarningDismiss?: () => void;
@@ -116,11 +116,18 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   onLoad,
   onPhantomChange
 }) => {
+  const [isSaved, setIsSaved] = useState(false);
   const echo = getCachedEchoes(panelData.id);
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
     onLevelChange(value);
+  };
+
+  const handleSave = () => {
+    onSave?.();
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2000);
   };
 
   return (
@@ -168,8 +175,12 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
         </div>
       )}
       <div className="panel-actions">
-        <button className="action-button save" onClick={onSave} disabled={!panelData.id}>
-          Save
+        <button 
+          className={`action-button save ${isSaved ? 'saved' : ''}`} 
+          onClick={handleSave} 
+          disabled={!panelData.id}
+        >
+          {isSaved ? 'Saved!' : 'Save'}
         </button>
         <button className="action-button load" onClick={onLoad}>
           Load
@@ -421,12 +432,9 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                       onClick={(e) => {
                         if (!(e.target as HTMLElement).closest('.delete-button')) {
                           if (selectedLoadPanelIndex !== null) {
-                            onLoadEcho?.({
-                              ...savedEcho,
-                              panelIndex: selectedLoadPanelIndex
-                            });
+                            onLoadEcho?.(savedEcho, selectedLoadPanelIndex);
+                            setIsLoadModalOpen(false);
                           }
-                          setIsLoadModalOpen(false);
                         }
                       }}
                     >

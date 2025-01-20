@@ -45,6 +45,29 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
         value: stat.v
     });
     const ELEMENT_KEYS = Object.keys(ELEMENT_SETS) as (keyof typeof ELEMENT_SETS)[];
+    const compressEchoPanel = (panel: any) => ({
+        i: panel.id,
+        l: panel.level,
+        s: panel.selectedElement ? ELEMENT_KEYS.indexOf(panel.selectedElement) : -1,
+        t: panel.stats ? {
+            m: compressStats(panel.stats.mainStat),
+            s: panel.stats.subStats?.map(compressStats) || []
+        } : null,
+        p: panel.phantom || false
+    });
+    const decompressEchoPanel = (panel: any) => ({
+        id: panel.i,
+        level: panel.l,
+        selectedElement: panel.s !== -1 ? ELEMENT_KEYS[panel.s] : null,
+        stats: panel.t ? {
+            mainStat: decompressStats(panel.t.m),
+            subStats: panel.t.s.map(decompressStats)
+        } : {
+            mainStat: { type: null, value: null },
+            subStats: Array(5).fill({ type: null, value: null })
+        },
+        phantom: panel.p || false
+    });
     const compressData = (build: any) => ({
         ...build,
         state: {
@@ -58,16 +81,7 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
                 l: build.state.weaponState.level,
                 r: build.state.weaponState.rank
             },
-            e: build.state.echoPanels.map((panel: any) => ({
-                i: panel.id,
-                l: panel.level,
-                s: panel.selectedElement ? ELEMENT_KEYS.indexOf(panel.selectedElement) : -1,
-                t: panel.stats ? {
-                    m: compressStats(panel.stats.mainStat),
-                    s: panel.stats.subStats?.map(compressStats) || []
-                } : null,
-                p: panel.phantom || false
-            })),
+            e: build.state.echoPanels.map(compressEchoPanel),
             q: build.state.currentSequence,
             n: build.state.nodeStates,
             f: {
@@ -93,19 +107,7 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
                 level: build.state.w.l,
                 rank: build.state.w.r
             },
-            echoPanels: build.state.e.map((panel: any) => ({
-                id: panel.i,
-                level: panel.l,
-                selectedElement: panel.s !== -1 ? ELEMENT_KEYS[panel.s] : null,
-                stats: panel.t ? {
-                    mainStat: decompressStats(panel.t.m),
-                    subStats: panel.t.s.map(decompressStats)
-                } : {
-                    mainStat: { type: null, value: null },
-                    subStats: Array(5).fill({ type: null, value: null })
-                },
-                phantom: panel.p || false
-            })),
+            echoPanels: build.state.e.map(decompressEchoPanel),
             currentSequence: build.state.q,
             nodeStates: build.state.n,
             forteLevels: {
@@ -120,15 +122,21 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
     });
     const handleExport = () => {
         const savedBuilds = localStorage.getItem('saved_builds');
+        const savedEchoes = localStorage.getItem('saved_echoes');
         if (!savedBuilds) {
             toast.error('No builds to export');
             return;
         }
         try {
             const builds = JSON.parse(savedBuilds);
+            const echoes = JSON.parse(savedEchoes || '[]');
             const compressed = {
                 version: '1.0.2',
-                builds: builds.builds.map(compressData)
+                builds: builds.builds.map(compressData),
+                savedEchoes: echoes.map((echo: any) => ({
+                    id: echo.id,
+                    panelData: compressEchoPanel(echo.panelData)
+                }))
             };
             const timestamp = new Date().toISOString().slice(0,19).replace(/[T:]/g, ' ');
             const blob = new Blob([JSON.stringify(compressed)], { type: 'application/json' });
@@ -143,7 +151,7 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
             toast.success('Builds exported');
         } catch (error) {
             console.error('Export error:', error);
-            toast.error('Failed to export builds');
+            toast.error('Failed to export');
         }
     };
 
@@ -155,7 +163,11 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
             
             const decompressed = {
                 version: '1.0.2',
-                builds: imported.builds.map(decompressData)
+                builds: imported.builds.map(decompressData),
+                savedEchoes: imported.savedEchoes?.map((echo: any) => ({
+                    id: echo.id,
+                    panelData: decompressEchoPanel(echo.panelData)
+                })) || []
             };
             
             setImportData(decompressed);
@@ -183,16 +195,18 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
             </label>
             {importData && (
                 <ImportModal buildCount={importData.builds.length}
+                    echoCount={importData.savedEchoes?.length || 0}
                     onMerge={() => {
                         onImport(importData);
                         setImportData(null);
-                        toast.success('Builds merged');
+                        toast.success('Data merged');
                     }}
                     onReplace={() => {
                         localStorage.removeItem('saved_builds');
+                        localStorage.removeItem('saved_echoes');
                         onImport(importData);
                         setImportData(null);
-                        toast.success('All builds replaced');
+                        toast.success('All data replaced');
                     }}
                     onClose={() => setImportData(null)}
                 />

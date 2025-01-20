@@ -200,6 +200,16 @@
     background: #9d8538;
 }
 
+.action-button.save.saved {
+    background: #4CAF50;
+    transform: scale(0.95);
+    transition: all 0.2s ease;
+}
+
+.action-button.save:active {
+    transform: scale(0.95);
+}
+
 .action-button.load {
     background: #a10909;
     color: white;

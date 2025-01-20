@@ -2,13 +2,14 @@ import React, { useEffect } from 'react';
 
 interface ImportModalProps {
     buildCount: number;
+    echoCount: number;
     onMerge: () => void;
     onReplace: () => void;
     onClose: () => void;
 }
 
 export const ImportModal: React.FC<ImportModalProps> = ({ 
-    buildCount, onMerge, onReplace, onClose 
+    buildCount, echoCount, onMerge, onReplace, onClose 
 }) => {
     const handleBackgroundClick = (e: React.MouseEvent) => {
         if (e.target === e.currentTarget) {
@@ -29,7 +30,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     return (
         <div className="import" onClick={handleBackgroundClick}>
             <div className="import-content">
-                <h3>Import {buildCount} Builds</h3>
+                <h3>Import {buildCount} Builds and {echoCount} Echoes</h3>
                 <div className="import-actions">
                     <button onClick={onMerge} className="import-button">
                         Merge
