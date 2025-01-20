@@ -85,7 +85,7 @@ const fetchOCRResult = async (base64: string): Promise<OCRResponse> => {
     const response = await fetch(`${API_URL}/api/ocr`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: base64 }),
+      body: JSON.stringify({ image: base64, type: 'echo' }),
       signal: controller.signal
     });
 

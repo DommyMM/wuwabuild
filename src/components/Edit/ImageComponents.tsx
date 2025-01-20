@@ -62,8 +62,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     <>
       <div className="image-container">
         {onDelete && (
-          <button 
-            className="delete-button"
+          <button className="delete-button"
             onClick={onDelete}
           >
             ×

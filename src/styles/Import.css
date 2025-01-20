@@ -1,14 +1,61 @@
 .import-section {
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 10px;
-    padding: 20px;
-    margin: 20px 0;
+    padding: 0 20px 20px 20px;
+    margin: 0 auto;
     text-align: center;
+    color: white;
+    width: 50%;
+}
+
+.instructions {
+    font-size: 40px;
+    margin-bottom: 40px;
+}
+
+.preview-container {
+    position: relative;
+    width: 100%;
+    margin: 20px auto;
+}
+
+.import-page .preview-thumbnail {
+    width: 100%;
+}
+
+.import-button {
+    font-size: 20px;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.import-page .button-container button:first-child {
+    background: #ff3333;
     color: white;
 }
 
-.page-title {
+.import-page .button-container button:first-child:hover {
+    background: #cc0000;
+    transform: translateY(-1px);
+}
+
+.import-page .button-container button:last-child {
+    background: #7cba3d;
     color: white;
-    text-align: center;
-    margin: 20px 0;
+}
+
+.import-page .button-container button:last-child:hover {
+    background: #5a8c2d;
+    transform: translateY(-1px);
+}
+
+.results-container {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .import-section {
+        width: 90%;
+    }
 }
