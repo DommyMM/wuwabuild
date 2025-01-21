@@ -45,7 +45,7 @@
 
 .highlight-text {
     color: #E0E0E0;
-    font-size: 14px;
+    font-size: 18px;
 }
 
 .fortes-section {
@@ -67,7 +67,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 18px;
 }
 
 .echoes-section {
@@ -106,7 +106,7 @@
 }
 
 .element.aero { background: #98FB98; }
-.element.er { background: white; }
+.element.er, .element.tidebreaking { background: white; }
 .element.electro { background: #BA55D3; }
 .element.spectro { background: #FFD700; }
 .element.glacio { background: #87CEEB; }
@@ -131,7 +131,7 @@
 
 .echo-mainstat {
     color: #a69662;
-    font-size: 16px;
+    font-size: 18px;
     padding-bottom: 4px;
     margin-bottom: 4px;
     border-bottom: 1px solid #333;
@@ -141,11 +141,15 @@
 }
 
 .echo-substat {
-    font-size: 14px;
+    font-size: 16px;
     color: #E0E0E0;
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.import-sub {
+    text-align: left;
 }
 
 @media (max-width: 700px){

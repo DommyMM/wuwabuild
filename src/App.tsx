@@ -10,6 +10,7 @@ import { useCharacters } from './hooks/useCharacters';
 import { useWeapons } from './hooks/useWeapons';
 import { useEchoes } from './hooks/useEchoes';
 import { WeaponType } from './types/weapon';
+import { wakeupServer } from './components/Edit/Scan';
 import './styles/App.css';
 
 const Layout = () => {
@@ -75,6 +76,7 @@ const router = createBrowserRouter([
 
 const App: React.FC = () => {
   useMigrate();
+  wakeupServer();
   const { loading: charLoading } = useCharacters();
   const { loading: echoLoading } = useEchoes();
   const { loading: weaponLoading } = useWeapons({ weaponType: WeaponType.Sword });

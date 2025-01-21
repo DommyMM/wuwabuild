@@ -1,17 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import { Results } from '../components/Import/Results';
+import { Process, ImportRegion } from '../components/Import/Process';
 import '../styles/Import.css';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
 
 const ImportPreview = ({ src }: { src: string }) => {
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -39,15 +29,18 @@ const ImportPreview = ({ src }: { src: string }) => {
 
 const ImportUploader = ({ onFilesSelected }: { onFilesSelected: (files: File[]) => void }) => {
     const [isDragging, setIsDragging] = useState(false);
-    const handleDrag = useCallback((e: React.DragEvent) => {
+
+    const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(e.type === 'dragover');
-    }, []);
-    const handleDrop = useCallback((e: React.DragEvent) => {
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
         onFilesSelected(Array.from(e.dataTransfer.files));
-    }, [onFilesSelected]);
+    };
+
     React.useEffect(() => {
         const handlePaste = (e: ClipboardEvent) => {
             e.preventDefault();
@@ -64,6 +57,7 @@ const ImportUploader = ({ onFilesSelected }: { onFilesSelected: (files: File[]) 
         document.addEventListener('paste', handlePaste);
         return () => document.removeEventListener('paste', handlePaste);
     }, [onFilesSelected]);
+
     return (
         <div className={`dropzone ${isDragging ? 'dragover' : ''}`}
             onClick={() => document.getElementById('fileInput')?.click()}
@@ -85,49 +79,41 @@ const ImportUploader = ({ onFilesSelected }: { onFilesSelected: (files: File[]) 
 
 export const ImportPage: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
-    const [results, setResults] = useState<any>(null);
+    const [results, setResults] = useState<Record<ImportRegion, any>>({
+        character: null,
+        watermark: null,
+        forte: null,
+        weapon: null,
+        echoes: null
+    });
     const [isProcessing, setIsProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const processRef = React.useRef<(() => void) | null>(null);
 
     const handleFilesSelected = (newFiles: File[]) => {
         setFile(newFiles[0] || null);
-        setResults(null);
+        setResults({
+            character: null,
+            watermark: null,
+            forte: null,
+            weapon: null,
+            echoes: null
+        });
         setIsProcessing(false);
+        setError(null);
     };
 
     const handleDelete = () => {
         setFile(null);
-        setResults(null);
+        setResults({
+            character: null,
+            watermark: null,
+            forte: null,
+            weapon: null,
+            echoes: null
+        });
         setIsProcessing(false);
-    };
-
-    const handleProcess = async () => {
-        if (!file) return;
-        
-        setIsProcessing(true);
-        try {
-            const base64 = await fileToBase64(file);
-            
-            const response = await fetch(`${API_URL}/api/ocr`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    image: base64,
-                    type: 'import'
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Processing failed');
-            }
-
-            const data = await response.json();
-            setResults(data);
-        } catch (error) {
-            console.error('Processing error:', error);
-            setResults({ error: 'Processing failed' });
-        } finally {
-            setIsProcessing(false);
-        }
+        setError(null);
     };
 
     return (
@@ -147,7 +133,11 @@ export const ImportPage: React.FC = () => {
                             <button className="import-button delete" onClick={handleDelete}>
                                 Delete
                             </button>
-                            <button className="import-button process" onClick={handleProcess} disabled={isProcessing || results}>
+                            <button 
+                                className="import-button process"
+                                onClick={() => processRef.current?.()}
+                                disabled={isProcessing}
+                            >
                                 {isProcessing ? (
                                     <span className="button-content">
                                         <div className="loading-spinner" />
@@ -155,7 +145,21 @@ export const ImportPage: React.FC = () => {
                                     </span>
                                 ) : 'Process'}
                             </button>
+                            <Process 
+                                image={file}
+                                onProcessStart={() => setIsProcessing(true)}
+                                onRegionComplete={(region, data) => {
+                                    setResults(prev => ({
+                                        ...prev,
+                                        [region]: data
+                                    }));
+                                }}
+                                onProcessComplete={() => setIsProcessing(false)}
+                                onError={setError}
+                                triggerRef={processRef}
+                            />
                         </div>
+                        {error && <div className="error-message">{error}</div>}
                         {results && <Results results={results} />}
                     </div>
                 )}

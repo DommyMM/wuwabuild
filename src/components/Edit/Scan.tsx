@@ -111,7 +111,7 @@ const fetchOCRResult = async (base64: string): Promise<OCRResponse> => {
   }
 };
 
-const wakeupServer = async () => {
+export const wakeupServer = async () => {
   try {
     await fetch(`${API_URL}/health`, { 
       method: 'GET',
@@ -398,10 +398,6 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
       setIsProcessing(false);
     }
   };
-
-  useEffect(() => {
-    wakeupServer();
-  }, []);
 
   useEffect(() => {
     return () => {
