@@ -14,16 +14,26 @@
 .preview-container {
     position: relative;
     width: 100%;
-    margin: 20px auto;
 }
 
 .import-page .preview-thumbnail {
     width: 100%;
 }
 
+.loading-overlay {
+    display: flex;
+    justify-content: center;
+}
+
 .import-button {
     font-size: 20px;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.button-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .import-page .button-container button:first-child {
@@ -44,6 +54,11 @@
 .import-page .button-container button:last-child:hover {
     background: #5a8c2d;
     transform: translateY(-1px);
+}
+
+.import-button.process:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 .results-container {

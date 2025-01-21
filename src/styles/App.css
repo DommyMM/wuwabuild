@@ -169,6 +169,7 @@ h2 {
   padding: 8px 16px;
   border-radius: 4px;
   transition: all 0.2s ease;
+  text-align: center;
 }
 
 .nav-links a:hover {
@@ -198,7 +199,7 @@ h2 {
   }
   .scan-controls .clear-button {
     left: 24%;
-    top: 5%;
+    top: 12%;
   }
   .process-button{
     top: 5px;
@@ -221,6 +222,6 @@ h2 {
     width: 100%;
   }
   .scan-container{
-    top: 132px;
+    top: 18%;
   }
 }

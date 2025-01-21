@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { Results } from '../components/Import/Results';
 import '../styles/Import.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -16,21 +17,16 @@ const ImportPreview = ({ src }: { src: string }) => {
     const [isFullscreen, setIsFullscreen] = useState(false);
     return (
         <>
-            <div className="image-container">
-                <img 
-                    src={src} 
+            <div className="preview-container">
+                <img src={src} 
                     className="preview-thumbnail"
                     alt="Preview" 
                     onClick={() => setIsFullscreen(true)}
                 />
             </div>
             {isFullscreen && (
-                <div 
-                    className="fullscreen-overlay"
-                    onClick={() => setIsFullscreen(false)}
-                >
-                    <img 
-                        src={src} 
+                <div className="fullscreen-overlay" onClick={() => setIsFullscreen(false)}>
+                    <img src={src} 
                         className="modal-image"
                         alt="Preview"
                         onClick={e => e.stopPropagation()}
@@ -146,33 +142,21 @@ export const ImportPage: React.FC = () => {
                     <div className="preview-container">
                         <div className={`image-container ${isProcessing ? 'processing' : ''}`}>
                             <ImportPreview src={URL.createObjectURL(file)} />
-                            {isProcessing && (
-                                <div className="loading-overlay">
-                                    <div className="loading-spinner" />
-                                </div>
-                            )}
                         </div>
                         <div className="button-container">
                             <button className="import-button delete" onClick={handleDelete}>
                                 Delete
                             </button>
-                            <button className="import-button process" 
-                                onClick={handleProcess}
-                                disabled={isProcessing || results}
-                            >
-                                {isProcessing ? 'Processing...' : 'Process'}
+                            <button className="import-button process" onClick={handleProcess} disabled={isProcessing || results}>
+                                {isProcessing ? (
+                                    <span className="button-content">
+                                        <div className="loading-spinner" />
+                                        Processing...
+                                    </span>
+                                ) : 'Process'}
                             </button>
                         </div>
-                        {results && (
-                            <div className="results-container">
-                                <h2>Results</h2>
-                                {results.error ? (
-                                    <p className="error">{results.error}</p>
-                                ) : (
-                                    <pre>{JSON.stringify(results, null, 2)}</pre>
-                                )}
-                            </div>
-                        )}
+                        {results && <Results results={results} />}
                     </div>
                 )}
             </div>

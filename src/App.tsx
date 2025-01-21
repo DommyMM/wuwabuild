@@ -26,9 +26,9 @@ const Layout = () => {
             <Link to="/builds" className={location.pathname === '/builds' ? 'active' : ''}>
               Saved Builds
             </Link>
-            {/* <Link to="/import" className={location.pathname === '/import' ? 'active' : ''}>
+            <Link to="/import" className={location.pathname === '/import' ? 'active' : ''}>
               Import Build
-            </Link> */}
+            </Link>
           </div>
         </div>
       </nav>
