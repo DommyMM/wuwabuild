@@ -1,16 +1,8 @@
 import { createBrowserRouter, RouterProvider, Outlet, Link, useLocation } from 'react-router-dom';
-import { useMigrate } from './hooks/useMigrate';
-import { ToastContainer } from 'react-toastify';
 import { EditPage } from './pages/EditPage';
-import { OCRProvider } from './contexts/OCRContext';
 import { HomePage } from './pages/HomePage';
 import { BuildsPage } from './pages/BuildPage';
 import { ImportPage } from './pages/ImportPage';
-import { useCharacters } from './hooks/useCharacters';
-import { useWeapons } from './hooks/useWeapons';
-import { useEchoes } from './hooks/useEchoes';
-import { WeaponType } from './types/weapon';
-import { wakeupServer } from './components/Edit/Scan';
 import './styles/App.css';
 
 const Layout = () => {
@@ -42,26 +34,10 @@ const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
-      {
-        path: "/",
-        element: <HomePage />
-      },
-      {
-        path: "/edit",
-        element: <EditPage />
-      },
-      {
-        path: "/builds",
-        element: <BuildsPage />
-      },
-      {
-        path: "/import",
-        element: (
-          <OCRProvider>
-            <ImportPage />
-          </OCRProvider>
-        )
-      }
+      { path: "/", element: <HomePage /> },
+      { path: "/edit", element: <EditPage /> },
+      { path: "/builds", element: <BuildsPage /> },
+      { path: "/import", element: <ImportPage /> }
     ]
   }
 ], {
@@ -75,25 +51,7 @@ const router = createBrowserRouter([
 });
 
 const App: React.FC = () => {
-  useMigrate();
-  wakeupServer();
-  const { loading: charLoading } = useCharacters();
-  const { loading: echoLoading } = useEchoes();
-  const { loading: weaponLoading } = useWeapons({ weaponType: WeaponType.Sword });
-  const isLoading = charLoading || echoLoading || weaponLoading;
-
-  if (isLoading) {
-    return <div className="loading">Loading game data...</div>;
-  }
-
-  return (
-    <>
-      <OCRProvider>
-        <RouterProvider router={router} />
-      </OCRProvider>
-      <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} closeOnClick pauseOnHover draggable theme="dark" toastStyle={{ fontFamily: 'Gowun' }}/>
-    </>
-  );
+  return <RouterProvider router={router} />;
 };
 
 export default App;

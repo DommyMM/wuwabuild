@@ -4,6 +4,7 @@ export const IMPORT_REGIONS = {
     "character": { x1: 65, x2: 618, y1: 8, y2: 92 },
     "watermark": { x1: 14, x2: 194, y1: 80, y2: 148 },
     "forte": { x1: 779, x2: 1425, y1: 24, y2: 639 },
+    "sequences": { x1: 135, x2: 637, y1: 517, y2: 631 },
     "weapon": { x1: 1448, x2: 1887, y1: 415, y2: 631 },
     "echoes": { x1: 24, x2: 1886, y1: 650, y2: 1063 }
 } as const;
@@ -97,7 +98,7 @@ export const Process: React.FC<ProcessProps> = ({
         try {
             onProcessStart();
             
-            const regions: ImportRegion[] = ['character', 'watermark', 'forte', 'weapon', 'echoes'];
+            const regions: ImportRegion[] = ['character', 'watermark', 'forte', 'sequences', 'weapon', 'echoes'];
             const results = await Promise.all(regions.map(processRegion));
             
             const finalResults = results.reduce<Record<ImportRegion, any>>((acc, { region, data }) => ({
@@ -108,7 +109,8 @@ export const Process: React.FC<ProcessProps> = ({
                 watermark: null,
                 forte: null,
                 weapon: null,
-                echoes: null
+                echoes: null,
+                sequences: null
             });
             onProcessComplete(finalResults);
         } catch (error) {

@@ -1,20 +1,21 @@
-import React from 'react';
+import { useState, useRef, useEffect } from 'react';
 import '../../styles/Results.css';
+import Marquee from 'react-fast-marquee';
 
 interface AnalysisData {
     character?: { name: string; level: number; };
     watermark?: { username: string; uid: number; };
     weapon?: { name: string; level: number; };
     forte?: { levels: number[] };
+    sequences?: { sequence: number };
     echoes?: { echoes: Array<{
+        name: {
+            name: string;
+            confidence: number;
+        };
         main: { name: string; value: string; };
         substats: Array<{ name: string; value: string; }>;
-        element: {
-            primary: string;
-            secondary: string;
-            primary_ratio: number;
-            secondary_ratio: number;
-        };
+        element: string;
     }>};
 }
 
@@ -55,7 +56,7 @@ const ForteSection: React.FC<{ fortes?: number[] }> = ({ fortes }) => (
         <div className="fortes-grid">
             {['Normal Attack', 'Skill', 'Circuit', 'Liberation', 'Intro'].map((name, idx) => (
                 <div key={idx} className="forte">
-                    {name}: Lv.{fortes ? fortes[idx] : '...'}
+                    {name}: Lv.{fortes ? fortes[idx] : '..'}
                 </div>
             ))}
         </div>
@@ -63,6 +64,18 @@ const ForteSection: React.FC<{ fortes?: number[] }> = ({ fortes }) => (
 );
 
 const EchoSection: React.FC<{ echo?: any }> = ({ echo }) => {
+    const [shouldMarquee, setShouldMarquee] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const measureRef = useRef<HTMLSpanElement>(null);
+
+    useEffect(() => {
+        if (measureRef.current && wrapperRef.current) {
+            const textWidth = measureRef.current.offsetWidth;
+            const wrapperWidth = wrapperRef.current.offsetWidth;
+            setShouldMarquee(textWidth > wrapperWidth + 5);
+        }
+    }, [echo?.name?.name]);
+
     if (!echo) return (
         <div className="echo-column">
             <div className="echo-elements">Processing...</div>
@@ -72,11 +85,22 @@ const EchoSection: React.FC<{ echo?: any }> = ({ echo }) => {
 
     return (
         <div className="echo-column">
-            <div className="echo-elements">
-                <span className={`element ${echo.element.primary.toLowerCase()}`}>{echo.element.primary}</span>
-                {echo.element.secondary && echo.element.secondary !== echo.element.primary && (
-                    <span className={`element ${echo.element.secondary.toLowerCase()}`}>{echo.element.secondary}</span>
+            <div className="echo-names" ref={wrapperRef}>
+                <span ref={measureRef} className="measure-span">
+                    {echo?.name?.name}
+                </span>
+                {shouldMarquee ? (
+                    <Marquee gradient={false} speed={50} delay={0}>
+                        {echo?.name?.name}&nbsp;&nbsp;&nbsp;
+                    </Marquee>
+                ) : (
+                    <span>{echo?.name?.name}</span>
                 )}
+            </div>
+            <div className="echo-elements">
+                <span className={`element ${echo.element.toLowerCase()}`}>
+                    {echo.element}
+                </span>
             </div>
             <div className="echo-mainstat">
                 <span>{echo.main.name}</span>
@@ -92,6 +116,21 @@ const EchoSection: React.FC<{ echo?: any }> = ({ echo }) => {
     );
 };
 
+const SequencesSection: React.FC<{ sequences?: { sequence: number } }> = ({ sequences }) => (
+    <div className="sequences-section">
+        <h3>Sequences</h3>
+        <div className="sequence-dots">
+            {[...Array(6)].map((_, index) => (
+                <div key={index} 
+                    className={`sequence-dot ${index < (sequences?.sequence || 0) ? 'active' : ''}`}
+                >
+                    {index + 1}
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
 export const Results: React.FC<ResultsProps> = ({ results }) => {
     return (
         <div className="results-container">
@@ -103,6 +142,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
             </div>
             
             <ForteSection fortes={results.forte?.levels} />
+            <SequencesSection sequences={results.sequences} />
             
             <div className="echoes-section">
                 <h3>Echoes</h3>

@@ -83,6 +83,7 @@ export const ImportPage: React.FC = () => {
         character: null,
         watermark: null,
         forte: null,
+        sequences: null,
         weapon: null,
         echoes: null
     });
@@ -96,6 +97,7 @@ export const ImportPage: React.FC = () => {
             character: null,
             watermark: null,
             forte: null,
+            sequences: null,
             weapon: null,
             echoes: null
         });
@@ -109,6 +111,7 @@ export const ImportPage: React.FC = () => {
             character: null,
             watermark: null,
             forte: null,
+            sequences: null,
             weapon: null,
             echoes: null
         });
