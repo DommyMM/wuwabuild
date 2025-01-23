@@ -8,15 +8,21 @@ interface AnalysisData {
     weapon?: { name: string; level: number; };
     forte?: { levels: number[] };
     sequences?: { sequence: number };
-    echoes?: { echoes: Array<{
-        name: {
-            name: string;
-            confidence: number;
-        };
-        main: { name: string; value: string; };
-        substats: Array<{ name: string; value: string; }>;
-        element: string;
-    }>};
+    echo1?: EchoData;
+    echo2?: EchoData;
+    echo3?: EchoData;
+    echo4?: EchoData;
+    echo5?: EchoData;
+}
+
+interface EchoData {
+    name: {
+        name: string;
+        confidence: number;
+    };
+    main: { name: string; value: string; };
+    substats: Array<{ name: string; value: string; }>;
+    element: string;
 }
 
 interface ResultsProps {
@@ -147,10 +153,9 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
             <div className="echoes-section">
                 <h3>Echoes</h3>
                 <div className="echoes-grid">
-                    {[...Array(5)].map((_, index) => (
-                        <EchoSection 
-                            key={index} 
-                            echo={results.echoes?.echoes?.[index]} 
+                    {[1, 2, 3, 4, 5].map((num) => (
+                        <EchoSection key={num} 
+                            echo={results[`echo${num}` as keyof AnalysisData]} 
                         />
                     ))}
                 </div>

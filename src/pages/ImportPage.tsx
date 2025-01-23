@@ -85,7 +85,11 @@ export const ImportPage: React.FC = () => {
         forte: null,
         sequences: null,
         weapon: null,
-        echoes: null
+        echo1: null,
+        echo2: null,
+        echo3: null,
+        echo4: null,
+        echo5: null
     });
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -99,7 +103,11 @@ export const ImportPage: React.FC = () => {
             forte: null,
             sequences: null,
             weapon: null,
-            echoes: null
+            echo1: null,
+            echo2: null,
+            echo3: null,
+            echo4: null,
+            echo5: null
         });
         setIsProcessing(false);
         setError(null);
@@ -113,7 +121,11 @@ export const ImportPage: React.FC = () => {
             forte: null,
             sequences: null,
             weapon: null,
-            echoes: null
+            echo1: null,
+            echo2: null,
+            echo3: null,
+            echo4: null,
+            echo5: null
         });
         setIsProcessing(false);
         setError(null);

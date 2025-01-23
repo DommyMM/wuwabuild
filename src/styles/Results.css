@@ -150,7 +150,7 @@
 .element.er, .element.tidebreaking { background: white; }
 .element.electro { background: #BA55D3; }
 .element.spectro { background: #FFD700; }
-.element.glacio { background: #87CEEB; }
+.element.glacio, .element.frosty { background: #87CEEB; }
 .element.attack { background: #BC2514; }
 .element.fusion { background: #D5740C; }
 .element.havoc { background: #FF1493; }
