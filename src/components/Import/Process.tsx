@@ -1,4 +1,6 @@
 import React from 'react';
+import { isDarkPixel } from '../Edit/OCR';
+
 
 export const IMPORT_REGIONS = {
     "character": { x1: 65, x2: 618, y1: 8, y2: 92 },
@@ -61,6 +63,37 @@ export const cropImageToRegion = async (
     return canvas.toDataURL('image/png').split(',')[1];
 };
 
+const checkGender = async (image: File) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(image);
+    await new Promise((resolve) => { img.onload = resolve; });
+    
+    const genderRegion = { x1: 351, x2: 464, y1: 343, y2: 388 };
+    const base64Data = await cropImageToRegion(img, genderRegion);
+    
+    const tempImg = new Image();
+    tempImg.src = `data:image/png;base64,${base64Data}`;
+    await new Promise((resolve) => { tempImg.onload = resolve; });
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    canvas.width = tempImg.width;
+    canvas.height = tempImg.height;
+    ctx.drawImage(tempImg, 0, 0);
+    
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let darkCount = 0;
+    for (let i = 0; i < pixels.data.length; i += 4) {
+        if (isDarkPixel(pixels.data, i)) darkCount++;
+    }
+    
+    const ratio = darkCount / (canvas.width * canvas.height);
+    console.log(`Dark pixel ratio: ${ratio.toFixed(4)} (${darkCount} / ${canvas.width * canvas.height})`);
+    
+    const GENDER_THRESHOLD = 0.15;
+    return ratio > GENDER_THRESHOLD ? 'M' : 'F';
+};
+
 export const Process: React.FC<ProcessProps> = ({ 
     image, 
     onProcessStart, 
@@ -96,6 +129,7 @@ export const Process: React.FC<ProcessProps> = ({
                 return { region, data };
                 
             } catch (error) {
+                console.error(`Raw ${region} error:`, error);
                 throw new Error(`Error processing ${region}: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         };
@@ -105,6 +139,21 @@ export const Process: React.FC<ProcessProps> = ({
             const regions: ImportRegion[] = ['character', 'watermark', 'forte', 'sequences', 'weapon', 'echo1', 'echo2', 'echo3', 'echo4', 'echo5'];
             const results = await Promise.all(regions.map(processRegion));
             
+            const characterResult = results.find(r => r.region === 'character');
+            if (characterResult?.data.analysis?.name?.includes('Rover')) {
+                const gender = await checkGender(image);
+                const isHavoc = characterResult.data.analysis.name.includes('Havoc');
+                characterResult.data.analysis.name = isHavoc ? 
+                    `Rover (${gender}) Havoc` : 
+                    `Rover (${gender}) Spectro`;
+            }
+            const forteResult = results.find(r => r.region === 'forte');
+            if (forteResult?.data.analysis?.levels) {
+                forteResult.data.analysis.levels = forteResult.data.analysis.levels.map(
+                    (level: number) => level === 0 ? 10 : level
+                );
+            }
+            
             const finalResults = results.reduce<Record<ImportRegion, any>>((acc, { region, data }) => ({
                 ...acc,
                 [region]: data.analysis
@@ -112,13 +161,13 @@ export const Process: React.FC<ProcessProps> = ({
                 character: null,
                 watermark: null,
                 forte: null,
+                sequences: null,
                 weapon: null,
                 echo1: null,
                 echo2: null,
                 echo3: null,
                 echo4: null,
-                echo5: null,
-                sequences: null
+                echo5: null
             });
             onProcessComplete(finalResults);
         } catch (error) {

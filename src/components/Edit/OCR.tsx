@@ -123,7 +123,7 @@ const cropImage = async (base64Image: string, regionKey: keyof typeof SCAN_REGIO
     return canvas;
 };
 
-const isDarkPixel = (data: Uint8ClampedArray, i: number): boolean => {
+export const isDarkPixel = (data: Uint8ClampedArray, i: number): boolean => {
     const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
     return (
         (Math.abs(r - 38) <= 25 && Math.abs(g - 34) <= 25 && Math.abs(b - 34) <= 25) ||

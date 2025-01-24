@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import '../../styles/Results.css';
 import Marquee from 'react-fast-marquee';
+import { convertBuild } from './Convert';
+import { SavedState } from '../../types/SavedState';
+import { useNavigate } from 'react-router-dom';
+import { ImportModal } from './ImportModal';
+import '../../styles/Results.css';
 
-interface AnalysisData {
+export interface AnalysisData {
     character?: { name: string; level: number; };
     watermark?: { username: string; uid: number; };
     weapon?: { name: string; level: number; };
@@ -15,7 +19,7 @@ interface AnalysisData {
     echo5?: EchoData;
 }
 
-interface EchoData {
+export interface EchoData {
     name: {
         name: string;
         confidence: number;
@@ -29,7 +33,7 @@ interface ResultsProps {
     results: AnalysisData;
 }
 
-const cleanStatValue = (value: string): string => {
+export const cleanStatValue = (value: string): string => {
     const cleanValue = value.replace(/[^\d.%]/g, '');
     
     if (cleanValue.includes('%')) {
@@ -60,7 +64,7 @@ const ForteSection: React.FC<{ fortes?: number[] }> = ({ fortes }) => (
     <div className="fortes-section">
         <h3>Fortes</h3>
         <div className="fortes-grid">
-            {['Normal Attack', 'Skill', 'Circuit', 'Liberation', 'Intro'].map((name, idx) => (
+            {['Normal', 'Skill', 'Circuit', 'Liberation', 'Intro'].map((name, idx) => (
                 <div key={idx} className="forte">
                     {name}: Lv.{fortes ? fortes[idx] : '..'}
                 </div>
@@ -138,28 +142,73 @@ const SequencesSection: React.FC<{ sequences?: { sequence: number } }> = ({ sequ
 );
 
 export const Results: React.FC<ResultsProps> = ({ results }) => {
+    const [saveToLb, setSaveToLb] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [convertedBuild, setConvertedBuild] = useState<SavedState | null>(null);
+    const navigate = useNavigate();
+    
+    const handleImport = () => {
+        const build = convertBuild(results, saveToLb);
+        setConvertedBuild(build);
+        setIsModalOpen(true);
+    };
+
+    const handleConfirm = () => {
+        if (convertedBuild) {
+            localStorage.setItem('last_build', JSON.stringify(convertedBuild));
+            navigate('/edit');
+        }
+    };
+
     return (
-        <div className="results-container">
-            <div className="result-disclaimer">Work in Progress - Actual importing coming soon</div>
-            <div className="results-header">
-                <HeaderSection title="Character" data={results.character} />
-                <HeaderSection title="Weapon" data={results.weapon} />
-                <HeaderSection title="Player" data={results.watermark} />
-            </div>
-            
-            <ForteSection fortes={results.forte?.levels} />
-            <SequencesSection sequences={results.sequences} />
-            
-            <div className="echoes-section">
-                <h3>Echoes</h3>
-                <div className="echoes-grid">
-                    {[1, 2, 3, 4, 5].map((num) => (
-                        <EchoSection key={num} 
-                            echo={results[`echo${num}` as keyof AnalysisData]} 
-                        />
-                    ))}
+        <>
+            <div className="results-container">
+                <div className="results-actions">
+                    <div></div>
+                    <h3>Scanned Build</h3>
+                    <div>
+                        <label className="save-checkbox">
+                            <input
+                                type="checkbox"
+                                checked={saveToLb}
+                                onChange={(e) => setSaveToLb(e.target.checked)}
+                            />
+                            Save to LB
+                        </label>
+                        <button 
+                            className="import-build-btn"
+                            onClick={handleImport}
+                        >
+                            Import Build
+                        </button>
+                    </div>
+                </div>
+                <div className="results-header">
+                    <HeaderSection title="Character" data={results.character} />
+                    <HeaderSection title="Weapon" data={results.weapon} />
+                    <HeaderSection title="Player" data={results.watermark} />
+                </div>
+                
+                <ForteSection fortes={results.forte?.levels} />
+                <SequencesSection sequences={results.sequences} />
+                
+                <div className="echoes-section">
+                    <h3>Echoes</h3>
+                    <div className="echoes-grid">
+                        {[1, 2, 3, 4, 5].map((num) => (
+                            <EchoSection key={num} 
+                                echo={results[`echo${num}` as keyof AnalysisData]} 
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
-        </div>
+            <ImportModal
+                build={convertedBuild!}
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onConfirm={handleConfirm}
+            />
+        </>
     );
 };

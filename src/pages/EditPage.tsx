@@ -15,10 +15,9 @@ import { RestorePrompt } from '../components/Edit/Restore';
 import { useOCRContext } from '../contexts/OCRContext';
 import { getCachedEchoes } from '../hooks/useEchoes';
 import { matchEchoData } from '../hooks/echoMatching';
-import { useMain } from '../hooks/useMain';
 import { cachedCharacters } from '../hooks/useCharacters';
 import { weaponCache } from '../hooks/useWeapons';
-import { useSubstats } from '../hooks/useSub';
+import { mainStatsCache } from '../hooks/useMain';
 import '../styles/App.css';
 
 export interface CharacterState {
@@ -43,8 +42,6 @@ export const EditPage: React.FC = () => {
   const selectedCharacter = useMemo(() => characterState.id ? cachedCharacters?.find(c => c.id === characterState.id) ?? null : null, [characterState.id]);
   const [currentSequence, setCurrentSequence] = useState(0);
   const echoesRef = useRef<HTMLElement>(null);
-  const { mainStatsData, calculateValue } = useMain();
-  const { substatsData } = useSubstats();
   const hasScrolledToEchoes = useRef(false);
   const [weaponState, setWeaponState] = useState<WeaponState>({
     id: null,
@@ -172,12 +169,7 @@ export const EditPage: React.FC = () => {
           if (emptyIndex === -1) {
             return prev;
           }
-          const matchedPanel = matchEchoData(
-            echoAnalysis,
-            mainStatsData,
-            substatsData,
-            calculateValue
-          );
+          const matchedPanel = matchEchoData(echoAnalysis);
           if (!matchedPanel) {
             console.error('Failed to match echo data');
             return prev;
@@ -189,7 +181,11 @@ export const EditPage: React.FC = () => {
         });
     }
     setOCRAnalysis(result.analysis);
-  }, [characterState.id, mainStatsData, substatsData, calculateValue]);
+  }, [characterState.id]);
+  const currentWeaponType = useMemo(() => {
+    if (!characterState.id || !cachedCharacters) return null;
+    return cachedCharacters.find(c => c.id === characterState.id)?.weaponType ?? null;
+  }, [characterState.id]);
   const handleCharacterSelect = useCallback((characterId: string | null) => {
     if (characterId) {
       const character = cachedCharacters!.find(c => c.id === characterId);
@@ -202,14 +198,17 @@ export const EditPage: React.FC = () => {
         level: '1',
         element: isRover(character) ? "Havoc" : character.element
       });
-      setWeaponState({
-        id: null,
-        level: 1,
-        rank: 1
-      });
+      if (!currentWeaponType || currentWeaponType !== character.weaponType) {
+        setWeaponState({
+          id: null,
+          level: 1,
+          rank: 1
+        });
+      }
+      
       unlock();
     }
-  }, [unlock]);
+  }, [unlock, currentWeaponType]);
   
   const handleSpectroToggle = (value: boolean) => {
     setCharacterState(prev => ({
@@ -272,19 +271,22 @@ export const EditPage: React.FC = () => {
       
       const updatedPanel = { ...panel, level };
       const echo = getCachedEchoes(panel.id);
-      if (panel.stats.mainStat.type && echo?.cost && mainStatsData) {
-        const [min, max] = mainStatsData[`${echo.cost}cost`].mainStats[panel.stats.mainStat.type];
-        updatedPanel.stats = {
-          ...updatedPanel.stats,
-          mainStat: {
-            ...updatedPanel.stats.mainStat,
-            value: calculateValue(min, max, level)
-          }
-        };
+      if (panel.stats.mainStat.type && echo?.cost && mainStatsCache.data) {
+        const mainStats = mainStatsCache.data[`${echo.cost}cost`]?.mainStats;
+        if (mainStats?.[panel.stats.mainStat.type]) {
+          const [min, max] = mainStats[panel.stats.mainStat.type];
+          updatedPanel.stats = {
+            ...updatedPanel.stats,
+            mainStat: {
+              ...updatedPanel.stats.mainStat,
+              value: mainStatsCache.calculateValue(min, max, level)
+            }
+          };
+        }
       }
       return updatedPanel;
     }));
-  }, [mainStatsData, calculateValue]);
+  }, []);
   
   const handleEchoElementSelect = useCallback((index: number, element: ElementType | null) => {
     setEchoPanels(prev => prev.map((panel, i) => 
@@ -303,7 +305,7 @@ export const EditPage: React.FC = () => {
       if (i !== index) return panel;
       
       const echo = getCachedEchoes(panel.id);
-      if (!type || !mainStatsData || !echo?.cost) {
+      if (!type || !echo?.cost || !mainStatsCache.data) {
         return {
           ...panel,
           stats: {
@@ -312,8 +314,14 @@ export const EditPage: React.FC = () => {
           }
         };
       }
-      const [min, max] = mainStatsData[`${echo.cost}cost`].mainStats[type];
-      const value = calculateValue(min, max, panel.level);
+  
+      const mainStats = mainStatsCache.data[`${echo.cost}cost`]?.mainStats;
+      if (!mainStats?.[type]) {
+        return panel;
+      }
+  
+      const [min, max] = mainStats[type];
+      const value = mainStatsCache.calculateValue(min, max, panel.level);
       return {
         ...panel,
         stats: {
@@ -322,7 +330,7 @@ export const EditPage: React.FC = () => {
         }
       };
     }));
-  }, [mainStatsData, calculateValue]);
+  }, []);
   
   const handleSubStatChange = useCallback((
     panelIndex: number, 

@@ -160,8 +160,7 @@ export const ImportPage: React.FC = () => {
                                     </span>
                                 ) : 'Process'}
                             </button>
-                            <Process 
-                                image={file}
+                            <Process image={file}
                                 onProcessStart={() => setIsProcessing(true)}
                                 onRegionComplete={(region, data) => {
                                     setResults(prev => ({

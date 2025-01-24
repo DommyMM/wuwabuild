@@ -11,15 +11,25 @@ import { useCharacters } from './hooks/useCharacters';
 import { useWeapons } from './hooks/useWeapons';
 import { useEchoes } from './hooks/useEchoes';
 import { WeaponType } from './types/weapon';
+import { useMain } from './hooks/useMain';
+import { useSubstats } from './hooks/useSub';
 import { useMigrate } from './hooks/useMigrate';
 
 const DataWrapper = ({ children }: { children: React.ReactNode }) => {
   useMigrate();
   wakeupServer();
+  
   const { loading: charLoading } = useCharacters();
   const { loading: echoLoading } = useEchoes();
   const { loading: weaponLoading } = useWeapons({ weaponType: WeaponType.Sword });
-  const isLoading = charLoading || echoLoading || weaponLoading;
+  const { loading: mainStatLoading } = useMain();
+  const { loading: subStatLoading } = useSubstats();
+  
+  const isLoading = charLoading || 
+    echoLoading || 
+    weaponLoading || 
+    mainStatLoading || 
+    subStatLoading;
 
   if (isLoading) {
     return <div className="loading">Loading game data...</div>;

@@ -3,6 +3,13 @@ import { useState, useEffect } from 'react';
 let cachedSubstatsData: SubstatData | null = null;
 let loadError: string | null = null;
 
+export const substatsCache = {
+    get data() { return cachedSubstatsData; },
+    getStatValues: (stat: string) => cachedSubstatsData?.[stat] || null,
+    getLowestValue: (stat: string) => cachedSubstatsData?.[stat]?.[0] ?? null,
+    getAvailableStats: () => cachedSubstatsData ? Object.keys(cachedSubstatsData) : []
+};
+
 interface SubstatData {
   [statName: string]: number[];
 }

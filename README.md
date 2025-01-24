@@ -1,6 +1,6 @@
 # WuWaBuilds
 
-A web application for Wuthering Waves players to create, customize, and share character builds through manual input or screenshot scanning.
+A web application for Wuthering Waves players to create, customize, and share character builds through manual input, screenshot scanning, or direct image importing.
 
 Live at: [wuwabuilds.moe](https://wuwabuilds.moe)
 
@@ -8,9 +8,26 @@ Live at: [wuwabuilds.moe](https://wuwabuilds.moe)
 
 ### Home Page
 - Example build showcase
-- Screenshot guide
-- Getting started tutorial
+- Interactive tutorial system
+  - Screenshot & Scan guide for manual creation
+  - Import guide for direct build importing
 - Mobile-responsive design
+
+### Build Creation
+Two comprehensive workflows for creating builds:
+
+#### Screenshot & Scan
+- Step-by-step guide for taking screenshots
+- Region-based OCR processing
+- Real-time scanning feedback
+- Manual adjustment capabilities
+- Export to shareable images
+
+#### Direct Import
+- Uses official Discord images
+- Automated build recognition
+- Preview and validation system
+- Direct integration with build editor
 
 ### Build Editor
 User-friendly, intuitive and aesthetic interface for creating and customizing character builds:
@@ -44,6 +61,7 @@ User-friendly, intuitive and aesthetic interface for creating and customizing ch
 
 #### Build Tools
 - Screenshot OCR integration
+- Direct build importing
 - Local storage with compression
 - Elegant image exports
 - Build state migration

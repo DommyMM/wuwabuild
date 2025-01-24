@@ -16,6 +16,7 @@ export interface SavedState {
     forteLevels: Record<string, number>;
     echoPanels: EchoPanelState[];
     watermark: WatermarkState;
+    verified?: boolean;
 }
 
 export interface SavedBuild {

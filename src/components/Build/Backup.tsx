@@ -32,94 +32,101 @@ export const STAT_MAP = {
 
 export const REVERSE_STAT_MAP = Object.entries(STAT_MAP).reduce((acc, [key, value]) => ({ ...acc, [value]: key }), {} as Record<string, string>);
 
+const ELEMENT_KEYS = Object.keys(ELEMENT_SETS) as (keyof typeof ELEMENT_SETS)[];
+
+export const compressStats = (stat: any) => ({
+    t: STAT_MAP[stat.type as keyof typeof STAT_MAP] || stat.type,
+    v: stat.value
+});
+
+export const decompressStats = (stat: any) => ({
+    type: REVERSE_STAT_MAP[stat.t] || stat.t,
+    value: stat.v
+});
+
+export const compressEchoPanel = (panel: any) => ({
+    i: panel.id,
+    l: panel.level,
+    s: panel.selectedElement ? ELEMENT_KEYS.indexOf(panel.selectedElement) : -1,
+    t: panel.stats ? {
+        m: compressStats(panel.stats.mainStat),
+        s: panel.stats.subStats?.map(compressStats) || []
+    } : null,
+    p: panel.phantom || false
+});
+
+export const decompressEchoPanel = (panel: any) => ({
+    id: panel.i,
+    level: panel.l,
+    selectedElement: panel.s !== -1 ? ELEMENT_KEYS[panel.s] : null,
+    stats: panel.t ? {
+        mainStat: decompressStats(panel.t.m),
+        subStats: panel.t.s.map(decompressStats)
+    } : {
+        mainStat: { type: null, value: null },
+        subStats: Array(5).fill({ type: null, value: null })
+    },
+    phantom: panel.p || false
+});
+
+export const compressData = (build: any) => ({
+    ...build,
+    state: {
+        c: {
+            i: build.state.characterState.id,
+            l: build.state.characterState.level,
+            e: build.state.characterState.element
+        },
+        w: {
+            i: build.state.weaponState.id,
+            l: build.state.weaponState.level,
+            r: build.state.weaponState.rank
+        },
+        e: build.state.echoPanels.map(compressEchoPanel),
+        q: build.state.currentSequence,
+        n: build.state.nodeStates,
+        f: {
+            na: build.state.forteLevels['normal-attack'],
+            sk: build.state.forteLevels.skill,
+            ci: build.state.forteLevels.circuit,
+            li: build.state.forteLevels.liberation,
+            in: build.state.forteLevels.intro
+        },
+        m: build.state.watermark
+    }
+});
+
+export const decompressData = (build: any) => ({
+    ...build,
+    state: {
+        characterState: {
+            id: build.state.c.i,
+            level: build.state.c.l,
+            element: build.state.c.e
+        },
+        weaponState: {
+            id: build.state.w.i,
+            level: build.state.w.l,
+            rank: build.state.w.r
+        },
+        echoPanels: build.state.e.map(decompressEchoPanel),
+        currentSequence: build.state.q,
+        nodeStates: build.state.n,
+        forteLevels: {
+            'normal-attack': build.state.f.na,
+            skill: build.state.f.sk,
+            circuit: build.state.f.ci,
+            liberation: build.state.f.li,
+            intro: build.state.f.in
+        },
+        watermark: build.state.m
+    }
+});
+
 export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
     const { migrateData } = useMigrate();
     const [importData, setImportData] = useState<SavedBuilds | null>(null);
     
-    const compressStats = (stat: any) => ({
-        t: STAT_MAP[stat.type as keyof typeof STAT_MAP] || stat.type,
-        v: stat.value
-    });
-    const decompressStats = (stat: any) => ({
-        type: REVERSE_STAT_MAP[stat.t] || stat.t,
-        value: stat.v
-    });
-    const ELEMENT_KEYS = Object.keys(ELEMENT_SETS) as (keyof typeof ELEMENT_SETS)[];
-    const compressEchoPanel = (panel: any) => ({
-        i: panel.id,
-        l: panel.level,
-        s: panel.selectedElement ? ELEMENT_KEYS.indexOf(panel.selectedElement) : -1,
-        t: panel.stats ? {
-            m: compressStats(panel.stats.mainStat),
-            s: panel.stats.subStats?.map(compressStats) || []
-        } : null,
-        p: panel.phantom || false
-    });
-    const decompressEchoPanel = (panel: any) => ({
-        id: panel.i,
-        level: panel.l,
-        selectedElement: panel.s !== -1 ? ELEMENT_KEYS[panel.s] : null,
-        stats: panel.t ? {
-            mainStat: decompressStats(panel.t.m),
-            subStats: panel.t.s.map(decompressStats)
-        } : {
-            mainStat: { type: null, value: null },
-            subStats: Array(5).fill({ type: null, value: null })
-        },
-        phantom: panel.p || false
-    });
-    const compressData = (build: any) => ({
-        ...build,
-        state: {
-            c: {
-                i: build.state.characterState.id,
-                l: build.state.characterState.level,
-                e: build.state.characterState.element
-            },
-            w: {
-                i: build.state.weaponState.id,
-                l: build.state.weaponState.level,
-                r: build.state.weaponState.rank
-            },
-            e: build.state.echoPanels.map(compressEchoPanel),
-            q: build.state.currentSequence,
-            n: build.state.nodeStates,
-            f: {
-                na: build.state.forteLevels['normal-attack'],
-                sk: build.state.forteLevels.skill,
-                ci: build.state.forteLevels.circuit,
-                li: build.state.forteLevels.liberation,
-                in: build.state.forteLevels.intro
-            },
-            m: build.state.watermark
-        }
-    });
-    const decompressData = (build: any) => ({
-        ...build,
-        state: {
-            characterState: {
-                id: build.state.c.i,
-                level: build.state.c.l,
-                element: build.state.c.e
-            },
-            weaponState: {
-                id: build.state.w.i,
-                level: build.state.w.l,
-                rank: build.state.w.r
-            },
-            echoPanels: build.state.e.map(decompressEchoPanel),
-            currentSequence: build.state.q,
-            nodeStates: build.state.n,
-            forteLevels: {
-                'normal-attack': build.state.f.na,
-                skill: build.state.f.sk,
-                circuit: build.state.f.ci,
-                liberation: build.state.f.li,
-                intro: build.state.f.in
-            },
-            watermark: build.state.m
-        }
-    });
     const handleExport = () => {
         const savedBuilds = localStorage.getItem('saved_builds');
         const savedEchoes = localStorage.getItem('saved_echoes');
@@ -154,7 +161,7 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
             toast.error('Failed to export');
         }
     };
-
+    
     const processImport = async (file: File) => {
         try {
             const text = await file.text();

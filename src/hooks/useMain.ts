@@ -3,6 +3,17 @@ import { useState, useEffect } from 'react';
 let cachedMainStats: MainStatData | null = null;
 let loadError: string | null = null;
 
+export const mainStatsCache = {
+    get data() { return cachedMainStats; },
+    calculateValue: (min: number, max: number, level: number): number => {
+        return min + ((max - min) * level / 25);
+    },
+    getMainStatsByCost: (cost: number | null) => {
+        if (!cachedMainStats || !cost) return {};
+        return cachedMainStats[`${cost}cost`]?.mainStats || {};
+    }
+};
+
 interface MainStatData {
   [key: string]: {
     default: [string, number, number],

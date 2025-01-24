@@ -339,6 +339,36 @@
     margin: 0;
 }
 
+/* Add to Home.css */
+.tutorial-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.toggle-btn {
+    padding: 0.75rem 2rem;
+    border-radius: 4px;
+    background: rgba(26, 26, 26, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+    background: rgba(26, 26, 26, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.toggle-btn.active {
+    background: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
 @media (max-width: 1200px) {
     .main-content {
         margin-top: 12px;
@@ -484,6 +514,13 @@
         background: #a69662;
         transform: scale(1.2);
         box-shadow: 0 0 8px rgba(166, 150, 98, 0.4);
+    }
+    .tutorial-toggle {
+        gap: 1rem;
+    }
+    .toggle-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
     }
     .disclaimer, .screenshot-disclaimer {
         font-size: 10px;

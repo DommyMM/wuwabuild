@@ -4,6 +4,7 @@
     text-align: center;
     color: white;
     width: 60%;
+    overflow-x: hidden;
 }
 
 .instructions {

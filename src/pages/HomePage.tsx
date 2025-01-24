@@ -1,5 +1,7 @@
-import React, { useEffect, useState, CSSProperties, useRef } from 'react';
+import React, { useState, useEffect, CSSProperties } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ScanTutorial } from '../components/Home/ScanTutorial';
+import { ImportTutorial } from '../components/Home/ImportTutorial';
 import '../styles/Home.css';
 
 const FEATURES = [
@@ -17,13 +19,10 @@ const BUILD_CARDS = [
     { src: "/images/card4.webp", alt: "Build Card 5" },
 ];
 
-const SCREENSHOTS = [
-    { title: 'Character', src: '/images/scan-character.webp' },
-    { title: 'Weapon', src: '/images/scan-weapon.webp' },
-    { title: 'Forte', src: '/images/scan-forte.webp' },
-    { title: 'Resonance Chain', src: '/images/scan-resonance.webp' },
-    { title: 'Echoes', src: '/images/scan-echo.webp' },
-];
+const TUTORIAL_TYPES = {
+    SCAN: "scan",
+    IMPORT: "import"
+} as const;
 
 export const HomePage: React.FC = () => {
     const [text, setText] = useState('');
@@ -31,13 +30,8 @@ export const HomePage: React.FC = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [currentCardIndex, setCurrentCardIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
-    const [currentStep, setCurrentStep] = useState(0);
-    const [currentScreenshot, setCurrentScreenshot] = useState(0);
-    const touchStartRef = useRef<number>(0);
-    const screenshotTouchRef = useRef<number>(0);
-    const [containerHeight, setContainerHeight] = useState('64vh');
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
-    
+    const [tutorialType, setTutorialType] = useState<keyof typeof TUTORIAL_TYPES>("IMPORT");
+
     useEffect(() => {
         const currentFeature = FEATURES[featureIndex];
         const typingSpeed = 50;
@@ -70,17 +64,6 @@ export const HomePage: React.FC = () => {
         return () => clearInterval(timer);
     }, [isHovered]);
 
-    useEffect(() => {
-        if (window.innerWidth <= 1200) {
-            const stepHeights: Record<number, string> = {
-                0: '63.1vh',
-                1: '71.25vh',
-                2: '72.5vh'
-            };
-            setContainerHeight(stepHeights[currentStep as keyof typeof stepHeights]);
-        }
-    }, [currentStep]);
-
     const getCardStyles = (index: number): CSSProperties => {
         const diff = (index - currentCardIndex + BUILD_CARDS.length) % BUILD_CARDS.length;
         const offset = diff > BUILD_CARDS.length / 2 ? diff - BUILD_CARDS.length : diff;
@@ -110,87 +93,6 @@ export const HomePage: React.FC = () => {
         };
     };
 
-    const handleTouchStart = (e: React.TouchEvent) => {
-        touchStartRef.current = e.targetTouches[0].clientX;
-    };
-    const handleTouchMove = (e: React.TouchEvent) => {
-        if (window.innerWidth > 1200) return;
-        const touchDiff = touchStartRef.current - e.targetTouches[0].clientX;
-        if ((touchDiff > 0 && currentStep < 2) || (touchDiff < 0 && currentStep > 0)) {
-            e.stopPropagation();
-        }
-    };
-    const handleTouchEnd = (e: React.TouchEvent) => {
-        if (window.innerWidth > 1200) return;
-        const touchEnd = e.changedTouches[0].clientX;
-        const touchDiff = touchStartRef.current - touchEnd;
-        if (Math.abs(touchDiff) > 50) {
-            if (touchDiff > 0 && currentStep < 2) {
-                setCurrentStep(prev => prev + 1);
-            } else if (touchDiff < 0 && currentStep > 0) {
-                setCurrentStep(prev => prev - 1);
-            }
-        }
-    };
-
-    const getStepStyles = (index: number): CSSProperties => {
-        if (window.innerWidth <= 1200) {
-            return {
-                transform: `translateX(${100 * (index - currentStep)}%)`,
-                transition: 'transform 0.3s ease',
-                position: 'absolute',
-                left: 0
-            };
-        }
-        return {};
-    };
-
-    const handleScreenshotTouch = {
-        start: (e: React.TouchEvent) => {
-            screenshotTouchRef.current = e.targetTouches[0].clientX;
-        },
-        move: (e: React.TouchEvent) => {
-            if (window.innerWidth > 1200) return;
-            const touchDiff = screenshotTouchRef.current - e.targetTouches[0].clientX;
-            if ((touchDiff > 0 && currentScreenshot < 4) || (touchDiff < 0 && currentScreenshot > 0)) {
-                e.stopPropagation();
-            }
-        },
-        end: (e: React.TouchEvent) => {
-            if (window.innerWidth > 1200) return;
-            const touchEnd = e.changedTouches[0].clientX;
-            const touchDiff = screenshotTouchRef.current - touchEnd;
-            if (Math.abs(touchDiff) > 50) {
-                if (touchDiff > 0 && currentScreenshot < 4) {
-                    setCurrentScreenshot(prev => prev + 1);
-                } else if (touchDiff < 0 && currentScreenshot > 0) {
-                    setCurrentScreenshot(prev => prev - 1);
-                }
-            }
-        }
-    };
-    
-    const getScreenshotStyles = (index: number): CSSProperties => {
-        if (window.innerWidth <= 1200) {
-            return {
-                transform: `translateX(${100 * (index - currentScreenshot)}%)`,
-                transition: 'transform 0.3s ease',
-                position: 'absolute',
-                left: 0,
-                width: '100%'
-            };
-        }
-        return {};
-    };
-
-    const handleImageClick = (src: string) => {
-        setSelectedImage(src);
-    };
-
-    const closeOverlay = () => {
-        setSelectedImage(null);
-    };
-    
     return (
         <main className="home-page">
             <div className="main-content">
@@ -240,120 +142,19 @@ export const HomePage: React.FC = () => {
                         </div>
                     </div>
                 </section>
-                <section className="screenshot-guide">
-                    <h3>Screenshot Guide</h3>
-                    <div className="screenshot-grid"
-                        onTouchStart={handleScreenshotTouch.start}
-                        onTouchMove={handleScreenshotTouch.move}
-                        onTouchEnd={handleScreenshotTouch.end}
-                        style={{ 
-                            touchAction: 'pan-y pinch-zoom',
-                            position: window.innerWidth <= 1200 ? 'relative' : 'static',
-                            height: window.innerWidth <= 1200 ? '300px' : 'auto',
-                            overflow: window.innerWidth <= 1200 ? 'hidden' : 'visible'
-                        }}
-                    >
-                        {SCREENSHOTS.map((screenshot, index) => (
-                            <div key={index} className="screenshot-type" style={getScreenshotStyles(index)}>
-                                <h4>{screenshot.title}</h4>
-                                <img src={screenshot.src} alt={`${screenshot.title} Screenshot`} onClick={() => handleImageClick(screenshot.src)}/>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="screenshot-disclaimer">
-                            Please use fullscreen screenshots <br />
-                            We scan these regions for data
-                    </div>
-                    {selectedImage && (
-                        <div className="image-overlay" onClick={closeOverlay}>
-                            <img 
-                                src={selectedImage} 
-                                alt="Full size screenshot" 
-                                onClick={e => e.stopPropagation()}
-                            />
-                        </div>
-                    )}
-                    {window.innerWidth <= 1200 && (
-                        <div className="swipe-dots">
-                            {SCREENSHOTS.map((_, i) => (
-                                <div 
-                                    key={i} 
-                                    className={`swipe-dot ${i === currentScreenshot ? 'active' : ''}`}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </section>
-                <section className="quick-start">
-                    <h3>Getting Started</h3>
-                    <div className="steps-container"
-                        onTouchStart={handleTouchStart}
-                        onTouchMove={handleTouchMove}
-                        onTouchEnd={handleTouchEnd}
-                        style={{ 
-                            touchAction: 'pan-y pinch-zoom',
-                            height: window.innerWidth <= 1200 ? containerHeight : 'auto',
-                            transition: 'height 0.3s ease'
-                        }}
-                    >
-                        {[0, 1, 2].map((stepIndex) => (
-                            <div key={stepIndex} className="step" style={getStepStyles(stepIndex)}>
-                                <div className="step-number">{stepIndex + 1}</div>
-                                {stepIndex === 0 && (
-                                    <>
-                                        <p>Take screenshots from the game as shown above</p>
-                                        <img src="/images/screenshots.webp" 
-                                            alt="Screenshot examples" 
-                                            className="step-image"
-                                        />
-                                        <p className="note">
-                                            · &nbsp;Supports most image formats (PNG, JPG, etc.)<br/>
-                                            · &nbsp;Performance might vary depending on image quality
-                                        </p>
-                                    </>
-                                )}
-                                {stepIndex === 1 && (
-                                    <>
-                                        <p>Upload screenshots and let the website scan them automatically</p>
-                                        <img src="/images/scan.webp" 
-                                            alt="Example scan" 
-                                            className="step-image"
-                                        />
-                                        <p className="note">
-                                            · &nbsp;Shows simplified results in the UI<br/>
-                                            · &nbsp;Check browser console (F12) for full details and errors
-                                        </p>
-                                    </>
-                                )}
-                                {stepIndex === 2 && (
-                                    <>
-                                        <p>Export and share your completed build</p>
-                                        <img src="/images/generate.webp" 
-                                            alt="Generate build card" 
-                                            className="step-image"
-                                        />
-                                        <p className="note">
-                                            Note: Currently only supports English language screenshots <br />
-                                            You can also skip the screenshots and just manually input everything, or change incorrect data
-                                        </p>
-                                    </>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                    {window.innerWidth <= 1200 && (
-                        <div className="swipe-dots">
-                            {[0, 1, 2].map((i) => (
-                                <div 
-                                    key={i} 
-                                    className={`swipe-dot ${i === currentStep ? 'active' : ''}`}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </section>
+                <div className="tutorial-toggle">
+                    <button className={`toggle-btn ${tutorialType === "IMPORT" ? "active" : ""}`}
+                        onClick={() => setTutorialType("IMPORT")}>
+                        Import Build
+                    </button>
+                    <button className={`toggle-btn ${tutorialType === "SCAN" ? "active" : ""}`}
+                        onClick={() => setTutorialType("SCAN")}>
+                        Scan Build
+                    </button>
+                </div>
+                {tutorialType === "SCAN" ? <ScanTutorial /> : <ImportTutorial />}
                 <section className="disclaimer">
-                    <p>Disclaimer: This is an independent tool and is not affiliated with Wuthering Waves or Kuro Games.</p>
+                    <p>Disclaimer: This is an independent tool and is unaffiliated with Wuthering Waves or Kuro Games.</p>
                     <p>All game content and materials are trademarks and copyrights of their respective owners.</p>
                 </section>
             </div>
