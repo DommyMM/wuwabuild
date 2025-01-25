@@ -40,7 +40,6 @@ export const OCRProvider: React.FC<{children: React.ReactNode}> = ({ children })
           characterLevel: validatedLevel
         }
       });
-      setIsLocked(false);
     } 
     else if (isWeaponAnalysis(result.analysis)) {
       const validatedLevel = validateWeaponLevel(result.analysis.weaponLevel);

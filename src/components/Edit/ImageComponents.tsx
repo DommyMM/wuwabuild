@@ -22,40 +22,44 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const getStatusMessage = () => {
-    switch (status) {
-      case 'uploading':
-        return (
-          <div className="loading-container">
-            <div className="loading-spinner" />
-            <span>Uploading...</span>
-          </div>
-        );
-      case 'ready':
-        return <div>Ready</div>;
-      case 'processing':
-        return (
-          <div className="loading-container">
-            <div className="loading-spinner" />
-            <span>Analyzing...</span>
-          </div>
-        );
-      case 'queued':
-        return (
-          <div className="loading-container">
-            <div className="loading-spinner" />
-            <span>Waiting...</span>
-          </div>
-        );
-      case 'complete':
-        return (
-          <>
-            <div>Detected: {category}</div>
-            {details && <div className="details">{details}</div>}
-          </>
-        );
-      case 'error':
-        return <div className="error-message">{errorMessage || 'Error'}</div>;
-    }
+    return (
+      <div className="category-content">
+        {category && <div className="type-line">Detected: {category}</div>}
+        <div className="status-line">
+          {(() => {
+            switch (status) {
+              case 'uploading':
+                return (
+                  <div className="loading-container">
+                    <div className="loading-spinner" />
+                    <span>Uploading...</span>
+                  </div>
+                );
+              case 'ready':
+                return <div>Ready to Process</div>;
+              case 'processing':
+                return (
+                  <div className="loading-container">
+                    <div className="loading-spinner" />
+                    <span>Processing...</span>
+                  </div>
+                );
+              case 'queued':
+                return (
+                  <div className="loading-container">
+                    <div className="loading-spinner" />
+                    <span>Queued...</span>
+                  </div>
+                );
+              case 'complete':
+                return <div className="details">{details}</div>;
+              case 'error':
+                return <div className="error-message">{errorMessage || 'Error'}</div>;
+            }
+          })()}
+        </div>
+      </div>
+    );
   };
 
   return (

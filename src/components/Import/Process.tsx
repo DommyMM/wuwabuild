@@ -1,6 +1,4 @@
 import React from 'react';
-import { isDarkPixel } from '../Edit/OCR';
-
 
 export const IMPORT_REGIONS = {
     "character": { x1: 65, x2: 618, y1: 8, y2: 92 },
@@ -61,6 +59,14 @@ export const cropImageToRegion = async (
     );
     
     return canvas.toDataURL('image/png').split(',')[1];
+};
+
+export const isDarkPixel = (data: Uint8ClampedArray, i: number): boolean => {
+    const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+    return (
+        (Math.abs(r - 38) <= 25 && Math.abs(g - 34) <= 25 && Math.abs(b - 34) <= 25) ||
+        (Math.abs(r - 36) <= 25 && Math.abs(g - 48) <= 25 && Math.abs(b - 46) <= 25)
+    );
 };
 
 const checkGender = async (image: File) => {

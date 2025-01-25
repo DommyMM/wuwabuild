@@ -84,13 +84,12 @@ export const EditPage: React.FC = () => {
     switch (result.analysis.type) {
       case 'Character':
         const characterAnalysis = result.analysis;
+        const characterId = characterAnalysis.name.includes('(M)') ? '4' : '5';
         setOcrName(characterAnalysis.name);
         setCharacterState(prev => ({
-          ...prev,
+          id: characterId,
           level: characterAnalysis.characterLevel.toString(),
-          element: characterAnalysis.name.startsWith('Rover') ? 
-            (characterAnalysis.element?.toLowerCase() === "spectro" ? "Spectro" : "Havoc") :
-            undefined
+          element: characterAnalysis.element
         }));
         if (characterAnalysis.uid?.length === 9) {
           setWatermark(prev => ({...prev, uid: characterAnalysis.uid!}));
@@ -193,11 +192,11 @@ export const EditPage: React.FC = () => {
       
       setIsCharacterMinimized(false);
       setIsEchoesMinimized(true); 
-      setCharacterState({
+      setCharacterState(prev => ({
         id: characterId,
-        level: '1',
-        element: isRover(character) ? "Havoc" : character.element
-      });
+        level: prev.level || '1',
+        element: prev.element || (isRover(character) ? "Havoc" : character.element)
+      }));
       if (!currentWeaponType || currentWeaponType !== character.weaponType) {
         setWeaponState({
           id: null,
@@ -208,7 +207,7 @@ export const EditPage: React.FC = () => {
       
       unlock();
     }
-  }, [unlock, currentWeaponType]);
+    }, [unlock, currentWeaponType]);
   
   const handleSpectroToggle = (value: boolean) => {
     setCharacterState(prev => ({

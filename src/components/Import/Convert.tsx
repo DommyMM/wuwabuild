@@ -36,8 +36,8 @@ export const convertBuild = (data: AnalysisData, saveToLb: boolean): SavedState 
         'normal-attack': data.forte?.levels?.[0] ?? 1,
         'skill': data.forte?.levels?.[1] ?? 1,
         'circuit': data.forte?.levels?.[2] ?? 1,
-        'liberation': data.forte?.levels?.[3] ?? 1,
-        'intro': data.forte?.levels?.[4] ?? 1
+        'intro': data.forte?.levels?.[3] ?? 1,
+        'liberation': data.forte?.levels?.[4] ?? 1
     };
     const echoPanels = Array(5).fill(null).map(() => ({
         id: null as string | null,

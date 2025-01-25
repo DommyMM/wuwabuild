@@ -14,13 +14,13 @@ const Layout = () => {
           <Link to="/" className="nav-title">WuWaBuilds</Link>
           <div className="nav-links">
             <Link to="/edit" className={location.pathname === '/edit' ? 'active' : ''}>
-              Create Build
+              Edit Builds
             </Link>
             <Link to="/builds" className={location.pathname === '/builds' ? 'active' : ''}>
               Saved Builds
             </Link>
             <Link to="/import" className={location.pathname === '/import' ? 'active' : ''}>
-              Import Build
+              Import Builds
             </Link>
           </div>
         </div>
