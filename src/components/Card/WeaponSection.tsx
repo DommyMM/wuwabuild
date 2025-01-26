@@ -12,7 +12,7 @@ interface WeaponSectionProps {
 }
 
 const getWeaponPath = (weapon: Weapon, useAltSkin: boolean = false) => {
-  return getAssetPath('weapons', weapon).cdn;
+  return getAssetPath('weapons', weapon, useAltSkin).cdn;
 };
 
 const WeaponIcon = React.memo<{ weapon: Weapon; useAltSkin?: boolean }>(

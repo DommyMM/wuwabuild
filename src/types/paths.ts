@@ -85,11 +85,12 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
             };
         case 'weapons': {
             const weapon = input as Weapon;
+            const weaponId = useAltSkin && weapon.id === '21010026' ? '21010017' : weapon.id;
             return {
-                cdn: `${PATHS.cdn.base}/${PATHS.cdn.weapons}/T_IconWeapon${weapon.id}_UI.png`,
+                cdn: `${PATHS.cdn.base}/${PATHS.cdn.weapons}/T_IconWeapon${weaponId}_UI.png`,
                 local: `${PATHS.local.base}/${PATHS.local.weapons}/${weapon.type}/${encodeURIComponent(weapon.name)}.png`
             };
-        }        
+        }   
         case 'echoes': {
             const echo = input as Echo;
             const localName = isPhantom ? `Phantom ${echo.name}` : echo.name;

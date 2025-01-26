@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import './styles/index.css';
 import App from './App';
 import ReactGA from 'react-ga4';
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { wakeupServer } from './components/Edit/Scan';
 import { OCRProvider } from './contexts/OCRContext';
 import { ToastContainer } from 'react-toastify';
@@ -48,6 +50,8 @@ root.render(
       <OCRProvider>
         <App />
         <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} closeOnClick pauseOnHover draggable theme="dark" toastStyle={{ fontFamily: 'Gowun' }} />
+        <Analytics />
+        <SpeedInsights />
       </OCRProvider>
     </DataWrapper>
   </React.StrictMode>
