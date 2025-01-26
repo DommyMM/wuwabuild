@@ -225,13 +225,18 @@ export const EditPage: React.FC = () => {
     }));
   };
 
-  const handleWeaponConfigChange = (level: number, rank: number) => {
-    setWeaponState({
-      ...weaponState,
-      level,
-      rank
+  const handleWeaponConfigChange = useCallback((level: number, rank: number) => {
+    setWeaponState(prevState => {
+      if (prevState.level === level && prevState.rank === rank) {
+        return prevState;
+      }
+      return {
+        ...prevState,
+        level,
+        rank
+      };
     });
-  };
+  }, []);
   const handleMaxClick = () => {
     const newCount = (clickCount + 1) % 3;
     setClickCount(newCount);

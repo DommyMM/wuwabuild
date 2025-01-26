@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Weapon } from '../types/weapon';
 
 interface LevelCurves {
@@ -37,7 +37,7 @@ export const useLevelCurves = () => {
     loadCurves();
   }, []);
 
-  const getLevelKey = (level: number): string => {
+  const getLevelKey = useCallback((level: number): string => {
     if (level <= 20) {
       if (level === 1) return "1/20";
       return level === 20 ? "20/20" : level.toString();
@@ -57,21 +57,21 @@ export const useLevelCurves = () => {
     if (level > 70 && level < 80) return level.toString();
     if (level > 80 && level < 90) return level.toString();
     return "90/90";
-  };
+  }, []);
 
-  const scaleAtk = (baseAtk: number, level: number): number => {
+  const scaleAtk = useCallback((baseAtk: number, level: number): number => {
       if (!curves) return baseAtk;
       const key = getLevelKey(level);
       return Math.floor(baseAtk * curves.ATK_CURVE[key]);
-  };
+  }, [curves, getLevelKey]);
 
-  const scaleStat = (baseStat: number, level: number): number => {
+  const scaleStat = useCallback((baseStat: number, level: number): number => {
     if (!curves) return baseStat;
     const key = getLevelKey(level);
     return parseFloat((baseStat * curves.STAT_CURVE[key]).toFixed(1));
-  };
+  }, [curves, getLevelKey]);
 
-  const scaleWeaponStats = (weapon: Weapon, level: number, rank: number) => ({
+  const scaleWeaponStats = useCallback((weapon: Weapon, level: number, rank: number) => ({
     scaledAtk: scaleAtk(weapon.ATK, level),
     scaledMainStat: scaleStat(weapon.base_main, level),
     scaledPassive: weapon.passive_stat 
@@ -80,7 +80,7 @@ export const useLevelCurves = () => {
     scaledPassive2: weapon.passive_stat2 
       ? Math.floor(weapon.passive_stat2 * (1 + ((rank - 1) * 0.25))) 
       : undefined
-  });
+  }), [scaleAtk, scaleStat]);
 
   return { 
     curves, 

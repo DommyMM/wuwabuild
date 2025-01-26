@@ -1,18 +1,28 @@
-.center {
-  width: 100%;
-  height: 100%;
+.rank-container {
+  position: absolute;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  left: 12.5%;
+  top: 35%;
+  z-index: 4;
 }
 
-.slider {
+.MuiSlider-root {
+  width: 6px !important;
+}
+
+.MuiSlider-valueLabelLabel {
+  font-family: 'Ropa', sans-serif;
+  font-size: 14px;
+}
+
+.circular-slider {
+  position: absolute;
+  top: 22.5%;
   width: 173px;
   height: 173px;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative; 
   user-select: none;
 }
 
@@ -27,12 +37,9 @@
   height: 20px;         
   display: flex;
   align-items: center;      
-  justify-content: center;  
-  color: white;           
-  font-weight: 600;        
-  font-family: poppins;    
+  justify-content: center; 
   font-size: 14px;        
-  border: 0.17mm solid rgba(57, 55, 53);
+  border: 1px solid rgba(57, 55, 53);
   z-index: 3;
   cursor: grab;
   user-select: none;
@@ -42,25 +49,6 @@
 .control-button.dragging {
   background: #8a7b4e;
   cursor: grabbing;
-}
-
-.text {
-  width: 30px;
-  height: 30px;
-  margin: 0 9px;
-  font-family: poppins;
-  font-size: 20px;
-  font-weight: 600;
-  color: rgb(255, 255, 255);
-  background: #a69662;
-  border: 0.17mm solid rgba(57, 55, 53);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  top: -10%;
-  left: 80%;
 }
 
 .progress-bar {
@@ -95,52 +83,18 @@
   background: #7a6840;
 }
 
-.progress-container {
-  height: 55%;
-  width: 10%;
-  background: rgb(222, 222, 222);
-  position: relative;
-  border-radius: 15px;
-  left: 15%;
-  top: 0%;
-  cursor: pointer;
-}
-
-#progress-fill {
+.level-mobile {
+  display: none;
   position: absolute;
-  bottom: 0;
-  width: 100%;
-  background: linear-gradient(to top, #a9eeff, #9d3be9);
-  height: 0%;
-  transition: height 0.3s ease;
-  border-radius: 15px;
-  pointer-events: none;
+  z-index: 4;
+  right: 10%;
 }
 
-.dragger {
-  position: absolute;
-  left: -125%;
-  bottom: 0%;
-  text-align: center;
-  background: #a69662;
-  color: white;
-  border-radius: 50%;
-  padding: 5px;
-  font-weight: 600;
-  font-family: poppins;
-  font-size: 14px;
-  width: 13px;
-  height: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 0.17mm solid rgba(57, 55, 53);
-  z-index: 3;
-  cursor: grab;
-  user-select: none;
-}
-
-.dragger.dragging {
-  cursor: grabbing;
-  background: #8a7b4e;
+@media (max-width: 768px) {
+  .circular-slider {
+    display: none;
+  }
+  .level-mobile {
+    display: block;
+  }
 }

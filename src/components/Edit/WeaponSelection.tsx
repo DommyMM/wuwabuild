@@ -93,8 +93,7 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
       <div className="weapon-selection">
         <div className="weapon-choice">Weapon</div>
         <div className="weapon-box" id="selectWeapon" onClick={() => setIsModalOpen(true)}>
-          <img
-            id="weaponImg"
+          <img id="weaponImg"
             src={selectedWeapon ? getAssetPath('weapons', selectedWeapon).cdn
               : 'images/Resources/Weapon.png'
             }
@@ -105,14 +104,14 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
               border: '2px solid #999'
             } : {}}
           />
-          {selectedWeapon && (
-            <p id="selectedWeaponLabel" style={{ marginTop: '5px' }}>
-              <span className={`weapon-sig rarity-${selectedWeapon.rarity.charAt(0)}`}>
-                {selectedWeapon.name}
-              </span>
-            </p>
-          )}
         </div>
+        {selectedWeapon && (
+          <div id="selectedWeaponLabel">
+            <span className={`weapon-sig rarity-${selectedWeapon.rarity.charAt(0)}`}>
+              {selectedWeapon.name}
+            </span>
+          </div>
+        )}
         {selectedWeapon && (
           <WeaponSlider level={weaponState.level}
             rank={weaponState.rank}
