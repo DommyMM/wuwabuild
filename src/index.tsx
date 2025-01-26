@@ -2,8 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './styles/index.css';
 import App from './App';
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
+import ReactGA from 'react-ga4';
 import { wakeupServer } from './components/Edit/Scan';
 import { OCRProvider } from './contexts/OCRContext';
 import { ToastContainer } from 'react-toastify';
@@ -14,6 +13,8 @@ import { WeaponType } from './types/weapon';
 import { useMain } from './hooks/useMain';
 import { useSubstats } from './hooks/useSub';
 import { useMigrate } from './hooks/useMigrate';
+
+ReactGA.initialize('G-SP375JKDPX');
 
 const DataWrapper = ({ children }: { children: React.ReactNode }) => {
   useMigrate();
@@ -47,8 +48,6 @@ root.render(
       <OCRProvider>
         <App />
         <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} closeOnClick pauseOnHover draggable theme="dark" toastStyle={{ fontFamily: 'Gowun' }} />
-        <Analytics />
-        <SpeedInsights />
       </OCRProvider>
     </DataWrapper>
   </React.StrictMode>

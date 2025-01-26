@@ -1,4 +1,6 @@
 import { createBrowserRouter, RouterProvider, Outlet, Link, useLocation } from 'react-router-dom';
+import ReactGA from 'react-ga4';
+import { useEffect } from 'react';
 import { EditPage } from './pages/EditPage';
 import { HomePage } from './pages/HomePage';
 import { BuildsPage } from './pages/BuildPage';
@@ -7,6 +9,14 @@ import './styles/App.css';
 
 const Layout = () => {
   const location = useLocation();
+
+  useEffect(() => {
+    ReactGA.send({ 
+      hitType: "pageview", 
+      page: location.pathname 
+    });
+  }, [location]);
+
   return (
     <>
       <nav className="nav-bar">
