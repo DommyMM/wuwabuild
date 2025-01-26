@@ -7,6 +7,9 @@ import { Character } from '../../types/character';
 import { getAssetPath } from '../../types/paths';
 import { SequenceSection } from '../Card/SequenceSection';
 import { ForteSection } from '../Card/ForteSection';
+import { calculateCV as calculateTotalCV } from '../../hooks/useStats';
+import { EchoPanelState } from '../../types/echo';
+import { getEchoCVClass } from '../Build/Card';
 import '../../styles/ImportModal.css';
 
 interface ImportModalProps {
@@ -28,6 +31,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         cachedCharacters?.find(c => c.id === build.characterState.id) : null;
     const weapon = getCachedWeapon(build.weaponState.id);
     const elementClass = build.characterState.element?.toLowerCase() ?? '';
+
+    const calculatePanelCV = (panel: EchoPanelState) => {
+        const baseCV = calculateTotalCV([panel]);
+        const mainStat = panel.stats.mainStat.type;
+        return (baseCV - (mainStat?.includes('Crit') ? 44 : 0)).toFixed(1);
+    };
 
     return (
         <div className="import-overlay" onClick={onClose}>
@@ -98,6 +107,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                                                 </div>
                                             );
                                         })}
+                                        <div className={`convert-sub ${getEchoCVClass(Number(calculatePanelCV(panel)))}`}>
+                                            <span>{calculatePanelCV(panel)} CV</span>
+                                        </div>
                                     </div>
                                 </div>
                             );

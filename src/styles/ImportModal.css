@@ -63,7 +63,7 @@
 .import-row {
     display: flex;
     gap: 1rem;
-    height: 30vh;
+    height: auto;
 }
 
 .import-row:first-of-type {
@@ -75,7 +75,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: .3rem;
     letter-spacing: 1px;
 }
 
@@ -181,6 +180,7 @@
 .convert-main, .convert-sub {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 0 8px;
 }
 
@@ -196,9 +196,17 @@
     background: rgba(255, 255, 255, 0.1);
 }
 
-@media (max-width: 700px) {
+.convert-sub:last-child {
+    justify-content: center;
+    gap: 4px;
+    padding: 2px 0;
+    background: none;
+}
+
+@media (max-width: 1068px) {
     .convert-content {
         width: 95vw;
+        height: 90vh;
         padding: 1rem 0;
     }
     .import-row:first-of-type {
@@ -211,7 +219,7 @@
         justify-content: center;
         gap: 0 1rem;
         height: auto;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
     }
     .char-container {
         grid-area: char;
@@ -290,21 +298,70 @@
         padding: 0 4px;
     }
     .convert-disclaimer {
-        font-size: 1.2rem;
+        position: absolute;
+        font-size: 14px;
         margin-bottom: 0;
+        transform: translateY(50%);
     }
     .modal-actions {
         flex-direction: column;
         margin-top: 0;
-        gap: 0;
+        gap: 0.5rem;
     }
     .modal-actions .buttons {
-        width: 80%;
+        width: 100%;
         justify-content: space-between;
     }
     .modal-actions button {
-        width: 45%;
+        width: 25%;
         padding: 0.5rem 0;
         font-size: 14px;
+    }
+    .cv-value {
+        font-size: 10px;
+    }
+}
+
+@media (max-height: 700px) {
+    .convert-content {
+        gap: 0;
+    }
+    .import-row .char-convert, .import-row .weap-convert {
+        font-size: 24px;
+    }
+    .char-portrait-large, .weap-portrait-large {
+        max-width: 120px;
+    }
+    .sequence-container .sequence-node {
+        height: 30px;
+        width: 30px;
+    }
+    .forte-container {
+        height: 140px;
+        margin: 0;
+    }
+    .forte-container .simplified-forte {
+        gap: 6px;
+    }
+    .forte-container .level-indicator {
+        font-size: 7px;
+        bottom: -35%;
+        right: -35%;
+    }
+    .forte-container .max {
+        transform: translate(-38%, 30%);
+        width: 30%;
+    }
+    .echo-view {
+        padding: 2px;
+    }
+    .echo-view img {
+        width: 40%;
+    }
+    .stat-import {
+        font-size: 8px;
+    }
+    .cv-value {
+        display: none;
     }
 }

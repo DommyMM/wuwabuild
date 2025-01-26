@@ -1,10 +1,13 @@
+.import-page {
+    overflow-x: hidden;
+}
+
 .import-section {
     padding: 0 20px 20px 20px;
     margin: 0 auto;
     text-align: center;
     color: white;
     width: 60%;
-    overflow-x: hidden;
 }
 
 .instructions {
