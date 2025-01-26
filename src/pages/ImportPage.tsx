@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SEO } from '../components/SEO';
 import { Results } from '../components/Import/Results';
 import { Process, ImportRegion } from '../components/Import/Process';
 import '../styles/Import.css';
@@ -132,52 +133,58 @@ export const ImportPage: React.FC = () => {
     };
 
     return (
-        <div className="import-page">
-            <div className="import-section">
-                {!file ? (
-                    <>
-                        <div className='instructions'>Upload image from the wuwa discord bot</div>
-                        <ImportUploader onFilesSelected={handleFilesSelected} />
-                    </>
-                ) : (
-                    <div className="preview-container">
-                        <div className={`image-container ${isProcessing ? 'processing' : ''}`}>
-                            <ImportPreview src={URL.createObjectURL(file)} />
+        <>
+            <SEO title="Import Builds - WuWa Builds"
+                description="Import builds directly from the official wuwa-bot. One click, hassle-free."
+                image="%PUBLIC_URL%/images/import.png"
+            />
+            <div className="import-page">
+                <div className="import-section">
+                    {!file ? (
+                        <>
+                            <div className='instructions'>Upload image from the wuwa discord bot</div>
+                            <ImportUploader onFilesSelected={handleFilesSelected} />
+                        </>
+                    ) : (
+                        <div className="preview-container">
+                            <div className={`image-container ${isProcessing ? 'processing' : ''}`}>
+                                <ImportPreview src={URL.createObjectURL(file)} />
+                            </div>
+                            <div className="button-container">
+                                <button className="import-button delete" onClick={handleDelete}>
+                                    Delete
+                                </button>
+                                <button 
+                                    className="import-button process"
+                                    onClick={() => processRef.current?.()}
+                                    disabled={isProcessing}
+                                >
+                                    {isProcessing ? (
+                                        <span className="button-content">
+                                            <div className="loading-spinner" />
+                                            Processing...
+                                        </span>
+                                    ) : 'Process'}
+                                </button>
+                                <Process image={file}
+                                    onProcessStart={() => setIsProcessing(true)}
+                                    onRegionComplete={(region, data) => {
+                                        setResults(prev => ({
+                                            ...prev,
+                                            [region]: data
+                                        }));
+                                    }}
+                                    onProcessComplete={() => setIsProcessing(false)}
+                                    onError={setError}
+                                    triggerRef={processRef}
+                                />
+                            </div>
+                            {error && <div className="error-message">{error}</div>}
+                            {results && <Results results={results} />}
                         </div>
-                        <div className="button-container">
-                            <button className="import-button delete" onClick={handleDelete}>
-                                Delete
-                            </button>
-                            <button 
-                                className="import-button process"
-                                onClick={() => processRef.current?.()}
-                                disabled={isProcessing}
-                            >
-                                {isProcessing ? (
-                                    <span className="button-content">
-                                        <div className="loading-spinner" />
-                                        Processing...
-                                    </span>
-                                ) : 'Process'}
-                            </button>
-                            <Process image={file}
-                                onProcessStart={() => setIsProcessing(true)}
-                                onRegionComplete={(region, data) => {
-                                    setResults(prev => ({
-                                        ...prev,
-                                        [region]: data
-                                    }));
-                                }}
-                                onProcessComplete={() => setIsProcessing(false)}
-                                onError={setError}
-                                triggerRef={processRef}
-                            />
-                        </div>
-                        {error && <div className="error-message">{error}</div>}
-                        {results && <Results results={results} />}
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 };

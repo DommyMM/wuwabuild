@@ -9,6 +9,7 @@ import { calculateCV } from '../hooks/useStats';
 import { cachedCharacters } from '../hooks/useCharacters';
 import { getCachedWeapon } from '../hooks/useWeapons';
 import { toast } from 'react-toastify';
+import { SEO } from '../components/SEO';
 import '../styles/BuildPage.css';
 
 export const BuildsPage: React.FC = () => {
@@ -180,38 +181,44 @@ export const BuildsPage: React.FC = () => {
     };
 
     return (
-        <div className="builds-page">
-            <BuildControls searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                sortBy={sortBy}
-                sortDirection={sortDirection}
-                onSortChange={(sort, direction) => {
-                    setSortBy(sort);
-                    setSortDirection(direction);
-                }}
-                onImport={handleImport}
-                onDeleteAll={handleDeleteAll}
-                deleteAllConfirm={deleteAllConfirm}
+        <>
+            <SEO title="Saved Builds - WuWa Builds"
+                description="View and manage your Wuthering Waves character builds. Search, sort, and export your build collection"
+                image="%PUBLIC_URL%/images/builds.png"
             />
-            <div className="builds-grid">
-                {currentBuilds.map((build, index) => (
-                    <BuildPreview key={build.id}
-                        build={build}
-                        onLoad={handleLoad}
-                        onDelete={handleDelete}
-                        onNameChange={handleNameChange}
-                        deleteConfirm={deleteConfirm}
-                        cv={buildCVs[build.id].toFixed(1)}
-                        />
-                ))}
-                {builds.length === 0 && (
-                    <p className="no-builds">No saved builds yet.</p>
-                )}
-                {builds.length > 0 && filteredAndSortedBuilds.length === 0 && (
-                    <p className="no-builds">No builds match your search.</p>
-                )}
+            <div className="builds-page">
+                <BuildControls searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    sortBy={sortBy}
+                    sortDirection={sortDirection}
+                    onSortChange={(sort, direction) => {
+                        setSortBy(sort);
+                        setSortDirection(direction);
+                    }}
+                    onImport={handleImport}
+                    onDeleteAll={handleDeleteAll}
+                    deleteAllConfirm={deleteAllConfirm}
+                />
+                <div className="builds-grid">
+                    {currentBuilds.map((build, index) => (
+                        <BuildPreview key={build.id}
+                            build={build}
+                            onLoad={handleLoad}
+                            onDelete={handleDelete}
+                            onNameChange={handleNameChange}
+                            deleteConfirm={deleteConfirm}
+                            cv={buildCVs[build.id].toFixed(1)}
+                            />
+                    ))}
+                    {builds.length === 0 && (
+                        <p className="no-builds">No saved builds yet.</p>
+                    )}
+                    {builds.length > 0 && filteredAndSortedBuilds.length === 0 && (
+                        <p className="no-builds">No builds match your search.</p>
+                    )}
+                </div>
+                <Pagination currentPage={currentPage} pageCount={pageCount} onPageChange={handlePageChange} />
             </div>
-            <Pagination currentPage={currentPage} pageCount={pageCount} onPageChange={handlePageChange} />
-        </div>
+        </>
     );
 };

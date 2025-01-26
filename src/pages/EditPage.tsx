@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
+import { SEO } from '../components/SEO';
 import { isRover } from '../types/character';
 import { Weapon, WeaponState } from '../types/weapon';
 import { EchoPanelState, ElementType } from '../types/echo';
@@ -481,86 +482,92 @@ export const EditPage: React.FC = () => {
   }, [echoPanels]);
   
   return (
-    <main className="edit-page" aria-label="Wuthering Waves Build Editor">
-      {showRestore && <RestorePrompt onRestore={handleRestore} onDecline={handleDecline} />}
-      <DailyNotification />
-      <div className="content">
-        <div className="scan-container">
-          <div className="ocr-panel-container">
-            <button onClick={toggleOCRPanel} className="switch">
-              {isOCRPanelOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-              Scan Images
-            </button>
-            <div className={`ocr-panel${isOCRPanelOpen ? ' open' : ''}`}>
-              <div className="panel-content">
-                <Scan onOCRComplete={handleOCRResult}
-                  currentCharacterType={characterState.id ? 
-                    cachedCharacters!.find(c => c.id === characterState.id)?.weaponType.replace(/s$/, '') : 
-                    undefined}
-                />
+    <>
+      <SEO title="Build Editor - WuWa Builds"
+        description="Scan in-game screenshots to create and customize Wuthering Waves builds with real-time stat calculations and build management tools."
+        image="%PUBLIC_URL%/images/edit.png"
+      />
+      <main className="edit-page" aria-label="Wuthering Waves Build Editor">
+        {showRestore && <RestorePrompt onRestore={handleRestore} onDecline={handleDecline} />}
+        <DailyNotification />
+        <div className="content">
+          <div className="scan-container">
+            <div className="ocr-panel-container">
+              <button onClick={toggleOCRPanel} className="switch">
+                {isOCRPanelOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                Scan Images
+              </button>
+              <div className={`ocr-panel${isOCRPanelOpen ? ' open' : ''}`}>
+                <div className="panel-content">
+                  <Scan onOCRComplete={handleOCRResult}
+                    currentCharacterType={characterState.id ? 
+                      cachedCharacters!.find(c => c.id === characterState.id)?.weaponType.replace(/s$/, '') : 
+                      undefined}
+                  />
+                </div>
               </div>
             </div>
           </div>
+          <CharacterSelector onSelect={handleCharacterSelect}
+            selectedCharacter={selectedCharacter}
+            ocrName={ocrName} 
+            onLevelReset={() => setCharacterState(prev => ({ ...prev, level: '1' }))} 
+            initialCharacterId={characterState.id}
+          />
+          <CharacterInfo characterId={characterState.id}
+            selectedCharacter={selectedCharacter}
+            characterLevel={characterState.level}
+            element={characterState.element}
+            onSpectroToggle={handleSpectroToggle}
+            onSequenceChange={handleSequenceChange}
+            onWeaponSelect={handleWeaponSelect}
+            onWeaponConfigChange={handleWeaponConfigChange}
+            weaponState={weaponState}
+            nodeStates={nodeStates}
+            forteLevels={forteLevels}
+            clickCount={clickCount}
+            onMaxClick={handleMaxClick}
+            onForteChange={handleForteChange}
+            ocrData={ocrAnalysis}
+            onLevelChange={handleLevelChange}
+            currentSequence={currentSequence}
+            isMinimized={isCharacterMinimized}
+            onMinimize={() => setIsCharacterMinimized(!isCharacterMinimized)}
+          />
+          <EchoesSection ref={echoesRef}
+            isVisible={characterState.id !== null}
+            isMinimized={isEchoesMinimized}
+            onMinimize={() => setIsEchoesMinimized(!isEchoesMinimized)}
+            initialPanels={echoPanels}
+            onLevelChange={handleEchoLevelChange}
+            onElementSelect={handleEchoElementSelect} 
+            onEchoSelect={handleEchoSelect}
+            onMainStatChange={handleMainStatChange}
+            onSubStatChange={handleSubStatChange}
+            onPanelChange={setEchoPanels}
+            savedEchoes={savedEchoes}
+            onSaveEcho={handleSaveEcho}
+            onLoadEcho={handleLoadEcho}
+            onDeleteEcho={handleDeleteEcho}
+            showCostWarning={showEchoCostWarning}
+            onCostWarningDismiss={() => setShowEchoCostWarning(false)}
+          />
+          <BuildCard characterId={characterState.id}
+            selectedCharacter={selectedCharacter}
+            characterLevel={characterState.level}
+            element={characterState.element}
+            watermark={watermark}
+            onWatermarkChange={handleWatermarkChange}
+            currentSequence={currentSequence}
+            weaponState={weaponState}
+            nodeStates={nodeStates}
+            levels={forteLevels}
+            echoPanels={echoPanels}
+            isVisible={true}
+            isEchoesVisible={!isEchoesMinimized && characterState.id !== null}
+          />
         </div>
-        <CharacterSelector onSelect={handleCharacterSelect}
-          selectedCharacter={selectedCharacter}
-          ocrName={ocrName} 
-          onLevelReset={() => setCharacterState(prev => ({ ...prev, level: '1' }))} 
-          initialCharacterId={characterState.id}
-        />
-        <CharacterInfo characterId={characterState.id}
-          selectedCharacter={selectedCharacter}
-          characterLevel={characterState.level}
-          element={characterState.element}
-          onSpectroToggle={handleSpectroToggle}
-          onSequenceChange={handleSequenceChange}
-          onWeaponSelect={handleWeaponSelect}
-          onWeaponConfigChange={handleWeaponConfigChange}
-          weaponState={weaponState}
-          nodeStates={nodeStates}
-          forteLevels={forteLevels}
-          clickCount={clickCount}
-          onMaxClick={handleMaxClick}
-          onForteChange={handleForteChange}
-          ocrData={ocrAnalysis}
-          onLevelChange={handleLevelChange}
-          currentSequence={currentSequence}
-          isMinimized={isCharacterMinimized}
-          onMinimize={() => setIsCharacterMinimized(!isCharacterMinimized)}
-        />
-        <EchoesSection ref={echoesRef}
-          isVisible={characterState.id !== null}
-          isMinimized={isEchoesMinimized}
-          onMinimize={() => setIsEchoesMinimized(!isEchoesMinimized)}
-          initialPanels={echoPanels}
-          onLevelChange={handleEchoLevelChange}
-          onElementSelect={handleEchoElementSelect} 
-          onEchoSelect={handleEchoSelect}
-          onMainStatChange={handleMainStatChange}
-          onSubStatChange={handleSubStatChange}
-          onPanelChange={setEchoPanels}
-          savedEchoes={savedEchoes}
-          onSaveEcho={handleSaveEcho}
-          onLoadEcho={handleLoadEcho}
-          onDeleteEcho={handleDeleteEcho}
-          showCostWarning={showEchoCostWarning}
-          onCostWarningDismiss={() => setShowEchoCostWarning(false)}
-        />
-        <BuildCard characterId={characterState.id}
-          selectedCharacter={selectedCharacter}
-          characterLevel={characterState.level}
-          element={characterState.element}
-          watermark={watermark}
-          onWatermarkChange={handleWatermarkChange}
-          currentSequence={currentSequence}
-          weaponState={weaponState}
-          nodeStates={nodeStates}
-          levels={forteLevels}
-          echoPanels={echoPanels}
-          isVisible={true}
-          isEchoesVisible={!isEchoesMinimized && characterState.id !== null}
-        />
-      </div>
-    </main>
+      </main>
+    </>
   );
 };

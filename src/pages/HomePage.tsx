@@ -2,6 +2,7 @@ import React, { useState, useEffect, CSSProperties } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ScanTutorial } from '../components/Home/ScanTutorial';
 import { ImportTutorial } from '../components/Home/ImportTutorial';
+import { SEO } from '../components/SEO';
 import '../styles/Home.css';
 
 const FEATURES = [
@@ -94,70 +95,76 @@ export const HomePage: React.FC = () => {
     };
 
     return (
-        <main className="home-page">
-            <div className="main-content">
-                <section className="overview">
-                    <h3>Build Creator</h3>
-                    <div className="overview-content">
-                        <div className="overview-text">
-                            <div className="typewriter-container">
-                                <span className="dot">·</span>
-                                <span className="typewriter-text">{text}</span>
-                                <span className="cursor">|</span>
+        <>
+            <SEO title="WuWa Builds - Wuthering Waves Build Creator"
+                description="Create, save, and share Wuthering Waves builds with automatic screenshot scanning, real-time stat calculations, and build management tools."
+                image="%PUBLIC_URL%/images/card.png"
+            />
+            <main className="home-page">
+                <div className="main-content">
+                    <section className="overview">
+                        <h3>Build Creator</h3>
+                        <div className="overview-content">
+                            <div className="overview-text">
+                                <div className="typewriter-container">
+                                    <span className="dot">·</span>
+                                    <span className="typewriter-text">{text}</span>
+                                    <span className="cursor">|</span>
+                                </div>
+                            </div>
+                            <div className="carousel"
+                                onMouseEnter={() => setIsHovered(true)}
+                                onMouseLeave={() => setIsHovered(false)}
+                            >
+                                <div className="carousel-container">
+                                    {BUILD_CARDS.map((card, index) => (
+                                        <div key={index}
+                                            className="carousel-item"
+                                            style={getCardStyles(index)}
+                                        >
+                                            <img src={card.src}
+                                                alt={card.alt}
+                                                className="carousel-image"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <button 
+                                    onClick={() => setCurrentCardIndex(prev => 
+                                        (prev - 1 + BUILD_CARDS.length) % BUILD_CARDS.length
+                                    )}
+                                    className="carousel-button carousel-button-left"
+                                >
+                                    <ChevronLeft size={32} />
+                                </button>
+                                <button 
+                                    onClick={() => setCurrentCardIndex(prev => 
+                                        (prev + 1) % BUILD_CARDS.length
+                                    )}
+                                    className="carousel-button carousel-button-right"
+                                >
+                                    <ChevronRight size={32} />
+                                </button>
                             </div>
                         </div>
-                        <div className="carousel"
-                            onMouseEnter={() => setIsHovered(true)}
-                            onMouseLeave={() => setIsHovered(false)}
-                        >
-                            <div className="carousel-container">
-                                {BUILD_CARDS.map((card, index) => (
-                                    <div key={index}
-                                        className="carousel-item"
-                                        style={getCardStyles(index)}
-                                    >
-                                        <img src={card.src}
-                                            alt={card.alt}
-                                            className="carousel-image"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                            <button 
-                                onClick={() => setCurrentCardIndex(prev => 
-                                    (prev - 1 + BUILD_CARDS.length) % BUILD_CARDS.length
-                                )}
-                                className="carousel-button carousel-button-left"
-                            >
-                                <ChevronLeft size={32} />
-                            </button>
-                            <button 
-                                onClick={() => setCurrentCardIndex(prev => 
-                                    (prev + 1) % BUILD_CARDS.length
-                                )}
-                                className="carousel-button carousel-button-right"
-                            >
-                                <ChevronRight size={32} />
-                            </button>
-                        </div>
+                    </section>
+                    <div className="tutorial-toggle">
+                        <button className={`toggle-btn ${tutorialType === "IMPORT" ? "active" : ""}`}
+                            onClick={() => setTutorialType("IMPORT")}>
+                            Import Build
+                        </button>
+                        <button className={`toggle-btn ${tutorialType === "SCAN" ? "active" : ""}`}
+                            onClick={() => setTutorialType("SCAN")}>
+                            Scan Build
+                        </button>
                     </div>
-                </section>
-                <div className="tutorial-toggle">
-                    <button className={`toggle-btn ${tutorialType === "IMPORT" ? "active" : ""}`}
-                        onClick={() => setTutorialType("IMPORT")}>
-                        Import Build
-                    </button>
-                    <button className={`toggle-btn ${tutorialType === "SCAN" ? "active" : ""}`}
-                        onClick={() => setTutorialType("SCAN")}>
-                        Scan Build
-                    </button>
+                    {tutorialType === "SCAN" ? <ScanTutorial /> : <ImportTutorial />}
+                    <section className="disclaimer">
+                        <p>Disclaimer: This is an independent tool and is unaffiliated with Wuthering Waves or Kuro Games.</p>
+                        <p>All game content and materials are trademarks and copyrights of their respective owners.</p>
+                    </section>
                 </div>
-                {tutorialType === "SCAN" ? <ScanTutorial /> : <ImportTutorial />}
-                <section className="disclaimer">
-                    <p>Disclaimer: This is an independent tool and is unaffiliated with Wuthering Waves or Kuro Games.</p>
-                    <p>All game content and materials are trademarks and copyrights of their respective owners.</p>
-                </section>
-            </div>
-        </main>
+            </main>
+        </>
     );
 };
