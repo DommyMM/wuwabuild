@@ -29,6 +29,17 @@ export interface EchoData {
     element: string;
 }
 
+const validateResults = (results: AnalysisData): boolean => {
+    return Boolean(
+        results.character?.name &&
+        results.weapon?.name &&
+        results.forte?.levels?.length === 5 &&
+        results.sequences?.sequence !== undefined &&
+        [results.echo1, results.echo2, results.echo3, results.echo4, results.echo5]
+            .some(echo => echo?.name?.name)
+    );
+};
+
 interface ResultsProps {
     results: AnalysisData;
 }
@@ -146,7 +157,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [convertedBuild, setConvertedBuild] = useState<SavedState | null>(null);
     const navigate = useNavigate();
-    
+    const isValid = validateResults(results);
     const handleImport = () => {
         const build = convertBuild(results, saveToLb);
         setConvertedBuild(build);
@@ -176,8 +187,10 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
                             Save to LB
                         </label>
                         <button 
-                            className="import-build-btn"
+                            className={`import-build-btn ${!isValid ? 'disabled' : ''}`}
                             onClick={handleImport}
+                            disabled={!isValid}
+                            title={!isValid ? "Waiting for all sections to be processed..." : "Import build"}
                         >
                             Import Build
                         </button>

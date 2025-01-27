@@ -101,6 +101,17 @@
     box-shadow: 0 0 8px rgba(166, 150, 98, 0.3);
 }
 
+.import-build-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.import-build-btn:disabled {
+    background: #666;
+    border-color: #555;
+}
+
 .results-header {
     display: flex;
     justify-content: space-between;

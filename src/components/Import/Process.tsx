@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const IMPORT_REGIONS = {
-    "character": { x1: 65, x2: 618, y1: 8, y2: 92 },
+    "character": { x1: 63, x2: 580, y1: 8, y2: 90 },
     "watermark": { x1: 14, x2: 194, y1: 80, y2: 148 },
     "forte": { x1: 779, x2: 1425, y1: 24, y2: 639 },
     "sequences": { x1: 135, x2: 637, y1: 517, y2: 631 },

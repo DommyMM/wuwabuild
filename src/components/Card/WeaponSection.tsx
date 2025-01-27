@@ -112,15 +112,17 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
   });
 
   return (
-    <div className="weapon-container">
-      <div className="weapon-info">
-        <WeaponName name={weapon.name} />
-        <StatsTopRow scaledAtk={scaledStats.scaledAtk} weapon={weapon} scaledMainStat={scaledStats.scaledMainStat} />
-        <StatsBottomRow level={level} rank={rank} />
-        <PassiveText weapon={weapon} stats={scaledStats} characterElement={characterElement} />
-      </div>
+    <div className="weapon-display">
       <RarityStars rarity={weapon.rarity} />
-      <WeaponIcon weapon={weapon} useAltSkin={useAltSkin} />
+      <div className='weapon-container'>
+        <WeaponIcon weapon={weapon} useAltSkin={useAltSkin} />
+        <div className="weapon-info">
+          <WeaponName name={weapon.name} />
+          <StatsTopRow scaledAtk={scaledStats.scaledAtk} weapon={weapon} scaledMainStat={scaledStats.scaledMainStat} />
+          <StatsBottomRow level={level} rank={rank} />
+          <PassiveText weapon={weapon} stats={scaledStats} characterElement={characterElement} />
+        </div>
+      </div>
     </div>
   );
 };

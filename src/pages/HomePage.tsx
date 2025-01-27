@@ -13,11 +13,11 @@ const FEATURES = [
 ];
 
 const BUILD_CARDS = [
-    { src: "/images/card.webp", alt: "Build Card 1" },
-    { src: "/images/card1.webp", alt: "Build Card 2" },
-    { src: "/images/card2.webp", alt: "Build Card 3" },
-    { src: "/images/card3.webp", alt: "Build Card 4" },
-    { src: "/images/card4.webp", alt: "Build Card 5" },
+    { src: "/images/card0.png", alt: "Build Card 1" },
+    { src: "/images/card1.png", alt: "Build Card 2" },
+    { src: "/images/card2.png", alt: "Build Card 3" },
+    { src: "/images/card3.png", alt: "Build Card 4" },
+    { src: "/images/card4.png", alt: "Build Card 5" },
 ];
 
 const TUTORIAL_TYPES = {
