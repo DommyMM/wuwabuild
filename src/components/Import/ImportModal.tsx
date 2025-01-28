@@ -17,13 +17,15 @@ interface ImportModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
+    isLoading?: boolean;
 }
 
 export const ImportModal: React.FC<ImportModalProps> = ({
     build,
     isOpen,
     onClose,
-    onConfirm
+    onConfirm,
+    isLoading = false
 }) => {
     if (!isOpen) return null;
 
@@ -119,8 +121,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 <div className="modal-actions">
                     <span className="convert-disclaimer">Will overwrite your latest build</span>
                     <div className="buttons">
-                        <button onClick={onClose}>Cancel</button>
-                        <button onClick={onConfirm}>Import</button>
+                        <button onClick={onClose} disabled={isLoading}>Cancel</button>
+                        <button onClick={onConfirm} disabled={isLoading}>
+                            {isLoading ? 'Importing...' : 'Import'}
+                        </button>
                     </div>
                 </div>
             </div>

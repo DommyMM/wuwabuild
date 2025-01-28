@@ -4,6 +4,7 @@ import { convertBuild } from './Convert';
 import { SavedState } from '../../types/SavedState';
 import { useNavigate } from 'react-router-dom';
 import { ImportModal } from './ImportModal';
+import { calculateCV } from '../../hooks/useStats';
 import '../../styles/Results.css';
 
 export interface AnalysisData {
@@ -153,8 +154,10 @@ const SequencesSection: React.FC<{ sequences?: { sequence: number } }> = ({ sequ
 );
 
 export const Results: React.FC<ResultsProps> = ({ results }) => {
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
     const [saveToLb, setSaveToLb] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [convertedBuild, setConvertedBuild] = useState<SavedState | null>(null);
     const navigate = useNavigate();
     const isValid = validateResults(results);
@@ -164,10 +167,34 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
         setIsModalOpen(true);
     };
 
-    const handleConfirm = () => {
-        if (convertedBuild) {
+    const submitToLeaderboard = async (build: SavedState) => {
+        const response = await fetch(`${API_URL}/leaderboard`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                buildState: build,
+                cv: calculateCV(build.echoPanels),
+                timestamp: new Date().toISOString()
+            })
+        });
+        if (!response.ok) throw new Error('Failed to submit to leaderboard');
+        return response.json();
+    };
+
+    const handleConfirm = async () => {
+        if (!convertedBuild) return;
+        setIsLoading(true);
+        try {
             localStorage.setItem('last_build', JSON.stringify(convertedBuild));
+            if (saveToLb) {
+                await submitToLeaderboard(convertedBuild);
+            }
             navigate('/edit');
+        } catch (error) {
+            console.error('Failed to submit:', error);
+            navigate('/edit');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -221,6 +248,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onConfirm={handleConfirm}
+                isLoading={isLoading}
             />
         </>
     );

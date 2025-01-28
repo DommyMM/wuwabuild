@@ -751,7 +751,7 @@ input:-webkit-autofill {
     justify-content: center;
     align-items: center;
     height: 30px;
-    width: 20%;
+    width: 25%;
     font-size: 25px;
     border-radius: 10px;
     cursor: pointer;
@@ -762,7 +762,7 @@ input:-webkit-autofill {
 }
 
 .weapon-stat.weapon-level {
-    width: 30%;
+    width: 40%;
 }
 
 .weapon-stat-row {
