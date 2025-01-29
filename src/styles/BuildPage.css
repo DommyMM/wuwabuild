@@ -349,7 +349,9 @@
     .build-date {
         font-size: 12px;
     }
-    
+    .build-sets {
+        font-size: 14px;
+    }
     .builds-controls {
         flex-wrap: wrap;
         gap: 12px;
@@ -383,8 +385,5 @@
     }
     .weap{
         font-size: 16px !important;
-    }
-    .build-sets.healing{
-        font-size: 14px !important;
     }
 }

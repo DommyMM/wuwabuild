@@ -175,6 +175,10 @@
     color: #bfad7d;
 }
 
+.build-sets { 
+    font-size: 28px;
+}
+
 .build-sets.aero { color: #98FB98; }
 .build-sets.er, .build-sets.tidebreaking { color: white; }
 .build-sets.electro { color: #BA55D3; }

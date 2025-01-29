@@ -90,7 +90,7 @@ const LbEntry: React.FC<{ entry: DecompressedEntry; rank: number; onClick: () =>
                     {Object.entries(getSetCounts(entry.buildState.echoPanels))
                         .filter(([_, count]) => count >= 2)
                         .map(([element, count]) => (
-                            <div key={element} className="build-sets">
+                            <div key={element} className="lb-set-container">
                                 <img src={`images/SetIcons/${element}.png`}
                                     alt={element}
                                     className="lb-set"

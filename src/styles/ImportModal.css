@@ -20,7 +20,6 @@
     padding: 2rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
     max-height: 850px;
     cursor: default;
 }
@@ -67,8 +66,8 @@
 }
 
 .import-row:first-of-type {
-    margin-bottom: 1.5rem;
-    height: 35vh;
+    height: 37vh;
+    margin-bottom: 8px;
 }
 
 .char-convert, .weap-convert {

@@ -37,9 +37,9 @@ export const getSetInfo = (echoPanels: EchoPanelState[]) => {
         .filter(([_, count]) => count >= 2)
         .map(([element, count], index, array) => (
             <React.Fragment key={element}>
-                <span className={`build-sets ${element.toLowerCase()}`}>
+                <div className={`build-sets ${element.toLowerCase()}`}>
                     {ELEMENT_SETS[element as keyof typeof ELEMENT_SETS]} ({count})
-                </span>
+                </div>
                 {index < array.length - 1 && " • "}
             </React.Fragment>
         ));
