@@ -136,7 +136,7 @@ export const ImportPage: React.FC = () => {
         <>
             <SEO title="Import Builds - WuWa Builds"
                 description="Import builds directly from the official wuwa-bot. One click, hassle-free."
-                image="%PUBLIC_URL%/images/import.png"
+                image="https://www.wuwabuilds.moe/images/import.png"
             />
             <div className="import-page">
                 <div className="import-section">

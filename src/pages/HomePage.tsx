@@ -98,7 +98,7 @@ export const HomePage: React.FC = () => {
         <>
             <SEO title="WuWa Builds - Wuthering Waves Build Creator"
                 description="Create, save, and share Wuthering Waves builds with automatic screenshot scanning, real-time stat calculations, and build management tools."
-                image="%PUBLIC_URL%/images/card.png"
+                image="https://www.wuwabuilds.moe/images/card0.png"
             />
             <main className="home-page">
                 <div className="main-content">

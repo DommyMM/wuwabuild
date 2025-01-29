@@ -485,7 +485,7 @@ export const EditPage: React.FC = () => {
     <>
       <SEO title="Build Editor - WuWa Builds"
         description="Scan in-game screenshots to create and customize Wuthering Waves builds with real-time stat calculations and build management tools."
-        image="%PUBLIC_URL%/images/edit.png"
+        image="https://www.wuwabuilds.moe/images/edit.png"
       />
       <main className="edit-page" aria-label="Wuthering Waves Build Editor">
         {showRestore && <RestorePrompt onRestore={handleRestore} onDecline={handleDecline} />}

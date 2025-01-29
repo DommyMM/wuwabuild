@@ -5,15 +5,23 @@ import { Weapon, ScaledStats } from '../types/weapon';
 import { useCharacterCurves } from './useCharacterCurves';
 import { EchoPanelState, ELEMENT_SETS, ElementType, ECHO_BONUSES } from '../types/echo';
 import { getCachedEchoes } from './useEchoes';
+import { STAT_MAP } from '../components/Build/Backup';
 
 export interface StatsData {
   stats: StatName[];
 }
 
-export interface StatState {
+interface StatBreakdown {
+  flat: number;
+  percent: number;
+  echoDefault: number;
+}
+
+interface StatState {
   values: Record<StatName, number>;
   updates: Record<StatName, number>;
   baseValues: Record<StatName, number>;
+  breakdowns?: Record<'HP' | 'ATK' | 'DEF', StatBreakdown>;
 }
 
 export interface UseStatsProps {
@@ -158,6 +166,76 @@ export const getStatsData = async () => {
     return data;
 };
 
+export interface CompressedStatBreakdown {
+    f: number;
+    p: number;
+    e: number;
+}
+
+export interface CompressedStats {
+    v: Record<string, number>;
+    u: Record<string, number>;
+    b: Record<string, CompressedStatBreakdown>;
+}
+
+export const compressStats = (state: StatState): CompressedStats => ({
+    v: Object.entries(state.values)
+        .filter(([_, v]) => v !== 0)
+        .reduce((acc, [k, v]) => ({
+            ...acc,
+            [STAT_MAP[k as keyof typeof STAT_MAP] || k]: v
+        }), {}),
+    u: Object.entries(state.updates)
+        .filter(([_, v]) => v !== 0)
+        .reduce((acc, [k, v]) => ({
+            ...acc,
+            [STAT_MAP[k as keyof typeof STAT_MAP] || k]: v
+        }), {}),
+    b: Object.entries(state.breakdowns || {})
+        .reduce((acc, [k, v]) => ({
+            ...acc,
+            [STAT_MAP[k as keyof typeof STAT_MAP] || k]: {
+                f: v.flat,
+                p: v.percent,
+                e: v.echoDefault
+            }
+        }), {})
+});
+
+export const REVERSE_STAT_MAP = Object.entries(STAT_MAP).reduce(
+    (acc, [key, value]) => ({ ...acc, [value]: key }), 
+    {} as Record<string, string>
+);
+
+export const decompressStats = (compressed: CompressedStats): StatState => ({
+    values: Object.entries(compressed.v).reduce((acc, [k, v]) => ({
+        ...acc,
+        [REVERSE_STAT_MAP[k] || k]: v
+    }), {} as Record<StatName, number>),
+    
+    updates: Object.entries(compressed.u).reduce((acc, [k, v]) => ({
+        ...acc,
+        [REVERSE_STAT_MAP[k] || k]: v
+    }), {} as Record<StatName, number>),
+    
+    breakdowns: Object.entries(compressed.b).reduce((acc, [k, v]) => {
+        const key = REVERSE_STAT_MAP[k] || k;
+        if (['HP', 'ATK', 'DEF'].includes(key)) {
+            return {
+                ...acc,
+                [key]: {
+                    flat: v.f,
+                    percent: v.p,
+                    echoDefault: v.e
+                }
+            };
+        }
+        return acc;
+    }, {} as Record<'HP' | 'ATK' | 'DEF', StatBreakdown>),
+    
+    baseValues: {} as Record<StatName, number>
+});
+
 export const useStats = ({
   character,
   level,
@@ -233,21 +311,31 @@ export const useStats = ({
     [firstEcho]
   );
 
-  const calculateStats = useCallback((stat: StatName) => {
+  interface StatResult {
+    value: number;
+    update: number;
+    baseValue: number;
+    breakdown?: StatBreakdown;
+  }
+
+  const calculateStats = useCallback((stat: StatName): StatResult | null => {
     if (!character || !baseStats || !forteBonus) return null;
 
     const displayStat = getDisplayName(stat);
-    const result = {
-      value: 0,
-      update: 0,
-      baseValue: 0
+    const result: StatResult = {
+        value: 0,
+        update: 0,
+        baseValue: 0
     };
 
     if (['HP', 'ATK', 'DEF'].includes(displayStat)) {
       const baseStat = displayStat as BaseStatName;
       result.baseValue = displayStat === 'HP' ? baseStats.baseHP : displayStat === 'ATK' ? baseStats.baseATK : baseStats.baseDEF;
-      const flat = sumMainStats(baseStat, echoPanels) + sumSubStats(baseStat, echoPanels) + (baseStat === 'HP' ? echoStats.hp : baseStat === 'ATK' ? echoStats.atk : 0);
+      const echoDefault = baseStat === 'HP' ? echoStats.hp : baseStat === 'ATK' ? echoStats.atk : 0;
+      const flat = sumMainStats(baseStat, echoPanels) + sumSubStats(baseStat, echoPanels);
       let percent = sumMainStats(getPercentVariant(baseStat), echoPanels) + sumSubStats(getPercentVariant(baseStat), echoPanels);
+      
+      result.breakdown = { flat, percent, echoDefault };
       
       if (weapon && weaponStats) {
         const percentStatName = `${displayStat}%`;
@@ -264,7 +352,7 @@ export const useStats = ({
       if (character.Bonus2 === displayStat) {
         percent += forteBonus.bonus2Total;
       }
-      result.value = Math.round(result.baseValue * (1 + percent/100)) + flat;
+      result.value = Math.round(result.baseValue * (1 + percent/100)) + flat + echoDefault;
       result.update = result.value - result.baseValue;
     } else {
       result.baseValue = displayStat === 'Crit Rate' ? 5.0 : displayStat === 'Crit DMG' ? 150.0 : displayStat === 'Energy Regen' ? character.ER : 0;
@@ -350,6 +438,7 @@ export const useStats = ({
       const newValues = {} as Record<StatName, number>;
       const newUpdates = {} as Record<StatName, number>;
       const newBaseValues = {} as Record<StatName, number>;
+      const newBreakdowns = {} as Record<'HP' | 'ATK' | 'DEF', StatBreakdown>;
 
       statsData.stats.forEach(stat => {
         const result = calculateStats(stat);
@@ -358,6 +447,9 @@ export const useStats = ({
           newValues[displayStat] = result.value;
           newUpdates[displayStat] = result.update;
           newBaseValues[displayStat] = result.baseValue;
+          if (result.breakdown && ['HP', 'ATK', 'DEF'].includes(displayStat)) {
+            newBreakdowns[displayStat as 'HP' | 'ATK' | 'DEF'] = result.breakdown;
+          }
         }
       });
 
@@ -369,7 +461,8 @@ export const useStats = ({
         setStatState({ 
           values: newValues, 
           updates: newUpdates, 
-          baseValues: newBaseValues 
+          baseValues: newBaseValues,
+          breakdowns: newBreakdowns
         });
       }
 

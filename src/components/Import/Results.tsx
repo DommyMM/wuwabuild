@@ -1,11 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Marquee from 'react-fast-marquee';
 import { convertBuild } from './Convert';
 import { SavedState } from '../../types/SavedState';
 import { useNavigate } from 'react-router-dom';
 import { ImportModal } from './ImportModal';
-import { calculateCV } from '../../hooks/useStats';
 import { compressData } from '../Build/Backup';
+import { useLevelCurves } from '../../hooks/useLevelCurves';
+import { useStats } from '../../hooks/useStats';
+import { calculateWeaponStats } from '../Edit/BuildCard';
+import { cachedCharacters } from '../../hooks/useCharacters';
+import { getCachedWeapon } from '../../hooks/useWeapons';
+import { compressStats } from '../../hooks/useStats';
 import '../../styles/Results.css';
 
 export interface AnalysisData {
@@ -163,25 +168,69 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
     const [convertedBuild, setConvertedBuild] = useState<SavedState | null>(null);
     const navigate = useNavigate();
     const isValid = validateResults(results);
+    const { scaleAtk, scaleStat } = useLevelCurves();
+    
+    const statsInput = useMemo(() => {
+        if (!convertedBuild || !saveToLb) return null;
+        
+        const character = cachedCharacters?.find(c => 
+            c.id === convertedBuild.characterState.id
+        ) ?? null;
+        
+        const weapon = convertedBuild.weaponState.id ? 
+            getCachedWeapon(convertedBuild.weaponState.id) : null;
+            
+        const weaponStats = calculateWeaponStats(
+            weapon,
+            convertedBuild.weaponState,
+            scaleAtk,
+            scaleStat
+        );
+        
+        return {
+            character,
+            level: convertedBuild.characterState.level,
+            weapon,
+            weaponStats,
+            echoPanels: convertedBuild.echoPanels,
+            nodeStates: convertedBuild.nodeStates
+        };
+    }, [convertedBuild, saveToLb, scaleAtk, scaleStat]);
+
+    const stats = useStats(statsInput ?? {
+        character: null,
+        level: '1',
+        weapon: null,
+        weaponStats: undefined,
+        echoPanels: [],
+        nodeStates: {}
+    });
+    
     const handleImport = () => {
         const build = convertBuild(results, saveToLb);
         setConvertedBuild(build);
         setIsModalOpen(true);
     };
-
+    
     const submitToLeaderboard = async (build: SavedState) => {
-        const compressed = compressData({ state: build });
-        const response = await fetch(`${LB_URL}/leaderboard`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                buildState: compressed.state,
-                cv: calculateCV(build.echoPanels),
-                timestamp: new Date().toISOString()
-            })
-        });
-        if (!response.ok) throw new Error('Failed to submit to leaderboard');
-        return response.json();
+        if (saveToLb) {
+            const { values, updates, breakdowns, baseValues, cv } = stats;
+            const compressed = compressData({ state: build });
+            const compressedStats = compressStats({ values, updates, breakdowns, baseValues });
+            const response = await fetch(`${LB_URL}/leaderboard`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    buildState: compressed.state,
+                    stats: compressedStats,
+                    cv,
+                    timestamp: new Date().toISOString()
+                })
+            });
+            
+            if (!response.ok) throw new Error('Failed to submit to leaderboard');
+            return response.json();
+        }
     };
 
     const handleConfirm = async () => {

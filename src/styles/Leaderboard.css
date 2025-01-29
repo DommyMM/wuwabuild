@@ -69,14 +69,6 @@
     border-color: #a69662;
 }
 
-.lb-main-content {
-    display: grid;
-    grid-template-columns: 60px 150px 200px 120px 120px 140px 80px 300px;
-    gap: 16px;
-    padding: 12px 16px;
-    align-items: center;
-}
-
 .lb-expanded-content {
     padding: 16px;
     border-top: 1px solid #333;

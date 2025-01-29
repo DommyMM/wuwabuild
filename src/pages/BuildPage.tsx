@@ -184,7 +184,7 @@ export const BuildsPage: React.FC = () => {
         <>
             <SEO title="Saved Builds - WuWa Builds"
                 description="View and manage your Wuthering Waves character builds. Search, sort, and export your build collection"
-                image="%PUBLIC_URL%/images/builds.png"
+                image="https://www.wuwabuilds.moe/images/builds.png"
             />
             <div className="builds-page">
                 <BuildControls searchTerm={searchTerm}

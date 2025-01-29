@@ -9,7 +9,7 @@ interface SEOProps {
 export const SEO = ({ 
     title,
     description,
-    image = "%PUBLIC_URL%/images/card.png"
+    image = "https://www.wuwabuilds.moe/images/card.png"
 }: SEOProps) => (
     <Helmet>
         {/* Basic */}
@@ -19,7 +19,7 @@ export const SEO = ({
 
         {/* OpenGraph */}
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://wuwabuilds.moe" />
+        <meta property="og:url" content="https://www.wuwabuilds.moe" />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:image" content={image} />
@@ -27,9 +27,9 @@ export const SEO = ({
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:url" content="https://wuwabuilds.moe" />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={description} />
-        <meta name="twitter:image" content={image} />
+        <meta name="twitter:url" content="https://www.wuwabuilds.moe" />
+        <meta property="twitter:title" content={title} />
+        <meta property="twitter:description" content={description} />
+        <meta property="twitter:image" content={image} />
     </Helmet>
 );
