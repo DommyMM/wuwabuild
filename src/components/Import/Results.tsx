@@ -5,6 +5,7 @@ import { SavedState } from '../../types/SavedState';
 import { useNavigate } from 'react-router-dom';
 import { ImportModal } from './ImportModal';
 import { calculateCV } from '../../hooks/useStats';
+import { compressData } from '../Build/Backup';
 import '../../styles/Results.css';
 
 export interface AnalysisData {
@@ -153,8 +154,9 @@ const SequencesSection: React.FC<{ sequences?: { sequence: number } }> = ({ sequ
     </div>
 );
 
+export const LB_URL = process.env.REACT_APP_LB_URL || 'http://localhost:3001';
+
 export const Results: React.FC<ResultsProps> = ({ results }) => {
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
     const [saveToLb, setSaveToLb] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -168,11 +170,12 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
     };
 
     const submitToLeaderboard = async (build: SavedState) => {
-        const response = await fetch(`${API_URL}/leaderboard`, {
+        const compressed = compressData({ state: build });
+        const response = await fetch(`${LB_URL}/leaderboard`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                buildState: build,
+                buildState: compressed.state,
                 cv: calculateCV(build.echoPanels),
                 timestamp: new Date().toISOString()
             })

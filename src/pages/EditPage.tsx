@@ -552,19 +552,16 @@ export const EditPage: React.FC = () => {
             showCostWarning={showEchoCostWarning}
             onCostWarningDismiss={() => setShowEchoCostWarning(false)}
           />
-          <BuildCard characterId={characterState.id}
-            selectedCharacter={selectedCharacter}
-            characterLevel={characterState.level}
-            element={characterState.element}
-            watermark={watermark}
-            onWatermarkChange={handleWatermarkChange}
-            currentSequence={currentSequence}
+          <BuildCard characterState={characterState}
             weaponState={weaponState}
+            watermark={watermark}
+            currentSequence={currentSequence}
             nodeStates={nodeStates}
-            levels={forteLevels}
+            forteLevels={forteLevels}
             echoPanels={echoPanels}
             isVisible={true}
             isEchoesVisible={!isEchoesMinimized && characterState.id !== null}
+            onWatermarkChange={handleWatermarkChange}
           />
         </div>
       </main>

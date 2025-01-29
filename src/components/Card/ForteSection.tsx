@@ -6,7 +6,7 @@ interface ForteSectionProps {
   character: Character;
   elementValue: string;
   nodeStates: Record<string, Record<string, boolean>>;
-  levels: Record<string, number>;
+  forteLevels: Record<string, number>;
 }
 
 const getStatClass = (imagePath: string) => {
@@ -113,7 +113,7 @@ export const ForteSection: React.FC<ForteSectionProps> = ({
   character,
   elementValue,
   nodeStates,
-  levels
+  forteLevels
 }) => {
   const branches = [
     { type: 'circle', name: 'normal-attack', tree: 'tree1' },
@@ -135,7 +135,7 @@ export const ForteSection: React.FC<ForteSectionProps> = ({
             top: nodeStates[branch.tree]?.top || false,
             middle: nodeStates[branch.tree]?.middle || false
           }}
-          level={levels[branch.name] || 1}
+          level={forteLevels[branch.name] || 1}
         />
       ))}
       <img className="max" src="images/Resources/Max.png" alt="Forte Max Frame" />

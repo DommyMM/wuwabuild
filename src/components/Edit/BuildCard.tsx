@@ -7,6 +7,7 @@ import { ForteSection } from '../Card/ForteSection';
 import { EchoDisplay } from '../Card/EchoDisplay';
 import { StatSection } from '../Card/StatSection';
 import { Character } from '../../types/character';
+import { cachedCharacters } from '../../hooks/useCharacters';
 import { WeaponState } from '../../types/weapon';
 import { getCachedWeapon } from '../../hooks/useWeapons';
 import { getCachedEchoes } from '../../hooks/useEchoes';
@@ -21,41 +22,184 @@ import { toast } from 'react-toastify';
 import { Pencil, ImageDownIcon, Download, Database } from 'lucide-react';
 import '../../styles/Build.css';
 
-interface BuildCardProps {
-  characterId: string | null;
-  selectedCharacter: Character | null;
-  characterLevel: string;
-  element?: string;
-  isVisible: boolean;
-  isEchoesVisible: boolean;
-  currentSequence: number;
-  nodeStates: Record<string, Record<string, boolean>>;
-  levels: Record<string, number>;
+export const calculateWeaponStats = (
+  selectedWeapon: ReturnType<typeof getCachedWeapon>,
+  weaponState: WeaponState,
+  scaleAtk: ReturnType<typeof useLevelCurves>['scaleAtk'],
+  scaleStat: ReturnType<typeof useLevelCurves>['scaleStat']
+) => selectedWeapon ? {
+  scaledAtk: scaleAtk(selectedWeapon.ATK, weaponState.level),
+  scaledMainStat: scaleStat(selectedWeapon.base_main, weaponState.level),
+  scaledPassive: selectedWeapon.passive_stat 
+    ? Number((selectedWeapon.passive_stat * (1 + ((weaponState.rank - 1) * 0.25))).toFixed(1)) 
+    : undefined,
+  scaledPassive2: selectedWeapon.passive_stat2
+    ? Number((selectedWeapon.passive_stat2 * (1 + ((weaponState.rank - 1) * 0.25))).toFixed(1)) 
+    : undefined
+} : undefined;
+
+export const formatStatValue = (stat: StatName, value: number): string => {
+  const flatStats = ['HP', 'ATK', 'DEF'];
+  return flatStats.includes(stat) ? Math.round(value).toString() : `${value.toFixed(1)}%`;
+};
+
+export const hasTwoFourCosts = (panels: EchoPanelState[]): boolean => {
+  return panels.filter(panel => {
+    const echo = getCachedEchoes(panel.id);
+    return echo?.cost === 4;
+  }).length === 2;
+};
+
+export const getCVClass = (cv: number, panels: EchoPanelState[]): string => {
+  const hasDouble4Cost = hasTwoFourCosts(panels);
+  const adjustedCV = hasDouble4Cost ? cv - 44 : cv;
+  if (adjustedCV >= 230) return 'goat';
+  if (adjustedCV >= 220) return 'excellent';
+  if (adjustedCV >= 205) return 'high'; 
+  if (adjustedCV >= 195) return 'good';
+  if (adjustedCV >= 175) return 'decent';
+  return 'low';
+};
+
+export const calculateSets = (echoPanels: EchoPanelState[]): Array<{ element: ElementType; count: number }> => {
+  const elementCounts = echoPanels.reduce((counts, panel) => {
+    if (!panel.id) return counts;
+    const echo = getCachedEchoes(panel.id);
+    if (!echo) return counts;
+    const element = panel.selectedElement || echo.elements[0];
+    counts[element] = (counts[element] || 0) + 1;
+    return counts;
+  }, {} as Record<ElementType, number>);
+
+  return Object.entries(elementCounts)
+    .filter(([_, count]) => count >= 2)
+    .map(([element, count]) => ({
+      element: element as ElementType,
+      count: count >= 5 ? 5 : 2
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 2);
+};
+
+export const hashBuildData = (state: SavedState): string => {
+  const data = [
+    state.characterState.id, 
+    state.characterState.level,
+    state.characterState.element,
+    state.weaponState.id,
+    state.weaponState.level,
+    state.weaponState.rank,
+    state.currentSequence,
+    JSON.stringify(state.echoPanels),
+    JSON.stringify(state.nodeStates),
+    JSON.stringify(state.forteLevels)
+  ].join('-');
+
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36).slice(0, 6);
+};
+
+export interface StatsInput {
+  character: Character | null;
+  level: string;
+  weapon: ReturnType<typeof getCachedWeapon>;
+  weaponStats: ReturnType<typeof calculateWeaponStats>;
   echoPanels: EchoPanelState[];
+  nodeStates: Record<string, Record<string, boolean>>;
+}
+
+export const calculateDisplayStats = (
+  values: Record<StatName, number>,
+  baseValues: Record<StatName, number>,
+  updates: Record<StatName, number>
+) => Object.entries(values)
+  .filter(([_, value]) => value !== 0)
+  .map(([stat, value]) => ({
+    name: stat as StatName,
+    value: formatStatValue(stat as StatName, value as number),
+    baseValue: baseValues[stat as StatName],
+    update: updates[stat as StatName]
+  }));
+
+export const calculateElementStates = (sets: ReturnType<typeof calculateSets>, echoPanels: EchoPanelState[]) => {
+  const leftStates = Array(5).fill('none');
+  const rightStates = Array(5).fill('none');
+  sets.forEach((set, setIndex) => {
+    const states = setIndex === 0 ? leftStates : rightStates;
+    const element = set.element;
+    let startIndex = -1;
+    for (let i = 0; i < echoPanels.length; i++) {
+      const panelElement = (() => {
+        const echo = getCachedEchoes(echoPanels[i].id);
+        return echoPanels[i].selectedElement || (echo?.elements[0] ?? null);
+      })();
+      if (panelElement === element) {
+        states[i] = 'start';
+        startIndex = i;
+        break;
+      }
+    }
+    if (startIndex !== -1) {
+      for (let i = echoPanels.length - 1; i > startIndex; i--) {
+        const panelElement = (() => {
+          const echo = getCachedEchoes(echoPanels[i].id);
+          return echoPanels[i].selectedElement || (echo?.elements[0] ?? null);
+        })();
+        if (panelElement === element) {
+          states[i] = 'end';
+          for (let j = startIndex + 1; j < i; j++) {
+            const middleElement = (() => {
+              const echo = getCachedEchoes(echoPanels[j].id);
+              return echoPanels[j].selectedElement || (echo?.elements[0] ?? null);
+            })();
+            states[j] = 'continue' + (middleElement === element ? ' connect' : '');
+          }
+          break;
+        }
+      }
+    }
+  });
+  return { leftStates, rightStates };
+};
+
+interface BuildCardProps {
+  characterState: {
+    id: string | null;
+    level: string;
+    element?: string;
+  };
+  weaponState: WeaponState;
   watermark: {
     username: string;
     uid: string;
   };
+  currentSequence: number;
+  nodeStates: Record<string, Record<string, boolean>>;
+  forteLevels: Record<string, number>;
+  echoPanels: EchoPanelState[];
+  isVisible: boolean;
+  isEchoesVisible: boolean;
   onWatermarkChange: (watermark: { username: string; uid: string }) => void;
   onSaveBuild?: () => void;
-  weaponState: WeaponState; 
 }
 
 export const BuildCard: React.FC<BuildCardProps> = ({
-  isVisible,
-  isEchoesVisible,
-  characterId,
-  selectedCharacter,
-  characterLevel,
-  element,
+  characterState,
+  weaponState,
+  watermark,
   currentSequence,
   nodeStates,
-  levels,
+  forteLevels,
   echoPanels,
-  watermark,
+  isVisible,
+  isEchoesVisible,
   onWatermarkChange,
-  onSaveBuild,
-  weaponState
+  onSaveBuild
 }) => {
   useStatHighlight();
   const [isTabVisible, setIsTabVisible] = useState(false);
@@ -68,8 +212,12 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const [artSource, setArtSource] = useState<string>('');
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const tabRef = useRef<HTMLDivElement>(null);
-
   const { scaleAtk, scaleStat } = useLevelCurves();
+
+  const selectedCharacter = useMemo(() => 
+    characterState.id ? cachedCharacters?.find(c => c.id === characterState.id) : null,
+    [characterState.id]
+  );
 
   const selectedWeapon = useMemo(() => 
     getCachedWeapon(weaponState.id),
@@ -77,124 +225,47 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   );
 
   const weaponStats = useMemo(() => 
-    selectedWeapon ? {
-      scaledAtk: scaleAtk(selectedWeapon.ATK, weaponState.level),
-      scaledMainStat: scaleStat(selectedWeapon.base_main, weaponState.level),
-      scaledPassive: selectedWeapon.passive_stat 
-        ? Number((selectedWeapon.passive_stat * (1 + ((weaponState.rank - 1) * 0.25))).toFixed(1)) 
-        : undefined,
-      scaledPassive2: selectedWeapon.passive_stat2
-        ? Number((selectedWeapon.passive_stat2 * (1 + ((weaponState.rank - 1) * 0.25))).toFixed(1)) 
-        : undefined
-    } : undefined,
+    calculateWeaponStats(selectedWeapon, weaponState, scaleAtk, scaleStat),
     [selectedWeapon, weaponState, scaleAtk, scaleStat]
   );
-  const displayName = selectedCharacter ? 
-    (selectedCharacter.name.startsWith('Rover') ? `Rover${element || "Havoc"}` : selectedCharacter.name) : 
-    undefined;
-  const isSpectro = element === "Spectro";
-  const elementValue = selectedCharacter?.name.startsWith('Rover') ? 
-    element || "Havoc" : 
-    selectedCharacter?.element;
+
+  const displayName = useMemo(() => 
+    selectedCharacter ? 
+      (selectedCharacter.name.startsWith('Rover') ? 
+        `Rover${characterState.element || "Havoc"}` : 
+        selectedCharacter.name) : 
+      undefined,
+    [selectedCharacter, characterState.element]
+  );
+
+  const elementValue = useMemo(() => 
+    selectedCharacter?.name.startsWith('Rover') ? 
+      characterState.element || "Havoc" : 
+      selectedCharacter?.element,
+    [selectedCharacter, characterState.element]
+  );
 
   const statsInput = useMemo(() => ({
-    character: selectedCharacter,
-    level: characterLevel,
-    weapon: selectedWeapon,
+    character: selectedCharacter ?? null,
+    level: characterState.level,
+    weapon: selectedWeapon ?? null,
     weaponStats,
     echoPanels,
-    nodeStates,
-    isSpectro
-  }), [
-    selectedCharacter,
-    characterLevel,
-    selectedWeapon,
-    weaponStats,
-    echoPanels,
-    nodeStates,
-    isSpectro
-  ]);
+    nodeStates
+  }), [selectedCharacter, characterState.level, selectedWeapon, weaponStats, echoPanels, nodeStates]);
 
   const { values, baseValues, updates, cv } = useStats(statsInput);
 
-  const calculateSets = useCallback((): Array<{ element: ElementType; count: number }> => {
-    const elementCounts = echoPanels.reduce((counts, panel) => {
-      if (!panel.id) return counts;
-      const echo = getCachedEchoes(panel.id);
-      if (!echo) return counts;
-      const element = panel.selectedElement || echo.elements[0];
-      counts[element] = (counts[element] || 0) + 1;
-      return counts;
-    }, {} as Record<ElementType, number>);
-  
-    return Object.entries(elementCounts)
-      .filter(([_, count]) => count >= 2)
-      .map(([element, count]) => ({
-        element: element as ElementType,
-        count: count >= 5 ? 5 : 2
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 2);
-  }, [echoPanels]);
-
-  const formatStatValue = (stat: StatName, value: number): string => {
-    const flatStats = ['HP', 'ATK', 'DEF'];
-    return flatStats.includes(stat) ? Math.round(value).toString() : `${value.toFixed(1)}%`;
-  };
-
   const displayStats = useMemo(() => 
-    Object.entries(values)
-      .filter(([_, value]) => value !== 0)
-      .map(([stat, value]) => ({
-        name: stat as StatName,
-        value: formatStatValue(stat as StatName, value as number),
-        baseValue: baseValues[stat as StatName],
-        update: updates[stat as StatName]
-      })),
+    calculateDisplayStats(values, baseValues, updates),
     [values, baseValues, updates]
   );
 
   const { elementSets, leftStates, rightStates } = useMemo(() => {
-    const sets = calculateSets();
-    const leftStates = Array(5).fill('none');
-    const rightStates = Array(5).fill('none');
-    sets.forEach((set, setIndex) => {
-      const states = setIndex === 0 ? leftStates : rightStates;
-      const element = set.element;
-      let startIndex = -1;
-      for (let i = 0; i < echoPanels.length; i++) {
-        const panelElement = (() => {
-          const echo = getCachedEchoes(echoPanels[i].id);
-          return echoPanels[i].selectedElement || (echo?.elements[0] ?? null);
-        })();
-        if (panelElement === element) {
-          states[i] = 'start';
-          startIndex = i;
-          break;
-        }
-      }
-      if (startIndex !== -1) {
-        for (let i = echoPanels.length - 1; i > startIndex; i--) {
-          const panelElement = (() => {
-            const echo = getCachedEchoes(echoPanels[i].id);
-            return echoPanels[i].selectedElement || (echo?.elements[0] ?? null);
-          })();
-          if (panelElement === element) {
-            states[i] = 'end';
-            for (let j = startIndex + 1; j < i; j++) {
-              const middleElement = (() => {
-                const echo = getCachedEchoes(echoPanels[j].id);
-                return echoPanels[j].selectedElement || (echo?.elements[0] ?? null);
-              })();
-              states[j] = 'continue' + (middleElement === element ? ' connect' : '');
-            }
-            break;
-          }
-        }
-      }
-    });
-    return { elementSets: sets, leftStates, rightStates };
-  }, [echoPanels, calculateSets]);
+    const sets = calculateSets(echoPanels);
+    const states = calculateElementStates(sets, echoPanels);
+    return { elementSets: sets, ...states };
+  }, [echoPanels]);
 
   const handleGenerate = useCallback(() => {
     if (!isTabVisible) setIsTabVisible(true);
@@ -243,39 +314,13 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     setIsSaveModalOpen(true);
   };
 
-  const hashBuildData = (state: SavedState): string => {
-    const data = [state.characterState.id, 
-      state.characterState.level,
-      state.characterState.element,
-      state.weaponState.id,
-      state.weaponState.level,
-      state.weaponState.rank,
-      state.currentSequence,
-      JSON.stringify(state.echoPanels),
-      JSON.stringify(state.nodeStates),
-      JSON.stringify(state.forteLevels)
-    ].join('-');
-  
-    let hash = 0;
-    for (let i = 0; i < data.length; i++) {
-      const char = data.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36).slice(0, 6);
-  };
-  
   const handleSaveConfirm = (name: string) => {
     const state: SavedState = {
-      characterState: {
-        id: characterId,
-        level: characterLevel,  
-        element
-      },
+      characterState,
       currentSequence,
       weaponState,
       nodeStates,
-      forteLevels: levels,
+      forteLevels,
       echoPanels,
       watermark
     };
@@ -312,23 +357,6 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     }
   }, [isEchoesVisible, hasBeenVisible]);
 
-  const hasTwoFourCosts = (panels: EchoPanelState[]): boolean => {
-    return panels.filter(panel => {
-      const echo = getCachedEchoes(panel.id);
-      return echo?.cost === 4;
-    }).length === 2;
-  };
-  
-  const getCVClass = (cv: number): string => {
-    const hasDouble4Cost = hasTwoFourCosts(echoPanels);
-    const adjustedCV = hasDouble4Cost ? cv - 44 : cv;
-    if (adjustedCV >= 230) return 'goat';
-    if (adjustedCV >= 220) return 'excellent';
-    if (adjustedCV >= 205) return 'high'; 
-    if (adjustedCV >= 195) return 'good';
-    if (adjustedCV >= 175) return 'decent';
-    return 'low';
-  };
   if (!isVisible) return null;
 
   return (
@@ -365,8 +393,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
             {isTabVisible && selectedCharacter && elementValue && (
               <>
                 <CharacterSection character={selectedCharacter} 
-                  level={characterLevel}
-                  isSpectro={isSpectro}
+                  level={characterState.level}
                   currentSequence={currentSequence}
                   username={watermark.username}
                   isEditMode={isEditMode}
@@ -379,7 +406,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                 <ForteSection character={{...selectedCharacter, name: displayName || selectedCharacter.name}}
                   elementValue={elementValue}
                   nodeStates={nodeStates}
-                  levels={levels}
+                  forteLevels={forteLevels}
                 />
                 {selectedWeapon && weaponStats && (
                   <WeaponSection weapon={selectedWeapon}
@@ -392,7 +419,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                 )}
                 </CharacterSection>
                 <StatSection isVisible={isTabVisible} stats={displayStats}/>
-                <EchoDisplay isVisible={isTabVisible} echoPanels={echoPanels} showRollQuality={showRollQuality} leftStates={leftStates} rightStates={rightStates} sets={elementSets} cv={cv} getCVClass={getCVClass}/>
+                <EchoDisplay isVisible={isTabVisible} echoPanels={echoPanels} showRollQuality={showRollQuality} leftStates={leftStates} rightStates={rightStates} sets={elementSets} cv={cv}/>
                 <div className="watermark-container">
                   <div className="username">{watermark.username}</div>
                   <div className="uid">{watermark.uid}</div>

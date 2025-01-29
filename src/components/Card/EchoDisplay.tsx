@@ -15,7 +15,6 @@ export interface EchoDisplayProps {
   rightStates?: Array<'start' | 'continue' | 'end' | 'none'>;
   sets: Array<{ element: ElementType; count: number }>;
   cv: number;
-  getCVClass: (cv: number) => string;
 }
 
 const getEchoPath = (echo: Echo, isPhantom: boolean = false) => {
@@ -200,8 +199,7 @@ export const EchoDisplay: React.FC<EchoDisplayProps> = ({
   leftStates = Array(5).fill('none'),
   rightStates = Array(5).fill('none'),
   sets,
-  cv,
-  getCVClass
+  cv
 }) => {
   if (!isVisible) return null;
 
@@ -234,7 +232,7 @@ export const EchoDisplay: React.FC<EchoDisplayProps> = ({
           <div className={`connector-segment right ${rightStates[index]} ${rightElement}`} />
         </div>
       ))}
-      <SetSection sets={sets} cv={cv} getCVClass={getCVClass} />
+      <SetSection sets={sets} cv={cv} echoPanels={echoPanels} />
     </div>
   );
 };

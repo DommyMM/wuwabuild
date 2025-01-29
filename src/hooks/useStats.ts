@@ -23,7 +23,6 @@ export interface UseStatsProps {
   weaponStats?: ScaledStats;
   echoPanels?: EchoPanelState[];
   nodeStates: Record<string, Record<string, boolean>>;
-  isSpectro?: boolean;
 }
 
 export const SET_TO_STAT_MAPPING = {
@@ -88,8 +87,7 @@ export const sumEchoDefaultStats = (echoPanels: EchoPanelState[]): { atk: number
 
 export const calculateForteBonus = (
   character: Character,
-  nodeStates: Record<string, Record<string, boolean>>,
-  isSpectro?: boolean
+  nodeStates: Record<string, Record<string, boolean>>
 ) => {
   const baseValue1 = character.Bonus1 === 'Crit Rate' ? 4.0 : character.Bonus1 === 'Crit DMG' ? 8.0 : 6.0;
   const baseValue2 = character.Bonus2 === 'DEF' ? 7.6 : 6.0;
@@ -108,7 +106,7 @@ export const calculateForteBonus = (
     }
   });
 
-  const bonus1Type = character.name.startsWith('Rover') ? (isSpectro ? 'Spectro' : 'Havoc') : character.Bonus1;
+  const bonus1Type = character.Bonus1;
 
   return { bonus1Total, bonus2Total, bonus1Type };
 };
@@ -166,8 +164,7 @@ export const useStats = ({
   weapon,
   weaponStats,
   echoPanels = [],
-  nodeStates,
-  isSpectro
+  nodeStates
 }: UseStatsProps) => {
   const [statsData, setStatsData] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -222,8 +219,8 @@ export const useStats = ({
 
   const forteBonus = useMemo(() => {
     if (!character) return null;
-    return calculateForteBonus(character, nodeStates, isSpectro);
-  }, [character, nodeStates, isSpectro]);
+    return calculateForteBonus(character, nodeStates);
+  }, [character, nodeStates]);
 
   const echoStats = useMemo(() => {
     return sumEchoDefaultStats(echoPanels);

@@ -1,5 +1,6 @@
 import React from 'react';
-import { ELEMENT_SETS, ElementType } from '../../types/echo';
+import { ELEMENT_SETS, ElementType, EchoPanelState } from '../../types/echo';
+import { getCVClass } from '../Edit/BuildCard';
 
 interface SetRowProps {
     element: ElementType;
@@ -20,9 +21,14 @@ const SetRow: React.FC<SetRowProps> = ({ element, count }) => {
 interface SetSectionProps {
     sets: Array<{ element: ElementType; count: number }>;
     cv: number;
-    getCVClass: (cv: number) => string;
+    echoPanels: EchoPanelState[];
 }
-export const SetSection: React.FC<SetSectionProps> = ({ sets, cv, getCVClass }) => {
+
+export const SetSection: React.FC<SetSectionProps> = ({ 
+    sets, 
+    cv,
+    echoPanels 
+}) => {
     return (
         <div className="stats-footer">
             {sets[0] && (
@@ -32,7 +38,7 @@ export const SetSection: React.FC<SetSectionProps> = ({ sets, cv, getCVClass }) 
             )}
             <div className="cv-container">
                 <span className="cv-text">CV:</span>
-                <span className={`cv-value ${getCVClass(cv)}`}>
+                <span className={`cv-value ${getCVClass(cv, echoPanels)}`}>
                     {cv.toFixed(1)}
                 </span>
             </div>

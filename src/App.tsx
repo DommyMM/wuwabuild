@@ -5,6 +5,8 @@ import { EditPage } from './pages/EditPage';
 import { HomePage } from './pages/HomePage';
 import { BuildsPage } from './pages/BuildPage';
 import { ImportPage } from './pages/ImportPage';
+import { Leaderboard } from './pages/LeaderboardPage';
+import { HelmetProvider } from 'react-helmet-async';
 import './styles/App.css';
 
 const Layout = () => {
@@ -47,7 +49,8 @@ const router = createBrowserRouter([
       { path: "/", element: <HomePage /> },
       { path: "/edit", element: <EditPage /> },
       { path: "/builds", element: <BuildsPage /> },
-      { path: "/import", element: <ImportPage /> }
+      { path: "/import", element: <ImportPage /> },
+      { path: "/leaderboard", element: <Leaderboard /> }
     ]
   }
 ], {
@@ -61,7 +64,11 @@ const router = createBrowserRouter([
 });
 
 const App: React.FC = () => {
-  return <RouterProvider router={router} />;
+  return (
+    <HelmetProvider>
+      <RouterProvider router={router} />
+    </HelmetProvider>
+  );
 };
 
 export default App;

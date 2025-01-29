@@ -34,6 +34,7 @@
     "react-fast-marquee": "^1.6.5",
     "react-ga4": "^2.1.0",
     "react-helmet": "^6.1.0",
+    "react-helmet-async": "^2.0.5",
     "react-router-dom": "^7.0.1",
     "react-scripts": "^5.0.1",
     "react-toastify": "^11.0.2",

@@ -7,7 +7,6 @@ import { Delete, RefreshCcw, ZoomIn, ZoomOut, Upload } from 'lucide-react';
 interface CharacterSectionProps {
   character: Character;
   level: string;
-  isSpectro: boolean;
   currentSequence: number;
   username?: string;
   isEditMode?: boolean;
@@ -22,7 +21,6 @@ interface CharacterSectionProps {
 export const CharacterSection: React.FC<CharacterSectionProps> = ({ 
   character,
   level = '1',
-  isSpectro = false,
   currentSequence,
   username,
   isEditMode = false,
@@ -46,9 +44,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
     ? username || "Rover" 
     : character.name;
   
-  const elementValue = isRover(character) 
-    ? (isSpectro ? "Spectro" : "Havoc")
-    : character.element;
+  const elementValue = character.element;
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     if (!isEditMode) return;
@@ -217,7 +213,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         )}
         {artSource && (<div className="art-source"> 🎨 {artSource} </div> )}
       </div>
-      <SequenceSection character={character} isSpectro={isSpectro} currentSequence={currentSequence} />
+      <SequenceSection character={character} currentSequence={currentSequence} />
       <div className="char-intro">
         <div className='char-header'>
             <div className="character-name">{characterName}</div>

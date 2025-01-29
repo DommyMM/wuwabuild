@@ -53,11 +53,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                         <span>Lv.{build.characterState.level}</span>
                     </div>
                     <div className="sequence-container">
-                        {character && <SequenceSection 
-                            character={character}
-                            isSpectro={build.characterState.element === 'Spectro'}
-                            currentSequence={build.currentSequence}
-                        />}
+                        {character && <SequenceSection character={character} currentSequence={build.currentSequence}/>}
                     </div>
                     {weapon && (
                         <div className="weap-convert">
@@ -75,7 +71,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                                 character={character}
                                 elementValue={build.characterState.element || character.element}
                                 nodeStates={build.nodeStates}
-                                levels={build.forteLevels}
+                                forteLevels={build.forteLevels}
                             />
                         </div>
                     )}
