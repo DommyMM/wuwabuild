@@ -24,7 +24,7 @@
 
 .lb-header, .lb-main-content {
     display: grid;
-    grid-template-columns: 60px 120px 200px 55px 40px 100px 120px 375px;
+    grid-template-columns: 60px 120px 200px 55px 45px 100px 120px 375px;
     gap: 16px;
     padding: 8px 16px;
 }
@@ -201,10 +201,10 @@
     object-fit: contain;
 }
 
-.weapon-rank {
+.lb-weapon .weapon-rank {
     position: absolute;
-    bottom: -4px;
-    right: -4px;
+    bottom: 0;
+    right: 0;
     background: rgba(0, 0, 0, 0.8);
     padding: 0 4px;
     border-radius: 4px;
@@ -268,6 +268,7 @@
 
 .lb-stat-icon {
     width: 24px;
+    transition: all 0.2s ease;
 }
 
 .lb-stat-icon.fusion {
@@ -353,14 +354,23 @@
     border-radius: 4px;
     font-size: 14px;
     z-index: 1;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.lb-echo-cv:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: translateY(-1px);
+    border-color: #a69662;
 }
 
 .lb-echo-icon {
-    width: 120px;
+    width: 130px;
     border-radius: 4px;
     object-fit: cover;
-    mask: linear-gradient(to right, black 75%, transparent 100%);
-    -webkit-mask: linear-gradient(to right, black 75%, transparent 100%);
+    mask: linear-gradient(to right, black 70%, transparent 100%);
+    -webkit-mask: linear-gradient(to right, black 70%, transparent 100%);
 }
 
 .lb-echo-stats {
@@ -368,6 +378,7 @@
     flex-direction: column;
     justify-content: space-evenly;
     flex: 1;
+    gap: 2px;
 }
 
 .lb-echo-mainstat {
@@ -381,11 +392,22 @@
     color: #a69662;
 }
 
+.lb-echo-mainstat .lb-stat-icon {
+    width: 28px;
+}
+
 .lb-echo-substat {
     display: flex;
     align-items: center;
-    gap: 4px;
     font-size: 20px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    margin-left: -12px;
+    z-index: 1;
+}
+
+.lb-echo-substat .lb-stat-icon {
+    margin-left: 2px;
 }
 
 .lb-echo-substat-value {
@@ -397,24 +419,69 @@
 .lb-echo-substat-value.four-star { color: #BA68C8; }
 .lb-echo-substat-value.five-star { color: #FFD700; }
 
+.lb-echo-substat.selected {
+    background: rgba(255, 215, 0, 0.15);
+    box-shadow: 0 0 2px rgba(255, 215, 0, 0.3);
+}
+
+.lb-echo-substat.selected .lb-echo-substat-value {
+    text-shadow: 0 0 2px rgba(166, 150, 98, 0.6);
+}
+
+.lb-echo-substat.selected .lb-stat-icon {
+    filter: brightness(1.2);
+}
+
+.lb-breakdown-container {
+    display: flex;
+    padding: 12px 12px 2px 12px;
+    gap: 8px;
+    justify-content: center;
+}
+
 .lb-breakdown {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    padding: 12px 12px 2px 12px;
-    cursor: pointer;
 }
 
 .breakdown-stat {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 8px;
+    padding: 4px 6px;
     background: transparent;
     border: 1px solid #444;
     border-radius: 12px;
     font-size: 18px;
     letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.breakdown-stat.selected {
+    background: rgba(166, 150, 98, 0.15);
+    border-color: #a69662;
+    box-shadow: 0 2px 8px rgba(166, 150, 98, 0.2);
+    transform: translateY(-1px);
+}
+
+.breakdown-stat:hover {
+    border-color: #a69662;
+    transform: translateY(-1px);
+}
+
+.breakdown-stat.total {
+    background: #1a1a1a;
+    border-color: #a69662;
+    color: #a69662;
+    cursor: default;
+    padding: 4px;
+    font-size: 17px;
+}
+
+.breakdown-stat.total:hover {
+    transform: none;
 }
 
 @media (max-width: 1200px) {

@@ -1,3 +1,5 @@
+import { getAssetPath } from './paths';
+
 export interface StatValue {
   type: string | null;
   value: number | null;
@@ -67,6 +69,31 @@ export const getStatIconName = (statName: string | null): string => {
     'Healing Bonus': 'Healing'
   };
   return statMap[statName] || 'ATK';
+};
+
+export const STAT_CDN_NAMES: Record<string, string> = {
+  'HP': 'greenlife',
+  'ATK': 'redattack',
+  'DEF': 'greendefense',
+  'ER': 'greenenergy',
+  'Crit Rate': 'redbaoji',
+  'Crit DMG': 'redcrit',
+  'Basic': 'redphysics',
+  'Heavy': 'redfoco',
+  'Skill': 'redspeed',
+  'Liberation': 'redskill',
+  'Aero': 'redwind',
+  'Glacio': 'redice',
+  'Fusion': 'redhot',
+  'Electro': 'redmine',
+  'Havoc': 'reddark',
+  'Spectro': 'redlight',
+  'Healing': 'greencure'
+};
+
+export const getStatPaths = (statName: string | null) => {
+    const iconName = getStatIconName(statName);
+    return getAssetPath('stats', iconName);
 };
 
 export interface StatsState {

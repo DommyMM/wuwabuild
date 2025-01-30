@@ -1,7 +1,7 @@
 import { calculateCV as calculateTotalCV, sumMainStats, sumSubStats, getDisplayName, getStatsData } from '../../hooks/useStats';
 import { EchoPanelState, ELEMENT_SETS } from '../../types/echo';
 import { getCachedEchoes } from '../../hooks/useEchoes';
-import { StatName, getStatIconName } from '../../types/stats';
+import { StatName, getStatPaths } from '../../types/stats';
 import React, { useState, useEffect } from 'react';
 import { getAssetPath } from '../../types/paths';
 import { useSubstats } from '../../hooks/useSub';
@@ -106,7 +106,7 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
                     {(panel.stats.mainStat.type && panel.stats.mainStat.value) && (
                         <div className="main-stat-row">
                             <div className="stat-name">
-                                <img src={`images/Stats/${getStatIconName(panel.stats.mainStat.type as StatName)}.png`}
+                                <img src={getStatPaths(panel.stats.mainStat.type as StatName).cdn}
                                     alt={String(panel.stats.mainStat.type)}
                                     className="stat-icon"
                                 />
@@ -125,7 +125,7 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
                                 return (
                                     <div key={index} className="stat-row">
                                         <div className="stat-name">
-                                            <img src={`images/Stats/${getStatIconName(stat.type)}.png`} 
+                                            <img src={getStatPaths(stat.type).cdn} 
                                                 alt={String(stat.type)} 
                                                 className="stat-icon"
                                             />

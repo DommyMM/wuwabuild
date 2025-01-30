@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { ScaledStats, Weapon } from '../../types/weapon';
 import { getAssetPath } from '../../types/paths';
+import { getStatPaths } from '../../types/stats';
 
 interface WeaponSectionProps {
   weapon: Weapon;
@@ -32,11 +33,11 @@ const StatsTopRow = React.memo<{
 }>(({ scaledAtk, weapon, scaledMainStat }) => (
   <div className="weapon-stat-row">
     <div className="weapon-stat weapon-attack atk">
-      <img src="images/Resources/Attack.png" className="stat-icon-img" alt="ATK"/>
+      <img src={getStatPaths('ATK').cdn} className="stat-icon-img" alt="ATK"/>
       {Math.floor(scaledAtk)}
     </div>
     <div className={`weapon-stat weapon-main-stat ${weapon.main_stat.toLowerCase()}`}>
-      <img src={`images/Stats/${weapon.main_stat}.png`} className="stat-icon-img" alt={weapon.main_stat}/>
+      <img src={getStatPaths(weapon.main_stat).cdn} className="stat-icon-img" alt={weapon.main_stat}/>
       {`${scaledMainStat}%`}
     </div>
   </div>

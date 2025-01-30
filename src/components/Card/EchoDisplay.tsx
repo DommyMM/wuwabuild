@@ -1,6 +1,6 @@
 import React from 'react';
 import { EchoPanelState, ElementType } from '../../types/echo';
-import { getStatIconName } from '../../types/stats';
+import { getStatPaths } from '../../types/stats';
 import { useSubstats } from '../../hooks/useSub';
 import { getCachedEchoes } from '../../hooks/useEchoes';
 import { SetSection } from './SetSection';
@@ -69,7 +69,7 @@ const EchoLeft: React.FC<{
             />
             {panel.stats.mainStat.type && (
               <>
-                <img src={`images/Stats/${getStatIconName(panel.stats.mainStat.type)}.png`}
+                <img src={getStatPaths(panel.stats.mainStat.type).cdn}
                   alt={panel.stats.mainStat.type}
                   className={`main-stat-icon ${statClass}`}
                 />
@@ -147,7 +147,7 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
           backgroundPosition: 'center bottom'
         } : undefined}
       >
-        <img src={`images/Stats/${getStatIconName(stat.type)}.png`}
+        <img src={getStatPaths(stat.type).cdn}
           alt={stat.type}
           className="substat-icon"
         />

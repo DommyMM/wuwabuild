@@ -6,7 +6,7 @@ import { Character } from '../../types/character';
 import { getCVClass } from '../Build/Card';
 import { EchoPanelState } from '../../types/echo';
 import { decompressStats } from '../../hooks/useStats';
-import { getStatIconName } from '../../types/stats';
+import { getStatPaths } from '../../types/stats';
 import { DecompressedEntry, getSetCounts, getHighestDmg, getHighestDmgBonus } from './types';
 import { LBExpanded } from './LbExpanded';
 
@@ -50,7 +50,6 @@ const LBSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels 
 );
 
 const IconStat: React.FC<{ statName: string; value: number }> = ({ statName, value }) => {
-    const iconName = getStatIconName(statName);
     const isBasestat = ['ATK', 'HP', 'DEF'].includes(statName);
     const elementType = statName.split(' ')[0].toLowerCase();
     const hasElementalColor = ['fusion', 'aero', 'electro', 'spectro', 'havoc', 'glacio'].includes(elementType);
@@ -61,7 +60,7 @@ const IconStat: React.FC<{ statName: string; value: number }> = ({ statName, val
         
     return (
         <span className="lb-stat">
-            <img src={`images/Stats/${iconName}.png`}
+            <img src={getStatPaths(statName).cdn}
                 alt={statName}
                 className={`lb-stat-icon ${hasElementalColor ? elementType : ''}`}
             />
@@ -137,7 +136,7 @@ export const LBEntry: React.FC<{
                 </div>
                 <LBStatsSection values={stats.values} />
             </div>
-            {isExpanded && <LBExpanded echoPanels={entry.buildState.echoPanels} />}
+            {isExpanded && <LBExpanded echoPanels={entry.buildState.echoPanels}  character={character ?? null}/>}
         </div>
     );
 };

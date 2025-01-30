@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { StatName, getStatIconName } from '../../types/stats';
+import { StatName, getStatPaths } from '../../types/stats';
 import '../../styles/menu.css';
 
 interface StatRowProps {
@@ -30,15 +30,13 @@ const StatRow: React.FC<StatRowProps> = ({ name, value, baseValue, update }) => 
   const isBaseStatType = ['HP', 'ATK', 'DEF'].includes(name);
   const showBreakdown = isBaseStatType || ['Energy Regen', 'Crit Rate', 'Crit DMG'].includes(name);
   const { statClassName } = useStatClasses(name);
+  const paths = getStatPaths(name);
   
   const displayName = name.endsWith('DMG') && !name.startsWith('Crit') ? `${name} Bonus` : name;
   return (
     <div className={`stat-row ${statClassName}`}>
       <div className="stat-left">
-        <img src={`images/Stats/${getStatIconName(name)}.png`}
-          alt={`${name} icon`}
-          className="stat-icon"
-        />
+        <img src={paths.cdn} alt={`${name} icon`} className="stat-icon" />
         <span className="stat-name">{displayName}</span>
       </div>
       <div className="stat-value-container">

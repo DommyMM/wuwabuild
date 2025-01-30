@@ -1,8 +1,9 @@
 import { Character, SKIN_CHARACTERS } from "./character";
 import { Weapon } from "./weapon";
 import { Echo } from "./echo";
+import { STAT_CDN_NAMES } from "./stats";
 
-export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes' | 'skills';
+export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes' | 'skills' | 'stats';
 
 interface PathConfig {
     base: string;
@@ -13,6 +14,7 @@ interface PathConfig {
     weapons: string;
     echoes: string;
     skills: string;
+    stats: string;
 }
 
 interface ElementMapping {
@@ -42,7 +44,8 @@ export const PATHS = {
         face1: 'Image/IconRoleHead256',
         weapons: 'Image/IconWeapon',
         echoes: 'Image/IconMonsterHead',
-        skills: 'Atlas/SkillIcon'
+        skills: 'Atlas/SkillIcon',
+        stats: 'Image/IconAttribute'
     } as PathConfig,
     local: {
         base: '/images',
@@ -52,7 +55,8 @@ export const PATHS = {
         face1: 'Face1',
         weapons: 'Weapons',
         echoes: 'Echoes',
-        skills: 'Skills'
+        skills: 'Skills',
+        stats: 'Stats'
     } as PathConfig
 };
 
@@ -118,6 +122,13 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
             return {
                 cdn: `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${folderName}/SP_Icon${iconName}${skillType}.png`,
                 local: `${PATHS.local.base}/${PATHS.local.skills}/${character.name}/SP_Icon${character.name}${skillType}.png`
+            };
+        }
+        case 'stats': {
+            const cdnName = STAT_CDN_NAMES[input as string];
+            return {
+                cdn: `${PATHS.cdn.base}/${PATHS.cdn.stats}/T_Iconproperty${cdnName}_UI.png`,
+                local: `${PATHS.local.base}/${PATHS.local.stats}/${input}.png`
             };
         }
     }
