@@ -5,6 +5,22 @@ export interface StatValue {
 
 export type BaseStatName = 'HP' | 'ATK' | 'DEF';
 
+export const STAT_ORDER = [
+  'Crit Rate',
+  'Crit DMG',
+  'ATK%',
+  'ATK',
+  'Energy Regen',
+  'HP%',
+  'HP',
+  'DEF%',
+  'DEF',
+  'Basic Attack DMG Bonus',
+  'Heavy Attack DMG Bonus',
+  'Resonance Skill DMG Bonus',
+  'Resonance Liberation DMG Bonus'
+] as const;
+
 export type StatName =
   | BaseStatName
   | `${BaseStatName}%`

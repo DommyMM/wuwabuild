@@ -113,7 +113,7 @@
 }
 
 .lb-portrait {
-    width: 50px;
+    width: 45px;
     object-fit: cover;
 }
 
@@ -154,27 +154,27 @@
 
 .lb-sequence.s1::before {
     width: 30px;
-    background: #2962FF;
+    background: #2196F3;
 }
 
 .lb-sequence.s2::before {
     width: 35px;
-    background: #00B8D4;
+    background: #1976D2;
 }
 
 .lb-sequence.s3::before {
     width: 38px;
-    background: #00BFA5;
+    background: #00BCD4;
 }
 
 .lb-sequence.s4::before {
     width: 42px;
-    background: #00C853;
+    background: #009688;
 }
 
 .lb-sequence.s5::before {
     width: 46px;
-    background: #FFB300;
+    background: #4CAF50;
 }
 
 .lb-sequence.s6::before {
@@ -192,13 +192,24 @@
 .lb-weapon {
     display: flex;
     align-items: center;
-    gap: 8px;
+    position: relative;
 }
 
 .weapon-portrait {
-    width: 40px;
-    height: 40px;
+    width: 35px;
     object-fit: contain;
+}
+
+.weapon-rank {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 0 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #fff;
+    border: 1px solid #444;
 }
 
 .lb-sets {
@@ -232,6 +243,13 @@
     display: flex;
     align-items: center;
     font-size: 18px;
+}
+
+.cv-penalty {
+    color: #666;
+    font-size: 14px;
+    margin-left: 4px;
+    opacity: 0.8;
 }
 
 .lb-stats {
@@ -282,6 +300,7 @@
     }
     to {
         opacity: 1;
+        height: 250px;
     }
 }
 
@@ -338,6 +357,8 @@
     width: 120px;
     border-radius: 4px;
     object-fit: cover;
+    mask: linear-gradient(to right, black 75%, transparent 100%);
+    -webkit-mask: linear-gradient(to right, black 75%, transparent 100%);
 }
 
 .lb-echo-stats {
@@ -390,6 +411,7 @@
     border: 1px solid #444;
     border-radius: 12px;
     font-size: 18px;
+    letter-spacing: 1px;
 }
 
 @media (max-width: 1200px) {

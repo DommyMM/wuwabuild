@@ -217,6 +217,10 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
             const { values, updates, breakdowns, baseValues, cv } = stats;
             const compressed = compressData({ state: build });
             const compressedStats = compressStats({ values, updates, breakdowns, baseValues });
+            const critMainCount = build.echoPanels
+                .filter(panel => panel.stats.mainStat.type?.includes('Crit'))
+                .length;
+            const cvPenalty = critMainCount > 1 ? -44 : 0;
             const response = await fetch(`${LB_URL}/leaderboard`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -224,6 +228,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
                     buildState: compressed.state,
                     stats: compressedStats,
                     cv,
+                    cvPenalty,
                     timestamp: new Date().toISOString()
                 })
             });

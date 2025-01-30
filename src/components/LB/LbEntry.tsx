@@ -1,0 +1,143 @@
+import React from 'react';
+import { getCachedWeapon } from '../../hooks/useWeapons';
+import { cachedCharacters } from '../../hooks/useCharacters';
+import { getAssetPath } from '../../types/paths';
+import { Character } from '../../types/character';
+import { getCVClass } from '../Build/Card';
+import { EchoPanelState } from '../../types/echo';
+import { decompressStats } from '../../hooks/useStats';
+import { getStatIconName } from '../../types/stats';
+import { DecompressedEntry, getSetCounts, getHighestDmg, getHighestDmgBonus } from './types';
+import { LBExpanded } from './LbExpanded';
+
+const LBOwnerSection: React.FC<{
+    username?: string;
+    uid?: string;
+}> = ({ username, uid }) => (
+    <div className="lb-owner">
+        <div className="owner-name">{username || 'Anonymous'}</div>
+        <div className="owner-uid">UID: {uid || '000000000'}</div>
+    </div>
+);
+
+const LBCharacterSection: React.FC<{
+    character: Character | null | undefined;
+    elementClass: string;
+}> = ({ character, elementClass }) => (
+    <div className="lb-character">
+        <img src={getAssetPath('face1', character as Character).cdn}
+            alt={character?.name}
+            className={`lb-portrait ${elementClass}`}
+        />
+        <span className={`char-name ${elementClass}`}>{character?.name}</span>
+    </div>
+);
+
+const LBSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels }) => (
+    <div className="lb-sets">
+        {Object.entries(getSetCounts(echoPanels))
+            .filter(([_, count]) => count >= 2)
+            .map(([element, count]) => (
+                <div key={element} className="lb-set-container">
+                    <img src={`images/SetIcons/${element}.png`}
+                        alt={element}
+                        className="lb-set"
+                    />
+                    <span>{count}</span>
+                </div>
+            ))}
+    </div>
+);
+
+const IconStat: React.FC<{ statName: string; value: number }> = ({ statName, value }) => {
+    const iconName = getStatIconName(statName);
+    const isBasestat = ['ATK', 'HP', 'DEF'].includes(statName);
+    const elementType = statName.split(' ')[0].toLowerCase();
+    const hasElementalColor = ['fusion', 'aero', 'electro', 'spectro', 'havoc', 'glacio'].includes(elementType);
+    
+    const formattedValue = isBasestat ? 
+        value.toFixed(0) : 
+        `${value.toFixed(1)}%`;
+        
+    return (
+        <span className="lb-stat">
+            <img src={`images/Stats/${iconName}.png`}
+                alt={statName}
+                className={`lb-stat-icon ${hasElementalColor ? elementType : ''}`}
+            />
+            {formattedValue}
+        </span>
+    );
+};
+
+const LBStatsSection: React.FC<{ values: Record<string, number> }> = ({ values }) => {
+    const atk = values['ATK'];
+    const [elementType, elementDmg] = getHighestDmg(values);
+    const er = values['Energy Regen'];
+    const [bonusType, bonusDmg] = getHighestDmgBonus(values);
+    return (
+        <div className="lb-stats">
+            <IconStat statName="ATK" value={atk} />
+            <IconStat statName={elementType} value={elementDmg} />
+            <IconStat statName="Energy Regen" value={er} />
+            <IconStat statName={bonusType} value={bonusDmg} />
+        </div>
+    );
+};
+
+export const LBEntry: React.FC<{ 
+    entry: DecompressedEntry; 
+    rank: number; 
+    onClick: () => void; 
+    isExpanded: boolean;
+}> = ({ entry, rank, onClick, isExpanded }) => {
+    const character = entry.buildState.characterState.id ? 
+        cachedCharacters?.find(c => c.id === entry.buildState.characterState.id) : null;
+    const weapon = getCachedWeapon(entry.buildState.weaponState.id);
+    const elementClass = entry.buildState.characterState.element?.toLowerCase() ?? '';
+
+    const stats = decompressStats(entry.stats);
+    const critRate = stats.values['Crit Rate'];
+    const critDmg = stats.values['Crit DMG'];
+
+    return (
+        <div className={`lb-entry ${isExpanded ? 'expanded' : ''}`} onClick={onClick}>
+            <div className="lb-main-content">
+                <div className="lb-rank">#{rank}</div>
+                <LBOwnerSection 
+                    username={entry.buildState.watermark?.username}
+                    uid={entry.buildState.watermark?.uid}
+                />
+                <LBCharacterSection character={character} elementClass={elementClass} />
+                <div className={`lb-sequence s${entry.buildState.currentSequence}`}>
+                    <span>S{entry.buildState.currentSequence}</span>
+                </div>
+                <div className="lb-weapon">
+                    {weapon && (
+                        <>
+                            <img src={getAssetPath('weapons', weapon).cdn}
+                                alt={weapon.name}
+                                className="weapon-portrait"
+                            />
+                            <span className="weapon-rank">R{entry.buildState.weaponState.rank}</span>
+                        </>
+                    )}
+                </div>
+                <LBSetsSection echoPanels={entry.buildState.echoPanels} />
+                <div className="lb-cv">
+                    <div className="lb-cv-ratio">
+                        {critRate.toFixed(1)} : {critDmg.toFixed(1)}
+                    </div>
+                    <div className={`lb-cv-value ${getCVClass(entry.cv + entry.cvPenalty)}`}>
+                        {entry.cv.toFixed(1)} CV
+                        {entry.cvPenalty < 0 && (
+                            <span className="cv-penalty">(-44)</span>
+                        )}
+                    </div>
+                </div>
+                <LBStatsSection values={stats.values} />
+            </div>
+            {isExpanded && <LBExpanded echoPanels={entry.buildState.echoPanels} />}
+        </div>
+    );
+};
