@@ -406,7 +406,8 @@ export const useStats = ({
           result.update += forteBonus.bonus1Total;
         }
       }
-      result.value = result.baseValue + result.update;
+      result.value = Number((result.baseValue + result.update).toFixed(1));
+      result.update = Number(result.update.toFixed(1));
     }
     return result;
   }, [character, baseStats, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats, firstPanelBonus]);

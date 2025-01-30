@@ -106,8 +106,7 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
                     {(panel.stats.mainStat.type && panel.stats.mainStat.value) && (
                         <div className="main-stat-row">
                             <div className="stat-name">
-                                <img 
-                                    src={`images/Stats/${getStatIconName(panel.stats.mainStat.type as StatName)}.png`}
+                                <img src={`images/Stats/${getStatIconName(panel.stats.mainStat.type as StatName)}.png`}
                                     alt={String(panel.stats.mainStat.type)}
                                     className="stat-icon"
                                 />

@@ -34,6 +34,9 @@ const Layout = () => {
             <Link to="/import" className={location.pathname === '/import' ? 'active' : ''}>
               Import Builds
             </Link>
+            <Link to="/leaderboard" className={location.pathname === '/global' ? 'active' : ''}>
+              Global Builds
+            </Link>
           </div>
         </div>
       </nav>

@@ -1,22 +1,32 @@
-.lb-container {
-    max-width: 1150px;
-    margin: 0 auto;
-    padding: 16px;
+.page-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
 }
 
-.lb-container h1 {
-    text-align: center;
-    margin-bottom: 32px;
-    font-size: 32px;
-    font-weight: 600;
-    color: #a69662;
+.lb-wrapper {
+    width: 100%;
+    max-width: 1220px;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    overflow-x: auto;
+    margin: 0 auto;
+}
+
+.lb-container {
+    width: 1220px;
+    position: relative;
+    margin: 0 auto;
 }
 
 .lb-header, .lb-main-content {
     display: grid;
-    grid-template-columns: 60px 120px 200px 55px 40px 100px 180px 250px;
+    grid-template-columns: 60px 120px 200px 55px 40px 100px 120px 375px;
     gap: 16px;
-    padding: 12px 16px;
+    padding: 8px 16px;
 }
 
 .lb-header {
@@ -28,7 +38,6 @@
 
 .lb-header-container {
     text-align: center;
-    margin-bottom: 32px;
 }
 
 .lb-header-title {
@@ -40,6 +49,7 @@
 .lb-header-text {
     color: #888;
     font-size: 16px;
+    margin: 4px 0 16px 0;
 }
 
 .lb-entries {
@@ -67,15 +77,6 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(166, 150, 98, 0.1);
     border-color: #a69662;
-}
-
-.lb-expanded-content {
-    padding: 16px;
-    border-top: 1px solid #333;
-    background: rgba(20, 20, 25, 0.6);
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
-    height: 200px;
 }
 
 .lb-main-content {
@@ -202,7 +203,8 @@
 
 .lb-sets {
     display: flex;
-    gap: 8px;
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
     font-size: 14px;
 }
@@ -213,76 +215,189 @@
 }
 
 .lb-set-container {
-    padding: 4px 8px;
+    padding: 4px 6px;
     border-radius: 4px;
     color: #E0E0E0;
 }
 
 .lb-cv {
+    display: flex;
+    flex-direction: column;
     padding: 4px 8px;
     border-radius: 4px;
-    text-align: center;
     font-size: 24px;
 }
 
+.lb-cv-value {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+}
+
+.lb-stats {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    font-size: 24px;
+}
+
+.lb-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.lb-stat-icon {
+    width: 24px;
+}
+
+.lb-stat-icon.fusion {
+    filter: brightness(0) saturate(100%) invert(62%) sepia(74%) saturate(2505%) hue-rotate(328deg) brightness(98%) contrast(93%);
+}
+
+.lb-stat-icon.aero {
+    filter: brightness(0) saturate(100%) invert(85%) sepia(10%) saturate(2204%) hue-rotate(92deg) brightness(99%) contrast(103%);
+}
+
+.lb-stat-icon.electro {
+    filter: brightness(0) saturate(100%) invert(56%) sepia(83%) saturate(3816%) hue-rotate(235deg) brightness(102%) contrast(100%);
+}
+
+.lb-stat-icon.spectro {
+    filter: brightness(0) saturate(100%) invert(86%) sepia(48%) saturate(471%) hue-rotate(355deg) brightness(99%) contrast(97%);
+}
+
+.lb-stat-icon.havoc {
+    filter: brightness(0) saturate(100%) invert(79%) sepia(93%) saturate(407%) hue-rotate(279deg) brightness(85%) contrast(90%);
+}
+
+.lb-stat-icon.glacio {
+    filter: brightness(0) saturate(100%) invert(53%) sepia(66%) saturate(1335%) hue-rotate(183deg) brightness(105%) contrast(97%);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        height: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 .lb-expanded-content {
+    padding: 12px 16px;
     border-top: 1px solid #333;
     background: #1a1a1a;
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
+    animation: slideDown 0.2s ease forwards;
+    display: flex;
+    flex-direction: column;
 }
 
-.loading-state, .error-state {
-    text-align: center;
-    padding: 32px;
-    font-size: 19px;
-    color: var(--text-muted);
+.lb-echoes {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 0 8px;
 }
 
-.loading-state {
+.lb-echo-slot {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    flex: 1;
+    border: 1px solid #333;
+    letter-spacing: 1px;
+    position: relative;
+}
+
+.lb-echo-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lb-echo-cv {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 1;
+}
+
+.lb-echo-icon {
+    width: 120px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.lb-echo-stats {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    flex: 1;
+}
+
+.lb-echo-mainstat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 4px;
+    justify-content: center;
+    font-size: 28px;
     color: #a69662;
 }
 
-.error-state {
-    color: #FF4081;
+.lb-echo-substat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 20px;
+}
+
+.lb-echo-substat-value {
+    padding: 2px 4px;
+}
+
+.lb-echo-substat-value.two-star { color: #4CAF50; }
+.lb-echo-substat-value.three-star { color: #2196F3; }
+.lb-echo-substat-value.four-star { color: #BA68C8; }
+.lb-echo-substat-value.five-star { color: #FFD700; }
+
+.lb-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 12px 2px 12px;
+}
+
+.breakdown-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid #444;
+    border-radius: 12px;
+    font-size: 18px;
 }
 
 @media (max-width: 1200px) {
-    .lb-header, .lb-main-content {
-        grid-template-columns: 60px 120px 180px 100px 1fr 80px 70px 90px;
+    .lb-wrapper {
+        justify-content: flex-start;
     }
-}
-
-@media (max-width: 900px) {
-    .lb-stats {
-        display: none;
-    }
-    .lb-header, .lb-main-content {
-        grid-template-columns: 60px 100px 160px 90px 1fr 80px 90px;
-    }
-}
-
-@media (max-width: 700px) {
-    .lb-owner {
-        display: none;
-    }
-    .lb-header, .lb-main-content {
-        grid-template-columns: 50px 140px 80px 1fr 70px 80px;
-        gap: 8px;
-        padding: 12px 8px;
-    }
-    .char-portrait, .weapon-portrait {
-        width: 32px;
-        height: 32px;
-    }
-    .char-name {
-        font-size: 14px;
-    }
-    .sequence {
-        font-size: 0.8rem;
-    }
-    .build-sets {
-        font-size: 13px;
-        padding: 3px 6px;
+    .lb-container {
+        margin: 0;
+        padding: 16px;
     }
 }

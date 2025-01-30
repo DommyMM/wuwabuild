@@ -189,7 +189,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
         
         return {
             character,
-            level: convertedBuild.characterState.level,
+            level: '90',
             weapon,
             weaponStats,
             echoPanels: convertedBuild.echoPanels,
