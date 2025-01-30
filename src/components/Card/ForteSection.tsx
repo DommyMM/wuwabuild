@@ -53,16 +53,20 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
   level 
 }) => {
   const getNodeImage = (position: 'top' | 'middle') => {
+    const isElementTree = branch.tree === 'tree1' || branch.tree === 'tree5';
+    const isStatTree = branch.tree === 'tree2' || branch.tree === 'tree4';
+    
     if (isRover(character)) {
-      if (branch.tree === 'tree1' || branch.tree === 'tree5') {
+      if (isElementTree) {
         return `images/Stats/${elementValue}.png`;
       }
-      if (branch.tree === 'tree2' || branch.tree === 'tree4') {
+      if (isStatTree) {
         return 'images/Stats/ATK.png';
       }
     }
+  
     return branch.name === 'circuit'
-      ? forteImagePaths.imagePaths[`tree3-${position}`](character.name)
+      ? forteImagePaths.imagePaths[`tree3-${position}`](character)
       : forteImagePaths.sharedImages[branch.tree](character);
   };
 
@@ -92,7 +96,7 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
       <div className="bottom-line" />
       <div className="simplified-base">
         <img className="skill-image"
-          src={forteImagePaths.imagePaths[branch.name](character.name)}
+          src={forteImagePaths.imagePaths[branch.name](character)}
           alt={`${character.name} ${branch.name}`}
         />
         <div className="level-indicator">{level}</div>
@@ -100,7 +104,7 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
       {branch.name === 'circuit' && (
         <div className="base">
           <img className="skill-image"
-            src={forteImagePaths.imagePaths.base(character.name)}
+            src={forteImagePaths.imagePaths.base(character)}
             alt={`${character.name} base`}
           />
         </div>

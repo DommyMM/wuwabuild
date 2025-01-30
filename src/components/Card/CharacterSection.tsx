@@ -44,7 +44,9 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
     ? username || "Rover" 
     : character.name;
   
-  const elementValue = character.element;
+  const elementValue = isRover(character) 
+      ? character.name.replace('Rover', '')
+      : character.element;
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     if (!isEditMode) return;
@@ -213,7 +215,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         )}
         {artSource && (<div className="art-source"> 🎨 {artSource} </div> )}
       </div>
-      <SequenceSection character={character} currentSequence={currentSequence} />
+      <SequenceSection character={character} currentSequence={currentSequence} elementValue={elementValue} />
       <div className="char-intro">
         <div className='char-header'>
             <div className="character-name">{characterName}</div>

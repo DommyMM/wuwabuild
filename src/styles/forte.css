@@ -157,19 +157,18 @@
 }
 
 .node-image {
-    width: 25%; 
-    height: 25%; 
+    width: 20%;
     object-fit: contain;
     position: absolute;
-    top: 37.5%; 
-    left: 37.5%; 
+    top: 39.5%;
+    left: 39.5%;
     z-index: 1;
     filter: brightness(0);
 }
 
 .skill-branch:not(:nth-child(3)) .glowing-node.active .node-image {
-    top: 36%; 
-    left: 38%; 
+    top: 37.5%;
+    left: 40.5%;
 }
 
 .upper-line, .lower-line {

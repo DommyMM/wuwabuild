@@ -1,7 +1,8 @@
 import { Character } from './character';
+import { getAssetPath } from './paths';
 
 export interface ForteImagePaths {
-  imagePaths: Record<string, (characterName: string) => string>;
+  imagePaths: Record<string, (character: Character) => string>;
   sharedImages: Record<string, (character: Character) => string>;
 }
 
@@ -11,17 +12,40 @@ export interface SkillBranch {
   treeKey: string;
 }
 
+const A1_LOCAL_IDS: Record<number, true> = {
+  4: true,
+  5: true,
+  23: true,
+  24: true,
+  25: true,
+  27: true,
+  28: true,
+  31: true,
+  44: true
+};
+
+const SKILL_TYPES = {
+  'normal-attack': 'A1',
+  'skill': 'B1',
+  'tree3-top': 'D2',
+  'tree3-middle': 'D1',
+  'circuit': 'Y',
+  'liberation': 'C1',
+  'intro': 'QTE',
+  'base': 'T'
+} as const;
+
 export const forteImagePaths: ForteImagePaths = {
-  imagePaths: {
-    'normal-attack': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}A1.png`,
-    'skill': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}B1.png`,
-    'tree3-top': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}D2.png`,
-    'tree3-middle': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}D1.png`,
-    'circuit': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}Y.png`,
-    'liberation': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}C1.png`,  
-    'intro': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}QTE.png`,
-    'base': (characterName) => `images/Skills/${characterName}/SP_Icon${characterName}T.png`
-  },
+  imagePaths: Object.fromEntries(
+    Object.entries(SKILL_TYPES).map(([key, value]) => [
+      key,
+      (character: Character) => {
+        const paths = getAssetPath('skills', character, false, false, value);
+        const id = Number(character.id);
+        return (value === 'A1' && id in A1_LOCAL_IDS) ? paths.local : paths.cdn;
+      }
+    ])
+  ),
   sharedImages: {
     'tree1': (character) => `images/Stats/${character.Bonus1}.png`,
     'tree2': (character) => `images/Stats/${character.Bonus2}.png`, 

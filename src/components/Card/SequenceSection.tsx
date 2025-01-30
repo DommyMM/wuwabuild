@@ -4,14 +4,15 @@ import { Character } from '../../types/character';
 interface SequenceSectionProps {
   character: Character;
   currentSequence: number;
+  elementValue: string;
 }
 
 export const SequenceSection: React.FC<SequenceSectionProps> = ({
   character,
-  currentSequence
+  currentSequence,
+  elementValue
 }) => {
   const displayName = character.name;
-  const elementValue = character.element;
   const elementClass = `element-${elementValue.toLowerCase()}`;
 
   return (

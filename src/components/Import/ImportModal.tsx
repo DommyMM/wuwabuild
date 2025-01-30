@@ -33,7 +33,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         cachedCharacters?.find(c => c.id === build.characterState.id) : null;
     const weapon = getCachedWeapon(build.weaponState.id);
     const elementClass = build.characterState.element?.toLowerCase() ?? '';
-
+    const displayName = character ? 
+        (character.name.startsWith('Rover') ? 
+            `Rover${build.characterState.element || "Havoc"}` : 
+            character.name) : 
+        undefined;
+    const elementValue = build.characterState.element || "";
+    
     const calculatePanelCV = (panel: EchoPanelState) => {
         const baseCV = calculateTotalCV([panel]);
         const mainStat = panel.stats.mainStat.type;
@@ -53,7 +59,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                         <span>Lv.{build.characterState.level}</span>
                     </div>
                     <div className="sequence-container">
-                        {character && <SequenceSection character={character} currentSequence={build.currentSequence}/>}
+                        {character && 
+                            <SequenceSection 
+                                character={{...character, name: displayName || character.name}}
+                                currentSequence={build.currentSequence}
+                                elementValue={elementValue}
+                            />
+                        }
                     </div>
                     {weapon && (
                         <div className="weap-convert">
@@ -68,8 +80,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     {character && (
                         <div className="forte-container">
                             <ForteSection 
-                                character={character}
-                                elementValue={build.characterState.element || character.element}
+                                character={{...character, name: displayName || character.name}}
+                                elementValue={elementValue}
                                 nodeStates={build.nodeStates}
                                 forteLevels={build.forteLevels}
                             />

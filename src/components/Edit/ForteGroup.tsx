@@ -31,19 +31,14 @@ interface GlowingNodeProps {
 const GlowingNode: React.FC<GlowingNodeProps> = ({
   treeKey, skillKey, character, altText, elementValue, isActive, onChange
 }) => {
-
+  const isRover = character.name.startsWith('Rover');
+  const isElementTree = treeKey === 'tree1' || treeKey === 'tree5';
+  
   let imagePath;
-  if (character.name.startsWith('Rover')) {
-    const roverName = `Rover${elementValue}`;
-    if (treeKey === 'tree1' || treeKey === 'tree5') {
-      imagePath = `images/Stats/${elementValue}.png`;
-    } else if (treeKey === 'tree2' || treeKey === 'tree4') {
-      imagePath = 'images/Stats/ATK.png';
-    } else {
-      imagePath = forteImagePaths.imagePaths[skillKey]?.(roverName);
-    }
+  if (isRover && isElementTree) {
+    imagePath = `images/Stats/${elementValue}.png`;
   } else {
-    imagePath = forteImagePaths.sharedImages[treeKey]?.(character) || forteImagePaths.imagePaths[skillKey]?.(character.name);
+    imagePath = forteImagePaths.sharedImages[treeKey]?.(character) || forteImagePaths.imagePaths[skillKey]?.(character);
   }
 
   return (
@@ -118,9 +113,8 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
 
       <div className="bottom-wrapper">
         <div className="forte-slot" data-skill={skillKey}>
-          <img 
-            className="skill-image"
-            src={forteImagePaths.imagePaths[skillKey](displayName || character.name)}
+          <img className="skill-image"
+            src={forteImagePaths.imagePaths[skillKey](character)}
             alt={skillName}
           />
           <div className="node-content" />

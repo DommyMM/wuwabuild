@@ -81,6 +81,7 @@
 
 .lb-main-content {
     align-items: center;
+    cursor: pointer;
 }
 
 .lb-rank {
@@ -313,6 +314,7 @@
     animation: slideDown 0.2s ease forwards;
     display: flex;
     flex-direction: column;
+    cursor: default;
 }
 
 .lb-echoes {
@@ -400,6 +402,7 @@
     flex-wrap: wrap;
     gap: 8px;
     padding: 12px 12px 2px 12px;
+    cursor: pointer;
 }
 
 .breakdown-stat {

@@ -2,7 +2,7 @@ import { Character, SKIN_CHARACTERS } from "./character";
 import { Weapon } from "./weapon";
 import { Echo } from "./echo";
 
-export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes';
+export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes' | 'skills';
 
 interface PathConfig {
     base: string;
@@ -12,6 +12,7 @@ interface PathConfig {
     face1: string;
     weapons: string;
     echoes: string;
+    skills: string;
 }
 
 interface ElementMapping {
@@ -34,13 +35,14 @@ export interface ImagePaths {
 
 export const PATHS = {
     cdn: {
-        base: 'https://files.wuthery.com/p',
-        faces: 'GameData/UIResources/Common/Image/IconRoleHeadCircle256',
-        icons: 'GameData/UIResources/Common/Image/IconRolePile',
-        elements: 'GameData/UIResources/Common/Image/IconElementShine',
-        face1: 'GameData/UIResources/Common/Image/IconRoleHead256',
-        weapons: 'GameData/UIResources/Common/Image/IconWeapon',
-        echoes: 'GameData/UIResources/Common/Image/IconMonsterHead'
+        base: 'https://files.wuthery.com/p/GameData/UIResources/Common',
+        faces: 'Image/IconRoleHeadCircle256',
+        icons: 'Image/IconRolePile',
+        elements: 'Image/IconElementShine',
+        face1: 'Image/IconRoleHead256',
+        weapons: 'Image/IconWeapon',
+        echoes: 'Image/IconMonsterHead',
+        skills: 'Atlas/SkillIcon'
     } as PathConfig,
     local: {
         base: '/images',
@@ -49,11 +51,12 @@ export const PATHS = {
         elements: 'Elements',
         face1: 'Face1',
         weapons: 'Weapons',
-        echoes: 'Echoes'
+        echoes: 'Echoes',
+        skills: 'Skills'
     } as PathConfig
 };
 
-export const getAssetPath = (category: ImageCategory, input: string | Character | Weapon | Echo, useAltSkin?: boolean, isPhantom?: boolean): ImagePaths => {
+export const getAssetPath = (category: ImageCategory, input: string | Character | Weapon | Echo, useAltSkin?: boolean, isPhantom?: boolean, skillType?: string): ImagePaths => {
     const name = typeof input === 'string' ? input : input.name;
     const id = typeof input === 'string' ? input : input.id;
     const title = typeof input === 'string' ? input : (input as Character).title ?? id;
@@ -100,7 +103,43 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
                 local: `${PATHS.local.base}/${PATHS.local.echoes}/${localName}.png`
             };
         }
+        case 'skills': {
+            const character = input as Character;
+            const roverVariant = getRoverVariant(character.name);
+            if (roverVariant) {
+                return {
+                    cdn: `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${roverVariant}/SP_Icon${roverVariant}${skillType}.png`,
+                    local: `${PATHS.local.base}/${PATHS.local.skills}/${character.name}/SP_Icon${character.name}${skillType}.png`
+                };
+            }
+            const defaultName = character.title.charAt(0).toUpperCase() + character.title.slice(1).toLowerCase();
+            const folderName = SKILL_CDN_NAMES[character.id] || defaultName;
+            const iconName = SKILL_ICON_NAMES[character.id] || defaultName;
+            return {
+                cdn: `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${folderName}/SP_Icon${iconName}${skillType}.png`,
+                local: `${PATHS.local.base}/${PATHS.local.skills}/${character.name}/SP_Icon${character.name}${skillType}.png`
+            };
+        }
     }
+};
+
+const getRoverVariant = (name: string) => {
+    if (name === 'RoverSpectro') return 'Zhujue';
+    if (name === 'RoverHavoc') return 'ZhujueDark';
+    return null;
+};
+
+const SKILL_CDN_NAMES: Record<string, string> = {
+    '13': 'Motefei',
+    '23': 'Jianxin',
+    '7': 'Sanhua'
+};
+
+const SKILL_ICON_NAMES: Record<string, string> = {
+    '9': 'TaoHua',
+    '13': 'Motefei',
+    '23': 'Jianxin',
+    '7': 'Sanhua'
 };
 
 const PHANTOM_CDN_IDS: Record<string, string> = {

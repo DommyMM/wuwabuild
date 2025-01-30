@@ -392,7 +392,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
           >
             {isTabVisible && selectedCharacter && elementValue && (
               <>
-                <CharacterSection character={selectedCharacter} 
+                <CharacterSection character={{...selectedCharacter, name: displayName || selectedCharacter.name}}
                   level={characterState.level}
                   currentSequence={currentSequence}
                   username={watermark.username}

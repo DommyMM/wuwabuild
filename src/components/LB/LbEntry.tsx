@@ -101,8 +101,8 @@ export const LBEntry: React.FC<{
     const critDmg = stats.values['Crit DMG'];
 
     return (
-        <div className={`lb-entry ${isExpanded ? 'expanded' : ''}`} onClick={onClick}>
-            <div className="lb-main-content">
+        <div className={`lb-entry ${isExpanded ? 'expanded' : ''}`}>
+            <div className="lb-main-content" onClick={onClick}>
                 <div className="lb-rank">#{rank}</div>
                 <LBOwnerSection 
                     username={entry.buildState.watermark?.username}
