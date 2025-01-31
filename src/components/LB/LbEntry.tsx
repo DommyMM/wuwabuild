@@ -9,6 +9,7 @@ import { decompressStats } from '../../hooks/useStats';
 import { getStatPaths } from '../../types/stats';
 import { DecompressedEntry, getSetCounts, getHighestDmg, getHighestDmgBonus } from './types';
 import { LBExpanded } from './LbExpanded';
+import { StatSort } from '../../pages/LeaderboardPage';
 
 const LBOwnerSection: React.FC<{
     username?: string;
@@ -49,7 +50,11 @@ const LBSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels 
     </div>
 );
 
-const IconStat: React.FC<{ statName: string; value: number }> = ({ statName, value }) => {
+const IconStat: React.FC<{ 
+    statName: string;
+    value: number;
+    isHighlighted?: boolean;
+}> = ({ statName, value, isHighlighted }) => {
     const isBasestat = ['ATK', 'HP', 'DEF'].includes(statName);
     const elementType = statName.split(' ')[0].toLowerCase();
     const hasElementalColor = ['fusion', 'aero', 'electro', 'spectro', 'havoc', 'glacio', 'healing'].includes(elementType);
@@ -59,7 +64,7 @@ const IconStat: React.FC<{ statName: string; value: number }> = ({ statName, val
         `${value.toFixed(1)}%`;
         
     return (
-        <span className="lb-stat">
+        <span className={`lb-stat ${isHighlighted ? 'highlighted' : ''}`}>
             <img src={getStatPaths(statName).cdn}
                 alt={statName}
                 className={`lb-stat-icon ${hasElementalColor ? elementType : ''}`}
@@ -72,20 +77,28 @@ const IconStat: React.FC<{ statName: string; value: number }> = ({ statName, val
 const LBStatsSection: React.FC<{ 
     values: Record<string, number>;
     character: Character | null | undefined;
-}> = ({ values, character }) => {
+    activeStat: StatSort | null;
+}> = ({ values, character, activeStat }) => {
     const atk = values['ATK'];
     const er = values['Energy Regen'];
-    const [bonusType, bonusDmg] = getHighestDmgBonus(values);
-    
     const isHealer = character?.Bonus1 === "Healing";
-    const [elementType, elementDmg] = isHealer ? ["Healing Bonus", values['Healing Bonus'] || 0] : getHighestDmg(values);
-
+    const [elementType, elementDmg] = isHealer ? 
+        ["Healing Bonus", values['Healing Bonus'] || 0] : 
+        getHighestDmg(values);
+    const fixedStats = ['ATK', elementType, 'Energy Regen'];
+    let fourthStat: [string, number];
+    
+    if (activeStat && !fixedStats.includes(activeStat)) {
+        fourthStat = [activeStat, values[activeStat] || 0];
+    } else {
+        fourthStat = getHighestDmgBonus(values);
+    }
     return (
         <div className="lb-stats">
-            <IconStat statName="ATK" value={atk} />
-            <IconStat statName={elementType} value={elementDmg} />
-            <IconStat statName="Energy Regen" value={er} />
-            <IconStat statName={bonusType} value={bonusDmg} />
+            <IconStat statName="ATK" value={atk} isHighlighted={activeStat === 'ATK'} />
+            <IconStat statName={elementType} value={elementDmg} isHighlighted={activeStat === elementType} />
+            <IconStat statName="Energy Regen" value={er} isHighlighted={activeStat === 'Energy Regen'} />
+            <IconStat statName={fourthStat[0]} value={fourthStat[1]} isHighlighted={activeStat === fourthStat[0]} />
         </div>
     );
 };
@@ -95,7 +108,8 @@ export const LBEntry: React.FC<{
     rank: number; 
     onClick: () => void; 
     isExpanded: boolean;
-}> = ({ entry, rank, onClick, isExpanded }) => {
+    activeStat: StatSort | null;
+}> = ({ entry, rank, onClick, isExpanded, activeStat }) => {
     const character = entry.buildState.characterState.id ? 
         cachedCharacters?.find(c => c.id === entry.buildState.characterState.id) : null;
     const weapon = getCachedWeapon(entry.buildState.weaponState.id);
@@ -140,7 +154,7 @@ export const LBEntry: React.FC<{
                         )}
                     </div>
                 </div>
-                <LBStatsSection values={stats.values} character={character} />
+                <LBStatsSection values={stats.values} character={character} activeStat={activeStat} />
             </div>
             {isExpanded && <LBExpanded echoPanels={entry.buildState.echoPanels} character={character ?? null}/>}
         </div>

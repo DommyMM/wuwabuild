@@ -19,13 +19,14 @@ const LBHeader: React.FC = () => (
     <div className="lb-header-container">
         <h1 className="lb-header-title">Global Board</h1>
         <p className="lb-header-text">
-            Global ranking of imported builds.
+            All builds simulated to Lv 90 Character, R1 Weapon <br />
+            Actual damage calcs coming soon (After I learn math)
         </p>
     </div>
 );
 
 type CVSort = 'cv' | 'cr' | 'cd';
-type StatSort = typeof STAT_ORDER[number];
+export type StatSort = typeof STAT_ORDER[number];
 type ActiveSort = 'cv' | 'stat' | null;
 
 const SortButton: React.FC<{
@@ -115,7 +116,6 @@ export const Leaderboard: React.FC = () => {
     const [activeSort, setActiveSort] = useState<ActiveSort>('cv');
     const itemsPerPage = 10;
     const initialLimit = 30;
-
     const decompressedStats = useMemo(() => {
         return data.map(entry => ({
             ...entry,
@@ -131,13 +131,11 @@ export const Leaderboard: React.FC = () => {
                     if (CVSort === 'cd') return 'Crit DMG';
                     return 'finalCV';
                 };
-
                 const params = new URLSearchParams({
                     limit: String(initialLimit),
                     sort: getSortParam(),
                     direction: sortDirection
                 });
-
                 const response = await fetch(`${LB_URL}/leaderboard?${params}`);
                 if (!response.ok) throw new Error('Failed to fetch leaderboard');
                 const json: CompressedEntry[] = await response.json();
@@ -149,7 +147,6 @@ export const Leaderboard: React.FC = () => {
                 
                 setData(initialData);
                 setLoading(false);
-
                 const fullParams = new URLSearchParams({
                     sort: getSortParam(),
                     direction: sortDirection
@@ -171,7 +168,9 @@ export const Leaderboard: React.FC = () => {
         };
         loadInitial();
     }, [sortDirection, CVSort, statSort, initialLimit]);
-
+    useEffect(() => {
+        setExpandedEntries(new Set());
+    }, [activeSort, CVSort, statSort, currentPage, sortDirection]);
     const sortedData = useMemo(() => {
         return [...decompressedStats].sort((a, b) => {
             let valueA, valueB;
@@ -268,7 +267,8 @@ export const Leaderboard: React.FC = () => {
                         </div>
                         <div className="lb-entries">
                             {currentData.map((entry, index) => (
-                                <LBEntry key={entry.timestamp}
+                                <LBEntry 
+                                    key={entry.timestamp}
                                     entry={entry}
                                     rank={(currentPage - 1) * itemsPerPage + index + 1}
                                     onClick={() => setExpandedEntries(prev => {
@@ -281,6 +281,7 @@ export const Leaderboard: React.FC = () => {
                                         return next;
                                     })}
                                     isExpanded={expandedEntries.has(entry.timestamp)}
+                                    activeStat={activeSort === 'stat' ? statSort : null}
                                 />
                             ))}
                         </div>

@@ -50,6 +50,7 @@
     color: #888;
     font-size: 16px;
     margin: 4px 0 16px 0;
+    letter-spacing: 0.33px;
 }
 
 .sort-header {
@@ -83,6 +84,8 @@
 
 .sort-dropdown:hover .sort-options {
     display: block;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .sort-options {
@@ -324,6 +327,20 @@
     gap: 4px;
 }
 
+.lb-stat.highlighted {
+    color: #a69662;
+    text-shadow: 0 0 8px rgba(166, 150, 98, 0.4);
+    background: linear-gradient(
+        180deg, 
+        rgba(166, 150, 98, 0.1) 0%, 
+        rgba(166, 150, 98, 0.05) 100%
+    );
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    box-shadow: inset 0 0 0 1px rgba(166, 150, 98, 0.2);
+}
+
 .lb-stat-icon {
     width: 24px;
     transition: all 0.2s ease;
@@ -355,17 +372,6 @@
 
 .lb-stat-icon.healing {
     filter: brightness(0) saturate(100%) invert(98%) sepia(39%) saturate(5256%) hue-rotate(22deg) brightness(101%) contrast(74%);
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        height: 0;
-    }
-    to {
-        opacity: 1;
-        height: 300px;
-    }
 }
 
 @media (max-width: 1200px) {

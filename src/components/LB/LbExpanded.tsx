@@ -10,6 +10,11 @@ import { sumEchoSubstats } from './types';
 import { Character } from '../../types/character';
 import '../../styles/LeaderboardExpand.css';
 
+const formatValue = (value: number, isPercentage: boolean = true): string => {
+    const fixed = value.toFixed(1);
+    return `${fixed.endsWith('.0') ? fixed.slice(0, -2) : fixed}${isPercentage ? '%' : ''}`;
+};
+
 const BreakdownStat: React.FC<{ 
     name: string;
     value: number;
@@ -21,9 +26,9 @@ const BreakdownStat: React.FC<{
     const paths = getStatPaths(name);
     
     return (
-        <div className={`breakdown-stat ${isSelected ? 'selected' : ''} ${isTotal ? 'total' : ''}`} onClick={onToggle} >
+        <div className={`breakdown-stat ${isSelected ? 'selected' : ''} ${isTotal ? 'total' : ''}`} onClick={onToggle}>
             <img src={paths.cdn} alt={name} className="lb-stat-icon" />
-            <span>{value.toFixed(1)}{isPercentage ? '%' : ''}</span>
+            <span>{formatValue(value, isPercentage)}</span>
         </div>
     );
 };
@@ -268,24 +273,22 @@ export const LBExpanded: React.FC<{
         <div className="lb-expanded-content">
             <LBEchoRow echoPanels={echoPanels} substatsData={substatsData} selectedStats={selectedStats} />
             <div className="lb-breakdown-container">
-                <div className="lb-breakdown">
-                    <LBBreakdownRow 
-                        echoPanels={echoPanels} 
-                        selectedStats={selectedStats}
-                        onToggleStat={(statName) => {
-                            setSelectedStats(prev => {
-                                const next = new Set(prev);
-                                if (next.has(statName)) {
-                                    next.delete(statName);
-                                } else {
-                                    next.add(statName);
-                                }
-                                return next;
-                            });
-                        }}
-                    />
+                <LBBreakdownRow 
+                    echoPanels={echoPanels} 
+                    selectedStats={selectedStats}
+                    onToggleStat={(statName) => {
+                        setSelectedStats(prev => {
+                            const next = new Set(prev);
+                            if (next.has(statName)) {
+                                next.delete(statName);
+                            } else {
+                                next.add(statName);
+                            }
+                            return next;
+                        });
+                    }}
+                />
                 <TotalBreakdown echoPanels={echoPanels} selectedStats={selectedStats} />
-                </div>
             </div>
         </div>
     );
