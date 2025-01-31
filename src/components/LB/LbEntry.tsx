@@ -52,7 +52,7 @@ const LBSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels 
 const IconStat: React.FC<{ statName: string; value: number }> = ({ statName, value }) => {
     const isBasestat = ['ATK', 'HP', 'DEF'].includes(statName);
     const elementType = statName.split(' ')[0].toLowerCase();
-    const hasElementalColor = ['fusion', 'aero', 'electro', 'spectro', 'havoc', 'glacio'].includes(elementType);
+    const hasElementalColor = ['fusion', 'aero', 'electro', 'spectro', 'havoc', 'glacio', 'healing'].includes(elementType);
     
     const formattedValue = isBasestat ? 
         value.toFixed(0) : 
@@ -69,11 +69,17 @@ const IconStat: React.FC<{ statName: string; value: number }> = ({ statName, val
     );
 };
 
-const LBStatsSection: React.FC<{ values: Record<string, number> }> = ({ values }) => {
+const LBStatsSection: React.FC<{ 
+    values: Record<string, number>;
+    character: Character | null | undefined;
+}> = ({ values, character }) => {
     const atk = values['ATK'];
-    const [elementType, elementDmg] = getHighestDmg(values);
     const er = values['Energy Regen'];
     const [bonusType, bonusDmg] = getHighestDmgBonus(values);
+    
+    const isHealer = character?.Bonus1 === "Healing";
+    const [elementType, elementDmg] = isHealer ? ["Healing Bonus", values['Healing Bonus'] || 0] : getHighestDmg(values);
+
     return (
         <div className="lb-stats">
             <IconStat statName="ATK" value={atk} />
@@ -134,9 +140,9 @@ export const LBEntry: React.FC<{
                         )}
                     </div>
                 </div>
-                <LBStatsSection values={stats.values} />
+                <LBStatsSection values={stats.values} character={character} />
             </div>
-            {isExpanded && <LBExpanded echoPanels={entry.buildState.echoPanels}  character={character ?? null}/>}
+            {isExpanded && <LBExpanded echoPanels={entry.buildState.echoPanels} character={character ?? null}/>}
         </div>
     );
 };

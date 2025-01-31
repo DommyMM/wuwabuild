@@ -221,6 +221,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
                 .filter(panel => panel.stats.mainStat.type?.includes('Crit'))
                 .length;
             const cvPenalty = critMainCount > 1 ? -44 : 0;
+            const finalCV = cv + cvPenalty;
             const response = await fetch(`${LB_URL}/leaderboard`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -229,6 +230,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
                     stats: compressedStats,
                     cv,
                     cvPenalty,
+                    finalCV,
                     timestamp: new Date().toISOString()
                 })
             });

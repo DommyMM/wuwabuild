@@ -17,6 +17,7 @@ export interface CompressedEntry {
     stats: CompressedStats;
     cv: number;
     cvPenalty: number;
+    finalCV: number;
     timestamp: string;
 }
 
@@ -25,6 +26,7 @@ export interface DecompressedEntry {
     stats: CompressedStats;
     cv: number;
     cvPenalty: number;
+    finalCV: number;
     timestamp: string;
 }
 

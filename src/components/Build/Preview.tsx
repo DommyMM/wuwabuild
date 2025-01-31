@@ -67,7 +67,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
                     <div className='marquee-wrap' ref={wrapperRef}>
                         {shouldAnimate ? (
                             <Marquee gradient={false} 
-                                speed={100} 
+                                speed={50} 
                                 delay={0} 
                                 className="name-marquee" 
                                 pauseOnHover

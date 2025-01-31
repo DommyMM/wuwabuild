@@ -12,15 +12,22 @@ export const STAT_ORDER = [
   'Crit DMG',
   'ATK%',
   'ATK',
-  'Energy Regen',
   'HP%',
   'HP',
   'DEF%',
   'DEF',
+  'Energy Regen',
+  'Aero DMG',
+  'Glacio DMG',
+  'Fusion DMG',
+  'Electro DMG',
+  'Havoc DMG',
+  'Spectro DMG',
   'Basic Attack DMG Bonus',
   'Heavy Attack DMG Bonus',
   'Resonance Skill DMG Bonus',
-  'Resonance Liberation DMG Bonus'
+  'Resonance Liberation DMG Bonus',
+  'Healing Bonus'
 ] as const;
 
 export type StatName =

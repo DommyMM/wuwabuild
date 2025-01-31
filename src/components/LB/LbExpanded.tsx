@@ -8,6 +8,7 @@ import { calculateCV } from '../../hooks/useStats';
 import { getEchoCVClass } from '../Build/Card';
 import { sumEchoSubstats } from './types';
 import { Character } from '../../types/character';
+import '../../styles/LeaderboardExpand.css';
 
 const BreakdownStat: React.FC<{ 
     name: string;
@@ -208,8 +209,7 @@ const TotalBreakdown: React.FC<{
 }> = ({ echoPanels, selectedStats }) => {
     const { substatsData } = useSubstats();
     
-    const { totalOccurrences, rollValue } = useMemo(() => {
-        let count = 0;
+    const { rollValue } = useMemo(() => {
         let totalPercentage = 0;
         selectedStats.forEach(statName => {
             const statTotal = echoPanels.reduce((sum, panel) => {
@@ -220,21 +220,19 @@ const TotalBreakdown: React.FC<{
                 return sum + (panel.stats.subStats.some(sub => sub.type === statName) ? 1 : 0);
             }, 0);
             if (statCount > 0 && substatsData?.[statName]) {
-                count += statCount;
                 const maxRollIndex = substatsData[statName].length - 1;
                 const maxPossible = substatsData[statName][maxRollIndex] * statCount;
                 totalPercentage += (statTotal / maxPossible) * 100 * statCount;
             }
         });
         return {
-            totalOccurrences: count,
             rollValue: Math.round(totalPercentage)
         };
     }, [echoPanels, selectedStats, substatsData]);
     if (selectedStats.size === 0) return null;
     
     return (
-        <div className="breakdown-stat total">×{totalOccurrences} • {rollValue}% RV</div>
+        <div className="breakdown-stat total">{rollValue}% RV</div>
     );
 };
 
@@ -286,11 +284,8 @@ export const LBExpanded: React.FC<{
                             });
                         }}
                     />
+                <TotalBreakdown echoPanels={echoPanels} selectedStats={selectedStats} />
                 </div>
-                <TotalBreakdown 
-                    echoPanels={echoPanels}
-                    selectedStats={selectedStats} 
-                />
             </div>
         </div>
     );
