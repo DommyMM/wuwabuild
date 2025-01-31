@@ -85,18 +85,22 @@ const LBStatsSection: React.FC<{
     const [elementType, elementDmg] = isHealer ? 
         ["Healing Bonus", values['Healing Bonus'] || 0] : 
         getHighestDmg(values);
-    const fixedStats = ['ATK', elementType, 'Energy Regen'];
+    let secondStat: [string, number];
     let fourthStat: [string, number];
-    
-    if (activeStat && !fixedStats.includes(activeStat)) {
+    if (activeStat === elementType) {
+        secondStat = getHighestDmgBonus(values);
+        fourthStat = [elementType, elementDmg];
+    } else if (activeStat && !['ATK', 'Energy Regen'].includes(activeStat)) {
+        secondStat = [elementType, elementDmg];
         fourthStat = [activeStat, values[activeStat] || 0];
     } else {
+        secondStat = [elementType, elementDmg];
         fourthStat = getHighestDmgBonus(values);
     }
     return (
         <div className="lb-stats">
             <IconStat statName="ATK" value={atk} isHighlighted={activeStat === 'ATK'} />
-            <IconStat statName={elementType} value={elementDmg} isHighlighted={activeStat === elementType} />
+            <IconStat statName={secondStat[0]} value={secondStat[1]} isHighlighted={activeStat === secondStat[0]} />
             <IconStat statName="Energy Regen" value={er} isHighlighted={activeStat === 'Energy Regen'} />
             <IconStat statName={fourthStat[0]} value={fourthStat[1]} isHighlighted={activeStat === fourthStat[0]} />
         </div>

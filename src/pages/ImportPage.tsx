@@ -144,6 +144,11 @@ export const ImportPage: React.FC = () => {
                         <>
                             <div className='instructions'>Upload image from the wuwa discord bot</div>
                             <ImportUploader onFilesSelected={handleFilesSelected} />
+                            <div className="tutorial-text">
+                                <h3>Either directly download, or open in browser</h3>
+                                <p>Discord compresses the image if you try to copy or drag directly</p>
+                                <img src="/images/discord-og.png" alt="Tutorial"></img>
+                            </div>
                         </>
                     ) : (
                         <div className="preview-container">

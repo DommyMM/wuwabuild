@@ -29,6 +29,11 @@
     padding: 8px 16px;
 }
 
+.lb-table {
+    min-height: 910px;
+    position: relative;
+}
+
 .lb-header {
     background: #1a1a1a;
     border-radius: 8px;
@@ -71,6 +76,12 @@
     width: 24px;
     height: 24px;
     cursor: pointer;
+    transition: transform 0.3s ease-in-out;
+    transform: scaleX(-1);
+}
+
+.asc {
+    transform: rotate(180deg);
 }
 
 .sort-dropdown {
@@ -84,8 +95,6 @@
 
 .sort-dropdown:hover .sort-options {
     display: block;
-    left: 50%;
-    transform: translateX(-50%);
 }
 
 .sort-options {
@@ -102,7 +111,7 @@
     transition: background-color 0.2s;
     font-size: 24px;
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
 }
 
 .sort-option:hover {
@@ -112,6 +121,69 @@
 .sort-option.active {
     background: black;
 }
+
+.sort-dropdown.stats {
+    position: relative;
+    width: 375px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 93.75px);
+    position: relative;
+    height: 100%;
+}
+
+.stats-grid::before,
+.stats-grid::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 65px;
+    border-top: 1px solid #a69662;
+    opacity: 0.3;
+}
+
+.stats-grid::before {
+    left: 9.375px; 
+}
+
+.stats-grid::after {
+    right: 9.375px;
+}
+
+.stats-grid .sort-header {
+    grid-column: span 4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+.stats-hover-section {
+    height: 100%;
+    width: 93.75px;
+    position: absolute;
+    top: 0;
+    z-index: 1;
+}
+
+.stats-hover-section:nth-child(1) { left: 0; }
+.stats-hover-section:nth-child(2) { left: 93.75px; }
+.stats-hover-section:nth-child(3) { left: 187.5px; }
+.stats-hover-section:nth-child(4) { left: 281.25px; }
+
+.sort-dropdown.stats .sort-options {
+    width: 187.5px;
+    position: absolute;
+    top: 100%;
+    z-index: 10;
+    pointer-events: all;
+}
+
+.sort-options.left { left: 0; }
+.sort-options.center { left: 93.75px; }
+.sort-options.right { left: 187.5px; }
 
 .lb-entries {
     display: flex;
@@ -296,6 +368,7 @@
 .lb-cv {
     display: flex;
     flex-direction: column;
+    align-items: center;
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 24px;
@@ -319,12 +392,21 @@
     flex-direction: row;
     justify-content: space-between;
     font-size: 24px;
+    margin: 0 4px;
+    position: relative;
 }
 
 .lb-stat {
     display: flex;
     align-items: center;
     gap: 4px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.lb-stats:has(.highlighted) .lb-stat:not(.highlighted) {
+    opacity: 0.5;
+    filter: brightness(0.7);
 }
 
 .lb-stat.highlighted {
@@ -339,6 +421,9 @@
     padding: 2px 4px;
     margin: -2px -4px;
     box-shadow: inset 0 0 0 1px rgba(166, 150, 98, 0.2);
+    z-index: 1;
+    opacity: 1; 
+    filter: none;
 }
 
 .lb-stat-icon {

@@ -4,7 +4,7 @@ import { decompressData } from '../components/Build/Backup';
 import { Pagination } from '../components/Build/Pagination';
 import { CompressedEntry, DecompressedEntry } from '../components/LB/types';
 import { LBEntry } from '../components/LB/LbEntry';
-import { SortAsc, SortDesc } from 'lucide-react';
+import { SortAsc } from 'lucide-react';
 import { decompressStats } from '../hooks/useStats';
 import { STAT_ORDER } from '../types/stats';
 import '../styles/Leaderboard.css';
@@ -34,11 +34,7 @@ const SortButton: React.FC<{
     onClick: (e: React.MouseEvent) => void;
 }> = ({ direction, onClick }) => (
     <div className="sort-button" onClick={onClick}>
-        {direction === 'asc' ? (
-            <SortAsc className="sort-icon" />
-        ) : (
-            <SortDesc className="sort-icon" />
-        )}
+        <SortAsc className={`sort-icon ${direction === 'desc' ? 'asc' : ''}`} />
     </div>
 );
 
@@ -47,10 +43,13 @@ const getDisplayName = (value: string) => {
         case 'cv': return 'Crit Value';
         case 'cr': return 'Crit Rate';
         case 'cd': return 'Crit DMG';
+        case 'ATK': return 'Final Attack';
+        case 'HP': return 'Final HP';
+        case 'DEF': return 'Final DEF';
         case 'Basic Attack DMG Bonus': return 'Basic Attack';
         case 'Heavy Attack DMG Bonus': return 'Heavy Attack';
         case 'Resonance Skill DMG Bonus': return 'Resonance Skill';
-        case 'Resonance Liberation DMG Bonus': return 'Resonance Liberation';
+        case 'Resonance Liberation DMG Bonus': return 'Liberation DMG';
         default: return value;
     }
 };
@@ -63,35 +62,38 @@ interface SortDropdownProps {
     onDirectionChange: (direction: 'asc' | 'desc') => void;
     placeholder?: string;
     isActive: boolean;
+    hoveredSection?: number | null;
+    lastHoveredSection?: number | null;
+    onHoverSection?: (section: number | null) => void;
 }
 
+const getDropdownPosition = (current: number | null, last: number | null) => {
+    const section = current ?? last;
+    if (section === 0) return 'left';
+    if (section === 3) return 'right';
+    return 'center';
+};
+
 const SortDropdown: React.FC<SortDropdownProps> = ({ 
-    field, options, direction, onFieldChange, onDirectionChange, placeholder = 'Sort By', isActive 
-}) => (
-    <div className={`sort-dropdown ${isActive ? 'active' : ''}`}>
-        <div className="sort-header">
-            {field ? getDisplayName(field) : placeholder}
-            {isActive && (
-                <SortButton 
-                    direction={direction} 
-                    onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        onDirectionChange(direction === 'asc' ? 'desc' : 'asc');
-                    }} 
-                />
-            )}
-        </div>
-        <div className="sort-options">
-            {options.map((option) => (
-                <div 
-                    key={option} 
-                    className={`sort-option ${field === option ? 'active' : ''}`}
-                    onClick={() => onFieldChange(option)}
-                >
-                    <span>{getDisplayName(option)}</span>
-                    {field === option && isActive && (
-                        <SortButton 
-                            direction={direction} 
+    field, options, direction, onFieldChange, onDirectionChange, 
+    placeholder = 'Sort By', isActive, hoveredSection, lastHoveredSection, onHoverSection 
+}) => {
+    const isStatsDropdown = placeholder === 'Stats';
+    
+    return (
+        <div className={`sort-dropdown ${isActive ? 'active' : ''} ${isStatsDropdown ? 'stats' : ''}`}>
+            <div className={isStatsDropdown ? 'stats-grid' : ''}>
+                {isStatsDropdown && [0,1,2,3].map(section => (
+                    <div key={section}
+                        className="stats-hover-section"
+                        onMouseEnter={() => onHoverSection?.(section)}
+                        onMouseLeave={() => onHoverSection?.(null)}
+                    />
+                ))}
+                <div className="sort-header">
+                    {field ? getDisplayName(field) : placeholder}
+                    {isActive && (
+                        <SortButton direction={direction} 
                             onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation();
                                 onDirectionChange(direction === 'asc' ? 'desc' : 'asc');
@@ -99,10 +101,28 @@ const SortDropdown: React.FC<SortDropdownProps> = ({
                         />
                     )}
                 </div>
-            ))}
+                <div className={`sort-options ${placeholder === 'Stats' ? getDropdownPosition(hoveredSection ?? null, lastHoveredSection ?? null) : ''}`}>
+                    {options.map((option) => (
+                        <div key={option} 
+                            className={`sort-option ${field === option ? 'active' : ''}`}
+                            onClick={() => onFieldChange(option)}
+                        >
+                            <span>{getDisplayName(option)}</span>
+                            {field === option && isActive && (
+                                <SortButton direction={direction} 
+                                    onClick={(e: React.MouseEvent) => {
+                                        e.stopPropagation();
+                                        onDirectionChange(direction === 'asc' ? 'desc' : 'asc');
+                                    }} 
+                                />
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 export const Leaderboard: React.FC = () => {
     const [data, setData] = useState<DecompressedEntry[]>([]);
@@ -114,6 +134,8 @@ export const Leaderboard: React.FC = () => {
     const [CVSort, setCVSort] = useState<CVSort>('cv');
     const [statSort, setStatSort] = useState<StatSort | null>(null);
     const [activeSort, setActiveSort] = useState<ActiveSort>('cv');
+    const [hoveredSection, setHoveredSection] = useState<number | null>(null);
+    const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
     const itemsPerPage = 10;
     const initialLimit = 30;
     const decompressedStats = useMemo(() => {
@@ -220,6 +242,13 @@ export const Leaderboard: React.FC = () => {
         }
     };
 
+    const handleHoverSection = (section: number | null) => {
+        setHoveredSection(section);
+        if (section !== null) {
+            setLastHoveredSection(section);
+        }
+    };
+
     if (loading) return (
         <div className="lb-container">
             <div className="loading-state">Loading leaderboard data...</div>
@@ -263,6 +292,9 @@ export const Leaderboard: React.FC = () => {
                                 onDirectionChange={setSortDirection}
                                 placeholder="Stats"
                                 isActive={activeSort === 'stat'}
+                                hoveredSection={hoveredSection}
+                                lastHoveredSection={lastHoveredSection}
+                                onHoverSection={handleHoverSection}
                             />
                         </div>
                         <div className="lb-entries">

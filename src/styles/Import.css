@@ -15,6 +15,28 @@
     margin-bottom: 40px;
 }
 
+.tutorial-text {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    color: white;
+    text-align: center;
+    font-size: 24px;
+}
+
+.tutorial-text h3 {
+    font-size: 36px;
+    margin: 0 0 10px 0;
+}
+
+.tutorial-text p {
+    margin: 0 0 10px 0;
+}
+
+.tutorial-text img {
+    width: 100%;
+}
+
 .preview-container {
     position: relative;
     width: 100%;
