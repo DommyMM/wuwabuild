@@ -43,9 +43,9 @@ const getDisplayName = (value: string) => {
         case 'cv': return 'Crit Value';
         case 'cr': return 'Crit Rate';
         case 'cd': return 'Crit DMG';
-        case 'ATK': return 'Final Attack';
-        case 'HP': return 'Final HP';
-        case 'DEF': return 'Final DEF';
+        case 'ATK': return 'Total Attack';
+        case 'HP': return 'Total HP';
+        case 'DEF': return 'Total DEF';
         case 'Basic Attack DMG Bonus': return 'Basic Attack';
         case 'Heavy Attack DMG Bonus': return 'Heavy Attack';
         case 'Resonance Skill DMG Bonus': return 'Resonance Skill';

@@ -71,11 +71,16 @@
 }
 
 .stat-breakdown {
+    display: flex;
     text-align: right;
     font-size: 14px;
+    gap: 2px;
     transform: scale(1);
     margin-right: 5px;
     transition: transform 0.2s ease, font-size 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    width: fit-content;
 }
 
 .update-value{

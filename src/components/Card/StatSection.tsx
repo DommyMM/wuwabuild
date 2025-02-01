@@ -47,7 +47,7 @@ const StatRow: React.FC<StatRowProps> = ({ name, value, baseValue, update }) => 
               <span className="base-value">{baseValue}</span>
             )}
             <span className="update-value">
-              {isBaseStatType ? ` + ${update.toFixed(1)}` : `+${update.toFixed(1)}%`}
+              {isBaseStatType ? `+ ${update.toFixed(1)}` : `+${update.toFixed(1)}%`}
             </span>
           </div>
         )}

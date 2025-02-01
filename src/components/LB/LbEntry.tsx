@@ -79,29 +79,34 @@ const LBStatsSection: React.FC<{
     character: Character | null | undefined;
     activeStat: StatSort | null;
 }> = ({ values, character, activeStat }) => {
-    const atk = values['ATK'];
-    const er = values['Energy Regen'];
     const isHealer = character?.Bonus1 === "Healing";
     const [elementType, elementDmg] = isHealer ? 
         ["Healing Bonus", values['Healing Bonus'] || 0] : 
         getHighestDmg(values);
-    let secondStat: [string, number];
-    let fourthStat: [string, number];
+    
+    let firstStat: [string, number] = isHealer ?
+        ['HP', values['HP']] :
+        ['ATK', values['ATK']];
+    let secondStat: [string, number] = [elementType, elementDmg];
+    let fourthStat: [string, number] = getHighestDmgBonus(values);
     if (activeStat === elementType) {
         secondStat = getHighestDmgBonus(values);
         fourthStat = [elementType, elementDmg];
-    } else if (activeStat && !['ATK', 'Energy Regen'].includes(activeStat)) {
-        secondStat = [elementType, elementDmg];
+    } else if (activeStat && !['ATK', 'HP', 'Energy Regen'].includes(activeStat)) {
         fourthStat = [activeStat, values[activeStat] || 0];
-    } else {
-        secondStat = [elementType, elementDmg];
-        fourthStat = getHighestDmgBonus(values);
+    } else if (activeStat === 'HP') {
+        if (isHealer) {
+            firstStat = ['ATK', values['ATK']];
+            fourthStat = ['HP', values['HP']];
+        } else {
+            fourthStat = ['HP', values['HP']];
+        }
     }
     return (
         <div className="lb-stats">
-            <IconStat statName="ATK" value={atk} isHighlighted={activeStat === 'ATK'} />
+            <IconStat statName={firstStat[0]} value={firstStat[1]} isHighlighted={activeStat === firstStat[0]} />
             <IconStat statName={secondStat[0]} value={secondStat[1]} isHighlighted={activeStat === secondStat[0]} />
-            <IconStat statName="Energy Regen" value={er} isHighlighted={activeStat === 'Energy Regen'} />
+            <IconStat statName="Energy Regen" value={values['Energy Regen']} isHighlighted={activeStat === 'Energy Regen'} />
             <IconStat statName={fourthStat[0]} value={fourthStat[1]} isHighlighted={activeStat === fourthStat[0]} />
         </div>
     );
