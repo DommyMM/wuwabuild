@@ -216,6 +216,8 @@ const TotalBreakdown: React.FC<{
     
     const { rollValue } = useMemo(() => {
         let totalPercentage = 0;
+        let totalStatCount = 0;
+        
         selectedStats.forEach(statName => {
             const statTotal = echoPanels.reduce((sum, panel) => {
                 const statSub = panel.stats.subStats.find(sub => sub.type === statName);
@@ -228,16 +230,18 @@ const TotalBreakdown: React.FC<{
                 const maxRollIndex = substatsData[statName].length - 1;
                 const maxPossible = substatsData[statName][maxRollIndex] * statCount;
                 totalPercentage += (statTotal / maxPossible) * 100 * statCount;
+                totalStatCount += statCount;
             }
         });
+        
         return {
-            rollValue: Math.round(totalPercentage)
+            rollValue: totalStatCount > 0 ? Math.round(totalPercentage / totalStatCount) : 0
         };
     }, [echoPanels, selectedStats, substatsData]);
     if (selectedStats.size === 0) return null;
     
     return (
-        <div className="breakdown-stat total">{rollValue}% RV</div>
+        <div className="breakdown-stat total" title="Average Roll Value of Selected Stats">{rollValue}% RV </div>
     );
 };
 

@@ -215,6 +215,7 @@
 .lb-main-content {
     align-items: center;
     cursor: pointer;
+    padding: 4px 16px;
 }
 
 .lb-rank {

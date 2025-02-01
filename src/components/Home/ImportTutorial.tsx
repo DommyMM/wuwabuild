@@ -81,10 +81,9 @@ export const ImportTutorial: React.FC = () => {
                         <p>Important Notes:</p>
                         <ul>
                             <li>Use the exact image the bot generates</li>
-                            <li> Wait for all results to finish processing</li>
                             <li>The scanning isn't always 100% accurate</li>
                             <li>You can adjust any incorrectly scanned data</li>
-                            <li>Save to LB will save builds to global pool (SOON)</li>
+                            <li>Save to LB will save builds to global pool</li>
                             <li>Currently supports English language builds only</li>
                         </ul>
                     </div>

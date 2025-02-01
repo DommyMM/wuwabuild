@@ -93,6 +93,7 @@
     justify-content: center;
     font-size: 28px;
     color: #a69662;
+    margin-right: 4px;
 }
 
 .lb-echo-mainstat .lb-stat-icon {
@@ -137,7 +138,7 @@
 
 .lb-breakdown-container {
     display: flex;
-    padding: 12px 12px 2px 12px;
+    padding: 12px 6px 2px 6px;
     justify-content: center;
     gap: 8px;
 }
@@ -153,7 +154,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 6px;
+    padding: 4px 5px;
     background: transparent;
     border: 1px solid #444;
     border-radius: 12px;
@@ -179,9 +180,38 @@
     background: #1a1a1a;
     border-color: #a69662;
     color: #a69662;
-    cursor: default;
+    cursor: help;
+    position: relative;
 }
 
 .breakdown-stat.total:hover {
     transform: none;
+}
+
+.breakdown-stat.total[title] {
+    text-decoration: none;
+}
+
+.breakdown-stat.total::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translate(-85%, -10%);
+    padding: 2px 6px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    border: 1px solid #a69662;
+    color: #a69662;
+    font-size: 0.9em;
+    white-space: nowrap;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.breakdown-stat.total:hover::after {
+    visibility: visible;
+    opacity: 1;
 }
