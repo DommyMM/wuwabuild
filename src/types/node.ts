@@ -47,9 +47,9 @@ export const forteImagePaths: ForteImagePaths = {
     ])
   ),
   sharedImages: {
-    'tree1': (character) => `images/Stats/${character.Bonus1}.png`,
-    'tree2': (character) => `images/Stats/${character.Bonus2}.png`, 
-    'tree4': (character) => `images/Stats/${character.Bonus2}.png`,
-    'tree5': (character) => `images/Stats/${character.Bonus1}.png`
+    'tree1': (character) => getAssetPath('stats', character.Bonus1).cdn,
+    'tree2': (character) => getAssetPath('stats', character.Bonus2).cdn,
+    'tree4': (character) => getAssetPath('stats', character.Bonus2).cdn,
+    'tree5': (character) => getAssetPath('stats', character.Bonus1).cdn
   }
 };

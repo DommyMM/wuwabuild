@@ -2,6 +2,7 @@ import React from 'react';
 import { Character } from '../../types/character';
 import { forteImagePaths } from '../../types/node';
 import type { ForteImagePaths, SkillBranch } from '../../types/node';
+import { getAssetPath } from '../../types/paths';
 import '../../styles/forte.css';
 
 interface ForteGroupProps {
@@ -36,7 +37,7 @@ const GlowingNode: React.FC<GlowingNodeProps> = ({
   
   let imagePath;
   if (isRover && isElementTree) {
-    imagePath = `images/Stats/${elementValue}.png`;
+    imagePath = getAssetPath('stats', elementValue).cdn;
   } else {
     imagePath = forteImagePaths.sharedImages[treeKey]?.(character) || forteImagePaths.imagePaths[skillKey]?.(character);
   }

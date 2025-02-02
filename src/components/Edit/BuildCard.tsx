@@ -246,13 +246,13 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   );
 
   const statsInput = useMemo(() => ({
-    character: selectedCharacter ?? null,
-    level: characterState.level,
-    weapon: selectedWeapon ?? null,
-    weaponStats,
-    echoPanels,
-    nodeStates
-  }), [selectedCharacter, characterState.level, selectedWeapon, weaponStats, echoPanels, nodeStates]);
+      character: selectedCharacter ?? null,
+      characterState,
+      weapon: selectedWeapon ?? null,
+      weaponStats,
+      echoPanels,
+      nodeStates
+  }), [selectedCharacter, characterState, selectedWeapon, weaponStats, echoPanels, nodeStates]);
 
   const { values, baseValues, updates, cv } = useStats(statsInput);
 

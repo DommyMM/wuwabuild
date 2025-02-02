@@ -283,14 +283,12 @@
         gap: 0;
         padding: 0;
     }
-
     .results-actions h3 {
         font-size: 24px;
         text-align: center;
         width: 100%;
         margin: 0;
     }
-
     .results-actions > :last-child {
         display: flex;
         flex-direction: row;
@@ -299,11 +297,9 @@
         gap: 12px;
         width: 100%;
     }
-
     .save-checkbox {
         font-size: 16px;
     }
-
     .import-build-btn {
         padding: 8px 16px;
         font-size: 14px;
@@ -334,5 +330,8 @@
     }
     .fortes-grid > div:nth-child(4), .fortes-grid > div:nth-child(5), .echoes-grid > div:nth-child(5) {
         transform: translateX(50%);
+    }
+    .import-sub {
+        max-width: 65%;
     }
 }

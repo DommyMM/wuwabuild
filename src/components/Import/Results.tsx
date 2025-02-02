@@ -189,17 +189,17 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
         
         return {
             character,
-            level: '90',
+            characterState: convertedBuild.characterState,
             weapon,
             weaponStats,
             echoPanels: convertedBuild.echoPanels,
             nodeStates: convertedBuild.nodeStates
         };
     }, [convertedBuild, saveToLb, scaleAtk, scaleStat]);
-
+    
     const stats = useStats(statsInput ?? {
         character: null,
-        level: '1',
+        characterState: { id: null, level: '1', element: undefined },
         weapon: null,
         weaponStats: undefined,
         echoPanels: [],

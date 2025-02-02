@@ -1,6 +1,7 @@
 import React from 'react';
 import { Character, isRover } from '../../types/character';
 import { forteImagePaths } from '../../types/node';
+import { getAssetPath } from '../../types/paths';
 
 interface ForteSectionProps {
   character: Character;
@@ -58,10 +59,10 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
     
     if (isRover(character)) {
       if (isElementTree) {
-        return `images/Stats/${elementValue}.png`;
+        return getAssetPath('stats', elementValue).cdn;
       }
       if (isStatTree) {
-        return 'images/Stats/ATK.png';
+        return getAssetPath('stats', 'ATK').cdn;
       }
     }
   
@@ -71,8 +72,11 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
   };
 
   const getNodeClassName = () => {
+    const isElementTree = branch.tree === 'tree1' || branch.tree === 'tree5';
+    const isStatTree = branch.tree === 'tree2' || branch.tree === 'tree4';
     if (isRover(character)) {
-      return elementValue.toLowerCase();
+      if (isElementTree) return elementValue.toLowerCase();
+      if (isStatTree) return 'atk';
     }
     return '';
   };

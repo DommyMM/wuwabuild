@@ -6,6 +6,7 @@ import { useCharacterCurves } from './useCharacterCurves';
 import { EchoPanelState, ELEMENT_SETS, ElementType, ECHO_BONUSES } from '../types/echo';
 import { getCachedEchoes } from './useEchoes';
 import { STAT_MAP } from '../components/Save/Backup';
+import { CharacterState } from '../pages/EditPage';
 
 export interface StatsData {
   stats: StatName[];
@@ -26,7 +27,7 @@ interface StatState {
 
 export interface UseStatsProps {
   character: Character | null;
-  level: string;
+  characterState: CharacterState;
   weapon: Weapon | null;
   weaponStats?: ScaledStats;
   echoPanels?: EchoPanelState[];
@@ -238,7 +239,7 @@ export const decompressStats = (compressed: CompressedStats): StatState => ({
 
 export const useStats = ({
   character,
-  level,
+  characterState,
   weapon,
   weaponStats,
   echoPanels = [],
@@ -255,7 +256,7 @@ export const useStats = ({
   const baseStats = useMemo(() => {
     if (!character) return null;
     
-    const levelNum = parseInt(level) || 1;
+    const levelNum = parseInt(characterState.level) || 1;
     const characterAtk = scaleStat(character.ATK, levelNum, 'ATK');
     const weaponAtk = weaponStats?.scaledAtk ?? 0;
     
@@ -265,7 +266,7 @@ export const useStats = ({
       baseATK: characterAtk + weaponAtk,
       baseDEF: scaleStat(character.DEF, levelNum, 'DEF')
     };
-  }, [character, level, weaponStats?.scaledAtk, scaleStat]);
+  }, [character, characterState.level, weaponStats?.scaledAtk, scaleStat]);
 
   const { elementCounts, atkPercentBonus } = useMemo(() => {
     const counts: Record<ElementType, number> = {} as Record<ElementType, number>;
@@ -402,7 +403,8 @@ export const useStats = ({
           }
         });
         if ((forteBonus.bonus1Type === 'Crit Rate' && displayStat === 'Crit Rate') || (forteBonus.bonus1Type === 'Crit DMG' && displayStat === 'Crit DMG') || 
-            (forteBonus.bonus1Type === 'Healing' && displayStat === 'Healing Bonus') || (displayStat === `${forteBonus.bonus1Type} DMG`)) {
+          (forteBonus.bonus1Type === 'Healing' && displayStat === 'Healing Bonus') || (displayStat === `${character.name.startsWith('Rover') 
+              ? characterState.element : forteBonus.bonus1Type} DMG`)) {
           result.update += forteBonus.bonus1Total;
         }
       }
@@ -410,7 +412,7 @@ export const useStats = ({
       result.update = Number(result.update.toFixed(1));
     }
     return result;
-  }, [character, baseStats, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats, firstPanelBonus]);
+  }, [character, baseStats, characterState.element, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats, firstPanelBonus]);
 
   const calculateCVValue = useCallback((): number => {
     return calculateCV(echoPanels);
