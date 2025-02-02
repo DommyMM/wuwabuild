@@ -23,9 +23,10 @@ export const STAT_MAP = {
     "Fusion DMG": "FD",
     "Electro DMG": "ED",
     "Havoc DMG": "HD",
-    "Basic Attack": "BA",
-    "Heavy Attack": "HA",
-    "Liberation" : "L",
+    "Basic Attack DMG Bonus": "BA",
+    "Heavy Attack DMG Bonus": "HA",
+    "Resonance Liberation DMG Bonus" : "RL",
+    "Resonance Skill DMG Bonus": "RS",
     "Energy Regen": "ER",
     "Healing Bonus": "HB"
 } as const;
@@ -36,7 +37,7 @@ const ELEMENT_KEYS = Object.keys(ELEMENT_SETS) as (keyof typeof ELEMENT_SETS)[];
 
 export const compressStats = (stat: any) => ({
     t: STAT_MAP[stat.type as keyof typeof STAT_MAP] || stat.type,
-    v: stat.value
+    v: Number(stat.value.toFixed(1))
 });
 
 export const decompressStats = (stat: any) => ({

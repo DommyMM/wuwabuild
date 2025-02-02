@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LB_URL } from '../components/Import/Results';
 import { decompressData } from '../components/Save/Backup';
 import { Pagination } from '../components/Save/Pagination';
 import { CompressedEntry, DecompressedEntry } from '../components/Build/types';
 import { BuildEntry } from '../components/Build/BuildEntry';
 import { SortAsc } from 'lucide-react';
-import { decompressStats } from '../hooks/useStats';
 import { STAT_ORDER } from '../types/stats';
 import '../styles/BuildPage.css';
 
@@ -124,6 +123,13 @@ const SortDropdown: React.FC<SortDropdownProps> = ({
     );
 };
 
+interface BuildResponse {
+    builds: CompressedEntry[];
+    total: number;
+    page: number;
+    pageSize: number;
+}
+
 export const BuildPage: React.FC = () => {
     const [data, setData] = useState<DecompressedEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -137,15 +143,9 @@ export const BuildPage: React.FC = () => {
     const [hoveredSection, setHoveredSection] = useState<number | null>(null);
     const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
     const itemsPerPage = 10;
-    const initialLimit = 30;
-    const decompressedStats = useMemo(() => {
-        return data.map(entry => ({
-            ...entry,
-            decompressedStats: decompressStats(entry.stats).values
-        }));
-    }, [data]);
+    const [total, setTotal] = useState(0);
     useEffect(() => {
-        const loadInitial = async () => {
+        const loadData = async () => {
             try {
                 const getSortParam = () => {
                     if (statSort) return statSort;
@@ -153,73 +153,33 @@ export const BuildPage: React.FC = () => {
                     if (CVSort === 'cd') return 'Crit DMG';
                     return 'finalCV';
                 };
+                
                 const params = new URLSearchParams({
-                    limit: String(initialLimit),
                     sort: getSortParam(),
-                    direction: sortDirection
+                    direction: sortDirection,
+                    page: String(currentPage),
+                    pageSize: String(itemsPerPage)
                 });
                 const response = await fetch(`${LB_URL}/leaderboard?${params}`);
                 if (!response.ok) throw new Error('Failed to fetch leaderboard');
-                const json: CompressedEntry[] = await response.json();
+                const { builds, total } = await response.json() as BuildResponse;
                 
-                const initialData = json.map(entry => ({
+                setTotal(total);
+                setData(builds.map((entry: CompressedEntry) => ({
                     ...entry,
                     buildState: decompressData({ state: entry.buildState }).state
-                }));
-                
-                setData(initialData);
+                })));
                 setLoading(false);
-                const fullParams = new URLSearchParams({
-                    sort: getSortParam(),
-                    direction: sortDirection
-                });
-                const fullResponse = await fetch(`${LB_URL}/leaderboard?${fullParams}`);
-                if (!fullResponse.ok) throw new Error('Failed to fetch full leaderboard');
-                const fullJson: CompressedEntry[] = await fullResponse.json();
-                
-                const fullData = fullJson.map(entry => ({
-                    ...entry,
-                    buildState: decompressData({ state: entry.buildState }).state
-                }));
-                
-                setData(fullData);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Unknown error');
                 setLoading(false);
             }
         };
-        loadInitial();
-    }, [sortDirection, CVSort, statSort, initialLimit]);
+        loadData();
+    }, [currentPage, sortDirection, CVSort, statSort]);
     useEffect(() => {
         setExpandedEntries(new Set());
     }, [activeSort, CVSort, statSort, currentPage, sortDirection]);
-    const sortedData = useMemo(() => {
-        return [...decompressedStats].sort((a, b) => {
-            let valueA, valueB;
-            if (statSort) {
-                valueA = a.decompressedStats[statSort] || 0;
-                valueB = b.decompressedStats[statSort] || 0;
-            }
-            else if (CVSort === 'cr') {
-                valueA = a.decompressedStats['Crit Rate'];
-                valueB = b.decompressedStats['Crit Rate'];
-            }
-            else if (CVSort === 'cd') {
-                valueA = a.decompressedStats['Crit DMG'];
-                valueB = b.decompressedStats['Crit DMG'];
-            }
-            else {
-                valueA = a.finalCV;
-                valueB = b.finalCV;
-            }
-            return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
-        });
-    }, [decompressedStats, statSort, CVSort, sortDirection]);
-
-    const currentData = useMemo(() => 
-        sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
-        [sortedData, currentPage, itemsPerPage]
-    );
 
     const handleCVSort = (field: CVSort) => {
         if (field === CVSort && activeSort === 'cv') {
@@ -260,7 +220,7 @@ export const BuildPage: React.FC = () => {
             <div className="error-state">Error: {error}</div>
         </div>
     );
-    const pageCount = Math.ceil(data.length / itemsPerPage);
+    const pageCount = Math.ceil(total / itemsPerPage);
 
     return (
         <div className="page-wrapper">
@@ -298,7 +258,7 @@ export const BuildPage: React.FC = () => {
                             />
                         </div>
                         <div className="build-entries">
-                            {currentData.map((entry, index) => (
+                            {data.map((entry, index) => (
                                 <BuildEntry 
                                     key={entry.timestamp}
                                     entry={entry}

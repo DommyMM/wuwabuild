@@ -22,6 +22,7 @@ export const LeaderboardPage: React.FC = () => {
     const [builds, setBuilds] = useState<DecompressedEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
     const itemsPerPage = 10;
     const characterId = '26'; // Hard-coded for testing
 
@@ -29,14 +30,14 @@ export const LeaderboardPage: React.FC = () => {
         const fetchBuilds = async () => {
             try {
                 const response = await fetch(
-                    `${LB_URL}/leaderboard/damage/${characterId}?page=${page}&pageSize=${itemsPerPage}`
+                    `${LB_URL}/damage/${characterId}?page=${page}&pageSize=${itemsPerPage}`
                 );
-                const data: CompressedEntry[] = await response.json();
-                const decompressed = data.map(entry => ({
+                const data = await response.json();
+                setBuilds(data.builds.map((entry: CompressedEntry) => ({
                     ...entry,
                     buildState: decompressData({ state: entry.buildState }).state
-                }));
-                setBuilds(decompressed);
+                })));
+                setTotal(data.total);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -67,7 +68,7 @@ export const LeaderboardPage: React.FC = () => {
                     </div>
                     <Pagination 
                         currentPage={page}
-                        pageCount={Math.ceil(builds.length / itemsPerPage)}
+                        pageCount={Math.ceil(total / itemsPerPage)}
                         onPageChange={setPage}
                     />
                 </div>
