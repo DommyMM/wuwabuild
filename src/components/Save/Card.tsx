@@ -37,7 +37,7 @@ export const getSetInfo = (echoPanels: EchoPanelState[]) => {
         .filter(([_, count]) => count >= 2)
         .map(([element, count], index, array) => (
             <React.Fragment key={element}>
-                <div className={`build-sets ${element.toLowerCase()}`}>
+                <div className={`save-sets ${element.toLowerCase()}`}>
                     {ELEMENT_SETS[element as keyof typeof ELEMENT_SETS]} ({count})
                 </div>
                 {index < array.length - 1 && " • "}
@@ -108,7 +108,7 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
                             <div className="stat-name">
                                 <img src={getStatPaths(panel.stats.mainStat.type as StatName).cdn}
                                     alt={String(panel.stats.mainStat.type)}
-                                    className="stat-icon"
+                                    className="save-stat-icon"
                                 />
                                 <span>{getDisplayName(panel.stats.mainStat.type as StatName).replace('%', '')}</span>
                             </div>
@@ -127,7 +127,7 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
                                         <div className="stat-name">
                                             <img src={getStatPaths(stat.type).cdn} 
                                                 alt={String(stat.type)} 
-                                                className="stat-icon"
+                                                className="save-stat-icon"
                                             />
                                             <span>{getDisplayName(stat.type).replace(' DMG Bonus', '').replace('%', '')}</span>
                                         </div>

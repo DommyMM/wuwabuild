@@ -1,4 +1,4 @@
-.build-preview {
+.save-preview {
     background: #1E1E1E;
     border: 1px solid #333;
     border-radius: 8px;
@@ -12,12 +12,12 @@
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
 }
 
-.build-preview.animating {
+.save-preview.animating {
     transform: scale(0.95);
     opacity: 0;
 }
 
-.build-preview.appearing {
+.save-preview.appearing {
     animation: appearIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -32,7 +32,7 @@
     }
 }
 
-.build-preview:hover {
+.save-preview:hover {
     border-color: #a69662;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(166, 150, 98, 0.1);
@@ -46,7 +46,7 @@
     animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.build-preview-expanded {
+.save-preview-expanded {
     position: fixed;
     z-index: 99;
     background: #1E1E1E;
@@ -65,7 +65,7 @@
     animation: fadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.build-preview-expanded.collapse-out {
+.save-preview-expanded.collapse-out {
     animation: collapseOut 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
@@ -112,12 +112,12 @@
     }
 }
 
-.build-preview-expanded .build-header {
+.save-preview-expanded .save-header {
     padding-bottom: 2px;
     margin-bottom: 4px;
 }
 
-.build-header {
+.save-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -126,7 +126,7 @@
     border-bottom: 1px solid #333;
 }
 
-.build-header h3 {
+.save-header h3 {
     font-size: 30px;
     font-family: 'Gowun', sans-serif;
     width: 66.66%;
@@ -146,7 +146,7 @@
     display: inline-block;
 }
 
-.build-date {
+.save-date {
     font-size: 16px;
     color: #666;
 }
@@ -166,36 +166,36 @@
     font-size: 28px;
 }
 
-.char, .weap, .build-cv {
+.char, .weap, .save-cv {
     font-weight: 500;
     color: #a69662;
 }
 
-.build-cv {
+.save-cv {
     color: #bfad7d;
 }
 
-.build-sets { 
+.save-sets { 
     font-size: 28px;
 }
 
-.build-sets.aero { color: #98FB98; }
-.build-sets.er, .build-sets.tidebreaking { color: white; }
-.build-sets.electro { color: #BA55D3; }
-.build-sets.spectro { color: #FFD700; }
-.build-sets.glacio, .build-sets.frosty { color: #87CEEB; }
-.build-sets.attack { color: #BC2514; }
-.build-sets.fusion { color: #D5740C; }
-.build-sets.havoc { color: #FF1493; }
-.build-sets.healing { color: #2FE32F; }
-.build-sets.empyrean { color: #4ba3ff; }
-.build-sets.midnight { color: #e086e0; }
-.build-sets.radiance { color: #ffd54f; }
+.save-sets.aero { color: #98FB98; }
+.save-sets.er, .save-sets.tidebreaking { color: white; }
+.save-sets.electro { color: #BA55D3; }
+.save-sets.spectro { color: #FFD700; }
+.save-sets.glacio, .save-sets.frosty { color: #87CEEB; }
+.save-sets.attack { color: #BC2514; }
+.save-sets.fusion { color: #D5740C; }
+.save-sets.havoc { color: #FF1493; }
+.save-sets.healing { color: #2FE32F; }
+.save-sets.empyrean { color: #4ba3ff; }
+.save-sets.midnight { color: #e086e0; }
+.save-sets.radiance { color: #ffd54f; }
 
 .name-section {
     display: flex;
     align-items: center;
-    width: 66.66%;
+    width: 70%;
 }
 
 .name-display {
@@ -285,15 +285,15 @@
     color: #f44336;
 }
 
-.build-preview-expanded .build-date {
+.save-preview-expanded .save-date {
     color: #888;
 }
 
-.build-preview-expanded .build-info{
+.save-preview-expanded .save-info{
     margin: 8px 0;
 }
 
-.build-preview-expanded .info-row {
+.save-preview-expanded .info-row {
     position: relative;
     display: flex;
     justify-content: space-between;
@@ -357,7 +357,7 @@
     background: #2a2a2a;
 }
 
-.build-preview-expanded .set-display {
+.save-preview-expanded .set-display {
     position: absolute;
     width: 70%;
     left: 50%;
@@ -368,27 +368,27 @@
     align-items: center;
 }
 
-.build-preview-expanded .build-sets {
+.save-preview-expanded .save-sets {
     font-size: 24px !important;
     text-align: center;
 }
 
 @media (max-width: 600px) {
-    .build-preview-expanded{
+    .save-preview-expanded{
         transform: scale(1.95);
         padding: 5px 5px 0 5px;
     }
-    .build-preview-expanded h3 {
+    .save-preview-expanded h3 {
         font-size: 14px;
         width: 60%;
     }
-    .build-preview-expanded .build-date {
+    .save-preview-expanded .save-date {
         font-size: 8px;
     }
     .char-portrait, .weap-portrait {
         width: 50px;
     }
-    .build-preview-expanded .weap {
+    .save-preview-expanded .weap {
         font-size: 12px !important;
         height: 17px;
         display: flex;
@@ -397,7 +397,7 @@
     .main-stat, .echo-cv{
         font-size: 6px !important;
     }
-    .build-preview-expanded .info-row:first-of-type {
+    .save-preview-expanded .info-row:first-of-type {
         display: grid;
         grid-template-columns: 0.75fr 1fr .5fr 2.75fr 0fr;
     }
@@ -410,7 +410,7 @@
     .stats-menu{
         display: none;
     }
-    .build-preview-expanded .set-display{
+    .save-preview-expanded .set-display{
         transform: translate(-50%, 70%);
         width: 100%;
     }
@@ -443,10 +443,10 @@
     .main-stat {
         font-size: 11px !important;
     }
-    .build-preview-expanded .build-sets {
+    .save-preview-expanded .save-sets {
         font-size: 20px !important;
     }
-    .build-preview-expanded .set-display{
+    .save-preview-expanded .set-display{
         transform: translate(-50%, 110%);
     }
 }

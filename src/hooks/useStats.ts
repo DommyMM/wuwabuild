@@ -5,7 +5,7 @@ import { Weapon, ScaledStats } from '../types/weapon';
 import { useCharacterCurves } from './useCharacterCurves';
 import { EchoPanelState, ELEMENT_SETS, ElementType, ECHO_BONUSES } from '../types/echo';
 import { getCachedEchoes } from './useEchoes';
-import { STAT_MAP } from '../components/Build/Backup';
+import { STAT_MAP } from '../components/Save/Backup';
 
 export interface StatsData {
   stats: StatName[];

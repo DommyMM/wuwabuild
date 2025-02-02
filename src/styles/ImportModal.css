@@ -220,7 +220,7 @@
         height: auto;
         margin-bottom: 0.5rem;
     }
-    .char-container {
+    .convert-content .char-container {
         grid-area: char;
     }
     .sequence-container {
@@ -229,7 +229,7 @@
         height: 100%;
         align-items: center;
     }
-    .weap-container {
+    .convert-content .weap-container {
         grid-area: weapon;
     }
     .forte-container {

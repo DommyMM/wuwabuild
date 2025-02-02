@@ -3,46 +3,46 @@ import { getCachedWeapon } from '../../hooks/useWeapons';
 import { cachedCharacters } from '../../hooks/useCharacters';
 import { getAssetPath } from '../../types/paths';
 import { Character } from '../../types/character';
-import { getCVClass } from '../Build/Card';
+import { getCVClass } from '../Save/Card';
 import { EchoPanelState } from '../../types/echo';
 import { decompressStats } from '../../hooks/useStats';
 import { getStatPaths } from '../../types/stats';
 import { DecompressedEntry, getSetCounts, getHighestDmg, getHighestDmgBonus } from './types';
-import { LBExpanded } from './LbExpanded';
-import { StatSort } from '../../pages/LeaderboardPage';
+import { BuildExpanded } from './BuildExpanded';
+import { StatSort } from '../../pages/BuildPage';
 
-const LBOwnerSection: React.FC<{
+const BuildOwnerSection: React.FC<{
     username?: string;
     uid?: string;
 }> = ({ username, uid }) => (
-    <div className="lb-owner">
+    <div className="build-owner">
         <div className="owner-name">{username || 'Anonymous'}</div>
         <div className="owner-uid">UID: {uid || '000000000'}</div>
     </div>
 );
 
-const LBCharacterSection: React.FC<{
+const BuildCharacterSection: React.FC<{
     character: Character | null | undefined;
     elementClass: string;
 }> = ({ character, elementClass }) => (
-    <div className="lb-character">
+    <div className="build-character">
         <img src={getAssetPath('face1', character as Character).cdn}
             alt={character?.name}
-            className={`lb-portrait ${elementClass}`}
+            className={`build-portrait ${elementClass}`}
         />
         <span className={`char-name ${elementClass}`}>{character?.name}</span>
     </div>
 );
 
-const LBSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels }) => (
-    <div className="lb-sets">
+const BuildSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels }) => (
+    <div className="build-sets">
         {Object.entries(getSetCounts(echoPanels))
             .filter(([_, count]) => count >= 2)
             .map(([element, count]) => (
-                <div key={element} className="lb-set-container">
+                <div key={element} className="build-set-container">
                     <img src={`images/SetIcons/${element}.png`}
                         alt={element}
-                        className="lb-set"
+                        className="build-set"
                     />
                     <span>{count}</span>
                 </div>
@@ -64,17 +64,17 @@ const IconStat: React.FC<{
         `${value.toFixed(1)}%`;
         
     return (
-        <span className={`lb-stat ${isHighlighted ? 'highlighted' : ''}`}>
+        <span className={`build-stat ${isHighlighted ? 'highlighted' : ''}`}>
             <img src={getStatPaths(statName).cdn}
                 alt={statName}
-                className={`lb-stat-icon ${hasElementalColor ? elementType : ''}`}
+                className={`build-stat-icon ${hasElementalColor ? elementType : ''}`}
             />
             {formattedValue}
         </span>
     );
 };
 
-const LBStatsSection: React.FC<{ 
+const BuildStatsSection: React.FC<{ 
     values: Record<string, number>;
     character: Character | null | undefined;
     activeStat: StatSort | null;
@@ -103,7 +103,7 @@ const LBStatsSection: React.FC<{
         }
     }
     return (
-        <div className="lb-stats">
+        <div className="build-stats">
             <IconStat statName={firstStat[0]} value={firstStat[1]} isHighlighted={activeStat === firstStat[0]} />
             <IconStat statName={secondStat[0]} value={secondStat[1]} isHighlighted={activeStat === secondStat[0]} />
             <IconStat statName="Energy Regen" value={values['Energy Regen']} isHighlighted={activeStat === 'Energy Regen'} />
@@ -112,7 +112,7 @@ const LBStatsSection: React.FC<{
     );
 };
 
-export const LBEntry: React.FC<{ 
+export const BuildEntry: React.FC<{ 
     entry: DecompressedEntry; 
     rank: number; 
     onClick: () => void; 
@@ -129,18 +129,18 @@ export const LBEntry: React.FC<{
     const critDmg = stats.values['Crit DMG'];
 
     return (
-        <div className={`lb-entry ${isExpanded ? 'expanded' : ''}`}>
-            <div className="lb-main-content" onClick={onClick}>
-                <div className="lb-rank">#{rank}</div>
-                <LBOwnerSection 
+        <div className={`build-entry ${isExpanded ? 'expanded' : ''}`}>
+            <div className="build-main-content" onClick={onClick}>
+                <div className="build-rank">#{rank}</div>
+                <BuildOwnerSection 
                     username={entry.buildState.watermark?.username}
                     uid={entry.buildState.watermark?.uid}
                 />
-                <LBCharacterSection character={character} elementClass={elementClass} />
-                <div className={`lb-sequence s${entry.buildState.currentSequence}`}>
+                <BuildCharacterSection character={character} elementClass={elementClass} />
+                <div className={`build-sequence s${entry.buildState.currentSequence}`}>
                     <span>S{entry.buildState.currentSequence}</span>
                 </div>
-                <div className="lb-weapon">
+                <div className="build-weapon">
                     {weapon && (
                         <>
                             <img src={getAssetPath('weapons', weapon).cdn}
@@ -151,21 +151,21 @@ export const LBEntry: React.FC<{
                         </>
                     )}
                 </div>
-                <LBSetsSection echoPanels={entry.buildState.echoPanels} />
-                <div className="lb-cv">
-                    <div className="lb-cv-ratio">
+                <BuildSetsSection echoPanels={entry.buildState.echoPanels} />
+                <div className="build-cv">
+                    <div className="build-cv-ratio">
                         {critRate.toFixed(1)} : {critDmg.toFixed(1)}
                     </div>
-                    <div className={`lb-cv-value ${getCVClass(entry.cv + entry.cvPenalty)}`}>
+                    <div className={`build-cv-value ${getCVClass(entry.cv + entry.cvPenalty)}`}>
                         {entry.cv.toFixed(1)} CV
                         {entry.cvPenalty < 0 && (
                             <span className="cv-penalty">(-44)</span>
                         )}
                     </div>
                 </div>
-                <LBStatsSection values={stats.values} character={character} activeStat={activeStat} />
+                <BuildStatsSection values={stats.values} character={character} activeStat={activeStat} />
             </div>
-            {isExpanded && <LBExpanded echoPanels={entry.buildState.echoPanels} character={character ?? null}/>}
+            {isExpanded && <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character ?? null}/>}
         </div>
     );
 };

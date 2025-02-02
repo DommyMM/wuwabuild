@@ -8,7 +8,7 @@ import { getCachedWeapon } from '../../hooks/useWeapons';
 import Marquee from 'react-fast-marquee';
 import '../../styles/Preview.css';
 
-interface BuildPreviewProps {
+interface SavePreviewProps {
     build: SavedBuild;
     onLoad: (build: SavedBuild) => void;
     onDelete: (id: string) => void;
@@ -17,7 +17,7 @@ interface BuildPreviewProps {
     cv: string;
 }
 
-export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDelete, onNameChange, deleteConfirm, cv }) => {
+export const SavePreview: React.FC<SavePreviewProps> = ({ build, onLoad, onDelete, onNameChange, deleteConfirm, cv }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isAnimatingOut, setIsAnimatingOut] = useState(false);
     const [expandedStyle, setExpandedStyle] = useState<ExpandedStyle | null>(null);
@@ -115,7 +115,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
                 <h3>
                     <div className="marquee-wrap" ref={expandedWrapperRef}>
                         {shouldAnimateExpanded ? (
-                            <Marquee gradient={false} speed={100} delay={0} className="name-marquee" pauseOnHover>
+                            <Marquee gradient={false} speed={50} delay={0} className="name-marquee" pauseOnHover>
                                 {build.name}&nbsp;&nbsp;&nbsp;
                             </Marquee>
                         ) : (
@@ -186,7 +186,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
     const calculatePosition = useCallback(() => {
         if (!previewRef.current) return null;
         
-        const grid = previewRef.current.closest('.builds-grid');
+        const grid = previewRef.current.closest('.saves-grid');
         if (!grid) return null;
         const items = Array.from(grid.children);
         const gridStyles = window.getComputedStyle(grid);
@@ -205,7 +205,7 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
         return `${horizontal} ${vertical}`;
     };
     const handleExpand = (e: React.MouseEvent) => {
-        if ((e.target as HTMLElement).closest('.build-actions')) return;
+        if ((e.target as HTMLElement).closest('.save-actions')) return;
         
         if (isExpanded && previewRef.current) {
             setIsAnimatingOut(true);
@@ -251,15 +251,15 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
     }, [build.name, isExpanded]);
     return (
         <>
-            <div ref={previewRef} className="build-preview" onClick={handleExpand}>
-                <div className="build-header">
+            <div ref={previewRef} className="save-preview" onClick={handleExpand}>
+                <div className="save-header">
                     {renderName()}
-                    <span className="build-date">{formatDate(build.date)}</span>
+                    <span className="save-date">{formatDate(build.date)}</span>
                 </div>
-                <div className="build-info">
+                <div className="save-info">
                     {renderContent(false)}
                 </div>
-                <div className="build-actions">
+                <div className="save-actions">
                     <button onClick={() => onLoad(build)}>Load</button>
                     <button onClick={() => onDelete(build.id)} className={deleteConfirm === build.id ? 'danger' : ''}>
                         {deleteConfirm === build.id ? 'Confirm Delete?' : 'Delete'}
@@ -273,23 +273,23 @@ export const BuildPreview: React.FC<BuildPreviewProps> = ({ build, onLoad, onDel
                         onClick={handleExpand} 
                     />
                     <div 
-                        className={`build-preview-expanded ${isAnimatingOut ? 'collapse-out' : ''}`}
+                        className={`save-preview-expanded ${isAnimatingOut ? 'collapse-out' : ''}`}
                         onClick={(e) => {
-                            if (!(e.target as HTMLElement).closest('.build-actions')) {
+                            if (!(e.target as HTMLElement).closest('.save-actions')) {
                                 handleExpand(e);
                             }
                         }}
                         style={expandedStyle}
                     >
-                        <div className="build-header">
+                        <div className="save-header">
                             <div className="name-section">
                                 {renderName()}
                             </div>
-                            <span className="build-date">
+                            <span className="save-date">
                                 {formatDate(build.date)}
                             </span>
                         </div>
-                        <div className="build-info">
+                        <div className="save-info">
                             {renderContent(true)}
                         </div>
                     </div>

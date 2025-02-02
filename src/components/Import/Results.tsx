@@ -4,7 +4,7 @@ import { convertBuild } from './Convert';
 import { SavedState } from '../../types/SavedState';
 import { useNavigate } from 'react-router-dom';
 import { ImportModal } from './ImportModal';
-import { compressData } from '../Build/Backup';
+import { compressData } from '../Save/Backup';
 import { useLevelCurves } from '../../hooks/useLevelCurves';
 import { useStats } from '../../hooks/useStats';
 import { calculateWeaponStats } from '../Edit/BuildCard';

@@ -1,5 +1,3 @@
-
-
 .echo-group {
     display: flex;
     justify-content: center;
@@ -169,7 +167,7 @@
     gap: 2px;
 }
 
-.echo-details .main-stat-row .stat-icon {
+.echo-details .main-stat-row .save-stat-icon {
     width: 16px;
     margin-left: 2px;
 }
@@ -197,7 +195,7 @@
     gap: 4px;
 }
 
-.echo-details .stat-icon {
+.echo-details .save-stat-icon {
     width: 14px;
     object-fit: contain;
     margin-left: 2px;

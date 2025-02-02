@@ -5,10 +5,10 @@ import { getCachedEchoes } from '../../hooks/useEchoes';
 import { getAssetPath } from '../../types/paths';
 import { getStatPaths } from '../../types/stats';
 import { calculateCV } from '../../hooks/useStats';
-import { getEchoCVClass } from '../Build/Card';
+import { getEchoCVClass } from '../Save/Card';
 import { sumEchoSubstats } from './types';
 import { Character } from '../../types/character';
-import '../../styles/LeaderboardExpand.css';
+import '../../styles/BuildExpand.css';
 
 const formatValue = (value: number, isPercentage: boolean = true): string => {
     const fixed = value.toFixed(1);
@@ -27,13 +27,13 @@ const BreakdownStat: React.FC<{
     
     return (
         <div className={`breakdown-stat ${isSelected ? 'selected' : ''} ${isTotal ? 'total' : ''}`} onClick={onToggle}>
-            <img src={paths.cdn} alt={name} className="lb-stat-icon" />
+            <img src={paths.cdn} alt={name} className="build-stat-icon" />
             <span>{formatValue(value, isPercentage)}</span>
         </div>
     );
 };
 
-const LBBreakdownRow: React.FC<{
+const BuildBreakdownRow: React.FC<{
     echoPanels: EchoPanelState[];
     selectedStats: Set<string>;
     onToggleStat: (statName: string) => void;
@@ -42,7 +42,7 @@ const LBBreakdownRow: React.FC<{
     const baseStats = ['HP', 'ATK', 'DEF'] as const;
     
     return (
-        <div className="lb-breakdown">
+        <div className="build-breakdown">
             {Object.entries(substats).map(([name, value]) => (
                 <BreakdownStat 
                     key={name} 
@@ -63,10 +63,10 @@ const EchoMainStat: React.FC<{
 }> = ({ type, value }) => {
     if (!type || !value) return null;
     return (
-        <div className="lb-echo-mainstat">
+        <div className="build-echo-mainstat">
             <img src={getStatPaths(type).cdn}
                 alt={type}
-                className={`lb-stat-icon ${type.split(' ')[0].toLowerCase()}`}
+                className={`build-stat-icon ${type.split(' ')[0].toLowerCase()}`}
             />
             <div>{value.toFixed(1)}%</div>
         </div>
@@ -78,12 +78,12 @@ const EchoSubstat: React.FC<{
     quality: string;
     isSelected: boolean;
 }> = ({ sub, quality, isSelected }) => (
-    <div className={`lb-echo-substat ${isSelected ? 'selected' : ''}`}>
+    <div className={`build-echo-substat ${isSelected ? 'selected' : ''}`}>
         <img src={getStatPaths(sub.type || '').cdn}
             alt={sub.type || ''}
-            className="lb-stat-icon"
+            className="build-stat-icon"
         />
-        <div className={`lb-echo-substat-value ${quality}`}>
+        <div className={`build-echo-substat-value ${quality}`}>
             {sub.type && sub.value ? 
                 `${sub.value}${['ATK', 'HP', 'DEF'].includes(sub.type) ? '' : '%'}` 
                 : '-'}
@@ -113,7 +113,7 @@ const EchoStatDisplay: React.FC<StatDisplayProps> = ({ cv, rv, selectedCount }) 
     
     return (
         <div 
-            className={`lb-echo-cv ${showCV ? getEchoCVClass(cv) : getEchoRVClass(rv, selectedCount)}`}
+            className={`build-echo-cv ${showCV ? getEchoCVClass(cv) : getEchoRVClass(rv, selectedCount)}`}
             onClick={() => setShowCV(!showCV)}
         >
             {showCV ? 
@@ -171,12 +171,12 @@ const calculateSelectedRV = (
     return statCount > 0 ? totalPercentage : 0;
 };
 
-const LBEchoRow: React.FC<{
+const BuildEchoRow: React.FC<{
     echoPanels: EchoPanelState[];
     substatsData: Record<string, number[]> | null;
     selectedStats: Set<string>;
 }> = ({ echoPanels, substatsData, selectedStats }) => (
-    <div className="lb-echoes">
+    <div className="build-echoes">
         {echoPanels.map((panel, i) => {
             const echo = getCachedEchoes(panel.id);
             if (!echo) return null;
@@ -184,16 +184,16 @@ const LBEchoRow: React.FC<{
             const panelRV = calculateSelectedRV(panel, substatsData, selectedStats);
             
             return (
-                <div key={i} className="lb-echo-slot">
+                <div key={i} className="build-echo-slot">
                     <EchoStatDisplay cv={panelCV} rv={panelRV} selectedCount={selectedStats.size} />
-                    <div className="lb-echo-info">
+                    <div className="build-echo-info">
                         <img src={getAssetPath('echoes', echo).cdn}
                             alt={echo.name}
-                            className="lb-echo-icon"
+                            className="build-echo-icon"
                         />
                         <EchoMainStat type={panel.stats.mainStat.type} value={panel.stats.mainStat.value} />
                     </div>
-                    <div className="lb-echo-stats">
+                    <div className="build-echo-stats">
                         {panel.stats.subStats.map((sub, index) => (
                             <EchoSubstat key={index}
                                 sub={sub}
@@ -264,7 +264,7 @@ const getCharacterDefaultStats = (character: Character | null): Set<string> => {
     return defaultStats;
 };
 
-export const LBExpanded: React.FC<{
+export const BuildExpanded: React.FC<{
     echoPanels: EchoPanelState[];
     character: Character | null;
 }> = ({ echoPanels, character }) => {
@@ -274,10 +274,10 @@ export const LBExpanded: React.FC<{
     );
     
     return (
-        <div className="lb-expanded-content">
-            <LBEchoRow echoPanels={echoPanels} substatsData={substatsData} selectedStats={selectedStats} />
-            <div className="lb-breakdown-container">
-                <LBBreakdownRow 
+        <div className="build-expanded-content">
+            <BuildEchoRow echoPanels={echoPanels} substatsData={substatsData} selectedStats={selectedStats} />
+            <div className="build-breakdown-container">
+                <BuildBreakdownRow 
                     echoPanels={echoPanels} 
                     selectedStats={selectedStats}
                     onToggleStat={(statName) => {

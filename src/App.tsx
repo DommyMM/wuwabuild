@@ -3,9 +3,9 @@ import ReactGA from 'react-ga4';
 import { useEffect } from 'react';
 import { EditPage } from './pages/EditPage';
 import { HomePage } from './pages/HomePage';
-import { BuildsPage } from './pages/BuildPage';
+import { SavesPage } from './pages/SavePage';
 import { ImportPage } from './pages/ImportPage';
-import { Leaderboard } from './pages/LeaderboardPage';
+import { BuildPage } from './pages/BuildPage';
 import { HelmetProvider } from 'react-helmet-async';
 import './styles/App.css';
 
@@ -25,17 +25,17 @@ const Layout = () => {
         <div className="nav-content">
           <Link to="/" className="nav-title">WuWaBuilds</Link>
           <div className="nav-links">
-            <Link to="/edit" className={location.pathname === '/edit' ? 'active' : ''}>
-              Edit Builds
+            <Link to="/import" className={location.pathname === '/import' ? 'active' : ''}>
+              Import
             </Link>
             <Link to="/builds" className={location.pathname === '/builds' ? 'active' : ''}>
-              Saved Builds
+              Builds
             </Link>
-            <Link to="/import" className={location.pathname === '/import' ? 'active' : ''}>
-              Import Builds
+            <Link to="/edit" className={location.pathname === '/edit' ? 'active' : ''}>
+              Edit
             </Link>
-            <Link to="/leaderboard" className={location.pathname === '/global' ? 'active' : ''}>
-              Global Builds
+            <Link to="/saves" className={location.pathname === '/saves' ? 'active' : ''}>
+              Saves
             </Link>
           </div>
         </div>
@@ -51,9 +51,9 @@ const router = createBrowserRouter([
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/edit", element: <EditPage /> },
-      { path: "/builds", element: <BuildsPage /> },
+      { path: "/saves", element: <SavesPage /> },
       { path: "/import", element: <ImportPage /> },
-      { path: "/leaderboard", element: <Leaderboard /> }
+      { path: "/builds", element: <BuildPage /> }
     ]
   }
 ], {

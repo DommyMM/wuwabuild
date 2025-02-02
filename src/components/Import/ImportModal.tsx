@@ -9,7 +9,7 @@ import { SequenceSection } from '../Card/SequenceSection';
 import { ForteSection } from '../Card/ForteSection';
 import { calculateCV as calculateTotalCV } from '../../hooks/useStats';
 import { EchoPanelState } from '../../types/echo';
-import { getEchoCVClass } from '../Build/Card';
+import { getEchoCVClass } from '../Save/Card';
 import '../../styles/ImportModal.css';
 
 interface ImportModalProps {

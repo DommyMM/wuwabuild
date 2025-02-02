@@ -3,7 +3,7 @@ import { Search, SortAsc, SortDesc } from 'lucide-react';
 import { BuildBackup } from './Backup';
 import { SavedBuilds } from '../../types/SavedState';
 
-interface BuildControlsProps {
+interface SaveControlsProps {
     searchTerm: string;
     onSearchChange: (term: string) => void;
     sortBy: 'date' | 'name' | 'character' | 'cv';
@@ -14,7 +14,7 @@ interface BuildControlsProps {
     deleteAllConfirm: boolean;
 }
 
-export const BuildControls: React.FC<BuildControlsProps> = ({
+export const SaveControls: React.FC<SaveControlsProps> = ({
     searchTerm,
     onSearchChange,
     sortBy,
@@ -29,7 +29,7 @@ export const BuildControls: React.FC<BuildControlsProps> = ({
     };
 
     return (
-        <div className="builds-controls">
+        <div className="saves-controls">
             <div className="sort-control">
                 {sortDirection === 'asc' ? (
                     <SortAsc size={20} className="sort-icon" onClick={toggleSort} />
@@ -54,7 +54,7 @@ export const BuildControls: React.FC<BuildControlsProps> = ({
             <div className="search-control">
                 <Search size={20} className="search-icon" />
                 <input type="text"
-                    placeholder="Search builds..."
+                    placeholder="Search saves..."
                     value={searchTerm}
                     onChange={(e) => onSearchChange(e.target.value)}
                 />
