@@ -19,6 +19,7 @@ export interface CompressedEntry {
     cvPenalty: number;
     finalCV: number;
     timestamp: string;
+    calculations: Calculation[];
 }
 
 export interface DecompressedEntry {
@@ -28,6 +29,12 @@ export interface DecompressedEntry {
     cvPenalty: number;
     finalCV: number;
     timestamp: string;
+    calculations: Calculation[];
+}
+
+export interface Calculation {
+    weaponId: string;
+    damage: number;
 }
 
 export const getSetCounts = (echoPanels: EchoPanelState[]) => {
@@ -69,4 +76,11 @@ export const sumEchoSubstats = (echoPanels: EchoPanelState[]): Record<string, nu
                 return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
             })
     );
+};
+
+export const getDamageValue = (calculations: Calculation[], weaponId?: string): number => {
+    if (weaponId) {
+        return calculations.find(calc => calc.weaponId === weaponId)?.damage || 0;
+    }
+    return Math.max(...calculations.map(calc => calc.damage), 0);
 };

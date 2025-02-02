@@ -5,7 +5,8 @@ import { EditPage } from './pages/EditPage';
 import { HomePage } from './pages/HomePage';
 import { SavesPage } from './pages/SavePage';
 import { ImportPage } from './pages/ImportPage';
-import { BuildPage } from './pages/BuildPage';
+import { BuildPage } from './pages/BuildsPage';
+import { LeaderboardPage } from './pages/LeaderboardPage';
 import { HelmetProvider } from 'react-helmet-async';
 import './styles/App.css';
 
@@ -31,6 +32,9 @@ const Layout = () => {
             <Link to="/builds" className={location.pathname === '/builds' ? 'active' : ''}>
               Builds
             </Link>
+            {/* <Link to="/leaderboards" className={location.pathname === '/leaderboards' ? 'active' : ''}>
+              Leaderboards
+            </Link> */}
             <Link to="/edit" className={location.pathname === '/edit' ? 'active' : ''}>
               Edit
             </Link>
@@ -53,7 +57,8 @@ const router = createBrowserRouter([
       { path: "/edit", element: <EditPage /> },
       { path: "/saves", element: <SavesPage /> },
       { path: "/import", element: <ImportPage /> },
-      { path: "/builds", element: <BuildPage /> }
+      { path: "/builds", element: <BuildPage /> },
+      { path: "/leaderboards", element: <LeaderboardPage /> }
     ]
   }
 ], {

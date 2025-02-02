@@ -9,7 +9,7 @@ import { decompressStats } from '../../hooks/useStats';
 import { getStatPaths } from '../../types/stats';
 import { DecompressedEntry, getSetCounts, getHighestDmg, getHighestDmgBonus } from './types';
 import { BuildExpanded } from './BuildExpanded';
-import { StatSort } from '../../pages/BuildPage';
+import { StatSort } from '../../pages/BuildsPage';
 
 const BuildOwnerSection: React.FC<{
     username?: string;
