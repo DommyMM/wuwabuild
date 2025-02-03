@@ -22,15 +22,15 @@ const BuildHeader: React.FC = () => (
         <span>Pool of all builds, standardized to Lv 90</span>
         <div className="build-header-info">
             <div className="info-item">
-                <span className="info-label">Crit Value (CV):</span>
-                <span>2 x CR + CD</span>
-            </div>
-            <div className="info-item">
                 <span className="info-label">Roll Value (RV):</span>
                 <span className="division-style">
                     <span>Stat Value</span>
                     <span>Max Value</span>
                 </span>
+            </div>
+            <div className="info-item">
+                <span className="info-label">Crit Value (CV):</span>
+                <span>2 x CR + CD</span>
             </div>
         </div>
     </div>

@@ -40,7 +40,7 @@ export const BuildSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ e
             .filter(([_, count]) => count >= 2)
             .map(([element, count]) => (
                 <div key={element} className="build-set-container">
-                    <img src={`images/SetIcons/${element}.png`}
+                    <img src={getAssetPath('sets', element).cdn}
                         alt={element}
                         className="build-set"
                     />
@@ -50,7 +50,7 @@ export const BuildSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ e
     </div>
 );
 
-const IconStat: React.FC<{ 
+export const IconStat: React.FC<{ 
     statName: string;
     value: number;
     isHighlighted?: boolean;
@@ -84,7 +84,7 @@ const BuildStatsSection: React.FC<{
         ["Healing Bonus", values['Healing Bonus'] || 0] : 
         getHighestDmg(values);
     
-    let firstStat: [string, number] = isHealer ?
+    let firstStat: [string, number] = (isHealer && activeStat !== 'ATK') ?
         ['HP', values['HP']] :
         ['ATK', values['ATK']];
     let secondStat: [string, number] = [elementType, elementDmg];

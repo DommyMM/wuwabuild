@@ -34,7 +34,7 @@
 }
 
 .lb-wrapper .build-header, .lb-wrapper .build-main-content {
-    grid-template-columns: 60px 120px 200px 95px 150px 350px 150px;
+    grid-template-columns: 60px 120px 175px 95px 150px 375px 150px;
 }
 
 .build-header span:last-child {
@@ -46,4 +46,52 @@
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.header-title {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, 80px);
+    gap: 8px;
+    margin-top: 10px;
+    justify-content: center;
+}
+
+.team-member {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.team-portrait {
+    width: 64px;
+    border-radius: 50%;
+    border: 2px solid #a69662;
+}
+
+.team-name {
+    font-size: 18px;
+    color: #999;
+    text-align: center;
+}
+
+.sort-header-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    cursor: pointer;
 }

@@ -3,7 +3,7 @@ import { Weapon } from "./weapon";
 import { Echo } from "./echo";
 import { STAT_CDN_NAMES } from "./stats";
 
-export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes' | 'skills' | 'stats';
+export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes' | 'skills' | 'stats' | 'sets';
 
 interface PathConfig {
     base: string;
@@ -15,6 +15,7 @@ interface PathConfig {
     echoes: string;
     skills: string;
     stats: string;
+    sets: string;
 }
 
 interface ElementMapping {
@@ -28,6 +29,23 @@ const ELEMENT_NAME_MAP: ElementMapping = {
     'Spectro': 'Light',
     'Electro': 'Thunder',
     'Aero': 'Wind'
+};
+
+const SET_NAME_MAP: ElementMapping = {
+    'Attack': 'Attack',
+    'ER' : 'Cloud',
+    'Empyrean' : 'Cooperate',
+    'Healing' : 'Cure',
+    'Havoc' : 'Dark',
+    'Midnight' : 'DarkAssist',
+    'Tidebreaking' : 'Energy',
+    'Fusion' : 'Fire',
+    'Glacio' : 'Ice',
+    'Frosty' : 'IceUltimateSkill',
+    'Spectro' : 'Light',
+    'Radiance' : 'LightError',
+    'Electro' : 'Thunder',
+    'Aero' : 'Wind'
 };
 
 export interface ImagePaths {
@@ -45,7 +63,8 @@ export const PATHS = {
         weapons: 'Image/IconWeapon',
         echoes: 'Image/IconMonsterHead',
         skills: 'Atlas/SkillIcon',
-        stats: 'Image/IconAttribute'
+        stats: 'Image/IconAttribute',
+        sets: 'Image/IconElementAttri'
     } as PathConfig,
     local: {
         base: '/images',
@@ -56,7 +75,8 @@ export const PATHS = {
         weapons: 'Weapons',
         echoes: 'Echoes',
         skills: 'Skills',
-        stats: 'Stats'
+        stats: 'Stats',
+        sets: 'SetIcons'
     } as PathConfig
 };
 
@@ -129,6 +149,13 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
             return {
                 cdn: `${PATHS.cdn.base}/${PATHS.cdn.stats}/T_Iconproperty${cdnName}_UI.png`,
                 local: `${PATHS.local.base}/${PATHS.local.stats}/${input}.png`
+            };
+        }
+        case 'sets': {
+            const setName = SET_NAME_MAP[input as string];
+            return {
+                cdn: `${PATHS.cdn.base}/${PATHS.cdn.sets}/T_IconElementAttri${setName}.png`,
+                local: `${PATHS.local.base}/${PATHS.local.sets}/${input}.png`
             };
         }
     }

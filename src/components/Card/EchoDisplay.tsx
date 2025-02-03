@@ -63,7 +63,7 @@ const EchoLeft: React.FC<{
           />
           <div className="echo-level-indicator">+{panel.level}</div>
           <div className="main-stat-wrapper">
-            <img src={`images/SetIcons/${element}.png`}
+          <img src={getAssetPath('sets', element ?? '').cdn}
               alt={`${element} Set Icon`}
               className="set"
             />
