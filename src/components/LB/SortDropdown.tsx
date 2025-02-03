@@ -1,5 +1,6 @@
 import React from 'react';
 import { SortAsc } from 'lucide-react';
+import { getDisplayName } from '../../pages/BuildsPage';
 
 const SortButton: React.FC<{
     direction: 'asc' | 'desc';
@@ -10,22 +11,6 @@ const SortButton: React.FC<{
     </div>
 );
 
-const getDisplayName = (value: string) => {
-    switch(value) {
-        case 'cv': return 'Crit Value';
-        case 'cr': return 'Crit Rate';
-        case 'cd': return 'Crit DMG';
-        case 'ATK': return 'Total Attack';
-        case 'HP': return 'Total HP';
-        case 'DEF': return 'Total DEF';
-        case 'Basic Attack DMG Bonus': return 'Basic Attack';
-        case 'Heavy Attack DMG Bonus': return 'Heavy Attack';
-        case 'Resonance Skill DMG Bonus': return 'Resonance Skill';
-        case 'Resonance Liberation DMG Bonus': return 'Liberation DMG';
-        case 'damage': return 'Damage';
-        default: return value;
-    }
-};
 
 interface LBSortDropdownProps {
     field: string | null;
@@ -55,6 +40,7 @@ export const LBSortDropdown: React.FC<LBSortDropdownProps> = ({
     onHoverSection
 }) => {
     const isStatsDropdown = placeholder === 'Stats';
+    const showSortButton = isActive || placeholder === 'Damage';
     
     return (
         <div className={`sort-dropdown ${isActive ? 'active' : ''} ${isStatsDropdown ? 'stats' : ''}`}>
@@ -68,7 +54,7 @@ export const LBSortDropdown: React.FC<LBSortDropdownProps> = ({
                 ))}
                 <div className="sort-header">
                     {field ? getDisplayName(field) : placeholder}
-                    {isActive && (
+                    {showSortButton && (
                         <SortButton 
                             direction={direction} 
                             onClick={(e) => {
@@ -85,7 +71,7 @@ export const LBSortDropdown: React.FC<LBSortDropdownProps> = ({
                             onClick={() => onFieldChange(option)}
                         >
                             <span>{getDisplayName(option)}</span>
-                            {field === option && isActive && (
+                            {field === option && showSortButton && (
                                 <SortButton 
                                     direction={direction} 
                                     onClick={(e) => {

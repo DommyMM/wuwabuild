@@ -13,8 +13,7 @@ const InfoTitle: React.FC<{ name: string; description: string }> = ({ name, desc
 const TeamDisplay: React.FC<{ mainChar: Character; teamIds: string[] }> = ({ mainChar, teamIds }) => (
     <div className="team-grid">
         <div className="team-member">
-            <img 
-                src={getAssetPath('face1', mainChar).cdn}
+            <img src={getAssetPath('face1', mainChar).cdn}
                 alt={mainChar.name} 
                 className="team-portrait"
             />
@@ -25,8 +24,7 @@ const TeamDisplay: React.FC<{ mainChar: Character; teamIds: string[] }> = ({ mai
             if (!teamMember) return null;
             return (
                 <div key={id} className="team-member">
-                    <img 
-                        src={getAssetPath('face1', teamMember).cdn}
+                    <img src={getAssetPath('face1', teamMember).cdn}
                         alt={teamMember.name} 
                         className="team-portrait"
                     />
@@ -44,19 +42,11 @@ export const LBInfo: React.FC<{ characterId: string }> = ({ characterId }) => {
         teamIds: [],
         expectedStats: []
     };
-
     if (!character) return null;
-
     return (
         <div className="header-content">
-            <InfoTitle 
-                name={character.name} 
-                description={config.description} 
-            />
-            <TeamDisplay 
-                mainChar={character} 
-                teamIds={config.teamIds} 
-            />
+            <InfoTitle name={character.name} description={config.description} />
+            <TeamDisplay mainChar={character} teamIds={config.teamIds} />
         </div>
     );
 };

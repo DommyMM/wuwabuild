@@ -26,7 +26,7 @@ export const useEchoes = (): EchoesData => {
 
     const fetchEchoes = async () => {
       try {
-        const response = await fetch('Data/Echoes.json');
+        const response = await fetch('/Data/Echoes.json');
         if (!response.ok) throw new Error('Failed to fetch echoes');
         const data = await response.json();
         cachedEchoes = data;

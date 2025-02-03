@@ -39,7 +39,7 @@ const BuildHeader: React.FC = () => (
 
 type CVSort = 'cv' | 'cr' | 'cd';
 export type StatSort = typeof STAT_ORDER[number];
-type ActiveSort = 'cv' | 'stat' | null;
+export type ActiveSort = 'cv' | 'stat' | null;
 
 const SortButton: React.FC<{
     direction: 'asc' | 'desc';
@@ -50,7 +50,7 @@ const SortButton: React.FC<{
     </div>
 );
 
-const getDisplayName = (value: string) => {
+export const getDisplayName = (value: string) => {
     switch(value) {
         case 'cv': return 'Crit Value';
         case 'cr': return 'Crit Rate';
@@ -62,6 +62,7 @@ const getDisplayName = (value: string) => {
         case 'Heavy Attack DMG Bonus': return 'Heavy Attack';
         case 'Resonance Skill DMG Bonus': return 'Resonance Skill';
         case 'Resonance Liberation DMG Bonus': return 'Liberation DMG';
+        case 'damage': return 'Damage';
         default: return value;
     }
 };
@@ -287,6 +288,7 @@ export const BuildPage: React.FC = () => {
                                     })}
                                     isExpanded={expandedEntries.has(entry.timestamp)}
                                     activeStat={activeSort === 'stat' ? statSort : null}
+                                    activeSort={activeSort}
                                 />
                             ))}
                         </div>

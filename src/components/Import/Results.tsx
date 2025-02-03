@@ -222,7 +222,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
                 .length;
             const cvPenalty = critMainCount > 1 ? -44 : 0;
             const finalCV = cv + cvPenalty;
-            const response = await fetch(`${LB_URL}/leaderboard`, {
+            const response = await fetch(`${LB_URL}/build`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

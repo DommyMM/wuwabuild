@@ -42,7 +42,7 @@ export const useSubstats = (): SubstatsHook => {
 
     const fetchData = async () => {
       try {
-        const response = await fetch('Data/Substats.json');
+        const response = await fetch('/Data/Substats.json');
         if (!response.ok) throw new Error('Failed to fetch substats');
         const data = await response.json();
         cachedSubstatsData = data.subStats;

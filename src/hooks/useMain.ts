@@ -42,7 +42,7 @@ export const useMain = (): MainStatsHook => {
 
     const fetchData = async () => {
       try {
-        const response = await fetch('Data/Mainstat.json');
+        const response = await fetch('/Data/Mainstat.json');
         if (!response.ok) throw new Error('Failed to fetch main stats');
         const data = await response.json();
         cachedMainStats = data;

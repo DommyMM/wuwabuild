@@ -9,7 +9,7 @@ import { decompressStats } from '../../hooks/useStats';
 import { getStatPaths } from '../../types/stats';
 import { DecompressedEntry, getSetCounts, getHighestDmg, getHighestDmgBonus } from './types';
 import { BuildExpanded } from './BuildExpanded';
-import { StatSort } from '../../pages/BuildsPage';
+import { StatSort, ActiveSort } from '../../pages/BuildsPage';
 
 const BuildOwnerSection: React.FC<{
     username?: string;
@@ -78,7 +78,8 @@ const BuildStatsSection: React.FC<{
     values: Record<string, number>;
     character: Character | null | undefined;
     activeStat: StatSort | null;
-}> = ({ values, character, activeStat }) => {
+    isActiveColumn: boolean;
+}> = ({ values, character, activeStat, isActiveColumn }) => {
     const isHealer = character?.Bonus1 === "Healing";
     const [elementType, elementDmg] = isHealer ? 
         ["Healing Bonus", values['Healing Bonus'] || 0] : 
@@ -103,7 +104,7 @@ const BuildStatsSection: React.FC<{
         }
     }
     return (
-        <div className="build-stats">
+        <div className={`build-stats ${isActiveColumn ? 'active-column' : ''}`}>
             <IconStat statName={firstStat[0]} value={firstStat[1]} isHighlighted={activeStat === firstStat[0]} />
             <IconStat statName={secondStat[0]} value={secondStat[1]} isHighlighted={activeStat === secondStat[0]} />
             <IconStat statName="Energy Regen" value={values['Energy Regen']} isHighlighted={activeStat === 'Energy Regen'} />
@@ -118,7 +119,8 @@ export const BuildEntry: React.FC<{
     onClick: () => void; 
     isExpanded: boolean;
     activeStat: StatSort | null;
-}> = ({ entry, rank, onClick, isExpanded, activeStat }) => {
+    activeSort: ActiveSort;
+}> = ({ entry, rank, onClick, isExpanded, activeStat, activeSort }) => {
     const character = entry.buildState.characterState.id ? 
         cachedCharacters?.find(c => c.id === entry.buildState.characterState.id) : null;
     const weapon = getCachedWeapon(entry.buildState.weaponState.id);
@@ -152,7 +154,7 @@ export const BuildEntry: React.FC<{
                     )}
                 </div>
                 <BuildSetsSection echoPanels={entry.buildState.echoPanels} />
-                <div className="build-cv">
+                <div className={`build-cv ${activeSort === 'cv' || activeSort === null ? 'active-column' : ''}`}>
                     <div className="build-cv-ratio">
                         {critRate.toFixed(1)} : {critDmg.toFixed(1)}
                     </div>
@@ -163,7 +165,7 @@ export const BuildEntry: React.FC<{
                         )}
                     </div>
                 </div>
-                <BuildStatsSection values={stats.values} character={character} activeStat={activeStat} />
+                <BuildStatsSection values={stats.values} character={character} activeStat={activeStat} isActiveColumn={activeSort === 'stat'}/>
             </div>
             {isExpanded && <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character ?? null}/>}
         </div>

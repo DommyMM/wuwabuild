@@ -55,15 +55,15 @@ const StatsDisplay: React.FC<{
     stats: Record<string, number>;
     characterId: string;
     activeStat: string | null;
-}> = ({ stats, characterId, activeStat }) => {
+    isActiveColumn?: boolean;
+}> = ({ stats, characterId, activeStat, isActiveColumn }) => {
     const config = CHARACTER_CONFIGS[characterId];
     if (!config) return null;
 
     return (
-        <div className="build-stats">
+        <div className={`build-stats ${isActiveColumn ? 'active-column' : ''}`}>
             {config.stats.map(statName => (
-                <IconStat 
-                    key={statName} 
+                <IconStat key={statName} 
                     statName={statName} 
                     value={stats[statName]} 
                     isHighlighted={activeStat === statName}
@@ -98,16 +98,10 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
         <div className="build-entry">
             <div className="build-main-content">
                 <div className="build-rank">#{rank}</div>
-                <BuildOwnerSection 
-                    username={entry.buildState.watermark?.username}
-                    uid={entry.buildState.watermark?.uid}
-                />
-                <BuildCharacterSection character={character} elementClass={elementClass}
-                />
-                <BuildSetsSection 
-                    echoPanels={entry.buildState.echoPanels}
-                />
-                <div className={`build-cv ${activeSort === 'cv' ? 'highlighted' : ''}`}>
+                <BuildOwnerSection username={entry.buildState.watermark?.username} uid={entry.buildState.watermark?.uid} />
+                <BuildCharacterSection character={character} elementClass={elementClass} />
+                <BuildSetsSection echoPanels={entry.buildState.echoPanels} />
+                <div className={`build-cv ${activeSort === 'cv' ? 'active-column' : ''}`}>
                     <div className="build-cv-ratio">
                         {critRate.toFixed(1)} : {critDmg.toFixed(1)}
                     </div>
@@ -118,13 +112,9 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
                         )}
                     </div>
                 </div>
-                <StatsDisplay 
-                    stats={stats.values}
-                    characterId={characterId}
-                    activeStat={activeStat}
-                />
-                <div className={`build-damage ${activeSort === 'damage' ? 'highlighted' : ''}`}>
-                    {damage.toLocaleString()}
+                <StatsDisplay stats={stats.values} characterId={characterId} activeStat={activeStat} isActiveColumn={activeSort === 'stat'}/>
+                <div className={`build-damage ${activeSort === 'damage' ? 'active-column' : ''}`}>
+                {damage.toLocaleString()}
                 </div>
             </div>
         </div>

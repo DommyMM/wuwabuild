@@ -183,7 +183,6 @@ export const CharacterEntry: React.FC = () => {
             <div className="error-state">Error: {error}</div>
         </div>
     );
-
     const pageCount = Math.ceil(total / itemsPerPage);
 
     return (
