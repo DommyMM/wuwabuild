@@ -16,12 +16,25 @@ const FILTERED_STATS = STAT_ORDER.filter(stat =>
 
 const BuildHeader: React.FC = () => (
     <div className="build-header-container">
-        <h1 className="build-header-title">Global Board</h1>
-        <p className="build-header-text">
-            All builds simulated to Lv 90 Character, R1 Weapon <br />
-            Actual damage calcs coming soon (After I learn math)
-        </p>
+    <h1 className="build-header-title">Global Board</h1>
+    <div className="build-header-divider"></div>
+    <div className="build-header-text">
+        <span>Pool of all builds, standardized to Lv 90</span>
+        <div className="build-header-info">
+            <div className="info-item">
+                <span className="info-label">Crit Value (CV):</span>
+                <span>2 x CR + CD</span>
+            </div>
+            <div className="info-item">
+                <span className="info-label">Roll Value (RV):</span>
+                <span className="division-style">
+                    <span>Stat Value</span>
+                    <span>Max Value</span>
+                </span>
+            </div>
+        </div>
     </div>
+</div>
 );
 
 type CVSort = 'cv' | 'cr' | 'cd';
@@ -160,7 +173,7 @@ export const BuildPage: React.FC = () => {
                     page: String(currentPage),
                     pageSize: String(itemsPerPage)
                 });
-                const response = await fetch(`${LB_URL}/leaderboard?${params}`);
+                const response = await fetch(`${LB_URL}/build?${params}`);
                 if (!response.ok) throw new Error('Failed to fetch leaderboard');
                 const { builds, total } = await response.json() as BuildResponse;
                 

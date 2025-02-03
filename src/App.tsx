@@ -58,7 +58,7 @@ const router = createBrowserRouter([
       { path: "/saves", element: <SavesPage /> },
       { path: "/import", element: <ImportPage /> },
       { path: "/builds", element: <BuildPage /> },
-      { path: "/leaderboards", element: <LeaderboardPage /> }
+      { path: "/leaderboards/*", element: <LeaderboardPage /> }
     ]
   }
 ], {

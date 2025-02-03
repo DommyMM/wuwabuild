@@ -43,71 +43,89 @@
 
 .build-header-container {
     text-align: center;
+    max-width: 475px;
+    margin: 0 auto 8px;
 }
 
 .build-header-title {
-    font-size: 32px;
+    font-size: 40px;
     color: #a69662;
-    margin-bottom: 8px;
-}
-
-.build-header-text {
-    color: #888;
-    font-size: 16px;
-    margin: 4px 0 16px 0;
-    letter-spacing: 0.33px;
-}
-
-.build-wrapper {
-    width: 100%;
-    max-width: 1250px;
-    display: flex;
-    justify-content: center;
-    position: relative;
-    overflow-x: auto;
-    margin: 0 auto;
-}
-
-.build-container {
-    width: 1250px;
-    position: relative;
-    margin: 0 auto;
-}
-
-.build-header, .build-main-content {
-    display: grid;
-    grid-template-columns: 60px 120px 200px 55px 45px 95px 150px 375px;
-    gap: 16px;
-    padding: 8px 16px;
-}
-
-.build-table {
-    min-height: 830px;
-    position: relative;
-}
-
-.build-header {
-    background: #1a1a1a;
-    border-radius: 8px;
     margin-bottom: 1rem;
-    color: #a69662;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.build-header-container {
-    text-align: center;
-}
-
-.build-header-title {
-    font-size: 32px;
-    color: #a69662;
-    margin-bottom: 8px;
+.build-header-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #a69662, transparent);
+    margin: 1rem auto;
+    width: 250px;
 }
 
 .build-header-text {
-    color: #888;
-    font-size: 16px;
-    margin: 4px 0 16px 0;
-    letter-spacing: 0.33px;
+    color: #999;
+    font-size: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.build-header-info {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    text-align: center;
+    gap: 32px;
+    position: relative;
+}
+
+.build-header-info::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 80%;
+    width: 2px;
+    background: linear-gradient(180deg, transparent, #a69662, transparent);
+}
+
+.info-item {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    margin: 0 auto;
+    align-items: center;
+    max-width: 300px;
+}
+
+.info-label {
+    color: #a69662;
+    font-size: 24px;
+}
+
+.info-item span:not(.info-label) {
+    color: #999;
+    font-size: 20px;
+}
+
+.info-item span.division-style {
+    display: grid;
+    grid-template-rows: 1fr auto 1fr;
+    gap: 4px;
+    text-align: center;
+    position: relative;
+    min-height: 60px;
+}
+
+.info-item span.division-style::after {
+    content: '';
+    width: 100%;
+    height: 1px;
+    background: #999;
+    grid-row: 2;
+    margin: auto;
 }
 
 .sort-header {
@@ -311,6 +329,7 @@
 .char-name.glacio { color: #40C4FF; }
 .char-name.fusion { color: #FF9100; }
 .char-name.havoc { color: #FF4081; }
+.char-name.rover { color: #FF4500; }
 
 .build-sequence {
     position: relative;
@@ -380,6 +399,7 @@
     display: flex;
     align-items: center;
     position: relative;
+    height: 43px;
 }
 
 .weapon-portrait {
@@ -519,5 +539,8 @@
     .build-container {
         margin: 0;
         padding: 16px;
+    }
+    .build-header-container {
+        width: 95vw;
     }
 }

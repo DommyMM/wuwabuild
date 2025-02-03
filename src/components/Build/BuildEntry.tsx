@@ -34,7 +34,7 @@ const BuildCharacterSection: React.FC<{
     </div>
 );
 
-const BuildSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels }) => (
+export const BuildSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels }) => (
     <div className="build-sets">
         {Object.entries(getSetCounts(echoPanels))
             .filter(([_, count]) => count >= 2)

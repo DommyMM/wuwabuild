@@ -2,7 +2,11 @@ import React from 'react';
 import { cachedCharacters } from '../../hooks/useCharacters';
 import { getAssetPath } from '../../types/paths';
 import { Character } from '../../types/character';
-import { DecompressedEntry, getSetCounts } from '../Build/types';
+import { getCVClass } from '../Save/Card';
+import { DecompressedEntry } from '../Build/types';
+import { decompressStats } from '../../hooks/useStats';
+import { getStatPaths } from '../../types/stats';
+import { BuildSetsSection } from '../Build/BuildEntry';
 
 const BuildOwnerSection: React.FC<{
     username?: string;
@@ -27,19 +31,18 @@ const BuildCharacterSection: React.FC<{
     </div>
 );
 
-const BuildSetsSection: React.FC<{ echoPanels: any[] }> = ({ echoPanels }) => (
-    <div className="build-sets">
-        {Object.entries(getSetCounts(echoPanels))
-            .filter(([_, count]) => count >= 2)
-            .map(([element, count]) => (
-                <div key={element} className="build-set-container">
-                    <img src={`images/SetIcons/${element}.png`}
-                        alt={element}
-                        className="build-set"
-                    />
-                    <span>{count}</span>
-                </div>
-            ))}
+const BuildCrit: React.FC<{ 
+    stats: Record<string, number>
+}> = ({ stats }) => (
+    <div className="build-stats">
+        <span className="build-stat">
+            <img src={getStatPaths('Crit Rate').cdn} alt="CR" className="build-stat-icon" />
+            {stats['Crit Rate']?.toFixed(1)}%
+        </span>
+        <span className="build-stat">
+            <img src={getStatPaths('Crit DMG').cdn} alt="CD" className="build-stat-icon" />
+            {stats['Crit DMG']?.toFixed(1)}%
+        </span>
     </div>
 );
 
@@ -48,28 +51,31 @@ export const DamageEntry: React.FC<{
     rank: number;
 }> = ({ entry, rank }) => {
     const character = cachedCharacters?.find(c => c.id === entry.buildState.characterState.id);
+    const elementClass = entry.buildState.characterState.element?.toLowerCase() ?? '';
     const damage = entry.calculations?.[0]?.damage || 0;
+    const stats = decompressStats(entry.stats);
+    const critRate = stats.values['Crit Rate'];
+    const critDmg = stats.values['Crit DMG'];
 
     return (
         <div className="build-entry">
             <div className="build-main-content">
                 <div className="build-rank">#{rank}</div>
-                <BuildOwnerSection 
-                    username={entry.buildState.watermark?.username}
-                    uid={entry.buildState.watermark?.uid}
-                />
-                <BuildCharacterSection 
-                    character={character} 
-                    elementClass=""
-                />
+                <BuildOwnerSection username={entry.buildState.watermark?.username} uid={entry.buildState.watermark?.uid}/>
+                <BuildCharacterSection character={character} elementClass={elementClass}/>
                 <BuildSetsSection echoPanels={entry.buildState.echoPanels} />
                 <div className="build-cv">
-                    <div className="cv-total">{entry.finalCV.toFixed(1)}</div>
+                    <div className="build-cv-ratio">
+                        {critRate.toFixed(1)} : {critDmg.toFixed(1)}
+                    </div>
+                    <div className={`build-cv-value ${getCVClass(entry.cv + entry.cvPenalty)}`}>
+                        {entry.cv.toFixed(1)} CV
+                        {entry.cvPenalty < 0 && (
+                            <span className="cv-penalty">(-44)</span>
+                        )}
+                    </div>
                 </div>
-                <div className="build-stats">
-                    <div>{entry.stats.v.CR?.toFixed(1)}%</div>
-                    <div>{entry.stats.v.CD?.toFixed(1)}%</div>
-                </div>
+                <BuildCrit stats={stats.values} />
                 <div className="build-damage">
                     {damage.toLocaleString()}
                 </div>

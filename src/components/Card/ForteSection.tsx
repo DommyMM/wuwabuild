@@ -2,6 +2,7 @@ import React from 'react';
 import { Character, isRover } from '../../types/character';
 import { forteImagePaths } from '../../types/node';
 import { getAssetPath } from '../../types/paths';
+import { STAT_CDN_NAMES } from '../../types/stats';
 
 interface ForteSectionProps {
   character: Character;
@@ -10,13 +11,14 @@ interface ForteSectionProps {
   forteLevels: Record<string, number>;
 }
 
-const getStatClass = (imagePath: string) => {
-  return imagePath.split('/Stats/')[1]
-    ?.replace('.png', '')
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/%20/g, '-')
-    .replace('-dmg', '');
+export const getStatClass = (imagePath: string) => {
+  if (!imagePath.includes('/IconAttribute/')) return '';
+  const match = imagePath.match(/T_Iconproperty(red|green)(\w+)_UI\.png/);
+  if (!match) return '';
+  const cdnName = `${match[1]}${match[2]}`;
+  const statName = Object.entries(STAT_CDN_NAMES)
+    .find(([_, cdn]) => cdn === cdnName)?.[0];
+  return statName?.toLowerCase() || '';
 };
 
 const SimplifiedNode: React.FC<{

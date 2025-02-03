@@ -1,0 +1,49 @@
+.overall-wrapper, .lb-wrapper { 
+    width: 100%;
+    max-width: 1250px;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    overflow-x: auto;
+    margin: 0 auto;
+}
+
+.overall-wrapper .build-container {
+    margin-bottom: 50px;
+}
+
+.overall-wrapper .build-header, .overall-wrapper .build-main-content {
+    grid-template-columns: 200px 250px 300px 200px 200px;
+}
+
+.build-rank1 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.rank1-name {
+    font-size: 24px;
+    color: #999;
+}
+
+.rank1-damage {
+    font-size: 20px;
+    color: #a69662;
+}
+
+.lb-wrapper .build-header, .lb-wrapper .build-main-content {
+    grid-template-columns: 60px 120px 200px 95px 150px 350px 150px;
+}
+
+.build-header span:last-child {
+    display: flex;
+    justify-content: center;
+}
+
+.build-damage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
