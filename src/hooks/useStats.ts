@@ -388,25 +388,26 @@ export const useStats = ({
             result.update += weaponStats.scaledPassive ?? 0;
           }
         }
-        
-        Object.entries(elementCounts).forEach(([element, count]) => {
-          if (count >= 2) {
-            const setName = ELEMENT_SETS[element as ElementType];
-            const statToUpdate = SET_TO_STAT_MAPPING[setName as keyof typeof SET_TO_STAT_MAPPING];
-            if (statToUpdate === displayStat) {
-              if (setName === 'Frosty Resolve' && displayStat === 'Resonance Skill DMG Bonus') {
-                result.update += 12;
-              } else {
-                result.update += 10;
-              }
+      }
+      Object.entries(elementCounts).forEach(([element, count]) => {
+        if (count >= 2) {
+          const setName = ELEMENT_SETS[element as ElementType];
+          const statToUpdate = SET_TO_STAT_MAPPING[setName as keyof typeof SET_TO_STAT_MAPPING];
+          if (statToUpdate === displayStat) {
+            if (setName === 'Frosty Resolve' && displayStat === 'Resonance Skill DMG Bonus') {
+              result.update += 12;
+            } else {
+              result.update += 10;
             }
           }
-        });
-        if ((forteBonus.bonus1Type === 'Crit Rate' && displayStat === 'Crit Rate') || (forteBonus.bonus1Type === 'Crit DMG' && displayStat === 'Crit DMG') || 
-          (forteBonus.bonus1Type === 'Healing' && displayStat === 'Healing Bonus') || (displayStat === `${character.name.startsWith('Rover') 
-              ? characterState.element : forteBonus.bonus1Type} DMG`)) {
-          result.update += forteBonus.bonus1Total;
         }
+      });
+      const isDirectStat = (bonus: string) => ['Crit Rate', 'Crit DMG', 'Healing'].includes(bonus);
+      if (
+        (isDirectStat(forteBonus.bonus1Type) && displayStat === (forteBonus.bonus1Type === 'Healing' ? 'Healing Bonus' : forteBonus.bonus1Type)) ||
+        (!isDirectStat(forteBonus.bonus1Type) && displayStat === `${character.name.startsWith('Rover') ? characterState.element : forteBonus.bonus1Type} DMG`)
+      ) {
+        result.update += forteBonus.bonus1Total;
       }
       result.value = Number((result.baseValue + result.update).toFixed(1));
       result.update = Number(result.update.toFixed(1));
