@@ -23,6 +23,7 @@ export const STAT_MAP = {
     "Fusion DMG": "FD",
     "Electro DMG": "ED",
     "Havoc DMG": "HD",
+    "Spectro DMG": "SD",
     "Basic Attack DMG Bonus": "BA",
     "Heavy Attack DMG Bonus": "HA",
     "Resonance Liberation DMG Bonus" : "RL",

@@ -2,7 +2,7 @@ import React from 'react';
 
 export const IMPORT_REGIONS = {
     "character": { x1: 0.0328, x2: 0.3021, y1: 0.0074, y2: 0.0833 },
-    "watermark": { x1: 0.0073, x2: 0.1010, y1: 0.0741, y2: 0.1370 },
+    "watermark": { x1: 0.0073, x2: 0.1304, y1: 0.0741, y2: 0.1370 },
     "forte": { x1: 0.4057, x2: 0.7422, y1: 0.0222, y2: 0.5917 },
     "sequences": { x1: 0.0703, x2: 0.3318, y1: 0.4787, y2: 0.5843 },
     "weapon": { x1: 0.7542, x2: 0.9828, y1: 0.3843, y2: 0.5843 },

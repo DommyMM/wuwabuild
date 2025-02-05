@@ -161,6 +161,13 @@ const SequencesSection: React.FC<{ sequences?: { sequence: number } }> = ({ sequ
 
 export const LB_URL = process.env.REACT_APP_LB_URL || 'http://localhost:3001';
 
+const DMG_BONUS_MAPPING: Record<string, string> = {
+    'Basic Attack': 'Basic Attack DMG Bonus',
+    'Heavy Attack': 'Heavy Attack DMG Bonus',
+    'Skill': 'Resonance Skill DMG Bonus',
+    'Liberation': 'Resonance Liberation DMG Bonus'
+};
+
 export const Results: React.FC<ResultsProps> = ({ results }) => {
     const [saveToLb, setSaveToLb] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -215,7 +222,20 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
     const submitToLeaderboard = async (build: SavedState) => {
         if (saveToLb) {
             const { values, updates, breakdowns, baseValues, cv } = stats;
-            const compressed = compressData({ state: build });
+            const convertedBuild = {
+                ...build,
+                echoPanels: build.echoPanels.map(panel => ({
+                    ...panel,
+                    stats: {
+                        ...panel.stats,
+                        subStats: panel.stats.subStats.map(sub => ({
+                            ...sub,
+                            type: sub.type ? DMG_BONUS_MAPPING[sub.type] || sub.type : null
+                        }))
+                    }
+                }))
+            };
+            const compressed = compressData({ state: convertedBuild });
             const compressedStats = compressStats({ values, updates, breakdowns, baseValues });
             const critMainCount = build.echoPanels
                 .filter(panel => panel.stats.mainStat.type?.includes('Crit'))
