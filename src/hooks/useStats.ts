@@ -340,7 +340,7 @@ export const useStats = ({
       
       if (weapon && weaponStats) {
         const percentStatName = `${displayStat}%`;
-        if (weapon.main_stat === percentStatName) {
+        if (weapon.main_stat === displayStat) {
           percent += weaponStats.scaledMainStat;
         }
         if (weapon.passive === percentStatName) {
