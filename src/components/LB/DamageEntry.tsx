@@ -7,6 +7,7 @@ import { decompressStats } from '../../hooks/useStats';
 import { getStatPaths } from '../../types/stats';
 import { BuildSetsSection } from '../Build/BuildEntry';
 import { CHARACTER_CONFIGS } from './config';
+import { DamageExpanded } from './DamageExpanded';
 
 const BuildOwnerSection: React.FC<{
     username?: string;
@@ -78,25 +79,39 @@ interface DamageEntryProps {
     rank: number;
     activeStat: string | null;
     activeSort: 'damage' | 'cv' | 'stat' | null;
+    selectedWeapon?: number;
+    isExpanded?: boolean;
+    onClick?: () => void;
 }
 
 export const DamageEntry: React.FC<DamageEntryProps> = ({ 
     entry, 
     rank, 
     activeStat, 
-    activeSort 
+    activeSort,
+    selectedWeapon = 0,
+    isExpanded = false,
+    onClick
 }) => {
     const character = cachedCharacters?.find(c => c.id === entry.buildState.characterState.id);
     const characterId = entry.buildState.characterState.id || '';
     const elementClass = entry.buildState.characterState.element?.toLowerCase() ?? '';
-    const damage = entry.calculations?.[0]?.damage || 0;
-    const stats = decompressStats(entry.stats);
+    
+    // Get the selected weapon's calculation data
+    const selectedCalc = entry.calculations?.[selectedWeapon];
+    const damage = selectedCalc?.damage || 0;
+    
+    // Use weapon-specific standardized stats if available
+    const stats = characterId === "32" && selectedCalc?.stats 
+        ? { values: selectedCalc.stats }
+        : decompressStats(entry.stats);
+    
     const critRate = stats.values['Crit Rate'];
     const critDmg = stats.values['Crit DMG'];
 
     return (
-        <div className="build-entry">
-            <div className="build-main-content">
+        <div className={`build-entry ${isExpanded ? 'expanded' : ''}`}>
+            <div className="build-main-content" onClick={() => onClick?.()}>
                 <div className="build-rank">#{rank}</div>
                 <BuildOwnerSection username={entry.buildState.watermark?.username} uid={entry.buildState.watermark?.uid} />
                 <BuildCharacterSection character={character} elementClass={elementClass} />
@@ -112,11 +127,22 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
                         )}
                     </div>
                 </div>
-                <StatsDisplay stats={stats.values} characterId={characterId} activeStat={activeStat} isActiveColumn={activeSort === 'stat'}/>
+                <StatsDisplay 
+                    stats={stats.values} 
+                    characterId={characterId} 
+                    activeStat={activeStat} 
+                    isActiveColumn={activeSort === 'stat'}
+                />
                 <div className={`build-damage ${activeSort === 'damage' ? 'active-column' : ''}`}>
-                {damage.toLocaleString()}
+                    {damage.toLocaleString()}
                 </div>
             </div>
+            {isExpanded && (
+                <DamageExpanded 
+                    entry={entry}
+                    selectedWeapon={selectedWeapon}
+                />
+            )}
         </div>
     );
 };

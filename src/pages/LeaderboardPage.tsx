@@ -5,6 +5,9 @@ import { LB_URL } from '../components/Import/Results';
 import { getAssetPath } from '../types/paths';
 import { Character } from '../types/character';
 import { CharacterEntry } from './CharacterEntry';
+import { CHARACTER_CONFIGS } from '../components/LB/config';
+import { getCachedWeapon } from '../hooks/useWeapons';
+
 import '../styles/Leaderboard.css';
 
 interface LeaderboardData {
@@ -39,13 +42,54 @@ const LeaderboardCharacterSection: React.FC<{
     </div>
 );
 
-const LeaderboardWeaponsSection: React.FC = () => (
-    <div className="build-weapons">--</div>
-);
+const LeaderboardWeaponsSection: React.FC<{ characterId: string }> = ({ characterId }) => {
+    if (characterId !== "32") return <div className="build-weapons">--</div>;
+    const config = CHARACTER_CONFIGS[characterId];
+    if (!config?.weapons) return <div className="build-weapons">--</div>;
+    return (
+        <div className="build-weapons">
+            <div className="preview-grid">
+                {config.weapons.slice(0, 3).map(weaponId => {
+                    const weapon = getCachedWeapon(weaponId);
+                    if (!weapon) return null;
+                    return (
+                        <img key={weaponId}
+                            src={getAssetPath('weapons', weapon).cdn}
+                            alt={weapon.name}
+                            className="preview-icon weapon"
+                        />
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
 
-const LeaderboardTeamSection: React.FC = () => (
-    <div className="build-team">--</div>
-);
+const LeaderboardTeamSection: React.FC<{ characterId: string }> = ({ characterId }) => {
+    if (characterId !== "32") return <div className="build-team">--</div>;
+
+    const config = CHARACTER_CONFIGS[characterId];
+    if (!config?.teamIds.length) return <div className="build-team">--</div>;
+
+    return (
+        <div className="build-team">
+            <div className="preview-grid">
+                {config.teamIds.map(id => {
+                    const character = cachedCharacters?.find(c => c.id === id);
+                    if (!character) return null;
+                    return (
+                        <img 
+                            key={id}
+                            src={getAssetPath('face1', character).cdn}
+                            alt={character.name}
+                            className="preview-icon face"
+                        />
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
 
 const LeaderboardEntry: React.FC<{ data: LeaderboardData }> = ({ data }) => {
     const character = cachedCharacters?.find(c => c.id === data._id);
@@ -53,16 +97,27 @@ const LeaderboardEntry: React.FC<{ data: LeaderboardData }> = ({ data }) => {
     const damage = data.topBuild.damage ?? 0;
     const username = data.topBuild.owner.username || 'Anonymous';
     
+    // Add disabled state for non-Carlotta entries
+    const isDisabled = data._id !== "32";
+    
     return (
-        <div className="build-entry">
+        <div className={`build-entry ${isDisabled ? 'disabled' : ''}`}>
             <div className='build-main-content'>
                 <LeaderboardCharacterSection character={character} elementClass={elementClass} />
-                <LeaderboardWeaponsSection />
-                <LeaderboardTeamSection />
-                <div className="build-entries">{data.totalEntries}</div>
+                <LeaderboardWeaponsSection characterId={data._id} />
+                <LeaderboardTeamSection characterId={data._id} />
+                <div className="build-entries">
+                    {isDisabled ? 'Coming Soon' : data.totalEntries}
+                </div>
                 <div className="build-rank1">
-                        <div className="rank1-name">{username}</div>
-                        <div className="rank1-damage">{damage.toLocaleString()}</div>
+                    {isDisabled ? (
+                        <div className="rank1-name">Coming Soon</div>
+                    ) : (
+                        <>
+                            <div className="rank1-name">{username}</div>
+                            <div className="rank1-damage">{damage.toLocaleString()}</div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>
@@ -91,6 +146,12 @@ const CharacterList: React.FC = () => {
         fetchData();
     }, []);
 
+    const handleCharacterClick = (id: string) => {
+        if (id === "32") {
+            navigate(id);
+        }
+    };
+
     if (loading) return (
         <div className="build-container">
             <div className="loading-state">Loading leaderboard data...</div>
@@ -118,7 +179,11 @@ const CharacterList: React.FC = () => {
                         </div>
                         <div className="build-entries">
                             {data.map(entry => (
-                                <div key={entry._id} onClick={() => navigate(`${entry._id}`)}>
+                                <div 
+                                    key={entry._id} 
+                                    onClick={() => handleCharacterClick(entry._id)}
+                                    className={entry._id !== "32" ? 'disabled' : ''}
+                                >
                                     <LeaderboardEntry data={entry} />
                                 </div>
                             ))}

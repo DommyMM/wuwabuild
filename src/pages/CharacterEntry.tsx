@@ -13,11 +13,14 @@ export type CVOptions = 'cv' | 'cr' | 'cd';
 export type DamageOptions = 'damage';
 export type SortField = CVOptions | DamageOptions | string | null;
 
-const LeaderboardHeader: React.FC<{ characterId?: string }> = ({ characterId }) => (
-    <div className="build-header-container">
-        <LBInfo characterId={characterId || ''} />
-    </div>
-);
+const LeaderboardHeader: React.FC<{ characterId?: string; entry?: DecompressedEntry; selectedWeapon?: number; onWeaponSelect?: (weapon: number)
+=> void }>=({ characterId, entry, selectedWeapon, onWeaponSelect }) => {
+    return (
+        <div className="build-header-container">
+            <LBInfo characterId={characterId || ''}  calculations={entry?.calculations} selectedWeapon={selectedWeapon} onWeaponSelect={onWeaponSelect} />
+        </div>
+    );
+};
 
 interface BuildResponse {
     builds: CompressedEntry[];
@@ -38,6 +41,9 @@ interface LeaderboardTableProps {
     hoveredSection?: number | null;
     lastHoveredSection?: number | null;
     onHoverSection?: (section: number | null) => void;
+    selectedWeapon?: number;
+    expandedEntry: string | null;
+    onEntryClick: (timestamp: string) => void;
 }
 
 const getDropdownPosition = (current: number | null | undefined, last: number | null | undefined) => {
@@ -57,7 +63,8 @@ const getSortType = (sort: SortField) => {
 const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ 
     data, page, itemsPerPage, currentSort, sortDirection,
     onSortChange, onDirectionChange, characterId,
-    hoveredSection, lastHoveredSection, onHoverSection
+    hoveredSection, lastHoveredSection, onHoverSection,
+    selectedWeapon, expandedEntry, onEntryClick
 }) => {
     const sortType = getSortType(currentSort);
 
@@ -107,6 +114,9 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                         rank={(page - 1) * itemsPerPage + index + 1}
                         activeStat={sortType === 'stat' ? currentSort : null}
                         activeSort={sortType}
+                        selectedWeapon={selectedWeapon}
+                        isExpanded={expandedEntry === entry.timestamp}
+                        onClick={() => onEntryClick(entry.timestamp)}
                     />
                 ))}
             </div>
@@ -136,6 +146,8 @@ export const CharacterEntry: React.FC = () => {
     const [currentSort, setCurrentSort] = useState<SortField>('damage');
     const [hoveredSection, setHoveredSection] = useState<number | null>(null);
     const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
+    const [selectedWeapon, setSelectedWeapon] = useState(0);
+    const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
     const itemsPerPage = 10;
 
     useEffect(() => {
@@ -189,7 +201,12 @@ export const CharacterEntry: React.FC = () => {
         <div className="page-wrapper">
             <div className="lb-wrapper">
                 <div className="build-container">
-                    <LeaderboardHeader characterId={characterId} />
+                    <LeaderboardHeader 
+                        characterId={characterId} 
+                        entry={data[0]}
+                        selectedWeapon={selectedWeapon}
+                        onWeaponSelect={setSelectedWeapon}
+                    />
                     <LeaderboardTable 
                         data={data}
                         page={page}
@@ -207,6 +224,11 @@ export const CharacterEntry: React.FC = () => {
                                 setLastHoveredSection(section);
                             }
                         }}
+                        selectedWeapon={selectedWeapon}
+                        expandedEntry={expandedEntry}
+                        onEntryClick={(timestamp) => 
+                            setExpandedEntry(expandedEntry === timestamp ? null : timestamp)
+                        }
                     />
                     <Pagination currentPage={page} pageCount={pageCount} onPageChange={setPage} />
                 </div>

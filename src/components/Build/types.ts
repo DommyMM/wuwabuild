@@ -32,9 +32,16 @@ export interface DecompressedEntry {
     calculations: Calculation[];
 }
 
+export interface MoveResult {
+    name: string;
+    damage: number;
+}
+
 export interface Calculation {
     weaponId: string;
     damage: number;
+    stats?: Record<string, number>;
+    moves?: MoveResult[];
 }
 
 export const getSetCounts = (echoPanels: EchoPanelState[]) => {

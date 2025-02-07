@@ -774,7 +774,7 @@ input:-webkit-autofill {
 }
 
 .weapon-stat {
-    gap: 5px;
+    gap: 4px;
     letter-spacing: 1px;
 }
 
@@ -788,6 +788,7 @@ input:-webkit-autofill {
     transform: translate(0);
     letter-spacing: 0;
     line-height: 1;
+    margin-bottom: 2px;
 }
 
 .weapon-stat.weapon-attack {

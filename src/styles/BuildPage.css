@@ -43,7 +43,7 @@
 
 .build-header-container {
     text-align: center;
-    max-width: 475px;
+    max-width: 550px;
     margin: 0 auto 8px;
 }
 
@@ -545,5 +545,9 @@
     }
     .build-header-container {
         width: 95vw;
+        margin: 0;
+    }
+    .info-item {
+        gap: 0;
     }
 }

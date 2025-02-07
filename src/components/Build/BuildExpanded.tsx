@@ -33,7 +33,7 @@ const BreakdownStat: React.FC<{
     );
 };
 
-const BuildBreakdownRow: React.FC<{
+export const BuildBreakdownRow: React.FC<{
     echoPanels: EchoPanelState[];
     selectedStats: Set<string>;
     onToggleStat: (statName: string) => void;
@@ -129,13 +129,28 @@ const calculatePanelCV = (panel: EchoPanelState): number => {
     return baseCV - (mainStat?.includes('Crit') ? 44 : 0);
 };
 
+const mapStatName = (type: string): string => {
+    // Remove 'DMG Bonus' suffix and map to shorter names
+    const dmgBonusMap: Record<string, string> = {
+        'Basic Attack DMG Bonus': 'Basic Attack',
+        'Heavy Attack DMG Bonus': 'Heavy Attack',
+        'Resonance Skill DMG Bonus': 'Skill',
+        'Resonance Liberation DMG Bonus': 'Liberation'
+    };
+    return dmgBonusMap[type] || type;
+};
+
 const getQualityClass = (
     value: number | null, 
     type: string | null, 
     substatsData: Record<string, number[]> | null
 ): string => {
     if (!value || !type || !substatsData) return '';
-    const allValues = substatsData[type];
+    
+    // Map the stat name to match substatsData keys
+    const mappedType = mapStatName(type);
+    const allValues = substatsData[mappedType];
+    
     if (!allValues) return '';
     
     const quarterLength = Math.floor(allValues.length / 4);
@@ -148,7 +163,7 @@ const getQualityClass = (
     return 'five-star';
 };
 
-const calculateSelectedRV = (
+export const calculateSelectedRV = (
     panel: EchoPanelState, 
     substatsData: Record<string, number[]> | null,
     selectedStats: Set<string>
@@ -171,7 +186,7 @@ const calculateSelectedRV = (
     return statCount > 0 ? totalPercentage : 0;
 };
 
-const BuildEchoRow: React.FC<{
+export const BuildEchoRow: React.FC<{
     echoPanels: EchoPanelState[];
     substatsData: Record<string, number[]> | null;
     selectedStats: Set<string>;
@@ -208,7 +223,7 @@ const BuildEchoRow: React.FC<{
     </div>
 );
 
-const TotalBreakdown: React.FC<{
+export const TotalBreakdown: React.FC<{
     echoPanels: EchoPanelState[];
     selectedStats: Set<string>;
 }> = ({ echoPanels, selectedStats }) => {
@@ -245,7 +260,7 @@ const TotalBreakdown: React.FC<{
     );
 };
 
-const getCharacterDefaultStats = (character: Character | null): Set<string> => {
+export const getCharacterDefaultStats = (character: Character | null): Set<string> => {
     if (!character) return new Set();
     
     const defaultStats = new Set(['Energy Regen']);

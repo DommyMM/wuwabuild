@@ -221,6 +221,9 @@ h2 {
     margin: 0;
     width: 100%;
   }
+  .nav-links a {
+    padding: 8px;
+  }
   .scan-container{
     top: 20%;
   }

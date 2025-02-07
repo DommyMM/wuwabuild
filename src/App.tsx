@@ -32,9 +32,9 @@ const Layout = () => {
             <Link to="/builds" className={location.pathname === '/builds' ? 'active' : ''}>
               Builds
             </Link>
-            {/* <Link to="/leaderboards" className={location.pathname === '/leaderboards' ? 'active' : ''}>
-              Leaderboards
-            </Link> */}
+            <Link to="/leaderboards" className={location.pathname === '/leaderboards' ? 'active' : ''}>
+              Rank
+            </Link>
             <Link to="/edit" className={location.pathname === '/edit' ? 'active' : ''}>
               Edit
             </Link>
