@@ -42,7 +42,7 @@ interface LeaderboardTableProps {
     lastHoveredSection?: number | null;
     onHoverSection?: (section: number | null) => void;
     selectedWeapon?: number;
-    expandedEntry: string | null;
+    expandedEntries: Set<string>;
     onEntryClick: (timestamp: string) => void;
 }
 
@@ -64,7 +64,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
     data, page, itemsPerPage, currentSort, sortDirection,
     onSortChange, onDirectionChange, characterId,
     hoveredSection, lastHoveredSection, onHoverSection,
-    selectedWeapon, expandedEntry, onEntryClick
+    selectedWeapon, expandedEntries, onEntryClick
 }) => {
     const sortType = getSortType(currentSort);
 
@@ -115,7 +115,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                         activeStat={sortType === 'stat' ? currentSort : null}
                         activeSort={sortType}
                         selectedWeapon={selectedWeapon}
-                        isExpanded={expandedEntry === entry.timestamp}
+                        isExpanded={expandedEntries.has(entry.timestamp)}
                         onClick={() => onEntryClick(entry.timestamp)}
                     />
                 ))}
@@ -147,7 +147,7 @@ export const CharacterEntry: React.FC = () => {
     const [hoveredSection, setHoveredSection] = useState<number | null>(null);
     const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
     const [selectedWeapon, setSelectedWeapon] = useState(0);
-    const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
+    const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
     const itemsPerPage = 10;
 
     useEffect(() => {
@@ -158,7 +158,8 @@ export const CharacterEntry: React.FC = () => {
                     sort: getSortParam(currentSort),
                     direction: sortDirection,
                     page: String(page),
-                    pageSize: String(itemsPerPage)
+                    pageSize: String(itemsPerPage),
+                    weaponIndex: String(selectedWeapon)
                 };
                 
                 const params = new URLSearchParams(searchParams);
@@ -178,7 +179,7 @@ export const CharacterEntry: React.FC = () => {
             }
         };
         loadData();
-    }, [page, characterId, sortDirection, currentSort]);
+    }, [page, characterId, sortDirection, currentSort, selectedWeapon]);
 
     const handleSortChange = (field: SortField) => {
         setCurrentSort(field === currentSort ? null : field);
@@ -225,9 +226,17 @@ export const CharacterEntry: React.FC = () => {
                             }
                         }}
                         selectedWeapon={selectedWeapon}
-                        expandedEntry={expandedEntry}
+                        expandedEntries={expandedEntries}
                         onEntryClick={(timestamp) => 
-                            setExpandedEntry(expandedEntry === timestamp ? null : timestamp)
+                            setExpandedEntries(prev => {
+                                const next = new Set(prev);
+                                if (next.has(timestamp)) {
+                                    next.delete(timestamp);
+                                } else {
+                                    next.add(timestamp);
+                                }
+                                return next;
+                            })
                         }
                     />
                     <Pagination currentPage={page} pageCount={pageCount} onPageChange={setPage} />
