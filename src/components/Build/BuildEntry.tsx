@@ -134,10 +134,7 @@ export const BuildEntry: React.FC<{
         <div className={`build-entry ${isExpanded ? 'expanded' : ''}`}>
             <div className="build-main-content" onClick={onClick}>
                 <div className="build-rank">#{rank}</div>
-                <BuildOwnerSection 
-                    username={entry.buildState.watermark?.username}
-                    uid={entry.buildState.watermark?.uid}
-                />
+                <BuildOwnerSection username={entry.buildState.watermark?.username} uid={entry.buildState.watermark?.uid} />
                 <BuildCharacterSection character={character} elementClass={elementClass} />
                 <div className={`build-sequence s${entry.buildState.currentSequence}`}>
                     <span>S{entry.buildState.currentSequence}</span>
@@ -167,7 +164,11 @@ export const BuildEntry: React.FC<{
                 </div>
                 <BuildStatsSection values={stats.values} character={character} activeStat={activeStat} isActiveColumn={activeSort === 'stat'}/>
             </div>
-            {isExpanded && <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character ?? null}/>}
+            {isExpanded && (
+                <div className="build-expanded-content">
+                    <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character ?? null}/>
+                </div>
+            )}
         </div>
     );
 };

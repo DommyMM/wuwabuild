@@ -38,6 +38,7 @@
     "react-router-dom": "^7.0.1",
     "react-scripts": "^5.0.1",
     "react-toastify": "^11.0.2",
+    "recharts": "^2.15.1",
     "resolve-url-loader": "^5.0.0",
     "svgo": "^3.3.2",
     "tesseract.js": "^5.1.1",

@@ -93,21 +93,28 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
     isExpanded = false,
     onClick
 }) => {
-    const character = cachedCharacters?.find(c => c.id === entry.buildState.characterState.id);
     const characterId = entry.buildState.characterState.id || '';
-    const elementClass = entry.buildState.characterState.element?.toLowerCase() ?? '';
+    const config = CHARACTER_CONFIGS[characterId];
     
-    // Get the selected weapon's calculation data
-    const selectedCalc = entry.calculations?.[selectedWeapon];
+    // Get the weapon ID for the selected index
+    const selectedWeaponId = config?.weapons[selectedWeapon];
+    // Find the calculation matching this weapon ID
+    const selectedCalc = entry.calculations?.find(
+        calc => calc.weaponId === selectedWeaponId
+    );
+    
     const damage = selectedCalc?.damage || 0;
     
-    // Use weapon-specific standardized stats if available
-    const stats = characterId === "32" && selectedCalc?.stats 
+    // Always use weapon-specific stats when available
+    const stats = selectedCalc?.stats 
         ? { values: selectedCalc.stats }
         : decompressStats(entry.stats);
     
-    const critRate = stats.values['Crit Rate'];
-    const critDmg = stats.values['Crit DMG'];
+    const character = cachedCharacters?.find(c => c.id === entry.buildState.characterState.id);
+    const elementClass = entry.buildState.characterState.element?.toLowerCase() ?? '';
+    
+    const critRate = stats.values['Crit Rate'] || 0;
+    const critDmg = stats.values['Crit DMG'] || 0;
 
     return (
         <div className={`build-entry ${isExpanded ? 'expanded' : ''}`}>

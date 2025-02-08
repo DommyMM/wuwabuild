@@ -4,7 +4,7 @@ import { decompressData } from '../components/Save/Backup';
 import { Pagination } from '../components/Save/Pagination';
 import { CompressedEntry, DecompressedEntry } from '../components/Build/types';
 import { DamageEntry } from '../components/LB/DamageEntry';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { LBInfo } from '../components/LB/LBInfo';
 import { LBSortDropdown, LBSortHeader } from '../components/LB/SortDropdown';
 import { CHARACTER_CONFIGS } from '../components/LB/config';
@@ -13,11 +13,22 @@ export type CVOptions = 'cv' | 'cr' | 'cd';
 export type DamageOptions = 'damage';
 export type SortField = CVOptions | DamageOptions | string | null;
 
-const LeaderboardHeader: React.FC<{ characterId?: string; entry?: DecompressedEntry; selectedWeapon?: number; onWeaponSelect?: (weapon: number)
-=> void }>=({ characterId, entry, selectedWeapon, onWeaponSelect }) => {
+const LeaderboardHeader: React.FC<{ 
+    characterId?: string; 
+    entry?: DecompressedEntry; 
+    selectedWeapon?: number; 
+    onWeaponSelect?: (weapon: number) => void;
+    maxDamages: Array<{ weaponId: string; damage: number }>;
+}> = ({ characterId, entry, selectedWeapon, onWeaponSelect, maxDamages }) => {
     return (
         <div className="build-header-container">
-            <LBInfo characterId={characterId || ''}  calculations={entry?.calculations} selectedWeapon={selectedWeapon} onWeaponSelect={onWeaponSelect} />
+            <LBInfo 
+                characterId={characterId || ''} 
+                calculations={entry?.calculations} 
+                selectedWeapon={selectedWeapon} 
+                onWeaponSelect={onWeaponSelect} 
+                maxDamages={maxDamages} 
+            />
         </div>
     );
 };
@@ -137,6 +148,9 @@ const getSortParam = (currentSort: SortField): string => {
 
 export const CharacterEntry: React.FC = () => {
     const { characterId } = useParams<{ characterId: string }>();
+    const { state } = useLocation();
+    const weaponMaxDamages = state?.weaponData?.weapons || [];
+    const initialWeapon = state?.selectedWeapon ?? 0;
     const [data, setData] = useState<DecompressedEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -146,7 +160,7 @@ export const CharacterEntry: React.FC = () => {
     const [currentSort, setCurrentSort] = useState<SortField>('damage');
     const [hoveredSection, setHoveredSection] = useState<number | null>(null);
     const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
-    const [selectedWeapon, setSelectedWeapon] = useState(0);
+    const [selectedWeapon, setSelectedWeapon] = useState(initialWeapon);
     const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
     const itemsPerPage = 10;
 
@@ -164,13 +178,12 @@ export const CharacterEntry: React.FC = () => {
                 
                 const params = new URLSearchParams(searchParams);
                 const response = await fetch(`${LB_URL}/leaderboard/${characterId}?${params}`);
-                if (!response.ok) throw new Error('Failed to fetch leaderboard');
                 
                 const { builds, total } = await response.json() as BuildResponse;
                 setTotal(total);
                 setData(builds.map((entry: CompressedEntry) => ({
                     ...entry,
-                    buildState: decompressData({ state: entry.buildState }).state
+                    buildState: decompressData({ state: entry.buildState }).state,
                 })));
                 setLoading(false);
             } catch (err) {
@@ -207,6 +220,7 @@ export const CharacterEntry: React.FC = () => {
                         entry={data[0]}
                         selectedWeapon={selectedWeapon}
                         onWeaponSelect={setSelectedWeapon}
+                        maxDamages={weaponMaxDamages}
                     />
                     <LeaderboardTable 
                         data={data}

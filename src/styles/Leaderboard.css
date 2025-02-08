@@ -27,7 +27,7 @@
 }
 
 .overall-wrapper .build-header, .overall-wrapper .build-main-content {
-    grid-template-columns: 200px 250px 300px 200px 200px;
+    grid-template-columns: 200px 125px 175px auto;
 }
 
 .build-rank1 {
@@ -38,13 +38,18 @@
 }
 
 .rank1-name {
-    font-size: 24px;
+    font-size: 12px;
     color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
 }
 
 .rank1-damage {
-    font-size: 20px;
+    font-size: 14px;
     color: #a69662;
+    font-weight: 500;
 }
 
 .lb-wrapper .build-header, .lb-wrapper .build-main-content {
@@ -119,6 +124,40 @@
     font-size: 18px;
     color: #999;
     text-align: center;
+}
+
+.build-weapons-rank {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+}
+
+.weapon-rank-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border: 1px solid rgba(166, 150, 98, 0.1);
+}
+
+.weapon-rank-entry:hover {
+    background: rgba(166, 150, 98, 0.1);
+    border-color: rgba(166, 150, 98, 0.3);
+}
+
+.weapon-rank-entry .preview-icon {
+    width: 32px;
+    height: 32px;
+}
+
+.weapon-rank-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .sort-header-button {
@@ -238,7 +277,7 @@
     }
     to {
         opacity: 1;
-        height: 575px;
+        height: 650px;
     }
 }
 
@@ -247,7 +286,7 @@
 }
 
 .moves-breakdown {
-    margin-bottom: 16px;
+    margin: 16px 0;
     padding: 16px;
     background: rgba(26, 26, 26, 0.6);
     border-radius: 8px;
@@ -255,78 +294,94 @@
     width: 97.5%;
 }
 
-.moves-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-}
-
-.moves-column {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.move-entry {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-}
-
 .moves-header {
-    font-size: 16px;
+    font-size: 32px;
     color: #a69662;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     text-align: center;
 }
 
-.move-info {
+.chart-section {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+
+.chart-container {
+    flex: 1;
+    max-width: 400px;
+}
+
+.moves-legend {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.legend-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    cursor: pointer;
 }
 
-.move-name {
+.legend-item:hover, .legend-item.active {
+    background: rgba(166, 150, 98, 0.1);
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+.legend-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.legend-name {
     color: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    flex: 1;
+    font-size: 20px;
 }
 
-.move-percentage {
-    color: #666;
-    font-size: 12px;
-    min-width: 48px;
-    text-align: right;
-}
-
-.move-damage {
+.legend-stats {
     color: #a69662;
     font-size: 14px;
-    font-weight: 500;
-    min-width: 80px;
-    text-align: right;
 }
 
-.move-bar-container {
-    height: 6px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 3px;
-    overflow: hidden;
+.move-tooltip {
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #a69662;
+    padding: 12px;
+    border-radius: 4px;
 }
 
-.move-bar {
-    height: 100%;
-    background: linear-gradient(90deg, 
-        rgba(166, 150, 98, 0.7) 0%, 
-        rgba(166, 150, 98, 0.9) 100%
-    );
-    border-radius: 3px;
-    transition: width 0.3s ease;
+.move-tooltip-name {
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.move-tooltip-damage {
+    color: #a69662;
+    font-size: 16px;
+}
+
+.move-tooltip-percentage {
+    color: #999;
+    font-size: 14px;
+    margin-top: 2px;
 }
 
 @media (max-width: 1200px) {
@@ -342,5 +397,19 @@
     }
     .lb-weapon-option {
         padding: 6px;
+    }
+    .build-weapons-rank {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+    .weapon-rank-entry {
+        min-width: 140px;
+    }
+    .chart-section {
+        flex-direction: column;
+    }
+    
+    .chart-container {
+        min-width: 100%;
     }
 }

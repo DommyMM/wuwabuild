@@ -7,18 +7,25 @@ import { Character } from '../types/character';
 import { CharacterEntry } from './CharacterEntry';
 import { CHARACTER_CONFIGS } from '../components/LB/config';
 import { getCachedWeapon } from '../hooks/useWeapons';
-
 import '../styles/Leaderboard.css';
 
 interface LeaderboardData {
     _id: string;
     totalEntries: number;
-    topBuild: {
+    weapons: Array<{
+        weaponId: string;
         damage: number;
         owner: {
             username?: string;
             uid?: string;
-        };
+        }
+    }>;
+    topBuild?: {
+        damage: number;
+        owner: {
+            username?: string;
+            uid?: string;
+        }
     };
 }
 
@@ -41,29 +48,6 @@ const LeaderboardCharacterSection: React.FC<{
         <span className={`char-name ${elementClass}`}>{character?.name}</span>
     </div>
 );
-
-const LeaderboardWeaponsSection: React.FC<{ characterId: string }> = ({ characterId }) => {
-    if (characterId !== "32") return <div className="build-weapons">--</div>;
-    const config = CHARACTER_CONFIGS[characterId];
-    if (!config?.weapons) return <div className="build-weapons">--</div>;
-    return (
-        <div className="build-weapons">
-            <div className="preview-grid">
-                {config.weapons.slice(0, 3).map(weaponId => {
-                    const weapon = getCachedWeapon(weaponId);
-                    if (!weapon) return null;
-                    return (
-                        <img key={weaponId}
-                            src={getAssetPath('weapons', weapon).cdn}
-                            alt={weapon.name}
-                            className="preview-icon weapon"
-                        />
-                    );
-                })}
-            </div>
-        </div>
-    );
-};
 
 const LeaderboardTeamSection: React.FC<{ characterId: string }> = ({ characterId }) => {
     if (characterId !== "32") return <div className="build-team">--</div>;
@@ -91,34 +75,83 @@ const LeaderboardTeamSection: React.FC<{ characterId: string }> = ({ characterId
     );
 };
 
-const LeaderboardEntry: React.FC<{ data: LeaderboardData }> = ({ data }) => {
+const LeaderboardWeaponsWithRank: React.FC<{ 
+    characterId: string;
+    weapons: Array<{
+        weaponId: string;
+        damage: number;
+        owner: { username?: string; uid?: string; }
+    }>;
+    onWeaponClick?: (weaponIndex: number) => void;
+}> = ({ characterId, weapons, onWeaponClick }) => {
+    if (characterId !== "32") return <div className="build-weapons">--</div>;
+    const config = CHARACTER_CONFIGS[characterId];
+    if (!config?.weapons) return <div className="build-weapons">--</div>;
+
+    return (
+        <div className="build-weapons-rank">
+            {config.weapons.map((configWeaponId, index) => {
+                const weapon = getCachedWeapon(configWeaponId);
+                const weaponData = weapons.find(w => w.weaponId === configWeaponId);
+                if (!weapon) return null;
+
+                return (
+                    <div 
+                        key={configWeaponId} 
+                        className="weapon-rank-entry"
+                        onClick={(e) => {
+                            e.stopPropagation(); // Prevent triggering parent click
+                            onWeaponClick?.(index);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <img
+                            src={getAssetPath('weapons', weapon).cdn}
+                            alt={weapon.name}
+                            className="preview-icon weapon"
+                        />
+                        <div className="weapon-rank-info">
+                            <div className="rank1-name">
+                                {weaponData?.owner.username || 'Anonymous'}
+                            </div>
+                            <div className="rank1-damage">
+                                {weaponData?.damage.toLocaleString() || '0'}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+const LeaderboardEntry: React.FC<{ 
+    data: LeaderboardData;
+    onCharacterClick: (id: string, data: LeaderboardData) => void;
+    onWeaponClick: (id: string, data: LeaderboardData, weaponIndex: number) => void;
+}> = ({ data, onCharacterClick, onWeaponClick }) => {
     const character = cachedCharacters?.find(c => c.id === data._id);
     const elementClass = character?.element.toLowerCase() ?? '';
-    const damage = data.topBuild.damage ?? 0;
-    const username = data.topBuild.owner.username || 'Anonymous';
-    
-    // Add disabled state for non-Carlotta entries
     const isDisabled = data._id !== "32";
     
     return (
-        <div className={`build-entry ${isDisabled ? 'disabled' : ''}`}>
+        <div className={`build-entry ${isDisabled ? 'disabled' : ''}`}
+            onClick={() => onCharacterClick(data._id, data)}
+        >
             <div className='build-main-content'>
-                <LeaderboardCharacterSection character={character} elementClass={elementClass} />
-                <LeaderboardWeaponsSection characterId={data._id} />
+                <LeaderboardCharacterSection 
+                    character={character} 
+                    elementClass={elementClass} 
+                />
                 <LeaderboardTeamSection characterId={data._id} />
                 <div className="build-entries">
                     {isDisabled ? 'Coming Soon' : data.totalEntries}
                 </div>
-                <div className="build-rank1">
-                    {isDisabled ? (
-                        <div className="rank1-name">Coming Soon</div>
-                    ) : (
-                        <>
-                            <div className="rank1-name">{username}</div>
-                            <div className="rank1-damage">{damage.toLocaleString()}</div>
-                        </>
-                    )}
-                </div>
+                <LeaderboardWeaponsWithRank 
+                    characterId={data._id}
+                    weapons={data.weapons}
+                    onWeaponClick={(index) => onWeaponClick(data._id, data, index)}
+                />
             </div>
         </div>
     );
@@ -146,9 +179,25 @@ const CharacterList: React.FC = () => {
         fetchData();
     }, []);
 
-    const handleCharacterClick = (id: string) => {
+    const handleCharacterClick = (id: string, data: LeaderboardData) => {
         if (id === "32") {
-            navigate(id);
+            navigate(id, { 
+                state: { 
+                    weaponData: data,
+                    selectedWeapon: 0  // Default to first weapon
+                } 
+            });
+        }
+    };
+
+    const handleWeaponClick = (id: string, data: LeaderboardData, weaponIndex: number) => {
+        if (id === "32") {
+            navigate(id, { 
+                state: { 
+                    weaponData: data,
+                    selectedWeapon: weaponIndex  // Use selected weapon index
+                } 
+            });
         }
     };
 
@@ -172,20 +221,18 @@ const CharacterList: React.FC = () => {
                     <div className="build-table">
                         <div className="build-header">
                             <span>Character</span>
-                            <span>Weapons</span>
                             <span>Team</span>
                             <span>Total Entries</span>
-                            <span>Rank 1</span>
+                            <span>Weapon Rankings</span>
                         </div>
                         <div className="build-entries">
                             {data.map(entry => (
-                                <div 
-                                    key={entry._id} 
-                                    onClick={() => handleCharacterClick(entry._id)}
-                                    className={entry._id !== "32" ? 'disabled' : ''}
-                                >
-                                    <LeaderboardEntry data={entry} />
-                                </div>
+                                <LeaderboardEntry 
+                                    key={entry._id}
+                                    data={entry}
+                                    onCharacterClick={handleCharacterClick}
+                                    onWeaponClick={handleWeaponClick}
+                                />
                             ))}
                         </div>
                     </div>

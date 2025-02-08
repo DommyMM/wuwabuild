@@ -289,7 +289,7 @@ export const BuildExpanded: React.FC<{
     );
     
     return (
-        <div className="build-expanded-content">
+        <>
             <BuildEchoRow echoPanels={echoPanels} substatsData={substatsData} selectedStats={selectedStats} />
             <div className="build-breakdown-container">
                 <BuildBreakdownRow 
@@ -309,6 +309,6 @@ export const BuildExpanded: React.FC<{
                 />
                 <TotalBreakdown echoPanels={echoPanels} selectedStats={selectedStats} />
             </div>
-        </div>
+        </>
     );
 };

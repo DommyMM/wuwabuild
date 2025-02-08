@@ -39,31 +39,22 @@ const TeamDisplay: React.FC<{ mainChar: Character; teamIds: string[] }> = ({ mai
 
 const RotationDisplay: React.FC<{ 
     characterId: string;
-    calculations?: Array<{ weaponId: string; damage: number }>;
+    maxDamages: Array<{ weaponId: string; damage: number }>;
     onWeaponSelect?: (index: number) => void;
     selectedIndex?: number;
-}> = ({ characterId, calculations, onWeaponSelect, selectedIndex = 0 }) => {
+}> = ({ characterId, maxDamages, onWeaponSelect, selectedIndex = 0 }) => {
     if (characterId !== "32") return null;
-    const weapons = CHARACTER_CONFIGS[characterId]?.weapons || [];
+    const config = CHARACTER_CONFIGS[characterId];
+    if (!config?.weapons) return null;
 
     return (
         <div className="rotation-display">
-            <div className="rotation-title">Standard Rotation</div>
-            <div className="rotation-sequence">
-                <span>RS1 → RS2 → Intro → RS1 → RS2 → Forte Circuit → RL → Outro</span>
-            </div>
-            <div className="rotation-legend">
-                <span>RS: Resonance Skill</span>
-                <span>RS2: Chromatic Splendor</span>
-                <span>Forte Circuit: Imminent Oblivion</span>
-                <span>RL: Resonance Liberation (Initial + 4 Death Knells + Fatal Finale)</span>
-            </div>
             <div className="weapon-grid">
-                {weapons.map((weaponId, index) => {
+                {config.weapons.map((weaponId, index) => {
                     const weapon = getCachedWeapon(weaponId);
                     if (!weapon) return null;
                     
-                    const calc = calculations?.find(c => c.weaponId === weaponId);
+                    const maxDamage = maxDamages.find(d => d.weaponId === weaponId)?.damage;
                     
                     return (
                         <div key={weaponId}
@@ -75,7 +66,9 @@ const RotationDisplay: React.FC<{
                                 className="lb-weapon-portrait"
                             />
                             <span className="lb-weapon-name">{weapon.name}</span>
-                            {calc && <span className="weapon-damage">{calc.damage.toLocaleString()}</span>}
+                            {maxDamage && (
+                                <span className="weapon-damage">{maxDamage.toLocaleString()}</span>
+                            )}
                         </div>
                     );
                 })}
@@ -89,7 +82,8 @@ export const LBInfo: React.FC<{
     calculations?: Array<{ weaponId: string; damage: number }>;
     onWeaponSelect?: (index: number) => void;
     selectedWeapon?: number;
-}> = ({ characterId, calculations, onWeaponSelect, selectedWeapon = 0 }) => {
+    maxDamages: Array<{ weaponId: string; damage: number }>;
+}> = ({ characterId, calculations, onWeaponSelect, selectedWeapon = 0, maxDamages }) => {
     const character = cachedCharacters?.find(c => c.id === characterId);
     const config = CHARACTER_CONFIGS[characterId] || {
         description: 'No specific team requirements',
@@ -105,7 +99,7 @@ export const LBInfo: React.FC<{
             <TeamDisplay mainChar={character} teamIds={config.teamIds} />
             <RotationDisplay 
                 characterId={characterId} 
-                calculations={calculations}
+                maxDamages={maxDamages}
                 onWeaponSelect={onWeaponSelect}
                 selectedIndex={selectedWeapon}
             />
