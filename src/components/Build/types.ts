@@ -32,9 +32,16 @@ export interface DecompressedEntry {
     calculations: Calculation[];
 }
 
+interface HitResult {
+    name: string;     // Individual hit name
+    damage: number;   // Hit damage
+    percentage: number; // Hit's contribution percentage
+}
+
 export interface MoveResult {
-    name: string;
-    damage: number;
+    name: string;     // Move name
+    damage: number;   // Total move damage
+    hits?: HitResult[]; // Optional breakdown of individual hits
 }
 
 export interface Calculation {
