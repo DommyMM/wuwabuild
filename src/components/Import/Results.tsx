@@ -82,7 +82,7 @@ const ForteSection: React.FC<{ fortes?: number[] }> = ({ fortes }) => (
     <div className="fortes-section">
         <h3>Fortes</h3>
         <div className="fortes-grid">
-            {['Normal', 'Skill', 'Circuit', 'Intro', 'Liberation'].map((name, idx) => (
+            {['Normal', 'Skill', 'Liberation', 'Intro', 'Circuit'].map((name, idx) => (
                 <div key={idx} className="forte">
                     {name}: Lv.{fortes ? fortes[idx] : '..'}
                 </div>
