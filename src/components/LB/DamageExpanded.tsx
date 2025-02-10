@@ -198,7 +198,7 @@ const LegendColumn: React.FC<{
                             <div className="legend-stats">
                                 <span className="legend-damage">{move.damage.toLocaleString()}</span>
                                 <span className="legend-percentage">
-                                    ({((move.damage / totalDamage) * 100).toFixed(1)}%)
+                                    {((move.damage / totalDamage) * 100).toFixed(1)}%
                                 </span>
                             </div>
                         </div>

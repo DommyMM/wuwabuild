@@ -54,7 +54,7 @@
 }
 
 .lb-wrapper .build-header, .lb-wrapper .build-main-content {
-    grid-template-columns: 60px 120px 175px 95px 150px 375px 150px;
+    grid-template-columns: 60px 140px 155px 95px 150px 375px 150px;
 }
 
 .build-header span:last-child {
@@ -104,7 +104,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, 80px);
     gap: 8px;
-    margin-top: 10px;
     justify-content: center;
 }
 
@@ -178,7 +177,6 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    margin-top: 16px;
     padding: 16px;
     background: rgba(26, 26, 26, 0.6);
     border-radius: 8px;

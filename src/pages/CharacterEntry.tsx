@@ -89,7 +89,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
     data, page, itemsPerPage, currentSort, sortDirection,
     onSortChange, onDirectionChange, characterId,
     hoveredSection, lastHoveredSection, onHoverSection,
-    selectedWeapon, selectedSequence,  // Add this prop
+    selectedWeapon, selectedSequence,
     expandedEntries, onEntryClick
 }) => {
     const sortType = getSortType(currentSort);
@@ -141,7 +141,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                         activeStat={sortType === 'stat' ? currentSort : null}
                         activeSort={sortType}
                         selectedWeapon={selectedWeapon}
-                        selectedSequence={selectedSequence}  // Pass sequence
+                        selectedSequence={selectedSequence}
                         isExpanded={expandedEntries.has(entry.timestamp)}
                         onClick={() => onEntryClick(entry.timestamp)}
                     />

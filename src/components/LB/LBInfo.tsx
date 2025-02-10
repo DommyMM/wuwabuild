@@ -5,10 +5,9 @@ import { Character } from '../../types/character';
 import { getCachedWeapon } from '../../hooks/useWeapons';
 import { Calculation, Sequence } from '../Build/types';
 
-const InfoTitle: React.FC<{ name: string; description: string }> = ({ name, description }) => (
+const InfoTitle: React.FC<{ name: string;}> = ({ name }) => (
     <div className="header-title">
         <h1 className="build-header-title">{name} Rankings</h1>
-        <span className="build-header-text">{description}</span>
     </div>
 );
 
@@ -124,7 +123,7 @@ export const LBInfo: React.FC<{
 
     return (
         <div className="header-content">
-            <InfoTitle name={character.name} description={config.description} />
+            <InfoTitle name={character.name}/>
             <TeamDisplay mainChar={character} teamIds={config.teamIds} />
             <BuildSelector 
                 characterId={characterId} 
