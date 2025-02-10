@@ -239,8 +239,8 @@ export const BuildPage: React.FC = () => {
     return (
         <div className="page-wrapper">
             <div className="build-wrapper">
+                <BuildHeader />
                 <div className="build-container">
-                    <BuildHeader />
                     <div className="build-table">
                         <div className="build-header">
                             <span>Rank</span>

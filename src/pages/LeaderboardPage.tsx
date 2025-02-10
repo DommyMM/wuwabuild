@@ -144,7 +144,7 @@ const LeaderboardEntry: React.FC<{
                     elementClass={elementClass} 
                 />
                 <LeaderboardTeamSection characterId={data._id} />
-                <div className="build-entries">
+                <div className="lb-entries">
                     {isDisabled ? 'Coming Soon' : data.totalEntries}
                 </div>
                 <LeaderboardWeaponsWithRank 
@@ -216,8 +216,8 @@ const CharacterList: React.FC = () => {
     return (
         <div className="page-wrapper">
             <div className="overall-wrapper">
+                <LeaderboardHeader />
                 <div className="build-container">
-                    <LeaderboardHeader />
                     <div className="build-table">
                         <div className="build-header">
                             <span>Character</span>

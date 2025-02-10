@@ -2,6 +2,7 @@
     width: 100%;
     max-width: 1250px;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     position: relative;
     overflow-x: auto;
@@ -68,7 +69,7 @@
 }
 
 .preview-icon {
-    width: 35px;
+    width: 42.5px;
     border-radius: 4px;
     object-fit: cover;
 }
@@ -126,6 +127,12 @@
     text-align: center;
 }
 
+.lb-entries {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .build-weapons-rank {
     display: flex;
     gap: 12px;
@@ -150,8 +157,7 @@
 }
 
 .weapon-rank-entry .preview-icon {
-    width: 32px;
-    height: 32px;
+    width: 35px;
 }
 
 .weapon-rank-info {
@@ -540,33 +546,13 @@
     .overall-wrapper, .lb-wrapper {
         justify-content: flex-start;
     }
-    .build-container {
-        margin: 0;
-        padding: 16px;
-    }
-    .header-content {
-        width: 92.5vw;
+    .build-selector {
+        padding: 16px 8px;
     }
     .lb-weapon-option {
         padding: 6px;
     }
-    .build-weapons-rank {
-        flex-wrap: wrap;
-        justify-content: flex-start;
-    }
-    .weapon-rank-entry {
-        min-width: 140px;
-    }
-    .sequence-selector-grid {
-        flex-wrap: wrap;
-    }
     .sequence-selector-item {
         min-width: 100px;
-    }
-    .chart-section {
-        flex-direction: column;
-    }
-    .chart-container {
-        min-width: 100%;
     }
 }

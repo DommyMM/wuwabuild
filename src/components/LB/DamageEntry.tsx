@@ -86,6 +86,26 @@ interface DamageEntryProps {
     onClick?: () => void;
 }
 
+export const STAT_MAP = {
+    HP: "H",
+    ATK: "A",
+    DEF: "D",
+    "Crit Rate": "CR",
+    "Crit DMG": "CD",
+    "Aero DMG": "AD",
+    "Glacio DMG": "GD",
+    "Fusion DMG": "FD",
+    "Electro DMG": "ED",
+    "Havoc DMG": "HD",
+    "Spectro DMG": "SD",
+    "Basic Attack DMG Bonus": "BA",
+    "Heavy Attack DMG Bonus": "HA",
+    "Resonance Liberation DMG Bonus": "RL",
+    "Resonance Skill DMG Bonus": "RS",
+    "Energy Regen": "ER",
+    "Healing Bonus": "HB"
+} as const;
+
 export const DamageEntry: React.FC<DamageEntryProps> = ({ 
     entry, 
     rank, 
@@ -111,7 +131,10 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
     
     // Always use weapon-specific stats when available
     const stats = selectedCalc?.stats 
-        ? { values: selectedCalc.stats }
+        ? { values: Object.entries(STAT_MAP).reduce((acc, [fullName, shortName]) => {
+            acc[fullName] = selectedCalc.stats[shortName] || 0;
+            return acc;
+        }, {} as Record<string, number>) }
         : decompressStats(entry.stats);
     
     const character = cachedCharacters?.find(c => c.id === entry.buildState.characterState.id);

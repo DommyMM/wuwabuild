@@ -197,46 +197,19 @@ export const CharacterEntry: React.FC = () => {
                 if (selectedSequence !== 's0') {
                     searchParams.sequence = selectedSequence;
                 }
-        
-                // Log request parameters
-                console.log('🔍 Request params:', {
-                    sort: searchParams.sort,
-                    direction: searchParams.direction,
-                    weaponIndex: searchParams.weaponIndex,
-                    sequence: searchParams.sequence
-                });
                 
                 const params = new URLSearchParams(searchParams);
                 const response = await fetch(`${LB_URL}/leaderboard/${characterId}?${params}`);
                 const data = await response.json() as BuildResponse;
-        
-                // Log first entry's relevant data
-                if (data.builds[0]) {
-                    console.log('📊 First entry data:', {
-                        sortField: searchParams.sort,
-                        weaponCalc: data.builds[0].calculations[Number(searchParams.weaponIndex)],
-                        stats: data.builds[0].calculations[Number(searchParams.weaponIndex)]?.stats,
-                        sortValue: data.builds[0].calculations[Number(searchParams.weaponIndex)]?.stats?.[searchParams.sort]
-                    });
-                }
-        
+    
                 setTotal(data.total);
-                const decompressedData = data.builds.map((entry: CompressedEntry) => ({
+                setData(data.builds.map((entry: CompressedEntry) => ({
                     ...entry,
                     buildState: decompressData({ state: entry.buildState }).state,
-                }));
-        
-                // Log first three entries' sort values
-                console.log('🔄 First 3 entries sort values:', decompressedData.slice(0, 3).map(entry => ({
-                    sortField: searchParams.sort,
-                    value: entry.calculations[Number(searchParams.weaponIndex)]?.stats?.[searchParams.sort],
-                    timestamp: entry.timestamp
                 })));
-        
-                setData(decompressedData);
                 setLoading(false);
             } catch (err) {
-                console.error('❌ Fetch error:', err);
+                console.error('Fetch error:', err);
                 setError(err instanceof Error ? err.message : 'Unknown error');
                 setLoading(false);
             }
@@ -264,16 +237,16 @@ export const CharacterEntry: React.FC = () => {
     return (
         <div className="page-wrapper">
             <div className="lb-wrapper">
+                <LeaderboardHeader 
+                    characterId={characterId} 
+                    entry={data[0]}
+                    selectedWeapon={selectedWeapon}
+                    onWeaponSelect={setSelectedWeapon}
+                    maxDamages={weaponMaxDamages}
+                    selectedSequence={selectedSequence}
+                    onSequenceSelect={setSelectedSequence}
+                />
                 <div className="build-container">
-                    <LeaderboardHeader 
-                        characterId={characterId} 
-                        entry={data[0]}
-                        selectedWeapon={selectedWeapon}
-                        onWeaponSelect={setSelectedWeapon}
-                        maxDamages={weaponMaxDamages}
-                        selectedSequence={selectedSequence}
-                        onSequenceSelect={setSelectedSequence}
-                    />
                     <LeaderboardTable 
                         data={data}
                         page={page}
@@ -292,7 +265,7 @@ export const CharacterEntry: React.FC = () => {
                             }
                         }}
                         selectedWeapon={selectedWeapon}
-                        selectedSequence={selectedSequence}  // Pass sequence
+                        selectedSequence={selectedSequence}
                         expandedEntries={expandedEntries}
                         onEntryClick={(timestamp) => 
                             setExpandedEntries(prev => {

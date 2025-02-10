@@ -10,6 +10,7 @@
     width: 100%;
     max-width: 1250px;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     position: relative;
     overflow-x: auto;
@@ -42,6 +43,7 @@
 }
 
 .build-header-container {
+    display: flex;
     text-align: center;
     max-width: 550px;
     margin: 0 auto 8px;
@@ -545,7 +547,8 @@
     }
     .build-header-container {
         width: 95vw;
-        margin: 0;
+        position: sticky;
+        left: 2.5vw;
     }
     .info-item {
         gap: 0;
