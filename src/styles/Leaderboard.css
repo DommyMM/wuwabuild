@@ -168,7 +168,7 @@
     cursor: pointer;
 }
 
-.rotation-display {
+.build-selector {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -179,42 +179,14 @@
     border: 1px solid #333;
 }
 
-.rotation-title {
-    font-size: 18px;
-    color: #a69662;
-    text-align: center;
-    margin-bottom: 8px;
-}
-
-.rotation-sequence {
-    font-size: 18px;
-    color: #fff;
-    text-align: center;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    margin-bottom: 8px;
-}
-
-.rotation-legend {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    flex-wrap: wrap;
-    font-size: 14px;
-    color: #999;
-    margin-bottom: 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #333;
-}
-
 .weapon-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    margin-top: 8px;
     justify-content: center;
 }
+
+
 
 .lb-weapon-option {
     display: flex;
@@ -264,6 +236,47 @@
     font-size: 16px;
     color: #a69662;
     font-weight: 500;
+}
+
+.sequence-selector-grid {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(166, 150, 98, 0.2);
+}
+
+.sequence-selector-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    color: #999;
+}
+
+.sequence-selector-item:hover {
+    background: rgba(166, 150, 98, 0.1);
+    border-color: rgba(166, 150, 98, 0.3);
+    transform: translateY(-1px);
+}
+
+.sequence-selector-item.selected {
+    background: linear-gradient(
+        180deg, 
+        rgba(166, 150, 98, 0.2) 0%, 
+        rgba(166, 150, 98, 0.1) 100%
+    );
+    border-color: #a69662;
+    box-shadow: 0 4px 12px rgba(166, 150, 98, 0.1);
+    color: #fff;
 }
 
 .lb-wrapper .build-expanded-content {
@@ -544,10 +557,15 @@
     .weapon-rank-entry {
         min-width: 140px;
     }
+    .sequence-selector-grid {
+        flex-wrap: wrap;
+    }
+    .sequence-selector-item {
+        min-width: 100px;
+    }
     .chart-section {
         flex-direction: column;
     }
-    
     .chart-container {
         min-width: 100%;
     }

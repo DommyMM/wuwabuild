@@ -8,6 +8,7 @@ import { useParams, useLocation } from 'react-router-dom';
 import { LBInfo } from '../components/LB/LBInfo';
 import { LBSortDropdown, LBSortHeader } from '../components/LB/SortDropdown';
 import { CHARACTER_CONFIGS } from '../components/LB/config';
+import { Sequence } from '../components/Build/types';
 
 export type CVOptions = 'cv' | 'cr' | 'cd';
 export type DamageOptions = 'damage';
@@ -19,15 +20,27 @@ const LeaderboardHeader: React.FC<{
     selectedWeapon?: number; 
     onWeaponSelect?: (weapon: number) => void;
     maxDamages: Array<{ weaponId: string; damage: number }>;
-}> = ({ characterId, entry, selectedWeapon, onWeaponSelect, maxDamages }) => {
+    selectedSequence?: Sequence;
+    onSequenceSelect?: (sequence: Sequence) => void;
+}> = ({ 
+    characterId, 
+    entry, 
+    selectedWeapon, 
+    onWeaponSelect, 
+    maxDamages,
+    selectedSequence,
+    onSequenceSelect 
+}) => {
     return (
         <div className="build-header-container">
             <LBInfo 
                 characterId={characterId || ''} 
-                calculations={entry?.calculations} 
+                calculations={entry?.calculations}
                 selectedWeapon={selectedWeapon} 
                 onWeaponSelect={onWeaponSelect} 
-                maxDamages={maxDamages} 
+                maxDamages={maxDamages}
+                selectedSequence={selectedSequence}
+                onSequenceSelect={onSequenceSelect}
             />
         </div>
     );
@@ -53,6 +66,7 @@ interface LeaderboardTableProps {
     lastHoveredSection?: number | null;
     onHoverSection?: (section: number | null) => void;
     selectedWeapon?: number;
+    selectedSequence?: Sequence;
     expandedEntries: Set<string>;
     onEntryClick: (timestamp: string) => void;
 }
@@ -75,7 +89,8 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
     data, page, itemsPerPage, currentSort, sortDirection,
     onSortChange, onDirectionChange, characterId,
     hoveredSection, lastHoveredSection, onHoverSection,
-    selectedWeapon, expandedEntries, onEntryClick
+    selectedWeapon, selectedSequence,  // Add this prop
+    expandedEntries, onEntryClick
 }) => {
     const sortType = getSortType(currentSort);
 
@@ -126,6 +141,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                         activeStat={sortType === 'stat' ? currentSort : null}
                         activeSort={sortType}
                         selectedWeapon={selectedWeapon}
+                        selectedSequence={selectedSequence}  // Pass sequence
                         isExpanded={expandedEntries.has(entry.timestamp)}
                         onClick={() => onEntryClick(entry.timestamp)}
                     />
@@ -162,9 +178,12 @@ export const CharacterEntry: React.FC = () => {
     const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
     const [selectedWeapon, setSelectedWeapon] = useState(initialWeapon);
     const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+    const [selectedSequence, setSelectedSequence] = useState<Sequence>('s0');
     const itemsPerPage = 10;
 
     useEffect(() => {
+        setExpandedEntries(new Set());
+        
         const loadData = async () => {
             if (!characterId) return;
             try {
@@ -175,24 +194,55 @@ export const CharacterEntry: React.FC = () => {
                     pageSize: String(itemsPerPage),
                     weaponIndex: String(selectedWeapon)
                 };
+                if (selectedSequence !== 's0') {
+                    searchParams.sequence = selectedSequence;
+                }
+        
+                // Log request parameters
+                console.log('🔍 Request params:', {
+                    sort: searchParams.sort,
+                    direction: searchParams.direction,
+                    weaponIndex: searchParams.weaponIndex,
+                    sequence: searchParams.sequence
+                });
                 
                 const params = new URLSearchParams(searchParams);
                 const response = await fetch(`${LB_URL}/leaderboard/${characterId}?${params}`);
-                
-                const { builds, total } = await response.json() as BuildResponse;
-                setTotal(total);
-                setData(builds.map((entry: CompressedEntry) => ({
+                const data = await response.json() as BuildResponse;
+        
+                // Log first entry's relevant data
+                if (data.builds[0]) {
+                    console.log('📊 First entry data:', {
+                        sortField: searchParams.sort,
+                        weaponCalc: data.builds[0].calculations[Number(searchParams.weaponIndex)],
+                        stats: data.builds[0].calculations[Number(searchParams.weaponIndex)]?.stats,
+                        sortValue: data.builds[0].calculations[Number(searchParams.weaponIndex)]?.stats?.[searchParams.sort]
+                    });
+                }
+        
+                setTotal(data.total);
+                const decompressedData = data.builds.map((entry: CompressedEntry) => ({
                     ...entry,
                     buildState: decompressData({ state: entry.buildState }).state,
+                }));
+        
+                // Log first three entries' sort values
+                console.log('🔄 First 3 entries sort values:', decompressedData.slice(0, 3).map(entry => ({
+                    sortField: searchParams.sort,
+                    value: entry.calculations[Number(searchParams.weaponIndex)]?.stats?.[searchParams.sort],
+                    timestamp: entry.timestamp
                 })));
+        
+                setData(decompressedData);
                 setLoading(false);
             } catch (err) {
+                console.error('❌ Fetch error:', err);
                 setError(err instanceof Error ? err.message : 'Unknown error');
                 setLoading(false);
             }
         };
         loadData();
-    }, [page, characterId, sortDirection, currentSort, selectedWeapon]);
+    }, [page, characterId, sortDirection, currentSort, selectedWeapon, selectedSequence]);
 
     const handleSortChange = (field: SortField) => {
         setCurrentSort(field === currentSort ? null : field);
@@ -221,6 +271,8 @@ export const CharacterEntry: React.FC = () => {
                         selectedWeapon={selectedWeapon}
                         onWeaponSelect={setSelectedWeapon}
                         maxDamages={weaponMaxDamages}
+                        selectedSequence={selectedSequence}
+                        onSequenceSelect={setSelectedSequence}
                     />
                     <LeaderboardTable 
                         data={data}
@@ -240,6 +292,7 @@ export const CharacterEntry: React.FC = () => {
                             }
                         }}
                         selectedWeapon={selectedWeapon}
+                        selectedSequence={selectedSequence}  // Pass sequence
                         expandedEntries={expandedEntries}
                         onEntryClick={(timestamp) => 
                             setExpandedEntries(prev => {

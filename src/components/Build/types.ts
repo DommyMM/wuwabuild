@@ -4,6 +4,8 @@ import { EchoPanelState } from '../../types/echo';
 import { getCachedEchoes } from '../../hooks/useEchoes';
 import { STAT_ORDER } from '../../types/stats';
 
+export type Sequence = 's0' | 's1' | 's2' | 's3' | 's4' | 's5' | 's6';
+
 export interface CompressedEntry {
     buildState: {
         c: { i: string; l: string; e: string; };
@@ -44,11 +46,21 @@ export interface MoveResult {
     hits?: HitResult[]; // Optional breakdown of individual hits
 }
 
+export interface SequenceData {
+    damage: number;
+    moves: MoveResult[];
+}
+
 export interface Calculation {
     weaponId: string;
-    damage: number;
-    stats?: Record<string, number>;
-    moves?: MoveResult[];
+    stats: Record<string, number>;
+    s0: SequenceData;
+    s1: SequenceData;
+    s2: SequenceData;
+    s3: SequenceData;
+    s4: SequenceData;
+    s5: SequenceData;
+    s6: SequenceData;
 }
 
 export const getSetCounts = (echoPanels: EchoPanelState[]) => {
@@ -92,9 +104,10 @@ export const sumEchoSubstats = (echoPanels: EchoPanelState[]): Record<string, nu
     );
 };
 
-export const getDamageValue = (calculations: Calculation[], weaponId?: string): number => {
+export const getDamageValue = (calculations: Calculation[], weaponId?: string, sequence: Sequence = 's0'): number => {
     if (weaponId) {
-        return calculations.find(calc => calc.weaponId === weaponId)?.damage || 0;
+        const calc = calculations.find(calc => calc.weaponId === weaponId);
+        return calc?.[sequence]?.damage || 0;
     }
-    return Math.max(...calculations.map(calc => calc.damage), 0);
+    return Math.max(...calculations.map(calc => calc[sequence]?.damage || 0), 0);
 };

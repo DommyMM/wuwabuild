@@ -3,12 +3,12 @@ import { getAssetPath } from '../../types/paths';
 import { CHARACTER_CONFIGS } from './config';
 import { Character } from '../../types/character';
 import { getCachedWeapon } from '../../hooks/useWeapons';
+import { Calculation, Sequence } from '../Build/types';
 
 const InfoTitle: React.FC<{ name: string; description: string }> = ({ name, description }) => (
     <div className="header-title">
         <h1 className="build-header-title">{name} Rankings</h1>
         <span className="build-header-text">{description}</span>
-        <span className='build-header-text'>Very early testing, prone to miscalculations</span>
     </div>
 );
 
@@ -37,18 +37,26 @@ const TeamDisplay: React.FC<{ mainChar: Character; teamIds: string[] }> = ({ mai
     </div>
 );
 
-const RotationDisplay: React.FC<{ 
+const BuildSelector: React.FC<{ 
     characterId: string;
     maxDamages: Array<{ weaponId: string; damage: number }>;
     onWeaponSelect?: (index: number) => void;
     selectedIndex?: number;
-}> = ({ characterId, maxDamages, onWeaponSelect, selectedIndex = 0 }) => {
-    if (characterId !== "32") return null;
+    onSequenceSelect?: (sequence: Sequence) => void; 
+    selectedSequence?: Sequence;
+}> = ({ 
+    characterId, 
+    maxDamages, 
+    onWeaponSelect, 
+    selectedIndex = 0,
+    onSequenceSelect,
+    selectedSequence = 's0'
+}) => {
     const config = CHARACTER_CONFIGS[characterId];
     if (!config?.weapons) return null;
 
     return (
-        <div className="rotation-display">
+        <div className="build-selector">
             <div className="weapon-grid">
                 {config.weapons.map((weaponId, index) => {
                     const weapon = getCachedWeapon(weaponId);
@@ -73,17 +81,38 @@ const RotationDisplay: React.FC<{
                     );
                 })}
             </div>
+            {config.sequences && (
+                <div className="sequence-selector-grid">
+                    {config.sequences.map(seq => (
+                        <div key={seq} className={`sequence-selector-item ${seq === selectedSequence ? 'selected' : ''}`}
+                            onClick={() => onSequenceSelect?.(seq as Sequence)}
+                        >
+                            {`S${seq.charAt(1)}`}
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
 
 export const LBInfo: React.FC<{ 
     characterId: string;
-    calculations?: Array<{ weaponId: string; damage: number }>;
+    calculations?: Calculation[];
     onWeaponSelect?: (index: number) => void;
     selectedWeapon?: number;
     maxDamages: Array<{ weaponId: string; damage: number }>;
-}> = ({ characterId, calculations, onWeaponSelect, selectedWeapon = 0, maxDamages }) => {
+    onSequenceSelect?: (sequence: Sequence) => void;
+    selectedSequence?: Sequence;
+}> = ({ 
+    characterId, 
+    calculations, 
+    onWeaponSelect, 
+    selectedWeapon = 0, 
+    maxDamages,
+    onSequenceSelect,
+    selectedSequence
+}) => {
     const character = cachedCharacters?.find(c => c.id === characterId);
     const config = CHARACTER_CONFIGS[characterId] || {
         description: 'No specific team requirements',
@@ -97,11 +126,13 @@ export const LBInfo: React.FC<{
         <div className="header-content">
             <InfoTitle name={character.name} description={config.description} />
             <TeamDisplay mainChar={character} teamIds={config.teamIds} />
-            <RotationDisplay 
+            <BuildSelector 
                 characterId={characterId} 
                 maxDamages={maxDamages}
                 onWeaponSelect={onWeaponSelect}
                 selectedIndex={selectedWeapon}
+                onSequenceSelect={onSequenceSelect}
+                selectedSequence={selectedSequence}
             />
         </div>
     );

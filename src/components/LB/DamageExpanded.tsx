@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DecompressedEntry, MoveResult } from '../Build/types';
+import { DecompressedEntry, MoveResult, Sequence } from '../Build/types';
 import { cachedCharacters } from '../../hooks/useCharacters';
 import { BuildExpanded } from '../Build/BuildExpanded';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 interface DamageExpandedProps {
     entry: DecompressedEntry;
     selectedWeapon: number;
+    selectedSequence?: Sequence;
 }
 
 interface ChartMoveData {
@@ -341,18 +342,40 @@ const MoveBreakdown: React.FC<{
 
 export const DamageExpanded: React.FC<DamageExpandedProps> = ({ 
     entry,
-    selectedWeapon
+    selectedWeapon,
+    selectedSequence = 's0'  // Default to s0
 }) => {
+    const expandedRef = React.useRef<HTMLDivElement>(null);
+    
+    React.useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (expandedRef.current) {
+                const elementPosition = expandedRef.current.getBoundingClientRect().top;
+                window.scrollTo({
+                    top: window.scrollY + elementPosition - 200,
+                    behavior: 'smooth'
+                });
+            }
+        }, 100);
+    
+        return () => clearTimeout(timeoutId);
+    }, []);
+
     const character = entry.buildState.characterState.id ? 
         cachedCharacters?.find(c => c.id === entry.buildState.characterState.id) ?? null : null;
     
+    // Update calculation access to use sequence
     const selectedCalc = entry.calculations?.[selectedWeapon];
+    const sequenceData = selectedCalc?.[selectedSequence];
 
     return (
-        <div className="build-expanded-content">
+        <div className="build-expanded-content" ref={expandedRef}>
             <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character} />
-            {selectedCalc?.moves && (
-                <MoveBreakdown moves={selectedCalc.moves} totalDamage={selectedCalc.damage} />
+            {sequenceData && (
+                <MoveBreakdown 
+                    moves={sequenceData.moves} 
+                    totalDamage={sequenceData.damage} 
+                />
             )}
         </div>
     );

@@ -7,6 +7,7 @@ import { decompressStats } from '../../hooks/useStats';
 import { getStatPaths } from '../../types/stats';
 import { BuildSetsSection } from '../Build/BuildEntry';
 import { CHARACTER_CONFIGS } from './config';
+import { Sequence } from '../Build/types';
 import { DamageExpanded } from './DamageExpanded';
 
 const BuildOwnerSection: React.FC<{
@@ -80,6 +81,7 @@ interface DamageEntryProps {
     activeStat: string | null;
     activeSort: 'damage' | 'cv' | 'stat' | null;
     selectedWeapon?: number;
+    selectedSequence?: Sequence;
     isExpanded?: boolean;
     onClick?: () => void;
 }
@@ -90,6 +92,7 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
     activeStat, 
     activeSort,
     selectedWeapon = 0,
+    selectedSequence = 's0',
     isExpanded = false,
     onClick
 }) => {
@@ -103,7 +106,8 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
         calc => calc.weaponId === selectedWeaponId
     );
     
-    const damage = selectedCalc?.damage || 0;
+    // Update damage access to use sequence
+    const damage = selectedCalc?.[selectedSequence]?.damage || 0;
     
     // Always use weapon-specific stats when available
     const stats = selectedCalc?.stats 
@@ -146,8 +150,9 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
             </div>
             {isExpanded && (
                 <DamageExpanded 
-                    entry={entry}
+                    entry={entry} 
                     selectedWeapon={selectedWeapon}
+                    selectedSequence={selectedSequence}
                 />
             )}
         </div>

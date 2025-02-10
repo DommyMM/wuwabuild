@@ -2,7 +2,8 @@ interface CharacterConfig {
     description: string;
     teamIds: string[];
     stats: string[];
-    weapons: string[]; 
+    weapons: string[];
+    sequences?: string[];
 }
 
 export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
@@ -10,12 +11,13 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         description: 'Jinhsi Hypercarry',
         teamIds: ['3', '27'],
         stats: ['ATK', 'Energy Regen', 'Resonance Skill DMG Bonus', 'Spectro DMG'],
-        weapons: ['2401', '2402', '2403'] // TODO: Replace with actual Jinhsi weapon IDs
+        weapons: ['2401', '2402', '2403']
     },
     '32': {
-        description: 'S0R1 Carlotta Hypercarry',
+        description: 'Carlotta Hypercarry',
         teamIds: ['28', '27'],
         stats: ['ATK', 'Energy Regen', 'Resonance Skill DMG Bonus', 'Glacio DMG'],
-        weapons: ["21030017", "21030015", "21030074", "21030044"] //  Last Dance, Static Mist, Thunderbolt, Undying Flame
+        weapons: ["21030017", "21030015", "21030074", "21030044"],
+        sequences: ['s0', 's1']
     }
 };
