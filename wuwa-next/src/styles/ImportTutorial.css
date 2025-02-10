@@ -1,0 +1,147 @@
+.import-tutorial {
+    padding: 1rem 0;
+    animation: slideFromLeft 0.3s ease;
+    transform-origin: center;
+}
+
+.scan-tutorial {
+    animation: slideFromRight 0.3s ease;
+    transform-origin: center;
+}
+
+@keyframes slideFromLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-2%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(2%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.import-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.import-step {
+    position: relative;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.import-step p {
+    margin: 0.5rem 0;
+}
+
+.import-number {
+    position: absolute;
+    top: -1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2rem;
+    height: 2rem;
+    background: #007bff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.import-step-img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.tutorial-footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.bot-guide, .import-notes {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.bot-guide ul, .import-notes ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.bot-guide p {
+    margin-bottom: 0;
+}
+
+.bot-guide li, .import-notes li {
+    padding-left: 1.5rem;
+    position: relative;
+    margin: 0.5rem 0;
+    text-align: left;
+}
+
+.bot-guide li:before, .import-notes li:before {
+    content: '·';
+    position: absolute;
+    left: 0.5rem;
+}
+
+.bot-image {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 1200px) {
+    .import-guide {
+        font-size: 24px;
+    }
+    .import-steps {
+        display: flex;
+        position: relative;
+        overflow-x: hidden;
+        margin: 1rem 0;
+    }
+    .import-step {
+        flex: 0 0 100%;
+        padding: 1rem;
+    }
+    .import-step h4 {
+        margin-bottom: 4px;
+        font-size: 28px;
+    }
+    .import-step img {
+        margin: 0;
+    }
+    .import-number {
+        position: static;
+        transform: none;
+        margin: 0 auto 1rem;
+    }
+    .tutorial-footer {
+        grid-template-columns: 1fr;
+    }
+}

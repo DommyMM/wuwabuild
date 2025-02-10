@@ -1,0 +1,100 @@
+.rank-container {
+  position: absolute;
+  display: flex;
+  left: 12.5%;
+  top: 35%;
+  z-index: 4;
+}
+
+.MuiSlider-root {
+  width: 6px !important;
+}
+
+.MuiSlider-valueLabelLabel {
+  font-family: 'Ropa', sans-serif;
+  font-size: 14px;
+}
+
+.circular-slider {
+  position: absolute;
+  top: 22.5%;
+  width: 173px;
+  height: 173px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.control-button {
+  position: absolute;
+  top: 50%; 
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-92deg) translate(81px) rotate(92deg); 
+  background: #a69662;  
+  border-radius: 50%;
+  width: 20px;          
+  height: 20px;         
+  display: flex;
+  align-items: center;      
+  justify-content: center; 
+  font-size: 14px;        
+  border: 1px solid rgba(57, 55, 53);
+  z-index: 3;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.control-button.dragging {
+  background: #8a7b4e;
+  cursor: grabbing;
+}
+
+.progress-bar {
+  position: relative;
+  z-index: 1;
+}
+
+.progress-circle {
+  fill: none;
+}
+
+.progress-circle:nth-child(1) {
+  stroke: rgba(0, 0, 0, 0.7);
+  stroke-width: 9px;
+  stroke-dasharray: 170 502.4;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  stroke-linecap: round;
+}
+
+.progress-circle:nth-child(2) {
+  stroke: rgb(2, 117, 232);
+  stroke-width: 9px;
+  stroke-dasharray: 502.4;
+  stroke-dashoffset: calc(502.4 - (170 * 0) / 100);
+  transform-origin: center;
+  transform: rotate(-90deg);
+  stroke-linecap: round;
+}
+
+.control-button:hover {
+  background: #7a6840;
+}
+
+.level-mobile {
+  display: none;
+  position: absolute;
+  z-index: 4;
+  right: 10%;
+}
+
+@media (max-width: 768px) {
+  .circular-slider {
+    display: none;
+  }
+  .level-mobile {
+    display: block;
+  }
+}

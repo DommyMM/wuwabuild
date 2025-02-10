@@ -168,7 +168,7 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
                     isActiveColumn={activeSort === 'stat'}
                 />
                 <div className={`build-damage ${activeSort === 'damage' ? 'active-column' : ''}`}>
-                    {damage.toLocaleString()}
+                    {Number(damage.toFixed(0))}
                 </div>
             </div>
             {isExpanded && (

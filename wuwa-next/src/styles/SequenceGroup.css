@@ -1,0 +1,89 @@
+.sequence-group {
+  position: absolute;
+  top: 0%;
+  left: 22.5%;
+  width: 15%;
+  height: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px; 
+  margin-top: 20px; 
+}
+
+#sequenceImage {
+  height: 50%;
+  width: auto;
+  object-fit: contain;
+  position: relative; 
+}
+
+.sequence-option {
+  position: absolute;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 1px solid #2a3940;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 16px;
+  background-color: transparent;
+  z-index: 2;
+  position: absolute;
+}
+
+
+.sequence-option[data-sequence="1"] {
+  top: 15%;
+  left: 40%;
+}
+
+.sequence-option[data-sequence="2"] {
+  top: 22%;
+  right: 20%;
+}
+
+.sequence-option[data-sequence="3"] {
+  top: 40%;
+  right: 7.5%;
+}
+
+.sequence-option[data-sequence="4"] {
+  top: 60%;
+  right: 10%;
+}
+
+.sequence-option[data-sequence="5"] {
+  bottom: 16%;
+  right: 30%;
+}
+
+.sequence-option[data-sequence="6"] {
+  bottom: 12.5%;
+  left: 35%;
+}
+
+.sequence-option:hover {
+  background-color: rgba(166, 150, 98, 0.3);
+}
+
+.sequence-option.active {
+  background-color: #a69662;
+  border-color: #e5d650;
+  box-shadow: 0 0 10px rgba(229, 214, 80, 0.3);
+}
+
+.sequence-label {
+  color: white;
+  font-size: calc(min(4vh, 30px));
+  text-align: center;
+  width: 100%;
+  top: 0%;
+  left: 45%;
+  position: absolute;
+  transform: translateX(-50%);
+}

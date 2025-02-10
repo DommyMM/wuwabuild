@@ -1,0 +1,245 @@
+.forte-group {
+    position: absolute;
+    top: 0%;
+    right: 2.5%;
+    width: 60%; 
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.forte-slots {
+    display: flex;
+    position: relative;
+    justify-content: space-between;
+    gap: 30px;
+    height: 100%;
+}
+
+.skill-branch {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    align-items: center;
+    flex: 1;
+    position: relative;
+}
+
+.skill-branch:nth-child(1), .skill-branch:nth-child(5) {
+    top: 20%;
+}
+
+.skill-branch:nth-child(2),.skill-branch:nth-child(4) {
+    top: 10%;
+}
+
+.skill-branch:nth-child(3) {
+    top: 0%;
+}
+
+.node-container {
+    width: 125px;
+    height: 125px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.node-container:has([data-skill="tree1-top"]),  .node-container:has([data-skill="tree5-top"]){
+    top: -10%;  
+ }
+ .node-container:has([data-skill="tree1-middle"]), .node-container:has([data-skill="tree5-middle"]) {
+    top: 0%;  
+ }
+ .node-container:has([data-skill="tree2-top"]), .node-container:has([data-skill="tree4-top"]) {
+    top: -5%;  
+ }
+ .node-container:has([data-skill="tree2-middle"]), .node-container:has([data-skill="tree4-middle"]) {
+    top: -5%;  
+ }
+ .node-container:has([data-skill="tree3-top"]) {
+    top: 0%;  
+ }
+ .node-container:has([data-skill="tree3-middle"]) {
+    top: 2.5%;  
+ }
+
+.glowing-node {
+    width: 125px;
+    height: 125px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-image: url('../../public/images/Resources/NodeEmpty.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+    z-index: 2;
+}
+
+.glowing-node.active {
+    background-image: url('../../public/images/Resources/NodeFull.png');
+    z-index: 1;
+}
+
+
+.skill-branch:nth-child(3) .glowing-node {
+    background-image: url('../../public/images/Resources/SkillEmpty.png'); 
+}
+
+.skill-branch:nth-child(3) .glowing-node.active {
+    background-image: url('../../public/images/Resources/SkillFull.png'); 
+}
+
+.forte-slot {
+    width: 200px;
+    height: 200px;
+    top: 15%;
+    transition: all 0.3s ease;
+    background-image: url('../../public/images/Resources/Forte.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;     
+}
+
+.bottom-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.skill-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    top: 10%;
+}
+
+.level-display {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 16px;
+    margin-bottom: 2px;
+    z-index: 4;
+}
+
+.skill-name {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 18px;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.skill-input {
+    width: 30px;
+    background: transparent;
+    border: none;
+    color: white;
+    text-align: center;
+    font-size: 14px;
+}
+
+.skill-image{
+    width: 20%; 
+    height: 20%;
+    object-fit: contain;
+    position: absolute;
+    top: 42%; 
+    left: 40%;
+    filter: invert(1); 
+}
+
+.node-image {
+    width: 20%;
+    object-fit: contain;
+    position: absolute;
+    top: 39.5%;
+    left: 39.5%;
+    z-index: 1;
+    filter: brightness(0);
+}
+
+.skill-branch:not(:nth-child(3)) .glowing-node.active .node-image {
+    top: 37.5%;
+    left: 40.5%;
+}
+
+.upper-line, .lower-line {
+    width: 20%;  
+    background-image: url('../../public/images/Resources/Line.png');
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: absolute;
+    right: 39%; 
+}
+
+
+.upper-line {
+    height: 130%; 
+    top: 62%; 
+}
+
+
+.lower-line {
+    height: 25%; 
+    top: 30.25%;
+}
+
+.skill-branch:nth-child(2) .upper-line, .skill-branch:nth-child(4) .upper-line {
+    height: 73%;
+    top: 65%;
+}
+
+.skill-branch:nth-child(2) .lower-line, .skill-branch:nth-child(4) .lower-line {
+    height: 31%;
+    top: 25%;
+}
+
+.skill-branch:nth-child(3) .upper-line {
+    height: 65%;
+    top: 75%;
+    right: 40%;
+}
+
+.skill-branch:nth-child(3) .lower-line {
+    height: 20.5%;
+    top: 34.5%;
+    right: 39%;
+}
+
+
+.max-wrapper {
+    position: absolute;
+    top: 83%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 200px; 
+    height: 100px;  
+}
+
+.max-frame {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+    transition: filter 0.3s ease;
+}
+
+.max-frame:hover {
+    filter: brightness(1.3);
+}
+
+.skill-input::-webkit-inner-spin-button, .skill-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}

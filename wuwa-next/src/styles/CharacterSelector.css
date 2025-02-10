@@ -1,0 +1,234 @@
+h1, h2, label {
+  font-size: 40px;
+  text-align: center;
+  margin: 0 auto !important;
+}
+
+h2 {
+  width: 20%;
+}
+
+.manual-section {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 20%;
+  margin: 0 auto;
+  font-size: 40px;
+}
+
+.select-box {
+  cursor: pointer;
+  display: inline-block;
+  text-align: center;
+}
+
+.select-img {
+  width: 80px;
+  height: 80px;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  margin-top: 20px;
+}
+
+.select-img-inner {
+  width: 90px;
+  object-fit: cover;
+  transform: translate(-5px);
+}
+
+.manual-section label {
+  font-size: 30px;
+  margin-bottom: 5px;
+}
+
+#selectedCharacterLabel {
+  font-size: 30px;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.character-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.char-label {
+  font-size: 20px;
+  color: #E0E0E0;
+  transform: translateY(-10px);
+}
+
+.char-img {
+  width: 100px;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+  object-fit: cover;
+}
+
+.character-option {
+  width: 100px;
+  height: 100px;
+  margin: 15px;
+  cursor: pointer;
+  text-align: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.character-option .char-img {
+  transform: translate(-1px, -8px);
+  transition: transform 0.3s ease;
+  transform-origin: center;
+  object-fit: cover;
+}
+
+.select-box .char-img {
+  border-color: #999;
+}
+
+.border-wrapper {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  top: 42.5%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.character-option .border-wrapper[data-element="Fusion"] {
+  border-width: 3px 4px 4px 0;
+  border-style: solid;
+  border-left: none;
+  border-top: none;
+  border-color: #ff8c00;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+}
+
+.character-option .border-wrapper[data-element="Glacio"] {
+  border-width: 3px 4px 4px 0;
+  border-style: solid;
+  border-left: none;
+  border-top: none;
+  border-color: #00ced1;
+  box-shadow: 0 0 10px rgba(0, 206, 209, 0.3);
+}
+
+.character-option .border-wrapper[data-element="Aero"] {
+  border-width: 3px 4px 4px 0;
+  border-style: solid;
+  border-left: none;
+  border-top: none;
+  border-color: #90ee90;
+  box-shadow: 0 0 10px rgba(144, 238, 144, 0.3);
+}
+
+.character-option .border-wrapper[data-element="Electro"] {
+  border-width: 3px 4px 4px 0;
+  border-style: solid;
+  border-left: none;
+  border-top: none;
+  border-color: #8a2be2;
+  box-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
+}
+
+.character-option .border-wrapper[data-element="Spectro"] {
+  border-width: 3px 4px 4px 0;
+  border-style: solid;
+  border-left: none;
+  border-top: none;
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.character-option .border-wrapper[data-element="Havoc"] {
+  border-width: 3px 4px 4px 0;
+  border-style: solid;
+  border-left: none;
+  border-top: none;
+  border-color: #ff1493;
+  box-shadow: 0 0 10px rgba(255, 20, 147, 0.3);
+}
+
+.character-option .border-wrapper[data-element="Rover"] {
+  border-width: 3px 4px 4px 0;
+  border-style: solid;
+  border-left: none;
+  border-top: none;
+  border-color: #ff4500;
+  animation: colorRotate 4s linear infinite;
+}
+
+@keyframes colorRotate {
+  0% { border-color: #ff4500; }
+  20% { border-color: #00ced1; }
+  40% { border-color: #90ee90; } 
+  60% { border-color: #8a2be2; }
+  80% { border-color: #ffd700; }
+  100% { border-color: #ff4500; }
+}
+
+@keyframes zoom {
+  0% {
+    transform: translate(-1px, -8px) scale(1);
+  }
+  100% {
+    transform: translate(-1px, -8px) scale(1.2);
+  }
+}
+
+.character-option:hover .border-wrapper {
+  animation: rotate 2s linear infinite, rotateIn 0.3s forwards ease-out;
+  transform-origin: center;
+}
+
+@keyframes rotateIn {
+  0% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.2) rotate(360deg);
+  }
+}
+
+.character-option:hover .char-img {
+  animation: zoom 0.3s forwards ease-out;
+  transform-origin: center;
+}
+
+@keyframes rotate {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@media (max-width: 1200px) {
+  .manual-section{
+    width: 100%;
+  }
+  .character-option {
+    width: 80px;
+    height: 80px;
+    margin: 10px;
+  }
+  .char-img {
+    width: 80px;
+  }
+  .border-wrapper {
+    width: 60px;
+    height: 60px;
+  }
+  .char-label {
+    font-size: 16px;
+  }
+}
