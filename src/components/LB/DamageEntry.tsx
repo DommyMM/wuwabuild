@@ -9,6 +9,7 @@ import { BuildSetsSection } from '../Build/BuildEntry';
 import { CHARACTER_CONFIGS } from './config';
 import { Sequence } from '../Build/types';
 import { DamageExpanded } from './DamageExpanded';
+import '../../styles/Damage.css';
 
 const BuildOwnerSection: React.FC<{
     username?: string;
@@ -168,7 +169,7 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
                     isActiveColumn={activeSort === 'stat'}
                 />
                 <div className={`build-damage ${activeSort === 'damage' ? 'active-column' : ''}`}>
-                    {Number(damage.toFixed(0))}
+                    {Number(damage.toFixed(0)).toLocaleString()}
                 </div>
             </div>
             {isExpanded && (

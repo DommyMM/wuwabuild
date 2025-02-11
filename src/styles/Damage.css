@@ -1,0 +1,256 @@
+.lb-wrapper .build-expanded-content {
+    animation: lbSlide 0.2s ease forwards;
+}
+
+@keyframes lbSlide {
+    from {
+        opacity: 0;
+        height: 0;
+    }
+    to {
+        opacity: 1;
+        height: 700px;
+    }
+}
+
+.lb-wrapper .build-breakdown-container {
+    padding: 12px 6px;
+}
+
+.moves-breakdown {
+    margin: 12px 0 0;
+    padding: 16px 16px 12px;
+    background: rgba(26, 26, 26, 0.6);
+    border-radius: 8px;
+    border: 1px solid #333;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.legend-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hit-details {
+    margin-left: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.hit-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.hit-name {
+    color: #ccc;
+    font-size: 14px;
+}
+
+.hit-stats {
+    color: #888;
+    font-size: 12px;
+}
+
+.move-tooltip-hits {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #333;
+}
+
+.hit-tooltip-item {
+    display: flex;
+    justify-content: space-between;
+    color: #ccc;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.chart-section {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+
+.chart-container {
+    flex: 1;
+    max-width: 400px;
+}
+
+.moves-legend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    overflow-y: auto;
+    margin: auto 0;
+}
+
+.legend-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.legend-column {
+    display: flex;
+    flex-direction: column;
+    padding: 0 4px;
+    gap: 4px;
+}
+
+.legend-column.left.shift-last > div:last-child {
+    transform: translateX(50%);
+}
+
+.legend-column.right.shift-last > div:last-child {
+    transform: translateX(-50%);
+}
+
+.legend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.legend-item:hover, .legend-item.active {
+    background: rgba(166, 150, 98, 0.1);
+}
+
+.legend-content {
+    width: 100%;
+}
+
+.legend-name-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.legend-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.legend-main-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    line-height: 1;
+}
+
+.legend-name {
+    color: #fff;
+    font-size: 18px;
+}
+
+.legend-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.legend-damage {
+    color: #a69662;
+    font-size: 15px;
+}
+
+.legend-percentage {
+    color: #999;
+    font-size: 14px;
+}
+
+.move-tooltip {
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #a69662;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+.move-tooltip-name {
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.move-tooltip-stats {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.move-tooltip-damage {
+    color: #a69662;
+    font-size: 16px;
+}
+
+.move-tooltip-percentage {
+    color: #999;
+    font-size: 14px;
+}
+
+.move-tooltip-parent {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(166, 150, 98, 0.2);
+}
+
+.legend-hits {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(166, 150, 98, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.legend-hit-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.legend-hit-item:hover {
+    background: rgba(166, 150, 98, 0.1);
+}
+
+.hit-name {
+    color: #ccc;
+    font-size: 13px;
+}
+
+.hit-damage {
+    color: #a69662;
+    font-size: 13px;
+}

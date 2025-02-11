@@ -3,6 +3,8 @@ interface CharacterConfig {
     stats: string[];
     weapons: string[];
     sequences?: string[];
+    rotation?: string[];
+    notes?: string;
 }
 
 export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
@@ -15,6 +17,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         teamIds: ['28', '27'],
         stats: ['ATK', 'Energy Regen', 'Resonance Skill DMG Bonus', 'Glacio DMG'],
         weapons: ["21030017", "21030015", "21030074", "21030044"],
-        sequences: ['s0', 's1']
+        sequences: ['s0', 's1'],
+        rotation: ['Intro', 'Skill', 'Forte Circuit', 'Liberation', 'Outro'],
+        notes: '5-star weapons at R1, 4-star at R5. Thunderbolt at max stacks. \n S0R1 Shorekeeper + Moonlit Heron Zhezhi' 
     }
 };

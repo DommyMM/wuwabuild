@@ -31,8 +31,12 @@ interface LeaderboardData {
 
 const LeaderboardHeader: React.FC = () => (
     <div className="build-header-container">
-        <h1 className="build-header-title">Damage Rankings</h1>
-        <span className="build-header-text">Character-specific damage rankings</span>
+        <h1 className="build-header-title">Damage Leaderboards</h1>
+        <span className="build-header-text">
+            Characters are <strong>standardized</strong> to the same conditions. 
+            The only variables between build calculations are the <strong>five echoes</strong><br />
+            Click on a character to view more details
+        </span>
     </div>
 );
 
@@ -100,7 +104,7 @@ const LeaderboardWeaponsWithRank: React.FC<{
                         key={configWeaponId} 
                         className="weapon-rank-entry"
                         onClick={(e) => {
-                            e.stopPropagation(); // Prevent triggering parent click
+                            e.stopPropagation();
                             onWeaponClick?.(index);
                         }}
                         style={{ cursor: 'pointer' }}
@@ -115,7 +119,7 @@ const LeaderboardWeaponsWithRank: React.FC<{
                                 {weaponData?.owner.username || 'Anonymous'}
                             </div>
                             <div className="rank1-damage">
-                                {weaponData?.damage.toLocaleString() || '0'}
+                                {weaponData?.damage ? Number(weaponData.damage.toFixed(0)).toLocaleString() : '0'}
                             </div>
                         </div>
                     </div>
