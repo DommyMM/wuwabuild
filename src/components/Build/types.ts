@@ -54,13 +54,13 @@ export interface SequenceData {
 export interface Calculation {
     weaponId: string;
     stats: Record<string, number>;
-    s0: SequenceData;
-    s1: SequenceData;
-    s2: SequenceData;
-    s3: SequenceData;
-    s4: SequenceData;
-    s5: SequenceData;
-    s6: SequenceData;
+    s0: SequenceData;          // s0 is required - default sequence
+    s1?: SequenceData;         // All other sequences are optional
+    s2?: SequenceData;
+    s3?: SequenceData;
+    s4?: SequenceData;
+    s5?: SequenceData;
+    s6?: SequenceData;
 }
 
 export const getSetCounts = (echoPanels: EchoPanelState[]) => {
