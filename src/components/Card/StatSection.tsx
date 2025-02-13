@@ -36,7 +36,7 @@ const StatRow: React.FC<StatRowProps> = ({ name, value, baseValue, update }) => 
   return (
     <div className={`stat-row ${statClassName}`}>
       <div className="stat-left">
-        <img src={paths.cdn} alt={`${name} icon`} className="stat-icon" />
+        <img src={paths.local} alt={`${name} icon`} className="stat-icon" />
         <span className="stat-name">{displayName}</span>
       </div>
       <div className="stat-value-container">

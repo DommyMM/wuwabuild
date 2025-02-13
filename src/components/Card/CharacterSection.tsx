@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { Character, isRover } from '../../types/character';
 import { SequenceSection } from './SequenceSection';
 import { getAssetPath } from '../../types/paths';
@@ -39,6 +39,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
       : { x: 0, y: -20 }
   );
   const [scale, setScale] = useState(1);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   
   const characterName = isRover(character) 
     ? username || "Rover" 
@@ -150,10 +151,26 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
     };
   }, [isDragging, handleMouseMove]);
 
-  const getImagePath = useCallback(() => {
-      if (customImage) return URL.createObjectURL(customImage);
-      return getAssetPath('icons', character, useAltSkin).cdn;
-  }, [character, customImage, useAltSkin]);
+  useEffect(() => {
+    if (customImage) {
+      const url = URL.createObjectURL(customImage);
+      setImageUrl(url);
+      
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      setImageUrl(null);
+    }
+  }, [customImage]);
+  
+  const imagePath = useMemo(() => {
+    if (customImage) {
+      return imageUrl || '';
+    }
+    return getAssetPath('icons', character, useAltSkin).local;
+  }, [character, customImage, imageUrl, useAltSkin]);
+
   return (
     <>
       <div className={`character-display ${elementValue?.toLowerCase()}`}
@@ -163,12 +180,12 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         style={{'--tx': `${position.x}px`, '--ty': `${position.y}px`, '--scale': scale } as React.CSSProperties}
       >
         {!customImage && (
-          <img src={getImagePath()}
+          <img src={imagePath}
             className="character-icon shadow"
             alt="Character Shadow"
           />
         )}
-        <img src={getImagePath()}
+        <img src={imagePath}
           className={`character-icon ${isEditMode ? 'editable' : ''}`}
           alt={characterName}
           style={{ cursor: isEditMode ? 'move' : 'default' }}
@@ -220,11 +237,9 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         <div className='char-header'>
             <div className="character-name">{characterName}</div>
             <div className="char-header-bottom">
-                <div className="character-level">Lv.{level}/90</div>
-                <img src={`images/Roles/${character.Role}.png`}
-                    className="role-icon" alt={character.Role}/>
-                <img src={`images/Elements/${elementValue}.png`}
-                    className="element-icon" alt={elementValue}/>
+              <div className="character-level">Lv.{level}/90</div>
+              <img src={`images/Roles/${character.Role}.png`} className="role-icon" alt={character.Role}/>
+              <img src={`images/Elements/${elementValue}.png`} className="element-icon" alt={elementValue}/>
             </div>
         </div>
         {children}

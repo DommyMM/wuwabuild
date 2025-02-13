@@ -18,7 +18,7 @@ export interface EchoDisplayProps {
 }
 
 const getEchoPath = (echo: Echo, isPhantom: boolean = false) => {
-  return getAssetPath('echoes', echo, false, isPhantom).cdn;
+  return getAssetPath('echoes', echo, false, isPhantom).local;
 };
 
 const EchoLeft: React.FC<{ 
@@ -63,13 +63,13 @@ const EchoLeft: React.FC<{
           />
           <div className="echo-level-indicator">+{panel.level}</div>
           <div className="main-stat-wrapper">
-          <img src={getAssetPath('sets', element ?? '').cdn}
+          <img src={getAssetPath('sets', element ?? '').local}
               alt={`${element} Set Icon`}
               className="set"
             />
             {panel.stats.mainStat.type && (
               <>
-                <img src={getStatPaths(panel.stats.mainStat.type).cdn}
+                <img src={getStatPaths(panel.stats.mainStat.type).local}
                   alt={panel.stats.mainStat.type}
                   className={`main-stat-icon ${statClass}`}
                 />
@@ -147,7 +147,7 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
           backgroundPosition: 'center bottom'
         } : undefined}
       >
-        <img src={getStatPaths(stat.type).cdn}
+        <img src={getStatPaths(stat.type).local}
           alt={stat.type}
           className="substat-icon"
         />
