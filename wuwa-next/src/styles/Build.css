@@ -287,8 +287,8 @@ input:-webkit-autofill {
     right: 2.5%;
     font-size: 24px;
     font-family: 'Ropa', sans-serif;
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
     z-index: 2;
+    opacity: 0.4;
 }
 
 .icon-container {
@@ -510,26 +510,20 @@ input:-webkit-autofill {
 }
 
 .char-header {
-    width: 98%;
-    height: 18%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     font-family: 'Gowun', sans-serif;
-    font-size: 45px;
     letter-spacing: 2px;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-    padding-left: 2%;
-}
-
-.character-name {
-    height: 50%;
+    padding: 2% 2% 0;
+    font-size: 45px;
+    line-height: 1;
 }
 
 .char-header-bottom {
     display: flex;
     align-items: center;
-    height: 50%;
 }
 
 .character-level {
