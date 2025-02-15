@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ImagePreview, ImageUploader } from './ImageComponents';
-import { useOCRContext } from '@/contexts/OCRContext';
+import { useOCRContext } from '@/providers';
 import type { OCRResponse, OCRAnalysis, CharacterAnalysis, WeaponAnalysis } from '@/types/ocr';
 import { cachedCharacters } from '@/hooks/useCharacters';
 import { performOCR } from './OCR';
@@ -75,7 +75,7 @@ const getAnalysisDetails = (analysis?: OCRAnalysis): string | undefined => {
   }
 };
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 interface OCRError extends Error {
   status?: number;

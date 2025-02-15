@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import { Providers } from '@/providers';
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
-import { ToastContainer } from 'react-toastify';
 import Navigation from '@/components/Navigation';
 import 'react-toastify/dist/ReactToastify.css';
 import "./globals.css";
@@ -38,18 +35,6 @@ export default function RootLayout({
                 <Providers>
                     <Navigation />
                     {children}
-                    <ToastContainer 
-                        position="bottom-right" 
-                        autoClose={3000} 
-                        hideProgressBar={false} 
-                        closeOnClick 
-                        pauseOnHover 
-                        draggable 
-                        theme="dark" 
-                        toastStyle={{ fontFamily: 'Gowun' }} 
-                    />
-                    <Analytics />
-                    <SpeedInsights />
                 </Providers>
             </body>
         </html>

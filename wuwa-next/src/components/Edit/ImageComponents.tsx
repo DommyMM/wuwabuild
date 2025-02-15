@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useState, useEffect } from 'react';
-import '@/styles/ImageComponents.css';
 
 interface ImagePreviewProps {
   src: string;

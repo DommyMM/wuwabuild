@@ -49,22 +49,22 @@
 
 .node-container:has([data-skill="tree1-top"]),  .node-container:has([data-skill="tree5-top"]){
     top: -10%;  
- }
- .node-container:has([data-skill="tree1-middle"]), .node-container:has([data-skill="tree5-middle"]) {
+}
+.node-container:has([data-skill="tree1-middle"]), .node-container:has([data-skill="tree5-middle"]) {
     top: 0%;  
- }
- .node-container:has([data-skill="tree2-top"]), .node-container:has([data-skill="tree4-top"]) {
+}
+.node-container:has([data-skill="tree2-top"]), .node-container:has([data-skill="tree4-top"]) {
     top: -5%;  
- }
- .node-container:has([data-skill="tree2-middle"]), .node-container:has([data-skill="tree4-middle"]) {
+}
+.node-container:has([data-skill="tree2-middle"]), .node-container:has([data-skill="tree4-middle"]) {
     top: -5%;  
- }
- .node-container:has([data-skill="tree3-top"]) {
+}
+.node-container:has([data-skill="tree3-top"]) {
     top: 0%;  
- }
- .node-container:has([data-skill="tree3-middle"]) {
+}
+.node-container:has([data-skill="tree3-middle"]) {
     top: 2.5%;  
- }
+}
 
 .glowing-node {
     width: 125px;

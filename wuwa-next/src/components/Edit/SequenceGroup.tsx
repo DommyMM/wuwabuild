@@ -30,7 +30,6 @@ export const SequenceGroup: React.FC<SequenceGroupProps> = ({
         id="sequenceImage"
         src={`/images/Wavebands/${characterName}.png`}
         alt=""
-        className="sequence-image"
         width={256}
         height={256}
       />

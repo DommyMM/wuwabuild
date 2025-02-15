@@ -18,9 +18,9 @@
 }
 
 .echoes-tab {
-    border: calc(min(0.15vh, 1px)) solid grey;
-    border-radius: calc(min(1.3vh, 10px));
-    margin: calc(min(2.7vh, 20px)) auto 0;
+    border: 1px solid grey;
+    border-radius: 10px;
+    margin: 20px auto 0;
     background-color: #222;
     width: 90%;
     max-width: 2000px;
@@ -59,7 +59,7 @@
 @media (max-width: 1200px) {
     .echoes-header {
         justify-content: flex-start;
-        padding-left: calc(45vw);
+        padding-left: 45vw;
     }
     .echoes-header svg{
         left: 16px;
@@ -120,7 +120,7 @@
 .echo-panel {
     height: 100%;
     background-color: #333;
-    border-radius: calc(min(1.3vh, 10px));
+    border-radius: 10px;
     position: relative;
 }
 
