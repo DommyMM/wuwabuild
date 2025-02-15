@@ -110,10 +110,12 @@
 
 .legend-column.left.shift-last > div:last-child {
     transform: translateX(50%);
+    margin-top: 8px;
 }
 
 .legend-column.right.shift-last > div:last-child {
     transform: translateX(-50%);
+    margin-top: 8px;
 }
 
 .legend-item {

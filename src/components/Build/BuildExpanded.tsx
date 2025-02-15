@@ -198,10 +198,20 @@ export const BuildEchoRow: React.FC<{
             const panelCV = calculatePanelCV(panel);
             const panelRV = calculateSelectedRV(panel, substatsData, selectedStats);
             
+            const isSingleElement = echo.elements.length === 1;
+            const element = isSingleElement ? echo.elements[0] : panel.selectedElement;
+            const setClass = element ? `set-${element.toLowerCase()}` : 'default';
+            
             return (
-                <div key={i} className="build-echo-slot">
+                <div key={i} className={`build-echo-slot ${setClass}`}>
                     <EchoStatDisplay cv={panelCV} rv={panelRV} selectedCount={selectedStats.size} />
                     <div className="build-echo-info">
+                        {element && (
+                            <img src={getAssetPath('sets', element).cdn}
+                                alt={`${element} Set Icon`}
+                                className="build-set-icon"
+                            />
+                        )}
                         <img src={getAssetPath('echoes', echo).cdn}
                             alt={echo.name}
                             className="build-echo-icon"

@@ -42,7 +42,7 @@ export const forteImagePaths: ForteImagePaths = {
       (character: Character) => {
         const paths = getAssetPath('skills', character, false, false, value);
         const id = Number(character.id);
-        return (value === 'A1' && id in A1_LOCAL_IDS) ? paths.local : paths.local;
+        return (value === 'A1' && id in A1_LOCAL_IDS) ? paths.cdn : paths.local;
       }
     ])
   ),

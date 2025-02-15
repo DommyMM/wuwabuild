@@ -278,7 +278,10 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     const timestamp = now.toISOString().slice(0,19).replace(/[T:]/g, ' ');
     
     tabRef.current.classList.add('downloading');
-    domtoimage.toPng(tabRef.current)
+    domtoimage.toPng(tabRef.current, {
+      cacheBust: true,
+      quality: 1
+    })
       .then((dataUrl: string) => {
         const link = document.createElement('a');
         link.download = `${timestamp}.png`;

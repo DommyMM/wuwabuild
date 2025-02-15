@@ -26,7 +26,6 @@ export const SequenceGroup: React.FC<SequenceGroupProps> = ({
         id="sequenceImage"
         src={`images/Wavebands/${characterName}.png`}
         alt=""
-        className="sequence-image"
       />
       <div className="sequence-label">Sequence</div>
       {[1, 2, 3, 4, 5, 6].map((num) => (

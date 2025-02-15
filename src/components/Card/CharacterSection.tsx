@@ -168,7 +168,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
     if (customImage) {
       return imageUrl || '';
     }
-    return getAssetPath('icons', character, useAltSkin).local;
+    return getAssetPath('icons', character, useAltSkin).cdn;
   }, [character, customImage, imageUrl, useAltSkin]);
 
   return (
@@ -230,7 +230,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
             />
           </div>
         )}
-        {artSource && (<div className="art-source"> 🎨 {artSource} </div> )}
+        {artSource && (<div className="art-source">{artSource}</div> )}
       </div>
       <SequenceSection character={character} currentSequence={currentSequence} elementValue={elementValue} />
       <div className="char-intro">

@@ -26,7 +26,7 @@
     flex-direction: row;
     justify-content: space-between;
     gap: 6px;
-    padding: 0 8px;
+    padding: 8px;
 }
 
 .build-echo-slot {
@@ -37,7 +37,7 @@
     background: rgba(0, 0, 0, 0.3);
     border-radius: 4px;
     flex: 1;
-    border: 1px solid #333;
+    border-width: 1px;
     letter-spacing: 1px;
     position: relative;
 }
@@ -46,6 +46,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    position: relative;
 }
 
 .build-echo-cv {
@@ -66,6 +67,15 @@
     background: rgba(0, 0, 0, 0.9);
     transform: translateY(-1px);
     border-color: #a69662;
+}
+
+.build-set-icon {
+    position: absolute;
+    top: -20px;
+    right: 0;
+    width: 24px;
+    height: 24px;
+    z-index: 1;
 }
 
 .build-echo-icon {
