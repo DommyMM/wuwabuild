@@ -1,12 +1,12 @@
 import { AnalysisData } from './Results';
-import { SavedState } from '../../types/SavedState';
-import { cachedCharacters } from '../../hooks/useCharacters';
-import { weaponCache } from '../../hooks/useWeapons';
-import { isRover } from '../../types/character';
-import { matchEchoData } from '../../hooks/echoMatching';
-import { ElementType } from '../Edit/EchoSection';
+import { SavedState } from '@/types/SavedState';
+import { cachedCharacters } from '@/hooks/useCharacters';
+import { weaponCache } from '@/hooks/useWeapons';
+import { isRover } from '@/types/character';
+import { matchEchoData } from '@/hooks/echoMatching';
+import { ElementType } from '@/types/echo';
 
-export const convertBuild = (data: AnalysisData, saveToLb: boolean): SavedState => {
+export const convertBuild = (data: AnalysisData): SavedState => {
     const characterData = data.character;
     let characterName = characterData?.name ?? '';
     let roverElement;

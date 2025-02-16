@@ -1,17 +1,17 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Marquee from 'react-fast-marquee';
+import { useRouter } from 'next/navigation';
 import { convertBuild } from './Convert';
-import { SavedState } from '../../types/SavedState';
-import { useNavigate } from 'react-router-dom';
+import { SavedState } from '@/types/SavedState';
 import { ImportModal } from './ImportModal';
-import { compressData } from '../Save/Backup';
-import { useLevelCurves } from '../../hooks/useLevelCurves';
-import { useStats } from '../../hooks/useStats';
-import { calculateWeaponStats } from '../Edit/BuildCard';
-import { cachedCharacters } from '../../hooks/useCharacters';
-import { getCachedWeapon } from '../../hooks/useWeapons';
-import { compressStats } from '../../hooks/useStats';
-import '../../styles/Results.css';
+import { compressData } from '@/components/Save/Backup';
+import { useLevelCurves } from '@/hooks/useLevelCurves';
+import { useStats } from '@/hooks/useStats';
+import { calculateWeaponStats } from '@/components/Card/BuildCard';
+import { cachedCharacters } from '@/hooks/useCharacters';
+import { getCachedWeapon } from '@/hooks/useWeapons';
+import { compressStats } from '@/hooks/useStats';
+import '@/styles/Results.css';
 
 export interface AnalysisData {
     character?: { name: string; level: number; };
@@ -63,7 +63,15 @@ export const cleanStatValue = (value: string): string => {
     return isNaN(numValue) ? '0' : numValue.toString();
 };
 
-const HeaderSection: React.FC<{ title: string; data: any }> = ({ title, data }) => (
+const HeaderSection: React.FC<{ 
+    title: string; 
+    data?: { 
+        name?: string; 
+        level?: number; 
+        username?: string; 
+        uid?: number;
+    } 
+}> = ({ title, data }) => (
     <div className="header-section">
         <h3>{title}</h3>
         <div className="highlight-text">
@@ -91,7 +99,9 @@ const ForteSection: React.FC<{ fortes?: number[] }> = ({ fortes }) => (
     </div>
 );
 
-const EchoSection: React.FC<{ echo?: any }> = ({ echo }) => {
+const EchoSection: React.FC<{ 
+    echo?: EchoData 
+}> = ({ echo }) => {
     const [shouldMarquee, setShouldMarquee] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const measureRef = useRef<HTMLSpanElement>(null);
@@ -134,7 +144,7 @@ const EchoSection: React.FC<{ echo?: any }> = ({ echo }) => {
                 <span>{echo.main.name}</span>
                 <span>{cleanStatValue(echo.main.value)}</span>
             </div>
-            {echo.substats.map((sub: any, idx: number) => (
+            {echo.substats.map((sub: { name: string; value: string }, idx: number) => (
                 <div key={idx} className="echo-substat">
                     <span className='import-sub'>{sub.name}</span>
                     <span>{cleanStatValue(sub.value)}</span>
@@ -159,7 +169,7 @@ const SequencesSection: React.FC<{ sequences?: { sequence: number } }> = ({ sequ
     </div>
 );
 
-export const LB_URL = process.env.REACT_APP_LB_URL || 'http://localhost:3001';
+export const LB_URL = process.env.NEXT_PUBLIC_LB_URL || 'http://localhost:3001';
 
 const DMG_BONUS_MAPPING: Record<string, string> = {
     'Basic Attack': 'Basic Attack DMG Bonus',
@@ -173,7 +183,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [convertedBuild, setConvertedBuild] = useState<SavedState | null>(null);
-    const navigate = useNavigate();
+    const router = useRouter();
     const isValid = validateResults(results);
     const { scaleAtk, scaleStat } = useLevelCurves();
     
@@ -214,7 +224,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
     });
     
     const handleImport = () => {
-        const build = convertBuild(results, saveToLb);
+        const build = convertBuild(results);
         setConvertedBuild(build);
         setIsModalOpen(true);
     };
@@ -268,10 +278,10 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
             if (saveToLb) {
                 await submitToLeaderboard(convertedBuild);
             }
-            navigate('/edit');
+            router.push('/edit');
         } catch (error) {
             console.error('Failed to submit:', error);
-            navigate('/edit');
+            router.push('/edit');
         } finally {
             setIsLoading(false);
         }
@@ -316,7 +326,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
                     <div className="echoes-grid">
                         {[1, 2, 3, 4, 5].map((num) => (
                             <EchoSection key={num} 
-                                echo={results[`echo${num}` as keyof AnalysisData]} 
+                                echo={results[`echo${num}` as 'echo1' | 'echo2' | 'echo3' | 'echo4' | 'echo5']} 
                             />
                         ))}
                     </div>

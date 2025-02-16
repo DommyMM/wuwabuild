@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, SortAsc, SortDesc } from 'lucide-react';
 import { BuildBackup } from './Backup';
-import { SavedBuilds } from '../../types/SavedState';
+import { SavedBuilds } from '@/types/SavedState';
 
 interface SaveControlsProps {
     searchTerm: string;
@@ -37,7 +37,10 @@ export const SaveControls: React.FC<SaveControlsProps> = ({
                     <SortDesc size={20} className="sort-icon" onClick={toggleSort} />
                 )}
                 <select value={sortBy} 
-                    onChange={(e) => onSortChange(e.target.value as any, sortDirection)}
+                    onChange={(e) => onSortChange(
+                        e.target.value as 'date' | 'name' | 'character' | 'cv', 
+                        sortDirection
+                    )}
                 >
                     <option value="name">Name</option>
                     <option value="character">Character</option>

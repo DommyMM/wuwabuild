@@ -169,6 +169,7 @@
 
 .echo-details .main-stat-row .save-stat-icon {
     width: 16px;
+    height: auto;
     margin-left: 2px;
 }
 
@@ -183,6 +184,9 @@
 
 .echo-details .stat-row {
     background-color: rgba(20, 20, 25, 0.6);
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
 
 .echo-details .stat-row:nth-child(odd) {
@@ -197,6 +201,7 @@
 
 .echo-details .save-stat-icon {
     width: 14px;
+    height: auto;
     object-fit: contain;
     margin-left: 2px;
 }

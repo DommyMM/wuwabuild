@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { formatDate, getSetInfo, getCVClass, PreviewEcho, ExpandedStyle, StatsMenu } from './Card';
-import { cachedCharacters } from '../../hooks/useCharacters';
-import { SavedBuild } from '../../types/SavedState';
-import { getAssetPath } from '../../types/paths';
-import { Character } from '../../types/character';
-import { getCachedWeapon } from '../../hooks/useWeapons';
+import { cachedCharacters } from '@/hooks/useCharacters';
+import { SavedBuild } from '@/types/SavedState';
+import { getAssetPath } from '@/types/paths';
+import { Character } from '@/types/character';
+import { getCachedWeapon } from '@/hooks/useWeapons';
 import Marquee from 'react-fast-marquee';
-import '../../styles/Preview.css';
+import '@/styles/Preview.css';
 
 interface SavePreviewProps {
     build: SavedBuild;
@@ -151,20 +152,14 @@ export const SavePreview: React.FC<SavePreviewProps> = ({ build, onLoad, onDelet
             <>
                 <div className="info-row">
                     <div className="char-container">
-                        <img src={getAssetPath('face1', character as Character).cdn}
-                            alt={character?.name}
-                            className={`char-portrait ${elementClass}`}
-                        />
+                        <Image src={getAssetPath('face1', character as Character).cdn} alt={character?.name || ''} className={`char-portrait ${elementClass}`} width={256} height={256} />
                         <span className={`char-sig ${elementClass}`}>{character?.name}</span>
                         <span>Lv.{build.state.characterState.level} • S{build.state.currentSequence}</span>
                     </div>
-                    <StatsMenu weapon={weapon} echoPanels={build.state.echoPanels} />
+                    <StatsMenu echoPanels={build.state.echoPanels} />
                     {weapon && (
                         <div className="weap-container">
-                            <img src={getAssetPath('weapons', weapon).cdn}
-                                alt={weapon.name}
-                                className="weap-portrait"
-                            />
+                            <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name || ''} className="weap-portrait" width={256} height={256} />
                             <span className="weap">{weapon.name}</span>
                             <span>Lv.{build.state.weaponState.level} • R{build.state.weaponState.rank}</span>
                         </div>
@@ -223,7 +218,7 @@ export const SavePreview: React.FC<SavePreviewProps> = ({ build, onLoad, onDelet
             const rect = previewRef.current.getBoundingClientRect();
             const position = calculatePosition();
             const origin = getTransformOrigin(position);
-            let leftOffset = origin.includes('right') ? 
+            const leftOffset = origin.includes('right') ? 
                 rect.width < 300 ? rect.left - 10 : rect.left - 42
                 : rect.left;
             
@@ -233,7 +228,7 @@ export const SavePreview: React.FC<SavePreviewProps> = ({ build, onLoad, onDelet
                 width: rect.width,
                 height: rect.height,
                 '--transform-origin': origin
-            } as any);
+            });
             setIsExpanded(true);
         }
     };

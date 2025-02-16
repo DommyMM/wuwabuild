@@ -10,6 +10,7 @@ import { ForteSection } from '../Card/ForteSection';
 import { calculateCV as calculateTotalCV } from '../../hooks/useStats';
 import { EchoPanelState } from '../../types/echo';
 import { getEchoCVClass } from '../Save/Card';
+import Image from 'next/image';
 import '../../styles/ImportModal.css';
 
 interface ImportModalProps {
@@ -51,9 +52,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <div className="convert-content" onClick={(e) => e.stopPropagation()}>
                 <div className="import-row">
                     <div className="char-convert">
-                        <img src={getAssetPath('face1', character as Character).cdn}
-                            alt={character?.name}
+                        <Image src={getAssetPath('face1', character as Character).cdn}
+                            alt={character?.name || ""}
                             className={`char-portrait-large ${elementClass}`}
+                            width={256}
+                            height={256}
                         />
                         <span className={`char-sig ${elementClass}`}>{character?.name}</span>
                         <span>Lv.{build.characterState.level}</span>
@@ -69,10 +72,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     </div>
                     {weapon && (
                         <div className="weap-convert">
-                            <img src={getAssetPath('weapons', weapon).cdn}
-                                alt={weapon.name}
-                                className="weap-portrait-large"
-                            />
+                            <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="weap-portrait-large" width={256} height={256}/>
                             <span className="weap">{weapon.name}</span>
                             <span>Lv.{build.weaponState.level}</span>
                         </div>
@@ -96,9 +96,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                                 <div key={index} className="echo-import-column">
                                     <div className="echo-view">
                                         {echo && (
-                                            <img src={getAssetPath('echoes', echo).cdn} 
-                                                alt={echo.name}
-                                            />
+                                            <Image src={getAssetPath('echoes', echo).cdn} alt={echo.name} width={256} height={256}/>
                                         )}
                                     </div>
                                     <div className="stat-import">

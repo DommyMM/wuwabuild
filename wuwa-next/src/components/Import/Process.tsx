@@ -1,4 +1,5 @@
 import React from 'react';
+import { AnalysisData } from './Results';
 
 export const IMPORT_REGIONS = {
     "character": { x1: 0.0328, x2: 0.3021, y1: 0.0074, y2: 0.0833 },
@@ -20,7 +21,7 @@ export interface RegionResult {
     data: {
         success: boolean;
         error?: string;
-        analysis?: any;
+        analysis?: AnalysisData[ImportRegion];
     };
 }
 
@@ -28,12 +29,12 @@ interface ProcessProps {
     image: File;
     onProcessStart: () => void;
     onError: (error: string) => void;
-    onProcessComplete: (results: Record<ImportRegion, any>) => void;
-    onRegionComplete?: (region: ImportRegion, data: any) => void;
-    triggerRef?: React.MutableRefObject<(() => void) | null>;
+    onProcessComplete: (results: AnalysisData) => void;
+    onRegionComplete?: (region: ImportRegion, data: AnalysisData[ImportRegion]) => void;
+    triggerRef?: React.Ref<(() => void) | null>;
 }
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export const cropImageToRegion = async (
     image: HTMLImageElement,
@@ -164,20 +165,21 @@ export const Process: React.FC<ProcessProps> = ({
                 );
             }
             
-            const finalResults = results.reduce<Record<ImportRegion, any>>((acc, { region, data }) => ({
+            // Fix 4: The reduce function
+            const finalResults = results.reduce<AnalysisData>((acc, { region, data }) => ({
                 ...acc,
                 [region]: data.analysis
             }), {
-                character: null,
-                watermark: null,
-                forte: null,
-                sequences: null,
-                weapon: null,
-                echo1: null,
-                echo2: null,
-                echo3: null,
-                echo4: null,
-                echo5: null
+                character: undefined,
+                watermark: undefined,
+                forte: undefined,
+                sequences: undefined,
+                weapon: undefined,
+                echo1: undefined,
+                echo2: undefined,
+                echo3: undefined,
+                echo4: undefined,
+                echo5: undefined
             });
             onProcessComplete(finalResults);
         } catch (error) {
@@ -185,7 +187,7 @@ export const Process: React.FC<ProcessProps> = ({
         }
     }, [image, onProcessStart, onProcessComplete, onRegionComplete, onError]);
     React.useEffect(() => {
-        if (triggerRef) {
+        if (triggerRef && 'current' in triggerRef) {
             triggerRef.current = processImage;
         }
     }, [triggerRef, processImage]);
