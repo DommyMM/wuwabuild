@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Marquee from 'react-fast-marquee';
 import { useRouter } from 'next/navigation';

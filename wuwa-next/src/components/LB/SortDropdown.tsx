@@ -1,6 +1,6 @@
 import React from 'react';
 import { SortAsc } from 'lucide-react';
-import { getDisplayName } from '../../pages/BuildsPage';
+import { getDisplayName } from '@/components/Build/BuildPageClient';
 
 const SortButton: React.FC<{
     direction: 'asc' | 'desc';
