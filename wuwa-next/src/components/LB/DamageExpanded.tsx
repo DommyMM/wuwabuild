@@ -27,6 +27,13 @@ interface ChartHitData {
     isHit: boolean;
 }
 
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: Array<{
+        payload: ChartMoveData | ChartHitData;
+    }>;
+}
+
 const COLORS = [
     '#a69662', // Our gold for primary move
     '#ff6b6b', // Coral red
@@ -38,7 +45,11 @@ const COLORS = [
     '#2ecc71'  // Emerald
 ];
 
-const CustomTooltip = ({ active, payload }: any) => {
+function isChartHitData(data: ChartMoveData | ChartHitData): data is ChartHitData {
+    return 'isHit' in data;
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
@@ -48,7 +59,7 @@ const CustomTooltip = ({ active, payload }: any) => {
                     <span className="move-tooltip-damage">{data.damage.toLocaleString()}</span>
                     <span className="move-tooltip-percentage">({data.percentage.toFixed(1)}%)</span>
                 </div>
-                {data.isHit && (
+                {isChartHitData(data) && data.isHit && (
                     <div className="move-tooltip-parent">
                         Part of: {data.parentMove}
                     </div>
@@ -170,16 +181,18 @@ type ColumnPosition = {
     shouldShiftLast: boolean;
 };
 
-const LegendColumn: React.FC<{
+interface LegendColumnProps {
     moves: MoveResult[];
     totalDamage: number;
     activeIndex: number | null;
-    hitData: any[];
+    hitData: ChartHitData[];
     allMoves: MoveResult[];
     setActiveIndex: (index: number | null) => void;
     setActiveHitIndex: (index: number | null) => void;
-    position: ColumnPosition; 
-}> = ({ moves, totalDamage, activeIndex, hitData, allMoves, setActiveIndex, setActiveHitIndex, position }) => (
+    position: ColumnPosition;
+}
+
+const LegendColumn: React.FC<LegendColumnProps> = ({ moves, totalDamage, activeIndex, hitData, allMoves, setActiveIndex, setActiveHitIndex, position }) => (
     <div className={`legend-column ${position.side}${position.shouldShiftLast ? ' shift-last' : ''}`}>
         {moves.map((move) => {
             const globalIndex = allMoves.indexOf(move);
@@ -206,7 +219,7 @@ const LegendColumn: React.FC<{
                             <div className="legend-hits">
                                 {move.hits.map((hit, hitIndex) => {
                                     const hitGlobalIndex = hitData.findIndex(
-                                        (h: any) => h.parentMove === move.name && h.name === hit.name
+                                        (h: ChartHitData) => h.parentMove === move.name && h.name === hit.name
                                     );
                                     return (
                                         <div
@@ -231,14 +244,16 @@ const LegendColumn: React.FC<{
     </div>
 );
 
-const MoveLegend: React.FC<{
+interface MoveLegendProps {
     moves: MoveResult[];
     totalDamage: number;
     activeIndex: number | null;
-    hitData: any[];
+    hitData: ChartHitData[];
     setActiveIndex: (index: number | null) => void;
     setActiveHitIndex: (index: number | null) => void;
-}> = ({ moves, totalDamage, activeIndex, hitData, setActiveIndex, setActiveHitIndex }) => {
+}
+
+const MoveLegend: React.FC<MoveLegendProps> = ({ moves, totalDamage, activeIndex, hitData, setActiveIndex, setActiveHitIndex }) => {
     const [leftColumn, rightColumn, shiftDirection] = getBalancedColumns(moves);
 
     return (

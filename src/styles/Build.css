@@ -828,7 +828,7 @@ input:-webkit-autofill {
         align-items: flex-start;
     }
     .build-card {
-        margin: 20px;
+        margin: 20px 0;
         align-items: flex-start;
         justify-content: flex-start;
     }

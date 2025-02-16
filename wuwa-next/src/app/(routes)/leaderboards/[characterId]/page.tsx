@@ -1,46 +1,62 @@
 import { Metadata } from 'next';
-import { cachedCharacters } from '@/hooks/useCharacters';
 import { notFound } from 'next/navigation';
 import CharacterEntry from '@/components/LB/CharacterEntry';
-import { LB_URL } from '@/components/Import/Results';
+import { getCharacters, getCharacterById } from '@/components/LB/charfetch';
+import { CHARACTER_CONFIGS } from '@/components/LB/config';
+import { getLeaderboardData } from '@/components/LB/charfetch';
+import '@/styles/Leaderboard.css';
+import '@/styles/BuildPage.css';
+import '@/styles/BuildExpand.css';
+import '@/styles/SavesPage.css';
 
 interface Props {
-    params: { characterId: string }
+    params: Promise<{ characterId: string }>
+    searchParams: Promise<{ weapon: string }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-    const character = cachedCharacters?.find(c => c.id === params.characterId);
+    const { characterId } = await params;
+    const character = await getCharacterById(characterId);
     if (!character) return notFound();
-
+    
     return {
-        title: `${character.name} Rankings - WuWa Builds`,
-        description: `View top ${character.name} builds and rankings`,
+        title: `${character.name} Damage Calculations and Leaderboard - WuWa Builds`,
+        description: `View top ${character.name} builds and damage calculations with detailed breakdowns`,
         openGraph: {
-            title: `${character.name} Rankings - WuWa Builds`,
-            description: `View detailed ${character.name} builds and rankings`,
-            images: [`/images/characters/${character.id}.png`],
+            title: `${character.name} Damage Calculations`,
+            description: `View detailed ${character.name} builds and damage calculations`,
+            images: ['/images/leaderboard.png'],
         }
     };
 }
 
-async function getMaxDamages(characterId: string) {
-    const res = await fetch(`${LB_URL}/leaderboard/${characterId}`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.weapons || [];
-}
 
-export default async function CharacterPage({ params }: Props) {
-    const character = cachedCharacters?.find(c => c.id === params.characterId);
-    if (!character) return notFound();
+export default async function CharacterPage({ params, searchParams }: Props) {
+    const { characterId } = await params;
+    const { weapon } = await searchParams;
+
+    const [character, characters, leaderboardData] = await Promise.all([
+        getCharacterById(characterId),
+        getCharacters(),
+        getLeaderboardData()
+    ]);
     
-    const maxDamages = await getMaxDamages(params.characterId);
+    const characterData = leaderboardData.find(char => char._id === characterId);
+    if (!character || !characterData) return notFound();
+    
+    const config = CHARACTER_CONFIGS[characterId];
+    if (!config?.enabled || !config.weapons.includes(weapon)) {
+        return notFound();
+    }
 
     return (
         <main className="character-page">
             <CharacterEntry 
-                characterId={params.characterId}
-                weaponMaxDamages={maxDamages}
+                characterId={characterId}
+                weaponMaxDamages={characterData.weapons}
+                character={character}
+                characters={characters}
+                weaponId={weapon}
             />
         </main>
     );

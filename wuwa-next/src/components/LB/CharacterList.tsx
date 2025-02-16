@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { cachedCharacters } from '@/hooks/useCharacters';
-import { LB_URL } from '@/components/Import/Results';
 import { getAssetPath } from '@/types/paths';
 import { Character } from '@/types/character';
 import { getCachedWeapon } from '@/hooks/useWeapons';
@@ -46,42 +44,40 @@ const LeaderboardCharacterSection: React.FC<{
     elementClass: string;
 }> = ({ character, elementClass }) => (
     <div className="build-character">
-        <Image 
-            src={getAssetPath('face1', character as Character).cdn}
-            alt={character?.name ?? ''}
-            className={`build-portrait ${elementClass}`}
-            width={256}
-            height={256}
-        />
+        <Image src={getAssetPath('face1', character as Character).cdn} alt={character?.name ?? ''} className={`build-portrait ${elementClass}`} width={256} height={256} />
         <span className={`char-name ${elementClass}`}>{character?.name}</span>
     </div>
 );
 
-const LeaderboardTeamSection: React.FC<{ characterId: string }> = ({ characterId }) => {
-    if (characterId !== "32") return <div className="build-team">--</div>;
-
+const LeaderboardTeamSection: React.FC<{ 
+    characterId: string;
+    characters: Character[];
+}> = ({ characterId, characters }) => {
     const config = CHARACTER_CONFIGS[characterId];
-    if (!config?.teamIds.length) return <div className="build-team">--</div>;
+    if (!config?.enabled || !config.teamIds.length) return <div className="build-team">--</div>;
 
     return (
         <div className="build-team">
             <div className="preview-grid">
                 {config.teamIds.map(id => {
-                    const character = cachedCharacters?.find(c => c.id === id);
+                    const character = characters.find(c => c.id === id);
                     if (!character) return null;
                     return (
-                        <img 
-                            key={id}
-                            src={getAssetPath('face1', character).cdn}
-                            alt={character.name}
-                            className="preview-icon face"
-                        />
+                        <Image key={id} src={getAssetPath('face1', character).cdn} alt={character.name} className="preview-icon face" width={256} height={256} />
                     );
                 })}
             </div>
         </div>
     );
 };
+
+interface LeaderboardEntryProps {
+    data: LeaderboardData;
+    character: Character | undefined;
+    characters: Character[];
+    onCharacterClick: (id: string) => void;
+    onWeaponClick: (id: string, weaponIndex: number) => void;
+}
 
 const LeaderboardWeaponsWithRank: React.FC<{ 
     characterId: string;
@@ -92,9 +88,8 @@ const LeaderboardWeaponsWithRank: React.FC<{
     }>;
     onWeaponClick?: (weaponIndex: number) => void;
 }> = ({ characterId, weapons, onWeaponClick }) => {
-    if (characterId !== "32") return <div className="build-weapons">--</div>;
     const config = CHARACTER_CONFIGS[characterId];
-    if (!config?.weapons) return <div className="build-weapons">--</div>;
+    if (!config?.enabled || !config.weapons) return <div className="build-weapons">--</div>;
 
     return (
         <div className="build-weapons-rank">
@@ -104,8 +99,7 @@ const LeaderboardWeaponsWithRank: React.FC<{
                 if (!weapon) return null;
 
                 return (
-                    <div 
-                        key={configWeaponId} 
+                    <div key={configWeaponId} 
                         className="weapon-rank-entry"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -113,11 +107,7 @@ const LeaderboardWeaponsWithRank: React.FC<{
                         }}
                         style={{ cursor: 'pointer' }}
                     >
-                        <img
-                            src={getAssetPath('weapons', weapon).cdn}
-                            alt={weapon.name}
-                            className="preview-icon weapon"
-                        />
+                        <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="preview-icon weapon" width={256} height={256} />
                         <div className="weapon-rank-info">
                             <div className="rank1-name">
                                 {weaponData?.owner.username || 'Anonymous'}
@@ -133,83 +123,53 @@ const LeaderboardWeaponsWithRank: React.FC<{
     );
 };
 
-const LeaderboardEntry: React.FC<{ 
-    data: LeaderboardData;
-    onCharacterClick: (id: string, data: LeaderboardData) => void;
-    onWeaponClick: (id: string, data: LeaderboardData, weaponIndex: number) => void;
-}> = ({ data, onCharacterClick, onWeaponClick }) => {
-    const character = cachedCharacters?.find(c => c.id === data._id);
+const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({ 
+    data, 
+    character,
+    characters,
+    onCharacterClick, 
+    onWeaponClick 
+}) => {
     const elementClass = character?.element.toLowerCase() ?? '';
-    const isDisabled = data._id !== "32";
+    const isDisabled = !CHARACTER_CONFIGS[data._id]?.enabled;
     
     return (
-        <div className={`build-entry ${isDisabled ? 'disabled' : ''}`}
-            onClick={() => onCharacterClick(data._id, data)}
-        >
+        <div className={`build-entry ${isDisabled ? 'disabled' : ''}`} onClick={() => onCharacterClick(data._id)}>
             <div className='build-main-content'>
-                <LeaderboardCharacterSection 
-                    character={character} 
-                    elementClass={elementClass} 
-                />
-                <LeaderboardTeamSection characterId={data._id} />
-                <div className="lb-entries">
-                    {isDisabled ? 'Coming Soon' : data.totalEntries}
-                </div>
-                <LeaderboardWeaponsWithRank 
-                    characterId={data._id}
-                    weapons={data.weapons}
-                    onWeaponClick={(index) => onWeaponClick(data._id, data, index)}
-                />
+                <LeaderboardCharacterSection character={character} elementClass={elementClass} />
+                <LeaderboardTeamSection characterId={data._id} characters={characters} />
+                <div className="lb-entries">{isDisabled ? 'Coming Soon' : data.totalEntries}</div>
+                <LeaderboardWeaponsWithRank characterId={data._id} weapons={data.weapons} onWeaponClick={(index) => onWeaponClick(data._id, index)} />
             </div>
         </div>
     );
 };
 
-const CharacterList: React.FC = () => {
+interface CharacterListProps {
+    initialData: LeaderboardData[];
+    characters: Character[];
+}
+
+const CharacterList: React.FC<CharacterListProps> = ({ 
+    initialData,
+    characters
+}) => {
     const router = useRouter();
-    const [data, setData] = useState<LeaderboardData[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [data] = useState<LeaderboardData[]>(initialData);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch(`${LB_URL}/leaderboard`);
-                if (!response.ok) throw new Error('Failed to fetch leaderboard');
-                const json = await response.json();
-                setData(json.characters);
-                setLoading(false);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Unknown error');
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
-
-    const handleCharacterClick = (id: string, data: LeaderboardData) => {
-        if (id === "32") {
-            router.push(`/leaderboards/${id}?weapon=0`);
+    const handleCharacterClick = (id: string) => {
+        const config = CHARACTER_CONFIGS[id];
+        if (config?.enabled) {
+            router.push(`/leaderboards/${id}?weapon=${config.weapons[0]}`);
         }
     };
-
-    const handleWeaponClick = (id: string, data: LeaderboardData, weaponIndex: number) => {
-        if (id === "32") {
-            router.push(`/leaderboards/${id}?weapon=${weaponIndex}`);
+    
+    const handleWeaponClick = (id: string, weaponIndex: number) => {
+        const config = CHARACTER_CONFIGS[id];
+        if (config?.enabled) {
+            router.push(`/leaderboards/${id}?weapon=${config.weapons[weaponIndex]}`);
         }
     };
-
-    if (loading) return (
-        <div className="build-container">
-            <div className="loading-state">Loading leaderboard data...</div>
-        </div>
-    );
-
-    if (error) return (
-        <div className="build-container">
-            <div className="error-state">Error: {error}</div>
-        </div>
-    );
 
     return (
         <div className="page-wrapper">
@@ -224,14 +184,19 @@ const CharacterList: React.FC = () => {
                             <span>Weapon Rankings</span>
                         </div>
                         <div className="build-entries">
-                            {data.map(entry => (
-                                <LeaderboardEntry 
-                                    key={entry._id}
-                                    data={entry}
-                                    onCharacterClick={handleCharacterClick}
-                                    onWeaponClick={handleWeaponClick}
-                                />
-                            ))}
+                            {data.map(entry => {
+                                const character = characters.find(c => c.id === entry._id);
+                                return (
+                                    <LeaderboardEntry 
+                                        key={entry._id}
+                                        data={entry}
+                                        character={character}
+                                        characters={characters}
+                                        onCharacterClick={handleCharacterClick}
+                                        onWeaponClick={handleWeaponClick}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

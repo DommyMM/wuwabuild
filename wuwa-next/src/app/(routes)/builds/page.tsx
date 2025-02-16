@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import BuildPageClient from '@/components/Build/BuildPageClient';
+import '@/styles/SavesPage.css';
 
 export const metadata: Metadata = {
     title: 'Global Builds - WuWa Builds',

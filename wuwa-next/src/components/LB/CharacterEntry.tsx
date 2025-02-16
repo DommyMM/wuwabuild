@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { LB_URL } from '@/components/Import/Results';
 import { decompressData } from '@/components/Save/Backup';
 import { Pagination } from '@/components/Save/Pagination';
@@ -11,6 +11,7 @@ import { LBInfo } from './LBInfo';
 import { LBSortDropdown, LBSortHeader } from './SortDropdown';
 import { CHARACTER_CONFIGS } from './config';
 import { Sequence } from '@/components/Build/types';
+import { Character } from '@/types/character';
 
 export type CVOptions = 'cv' | 'cr' | 'cd';
 export type DamageOptions = 'damage';
@@ -18,31 +19,35 @@ export type SortField = CVOptions | DamageOptions | string | null;
 
 const LeaderboardHeader: React.FC<{ 
     characterId?: string; 
-    entry?: DecompressedEntry; 
     selectedWeapon?: number; 
     onWeaponSelect?: (weapon: number) => void;
     maxDamages: Array<{ weaponId: string; damage: number }>;
     selectedSequence?: Sequence;
     onSequenceSelect?: (sequence: Sequence) => void;
+    character?: Character;
+    characters: Character[];
 }> = ({ 
     characterId, 
-    entry, 
     selectedWeapon, 
     onWeaponSelect, 
     maxDamages,
     selectedSequence,
-    onSequenceSelect 
+    onSequenceSelect,
+    character,
+    characters
 }) => {
+    if (!character) return null;
+
     return (
         <div className="build-header-container">
-            <LBInfo 
-                characterId={characterId || ''} 
-                calculations={entry?.calculations}
+            <LBInfo characterId={characterId || ''}
                 selectedWeapon={selectedWeapon} 
                 onWeaponSelect={onWeaponSelect} 
                 maxDamages={maxDamages}
                 selectedSequence={selectedSequence}
                 onSequenceSelect={onSequenceSelect}
+                character={character}
+                characters={characters}
             />
         </div>
     );
@@ -122,8 +127,6 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                         placeholder="Stats"
                         isActive={sortType === 'stat'}
                         position={getDropdownPosition(hoveredSection, lastHoveredSection)}
-                        hoveredSection={hoveredSection}
-                        lastHoveredSection={lastHoveredSection}
                         onHoverSection={onHoverSection}
                     />
                 )}
@@ -167,14 +170,22 @@ const getSortParam = (currentSort: SortField): string => {
 interface CharacterEntryProps {
     characterId: string;
     weaponMaxDamages: Array<{ weaponId: string; damage: number }>;
+    character: Character;
+    characters: Character[];
+    weaponId: string;
 }
 
 export const CharacterEntry: React.FC<CharacterEntryProps> = ({ 
     characterId,
-    weaponMaxDamages
+    weaponMaxDamages,
+    character,
+    characters,
+    weaponId
 }) => {
-    const searchParams = useSearchParams();
-    const initialWeapon = parseInt(searchParams.get('weapon') ?? '0', 10);
+    const router = useRouter();
+    const config = CHARACTER_CONFIGS[characterId];
+    const initialWeapon = config.weapons.indexOf(weaponId);
+    const [selectedWeapon, setSelectedWeapon] = useState(initialWeapon);
     const [data, setData] = useState<DecompressedEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -184,46 +195,61 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
     const [currentSort, setCurrentSort] = useState<SortField>('damage');
     const [hoveredSection, setHoveredSection] = useState<number | null>(null);
     const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
-    const [selectedWeapon, setSelectedWeapon] = useState(initialWeapon);
     const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
     const [selectedSequence, setSelectedSequence] = useState<Sequence>('s0');
     const itemsPerPage = 10;
 
+    useEffect(() => {
+        const params = new URLSearchParams({
+            weapon: config.weapons[selectedWeapon],
+            sort: getSortParam(currentSort),
+            direction: sortDirection,
+            page: String(page)
+        });
+        if (selectedSequence !== 's0') {
+            params.set('sequence', selectedSequence);
+        }
+        
+        router.push(`/leaderboards/${characterId}?${params.toString()}`, { 
+            scroll: false 
+        });
+    }, [characterId, selectedWeapon, currentSort, sortDirection, page, selectedSequence, config.weapons, router]);
+    
     useEffect(() => {
         setExpandedEntries(new Set());
         
         const loadData = async () => {
             if (!characterId) return;
             try {
-                const searchParams: Record<string, string> = {
+                const params = new URLSearchParams({
                     sort: getSortParam(currentSort),
                     direction: sortDirection,
                     page: String(page),
                     pageSize: String(itemsPerPage),
                     weaponIndex: String(selectedWeapon)
-                };
+                });
                 if (selectedSequence !== 's0') {
-                    searchParams.sequence = selectedSequence;
+                    params.set('sequence', selectedSequence);
                 }
                 
-                const params = new URLSearchParams(searchParams);
                 const response = await fetch(`${LB_URL}/leaderboard/${characterId}?${params}`);
+                if (!response.ok) throw new Error('Failed to fetch data');
+                
                 const data = await response.json() as BuildResponse;
-    
                 setTotal(data.total);
                 setData(data.builds.map((entry: CompressedEntry) => ({
                     ...entry,
                     buildState: decompressData({ state: entry.buildState }).state,
                 })));
-                setLoading(false);
             } catch (err) {
                 console.error('Fetch error:', err);
                 setError(err instanceof Error ? err.message : 'Unknown error');
+            } finally {
                 setLoading(false);
             }
         };
         loadData();
-    }, [page, characterId, sortDirection, currentSort, selectedWeapon, selectedSequence]);
+    }, [page, characterId, sortDirection, currentSort, selectedWeapon, selectedSequence, config.weapons]);
 
     const handleSortChange = (field: SortField) => {
         setCurrentSort(field === currentSort ? null : field);
@@ -246,13 +272,14 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
         <div className="page-wrapper">
             <div className="lb-wrapper">
                 <LeaderboardHeader 
-                    characterId={characterId} 
-                    entry={data[0]}
+                    characterId={characterId}
                     selectedWeapon={selectedWeapon}
                     onWeaponSelect={setSelectedWeapon}
                     maxDamages={weaponMaxDamages}
                     selectedSequence={selectedSequence}
                     onSequenceSelect={setSelectedSequence}
+                    character={character}
+                    characters={characters}
                 />
                 <div className="build-container">
                     <LeaderboardTable 
