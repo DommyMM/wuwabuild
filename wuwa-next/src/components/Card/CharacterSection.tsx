@@ -1,7 +1,8 @@
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
-import { Character, isRover } from '../../types/character';
+import Image from 'next/image';
+import { Character, isRover } from '@/types/character';
 import { SequenceSection } from './SequenceSection';
-import { getAssetPath } from '../../types/paths';
+import { getAssetPath } from '@/types/paths';
 import { Delete, RefreshCcw, ZoomIn, ZoomOut, Upload } from 'lucide-react';
 
 interface CharacterSectionProps {
@@ -15,7 +16,6 @@ interface CharacterSectionProps {
   children?: React.ReactNode;
   useAltSkin?: boolean;
   artSource?: string;
-  onArtSourceChange?: (source: string) => void;
 }
 
 export const CharacterSection: React.FC<CharacterSectionProps> = ({ 
@@ -28,8 +28,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   customImage,
   useAltSkin = false,
   children,
-  artSource = '',
-  onArtSourceChange
+  artSource = ''
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -180,15 +179,10 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         style={{'--tx': `${position.x}px`, '--ty': `${position.y}px`, '--scale': scale } as React.CSSProperties}
       >
         {!customImage && (
-          <img src={imagePath}
-            className="character-icon shadow"
-            alt="Character Shadow"
-          />
+          <Image src={imagePath} className="character-icon shadow" alt="Character Shadow" width={696} height={960} priority/>
         )}
-        <img src={imagePath}
-          className={`character-icon ${isEditMode ? 'editable' : ''}`}
-          alt={characterName}
-          style={{ cursor: isEditMode ? 'move' : 'default' }}
+        <Image src={imagePath} className={`character-icon ${isEditMode ? 'editable' : ''}`} alt={characterName}
+          width={696} height={960} priority style={{ cursor: isEditMode ? 'move' : 'default' }}
           onMouseDown={handleMouseDown}
           draggable={false}
           onDragStart={(e) => e.preventDefault()}
@@ -238,8 +232,8 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
             <div className="character-name">{characterName}</div>
             <div className="char-header-bottom">
               <div className="character-level">Lv.{level}/90</div>
-              <img src={`images/Roles/${character.Role}.png`} className="role-icon" alt={character.Role}/>
-              <img src={`images/Elements/${elementValue}.png`} className="element-icon" alt={elementValue}/>
+              <Image src={`/images/Roles/${character.Role}.png`} className="role-icon" alt={character.Role} width={128} height={128}/>
+              <Image src={`/images/Elements/${elementValue}.png`} className="element-icon" alt={elementValue} width={128} height={128}/>
             </div>
         </div>
         {children}

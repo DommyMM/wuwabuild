@@ -1,7 +1,8 @@
 import React, { useCallback } from 'react';
-import { ScaledStats, Weapon } from '../../types/weapon';
-import { getAssetPath } from '../../types/paths';
-import { getStatPaths } from '../../types/stats';
+import Image from 'next/image';
+import { ScaledStats, Weapon } from '@/types/weapon';
+import { getAssetPath } from '@/types/paths';
+import { getStatPaths } from '@/types/stats';
 
 interface WeaponSectionProps {
   weapon: Weapon;
@@ -17,66 +18,67 @@ const getWeaponPath = (weapon: Weapon, useAltSkin: boolean = false) => {
 };
 
 const WeaponIcon = React.memo<{ weapon: Weapon; useAltSkin?: boolean }>(
-  ({ weapon, useAltSkin = false }) => (
-    <img src={getWeaponPath(weapon, useAltSkin)} className="weapon-icon" alt="Weapon" />
-  )
+  function WeaponIcon({ weapon, useAltSkin = false }) {
+    return <Image src={getWeaponPath(weapon, useAltSkin)} className="weapon-icon" alt="Weapon" width={256} height={256} />;
+  }
 );
 
-const WeaponName = React.memo<{ name: string }>(({ name }) => (
-  <div className="weapon-stat weapon-name">{name}</div>
-));
+const WeaponName = React.memo<{ name: string }>(
+  function WeaponName({ name }) {
+    return <div className="weapon-stat weapon-name">{name}</div>;
+  }
+);
 
 const StatsTopRow = React.memo<{
   scaledAtk: number;
   weapon: Weapon;
   scaledMainStat: number;
-}>(({ scaledAtk, weapon, scaledMainStat }) => (
-  <div className="weapon-stat-row">
-    <div className="weapon-stat weapon-attack atk">
-      <img src={getStatPaths('ATK').local} className="stat-icon-img" alt="ATK"/>
-      {Math.floor(scaledAtk)}
+}>(function StatsTopRow({ scaledAtk, weapon, scaledMainStat }) {
+  return (
+    <div className="weapon-stat-row">
+      <div className="weapon-stat weapon-attack atk">
+        <Image src={getStatPaths('ATK').local} className="stat-icon-img" alt="ATK" width={96} height={96} />
+        {Math.floor(scaledAtk)}
+      </div>
+      <div className={`weapon-stat weapon-main-stat ${weapon.main_stat.toLowerCase()}`}>
+        <Image src={getStatPaths(weapon.main_stat).local} className="stat-icon-img" alt={weapon.main_stat} width={96} height={96} />
+        {`${scaledMainStat}%`}
+      </div>
     </div>
-    <div className={`weapon-stat weapon-main-stat ${weapon.main_stat.toLowerCase()}`}>
-      <img src={getStatPaths(weapon.main_stat).local} className="stat-icon-img" alt={weapon.main_stat}/>
-      {`${scaledMainStat}%`}
-    </div>
-  </div>
-));
+  );
+});
 
 const StatsBottomRow = React.memo<{
   level: number;
   rank: number;
-}>(({ level, rank }) => (
-  <div className="weapon-stat-row">
-    <div className="weapon-stat weapon-rank">R{rank}</div>
-    <div className="weapon-stat weapon-level">Lv.{level}</div>
-  </div>
-));
+}>(function StatsBottomRow({ level, rank }) {
+  return (
+    <div className="weapon-stat-row">
+      <div className="weapon-stat weapon-rank">R{rank}</div>
+      <div className="weapon-stat weapon-level">Lv.{level}</div>
+    </div>
+  );
+});
 
-const RarityStars: React.FC<{ rarity: string }> = ({ rarity }) => {
+const RarityStars = function RarityStars({ rarity }: { rarity: string }) {
   const starCount = parseInt(rarity.charAt(0));
   return (
     <div className="weapon-star-container">
       {[...Array(starCount)].map((_, i) => (
-        <img 
-          key={i} 
-          src="images/Resources/Star.png" 
-          className="star-icon" 
-          alt="*" 
-        />
+        <Image key={i} src="/images/Resources/Star.png" className="star-icon" alt="*" width={512} height={512} />
       ))}
     </div>
   );
 };
 
-export const WeaponSection: React.FC<WeaponSectionProps> = ({
+export const WeaponSection = function WeaponSection({
   weapon,
   rank,
   level,
   scaledStats,
   characterElement,
   useAltSkin = false
-}) => {
+}: WeaponSectionProps) {
   const getPassiveClasses = useCallback((
     passiveName: string, 
     characterElement?: string
@@ -99,7 +101,7 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
       scaledPassive2?: number;
     };
     characterElement?: string;
-  }>(({ weapon, stats, characterElement }) => {
+  }>(function PassiveText({ weapon, stats, characterElement }) {
     if (!weapon.passive || !weapon.passive_stat) return null;
     
     const passiveName = weapon.passive.replace('%', '');

@@ -1,6 +1,6 @@
 import React from 'react';
-import { ELEMENT_SETS, ElementType, EchoPanelState } from '../../types/echo';
-import { getCVClass } from '../Edit/BuildCard';
+import { ELEMENT_SETS, ElementType, EchoPanelState } from '@/types/echo';
+import { getCVClass } from './BuildCard';
 
 interface SetRowProps {
     element: ElementType;

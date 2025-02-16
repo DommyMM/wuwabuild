@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Character, isRover } from '../../types/character';
 import { forteImagePaths } from '../../types/node';
 import { getAssetPath } from '../../types/paths';
@@ -17,7 +18,7 @@ export const getStatClass = (imagePath: string) => {
   if (!match) return '';
   const cdnName = `${match[1]}${match[2]}`;
   const statName = Object.entries(STAT_CDN_NAMES)
-    .find(([_, cdn]) => cdn === cdnName)?.[0];
+    .find(([, cdn]) => cdn === cdnName)?.[0];
   return statName?.toLowerCase() || '';
 };
 
@@ -33,7 +34,7 @@ const SimplifiedNode: React.FC<{
   
   return (
     <div className={`simplified-node ${type} ${isActive ? 'active' : ''} ${className || ''} ${statClass || ''}`}>
-      <img className="node-image" src={imagePath} alt="" />
+      <Image className="node-image" src={imagePath} alt="" width={128} height={128}/>
       {showDiamond && <div className="inner-diamond" />}
       {children}
     </div>
@@ -101,18 +102,12 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
       />
       <div className="bottom-line" />
       <div className="simplified-base">
-        <img className="skill-image"
-          src={forteImagePaths.imagePaths[branch.name](character)}
-          alt={`${character.name} ${branch.name}`}
-        />
+        <Image className="skill-image" src={forteImagePaths.imagePaths[branch.name](character)} alt={`${character.name} ${branch.name}`} width={128} height={128} />
         <div className="level-indicator">{level}</div>
       </div>
       {branch.name === 'circuit' && (
         <div className="base">
-          <img className="skill-image"
-            src={forteImagePaths.imagePaths.base(character)}
-            alt={`${character.name} base`}
-          />
+          <Image className="skill-image" src={forteImagePaths.imagePaths.base(character)} alt={`${character.name} base`} width={128} height={128} />
         </div>
       )}
     </div>
@@ -148,7 +143,7 @@ export const ForteSection: React.FC<ForteSectionProps> = ({
           level={forteLevels[branch.name] || 1}
         />
       ))}
-      <img className="max" src="images/Resources/Max.png" alt="Forte Max Frame" />
+      <Image className="max" src="/images/Resources/Max.png" alt="Forte Max Frame" width={461} height={274} />
     </div>
   );
 };

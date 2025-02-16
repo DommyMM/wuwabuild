@@ -1,11 +1,12 @@
 import React from 'react';
-import { EchoPanelState, ElementType } from '../../types/echo';
-import { getStatPaths } from '../../types/stats';
-import { useSubstats } from '../../hooks/useSub';
-import { getCachedEchoes } from '../../hooks/useEchoes';
+import Image from 'next/image';
+import { EchoPanelState, ElementType } from '@/types/echo';
+import { getStatPaths } from '@/types/stats';
+import { useSubstats } from '@/hooks/useSub';
+import { getCachedEchoes } from '@/hooks/useEchoes';
 import { SetSection } from './SetSection';
-import { Echo, ECHO_BONUSES } from '../../types/echo';
-import { getAssetPath } from '../../types/paths';
+import { Echo, ECHO_BONUSES } from '@/types/echo';
+import { getAssetPath } from '@/types/paths';
 
 export interface EchoDisplayProps {
   isVisible: boolean;
@@ -21,10 +22,10 @@ const getEchoPath = (echo: Echo, isPhantom: boolean = false) => {
   return getAssetPath('echoes', echo, false, isPhantom).local;
 };
 
-const EchoLeft: React.FC<{ 
+const EchoLeft = React.memo<{ 
   panel: EchoPanelState;
   element: string | null;
-}> = React.memo(({ panel, element }) => {
+}>(function EchoLeft({ panel, element }) {
   const echo = getCachedEchoes(panel.id);
   const statClass = React.useMemo(() => 
     panel.stats.mainStat.type?.toLowerCase()
@@ -57,22 +58,13 @@ const EchoLeft: React.FC<{
     <div className="echo-left">
       {echo && (
         <>
-          <img src={getEchoPath(echo, panel.phantom)}
-            alt={echo.name}
-            className={`echo-display-icon ${bonusClasses}`}
-          />
+          <Image src={getEchoPath(echo, panel.phantom)} alt={echo.name} className={`echo-display-icon ${bonusClasses}`} width={256} height={256} />
           <div className="echo-level-indicator">+{panel.level}</div>
           <div className="main-stat-wrapper">
-          <img src={getAssetPath('sets', element ?? '').local}
-              alt={`${element} Set Icon`}
-              className="set"
-            />
+            <Image src={getAssetPath('sets', element ?? '').local} alt={`${element} Set Icon`} className="set" width={76} height={76} />
             {panel.stats.mainStat.type && (
               <>
-                <img src={getStatPaths(panel.stats.mainStat.type).local}
-                  alt={panel.stats.mainStat.type}
-                  className={`main-stat-icon ${statClass}`}
-                />
+                <Image src={getStatPaths(panel.stats.mainStat.type).local} alt={panel.stats.mainStat.type} className={`main-stat-icon ${statClass}`} width={96} height={96} />
                 <span className={`main-stat-display ${statClass}`}>
                   {formatMainStatValue(panel.stats.mainStat.value)}
                 </span>
@@ -94,12 +86,14 @@ const EchoLeft: React.FC<{
     prevProps.panel.phantom === nextProps.panel.phantom;
 });
 
-const EchoDivider = () => <div className="echo-divider" />;
+const EchoDivider = function EchoDivider() {
+  return <div className="echo-divider" />;
+};
 
-const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> = React.memo(({ 
-  panel, 
-  showRollQuality 
-}) => {
+const EchoRight = React.memo<{ 
+  panel: EchoPanelState; 
+  showRollQuality: boolean 
+}>(function EchoRight({ panel, showRollQuality }) {
   const { substatsData } = useSubstats();
 
   const getQualityClass = React.useCallback((value: number | null, type: string | null): string => {
@@ -128,7 +122,7 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
 
   const SubstatDisplay = React.memo<{
     stat: { type: string | null; value: number | null };
-  }>(({ stat }) => {
+  }>(function SubstatDisplay({ stat }) {
     if (!stat.type) return null;
 
     const statClass = stat.type.toLowerCase()
@@ -147,10 +141,7 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
           backgroundPosition: 'center bottom'
         } : undefined}
       >
-        <img src={getStatPaths(stat.type).local}
-          alt={stat.type}
-          className="substat-icon"
-        />
+        <Image src={getStatPaths(stat.type).local} alt={stat.type} className="substat-icon" width={96} height={96} />
         <span className="substat-value">
           {formatValue(stat.type, stat.value)}
         </span>
@@ -174,7 +165,10 @@ const EchoRight: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> =
   JSON.stringify(prevProps.panel) === JSON.stringify(nextProps.panel);
 });
 
-const EchoRow: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> = ({ panel, showRollQuality }) => {
+const EchoRow = function EchoRow({ panel, showRollQuality }: { 
+  panel: EchoPanelState; 
+  showRollQuality: boolean 
+}) {
   const echo = getCachedEchoes(panel.id);
   const isSingleElement = echo?.elements.length === 1;
   const element = isSingleElement && echo ? 
@@ -192,7 +186,7 @@ const EchoRow: React.FC<{ panel: EchoPanelState; showRollQuality: boolean }> = (
   );
 };
 
-export const EchoDisplay: React.FC<EchoDisplayProps> = ({
+export const EchoDisplay = function EchoDisplay({
   isVisible,
   echoPanels,
   showRollQuality,
@@ -200,7 +194,7 @@ export const EchoDisplay: React.FC<EchoDisplayProps> = ({
   rightStates = Array(5).fill('none'),
   sets,
   cv
-}) => {
+}: EchoDisplayProps) {
   if (!isVisible) return null;
 
   const leftElement = leftStates.some(state => state !== 'none') ? 

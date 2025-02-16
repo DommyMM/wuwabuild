@@ -1,26 +1,26 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import domtoimage from 'dom-to-image';
-import { Options } from '../Card/Options';
-import { CharacterSection } from '../Card/CharacterSection';
-import { WeaponSection } from '../Card/WeaponSection';
-import { ForteSection } from '../Card/ForteSection';
-import { EchoDisplay } from '../Card/EchoDisplay';
-import { StatSection } from '../Card/StatSection';
-import { Character } from '../../types/character';
-import { cachedCharacters } from '../../hooks/useCharacters';
-import { WeaponState } from '../../types/weapon';
-import { getCachedWeapon } from '../../hooks/useWeapons';
-import { getCachedEchoes } from '../../hooks/useEchoes';
-import { EchoPanelState, ElementType } from '../../types/echo';
-import { StatName } from '../../types/stats';
-import { useStats } from '../../hooks/useStats';
-import { useLevelCurves } from '../../hooks/useLevelCurves';
-import { useStatHighlight } from '../../hooks/useHighlight';
-import { SaveBuild } from '../Edit/SaveBuild';
-import { SavedState } from '../../types/SavedState';
+import { Options } from './Options';
+import { CharacterSection } from './CharacterSection';
+import { WeaponSection } from './WeaponSection';
+import { ForteSection } from './ForteSection';
+import { EchoDisplay } from './EchoDisplay';
+import { StatSection } from './StatSection';
+import { Character } from '@/types/character';
+import { cachedCharacters } from '@/hooks/useCharacters';
+import { WeaponState } from '@/types/weapon';
+import { getCachedWeapon } from '@/hooks/useWeapons';
+import { getCachedEchoes } from '@/hooks/useEchoes';
+import { EchoPanelState, ElementType } from '@/types/echo';
+import { StatName } from '@/types/stats';
+import { useStats } from '@/hooks/useStats';
+import { useLevelCurves } from '@/hooks/useLevelCurves';
+import { useStatHighlight } from '@/hooks/useHighlight';
+import { SaveBuild } from '@/components/Edit/SaveBuild';
+import { SavedState } from '@/types/SavedState';
 import { toast } from 'react-toastify';
 import { Pencil, ImageDownIcon, Download, Database } from 'lucide-react';
-import '../../styles/Build.css';
+import '@/styles/Build.css';
 
 export const calculateWeaponStats = (
   selectedWeapon: ReturnType<typeof getCachedWeapon>,
@@ -402,7 +402,6 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                   customImage={savedCustomImage}
                   useAltSkin={useAltSkin}
                   artSource={artSource}
-                  onArtSourceChange={setArtSource}
                 >
                 <ForteSection character={{...selectedCharacter, name: displayName || selectedCharacter.name}}
                   elementValue={elementValue}

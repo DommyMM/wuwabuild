@@ -5,7 +5,7 @@ import { ChevronRight, ChevronDown } from 'lucide-react';
 import { CharacterSelector } from './CharacterSelector';
 import { CharacterInfo } from './CharacterInfo';
 import { EchoesSection } from './EchoSection';
-import { BuildCard } from './BuildCard';
+import { BuildCard } from '@/components/Card/BuildCard';
 import { Scan } from './Scan';
 import { DailyNotification } from './DailyNotification';
 import { RestorePrompt } from './Restore';
