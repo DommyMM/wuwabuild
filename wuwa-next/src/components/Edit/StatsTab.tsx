@@ -1,74 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useMain } from '@/hooks/useMain';
 import { useSubstats } from '@/hooks/useSub';
 import { StatsState } from '@/types/stats';
+import { SortableSub } from './SortableEchoPanel';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 
 interface StatsTabProps {
   panelId: string;
   cost: number | null;
-  level: number;
-  stats: StatsState; 
+  stats: StatsState;
   onMainStatChange: (type: string | null) => void;
   onSubStatChange: (subIndex: number, type: string | null, value: number | null) => void;
 }
 
-interface SubstatSlotProps {
-  index: number;
-  type: string | null;
-  value: number | null;
-  substatsData: Record<string, number[]> | null;
-  isAvailable: (stat: string) => boolean;
-  onTypeChange: (type: string | null) => void;
-  onValueChange: (value: number | null) => void;
-}
-
-const SubstatSlot = ({
-  index,
-  type,
-  value,
-  substatsData,
-  isAvailable,
-  onTypeChange,
-  onValueChange
-}: SubstatSlotProps) => (
-  <div className="stat-slot">
-    <select
-      className="stat-select"
-      value={type || ''}
-      onChange={(e) => onTypeChange(e.target.value || null)}
-    >
-      <option value="">Substat {index + 1}</option>
-      {substatsData && Object.keys(substatsData).map(stat => (
-        <option
-          key={stat}
-          value={stat}
-          disabled={!isAvailable(stat)}
-        >
-          {stat}
-        </option>
-      ))}
-    </select>
-    <select
-      className="stat-value"
-      disabled={!type}
-      value={value?.toString() || ''}
-      onChange={(e) => onValueChange(e.target.value ? Number(e.target.value) : null)}
-    >
-      <option value="" disabled>{type ? 'Select Value' : 'Select'}</option>
-      {type && substatsData && substatsData[type]?.map(value => (
-        <option key={value} value={value}>
-          {['ATK', 'HP', 'DEF'].includes(type) ? value : `${value}%`}
-        </option>
-      ))}
-    </select>
-  </div>
-);
-
 export const StatsTab: React.FC<StatsTabProps> = ({
   cost,
-  level,
   panelId,
   stats,
   onMainStatChange,
@@ -76,6 +25,27 @@ export const StatsTab: React.FC<StatsTabProps> = ({
 }) => {
   const { mainStatsData } = useMain();
   const { substatsData, isStatAvailableForPanel } = useSubstats();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = parseInt(active.id.toString().split('-')[1]);
+      const newIndex = parseInt(over.id.toString().split('-')[1]);
+      
+      const newSubStats = arrayMove(stats.subStats, oldIndex, newIndex);
+      newSubStats.forEach((stat, index) => {
+        onSubStatChange(index, stat.type, stat.value);
+      });
+    }
+  }, [stats.subStats, onSubStatChange]);
 
   return (
     <div className="stats-tab">
@@ -95,21 +65,34 @@ export const StatsTab: React.FC<StatsTabProps> = ({
           {stats.mainStat.value ? `${stats.mainStat.value.toFixed(1)}%` : '0'}
         </div>
       </div>
-
-      <div className="substats-container">
-        {stats.subStats.map((stat, index) => (
-          <SubstatSlot
-            key={index}
-            index={index}
-            type={stat.type}
-            value={stat.value}
-            substatsData={substatsData}
-            isAvailable={(stat) => isStatAvailableForPanel(panelId, stat)}
-            onTypeChange={(type) => onSubStatChange(index, type, stat.value)}
-            onValueChange={(value) => onSubStatChange(index, stat.type, value)}
-          />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={Array(5).fill(null).map((_, i) => `substat-${i}`)} strategy={verticalListSortingStrategy}>
+          <div className="substats-container">
+            {stats.subStats.map((stat, index) => (
+              <SortableSub key={`substat-${index}`} id={`substat-${index}`}>
+                <div className="stat-slot">
+                  <select className="stat-select" value={stat.type || ''} onChange={(e) => onSubStatChange(index, e.target.value || null, stat.value)} >
+                    <option value="">Substat {index + 1}</option>
+                    {substatsData && Object.keys(substatsData).map(statType => (
+                      <option key={statType} value={statType} disabled={!isStatAvailableForPanel(panelId, statType)}>
+                        {statType}
+                      </option>
+                    ))}
+                  </select>
+                  <select className="stat-value" disabled={!stat.type} value={stat.value?.toString() || ''} onChange={(e) => onSubStatChange(index, stat.type, e.target.value ? Number(e.target.value) : null)}>
+                    <option value="" disabled>{stat.type ? 'Select Value' : 'Select'}</option>
+                    {stat.type && substatsData && substatsData[stat.type]?.map(value => (
+                      <option key={value} value={value}>
+                        {['ATK', 'HP', 'DEF'].includes(stat.type as string) ? value : `${value}%`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </SortableSub>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 };

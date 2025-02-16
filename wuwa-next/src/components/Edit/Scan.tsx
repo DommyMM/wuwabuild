@@ -106,6 +106,7 @@ const fetchOCRResult = async (base64: string, type: string): Promise<OCRResponse
     return await response.json();
   } catch (e) {
     const error = e as OCRError;
+    console.error('OCR request failed:', error);
     return {
       success: false,
       error: error.message || 'Request failed'
@@ -121,7 +122,7 @@ export const wakeupServer = async () => {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error) {
+  } catch {
   }
 };
 
@@ -313,7 +314,11 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
           setImages((prev) =>
             prev.map((p) =>
               p.id === img.id
-                ? { ...p, error: 'Processing failed', status: 'error' }
+                ? { 
+                    ...p, 
+                    error: error instanceof Error ? error.message : 'Processing failed', 
+                    status: 'error' 
+                  }
                 : p
             )
           );
@@ -410,7 +415,6 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
             category={image.category}
             details={image.details}
             status={image.status}
-            error={!!image.error}
             errorMessage={image.error}
             onDelete={() => deleteImage(image.id)}
           />

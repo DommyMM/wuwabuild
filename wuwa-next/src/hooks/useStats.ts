@@ -183,13 +183,13 @@ export interface CompressedStats {
 
 export const compressStats = (state: StatState): CompressedStats => ({
     v: Object.entries(state.values)
-        .filter(([_, v]) => v !== 0)
+        .filter(([, v]) => v !== 0)
         .reduce((acc, [k, v]) => ({
             ...acc,
             [STAT_MAP[k as keyof typeof STAT_MAP] || k]: v
         }), {}),
     u: Object.entries(state.updates)
-        .filter(([_, v]) => v !== 0)
+        .filter(([, v]) => v !== 0)
         .reduce((acc, [k, v]) => ({
             ...acc,
             [STAT_MAP[k as keyof typeof STAT_MAP] || k]: v
@@ -427,7 +427,7 @@ export const useStats = ({
       try {
         const data = await getStatsData();
         setStatsData(data);
-      } catch (err) {
+      } catch {
         setError('Failed to load stats');
       } finally {
         setLoading(false);
@@ -473,7 +473,7 @@ export const useStats = ({
       }
 
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError('Error calculating stats');
       setLoading(false);
     }

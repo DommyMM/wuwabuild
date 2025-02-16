@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronRight, ChevronDown } from 'lucide-react';
+import Image from 'next/image';
 import { Character } from '@/types/character';
 import { Weapon, WeaponState } from '@/types/weapon';
 import { OCRAnalysis } from '@/types/ocr';
@@ -13,7 +14,6 @@ import '@/styles/CharacterInfo.css';
 import '@/styles/SequenceGroup.css';
 
 interface CharacterInfoProps {
-  characterId: string | null;
   selectedCharacter: Character | null;
   characterLevel: string;
   element?: string;
@@ -39,7 +39,6 @@ interface CharacterInfoProps {
 }
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({ 
-  characterId,
   selectedCharacter,
   characterLevel,
   element,
@@ -103,10 +102,12 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
         <div className={`character-content${props.isMinimized ? '' : ' open'}`}>
           {selectedCharacter && (
             <>
-              <img id="selectedCharacterIcon" 
+              <Image id="selectedCharacterIcon" 
                 src={getAssetPath('icons', selectedCharacter).cdn}
                 alt="Selected Character Icon" 
                 className="character-tab-icon"
+                width={696}
+                height={960}
               />
               {selectedCharacter.name.startsWith('Rover') && (
                 <button className="toggle" 
@@ -116,14 +117,16 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                   onClick={handleToggleSpectro}
                 >
                   <div className="toggle-circle">
-                    <img src={getAssetPath('elements', element || '').cdn}
-                        alt={element}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            borderRadius: '999px'
-                        }}
+                    <Image src={getAssetPath('elements', element || '').cdn}
+                      alt={element || 'Element'}
+                      width={128}
+                      height={128}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        borderRadius: '999px'
+                      }}
                     />
                   </div>
                 </button>
@@ -149,7 +152,6 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                   ...selectedCharacter,
                   name: displayName
                 }}
-                displayName={displayName}
                 elementValue={elementValue}
                 nodeStates={props.nodeStates}
                 levels={props.forteLevels}

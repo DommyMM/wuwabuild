@@ -32,7 +32,7 @@ export default function EditPageClient() {
     });
     const selectedCharacter = useMemo(() => characterState.id ? cachedCharacters?.find(c => c.id === characterState.id) ?? null : null, [characterState.id]);
     const [currentSequence, setCurrentSequence] = useState(0);
-    const echoesRef = useRef<HTMLElement>(null);
+    const echoesRef = useRef<HTMLDivElement | null>(null);
     const hasScrolledToEchoes = useRef(false);
     const [weaponState, setWeaponState] = useState<WeaponState>({
         id: null,
@@ -77,11 +77,11 @@ export default function EditPageClient() {
         const characterAnalysis = result.analysis;
         const characterId = characterAnalysis.name.includes('(M)') ? '4' : '5';
         setOcrName(characterAnalysis.name);
-        setCharacterState(prev => ({
+        setCharacterState({
           id: characterId,
           level: characterAnalysis.characterLevel.toString(),
           element: characterAnalysis.element
-        }));
+        });
         if (characterAnalysis.uid?.length === 9) {
           setWatermark(prev => ({...prev, uid: characterAnalysis.uid!}));
         }
@@ -103,9 +103,7 @@ export default function EditPageClient() {
         break;
       case 'Sequences':
         const sequenceAnalysis = result.analysis;
-        setCurrentSequence(prev => 
-          Math.max(prev, sequenceAnalysis.sequence)
-        );
+        setCurrentSequence(sequenceAnalysis.sequence);
         break;
       case 'Forte':
         const forteAnalysis = result.analysis;
@@ -496,11 +494,9 @@ export default function EditPageClient() {
         <CharacterSelector onSelect={handleCharacterSelect}
           selectedCharacter={selectedCharacter}
           ocrName={ocrName} 
-          onLevelReset={() => setCharacterState(prev => ({ ...prev, level: '1' }))} 
-          initialCharacterId={characterState.id}
+          onLevelReset={() => setCharacterState(prev => ({ ...prev, level: '1' }))}
         />
-        <CharacterInfo characterId={characterState.id}
-          selectedCharacter={selectedCharacter}
+        <CharacterInfo selectedCharacter={selectedCharacter}
           characterLevel={characterState.level}
           element={characterState.element}
           onSpectroToggle={handleSpectroToggle}
@@ -519,7 +515,8 @@ export default function EditPageClient() {
           isMinimized={isCharacterMinimized}
           onMinimize={() => setIsCharacterMinimized(!isCharacterMinimized)}
         />
-        <EchoesSection ref={echoesRef}
+        <EchoesSection
+          containerRef={echoesRef}
           isVisible={characterState.id !== null}
           isMinimized={isEchoesMinimized}
           onMinimize={() => setIsEchoesMinimized(!isEchoesMinimized)}

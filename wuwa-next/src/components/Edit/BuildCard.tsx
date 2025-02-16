@@ -72,7 +72,7 @@ export const calculateSets = (echoPanels: EchoPanelState[]): Array<{ element: El
   }, {} as Record<ElementType, number>);
 
   return Object.entries(elementCounts)
-    .filter(([_, count]) => count >= 2)
+    .filter(([, count]) => count >= 2)
     .map(([element, count]) => ({
       element: element as ElementType,
       count: count >= 5 ? 5 : 2
@@ -118,7 +118,7 @@ export const calculateDisplayStats = (
   baseValues: Record<StatName, number>,
   updates: Record<StatName, number>
 ) => Object.entries(values)
-  .filter(([_, value]) => value !== 0)
+  .filter(([, value]) => value !== 0)
   .map(([stat, value]) => ({
     name: stat as StatName,
     value: formatStatValue(stat as StatName, value as number),
@@ -185,7 +185,6 @@ interface BuildCardProps {
   isVisible: boolean;
   isEchoesVisible: boolean;
   onWatermarkChange: (watermark: { username: string; uid: string }) => void;
-  onSaveBuild?: () => void;
 }
 
 export const BuildCard: React.FC<BuildCardProps> = ({
@@ -198,8 +197,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   echoPanels,
   isVisible,
   isEchoesVisible,
-  onWatermarkChange,
-  onSaveBuild
+  onWatermarkChange
 }) => {
   useStatHighlight();
   const [isTabVisible, setIsTabVisible] = useState(false);

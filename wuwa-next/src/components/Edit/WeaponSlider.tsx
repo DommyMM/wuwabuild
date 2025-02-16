@@ -17,7 +17,7 @@ interface WeaponSliderProps {
   onRankChange: (rank: number) => void;
 }
 
-const RankSlider = styled(Slider)(({ theme }) => ({
+const RankSlider = styled(Slider)(() => ({
   color: 'transparent',
   height: 90,
   '& .MuiSlider-thumb': {
@@ -67,7 +67,7 @@ const RankSlider = styled(Slider)(({ theme }) => ({
   }
 }));
 
-const LevelMobileSlider = styled(Slider)(({ theme }) => ({
+const LevelMobileSlider = styled(Slider)(() => ({
   color: 'transparent',
   height: 150, 
   '& .MuiSlider-thumb': {

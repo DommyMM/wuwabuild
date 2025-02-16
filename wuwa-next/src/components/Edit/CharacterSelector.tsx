@@ -7,21 +7,20 @@ import { useModalClose } from '@/hooks/useModalClose';
 import { getAssetPath } from '@/types/paths';
 import '@/styles/CharacterSelector.css';
 import '@/styles/modal.css';
+import Image from 'next/image';
 
 interface CharacterSelectorProps {
   onSelect: (characterId: string | null) => void;
   selectedCharacter: Character | null;
   ocrName?: string;
   onLevelReset?: () => void;
-  initialCharacterId: string | null;
 }
 
 export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ 
   onSelect,
   selectedCharacter,
   ocrName,
-  onLevelReset,
-  initialCharacterId 
+  onLevelReset
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [lastOcrName, setLastOcrName] = useState<string | undefined>();
@@ -55,8 +54,13 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         <div>Select Resonator:</div>
         <div className="select-box" onClick={() => setIsModalOpen(true)}>
           <div className="select-img">
-            <img src={selectedCharacter ? getAssetPath('faces', selectedCharacter).cdn : "/images/Resources/Resonator.png"}
-              alt="Select Character" className="select-img-inner" />
+            <Image 
+              src={selectedCharacter ? getAssetPath('faces', selectedCharacter).cdn : "/images/Resources/Resonator.png"}
+              alt="Select Character" 
+              className="select-img-inner"
+              width={256}
+              height={256}
+            />
           </div>
           {selectedCharacter && (
             <p id="selectedCharacterLabel">
@@ -80,7 +84,13 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
               {characters.map(character => (
                 <div key={character.name} className="character-option" onClick={() => handleCharacterSelect(character)}>
                   <div className="border-wrapper" data-element={character.element}></div>
-                  <img src={getAssetPath('faces', character).cdn} alt={character.name} className="char-img" />
+                  <Image 
+                    src={getAssetPath('faces', character).cdn} 
+                    alt={character.name} 
+                    className="char-img"
+                    width={256}
+                    height={256}
+                  />
                   <div className="char-label">{character.name}</div>
                 </div>
               ))}
