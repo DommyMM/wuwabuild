@@ -1,15 +1,16 @@
 import React from 'react';
-import { getCachedWeapon } from '../../hooks/useWeapons';
-import { cachedCharacters } from '../../hooks/useCharacters';
-import { getAssetPath } from '../../types/paths';
-import { Character } from '../../types/character';
-import { getCVClass } from '../Save/Card';
-import { EchoPanelState } from '../../types/echo';
-import { decompressStats } from '../../hooks/useStats';
-import { getStatPaths } from '../../types/stats';
+import Image from 'next/image';
+import { getCachedWeapon } from '@/hooks/useWeapons';
+import { cachedCharacters } from '@/hooks/useCharacters';
+import { getAssetPath } from '@/types/paths';
+import { Character } from '@/types/character';
+import { getCVClass } from '@/components/Save/Card';
+import { EchoPanelState } from '@/types/echo';
+import { decompressStats } from '@/hooks/useStats';
+import { getStatPaths } from '@/types/stats';
 import { DecompressedEntry, getSetCounts, getHighestDmg, getHighestDmgBonus } from './types';
 import { BuildExpanded } from './BuildExpanded';
-import { StatSort, ActiveSort } from '../../pages/BuildsPage';
+import { StatSort, ActiveSort } from './BuildPageClient';
 
 const BuildOwnerSection: React.FC<{
     username?: string;
@@ -26,10 +27,7 @@ const BuildCharacterSection: React.FC<{
     elementClass: string;
 }> = ({ character, elementClass }) => (
     <div className="build-character">
-        <img src={getAssetPath('face1', character as Character).cdn}
-            alt={character?.name}
-            className={`build-portrait ${elementClass}`}
-        />
+        <Image src={getAssetPath('face1', character as Character).cdn} alt={character?.name ?? ''} className={`build-portrait ${elementClass}`} width={256} height={256} />
         <span className={`char-name ${elementClass}`}>{character?.name}</span>
     </div>
 );
@@ -37,13 +35,10 @@ const BuildCharacterSection: React.FC<{
 export const BuildSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels }) => (
     <div className="build-sets">
         {Object.entries(getSetCounts(echoPanels))
-            .filter(([_, count]) => count >= 2)
+            .filter(([, count]) => count >= 2)
             .map(([element, count]) => (
                 <div key={element} className="build-set-container">
-                    <img src={getAssetPath('sets', element).cdn}
-                        alt={element}
-                        className="build-set"
-                    />
+                    <Image src={getAssetPath('sets', element).cdn} alt={element} className="build-set" width={76} height={76} />
                     <span>{count}</span>
                 </div>
             ))}
@@ -65,10 +60,7 @@ export const IconStat: React.FC<{
         
     return (
         <span className={`build-stat ${isHighlighted ? 'highlighted' : ''}`}>
-            <img src={getStatPaths(statName).cdn}
-                alt={statName}
-                className={`build-stat-icon ${hasElementalColor ? elementType : ''}`}
-            />
+            <Image src={getStatPaths(statName).cdn} alt={statName} className={`build-stat-icon ${hasElementalColor ? elementType : ''}`} width={96} height={96} />
             {formattedValue}
         </span>
     );
@@ -142,10 +134,7 @@ export const BuildEntry: React.FC<{
                 <div className="build-weapon">
                     {weapon && (
                         <>
-                            <img src={getAssetPath('weapons', weapon).cdn}
-                                alt={weapon.name}
-                                className="weapon-portrait"
-                            />
+                            <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="weapon-portrait" width={256} height={256} />
                             <span className="weapon-rank">R{entry.buildState.weaponState.rank}</span>
                         </>
                     )}

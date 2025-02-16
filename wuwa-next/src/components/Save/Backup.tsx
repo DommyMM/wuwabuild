@@ -41,7 +41,7 @@ interface CompressedStat {
     v: number;
 }
 
-interface CompressedEchoPanel {
+export interface CompressedEchoPanel {
     i: string;
     l: number;
     s: number;

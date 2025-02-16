@@ -1,14 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { useSubstats } from '../../hooks/useSub';
-import { EchoPanelState } from '../../types/echo';
-import { getCachedEchoes } from '../../hooks/useEchoes';
-import { getAssetPath } from '../../types/paths';
-import { getStatPaths } from '../../types/stats';
-import { calculateCV } from '../../hooks/useStats';
-import { getEchoCVClass } from '../Save/Card';
+import Image from 'next/image';
+import { useSubstats } from '@/hooks/useSub';
+import { EchoPanelState } from '@/types/echo';
+import { getCachedEchoes } from '@/hooks/useEchoes';
+import { getAssetPath } from '@/types/paths';
+import { getStatPaths } from '@/types/stats';
+import { calculateCV } from '@/hooks/useStats';
+import { getEchoCVClass } from '@/components/Save/Card';
 import { sumEchoSubstats } from './types';
-import { Character } from '../../types/character';
-import '../../styles/BuildExpand.css';
+import { Character } from '@/types/character';
+import '@/styles/BuildExpand.css';
 
 const formatValue = (value: number, isPercentage: boolean = true): string => {
     const fixed = value.toFixed(1);
@@ -27,7 +28,7 @@ const BreakdownStat: React.FC<{
     
     return (
         <div className={`breakdown-stat ${isSelected ? 'selected' : ''} ${isTotal ? 'total' : ''}`} onClick={onToggle}>
-            <img src={paths.cdn} alt={name} className="build-stat-icon" />
+            <Image src={paths.cdn} alt={name} className="build-stat-icon" width={96} height={96} />
             <span>{formatValue(value, isPercentage)}</span>
         </div>
     );
@@ -64,9 +65,11 @@ const EchoMainStat: React.FC<{
     if (!type || !value) return null;
     return (
         <div className="build-echo-mainstat">
-            <img src={getStatPaths(type).cdn}
+            <Image src={getStatPaths(type).cdn}
                 alt={type}
                 className={`build-stat-icon ${type.split(' ')[0].toLowerCase()}`}
+                width={96}
+                height={96}
             />
             <div>{value.toFixed(1)}%</div>
         </div>
@@ -79,9 +82,11 @@ const EchoSubstat: React.FC<{
     isSelected: boolean;
 }> = ({ sub, quality, isSelected }) => (
     <div className={`build-echo-substat ${isSelected ? 'selected' : ''}`}>
-        <img src={getStatPaths(sub.type || '').cdn}
+        <Image src={getStatPaths(sub.type || '').cdn}
             alt={sub.type || ''}
             className="build-stat-icon"
+            width={96}
+            height={96}
         />
         <div className={`build-echo-substat-value ${quality}`}>
             {sub.type && sub.value ? 
@@ -198,13 +203,27 @@ export const BuildEchoRow: React.FC<{
             const panelCV = calculatePanelCV(panel);
             const panelRV = calculateSelectedRV(panel, substatsData, selectedStats);
             
+            const isSingleElement = echo.elements.length === 1;
+            const element = isSingleElement ? echo.elements[0] : panel.selectedElement;
+            const setClass = element ? `set-${element.toLowerCase()}` : 'default';
+            
             return (
-                <div key={i} className="build-echo-slot">
+                <div key={i} className={`build-echo-slot ${setClass}`}>
                     <EchoStatDisplay cv={panelCV} rv={panelRV} selectedCount={selectedStats.size} />
                     <div className="build-echo-info">
-                        <img src={getAssetPath('echoes', echo).cdn}
+                        {element && (
+                            <Image src={getAssetPath('sets', element).cdn}
+                                alt={`${element} Set Icon`}
+                                className="build-set-icon"
+                                width={76}
+                                height={76}
+                            />
+                        )}
+                        <Image src={getAssetPath('echoes', echo).cdn}
                             alt={echo.name}
                             className="build-echo-icon"
+                            width={256}
+                            height={256}
                         />
                         <EchoMainStat type={panel.stats.mainStat.type} value={panel.stats.mainStat.value} />
                     </div>

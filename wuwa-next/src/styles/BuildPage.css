@@ -320,6 +320,7 @@
 
 .build-portrait {
     width: 45px;
+    height: auto;
     object-fit: cover;
 }
 
@@ -405,6 +406,7 @@
 
 .weapon-portrait {
     width: 35px;
+    height: auto;
     object-fit: contain;
 }
 
@@ -429,8 +431,8 @@
 }
 
 .build-set {
-    aspect-ratio: 1;
     width: 30px;
+    height: auto;
 }
 
 .build-set-container {
@@ -505,6 +507,7 @@
 
 .build-stat-icon {
     width: 24px;
+    height: auto;
     transition: all 0.2s ease;
 }
 
