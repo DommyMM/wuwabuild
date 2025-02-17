@@ -1,8 +1,0 @@
-{
-  "/page": "app/page.js",
-  "/(routes)/import/page": "app/(routes)/import/page.js",
-  "/(routes)/builds/page": "app/(routes)/builds/page.js",
-  "/(routes)/leaderboards/page": "app/(routes)/leaderboards/page.js",
-  "/(routes)/edit/page": "app/(routes)/edit/page.js",
-  "/(routes)/leaderboards/[characterId]/page": "app/(routes)/leaderboards/[characterId]/page.js"
-}
