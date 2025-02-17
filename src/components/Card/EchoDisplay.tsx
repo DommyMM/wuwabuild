@@ -212,33 +212,33 @@ export const EchoDisplay = function EchoDisplay({
 }: EchoDisplayProps) {
   if (!isVisible) return null;
 
-  const leftElement = leftStates.some(state => state !== 'none') ? 
-    (echoPanels.find(panel => {
+  const getConnectionElement = (index: number, states: Array<'start' | 'continue' | 'end' | 'none'>): string => {
+    if (states[index] === 'none') return '';
+    if (states[index] === 'start') {
+      const panel = echoPanels[index];
       const echo = getCachedEchoes(panel.id);
-      return panel.selectedElement || echo?.elements[0];
-    })?.selectedElement || 
-    getCachedEchoes(echoPanels[0]?.id)?.elements[0])?.toLowerCase() : '';
-  
-  const rightElement = rightStates.some(state => state !== 'none') ? 
-    (echoPanels.find((panel, i) => {
-      if (rightStates[i] !== 'none') {
+      return (panel.selectedElement || echo?.elements[0] || '').toLowerCase();
+    }
+    for (let i = index - 1; i >= 0; i--) {
+      if (states[i] === 'start') {
+        const panel = echoPanels[i];
         const echo = getCachedEchoes(panel.id);
-        return panel.selectedElement || echo?.elements[0];
+        return (panel.selectedElement || echo?.elements[0] || '').toLowerCase();
       }
-      return false;
-    })?.selectedElement || 
-    getCachedEchoes(echoPanels[0]?.id)?.elements[0])?.toLowerCase() : '';
-
+    }
+    
+    return '';
+  };
   return (
     <div className="echo-display">
       {echoPanels.map((panel, index) => (
         <div key={index} className="row-container">
-          <div className={`connector-segment left ${leftStates[index]} ${leftElement}`} />
+          <div className={`connector-segment left ${leftStates[index]} ${getConnectionElement(index, leftStates)}`} />
           <EchoRow 
             panel={panel} 
             showRollQuality={showRollQuality} 
           />
-          <div className={`connector-segment right ${rightStates[index]} ${rightElement}`} />
+          <div className={`connector-segment right ${rightStates[index]} ${getConnectionElement(index, rightStates)}`} />
         </div>
       ))}
       <SetSection sets={sets} cv={cv} echoPanels={echoPanels} />

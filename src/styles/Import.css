@@ -101,4 +101,10 @@
         width: 95%;
         padding: 0;
     }
+    .fortes-section {
+        padding: 12px 6px;
+    }
+    .forte {
+        padding: 4px;
+    }
 }
