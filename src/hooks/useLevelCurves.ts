@@ -1,5 +1,7 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
-import { Weapon } from '../types/weapon';
+import { Weapon } from '@/types/weapon';
 
 interface LevelCurves {
   ATK_CURVE: { [key: string]: number };

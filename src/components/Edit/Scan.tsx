@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+'use client';
+
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { ImagePreview, ImageUploader } from './ImageComponents';
-import { useOCRContext } from '../../contexts/OCRContext';
-import { OCRResponse, OCRAnalysis, CharacterAnalysis, WeaponAnalysis } from '../../types/ocr';
-import { cachedCharacters } from '../../hooks/useCharacters';
+import { useOCRContext } from '@/providers';
+import type { OCRResponse, OCRAnalysis, CharacterAnalysis, WeaponAnalysis } from '@/types/ocr';
+import { cachedCharacters } from '@/hooks/useCharacters';
 import { performOCR } from './OCR';
-import '../../styles/Scan.css';
+import '@/styles/Scan.css';
 
 interface ImageData {
   id: string;
@@ -73,7 +75,7 @@ const getAnalysisDetails = (analysis?: OCRAnalysis): string | undefined => {
   }
 };
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 interface OCRError extends Error {
   status?: number;
@@ -104,6 +106,7 @@ const fetchOCRResult = async (base64: string, type: string): Promise<OCRResponse
     return await response.json();
   } catch (e) {
     const error = e as OCRError;
+    console.error('OCR request failed:', error);
     return {
       success: false,
       error: error.message || 'Request failed'
@@ -119,7 +122,7 @@ export const wakeupServer = async () => {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error) {
+  } catch {
   }
 };
 
@@ -311,7 +314,11 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
           setImages((prev) =>
             prev.map((p) =>
               p.id === img.id
-                ? { ...p, error: 'Processing failed', status: 'error' }
+                ? { 
+                    ...p, 
+                    error: error instanceof Error ? error.message : 'Processing failed', 
+                    status: 'error' 
+                  }
                 : p
             )
           );
@@ -408,7 +415,6 @@ export const Scan: React.FC<ScanProps> = ({ onOCRComplete, currentCharacterType 
             category={image.category}
             details={image.details}
             status={image.status}
-            error={!!image.error}
             errorMessage={image.error}
             onDelete={() => deleteImage(image.id)}
           />

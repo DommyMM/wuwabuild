@@ -1,5 +1,7 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
-import '../../styles/DailyNotification.css';
+import '@/styles/DailyNotification.css';
 
 export const DailyNotification: React.FC = () => {
     const [isVisible, setIsVisible] = useState(false);

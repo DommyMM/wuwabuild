@@ -1,6 +1,6 @@
 import React from 'react';
 import { SortAsc } from 'lucide-react';
-import { getDisplayName } from '../../pages/BuildsPage';
+import { getDisplayName } from '@/components/Build/BuildPageClient';
 
 const SortButton: React.FC<{
     direction: 'asc' | 'desc';
@@ -21,8 +21,6 @@ interface LBSortDropdownProps {
     placeholder?: string;
     isActive: boolean;
     position?: 'left' | 'center' | 'right';
-    hoveredSection?: number | null;
-    lastHoveredSection?: number | null;
     onHoverSection?: (section: number | null) => void;
 }
 
@@ -35,8 +33,6 @@ export const LBSortDropdown: React.FC<LBSortDropdownProps> = ({
     placeholder = 'Sort By',
     isActive,
     position,
-    hoveredSection,
-    lastHoveredSection,
     onHoverSection
 }) => {
     const isStatsDropdown = placeholder === 'Stats';

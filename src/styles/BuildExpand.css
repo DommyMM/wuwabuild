@@ -17,7 +17,7 @@
     }
     to {
         opacity: 1;
-        height: 250px;
+        height: 260px;
     }
 }
 
@@ -80,6 +80,7 @@
 
 .build-echo-icon {
     width: 130px;
+    height: auto;
     border-radius: 4px;
     object-fit: cover;
     mask: linear-gradient(to right, black 70%, transparent 100%);

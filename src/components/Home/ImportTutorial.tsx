@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
+'use client';
+import React, { useState, useRef, useLayoutEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { handleTouchStart, handleTouchMove, handleTouchEnd, getStepStyles } from './ScanTutorial';
-import '../../styles/ImportTutorial.css';
+import '@/styles/ImportTutorial.css';
 
 const IMPORT_SCREENSHOTS = [
     { 
@@ -30,6 +32,26 @@ const IMPORT_SCREENSHOTS = [
 export const ImportTutorial: React.FC = () => {
     const [currentStep, setCurrentStep] = useState(0);
     const touchStartRef = useRef<number>(0);
+    const [isWideScreen, setIsWideScreen] = useState(true);
+
+    const checkScreenSize = useCallback(() => {
+        if (typeof window === 'undefined') return true;
+        return window.innerWidth > 1200;
+    }, []);
+
+    useLayoutEffect(() => {
+        setIsWideScreen(checkScreenSize());
+        
+        const handleResize = () => {
+            const newIsWideScreen = checkScreenSize();
+            if (newIsWideScreen !== isWideScreen) {
+                setIsWideScreen(newIsWideScreen);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [checkScreenSize, isWideScreen]);
 
     return (
         <div className="import-tutorial">
@@ -37,28 +59,35 @@ export const ImportTutorial: React.FC = () => {
                 <h3>Import Guide</h3>
                 <div className="import-steps"
                     onTouchStart={handleTouchStart(touchStartRef)}
-                    onTouchMove={handleTouchMove(touchStartRef, currentStep, 2)}
-                    onTouchEnd={handleTouchEnd(touchStartRef, currentStep, 2, setCurrentStep)}
+                    onTouchMove={handleTouchMove(touchStartRef, currentStep, 2, !isWideScreen)}
+                    onTouchEnd={handleTouchEnd(touchStartRef, currentStep, 2, setCurrentStep, !isWideScreen)}
                     style={{ 
                         touchAction: 'pan-y pinch-zoom',
-                        position: window.innerWidth <= 1200 ? 'relative' : 'static',
-                        height: window.innerWidth <= 1200 ? '400px' : 'auto',
-                        overflow: window.innerWidth <= 1200 ? 'hidden' : 'visible'
+                        position: !isWideScreen ? 'relative' : 'static',
+                        height: !isWideScreen ? '400px' : 'auto',
+                        overflow: !isWideScreen ? 'hidden' : 'visible'
                     }}
                 >
                     {IMPORT_SCREENSHOTS.map((step, index) => (
                         <div key={index} 
                             className="import-step" 
-                            style={getStepStyles(index, currentStep)}
+                            style={getStepStyles(index, currentStep, !isWideScreen)}
                         >
                             <div className="import-number">{index + 1}</div>
                             <h4>{step.title}</h4>
-                            <img src={step.src} alt={step.title} />
+                            <Image 
+                                src={step.src}
+                                alt={step.title}
+                                width={1920}
+                                height={1080}
+                                quality={90}
+                                className="import-step-img"
+                            />
                             <p>{step.description}</p>
                         </div>
                     ))}
                 </div>
-                {window.innerWidth <= 1200 && (
+                {!isWideScreen && (
                     <div className="swipe-dots">
                         {IMPORT_SCREENSHOTS.map((_, i) => (
                             <div 
@@ -73,7 +102,13 @@ export const ImportTutorial: React.FC = () => {
                         <p>Bot Tutorial:</p>
                         <ul>
                             <li>Go to the <a href="https://wutheringwaves-discord.kurogames-global.com/?lang=en">Kuro website</a> and link both Discord and Kuro</li>
-                            <img src="/images/bind-kuro.webp" alt="Kuro website" className="bot-image"/>
+                            <Image 
+                                src="/images/bind-kuro.webp"
+                                alt="Kuro website"
+                                width={1920}
+                                height={703}
+                                className="bot-image"
+                            />
                             <li>Visit the Discord <a href="https://discord.com/channels/963760374543450182/1323199091072569479"> channel</a> and use /create on the bot</li>
                         </ul>
                     </div>
@@ -81,7 +116,7 @@ export const ImportTutorial: React.FC = () => {
                         <p>Important Notes:</p>
                         <ul>
                             <li>Use the exact image the bot generates</li>
-                            <li>The scanning isn't always 100% accurate</li>
+                            <li>The scanning isn&apos;t always 100% accurate</li>
                             <li>You can adjust any incorrectly scanned data</li>
                             <li>Save to LB will save builds to global pool</li>
                             <li>Currently supports English language builds only</li>

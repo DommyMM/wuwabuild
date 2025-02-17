@@ -1,6 +1,5 @@
-import { CharacterState, WatermarkState } from '../pages/EditPage';
-import { WeaponState } from '../types/weapon';
-import { EchoPanelState } from '../types/echo';
+import { WeaponState } from './weapon';
+import { EchoPanelState } from './echo';
 
 export interface SavedEchoData {
     id: string;
@@ -30,4 +29,15 @@ export interface SavedBuilds {
     builds: SavedBuild[];
     savedEchoes?: SavedEchoData[];
     version: string;
+}
+
+export interface CharacterState {
+    id: string | null;
+    level: string;
+    element?: string;
+}
+
+export interface WatermarkState {
+    username: string;
+    uid: string;
 }

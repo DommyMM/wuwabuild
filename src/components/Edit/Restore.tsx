@@ -1,5 +1,7 @@
+'use client';
+
 import React, { useEffect } from 'react';
-import '../../styles/Restore.css';
+import '@/styles/Restore.css';
 
 interface RestorePromptProps {
     onRestore: () => void;

@@ -322,7 +322,6 @@
 }
 
 #sequenceImage {
-    position: absolute;
     top: calc(min(1.3vh, 10px));
     right: calc(min(1.3vh, 10px));
     object-fit: contain;

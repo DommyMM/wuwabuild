@@ -533,6 +533,7 @@ input:-webkit-autofill {
 
 .element-icon, .role-icon {
     height: 50px;
+    width: auto;
 }
 
 .simplified-forte {
@@ -692,6 +693,7 @@ input:-webkit-autofill {
     position: absolute;
     bottom: 1%;
     width: 42%;
+    height: auto;
     left: 45.25%;
     transform: translate(-50%, 30%);
     z-index: 0.5;
@@ -715,6 +717,7 @@ input:-webkit-autofill {
 
 .star-icon {
     width: calc((100% - 8px)/5);
+    height: auto;
     object-fit: contain;
     filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
 }
@@ -727,6 +730,7 @@ input:-webkit-autofill {
 
 .weapon-icon {
     width: 44.5%;
+    height: auto;
     object-fit: contain;
     background: rgba(0, 0, 0, 0.1);
     border-radius: 8px; 
@@ -738,7 +742,6 @@ input:-webkit-autofill {
     display: flex;
     flex-direction: column;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-    align-content: center;
 }
 
 .weapon-stat.weapon-rank, .weapon-stat.weapon-level {

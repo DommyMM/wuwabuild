@@ -1,13 +1,16 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Character } from '../../types/character';
-import { Weapon, WeaponState } from '../../types/weapon';
-import { getCachedWeapon, weaponCache } from '../../hooks/useWeapons';
-import { useModalClose } from '../../hooks/useModalClose';
+'use client';
+
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { Character } from '@/types/character';
+import { Weapon, WeaponState } from '@/types/weapon';
+import { getCachedWeapon, weaponCache } from '@/hooks/useWeapons';
+import { useModalClose } from '@/hooks/useModalClose';
 import { WeaponSlider } from './WeaponSlider';
-import { getAssetPath } from '../../types/paths';
-import '../../styles/WeaponSelection.css';
-import '../../styles/modal.css';
-import '../../styles/WeaponSlider.css';
+import { getAssetPath } from '@/types/paths';
+import '@/styles/WeaponSelection.css';
+import '@/styles/modal.css';
+import '@/styles/WeaponSlider.css';
+import Image from 'next/image';
 
 interface WeaponSelectionProps {
   selectedCharacter: Character;
@@ -93,11 +96,9 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
       <div className="weapon-selection">
         <div className="weapon-choice">Weapon</div>
         <div className="weapon-box" id="selectWeapon" onClick={() => setIsModalOpen(true)}>
-          <img id="weaponImg"
-            src={selectedWeapon ? getAssetPath('weapons', selectedWeapon).cdn
-              : 'images/Resources/Weapon.png'
-            }
+          <Image id="weaponImg" src={selectedWeapon ? getAssetPath('weapons', selectedWeapon).cdn : '/images/Resources/Weapon.png' }
             alt={selectedWeapon?.name || 'Select Weapon'}
+            width={256} height={256}
             className="select-img"
             style={selectedWeapon ? { 
               backgroundColor: rarityColors[selectedWeapon.rarity],
@@ -141,8 +142,10 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
                     setIsModalOpen(false);
                   }}
                 >
-                  <img src={getAssetPath('weapons', weapon).cdn}
+                  <Image src={getAssetPath('weapons', weapon).cdn}
                     alt={weapon.name}
+                    width={256}
+                    height={256}
                     className="weapon-img"
                   />
                   <div className="weapon-name">{weapon.name}</div>

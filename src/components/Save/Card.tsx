@@ -3,9 +3,11 @@ import { EchoPanelState, ELEMENT_SETS } from '../../types/echo';
 import { getCachedEchoes } from '../../hooks/useEchoes';
 import { StatName, getStatPaths } from '../../types/stats';
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { getAssetPath } from '../../types/paths';
-import { useSubstats } from '../../hooks/useSub';
-import '../../styles/PreviewEcho.css';
+import { useSubstats } from '@/hooks/useSub';
+import '@/styles/PreviewEcho.css';
+import '@/styles/menu.css';
 
 export interface ExpandedStyle {
     top: number;
@@ -34,7 +36,7 @@ export const getSetInfo = (echoPanels: EchoPanelState[]) => {
     }, {} as Record<string, number>);
 
     return Object.entries(setCounts)
-        .filter(([_, count]) => count >= 2)
+        .filter(([, count]) => count >= 2)
         .map(([element, count], index, array) => (
             <React.Fragment key={element}>
                 <div className={`save-sets ${element.toLowerCase()}`}>
@@ -91,10 +93,7 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
     return (
         <div className="preview-echo">
             <div className="echo-circle" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-                <img  src={getAssetPath('echoes', echo, false, panel.phantom).cdn}
-                    alt={echo.name}
-                    className={`echo-icon ${panel.selectedElement?.toLowerCase() || ''}`}
-                />
+                <Image src={getAssetPath('echoes', echo, false, panel.phantom).cdn} alt={echo.name} className={`echo-icon ${panel.selectedElement?.toLowerCase() || ''}`} width={256} height={256} />
                 <div className={`echo-details ${isHovered ? 'visible' : ''}`}>
                     <div className="echo-header">
                         <h4>{echo.name}</h4>
@@ -106,10 +105,7 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
                     {(panel.stats.mainStat.type && panel.stats.mainStat.value) && (
                         <div className="main-stat-row">
                             <div className="stat-name">
-                                <img src={getStatPaths(panel.stats.mainStat.type as StatName).cdn}
-                                    alt={String(panel.stats.mainStat.type)}
-                                    className="save-stat-icon"
-                                />
+                                <Image src={getStatPaths(panel.stats.mainStat.type as StatName).cdn} alt={String(panel.stats.mainStat.type)} className="save-stat-icon" width={96} height={96} />
                                 <span>{getDisplayName(panel.stats.mainStat.type as StatName).replace('%', '')}</span>
                             </div>
                             <span>{panel.stats.mainStat.value}%</span>
@@ -117,18 +113,14 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
                     )}
                     <div className="echo-stats">
                         {panel.stats.subStats
-                            .filter((stat): stat is { type: StatName; value: number } => 
-                                stat.type !== null).map((stat, index) => {
+                            .filter((stat): stat is { type: StatName; value: number } => stat.type !== null)
+                            .map((stat, index) => {
                                 const flatStats = ['HP', 'ATK', 'DEF'];
                                 const isPercentage = !flatStats.includes(stat.type);
-                                
                                 return (
                                     <div key={index} className="stat-row">
                                         <div className="stat-name">
-                                            <img src={getStatPaths(stat.type).cdn} 
-                                                alt={String(stat.type)} 
-                                                className="save-stat-icon"
-                                            />
+                                            <Image src={getStatPaths(stat.type).cdn} alt={String(stat.type)} className="save-stat-icon" width={96} height={96} />
                                             <span>{getDisplayName(stat.type).replace(' DMG Bonus', '').replace('%', '')}</span>
                                         </div>
                                         <span className={`sub ${getQualityClass(stat.value, stat.type)}`}> {stat.value}{isPercentage ? '%' : ''} </span>
@@ -147,7 +139,6 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
 };
 
 interface StatsMenuProps {
-    weapon: any;
     echoPanels: EchoPanelState[];
 }
 
@@ -156,7 +147,7 @@ interface StatValues {
     percent: number;
 }
 
-export const StatsMenu: React.FC<StatsMenuProps> = ({ weapon, echoPanels }) => {
+export const StatsMenu: React.FC<StatsMenuProps> = ({ echoPanels }) => {
     const [loading, setLoading] = useState(true);
     const [baseStats, setBaseStats] = useState<Map<StatName, StatValues>>(new Map());
     const [otherStats, setOtherStats] = useState<Map<StatName, number>>(new Map());

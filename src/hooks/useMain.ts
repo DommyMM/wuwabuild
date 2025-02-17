@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 
 let cachedMainStats: MainStatData | null = null;

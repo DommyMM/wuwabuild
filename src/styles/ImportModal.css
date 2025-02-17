@@ -153,7 +153,7 @@
 
 .echo-view img {
     width: 60%;
-    aspect-ratio: 1;
+    height: auto;
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.4);
     padding: 4px;

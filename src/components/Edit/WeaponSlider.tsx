@@ -1,6 +1,9 @@
+'use client';
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Slider from '@mui/material/Slider';
 import { styled } from '@mui/material/styles';
+import '@/styles/WeaponSlider.css';
 
 const CIRCLE_RADIUS = 81;
 const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
@@ -14,7 +17,7 @@ interface WeaponSliderProps {
   onRankChange: (rank: number) => void;
 }
 
-const RankSlider = styled(Slider)(({ theme }) => ({
+const RankSlider = styled(Slider)(() => ({
   color: 'transparent',
   height: 90,
   '& .MuiSlider-thumb': {
@@ -64,7 +67,7 @@ const RankSlider = styled(Slider)(({ theme }) => ({
   }
 }));
 
-const LevelMobileSlider = styled(Slider)(({ theme }) => ({
+const LevelMobileSlider = styled(Slider)(() => ({
   color: 'transparent',
   height: 150, 
   '& .MuiSlider-thumb': {

@@ -362,6 +362,7 @@
 .set {
     margin: 3px 0;
     height: 28px;
+    width: auto;
 }
 
 .main-stat-wrapper {
@@ -374,6 +375,7 @@
 
 .main-stat-icon {
     height: 26px;
+    width: auto;
     border-radius: 8px 8px 0 0;
 }
 

@@ -1,5 +1,7 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
-import { Weapon, WeaponType, WeaponState } from '../types/weapon';
+import { Weapon, WeaponType, WeaponState } from '@/types/weapon';
 
 interface UseWeaponsProps {
   weaponType: WeaponType;

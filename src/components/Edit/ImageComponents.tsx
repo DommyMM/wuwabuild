@@ -1,11 +1,13 @@
+'use client';
+
 import React, { useCallback, useState } from 'react';
+import Image from 'next/image';
 
 interface ImagePreviewProps {
   src: string;
   category?: string;
   details?: string;
   isLoading?: boolean;
-  error?: boolean;
   errorMessage?: string;
   status: 'uploading' | 'ready' | 'processing' | 'queued' | 'complete' | 'error';
   onDelete?: () => void;
@@ -17,7 +19,7 @@ interface ImageUploaderProps {
 }
 
 export const ImagePreview: React.FC<ImagePreviewProps> = ({
-  src, category, details, status, error, errorMessage, onDelete
+  src, category, details, status, errorMessage, onDelete
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -66,16 +68,14 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     <>
       <div className="image-container">
         {onDelete && (
-          <button className="delete-button"
-            onClick={onDelete}
-          >
-            ×
-          </button>
+          <button className="delete-button" onClick={onDelete}>×</button>
         )}
-        <img 
+        <Image 
           src={src} 
           className="preview-thumbnail"
           alt="Preview" 
+          width={1920}
+          height={1080}
           onClick={() => setIsFullscreen(true)}
         />
         <div className={`category-label ${status}`}>
@@ -83,14 +83,13 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
         </div>
       </div>
       {isFullscreen && (
-        <div 
-          className="fullscreen-overlay"
-          onClick={() => setIsFullscreen(false)}
-        >
-          <img 
+        <div className="fullscreen-overlay" onClick={() => setIsFullscreen(false)}>
+          <Image 
             src={src} 
             className="modal-image"
             alt="Preview"
+            width={1920}
+            height={1080}
             onClick={e => e.stopPropagation()}
           />
         </div>

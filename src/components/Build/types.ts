@@ -1,20 +1,27 @@
-import { SavedState } from '../../types/SavedState';
-import { CompressedStats } from '../../hooks/useStats';
-import { EchoPanelState } from '../../types/echo';
-import { getCachedEchoes } from '../../hooks/useEchoes';
-import { STAT_ORDER } from '../../types/stats';
+import { SavedState, WatermarkState } from '@/types/SavedState';
+import { CompressedStats } from '@/hooks/useStats';
+import { EchoPanelState } from '@/types/echo';
+import { getCachedEchoes } from '@/hooks/useEchoes';
+import { STAT_ORDER } from '@/types/stats';
+import { CompressedEchoPanel } from '@/components/Save/Backup';
 
 export type Sequence = 's0' | 's1' | 's2' | 's3' | 's4' | 's5' | 's6';
 
 export interface CompressedEntry {
     buildState: {
         c: { i: string; l: string; e: string; };
-        w: { i: string; l: number; r: number; };
-        e: any[];
+        w: { i: string; l: string; r: number; };
+        e: CompressedEchoPanel[];
         q: number;
-        n: any;
-        f: any;
-        m: any;
+        n: Record<string, Record<string, boolean>>;
+        f: {
+            na: number;
+            sk: number;
+            ci: number;
+            li: number;
+            in: number;
+        };
+        m: WatermarkState;
     };
     stats: CompressedStats;
     cv: number;

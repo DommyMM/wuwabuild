@@ -73,6 +73,26 @@ User-friendly, intuitive and aesthetic interface for creating and customizing ch
 - Backup/restore system
 - Build preview cards
 
+### Build Display
+- Interactive build showcase system
+- Detailed stat breakdowns
+- Move damage calculations
+- Sequence effect support
+- Weapon variant comparisons
+- Share and export options
+
+### Leaderboard System
+- Real-time damage rankings
+- Character-specific leaderboards
+- Multiple weapon variant support
+- Advanced sorting options:
+  - Damage output
+  - Crit values
+  - Character-specific stats
+- Build comparison tools
+- Sequence effect tracking
+- Pagination support
+
 ## Technical Stack
 - React/TypeScript frontend
 - Custom hooks and context providers
@@ -81,7 +101,7 @@ User-friendly, intuitive and aesthetic interface for creating and customizing ch
 
 ## Environment
 ```env
-REACT_APP_API_URL= # OCR API endpoint (defaults to https://ocr.wuwabuilds.moe)
+NEXT_PUBLIC_API_URL= # OCR API endpoint (defaults to https://ocr.wuwabuilds.moe)
 ```
 
 ## Credits

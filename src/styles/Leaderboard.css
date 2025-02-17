@@ -74,6 +74,7 @@
 
 .preview-icon {
     width: 42.5px;
+    height: auto;
     border-radius: 4px;
     object-fit: cover;
 }
@@ -89,6 +90,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    letter-spacing: 0.5px;
 }
 
 .header-content {
@@ -120,6 +122,7 @@
 
 .team-portrait {
     width: 64px;
+    height: auto;
     border-radius: 50%;
     border: 2px solid #a69662;
 }
@@ -185,6 +188,9 @@
     background: rgba(26, 26, 26, 0.6);
     border-radius: 8px;
     border: 1px solid #333;
+}
+
+.build-header-content {
     position: relative;
 }
 
@@ -290,11 +296,11 @@
     position: absolute;
     background: none;
     border: none;
-    padding: 8px;
+    padding: 0 8px;
     color: #999;
     cursor: pointer;
-    bottom: 2.5%;
-    right: 2.5%;
+    bottom: 0;
+    right: 0;
     transition: all 0.2s ease;
 }
 
@@ -314,7 +320,7 @@
     margin-top: 16px;
     padding-top: 12px;
     border-top: 1px solid rgba(166, 150, 98, 0.2);
-    animation: slideDown 0.2s ease-out;
+    animation: details 0.2s ease-out;
 }
 
 .details-section {
@@ -367,7 +373,7 @@
     color: #a69662;
 }
 
-@keyframes slideDown {
+@keyframes details {
     from {
         opacity: 0;
         transform: translateY(-10px);

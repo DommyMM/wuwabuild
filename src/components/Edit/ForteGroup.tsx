@@ -1,13 +1,15 @@
+'use client';
+
 import React from 'react';
-import { Character } from '../../types/character';
-import { forteImagePaths } from '../../types/node';
-import type { ForteImagePaths, SkillBranch } from '../../types/node';
-import { getAssetPath } from '../../types/paths';
-import '../../styles/forte.css';
+import Image from 'next/image';
+import { Character } from '@/types/character';
+import { forteImagePaths } from '@/types/node';
+import type { ForteImagePaths, SkillBranch } from '@/types/node';
+import { getAssetPath } from '@/types/paths';
+import '@/styles/forte.css';
 
 interface ForteGroupProps {
   selectedCharacter: Character;
-  displayName: string;
   elementValue: string;
   nodeStates: Record<string, Record<string, boolean>>;
   levels: Record<string, number>;
@@ -49,10 +51,13 @@ const GlowingNode: React.FC<GlowingNodeProps> = ({
       data-skill={skillKey}
       onClick={() => onChange(treeKey, 'top')}
     >
-      <img 
+      <Image 
         className="node-image"
         src={imagePath}
         alt={altText}
+        width={128}
+        height={128}
+        priority
       />
     </div>
   );
@@ -63,7 +68,6 @@ interface SkillBranchComponentProps {
   skillKey: keyof ForteImagePaths['imagePaths'];
   treeKey: string;
   character: Character;
-  displayName: string;
   elementValue: string;
   isActive: { top: boolean; middle: boolean };
   level: number;
@@ -76,7 +80,6 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
   skillKey,
   treeKey,
   character,
-  displayName,
   elementValue,
   isActive,
   level,
@@ -114,9 +117,12 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
 
       <div className="bottom-wrapper">
         <div className="forte-slot" data-skill={skillKey}>
-          <img className="skill-image"
+          <Image 
+            className="skill-image"
             src={forteImagePaths.imagePaths[skillKey](character)}
             alt={skillName}
+            width={128}
+            height={128}
           />
           <div className="node-content" />
         </div>
@@ -140,7 +146,6 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
 
 export const ForteGroup: React.FC<ForteGroupProps> = ({
   selectedCharacter,
-  displayName,
   elementValue,
   nodeStates,
   levels,
@@ -183,7 +188,6 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
             key={branch.skillKey}
             {...branch}
             character={selectedCharacter}
-            displayName={displayName}
             elementValue={elementValue}
             isActive={{
               top: nodeStates[branch.treeKey]?.top || false,
@@ -196,11 +200,13 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
         ))}
       </div>
       <div className="max-wrapper">
-        <img
+        <Image
           id="maxButton"
           className="max-frame"
-          src={`images/Resources/Max${clickCount || ''}.png`} 
+          src={`/images/Resources/Max${clickCount || ''}.png`}
           alt="Max Frame"
+          width={461}
+          height={274}
           title="First click: Set all levels to 10&#10;Second click: Activate all nodes&#10;Third click: Reset everything"
           onClick={onMaxClick}
         />

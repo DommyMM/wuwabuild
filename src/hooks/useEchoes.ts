@@ -1,5 +1,7 @@
+'use client';
+
 import { useState, useEffect, useMemo } from 'react';
-import { Echo, COST_SECTIONS } from '../types/echo';
+import { Echo, COST_SECTIONS } from '@/types/echo';
 
 export let cachedEchoes: Echo[] | null = null;
 export let loadError: string | null = null;

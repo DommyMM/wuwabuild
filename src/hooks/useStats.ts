@@ -1,12 +1,14 @@
+'use client';
+
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { StatName, BaseStatName, getPercentVariant } from '../types/stats';
-import { Character } from '../types/character';
-import { Weapon, ScaledStats } from '../types/weapon';
-import { useCharacterCurves } from './useCharacterCurves';
-import { EchoPanelState, ELEMENT_SETS, ElementType, ECHO_BONUSES } from '../types/echo';
-import { getCachedEchoes } from './useEchoes';
-import { STAT_MAP } from '../components/Save/Backup';
-import { CharacterState } from '../pages/EditPage';
+import { StatName, BaseStatName, getPercentVariant } from '@/types/stats';
+import { Character } from '@/types/character';
+import { Weapon, ScaledStats } from '@/types/weapon';
+import { useCharacterCurves } from '@/hooks/useCharacterCurves';
+import { EchoPanelState, ELEMENT_SETS, ElementType, ECHO_BONUSES } from '@/types/echo';
+import { getCachedEchoes } from '@/hooks/useEchoes';
+import { STAT_MAP } from '@/components/Save/Backup';
+import { CharacterState } from '@/types/SavedState';
 
 export interface StatsData {
   stats: StatName[];
@@ -181,13 +183,13 @@ export interface CompressedStats {
 
 export const compressStats = (state: StatState): CompressedStats => ({
     v: Object.entries(state.values)
-        .filter(([_, v]) => v !== 0)
+        .filter(([, v]) => v !== 0)
         .reduce((acc, [k, v]) => ({
             ...acc,
             [STAT_MAP[k as keyof typeof STAT_MAP] || k]: v
         }), {}),
     u: Object.entries(state.updates)
-        .filter(([_, v]) => v !== 0)
+        .filter(([, v]) => v !== 0)
         .reduce((acc, [k, v]) => ({
             ...acc,
             [STAT_MAP[k as keyof typeof STAT_MAP] || k]: v
@@ -425,7 +427,7 @@ export const useStats = ({
       try {
         const data = await getStatsData();
         setStatsData(data);
-      } catch (err) {
+      } catch {
         setError('Failed to load stats');
       } finally {
         setLoading(false);
@@ -471,7 +473,7 @@ export const useStats = ({
       }
 
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError('Error calculating stats');
       setLoading(false);
     }

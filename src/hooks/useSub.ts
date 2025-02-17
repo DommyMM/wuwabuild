@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 
 let cachedSubstatsData: SubstatData | null = null;

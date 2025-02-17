@@ -1,4 +1,8 @@
+'use client';
+
 import React from 'react';
+import Image from 'next/image';
+import '@/styles/SequenceGroup.css';
 
 interface SequenceGroupProps {
   characterName: string;
@@ -22,10 +26,12 @@ export const SequenceGroup: React.FC<SequenceGroupProps> = ({
 
   return (
     <div className="sequence-group">
-      <img 
+      <Image 
         id="sequenceImage"
-        src={`images/Wavebands/${characterName}.png`}
+        src={`/images/Wavebands/${characterName}.png`}
         alt=""
+        width={256}
+        height={256}
       />
       <div className="sequence-label">Sequence</div>
       {[1, 2, 3, 4, 5, 6].map((num) => (

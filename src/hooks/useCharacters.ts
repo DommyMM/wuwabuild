@@ -1,5 +1,7 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { Character, validateCharacter } from '../types/character';
+import { Character, validateCharacter } from '@/types/character';
 
 export let cachedCharacters: Character[] | null = null;
 export let loadError: string | null = null;
@@ -8,6 +10,7 @@ export const useCharacters = () => {
   const [characters, setCharacters] = useState<Character[]>(cachedCharacters || []);
   const [loading, setLoading] = useState(!cachedCharacters);
   const [error, setError] = useState<string | null>(loadError);
+
   useEffect(() => {
     if (cachedCharacters) return;
     const loadCharacters = async () => {
@@ -31,5 +34,6 @@ export const useCharacters = () => {
     };
     loadCharacters();
   }, []);
+
   return { characters, loading, error };
 };

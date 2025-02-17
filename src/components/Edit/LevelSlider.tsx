@@ -1,4 +1,7 @@
-import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+'use client';
+
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import Image from 'next/image';
 
 interface LevelSliderProps {
   value: number;
@@ -43,12 +46,9 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
   };
 
   const snapToClosestValue = useCallback((value: number) => {
-    let closest = snapValues[0];
-    for (let snap of snapValues) {
-      if (Math.abs(snap - value) < Math.abs(closest - value)) {
-        closest = snap;
-      }
-    }
+    const closest = snapValues.reduce((closest, current) => 
+      Math.abs(current - value) < Math.abs(closest - value) ? current : closest
+    , snapValues[0]);
     return closest;
   }, [snapValues]);
 
@@ -121,10 +121,12 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
       </div>
       <div className="star-container">
         <div className="star-background">
-          <img 
-            src="images/Resources/Level.png"
+          <Image src="/images/Resources/Level.png"
             alt="Star Background"
+            width={710}
+            height={65}
             className="star-background-image"
+            priority
           />
           <div className="diamond-container">
             {[...Array(6)].map((_, index) => (

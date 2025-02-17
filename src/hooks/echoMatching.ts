@@ -1,5 +1,5 @@
-import { OCRData } from '../types/ocr';
-import { EchoPanelState, ElementType } from '../types/echo';
+import { OCRData } from '@/types/ocr';
+import { EchoPanelState, ElementType } from '@/types/echo';
 import Fuse from 'fuse.js';
 import { cachedEchoes } from './useEchoes';
 import { mainStatsCache } from './useMain';

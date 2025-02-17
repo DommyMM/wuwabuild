@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import Image from 'next/image';
 import { StatName, getStatPaths } from '../../types/stats';
 import '../../styles/menu.css';
 
@@ -36,7 +37,7 @@ const StatRow: React.FC<StatRowProps> = ({ name, value, baseValue, update }) => 
   return (
     <div className={`stat-row ${statClassName}`}>
       <div className="stat-left">
-        <img src={paths.local} alt={`${name} icon`} className="stat-icon" />
+        <Image src={paths.local} alt={`${name} icon`} className="stat-icon" width={96} height={96} />
         <span className="stat-name">{displayName}</span>
       </div>
       <div className="stat-value-container">

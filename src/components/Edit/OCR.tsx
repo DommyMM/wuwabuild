@@ -1,3 +1,5 @@
+'use client';
+
 import { createWorker } from 'tesseract.js';
 import Fuse from 'fuse.js';
 

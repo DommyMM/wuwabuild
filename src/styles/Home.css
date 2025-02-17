@@ -186,13 +186,15 @@
 }
 
 .screenshot-type {
+    display: flex;
+    flex-direction: column;
     text-align: center;
     transition: transform 0.2s ease;
     position: relative;
 }
 
 .screenshot-type:hover {
-    transform: scale(1.25);
+    transform: scale(1.2);
     z-index: 2;
 }
 
@@ -210,8 +212,9 @@
     margin-bottom: 0;
 }
 
-.screenshot-type img {
+.screenshot-type-img {
     width: 100%;
+    height: 100%;
     border-radius: 8px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     outline: 2px solid #a69662;
@@ -253,9 +256,9 @@
     animation: fadeIn 0.2s ease;
 }
 
-.image-overlay img {
-    max-width: 90%;
-    max-height: 90vh;
+.image-overlay-img {
+    height: 95vh;
+    width: auto;
     object-fit: contain;
     border-radius: 8px;
     cursor: default;
@@ -303,6 +306,7 @@
 
 .step-image {
     width: 100%;
+    height: auto;
     border-radius: 8px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     transition: transform 0.2s ease;
@@ -417,11 +421,11 @@
     .screenshot-type {
         transition: transform 0.3s ease;
     }
-    .screenshot-type img {
+    .screenshot-type-img {
         max-width: 90%;
         margin: 0 auto;
     }
-    .screenshot-type img:hover {
+    .screenshot-type-img:hover {
         transform: none;
     }
     .steps-container {

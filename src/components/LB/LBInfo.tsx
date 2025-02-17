@@ -1,11 +1,11 @@
-import { cachedCharacters } from '../../hooks/useCharacters';
 import { getAssetPath } from '../../types/paths';
 import { CHARACTER_CONFIGS } from './config';
 import { Character } from '../../types/character';
 import { getCachedWeapon } from '../../hooks/useWeapons';
-import { Calculation, Sequence } from '../Build/types';
+import { Sequence } from '../Build/types';
 import { useState } from 'react';
 import { MoveRight, ChevronDown } from 'lucide-react';
+import Image from 'next/image';
 
 const InfoTitle: React.FC<{ name: string;}> = ({ name }) => (
     <div className="header-title">
@@ -13,24 +13,22 @@ const InfoTitle: React.FC<{ name: string;}> = ({ name }) => (
     </div>
 );
 
-const TeamDisplay: React.FC<{ mainChar: Character; teamIds: string[] }> = ({ mainChar, teamIds }) => (
+const TeamDisplay: React.FC<{ 
+    mainChar: Character; 
+    teamIds: string[];
+    characters: Character[]; 
+}> = ({ mainChar, teamIds, characters }) => (
     <div className="team-grid">
         <div className="team-member">
-            <img src={getAssetPath('face1', mainChar).cdn}
-                alt={mainChar.name} 
-                className="team-portrait"
-            />
+            <Image src={getAssetPath('face1', mainChar).cdn} alt={mainChar.name} className="team-portrait" width={256} height={256} />
             <span className="team-name">{mainChar.name}</span>
         </div>
         {teamIds.map(id => {
-            const teamMember = cachedCharacters?.find(c => c.id === id);
+            const teamMember = characters.find(c => c.id === id);
             if (!teamMember) return null;
             return (
                 <div key={id} className="team-member">
-                    <img src={getAssetPath('face1', teamMember).cdn}
-                        alt={teamMember.name} 
-                        className="team-portrait"
-                    />
+                    <Image src={getAssetPath('face1', teamMember).cdn} alt={teamMember.name} className="team-portrait" width={256} height={256} />
                     <span className="team-name">{teamMember.name}</span>
                 </div>
             );
@@ -87,10 +85,7 @@ const BuildSelector: React.FC<{
                                 className={`lb-weapon-option ${index === selectedIndex ? 'selected' : ''}`}
                                 onClick={() => onWeaponSelect?.(index)}
                             >
-                                <img src={getAssetPath('weapons', weapon).cdn}
-                                    alt={weapon.name}
-                                    className="lb-weapon-portrait"
-                                />
+                                <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="lb-weapon-portrait" width={256} height={256} />
                                 <span className="lb-weapon-name">{weapon.name}</span>
                                 {maxDamage && (
                                     <span className="weapon-damage">{Number(maxDamage.toFixed(0)).toLocaleString()}</span>
@@ -110,13 +105,10 @@ const BuildSelector: React.FC<{
                         ))}
                     </div>
                 )}
+                <button className={`expand-toggle ${isExpanded ? 'expanded' : ''}`} onClick={() => setIsExpanded(!isExpanded)} aria-label="Toggle details">
+                    <ChevronDown className="expand-icon" />
+                </button>
             </div>
-            <button className={`expand-toggle ${isExpanded ? 'expanded' : ''}`}
-                onClick={() => setIsExpanded(!isExpanded)}
-                aria-label="Toggle details"
-            >
-                <ChevronDown className="expand-icon" />
-            </button>
             
             {isExpanded && (
                 <div className="build-details">
@@ -137,24 +129,27 @@ const BuildSelector: React.FC<{
     );
 };
 
-export const LBInfo: React.FC<{ 
+interface LBInfoProps { 
     characterId: string;
-    calculations?: Calculation[];
+    character: Character;
+    characters: Character[];
     onWeaponSelect?: (index: number) => void;
     selectedWeapon?: number;
     maxDamages: Array<{ weaponId: string; damage: number }>;
     onSequenceSelect?: (sequence: Sequence) => void;
     selectedSequence?: Sequence;
-}> = ({ 
-    characterId, 
-    calculations, 
+}
+
+export const LBInfo: React.FC<LBInfoProps> = ({ 
+    characterId,
+    character,
+    characters,
     onWeaponSelect, 
     selectedWeapon = 0, 
     maxDamages,
     onSequenceSelect,
     selectedSequence
 }) => {
-    const character = cachedCharacters?.find(c => c.id === characterId);
     const config = CHARACTER_CONFIGS[characterId] || {
         description: 'No specific team requirements',
         teamIds: [],
@@ -166,7 +161,11 @@ export const LBInfo: React.FC<{
     return (
         <div className="header-content">
             <InfoTitle name={character.name}/>
-            <TeamDisplay mainChar={character} teamIds={config.teamIds} />
+            <TeamDisplay 
+                mainChar={character} 
+                teamIds={config.teamIds} 
+                characters={characters}
+            />
             <BuildSelector 
                 characterId={characterId} 
                 maxDamages={maxDamages}

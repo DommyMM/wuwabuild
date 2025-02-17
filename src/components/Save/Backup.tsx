@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { SavedBuilds } from '../../types/SavedState';
+import { SavedBuilds, SavedState, SavedEchoData, WatermarkState } from '../../types/SavedState';
 import { toast } from 'react-toastify';
-import { ELEMENT_SETS } from '../../types/echo';
+import { ELEMENT_SETS, EchoPanelState } from '../../types/echo';
 import { useMigrate } from '../../hooks/useMigrate';
 import { ImportModal } from './Import';
 
@@ -36,18 +36,58 @@ export const REVERSE_STAT_MAP = Object.entries(STAT_MAP).reduce((acc, [key, valu
 
 const ELEMENT_KEYS = Object.keys(ELEMENT_SETS) as (keyof typeof ELEMENT_SETS)[];
 
-export const compressStats = (stat: any) => ({
-    t: STAT_MAP[stat.type as keyof typeof STAT_MAP] || stat.type,
-    v: Number(stat.value.toFixed(1))
+interface CompressedStat {
+    t: string;
+    v: number;
+}
+
+export interface CompressedEchoPanel {
+    i: string;
+    l: number;
+    s: number;
+    t: {
+        m: CompressedStat;
+        s: CompressedStat[];
+    } | null;
+    p: boolean;
+}
+
+interface CompressedBuildState {
+    c: {
+        i: string;
+        l: string;
+        e: string;
+    };
+    w: {
+        i: string;
+        l: string;
+        r: number;
+    };
+    e: CompressedEchoPanel[];
+    q: number;
+    n: Record<string, Record<string, boolean>>;
+    f: {
+        na: number;
+        sk: number;
+        ci: number;
+        li: number;
+        in: number;
+    };
+    m: WatermarkState;
+}
+
+export const compressStats = (stat: { type: string | null; value: number | null }): CompressedStat => ({
+    t: STAT_MAP[stat.type as keyof typeof STAT_MAP] || stat.type || '',
+    v: Number((stat.value || 0).toFixed(1))
 });
 
-export const decompressStats = (stat: any) => ({
+export const decompressStats = (stat: CompressedStat): { type: string; value: number } => ({
     type: REVERSE_STAT_MAP[stat.t] || stat.t,
     value: stat.v
 });
 
-export const compressEchoPanel = (panel: any) => ({
-    i: panel.id,
+export const compressEchoPanel = (panel: EchoPanelState): CompressedEchoPanel => ({
+    i: panel.id || '',
     l: panel.level,
     s: panel.selectedElement ? ELEMENT_KEYS.indexOf(panel.selectedElement) : -1,
     t: panel.stats ? {
@@ -57,7 +97,7 @@ export const compressEchoPanel = (panel: any) => ({
     p: panel.phantom || false
 });
 
-export const decompressEchoPanel = (panel: any) => ({
+export const decompressEchoPanel = (panel: CompressedEchoPanel): EchoPanelState => ({
     id: panel.i,
     level: panel.l,
     selectedElement: panel.s !== -1 ? ELEMENT_KEYS[panel.s] : null,
@@ -71,44 +111,44 @@ export const decompressEchoPanel = (panel: any) => ({
     phantom: panel.p || false
 });
 
-export const compressData = (build: any) => ({
+export const compressData = (build: { state: SavedState }): { state: CompressedBuildState } => ({
     ...build,
     state: {
         c: {
-            i: build.state.characterState.id,
-            l: build.state.characterState.level,
-            e: build.state.characterState.element
+            i: build.state.characterState.id || '',
+            l: build.state.characterState.level.toString(),
+            e: build.state.characterState.element || ''
         },
         w: {
-            i: build.state.weaponState.id,
-            l: build.state.weaponState.level,
+            i: build.state.weaponState.id || '', 
+            l: build.state.weaponState.level.toString(),
             r: build.state.weaponState.rank
         },
         e: build.state.echoPanels.map(compressEchoPanel),
         q: build.state.currentSequence,
-        n: build.state.nodeStates,
+        n: build.state.nodeStates || {},
         f: {
-            na: build.state.forteLevels['normal-attack'],
-            sk: build.state.forteLevels.skill,
-            ci: build.state.forteLevels.circuit,
-            li: build.state.forteLevels.liberation,
-            in: build.state.forteLevels.intro
+            na: build.state.forteLevels['normal-attack'] || 0,
+            sk: build.state.forteLevels.skill || 0,
+            ci: build.state.forteLevels.circuit || 0,
+            li: build.state.forteLevels.liberation || 0,
+            in: build.state.forteLevels.intro || 0
         },
         m: build.state.watermark
     }
 });
 
-export const decompressData = (build: any) => ({
+export const decompressData = (build: { state: CompressedBuildState }): { state: SavedState } => ({
     ...build,
     state: {
         characterState: {
-            id: build.state.c.i,
+            id: build.state.c.i || null,
             level: build.state.c.l,
-            element: build.state.c.e
+            element: build.state.c.e || undefined
         },
         weaponState: {
-            id: build.state.w.i,
-            level: build.state.w.l,
+            id: build.state.w.i || null,
+            level: parseInt(build.state.w.l, 10),
             rank: build.state.w.r
         },
         echoPanels: build.state.e.map(decompressEchoPanel),
@@ -121,7 +161,10 @@ export const decompressData = (build: any) => ({
             liberation: build.state.f.li,
             intro: build.state.f.in
         },
-        watermark: build.state.m
+        watermark: build.state.m || {
+            username: '',
+            uid: ''
+        }
     }
 });
 
@@ -142,7 +185,7 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
             const compressed = {
                 version: '1.0.2',
                 builds: builds.builds.map(compressData),
-                savedEchoes: echoes.map((echo: any) => ({
+                savedEchoes: echoes.map((echo: SavedEchoData) => ({
                     id: echo.id,
                     panelData: compressEchoPanel(echo.panelData)
                 }))
@@ -173,7 +216,10 @@ export const BuildBackup: React.FC<BuildBackupProps> = ({ onImport }) => {
             const decompressed = {
                 version: '1.0.2',
                 builds: imported.builds.map(decompressData),
-                savedEchoes: imported.savedEchoes?.map((echo: any) => ({
+                savedEchoes: imported.savedEchoes?.map((echo: { 
+                    id: string; 
+                    panelData: CompressedEchoPanel 
+                }) => ({
                     id: echo.id,
                     panelData: decompressEchoPanel(echo.panelData)
                 })) || []

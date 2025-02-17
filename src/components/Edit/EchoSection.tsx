@@ -1,15 +1,18 @@
-import React, { useState, useCallback, forwardRef } from 'react';
+'use client';
+
+import React, { useState, useCallback } from 'react';
 import { ChevronLeft, ChevronDown } from 'lucide-react';
+import { Echo, ElementType, ELEMENT_SETS, EchoPanelState as PanelData, COST_SECTIONS, CostSection, PHANTOM_ECHOES } from '@/types/echo';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { Echo, ElementType, ELEMENT_SETS, EchoPanelState as PanelData, COST_SECTIONS, CostSection, PHANTOM_ECHOES } from '../../types/echo';
-import { SavedEchoData } from '../../types/SavedState';
-import { cachedEchoes, getCachedEchoes } from '../../hooks/useEchoes';
-import { useModalClose } from '../../hooks/useModalClose';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableEchoPanel } from './SortableEchoPanel';
+import { SavedEchoData } from '@/types/SavedState';
+import { cachedEchoes, getCachedEchoes } from '@/hooks/useEchoes';
+import { useModalClose } from '@/hooks/useModalClose';
 import { StatsTab } from './StatsTab';
-import { getAssetPath } from '../../types/paths';
-import '../../styles/echoes.css';
+import { getAssetPath } from '@/types/paths';
+import Image from 'next/image';
+import '@/styles/echoes.css';
 
 interface ElementTabsProps {
   elements: ElementType[];
@@ -79,6 +82,16 @@ interface EchoesSectionProps {
   onDeleteEcho?: (echoId: string) => void;
   showCostWarning?: boolean;
   onCostWarningDismiss?: () => void;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+}
+
+export interface DragHandleProps {
+  [key: string]: unknown;
+  role?: string;
+  tabIndex?: number;
+  'aria-describedby'?: string;
+  onMouseDown?: (e: React.MouseEvent) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
 interface EchoPanelProps {
@@ -90,10 +103,10 @@ interface EchoPanelProps {
   onElementSelect: (element: ElementType | null) => void;
   onMainStatChange: (type: string | null) => void;
   onSubStatChange: (subIndex: number, type: string | null, value: number | null) => void;
-  listener?: Record<string, any>;
   onSave?: () => void;
   onLoad?: () => void;
   onPhantomChange: (value: boolean) => void;
+  dragHandleProps?: DragHandleProps;
 }
 
 const getEchoLabelFontSize = (name?: string) => {
@@ -111,10 +124,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   onElementSelect,
   onMainStatChange,
   onSubStatChange,
-  listener,
   onSave,
   onLoad,
-  onPhantomChange
+  onPhantomChange,
+  dragHandleProps
 }) => {
   const [isSaved, setIsSaved] = useState(false);
   const echo = getCachedEchoes(panelData.id);
@@ -133,15 +146,17 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   return (
     <div className="echo-panel" id={`panel${index}`}>
       <div className="manual-section">
-        <div id="selectedEchoLabel" style={{ fontSize: getEchoLabelFontSize(echo?.name) }}{...listener}>
+        <div id="selectedEchoLabel" style={{ fontSize: getEchoLabelFontSize(echo?.name) }} {...dragHandleProps} >
           {echo?.name || `Echo ${index}`}
         </div>
-        <div className="select-box" id="selectEcho" 
-          onClick={onSelect} style={{ right: echo ? '10%' : '0' }}
-        >
-          <img src={echo ? getAssetPath('echoes', echo).cdn : 'images/Resources/Echo.png'}
+        <div className="select-box" id="selectEcho" onClick={onSelect} style={{ right: echo ? '10%' : '0' }}>
+          <Image
+            src={echo ? getAssetPath('echoes', echo).cdn : '/images/Resources/Echo.png'}
             alt={echo?.name || 'Select Echo'}
-            className="select-img" id="echoImg"
+            className="select-img"
+            id="echoImg"
+            width={256}
+            height={256}
           />
         </div>
         {echo && (
@@ -160,7 +175,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
         </div>
       </div>
       
-      <StatsTab panelId={`panel${index}`} cost={echo?.cost ?? null} level={panelData.level} stats={panelData.stats} onMainStatChange={onMainStatChange} onSubStatChange={onSubStatChange}/>
+      <StatsTab panelId={`panel${index}`} cost={echo?.cost ?? null} stats={panelData.stats} onMainStatChange={onMainStatChange} onSubStatChange={onSubStatChange}/>
       <button className="clear-button" onClick={onReset}> Reset </button>
       {echo?.name && PHANTOM_ECHOES.includes(echo.name) && (
         <div className="phantom-container">
@@ -190,26 +205,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   );
 };
 
-const SortablePanel = ({ id, children }: { id: string; children: React.ReactNode }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition: isDragging ? transition : 'none',
-    width: '17.5%',
-    position: 'relative' as const,
-    opacity: isDragging ? 0.8 : 1,
-    zIndex: isDragging ? 999 : 'auto'
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-      {React.cloneElement(children as React.ReactElement, { listener: listeners })}
-    </div>
-  );
-};
-
-export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({ 
+export const EchoesSection = ({ 
   isVisible,
   isMinimized,
   onMinimize,
@@ -225,8 +221,9 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
   onLoadEcho,
   onDeleteEcho,
   showCostWarning,
-  onCostWarningDismiss
-}, ref) => {
+  onCostWarningDismiss,
+  containerRef
+}: EchoesSectionProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPanelIndex, setSelectedPanelIndex] = useState<number | null>(null);
   const [showWarning, setShowWarning] = useState(false);
@@ -288,6 +285,15 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
     setIsModalOpen(false);
   }, [selectedPanelIndex, panels, onEchoSelect, onPanelChange]);
 
+  const handleMinimize = () => {
+    if (isMinimized) {
+      containerRef?.current?.scrollIntoView({ 
+        behavior: 'smooth' 
+      });
+    }
+    onMinimize();
+  };
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -295,30 +301,20 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
     })
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const {active, over} = event;
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
     
     if (over && active.id !== over.id) {
-      const oldIndex = parseInt(active.id.toString().replace('panel-', ''));
-      const newIndex = parseInt(over.id.toString().replace('panel-', ''));
+      const oldIndex = parseInt(active.id.toString().split('-')[1]);
+      const newIndex = parseInt(over.id.toString().split('-')[1]);
       
-      const newPanels = arrayMove(initialPanels, oldIndex, newIndex);
-      onPanelChange?.(newPanels);
+      onPanelChange?.(arrayMove(panels, oldIndex, newIndex));
     }
-  };
-
-  const handleMinimize = () => {
-    if (isMinimized) {
-      (ref as React.RefObject<HTMLElement>)?.current?.scrollIntoView({ 
-        behavior: 'smooth' 
-      });
-    }
-    onMinimize();
-  };
+  }, [panels, onPanelChange]);
 
   return (
     <div className={`echo-section${isVisible ? ' visible' : ''}`}>
-      <section className={`echoes-tab${isVisible ? ' visible' : ''}`} ref={ref}>
+      <div className={`echoes-tab${isVisible ? ' visible' : ''}`} ref={containerRef}>
         {isVisible && (
           <>
             <button onClick={handleMinimize} className="echoes-header with-chevron">
@@ -348,37 +344,37 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                     </div>
                   )}
 
-                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <SortableContext items={initialPanels.map((_, i) => `panel-${i}`)} strategy={horizontalListSortingStrategy}>
-                      <div className="echo-panels-container">
+                  <div className="echo-panels-container">
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} >
+                      <SortableContext items={panels.map((_, i) => `panel-${i}`)} strategy={horizontalListSortingStrategy}>
                         {panels.map((panel, i) => (
-                          <SortablePanel key={`panel-${i}`} id={`panel-${i}`}>
-                            <EchoPanel
-                              index={i + 1}
-                              panelData={panel}
-                              onSelect={() => {
-                                setSelectedPanelIndex(i);
-                                setIsModalOpen(true);
-                              }}
-                              onReset={() => handleReset(i)}
-                              onLevelChange={(level) => handleLevelChange(i, level)}
-                              onElementSelect={(element) => handleElementSelect(i, element)}
-                              onMainStatChange={(type) => onMainStatChange?.(i, type)}
-                              onSubStatChange={(subIndex, type, value) => onSubStatChange?.(i, subIndex, type, value)}
-                              onSave={() => onSaveEcho?.(i)}
-                              onLoad={() => {
-                                setSelectedLoadPanelIndex(i);
-                                setIsLoadModalOpen(true);
-                              }}
-                              onPhantomChange={(value) => onPanelChange?.(panels.map((panel, idx) => 
-                                idx === i ? { ...panel, phantom: value } : panel
-                              ))}
-                            />
-                          </SortablePanel>
+                          <SortableEchoPanel
+                            key={`panel-${i}`}
+                            id={`panel-${i}`}
+                            index={i + 1}
+                            panelData={panel}
+                            onSelect={() => {
+                              setSelectedPanelIndex(i);
+                              setIsModalOpen(true);
+                            }}
+                            onReset={() => handleReset(i)}
+                            onLevelChange={(level) => handleLevelChange(i, level)}
+                            onElementSelect={(element) => handleElementSelect(i, element)}
+                            onMainStatChange={(type) => onMainStatChange?.(i, type)}
+                            onSubStatChange={(subIndex, type, value) => onSubStatChange?.(i, subIndex, type, value)}
+                            onSave={() => onSaveEcho?.(i)}
+                            onLoad={() => {
+                              setSelectedLoadPanelIndex(i);
+                              setIsLoadModalOpen(true);
+                            }}
+                            onPhantomChange={(value) => onPanelChange?.(panels.map((panel, idx) => 
+                              idx === i ? { ...panel, phantom: value } : panel
+                            ))}
+                          />
                         ))}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
+                      </SortableContext>
+                    </DndContext>
+                  </div>
                 </>
               )}
             </div>
@@ -400,8 +396,8 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                       <div className="echo-grid">
                         {costEchoes.map(echo => (
                         <div key={echo.name} className="echo-option" onClick={() => handleSelectEcho(echo)}>
-                        <img src={getAssetPath('echoes', echo as Echo).cdn} alt={echo.name} className="echo-img"
-                        />
+                          <Image src={getAssetPath('echoes', echo as Echo).cdn} alt={echo.name} className="echo-img"
+                            width={256} height={256}/>
                         <span className="echo-name">{echo.name}</span>
                       </div>
                         ))}
@@ -438,10 +434,8 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
                         }
                       }}
                     >
-                      <img src={savedEchoData ? getAssetPath('echoes', savedEchoData).cdn : 'images/Resources/Echo.png'}
-                        alt={savedEchoData?.name || 'Empty Echo'}
-                        className="echo-img"
-                      />
+                      <Image src={savedEchoData ? getAssetPath('echoes', savedEchoData).cdn : '/images/Resources/Echo.png'}
+                        alt={savedEchoData?.name || 'Empty Echo'} className="echo-img" width={256} height={256}/>
                       <div className="echo-info">
                         <div className="echo-name">
                           {savedEchoData?.name || 'Empty Echo'}
@@ -469,9 +463,7 @@ export const EchoesSection = forwardRef<HTMLElement, EchoesSectionProps>(({
             </div>
           </div>
         )}
-      </section>
+      </div>
     </div>
   );
-});
-
-export type { PanelData, ElementType };
+};
