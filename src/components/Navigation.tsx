@@ -6,16 +6,21 @@ import { usePathname } from 'next/navigation';
 export default function Navigation() {
     const pathname = usePathname();
 
+    const isActive = (path: string) => {
+        if (path === '/') return pathname === '/';
+        return pathname.startsWith(path);
+    };
+
     return (
         <nav className="nav-bar">
             <div className="nav-content">
                 <Link href="/" className="nav-title">WuWaBuilds</Link>
                 <div className="nav-links">
-                    <Link href="/import" className={pathname === '/import' ? 'active' : ''}>Import</Link>
-                    <Link href="/builds" className={pathname === '/builds' ? 'active' : ''}>Builds</Link>
-                    <Link href="/leaderboards" className={pathname === '/leaderboards' ? 'active' : ''}>Rank</Link>
-                    <Link href="/edit" className={pathname === '/edit' ? 'active' : ''}>Edit</Link>
-                    <Link href="/saves" className={pathname === '/saves' ? 'active' : ''}>Saves</Link>
+                    <Link href="/import" className={isActive('/import') ? 'active' : ''}>Import</Link>
+                    <Link href="/builds" className={isActive('/builds') ? 'active' : ''}>Builds</Link>
+                    <Link href="/leaderboards" className={isActive('/leaderboards') ? 'active' : ''}>Rank</Link>
+                    <Link href="/edit" className={isActive('/edit') ? 'active' : ''}>Edit</Link>
+                    <Link href="/saves" className={isActive('/saves') ? 'active' : ''}>Saves</Link>
                 </div>
             </div>
         </nav>

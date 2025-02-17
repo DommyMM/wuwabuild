@@ -5,9 +5,17 @@ export const metadata: Metadata = {
     title: 'Import Builds - WuWa Builds',
     description: 'Import builds directly from the official wuwa-bot. One click, hassle-free.',
     openGraph: {
+        type: 'website',
         title: 'Import Builds - WuWa Builds',
         description: 'Import builds directly from the official wuwa-bot',
-        images: ['/images/import.png'],
+        siteName: 'WuWa Builds',
+        url: 'https://wuwabuilds.moe/import',
+        images: [{
+            url: '/images/import.png',
+            width: 1920,
+            height: 1080,
+            alt: 'WuWa Builds Import'
+        }]
     }
 };
 

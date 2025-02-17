@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         title: `${character.name} Damage Calculations`,
         description: `View top ${character.name} builds and damage calculations with detailed breakdowns`,
         openGraph: {
-            title: `${character.name} Damage Calculations and Leaderboard - WuWa Builds`,
+            title: `${character.name} Damage Calculations and Leaderboard`,
             description: `View detailed ${character.name} builds and damage calculations`,
             images: ['/images/leaderboard.png'],
         }

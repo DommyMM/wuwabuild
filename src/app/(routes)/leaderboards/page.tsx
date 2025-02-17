@@ -10,9 +10,17 @@ export const metadata: Metadata = {
     title: 'Character Rankings - WuWa Builds',
     description: 'View top builds and damage for each character in Wuthering Waves',
     openGraph: {
+        type: 'website',
         title: 'Character Rankings - WuWa Builds',
         description: 'View top builds and rankings for each character',
-        images: ['/images/leaderboard.png'],
+        siteName: 'WuWa Builds',
+        url: 'https://wuwabuilds.moe/leaderboards',
+        images: [{
+            url: '/images/leaderboard.png',
+            width: 1920,
+            height: 1080,
+            alt: 'WuWa Builds Leaderboard Rankings'
+        }]
     }
 };
 
