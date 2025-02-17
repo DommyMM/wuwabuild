@@ -1,5 +1,4 @@
 import React, { useCallback } from 'react';
-import Image from 'next/image';
 import { ScaledStats, Weapon } from '@/types/weapon';
 import { getAssetPath } from '@/types/paths';
 import { getStatPaths } from '@/types/stats';
@@ -14,12 +13,13 @@ interface WeaponSectionProps {
 }
 
 const getWeaponPath = (weapon: Weapon, useAltSkin: boolean = false) => {
-  return getAssetPath('weapons', weapon, useAltSkin).local;
+  return getAssetPath('weapons', weapon, useAltSkin).cdn;
 };
 
 const WeaponIcon = React.memo<{ weapon: Weapon; useAltSkin?: boolean }>(
   function WeaponIcon({ weapon, useAltSkin = false }) {
-    return <Image src={getWeaponPath(weapon, useAltSkin)} className="weapon-icon" alt="Weapon" width={256} height={256} />;
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={getWeaponPath(weapon, useAltSkin)} className="weapon-icon" alt="Weapon" />;
   }
 );
 
@@ -37,11 +37,13 @@ const StatsTopRow = React.memo<{
   return (
     <div className="weapon-stat-row">
       <div className="weapon-stat weapon-attack atk">
-        <Image src={getStatPaths('ATK').local} className="stat-icon-img" alt="ATK" width={96} height={96} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={getStatPaths('ATK').cdn} className="stat-icon-img" alt="ATK" />
         {Math.floor(scaledAtk)}
       </div>
       <div className={`weapon-stat weapon-main-stat ${weapon.main_stat.toLowerCase()}`}>
-        <Image src={getStatPaths(weapon.main_stat).local} className="stat-icon-img" alt={weapon.main_stat} width={96} height={96} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={getStatPaths(weapon.main_stat).cdn} className="stat-icon-img" alt={weapon.main_stat} />
         {`${scaledMainStat}%`}
       </div>
     </div>
@@ -65,7 +67,8 @@ const RarityStars = function RarityStars({ rarity }: { rarity: string }) {
   return (
     <div className="weapon-star-container">
       {[...Array(starCount)].map((_, i) => (
-        <Image key={i} src="/images/Resources/Star.png" className="star-icon" alt="*" width={512} height={512} />
+        // eslint-disable-next-line @next/next/no-img-element
+        <img key={i} src="/images/Resources/Star.png" className="star-icon" alt="*" />
       ))}
     </div>
   );

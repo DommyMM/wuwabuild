@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 import { Character } from '../../types/character';
 
 interface SequenceSectionProps {
@@ -85,7 +84,12 @@ export const SequenceSection: React.FC<SequenceSectionProps> = ({
               </g>
             )}
           </svg>
-          <Image src={`/images/Sequences/T_IconDevice_${displayName}M${i}_UI.png`} className="sequence-icon" alt={`Sequence ${i}`} width={128} height={128}/>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src={`/images/Sequences/T_IconDevice_${displayName}M${i}_UI.png`} 
+            className="sequence-icon" 
+            alt={`Sequence ${i}`}
+          />
         </div>
       ))}
       <div className='sequence-count'> S{currentSequence}</div>

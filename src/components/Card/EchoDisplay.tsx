@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 import { EchoPanelState, ElementType } from '@/types/echo';
 import { getStatPaths } from '@/types/stats';
 import { useSubstats } from '@/hooks/useSub';
@@ -19,7 +18,7 @@ export interface EchoDisplayProps {
 }
 
 const getEchoPath = (echo: Echo, isPhantom: boolean = false) => {
-  return getAssetPath('echoes', echo, false, isPhantom).local;
+  return getAssetPath('echoes', echo, false, isPhantom).cdn;
 };
 
 const EchoLeft = React.memo<{ 
@@ -58,13 +57,28 @@ const EchoLeft = React.memo<{
     <div className="echo-left">
       {echo && (
         <>
-          <Image src={getEchoPath(echo, panel.phantom)} alt={echo.name} className={`echo-display-icon ${bonusClasses}`} width={256} height={256} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src={getEchoPath(echo, panel.phantom)} 
+            alt={echo.name} 
+            className={`echo-display-icon ${bonusClasses}`} 
+          />
           <div className="echo-level-indicator">+{panel.level}</div>
           <div className="main-stat-wrapper">
-            <Image src={getAssetPath('sets', element ?? '').local} alt={`${element} Set Icon`} className="set" width={76} height={76} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={getAssetPath('sets', element ?? '').cdn} 
+              alt={`${element} Set Icon`} 
+              className="set" 
+            />
             {panel.stats.mainStat.type && (
               <>
-                <Image src={getStatPaths(panel.stats.mainStat.type).local} alt={panel.stats.mainStat.type} className={`main-stat-icon ${statClass}`} width={96} height={96} />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src={getStatPaths(panel.stats.mainStat.type).cdn} 
+                  alt={panel.stats.mainStat.type} 
+                  className={`main-stat-icon ${statClass}`} 
+                />
                 <span className={`main-stat-display ${statClass}`}>
                   {formatMainStatValue(panel.stats.mainStat.value)}
                 </span>
@@ -141,7 +155,8 @@ const EchoRight = React.memo<{
           backgroundPosition: 'center bottom'
         } : undefined}
       >
-        <Image src={getStatPaths(stat.type).local} alt={stat.type} className="substat-icon" width={96} height={96} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={getStatPaths(stat.type).cdn} alt={stat.type} className="substat-icon" />
         <span className="substat-value">
           {formatValue(stat.type, stat.value)}
         </span>

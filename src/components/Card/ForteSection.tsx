@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 import { Character, isRover } from '../../types/character';
 import { forteImagePaths } from '../../types/node';
 import { getAssetPath } from '../../types/paths';
@@ -34,7 +33,8 @@ const SimplifiedNode: React.FC<{
   
   return (
     <div className={`simplified-node ${type} ${isActive ? 'active' : ''} ${className || ''} ${statClass || ''}`}>
-      <Image className="node-image" src={imagePath} alt="" width={128} height={128}/>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="node-image" src={imagePath} alt="" />
       {showDiamond && <div className="inner-diamond" />}
       {children}
     </div>
@@ -62,10 +62,10 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
     
     if (isRover(character)) {
       if (isElementTree) {
-        return getAssetPath('stats', elementValue).local;
+        return getAssetPath('stats', elementValue).cdn;
       }
       if (isStatTree) {
-        return getAssetPath('stats', 'ATK').local;
+        return getAssetPath('stats', 'ATK').cdn;
       }
     }
   
@@ -102,12 +102,14 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
       />
       <div className="bottom-line" />
       <div className="simplified-base">
-        <Image className="skill-image" src={forteImagePaths.imagePaths[branch.name](character)} alt={`${character.name} ${branch.name}`} width={128} height={128} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="skill-image" src={forteImagePaths.imagePaths[branch.name](character)} alt={`${character.name} ${branch.name}`} />
         <div className="level-indicator">{level}</div>
       </div>
       {branch.name === 'circuit' && (
         <div className="base">
-          <Image className="skill-image" src={forteImagePaths.imagePaths.base(character)} alt={`${character.name} base`} width={128} height={128} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="skill-image" src={forteImagePaths.imagePaths.base(character)} alt={`${character.name} base`} />
         </div>
       )}
     </div>
@@ -143,7 +145,8 @@ export const ForteSection: React.FC<ForteSectionProps> = ({
           level={forteLevels[branch.name] || 1}
         />
       ))}
-      <Image className="max" src="/images/Resources/Max.png" alt="Forte Max Frame" width={461} height={274} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="max" src="/images/Resources/Max.png" alt="Forte Max Frame" />
     </div>
   );
 };

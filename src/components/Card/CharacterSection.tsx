@@ -1,5 +1,4 @@
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
-import Image from 'next/image';
 import { Character, isRover } from '@/types/character';
 import { SequenceSection } from './SequenceSection';
 import { getAssetPath } from '@/types/paths';
@@ -152,11 +151,14 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
 
   useEffect(() => {
     if (customImage) {
-      const url = URL.createObjectURL(customImage);
-      setImageUrl(url);
-      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImageUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(customImage);
+  
       return () => {
-        URL.revokeObjectURL(url);
+        setImageUrl(null);
       };
     } else {
       setImageUrl(null);
@@ -165,7 +167,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   
   const imagePath = useMemo(() => {
     if (customImage) {
-      return imageUrl || '';
+      return imageUrl ?? undefined;
     }
     return getAssetPath('icons', character, useAltSkin).cdn;
   }, [character, customImage, imageUrl, useAltSkin]);
@@ -179,10 +181,15 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         style={{'--tx': `${position.x}px`, '--ty': `${position.y}px`, '--scale': scale } as React.CSSProperties}
       >
         {!customImage && (
-          <Image src={imagePath} className="character-icon shadow" alt="Character Shadow" width={696} height={960} priority/>
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imagePath} className="character-icon shadow" alt="Character Shadow"/>
         )}
-        <Image src={imagePath} className={`character-icon ${isEditMode ? 'editable' : ''}`} alt={characterName}
-          width={696} height={960} priority style={{ cursor: isEditMode ? 'move' : 'default' }}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src={imagePath} 
+          className={`character-icon ${isEditMode ? 'editable' : ''}`}
+          alt={characterName}
+          style={{ cursor: isEditMode ? 'move' : 'default' }}
           onMouseDown={handleMouseDown}
           draggable={false}
           onDragStart={(e) => e.preventDefault()}
@@ -232,8 +239,10 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
             <div className="character-name">{characterName}</div>
             <div className="char-header-bottom">
               <div className="character-level">Lv.{level}/90</div>
-              <Image src={`/images/Roles/${character.Role}.png`} className="role-icon" alt={character.Role} width={128} height={128}/>
-              <Image src={`/images/Elements/${elementValue}.png`} className="element-icon" alt={elementValue} width={128} height={128}/>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/images/Roles/${character.Role}.png`} className="role-icon" alt={character.Role}/>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/images/Elements/${elementValue}.png`} className="element-icon" alt={elementValue}/>
             </div>
         </div>
         {children}
