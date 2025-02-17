@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { Character, isRover } from '@/types/character';
 import { SequenceSection } from './SequenceSection';
@@ -36,6 +37,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
       ? { x: 0, y: 0 }
       : { x: 0, y: -20 }
   );
+  const [baseScale, setBaseScale] = useState(1);
   const [scale, setScale] = useState(1);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   
@@ -55,9 +57,37 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
 
   const handleImageChange = useCallback((file: File) => {
     if (onImageChange) {
-      setPosition({ x: 0, y: 0 });
-      setScale(1);
-      onImageChange(file);
+      const blobUrl = URL.createObjectURL(file);
+      const img = new Image();
+      
+      img.onload = () => {
+        const container = document.querySelector('.character-display');
+        if (!container) {
+          console.warn('Container not found');
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+  
+        const containerRect = container.getBoundingClientRect();
+        const heightRatio = containerRect.height / img.height;
+        const scaledWidth = img.width * heightRatio;
+        
+        if (scaledWidth < containerRect.width) {
+          const scaleNeeded = containerRect.width / scaledWidth;
+          const adjustedScale = scaleNeeded + 0.1;
+          setBaseScale(1);
+          setScale(adjustedScale);
+        } else {
+          setBaseScale(1);
+          setScale(1);
+        }
+  
+        setPosition({ x: 0, y: 0 });
+        URL.revokeObjectURL(blobUrl);
+        onImageChange(file);
+      };
+      
+      img.src = blobUrl;
     }
   }, [onImageChange]);
 
@@ -87,12 +117,14 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
 
   const handleImageReset = useCallback(() => {
     if (onImageChange) {
+      setBaseScale(1);
+      setScale(1);
       onImageChange(undefined);
     }
   }, [onImageChange]);
 
-  const handleZoomIn = () => setScale(prev => Math.min(prev + 0.1, 2));
-  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.1, 1));
+  const handleZoomIn = () => setScale(prev => Math.min(prev + baseScale * 0.1, baseScale * 2));
+  const handleZoomOut = () => setScale(prev => Math.max(prev - baseScale * 0.1, baseScale));
 
   React.useEffect(() => {
     if (!isEditMode) return;
@@ -106,16 +138,16 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         .find(item => item.type.startsWith('image/'))
         ?.getAsFile();
 
-      if (imageFile && onImageChange) {
-        onImageChange(imageFile);
+      if (imageFile) {
+        handleImageChange(imageFile);
       }
     };
 
     document.addEventListener('paste', handlePaste);
     return () => document.removeEventListener('paste', handlePaste);
-  }, [isEditMode, onImageChange]);
+  }, [isEditMode, handleImageChange]);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
     if (!isEditMode) return;
     
     setIsDragging(true);
@@ -123,16 +155,17 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
       x: e.clientX - position.x,
       y: e.clientY - position.y
     });
-  };
+  }, [isEditMode, position.x, position.y]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
-    const newX = Math.min(Math.max(e.clientX - dragOffset.x, -300), 300);
-    const newY = Math.min(Math.max(e.clientY - dragOffset.y, -300), 300);
-    
-    setPosition({ x: newX, y: newY });
-    }, [isDragging, dragOffset]);
+    requestAnimationFrame(() => {
+      const newX = Math.min(Math.max(e.clientX - dragOffset.x, -300), 300);
+      const newY = Math.min(Math.max(e.clientY - dragOffset.y, -300), 300);
+      setPosition({ x: newX, y: newY });
+    });
+  }, [isDragging, dragOffset]);
 
   const handleMouseUp = () => {
     setIsDragging(false);
@@ -172,28 +205,36 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
     return getAssetPath('icons', character, useAltSkin).cdn;
   }, [character, customImage, imageUrl, useAltSkin]);
 
+  const imageStyle = useMemo(() => ({
+    '--tx': `${position.x}px`,
+    '--ty': `${position.y}px`,
+    '--scale': scale
+  } as React.CSSProperties), [position.x, position.y, scale]);
+
+  const CharacterImage = useMemo(() => (
+    <img 
+      src={imagePath} 
+      className={`character-icon ${isEditMode ? 'editable' : ''}`}
+      alt={characterName}
+      style={{ cursor: isEditMode ? 'move' : 'default' }}
+      onMouseDown={handleMouseDown}
+      draggable={false}
+      onDragStart={(e) => e.preventDefault()}
+    />
+  ), [imagePath, isEditMode, characterName, handleMouseDown]);
+
   return (
     <>
       <div className={`character-display ${elementValue?.toLowerCase()}`}
         onDragOver={handleDrag}
         onDragLeave={handleDrag}
         onDrop={handleDrop}
-        style={{'--tx': `${position.x}px`, '--ty': `${position.y}px`, '--scale': scale } as React.CSSProperties}
+        style={imageStyle}
       >
         {!customImage && (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={imagePath} className="character-icon shadow" alt="Character Shadow"/>
         )}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img 
-          src={imagePath} 
-          className={`character-icon ${isEditMode ? 'editable' : ''}`}
-          alt={characterName}
-          style={{ cursor: isEditMode ? 'move' : 'default' }}
-          onMouseDown={handleMouseDown}
-          draggable={false}
-          onDragStart={(e) => e.preventDefault()}
-        />
+        {CharacterImage}
         <svg className="fade-overlay" xmlns="http://www.w3.org/2000/svg" width="515" height="620" viewBox="0 0 136.26 152.595" preserveAspectRatio="none"   style={{ opacity: (customImage || useAltSkin) ? 0 : 0.35 }}
         >
           <defs>
@@ -239,9 +280,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
             <div className="character-name">{characterName}</div>
             <div className="char-header-bottom">
               <div className="character-level">Lv.{level}/90</div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/images/Roles/${character.Role}.png`} className="role-icon" alt={character.Role}/>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/images/Elements/${elementValue}.png`} className="element-icon" alt={elementValue}/>
             </div>
         </div>

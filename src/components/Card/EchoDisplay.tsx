@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React from 'react';
 import { EchoPanelState, ElementType } from '@/types/echo';
 import { getStatPaths } from '@/types/stats';
@@ -57,7 +58,6 @@ const EchoLeft = React.memo<{
     <div className="echo-left">
       {echo && (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={getEchoPath(echo, panel.phantom)} 
             alt={echo.name} 
@@ -65,7 +65,6 @@ const EchoLeft = React.memo<{
           />
           <div className="echo-level-indicator">+{panel.level}</div>
           <div className="main-stat-wrapper">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src={getAssetPath('sets', element ?? '').cdn} 
               alt={`${element} Set Icon`} 
@@ -73,7 +72,6 @@ const EchoLeft = React.memo<{
             />
             {panel.stats.mainStat.type && (
               <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={getStatPaths(panel.stats.mainStat.type).cdn} 
                   alt={panel.stats.mainStat.type} 
@@ -155,7 +153,6 @@ const EchoRight = React.memo<{
           backgroundPosition: 'center bottom'
         } : undefined}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={getStatPaths(stat.type).cdn} alt={stat.type} className="substat-icon" />
         <span className="substat-value">
           {formatValue(stat.type, stat.value)}

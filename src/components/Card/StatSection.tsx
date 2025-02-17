@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-// Remove Image import from next/image
 import { StatName, getStatPaths } from '../../types/stats';
 import '../../styles/menu.css';
 

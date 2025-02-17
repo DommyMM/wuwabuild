@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React from 'react';
 import { Character, isRover } from '../../types/character';
 import { forteImagePaths } from '../../types/node';
@@ -33,7 +34,6 @@ const SimplifiedNode: React.FC<{
   
   return (
     <div className={`simplified-node ${type} ${isActive ? 'active' : ''} ${className || ''} ${statClass || ''}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="node-image" src={imagePath} alt="" />
       {showDiamond && <div className="inner-diamond" />}
       {children}
@@ -102,13 +102,11 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
       />
       <div className="bottom-line" />
       <div className="simplified-base">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="skill-image" src={forteImagePaths.imagePaths[branch.name](character)} alt={`${character.name} ${branch.name}`} />
         <div className="level-indicator">{level}</div>
       </div>
       {branch.name === 'circuit' && (
         <div className="base">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="skill-image" src={forteImagePaths.imagePaths.base(character)} alt={`${character.name} base`} />
         </div>
       )}
@@ -145,7 +143,6 @@ export const ForteSection: React.FC<ForteSectionProps> = ({
           level={forteLevels[branch.name] || 1}
         />
       ))}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="max" src="/images/Resources/Max.png" alt="Forte Max Frame" />
     </div>
   );

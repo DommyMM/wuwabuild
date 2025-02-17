@@ -599,6 +599,7 @@ input:-webkit-autofill {
     transform: rotate(45deg);
     border: 2px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+    z-index: 1;
 }
 
 .simplified-node.active .inner-diamond {
@@ -620,6 +621,7 @@ input:-webkit-autofill {
     top: 50%;
     transform: translate(-50%, -50%);
     filter: brightness(0);
+    z-index: 2;
 }
 
 .simplified-forte .skill-image {
