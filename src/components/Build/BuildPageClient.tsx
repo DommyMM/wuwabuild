@@ -8,6 +8,7 @@ import { CompressedEntry, DecompressedEntry } from './types';
 import { BuildEntry } from './BuildEntry';
 import { SortAsc } from 'lucide-react';
 import { STAT_ORDER } from '@/types/stats';
+import { useRouter } from 'next/navigation';
 import '@/styles/BuildPage.css';
 
 const FILTERED_STATS = STAT_ORDER.filter(stat => 
@@ -155,6 +156,7 @@ interface BuildResponse {
 }
 
 export default function BuildPageClient() {
+    const router = useRouter();
     const [data, setData] = useState<DecompressedEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -169,25 +171,32 @@ export default function BuildPageClient() {
     const itemsPerPage = 10;
     const [total, setTotal] = useState(0);
     useEffect(() => {
+        const getSortParam = () => {
+            if (statSort) return statSort;
+            if (CVSort === 'cr') return 'Crit Rate';
+            if (CVSort === 'cd') return 'Crit DMG';
+            return 'finalCV';
+        };
+        const params = new URLSearchParams({
+            sort: getSortParam(),
+            direction: sortDirection,
+            page: String(currentPage)
+        });
+        router.push(`/builds?${params.toString()}`, { 
+            scroll: false 
+        });
         const loadData = async () => {
             try {
-                const getSortParam = () => {
-                    if (statSort) return statSort;
-                    if (CVSort === 'cr') return 'Crit Rate';
-                    if (CVSort === 'cd') return 'Crit DMG';
-                    return 'finalCV';
-                };
-                
-                const params = new URLSearchParams({
+                const fetchParams = new URLSearchParams({
                     sort: getSortParam(),
                     direction: sortDirection,
                     page: String(currentPage),
                     pageSize: String(itemsPerPage)
                 });
-                const response = await fetch(`${LB_URL}/build?${params}`);
+                const response = await fetch(`${LB_URL}/build?${fetchParams}`);
                 if (!response.ok) throw new Error('Failed to fetch leaderboard');
-                const { builds, total } = await response.json() as BuildResponse;
                 
+                const { builds, total } = await response.json() as BuildResponse;
                 setTotal(total);
                 setData(builds.map((entry: CompressedEntry) => ({
                     ...entry,
@@ -200,7 +209,7 @@ export default function BuildPageClient() {
             }
         };
         loadData();
-    }, [currentPage, sortDirection, CVSort, statSort]);
+    }, [currentPage, sortDirection, CVSort, statSort, router]);
     useEffect(() => {
         setExpandedEntries(new Set());
     }, [activeSort, CVSort, statSort, currentPage, sortDirection]);
