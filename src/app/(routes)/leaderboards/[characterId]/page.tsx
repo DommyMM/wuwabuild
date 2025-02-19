@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import CharacterEntry from '@/components/LB/CharacterEntry';
 import { getCharacters, getCharacterById } from '@/components/LB/charfetch';
 import { CHARACTER_CONFIGS } from '@/components/LB/config';
@@ -45,7 +45,17 @@ export default async function CharacterPage({ params, searchParams }: Props) {
     if (!character || !characterData) return notFound();
     
     const config = CHARACTER_CONFIGS[characterId];
-    if (!config?.enabled || !config.weapons.includes(weapon)) {
+    if (!config?.enabled) return notFound();
+    if (!weapon) {
+        const defaultParams = new URLSearchParams({
+            weapon: config.weapons[0],
+            sort: 'damage',
+            direction: 'desc',
+            page: '1'
+        });
+        redirect(`/leaderboards/${characterId}?${defaultParams.toString()}`);
+    }
+    if (!config.weapons.includes(weapon)) {
         return notFound();
     }
 

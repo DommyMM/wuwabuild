@@ -271,13 +271,14 @@ export const BuildCard: React.FC<BuildCardProps> = ({
 
   const handleDownload = useCallback(() => {
     if (!tabRef.current) return;
+    setIsEditMode(false); // Turn off edit mode when downloading
   
     const now = new Date();
     const timestamp = now.toISOString().slice(0,19).replace(/[T:]/g, ' ');
     
     tabRef.current.classList.add('downloading');
     domtoimage.toPng(tabRef.current, {
-      cacheBust: true,
+      cacheBust: true,  // CacheBust for CDN CORS errors
       quality: 1
     })
       .then((dataUrl: string) => {
@@ -295,7 +296,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
           tabRef.current.classList.remove('downloading');
         }
       });
-  }, [tabRef]);
+  }, [tabRef, isEditMode]);
 
   const handleImageChange = (file: File | undefined) => {
     if (isEditMode) {
