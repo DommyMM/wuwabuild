@@ -171,9 +171,10 @@ export default function BuildPageClient() {
     const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
     const itemsPerPage = 10;
     const [total, setTotal] = useState(0);
-    const [characterId, setcharacterId] = useState<string | null>(null);
-    const [weaponId, setweaponId] = useState<string | null>(null);
+    const [characterIds, setCharacterIds] = useState<string[]>([]);
+    const [weaponIds, setWeaponIds] = useState<string[]>([]);
     const [isTableLoading, setIsTableLoading] = useState(false);
+    const [echoSets, setEchoSets] = useState<Array<[number, number]>>([]);
 
     useEffect(() => {
         const getSortParam = () => {
@@ -187,8 +188,15 @@ export default function BuildPageClient() {
             direction: sortDirection,
             page: String(currentPage)
         });
-        if (characterId) params.append('characterId', characterId);
-        if (weaponId) params.append('weaponId', weaponId);
+        if (characterIds.length > 0) {
+            params.append('characterId', JSON.stringify(characterIds));
+        }
+        if (weaponIds.length > 0) {
+            params.append('weaponId', JSON.stringify(weaponIds));
+        }
+        if (echoSets.length > 0) {
+            params.append('echoSets', echoSets.map(set => set.join('-')).join(';'));
+        }
         router.push(`/builds?${params.toString()}`, { scroll: false });
         const loadData = async () => {
             try {
@@ -199,8 +207,18 @@ export default function BuildPageClient() {
                     page: String(currentPage),
                     pageSize: String(itemsPerPage)
                 });
-                if (characterId) fetchParams.append('characterId', characterId);
-                if (weaponId) fetchParams.append('weaponId', weaponId);
+
+                // Update API call parameters
+                if (characterIds.length > 0) {
+                    fetchParams.append('characterId', JSON.stringify(characterIds));
+                }
+                if (weaponIds.length > 0) {
+                    fetchParams.append('weaponId', JSON.stringify(weaponIds));
+                }
+                if (echoSets.length > 0) {
+                    fetchParams.append('echoSets', JSON.stringify(echoSets));
+                }
+
                 const response = await fetch(`${LB_URL}/build?${fetchParams}`);
                 if (!response.ok) throw new Error('Failed to fetch leaderboard');
                 
@@ -219,7 +237,7 @@ export default function BuildPageClient() {
             }
         };
         loadData();
-    }, [currentPage, sortDirection, CVSort, statSort, router, characterId, weaponId]);
+    }, [currentPage, sortDirection, CVSort, statSort, router, characterIds, weaponIds, echoSets]);
 
     useEffect(() => {
         setExpandedEntries(new Set());
@@ -277,7 +295,7 @@ export default function BuildPageClient() {
                             <div className="loading-text">Updating results...</div>
                         </div>
                         <div className="build-table">
-                            <BuildFilter onCharacterFilter={setcharacterId} onWeaponFilter={setweaponId}/>
+                            <BuildFilter onCharacterFilter={setCharacterIds} onWeaponFilter={setWeaponIds} onEchoFilter={setEchoSets}/>
                             <div className="build-header">
                                 <span>Rank</span>
                                 <span>Owner</span>
