@@ -9,6 +9,7 @@ import { BuildEntry } from './BuildEntry';
 import { SortAsc } from 'lucide-react';
 import { STAT_ORDER } from '@/types/stats';
 import { useRouter } from 'next/navigation';
+import { BuildFilter } from './BuildFilter';
 import '@/styles/BuildPage.css';
 
 const FILTERED_STATS = STAT_ORDER.filter(stat => 
@@ -170,6 +171,10 @@ export default function BuildPageClient() {
     const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
     const itemsPerPage = 10;
     const [total, setTotal] = useState(0);
+    const [characterId, setcharacterId] = useState<string | null>(null);
+    const [weaponId, setweaponId] = useState<string | null>(null);
+    const [isTableLoading, setIsTableLoading] = useState(false);
+
     useEffect(() => {
         const getSortParam = () => {
             if (statSort) return statSort;
@@ -182,17 +187,20 @@ export default function BuildPageClient() {
             direction: sortDirection,
             page: String(currentPage)
         });
-        router.push(`/builds?${params.toString()}`, { 
-            scroll: false 
-        });
+        if (characterId) params.append('characterId', characterId);
+        if (weaponId) params.append('weaponId', weaponId);
+        router.push(`/builds?${params.toString()}`, { scroll: false });
         const loadData = async () => {
             try {
+                setIsTableLoading(true);
                 const fetchParams = new URLSearchParams({
                     sort: getSortParam(),
                     direction: sortDirection,
                     page: String(currentPage),
                     pageSize: String(itemsPerPage)
                 });
+                if (characterId) fetchParams.append('characterId', characterId);
+                if (weaponId) fetchParams.append('weaponId', weaponId);
                 const response = await fetch(`${LB_URL}/build?${fetchParams}`);
                 if (!response.ok) throw new Error('Failed to fetch leaderboard');
                 
@@ -200,16 +208,19 @@ export default function BuildPageClient() {
                 setTotal(total);
                 setData(builds.map((entry: CompressedEntry) => ({
                     ...entry,
-                    buildState: decompressData({ state: entry.buildState }).state
+                    buildState: decompressData({ state: entry.buildState }).state,
                 })));
                 setLoading(false);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Unknown error');
                 setLoading(false);
+            } finally {
+                setIsTableLoading(false);
             }
         };
         loadData();
-    }, [currentPage, sortDirection, CVSort, statSort, router]);
+    }, [currentPage, sortDirection, CVSort, statSort, router, characterId, weaponId]);
+
     useEffect(() => {
         setExpandedEntries(new Set());
     }, [activeSort, CVSort, statSort, currentPage, sortDirection]);
@@ -260,56 +271,63 @@ export default function BuildPageClient() {
             <div className="build-wrapper">
                 <BuildHeader />
                 <div className="build-container">
-                    <div className="build-table">
-                        <div className="build-header">
-                            <span>Rank</span>
-                            <span>Owner</span>
-                            <span>Character</span>
-                            <span></span>
-                            <span></span>
-                            <span>Sets</span>
-                            <SortDropdown<CVSort>
-                                field={CVSort}
-                                options={['cv', 'cr', 'cd'] as const}
-                                direction={sortDirection}
-                                onFieldChange={handleCVSort}
-                                onDirectionChange={setSortDirection}
-                                placeholder="Crit Value"
-                                isActive={activeSort === 'cv'}
-                            />
-                            <SortDropdown<StatSort>
-                                field={statSort}
-                                options={FILTERED_STATS}
-                                direction={sortDirection}
-                                onFieldChange={handleStatSort}
-                                onDirectionChange={setSortDirection}
-                                placeholder="Stats"
-                                isActive={activeSort === 'stat'}
-                                hoveredSection={hoveredSection}
-                                lastHoveredSection={lastHoveredSection}
-                                onHoverSection={handleHoverSection}
-                            />
+                    <div className="build-table-wrapper">
+                        <div className={`table-loading-overlay ${isTableLoading ? 'active' : ''}`}>
+                            <div className="loading-spinner" />
+                            <div className="loading-text">Updating results...</div>
                         </div>
-                        <div className="build-entries">
-                            {data.map((entry, index) => (
-                                <BuildEntry 
-                                    key={entry.timestamp}
-                                    entry={entry}
-                                    rank={(currentPage - 1) * itemsPerPage + index + 1}
-                                    onClick={() => setExpandedEntries(prev => {
-                                        const next = new Set(prev);
-                                        if (next.has(entry.timestamp)) {
-                                            next.delete(entry.timestamp);
-                                        } else {
-                                            next.add(entry.timestamp);
-                                        }
-                                        return next;
-                                    })}
-                                    isExpanded={expandedEntries.has(entry.timestamp)}
-                                    activeStat={activeSort === 'stat' ? statSort : null}
-                                    activeSort={activeSort}
+                        <div className="build-table">
+                            <BuildFilter onCharacterFilter={setcharacterId} onWeaponFilter={setweaponId}/>
+                            <div className="build-header">
+                                <span>Rank</span>
+                                <span>Owner</span>
+                                <span>Character</span>
+                                <span></span>
+                                <span></span>
+                                <span>Sets</span>
+                                <SortDropdown<CVSort>
+                                    field={CVSort}
+                                    options={['cv', 'cr', 'cd'] as const}
+                                    direction={sortDirection}
+                                    onFieldChange={handleCVSort}
+                                    onDirectionChange={setSortDirection}
+                                    placeholder="Crit Value"
+                                    isActive={activeSort === 'cv'}
                                 />
-                            ))}
+                                <SortDropdown<StatSort>
+                                    field={statSort}
+                                    options={FILTERED_STATS}
+                                    direction={sortDirection}
+                                    onFieldChange={handleStatSort}
+                                    onDirectionChange={setSortDirection}
+                                    placeholder="Stats"
+                                    isActive={activeSort === 'stat'}
+                                    hoveredSection={hoveredSection}
+                                    lastHoveredSection={lastHoveredSection}
+                                    onHoverSection={handleHoverSection}
+                                />
+                            </div>
+                            <div className="build-entries">
+                                {data.map((entry, index) => (
+                                    <BuildEntry 
+                                        key={entry.timestamp}
+                                        entry={entry}
+                                        rank={(currentPage - 1) * itemsPerPage + index + 1}
+                                        onClick={() => setExpandedEntries(prev => {
+                                            const next = new Set(prev);
+                                            if (next.has(entry.timestamp)) {
+                                                next.delete(entry.timestamp);
+                                            } else {
+                                                next.add(entry.timestamp);
+                                            }
+                                            return next;
+                                        })}
+                                        isExpanded={expandedEntries.has(entry.timestamp)}
+                                        activeStat={activeSort === 'stat' ? statSort : null}
+                                        activeSort={activeSort}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>

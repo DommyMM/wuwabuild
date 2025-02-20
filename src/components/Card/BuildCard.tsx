@@ -296,7 +296,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
           tabRef.current.classList.remove('downloading');
         }
       });
-  }, [tabRef, isEditMode]);
+  }, [tabRef]);
 
   const handleImageChange = (file: File | undefined) => {
     if (isEditMode) {
