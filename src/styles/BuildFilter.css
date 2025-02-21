@@ -2,7 +2,7 @@
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    padding: 8px 16px;
+    padding: 8px;
     background: linear-gradient(
         to bottom,
         rgba(26, 26, 26, 0.95),
@@ -17,72 +17,19 @@
     z-index: 2;
 }
 
-.build-filter::after {
-    content: '';
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    bottom: -1px;
-    height: 1px;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(166, 150, 98, 0.3),
-        transparent
-    );
-}
-
-.filter-group {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    padding: 4px;
-    position: relative;
-}
-
-.filter-label {
-    color: #a69662;
-    font-size: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.filter-select {
-    border-radius: 4px;
-    border: 1px solid black;
-    background: black;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.filter-select:hover {
-    border-color: #a69662;
-}
-
-.filter-search {
-    position: relative;
-    padding: 4px 8px;
-    display:flex;
-    width: 300px;
-}
-
-.filter-group:nth-of-type(2) .filter-search{
-    width: 200px;
-}
-
-.filter-group:nth-of-type(2) .filter-search:has(.filter-selected) {
-    width: 250px;
-}
-
 .filter-input-container {
     position: relative;
     width: 100%;
     background: #222;
     border: 1px solid #333;
     border-radius: 4px;
-    padding: 4px;
-    cursor: text; /* Add this to show text cursor */
+    padding: 8px;
+    cursor: text;
+    transition: border-color 0.2s ease;
+}
+
+.filter-input-container:focus-within {
+    border-color: #a69662;
 }
 
 .selected-tags {
@@ -100,14 +47,12 @@
     padding: 2px 6px;
     background: #333;
     border-radius: 4px;
-    margin: 2px;
-    height: 28px; /* Fixed height for consistency */
+    height: 28px;
 }
 
 .tag-icon {
     width: 16px;
     height: auto;
-    border-radius: 50%;
 }
 
 .selected-tag span {
@@ -126,80 +71,44 @@
 
 .filter-input {
     display: inline-block;
-    min-width: 20px; /* Smaller min-width */
+    min-width: 60px;
     flex: 1;
     border: none;
     background: transparent;
     padding: 4px;
     font-size: 14px;
-    height: 28px; /* Match tag height */
-}
-
-.filter-input {
-    width: 100%;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid #333;
-    background: #222;
+    height: 28px;
     color: white;
-    font-family: 'Ropa', sans-serif;
-    font-size: 18px;
 }
 
-.filter-dropdown {
+.filter-input:focus {
+    outline: none;
+}
+
+.unified-dropdown {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
     background: #1a1a1a;
     border: 1px solid #333;
     border-radius: 4px;
-    margin-top: 4px;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
-    overflow-x: hidden;
     z-index: 999;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.filter-dropdown::-webkit-scrollbar {
-    width: 4px;
+.filter-section {
+    padding: 8px 0;
 }
 
-.filter-selected {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 8px;
-    border: 1px solid #333;
-    border-radius: 24px;
-    background: #222;
-    cursor: pointer;
-    gap: 8px;
-}
-
-.filter-selected-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.filter-clear-icon {
-    color: #666;
-    transition: color 0.2s ease;
-}
-
-.filter-selected:hover {
-    border-color: #a69662;
-}
-
-.filter-selected:hover .filter-clear-icon {
+.section-header {
+    padding: 12px 16px;
     color: #a69662;
-}
-
-.filter-selected span {
     font-size: 24px;
-    color: white;
+    background: #222;
+    margin-bottom: 4px;
 }
 
 .filter-option {
@@ -208,39 +117,32 @@
     padding: 6px 8px;
     gap: 8px;
     cursor: pointer;
-    font-size: 24px;
 }
 
 .filter-option:hover {
     background: #a69662;
 }
 
-.weapon-type-group .filter-option {
-    font-size: 16px;
-    padding: 6px 4px;
-}
-
-.filter-weapon {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    line-height: 1;
-    max-width: 80%;
+.filter-option span {
+    font-size: 18px;
 }
 
 .filter-icon {
     width: 30px;
     height: auto;
     object-fit: cover;
-    border-radius: 50%;
 }
 
 .weapon-type-header {
-    padding: 4px 8px;
-    background: #1a1a1a;
-    color: #a69662;
-    font-size: 18px;
-    border-bottom: 1px solid #333;
+    padding: 8px 12px;
+    color: #666;
+    font-size: 20px;
+}
+
+.filter-weapon {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .weapon-rarity {
@@ -249,87 +151,16 @@
     margin-left: auto;
 }
 
-.weapon-type-group {
-    border-bottom: 1px solid #333;
-}
-
-.weapon-type-group:last-child {
-    border-bottom: none;
-}
-
-.filter-group:nth-of-type(3) .filter-search {
-    width: 200px;
-}
-
-.filter-group:nth-of-type(3) .filter-search:has(.filter-selected) {
-    width: 325px;
-}
-
-.filter-group:nth-of-type(3) .filter-icon {
-    width: 24px;
-}
-
-.echo-count-group {
-    border-bottom: 1px solid #333;
-}
-
-.echo-count-group:last-child {
-    border-bottom: none;
-}
-
 .echo-count-header {
-    padding: 4px 8px;
-    background: #1a1a1a;
-    color: #a69662;
-    font-size: 18px;
-    border-bottom: 1px solid #333;
-}
-
-.filter-echo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    line-height: 1;
-    max-width: 100%;
-}
-
-.filter-echo span {
+    padding: 4px 8px 12px;
+    color: #666;
     font-size: 16px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
-.echo-count-group .filter-option {
-    padding: 6px 8px;
-    font-size: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.unified-dropdown::-webkit-scrollbar {
+    width: 4px;
 }
 
-.echo-count-group .filter-icon {
-    width: 24px;
-    height: 24px;
-}
-
-.selected-echo-set {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0 4px;
-}
-
-.selected-echo-set:not(:last-child) {
-    border-bottom: 1px solid #333;
-}
-
-.filter-group:nth-of-type(3) .filter-selected-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.filter-selected:has(.selected-echo-set) {
-    padding: 8px;
+.unified-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #444;
 }

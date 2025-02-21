@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { getAssetPath } from '@/types/paths';
 import { cachedCharacters } from '@/hooks/useCharacters';
@@ -10,352 +10,154 @@ import { ELEMENT_SETS } from '@/types/echo';
 import { X } from 'lucide-react';
 import '@/styles/BuildFilter.css';
 
-const SelectedCharacterTag: React.FC<{
-    char: Character;
-    onRemove: (id: string) => void;
-}> = ({ char, onRemove }) => (
-    <div className="selected-tag">
-        <Image 
-            src={getAssetPath('face1', char).cdn} 
-            alt={char.name} 
-            width={32} 
-            height={32} 
-            className="tag-icon"
-        />
-        <span>{char.name}</span>
-        <X 
-            size={16} 
-            className="remove-icon" 
-            onClick={(e) => {
-                e.stopPropagation();
-                onRemove(char.id);
-            }}
-        />
-    </div>
-);
-
-const CharacterDropdown: React.FC<{
-    filteredChars: Character[];
-    selectedChars: Character[];
+const CharacterSection: React.FC<{
+    search: string;
+    selected: Character[];
     onSelect: (char: Character) => void;
-}> = ({ filteredChars, selectedChars, onSelect }) => (
-    <div className="filter-dropdown">
-        {filteredChars
-            .filter(char => !selectedChars.some(selected => selected.id === char.id))
-            .map(char => (
-                <div 
-                    key={char.id} 
-                    className="filter-option"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onSelect(char);
-                    }}
-                    onMouseDown={(e) => e.preventDefault()}
-                >
-                    <Image 
-                        src={getAssetPath('face1', char).cdn} 
-                        alt={char.name} 
-                        width={32} 
-                        height={32} 
-                        className="filter-icon"
-                    />
-                    <span>{char.name}</span>
-                </div>
-            ))}
-    </div>
-);
-
-const CharacterFilterSection: React.FC<{
-    onCharacterFilter: (characterIds: string[]) => void;
-}> = ({ onCharacterFilter }) => {
-    const [charSearch, setCharSearch] = useState('');
-    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-    const [selectedChars, setSelectedChars] = useState<Character[]>([]);
-    const inputRef = useRef<HTMLInputElement>(null);
-
+}> = ({ search, selected, onSelect }) => {
     const filteredCharacters = useMemo(() => 
         cachedCharacters?.filter(char => 
-            char.name.toLowerCase().includes(charSearch.toLowerCase())
-        ) || [],
-        [charSearch]
+            char.name.toLowerCase().includes(search.toLowerCase()) &&
+            !selected.some(c => c.id === char.id)
+        ) || [], 
+        [search, selected]
     );
 
-    const handleRemoveChar = (id: string) => {
-        const newChars = selectedChars.filter(c => c.id !== id);
-        setSelectedChars(newChars);
-        onCharacterFilter(newChars.map(c => c.id));
-    };
-
-    const handleSelectChar = (char: Character) => {
-        const newChars = [...selectedChars, char];
-        setSelectedChars(newChars);
-        onCharacterFilter(newChars.map(c => c.id));
-        setCharSearch('');
-    };
-
-    const handleContainerClick = () => {
-        inputRef.current?.focus();
-    };
+    if (filteredCharacters.length === 0) return null;
 
     return (
-        <div className="filter-group">
-            <span className="filter-label">Char</span>
-            <div className="filter-search">
-                <div 
-                    className="filter-input-container" 
-                    onClick={handleContainerClick}
-                >
-                    <div className="selected-tags">
-                        {selectedChars.map(char => (
-                            <SelectedCharacterTag 
-                                key={char.id} 
-                                char={char} 
-                                onRemove={handleRemoveChar}
-                            />
-                        ))}
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            className="filter-input"
-                            value={charSearch}
-                            onChange={(e) => setCharSearch(e.target.value)}
-                            onFocus={() => setIsDropdownVisible(true)}
-                            onBlur={() => setTimeout(() => setIsDropdownVisible(false), 50)}
-                            placeholder={selectedChars.length ? "" : "Search characters..."}
-                        />
+        <div className="filter-section">
+            <div className="section-header">Characters</div>
+            <div className="section-content character-list">
+                {filteredCharacters.map(char => (
+                    <div key={char.id} className="filter-option" onClick={() => onSelect(char)} onMouseDown={e => e.preventDefault()}>
+                        <Image src={getAssetPath('face1', char).cdn} alt={char.name} width={32} height={32} className="filter-icon" />
+                        <span>{char.name}</span>
                     </div>
-                </div>
-                
-                {(isDropdownVisible || charSearch) && (
-                    <CharacterDropdown 
-                        filteredChars={filteredCharacters}
-                        selectedChars={selectedChars}
-                        onSelect={handleSelectChar}
-                    />
-                )}
+                ))}
             </div>
         </div>
     );
 };
 
-const SelectedWeaponTag: React.FC<{
-    weapon: typeof weaponList[0];
-    onRemove: (id: string) => void;
-}> = ({ weapon, onRemove }) => (
-    <div className="selected-tag">
-        <Image 
-            src={getAssetPath('weapons', weapon).cdn} 
-            alt={weapon.name} 
-            width={32} 
-            height={32} 
-            className="tag-icon"
-        />
-        <span>{weapon.name}</span>
-        <X 
-            size={16} 
-            className="remove-icon" 
-            onClick={(e) => {
-                e.stopPropagation();
-                onRemove(weapon.id);
-            }}
-        />
-    </div>
-);
-
-const WeaponFilterSection: React.FC<{
-    onWeaponFilter: (weaponIds: string[]) => void;
-}> = ({ onWeaponFilter }) => {
-    const [weaponSearch, setWeaponSearch] = useState('');
-    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-    const [selectedWeapons, setSelectedWeapons] = useState<typeof weaponList>([]);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    const weaponsByType = useMemo(() => {
-        const grouped = weaponList.reduce((acc, weapon) => {
-            const type = weapon.type;
-            if (!acc[type]) {
-                acc[type] = [];
+const WeaponSection: React.FC<{
+    search: string;
+    selected: typeof weaponList;
+    onSelect: (weapon: typeof weaponList[0]) => void;
+}> = ({ search, selected, onSelect }) => {
+    const filteredWeapons = useMemo(() => 
+        Object.entries(weaponList.reduce((acc, weapon) => {
+            if (weapon.name.toLowerCase().includes(search.toLowerCase()) && !selected.some(w => w.id === weapon.id)) {
+                acc[weapon.type] = [...(acc[weapon.type] || []), weapon];
             }
-            acc[type].push(weapon);
             return acc;
-        }, {} as Record<string, typeof weaponList>);
+        }, {} as Record<string, typeof weaponList>)),
+        [search, selected]
+    );
 
-        if (weaponSearch) {
-            Object.keys(grouped).forEach(type => {
-                grouped[type] = grouped[type].filter(weapon => 
-                    weapon.name.toLowerCase().includes(weaponSearch.toLowerCase())
-                );
-                if (grouped[type].length === 0) {
-                    delete grouped[type];
-                }
-            });
-        }
-
-        return grouped;
-    }, [weaponSearch]);
-
-    const handleRemoveWeapon = (id: string) => {
-        const newWeapons = selectedWeapons.filter(w => w.id !== id);
-        setSelectedWeapons(newWeapons);
-        onWeaponFilter(newWeapons.map(w => w.id));
-    };
-
-    const handleSelectWeapon = (weapon: typeof weaponList[0]) => {
-        const newWeapons = [...selectedWeapons, weapon];
-        setSelectedWeapons(newWeapons);
-        onWeaponFilter(newWeapons.map(w => w.id));
-        setWeaponSearch('');
-    };
-
-    const handleContainerClick = () => {
-        inputRef.current?.focus();
-    };
+    if (filteredWeapons.length === 0) return null;
 
     return (
-        <div className="filter-group">
-            <span className="filter-label">Weap</span>
-            <div className="filter-search">
-                <div 
-                    className="filter-input-container" 
-                    onClick={handleContainerClick}
-                >
-                    <div className="selected-tags">
-                        {selectedWeapons.map(weapon => (
-                            <SelectedWeaponTag 
-                                key={weapon.id} 
-                                weapon={weapon} 
-                                onRemove={handleRemoveWeapon}
-                            />
-                        ))}
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            className="filter-input"
-                            value={weaponSearch}
-                            onChange={(e) => setWeaponSearch(e.target.value)}
-                            onFocus={() => setIsDropdownVisible(true)}
-                            onBlur={() => setTimeout(() => setIsDropdownVisible(false), 50)}
-                            placeholder={selectedWeapons.length ? "" : "Search weapons..."}
-                        />
-                    </div>
-                </div>
-                
-                {(isDropdownVisible || weaponSearch) && (
-                    <div className="filter-dropdown">
-                        {Object.entries(weaponsByType).map(([type, weapons]) => (
-                            <div key={type} className="weapon-type-group">
-                                <div className="weapon-type-header">{type}</div>
-                                {weapons
-                                    .filter(weapon => !selectedWeapons.some(w => w.id === weapon.id))
-                                    .map(weapon => (
-                                        <div key={weapon.id} className="filter-option"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                handleSelectWeapon(weapon);
-                                            }}
-                                            onMouseDown={(e) => e.preventDefault()}
-                                        >
-                                            <div className='filter-weapon'>
-                                                <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} width={32} height={32} className="filter-icon"/>
-                                                <span>{weapon.name}</span>
-                                            </div>
-                                            <span className="weapon-rarity">{weapon.rarity}</span>
-                                        </div>
-                                    ))}
+        <div className="filter-section">
+            <div className="section-header">Weapons</div>
+            <div className="section-content weapon-groups">
+                {filteredWeapons.map(([type, weapons]) => (
+                    <div key={type}>
+                        <div className="weapon-type-header">{type}</div>
+                        {weapons.map(weapon => (
+                            <div key={weapon.id} className="filter-option" onClick={() => onSelect(weapon)} onMouseDown={e => e.preventDefault()}>
+                                <div className="filter-weapon">
+                                    <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} width={32} height={32} className="filter-icon" />
+                                    <span>{weapon.name}</span>
+                                </div>
+                                <span className="weapon-rarity">{weapon.rarity}</span>
                             </div>
                         ))}
                     </div>
-                )}
+                ))}
             </div>
         </div>
     );
 };
 
-interface EchoFilterProps {
-    onEchoFilter: (sets: Array<[number, number]>) => void;  // [count, elementIndex]
-}
+const EchoSection: React.FC<{
+    search: string;
+    selected: Array<[number, number]>;
+    onSelect: (set: [number, number]) => void;
+}> = ({ search, selected, onSelect }) => {
+    const filteredEchoes = useMemo(() => 
+        Object.entries(ELEMENT_SETS).filter(([_, name]) => 
+            name.toLowerCase().includes(search.toLowerCase())
+        ),
+        [search]
+    );
 
-const EchoFilterSection: React.FC<EchoFilterProps> = ({ onEchoFilter }) => {
-    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-    const [selectedSets, setSelectedSets] = useState<Array<[number, number]>>([]);
-    const [echoSearch, setEchoSearch] = useState('');
+    if (filteredEchoes.length === 0) return null;
 
     return (
-        <div className="filter-group">
-            <span className="filter-label">Echo Sets</span>
-            <div className="filter-search">
-                {selectedSets.length > 0 ? (
-                    <div className="filter-selected" onClick={() => {
-                        setSelectedSets([]);
-                        setEchoSearch('');
-                        onEchoFilter([]);
-                    }}>
-                        <div className="filter-selected-content">
-                            {selectedSets.map(([count, index]) => {
-                                const element = Object.keys(ELEMENT_SETS)[index];
-                                const setName = ELEMENT_SETS[element as keyof typeof ELEMENT_SETS];
-                                return (
-                                    <div key={`${count}-${index}`} className="selected-echo-set">
-                                        <span>{count}p</span>
-                                        <Image src={getAssetPath('sets', element).cdn} alt={setName} width={76} height={76} className="filter-icon"/>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        <X size={16} className="filter-clear-icon" />
+        <div className="filter-section">
+            <div className="section-header">Echo Sets</div>
+            <div className="section-content echo-groups">
+                {[2, 5].map(count => (
+                    <div key={count}>
+                        <div className="echo-count-header">{count}p sets</div>
+                        {filteredEchoes.map(([element]) => {
+                            const actualIndex = Object.keys(ELEMENT_SETS).indexOf(element);
+                            const setName = ELEMENT_SETS[element as keyof typeof ELEMENT_SETS];
+                            return (
+                                <div key={`${count}-${element}`} className="filter-option" onClick={() => onSelect([count, actualIndex])} onMouseDown={e => e.preventDefault()}>
+                                    <Image src={getAssetPath('sets', element).cdn} alt={setName} width={76} height={76} className="filter-icon" /><span>{setName}</span>
+                                </div>
+                            );
+                        })}
                     </div>
-                ) : (
-                    <input
-                        type="text"
-                        className="filter-input"
-                        value={echoSearch}
-                        onChange={(e) => setEchoSearch(e.target.value)}
-                        onFocus={() => setIsDropdownVisible(true)}
-                        onBlur={() => setTimeout(() => setIsDropdownVisible(false), 50)}
-                        placeholder="Search echo sets..."
-                    />
-                )}
-                
-                {!selectedSets.length && (isDropdownVisible || echoSearch) && (
-                    <div className="filter-dropdown">
-                        {[2, 5].map(count => (
-                            <div key={count} className="echo-count-group">
-                                <div className="echo-count-header">{count}p sets</div>
-                                {Object.entries(ELEMENT_SETS)
-                                    .filter(([_, name]) => 
-                                        name.toLowerCase().includes(echoSearch.toLowerCase())
-                                    )
-                                    .map(([element]) => {
-                                        const actualIndex = Object.keys(ELEMENT_SETS).indexOf(element);
-                                        const setName = ELEMENT_SETS[element as keyof typeof ELEMENT_SETS];
-                                        
-                                        return (
-                                            <div key={element} className="filter-option"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    const newSet: [number, number] = [count, actualIndex];
-                                                    setSelectedSets([newSet]);
-                                                    onEchoFilter([newSet]);
-                                                    setEchoSearch('');
-                                                    setIsDropdownVisible(false);
-                                                }}
-                                                onMouseDown={(e) => e.preventDefault()}
-                                            >
-                                                <div className="filter-echo">
-                                                    <Image src={getAssetPath('sets', element).cdn} alt={setName} width={76} height={76} className="filter-icon"/>
-                                                    <span>{setName}</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                            </div>
-                        ))}
-                    </div>
-                )}
+                ))}
             </div>
+        </div>
+    );
+};
+
+const SelectedTag: React.FC<{
+    type: 'character' | 'weapon' | 'echo';
+    data: Character | typeof weaponList[0] | [number, number];
+    onRemove: () => void;
+}> = ({ type, data, onRemove }) => {
+    const renderContent = () => {
+        switch (type) {
+            case 'character':
+                const char = data as Character;
+                return (
+                    <>
+                        <Image src={getAssetPath('face1', char).cdn} alt={char.name} width={32} height={32} className="tag-icon"/>
+                        <span>{char.name}</span>
+                    </>
+                );
+            case 'weapon':
+                const weapon = data as typeof weaponList[0];
+                return (
+                    <>
+                        <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} width={32} height={32} className="tag-icon"/>
+                        <span>{weapon.name}</span>
+                    </>
+                );
+            case 'echo':
+                const [count, index] = data as [number, number];
+                const element = Object.keys(ELEMENT_SETS)[index];
+                const setName = ELEMENT_SETS[element as keyof typeof ELEMENT_SETS];
+                return (
+                    <>
+                        <span>{count}p</span>
+                        <Image src={getAssetPath('sets', element).cdn} alt={setName} width={76} height={76} className="tag-icon echo"/>
+                        <span>{setName}</span>
+                    </>
+                );
+        }
+    };
+
+    return (
+        <div className="selected-tag">
+            {renderContent()}
+            <X size={16} className="remove-icon" onClick={onRemove} />
         </div>
     );
 };
@@ -366,16 +168,123 @@ interface BuildFilterProps {
     onEchoFilter: (sets: Array<[number, number]>) => void;
 }
 
-export const BuildFilter: React.FC<BuildFilterProps> = ({ 
-    onCharacterFilter, 
-    onWeaponFilter,
-    onEchoFilter 
-}) => {
+interface FilterState {
+    characters: Character[];
+    weapons: typeof weaponList;
+    echoSets: Array<[number, number]>;
+}
+
+export const BuildFilter: React.FC<BuildFilterProps> = ({ onCharacterFilter, onWeaponFilter, onEchoFilter }) => {
+    const [search, setSearch] = useState('');
+    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [selected, setSelected] = useState<FilterState>({ characters: [], weapons: [], echoSets: [] });
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleCharacterSelect = useCallback((char: Character) => {
+        setSelected(prev => {
+            const newChars = [...prev.characters, char];
+            const newState = { ...prev, characters: newChars };
+            requestAnimationFrame(() => onCharacterFilter(newChars.map(c => c.id)));
+            return newState;
+        });
+        setSearch('');
+    }, [onCharacterFilter]);
+
+    const handleWeaponSelect = useCallback((weapon: typeof weaponList[0]) => {
+        setSelected(prev => {
+            const newWeapons = [...prev.weapons, weapon];
+            const newState = { ...prev, weapons: newWeapons };
+            requestAnimationFrame(() => onWeaponFilter(newWeapons.map(w => w.id)));
+            return newState;
+        });
+        setSearch('');
+    }, [onWeaponFilter]);
+
+    const handleEchoSelect = useCallback((set: [number, number]) => {
+        setSelected(prev => {
+            const newEchos = [...prev.echoSets, set];
+            const newState = { ...prev, echoSets: newEchos };
+            requestAnimationFrame(() => onEchoFilter(newEchos));
+            return newState;
+        });
+        setSearch('');
+    }, [onEchoFilter]);
+
+    const handleRemove = useMemo(() => ({
+        character: (id: string) => setSelected(prev => {
+            const newChars = prev.characters.filter(c => c.id !== id);
+            const newState = { ...prev, characters: newChars };
+            requestAnimationFrame(() => onCharacterFilter(newChars.map(c => c.id)));
+            return newState;
+        }),
+        weapon: (id: string) => setSelected(prev => {
+            const newWeapons = prev.weapons.filter(w => w.id !== id);
+            const newState = { ...prev, weapons: newWeapons };
+            requestAnimationFrame(() => onWeaponFilter(newWeapons.map(w => w.id)));
+            return newState;
+        }),
+        echo: () => setSelected(prev => {
+            const newState = { ...prev, echoSets: [] };
+            requestAnimationFrame(() => onEchoFilter([]));
+            return newState;
+        })
+    }), [onCharacterFilter, onWeaponFilter, onEchoFilter]);
+
+    const handleContainerClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        inputRef.current?.focus();
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Backspace' && search === '') {
+            e.preventDefault();
+            if (selected.echoSets.length > 0) {
+                handleRemove.echo();
+            } else if (selected.weapons.length > 0) {
+                const lastWeapon = selected.weapons[selected.weapons.length - 1];
+                handleRemove.weapon(lastWeapon.id);
+            } else if (selected.characters.length > 0) {
+                const lastChar = selected.characters[selected.characters.length - 1];
+                handleRemove.character(lastChar.id);
+            }
+        }
+    };
+
+    const hasSelectedItems = selected.characters.length > 0 || selected.weapons.length > 0 || selected.echoSets.length > 0;
+
     return (
         <div className="build-filter">
-            <CharacterFilterSection onCharacterFilter={onCharacterFilter} />
-            <WeaponFilterSection onWeaponFilter={onWeaponFilter} />
-            <EchoFilterSection onEchoFilter={onEchoFilter} />
+            <div className="filter-input-container" onClick={handleContainerClick}>
+                <div className="selected-tags">
+                    {selected.characters.map(char => 
+                        <SelectedTag key={char.id} type="character" data={char} onRemove={() => handleRemove.character(char.id)} />
+                    )}
+                    {selected.weapons.map(weapon => 
+                        <SelectedTag key={weapon.id} type="weapon" data={weapon} onRemove={() => handleRemove.weapon(weapon.id)} />
+                    )}
+                    {selected.echoSets.map(set => 
+                        <SelectedTag key={`${set[0]}-${set[1]}`} type="echo" data={set} onRemove={() => handleRemove.echo()} />
+                    )}
+                    <input 
+                        ref={inputRef}
+                        type="text"
+                        className="filter-input"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => setIsDropdownVisible(true)}
+                        onBlur={() => setTimeout(() => setIsDropdownVisible(false), 100)}
+                        placeholder={hasSelectedItems ? "" : "Search filters (e.g. character, weapon, echo, main stat)"}
+                    />
+                </div>
+            </div>
+            {(isDropdownVisible || search) && ( // Show dropdown if focused or has search
+                <div className="unified-dropdown">
+                    <CharacterSection search={search} selected={selected.characters} onSelect={handleCharacterSelect} />
+                    <WeaponSection search={search} selected={selected.weapons} onSelect={handleWeaponSelect} />
+                    <EchoSection search={search} selected={selected.echoSets} onSelect={handleEchoSelect} />
+                </div>
+            )}
         </div>
     );
 };
