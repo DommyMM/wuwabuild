@@ -35,7 +35,7 @@
 .selected-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 6px;
     min-height: 32px;
     align-items: center;
 }
@@ -46,12 +46,12 @@
     gap: 4px;
     padding: 2px 6px;
     background: #333;
-    border-radius: 4px;
+    border-radius: 12px;
     height: 28px;
 }
 
 .tag-icon {
-    width: 16px;
+    width: 18px;
     height: auto;
 }
 
@@ -163,4 +163,18 @@
 
 .unified-dropdown::-webkit-scrollbar-thumb:hover {
     background: #444;
+}
+
+.filter-mainstat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.filter-mainstat .filter-icon {
+    width: 24px;
+}
+
+.selected-tag.mainstat {
+    background: rgba(166, 150, 98, 0.1);
 }

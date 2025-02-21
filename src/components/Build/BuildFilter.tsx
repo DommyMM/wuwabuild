@@ -7,6 +7,9 @@ import { cachedCharacters } from '@/hooks/useCharacters';
 import { Character } from '@/types/character';
 import { weaponList } from '@/hooks/useWeapons';
 import { ELEMENT_SETS } from '@/types/echo';
+import { mainStatsCache } from '@/hooks/useMain';
+import { STAT_MAP } from '../Save/Backup';
+import { getStatPaths } from '@/types/stats';
 import { X } from 'lucide-react';
 import '@/styles/BuildFilter.css';
 
@@ -28,7 +31,7 @@ const CharacterSection: React.FC<{
     return (
         <div className="filter-section">
             <div className="section-header">Characters</div>
-            <div className="section-content character-list">
+            <div className="section-content character">
                 {filteredCharacters.map(char => (
                     <div key={char.id} className="filter-option" onClick={() => onSelect(char)} onMouseDown={e => e.preventDefault()}>
                         <Image src={getAssetPath('face1', char).cdn} alt={char.name} width={32} height={32} className="filter-icon" />
@@ -86,14 +89,22 @@ const EchoSection: React.FC<{
     onSelect: (set: [number, number]) => void;
 }> = ({ search, selected, onSelect }) => {
     const filteredEchoes = useMemo(() => 
-        Object.entries(ELEMENT_SETS).filter(([_, name]) => 
+        Object.entries(ELEMENT_SETS).filter(([, name]) => 
             name.toLowerCase().includes(search.toLowerCase())
         ),
         [search]
     );
 
     if (filteredEchoes.length === 0) return null;
-
+    const availableSets = [2, 5].reduce((count, pieceCount) => 
+        count + filteredEchoes.reduce((setCount, [element]) => {
+            const actualIndex = Object.keys(ELEMENT_SETS).indexOf(element);
+            return setCount + (selected.some(([selectedCount, idx]) => 
+                selectedCount === pieceCount && idx === actualIndex
+            ) ? 0 : 1);
+        }, 0)
+    , 0);
+    if (availableSets === 0) return null;
     return (
         <div className="filter-section">
             <div className="section-header">Echo Sets</div>
@@ -104,6 +115,11 @@ const EchoSection: React.FC<{
                         {filteredEchoes.map(([element]) => {
                             const actualIndex = Object.keys(ELEMENT_SETS).indexOf(element);
                             const setName = ELEMENT_SETS[element as keyof typeof ELEMENT_SETS];
+                            const isSelected = selected.some(([selectedCount, idx]) => 
+                                selectedCount === count && idx === actualIndex
+                            );
+                            
+                            if (isSelected) return null;
                             return (
                                 <div key={`${count}-${element}`} className="filter-option" onClick={() => onSelect([count, actualIndex])} onMouseDown={e => e.preventDefault()}>
                                     <Image src={getAssetPath('sets', element).cdn} alt={setName} width={76} height={76} className="filter-icon" /><span>{setName}</span>
@@ -116,10 +132,55 @@ const EchoSection: React.FC<{
         </div>
     );
 };
+const MainStatSection: React.FC<{
+    search: string;
+    selected: Array<[number, string]>;
+    onSelect: (mainStat: [number, string]) => void;
+}> = ({ search, selected, onSelect }) => {
+    const filteredStats = useMemo(() => 
+        [4, 3, 1].reduce((acc, cost) => {
+            const stats = mainStatsCache.getMainStatsByCost(cost);
+            if (!stats) return acc;
+            const filtered = Object.entries(stats)
+                .filter(([name]) => {
+                    const searchMatch = name.toLowerCase().includes(search.toLowerCase()) || `${cost}`.includes(search.toLowerCase());
+                    const notSelected = !selected.some(
+                        ([sCost, sStat]) => sCost === cost && sStat === name
+                    );
+                    return searchMatch && notSelected;
+                })
+                .map(([name]) => [cost, name] as [number, string]);
+            if (filtered.length > 0) acc[cost] = filtered;
+            return acc;
+        }, {} as Record<number, Array<[number, string]>>),
+        [search, selected]
+    );
+    if (Object.keys(filteredStats).length === 0) return null;
+    return (
+        <div className="filter-section">
+            <div className="section-header">Main Stats</div>
+            <div className="section-content mainstat-groups">
+                {[4, 3, 1].map(cost => !filteredStats[cost] ? null : (
+                    <div key={cost}>
+                        <div className="weapon-type-header">{cost} Cost</div>
+                        {filteredStats[cost].map(([cost, stat]) => (
+                            <div key={`${cost}-${stat}`} className="filter-option" onClick={() => onSelect([cost, stat])} onMouseDown={e => e.preventDefault()}>
+                                <div className="filter-mainstat">
+                                    <Image src={getStatPaths(stat).cdn} alt={stat} width={96} height={96} className="filter-icon" />
+                                    <span>{stat}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const SelectedTag: React.FC<{
-    type: 'character' | 'weapon' | 'echo';
-    data: Character | typeof weaponList[0] | [number, number];
+    type: 'character' | 'weapon' | 'echo' | 'mainstat';
+    data: Character | typeof weaponList[0] | [number, number] | [number, string];
     onRemove: () => void;
 }> = ({ type, data, onRemove }) => {
     const renderContent = () => {
@@ -151,6 +212,15 @@ const SelectedTag: React.FC<{
                         <span>{setName}</span>
                     </>
                 );
+            case 'mainstat':
+                const [cost, stat] = data as [number, string];
+                return (
+                    <>
+                        <Image src={getStatPaths(stat).cdn} alt={stat} width={96} height={96} className="tag-icon"/>
+                        <span>{stat}</span>
+                        <span className="mainstat-cost">| {cost} Cost</span>
+                    </>
+                );
         }
     };
 
@@ -162,22 +232,24 @@ const SelectedTag: React.FC<{
     );
 };
 
-interface BuildFilterProps {
-    onCharacterFilter: (characterIds: string[]) => void;
-    onWeaponFilter: (weaponIds: string[]) => void;
-    onEchoFilter: (sets: Array<[number, number]>) => void;
-}
-
 interface FilterState {
     characters: Character[];
     weapons: typeof weaponList;
     echoSets: Array<[number, number]>;
+    mainStats: Array<[number, string]>;
 }
 
-export const BuildFilter: React.FC<BuildFilterProps> = ({ onCharacterFilter, onWeaponFilter, onEchoFilter }) => {
+interface BuildFilterProps {
+    onCharacterFilter: (characterIds: string[]) => void;
+    onWeaponFilter: (weaponIds: string[]) => void;
+    onEchoFilter: (sets: Array<[number, number]>) => void;
+    onMainStatFilter: (stats: Array<[number, string]>) => void;
+}
+
+export const BuildFilter: React.FC<BuildFilterProps> = ({ onCharacterFilter, onWeaponFilter, onEchoFilter, onMainStatFilter }) => {
     const [search, setSearch] = useState('');
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-    const [selected, setSelected] = useState<FilterState>({ characters: [], weapons: [], echoSets: [] });
+    const [selected, setSelected] = useState<FilterState>({ characters: [], weapons: [], echoSets: [], mainStats: [] });
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleCharacterSelect = useCallback((char: Character) => {
@@ -210,6 +282,21 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({ onCharacterFilter, onW
         setSearch('');
     }, [onEchoFilter]);
 
+    const handleMainStatSelect = useCallback((mainStat: [number, string]) => {
+        setSelected(prev => {
+            const newMainStats = [...prev.mainStats, mainStat];
+            const newState = { ...prev, mainStats: newMainStats };
+            const mappedStats = newMainStats.map(([cost, stat]) => [
+                cost,
+                STAT_MAP[stat as keyof typeof STAT_MAP] || stat
+            ] as [number, string]);
+            
+            requestAnimationFrame(() => onMainStatFilter(mappedStats));
+            return newState;
+        });
+        setSearch('');
+    }, [onMainStatFilter]);
+    
     const handleRemove = useMemo(() => ({
         character: (id: string) => setSelected(prev => {
             const newChars = prev.characters.filter(c => c.id !== id);
@@ -227,8 +314,21 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({ onCharacterFilter, onW
             const newState = { ...prev, echoSets: [] };
             requestAnimationFrame(() => onEchoFilter([]));
             return newState;
+        }),
+        mainStat: (stat: [number, string]) => setSelected(prev => {
+            const newMainStats = prev.mainStats.filter(
+                ([cost, type]) => !(cost === stat[0] && type === stat[1])
+            );
+            
+            const mappedStats = newMainStats.map(([cost, stat]) => [
+                cost,
+                STAT_MAP[stat as keyof typeof STAT_MAP] || stat
+            ] as [number, string]);
+            
+            requestAnimationFrame(() => onMainStatFilter(mappedStats));
+            return { ...prev, mainStats: newMainStats };
         })
-    }), [onCharacterFilter, onWeaponFilter, onEchoFilter]);
+    }), [onCharacterFilter, onWeaponFilter, onEchoFilter, onMainStatFilter]);
 
     const handleContainerClick = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -238,7 +338,10 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({ onCharacterFilter, onW
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Backspace' && search === '') {
             e.preventDefault();
-            if (selected.echoSets.length > 0) {
+            if (selected.mainStats.length > 0) {
+                const lastStat = selected.mainStats[selected.mainStats.length - 1];
+                handleRemove.mainStat(lastStat);
+            } else if (selected.echoSets.length > 0) {
                 handleRemove.echo();
             } else if (selected.weapons.length > 0) {
                 const lastWeapon = selected.weapons[selected.weapons.length - 1];
@@ -250,7 +353,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({ onCharacterFilter, onW
         }
     };
 
-    const hasSelectedItems = selected.characters.length > 0 || selected.weapons.length > 0 || selected.echoSets.length > 0;
+    const hasSelectedItems = selected.characters.length > 0 || selected.weapons.length > 0 || selected.echoSets.length > 0 || selected.mainStats.length > 0;
 
     return (
         <div className="build-filter">
@@ -264,6 +367,14 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({ onCharacterFilter, onW
                     )}
                     {selected.echoSets.map(set => 
                         <SelectedTag key={`${set[0]}-${set[1]}`} type="echo" data={set} onRemove={() => handleRemove.echo()} />
+                    )}
+                    {selected.mainStats.map(stat => 
+                        <SelectedTag 
+                            key={`${stat[0]}-${stat[1]}`} 
+                            type="mainstat" 
+                            data={stat} 
+                            onRemove={() => handleRemove.mainStat(stat)} 
+                        />
                     )}
                     <input 
                         ref={inputRef}
@@ -283,6 +394,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({ onCharacterFilter, onW
                     <CharacterSection search={search} selected={selected.characters} onSelect={handleCharacterSelect} />
                     <WeaponSection search={search} selected={selected.weapons} onSelect={handleWeaponSelect} />
                     <EchoSection search={search} selected={selected.echoSets} onSelect={handleEchoSelect} />
+                    <MainStatSection search={search} selected={selected.mainStats} onSelect={handleMainStatSelect} />
                 </div>
             )}
         </div>

@@ -480,10 +480,10 @@
     font-family: 'Gowun', sans-serif;
     letter-spacing: 1px;
     font-size: 26px;
-    color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.5);
     user-select: none;
     padding: 0.5px 3.5px;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(0.5px);
     transition: opacity 0.3s ease;
 }
