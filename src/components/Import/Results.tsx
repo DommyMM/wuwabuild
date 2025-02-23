@@ -66,57 +66,57 @@ export const cleanStatValue = (value: string): string => {
     return isNaN(numValue) ? '0' : numValue.toString();
 };
 
-interface HeaderSectionProps { 
-    title: string; 
-    data?: { 
-        name?: string; 
-        level?: number; 
-        username?: string; 
-        uid?: number;
-    };
-    onEdit?: (data: { username: string; uid: string }) => void;
-}
+const BasicHeaderSection: React.FC<{ 
+    title: string;
+    data?: { name?: string; level?: number; }
+}> = ({ title, data }) => (
+    <div className="header-section">
+        <h3>{title}</h3>
+        <div className="highlight-text">
+            {data?.name ? `${data.name} [Lv.${data.level}]` : 'Processing...'}
+        </div>
+    </div>
+);
 
-const HeaderSection: React.FC<HeaderSectionProps> = ({ title, data, onEdit }) => {
+
+const PlayerHeaderSection: React.FC<{
+    data?: { username?: string; uid?: number; };
+    onEdit: (data: { username: string; uid: string }) => void;
+}> = ({ data, onEdit }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({
         username: '',
         uid: ''
     });
-    if (title !== 'Player') {
-        return (
-            <div className="header-section">
-                <h3>{title}</h3>
-                <div className="highlight-text">
-                    {data ? `${data.name} [Lv.${data.level}]` : 'Processing...'}
-                </div>
-            </div>
-        );
-    }
+    useEffect(() => {
+        if (data?.username && data?.uid) {
+            setEditData({
+                username: data.username,
+                uid: data.uid.toString()
+            });
+        }
+    }, [data]);
     const handleEdit = () => {
         if (!isEditing) {
-            setEditData({
-                username: data?.username || '',
-                uid: data?.uid?.toString() || ''
-            });
+            setIsEditing(true);
         } else {
-            onEdit?.(editData);
+            onEdit(editData);
+            setIsEditing(false);
         }
-        setIsEditing(!isEditing);
     };
     return (
         <div className="header-section">
             <div className="header-title">
-                <h3>{title}</h3>
+                <h3>Player</h3>
                 {data && (
-                    <button className={`edit-button ${isEditing ? 'saving' : ''}`}
-                        onClick={handleEdit} title={isEditing ? "Save Changes" : "Edit Player Info"}>
+                    <button className={`edit-button ${isEditing ? 'saving' : ''}`} onClick={handleEdit}
+                        title={isEditing ? "Save Changes" : "Edit Player Info"}>
                         {isEditing ? <Check size={18} /> : <Pencil size={16} />}
                     </button>
                 )}
             </div>
             <div className={`highlight-text ${isEditing ? 'editing' : ''}`}>
-                {!data ? (
+                {!data ? ( 
                     'Processing...'
                 ) : isEditing ? (
                     <div className="edit-inputs">
@@ -137,7 +137,7 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({ title, data, onEdit }) =>
                         />
                     </div>
                 ) : (
-                    `${data.username} [UID: ${data.uid}]`
+                    `${editData.username} [UID: ${editData.uid}]`
                 )}
             </div>
         </div>
@@ -294,7 +294,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
     });
     
     const handleImport = () => {
-        const build = convertBuild(results);
+        const build = convertBuild(editedResults);
         setConvertedBuild(build);
         setIsModalOpen(true);
     };
@@ -383,9 +383,9 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
                     </div>
                 </div>
                 <div className="results-header">
-                    <HeaderSection title="Character" data={editedResults.character} />
-                    <HeaderSection title="Weapon" data={editedResults.weapon} />
-                    <HeaderSection title="Player" data={editedResults.watermark} onEdit={handlePlayerEdit}/>
+                    <BasicHeaderSection title="Character" data={results.character} />
+                    <BasicHeaderSection title="Weapon" data={results.weapon} />
+                    <PlayerHeaderSection data={results.watermark} onEdit={handlePlayerEdit} />
                 </div>
                 
                 <ForteSection fortes={results.forte?.levels} />
