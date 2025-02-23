@@ -12,17 +12,27 @@ import { getStatPaths } from '@/types/stats';
 import { X } from 'lucide-react';
 import '@/styles/BuildFilter.css';
 
-interface VisibleItem {
-    type: 'character' | 'weapon' | 'echo' | 'mainstat';
-    data: Character | typeof weaponList[0] | [number, number] | [number, string];
+export interface VisibleItem {
+    type: 'character' | 'weapon' | 'echo' | 'mainstat' | 'region';
+    data: Character | typeof weaponList[0] | [number, number] | [number, string] | number;
     sectionTitle: string;
+    subSection?: string;
 }
+
+const REGION_MAP: Record<string, number> = {
+    'America': 5,
+    'Europe': 6,
+    'Asia': 7,
+    'SEA': 9,
+    'HMT': 1
+};
 
 interface FilterState {
     characters: Character[];
     weapons: typeof weaponList;
     echoSets: Array<[number, number]>;
     mainStats: Array<[number, string]>;
+    regions: number[]; 
 }
 
 interface FilterOptions {
@@ -30,6 +40,7 @@ interface FilterOptions {
     includeWeapons?: boolean;
     includeEchoes?: boolean;
     includeMainStats?: boolean;
+    includeRegion?: boolean;
 }
 
 interface BuildFilterProps extends Partial<{
@@ -37,8 +48,11 @@ interface BuildFilterProps extends Partial<{
     onWeaponFilter: (weaponIds: string[]) => void;
     onEchoFilter: (sets: Array<[number, number]>) => void;
     onMainStatFilter: (stats: Array<[number, string]>) => void;
+    onRegionFilter: (regions: number[]) => void;
 }> {
-    options?: FilterOptions;
+    options?: FilterOptions & {
+        includeRegions?: boolean;
+    };
 }
 
 const getElementClass = (statName: string): string => {
@@ -72,25 +86,26 @@ export const FilterOption: React.FC<{ item: VisibleItem }> = ({ item }) => {
         case 'weapon':
             const weapon = item.data as typeof weaponList[0];
             return (
-                <div className="filter-weapon">
-                    <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="filter-icon" />
-                    <span>{weapon.name}</span>
+                <>
+                    <div className="filter-weapon">
+                        <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="filter-icon" />
+                        <span>{weapon.name}</span>
+                    </div>
                     <span className="weapon-rarity">{weapon.rarity}</span>
-                </div>
+                </>
             );
         case 'echo':
-            const [count, index] = item.data as [number, number];
+            const [, index] = item.data as [number, number];
             const element = Object.keys(ELEMENT_SETS)[index];
             const setName = ELEMENT_SETS[element as keyof typeof ELEMENT_SETS];
             return (
                 <>
-                    <span>{count}p</span>
                     <img src={getAssetPath('sets', element).cdn} alt={setName} className="filter-icon" />
                     <span>{setName}</span>
                 </>
             );
         case 'mainstat':
-            const [cost, stat] = item.data as [number, string];
+            const [, stat] = item.data as [number, string];
             return (
                 <div className="filter-mainstat">
                     <img 
@@ -99,15 +114,26 @@ export const FilterOption: React.FC<{ item: VisibleItem }> = ({ item }) => {
                         className={`build-stat-icon ${getElementClass(stat)}`}
                     />
                     <span>{stat}</span>
-                    <span className="mainstat-cost">| {cost} Cost</span>
                 </div>
             );
+        case 'region':
+            const regionId = item.data as number;
+            const regionName = Object.entries(REGION_MAP)
+                .find(([, id]) => id === regionId)?.[0] || 'Unknown';
+            return (
+                <div className="filter-region">
+                    <span>{regionName}</span>
+                </div>
+            );
+            
+        default:
+            return null;
     }
 };
 
 const SelectedTag: React.FC<{
-    type: 'character' | 'weapon' | 'echo' | 'mainstat';
-    data: Character | typeof weaponList[0] | [number, number] | [number, string];
+    type: 'character' | 'weapon' | 'echo' | 'mainstat' | 'region';
+    data: Character | typeof weaponList[0] | [number, number] | [number, string] | number;
     onRemove: () => void;
 }> = ({ type, data, onRemove }) => {
     const renderContent = () => {
@@ -143,15 +169,16 @@ const SelectedTag: React.FC<{
                 const [cost, stat] = data as [number, string];
                 return (
                     <>
-                        <img 
-                            src={getStatPaths(stat).cdn} 
-                            alt={stat} 
-                            className={`build-stat-icon ${getElementClass(stat)}`}
-                        />
+                        <img src={getStatPaths(stat).cdn} alt={stat} className={`build-stat-icon ${getElementClass(stat)}`}/>
                         <span>{stat}</span>
                         <span className="mainstat-cost">| {cost} Cost</span>
                     </>
                 );
+            case 'region':
+                const regionId = data as number;
+                const regionName = Object.entries(REGION_MAP)
+                    .find(([, id]) => id === regionId)?.[0] || 'Unknown';
+                return <span>{regionName}</span>;
         }
     };
 
@@ -168,6 +195,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
     onWeaponFilter,
     onEchoFilter,
     onMainStatFilter,
+    onRegionFilter,
     options = {
         includeCharacters: true,
         includeWeapons: true,
@@ -178,7 +206,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const [search, setSearch] = useState('');
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-    const [selected, setSelected] = useState<FilterState>({ characters: [], weapons: [], echoSets: [], mainStats: [] });
+    const [selected, setSelected] = useState<FilterState>({ characters: [], weapons: [], echoSets: [], mainStats: [], regions: [] });
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleCharacterSelect = useCallback((char: Character) => {
@@ -256,8 +284,14 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
             
             requestAnimationFrame(() => onMainStatFilter?.(mappedStats));
             return { ...prev, mainStats: newMainStats };
+        }),
+        region: (id: number) => setSelected(prev => {
+            const newRegions = prev.regions.filter(r => r !== id);
+            const newState = { ...prev, regions: newRegions };
+            requestAnimationFrame(() => onRegionFilter?.(newRegions));
+            return newState;
         })
-    }), [onCharacterFilter, onWeaponFilter, onEchoFilter, onMainStatFilter]);
+    }), [onCharacterFilter, onWeaponFilter, onEchoFilter, onMainStatFilter, onRegionFilter]);
 
     const handleContainerClick = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -283,6 +317,21 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
     const visibleItems = useMemo<VisibleItem[]>(() => {
         const items: VisibleItem[] = [];
         
+        if (options.includeRegions) {
+            Object.entries(REGION_MAP)
+                .filter(([name]) => 
+                    name.toLowerCase().includes(search.toLowerCase()) &&
+                    !selected.regions.includes(REGION_MAP[name])
+                )
+                .forEach(([, id]) => {
+                    items.push({
+                        type: 'region' as const,
+                        data: id,
+                        sectionTitle: 'Regions'
+                    });
+                });
+        }
+
         if (options.includeCharacters && filteredCharacters?.length) {
             items.push(...filteredCharacters.map(char => ({
                 type: 'character' as const,
@@ -292,11 +341,21 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
         }
         
         if (options.includeWeapons && filteredWeapons?.length) {
-            items.push(...filteredWeapons.map(weapon => ({
-                type: 'weapon' as const,
-                data: weapon,
-                sectionTitle: 'Weapons'
-            })));
+            const weaponsByType = filteredWeapons.reduce((acc, weapon) => {
+                acc[weapon.type] = [...(acc[weapon.type] || []), weapon];
+                return acc;
+            }, {} as Record<string, typeof weaponList>);
+
+            Object.entries(weaponsByType).forEach(([type, weapons]) => {
+                weapons.forEach(weapon => {
+                    items.push({
+                        type: 'weapon',
+                        data: weapon,
+                        sectionTitle: 'Weapons',
+                        subSection: type
+                    });
+                });
+            });
         }
     
         if (options.includeEchoes) {
@@ -355,13 +414,24 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
             case 'mainstat':
                 handleMainStatSelect(item.data as [number, string]);
                 break;
+            case 'region':
+                setSelected(prev => {
+                    const newRegions = [...prev.regions, item.data as number];
+                    const newState = { ...prev, regions: newRegions };
+                    requestAnimationFrame(() => onRegionFilter?.(newRegions));
+                    return newState;
+                });
+                setSearch('');
+                break;
         }
-    }, [handleCharacterSelect, handleWeaponSelect, handleEchoSelect, handleMainStatSelect]);
+    }, [handleCharacterSelect, handleWeaponSelect, handleEchoSelect, handleMainStatSelect, onRegionFilter]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Backspace' && search === '') {
             e.preventDefault();
-            if (selected.mainStats.length) {
+            if (selected.regions.length) {
+                handleRemove.region(selected.regions[selected.regions.length - 1]);
+            } else if (selected.mainStats.length) {
                 handleRemove.mainStat(selected.mainStats[selected.mainStats.length - 1]);
             } else if (selected.echoSets.length) {
                 handleRemove.echo();
@@ -413,6 +483,67 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
 
     const hasSelectedItems = selected.characters.length > 0 || selected.weapons.length > 0 || selected.echoSets.length > 0 || selected.mainStats.length > 0;
 
+    const getSectionHeader = (item: VisibleItem, index: number, items: VisibleItem[]) => {
+        if (index === 0 || items[index - 1].sectionTitle !== item.sectionTitle) {
+            const header = <div key={`header-${item.sectionTitle}`} className="section-header">
+                {item.sectionTitle}
+            </div>;
+            const subHeader = (() => {
+                switch (item.type) {
+                    case 'weapon':
+                        if (index === 0 || items[index - 1].subSection !== item.subSection) {
+                            return <div key={`subheader-${item.subSection}`} className="weapon-type-header">
+                                {item.subSection}
+                            </div>;
+                        }
+                        return null;
+                    case 'echo':
+                        const [count] = item.data as [number, number];
+                        return <div key={`subheader-${count}`} className="echo-count-header">
+                            {count}p sets
+                        </div>;
+                    case 'mainstat':
+                        const [cost] = item.data as [number, string];
+                        return <div key={`subheader-${cost}`} className="weapon-type-header">
+                            {cost} Cost
+                        </div>;
+                    default:
+                        return null;
+                }
+            })();
+            return [header, subHeader].filter(Boolean);
+        }
+        
+        switch (item.type) {
+            case 'weapon':
+                if (items[index - 1].subSection !== item.subSection) {
+                    return <div key={`subheader-${item.subSection}`} className="weapon-type-header">
+                        {item.subSection}
+                    </div>;
+                }
+                break;
+            case 'echo':
+                const [currentCount] = item.data as [number, number];
+                const [previousCount] = (items[index - 1].data as [number, number]);
+                if (currentCount !== previousCount) {
+                    return <div key={`subheader-${currentCount}`} className="echo-count-header">
+                        {currentCount}p sets
+                    </div>;
+                }
+                break;
+            case 'mainstat':
+                const [currentCost] = item.data as [number, string];
+                const [previousCost] = (items[index - 1].data as [number, string]);
+                if (currentCost !== previousCost) {
+                    return <div key={`subheader-${currentCost}`} className="weapon-type-header">
+                        {currentCost} Cost
+                    </div>;
+                }
+                break;
+        }
+        return null;
+    };
+
     return (
         <div className="build-filter">
             <div className="filter-input-container" onClick={handleContainerClick}>
@@ -427,15 +558,12 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                         <SelectedTag key={`${set[0]}-${set[1]}`} type="echo" data={set} onRemove={() => handleRemove.echo()} />
                     )}
                     {selected.mainStats.map(stat => 
-                        <SelectedTag 
-                            key={`${stat[0]}-${stat[1]}`} 
-                            type="mainstat" 
-                            data={stat} 
-                            onRemove={() => handleRemove.mainStat(stat)} 
-                        />
+                        <SelectedTag key={`${stat[0]}-${stat[1]}`} type="mainstat" data={stat} onRemove={() => handleRemove.mainStat(stat)} />
                     )}
-                    <input 
-                        ref={inputRef}
+                    {selected.regions.map(regionId => 
+                        <SelectedTag key={`region-${regionId}`} type="region" data={regionId} onRemove={() => handleRemove.region(regionId)} />
+                    )}
+                    <input ref={inputRef}
                         type="text"
                         className="filter-input"
                         value={search}
@@ -443,24 +571,20 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                         onKeyDown={handleKeyDown}
                         onFocus={() => setIsDropdownVisible(true)}
                         onBlur={() => setTimeout(() => setIsDropdownVisible(false), 100)}
-                        placeholder={hasSelectedItems ? "" : "Search filters (e.g. character, weapon, echo, main stat)"}
+                        placeholder={hasSelectedItems ? "" : "Search filters (e.g. region, character, weapon, echo, main stat)"}
                     />
                 </div>
             </div>
             {(isDropdownVisible || search) && (
                 <div className="unified-dropdown">
                     {visibleItems.reduce((acc, item, index) => {
-                        if (index === 0 || visibleItems[index - 1].sectionTitle !== item.sectionTitle) {
-                            acc.push(
-                                <div key={`header-${item.sectionTitle}`} className="section-header">
-                                    {item.sectionTitle}
-                                </div>
-                            );
+                        const headers = getSectionHeader(item, index, visibleItems);
+                        if (headers) {
+                            acc.push(...(Array.isArray(headers) ? headers : [headers]));
                         }
                         
                         acc.push(
-                            <div 
-                                key={`item-${index}`}
+                            <div key={`item-${index}`}
                                 data-index={index}
                                 className={`filter-option ${focusedIndex === index ? 'focused' : ''}`}
                                 onClick={() => handleItemSelect(item)}

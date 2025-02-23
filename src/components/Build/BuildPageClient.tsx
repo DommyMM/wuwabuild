@@ -176,6 +176,7 @@ export default function BuildPageClient() {
     const [echoSets, setEchoSets] = useState<Array<[number, number]>>([]);
     const [mainStats, setMainStats] = useState<Array<[number, string]>>([]);
     const [isTableLoading, setIsTableLoading] = useState(false);
+    const [regions, setRegions] = useState<number[]>([]);
 
     useEffect(() => {
         const getSortParam = () => {
@@ -201,6 +202,9 @@ export default function BuildPageClient() {
         if (mainStats.length > 0) {
             params.append('echoMains', mainStats.map(stat => stat.join('')).join('~'));
         }
+        if (regions.length > 0) {
+            params.append('regions', regions.join('~'));
+        }
         router.push(`/builds?${params.toString()}`, { scroll: false });
         const loadData = async () => {
             try {
@@ -223,6 +227,9 @@ export default function BuildPageClient() {
                 if (mainStats.length > 0) {
                     fetchParams.append('echoMains', JSON.stringify(mainStats));
                 }
+                if (regions.length > 0) {
+                    fetchParams.append('region', JSON.stringify(regions));
+                }
                 const response = await fetch(`${LB_URL}/build?${fetchParams}`);
                 if (!response.ok) throw new Error('Failed to fetch leaderboard');
                 
@@ -241,7 +248,7 @@ export default function BuildPageClient() {
             }
         };
         loadData();
-    }, [currentPage, sortDirection, CVSort, statSort, router, characterIds, weaponIds, echoSets, mainStats]);
+    }, [currentPage, sortDirection, CVSort, statSort, router, characterIds, weaponIds, echoSets, mainStats, regions]);
 
     useEffect(() => {
         setExpandedEntries(new Set());
@@ -304,6 +311,14 @@ export default function BuildPageClient() {
                                 onWeaponFilter={setWeaponIds} 
                                 onEchoFilter={setEchoSets}
                                 onMainStatFilter={setMainStats}
+                                onRegionFilter={setRegions}  // Add region filter handler
+                                options={{
+                                    includeCharacters: true,
+                                    includeWeapons: true,
+                                    includeEchoes: true,
+                                    includeMainStats: true,
+                                    includeRegions: true    // Enable region filter
+                                }}
                             />
                             <div className="build-header">
                                 <span>Rank</span>
