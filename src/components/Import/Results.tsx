@@ -236,7 +236,10 @@ const DMG_BONUS_MAPPING: Record<string, string> = {
     'Liberation': 'Resonance Liberation DMG Bonus'
 };
 
-export const Results: React.FC<ResultsProps> = ({ results }) => {
+export const Results: React.FC<{
+    results: AnalysisData;
+    onPlayerEdit: (data: { username: string; uid: string }) => void;
+}> = ({ results, onPlayerEdit }) => {
     const [saveToLb, setSaveToLb] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -244,17 +247,11 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
     const router = useRouter();
     const isValid = validateResults(results);
     const { scaleAtk, scaleStat } = useLevelCurves();
-    const [editedResults, setEditedResults] = useState(results);
 
-    const handlePlayerEdit = (data: { username: string; uid: string }) => {
-        setEditedResults(prev => ({
-            ...prev,
-            watermark: {
-                ...prev.watermark!,
-                username: data.username,
-                uid: parseInt(data.uid) || 0
-            }
-        }));
+    const handleImport = () => {
+        const build = convertBuild(results);
+        setConvertedBuild(build);
+        setIsModalOpen(true);
     };
 
     const statsInput = useMemo(() => {
@@ -292,12 +289,6 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
         echoPanels: [],
         nodeStates: {}
     });
-    
-    const handleImport = () => {
-        const build = convertBuild(editedResults);
-        setConvertedBuild(build);
-        setIsModalOpen(true);
-    };
     
     const submitToLeaderboard = async (build: SavedState) => {
         if (saveToLb) {
@@ -385,7 +376,7 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
                 <div className="results-header">
                     <BasicHeaderSection title="Character" data={results.character} />
                     <BasicHeaderSection title="Weapon" data={results.weapon} />
-                    <PlayerHeaderSection data={results.watermark} onEdit={handlePlayerEdit} />
+                    <PlayerHeaderSection data={results.watermark} onEdit={onPlayerEdit} />
                 </div>
                 
                 <ForteSection fortes={results.forte?.levels} />

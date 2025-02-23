@@ -106,6 +106,17 @@ export default function ImportPageClient() {
         setError(null);
     };
 
+    const handlePlayerEdit = (data: { username: string; uid: string }) => {
+        setResults(prev => ({
+            ...prev,
+            watermark: {
+                ...(prev.watermark || {}),
+                username: data.username,
+                uid: parseInt(data.uid) || 0
+            }
+        }));
+    };
+
     return (
         <div className="import-page">
             <div className="import-section">
@@ -154,7 +165,7 @@ export default function ImportPageClient() {
                             />
                         </div>
                         {error && <div className="error-message">{error}</div>}
-                        {results && <Results results={results} />}
+                        {results && <Results results={results} onPlayerEdit={handlePlayerEdit} />}
                     </div>
                 )}
             </div>
