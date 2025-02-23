@@ -50,10 +50,6 @@ const validateResults = (results: AnalysisData): boolean => {
     );
 };
 
-interface ResultsProps {
-    results: AnalysisData;
-}
-
 export const cleanStatValue = (value: string): string => {
     const cleanValue = value.replace(/[^\d.%]/g, '');
     

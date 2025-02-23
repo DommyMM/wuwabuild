@@ -142,7 +142,7 @@
     font-size: 18px;
 }
 
-.header-title {
+.results-container .header-title {
     display: flex;
     align-items: center;
     gap: 8px;
