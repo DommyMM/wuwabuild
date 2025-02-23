@@ -13,6 +13,7 @@ import { calculateWeaponStats } from '@/components/Card/BuildCard';
 import { cachedCharacters } from '@/hooks/useCharacters';
 import { getCachedWeapon } from '@/hooks/useWeapons';
 import { compressStats } from '@/hooks/useStats';
+import { Pencil, Check } from 'lucide-react';
 import '@/styles/Results.css';
 
 export interface AnalysisData {
@@ -65,28 +66,83 @@ export const cleanStatValue = (value: string): string => {
     return isNaN(numValue) ? '0' : numValue.toString();
 };
 
-const HeaderSection: React.FC<{ 
+interface HeaderSectionProps { 
     title: string; 
     data?: { 
         name?: string; 
         level?: number; 
         username?: string; 
         uid?: number;
-    } 
-}> = ({ title, data }) => (
-    <div className="header-section">
-        <h3>{title}</h3>
-        <div className="highlight-text">
-            {data ? (
-                title === 'Player' 
-                    ? `${data.username} [UID: ${data.uid}]`
-                    : `${data.name} [Lv.${data.level}]`
-            ) : (
-                'Processing...'
-            )}
+    };
+    onEdit?: (data: { username: string; uid: string }) => void;
+}
+
+const HeaderSection: React.FC<HeaderSectionProps> = ({ title, data, onEdit }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({
+        username: '',
+        uid: ''
+    });
+    if (title !== 'Player') {
+        return (
+            <div className="header-section">
+                <h3>{title}</h3>
+                <div className="highlight-text">
+                    {data ? `${data.name} [Lv.${data.level}]` : 'Processing...'}
+                </div>
+            </div>
+        );
+    }
+    const handleEdit = () => {
+        if (!isEditing) {
+            setEditData({
+                username: data?.username || '',
+                uid: data?.uid?.toString() || ''
+            });
+        } else {
+            onEdit?.(editData);
+        }
+        setIsEditing(!isEditing);
+    };
+    return (
+        <div className="header-section">
+            <div className="header-title">
+                <h3>{title}</h3>
+                {data && (
+                    <button className={`edit-button ${isEditing ? 'saving' : ''}`}
+                        onClick={handleEdit} title={isEditing ? "Save Changes" : "Edit Player Info"}>
+                        {isEditing ? <Check size={18} /> : <Pencil size={16} />}
+                    </button>
+                )}
+            </div>
+            <div className={`highlight-text ${isEditing ? 'editing' : ''}`}>
+                {!data ? (
+                    'Processing...'
+                ) : isEditing ? (
+                    <div className="edit-inputs">
+                        <input
+                            type="text"
+                            value={editData.username}
+                            onChange={(e) => setEditData(prev => ({ ...prev, username: e.target.value }))}
+                            placeholder="Username"
+                            className="edit-input"
+                        />
+                        <input
+                            type="text"
+                            value={editData.uid}
+                            onChange={(e) => setEditData(prev => ({ ...prev, uid: e.target.value }))}
+                            placeholder="UID"
+                            className="edit-input uid"
+                            maxLength={9}
+                        />
+                    </div>
+                ) : (
+                    `${data.username} [UID: ${data.uid}]`
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const ForteSection: React.FC<{ fortes?: number[] }> = ({ fortes }) => (
     <div className="fortes-section">
@@ -188,7 +244,19 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
     const router = useRouter();
     const isValid = validateResults(results);
     const { scaleAtk, scaleStat } = useLevelCurves();
-    
+    const [editedResults, setEditedResults] = useState(results);
+
+    const handlePlayerEdit = (data: { username: string; uid: string }) => {
+        setEditedResults(prev => ({
+            ...prev,
+            watermark: {
+                ...prev.watermark!,
+                username: data.username,
+                uid: parseInt(data.uid) || 0
+            }
+        }));
+    };
+
     const statsInput = useMemo(() => {
         if (!convertedBuild || !saveToLb) return null;
         
@@ -315,9 +383,9 @@ export const Results: React.FC<ResultsProps> = ({ results }) => {
                     </div>
                 </div>
                 <div className="results-header">
-                    <HeaderSection title="Character" data={results.character} />
-                    <HeaderSection title="Weapon" data={results.weapon} />
-                    <HeaderSection title="Player" data={results.watermark} />
+                    <HeaderSection title="Character" data={editedResults.character} />
+                    <HeaderSection title="Weapon" data={editedResults.weapon} />
+                    <HeaderSection title="Player" data={editedResults.watermark} onEdit={handlePlayerEdit}/>
                 </div>
                 
                 <ForteSection fortes={results.forte?.levels} />

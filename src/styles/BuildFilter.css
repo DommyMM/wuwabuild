@@ -50,7 +50,7 @@
     height: 28px;
 }
 
-.tag-icon {
+.tag-icon, .selected-tag .build-stat-icon {
     width: 18px;
     height: auto;
 }
@@ -93,8 +93,9 @@
     background: #1a1a1a;
     border: 1px solid #333;
     border-radius: 4px;
-    max-height: 400px;
+    max-height: 500px;
     overflow-y: auto;
+    scroll-behavior: smooth;
     z-index: 999;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -117,10 +118,15 @@
     padding: 6px 8px;
     gap: 8px;
     cursor: pointer;
+    transition: background-color 0.2s;
 }
 
 .filter-option:hover {
     background: #a69662;
+}
+
+.filter-option.focused {
+    background: rgba(166, 150, 98, 0.7);
 }
 
 .filter-option span {
@@ -171,7 +177,7 @@
     gap: 4px;
 }
 
-.filter-mainstat .filter-icon {
+.filter-mainstat .build-stat-icon {
     width: 24px;
 }
 

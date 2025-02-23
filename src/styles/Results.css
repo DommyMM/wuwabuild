@@ -130,6 +130,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    position: relative;
 }
 
 .header-section h3 {
@@ -139,6 +140,63 @@
 .highlight-text {
     color: #E0E0E0;
     font-size: 18px;
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+.edit-button {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.edit-button:hover {
+    color: #a69662;
+    transform: scale(1.1);
+}
+
+.edit-button.saving {
+    color: #7cba3d;
+}
+
+.edit-button.saving:hover {
+    color: #96d152;
+}
+
+.highlight-text.editing {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.edit-inputs {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.edit-input {
+    background: #1E1E1E;
+    border: 1px solid #a69662;
+    color: #E0E0E0;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 16px;
+    width: 40%;
+    text-align: center;
 }
 
 .fortes-section {
