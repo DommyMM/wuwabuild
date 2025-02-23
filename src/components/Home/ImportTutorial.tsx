@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useRef, useLayoutEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { handleTouchStart, handleTouchMove, handleTouchEnd, getStepStyles } from './ScanTutorial';
 import '@/styles/ImportTutorial.css';
 
@@ -75,14 +74,7 @@ export const ImportTutorial: React.FC = () => {
                         >
                             <div className="import-number">{index + 1}</div>
                             <h4>{step.title}</h4>
-                            <Image 
-                                src={step.src}
-                                alt={step.title}
-                                width={1920}
-                                height={1080}
-                                quality={90}
-                                className="import-step-img"
-                            />
+                            <img src={step.src} alt={step.title} className="import-step-img" />
                             <p>{step.description}</p>
                         </div>
                     ))}
@@ -102,13 +94,7 @@ export const ImportTutorial: React.FC = () => {
                         <p>Bot Tutorial:</p>
                         <ul>
                             <li>Go to the <a href="https://wutheringwaves-discord.kurogames-global.com/?lang=en">Kuro website</a> and link both Discord and Kuro</li>
-                            <Image 
-                                src="/images/bind-kuro.webp"
-                                alt="Kuro website"
-                                width={1920}
-                                height={703}
-                                className="bot-image"
-                            />
+                            <img src="/images/bind-kuro.webp" alt="Kuro website" className="bot-image" />
                             <li>Visit the Discord <a href="https://discord.com/channels/963760374543450182/1323199091072569479"> channel</a> and use /create on the bot</li>
                         </ul>
                     </div>

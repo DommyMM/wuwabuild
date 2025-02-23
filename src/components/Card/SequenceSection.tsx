@@ -84,9 +84,7 @@ export const SequenceSection: React.FC<SequenceSectionProps> = ({
               </g>
             )}
           </svg>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
-            src={`/images/Sequences/T_IconDevice_${displayName}M${i}_UI.png`} 
+          <img src={`/images/Sequences/T_IconDevice_${displayName}M${i}_UI.png`} 
             className="sequence-icon" 
             alt={`Sequence ${i}`}
           />

@@ -10,7 +10,6 @@ import { ForteSection } from '../Card/ForteSection';
 import { calculateCV as calculateTotalCV } from '../../hooks/useStats';
 import { EchoPanelState } from '../../types/echo';
 import { getEchoCVClass } from '../Save/Card';
-import Image from 'next/image';
 import '../../styles/ImportModal.css';
 
 interface ImportModalProps {
@@ -52,12 +51,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <div className="convert-content" onClick={(e) => e.stopPropagation()}>
                 <div className="import-row">
                     <div className="char-convert">
-                        <Image src={getAssetPath('face1', character as Character).cdn}
-                            alt={character?.name || ""}
-                            className={`char-portrait-large ${elementClass}`}
-                            width={256}
-                            height={256}
-                        />
+                        <img src={getAssetPath('face1', character as Character).cdn} alt={character?.name || ""} className={`char-portrait-large ${elementClass}`}/>
                         <span className={`char-sig ${elementClass}`}>{character?.name}</span>
                         <span>Lv.{build.characterState.level}</span>
                     </div>
@@ -72,7 +66,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     </div>
                     {weapon && (
                         <div className="weap-convert">
-                            <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="weap-portrait-large" width={256} height={256}/>
+                            <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="weap-portrait-large"/>
                             <span className="weap">{weapon.name}</span>
                             <span>Lv.{build.weaponState.level}</span>
                         </div>
@@ -96,7 +90,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                                 <div key={index} className="echo-import-column">
                                     <div className="echo-view">
                                         {echo && (
-                                            <Image src={getAssetPath('echoes', echo).cdn} alt={echo.name} width={256} height={256}/>
+                                            <img src={getAssetPath('echoes', echo).cdn} alt={echo.name} className="echo-portrait"/>
                                         )}
                                     </div>
                                     <div className="stat-import">

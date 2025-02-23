@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import Image from 'next/image';
 
 interface LevelSliderProps {
   value: number;
@@ -73,7 +72,7 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
     setIsEditing(false);
   };
 
-  const handleInputKeyPress = (event: React.KeyboardEvent) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
       finalizeLevelFromInput();
     }
@@ -110,7 +109,7 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
             className="level-input"
             onChange={handleInputChange}
             onBlur={finalizeLevelFromInput}
-            onKeyPress={handleInputKeyPress}
+            onKeyDown={handleKeyDown}
             autoFocus
           />
         ) : (
@@ -121,13 +120,7 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
       </div>
       <div className="star-container">
         <div className="star-background">
-          <Image src="/images/Resources/Level.png"
-            alt="Star Background"
-            width={710}
-            height={65}
-            className="star-background-image"
-            priority
-          />
+          <img src="/images/Resources/Level.png" alt="Star Background" className="star-background-image"/>
           <div className="diamond-container">
             {[...Array(6)].map((_, index) => (
               <div

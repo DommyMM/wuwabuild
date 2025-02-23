@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useState } from 'react';
-import Image from 'next/image';
 
 interface ImagePreviewProps {
   src: string;
@@ -70,28 +69,14 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
         {onDelete && (
           <button className="delete-button" onClick={onDelete}>×</button>
         )}
-        <Image 
-          src={src} 
-          className="preview-thumbnail"
-          alt="Preview" 
-          width={1920}
-          height={1080}
-          onClick={() => setIsFullscreen(true)}
-        />
+        <img src={src} className="preview-thumbnail" alt="Preview" onClick={() => setIsFullscreen(true)} />
         <div className={`category-label ${status}`}>
           {getStatusMessage()}
         </div>
       </div>
       {isFullscreen && (
         <div className="fullscreen-overlay" onClick={() => setIsFullscreen(false)}>
-          <Image 
-            src={src} 
-            className="modal-image"
-            alt="Preview"
-            width={1920}
-            height={1080}
-            onClick={e => e.stopPropagation()}
-          />
+          <img src={src} className="modal-image" alt="Preview" onClick={e => e.stopPropagation()} />
         </div>
       )}
     </>

@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { Character } from '@/types/character';
 import { forteImagePaths } from '@/types/node';
 import type { ForteImagePaths, SkillBranch } from '@/types/node';
@@ -51,14 +50,7 @@ const GlowingNode: React.FC<GlowingNodeProps> = ({
       data-skill={skillKey}
       onClick={() => onChange(treeKey, 'top')}
     >
-      <Image 
-        className="node-image"
-        src={imagePath}
-        alt={altText}
-        width={128}
-        height={128}
-        priority
-      />
+      <img className="node-image" src={imagePath} alt={altText}/>
     </div>
   );
 };
@@ -117,13 +109,7 @@ const SkillBranchComponent: React.FC<SkillBranchComponentProps> = ({
 
       <div className="bottom-wrapper">
         <div className="forte-slot" data-skill={skillKey}>
-          <Image 
-            className="skill-image"
-            src={forteImagePaths.imagePaths[skillKey](character)}
-            alt={skillName}
-            width={128}
-            height={128}
-          />
+          <img className="skill-image" src={forteImagePaths.imagePaths[skillKey](character)} alt={skillName}/>
           <div className="node-content" />
         </div>
         <div className="skill-info">
@@ -200,16 +186,9 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
         ))}
       </div>
       <div className="max-wrapper">
-        <Image
-          id="maxButton"
-          className="max-frame"
-          src={`/images/Resources/Max${clickCount || ''}.png`}
-          alt="Max Frame"
-          width={461}
-          height={274}
+        <img id="maxButton" className="max-frame" src={`/images/Resources/Max${clickCount || ''}.png`} alt="Max Frame"
           title="First click: Set all levels to 10&#10;Second click: Activate all nodes&#10;Third click: Reset everything"
-          onClick={onMaxClick}
-        />
+          onClick={onMaxClick}/>
       </div>
     </div>
   );

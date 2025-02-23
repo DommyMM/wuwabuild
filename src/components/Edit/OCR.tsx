@@ -26,7 +26,7 @@ const TYPE_PATTERNS = {
     Weapon: ['weapon'],
     Forte: ['forte'],
     Sequences: ['resonance'],
-    Echo: ['cost', '12', 'all']
+    Echo: ['cost', '12', 'all', '1212']
 } as const;
 
 const patternSearch = new Fuse(

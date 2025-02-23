@@ -516,6 +516,7 @@
     gap: 5px;
     width: 100%;
     justify-content: center;
+    position: relative;
 }
 
 .cv-text {

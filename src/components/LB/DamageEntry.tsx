@@ -9,7 +9,6 @@ import { BuildSetsSection } from '../Build/BuildEntry';
 import { CHARACTER_CONFIGS } from './config';
 import { Sequence } from '../Build/types';
 import { DamageExpanded } from './DamageExpanded';
-import Image from 'next/image';
 import '../../styles/Damage.css';
 
 const BuildOwnerSection: React.FC<{
@@ -46,7 +45,7 @@ const IconStat: React.FC<{
         
     return (
         <span className={`build-stat ${isHighlighted ? 'highlighted' : ''}`}>
-            <Image src={getStatPaths(statName).cdn} alt={statName} className={`build-stat-icon ${hasElementalColor ? elementType : ''}`} width={96} height={96}/>
+            <img src={getStatPaths(statName).cdn} alt={statName} className={`build-stat-icon ${hasElementalColor ? elementType : ''}`}/>
             {formattedValue}
         </span>
     );

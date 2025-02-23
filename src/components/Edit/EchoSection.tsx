@@ -11,7 +11,6 @@ import { cachedEchoes, getCachedEchoes } from '@/hooks/useEchoes';
 import { useModalClose } from '@/hooks/useModalClose';
 import { StatsTab } from './StatsTab';
 import { getAssetPath } from '@/types/paths';
-import Image from 'next/image';
 import '@/styles/echoes.css';
 
 interface ElementTabsProps {
@@ -150,13 +149,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
           {echo?.name || `Echo ${index}`}
         </div>
         <div className="select-box" id="selectEcho" onClick={onSelect} style={{ right: echo ? '10%' : '0' }}>
-          <Image
-            src={echo ? getAssetPath('echoes', echo).cdn : '/images/Resources/Echo.png'}
+          <img src={echo ? getAssetPath('echoes', echo).cdn : '/images/Resources/Echo.png'}
             alt={echo?.name || 'Select Echo'}
             className="select-img"
             id="echoImg"
-            width={256}
-            height={256}
           />
         </div>
         {echo && (
@@ -396,8 +392,7 @@ export const EchoesSection = ({
                       <div className="echo-grid">
                         {costEchoes.map(echo => (
                         <div key={echo.name} className="echo-option" onClick={() => handleSelectEcho(echo)}>
-                          <Image src={getAssetPath('echoes', echo as Echo).cdn} alt={echo.name} className="echo-img"
-                            width={256} height={256}/>
+                          <img src={getAssetPath('echoes', echo as Echo).cdn} alt={echo.name} className="echo-img"/>
                         <span className="echo-name">{echo.name}</span>
                       </div>
                         ))}
@@ -434,8 +429,7 @@ export const EchoesSection = ({
                         }
                       }}
                     >
-                      <Image src={savedEchoData ? getAssetPath('echoes', savedEchoData).cdn : '/images/Resources/Echo.png'}
-                        alt={savedEchoData?.name || 'Empty Echo'} className="echo-img" width={256} height={256}/>
+                      <img src={savedEchoData ? getAssetPath('echoes', savedEchoData).cdn : '/images/Resources/Echo.png'} alt={savedEchoData?.name || 'Empty Echo'} className="echo-img"/>
                       <div className="echo-info">
                         <div className="echo-name">
                           {savedEchoData?.name || 'Empty Echo'}

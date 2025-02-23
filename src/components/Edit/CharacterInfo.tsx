@@ -1,7 +1,6 @@
 'use client';
 
 import { ChevronRight, ChevronDown } from 'lucide-react';
-import Image from 'next/image';
 import { Character } from '@/types/character';
 import { Weapon, WeaponState } from '@/types/weapon';
 import { OCRAnalysis } from '@/types/ocr';
@@ -102,12 +101,9 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
         <div className={`character-content${props.isMinimized ? '' : ' open'}`}>
           {selectedCharacter && (
             <>
-              <Image id="selectedCharacterIcon" 
-                src={getAssetPath('icons', selectedCharacter).cdn}
+              <img id="selectedCharacterIcon" src={getAssetPath('icons', selectedCharacter).cdn}
                 alt="Selected Character Icon" 
                 className="character-tab-icon"
-                width={696}
-                height={960}
               />
               {selectedCharacter.name.startsWith('Rover') && (
                 <button className="toggle" 
@@ -117,10 +113,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                   onClick={handleToggleSpectro}
                 >
                   <div className="toggle-circle">
-                    <Image src={getAssetPath('elements', element || '').cdn}
+                    <img src={getAssetPath('elements', element || '').cdn}
                       alt={element || 'Element'}
-                      width={128}
-                      height={128}
                       style={{
                         width: '100%',
                         height: '100%',

@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { Character, isRover } from '@/types/character';
 import { SequenceSection } from './SequenceSection';

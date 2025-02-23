@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import Image from 'next/image';
 import { formatDate, getSetInfo, getCVClass, PreviewEcho, ExpandedStyle, StatsMenu } from './Card';
 import { cachedCharacters } from '@/hooks/useCharacters';
 import { SavedBuild } from '@/types/SavedState';
@@ -152,14 +151,14 @@ export const SavePreview: React.FC<SavePreviewProps> = ({ build, onLoad, onDelet
             <>
                 <div className="info-row">
                     <div className="char-container">
-                        <Image src={getAssetPath('face1', character as Character).cdn} alt={character?.name || ''} className={`char-portrait ${elementClass}`} width={256} height={256} />
+                        <img src={getAssetPath('face1', character as Character).cdn} alt={character?.name || ''} className={`char-portrait ${elementClass}`} />
                         <span className={`char-sig ${elementClass}`}>{character?.name}</span>
                         <span>Lv.{build.state.characterState.level} • S{build.state.currentSequence}</span>
                     </div>
                     <StatsMenu echoPanels={build.state.echoPanels} />
                     {weapon && (
                         <div className="weap-container">
-                            <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name || ''} className="weap-portrait" width={256} height={256} />
+                            <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name || ''} className="weap-portrait"/>
                             <span className="weap">{weapon.name}</span>
                             <span>Lv.{build.state.weaponState.level} • R{build.state.weaponState.rank}</span>
                         </div>

@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { getAssetPath } from '@/types/paths';
 import { Character } from '@/types/character';
 import { getCachedWeapon } from '@/hooks/useWeapons';
@@ -44,7 +43,7 @@ const LeaderboardCharacterSection: React.FC<{
     elementClass: string;
 }> = ({ character, elementClass }) => (
     <div className="build-character">
-        <Image src={getAssetPath('face1', character as Character).cdn} alt={character?.name ?? ''} className={`build-portrait ${elementClass}`} width={256} height={256} />
+        <img src={getAssetPath('face1', character as Character).cdn} alt={character?.name ?? ''} className={`build-portrait ${elementClass}`} />
         <span className={`char-name ${elementClass}`}>{character?.name}</span>
     </div>
 );
@@ -63,7 +62,7 @@ const LeaderboardTeamSection: React.FC<{
                     const character = characters.find(c => c.id === id);
                     if (!character) return null;
                     return (
-                        <Image key={id} src={getAssetPath('face1', character).cdn} alt={character.name} className="preview-icon face" width={256} height={256} />
+                        <img key={id} src={getAssetPath('face1', character).cdn} alt={character.name} className="preview-icon face" />
                     );
                 })}
             </div>
@@ -85,7 +84,7 @@ const LeaderboardWeaponsWithRank: React.FC<{
         weaponId: string;
         damage: number;
         owner: { username?: string; uid?: string; }
-    }>;
+    }> ;
     onWeaponClick?: (weaponIndex: number) => void;
 }> = ({ characterId, weapons, onWeaponClick }) => {
     const config = CHARACTER_CONFIGS[characterId];
@@ -107,7 +106,7 @@ const LeaderboardWeaponsWithRank: React.FC<{
                         }}
                         style={{ cursor: 'pointer' }}
                     >
-                        <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="preview-icon weapon" width={256} height={256} />
+                        <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="preview-icon weapon" />
                         <div className="weapon-rank-info">
                             <div className="rank1-name">
                                 {weaponData?.owner.username || 'Anonymous'}

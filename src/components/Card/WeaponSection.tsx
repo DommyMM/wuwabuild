@@ -18,7 +18,6 @@ const getWeaponPath = (weapon: Weapon, useAltSkin: boolean = false) => {
 
 const WeaponIcon = React.memo<{ weapon: Weapon; useAltSkin?: boolean }>(
   function WeaponIcon({ weapon, useAltSkin = false }) {
-    // eslint-disable-next-line @next/next/no-img-element
     return <img src={getWeaponPath(weapon, useAltSkin)} className="weapon-icon" alt="Weapon" />;
   }
 );
@@ -37,12 +36,10 @@ const StatsTopRow = React.memo<{
   return (
     <div className="weapon-stat-row">
       <div className="weapon-stat weapon-attack atk">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={getStatPaths('ATK').cdn} className="stat-icon-img" alt="ATK" />
         {Math.floor(scaledAtk)}
       </div>
       <div className={`weapon-stat weapon-main-stat ${weapon.main_stat.toLowerCase()}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={getStatPaths(weapon.main_stat).cdn} className="stat-icon-img" alt={weapon.main_stat} />
         {`${scaledMainStat}%`}
       </div>
@@ -67,7 +64,6 @@ const RarityStars = function RarityStars({ rarity }: { rarity: string }) {
   return (
     <div className="weapon-star-container">
       {[...Array(starCount)].map((_, i) => (
-        // eslint-disable-next-line @next/next/no-img-element
         <img key={i} src="/images/Resources/Star.png" className="star-icon" alt="*" />
       ))}
     </div>

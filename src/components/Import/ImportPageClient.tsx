@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { Results, AnalysisData } from './Results';
 import { Process } from './Process';
 import '@/styles/Import.css';
@@ -12,11 +11,11 @@ const ImportPreview = ({ src }: { src: string }) => {
     return (
         <>
             <div className="preview-container">
-                <Image src={src} className="preview-thumbnail" alt="Preview" onClick={() => setIsFullscreen(true)} width={1920} height={1080} />
+                <img src={src} className="preview-thumbnail" alt="Preview" onClick={() => setIsFullscreen(true)} />
             </div>
             {isFullscreen && (
                 <div className="fullscreen-overlay" onClick={() => setIsFullscreen(false)}>
-                    <Image src={src} className="modal-image" alt="Preview" onClick={e => e.stopPropagation()} width={1920} height={1080} />
+                    <img src={src} className="modal-image" alt="Preview" onClick={e => e.stopPropagation()} />
                 </div>
             )}
         </>
@@ -117,7 +116,7 @@ export default function ImportPageClient() {
                         <div className="tutorial-text">
                             <h3>Either directly download, or open in browser</h3>
                             <p>Discord compresses the image if you try to copy or drag directly</p>
-                            <Image src="/images/discord-og.png" alt="Tutorial" width={1920} height={1080} priority />
+                            <img src="/images/discord-og.png" alt="Tutorial" className="tutorial-image" />
                         </div>
                     </>
                 ) : (

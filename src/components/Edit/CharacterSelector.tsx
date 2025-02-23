@@ -7,7 +7,6 @@ import { useModalClose } from '@/hooks/useModalClose';
 import { getAssetPath } from '@/types/paths';
 import '@/styles/CharacterSelector.css';
 import '@/styles/modal.css';
-import Image from 'next/image';
 
 interface CharacterSelectorProps {
   onSelect: (characterId: string | null) => void;
@@ -54,13 +53,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         <div>Select Resonator:</div>
         <div className="select-box" onClick={() => setIsModalOpen(true)}>
           <div className="select-img">
-            <Image 
-              src={selectedCharacter ? getAssetPath('faces', selectedCharacter).cdn : "/images/Resources/Resonator.png"}
-              alt="Select Character" 
-              className="select-img-inner"
-              width={256}
-              height={256}
-            />
+            <img src={selectedCharacter ? getAssetPath('faces', selectedCharacter).cdn : "/images/Resources/Resonator.png"} alt="Select Character" className="select-img-inner" />
           </div>
           {selectedCharacter && (
             <p id="selectedCharacterLabel">
@@ -84,13 +77,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
               {characters.map(character => (
                 <div key={character.name} className="character-option" onClick={() => handleCharacterSelect(character)}>
                   <div className="border-wrapper" data-element={character.element}></div>
-                  <Image 
-                    src={getAssetPath('faces', character).cdn} 
-                    alt={character.name} 
-                    className="char-img"
-                    width={256}
-                    height={256}
-                  />
+                  <img src={getAssetPath('faces', character).cdn} alt={character.name} className="char-img" />
                   <div className="char-label">{character.name}</div>
                 </div>
               ))}

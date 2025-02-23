@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import Image from 'next/image';
 import { useSubstats } from '@/hooks/useSub';
 import { EchoPanelState } from '@/types/echo';
 import { getCachedEchoes } from '@/hooks/useEchoes';
@@ -28,7 +27,7 @@ const BreakdownStat: React.FC<{
     
     return (
         <div className={`breakdown-stat ${isSelected ? 'selected' : ''} ${isTotal ? 'total' : ''}`} onClick={onToggle}>
-            <Image src={paths.cdn} alt={name} className="build-stat-icon" width={96} height={96} />
+            <img src={paths.cdn} alt={name} className="build-stat-icon" />
             <span>{formatValue(value, isPercentage)}</span>
         </div>
     );
@@ -65,12 +64,7 @@ const EchoMainStat: React.FC<{
     if (!type || !value) return null;
     return (
         <div className="build-echo-mainstat">
-            <Image src={getStatPaths(type).cdn}
-                alt={type}
-                className={`build-stat-icon ${type.split(' ')[0].toLowerCase()}`}
-                width={96}
-                height={96}
-            />
+            <img src={getStatPaths(type).cdn} alt={type} className={`build-stat-icon ${type.split(' ')[0].toLowerCase()}`}/>
             <div>{value.toFixed(1)}%</div>
         </div>
     );
@@ -82,12 +76,7 @@ const EchoSubstat: React.FC<{
     isSelected: boolean;
 }> = ({ sub, quality, isSelected }) => (
     <div className={`build-echo-substat ${isSelected ? 'selected' : ''}`}>
-        <Image src={getStatPaths(sub.type || '').cdn}
-            alt={sub.type || ''}
-            className="build-stat-icon"
-            width={96}
-            height={96}
-        />
+        <img src={getStatPaths(sub.type || '').cdn} alt={sub.type || ''} className="build-stat-icon"/>
         <div className={`build-echo-substat-value ${quality}`}>
             {sub.type && sub.value ? 
                 `${sub.value}${['ATK', 'HP', 'DEF'].includes(sub.type) ? '' : '%'}` 
@@ -135,7 +124,6 @@ const calculatePanelCV = (panel: EchoPanelState): number => {
 };
 
 const mapStatName = (type: string): string => {
-    // Remove 'DMG Bonus' suffix and map to shorter names
     const dmgBonusMap: Record<string, string> = {
         'Basic Attack DMG Bonus': 'Basic Attack',
         'Heavy Attack DMG Bonus': 'Heavy Attack',
@@ -212,19 +200,9 @@ export const BuildEchoRow: React.FC<{
                     <EchoStatDisplay cv={panelCV} rv={panelRV} selectedCount={selectedStats.size} />
                     <div className="build-echo-info">
                         {element && (
-                            <Image src={getAssetPath('sets', element).cdn}
-                                alt={`${element} Set Icon`}
-                                className="build-set-icon"
-                                width={76}
-                                height={76}
-                            />
+                            <img src={getAssetPath('sets', element).cdn} alt={`${element} Set Icon`} className="build-set-icon" />
                         )}
-                        <Image src={getAssetPath('echoes', echo).cdn}
-                            alt={echo.name}
-                            className="build-echo-icon"
-                            width={256}
-                            height={256}
-                        />
+                        <img src={getAssetPath('echoes', echo).cdn} alt={echo.name} className="build-echo-icon"/>
                         <EchoMainStat type={panel.stats.mainStat.type} value={panel.stats.mainStat.value} />
                     </div>
                     <div className="build-echo-stats">

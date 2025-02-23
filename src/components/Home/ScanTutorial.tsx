@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, CSSProperties } from 'react';
-import Image from 'next/image'; // Add this import
 
 const SCREENSHOTS = [
     { title: 'Character', src: '/images/scan-character.webp' },
@@ -132,12 +131,8 @@ export const ScanTutorial: React.FC = () => {
                     {SCREENSHOTS.map((screenshot, index) => (
                         <div key={index} className="screenshot-type" style={getScreenshotStyles(index, currentScreenshot, isMobile)}>
                             <h4>{screenshot.title}</h4>
-                            <Image 
-                                src={screenshot.src}
+                            <img src={screenshot.src}
                                 alt={`${screenshot.title} Screenshot`}
-                                width={1920}
-                                height={1080}
-                                quality={90}
                                 className="screenshot-type-img"
                                 onClick={() => setSelectedImage(screenshot.src)}
                             />
@@ -150,14 +145,10 @@ export const ScanTutorial: React.FC = () => {
                 </div>
                 {selectedImage && (
                     <div className="image-overlay" onClick={() => setSelectedImage(null)}>
-                        <Image 
-                            src={selectedImage}
+                        <img src={selectedImage}
                             alt="Full size screenshot"
-                            width={1920}
-                            height={1080}
-                            quality={90}
-                            onClick={e => e.stopPropagation()}
                             className="image-overlay-img"
+                            onClick={e => e.stopPropagation()}
                         />
                     </div>
                 )}
@@ -191,11 +182,8 @@ export const ScanTutorial: React.FC = () => {
                             {stepIndex === 0 && (
                                 <>
                                     <p>Take screenshots from the game as shown above</p>
-                                    <Image 
-                                        src="/images/screenshots.webp"
+                                    <img src="/images/screenshots.webp"
                                         alt="Screenshot examples"
-                                        width={1010}
-                                        height={943}
                                         className="step-image"
                                     />
                                     <p className="note">
@@ -207,11 +195,8 @@ export const ScanTutorial: React.FC = () => {
                             {stepIndex === 1 && (
                                 <>
                                     <p>Upload screenshots and let the website scan them automatically</p>
-                                    <Image 
-                                        src="/images/scan.webp"
+                                    <img src="/images/scan.webp"
                                         alt="Example scan"
-                                        width={760}
-                                        height={769}
                                         className="step-image"
                                     />
                                     <p className="note">
@@ -223,11 +208,8 @@ export const ScanTutorial: React.FC = () => {
                             {stepIndex === 2 && (
                                 <>
                                     <p>Export and share your completed build</p>
-                                    <Image 
-                                        src="/images/generate.webp"
+                                    <img src="/images/generate.webp"
                                         alt="Generate build card"
-                                        width={1788}
-                                        height={2164}
                                         className="step-image"
                                     />
                                     <p className="note">

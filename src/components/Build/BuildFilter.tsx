@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useCallback } from 'react';
-import Image from 'next/image';
 import { getAssetPath } from '@/types/paths';
 import { cachedCharacters } from '@/hooks/useCharacters';
 import { Character } from '@/types/character';
@@ -34,7 +33,7 @@ const CharacterSection: React.FC<{
             <div className="section-content character">
                 {filteredCharacters.map(char => (
                     <div key={char.id} className="filter-option" onClick={() => onSelect(char)} onMouseDown={e => e.preventDefault()}>
-                        <Image src={getAssetPath('face1', char).cdn} alt={char.name} width={32} height={32} className="filter-icon" />
+                        <img src={getAssetPath('face1', char).cdn} alt={char.name} className="filter-icon" />
                         <span>{char.name}</span>
                     </div>
                 ))}
@@ -70,7 +69,7 @@ const WeaponSection: React.FC<{
                         {weapons.map(weapon => (
                             <div key={weapon.id} className="filter-option" onClick={() => onSelect(weapon)} onMouseDown={e => e.preventDefault()}>
                                 <div className="filter-weapon">
-                                    <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} width={32} height={32} className="filter-icon" />
+                                    <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="filter-icon" />
                                     <span>{weapon.name}</span>
                                 </div>
                                 <span className="weapon-rarity">{weapon.rarity}</span>
@@ -122,7 +121,7 @@ const EchoSection: React.FC<{
                             if (isSelected) return null;
                             return (
                                 <div key={`${count}-${element}`} className="filter-option" onClick={() => onSelect([count, actualIndex])} onMouseDown={e => e.preventDefault()}>
-                                    <Image src={getAssetPath('sets', element).cdn} alt={setName} width={76} height={76} className="filter-icon" /><span>{setName}</span>
+                                    <img src={getAssetPath('sets', element).cdn} alt={setName} className="filter-icon" /><span>{setName}</span>
                                 </div>
                             );
                         })}
@@ -166,7 +165,7 @@ const MainStatSection: React.FC<{
                         {filteredStats[cost].map(([cost, stat]) => (
                             <div key={`${cost}-${stat}`} className="filter-option" onClick={() => onSelect([cost, stat])} onMouseDown={e => e.preventDefault()}>
                                 <div className="filter-mainstat">
-                                    <Image src={getStatPaths(stat).cdn} alt={stat} width={96} height={96} className="filter-icon" />
+                                    <img src={getStatPaths(stat).cdn} alt={stat} className="filter-icon" />
                                     <span>{stat}</span>
                                 </div>
                             </div>
@@ -189,7 +188,7 @@ const SelectedTag: React.FC<{
                 const char = data as Character;
                 return (
                     <>
-                        <Image src={getAssetPath('face1', char).cdn} alt={char.name} width={32} height={32} className="tag-icon"/>
+                        <img src={getAssetPath('face1', char).cdn} alt={char.name} className="tag-icon"/>
                         <span>{char.name}</span>
                     </>
                 );
@@ -197,7 +196,7 @@ const SelectedTag: React.FC<{
                 const weapon = data as typeof weaponList[0];
                 return (
                     <>
-                        <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} width={32} height={32} className="tag-icon"/>
+                        <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="tag-icon"/>
                         <span>{weapon.name}</span>
                     </>
                 );
@@ -208,7 +207,7 @@ const SelectedTag: React.FC<{
                 return (
                     <>
                         <span>{count}p</span>
-                        <Image src={getAssetPath('sets', element).cdn} alt={setName} width={76} height={76} className="tag-icon echo"/>
+                        <img src={getAssetPath('sets', element).cdn} alt={setName} className="tag-icon echo"/>
                         <span>{setName}</span>
                     </>
                 );
@@ -216,7 +215,7 @@ const SelectedTag: React.FC<{
                 const [cost, stat] = data as [number, string];
                 return (
                     <>
-                        <Image src={getStatPaths(stat).cdn} alt={stat} width={96} height={96} className="tag-icon"/>
+                        <img src={getStatPaths(stat).cdn} alt={stat} className="tag-icon"/>
                         <span>{stat}</span>
                         <span className="mainstat-cost">| {cost} Cost</span>
                     </>

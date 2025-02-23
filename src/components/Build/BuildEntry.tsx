@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 import { getCachedWeapon } from '@/hooks/useWeapons';
 import { cachedCharacters } from '@/hooks/useCharacters';
 import { getAssetPath } from '@/types/paths';
@@ -27,7 +26,7 @@ const BuildCharacterSection: React.FC<{
     elementClass: string;
 }> = ({ character, elementClass }) => (
     <div className="build-character">
-        <Image src={getAssetPath('face1', character as Character).cdn} alt={character?.name ?? ''} className={`build-portrait ${elementClass}`} width={256} height={256} />
+        <img src={getAssetPath('face1', character as Character).cdn} alt={character?.name ?? ''} className={`build-portrait ${elementClass}`} />
         <span className={`char-name ${elementClass}`}>{character?.name}</span>
     </div>
 );
@@ -38,7 +37,7 @@ export const BuildSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ e
             .filter(([, count]) => count >= 2)
             .map(([element, count]) => (
                 <div key={element} className="build-set-container">
-                    <Image src={getAssetPath('sets', element).cdn} alt={element} className="build-set" width={76} height={76} />
+                    <img src={getAssetPath('sets', element).cdn} alt={element} className="build-set" />
                     <span>{count}</span>
                 </div>
             ))}
@@ -60,7 +59,7 @@ export const IconStat: React.FC<{
         
     return (
         <span className={`build-stat ${isHighlighted ? 'highlighted' : ''}`}>
-            <Image src={getStatPaths(statName).cdn} alt={statName} className={`build-stat-icon ${hasElementalColor ? elementType : ''}`} width={96} height={96} />
+            <img src={getStatPaths(statName).cdn} alt={statName} className={`build-stat-icon ${hasElementalColor ? elementType : ''}`} />
             {formattedValue}
         </span>
     );
@@ -134,7 +133,7 @@ export const BuildEntry: React.FC<{
                 <div className="build-weapon">
                     {weapon && (
                         <>
-                            <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="weapon-portrait" width={256} height={256} />
+                            <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="weapon-portrait" />
                             <span className="weapon-rank">R{entry.buildState.weaponState.rank}</span>
                         </>
                     )}

@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useCallback, useLayoutEffect, CSSProperties } from 'react';
-import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ScanTutorial } from './ScanTutorial';
 import { ImportTutorial } from './ImportTutorial';
@@ -139,15 +138,7 @@ export default function HomePage() {
                                         className="carousel-item"
                                         style={getCardStyles(index)}
                                     >
-                                        <Image 
-                                            src={card.src}
-                                            alt={card.alt}
-                                            className="carousel-image"
-                                            width={1920}
-                                            height={693}
-                                            priority={index === 0}
-                                            quality={90}
-                                        />
+                                        <img src={card.src} alt={card.alt} className="carousel-image"/>
                                     </div>
                                 ))}
                             </div>

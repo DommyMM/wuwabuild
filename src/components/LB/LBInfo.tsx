@@ -5,7 +5,6 @@ import { getCachedWeapon } from '../../hooks/useWeapons';
 import { Sequence } from '../Build/types';
 import { useState } from 'react';
 import { MoveRight, ChevronDown } from 'lucide-react';
-import Image from 'next/image';
 
 const InfoTitle: React.FC<{ name: string;}> = ({ name }) => (
     <div className="header-title">
@@ -20,7 +19,7 @@ const TeamDisplay: React.FC<{
 }> = ({ mainChar, teamIds, characters }) => (
     <div className="team-grid">
         <div className="team-member">
-            <Image src={getAssetPath('face1', mainChar).cdn} alt={mainChar.name} className="team-portrait" width={256} height={256} />
+            <img src={getAssetPath('face1', mainChar).cdn} alt={mainChar.name} className="team-portrait" />
             <span className="team-name">{mainChar.name}</span>
         </div>
         {teamIds.map(id => {
@@ -28,7 +27,7 @@ const TeamDisplay: React.FC<{
             if (!teamMember) return null;
             return (
                 <div key={id} className="team-member">
-                    <Image src={getAssetPath('face1', teamMember).cdn} alt={teamMember.name} className="team-portrait" width={256} height={256} />
+                    <img src={getAssetPath('face1', teamMember).cdn} alt={teamMember.name} className="team-portrait" />
                     <span className="team-name">{teamMember.name}</span>
                 </div>
             );
@@ -85,7 +84,7 @@ const BuildSelector: React.FC<{
                                 className={`lb-weapon-option ${index === selectedIndex ? 'selected' : ''}`}
                                 onClick={() => onWeaponSelect?.(index)}
                             >
-                                <Image src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="lb-weapon-portrait" width={256} height={256} />
+                                <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="lb-weapon-portrait" />
                                 <span className="lb-weapon-name">{weapon.name}</span>
                                 {maxDamage && (
                                     <span className="weapon-damage">{Number(maxDamage.toFixed(0)).toLocaleString()}</span>

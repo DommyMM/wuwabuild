@@ -43,7 +43,7 @@
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
     animation: fadeIn 0.3s forwards;
     background: #333;
-    background-image: url('../../public/images/Resources/T_Bg1_UI.png');
+    background-image: url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
     background-size: cover;
     background-position: center;
 }
