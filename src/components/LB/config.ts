@@ -12,7 +12,9 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     '24': {
         teamIds: ['3', '27'],
         stats: ['ATK', 'Energy Regen', 'Resonance Skill DMG Bonus', 'Spectro DMG'],
-        weapons: ['2401', '2402', '2403'],
+        weapons: ['21010026', '21010015', '21010074', '21010064'],
+        sequences: ['s0'],
+        rotation: ['Intro', 'Skill', 'BAx4', 'Forte Circuit', 'Liberation'],
         enabled: false
     },
     '32': {
