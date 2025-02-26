@@ -12,6 +12,7 @@ import { LBSortDropdown, LBSortHeader } from './SortDropdown';
 import { CHARACTER_CONFIGS } from './config';
 import { Sequence } from '@/components/Build/types';
 import { Character } from '@/types/character';
+import { BuildFilter, FilterState } from '@/components/Build/BuildFilter';
 
 export type CVOptions = 'cv' | 'cr' | 'cd';
 export type DamageOptions = 'damage';
@@ -198,6 +199,13 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
     const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
     const [selectedSequence, setSelectedSequence] = useState<Sequence>('s0');
     const itemsPerPage = 10;
+    const [filterState, setFilterState] = useState<FilterState>({
+        characterIds: [],
+        weaponIds: [],
+        echoSets: [],
+        mainStats: [],
+        regions: []
+    });
 
     useEffect(() => {
         const params = new URLSearchParams({
@@ -209,11 +217,17 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
         if (selectedSequence !== 's0') {
             params.set('sequence', selectedSequence);
         }
-        
-        router.push(`/leaderboards/${characterId}?${params.toString()}`, { 
-            scroll: false 
-        });
-    }, [characterId, selectedWeapon, currentSort, sortDirection, page, selectedSequence, config.weapons, router]);
+        if (filterState.echoSets.length > 0) {
+            params.append('set', filterState.echoSets.map(set => set.join('~')).join('.'));
+        }
+        if (filterState.mainStats.length > 0) {
+            params.append('stat', filterState.mainStats.map(stat => stat.join('')).join('.'));
+        }
+        if (filterState.regions.length > 0) {
+            params.append('region', filterState.regions.join('.'));
+        }
+        router.push(`/leaderboards/${characterId}?${params.toString()}`, { scroll: false });
+    }, [characterId, selectedWeapon, currentSort, sortDirection, page, selectedSequence, config.weapons, router, filterState]);
     
     useEffect(() => {
         setExpandedEntries(new Set());
@@ -221,7 +235,7 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
         const loadData = async () => {
             if (!characterId) return;
             try {
-                const params = new URLSearchParams({
+                const fetchParams = new URLSearchParams({
                     sort: getSortParam(currentSort),
                     direction: sortDirection,
                     page: String(page),
@@ -229,10 +243,19 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
                     weaponIndex: String(selectedWeapon)
                 });
                 if (selectedSequence !== 's0') {
-                    params.set('sequence', selectedSequence);
+                    fetchParams.set('sequence', selectedSequence);
+                }
+                if (filterState.regions.length > 0) {
+                    fetchParams.append('region', JSON.stringify(filterState.regions));
+                }
+                if (filterState.echoSets.length > 0) {
+                    fetchParams.append('echoSets', JSON.stringify(filterState.echoSets));
+                }
+                if (filterState.mainStats.length > 0) {
+                    fetchParams.append('echoMains', JSON.stringify(filterState.mainStats));
                 }
                 
-                const response = await fetch(`${LB_URL}/leaderboard/${characterId}?${params}`);
+                const response = await fetch(`${LB_URL}/leaderboard/${characterId}?${fetchParams}`);
                 if (!response.ok) throw new Error('Failed to fetch data');
                 
                 const data = await response.json() as BuildResponse;
@@ -249,7 +272,7 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
             }
         };
         loadData();
-    }, [page, characterId, sortDirection, currentSort, selectedWeapon, selectedSequence, config.weapons]);
+    }, [page, characterId, sortDirection, currentSort, selectedWeapon, selectedSequence, config.weapons, filterState]);
 
     const handleSortChange = (field: SortField) => {
         setCurrentSort(field === currentSort ? null : field);
@@ -280,6 +303,17 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
                     onSequenceSelect={setSelectedSequence}
                     character={character}
                     characters={characters}
+                />
+                <BuildFilter 
+                    filterState={filterState}
+                    onFilterChange={setFilterState}
+                    options={{
+                        includeCharacters: false,
+                        includeWeapons: false,
+                        includeEchoes: true,
+                        includeMainStats: true,
+                        includeRegions: true
+                    }}
                 />
                 <div className="build-container">
                     <LeaderboardTable 

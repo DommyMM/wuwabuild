@@ -8,9 +8,11 @@ interface OptionsProps {
     uid: string;
   };
   showRollQuality: boolean;
+  showCV: boolean;
   useAltSkin: boolean;
   onWatermarkChange: (watermark: { username: string; uid: string }) => void;
   onRollQualityChange: (checked: boolean) => void;
+  onCVChange: (checked: boolean) => void;
   onSkinChange: (checked: boolean) => void;
   className?: string;
   characterName?: string;
@@ -21,9 +23,11 @@ interface OptionsProps {
 export const Options: React.FC<OptionsProps> = ({
   watermark,
   showRollQuality,
+  showCV,
   useAltSkin,
   onWatermarkChange,
   onRollQualityChange,
+  onCVChange,
   onSkinChange,
   className,
   characterName,
@@ -102,7 +106,18 @@ export const Options: React.FC<OptionsProps> = ({
             onChange={(e) => onRollQualityChange(e.target.checked)}
           />
           <label htmlFor="roll-value" className="roll-label">
-            Roll Quality
+            Quality
+          </label>
+        </div>
+        <div className="checkbox-container">
+          <input type="checkbox"
+            id="cv-toggle"
+            className="roll-checkbox"
+            checked={showCV}
+            onChange={(e) => onCVChange(e.target.checked)}
+          />
+          <label htmlFor="cv-toggle" className="roll-label">
+            CV
           </label>
         </div>
       </div>

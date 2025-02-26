@@ -9,7 +9,7 @@ import { BuildEntry } from './BuildEntry';
 import { SortAsc } from 'lucide-react';
 import { STAT_ORDER } from '@/types/stats';
 import { useRouter } from 'next/navigation';
-import { BuildFilter } from './BuildFilter';
+import { BuildFilter, FilterState } from './BuildFilter';
 import '@/styles/BuildPage.css';
 
 const FILTERED_STATS = STAT_ORDER.filter(stat => 
@@ -177,7 +177,31 @@ export default function BuildPageClient() {
     const [mainStats, setMainStats] = useState<Array<[number, string]>>([]);
     const [isTableLoading, setIsTableLoading] = useState(false);
     const [regions, setRegions] = useState<number[]>([]);
-
+    useEffect(() => {
+        const searchParams = new URLSearchParams(window.location.search);
+        
+        const regionParam = searchParams.get('0') || searchParams.get('region');
+        const charParam = searchParams.get('1') || searchParams.get('characterId');
+        const weaponParam = searchParams.get('2') || searchParams.get('weaponId');
+        const echoParam = searchParams.get('3') || searchParams.get('echoSets');
+        const mainStatParam = searchParams.get('4') || searchParams.get('echoMains');
+        if (regionParam) setRegions(regionParam.split('.').map(Number));
+        if (charParam) setCharacterIds(charParam.split('.'));
+        if (weaponParam) setWeaponIds(weaponParam.split('.'));
+        if (echoParam) {
+            setEchoSets(echoParam.split('.').map(set => {
+                const [a, b] = set.split('~').map(Number);
+                return [a, b] as [number, number];
+            }));
+        }
+        if (mainStatParam) {
+            setMainStats(mainStatParam.split('.').map(stat => {
+                const num = parseInt(stat[0]);
+                const type = stat.slice(1);
+                return [num, type] as [number, string];
+            }));
+        }
+    }, []); 
     useEffect(() => {
         const getSortParam = () => {
             if (statSort) return statSort;
@@ -190,21 +214,11 @@ export default function BuildPageClient() {
             direction: sortDirection,
             page: String(currentPage)
         });
-        if (characterIds.length > 0) {
-            params.append('characterId', characterIds.join('~'));
-        }
-        if (weaponIds.length > 0) {
-            params.append('weaponId', weaponIds.join('~'));
-        }
-        if (echoSets.length > 0) {
-            params.append('echoSets', echoSets.map(set => set.join('-')).join('~'));
-        }
-        if (mainStats.length > 0) {
-            params.append('echoMains', mainStats.map(stat => stat.join('')).join('~'));
-        }
-        if (regions.length > 0) {
-            params.append('regions', regions.join('~'));
-        }
+        if (regions.length > 0) params.append('region', regions.join('.'));
+        if (characterIds.length > 0) params.append('char', characterIds.join('.'));
+        if (weaponIds.length > 0) params.append('weap', weaponIds.join('.'));
+        if (echoSets.length > 0) params.append('set', echoSets.map(set => set.join('~')).join('.'));
+        if (mainStats.length > 0) params.append('stat', mainStats.map(stat => stat.join('')).join('.'));
         router.push(`/builds?${params.toString()}`, { scroll: false });
         const loadData = async () => {
             try {
@@ -215,6 +229,9 @@ export default function BuildPageClient() {
                     page: String(currentPage),
                     pageSize: String(itemsPerPage)
                 });
+                if (regions.length > 0) {
+                    fetchParams.append('region', JSON.stringify(regions));
+                }
                 if (characterIds.length > 0) {
                     fetchParams.append('characterId', JSON.stringify(characterIds));
                 }
@@ -226,9 +243,6 @@ export default function BuildPageClient() {
                 }
                 if (mainStats.length > 0) {
                     fetchParams.append('echoMains', JSON.stringify(mainStats));
-                }
-                if (regions.length > 0) {
-                    fetchParams.append('region', JSON.stringify(regions));
                 }
                 const response = await fetch(`${LB_URL}/build?${fetchParams}`);
                 if (!response.ok) throw new Error('Failed to fetch leaderboard');
@@ -295,6 +309,14 @@ export default function BuildPageClient() {
     );
     const pageCount = Math.ceil(total / itemsPerPage);
 
+    const filterState: FilterState = {
+        characterIds,
+        weaponIds,
+        echoSets,
+        mainStats,
+        regions
+    };
+
     return (
         <div className="page-wrapper">
             <div className="build-wrapper">
@@ -307,17 +329,20 @@ export default function BuildPageClient() {
                         </div>
                         <div className="build-table">
                             <BuildFilter 
-                                onCharacterFilter={setCharacterIds} 
-                                onWeaponFilter={setWeaponIds} 
-                                onEchoFilter={setEchoSets}
-                                onMainStatFilter={setMainStats}
-                                onRegionFilter={setRegions}  // Add region filter handler
+                                filterState={filterState}
+                                onFilterChange={(newState: FilterState) => {
+                                    setCharacterIds(newState.characterIds);
+                                    setWeaponIds(newState.weaponIds);
+                                    setEchoSets(newState.echoSets);
+                                    setMainStats(newState.mainStats);
+                                    setRegions(newState.regions);
+                                }}
                                 options={{
                                     includeCharacters: true,
                                     includeWeapons: true,
                                     includeEchoes: true,
                                     includeMainStats: true,
-                                    includeRegions: true    // Enable region filter
+                                    includeRegions: true
                                 }}
                             />
                             <div className="build-header">

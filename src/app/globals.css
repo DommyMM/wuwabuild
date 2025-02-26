@@ -288,9 +288,6 @@ h2 {
     width: 91vw;
     margin-left: 0;
   }
-  .sticky-container {
-    top: 8%;
-  }
   .ocr-panel-container {
     left: 0;
   }
@@ -322,7 +319,7 @@ h2 {
     padding: 8px;
   }
   .scan-container{
-    top: 20%;
+    top: 12.5%;
   }
 }
 

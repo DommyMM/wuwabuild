@@ -408,6 +408,10 @@
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
+.echo-level-indicator.cv-value {
+    font-size: 16px;
+}
+
 .echo-divider {
     width: 2px;
     height: 80%;

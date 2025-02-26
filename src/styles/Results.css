@@ -145,6 +145,7 @@
 .results-container .header-title {
     display: flex;
     align-items: center;
+    flex-direction: row;
     gap: 8px;
     justify-content: center;
 }

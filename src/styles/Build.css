@@ -63,7 +63,7 @@
 
 .options-container {
     justify-content: flex-start;
-    width: 31%;
+    width: 32%;
     height: 37px;
     top: 0%;
     position: absolute;
@@ -240,12 +240,8 @@ input:-webkit-autofill {
 .checkbox-container {
     display: flex;
     align-items: center;
+    justify-content: center;
     padding: 5px 0px;
-    width: 115px;
-}
-
-.checkbox-container:has(.roll-checkbox) {
-    width: 140px;
 }
 
 .roll-checkbox {
@@ -266,6 +262,7 @@ input:-webkit-autofill {
     color: white;
     user-select: none;
     font-size: 24px;
+    margin: 0 0 0 2px;
 }
 
 .watermark-container {
@@ -844,20 +841,23 @@ input:-webkit-autofill {
     }
     .options-container{
         left: 1%;
-        width: 60vw;
+        width: 75vw;
         transform: translateY(-10px);
     }
     .input-container {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 5px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
         width: 100%;
     }
-    .checkbox-container:first-of-type {
-        width: 130px;
+    .checkbox-container {
+        grid-row: 2;
+    }
+    .checkbox-container:nth-of-type(3) {
+        grid-column: 3;
     }
     #generateDownload{
-        transform: translate(275px, -10px)
+        transform: translate(65vw, -15px)
     }
     .button-group{
         position: absolute;

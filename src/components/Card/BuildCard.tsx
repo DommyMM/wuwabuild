@@ -202,6 +202,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   useStatHighlight();
   const [isTabVisible, setIsTabVisible] = useState(false);
   const [showRollQuality, setShowRollQuality] = useState(true);
+  const [showCV, setShowCV] = useState(true); // Add new state
   const [hasBeenVisible, setHasBeenVisible] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [customImage, setCustomImage] = useState<File | undefined>(undefined);
@@ -363,10 +364,12 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       <div className="build-card">
         <Options watermark={watermark}
           showRollQuality={showRollQuality}
+          showCV={showCV}
           useAltSkin={useAltSkin}
           artSource={artSource}
           onWatermarkChange={onWatermarkChange}
           onRollQualityChange={setShowRollQuality}
+          onCVChange={setShowCV} 
           onSkinChange={setUseAltSkin}
           onArtSourceChange={setArtSource}
           className={hasBeenVisible ? 'visible' : 'hidden'}
@@ -417,7 +420,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                 )}
                 </CharacterSection>
                 <StatSection isVisible={isTabVisible} stats={displayStats}/>
-                <EchoDisplay isVisible={isTabVisible} echoPanels={echoPanels} showRollQuality={showRollQuality} leftStates={leftStates} rightStates={rightStates} sets={elementSets} cv={cv}/>
+                <EchoDisplay isVisible={isTabVisible} echoPanels={echoPanels} showRollQuality={showRollQuality} showCV={showCV} leftStates={leftStates} rightStates={rightStates} sets={elementSets} cv={cv}/>
                 <div className="watermark-container">
                   <div className="username">{watermark.username}</div>
                   <div className="uid">{watermark.uid}</div>

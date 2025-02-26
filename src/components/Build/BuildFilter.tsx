@@ -27,12 +27,12 @@ const REGION_MAP: Record<string, number> = {
     'HMT': 1
 };
 
-interface FilterState {
-    characters: Character[];
-    weapons: typeof weaponList;
+export interface FilterState {
+    characterIds: string[];
+    weaponIds: string[];
     echoSets: Array<[number, number]>;
     mainStats: Array<[number, string]>;
-    regions: number[]; 
+    regions: number[];
 }
 
 interface FilterOptions {
@@ -43,13 +43,9 @@ interface FilterOptions {
     includeRegion?: boolean;
 }
 
-interface BuildFilterProps extends Partial<{
-    onCharacterFilter: (characterIds: string[]) => void;
-    onWeaponFilter: (weaponIds: string[]) => void;
-    onEchoFilter: (sets: Array<[number, number]>) => void;
-    onMainStatFilter: (stats: Array<[number, string]>) => void;
-    onRegionFilter: (regions: number[]) => void;
-}> {
+interface BuildFilterProps {
+    filterState: FilterState;
+    onFilterChange: (newState: FilterState) => void;
     options?: FilterOptions & {
         includeRegions?: boolean;
     };
@@ -191,11 +187,8 @@ const SelectedTag: React.FC<{
 };
 
 export const BuildFilter: React.FC<BuildFilterProps> = ({ 
-    onCharacterFilter,
-    onWeaponFilter,
-    onEchoFilter,
-    onMainStatFilter,
-    onRegionFilter,
+    filterState,
+    onFilterChange,
     options = {
         includeCharacters: true,
         includeWeapons: true,
@@ -206,112 +199,88 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const [search, setSearch] = useState('');
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-    const [selected, setSelected] = useState<FilterState>({ characters: [], weapons: [], echoSets: [], mainStats: [], regions: [] });
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const handleCharacterSelect = useCallback((char: Character) => {
-        setSelected(prev => {
-            const newChars = [...prev.characters, char];
-            const newState = { ...prev, characters: newChars };
-            requestAnimationFrame(() => onCharacterFilter?.(newChars.map(c => c.id)));
-            return newState;
+    const handleFilterUpdate = useCallback(<T extends keyof FilterState>(
+        type: T, 
+        newValue: FilterState[T]
+    ) => {
+        onFilterChange({
+            ...filterState,
+            [type]: newValue
         });
-        setSearch('');
-    }, [onCharacterFilter]);
-
-    const handleWeaponSelect = useCallback((weapon: typeof weaponList[0]) => {
-        setSelected(prev => {
-            const newWeapons = [...prev.weapons, weapon];
-            const newState = { ...prev, weapons: newWeapons };
-            requestAnimationFrame(() => onWeaponFilter?.(newWeapons.map(w => w.id)));
-            return newState;
-        });
-        setSearch('');
-    }, [onWeaponFilter]);
-
-    const handleEchoSelect = useCallback((set: [number, number]) => {
-        setSelected(prev => {
-            const newEchos = [...prev.echoSets, set];
-            const newState = { ...prev, echoSets: newEchos };
-            requestAnimationFrame(() => onEchoFilter?.(newEchos));
-            return newState;
-        });
-        setSearch('');
-    }, [onEchoFilter]);
-
-    const handleMainStatSelect = useCallback((mainStat: [number, string]) => {
-        setSelected(prev => {
-            const newMainStats = [...prev.mainStats, mainStat];
-            const newState = { ...prev, mainStats: newMainStats };
-            const mappedStats = newMainStats.map(([cost, stat]) => [
-                cost,
-                STAT_MAP[stat as keyof typeof STAT_MAP] || stat
-            ] as [number, string]);
-            
-            requestAnimationFrame(() => onMainStatFilter?.(mappedStats));
-            return newState;
-        });
-        setSearch('');
-    }, [onMainStatFilter]);
+    }, [filterState, onFilterChange]);
     
+    const handleCharacterSelect = useCallback((char: Character) => {
+        handleFilterUpdate('characterIds', [...filterState.characterIds, char.id]);
+        setSearch('');
+    }, [handleFilterUpdate, filterState.characterIds]);
+    
+    const handleWeaponSelect = useCallback((weapon: typeof weaponList[0]) => {
+        handleFilterUpdate('weaponIds', [...filterState.weaponIds, weapon.id]);
+        setSearch('');
+    }, [handleFilterUpdate, filterState.weaponIds]);
+    
+    const handleEchoSelect = useCallback((set: [number, number]) => {
+        handleFilterUpdate('echoSets', [...filterState.echoSets, set]);
+        setSearch('');
+    }, [handleFilterUpdate, filterState.echoSets]);
+    
+    const handleMainStatSelect = useCallback((mainStat: [number, string]) => {
+        const newMainStats = [...filterState.mainStats, mainStat];
+        const mappedStats = newMainStats.map(([cost, stat]) => [
+            cost,
+            STAT_MAP[stat as keyof typeof STAT_MAP] || stat
+        ] as [number, string]);
+        handleFilterUpdate('mainStats', mappedStats);
+        setSearch('');
+    }, [handleFilterUpdate, filterState.mainStats]);
+
     const handleRemove = useMemo(() => ({
-        character: (id: string) => setSelected(prev => {
-            const newChars = prev.characters.filter(c => c.id !== id);
-            const newState = { ...prev, characters: newChars };
-            requestAnimationFrame(() => onCharacterFilter?.(newChars.map(c => c.id)));
-            return newState;
-        }),
-        weapon: (id: string) => setSelected(prev => {
-            const newWeapons = prev.weapons.filter(w => w.id !== id);
-            const newState = { ...prev, weapons: newWeapons };
-            requestAnimationFrame(() => onWeaponFilter?.(newWeapons.map(w => w.id)));
-            return newState;
-        }),
-        echo: () => setSelected(prev => {
-            const newState = { ...prev, echoSets: [] };
-            requestAnimationFrame(() => onEchoFilter?.([]));
-            return newState;
-        }),
-        mainStat: (stat: [number, string]) => setSelected(prev => {
-            const newMainStats = prev.mainStats.filter(
+        character: (id: string) => {
+            const newChars = filterState.characterIds.filter(cId => cId !== id);
+            handleFilterUpdate('characterIds', newChars);
+        },
+        weapon: (id: string) => {
+            const newWeapons = filterState.weaponIds.filter(wId => wId !== id);
+            handleFilterUpdate('weaponIds', newWeapons);
+        },
+        echo: () => {
+            handleFilterUpdate('echoSets', []);
+        },
+        mainStat: (stat: [number, string]) => {
+            const newMainStats = filterState.mainStats.filter(
                 ([cost, type]) => !(cost === stat[0] && type === stat[1])
             );
-            
             const mappedStats = newMainStats.map(([cost, stat]) => [
                 cost,
                 STAT_MAP[stat as keyof typeof STAT_MAP] || stat
             ] as [number, string]);
-            
-            requestAnimationFrame(() => onMainStatFilter?.(mappedStats));
-            return { ...prev, mainStats: newMainStats };
-        }),
-        region: (id: number) => setSelected(prev => {
-            const newRegions = prev.regions.filter(r => r !== id);
-            const newState = { ...prev, regions: newRegions };
-            requestAnimationFrame(() => onRegionFilter?.(newRegions));
-            return newState;
-        })
-    }), [onCharacterFilter, onWeaponFilter, onEchoFilter, onMainStatFilter, onRegionFilter]);
+            handleFilterUpdate('mainStats', mappedStats);
+        },
+        region: (id: number) => {
+            const newRegions = filterState.regions.filter(r => r !== id);
+            handleFilterUpdate('regions', newRegions);
+        }
+    }), [handleFilterUpdate, filterState]);
 
     const handleContainerClick = (e: React.MouseEvent) => {
         e.preventDefault();
         inputRef.current?.focus();
     };
-
     const filteredCharacters = useMemo(() => 
         cachedCharacters?.filter(char => 
             char.name.toLowerCase().includes(search.toLowerCase()) &&
-            !selected.characters.some(c => c.id === char.id)
+            !filterState.characterIds.includes(char.id)
         ) || [], 
-        [search, selected.characters]
+        [search, filterState.characterIds]
     );
-
     const filteredWeapons = useMemo(() => 
         weaponList.filter(weapon => 
             weapon.name.toLowerCase().includes(search.toLowerCase()) &&
-            !selected.weapons.some(w => w.id === weapon.id)
+            !filterState.weaponIds.includes(weapon.id)
         ),
-        [search, selected.weapons]
+        [search, filterState.weaponIds]
     );
 
     const visibleItems = useMemo<VisibleItem[]>(() => {
@@ -321,7 +290,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
             Object.entries(REGION_MAP)
                 .filter(([name]) => 
                     name.toLowerCase().includes(search.toLowerCase()) &&
-                    !selected.regions.includes(REGION_MAP[name])
+                    !filterState.regions.includes(REGION_MAP[name])
                 )
                 .forEach(([, id]) => {
                     items.push({
@@ -360,13 +329,16 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
     
         if (options.includeEchoes) {
             const filteredEchoes = Object.entries(ELEMENT_SETS)
-                .filter(([, name]) => name.toLowerCase().includes(search.toLowerCase()));
+                .filter(([, name]) => 
+                    name.toLowerCase().includes(search.toLowerCase())
+                );
             [2, 5].forEach(count => {
-                filteredEchoes.forEach(([], index) => {
-                    if (!selected.echoSets.some(([c, i]) => c === count && i === index)) {
+                filteredEchoes.forEach(([element], ) => {
+                    const setIndex = Object.keys(ELEMENT_SETS).indexOf(element);
+                    if (!filterState.echoSets.some(([c, i]) => c === count && i === setIndex)) {
                         items.push({
                             type: 'echo',
-                            data: [count, index] as [number, number],
+                            data: [count, setIndex] as [number, number],
                             sectionTitle: 'Echo Sets'
                         });
                     }
@@ -381,7 +353,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                     Object.entries(stats)
                         .filter(([name]) => {
                             const searchMatch = name.toLowerCase().includes(search.toLowerCase());
-                            const notSelected = !selected.mainStats.some(
+                            const notSelected = !filterState.mainStats.some(
                                 ([c, s]) => c === cost && s === name
                             );
                             return searchMatch && notSelected;
@@ -398,7 +370,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
         }
         
         return items;
-    }, [filteredCharacters, filteredWeapons, search, selected, options]);
+    }, [filteredCharacters, filteredWeapons, search, filterState, options]);
 
     const handleItemSelect = useCallback((item: VisibleItem) => {
         switch (item.type) {
@@ -415,30 +387,25 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                 handleMainStatSelect(item.data as [number, string]);
                 break;
             case 'region':
-                setSelected(prev => {
-                    const newRegions = [...prev.regions, item.data as number];
-                    const newState = { ...prev, regions: newRegions };
-                    requestAnimationFrame(() => onRegionFilter?.(newRegions));
-                    return newState;
-                });
+                handleFilterUpdate('regions', [...filterState.regions, item.data as number]);
                 setSearch('');
                 break;
         }
-    }, [handleCharacterSelect, handleWeaponSelect, handleEchoSelect, handleMainStatSelect, onRegionFilter]);
+    }, [handleCharacterSelect, handleWeaponSelect, handleEchoSelect, handleMainStatSelect, handleFilterUpdate, filterState.regions]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Backspace' && search === '') {
             e.preventDefault();
-            if (selected.regions.length) {
-                handleRemove.region(selected.regions[selected.regions.length - 1]);
-            } else if (selected.mainStats.length) {
-                handleRemove.mainStat(selected.mainStats[selected.mainStats.length - 1]);
-            } else if (selected.echoSets.length) {
+            if (filterState.regions.length) {
+                handleRemove.region(filterState.regions[filterState.regions.length - 1]);
+            } else if (filterState.mainStats.length) {
+                handleRemove.mainStat(filterState.mainStats[filterState.mainStats.length - 1]);
+            } else if (filterState.echoSets.length) {
                 handleRemove.echo();
-            } else if (selected.weapons.length) {
-                handleRemove.weapon(selected.weapons[selected.weapons.length - 1].id);
-            } else if (selected.characters.length) {
-                handleRemove.character(selected.characters[selected.characters.length - 1].id);
+            } else if (filterState.weaponIds.length) {
+                handleRemove.weapon(filterState.weaponIds[filterState.weaponIds.length - 1]);
+            } else if (filterState.characterIds.length) {
+                handleRemove.character(filterState.characterIds[filterState.characterIds.length - 1]);
             }
             return;
         }
@@ -481,7 +448,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
         setFocusedIndex(0);
     }, [search]);
 
-    const hasSelectedItems = selected.characters.length > 0 || selected.weapons.length > 0 || selected.echoSets.length > 0 || selected.mainStats.length > 0;
+    const hasSelectedItems = filterState.characterIds.length > 0 || filterState.weaponIds.length > 0 || filterState.echoSets.length > 0 || filterState.mainStats.length > 0;
 
     const getSectionHeader = (item: VisibleItem, index: number, items: VisibleItem[]) => {
         if (index === 0 || items[index - 1].sectionTitle !== item.sectionTitle) {
@@ -548,19 +515,37 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
         <div className="build-filter">
             <div className="filter-input-container" onClick={handleContainerClick}>
                 <div className="selected-tags">
-                    {selected.characters.map(char => 
-                        <SelectedTag key={char.id} type="character" data={char} onRemove={() => handleRemove.character(char.id)} />
-                    )}
-                    {selected.weapons.map(weapon => 
-                        <SelectedTag key={weapon.id} type="weapon" data={weapon} onRemove={() => handleRemove.weapon(weapon.id)} />
-                    )}
-                    {selected.echoSets.map(set => 
+                    {filterState.characterIds.map(charId => {
+                        const char = cachedCharacters?.find(c => c.id === charId);
+                        if (!char) return null;
+                        return (
+                            <SelectedTag 
+                                key={charId} 
+                                type="character" 
+                                data={char} 
+                                onRemove={() => handleRemove.character(charId)} 
+                            />
+                        );
+                    })}
+                    {filterState.weaponIds.map(weaponId => {
+                        const weapon = weaponList.find(w => w.id === weaponId);
+                        if (!weapon) return null;
+                        return (
+                            <SelectedTag 
+                                key={weaponId} 
+                                type="weapon" 
+                                data={weapon} 
+                                onRemove={() => handleRemove.weapon(weaponId)} 
+                            />
+                        );
+                    })}
+                    {filterState.echoSets.map(set => 
                         <SelectedTag key={`${set[0]}-${set[1]}`} type="echo" data={set} onRemove={() => handleRemove.echo()} />
                     )}
-                    {selected.mainStats.map(stat => 
+                    {filterState.mainStats.map(stat => 
                         <SelectedTag key={`${stat[0]}-${stat[1]}`} type="mainstat" data={stat} onRemove={() => handleRemove.mainStat(stat)} />
                     )}
-                    {selected.regions.map(regionId => 
+                    {filterState.regions.map(regionId => 
                         <SelectedTag key={`region-${regionId}`} type="region" data={regionId} onRemove={() => handleRemove.region(regionId)} />
                     )}
                     <input ref={inputRef}

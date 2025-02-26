@@ -1,16 +1,19 @@
 import React from 'react';
 import { EchoPanelState, ElementType } from '@/types/echo';
 import { getStatPaths } from '@/types/stats';
+import { calculateCV } from '@/hooks/useStats';
 import { useSubstats } from '@/hooks/useSub';
 import { getCachedEchoes } from '@/hooks/useEchoes';
 import { SetSection } from './SetSection';
 import { Echo, ECHO_BONUSES } from '@/types/echo';
 import { getAssetPath } from '@/types/paths';
+import { getEchoCVClass } from '../Save/Card';
 
 export interface EchoDisplayProps {
   isVisible: boolean;
   echoPanels: EchoPanelState[];
   showRollQuality: boolean;
+  showCV: boolean;
   leftStates?: Array<'start' | 'continue' | 'end' | 'none'>;
   rightStates?: Array<'start' | 'continue' | 'end' | 'none'>;
   sets: Array<{ element: ElementType; count: number }>;
@@ -24,8 +27,15 @@ const getEchoPath = (echo: Echo, isPhantom: boolean = false) => {
 const EchoLeft = React.memo<{ 
   panel: EchoPanelState;
   element: string | null;
-}>(function EchoLeft({ panel, element }) {
+  showCV: boolean;
+}>(function EchoLeft({ panel, element, showCV }) {
   const echo = getCachedEchoes(panel.id);
+  const calculatePanelCV = React.useCallback(() => {
+    const baseCV = calculateCV([panel]);
+    const mainStat = panel.stats.mainStat.type;
+    return baseCV - (mainStat?.includes('Crit') ? 44 : 0);
+  }, [panel]);
+
   const statClass = React.useMemo(() => 
     panel.stats.mainStat.type?.toLowerCase()
       .replace(/\s+/g, '-')
@@ -62,7 +72,11 @@ const EchoLeft = React.memo<{
             alt={echo.name} 
             className={`echo-display-icon ${bonusClasses}`} 
           />
-          <div className="echo-level-indicator">+{panel.level}</div>
+          <div className={`echo-level-indicator ${showCV ? getEchoCVClass(calculatePanelCV()) : ''}`}>
+            {showCV ? 
+              `${calculatePanelCV().toFixed(1)} CV` : 
+              `+${panel.level}`}
+          </div>
           <div className="main-stat-wrapper">
             <img 
               src={getAssetPath('sets', element ?? '').cdn} 
@@ -94,7 +108,8 @@ const EchoLeft = React.memo<{
     prevProps.panel.stats.mainStat.type === nextProps.panel.stats.mainStat.type &&
     prevProps.panel.stats.mainStat.value === nextProps.panel.stats.mainStat.value &&
     prevProps.element === nextProps.element &&
-    prevProps.panel.phantom === nextProps.panel.phantom;
+    prevProps.panel.phantom === nextProps.panel.phantom &&
+    prevProps.showCV === nextProps.showCV;
 });
 
 const EchoDivider = function EchoDivider() {
@@ -176,9 +191,14 @@ const EchoRight = React.memo<{
   JSON.stringify(prevProps.panel) === JSON.stringify(nextProps.panel);
 });
 
-const EchoRow = function EchoRow({ panel, showRollQuality }: { 
+const EchoRow = function EchoRow({ 
+  panel, 
+  showRollQuality,
+  showCV
+}: { 
   panel: EchoPanelState; 
-  showRollQuality: boolean 
+  showRollQuality: boolean;
+  showCV: boolean;
 }) {
   const echo = getCachedEchoes(panel.id);
   const isSingleElement = echo?.elements.length === 1;
@@ -190,7 +210,7 @@ const EchoRow = function EchoRow({ panel, showRollQuality }: {
 
   return (
     <div className={`echo-row ${setClass}`}>
-      <EchoLeft panel={panel} element={element} />
+      <EchoLeft panel={panel} element={element} showCV={showCV} />
       <EchoDivider />
       <EchoRight panel={panel} showRollQuality={showRollQuality} />
     </div>
@@ -201,6 +221,7 @@ export const EchoDisplay = function EchoDisplay({
   isVisible,
   echoPanels,
   showRollQuality,
+  showCV,
   leftStates = Array(5).fill('none'),
   rightStates = Array(5).fill('none'),
   sets,
@@ -232,7 +253,8 @@ export const EchoDisplay = function EchoDisplay({
           <div className={`connector-segment left ${leftStates[index]} ${getConnectionElement(index, leftStates)}`} />
           <EchoRow 
             panel={panel} 
-            showRollQuality={showRollQuality} 
+            showRollQuality={showRollQuality}
+            showCV={showCV}
           />
           <div className={`connector-segment right ${rightStates[index]} ${getConnectionElement(index, rightStates)}`} />
         </div>
