@@ -125,30 +125,61 @@ const DamageChart: React.FC<{
     </div>
 );
 
-/** Calculate move complexity score based on its structure */
-function getMoveWeight(move: MoveResult): number {
-    const baseWeight = 1;
-    const hitCount = move.hits?.length ?? 0;
-    const hitWeight = hitCount * 1.5; // Hits are weighted more heavily
-    return baseWeight + hitWeight;
-}
-
+/** Calculate move complexity score based on its structure and content */
 function getBalancedColumns(moves: MoveResult[]): [MoveResult[], MoveResult[], 'left' | 'right' | null] {
-    // 1) Attach metadata
+    if (moves.length <= 1) {
+        return [moves, [], null];
+    }
+    
+    // Find any extremely complex item (with 6+ hits)
+    const complexItems = moves.filter(move => (move.hits?.length ?? 0) >= 6);
+    
+    // Special case: If we have one very complex item, isolate it in left column
+    if (complexItems.length === 1) {
+        const complexItem = complexItems[0];
+        const remainingItems = moves.filter(move => move !== complexItem);
+        // If this is our only complex item, put it in left column with at most one other item
+        const left = [complexItem];
+        let simpleItem = null;
+        
+        if (remainingItems.length > 0) {
+            // Add one simple item to the left column to visually balance it slightly
+            simpleItem = remainingItems.find(move => !move.hits || move.hits.length === 0);
+            if (simpleItem) {
+                left.push(simpleItem);
+            }
+        }
+        
+        // Put the rest in the right column
+        const right = remainingItems.filter(move => move !== simpleItem);
+        
+        const leftWeight = left.reduce((sum, m) => sum + 1 + ((m.hits?.length ?? 0) * 2), 0);
+        const rightWeight = right.reduce((sum, m) => sum + 1 + ((m.hits?.length ?? 0) * 2), 0);
+        const weightDifference = Math.abs(leftWeight - rightWeight);
+        
+        // Simpler shifting logic - shift if difference is substantial
+        const shouldShift = weightDifference > 6 && left.length > 0 && right.length > 0;
+        
+        // If left is heavier, shift left. If right is heavier, shift right.
+        const shiftDirection = shouldShift ? (leftWeight > rightWeight ? 'left' : 'right') : null;
+        return [left, right, shiftDirection];
+    }
+    // Normal case: Use weight-based balancing (keeping this as a fallback)    
+    // Calculate weights with extra emphasis on hit count
     const weighted = moves.map((move, idx) => ({
         move,
         originalIndex: idx,
-        weight: getMoveWeight(move)
+        weight: 1 + ((move.hits?.length ?? 0) * 2)
     }));
-
-    // 2) Sort descending by weight
+    
+    // Sort by weight for better initial distribution
     weighted.sort((a, b) => b.weight - a.weight);
-
-    // 3) Greedy distribution by weight
+    
+    // Greedy distribution by weight
     const left: typeof weighted = [];
     const right: typeof weighted = [];
     let leftWeight = 0, rightWeight = 0;
-
+    
     for (const item of weighted) {
         if (leftWeight <= rightWeight) {
             left.push(item);
@@ -158,17 +189,18 @@ function getBalancedColumns(moves: MoveResult[]): [MoveResult[], MoveResult[], '
             rightWeight += item.weight;
         }
     }
-
-    // 4) Sort each column back by originalIndex to maintain order
+    
+    // Sort each column back by originalIndex
     left.sort((a, b) => a.originalIndex - b.originalIndex);
     right.sort((a, b) => a.originalIndex - b.originalIndex);
-
-    const weightDifference = Math.abs(leftWeight - rightWeight);
-    const shouldShift = weightDifference >= 1;
     
-    // Determine which column is heavier and needs its last item shifted
-    const shiftDirection = shouldShift ? (leftWeight > rightWeight ? 'right' : 'left') : null;
-
+    // Simpler shifting logic - shift if difference is substantial
+    const weightDifference = Math.abs(leftWeight - rightWeight);
+    const shouldShift = weightDifference > 6 && left.length > 0 && right.length > 0;
+    
+    // If left is heavier, shift left. If right is heavier, shift right.
+    const shiftDirection = shouldShift ? (leftWeight > rightWeight ? 'left' : 'right') : null;
+    
     return [
         left.map(x => x.move),
         right.map(x => x.move),
@@ -290,41 +322,114 @@ const MoveLegend: React.FC<MoveLegendProps> = ({ moves, totalDamage, activeIndex
     );
 };
 
+function processMoveData(moves: MoveResult[]) {
+    // Group moves by name
+    const moveGroups: Record<string, MoveResult[]> = {};
+    
+    moves.forEach(move => {
+        if (!moveGroups[move.name]) {
+            moveGroups[move.name] = [];
+        }
+        moveGroups[move.name].push(move);
+    });
+    
+    // Create combined moves for visualization
+    const combinedMoves: MoveResult[] = [];
+    const originalToProcessed = new Map<MoveResult, MoveResult>();
+    
+    Object.entries(moveGroups).forEach(([name, instances]) => {
+        if (instances.length === 1) {
+            // Single instance, keep as is
+            combinedMoves.push(instances[0]);
+            originalToProcessed.set(instances[0], instances[0]);
+        } else {
+            // Sort by damage (descending)
+            instances.sort((a, b) => b.damage - a.damage);
+            
+            // Create combined move
+            const combinedMove: MoveResult = {
+                ...instances[0],
+                name,
+                damage: instances.reduce((sum, move) => sum + move.damage, 0),
+                // If hits exist, combine them too
+                hits: instances[0].hits ? instances.flatMap((move, idx) => 
+                    move.hits?.map(hit => ({
+                        ...hit,
+                        name: `${hit.name} ${idx === 0 ? '(Buffed)' : '(Unbuffed)'}`,
+                        damage: hit.damage,
+                        percentage: (hit.damage / instances.reduce((sum, m) => sum + m.damage, 0)) * 100
+                    })) || []
+                ) : undefined
+            };
+            
+            combinedMoves.push(combinedMove);
+            
+            // Map all original moves to this combined one
+            instances.forEach(original => {
+                originalToProcessed.set(original, combinedMove);
+            });
+        }
+    });
+    
+    return { combinedMoves, originalToProcessed };
+}
+
 const MoveBreakdown: React.FC<{
     moves: MoveResult[];
-    totalDamage: number;
-}> = ({ moves, totalDamage }) => {
+}> = ({ moves }) => {
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const [activeHitIndex, setActiveHitIndex] = useState<number | null>(null);
-
+    
+    // Process and combine duplicate moves
+    const { combinedMoves } = processMoveData(moves);
+    
+    // Recalculate total damage based on combined moves
+    const combinedTotalDamage = combinedMoves.reduce((sum, move) => sum + move.damage, 0);
+    
     // Format move data for the main pie (inner ring)
-    const moveData = moves.map(move => ({
+    const moveData = combinedMoves.map(move => ({
         name: move.name,
         damage: move.damage,
-        value: move.damage,
-        percentage: (move.damage / totalDamage) * 100
+        value: move.damage,  // Value directly drives the angle
+        percentage: (move.damage / combinedTotalDamage) * 100
     }));
 
-    // Format hit data for the outer ring, flattening all hits
-    const hitData = moves.flatMap((move, moveIndex) => {
+    // For each move, calculate the total damage of its hits
+    const moveTotals = new Map<string, number>();
+    combinedMoves.forEach(move => {
         if (move.hits && move.hits.length > 0) {
-            // For moves with hits, show each individual hit
-            return move.hits.map(hit => ({
-                name: hit.name,
-                damage: hit.damage,
-                value: hit.damage,
-                percentage: hit.percentage,
-                parentMove: move.name,
-                parentIndex: moveIndex,
-                isHit: true
-            }));
+            moveTotals.set(move.name, move.hits.reduce((sum, hit) => sum + hit.damage, 0));
+        }
+    });
+
+    const hitData = combinedMoves.flatMap((move, moveIndex) => {
+        if (move.hits && move.hits.length > 0) {
+            // Get total of all hits for this move
+            const totalHitDamage = moveTotals.get(move.name) || 0;
+            
+            // For each hit, calculate its proportion of the parent move's angle
+            return move.hits.map(hit => {
+                // Calculate what fraction of the move's total angle this hit should occupy
+                const hitFraction = hit.damage / totalHitDamage;
+                
+                return {
+                    name: hit.name,
+                    damage: hit.damage,
+                    // Scale the value proportionally to the parent move's value
+                    value: move.damage * hitFraction,
+                    percentage: hit.percentage,
+                    parentMove: move.name,
+                    parentIndex: moveIndex,
+                    isHit: true
+                };
+            });
         }
         // For moves without hits, show the total move as one segment
         return [{
             name: move.name,
             damage: move.damage,
             value: move.damage,
-            percentage: (move.damage / totalDamage) * 100,
+            percentage: (move.damage / combinedTotalDamage) * 100,
             parentMove: move.name,
             parentIndex: moveIndex,
             isHit: false
@@ -343,8 +448,8 @@ const MoveBreakdown: React.FC<{
                     setActiveHitIndex={setActiveHitIndex}
                 />
                 <MoveLegend
-                    moves={moves}
-                    totalDamage={totalDamage}
+                    moves={combinedMoves}
+                    totalDamage={combinedTotalDamage}
                     activeIndex={activeIndex}
                     hitData={hitData}
                     setActiveIndex={setActiveIndex}
@@ -387,10 +492,7 @@ export const DamageExpanded: React.FC<DamageExpandedProps> = ({
         <div className="build-expanded-content" ref={expandedRef}>
             <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character} />
             {sequenceData && (
-                <MoveBreakdown 
-                    moves={sequenceData.moves} 
-                    totalDamage={sequenceData.damage} 
-                />
+                <MoveBreakdown moves={sequenceData.moves} />
             )}
         </div>
     );
