@@ -8,6 +8,7 @@ import { calculateCV } from '@/hooks/useStats';
 import { getEchoCVClass } from '@/components/Save/Card';
 import { sumEchoSubstats } from './types';
 import { Character } from '@/types/character';
+import { CHARACTER_CONFIGS } from '@/components/LB/config';
 import '@/styles/BuildExpand.css';
 
 const formatValue = (value: number, isPercentage: boolean = true): string => {
@@ -260,6 +261,30 @@ export const TotalBreakdown: React.FC<{
 export const getCharacterDefaultStats = (character: Character | null): Set<string> => {
     if (!character) return new Set();
     
+    // First try to get preferred stats from character config
+    if (character.id && CHARACTER_CONFIGS[character.id]) {
+        const config = CHARACTER_CONFIGS[character.id];
+        const preferredStats = new Set<string>();
+        // Process each stat and add percent variants where needed
+        config.stats.forEach(stat => {
+            // Add the base stat
+            preferredStats.add(stat);
+            
+            // For stats like ATK, HP, DEF, add the percentage variants
+            if (['ATK', 'HP', 'DEF'].includes(stat) && !stat.includes('%')) {
+                preferredStats.add(`${stat}%`);
+            }
+        });
+        
+        // Always add crit stats for non-healers
+        if (character.Bonus1 !== 'Healing') {
+            preferredStats.add('Crit Rate');
+            preferredStats.add('Crit DMG');
+        }
+        
+        return preferredStats;
+    }
+    // Fallback to the original logic if no config exists
     const defaultStats = new Set(['Energy Regen']);
     if (character.Bonus1 !== 'Healing') {
         defaultStats.add('Crit Rate');
