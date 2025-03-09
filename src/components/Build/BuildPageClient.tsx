@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { LB_URL } from '@/components/Import/Results';
 import { decompressData } from '@/components/Save/Backup';
 import { Pagination } from '@/components/Save/Pagination';
@@ -177,6 +177,8 @@ export default function BuildPageClient() {
     const [mainStats, setMainStats] = useState<Array<[number, string]>>([]);
     const [isTableLoading, setIsTableLoading] = useState(false);
     const [regions, setRegions] = useState<number[]>([]);
+    const [username, setUsername] = useState<string | undefined>(undefined);
+    const [uid, setUid] = useState<string | undefined>(undefined);
     useEffect(() => {
         const searchParams = new URLSearchParams(window.location.search);
         
@@ -185,9 +187,14 @@ export default function BuildPageClient() {
         const weaponParam = searchParams.get('2') || searchParams.get('weaponId');
         const echoParam = searchParams.get('3') || searchParams.get('echoSets');
         const mainStatParam = searchParams.get('4') || searchParams.get('echoMains');
+        const usernameParam = searchParams.get('username');
+        const uidParam = searchParams.get('uid');
+        
         if (regionParam) setRegions(regionParam.split('.').map(Number));
         if (charParam) setCharacterIds(charParam.split('.'));
         if (weaponParam) setWeaponIds(weaponParam.split('.'));
+        if (usernameParam) setUsername(usernameParam);
+        if (uidParam) setUid(uidParam);
         if (echoParam) {
             setEchoSets(echoParam.split('.').map(set => {
                 const [a, b] = set.split('~').map(Number);
@@ -219,6 +226,8 @@ export default function BuildPageClient() {
         if (weaponIds.length > 0) params.append('weap', weaponIds.join('.'));
         if (echoSets.length > 0) params.append('set', echoSets.map(set => set.join('~')).join('.'));
         if (mainStats.length > 0) params.append('stat', mainStats.map(stat => stat.join('')).join('.'));
+        if (username) params.append('username', username);
+        if (uid) params.append('uid', uid);
         router.push(`/builds?${params.toString()}`, { scroll: false });
         const loadData = async () => {
             try {
@@ -244,6 +253,12 @@ export default function BuildPageClient() {
                 if (mainStats.length > 0) {
                     fetchParams.append('echoMains', JSON.stringify(mainStats));
                 }
+                if (username) {
+                    fetchParams.append('username', username);
+                }
+                if (uid) {
+                    fetchParams.append('uid', uid);
+                }
                 const response = await fetch(`${LB_URL}/build?${fetchParams}`);
                 if (!response.ok) throw new Error('Failed to fetch leaderboard');
                 
@@ -262,7 +277,7 @@ export default function BuildPageClient() {
             }
         };
         loadData();
-    }, [currentPage, sortDirection, CVSort, statSort, router, characterIds, weaponIds, echoSets, mainStats, regions]);
+    }, [currentPage, sortDirection, CVSort, statSort, router, characterIds, weaponIds, echoSets, mainStats, regions, username, uid]);
 
     useEffect(() => {
         setExpandedEntries(new Set());
@@ -296,6 +311,18 @@ export default function BuildPageClient() {
         }
     };
 
+    const getFilterHash = useCallback((state: FilterState): string => {
+        return [
+            state.characterIds.join(','),
+            state.weaponIds.join(','),
+            state.echoSets.map(set => `${set[0]}~${set[1]}`).join(','),
+            state.mainStats.map(stat => `${stat[0]}~${stat[1]}`).join(','),
+            state.regions.join(','),
+            state.username || '',
+            state.uid || ''
+        ].join('|');
+    }, []);
+
     if (loading) return (
         <div className="build-container">
             <div className="loading-state">Loading leaderboard data...</div>
@@ -314,7 +341,9 @@ export default function BuildPageClient() {
         weaponIds,
         echoSets,
         mainStats,
-        regions
+        regions,
+        username,
+        uid
     };
 
     return (
@@ -331,11 +360,19 @@ export default function BuildPageClient() {
                             <BuildFilter 
                                 filterState={filterState}
                                 onFilterChange={(newState: FilterState) => {
+                                    const hasFilterChanged = getFilterHash(newState) !== getFilterHash(filterState);
+                                    
+                                    if (hasFilterChanged) {
+                                        setCurrentPage(1);
+                                    }
+                                    
                                     setCharacterIds(newState.characterIds);
                                     setWeaponIds(newState.weaponIds);
                                     setEchoSets(newState.echoSets);
                                     setMainStats(newState.mainStats);
                                     setRegions(newState.regions);
+                                    setUsername(newState.username);
+                                    setUid(newState.uid);
                                 }}
                                 options={{
                                     includeCharacters: true,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { LB_URL } from '@/components/Import/Results';
 import { decompressData } from '@/components/Save/Backup';
@@ -204,8 +204,22 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
         weaponIds: [],
         echoSets: [],
         mainStats: [],
-        regions: []
+        regions: [],
+        username: undefined,
+        uid: undefined
     });
+
+    const getFilterHash = useCallback((state: FilterState): string => {
+        return [
+            state.characterIds.join(','),
+            state.weaponIds.join(','),
+            state.echoSets.map(set => `${set[0]}~${set[1]}`).join(','),
+            state.mainStats.map(stat => `${stat[0]}~${stat[1]}`).join(','),
+            state.regions.join(','),
+            state.username || '',
+            state.uid || ''
+        ].join('|');
+    }, []);
 
     useEffect(() => {
         const params = new URLSearchParams({
@@ -225,6 +239,12 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
         }
         if (filterState.regions.length > 0) {
             params.append('region', filterState.regions.join('.'));
+        }
+        if (filterState.username) {
+            params.append('username', filterState.username);
+        }
+        if (filterState.uid) {
+            params.append('uid', filterState.uid);
         }
         router.push(`/leaderboards/${characterId}?${params.toString()}`, { scroll: false });
     }, [characterId, selectedWeapon, currentSort, sortDirection, page, selectedSequence, config.weapons, router, filterState]);
@@ -253,6 +273,12 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
                 }
                 if (filterState.mainStats.length > 0) {
                     fetchParams.append('echoMains', JSON.stringify(filterState.mainStats));
+                }
+                if (filterState.username) {
+                    fetchParams.append('username', filterState.username);
+                }
+                if (filterState.uid) {
+                    fetchParams.append('uid', filterState.uid);
                 }
                 
                 const response = await fetch(`${LB_URL}/leaderboard/${characterId}?${fetchParams}`);
@@ -306,7 +332,13 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
                 />
                 <BuildFilter 
                     filterState={filterState}
-                    onFilterChange={setFilterState}
+                    onFilterChange={(newState: FilterState) => {
+                        const hasFilterChanged = getFilterHash(newState) !== getFilterHash(filterState);
+                        if (hasFilterChanged) {
+                            setPage(1);
+                        }
+                        setFilterState(newState);
+                    }}
                     options={{
                         includeCharacters: false,
                         includeWeapons: false,

@@ -13,8 +13,8 @@ import { X } from 'lucide-react';
 import '@/styles/BuildFilter.css';
 
 export interface VisibleItem {
-    type: 'character' | 'weapon' | 'echo' | 'mainstat' | 'region';
-    data: Character | typeof weaponList[0] | [number, number] | [number, string] | number;
+    type: 'character' | 'weapon' | 'echo' | 'mainstat' | 'region' | 'username' | 'uid';
+    data: Character | typeof weaponList[0] | [number, number] | [number, string] | number | string;
     sectionTitle: string;
     subSection?: string;
 }
@@ -33,6 +33,8 @@ export interface FilterState {
     echoSets: Array<[number, number]>;
     mainStats: Array<[number, string]>;
     regions: number[];
+    username?: string;
+    uid?: string;
 }
 
 interface FilterOptions {
@@ -121,15 +123,26 @@ export const FilterOption: React.FC<{ item: VisibleItem }> = ({ item }) => {
                     <span>{regionName}</span>
                 </div>
             );
-            
+        case 'username':
+            return (
+                <div className="filter-search">
+                    <span>Username: {item.data as string}</span>
+                </div>
+            );
+        case 'uid':
+            return (
+                <div className="filter-search">
+                    <span>UID: {item.data as string}</span>
+                </div>
+            );
         default:
             return null;
     }
 };
 
 const SelectedTag: React.FC<{
-    type: 'character' | 'weapon' | 'echo' | 'mainstat' | 'region';
-    data: Character | typeof weaponList[0] | [number, number] | [number, string] | number;
+    type: 'character' | 'weapon' | 'echo' | 'mainstat' | 'region' | 'username' | 'uid';
+    data: Character | typeof weaponList[0] | [number, number] | [number, string] | number | string;
     onRemove: () => void;
 }> = ({ type, data, onRemove }) => {
     const renderContent = () => {
@@ -175,6 +188,10 @@ const SelectedTag: React.FC<{
                 const regionName = Object.entries(REGION_MAP)
                     .find(([, id]) => id === regionId)?.[0] || 'Unknown';
                 return <span>{regionName}</span>;
+            case 'username':
+                return <><span className="search-label">Username:</span> <span>{data as string}</span></>;
+            case 'uid':
+                return <><span className="search-label">UID:</span> <span>{data as string}</span></>;
         }
     };
 
@@ -236,6 +253,18 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
         setSearch('');
     }, [handleFilterUpdate, filterState.mainStats]);
 
+    // Add handlers for username and UID
+    const handleUsernameSelect = useCallback((username: string) => {
+        handleFilterUpdate('username', username);
+        setSearch('');
+    }, [handleFilterUpdate]);
+    
+    const handleUidSelect = useCallback((uid: string) => {
+        handleFilterUpdate('uid', uid);
+        setSearch('');
+    }, [handleFilterUpdate]);
+
+    // Update the handleRemove object to include username and UID
     const handleRemove = useMemo(() => ({
         character: (id: string) => {
             const newChars = filterState.characterIds.filter(cId => cId !== id);
@@ -261,6 +290,12 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
         region: (id: number) => {
             const newRegions = filterState.regions.filter(r => r !== id);
             handleFilterUpdate('regions', newRegions);
+        },
+        username: () => {
+            handleFilterUpdate('username', undefined);
+        },
+        uid: () => {
+            handleFilterUpdate('uid', undefined);
         }
     }), [handleFilterUpdate, filterState]);
 
@@ -283,9 +318,32 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
         [search, filterState.weaponIds]
     );
 
+    // Update visibleItems to include username and UID options
     const visibleItems = useMemo<VisibleItem[]>(() => {
         const items: VisibleItem[] = [];
         
+        // Add search options when text is entered
+        if (search.length >= 2) {
+            // Add username option if not already selected
+            if (!filterState.username) {
+                items.push({
+                    type: 'username',
+                    data: search,
+                    sectionTitle: 'Search By'
+                });
+            }
+            
+            // Add UID option if not already selected and input is numeric
+            if (!filterState.uid && /^\d+$/.test(search) && search.length <= 9) {
+                items.push({
+                    type: 'uid',
+                    data: search,
+                    sectionTitle: 'Search By'
+                });
+            }
+        }
+        
+        // ...existing items code...
         if (options.includeRegions) {
             Object.entries(REGION_MAP)
                 .filter(([name]) => 
@@ -372,6 +430,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
         return items;
     }, [filteredCharacters, filteredWeapons, search, filterState, options]);
 
+    // Update handleItemSelect to handle username and UID
     const handleItemSelect = useCallback((item: VisibleItem) => {
         switch (item.type) {
             case 'character':
@@ -390,13 +449,25 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                 handleFilterUpdate('regions', [...filterState.regions, item.data as number]);
                 setSearch('');
                 break;
+            case 'username':
+                handleUsernameSelect(item.data as string);
+                break;
+            case 'uid':
+                handleUidSelect(item.data as string);
+                break;
         }
-    }, [handleCharacterSelect, handleWeaponSelect, handleEchoSelect, handleMainStatSelect, handleFilterUpdate, filterState.regions]);
+    }, [handleCharacterSelect, handleWeaponSelect, handleEchoSelect, handleMainStatSelect, 
+        handleFilterUpdate, filterState.regions, handleUsernameSelect, handleUidSelect]);
 
+    // Update the handleKeyDown method to backspace through username and UID
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Backspace' && search === '') {
             e.preventDefault();
-            if (filterState.regions.length) {
+            if (filterState.uid) {
+                handleRemove.uid();
+            } else if (filterState.username) {
+                handleRemove.username();
+            } else if (filterState.regions.length) {
                 handleRemove.region(filterState.regions[filterState.regions.length - 1]);
             } else if (filterState.mainStats.length) {
                 handleRemove.mainStat(filterState.mainStats[filterState.mainStats.length - 1]);
@@ -448,7 +519,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
         setFocusedIndex(0);
     }, [search]);
 
-    const hasSelectedItems = filterState.characterIds.length > 0 || filterState.weaponIds.length > 0 || filterState.echoSets.length > 0 || filterState.mainStats.length > 0;
+    const hasSelectedItems = filterState.characterIds.length > 0 || filterState.weaponIds.length > 0 || filterState.echoSets.length > 0 || filterState.mainStats.length > 0 || filterState.regions.length > 0 || filterState.username !== undefined || filterState.uid !== undefined;
 
     const getSectionHeader = (item: VisibleItem, index: number, items: VisibleItem[]) => {
         if (index === 0 || items[index - 1].sectionTitle !== item.sectionTitle) {
@@ -548,6 +619,22 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                     {filterState.regions.map(regionId => 
                         <SelectedTag key={`region-${regionId}`} type="region" data={regionId} onRemove={() => handleRemove.region(regionId)} />
                     )}
+                    {filterState.username && (
+                        <SelectedTag 
+                            key="username" 
+                            type="username" 
+                            data={filterState.username} 
+                            onRemove={() => handleRemove.username()} 
+                        />
+                    )}
+                    {filterState.uid && (
+                        <SelectedTag 
+                            key="uid" 
+                            type="uid" 
+                            data={filterState.uid} 
+                            onRemove={() => handleRemove.uid()} 
+                        />
+                    )}
                     <input ref={inputRef}
                         type="text"
                         className="filter-input"
@@ -556,7 +643,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                         onKeyDown={handleKeyDown}
                         onFocus={() => setIsDropdownVisible(true)}
                         onBlur={() => setTimeout(() => setIsDropdownVisible(false), 100)}
-                        placeholder={hasSelectedItems ? "" : "Search filters (e.g. region, character, weapon, echo, main stat)"}
+                        placeholder={hasSelectedItems ? "" : "Search filters (e.g. region, character, weapon, username, UID)"}
                     />
                 </div>
             </div>

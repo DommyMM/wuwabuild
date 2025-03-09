@@ -741,6 +741,7 @@ input:-webkit-autofill {
     display: flex;
     flex-direction: column;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    width: 65%;
 }
 
 .weapon-stat.weapon-rank, .weapon-stat.weapon-level {
@@ -765,7 +766,7 @@ input:-webkit-autofill {
 .weapon-stat-row {
     display: flex;
     justify-content: flex-start;
-    gap: 10%;
+    gap: 7.5%;
     margin-bottom: 5px;
 }
 
