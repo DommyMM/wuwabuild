@@ -21,7 +21,7 @@ export const DailyNotification: React.FC = () => {
     return (
         <div className="notification-overlay">
             <div className="notification-card">
-                <p>Contact <span className="highlight-name">Dommynation</span> on Discord for feedback!</p>
+                <p>Contact <span className="highlight-name">grassles</span> on Discord for feedback!</p>
                 <button onClick={() => setIsVisible(false)}>Close</button>
             </div>
         </div>

@@ -44,6 +44,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   element,
   ...props
 }) => {
+  const [showElementModal, setShowElementModal] = useState(false);
   
   if (!selectedCharacter) {
     return <div className="character-section">
@@ -76,9 +77,6 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   const handleWeaponConfigChange = (level: number, rank: number) => {
     props.onWeaponConfigChange(level, rank);
   };
-
-  const [showElementWheel, setShowElementWheel] = useState(false);
-  const [showElementModal, setShowElementModal] = useState(false);
 
   const roverElements = ["Havoc", "Spectro", "Aero"];
 
@@ -130,7 +128,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
               {selectedCharacter.name.startsWith('Rover') && (
                 <>
                   <div className="element-carousel" data-element={element || 'Havoc'}>
-                    <div className="carousel-button">
+                    <div className="element-button">
                       <div className="element-arrow"
                         onClick={() => handleElementCycle('prev')}
                         aria-label="Previous element"

@@ -33,3 +33,5 @@ yarn-error.log*
 
 # Python
 /__pycache__/
+.env
+.env.local
