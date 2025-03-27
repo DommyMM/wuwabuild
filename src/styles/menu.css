@@ -338,6 +338,10 @@
     border-color: white;
 }
 
+.connector-segment.gust {
+    border-color: #7CFC00;
+}
+
 .echo-left {
     width: 25%;
     height: 100%;
@@ -647,6 +651,10 @@
     border: 2px solid white;
 }
 
+.set-gust {
+    border: 2px solid #7CFC00;
+}
+
 .set-row.aero .set-name { color: #98FB98; }
 .set-row.er .set-name { color: white; }
 .set-row.electro .set-name { color: #BA55D3; }
@@ -661,6 +669,7 @@
 .set-row.midnight .set-name { color: #e086e0; }
 .set-row.radiance .set-name { color: #ffd54f; }
 .set-row.tidebreaking .set-name { color: white; }
+.set-row.gust .set-name { color: #7CFC00; }
 
 .popuptext {
     visibility: hidden;

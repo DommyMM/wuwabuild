@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
 import { Character } from '@/types/character';
 import { Weapon, WeaponState } from '@/types/weapon';
 import { OCRAnalysis } from '@/types/ocr';
@@ -11,13 +11,14 @@ import { ForteGroup } from './ForteGroup';
 import { getAssetPath } from '@/types/paths';
 import '@/styles/CharacterInfo.css';
 import '@/styles/SequenceGroup.css';
+import { useState } from 'react';
 
 interface CharacterInfoProps {
   selectedCharacter: Character | null;
   characterLevel: string;
   element?: string;
   onGenerateClick?: (level: number) => void;
-  onSpectroToggle?: (value: boolean) => void;
+  onElementChange?: (element: string) => void;
   onSequenceChange?: (sequence: number) => void;
   onWeaponSelect: (weapon: Weapon | null) => void;
   onWeaponConfigChange: (level: number, rank: number) => void;
@@ -72,14 +73,35 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
     props.onWeaponSelect(weapon?.id ? weapon : null);
   };
 
-  const handleToggleSpectro = (): void => {
-    if (props.onSpectroToggle) {
-      props.onSpectroToggle(element !== "Spectro");
+  const handleWeaponConfigChange = (level: number, rank: number) => {
+    props.onWeaponConfigChange(level, rank);
+  };
+
+  const [showElementWheel, setShowElementWheel] = useState(false);
+  const [showElementModal, setShowElementModal] = useState(false);
+
+  const roverElements = ["Havoc", "Spectro", "Aero"];
+
+  const handleElementCycle = (direction: 'next' | 'prev'): void => {
+    if (props.onElementChange) {
+      const currentIndex = roverElements.indexOf(element || "Havoc");
+      let newIndex;
+      
+      if (direction === 'next') {
+        newIndex = (currentIndex + 1) % roverElements.length;
+      } else {
+        newIndex = (currentIndex - 1 + roverElements.length) % roverElements.length;
+      }
+      
+      props.onElementChange(roverElements[newIndex]);
     }
   };
 
-  const handleWeaponConfigChange = (level: number, rank: number) => {
-    props.onWeaponConfigChange(level, rank);
+  const handleElementSelect = (selectedElement: string): void => {
+    if (props.onElementChange) {
+      props.onElementChange(selectedElement);
+      setShowElementModal(false);
+    }
   };
 
   return (
@@ -106,24 +128,57 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                 className="character-tab-icon"
               />
               {selectedCharacter.name.startsWith('Rover') && (
-                <button className="toggle" 
-                  role="switch"
-                  aria-checked={element === "Spectro"}
-                  tabIndex={0}
-                  onClick={handleToggleSpectro}
-                >
-                  <div className="toggle-circle">
-                    <img src={getAssetPath('elements', element || '').cdn}
-                      alt={element || 'Element'}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '999px'
-                      }}
-                    />
+                <>
+                  <div className="element-carousel" data-element={element || 'Havoc'}>
+                    <div className="carousel-button">
+                      <div className="element-arrow"
+                        onClick={() => handleElementCycle('prev')}
+                        aria-label="Previous element"
+                      >
+                        <ChevronLeft size={14} />
+                      </div>
+                      
+                      <div className="element-center" onClick={() => setShowElementModal(true)}>
+                        <img src={getAssetPath('elements', element || 'Havoc').cdn}
+                          alt={element || 'Element'}
+                          className="carousel-icon"
+                        />
+                        <span className="element-name">{element || 'Havoc'}</span>
+                      </div>
+                      
+                      <div className="element-arrow"
+                        onClick={() => handleElementCycle('next')}
+                        aria-label="Next element"
+                      >
+                        <ChevronRight size={14} />
+                      </div>
+                    </div>
                   </div>
-                </button>
+                  
+                  {showElementModal && (
+                    <div className="element-modal" onClick={() => setShowElementModal(false)}>
+                      <div className="element-modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="element-modal-header">
+                          Select Element
+                        </div>
+                        <div className="element-options">
+                          {roverElements.map(elementType => (
+                            <div key={elementType} className={`element-option ${element === elementType ? 'active' : ''}`}
+                              data-element={elementType}
+                              onClick={() => handleElementSelect(elementType)}
+                            >
+                              <img src={getAssetPath('elements', elementType).cdn}
+                                alt={elementType}
+                                className="element-option-icon"
+                              />
+                              <span className="element-option-name">{elementType}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
               <LevelSlider value={parseInt(characterLevel)}
                 onLevelChange={handleLevelChange}

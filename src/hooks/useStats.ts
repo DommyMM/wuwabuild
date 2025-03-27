@@ -50,7 +50,8 @@ export const SET_TO_STAT_MAPPING = {
   'Empyrean Anthem': 'Energy Regen',
   'Tidebreaking Courage': 'Energy Regen',
   'Frosty Resolve': 'Resonance Skill DMG Bonus',
-  'Eternal Radiance': 'Spectro DMG'
+  'Eternal Radiance': 'Spectro DMG',
+  'Gusts of Welkin' : 'Aero DMG'
 } as const;
 
 export const initialStatState: StatState = {

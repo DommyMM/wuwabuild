@@ -198,10 +198,10 @@ export default function EditPageClient() {
     }
     }, [unlock, currentWeaponType]);
   
-  const handleSpectroToggle = (value: boolean) => {
+  const handleElementChange = (newElement: string) => {
     setCharacterState(prev => ({
       ...prev,
-      element: value ? "Spectro" : "Havoc"
+      element: newElement
     }));
   };
   const handleSequenceChange = useCallback((sequence: number) => {
@@ -499,7 +499,7 @@ export default function EditPageClient() {
         <CharacterInfo selectedCharacter={selectedCharacter}
           characterLevel={characterState.level}
           element={characterState.element}
-          onSpectroToggle={handleSpectroToggle}
+          onElementChange={handleElementChange}
           onSequenceChange={handleSequenceChange}
           onWeaponSelect={handleWeaponSelect}
           onWeaponConfigChange={handleWeaponConfigChange}

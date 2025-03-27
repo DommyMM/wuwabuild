@@ -328,6 +328,10 @@
     z-index: 2;
 }
 
+.sequence-group .sequence-image {
+    background-image: none;
+}
+
 .build-button {
     padding: 10px 20px;
     background: #a69662;

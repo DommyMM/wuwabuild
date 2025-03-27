@@ -45,7 +45,8 @@ const SET_NAME_MAP: ElementMapping = {
     'Spectro' : 'Light',
     'Radiance' : 'LightError',
     'Electro' : 'Thunder',
-    'Aero' : 'Wind'
+    'Aero' : 'Wind',
+    'Gust' : 'WindError'
 };
 
 export interface ImagePaths {
@@ -164,6 +165,7 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
 const getRoverVariant = (name: string) => {
     if (name === 'RoverSpectro') return 'Zhujue';
     if (name === 'RoverHavoc') return 'ZhujueDark';
+    if (name === 'RoverAero') return 'Fengzhu';
     return null;
 };
 
@@ -197,5 +199,6 @@ const PHANTOM_CDN_IDS: Record<string, string> = {
     'Sentry Construct': 'SG_33009',
     'Thundering Mephis': '1008',
     'Vitreum Dancer': 'SG_32029',
-    'Lorelei': 'SG_33011'
+    'Lorelei': 'SG_33011',
+    "Capitaneus": '32033_1'
 };

@@ -608,6 +608,10 @@
     background-image: linear-gradient(to right, #ffffff, #c0c0c0, #e8e8e8, #a9a9a9, #ffffff);
 }
 
+.set-name-display.gust {
+    background-image: linear-gradient(to right, #98fb98, #7fff00, #ffffff, #32cd32, #98fb98);
+}
+
 .stats-tab {
     display: flex;
     flex-direction: column;
