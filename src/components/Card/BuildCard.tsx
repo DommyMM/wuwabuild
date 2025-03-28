@@ -386,7 +386,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
         <div className="card">
           <div ref={tabRef}
             id="build-tab"
-            className="tab"
+            className={`${elementValue?.toLowerCase() || ''}`}
             style={{ 
               display: isTabVisible ? 'flex' : 'none',
               opacity: isTabVisible ? 1 : 0

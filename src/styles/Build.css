@@ -48,6 +48,13 @@
     background-position: center;
 }
 
+#build-tab.aero { background-image: linear-gradient(rgba(144, 238, 144, 0.25), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+#build-tab.spectro { background-image: linear-gradient(rgba(255, 223, 0, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+#build-tab.electro { background-image: linear-gradient(rgba(138, 43, 226, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+#build-tab.fusion { background-image: linear-gradient(rgba(213, 116, 12, 0.25), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+#build-tab.havoc { background-image: linear-gradient(rgba(255, 20, 147, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+#build-tab.glacio { background-image: linear-gradient(rgba(0, 206, 209, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+
 #build-tab.downloading {
     width: 1920px;
     height: 690px;
@@ -309,33 +316,33 @@ input:-webkit-autofill {
 }
 
 .character-display.aero {
-    box-shadow: 2px 0 10px -2px #98FB98;
     border-right: 1.8px solid #98FB98;
+    box-shadow: 4px 0 10px -4px #98FB98;
 }
 
 .character-display.electro {
-    box-shadow: 2px 0 10px -2px #BA55D3;
     border-right: 1.8px solid #BA55D3;
+    box-shadow: 4px 0 10px -4px #BA55D3;
 }
 
 .character-display.spectro {
-    box-shadow: 2px 0 10px -2px #FFD700;
     border-right: 1.8px solid #FFD700;
+    box-shadow: 4px 0 10px -4px #FFD700;
 }
 
 .character-display.glacio {
-    box-shadow: 2px 0 10px -2px #87CEEB;
     border-right: 1.8px solid #87CEEB;
+    box-shadow: 4px 0 10px -4px #87CEEB;
 }
 
 .character-display.fusion {
-    box-shadow: 2px 0 10px -2px #D5740C;
     border-right: 1.8px solid #D5740C;
+    box-shadow: 4px 0 10px -4px #D5740C;
 }
 
 .character-display.havoc {
-    box-shadow: 2px 0 10px -2px #FF1493;
     border-right: 1.8px solid #FF1493;
+    box-shadow: 4px 0 10px -4px #FF1493;
 }
 
 .character-icon {
