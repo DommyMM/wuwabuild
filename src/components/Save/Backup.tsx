@@ -52,7 +52,7 @@ export interface CompressedEchoPanel {
     p: boolean;
 }
 
-interface CompressedBuildState {
+export interface CompressedBuildState {
     c: {
         i: string;
         l: string;

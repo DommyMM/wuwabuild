@@ -7,11 +7,10 @@ import { getCVClass } from '@/components/Save/Card';
 import { EchoPanelState } from '@/types/echo';
 import { decompressStats } from '@/hooks/useStats';
 import { getStatPaths } from '@/types/stats';
-import { DecompressedEntry, getSetCounts, getHighestDmg, getHighestDmgBonus } from './types';
-import { BuildExpanded } from './BuildExpanded';
-import { StatSort, ActiveSort } from './BuildPageClient';
+import { DecompressedEntry, getSetCounts, getHighestDmg, getHighestDmgBonus } from '../Build/types';
+import { StatSort, ActiveSort } from '../Build/BuildPageClient';
 
-export const BuildOwnerSection: React.FC<{
+export const ProfileOwnerSection: React.FC<{
     username?: string;
     uid?: string;
 }> = ({ username, uid }) => (
@@ -21,7 +20,7 @@ export const BuildOwnerSection: React.FC<{
     </div>
 );
 
-export const BuildCharacterSection: React.FC<{
+export const ProfileCharacterSection: React.FC<{
     character: Character | null | undefined;
     elementClass: string;
 }> = ({ character, elementClass }) => (
@@ -31,7 +30,7 @@ export const BuildCharacterSection: React.FC<{
     </div>
 );
 
-export const BuildSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels }) => (
+export const ProfileSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ echoPanels }) => (
     <div className="build-sets">
         {Object.entries(getSetCounts(echoPanels))
             .filter(([, count]) => count >= 2)
@@ -65,7 +64,7 @@ export const IconStat: React.FC<{
     );
 };
 
-const BuildStatsSection: React.FC<{ 
+const ProfileStatsSection: React.FC<{ 
     values: Record<string, number>;
     character: Character | null | undefined;
     activeStat: StatSort | null;
@@ -104,7 +103,7 @@ const BuildStatsSection: React.FC<{
     );
 };
 
-export const BuildEntry: React.FC<{ 
+export const ProfileEntry: React.FC<{ 
     entry: DecompressedEntry; 
     rank: number; 
     onClick: () => void; 
@@ -122,11 +121,11 @@ export const BuildEntry: React.FC<{
     const critDmg = stats.values['Crit DMG'];
 
     return (
-        <div className={`build-entry ${isExpanded ? 'expanded' : ''}`}>
+        <div className={`build-entry profile-entry ${isExpanded ? 'expanded' : ''}`}>
             <div className="build-main-content" onClick={onClick}>
                 <div className="build-rank">#{rank}</div>
-                <BuildOwnerSection username={entry.buildState.watermark?.username} uid={entry.buildState.watermark?.uid} />
-                <BuildCharacterSection character={character} elementClass={elementClass} />
+                <ProfileOwnerSection username={entry.buildState.watermark?.username} uid={entry.buildState.watermark?.uid} />
+                <ProfileCharacterSection character={character} elementClass={elementClass} />
                 <div className={`build-sequence s${entry.buildState.currentSequence}`}>
                     <span>S{entry.buildState.currentSequence}</span>
                 </div>
@@ -138,7 +137,7 @@ export const BuildEntry: React.FC<{
                         </>
                     )}
                 </div>
-                <BuildSetsSection echoPanels={entry.buildState.echoPanels} />
+                <ProfileSetsSection echoPanels={entry.buildState.echoPanels} />
                 <div className={`build-cv ${activeSort === 'cv' || activeSort === null ? 'active-column' : ''}`}>
                     <div className="build-cv-ratio">
                         {critRate.toFixed(1)} : {critDmg.toFixed(1)}
@@ -150,11 +149,10 @@ export const BuildEntry: React.FC<{
                         )}
                     </div>
                 </div>
-                <BuildStatsSection values={stats.values} character={character} activeStat={activeStat} isActiveColumn={activeSort === 'stat'}/>
+                <ProfileStatsSection values={stats.values} character={character} activeStat={activeStat} isActiveColumn={activeSort === 'stat'}/>
             </div>
             {isExpanded && (
                 <div className="build-expanded-content">
-                    <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character ?? null}/>
                 </div>
             )}
         </div>

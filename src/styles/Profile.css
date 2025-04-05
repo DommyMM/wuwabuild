@@ -1,0 +1,122 @@
+/* Main container */
+.profile-main-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+/* Search section layout */
+.profile-search-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+/* Common container styles - ensuring equal widths */
+.profile-search-form,
+.recent-searches-container {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 24px;
+    background: rgba(30, 30, 35, 0.6);
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+/* Search form specific */
+.profile-search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.profile-search-wrapper {
+    display: flex;
+    gap: 12px;
+}
+
+.profile-search-input {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 16px;
+    border-radius: 6px;
+    background: #2a2a2a;
+    color: #E0E0E0;
+    border: 1px solid #444;
+    transition: all 0.2s ease;
+}
+
+.profile-search-input:focus {
+    outline: none;
+    border-color: #a69662;
+    box-shadow: 0 0 0 2px rgba(166, 150, 98, 0.2);
+}
+
+.profile-search-help {
+    color: #999;
+    font-size: 14px;
+}
+
+/* Recent searches specific */
+.recent-searches-title {
+    font-size: 18px;
+    color: #a69662;
+    margin-bottom: 16px;
+    font-weight: 500;
+}
+
+.recent-searches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.recent-search-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(40, 40, 45, 0.6);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #333;
+}
+
+.recent-search-item:hover {
+    background: rgba(50, 50, 55, 0.8);
+    transform: translateY(-2px);
+    border-color: #a69662;
+}
+
+.recent-search-uid {
+    font-size: 16px;
+    color: #e0e0e0;
+    font-weight: 500;
+}
+
+.recent-search-time {
+    font-size: 14px;
+    color: #999;
+}
+
+/* Button styling */
+.build-button {
+    padding: 12px 24px;
+    background: #a69662;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.build-button:hover {
+    background: #c4b278;
+}

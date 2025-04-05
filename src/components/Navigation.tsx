@@ -21,6 +21,7 @@ export default function Navigation() {
                     <Link href="/leaderboards" className={isActive('/leaderboards') ? 'active' : ''}>Rank</Link>
                     <Link href="/edit" className={isActive('/edit') ? 'active' : ''}>Edit</Link>
                     <Link href="/saves" className={isActive('/saves') ? 'active' : ''}>Saves</Link>
+                    {/* <Link href="/profiles" className={isActive('/profiles') ? 'active' : ''}>Profiles</Link> */}
                 </div>
             </div>
         </nav>
