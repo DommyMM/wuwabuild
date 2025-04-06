@@ -54,6 +54,9 @@ interface SortDropdownProps<T> {
     onDirectionChange: (direction: 'asc' | 'desc') => void;
     placeholder?: string;
     isActive: boolean;
+    hoveredSection?: number | null;
+    lastHoveredSection?: number | null;
+    onHoverSection?: (section: number | null) => void;
 }
 
 const SortButton: React.FC<{
@@ -65,6 +68,13 @@ const SortButton: React.FC<{
     </div>
 );
 
+const getDropdownPosition = (current: number | null, last: number | null) => {
+    const section = current ?? last;
+    if (section === 0) return 'left';
+    if (section === 3) return 'right';
+    return 'center';
+};
+
 const SortDropdown = <T extends string>({ 
     field, 
     options, 
@@ -72,13 +82,23 @@ const SortDropdown = <T extends string>({
     onFieldChange, 
     onDirectionChange, 
     placeholder = 'Sort By', 
-    isActive
+    isActive,
+    hoveredSection,
+    lastHoveredSection,
+    onHoverSection
 }: SortDropdownProps<T>) => {
     const isStatsDropdown = placeholder === 'Stats';
     
     return (
         <div className={`sort-dropdown ${isActive ? 'active' : ''} ${isStatsDropdown ? 'stats' : ''}`}>
             <div className={isStatsDropdown ? 'stats-grid' : ''}>
+                {isStatsDropdown && [0,1,2,3].map(section => (
+                    <div key={section}
+                        className="stats-hover-section"
+                        onMouseEnter={() => onHoverSection?.(section)}
+                        onMouseLeave={() => onHoverSection?.(null)}
+                    />
+                ))}
                 <div className="sort-header">
                     {field ? getDisplayName(field) : placeholder}
                     {isActive && (
@@ -91,7 +111,7 @@ const SortDropdown = <T extends string>({
                         />
                     )}
                 </div>
-                <div className="sort-options">
+                <div className={`sort-options ${placeholder === 'Stats' ? getDropdownPosition(hoveredSection ?? null, lastHoveredSection ?? null) : ''}`}>
                     {options.map((option) => (
                         <div key={option} 
                             className={`sort-option ${field === option ? 'active' : ''}`}
@@ -127,6 +147,8 @@ export default function ProfileDetail({ uid }: { uid: string }) {
     const [statSort, setStatSort] = useState<StatSort | null>(null);
     const [activeSort, setActiveSort] = useState<ActiveSort>('cv');
     const [isTableLoading, setIsTableLoading] = useState(false);
+    const [hoveredSection, setHoveredSection] = useState<number | null>(null);
+    const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
     
     // Filter state variables
     const [characterIds, setCharacterIds] = useState<string[]>([]);
@@ -345,6 +367,13 @@ export default function ProfileDetail({ uid }: { uid: string }) {
         }
     };
 
+    const handleHoverSection = (section: number | null) => {
+        setHoveredSection(section);
+        if (section !== null) {
+            setLastHoveredSection(section);
+        }
+    };
+
     if (loading && !isTableLoading) {
         return (
             <div className="page-wrapper">
@@ -461,6 +490,9 @@ export default function ProfileDetail({ uid }: { uid: string }) {
                                     onDirectionChange={setSortDirection}
                                     placeholder="Crit Value"
                                     isActive={activeSort === 'cv'}
+                                    hoveredSection={hoveredSection}
+                                    lastHoveredSection={lastHoveredSection}
+                                    onHoverSection={handleHoverSection}
                                 />
                                 <SortDropdown<StatSort>
                                     field={statSort}
@@ -470,6 +502,9 @@ export default function ProfileDetail({ uid }: { uid: string }) {
                                     onDirectionChange={setSortDirection}
                                     placeholder="Stats"
                                     isActive={activeSort === 'stat'}
+                                    hoveredSection={hoveredSection}
+                                    lastHoveredSection={lastHoveredSection}
+                                    onHoverSection={handleHoverSection}
                                 />
                             </div>
                             <div className="build-entries profile-builds">

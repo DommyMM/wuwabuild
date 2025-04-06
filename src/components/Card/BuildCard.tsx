@@ -210,6 +210,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const [useAltSkin, setUseAltSkin] = useState(false);
   const [artSource, setArtSource] = useState<string>('');
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const tabRef = useRef<HTMLDivElement>(null);
   const { scaleAtk, scaleStat } = useLevelCurves();
 
@@ -271,30 +272,48 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   }, [isTabVisible]);
 
   const handleDownload = useCallback(() => {
-    if (!tabRef.current) return;
-    setIsEditMode(false); // Turn off edit mode when downloading
+    if (!tabRef.current || isDownloading) return;
+    setIsEditMode(false);
+    setIsDownloading(true);
   
     const now = new Date();
     const timestamp = now.toISOString().slice(0,19).replace(/[T:]/g, ' ');
     
-    tabRef.current.classList.add('downloading');
-    domtoimage.toPng(tabRef.current, {cacheBust: true})
+    // Create exact clone with all styles and content
+    const clone = tabRef.current.cloneNode(true) as HTMLElement;
+    clone.id = 'build-tab';
+    clone.classList.add('downloading');
+    
+    // Position without changing visual appearance
+    clone.style.position = 'fixed';
+    clone.style.left = '0';
+    clone.style.top = '0';
+    clone.style.zIndex = '-1000';
+    clone.style.pointerEvents = 'none';
+    clone.style.display = 'flex';
+    document.body.appendChild(clone);
+    
+    // Give time for all resources to load and render
+    setTimeout(() => {
+      domtoimage.toPng(clone, {cacheBust: true,})
       .then((dataUrl: string) => {
         const link = document.createElement('a');
         link.download = `${timestamp}.png`;
         link.href = dataUrl;
         link.click();
-        if (tabRef.current) {
-          tabRef.current.classList.remove('downloading');
-        }
+        
+        // Clean up
+        document.body.removeChild(clone);
+        setIsDownloading(false);
       })
       .catch((error: Error) => {
         console.error('Error capturing build-tab:', error);
-        if (tabRef.current) {
-          tabRef.current.classList.remove('downloading');
-        }
+        toast.error('Download failed. Please try again.');
+        document.body.removeChild(clone);
+        setIsDownloading(false);
       });
-  }, [tabRef]);
+    }, 250);
+  }, [isDownloading]);
 
   const handleImageChange = (file: File | undefined) => {
     if (isEditMode) {
@@ -436,8 +455,21 @@ export const BuildCard: React.FC<BuildCardProps> = ({
             {isEditMode ? (<><ImageDownIcon size={20} /> Save Image</>) : 
               (<><Pencil size={20} /> Edit</>)}
             </button>
-            <button id="downloadButton" className="build-button" onClick={handleDownload}>
-              <Download size={20}/> Download
+            <button 
+              id="downloadButton" 
+              className={`build-button ${isDownloading ? 'downloading-btn' : ''}`} 
+              onClick={handleDownload}
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <span className="download-animation">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </span>
+              ) : (
+                <><Download size={20}/> Download</>
+              )}
             </button>
             <button id="saveBuildButton" className="build-button" onClick={handleSaveBuildClick}>
               <Database size={20}/>Save Build
