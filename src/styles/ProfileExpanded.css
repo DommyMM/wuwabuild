@@ -1,4 +1,3 @@
-/* Profile expanded section container */
 .profile-expanded-section {
     display: flex;
     flex-direction: column;
@@ -8,16 +7,14 @@
     padding: 20px 0;
 }
 
-/* Card container with overflow handling */
 .profile-expanded-card-container {
     width: 100%;
     display: flex;
     justify-content: center;
-    overflow-x: auto;
-    padding-bottom: 10px;
+    padding-bottom: 80px;
+    position: relative;
 }
 
-/* Profile expanded controls - now below the card */
 .profile-expanded-controls {
     display: flex;
     justify-content: center;
@@ -25,20 +22,22 @@
     margin-top: 10px;
 }
 
-/* Profile expanded wrapper inside the entry */
-.profile-expanded-wrapper {
-    width: 100%;
-    background-color: #1a1a1a;
-    border-top: 1px solid #333;
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
-    animation: profileSlide 0.2s ease forwards;
-}
-
-/* Main card styling */
-.profile-card {
+#profile-download-wrapper {
     position: relative;
     width: 1200px;
+}
+
+#profile-download-wrapper.downloading {
+    width: 1920px;
+}
+
+#profile-download-wrapper.downloading .profile-card {
+    height: 690px;
+}
+
+.profile-card {
+    position: relative;
+    width: 100%;
     height: 431.25px;
     background: #333;
     background-image: url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
@@ -55,17 +54,90 @@
 .profile-card.havoc { background-image: linear-gradient(rgba(255, 20, 147, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
 .profile-card.glacio { background-image: linear-gradient(rgba(0, 206, 209, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
 
-/* Download mode - expanded size */
-.profile-card.downloading {
-    width: 1920px;
-    height: 690px; 
+.profile-character-display {
+    position: relative;
+    display: flex;
+    width: 30%;
+    height: 100%;
+    left: 0;
+    border-radius: 0 16px 16px 0;
+    overflow: hidden;
 }
 
-.profile-character-section,
+.profile-character-icon {
+    height: auto;
+    width: 100%;
+    object-fit: contain;
+    user-select: none;
+    transform: scale(1.1);
+}
+
+.profile-echoes-section {
+    position: absolute;
+    width: 90%;
+    height: 35%;
+    bottom: -15%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    z-index: 10;
+}
+
+.profile-echo-panel {
+    width: 18%;
+    aspect-ratio: 1;
+    background: rgba(20, 20, 25, 0.8);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-echo-panel.aero { border: 1px solid rgba(144, 238, 144, 0.6); }
+.profile-echo-panel.spectro { border: 1px solid rgba(255, 223, 0, 0.6); }
+.profile-echo-panel.electro { border: 1px solid rgba(138, 43, 226, 0.6); }
+.profile-echo-panel.fusion { border: 1px solid rgba(213, 116, 12, 0.6); }
+.profile-echo-panel.havoc { border: 1px solid rgba(255, 20, 147, 0.6); }
+.profile-echo-panel.glacio { border: 1px solid rgba(0, 206, 209, 0.6); }
+.profile-echo-panel.er { border: 1px solid rgba(255, 255, 255, 0.6); }
+.profile-echo-panel.attack { border: 1px solid rgba(188, 37, 20, 0.6); }
+.profile-echo-panel.healing { border: 1px solid rgba(47, 227, 47, 0.6); }
+.profile-echo-panel.empyrean { border: 1px solid rgba(75, 163, 255, 0.6); }
+.profile-echo-panel.frosty { border: 1px solid rgba(135, 206, 235, 0.6); }
+.profile-echo-panel.midnight { border: 1px solid rgba(224, 134, 224, 0.6); }
+.profile-echo-panel.radiance { border: 1px solid rgba(255, 213, 79, 0.6); }
+.profile-echo-panel.tidebreaking { border: 1px solid rgba(255, 255, 255, 0.6); }
+.profile-echo-panel.gust { border: 1px solid rgba(124, 252, 0, 0.6); }
+
+.profile-echo-icon {
+    width: 60%;
+    height: auto;
+    object-fit: cover;
+    transition: transform 0.2s ease;
+    mask: linear-gradient(to right, black 80%, transparent 100%);
+    -webkit-mask: linear-gradient(to right, black 80%, transparent 100%);
+}
+
+.profile-echo-element {
+    position: absolute;
+    top: 2px;
+    right: 5px;
+    z-index: 2;
+}
+
+.profile-echo-set-icon {
+    width: 24px;
+    height: 24px;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+}
+
 .profile-sequence-section,
 .profile-stats-section,
-.profile-weapon-section,
-.profile-echoes-section {
+.profile-weapon-section {
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.2);
     box-sizing: border-box;
