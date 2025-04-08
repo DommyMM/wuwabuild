@@ -1,0 +1,117 @@
+/* Profile expanded section container */
+.profile-expanded-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 16px;
+    padding: 20px 0;
+}
+
+/* Card container with overflow handling */
+.profile-expanded-card-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+/* Profile expanded controls - now below the card */
+.profile-expanded-controls {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* Profile expanded wrapper inside the entry */
+.profile-expanded-wrapper {
+    width: 100%;
+    background-color: #1a1a1a;
+    border-top: 1px solid #333;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    animation: profileSlide 0.2s ease forwards;
+}
+
+/* Main card styling */
+.profile-card {
+    position: relative;
+    width: 1200px;
+    height: 431.25px;
+    background: #333;
+    background-image: url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
+    background-size: cover;
+    background-position: center;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.profile-card.aero { background-image: linear-gradient(rgba(144, 238, 144, 0.25), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+.profile-card.spectro { background-image: linear-gradient(rgba(255, 223, 0, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+.profile-card.electro { background-image: linear-gradient(rgba(138, 43, 226, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+.profile-card.fusion { background-image: linear-gradient(rgba(213, 116, 12, 0.25), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+.profile-card.havoc { background-image: linear-gradient(rgba(255, 20, 147, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+.profile-card.glacio { background-image: linear-gradient(rgba(0, 206, 209, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+
+/* Download mode - expanded size */
+.profile-card.downloading {
+    width: 1920px;
+    height: 690px; 
+}
+
+.profile-character-section,
+.profile-sequence-section,
+.profile-stats-section,
+.profile-weapon-section,
+.profile-echoes-section {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+}
+
+.profile-watermark {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    color: white;
+    font-size: 20px;
+    font-family: 'Ropa', sans-serif;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    z-index: 2;
+}
+
+.profile-watermark-name {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.profile-watermark-uid {
+    font-size: 18px;
+    opacity: 0.8;
+}
+
+.profile-site-watermark {
+    position: absolute;
+    bottom: 10px;
+    right: 20px;
+    color: white;
+    font-size: 18px;
+    opacity: 0.6;
+    font-family: 'Ropa', sans-serif;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+@keyframes profileSlide {
+    from {
+        opacity: 0;
+        height: 0;
+    }
+    to {
+        opacity: 1;
+        height: 600px; 
+    }
+}

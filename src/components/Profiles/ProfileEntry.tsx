@@ -9,6 +9,7 @@ import { decompressStats } from '@/hooks/useStats';
 import { getStatPaths } from '@/types/stats';
 import { DecompressedEntry, getSetCounts, getHighestDmg, getHighestDmgBonus } from '../Build/types';
 import { StatSort, ActiveSort } from '../Build/BuildPageClient';
+import { ProfileExpanded } from './ProfileExpanded';
 
 export const ProfileOwnerSection: React.FC<{
     username?: string;
@@ -152,7 +153,8 @@ export const ProfileEntry: React.FC<{
                 <ProfileStatsSection values={stats.values} character={character} activeStat={activeStat} isActiveColumn={activeSort === 'stat'}/>
             </div>
             {isExpanded && (
-                <div className="build-expanded-content">
+                <div className="profile-expanded-wrapper">
+                    <ProfileExpanded entry={entry} />
                 </div>
             )}
         </div>
