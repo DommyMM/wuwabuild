@@ -106,6 +106,13 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
   'Nightmare Lampylumen Myriad': [
     { stat: 'Glacio DMG', value: 12 }
   ],
+  ['Capitaneus']: [
+    { stat: 'Spectro DMG', value: 12 },
+    { stat: 'Heavy Attack DMG Bonus', value: 12 }
+  ],
+  ['Fleurdelys']: [
+    { stat: 'Aero DMG', value: 10 }
+  ],
 } as const;
 
 export const PHANTOM_ECHOES = [

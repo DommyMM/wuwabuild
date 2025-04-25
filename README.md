@@ -20,7 +20,7 @@ The comprehensive character build creation interface:
 
 #### Character & Weapon Selection
 - Complete character roster with element variants (special handling for Rover)
-- Character level (1-80), sequence (0-6), and basic information controls
+- Character level (1-90), sequence (0-6), and basic information controls
 - Type-filtered weapon selection with refinement and level controls
 - Real-time weapon stat calculation and passive display
 
@@ -28,7 +28,7 @@ The comprehensive character build creation interface:
 - Five configurable echo panels with drag-and-drop reordering
 - Main stat selector with level-based scaling
 - Up to 4 substats per panel with CV calculation
-- Element set tracking with 2/4/6-piece bonus calculations
+- Element set tracking with 2/5-piece bonus calculations
 - Phantom echo toggle for specialized builds
 - Cost validation system (warns when exceeding 12)
 - Echo preset save/load functionality
@@ -44,8 +44,7 @@ The comprehensive character build creation interface:
 - Comprehensive stat breakdown from all sources
 - Dynamic calculation of derived stats (CV, damage bonuses)
 - Element-specific bonuses and resistance calculations
-- Quality indicators for substats (goat, excellent, high, etc.)
-- Sequence effect integration and visualization
+- Quality indicators for substats 
 
 #### Build Creation Tools
 - OCR screenshot scanning with region selection guides

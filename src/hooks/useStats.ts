@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { StatName, BaseStatName, getPercentVariant } from '@/types/stats';
-import { Character } from '@/types/character';
+import { Character, isRover } from '@/types/character';
 import { Weapon, ScaledStats } from '@/types/weapon';
 import { useCharacterCurves } from '@/hooks/useCharacterCurves';
 import { EchoPanelState, ELEMENT_SETS, ElementType, ECHO_BONUSES } from '@/types/echo';
@@ -367,6 +367,14 @@ export const useStats = ({
         const bonusForStat = firstPanelBonus.find(bonus => bonus.stat === displayStat);
         if (bonusForStat) {
           result.update += bonusForStat.value;
+        }
+        
+        // Special case for Fleurdelys with Rover Aero
+        if (firstEcho?.name === 'Fleurdelys' && 
+            displayStat === 'Aero DMG' && 
+            isRover(character) && 
+            characterState.element === 'Aero') {
+          result.update += 10; // Additional 10% for Rover:Aero
         }
       }
       
