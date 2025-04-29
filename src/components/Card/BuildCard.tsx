@@ -251,8 +251,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       weapon: selectedWeapon ?? null,
       weaponStats,
       echoPanels,
-      nodeStates
-  }), [selectedCharacter, characterState, selectedWeapon, weaponStats, echoPanels, nodeStates]);
+      nodeStates,
+      sequence: currentSequence
+  }), [selectedCharacter, characterState, selectedWeapon, weaponStats, echoPanels, nodeStates, currentSequence]);
 
   const { values, baseValues, updates, cv } = useStats(statsInput);
 

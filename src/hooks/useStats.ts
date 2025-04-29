@@ -34,6 +34,7 @@ export interface UseStatsProps {
   weaponStats?: ScaledStats;
   echoPanels?: EchoPanelState[];
   nodeStates: Record<string, Record<string, boolean>>;
+  sequence?: number; // Add sequence parameter
 }
 
 export const SET_TO_STAT_MAPPING = {
@@ -246,7 +247,8 @@ export const useStats = ({
   weapon,
   weaponStats,
   echoPanels = [],
-  nodeStates
+  nodeStates,
+  sequence
 }: UseStatsProps) => {
   const [statsData, setStatsData] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -420,11 +422,14 @@ export const useStats = ({
       ) {
         result.update += forteBonus.bonus1Total;
       }
+      if (displayStat === 'Crit Rate' && character.id === '38' && sequence && sequence >= 2) {
+        result.update += 20;  // Zani's S2 passive: +20% Crit Rate
+      }
       result.value = Number((result.baseValue + result.update).toFixed(1));
       result.update = Number(result.update.toFixed(1));
     }
     return result;
-  }, [character, baseStats, characterState.element, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats, firstPanelBonus]);
+  }, [character, baseStats, characterState.element, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats, firstPanelBonus, sequence]);
 
   const calculateCVValue = useCallback((): number => {
     return calculateCV(echoPanels);
