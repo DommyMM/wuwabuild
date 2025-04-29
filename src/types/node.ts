@@ -21,6 +21,8 @@ const A1_LOCAL_IDS: Record<number, true> = {
   27: true,
   28: true,
   31: true,
+  37: true,
+  38: true,
   44: true
 };
 

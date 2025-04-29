@@ -200,5 +200,8 @@ const PHANTOM_CDN_IDS: Record<string, string> = {
     'Thundering Mephis': '1008',
     'Vitreum Dancer': 'SG_32029',
     'Lorelei': 'SG_33011',
-    "Capitaneus": '32033_1'
+    'Capitaneus': '32033_1',
+    'Nimbus Wraith': 'SG_31044',
+    'Nightmare Crownless': 'SG_33018',
+    'Chest Mimic': 'SG_31048'
 };

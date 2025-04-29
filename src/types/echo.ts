@@ -133,5 +133,8 @@ export const PHANTOM_ECHOES = [
   'Thundering Mephis',
   'Vitreum Dancer',
   'Lorelei',
-  'Capitaneus'
+  'Capitaneus',
+  'Nimbus Wraith',
+  'Nightmare Crownless',
+  'Chest Mimic'
 ] as readonly string[];
