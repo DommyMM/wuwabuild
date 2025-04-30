@@ -1,5 +1,5 @@
 import { OCRData } from '@/types/ocr';
-import { EchoPanelState, ElementType } from '@/types/echo';
+import { EchoPanelState, ElementType, PHANTOM_ECHOES } from '@/types/echo';
 import Fuse from 'fuse.js';
 import { cachedEchoes } from './useEchoes';
 import { mainStatsCache } from './useMain';
@@ -19,20 +19,31 @@ const fuseOptions = {
   shouldSort: true
 };
 
+function detectPhantomEcho(name: string): { isPhantom: boolean, baseName: string } {
+  if (name.toLowerCase().startsWith("phantom ")) {
+    const baseName = name.substring(8); // "Phantom ".length = 8
+    const isValidPhantom = PHANTOM_ECHOES.includes(baseName);
+    return { isPhantom: isValidPhantom, baseName };
+  }
+  return { isPhantom: false, baseName: name };
+}
+
 export const matchEchoData = (
   ocrData: Extract<OCRData, { type: 'Echo' }>
 ): EchoPanelState | null => {
   try {
     if (!substatsCache.data || !mainStatsCache.data || !cachedEchoes) return null;
 
+    const { isPhantom, baseName } = detectPhantomEcho(ocrData.name);
+
     const exactMatch = cachedEchoes.find(e => 
-      e.name.toLowerCase() === ocrData.name.toLowerCase()
+      e.name.toLowerCase() === baseName.toLowerCase()
     );
 
     let foundEcho = exactMatch;
     if (!foundEcho) {
       const fuse = new Fuse(cachedEchoes, fuseOptions);
-      const results = fuse.search(ocrData.name);
+      const results = fuse.search(baseName);
       if (results.length > 0 && (results[0].score === undefined || results[0].score < 0.3)) {
         foundEcho = results[0].item;
         console.log('Found fuzzy match:', foundEcho.name);
@@ -81,7 +92,7 @@ export const matchEchoData = (
           ...Array(5 - matchedSubstats.length).fill({ type: null, value: null })
         ]
       },
-      phantom: false
+      phantom: isPhantom
     };
   } catch (error) {
     console.error('Error matching echo data:', error);

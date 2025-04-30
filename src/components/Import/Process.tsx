@@ -165,7 +165,6 @@ export const Process: React.FC<ProcessProps> = ({
                 );
             }
             
-            // Fix 4: The reduce function
             const finalResults = results.reduce<AnalysisData>((acc, { region, data }) => ({
                 ...acc,
                 [region]: data.analysis
