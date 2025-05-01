@@ -61,9 +61,15 @@
 }
 
 .downloading-btn {
-    background-color: #444 !important;
-    cursor: not-allowed;
-    opacity: 0.8;
+    background-color: #2a9d8f;
+    cursor: progress;
+    opacity: 0.9;
+}
+
+.downloading-btn:hover {
+    background-color: #2a9d8f !important;
+    cursor: progress !important;
+    opacity: 1;
 }
 
 .download-animation {
@@ -76,7 +82,7 @@
 .download-animation .dot {
     width: 6px;
     height: 6px;
-    background-color: white;
+    background-color: #e9f5db;
     border-radius: 50%;
     display: inline-block;
     animation: bouncing 1.2s infinite ease-in-out;

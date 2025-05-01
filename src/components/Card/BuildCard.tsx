@@ -277,43 +277,52 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     setIsEditMode(false);
     setIsDownloading(true);
   
-    const now = new Date();
-    const timestamp = now.toISOString().slice(0,19).replace(/[T:]/g, ' ');
-    
-    // Create exact clone with all styles and content
-    const clone = tabRef.current.cloneNode(true) as HTMLElement;
-    clone.id = 'build-tab';
-    clone.classList.add('downloading');
-    
-    // Position without changing visual appearance
-    clone.style.position = 'fixed';
-    clone.style.left = '0';
-    clone.style.top = '0';
-    clone.style.zIndex = '-1000';
-    clone.style.pointerEvents = 'none';
-    clone.style.display = 'flex';
-    document.body.appendChild(clone);
-    
-    // Give time for all resources to load and render
+    // Wait for React to update the DOM after state change
     setTimeout(() => {
-      domtoimage.toPng(clone, {cacheBust: true,})
-      .then((dataUrl: string) => {
-        const link = document.createElement('a');
-        link.download = `${timestamp}.png`;
-        link.href = dataUrl;
-        link.click();
-        
-        // Clean up
-        document.body.removeChild(clone);
+      // Re-check ref is still valid
+      if (!tabRef.current) {
         setIsDownloading(false);
-      })
-      .catch((error: Error) => {
-        console.error('Error capturing build-tab:', error);
-        toast.error('Download failed. Please try again.');
-        document.body.removeChild(clone);
-        setIsDownloading(false);
-      });
-    }, 250);
+        return;
+      }
+      
+      const now = new Date();
+      const timestamp = now.toISOString().slice(0,19).replace(/[T:]/g, ' ');
+      
+      // Create clone AFTER React has updated the DOM
+      const clone = tabRef.current.cloneNode(true) as HTMLElement;
+      clone.id = 'build-tab';
+      clone.classList.add('downloading');
+      
+      // Position without changing visual appearance
+      clone.style.position = 'fixed';
+      clone.style.left = '0';
+      clone.style.top = '0';
+      clone.style.zIndex = '-1000';
+      clone.style.pointerEvents = 'none';
+      clone.style.display = 'flex';
+      document.body.appendChild(clone);
+      
+      // Give time for all resources to load and render
+      setTimeout(() => {
+        domtoimage.toPng(clone, {cacheBust: true,})
+        .then((dataUrl: string) => {
+          const link = document.createElement('a');
+          link.download = `${timestamp}.png`;
+          link.href = dataUrl;
+          link.click();
+          
+          // Clean up
+          document.body.removeChild(clone);
+          setIsDownloading(false);
+        })
+        .catch((error: Error) => {
+          console.error('Error capturing build-tab:', error);
+          toast.error('Download failed. Please try again.');
+          document.body.removeChild(clone);
+          setIsDownloading(false);
+        });
+      }, 250);
+    }, 0); // Even a 0ms timeout pushes to next event loop iteration
   }, [isDownloading]);
 
   const handleImageChange = (file: File | undefined) => {
