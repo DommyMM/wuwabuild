@@ -61,7 +61,7 @@
 }
 
 .downloading-btn {
-    background-color: #2a9d8f;
+    background-color: #2a9d8f !important;
     cursor: progress;
     opacity: 0.9;
 }
