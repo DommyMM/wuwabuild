@@ -429,7 +429,7 @@ export const useStats = ({
       result.update = Number(result.update.toFixed(1));
     }
     return result;
-  }, [character, baseStats, characterState.element, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats, firstPanelBonus, sequence]);
+  }, [character, baseStats, characterState.element, weapon, weaponStats, echoPanels, elementCounts, atkPercentBonus, forteBonus, echoStats, firstPanelBonus, sequence, firstEcho]);
 
   const calculateCVValue = useCallback((): number => {
     return calculateCV(echoPanels);

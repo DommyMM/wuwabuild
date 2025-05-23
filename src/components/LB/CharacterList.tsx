@@ -88,7 +88,11 @@ const LeaderboardWeaponsWithRank: React.FC<{
     onWeaponClick?: (weaponIndex: number) => void;
 }> = ({ characterId, weapons, onWeaponClick }) => {
     const config = CHARACTER_CONFIGS[characterId];
-    if (!config?.enabled || !config.weapons) return <div className="build-weapons">--</div>;
+    
+    // Show "Coming Soon" instead of dashes for disabled characters
+    if (!config?.enabled || !config.weapons) {
+        return <div className="build-weapons">Coming Soon</div>;
+    }
 
     return (
         <div className="build-weapons-rank">
@@ -137,7 +141,8 @@ const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
             <div className='build-main-content'>
                 <LeaderboardCharacterSection character={character} elementClass={elementClass} />
                 <LeaderboardTeamSection characterId={data._id} characters={characters} />
-                <div className="lb-entries">{isDisabled ? 'Coming Soon' : data.totalEntries}</div>
+                {/* Always show entry counts regardless of disabled status */}
+                <div className="lb-entries">{data.totalEntries}</div>
                 <LeaderboardWeaponsWithRank characterId={data._id} weapons={data.weapons} onWeaponClick={(index) => onWeaponClick(data._id, index)} />
             </div>
         </div>
@@ -154,7 +159,21 @@ const CharacterList: React.FC<CharacterListProps> = ({
     characters
 }) => {
     const router = useRouter();
-    const [data] = useState<LeaderboardData[]>(initialData);
+    
+    // Sort the data to prioritize enabled characters from the config
+    const sortedData = [...initialData].sort((a, b) => {
+        const configA = CHARACTER_CONFIGS[a._id];
+        const configB = CHARACTER_CONFIGS[b._id];
+        
+        // First, prioritize characters with enabled configs
+        if (configA?.enabled && !configB?.enabled) return -1;
+        if (!configA?.enabled && configB?.enabled) return 1;
+        
+        // For characters with same enabled status, sort by entry count
+        return b.totalEntries - a.totalEntries;
+    });
+    
+    const [data] = useState<LeaderboardData[]>(sortedData);
 
     const handleCharacterClick = (id: string) => {
         const config = CHARACTER_CONFIGS[id];

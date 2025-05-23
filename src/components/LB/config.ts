@@ -9,6 +9,15 @@ interface CharacterConfig {
 }
 
 export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
+    '11': {
+        teamIds: ['28', '13'], 
+        stats: ['ATK', 'Energy Regen', 'Heavy Attack DMG Bonus', 'Aero DMG'],
+        weapons: ['21010016', '21010015', '21010064', '21010074'],
+        sequences: ['s0'],
+        rotation: ['Intro', 'Forte Circuit', 'Skill', 'Heavy', 'Enhanced Skill'],
+        notes: '5-star weapons at R1, 4-star at R5. Autumntrace and Helios at 4 stacks. \n S0R1 Shorekeeper + Moonlit Mortefi',
+        enabled: true
+        },
     '24': {
         teamIds: ['3', '27'],
         stats: ['ATK', 'Energy Regen', 'Resonance Skill DMG Bonus', 'Spectro DMG'],
