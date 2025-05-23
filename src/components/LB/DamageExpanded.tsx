@@ -125,85 +125,133 @@ const DamageChart: React.FC<{
     </div>
 );
 
-/** Calculate move complexity score based on its structure and content */
+/** Calculate move visual heights and balance columns by actual rendered height */
 function getBalancedColumns(moves: MoveResult[]): [MoveResult[], MoveResult[], 'left' | 'right' | null] {
     if (moves.length <= 1) {
         return [moves, [], null];
     }
     
-    // Find any extremely complex item (with 6+ hits)
-    const complexItems = moves.filter(move => (move.hits?.length ?? 0) >= 6);
+    // Calculate actual visual heights: Base 55px + first 2 hits (38.5px) + remaining hits (32px)
+    const calculateMoveHeight = (move: MoveResult): number => {
+        const BASE_HEIGHT = 55;
+        const hitCount = move.hits?.length ?? 0;
+        const hitHeight = Math.min(hitCount, 2) * 38.5 + Math.max(0, hitCount - 2) * 32;
+        return BASE_HEIGHT + hitHeight;
+    };
     
-    // Special case: If we have one very complex item, isolate it in left column
-    if (complexItems.length === 1) {
-        const complexItem = complexItems[0];
-        const remainingItems = moves.filter(move => move !== complexItem);
-        // If this is our only complex item, put it in left column with at most one other item
-        const left = [complexItem];
-        let simpleItem = null;
+    const movesWithHeight = moves.map((move, idx) => ({
+        move,
+        originalIndex: idx,
+        height: calculateMoveHeight(move)
+    }));
+    
+    const totalHeight = movesWithHeight.reduce((sum, item) => sum + item.height, 0);
+    const targetHeight = totalHeight / 2;
+    
+    // Identify heavyweight moves (>200px or >35% of total)
+    const heavyweights = movesWithHeight.filter(item => 
+        item.height > 200 || item.height > totalHeight * 0.35
+    );
+    
+    // Special case: If we have exactly one heavyweight, isolate it with small items
+    if (heavyweights.length === 1) {
+        const heavyweight = heavyweights[0];
+        const others = movesWithHeight.filter(item => item !== heavyweight);
         
-        if (remainingItems.length > 0) {
-            // Add one simple item to the left column to visually balance it slightly
-            simpleItem = remainingItems.find(move => !move.hits || move.hits.length === 0);
-            if (simpleItem) {
-                left.push(simpleItem);
+        // Try to add small items to heavyweight column until it gets close to target
+        const left = [heavyweight];
+        const right = [...others];
+        let leftHeight = heavyweight.height;
+        
+        // Sort others by height (smallest first) to greedily fill
+        others.sort((a, b) => a.height - b.height);
+        
+        for (const item of others) {
+            const newLeftHeight = leftHeight + item.height;
+            const remainingRightHeight = totalHeight - newLeftHeight;
+            
+            // If adding this item brings us closer to balance, do it
+            const currentDiff = Math.abs(leftHeight - (totalHeight - leftHeight));
+            const newDiff = Math.abs(newLeftHeight - remainingRightHeight);
+            
+            if (newDiff < currentDiff && newLeftHeight <= targetHeight * 1.2) {
+                left.push(item);
+                leftHeight = newLeftHeight;
+                const rightIndex = right.indexOf(item);
+                right.splice(rightIndex, 1);
             }
         }
         
-        // Put the rest in the right column
-        const right = remainingItems.filter(move => move !== simpleItem);
+        // Sort both columns back to original order
+        left.sort((a, b) => a.originalIndex - b.originalIndex);
+        right.sort((a, b) => a.originalIndex - b.originalIndex);
         
-        const leftWeight = left.reduce((sum, m) => sum + 1 + ((m.hits?.length ?? 0) * 2), 0);
-        const rightWeight = right.reduce((sum, m) => sum + 1 + ((m.hits?.length ?? 0) * 2), 0);
-        const weightDifference = Math.abs(leftWeight - rightWeight);
+        const finalLeftHeight = left.reduce((sum, item) => sum + item.height, 0);
+        const finalRightHeight = right.reduce((sum, item) => sum + item.height, 0);
+        const heightDifference = Math.abs(finalLeftHeight - finalRightHeight);
+        const shouldShift = heightDifference > 40 && left.length > 0 && right.length > 0;
+        const shiftDirection = shouldShift ? (finalLeftHeight > finalRightHeight ? 'left' : 'right') : null;
         
-        // Simpler shifting logic - shift if difference is substantial
-        const shouldShift = weightDifference > 6 && left.length > 0 && right.length > 0;
-        
-        // If left is heavier, shift left. If right is heavier, shift right.
-        const shiftDirection = shouldShift ? (leftWeight > rightWeight ? 'left' : 'right') : null;
-        return [left, right, shiftDirection];
+        return [
+            left.map(x => x.move),
+            right.map(x => x.move),
+            shiftDirection
+        ];
     }
-    // Normal case: Use weight-based balancing (keeping this as a fallback)    
-    // Calculate weights with extra emphasis on hit count
-    const weighted = moves.map((move, idx) => ({
-        move,
-        originalIndex: idx,
-        weight: 1 + ((move.hits?.length ?? 0) * 2)
-    }));
     
-    // Sort by weight for better initial distribution
-    weighted.sort((a, b) => b.weight - a.weight);
+    // Fallback: Use dynamic programming for optimal split
+    // Try all possible combinations and find the one closest to 50/50 split
+    let bestLeft: typeof movesWithHeight = [];
+    let bestRight: typeof movesWithHeight = [];
+    let bestDifference = Infinity;
     
-    // Greedy distribution by weight
-    const left: typeof weighted = [];
-    const right: typeof weighted = [];
-    let leftWeight = 0, rightWeight = 0;
-    
-    for (const item of weighted) {
-        if (leftWeight <= rightWeight) {
-            left.push(item);
-            leftWeight += item.weight;
-        } else {
-            right.push(item);
-            rightWeight += item.weight;
+    // For efficiency, limit to trying sequential splits and one smart rearrangement
+    for (let splitPoint = 1; splitPoint < moves.length; splitPoint++) {
+        const left = movesWithHeight.slice(0, splitPoint);
+        const right = movesWithHeight.slice(splitPoint);
+        
+        const leftHeight = left.reduce((sum, item) => sum + item.height, 0);
+        const rightHeight = right.reduce((sum, item) => sum + item.height, 0);
+        const difference = Math.abs(leftHeight - rightHeight);
+        
+        if (difference < bestDifference) {
+            bestDifference = difference;
+            bestLeft = left;
+            bestRight = right;
         }
     }
     
-    // Sort each column back by originalIndex
-    left.sort((a, b) => a.originalIndex - b.originalIndex);
-    right.sort((a, b) => a.originalIndex - b.originalIndex);
+    // Try one optimization: move smallest item from heavier side to lighter side
+    const leftHeight = bestLeft.reduce((sum, item) => sum + item.height, 0);
+    const rightHeight = bestRight.reduce((sum, item) => sum + item.height, 0);
     
-    // Simpler shifting logic - shift if difference is substantial
-    const weightDifference = Math.abs(leftWeight - rightWeight);
-    const shouldShift = weightDifference > 6 && left.length > 0 && right.length > 0;
+    if (Math.abs(leftHeight - rightHeight) > 50) {
+        if (leftHeight > rightHeight && bestLeft.length > 1) {
+            // Move smallest from left to right
+            const smallest = bestLeft.reduce((min, item) => item.height < min.height ? item : min);
+            bestLeft = bestLeft.filter(item => item !== smallest);
+            bestRight = [...bestRight, smallest];
+        } else if (rightHeight > leftHeight && bestRight.length > 1) {
+            // Move smallest from right to left
+            const smallest = bestRight.reduce((min, item) => item.height < min.height ? item : min);
+            bestRight = bestRight.filter(item => item !== smallest);
+            bestLeft = [...bestLeft, smallest];
+        }
+    }
     
-    // If left is heavier, shift left. If right is heavier, shift right.
-    const shiftDirection = shouldShift ? (leftWeight > rightWeight ? 'left' : 'right') : null;
+    // Sort both columns back to original order
+    bestLeft.sort((a, b) => a.originalIndex - b.originalIndex);
+    bestRight.sort((a, b) => a.originalIndex - b.originalIndex);
+    
+    const finalLeftHeight = bestLeft.reduce((sum, item) => sum + item.height, 0);
+    const finalRightHeight = bestRight.reduce((sum, item) => sum + item.height, 0);
+    const heightDifference = Math.abs(finalLeftHeight - finalRightHeight);
+    const shouldShift = heightDifference > 40 && bestLeft.length > 0 && bestRight.length > 0;
+    const shiftDirection = shouldShift ? (finalLeftHeight > finalRightHeight ? 'left' : 'right') : null;
     
     return [
-        left.map(x => x.move),
-        right.map(x => x.move),
+        bestLeft.map(x => x.move),
+        bestRight.map(x => x.move),
         shiftDirection
     ];
 }
