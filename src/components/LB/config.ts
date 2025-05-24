@@ -27,6 +27,15 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         notes: '5-star weapons at R1, 4-star at R5. Autumntrace and Helios at 4 stacks. \n Stellar Verina + Moonlit Heron Zhezhi',
         enabled: true
     },
+        '29': {
+        teamIds: ['28', '33'],
+        stats: ['ATK', 'Energy Regen', 'Basic Attack DMG Bonus', 'Havoc DMG'],
+        weapons: ['21020017', '21020015', '21020044', '21020084'],
+        sequences: ['s0'],
+        rotation: ['Intro', 'Crimson Blossom', 'Ephemeral', 'Enhanced Vining', 'Liberation'],
+        notes: '5-star weapons at R1, 4-star at R5. Red Spring with stacked buffs. \n S0R1 Shorekeeper + Midnight Roccia',
+        enabled: true
+    },
     '32': {
         teamIds: ['28', '27'],
         stats: ['ATK', 'Energy Regen', 'Resonance Skill DMG Bonus', 'Glacio DMG'],
