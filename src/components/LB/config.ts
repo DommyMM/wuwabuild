@@ -32,7 +32,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         stats: ['ATK', 'Energy Regen', 'Basic Attack DMG Bonus', 'Havoc DMG'],
         weapons: ['21020017', '21020015', '21020044', '21020084'],
         sequences: ['s0'],
-        rotation: ['Intro', 'Crimson Blossom', 'Ephemeral', 'Enhanced Vining', 'Liberation'],
+        rotation: ['Intro', 'Skill + Lib', 'Spin', 'Nuke', 'Spin', 'Outro'],
         notes: '5-star weapons at R1, 4-star at R5. Red Spring with stacked buffs. \n S0R1 Shorekeeper + Midnight Roccia',
         enabled: true
     },
