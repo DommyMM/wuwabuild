@@ -17,7 +17,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         rotation: ['Intro', 'Forte Circuit', 'Skill', 'Heavy', 'Enhanced Skill'],
         notes: '5-star weapons at R1, 4-star at R5. Autumntrace and Helios at 4 stacks. \n S0R1 Shorekeeper + Moonlit Mortefi',
         enabled: true
-        },
+    },
     '24': {
         teamIds: ['3', '27'],
         stats: ['ATK', 'Energy Regen', 'Resonance Skill DMG Bonus', 'Spectro DMG'],
@@ -27,7 +27,16 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         notes: '5-star weapons at R1, 4-star at R5. Autumntrace and Helios at 4 stacks. \n Stellar Verina + Moonlit Heron Zhezhi',
         enabled: true
     },
-        '29': {
+    '26': {
+        teamIds: ['28', '44'],
+        stats: ['ATK', 'Energy Regen', 'Resonance Skill DMG Bonus', 'Fusion DMG'],
+        weapons: ['21020016', '21020015', '21020044', '21020084'],
+        sequences: ['s0', 's2'],
+        rotation: ['Intro', 'Basic', 'Skill x2' , 'Forte', 'Lib', 'Forte'],
+        notes: '5-star weapons at R1, 4-star at R5. Blazing Brilliance gets 56% RS DMG on second skill. \n S0R1 Shorekeeper + Moonlit Heron Brant.',
+        enabled: true
+    },
+    '29': {
         teamIds: ['28', '33'],
         stats: ['ATK', 'Energy Regen', 'Basic Attack DMG Bonus', 'Havoc DMG'],
         weapons: ['21020017', '21020015', '21020044', '21020084'],
@@ -44,5 +53,5 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         rotation: ['Intro', 'Skill', 'Forte Circuit', 'Liberation', 'Outro'],
         notes: '5-star weapons at R1, 4-star at R5. Thunderbolt at max stacks. \n S0R1 Shorekeeper + Moonlit Heron Zhezhi',
         enabled: true
-    }
+    },
 };

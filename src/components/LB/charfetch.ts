@@ -22,9 +22,7 @@ export interface LeaderboardData {
 }
 
 export async function getLeaderboardData() {
-    const res = await fetch(`${LB_URL}/leaderboard`, {
-        cache: 'no-store'  // Client always requests fresh data
-    });
+    const res = await fetch(`${LB_URL}/leaderboard`);
     if (!res.ok) throw new Error('Failed to fetch leaderboard');
     const json = await res.json();
     return json.characters as LeaderboardData[];
