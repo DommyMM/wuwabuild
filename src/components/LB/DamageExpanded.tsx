@@ -148,6 +148,30 @@ function getBalancedColumns(moves: MoveResult[]): [MoveResult[], MoveResult[], '
     const totalHeight = movesWithHeight.reduce((sum, item) => sum + item.height, 0);
     const targetHeight = totalHeight / 2;
     
+    // Quick check: Do we have the problematic "multiple similar heights" pattern?
+    const heights = movesWithHeight.map(m => m.height);
+    const heightCounts = new Map();
+    heights.forEach(h => heightCounts.set(h, (heightCounts.get(h) || 0) + 1));
+    const hasMultipleSimilar = Array.from(heightCounts.values()).some(count => count >= 3);
+    
+    // If problematic pattern + small dataset, use DP
+    if (hasMultipleSimilar && moves.length <= 10) {
+        const dpResult = solveWithDP(movesWithHeight, Math.floor(targetHeight));
+        if (dpResult) {
+            const { left, right } = dpResult;
+            left.sort((a, b) => a.originalIndex - b.originalIndex);
+            right.sort((a, b) => a.originalIndex - b.originalIndex);
+            
+            const finalLeftHeight = left.reduce((sum, item) => sum + item.height, 0);
+            const finalRightHeight = right.reduce((sum, item) => sum + item.height, 0);
+            const heightDifference = Math.abs(finalLeftHeight - finalRightHeight);
+            const shiftDirection = heightDifference > 40 && left.length > 0 && right.length > 0 
+                ? (finalLeftHeight > finalRightHeight ? 'left' : 'right') : null;
+            
+            return [left.map(x => x.move), right.map(x => x.move), shiftDirection];
+        }
+    }
+    
     // Identify heavyweight moves (>200px or >35% of total)
     const heavyweights = movesWithHeight.filter(item => 
         item.height > 200 || item.height > totalHeight * 0.35
@@ -158,19 +182,16 @@ function getBalancedColumns(moves: MoveResult[]): [MoveResult[], MoveResult[], '
         const heavyweight = heavyweights[0];
         const others = movesWithHeight.filter(item => item !== heavyweight);
         
-        // Try to add small items to heavyweight column until it gets close to target
         const left = [heavyweight];
         const right = [...others];
         let leftHeight = heavyweight.height;
         
-        // Sort others by height (smallest first) to greedily fill
         others.sort((a, b) => a.height - b.height);
         
         for (const item of others) {
             const newLeftHeight = leftHeight + item.height;
             const remainingRightHeight = totalHeight - newLeftHeight;
             
-            // If adding this item brings us closer to balance, do it
             const currentDiff = Math.abs(leftHeight - (totalHeight - leftHeight));
             const newDiff = Math.abs(newLeftHeight - remainingRightHeight);
             
@@ -182,30 +203,23 @@ function getBalancedColumns(moves: MoveResult[]): [MoveResult[], MoveResult[], '
             }
         }
         
-        // Sort both columns back to original order
         left.sort((a, b) => a.originalIndex - b.originalIndex);
         right.sort((a, b) => a.originalIndex - b.originalIndex);
         
         const finalLeftHeight = left.reduce((sum, item) => sum + item.height, 0);
         const finalRightHeight = right.reduce((sum, item) => sum + item.height, 0);
         const heightDifference = Math.abs(finalLeftHeight - finalRightHeight);
-        const shouldShift = heightDifference > 40 && left.length > 0 && right.length > 0;
-        const shiftDirection = shouldShift ? (finalLeftHeight > finalRightHeight ? 'left' : 'right') : null;
+        const shiftDirection = heightDifference > 40 && left.length > 0 && right.length > 0 
+            ? (finalLeftHeight > finalRightHeight ? 'left' : 'right') : null;
         
-        return [
-            left.map(x => x.move),
-            right.map(x => x.move),
-            shiftDirection
-        ];
+        return [left.map(x => x.move), right.map(x => x.move), shiftDirection];
     }
     
     // Fallback: Use dynamic programming for optimal split
-    // Try all possible combinations and find the one closest to 50/50 split
     let bestLeft: typeof movesWithHeight = [];
     let bestRight: typeof movesWithHeight = [];
     let bestDifference = Infinity;
     
-    // For efficiency, limit to trying sequential splits and one smart rearrangement
     for (let splitPoint = 1; splitPoint < moves.length; splitPoint++) {
         const left = movesWithHeight.slice(0, splitPoint);
         const right = movesWithHeight.slice(splitPoint);
@@ -227,33 +241,67 @@ function getBalancedColumns(moves: MoveResult[]): [MoveResult[], MoveResult[], '
     
     if (Math.abs(leftHeight - rightHeight) > 50) {
         if (leftHeight > rightHeight && bestLeft.length > 1) {
-            // Move smallest from left to right
             const smallest = bestLeft.reduce((min, item) => item.height < min.height ? item : min);
             bestLeft = bestLeft.filter(item => item !== smallest);
             bestRight = [...bestRight, smallest];
         } else if (rightHeight > leftHeight && bestRight.length > 1) {
-            // Move smallest from right to left
             const smallest = bestRight.reduce((min, item) => item.height < min.height ? item : min);
             bestRight = bestRight.filter(item => item !== smallest);
             bestLeft = [...bestLeft, smallest];
         }
     }
     
-    // Sort both columns back to original order
     bestLeft.sort((a, b) => a.originalIndex - b.originalIndex);
     bestRight.sort((a, b) => a.originalIndex - b.originalIndex);
     
     const finalLeftHeight = bestLeft.reduce((sum, item) => sum + item.height, 0);
     const finalRightHeight = bestRight.reduce((sum, item) => sum + item.height, 0);
     const heightDifference = Math.abs(finalLeftHeight - finalRightHeight);
-    const shouldShift = heightDifference > 40 && bestLeft.length > 0 && bestRight.length > 0;
-    const shiftDirection = shouldShift ? (finalLeftHeight > finalRightHeight ? 'left' : 'right') : null;
+    const shiftDirection = heightDifference > 40 && bestLeft.length > 0 && bestRight.length > 0 
+        ? (finalLeftHeight > finalRightHeight ? 'left' : 'right') : null;
     
-    return [
-        bestLeft.map(x => x.move),
-        bestRight.map(x => x.move),
-        shiftDirection
-    ];
+    return [bestLeft.map(x => x.move), bestRight.map(x => x.move), shiftDirection];
+}
+
+// Simple DP solver for edge cases
+function solveWithDP(movesWithHeight: any[], target: number) {
+    const n = movesWithHeight.length;
+    const dp = Array(target + 1).fill(false);
+    dp[0] = true;
+    
+    const parent = Array(target + 1).fill(-1);
+    const usedItems = Array(target + 1).fill(null);
+    
+    for (let i = 0; i < n; i++) {
+        const height = movesWithHeight[i].height;
+        for (let sum = target; sum >= height; sum--) {
+            if (dp[sum - height] && !dp[sum]) {
+                dp[sum] = true;
+                parent[sum] = sum - height;
+                usedItems[sum] = i;
+            }
+        }
+    }
+    
+    let bestSum = 0;
+    for (let sum = target; sum >= 0; sum--) {
+        if (dp[sum]) { bestSum = sum; break; }
+    }
+    
+    const leftIndices = new Set();
+    let currentSum = bestSum;
+    while (currentSum > 0 && usedItems[currentSum] !== null) {
+        leftIndices.add(usedItems[currentSum]);
+        currentSum = parent[currentSum];
+    }
+    
+    const left = [], right = [];
+    for (let i = 0; i < n; i++) {
+        if (leftIndices.has(i)) left.push(movesWithHeight[i]);
+        else right.push(movesWithHeight[i]);
+    }
+    
+    return { left, right };
 }
 
 type ColumnPosition = {
