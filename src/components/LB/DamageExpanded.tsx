@@ -394,28 +394,57 @@ function processMoveData(moves: MoveResult[]) {
             // Sort by damage (descending)
             instances.sort((a, b) => b.damage - a.damage);
             
-            // Create combined move
-            const combinedMove: MoveResult = {
-                ...instances[0],
-                name,
-                damage: instances.reduce((sum, move) => sum + move.damage, 0),
-                // If hits exist, combine them too
-                hits: instances[0].hits ? instances.flatMap((move, idx) => 
-                    move.hits?.map(hit => ({
+            // Check if damage values are very similar (within 1%)
+            const areDamagesEqual = instances.every(move => 
+                Math.abs(move.damage - instances[0].damage) / instances[0].damage < 0.01
+            );
+            
+            if (areDamagesEqual) {
+                // For identical moves, create one combined move with multiplier
+                const totalDamage = instances.reduce((sum, move) => sum + move.damage, 0);
+                const multiplier = instances.length;
+                
+                const combinedMove: MoveResult = {
+                    ...instances[0],
+                    name: `${name} ${multiplier > 1 ? `×${multiplier}` : ''}`,
+                    damage: totalDamage,
+                    // Keep original hit structure but adjust percentages
+                    hits: instances[0].hits ? instances[0].hits.map(hit => ({
                         ...hit,
-                        name: `${hit.name} ${idx === 0 ? '(Buffed)' : '(Unbuffed)'}`,
-                        damage: hit.damage,
-                        percentage: (hit.damage / instances.reduce((sum, m) => sum + m.damage, 0)) * 100
-                    })) || []
-                ) : undefined
-            };
-            
-            combinedMoves.push(combinedMove);
-            
-            // Map all original moves to this combined one
-            instances.forEach(original => {
-                originalToProcessed.set(original, combinedMove);
-            });
+                        damage: hit.damage * multiplier,
+                        percentage: hit.percentage // Percentages stay the same since identical
+                    })) : undefined
+                };
+                
+                combinedMoves.push(combinedMove);
+                
+                // Map all original moves to this combined one
+                instances.forEach(original => {
+                    originalToProcessed.set(original, combinedMove);
+                });
+            } else {
+                // For different damage values (buffed vs unbuffed), keep original behavior
+                const combinedMove: MoveResult = {
+                    ...instances[0],
+                    name,
+                    damage: instances.reduce((sum, move) => sum + move.damage, 0),
+                    hits: instances[0].hits ? instances.flatMap((move, idx) => 
+                        move.hits?.map(hit => ({
+                            ...hit,
+                            name: `${hit.name} ${idx === 0 ? '(Buffed)' : '(Unbuffed)'}`,
+                            damage: hit.damage,
+                            percentage: (hit.damage / instances.reduce((sum, m) => sum + m.damage, 0)) * 100
+                        })) || []
+                    ) : undefined
+                };
+                
+                combinedMoves.push(combinedMove);
+                
+                // Map all original moves to this combined one
+                instances.forEach(original => {
+                    originalToProcessed.set(original, combinedMove);
+                });
+            }
         }
     });
     
