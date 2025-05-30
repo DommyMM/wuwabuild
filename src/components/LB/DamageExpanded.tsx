@@ -264,7 +264,7 @@ function getBalancedColumns(moves: MoveResult[]): [MoveResult[], MoveResult[], '
 }
 
 // Simple DP solver for edge cases
-function solveWithDP(movesWithHeight: any[], target: number) {
+function solveWithDP(movesWithHeight: Array<{move: MoveResult, originalIndex: number, height: number}>, target: number) {
     const n = movesWithHeight.length;
     const dp = Array(target + 1).fill(false);
     dp[0] = true;
