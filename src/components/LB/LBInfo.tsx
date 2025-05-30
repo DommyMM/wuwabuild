@@ -69,6 +69,19 @@ const BuildSelector: React.FC<{
     const config = CHARACTER_CONFIGS[characterId];
     if (!config?.weapons) return null;
 
+    // Parse current selection for characters with styles
+    const parseSequenceStyle = (seqStyle: string) => {
+        const parts = seqStyle.split('_');
+        return {
+            baseSequence: parts[0],
+            style: parts[1] || 'default'
+        };
+    };
+
+    // Only process style-related info if character has styles defined
+    const hasStyles = config.styles && config.styles.length > 1;
+    const { baseSequence, style } = hasStyles ? parseSequenceStyle(selectedSequence) : { baseSequence: selectedSequence, style: 'default' };
+
     return (
         <div className="build-selector">
             <div className="build-header-content">
@@ -93,17 +106,48 @@ const BuildSelector: React.FC<{
                         );
                     })}
                 </div>
-                {config.sequences && (
-                    <div className="sequence-selector-grid">
-                        {config.sequences.map(seq => (
+
+                {/* Sequence selector - different rendering based on whether character has styles */}
+                <div className="sequence-selector-grid">
+                    {config.sequences && !hasStyles ? (
+                        // Original design for characters without styles
+                        config.sequences.map(seq => (
                             <div key={seq} className={`sequence-selector-item ${seq === selectedSequence ? 'selected' : ''}`}
                                 onClick={() => onSequenceSelect?.(seq as Sequence)}
                             >
                                 {`S${seq.charAt(1)}`}
                             </div>
-                        ))}
-                    </div>
-                )}
+                        ))
+                    ) : (
+                        // Split design for characters with styles
+                        config.sequences?.map(seq => {
+                            const isCurrentSequence = seq === baseSequence;
+                            
+                            return (
+                                <div key={seq} className="sequence-group">
+                                    <div className="sequence-label">S{seq.charAt(1)}</div>
+                                    <div className="style-options">
+                                        {config.styles?.map(styleOption => {
+                                            const fullSequence = styleOption.key === 'default' ? seq : `${seq}_${styleOption.key}`;
+                                            const isSelected = selectedSequence === fullSequence;
+                                            
+                                            return (
+                                                <div key={styleOption.key}
+                                                    className={`style-option ${isSelected ? 'selected' : ''} ${styleOption.key}`}
+                                                    onClick={() => onSequenceSelect?.(fullSequence as Sequence)}
+                                                    title={styleOption.description}
+                                                >
+                                                    {styleOption.name}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
                 <button className={`expand-toggle ${isExpanded ? 'expanded' : ''}`} onClick={() => setIsExpanded(!isExpanded)} aria-label="Toggle details">
                     <ChevronDown className="expand-icon" />
                 </button>

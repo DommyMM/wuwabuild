@@ -2,7 +2,7 @@ import React from 'react';
 import { cachedCharacters } from '../../hooks/useCharacters';
 import { Character } from '../../types/character';
 import { getCVClass } from '../Save/Card';
-import { DecompressedEntry } from '../Build/types';
+import { DecompressedEntry, MoveResult } from '../Build/types';
 import { decompressStats } from '../../hooks/useStats';
 import { getStatPaths } from '../../types/stats';
 import { BuildSetsSection } from '../Build/BuildEntry';
@@ -84,6 +84,15 @@ interface DamageEntryProps {
     onClick?: () => void;
 }
 
+export interface SequenceData {
+    damage: number;
+    moves: MoveResult[];
+}
+
+const isSequenceData = (data: any): data is SequenceData => {
+    return data !== null && typeof data === 'object' && 'damage' in data;
+};
+
 export const STAT_MAP = {
     HP: "H",
     ATK: "A",
@@ -124,8 +133,9 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
         calc => calc.weaponId === selectedWeaponId
     );
     
-    // Update damage access to use sequence
-    const damage = selectedCalc?.[selectedSequence]?.damage || 0;
+    // Get the sequence data and use the type guard
+    const sequenceData = selectedCalc?.[selectedSequence as keyof typeof selectedCalc];
+    const damage = isSequenceData(sequenceData) ? sequenceData.damage : 0;
     
     // Always use weapon-specific stats when available
     const stats = selectedCalc?.stats 

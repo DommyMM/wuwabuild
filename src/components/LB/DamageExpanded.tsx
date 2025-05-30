@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { DecompressedEntry, MoveResult, Sequence } from '../Build/types';
+import { DecompressedEntry, MoveResult } from '../Build/types';
 import { cachedCharacters } from '../../hooks/useCharacters';
 import { BuildExpanded } from '../Build/BuildExpanded';
+import { SequenceData } from './DamageEntry';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface DamageExpandedProps {
     entry: DecompressedEntry;
     selectedWeapon: number;
-    selectedSequence?: Sequence;
+    selectedSequence?: string; // Change type to string
 }
 
 interface ChartMoveData {
@@ -515,7 +516,7 @@ const MoveBreakdown: React.FC<{
     const moveData = combinedMoves.map(move => ({
         name: move.name,
         damage: move.damage,
-        value: move.damage,  // Value directly drives the angle
+        value: move.damage,
         percentage: (move.damage / combinedTotalDamage) * 100
     }));
 
@@ -588,7 +589,7 @@ const MoveBreakdown: React.FC<{
 export const DamageExpanded: React.FC<DamageExpandedProps> = ({ 
     entry,
     selectedWeapon,
-    selectedSequence = 's0'  // Default to s0
+    selectedSequence = 's0'
 }) => {
     const expandedRef = React.useRef<HTMLDivElement>(null);
     
@@ -609,14 +610,20 @@ export const DamageExpanded: React.FC<DamageExpandedProps> = ({
     const character = entry.buildState.characterState.id ? 
         cachedCharacters?.find(c => c.id === entry.buildState.characterState.id) ?? null : null;
     
-    // Update calculation access to use sequence
     const selectedCalc = entry.calculations?.[selectedWeapon];
-    const sequenceData = selectedCalc?.[selectedSequence];
+    
+    // Use a type guard to ensure sequenceData has the correct shape
+    const sequenceData = selectedCalc?.[selectedSequence as keyof typeof selectedCalc];
+    
+    // Type guard function to check if an object is a SequenceData
+    const isSequenceData = (data: any): data is SequenceData => {
+        return data && Array.isArray(data.moves);
+    };
 
     return (
         <div className="build-expanded-content" ref={expandedRef}>
             <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character} />
-            {sequenceData && (
+            {sequenceData && isSequenceData(sequenceData) && (
                 <MoveBreakdown moves={sequenceData.moves} />
             )}
         </div>

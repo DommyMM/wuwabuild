@@ -228,7 +228,10 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
             direction: sortDirection,
             page: String(page)
         });
-        if (selectedSequence !== 's0') {
+        
+        // Handle both old format (s0) and new format (s0_solo)
+        const defaultSequence = config.styles?.some(s => s.key === 'default') ? 's0' : 's0';
+        if (selectedSequence !== defaultSequence) {
             params.set('sequence', selectedSequence);
         }
         if (filterState.echoSets.length > 0) {
@@ -262,7 +265,10 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
                     pageSize: String(itemsPerPage),
                     weaponIndex: String(selectedWeapon)
                 });
-                if (selectedSequence !== 's0') {
+                
+                // Handle sequence_style format
+                const defaultSequence = config.styles?.some(s => s.key === 'default') ? 's0' : 's0';
+                if (selectedSequence !== defaultSequence) {
                     fetchParams.set('sequence', selectedSequence);
                 }
                 if (filterState.regions.length > 0) {
