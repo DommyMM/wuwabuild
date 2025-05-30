@@ -89,7 +89,7 @@ export interface SequenceData {
     moves: MoveResult[];
 }
 
-const isSequenceData = (data: any): data is SequenceData => {
+const isSequenceData = (data: unknown): data is SequenceData => {
     return data !== null && typeof data === 'object' && 'damage' in data;
 };
 

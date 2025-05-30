@@ -250,7 +250,7 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
             params.append('uid', filterState.uid);
         }
         router.push(`/leaderboards/${characterId}?${params.toString()}`, { scroll: false });
-    }, [characterId, selectedWeapon, currentSort, sortDirection, page, selectedSequence, config.weapons, router, filterState]);
+    }, [characterId, selectedWeapon, currentSort, sortDirection, page, selectedSequence, config.weapons, config.styles, router, filterState]);
     
     useEffect(() => {
         setExpandedEntries(new Set());
@@ -304,7 +304,7 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
             }
         };
         loadData();
-    }, [page, characterId, sortDirection, currentSort, selectedWeapon, selectedSequence, config.weapons, filterState]);
+    }, [page, characterId, sortDirection, currentSort, selectedWeapon, selectedSequence, config.weapons, , config.styles, filterState]);
 
     const handleSortChange = (field: SortField) => {
         setCurrentSort(field === currentSort ? null : field);

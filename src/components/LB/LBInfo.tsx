@@ -69,18 +69,8 @@ const BuildSelector: React.FC<{
     const config = CHARACTER_CONFIGS[characterId];
     if (!config?.weapons) return null;
 
-    // Parse current selection for characters with styles
-    const parseSequenceStyle = (seqStyle: string) => {
-        const parts = seqStyle.split('_');
-        return {
-            baseSequence: parts[0],
-            style: parts[1] || 'default'
-        };
-    };
-
     // Only process style-related info if character has styles defined
     const hasStyles = config.styles && config.styles.length > 1;
-    const { baseSequence, style } = hasStyles ? parseSequenceStyle(selectedSequence) : { baseSequence: selectedSequence, style: 'default' };
 
     return (
         <div className="build-selector">
@@ -121,8 +111,6 @@ const BuildSelector: React.FC<{
                     ) : (
                         // Split design for characters with styles
                         config.sequences?.map(seq => {
-                            const isCurrentSequence = seq === baseSequence;
-                            
                             return (
                                 <div key={seq} className="sequence-group">
                                     <div className="sequence-label">S{seq.charAt(1)}</div>

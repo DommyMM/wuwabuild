@@ -616,8 +616,13 @@ export const DamageExpanded: React.FC<DamageExpandedProps> = ({
     const sequenceData = selectedCalc?.[selectedSequence as keyof typeof selectedCalc];
     
     // Type guard function to check if an object is a SequenceData
-    const isSequenceData = (data: any): data is SequenceData => {
-        return data && Array.isArray(data.moves);
+    const isSequenceData = (data: unknown): data is SequenceData => {
+        return (
+            data !== null && 
+            typeof data === 'object' && 
+            'moves' in data && 
+            Array.isArray((data as Record<string, unknown>).moves)
+        );
     };
 
     return (
