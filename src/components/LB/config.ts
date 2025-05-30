@@ -37,10 +37,10 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         stats: ['ATK', 'Energy Regen', 'Resonance Skill DMG Bonus', 'Fusion DMG'],
         weapons: ['21020016', '21020015', '21020044', '21020084'],
         sequences: ['s0', 's2'],
-        styles: [
-            { key: 'default', name: 'Hypercarry', description: 'SK + Brant' },
-            { key: 'solo', name: 'Solo', description: 'No supports' }
-        ],
+        // styles: [
+        //     { key: 'default', name: 'Hypercarry', description: 'SK + Brant' },
+        //     { key: 'solo', name: 'Solo', description: 'No supports' }
+        // ],
         rotation: ['Intro', 'Basic', 'Skill x2', 'Forte', 'Lib', 'Forte'],
         notes: '5-star weapons at R1, 4-star at R5. Blazing Brilliance gets 56% RS DMG on second skill. \n S0R1 Shorekeeper + Moonlit Heron Brant.',
         enabled: true
