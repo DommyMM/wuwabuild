@@ -618,9 +618,6 @@ export const DamageExpanded: React.FC<DamageExpandedProps> = ({
     const character = entry.buildState.characterState.id ? 
         cachedCharacters?.find(c => c.id === entry.buildState.characterState.id) ?? null : null;
     
-    // Get the calculation for damage value only
-    const selectedCalc = entry.calculations?.[selectedWeapon];
-    
     return (
         <div className="build-expanded-content" ref={expandedRef}>
             <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character} />
