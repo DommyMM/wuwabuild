@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { DecompressedEntry, MoveResult } from '../Build/types';
-import { cachedCharacters } from '../../hooks/useCharacters';
-import { BuildExpanded } from '../Build/BuildExpanded';
-import { SequenceData } from './DamageEntry';
+import { cachedCharacters } from '@/hooks/useCharacters';
+import { BuildExpanded } from '@/components/Build/BuildExpanded';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface DamageExpandedProps {
     entry: DecompressedEntry;
     selectedWeapon: number;
-    selectedSequence?: string; // Change type to string
+    selectedSequence?: string;
+    moveCache?: Map<string, MoveResult[]>;
+    loadingMoves?: Set<string>;
 }
 
 interface ChartMoveData {
@@ -589,9 +590,16 @@ const MoveBreakdown: React.FC<{
 export const DamageExpanded: React.FC<DamageExpandedProps> = ({ 
     entry,
     selectedWeapon,
-    selectedSequence = 's0'
+    selectedSequence = 's0',
+    moveCache = new Map(),
+    loadingMoves = new Set()
 }) => {
     const expandedRef = React.useRef<HTMLDivElement>(null);
+    
+    // Generate cache key for this entry/weapon/sequence combination
+    const cacheKey = `${entry._id}-${selectedWeapon}-${selectedSequence}`;
+    const isLoadingMoves = loadingMoves.has(cacheKey);
+    const cachedMoves = moveCache.get(cacheKey);
     
     React.useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -610,27 +618,17 @@ export const DamageExpanded: React.FC<DamageExpandedProps> = ({
     const character = entry.buildState.characterState.id ? 
         cachedCharacters?.find(c => c.id === entry.buildState.characterState.id) ?? null : null;
     
+    // Get the calculation for damage value only
     const selectedCalc = entry.calculations?.[selectedWeapon];
     
-    // Use a type guard to ensure sequenceData has the correct shape
-    const sequenceData = selectedCalc?.[selectedSequence as keyof typeof selectedCalc];
-    
-    // Type guard function to check if an object is a SequenceData
-    const isSequenceData = (data: unknown): data is SequenceData => {
-        return (
-            data !== null && 
-            typeof data === 'object' && 
-            'moves' in data && 
-            Array.isArray((data as Record<string, unknown>).moves)
-        );
-    };
-
     return (
         <div className="build-expanded-content" ref={expandedRef}>
             <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character} />
-            {sequenceData && isSequenceData(sequenceData) && (
-                <MoveBreakdown moves={sequenceData.moves} />
-            )}
+            {isLoadingMoves ? (
+                <div className="moves-loading">Loading move breakdown...</div>
+            ) : cachedMoves ? (
+                <MoveBreakdown moves={cachedMoves} />
+            ) : null}
         </div>
     );
 };

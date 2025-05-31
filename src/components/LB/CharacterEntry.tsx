@@ -10,7 +10,7 @@ import { DamageEntry } from './DamageEntry';
 import { LBInfo } from './LBInfo';
 import { LBSortDropdown, LBSortHeader } from './SortDropdown';
 import { CHARACTER_CONFIGS } from './config';
-import { Sequence } from '@/components/Build/types';
+import { Sequence, MoveResult } from '@/components/Build/types';
 import { Character } from '@/types/character';
 import { BuildFilter, FilterState } from '@/components/Build/BuildFilter';
 
@@ -76,7 +76,9 @@ interface LeaderboardTableProps {
     selectedWeapon?: number;
     selectedSequence?: Sequence;
     expandedEntries: Set<string>;
-    onEntryClick: (timestamp: string) => void;
+    onEntryClick: (buildId: string) => void;
+    moveCache: Map<string, MoveResult[]>;
+    loadingMoves: Set<string>;
 }
 
 const getDropdownPosition = (current: number | null | undefined, last: number | null | undefined) => {
@@ -98,7 +100,8 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
     onSortChange, onDirectionChange, characterId,
     hoveredSection, lastHoveredSection, onHoverSection,
     selectedWeapon, selectedSequence,
-    expandedEntries, onEntryClick
+    expandedEntries, onEntryClick,
+    moveCache, loadingMoves
 }) => {
     const sortType = getSortType(currentSort);
 
@@ -141,15 +144,17 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
             <div className="build-entries">
                 {data.map((entry, index) => (
                     <DamageEntry 
-                        key={entry.timestamp} 
+                        key={entry._id} // Use _id instead of timestamp
                         entry={entry} 
                         rank={(page - 1) * itemsPerPage + index + 1}
                         activeStat={sortType === 'stat' ? currentSort : null}
                         activeSort={sortType}
                         selectedWeapon={selectedWeapon}
                         selectedSequence={selectedSequence}
-                        isExpanded={expandedEntries.has(entry.timestamp)}
-                        onClick={() => onEntryClick(entry.timestamp)}
+                        isExpanded={expandedEntries.has(entry._id)} // Use _id instead of timestamp
+                        onClick={() => onEntryClick(entry._id)} // Use _id instead of timestamp
+                        moveCache={moveCache}
+                        loadingMoves={loadingMoves}
                     />
                 ))}
             </div>
@@ -198,6 +203,8 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
     const [lastHoveredSection, setLastHoveredSection] = useState<number | null>(null);
     const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
     const [selectedSequence, setSelectedSequence] = useState<Sequence>('s0');
+    const [moveCache, setMoveCache] = useState<Map<string, MoveResult[]>>(new Map());
+    const [loadingMoves, setLoadingMoves] = useState<Set<string>>(new Set());
     const itemsPerPage = 10;
     const [filterState, setFilterState] = useState<FilterState>({
         characterIds: [],
@@ -310,6 +317,32 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
         setCurrentSort(field === currentSort ? null : field);
     };
 
+    const loadMovesData = async (buildId: string, weaponIndex: number, sequence: string) => {
+        const cacheKey = `${buildId}-${weaponIndex}-${sequence}`;
+        
+        if (moveCache.has(cacheKey)) return; // Already cached
+        
+        setLoadingMoves(prev => new Set(prev).add(cacheKey));
+        
+        try {
+            const response = await fetch(`${LB_URL}/build/${buildId}/moves/${weaponIndex}/${sequence}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            
+            const data = await response.json();
+            setMoveCache(prev => new Map(prev).set(cacheKey, data.moves || []));
+        } catch (error) {
+            console.error('Failed to load moves:', error);
+        } finally {
+            setLoadingMoves(prev => {
+                const next = new Set(prev);
+                next.delete(cacheKey);
+                return next;
+            });
+        }
+    };
+
     if (loading) return (
         <div className="build-container">
             <div className="loading-state">Loading character data...</div>
@@ -374,17 +407,24 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
                         selectedWeapon={selectedWeapon}
                         selectedSequence={selectedSequence}
                         expandedEntries={expandedEntries}
-                        onEntryClick={(timestamp) => 
+                        onEntryClick={(buildId) => {
+                            const entry = data.find(e => e._id === buildId);
+                            if (entry && !expandedEntries.has(buildId)) {
+                                loadMovesData(buildId, selectedWeapon, selectedSequence);
+                            }
+                            
                             setExpandedEntries(prev => {
                                 const next = new Set(prev);
-                                if (next.has(timestamp)) {
-                                    next.delete(timestamp);
+                                if (next.has(buildId)) {
+                                    next.delete(buildId);
                                 } else {
-                                    next.add(timestamp);
+                                    next.add(buildId);
                                 }
                                 return next;
-                            })
-                        }
+                            });
+                        }}
+                        moveCache={moveCache}
+                        loadingMoves={loadingMoves}
                     />
                     <Pagination currentPage={page} pageCount={pageCount} onPageChange={setPage} />
                 </div>

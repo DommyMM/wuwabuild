@@ -1,15 +1,15 @@
 import React from 'react';
-import { cachedCharacters } from '../../hooks/useCharacters';
-import { Character } from '../../types/character';
-import { getCVClass } from '../Save/Card';
-import { DecompressedEntry, MoveResult } from '../Build/types';
-import { decompressStats } from '../../hooks/useStats';
-import { getStatPaths } from '../../types/stats';
-import { BuildSetsSection } from '../Build/BuildEntry';
+import { cachedCharacters } from '@/hooks/useCharacters';
+import { Character } from '@/types/character';
+import { getCVClass } from '@/components/Save/Card';
+import { DecompressedEntry, MoveResult } from '@/components/Build/types';
+import { decompressStats } from '@/hooks/useStats';
+import { getStatPaths } from '@/types/stats';
+import { BuildSetsSection } from '@/components/Build/BuildEntry';
 import { CHARACTER_CONFIGS } from './config';
-import { Sequence } from '../Build/types';
+import { Sequence } from '@/components/Build/types';
 import { DamageExpanded } from './DamageExpanded';
-import '../../styles/Damage.css';
+import '@/styles/Damage.css';
 
 const BuildOwnerSection: React.FC<{
     username?: string;
@@ -82,6 +82,8 @@ interface DamageEntryProps {
     selectedSequence?: Sequence;
     isExpanded?: boolean;
     onClick?: () => void;
+    moveCache?: Map<string, MoveResult[]>;
+    loadingMoves?: Set<string>;
 }
 
 export interface SequenceData {
@@ -121,7 +123,9 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
     selectedWeapon = 0,
     selectedSequence = 's0',
     isExpanded = false,
-    onClick
+    onClick,
+    moveCache = new Map(),
+    loadingMoves = new Set()
 }) => {
     const characterId = entry.buildState.characterState.id || '';
     const config = CHARACTER_CONFIGS[characterId];
@@ -184,6 +188,8 @@ export const DamageEntry: React.FC<DamageEntryProps> = ({
                     entry={entry} 
                     selectedWeapon={selectedWeapon}
                     selectedSequence={selectedSequence}
+                    moveCache={moveCache}
+                    loadingMoves={loadingMoves}
                 />
             )}
         </div>

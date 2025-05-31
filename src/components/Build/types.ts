@@ -8,6 +8,7 @@ import { CompressedEchoPanel } from '@/components/Save/Backup';
 export type Sequence = 's0' | 's1' | 's2' | 's3' | 's4' | 's5' | 's6';
 
 export interface CompressedEntry {
+    _id: string;
     buildState: {
         c: { i: string; l: string; e: string; };
         w: { i: string; l: string; r: number; };
@@ -32,6 +33,7 @@ export interface CompressedEntry {
 }
 
 export interface DecompressedEntry {
+    _id: string;
     buildState: SavedState;
     stats: CompressedStats;
     cv: number;
