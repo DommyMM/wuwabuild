@@ -50,6 +50,32 @@ const RotationDisplay: React.FC<{ steps: string[] }> = ({ steps }) => (
     </div>
 );
 
+const parseSequenceStyle = (seqStyle: string) => {
+    const parts = seqStyle.split('_');
+    return {
+        baseSequence: parts[0],
+        style: parts[1] || 'default'
+    };
+};
+
+const getStyle = (characterId: string, selectedSequence: Sequence) => {
+    const config = CHARACTER_CONFIGS[characterId] || {};
+    const hasStyles = config.styles && config.styles.length > 1;
+    
+    const { style: currentStyle } = parseSequenceStyle(selectedSequence);
+    const activeStyle = config.styles?.find(s => s.key === currentStyle);
+    
+    return {
+        config,
+        hasStyles,
+        currentStyle,
+        activeStyle,
+        teamIds: activeStyle?.teamIds ?? config.teamIds ?? [],
+        rotation: activeStyle?.rotation || config.rotation || [],
+        notes: activeStyle?.notes || config.notes || ''
+    };
+};
+
 const BuildSelector: React.FC<{ 
     characterId: string;
     maxDamages: Array<{ weaponId: string; damage: number }>;
@@ -66,30 +92,9 @@ const BuildSelector: React.FC<{
     selectedSequence = 's0'
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const config = CHARACTER_CONFIGS[characterId];
+    const { config, hasStyles, rotation, notes } = getStyle(characterId, selectedSequence);
+    
     if (!config?.weapons) return null;
-
-    // Only process style-related info if character has styles defined
-    const hasStyles = config.styles && config.styles.length > 1;
-    
-    // Parse the selected sequence to get style
-    const parseSequenceStyle = (seqStyle: string) => {
-        const parts = seqStyle.split('_');
-        return {
-            baseSequence: parts[0],
-            style: parts[1] || 'default'
-        };
-    };
-    
-    // Get current style information
-    const { style: currentStyle } = parseSequenceStyle(selectedSequence);
-    
-    // Find the active style config if it exists
-    const activeStyle = config.styles?.find(s => s.key === currentStyle);
-    
-    // Use style-specific rotation and notes if available, otherwise fall back to defaults
-    const rotation = activeStyle?.rotation || config.rotation || [];
-    const notes = activeStyle?.notes || config.notes || '';
 
     return (
         <div className="build-selector">
@@ -131,7 +136,7 @@ const BuildSelector: React.FC<{
                         // Split design for characters with styles
                         config.sequences?.map(seq => {
                             return (
-                                <div key={seq} className="sequence-group">
+                                <div key={seq} className="style-group">
                                     <div className="sequence-label">S{seq.charAt(1)}</div>
                                     <div className="style-options">
                                         {config.styles?.map(styleOption => {
@@ -200,29 +205,7 @@ export const LBInfo: React.FC<LBInfoProps> = ({
     onSequenceSelect,
     selectedSequence = 's0'
 }) => {
-    const config = CHARACTER_CONFIGS[characterId] || {
-        description: 'No specific team requirements',
-        teamIds: [],
-        expectedStats: []
-    };
-
-    // Parse the selected sequence to get style for team selection
-    const parseSequenceStyle = (seqStyle: string) => {
-        const parts = seqStyle.split('_');
-        return {
-            baseSequence: parts[0],
-            style: parts[1] || 'default'
-        };
-    };
-    
-    // Get current style information
-    const { style: currentStyle } = parseSequenceStyle(selectedSequence);
-    
-    // Find the active style config if it exists
-    const activeStyle = config.styles?.find(s => s.key === currentStyle);
-    
-    // Use style-specific team if available, otherwise fall back to defaults
-    const teamIds = activeStyle?.teamIds || config.teamIds || [];
+    const { teamIds } = getStyle(characterId, selectedSequence);
 
     if (!character) return null;
 
@@ -231,7 +214,7 @@ export const LBInfo: React.FC<LBInfoProps> = ({
             <InfoTitle name={character.name}/>
             <TeamDisplay 
                 mainChar={character} 
-                teamIds={teamIds}  // Use style-specific team IDs
+                teamIds={teamIds}
                 characters={characters}
             />
             <BuildSelector 
