@@ -313,6 +313,7 @@ export default function ProfileDetail({ uid }: { uid: string }) {
                 setData(profileData);
                 
                 const processed = profileData.builds.map(build => ({
+                    _id: build.timestamp, 
                     buildState: decompressData({ state: build.buildState }).state,
                     timestamp: build.timestamp,
                     username: build.username,
