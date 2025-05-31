@@ -137,7 +137,7 @@ const BuildSelector: React.FC<{
                         config.sequences?.map(seq => {
                             return (
                                 <div key={seq} className="style-group">
-                                    <div className="sequence-label">S{seq.charAt(1)}</div>
+                                    <div className="style-label">S{seq.charAt(1)}</div>
                                     <div className="style-options">
                                         {config.styles?.map(styleOption => {
                                             const fullSequence = styleOption.key === 'default' ? seq : `${seq}_${styleOption.key}`;
