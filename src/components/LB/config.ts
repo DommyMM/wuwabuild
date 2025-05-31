@@ -1,16 +1,21 @@
+interface StyleConfig {
+    key: string;
+    name: string;
+    description?: string;
+    teamIds?: string[];
+    rotation?: string[];
+    notes?: string;
+}
+
 interface CharacterConfig {
-    teamIds: string[];
+    teamIds: string[]; 
     stats: string[];
     weapons: string[];
     sequences: string[];
-    rotation?: string[];
+    rotation?: string[]; 
     notes?: string;
     enabled?: boolean;
-    styles?: Array<{
-        key: string;
-        name: string;
-        description?: string;
-    }>;
+    styles?: StyleConfig[];
 }
 
 export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
@@ -33,17 +38,31 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         enabled: true
     },
     '26': {
-        teamIds: ['28', '44'],
+        teamIds: ['28', '44'], 
         stats: ['ATK', 'Energy Regen', 'Resonance Skill DMG Bonus', 'Fusion DMG'],
         weapons: ['21020016', '21020015', '21020044', '21020084'],
         sequences: ['s0', 's2'],
-        // styles: [
-        //     { key: 'default', name: 'Hypercarry', description: 'SK + Brant' },
-        //     { key: 'solo', name: 'Solo', description: 'No supports' }
-        // ],
         rotation: ['Intro', 'Basic', 'Skill x2', 'Forte', 'Lib', 'Forte'],
-        notes: '5-star weapons at R1, 4-star at R5. Blazing Brilliance gets 56% RS DMG on second skill. \n S0R1 Shorekeeper + Moonlit Heron Brant.',
-        enabled: true
+        notes: '5-star weapons at R1, 4-star at R5. Blazing Brilliance gets 56% RS DMG on second skill.', 
+        enabled: true,
+        styles: [
+            { 
+                key: 'default', 
+                name: 'Hypercarry', 
+                description: 'SK + Brant',
+                teamIds: ['28', '44'],
+                rotation: ['Intro', 'Basic', 'Skill x2', 'Forte', 'Lib', 'Forte'],
+                notes: '5-star weapons at R1, 4-star at R5. Blazing Brilliance gets 56% RS DMG on second skill.\nS0R1 Shorekeeper + Moonlit Heron Brant.'
+            },
+            { 
+                key: 'solo', 
+                name: 'Solo', 
+                description: 'No supports',
+                teamIds: [], 
+                rotation: ['Basic String x2', 'Skill x2', 'Forte', 'Lib', 'Forte'],
+                notes: '5-star weapons at R1, 4-star at R5. Blazing Brilliance gets 56% RS DMG on second skill.\nSolo damage without any team buffs.'
+            }
+        ]
     },
     '29': {
         teamIds: ['28', '33'],

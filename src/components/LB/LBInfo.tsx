@@ -71,6 +71,25 @@ const BuildSelector: React.FC<{
 
     // Only process style-related info if character has styles defined
     const hasStyles = config.styles && config.styles.length > 1;
+    
+    // Parse the selected sequence to get style
+    const parseSequenceStyle = (seqStyle: string) => {
+        const parts = seqStyle.split('_');
+        return {
+            baseSequence: parts[0],
+            style: parts[1] || 'default'
+        };
+    };
+    
+    // Get current style information
+    const { style: currentStyle } = parseSequenceStyle(selectedSequence);
+    
+    // Find the active style config if it exists
+    const activeStyle = config.styles?.find(s => s.key === currentStyle);
+    
+    // Use style-specific rotation and notes if available, otherwise fall back to defaults
+    const rotation = activeStyle?.rotation || config.rotation || [];
+    const notes = activeStyle?.notes || config.notes || '';
 
     return (
         <div className="build-selector">
@@ -143,15 +162,15 @@ const BuildSelector: React.FC<{
             
             {isExpanded && (
                 <div className="build-details">
-                    {config.rotation && (
+                    {rotation && rotation.length > 0 && (
                         <section className="details-section">
                             <h3>Rotation</h3>
-                            <RotationDisplay steps={config.rotation} />
+                            <RotationDisplay steps={rotation} />
                         </section>
                     )}
-                    {config.notes && (
+                    {notes && (
                         <section className="details-section">
-                            <p className='notes'>{config.notes}</p>
+                            <p className='notes'>{notes}</p>
                         </section>
                     )}
                 </div>
@@ -179,13 +198,31 @@ export const LBInfo: React.FC<LBInfoProps> = ({
     selectedWeapon = 0, 
     maxDamages,
     onSequenceSelect,
-    selectedSequence
+    selectedSequence = 's0'
 }) => {
     const config = CHARACTER_CONFIGS[characterId] || {
         description: 'No specific team requirements',
         teamIds: [],
         expectedStats: []
     };
+
+    // Parse the selected sequence to get style for team selection
+    const parseSequenceStyle = (seqStyle: string) => {
+        const parts = seqStyle.split('_');
+        return {
+            baseSequence: parts[0],
+            style: parts[1] || 'default'
+        };
+    };
+    
+    // Get current style information
+    const { style: currentStyle } = parseSequenceStyle(selectedSequence);
+    
+    // Find the active style config if it exists
+    const activeStyle = config.styles?.find(s => s.key === currentStyle);
+    
+    // Use style-specific team if available, otherwise fall back to defaults
+    const teamIds = activeStyle?.teamIds || config.teamIds || [];
 
     if (!character) return null;
 
@@ -194,7 +231,7 @@ export const LBInfo: React.FC<LBInfoProps> = ({
             <InfoTitle name={character.name}/>
             <TeamDisplay 
                 mainChar={character} 
-                teamIds={config.teamIds} 
+                teamIds={teamIds}  // Use style-specific team IDs
                 characters={characters}
             />
             <BuildSelector 
