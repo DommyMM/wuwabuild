@@ -82,4 +82,13 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         notes: '5-star weapons at R1, 4-star at R5. Thunderbolt at max stacks. \n S0R1 Shorekeeper + Moonlit Heron Zhezhi',
         enabled: true
     },
+    '45': {
+        teamIds: ['37', '5'], 
+        stats: ['ATK', 'Energy Regen', 'Heavy Attack DMG Bonus', 'Spectro DMG'],
+        weapons: ['21050029', '21050016', '21050074', '21050036'],
+        sequences: ['s0'],
+        rotation: ['Intro', 'Skill', 'Absolution', 'Liberation', '4x Basic+Heavy'],
+        notes: '5-star weapons at R1, 4-star at R5. Luminous Hymn gets max stacks \n Moonlit Ciaccona + Healing Spectro Rover',
+        enabled: true
+    },
 };
