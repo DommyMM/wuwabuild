@@ -165,7 +165,7 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
 
     const tierData = sequenceUpgrades[selectedTier];
     const validUpgrades = Object.entries(tierData)
-        .filter(([_, value]) => value > 0)  // Filter out zero upgrades
+        .filter(([, value]) => value > 0)  // Filter out zero upgrades
         .sort(([, a], [, b]) => b - a)      // Sort by gain descending
         .slice(0, 6);                       // Limit to top 6 upgrades
 
