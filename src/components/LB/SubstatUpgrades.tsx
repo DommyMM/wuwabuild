@@ -6,7 +6,6 @@ import { getCachedWeapon } from '@/hooks/useWeapons';
 import { getAssetPath } from '@/types/paths';
 import { LB_URL } from '@/components/Import/Results';
 import { REVERSE_STAT_MAP } from '@/components/Save/Backup';
-import { ChevronDown } from 'lucide-react';
 
 interface UpgradeData {
     min: Record<string, number>;
@@ -22,77 +21,6 @@ interface StatUpgradesProps {
 }
 
 const STAT_DISPLAY_NAMES = REVERSE_STAT_MAP;
-
-const WeaponSequenceSelector: React.FC<{
-    characterId: string;
-    selectedWeapon: number;
-    selectedSequence: string;
-    onSelectionChange: (weapon: number, sequence: string) => void;
-}> = ({ characterId, selectedWeapon, selectedSequence, onSelectionChange }) => {
-    const config = CHARACTER_CONFIGS[characterId];
-    if (!config) return null;
-
-    return (
-        <div className="selector-container">
-            <div className="weapon-selector">
-                {config.weapons.map((weaponId, index) => {
-                    const weapon = getCachedWeapon(weaponId);
-                    if (!weapon) return null;
-                    
-                    return (
-                        <div
-                            key={weaponId}
-                            className={`weapon-option ${index === selectedWeapon ? 'selected' : ''}`}
-                            onClick={() => onSelectionChange(index, selectedSequence)}
-                        >
-                            <img 
-                                src={getAssetPath('weapons', weapon).cdn} 
-                                alt={weapon.name} 
-                                className="weapon-icon" 
-                            />
-                            <span className="weapon-name">{weapon.name}</span>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Sequence and style row */}
-            <div className="sequence-style-selector">
-                {config.sequences?.map(seq => (
-                    <div key={seq} className="sequence-group">
-                        <span className="sequence-label">S{seq.charAt(1)}:</span>
-                        <div className="style-buttons">
-                            {config.styles ? (
-                                config.styles.map(style => {
-                                    const fullSequence = style.key === 'default' ? seq : `${seq}_${style.key}`;
-                                    const isSelected = selectedSequence === fullSequence;
-                                    
-                                    return (
-                                        <button
-                                            key={style.key}
-                                            className={`style-button ${style.key} ${isSelected ? 'selected' : ''}`}
-                                            onClick={() => onSelectionChange(selectedWeapon, fullSequence)}
-                                            title={style.description}
-                                        >
-                                            {style.name}
-                                        </button>
-                                    );
-                                })
-                            ) : (
-                                <button
-                                    className={`style-button ${seq === selectedSequence ? 'selected' : ''}`}
-                                    onClick={() => onSelectionChange(selectedWeapon, seq)}
-                                >
-                                    Default
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
 
 const TierSelector: React.FC<{
     selectedTier: 'min' | 'median' | 'max';
@@ -121,7 +49,7 @@ const TierSelector: React.FC<{
                         color: selectedTier === tier ? '#000' : getTierColor(tier)
                     } as React.CSSProperties}
                 >
-                    {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                    {tier === 'median' ? 'Mid' : tier.charAt(0).toUpperCase() + tier.slice(1)}
                 </button>
             ))}
         </div>
@@ -152,6 +80,7 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
                 if (!response.ok) throw new Error('Failed to fetch upgrade data');
                 
                 const data = await response.json();
+                console.log('Fetched upgrade data:', data);
                 setUpgradeData(data);
             } catch (err) {
                 console.error('Failed to load upgrade data:', err);
@@ -173,9 +102,9 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
 
     if (loading) {
         return (
-            <div className="stat-upgrades compact">
+            <div className="stat-upgrades">
                 <div className="upgrade-header">
-                    <h3>Substat Priority</h3>
+                    <h3>Substat Upgrades</h3>
                     <div className="header-controls">
                         <div className="weapon-sequence-dropdown" style={{ opacity: 0.5 }}>
                             <div className="dropdown-trigger">
@@ -192,9 +121,9 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
 
     if (error || !upgradeData) {
         return (
-            <div className="stat-upgrades compact">
+            <div className="stat-upgrades">
                 <div className="upgrade-header">
-                    <h3>Substat Priority</h3>
+                    <h3>Substat Upgrades</h3>
                     <div className="header-controls">
                         <div className="weapon-sequence-dropdown" style={{ opacity: 0.5 }}>
                             <div className="dropdown-trigger">
@@ -224,7 +153,7 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
         return (
             <div className="stat-upgrades compact">
                 <div className="upgrade-header">
-                    <h3>Substat Priority</h3>
+                    <h3>Substat Upgrades</h3>
                     <div className="header-controls">
                         <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
                     </div>
@@ -238,13 +167,13 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
     const validUpgrades = Object.entries(tierData)
         .filter(([_, value]) => value > 0)  // Filter out zero upgrades
         .sort(([, a], [, b]) => b - a)      // Sort by gain descending
-        .slice(0, 8);
+        .slice(0, 6);                       // Limit to top 6 upgrades
 
     if (validUpgrades.length === 0) {
         return (
             <div className="stat-upgrades compact">
                 <div className="upgrade-header">
-                    <h3>Substat Priority</h3>
+                    <h3>Substat Upgrades</h3>
                     <div className="header-controls">
                         <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
                     </div>
@@ -255,41 +184,104 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
     }
 
     return (
-        <div className="stat-upgrades">
-            <div className="upgrade-header">
-                <div className="upgrade-header-top">
-                    <h3>Substat Priority</h3>
-                    <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
+        <>
+            <div className="stat-upgrades">
+                <div className="upgrade-header">
+                    <div className="upgrade-header-top">
+                        <h3>Substat Upgrade</h3>
+                        <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
+                    </div>
+                    
+                    <div className="hanging-weapons">
+                        {config.weapons.map((weaponId, index) => {
+                            const weapon = getCachedWeapon(weaponId);
+                            if (!weapon) return null;
+                            
+                            return (
+                                <div
+                                    key={weaponId}
+                                    className={`weapon-option ${index === selectedWeapon ? 'selected' : ''}`}
+                                    onClick={() => handleSelectionChange(index, selectedSequence)}
+                                >
+                                    <img 
+                                        src={getAssetPath('weapons', weapon).cdn} 
+                                        alt={weapon.name} 
+                                        className="weapon-icon" 
+                                    />
+                                    <span className="weapon-name">{weapon.name}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    
+                    <div className="upgrade-header-bottom">
+                        <div className="sequence-style-selector">
+                            {config.sequences?.map(seq => (
+                                <div key={seq} className="sequence-group">
+                                    <span className="sequence-label">S{seq.charAt(1)}:</span>
+                                    <div className="style-buttons">
+                                        {config.styles ? (
+                                            config.styles.map(style => {
+                                                const fullSequence = style.key === 'default' ? seq : `${seq}_${style.key}`;
+                                                const isSelected = selectedSequence === fullSequence;
+                                                
+                                                return (
+                                                    <button
+                                                        key={style.key}
+                                                        className={`style-button ${style.key} ${isSelected ? 'selected' : ''}`}
+                                                        onClick={() => handleSelectionChange(selectedWeapon, fullSequence)}
+                                                        title={style.description}
+                                                    >
+                                                        {style.name}
+                                                    </button>
+                                                );
+                                            })
+                                        ) : (
+                                            <button
+                                                className={`style-button ${seq === selectedSequence ? 'selected' : ''}`}
+                                                onClick={() => handleSelectionChange(selectedWeapon, seq)}
+                                            >
+                                                Default
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
                 
-                <WeaponSequenceSelector
-                    characterId={characterId}
-                    selectedWeapon={selectedWeapon}
-                    selectedSequence={selectedSequence}
-                    onSelectionChange={handleSelectionChange}
-                />
+                <div className="upgrade-grid">
+                    {validUpgrades.map(([stat, gain]) => {
+                        const statDisplayName = STAT_DISPLAY_NAMES[stat] || stat;
+                        const newDamage = currentDamage + gain;
+                        const percentGain = ((gain / currentDamage) * 100);
+                        
+                        return (
+                            <div key={stat} className="upgrade-item">
+                                <div className="stat-name">{statDisplayName}</div>
+                                <div className="damage-info">
+                                    <div className="damage-numbers">
+                                        <span>{Math.round(newDamage).toLocaleString()}</span>
+                                        <span className="gain">(+{Math.round(gain).toLocaleString()})</span>
+                                    </div>
+                                    <div className="percent-gain">+{percentGain.toFixed(1)}%</div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
             
-            <div className="upgrade-grid">
-                {validUpgrades.map(([stat, gain]) => {
-                    const statDisplayName = STAT_DISPLAY_NAMES[stat] || stat;
-                    const newDamage = currentDamage + gain;
-                    const percentGain = ((gain / currentDamage) * 100);
-                    
-                    return (
-                        <div key={stat} className="upgrade-item">
-                            <div className="stat-name">{statDisplayName}</div>
-                            <div className="damage-info">
-                                <div className="damage-numbers">
-                                    <span>{Math.round(newDamage).toLocaleString()}</span>
-                                    <span className="gain">(+{Math.round(gain).toLocaleString()})</span>
-                                </div>
-                                <div className="percent-gain">+{percentGain.toFixed(1)}%</div>
-                            </div>
-                        </div>
-                    );
-                })}
+            <div className="upgrade-disclaimer">
+                <p>
+                    How much damage you would gain from having an additional roll in a substat.
+                    <br />
+                    Values are calculated based on your current build and may vary with different teams or playstyles.
+                    <br />
+                    Calculated for mininimum, median, and maximum rolls.
+                </p>
             </div>
-        </div>
+        </>
     );
 };

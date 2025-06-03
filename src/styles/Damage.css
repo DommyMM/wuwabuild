@@ -9,7 +9,7 @@
     }
     to {
         opacity: 1;
-        height: 1050px;
+        height: 1030px;
     }
 }
 
@@ -274,6 +274,7 @@
     margin-bottom: 16px;
     padding-bottom: 12px;
     border-bottom: 1px solid rgba(166, 150, 98, 0.2);
+    position: relative; 
 }
 
 .upgrade-header-top {
@@ -282,110 +283,50 @@
     align-items: center;
 }
 
-.upgrade-header h3 {
-    color: #a69662;
-    font-size: 16px;
-    margin: 0;
+.upgrade-header-bottom {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
 }
 
-.header-controls {
+.hanging-weapons {
+    position: absolute;
+    top: 40%;
+    left: 33%; 
+    transform: translateY(-50%);
     display: flex;
-    align-items: center;
     gap: 8px;
+    z-index: 5;
+}
+
+.upgrade-header h3 {
+    color: #a69662;
+    font-size: 24px;
+    margin: 0;
 }
 
 .tier-selector {
     display: flex;
-    gap: 2px;
+    gap: 6px;
 }
 
 .tier-button {
     padding: 3px 6px;
-    border: 1px solid #333;
+    border: 1px solid;
     border-radius: 3px;
-    background: rgba(0, 0, 0, 0.2);
-    color: #999;
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 11px;
+    font-weight: 500;
+    min-width: 40px;
 }
 
 .tier-button:hover {
-    background: rgba(166, 150, 98, 0.1);
-    border-color: rgba(166, 150, 98, 0.3);
-    color: #fff;
-}
-
-.tier-button.selected {
-    background: rgba(166, 150, 98, 0.2);
-    border-color: #a69662;
-    color: #fff;
-}
-
-.selector-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.weapon-selector {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-start;
-}
-
-.weapon-option {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 8px 6px;
-    border-radius: 6px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 70px;
-    flex: 1;
-    max-width: 120px;
-}
-
-.weapon-option:hover {
-    background: rgba(0, 0, 0, 0.4);
-    border-color: rgba(166, 150, 98, 0.3);
+    opacity: 0.8;
     transform: translateY(-1px);
 }
 
-.weapon-option.selected {
-    background: rgba(166, 150, 98, 0.2);
-    border-color: #a69662;
-    box-shadow: 0 2px 8px rgba(166, 150, 98, 0.2);
-}
-
-.stat-upgrades .weapon-icon {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
-    margin-bottom: 4px;
-    border: none;
-}
-
-.weapon-name {
-    font-size: 10px;
-    color: #ccc;
-    text-align: center;
-    line-height: 1.1;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.weapon-option.selected .weapon-name {
-    color: #fff;
-    font-weight: 500;
-}
-
-/* Sequence and style selector */
+/* Sequence selector - starts from left edge */
 .sequence-style-selector {
     display: flex;
     gap: 20px;
@@ -448,6 +389,60 @@
     border-color: #4ecdc4;
 }
 
+/* Weapon options in hanging position */
+.weapon-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 6px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 70px;
+    max-width: 120px;
+}
+
+.weapon-option:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(166, 150, 98, 0.3);
+    transform: translateY(-1px);
+}
+
+.weapon-option.selected {
+    background: rgba(166, 150, 98, 0.2);
+    border-color: #a69662;
+    box-shadow: 0 2px 8px rgba(166, 150, 98, 0.2);
+}
+
+.stat-upgrades .weapon-icon {
+    width: 24px;
+    height: auto;
+    object-fit: contain;
+    margin-bottom: 4px;
+    border: none;
+}
+
+.weapon-name {
+    font-size: 10px;
+    color: #ccc;
+    text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.weapon-option.selected .weapon-name {
+    color: #fff;
+}
+
+/* Remove the old weapon-selector since we're using hanging-weapons now */
+.weapon-selector {
+    display: none;
+}
+
 .upgrade-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -497,19 +492,26 @@
     gap: 6px;
     color: #fff;
     font-size: 14px;
-    font-weight: 500;
-    flex-wrap: wrap;
 }
 
 .gain {
     color: #a69662;
-    font-size: 12px;
-    font-weight: 600;
 }
 
 .percent-gain {
     color: #a69662;
     font-size: 12px;
-    opacity: 0.9;
-    font-weight: 500;
+}
+
+.upgrade-disclaimer {
+    margin: 12px;
+}
+
+.upgrade-disclaimer p {
+    color: #999;
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0;
+    text-align: center;
+    font-style: italic;
 }
