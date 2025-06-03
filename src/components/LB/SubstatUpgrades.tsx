@@ -23,80 +23,73 @@ interface StatUpgradesProps {
 
 const STAT_DISPLAY_NAMES = REVERSE_STAT_MAP;
 
-const WeaponSequenceDropdown: React.FC<{
+const WeaponSequenceSelector: React.FC<{
     characterId: string;
     selectedWeapon: number;
     selectedSequence: string;
     onSelectionChange: (weapon: number, sequence: string) => void;
 }> = ({ characterId, selectedWeapon, selectedSequence, onSelectionChange }) => {
-    const [isOpen, setIsOpen] = useState(false);
     const config = CHARACTER_CONFIGS[characterId];
     if (!config) return null;
 
-    const selectedWeaponData = getCachedWeapon(config.weapons[selectedWeapon]);
-    const currentSelection = `${selectedWeaponData?.name || 'Unknown'} - ${selectedSequence.replace('_', ' ').toUpperCase()}`;
-
     return (
-        <div className="weapon-sequence-dropdown">
-            <button 
-                className="dropdown-trigger"
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                <span>{currentSelection}</span>
-                <ChevronDown className={`dropdown-icon ${isOpen ? 'open' : ''}`} />
-            </button>
-            
-            {isOpen && (
-                <div className="dropdown-menu">
-                    {config.weapons.map((weaponId, weaponIndex) => {
-                        const weapon = getCachedWeapon(weaponId);
-                        if (!weapon) return null;
-                        
-                        return (
-                            <div key={weaponId} className="weapon-group">
-                                <div className="weapon-header">
-                                    <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} />
-                                    <span>{weapon.name}</span>
-                                </div>
-                                <div className="sequence-options">
-                                    {config.sequences?.map(seq => {
-                                        if (config.styles && config.styles.length > 1) {
-                                            return config.styles.map(style => {
-                                                const fullSequence = style.key === 'default' ? seq : `${seq}_${style.key}`;
-                                                return (
-                                                    <button
-                                                        key={fullSequence}
-                                                        className={`sequence-option ${selectedWeapon === weaponIndex && selectedSequence === fullSequence ? 'selected' : ''}`}
-                                                        onClick={() => {
-                                                            onSelectionChange(weaponIndex, fullSequence);
-                                                            setIsOpen(false);
-                                                        }}
-                                                    >
-                                                        ├─ S{seq.charAt(1)} {style.name}
-                                                    </button>
-                                                );
-                                            });
-                                        } else {
-                                            return (
-                                                <button
-                                                    key={seq}
-                                                    className={`sequence-option ${selectedWeapon === weaponIndex && selectedSequence === seq ? 'selected' : ''}`}
-                                                    onClick={() => {
-                                                        onSelectionChange(weaponIndex, seq);
-                                                        setIsOpen(false);
-                                                    }}
-                                                >
-                                                    ├─ S{seq.charAt(1)}
-                                                </button>
-                                            );
-                                        }
-                                    })}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+        <div className="selector-container">
+            <div className="weapon-selector">
+                {config.weapons.map((weaponId, index) => {
+                    const weapon = getCachedWeapon(weaponId);
+                    if (!weapon) return null;
+                    
+                    return (
+                        <div
+                            key={weaponId}
+                            className={`weapon-option ${index === selectedWeapon ? 'selected' : ''}`}
+                            onClick={() => onSelectionChange(index, selectedSequence)}
+                        >
+                            <img 
+                                src={getAssetPath('weapons', weapon).cdn} 
+                                alt={weapon.name} 
+                                className="weapon-icon" 
+                            />
+                            <span className="weapon-name">{weapon.name}</span>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Sequence and style row */}
+            <div className="sequence-style-selector">
+                {config.sequences?.map(seq => (
+                    <div key={seq} className="sequence-group">
+                        <span className="sequence-label">S{seq.charAt(1)}:</span>
+                        <div className="style-buttons">
+                            {config.styles ? (
+                                config.styles.map(style => {
+                                    const fullSequence = style.key === 'default' ? seq : `${seq}_${style.key}`;
+                                    const isSelected = selectedSequence === fullSequence;
+                                    
+                                    return (
+                                        <button
+                                            key={style.key}
+                                            className={`style-button ${style.key} ${isSelected ? 'selected' : ''}`}
+                                            onClick={() => onSelectionChange(selectedWeapon, fullSequence)}
+                                            title={style.description}
+                                        >
+                                            {style.name}
+                                        </button>
+                                    );
+                                })
+                            ) : (
+                                <button
+                                    className={`style-button ${seq === selectedSequence ? 'selected' : ''}`}
+                                    onClick={() => onSelectionChange(selectedWeapon, seq)}
+                                >
+                                    Default
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };
@@ -105,6 +98,15 @@ const TierSelector: React.FC<{
     selectedTier: 'min' | 'median' | 'max';
     onTierChange: (tier: 'min' | 'median' | 'max') => void;
 }> = ({ selectedTier, onTierChange }) => {
+    const getTierColor = (tier: string) => {
+        switch (tier) {
+            case 'min': return '#666';
+            case 'median': return '#a69662';
+            case 'max': return '#4ecdc4';
+            default: return '#666';
+        }
+    };
+
     return (
         <div className="tier-selector">
             {(['min', 'median', 'max'] as const).map((tier) => (
@@ -112,6 +114,12 @@ const TierSelector: React.FC<{
                     key={tier}
                     className={`tier-button ${selectedTier === tier ? 'selected' : ''}`}
                     onClick={() => onTierChange(tier)}
+                    style={{
+                        '--tier-color': getTierColor(tier),
+                        borderColor: selectedTier === tier ? getTierColor(tier) : '#333',
+                        backgroundColor: selectedTier === tier ? getTierColor(tier) : 'rgba(0, 0, 0, 0.2)',
+                        color: selectedTier === tier ? '#000' : getTierColor(tier)
+                    } as React.CSSProperties}
                 >
                     {tier.charAt(0).toUpperCase() + tier.slice(1)}
                 </button>
@@ -168,6 +176,14 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
             <div className="stat-upgrades compact">
                 <div className="upgrade-header">
                     <h3>Substat Priority</h3>
+                    <div className="header-controls">
+                        <div className="weapon-sequence-dropdown" style={{ opacity: 0.5 }}>
+                            <div className="dropdown-trigger">
+                                <span>Loading...</span>
+                            </div>
+                        </div>
+                        <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
+                    </div>
                 </div>
                 <div className="upgrade-loading">Loading...</div>
             </div>
@@ -179,6 +195,14 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
             <div className="stat-upgrades compact">
                 <div className="upgrade-header">
                     <h3>Substat Priority</h3>
+                    <div className="header-controls">
+                        <div className="weapon-sequence-dropdown" style={{ opacity: 0.5 }}>
+                            <div className="dropdown-trigger">
+                                <span>Error</span>
+                            </div>
+                        </div>
+                        <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
+                    </div>
                 </div>
                 <div className="upgrade-error">Failed to load data</div>
             </div>
@@ -201,14 +225,10 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
             <div className="stat-upgrades compact">
                 <div className="upgrade-header">
                     <h3>Substat Priority</h3>
-                    <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
+                    <div className="header-controls">
+                        <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
+                    </div>
                 </div>
-                <WeaponSequenceDropdown
-                    characterId={characterId}
-                    selectedWeapon={selectedWeapon}
-                    selectedSequence={selectedSequence}
-                    onSelectionChange={handleSelectionChange}
-                />
                 <div className="no-upgrades">No upgrade data available</div>
             </div>
         );
@@ -216,54 +236,52 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
 
     const tierData = sequenceUpgrades[selectedTier];
     const validUpgrades = Object.entries(tierData)
-        .filter(([_, value]) => value > 0)  // Remove stats with no gain
+        .filter(([_, value]) => value > 0)  // Filter out zero upgrades
         .sort(([, a], [, b]) => b - a)      // Sort by gain descending
-        .slice(0, 6);
+        .slice(0, 8);
 
     if (validUpgrades.length === 0) {
         return (
             <div className="stat-upgrades compact">
                 <div className="upgrade-header">
                     <h3>Substat Priority</h3>
-                    <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
+                    <div className="header-controls">
+                        <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
+                    </div>
                 </div>
-                <WeaponSequenceDropdown
-                    characterId={characterId}
-                    selectedWeapon={selectedWeapon}
-                    selectedSequence={selectedSequence}
-                    onSelectionChange={handleSelectionChange}
-                />
                 <div className="no-upgrades">No upgrades available</div>
             </div>
         );
     }
 
     return (
-        <div className="stat-upgrades compact">
+        <div className="stat-upgrades">
             <div className="upgrade-header">
-                <h3>Substat Priority</h3>
-                <div className="header-controls">
-                    <WeaponSequenceDropdown
-                        characterId={characterId}
-                        selectedWeapon={selectedWeapon}
-                        selectedSequence={selectedSequence}
-                        onSelectionChange={handleSelectionChange}
-                    />
+                <div className="upgrade-header-top">
+                    <h3>Substat Priority</h3>
                     <TierSelector selectedTier={selectedTier} onTierChange={setSelectedTier} />
                 </div>
+                
+                <WeaponSequenceSelector
+                    characterId={characterId}
+                    selectedWeapon={selectedWeapon}
+                    selectedSequence={selectedSequence}
+                    onSelectionChange={handleSelectionChange}
+                />
             </div>
             
             <div className="upgrade-grid">
                 {validUpgrades.map(([stat, gain]) => {
+                    const statDisplayName = STAT_DISPLAY_NAMES[stat] || stat;
                     const newDamage = currentDamage + gain;
                     const percentGain = ((gain / currentDamage) * 100);
                     
                     return (
                         <div key={stat} className="upgrade-item">
-                            <div className="stat-name">{STAT_DISPLAY_NAMES[stat] || stat}</div>
-                            <div className="damage-numbers">
-                                <div className="new-damage">
-                                    {Math.round(newDamage).toLocaleString()}
+                            <div className="stat-name">{statDisplayName}</div>
+                            <div className="damage-info">
+                                <div className="damage-numbers">
+                                    <span>{Math.round(newDamage).toLocaleString()}</span>
                                     <span className="gain">(+{Math.round(gain).toLocaleString()})</span>
                                 </div>
                                 <div className="percent-gain">+{percentGain.toFixed(1)}%</div>
