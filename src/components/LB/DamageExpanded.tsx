@@ -622,20 +622,18 @@ export const DamageExpanded: React.FC<DamageExpandedProps> = ({
     return (
         <div className="build-expanded-content" ref={expandedRef}>
             <BuildExpanded echoPanels={entry.buildState.echoPanels} character={character} />
-            <div className="build-breakdown-container">
-                {isLoadingMoves ? (
-                    <div className="moves-loading">Loading move breakdown...</div>
-                ) : cachedMoves ? (
-                    <MoveBreakdown moves={cachedMoves} />
-                ) : null}
-                
-                <StatUpgrades
-                    entry={entry}
-                    selectedWeapon={selectedWeapon}
-                    selectedSequence={selectedSequence}
-                    character={character}
-                />
-            </div>
+            {isLoadingMoves ? (
+                <div className="moves-loading">Loading move breakdown...</div>
+            ) : cachedMoves ? (
+                <MoveBreakdown moves={cachedMoves} />
+            ) : null}
+            
+            <StatUpgrades
+                entry={entry}
+                selectedWeapon={selectedWeapon}
+                selectedSequence={selectedSequence}
+                character={character}
+            />
         </div>
     );
 };
