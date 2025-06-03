@@ -283,16 +283,17 @@
     align-items: center;
 }
 
-.upgrade-header-bottom {
+.right-section {
     display: flex;
-    justify-content: flex-start;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
 }
 
 .hanging-weapons {
     position: absolute;
     top: 40%;
-    left: 33%; 
+    left: 25%; 
     transform: translateY(-50%);
     display: flex;
     gap: 8px;
@@ -302,7 +303,7 @@
 .upgrade-header h3 {
     color: #a69662;
     font-size: 24px;
-    margin: 0;
+    margin: 0 0 0 16px;
 }
 
 .tier-selector {
@@ -326,21 +327,20 @@
     transform: translateY(-1px);
 }
 
-/* Sequence selector - starts from left edge */
 .sequence-style-selector {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: flex-end;
 }
 
-.sequence-group {
+.substat-sequence-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 }
 
-.sequence-label {
+.substat-sequence-label {
     color: #a69662;
     font-size: 14px;
     font-weight: 500;
@@ -389,8 +389,7 @@
     border-color: #4ecdc4;
 }
 
-/* Weapon options in hanging position */
-.weapon-option {
+.substat-weapon-option {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -404,13 +403,13 @@
     max-width: 120px;
 }
 
-.weapon-option:hover {
+.substat-weapon-option:hover {
     background: rgba(0, 0, 0, 0.4);
     border-color: rgba(166, 150, 98, 0.3);
     transform: translateY(-1px);
 }
 
-.weapon-option.selected {
+.substat-weapon-option.selected {
     background: rgba(166, 150, 98, 0.2);
     border-color: #a69662;
     box-shadow: 0 2px 8px rgba(166, 150, 98, 0.2);
@@ -434,13 +433,8 @@
     white-space: nowrap;
 }
 
-.weapon-option.selected .weapon-name {
+.substat-weapon-option.selected .weapon-name {
     color: #fff;
-}
-
-/* Remove the old weapon-selector since we're using hanging-weapons now */
-.weapon-selector {
-    display: none;
 }
 
 .upgrade-grid {
@@ -492,15 +486,15 @@
     gap: 6px;
     color: #fff;
     font-size: 14px;
+    letter-spacing: .75px;
 }
 
 .gain {
     color: #a69662;
 }
 
-.percent-gain {
-    color: #a69662;
-    font-size: 12px;
+.sub-value {
+    font-size: 14px;
 }
 
 .upgrade-disclaimer {

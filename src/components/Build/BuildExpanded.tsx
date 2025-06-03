@@ -124,7 +124,7 @@ const calculatePanelCV = (panel: EchoPanelState): number => {
     return baseCV - (mainStat?.includes('Crit') ? 44 : 0);
 };
 
-const mapStatName = (type: string): string => {
+export const mapStatName = (type: string): string => {
     const dmgBonusMap: Record<string, string> = {
         'Basic Attack DMG Bonus': 'Basic Attack',
         'Heavy Attack DMG Bonus': 'Heavy Attack',
