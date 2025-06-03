@@ -144,15 +144,15 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
             <div className="build-entries">
                 {data.map((entry, index) => (
                     <DamageEntry 
-                        key={entry._id} // Use _id instead of timestamp
+                        key={entry._id}
                         entry={entry} 
                         rank={(page - 1) * itemsPerPage + index + 1}
                         activeStat={sortType === 'stat' ? currentSort : null}
                         activeSort={sortType}
                         selectedWeapon={selectedWeapon}
                         selectedSequence={selectedSequence}
-                        isExpanded={expandedEntries.has(entry._id)} // Use _id instead of timestamp
-                        onClick={() => onEntryClick(entry._id)} // Use _id instead of timestamp
+                        isExpanded={expandedEntries.has(entry._id)}
+                        onClick={() => onEntryClick(entry._id)}
                         moveCache={moveCache}
                         loadingMoves={loadingMoves}
                     />
@@ -320,7 +320,7 @@ export const CharacterEntry: React.FC<CharacterEntryProps> = ({
     const loadMovesData = async (buildId: string, weaponIndex: number, sequence: string) => {
         const cacheKey = `${buildId}-${weaponIndex}-${sequence}`;
         
-        if (moveCache.has(cacheKey)) return; // Already cached
+        if (moveCache.has(cacheKey)) return;
         
         setLoadingMoves(prev => new Set(prev).add(cacheKey));
         

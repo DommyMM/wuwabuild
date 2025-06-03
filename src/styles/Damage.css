@@ -9,7 +9,7 @@
     }
     to {
         opacity: 1;
-        height: 730px;
+        height: 930px;
     }
 }
 
@@ -255,4 +255,187 @@
 .hit-damage {
     color: #a69662;
     font-size: 13px;
+}
+
+.stat-upgrades {
+    margin: 12px 0 0;
+    padding: 16px;
+    background: rgba(26, 26, 26, 0.6);
+    border-radius: 8px;
+    border: 1px solid #333;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.upgrade-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(166, 150, 98, 0.2);
+}
+
+.upgrade-header h3 {
+    color: #a69662;
+    font-size: 24px;
+    margin: 0;
+}
+
+.tier-selector {
+    display: flex;
+    gap: 8px;
+}
+
+.tier-button {
+    padding: 6px 12px;
+    border: 1px solid;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    min-width: 60px;
+}
+
+.tier-button:hover {
+    transform: translateY(-1px);
+    opacity: 0.8;
+}
+
+.upgrade-table {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.upgrade-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 20px;
+    align-items: center;
+    padding: 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.upgrade-row:hover {
+    background: rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+}
+
+.upgrade-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.upgrade-stat .stat-name {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.stat-code {
+    color: #666;
+    font-size: 14px;
+}
+
+.upgrade-damage {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-end;
+}
+
+.new-damage {
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+}
+
+.current-damage {
+    color: #fff;
+}
+
+.damage-gain {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.percent-gain {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Gradient colors for different gain levels */
+.upgrade-row.tier-high {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.15) 0%, rgba(78, 205, 196, 0.05) 100%);
+    border: 1px solid rgba(78, 205, 196, 0.2);
+}
+
+.upgrade-row.tier-high .damage-gain {
+    color: #4ecdc4;
+}
+
+.upgrade-row.tier-high .percent-gain {
+    color: #4ecdc4;
+}
+
+.upgrade-row.tier-medium {
+    background: linear-gradient(135deg, rgba(166, 150, 98, 0.15) 0%, rgba(166, 150, 98, 0.05) 100%);
+    border: 1px solid rgba(166, 150, 98, 0.2);
+}
+
+.upgrade-row.tier-medium .damage-gain {
+    color: #a69662;
+}
+
+.upgrade-row.tier-medium .percent-gain {
+    color: #a69662;
+}
+
+.upgrade-row.tier-low {
+    background: linear-gradient(135deg, rgba(255, 145, 0, 0.15) 0%, rgba(255, 145, 0, 0.05) 100%);
+    border: 1px solid rgba(255, 145, 0, 0.2);
+}
+
+.upgrade-row.tier-low .damage-gain {
+    color: #ff9100;
+}
+
+.upgrade-row.tier-low .percent-gain {
+    color: #ff9100;
+}
+
+.upgrade-loading, .upgrade-error, .no-upgrades {
+    text-align: center;
+    padding: 24px;
+    color: #666;
+    font-style: italic;
+}
+
+.upgrade-error {
+    color: #ff6b6b;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .upgrade-row {
+        grid-template-columns: 140px 1fr;
+        gap: 16px;
+        padding: 12px;
+    }
+    
+    .upgrade-stat .stat-name {
+        font-size: 16px;
+    }
+    
+    .new-damage {
+        font-size: 18px;
+    }
 }
