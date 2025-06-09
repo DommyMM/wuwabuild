@@ -302,7 +302,7 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
                         
                         return (
                             <div key={stat} className="upgrade-item">
-                                <div className="stat-name">{statDisplayName}</div>
+                                <div className="upgrade-stat-name">{statDisplayName}</div>
                                 <div className="damage-info">
                                     <div className="damage-numbers">
                                         <span>{Math.round(newDamage).toLocaleString()}</span>
