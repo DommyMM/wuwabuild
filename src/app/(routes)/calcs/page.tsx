@@ -102,6 +102,84 @@ export default function Page() {
         URL.revokeObjectURL(url);
     };
 
+    const copyToClipboard = (type: 'character' | 'weapon') => {
+        const data = type === 'character' ? characterBases : weaponBases;
+        
+        if (type === 'character') {
+            const characterEntries = Object.entries(data).map(([id, charData]) => {
+                return `    "${id}": {
+        name: "${charData.name}",
+        element: "${charData.element}",
+        weaponType: "${charData.weaponType}",
+        bonus1: "${charData.bonus1}",
+        bonus2: "${charData.bonus2}",
+        stats: {
+            HP: ${charData.stats.HP},
+            ATK: ${charData.stats.ATK},
+            DEF: ${charData.stats.DEF},
+            "Crit Rate": ${charData.stats["Crit Rate"]},
+            "Crit DMG": ${charData.stats["Crit DMG"]},
+            "Energy Regen": ${charData.stats["Energy Regen"]},
+            "Healing Bonus": ${charData.stats["Healing Bonus"]},
+            "Aero DMG": ${charData.stats["Aero DMG"]},
+            "Glacio DMG": ${charData.stats["Glacio DMG"]},
+            "Fusion DMG": ${charData.stats["Fusion DMG"]},
+            "Electro DMG": ${charData.stats["Electro DMG"]},
+            "Havoc DMG": ${charData.stats["Havoc DMG"]},
+            "Spectro DMG": ${charData.stats["Spectro DMG"]},
+            "Basic Attack DMG Bonus": ${charData.stats["Basic Attack DMG Bonus"]},
+            "Heavy Attack DMG Bonus": ${charData.stats["Heavy Attack DMG Bonus"]},
+            "Resonance Skill DMG Bonus": ${charData.stats["Resonance Skill DMG Bonus"]},
+            "Resonance Liberation DMG Bonus": ${charData.stats["Resonance Liberation DMG Bonus"]}
+        }
+    }`;
+            }).join(',\n');
+
+            const tsContent = `import { CharacterBase } from '../types/base';
+
+export const CHARACTER_BASES: Record<string, CharacterBase> = {
+${characterEntries}
+} as const;`;
+            
+            navigator.clipboard.writeText(tsContent);
+        } else {
+            const weaponEntries = Object.entries(data).map(([id, weaponData]) => {
+                let passiveSection = '';
+                if (weaponData.passive) {
+                    passiveSection = `,
+        passive: "${weaponData.passive.type}",
+        passive_stat: ${weaponData.passive.value}`;
+                }
+                if (weaponData.passive2) {
+                    passiveSection += `,
+        passive2: "${weaponData.passive2.type}",
+        passive_stat2: ${weaponData.passive2.value}`;
+                }
+
+                const mainStatKey = Object.keys(weaponData.stats).find(key => key !== 'atk') || '';
+                const mainStatValue = mainStatKey ? weaponData.stats[mainStatKey] : 0;
+
+                return `    "${id}": {
+        name: "${weaponData.name}",
+        type: "${weaponData.type}",
+        rarity: "${weaponData.rarity}",
+        ATK: ${weaponData.stats.atk},
+        main_stat: "${mainStatKey}",
+        base_main: ${mainStatValue}${passiveSection}
+    }`;
+            }).join(',\n');
+            const tsContent = `import { WeaponBase } from '../types/base';
+
+export const WEAPONBASES: Record<string, WeaponBase> = {
+${weaponEntries}
+} as const;`;
+            
+            navigator.clipboard.writeText(tsContent);
+        }
+        
+        alert('Copied to clipboard!');
+    };
+
     return (
         <div style={{ padding: '20px' }}>
             <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
@@ -112,7 +190,7 @@ export default function Page() {
                 Processing: {processedCount}/{cachedCharacters?.length || 0}
             </div>
             
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', justifyContent: 'flex-start' }}>
                 <button 
                     style={{
                         padding: '8px 16px',
@@ -143,9 +221,25 @@ export default function Page() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div>
-                    <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
-                        Character Bases
-                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>
+                            Character Bases
+                        </h2>
+                        <button 
+                            style={{
+                                padding: '4px 8px',
+                                backgroundColor: '#16a34a',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                            }}
+                            onClick={() => copyToClipboard('character')}
+                        >
+                            Copy
+                        </button>
+                    </div>
                     <pre style={{ 
                         fontSize: '12px', 
                         maxHeight: '600px', 
@@ -157,9 +251,25 @@ export default function Page() {
                     </pre>
                 </div>
                 <div>
-                    <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
-                        Weapon Bases
-                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>
+                            Weapon Bases
+                        </h2>
+                        <button 
+                            style={{
+                                padding: '4px 8px',
+                                backgroundColor: '#16a34a',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                            }}
+                            onClick={() => copyToClipboard('weapon')}
+                        >
+                            Copy
+                        </button>
+                    </div>
                     <pre style={{ 
                         fontSize: '12px', 
                         maxHeight: '600px', 
