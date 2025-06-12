@@ -119,6 +119,10 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
     { stat: 'Glacio DMG', value: 12 },
     { stat: 'Aero DMG', value: 12 }
   ],
+  ['Lioness of Glory']: [
+    { stat: 'Fusion DMG', value: 12 },
+    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
+  ],
 } as const;
 
 export const PHANTOM_ECHOES = [

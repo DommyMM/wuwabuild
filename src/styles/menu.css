@@ -663,6 +663,14 @@
     border: 2px solid #7CFC00;
 }
 
+.set-windward {
+    border: 2px solid #98FB98;
+}
+
+.set-flaming {
+    border: 2px solid #D5740C;
+}
+
 .set-row.aero .set-name { color: #98FB98; }
 .set-row.er .set-name { color: white; }
 .set-row.electro .set-name { color: #BA55D3; }
