@@ -46,7 +46,9 @@ const SET_NAME_MAP: ElementMapping = {
     'Radiance' : 'LightError',
     'Electro' : 'Thunder',
     'Aero' : 'Wind',
-    'Gust' : 'WindError'
+    'Gust' : 'WindError',
+    'Windward' : 'WindErrorA',
+    'Flaming' : 'FireUltimateSkill'
 };
 
 export interface ImagePaths {
@@ -203,5 +205,7 @@ const PHANTOM_CDN_IDS: Record<string, string> = {
     'Capitaneus': '32033_1',
     'Nimbus Wraith': 'SG_31044',
     'Nightmare Crownless': 'SG_33018',
-    'Chest Mimic': 'SG_31048'
+    'Chest Mimic': 'SG_31048',
+    'Fae Ignis' : 'SG_31043',
+    'Cuddle Wuddle': 'SG_32030',
 };

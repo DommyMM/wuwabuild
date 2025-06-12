@@ -39,7 +39,7 @@ export interface Character {
   ER: number;
 }
 
-export const SKIN_CHARACTERS = ['Jinhsi', 'Sanhua'] as readonly string[];
+export const SKIN_CHARACTERS = ['Jinhsi', 'Sanhua', 'Changli', 'Carlotta'] as readonly string[];
 
 export const isRover = (character: Character): boolean => 
   character.name.startsWith("Rover");
