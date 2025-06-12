@@ -612,6 +612,14 @@
     background-image: linear-gradient(to right, #98fb98, #7fff00, #ffffff, #32cd32, #98fb98);
 }
 
+.set-name-display.windward {
+    background-image: linear-gradient(to right, #b0ffb0, #d0f0c0, #ffffff, #90ee90, #b0ffb0);
+}
+
+.set-name-display.flaming {
+    background-image: linear-gradient(to right, #ff4500, #ff8c00, #ffd700, #ff4d00);
+}
+
 .stats-tab {
     display: flex;
     flex-direction: column;

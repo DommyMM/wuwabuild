@@ -311,6 +311,8 @@
 .element.midnight { background: #e086e0; }
 .element.radiance { background: #ffd54f; }
 .element.gust { background: #98FB98; }
+.element.windward { background: #98FB98; }
+.element.flaming { background: #D5740C; }
 
 .echo-mainstat {
     color: #a69662;

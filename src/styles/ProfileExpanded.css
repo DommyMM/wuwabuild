@@ -112,6 +112,8 @@
 .profile-echo-panel.radiance { border: 1px solid rgba(255, 213, 79, 0.6); }
 .profile-echo-panel.tidebreaking { border: 1px solid rgba(255, 255, 255, 0.6); }
 .profile-echo-panel.gust { border: 1px solid rgba(124, 252, 0, 0.6); }
+.profile-echo-panel.windward { border: 1px solid rgba(152, 251, 152, 0.6); }
+.profile-echo-panel.flaming { border: 1px solid rgba(213, 116, 12, 0.6); }
 
 .profile-echo-icon {
     width: 60%;

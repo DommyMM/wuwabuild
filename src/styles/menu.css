@@ -342,6 +342,14 @@
     border-color: #7CFC00;
 }
 
+.connector-segment.windward {
+    border-color: #98FB98;
+}
+
+.connector-segment.flaming {
+    border-color: #D5740C;
+}
+
 .echo-left {
     width: 25%;
     height: 100%;
@@ -670,6 +678,8 @@
 .set-row.radiance .set-name { color: #ffd54f; }
 .set-row.tidebreaking .set-name { color: white; }
 .set-row.gust .set-name { color: #7CFC00; }
+.set-row.windward .set-name { color: #98FB98; }
+.set-row.flaming .set-name { color: #D5740C; }
 
 .popuptext {
     visibility: hidden;
