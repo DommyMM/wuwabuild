@@ -15,9 +15,36 @@ const MAX_NODES = {
     'liberation': { 'top': true, 'middle': true }
 } as const;
 
+interface CharacterBaseData {
+    name: string;
+    element: string;
+    weaponType: string;
+    bonus1: string;
+    bonus2: string;
+    stats: Record<string, number>;
+}
+
+interface WeaponBaseData {
+    name: string;
+    type: string;
+    rarity: string;
+    stats: {
+        atk: number;
+        [key: string]: number;
+    };
+    passive: {
+        type: string;
+        value: number;
+    } | null;
+    passive2: {
+        type: string;
+        value: number;
+    } | null;
+}
+
 const CharacterProcessor = ({ character, onProcess }: { 
     character: Character;
-    onProcess: (id: string, data: any) => void;
+    onProcess: (id: string, data: CharacterBaseData) => void;
 }) => {
     const stats = useStats({
         character,
@@ -47,13 +74,13 @@ const CharacterProcessor = ({ character, onProcess }: {
 };
 
 export default function Page() {
-    const [characterBases, setCharacterBases] = useState<Record<string, any>>({});
-    const [weaponBases, setWeaponBases] = useState<Record<string, any>>({});
+    const [characterBases, setCharacterBases] = useState<Record<string, CharacterBaseData>>({});
+    const [weaponBases, setWeaponBases] = useState<Record<string, WeaponBaseData>>({});
     const [processedCount, setProcessedCount] = useState(0);
     const { scaleAtk, scaleStat } = useLevelCurves();
-    const characterDataRef = useRef<Record<string, any>>({});
+    const characterDataRef = useRef<Record<string, CharacterBaseData>>({});
 
-    const handleCharacterProcess = useCallback((id: string, data: any) => {
+    const handleCharacterProcess = useCallback((id: string, data: CharacterBaseData) => {
         characterDataRef.current[id] = data;
         setProcessedCount(prev => prev + 1);
         
@@ -63,7 +90,7 @@ export default function Page() {
     }, []);
 
     useEffect(() => {
-        const wpnBases: Record<string, any> = {};
+        const wpnBases: Record<string, WeaponBaseData> = {};
         for (const [type, weapons] of weaponCache.entries()) {
             for (const weapon of weapons) {
                 wpnBases[weapon.id] = {
@@ -74,11 +101,11 @@ export default function Page() {
                         atk: scaleAtk(Number(weapon.ATK), 90),
                         [weapon.main_stat]: scaleStat(Number(weapon.base_main), 90)
                     },
-                    passive: weapon.passive ? {
+                    passive: weapon.passive && weapon.passive_stat !== undefined ? {
                         type: weapon.passive,
                         value: weapon.passive_stat
                     } : null,
-                    passive2: weapon.passive2 ? {
+                    passive2: weapon.passive2 && weapon.passive_stat2 !== undefined ? {
                         type: weapon.passive2,
                         value: weapon.passive_stat2
                     } : null
@@ -103,10 +130,8 @@ export default function Page() {
     };
 
     const copyToClipboard = (type: 'character' | 'weapon') => {
-        const data = type === 'character' ? characterBases : weaponBases;
-        
         if (type === 'character') {
-            const characterEntries = Object.entries(data).map(([id, charData]) => {
+            const characterEntries = Object.entries(characterBases).map(([id, charData]) => {
                 return `    "${id}": {
         name: "${charData.name}",
         element: "${charData.element}",
@@ -143,7 +168,7 @@ ${characterEntries}
             
             navigator.clipboard.writeText(tsContent);
         } else {
-            const weaponEntries = Object.entries(data).map(([id, weaponData]) => {
+            const weaponEntries = Object.entries(weaponBases).map(([id, weaponData]) => {
                 let passiveSection = '';
                 if (weaponData.passive) {
                     passiveSection = `,
