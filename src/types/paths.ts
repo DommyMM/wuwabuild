@@ -111,7 +111,7 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
         case 'face1':
             return {
                 cdn: `${PATHS.cdn.base}/${PATHS.cdn.face1}/T_IconRoleHead256_${id}_UI.png`,
-                local: `${PATHS.local.base}/${PATHS.local.face1}/${name}.png`
+                local: `${PATHS.local.base}/${PATHS.local.face1}/T_IconRoleHead256_${id}_UI.png`
             };
         case 'weapons': {
             const weapon = input as Weapon;
