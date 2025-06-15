@@ -13,7 +13,7 @@ interface WeaponSectionProps {
 }
 
 const getWeaponPath = (weapon: Weapon, useAltSkin: boolean = false) => {
-  return getAssetPath('weapons', weapon, useAltSkin).cdn;
+  return getAssetPath('weapons', weapon, useAltSkin).local;
 };
 
 const WeaponIcon = React.memo<{ weapon: Weapon; useAltSkin?: boolean }>(
@@ -36,11 +36,11 @@ const StatsTopRow = React.memo<{
   return (
     <div className="weapon-stat-row">
       <div className="weapon-stat weapon-attack atk">
-        <img src={getStatPaths('ATK').cdn} className="stat-icon-img" alt="ATK" />
+        <img src={getStatPaths('ATK').local} className="stat-icon-img" alt="ATK" />
         {Math.floor(scaledAtk)}
       </div>
       <div className={`weapon-stat weapon-main-stat ${weapon.main_stat.toLowerCase()}`}>
-        <img src={getStatPaths(weapon.main_stat).cdn} className="stat-icon-img" alt={weapon.main_stat} />
+        <img src={getStatPaths(weapon.main_stat).local} className="stat-icon-img" alt={weapon.main_stat} />
         {`${scaledMainStat}%`}
       </div>
     </div>

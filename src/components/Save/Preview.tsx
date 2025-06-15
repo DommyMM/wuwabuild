@@ -151,14 +151,14 @@ export const SavePreview: React.FC<SavePreviewProps> = ({ build, onLoad, onDelet
             <>
                 <div className="info-row">
                     <div className="char-container">
-                        <img src={getAssetPath('face1', character as Character).cdn} alt={character?.name || ''} className={`char-portrait ${elementClass}`} />
+                        <img src={getAssetPath('face1', character as Character).local} alt={character?.name || ''} className={`char-portrait ${elementClass}`} />
                         <span className={`char-sig ${elementClass}`}>{character?.name}</span>
                         <span>Lv.{build.state.characterState.level} • S{build.state.currentSequence}</span>
                     </div>
                     <StatsMenu echoPanels={build.state.echoPanels} />
                     {weapon && (
                         <div className="weap-container">
-                            <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name || ''} className="weap-portrait"/>
+                            <img src={getAssetPath('weapons', weapon).local} alt={weapon.name || ''} className="weap-portrait"/>
                             <span className="weap">{weapon.name}</span>
                             <span>Lv.{build.state.weaponState.level} • R{build.state.weaponState.rank}</span>
                         </div>

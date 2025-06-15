@@ -26,7 +26,7 @@ export const BuildCharacterSection: React.FC<{
     elementClass: string;
 }> = ({ character, elementClass }) => (
     <div className="build-character">
-        <img src={getAssetPath('face1', character as Character).cdn} alt={character?.name ?? ''} className={`build-portrait ${elementClass}`} />
+        <img src={getAssetPath('face1', character as Character).local} alt={character?.name ?? ''} className={`build-portrait ${elementClass}`} />
         <span className={`char-name ${elementClass}`}>{character?.name}</span>
     </div>
 );
@@ -37,7 +37,7 @@ export const BuildSetsSection: React.FC<{ echoPanels: EchoPanelState[] }> = ({ e
             .filter(([, count]) => count >= 2)
             .map(([element, count]) => (
                 <div key={element} className="build-set-container">
-                    <img src={getAssetPath('sets', element).cdn} alt={element} className="build-set" />
+                    <img src={getAssetPath('sets', element).local} alt={element} className="build-set" />
                     <span>{count}</span>
                 </div>
             ))}
@@ -59,7 +59,7 @@ export const IconStat: React.FC<{
         
     return (
         <span className={`build-stat ${isHighlighted ? 'highlighted' : ''}`}>
-            <img src={getStatPaths(statName).cdn} alt={statName} className={`build-stat-icon ${hasElementalColor ? elementType : ''}`} />
+            <img src={getStatPaths(statName).local} alt={statName} className={`build-stat-icon ${hasElementalColor ? elementType : ''}`} />
             {formattedValue}
         </span>
     );
@@ -133,7 +133,7 @@ export const BuildEntry: React.FC<{
                 <div className="build-weapon">
                     {weapon && (
                         <>
-                            <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="weapon-portrait" />
+                            <img src={getAssetPath('weapons', weapon).local} alt={weapon.name} className="weapon-portrait" />
                             <span className="weapon-rank">R{entry.buildState.weaponState.rank}</span>
                         </>
                     )}

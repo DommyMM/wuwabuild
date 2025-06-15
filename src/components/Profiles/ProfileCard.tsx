@@ -23,7 +23,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
                 {/* Character icon section */}
                 <div className={`profile-character-display ${characterElementClass}`}>
                     {character && (
-                        <img src={getAssetPath('icons', character).cdn} alt={character.name} className="profile-character-icon"/>
+                        <img src={getAssetPath('icons', character).local} alt={character.name} className="profile-character-icon"/>
                     )}
                 </div>
                 
@@ -61,7 +61,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
                     
                     return (
                         <div key={index} className={`profile-echo-panel ${echoElementClass} ${isMainEcho ? 'main-echo' : ''}`}>
-                            <img src={getAssetPath('echoes', echo).cdn} 
+                            <img src={getAssetPath('echoes', echo).local} 
                                 alt={echo.name} 
                                 className="profile-echo-icon"
                             />
@@ -69,7 +69,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
                             {/* Element set icon for the echo */}
                             {echoElement && (
                                 <div className="profile-echo-element">
-                                    <img src={getAssetPath('sets', echoElement).cdn} 
+                                    <img src={getAssetPath('sets', echoElement).local} 
                                         alt={`${echoElement} Set`} 
                                         className="profile-echo-set-icon"
                                     />

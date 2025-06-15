@@ -43,7 +43,7 @@ const LeaderboardCharacterSection: React.FC<{
     elementClass: string;
 }> = ({ character, elementClass }) => (
     <div className="build-character">
-        <img src={getAssetPath('face1', character as Character).cdn} alt={character?.name ?? ''} className={`build-portrait ${elementClass}`} />
+        <img src={getAssetPath('face1', character as Character).local} alt={character?.name ?? ''} className={`build-portrait ${elementClass}`} />
         <span className={`char-name ${elementClass}`}>{character?.name}</span>
     </div>
 );
@@ -62,7 +62,7 @@ const LeaderboardTeamSection: React.FC<{
                     const character = characters.find(c => c.id === id);
                     if (!character) return null;
                     return (
-                        <img key={id} src={getAssetPath('face1', character).cdn} alt={character.name} className="preview-icon face" />
+                        <img key={id} src={getAssetPath('face1', character).local} alt={character.name} className="preview-icon face" />
                     );
                 })}
             </div>
@@ -110,7 +110,7 @@ const LeaderboardWeaponsWithRank: React.FC<{
                         }}
                         style={{ cursor: 'pointer' }}
                     >
-                        <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="preview-icon weapon" />
+                        <img src={getAssetPath('weapons', weapon).local} alt={weapon.name} className="preview-icon weapon" />
                         <div className="weapon-rank-info">
                             <div className="rank1-name">
                                 {weaponData?.owner.username || 'Anonymous'}

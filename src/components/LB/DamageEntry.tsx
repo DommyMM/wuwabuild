@@ -45,7 +45,7 @@ const IconStat: React.FC<{
         
     return (
         <span className={`build-stat ${isHighlighted ? 'highlighted' : ''}`}>
-            <img src={getStatPaths(statName).cdn} alt={statName} className={`build-stat-icon ${hasElementalColor ? elementType : ''}`}/>
+            <img src={getStatPaths(statName).local} alt={statName} className={`build-stat-icon ${hasElementalColor ? elementType : ''}`}/>
             {formattedValue}
         </span>
     );

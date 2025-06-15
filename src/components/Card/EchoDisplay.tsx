@@ -21,7 +21,7 @@ export interface EchoDisplayProps {
 }
 
 const getEchoPath = (echo: Echo, isPhantom: boolean = false) => {
-  return getAssetPath('echoes', echo, false, isPhantom).cdn;
+  return getAssetPath('echoes', echo, false, isPhantom).local;
 };
 
 const EchoLeft = React.memo<{ 
@@ -79,14 +79,14 @@ const EchoLeft = React.memo<{
           </div>
           <div className="main-stat-wrapper">
             <img 
-              src={getAssetPath('sets', element ?? '').cdn} 
+              src={getAssetPath('sets', element ?? '').local} 
               alt={`${element} Set Icon`} 
               className="set" 
             />
             {panel.stats.mainStat.type && (
               <>
                 <img 
-                  src={getStatPaths(panel.stats.mainStat.type).cdn} 
+                  src={getStatPaths(panel.stats.mainStat.type).local} 
                   alt={panel.stats.mainStat.type} 
                   className={`main-stat-icon ${statClass}`} 
                 />
@@ -167,7 +167,7 @@ const EchoRight = React.memo<{
           backgroundPosition: 'center bottom'
         } : undefined}
       >
-        <img src={getStatPaths(stat.type).cdn} alt={stat.type} className="substat-icon" />
+        <img src={getStatPaths(stat.type).local} alt={stat.type} className="substat-icon" />
         <span className="substat-value">
           {formatValue(stat.type, stat.value)}
         </span>

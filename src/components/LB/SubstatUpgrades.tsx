@@ -282,7 +282,7 @@ export const StatUpgrades: React.FC<StatUpgradesProps> = ({
                                     className={`substat-weapon-option ${index === selectedWeapon ? 'selected' : ''}`}
                                     onClick={() => handleSelectionChange(index, selectedSequence)}
                                 >
-                                    <img src={getAssetPath('weapons', weapon).cdn} 
+                                    <img src={getAssetPath('weapons', weapon).local} 
                                         alt={weapon.name} 
                                         className="weapon-icon" 
                                     />

@@ -121,7 +121,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
         <div className={`character-content${props.isMinimized ? '' : ' open'}`}>
           {selectedCharacter && (
             <>
-              <img id="selectedCharacterIcon" src={getAssetPath('icons', selectedCharacter).cdn}
+              <img id="selectedCharacterIcon" src={getAssetPath('icons', selectedCharacter).local}
                 alt="Selected Character Icon" 
                 className="character-tab-icon"
               />
@@ -137,7 +137,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                       </div>
                       
                       <div className="element-center" onClick={() => setShowElementModal(true)}>
-                        <img src={getAssetPath('elements', element || 'Havoc').cdn}
+                        <img src={getAssetPath('elements', element || 'Havoc').local}
                           alt={element || 'Element'}
                           className="carousel-icon"
                         />
@@ -165,7 +165,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                               data-element={elementType}
                               onClick={() => handleElementSelect(elementType)}
                             >
-                              <img src={getAssetPath('elements', elementType).cdn}
+                              <img src={getAssetPath('elements', elementType).local}
                                 alt={elementType}
                                 className="element-option-icon"
                               />
