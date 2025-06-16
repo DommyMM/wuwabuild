@@ -201,7 +201,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
     if (customImage) {
       return imageUrl ?? undefined;
     }
-    return getAssetPath('icons', character, useAltSkin).local;
+    return getAssetPath('icons', character, useAltSkin).cdn;
   }, [character, customImage, imageUrl, useAltSkin]);
 
   const imageStyle = useMemo(() => ({
