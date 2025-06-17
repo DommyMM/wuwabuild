@@ -117,14 +117,38 @@ export const calculateDisplayStats = (
   values: Record<StatName, number>,
   baseValues: Record<StatName, number>,
   updates: Record<StatName, number>
-) => Object.entries(values)
-  .filter(([, value]) => value !== 0)
-  .map(([stat, value]) => ({
+) => {
+  const elementStats = [
+    'Aero DMG', 'Electro DMG', 'Fusion DMG', 
+    'Glacio DMG', 'Havoc DMG', 'Spectro DMG'
+  ];
+  
+  // Get all non-zero entries first
+  const nonZeroEntries = Object.entries(values).filter(([, value]) => value !== 0);
+  
+  // Filter out element stats for special handling
+  const nonElementEntries = nonZeroEntries.filter(([stat]) => !elementStats.includes(stat));
+  const elementEntries = nonZeroEntries.filter(([stat]) => elementStats.includes(stat));
+  
+  // Handle element stats: show highest, plus second if within 20
+  let finalElementEntries = [];
+  if (elementEntries.length > 0) {
+    elementEntries.sort(([,a], [,b]) => b - a);
+    finalElementEntries.push(elementEntries[0]); // Always show highest
+    
+    if (elementEntries.length > 1 && elementEntries[0][1] - elementEntries[1][1] <= 20) {
+      finalElementEntries.push(elementEntries[1]); // Show second if within 20
+    }
+  }
+  
+  // Combine and format
+  return [...nonElementEntries, ...finalElementEntries].map(([stat, value]) => ({
     name: stat as StatName,
     value: formatStatValue(stat as StatName, value as number),
     baseValue: baseValues[stat as StatName],
     update: updates[stat as StatName]
   }));
+};
 
 export const calculateElementStates = (sets: ReturnType<typeof calculateSets>, echoPanels: EchoPanelState[]) => {
   const leftStates = Array(5).fill('none');
