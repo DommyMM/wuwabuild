@@ -131,7 +131,7 @@ export const calculateDisplayStats = (
   const elementEntries = nonZeroEntries.filter(([stat]) => elementStats.includes(stat));
   
   // Handle element stats: show highest, plus second if within 20
-  let finalElementEntries = [];
+  const finalElementEntries = [];
   if (elementEntries.length > 0) {
     elementEntries.sort(([,a], [,b]) => b - a);
     finalElementEntries.push(elementEntries[0]); // Always show highest
