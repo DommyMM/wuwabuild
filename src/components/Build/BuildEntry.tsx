@@ -76,24 +76,31 @@ const BuildStatsSection: React.FC<{
         ["Healing Bonus", values['Healing Bonus'] || 0] : 
         getHighestDmg(values);
     
-    let firstStat: [string, number] = (isHealer && activeStat !== 'ATK') ?
-        ['HP', values['HP']] :
-        ['ATK', values['ATK']];
+    // Use Bonus2 to determine primary scaling stat
+    let firstStat: [string, number];
+    if (character?.Bonus2 === "HP") {
+        firstStat = ['HP', values['HP']];
+    } else if (character?.Bonus2 === "DEF") {
+        firstStat = ['DEF', values['DEF']];
+    } else {
+        firstStat = ['ATK', values['ATK']];
+    }
+    
     let secondStat: [string, number] = [elementType, elementDmg];
     let fourthStat: [string, number] = getHighestDmgBonus(values);
     if (activeStat === elementType) {
         secondStat = getHighestDmgBonus(values);
         fourthStat = [elementType, elementDmg];
-    } else if (activeStat && !['ATK', 'HP', 'Energy Regen'].includes(activeStat)) {
+    } else if (activeStat && !['ATK', 'HP', 'DEF', 'Energy Regen'].includes(activeStat)) {
         fourthStat = [activeStat, values[activeStat] || 0];
-    } else if (activeStat === 'HP') {
-        if (isHealer) {
-            firstStat = ['ATK', values['ATK']];
-            fourthStat = ['HP', values['HP']];
-        } else {
-            fourthStat = ['HP', values['HP']];
-        }
+    } else if (activeStat === 'HP' && character?.Bonus2 !== "HP") {
+        fourthStat = ['HP', values['HP']];
+    } else if (activeStat === 'DEF' && character?.Bonus2 !== "DEF") {
+        fourthStat = ['DEF', values['DEF']];
+    } else if (activeStat === 'ATK' && character?.Bonus2 !== "ATK") {
+        fourthStat = ['ATK', values['ATK']];
     }
+    
     return (
         <div className={`build-stats ${isActiveColumn ? 'active-column' : ''}`}>
             <IconStat statName={firstStat[0]} value={firstStat[1]} isHighlighted={activeStat === firstStat[0]} />
