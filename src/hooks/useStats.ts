@@ -34,7 +34,7 @@ export interface UseStatsProps {
   weaponStats?: ScaledStats;
   echoPanels?: EchoPanelState[];
   nodeStates: Record<string, Record<string, boolean>>;
-  sequence?: number; // Add sequence parameter
+  sequence?: number;
 }
 
 export const SET_TO_STAT_MAPPING = {
@@ -371,12 +371,11 @@ export const useStats = ({
           result.update += bonusForStat.value;
         }
         
-        // Special case for Fleurdelys with Rover Aero
+        // Special case for Fleurdelys with Rover Aero or Carthethyia
         if (firstEcho?.name === 'Fleurdelys' && 
             displayStat === 'Aero DMG' && 
-            isRover(character) && 
-            characterState.element === 'Aero') {
-          result.update += 10; // Additional 10% for Rover:Aero
+            ((isRover(character) && characterState.element === 'Aero') || character?.name === 'Carthethyia')) {
+          result.update += 10; // Additional 10% for Rover:Aero or Carthethyia
         }
       }
       
