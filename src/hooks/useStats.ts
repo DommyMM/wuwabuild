@@ -52,7 +52,9 @@ export const SET_TO_STAT_MAPPING = {
   'Tidebreaking Courage': 'Energy Regen',
   'Frosty Resolve': 'Resonance Skill DMG Bonus',
   'Eternal Radiance': 'Spectro DMG',
-  'Gusts of Welkin' : 'Aero DMG'
+  'Gusts of Welkin' : 'Aero DMG',
+  'Windward Pilgrimage' : 'Aero DMG',
+  'Flaming Clawprint' : 'Fusion DMG',
 } as const;
 
 export const initialStatState: StatState = {
