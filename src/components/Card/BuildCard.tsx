@@ -234,7 +234,8 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const [useAltSkin, setUseAltSkin] = useState(false);
   const [artSource, setArtSource] = useState<string>('');
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingType, setProcessingType] = useState<'download' | 'open' | null>(null);
   const [lastGeneratedImage, setLastGeneratedImage] = useState<string>('');
   const tabRef = useRef<HTMLDivElement>(null);
   const { scaleAtk, scaleStat } = useLevelCurves();
@@ -298,15 +299,17 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   }, [isTabVisible]);
 
   const handleDownload = useCallback(() => {
-    if (!tabRef.current || isDownloading) return;
+    if (!tabRef.current || isProcessing) return;
     setIsEditMode(false);
-    setIsDownloading(true);
-  
+    setIsProcessing(true);
+    setProcessingType('download');
+
     // Wait for React to update the DOM after state change
     setTimeout(() => {
       // Re-check ref is still valid
       if (!tabRef.current) {
-        setIsDownloading(false);
+        setIsProcessing(false);
+        setProcessingType(null);
         return;
       }
       
@@ -341,27 +344,37 @@ export const BuildCard: React.FC<BuildCardProps> = ({
           link.click();
           
           document.body.removeChild(clone);
-          setIsDownloading(false);
+          setIsProcessing(false);
+          setProcessingType(null);
         })
         .catch((error: Error) => {
           console.error('Error capturing build-tab:', error);
           toast.error('Download failed. Please try again.');
           document.body.removeChild(clone);
-          setIsDownloading(false);
+          setIsProcessing(false);
+          setProcessingType(null);
         });
       }, 250);
     }, 0); // Even a 0ms timeout pushes to next event loop iteration
-  }, [isDownloading]);
+  }, [isProcessing]);
 
   const handleOpenImage = useCallback(() => {
     if (lastGeneratedImage) {
-      // If we already have the image, just open it
-      window.open(lastGeneratedImage, '_blank');
+      // Convert data URL to blob URL for security
+      fetch(lastGeneratedImage)
+        .then(res => res.blob())
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        });
       return;
     }
     
-    // Otherwise generate it fresh (same logic as download)
-    if (!tabRef.current) return;
+    // Generate fresh image with loading state
+    if (!tabRef.current || isProcessing) return;
+    setIsProcessing(true);
+    setProcessingType('open');
     
     const clone = tabRef.current.cloneNode(true) as HTMLElement;
     clone.classList.add('downloading');
@@ -377,15 +390,30 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       domtoimage.toPng(clone, {cacheBust: true})
       .then(dataUrl => {
         setLastGeneratedImage(dataUrl);
-        window.open(dataUrl, '_blank');
+        
+        // Convert to blob URL and add .png to filename
+        return fetch(dataUrl).then(res => res.blob());
+      })
+      .then(blob => {
+        // Create blob with proper filename
+        const file = new File([blob], 'build-card.png', { type: 'image/png' });
+        const blobUrl = URL.createObjectURL(file);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        
         document.body.removeChild(clone);
+        setIsProcessing(false);
+        setProcessingType(null);
       })
       .catch(error => {
         console.error('Failed to generate image:', error);
+        toast.error('Failed to open image');
         document.body.removeChild(clone);
+        setIsProcessing(false);
+        setProcessingType(null);
       });
     }, 250);
-  }, [lastGeneratedImage]);
+  }, [lastGeneratedImage, isProcessing]);
 
   const handleImageChange = (file: File | undefined) => {
     if (isEditMode) {
@@ -529,11 +557,11 @@ export const BuildCard: React.FC<BuildCardProps> = ({
             </button>
             <button 
               id="downloadButton" 
-              className={`build-button ${isDownloading ? 'downloading-btn' : ''}`} 
+              className={`build-button ${isProcessing && processingType === 'download' ? 'downloading-btn' : ''}`} 
               onClick={handleDownload}
-              disabled={isDownloading}
+              disabled={isProcessing}
             >
-              {isDownloading ? (
+              {isProcessing && processingType === 'download' ? (
                 <span className="download-animation">
                   <span className="dot"></span>
                   <span className="dot"></span>
@@ -544,9 +572,20 @@ export const BuildCard: React.FC<BuildCardProps> = ({
               )}
             </button>
             
-            {/* Replace Save Build with Open Image */}
-            <button className="build-button" onClick={handleOpenImage}>
-              <ExternalLink size={20}/> Open Image
+            <button 
+              className={`build-button ${isProcessing && processingType === 'open' ? 'downloading-btn' : ''}`}
+              onClick={handleOpenImage}
+              disabled={isProcessing}
+            >
+              {isProcessing && processingType === 'open' ? (
+                <span className="download-animation">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </span>
+              ) : (
+                <><ExternalLink size={20}/> Open Image</>
+              )}
             </button>
           </div>
         )}
