@@ -19,7 +19,7 @@ import { useStatHighlight } from '@/hooks/useHighlight';
 import { SaveBuild } from '@/components/Edit/SaveBuild';
 import { SavedState } from '@/types/SavedState';
 import { toast } from 'react-toastify';
-import { Pencil, ImageDownIcon, Download, Database } from 'lucide-react';
+import { Pencil, ImageDownIcon, Download, ExternalLink } from 'lucide-react';
 import '@/styles/Build.css';
 
 export const calculateWeaponStats = (
@@ -235,6 +235,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   const [artSource, setArtSource] = useState<string>('');
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [lastGeneratedImage, setLastGeneratedImage] = useState<string>('');
   const tabRef = useRef<HTMLDivElement>(null);
   const { scaleAtk, scaleStat } = useLevelCurves();
 
@@ -328,14 +329,17 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       
       // Give time for all resources to load and render
       setTimeout(() => {
-        domtoimage.toPng(clone, {cacheBust: true,})
+        domtoimage.toPng(clone, {cacheBust: true})
         .then((dataUrl: string) => {
+          // Store the image for "Open Image" button
+          setLastGeneratedImage(dataUrl);
+          
+          // Trigger download
           const link = document.createElement('a');
           link.download = `${timestamp}.png`;
           link.href = dataUrl;
           link.click();
           
-          // Clean up
           document.body.removeChild(clone);
           setIsDownloading(false);
         })
@@ -348,6 +352,40 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       }, 250);
     }, 0); // Even a 0ms timeout pushes to next event loop iteration
   }, [isDownloading]);
+
+  const handleOpenImage = useCallback(() => {
+    if (lastGeneratedImage) {
+      // If we already have the image, just open it
+      window.open(lastGeneratedImage, '_blank');
+      return;
+    }
+    
+    // Otherwise generate it fresh (same logic as download)
+    if (!tabRef.current) return;
+    
+    const clone = tabRef.current.cloneNode(true) as HTMLElement;
+    clone.classList.add('downloading');
+    clone.style.position = 'fixed';
+    clone.style.left = '0';
+    clone.style.top = '0';
+    clone.style.zIndex = '-1000';
+    clone.style.pointerEvents = 'none';
+    clone.style.display = 'flex';
+    document.body.appendChild(clone);
+    
+    setTimeout(() => {
+      domtoimage.toPng(clone, {cacheBust: true})
+      .then(dataUrl => {
+        setLastGeneratedImage(dataUrl);
+        window.open(dataUrl, '_blank');
+        document.body.removeChild(clone);
+      })
+      .catch(error => {
+        console.error('Failed to generate image:', error);
+        document.body.removeChild(clone);
+      });
+    }, 250);
+  }, [lastGeneratedImage]);
 
   const handleImageChange = (file: File | undefined) => {
     if (isEditMode) {
@@ -505,8 +543,10 @@ export const BuildCard: React.FC<BuildCardProps> = ({
                 <><Download size={20}/> Download</>
               )}
             </button>
-            <button id="saveBuildButton" className="build-button" onClick={handleSaveBuildClick}>
-              <Database size={20}/>Save Build
+            
+            {/* Replace Save Build with Open Image */}
+            <button className="build-button" onClick={handleOpenImage}>
+              <ExternalLink size={20}/> Open Image
             </button>
           </div>
         )}
