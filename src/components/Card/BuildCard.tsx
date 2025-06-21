@@ -226,7 +226,7 @@ export const BuildCard: React.FC<BuildCardProps> = ({
   useStatHighlight();
   const [isTabVisible, setIsTabVisible] = useState(false);
   const [showRollQuality, setShowRollQuality] = useState(true);
-  const [showCV, setShowCV] = useState(true); // Add new state
+  const [showCV, setShowCV] = useState(true);
   const [hasBeenVisible, setHasBeenVisible] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [customImage, setCustomImage] = useState<File | undefined>(undefined);
@@ -360,11 +360,12 @@ export const BuildCard: React.FC<BuildCardProps> = ({
 
   const handleOpenImage = useCallback(() => {
     if (lastGeneratedImage) {
-      // Convert data URL to blob URL for security
+      // Convert data URL to blob with explicit PNG MIME type
       fetch(lastGeneratedImage)
         .then(res => res.blob())
-        .then(blob => {
-          const blobUrl = URL.createObjectURL(blob);
+        .then(blob => new Blob([blob], { type: 'image/png' })) // Explicit MIME type
+        .then(pngBlob => {
+          const blobUrl = URL.createObjectURL(pngBlob);
           window.open(blobUrl, '_blank');
           setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
         });
@@ -391,13 +392,13 @@ export const BuildCard: React.FC<BuildCardProps> = ({
       .then(dataUrl => {
         setLastGeneratedImage(dataUrl);
         
-        // Convert to blob URL and add .png to filename
-        return fetch(dataUrl).then(res => res.blob());
+        // Convert to PNG blob and open
+        return fetch(dataUrl)
+          .then(res => res.blob())
+          .then(blob => new Blob([blob], { type: 'image/png' })); // Add explicit MIME type for png
       })
-      .then(blob => {
-        // Create blob with proper filename
-        const file = new File([blob], 'build-card.png', { type: 'image/png' });
-        const blobUrl = URL.createObjectURL(file);
+      .then(pngBlob => {
+        const blobUrl = URL.createObjectURL(pngBlob);
         window.open(blobUrl, '_blank');
         setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
         
@@ -429,9 +430,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     setIsEditMode(!isEditMode);
   };
 
-  const handleSaveBuildClick = () => {
-    setIsSaveModalOpen(true);
-  };
+  // const handleSaveBuildClick = () => {
+  //   setIsSaveModalOpen(true);
+  // };
 
   const handleSaveConfirm = (name: string) => {
     const state: SavedState = {
