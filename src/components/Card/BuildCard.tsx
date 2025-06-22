@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { Pencil, ImageDownIcon, Download, ExternalLink, Database } from 'lucide-react';
 import domtoimage from 'dom-to-image';
 import { Options } from './Options';
 import { CharacterSection } from './CharacterSection';
@@ -19,7 +20,6 @@ import { useStatHighlight } from '@/hooks/useHighlight';
 import { SaveBuild } from '@/components/Edit/SaveBuild';
 import { SavedState } from '@/types/SavedState';
 import { toast } from 'react-toastify';
-import { Pencil, ImageDownIcon, Download, ExternalLink } from 'lucide-react';
 import '@/styles/Build.css';
 
 export const calculateWeaponStats = (
@@ -430,9 +430,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
     setIsEditMode(!isEditMode);
   };
 
-  // const handleSaveBuildClick = () => {
-  //   setIsSaveModalOpen(true);
-  // };
+  const handleSaveBuildClick = () => {
+    setIsSaveModalOpen(true);
+  };
 
   const handleSaveConfirm = (name: string) => {
     const state: SavedState = {
@@ -587,6 +587,9 @@ export const BuildCard: React.FC<BuildCardProps> = ({
               ) : (
                 <><ExternalLink size={20}/> Open Image</>
               )}
+            </button>
+            <button id="saveBuildButton" className="build-button" onClick={handleSaveBuildClick}>
+              <Database size={20}/>Save Build
             </button>
           </div>
         )}
