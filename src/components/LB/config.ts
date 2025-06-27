@@ -82,6 +82,15 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         notes: '5-star weapons at R1, 4-star at R5. Thunderbolt at max stacks. \n S0R1 Shorekeeper + Moonlit Heron Zhezhi',
         enabled: true
     },
+    '38': {
+        teamIds: ['28', '45'],
+        stats: ['ATK', 'Energy Regen', 'Heavy Attack DMG Bonus', 'Spectro DMG'],
+        weapons: ['21040019', '21040015', '21040094', '21040074'],
+        sequences: ['s0', 's2'],
+        rotation: ['Intro', 'Skill', 'Liberation', 'Heavy Combo', 'Outro'],
+        notes: '5-star weapons at R1, 4-star at R5. Blazing Justice full uptime. \n S0R1 Shorekeeper + Moonlit R1 Phoebe',
+        enabled: true
+    },
     '45': {
         teamIds: ['37', '5'], 
         stats: ['ATK', 'Energy Regen', 'Heavy Attack DMG Bonus', 'Spectro DMG'],
