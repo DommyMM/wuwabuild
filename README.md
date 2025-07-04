@@ -101,8 +101,11 @@ Streamlined system for importing builds from Discord bot images:
 
 The Import system eliminates manual build recreation by automatically extracting and mapping all character build data from standardized Discord images directly into the application's data structure.
 
-### Builds/Leaderboard Page (`/builds`)
-Global build rankings with comprehensive filtering:
+### Global Builds Browser (`/builds`)
+A comprehensive browser for viewing and comparing builds from players worldwide:
+
+- **Warning overlay** that clarifies this is a build browser, not a leaderboard (dismissible)
+- Comprehensive filtering system:
   - Character selection
   - Weapon type filtering
   - Echo set filtering
@@ -112,14 +115,20 @@ Global build rankings with comprehensive filtering:
 - Multiple sorting options (CV, CR, CD, ATK, etc.)
 - Expandable entries with detailed stat comparison
 - Pagination for navigating large result sets
+- All builds standardized to level 90 for fair comparison
 
+The Global Builds page serves as a comprehensive database for browsing and analyzing builds from the community, with advanced filtering and sorting capabilities.
 
-### Character Leaderboards (`/leaderboards/[characterId]`)
+### Character Leaderboards (`/leaderboards`)
+Character-specific build rankings and damage analysis:
+
 - Character-specific build rankings
 - Weapon variant tabs with damage calculations
 - Sequence level filtering (S0-S6) where relevant
 - Visual damage comparison with graph visualization
 - Build sorting by damage output and crit metrics
+
+The Character Leaderboards provide focused analysis and ranking for specific characters, allowing players to see top-performing builds and damage comparisons for their favorite characters.
 
 ## Technical Architecture
 
