@@ -175,6 +175,7 @@ export default function BuildPageClient() {
     const [regions, setRegions] = useState<number[]>([]);
     const [username, setUsername] = useState<string | undefined>(undefined);
     const [uid, setUid] = useState<string | undefined>(undefined);
+    const [showWarning, setShowWarning] = useState(true);
     useEffect(() => {
         const searchParams = new URLSearchParams(window.location.search);
         
@@ -348,6 +349,17 @@ export default function BuildPageClient() {
                 <BuildHeader />
                 <div className="build-container">
                     <div className="build-table-wrapper">
+                        {showWarning && (
+                            <div className="warning-overlay" onClick={() => setShowWarning(false)}>
+                                <div className="warning-content">
+                                    <h2>Warning</h2>
+                                    <p>This is a browser, not a leaderboard.</p>
+                                    <p>Entries are sorted by Crit Value (CV) by default, <br/> BUT CV IS NOT A RANKING.</p>
+                                    <p>Visit the <a href="/leaderboards" className="rank-link">Rank page</a> for real rankings.</p>
+                                    <div className="builds-warning-dismiss">Click anywhere to continue</div>
+                                </div>
+                            </div>
+                        )}
                         <div className={`table-loading-overlay ${isTableLoading ? 'active' : ''}`}>
                             <div className="loading-spinner" />
                             <div className="loading-text">Updating results...</div>
