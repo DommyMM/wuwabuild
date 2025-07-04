@@ -20,25 +20,21 @@ const FILTERED_STATS = STAT_ORDER.filter(stat =>
 
 const BuildHeader: React.FC = () => (
     <div className="build-header-container">
-    <h1 className="build-header-title">Global Board</h1>
-    <div className="build-header-divider"></div>
-    <div className="build-header-text">
-        <span>Pool of all builds, standardized to Lv 90</span>
-        <div className="build-header-info">
-            <div className="info-item">
-                <span className="info-label">Roll Value (RV):</span>
-                <span className="division-style">
-                    <span>Stat Value</span>
-                    <span>Max Value</span>
-                </span>
+        <h1 className="build-header-title">Global Board</h1>
+        <div className="build-header-divider"></div>
+        <div className="build-header-text">
+            <span>Pool of all builds standardized to Lv 90. Sorted by Crit Value (CV) by default.</span>
+            <div className="cv-info">
+                <span className="cv-label">Crit Value (CV):</span>
+                <span className="cv-formula">2&middot;CR + CD</span>
             </div>
-            <div className="info-item">
-                <span className="info-label">Crit Value (CV):</span>
-                <span>2 x CR + CD</span>
+            <div className="cv-note">
+                CV is calculated from Crit Rate and Crit DMG stats from Echoes only.
+                <br/>
+                For every extra 4 cost, 44 CV is subtracted (the CV from a 4-cost Crit).
             </div>
         </div>
     </div>
-</div>
 );
 
 type CVSort = 'cv' | 'cr' | 'cd';
