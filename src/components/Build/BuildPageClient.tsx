@@ -349,17 +349,6 @@ export default function BuildPageClient() {
                 <BuildHeader />
                 <div className="build-container">
                     <div className="build-table-wrapper">
-                        {showWarning && (
-                            <div className="warning-overlay" onClick={() => setShowWarning(false)}>
-                                <div className="warning-content">
-                                    <h2>Warning</h2>
-                                    <p>This is a browser, not a leaderboard.</p>
-                                    <p>Entries are sorted by Crit Value (CV) by default, <br/> BUT CV IS NOT A RANKING.</p>
-                                    <p>Visit the <a href="/leaderboards" className="rank-link">Rank page</a> for real rankings.</p>
-                                    <div className="builds-warning-dismiss">Click anywhere to continue</div>
-                                </div>
-                            </div>
-                        )}
                         <div className={`table-loading-overlay ${isTableLoading ? 'active' : ''}`}>
                             <div className="loading-spinner" />
                             <div className="loading-text">Updating results...</div>
@@ -369,11 +358,9 @@ export default function BuildPageClient() {
                                 filterState={filterState}
                                 onFilterChange={(newState: FilterState) => {
                                     const hasFilterChanged = getFilterHash(newState) !== getFilterHash(filterState);
-                                    
                                     if (hasFilterChanged) {
                                         setCurrentPage(1);
                                     }
-                                    
                                     setCharacterIds(newState.characterIds);
                                     setWeaponIds(newState.weaponIds);
                                     setEchoSets(newState.echoSets);
@@ -390,55 +377,68 @@ export default function BuildPageClient() {
                                     includeRegions: true
                                 }}
                             />
-                            <div className="build-header">
-                                <span>Rank</span>
-                                <span>Owner</span>
-                                <span>Character</span>
-                                <span></span>
-                                <span></span>
-                                <span>Sets</span>
-                                <SortDropdown<CVSort>
-                                    field={CVSort}
-                                    options={['cv', 'cr', 'cd'] as const}
-                                    direction={sortDirection}
-                                    onFieldChange={handleCVSort}
-                                    onDirectionChange={setSortDirection}
-                                    placeholder="Crit Value"
-                                    isActive={activeSort === 'cv'}
-                                />
-                                <SortDropdown<StatSort>
-                                    field={statSort}
-                                    options={FILTERED_STATS}
-                                    direction={sortDirection}
-                                    onFieldChange={handleStatSort}
-                                    onDirectionChange={setSortDirection}
-                                    placeholder="Stats"
-                                    isActive={activeSort === 'stat'}
-                                    hoveredSection={hoveredSection}
-                                    lastHoveredSection={lastHoveredSection}
-                                    onHoverSection={handleHoverSection}
-                                />
-                            </div>
-                            <div className="build-entries">
-                                {data.map((entry, index) => (
-                                    <BuildEntry 
-                                        key={entry.timestamp}
-                                        entry={entry}
-                                        rank={(currentPage - 1) * itemsPerPage + index + 1}
-                                        onClick={() => setExpandedEntries(prev => {
-                                            const next = new Set(prev);
-                                            if (next.has(entry.timestamp)) {
-                                                next.delete(entry.timestamp);
-                                            } else {
-                                                next.add(entry.timestamp);
-                                            }
-                                            return next;
-                                        })}
-                                        isExpanded={expandedEntries.has(entry.timestamp)}
-                                        activeStat={activeSort === 'stat' ? statSort : null}
-                                        activeSort={activeSort}
+                            <div className="build-table-content" style={{position: 'relative'}}>
+                                {showWarning && (
+                                    <div className="warning-overlay" onClick={() => setShowWarning(false)}>
+                                        <div className="warning-content">
+                                            <h2>Warning</h2>
+                                            <p>This is a browser, not a leaderboard.</p>
+                                            <p>Entries are sorted by Crit Value (CV) by default, <br/> BUT CV IS NOT A RANKING.</p>
+                                            <p>Visit the <a href="/leaderboards" className="rank-link">Rank page</a> for real rankings.</p>
+                                            <div className="builds-warning-dismiss">Click anywhere to continue</div>
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="build-header">
+                                    <span>Rank</span>
+                                    <span>Owner</span>
+                                    <span>Character</span>
+                                    <span></span>
+                                    <span></span>
+                                    <span>Sets</span>
+                                    <SortDropdown<CVSort>
+                                        field={CVSort}
+                                        options={['cv', 'cr', 'cd'] as const}
+                                        direction={sortDirection}
+                                        onFieldChange={handleCVSort}
+                                        onDirectionChange={setSortDirection}
+                                        placeholder="Crit Value"
+                                        isActive={activeSort === 'cv'}
                                     />
-                                ))}
+                                    <SortDropdown<StatSort>
+                                        field={statSort}
+                                        options={FILTERED_STATS}
+                                        direction={sortDirection}
+                                        onFieldChange={handleStatSort}
+                                        onDirectionChange={setSortDirection}
+                                        placeholder="Stats"
+                                        isActive={activeSort === 'stat'}
+                                        hoveredSection={hoveredSection}
+                                        lastHoveredSection={lastHoveredSection}
+                                        onHoverSection={handleHoverSection}
+                                    />
+                                </div>
+                                <div className="build-entries">
+                                    {data.map((entry, index) => (
+                                        <BuildEntry 
+                                            key={entry.timestamp}
+                                            entry={entry}
+                                            rank={(currentPage - 1) * itemsPerPage + index + 1}
+                                            onClick={() => setExpandedEntries(prev => {
+                                                const next = new Set(prev);
+                                                if (next.has(entry.timestamp)) {
+                                                    next.delete(entry.timestamp);
+                                                } else {
+                                                    next.add(entry.timestamp);
+                                                }
+                                                return next;
+                                            })}
+                                            isExpanded={expandedEntries.has(entry.timestamp)}
+                                            activeStat={activeSort === 'stat' ? statSort : null}
+                                            activeSort={activeSort}
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>

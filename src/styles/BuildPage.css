@@ -290,6 +290,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    position: relative;
 }
 
 .build-entry {
@@ -595,6 +596,7 @@
     border-radius: 8px;
     cursor: pointer;
     backdrop-filter: blur(2px);
+    pointer-events: auto;
 }
 
 .warning-content {
@@ -640,4 +642,12 @@
 
 .warning-content button:hover {
     color: #fff;
+}
+
+.builds-warning-dismiss {
+    margin-top: 1.2rem;
+    color: #888;
+    font-size: 13px;
+    font-style: italic;
+    letter-spacing: 0.2px;
 }
