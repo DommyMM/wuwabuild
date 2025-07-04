@@ -11,6 +11,7 @@ import { STAT_ORDER } from '@/types/stats';
 import { useRouter } from 'next/navigation';
 import { BuildFilter, FilterState } from './BuildFilter';
 import '@/styles/BuildPage.css';
+import Link from 'next/link';
 
 const FILTERED_STATS = STAT_ORDER.filter(stat => 
     !stat.includes('Crit Rate') && 
@@ -384,7 +385,7 @@ export default function BuildPageClient() {
                                             <h2>Warning</h2>
                                             <p>This is a browser, not a leaderboard.</p>
                                             <p>Entries are sorted by Crit Value (CV) by default, <br/> BUT CV IS NOT A RANKING.</p>
-                                            <p>Visit the <a href="/leaderboards" className="rank-link">Rank page</a> for real rankings.</p>
+                                            <p>Visit the <Link href="/leaderboards" className="rank-link">Rank page</Link> for real rankings.</p>
                                             <div className="builds-warning-dismiss">Click anywhere to continue</div>
                                         </div>
                                     </div>
