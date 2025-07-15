@@ -159,8 +159,6 @@
     font-style: italic;
 }
 
-
-
 .warning-overlay {
     position: absolute;
     inset: 0;
@@ -189,9 +187,10 @@
 .warning-content h2 {
     font-size: 32px;
     color: #ffe082;
-    margin: 1rem;
+    margin: 1rem auto;
     font-weight: 700;
     text-align: center;
+    width: 100%;
 }
 
 .warning-content p {
