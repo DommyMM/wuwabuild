@@ -54,14 +54,15 @@ export const ELEMENT_SETS = {
   'Tidebreaking': 'Tidebreaking Courage',
   'Gust': 'Gusts of Welkin',
   'Windward' : 'Windward Pilgrimage',
-  'Flaming' : 'Flaming Clawprint'
+  'Flaming' : 'Flaming Clawprint',
+  'Dream' : 'Dream of the Lost'
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
 export type CostSection = typeof COST_SECTIONS[number];
 export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' | 
 'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
-'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward'| 'Flaming';
+'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward'| 'Flaming' | 'Dream';
 
 interface EchoBonus {
   stat: StatName;
@@ -127,6 +128,10 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
     { stat: 'Fusion DMG', value: 12 },
     { stat: 'Resonance Liberation DMG Bonus', value: 12 }
   ],
+  ['Fenrico']: [
+    { stat: 'Aero DMG', value: 12 },
+    { stat: 'Heavy Attack DMG Bonus', value: 12 }
+  ]
 } as const;
 
 export const PHANTOM_ECHOES = [
@@ -150,5 +155,7 @@ export const PHANTOM_ECHOES = [
   'Capitaneus',
   'Nimbus Wraith',
   'Nightmare Crownless',
-  'Chest Mimic'
+  'Chest Mimic',
+  'Fae Ignis',
+  'Nightmare Inferno Rider'
 ] as readonly string[];

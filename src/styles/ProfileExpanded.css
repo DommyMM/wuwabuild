@@ -52,6 +52,7 @@
 .profile-card.electro { background-image: linear-gradient(rgba(138, 43, 226, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
 .profile-card.fusion { background-image: linear-gradient(rgba(213, 116, 12, 0.25), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
 .profile-card.havoc { background-image: linear-gradient(rgba(255, 20, 147, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+.profile-card.dream { background-image: linear-gradient(rgba(160, 70, 160, 0.22), rgba(0, 0, 0, 0.5)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
 .profile-card.glacio { background-image: linear-gradient(rgba(0, 206, 209, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
 
 .profile-character-display {
@@ -114,6 +115,7 @@
 .profile-echo-panel.gust { border: 1px solid rgba(124, 252, 0, 0.6); }
 .profile-echo-panel.windward { border: 1px solid rgba(152, 251, 152, 0.6); }
 .profile-echo-panel.flaming { border: 1px solid rgba(213, 116, 12, 0.6); }
+.profile-echo-panel.dream { border: 1px solid rgba(192, 106, 192, 0.6); }
 
 .profile-echo-icon {
     width: 60%;

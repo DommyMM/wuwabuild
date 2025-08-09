@@ -329,6 +329,9 @@
 .connector-segment.midnight {
     border-color: #e086e0;
 }
+.connector-segment.dream {
+    border-color: #c06ac0;
+}
 
 .connector-segment.radiance {
     border-color: #ffd54f;
@@ -683,6 +686,7 @@
 .set-row.empyrean .set-name { color: #4ba3ff; }
 .set-row.frosty .set-name { color: #87CEEB; }
 .set-row.midnight .set-name { color: #e086e0; }
+.set-row.dream .set-name { color: #c06ac0; }
 .set-row.radiance .set-name { color: #ffd54f; }
 .set-row.tidebreaking .set-name { color: white; }
 .set-row.gust .set-name { color: #7CFC00; }

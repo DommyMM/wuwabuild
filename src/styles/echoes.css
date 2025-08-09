@@ -599,6 +599,9 @@
 .set-name-display.midnight {
     background-image: linear-gradient(to right, #e086e0, #dda0dd, #ffffff, #d8bfd8, #e086e0);
 }
+.set-name-display.dream {
+    background-image: linear-gradient(to right, #c06ac0, #b060b0, #ffffff, #a050a0, #c06ac0);
+}
 
 .set-name-display.radiance {
     background-image: linear-gradient(to right, #ffd700, #fff5b0, #ffffff, #ffe87c, #ffd700);

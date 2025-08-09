@@ -390,9 +390,11 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                 .filter(([, name]) => 
                     name.toLowerCase().includes(search.toLowerCase())
                 );
-            [2, 5].forEach(count => {
-                filteredEchoes.forEach(([element], ) => {
-                    const setIndex = Object.keys(ELEMENT_SETS).indexOf(element);
+            // Offer 2p/5p for all sets, and 3p only for 'Dream'
+            const countsPerElement = (element: string) => element === 'Dream' ? [3] : [2, 5];
+            filteredEchoes.forEach(([element]) => {
+                const setIndex = Object.keys(ELEMENT_SETS).indexOf(element);
+                countsPerElement(element).forEach(count => {
                     if (!filterState.echoSets.some(([c, i]) => c === count && i === setIndex)) {
                         items.push({
                             type: 'echo',

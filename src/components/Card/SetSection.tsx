@@ -13,7 +13,7 @@ const SetRow: React.FC<SetRowProps> = ({ element, count }) => {
     return (
         <div className={`set-row ${element.toLowerCase()}`}>
         <span className="set-name">{setName}</span>
-        <span className="set-count">{count >= 5 ? '5' : '2'}</span>
+        <span className="set-count">{String(count)}</span>
         </div>
     );
 };

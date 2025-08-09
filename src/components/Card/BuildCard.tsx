@@ -72,11 +72,19 @@ export const calculateSets = (echoPanels: EchoPanelState[]): Array<{ element: El
   }, {} as Record<ElementType, number>);
 
   return Object.entries(elementCounts)
-    .filter(([, count]) => count >= 2)
-    .map(([element, count]) => ({
-      element: element as ElementType,
-      count: count >= 5 ? 5 : 2
-    }))
+    .filter(([element, count]) => {
+      if (element === 'Dream') return count >= 3; // Dream supports 3-piece only
+      return count >= 2; // others 2p/5p
+    })
+    .map(([element, count]) => {
+      if (element === 'Dream') {
+        return { element: element as ElementType, count: 3 as 2 | 3 | 5 };
+      }
+      return {
+        element: element as ElementType,
+        count: (count >= 5 ? 5 : 2) as 2 | 3 | 5
+      };
+    })
     .sort((a, b) => b.count - a.count)
     .slice(0, 2);
 };
