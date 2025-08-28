@@ -28,7 +28,7 @@ const BreakdownStat: React.FC<{
     
     return (
         <div className={`breakdown-stat ${isSelected ? 'selected' : ''} ${isTotal ? 'total' : ''}`} onClick={onToggle}>
-            <img src={paths.cdn} alt={name} className="build-stat-icon" />
+            <img src={paths.local} alt={name} className="build-stat-icon" />
             <span>{formatValue(value, isPercentage)}</span>
         </div>
     );
@@ -65,7 +65,7 @@ const EchoMainStat: React.FC<{
     if (!type || !value) return null;
     return (
         <div className="build-echo-mainstat">
-            <img src={getStatPaths(type).cdn} alt={type} className={`build-stat-icon ${type.split(' ')[0].toLowerCase()}`}/>
+            <img src={getStatPaths(type).local} alt={type} className={`build-stat-icon ${type.split(' ')[0].toLowerCase()}`}/>
             <div>{value.toFixed(1)}%</div>
         </div>
     );
@@ -77,7 +77,7 @@ const EchoSubstat: React.FC<{
     isSelected: boolean;
 }> = ({ sub, quality, isSelected }) => (
     <div className={`build-echo-substat ${isSelected ? 'selected' : ''}`}>
-        <img src={getStatPaths(sub.type || '').cdn} alt={sub.type || ''} className="build-stat-icon"/>
+        <img src={getStatPaths(sub.type || '').local} alt={sub.type || ''} className="build-stat-icon"/>
         <div className={`build-echo-substat-value ${quality}`}>
             {sub.type && sub.value ? 
                 `${sub.value}${['ATK', 'HP', 'DEF'].includes(sub.type) ? '' : '%'}` 
@@ -201,9 +201,9 @@ export const BuildEchoRow: React.FC<{
                     <EchoStatDisplay cv={panelCV} rv={panelRV} selectedCount={selectedStats.size} />
                     <div className="build-echo-info">
                         {element && (
-                            <img src={getAssetPath('sets', element).cdn} alt={`${element} Set Icon`} className="build-set-icon" />
+                            <img src={getAssetPath('sets', element).local} alt={`${element} Set Icon`} className="build-set-icon" />
                         )}
-                        <img src={getAssetPath('echoes', echo).cdn} alt={echo.name} className="build-echo-icon"/>
+                        <img src={getAssetPath('echoes', echo).local} alt={echo.name} className="build-echo-icon"/>
                         <EchoMainStat type={panel.stats.mainStat.type} value={panel.stats.mainStat.value} />
                     </div>
                     <div className="build-echo-stats">
