@@ -213,5 +213,8 @@ const PHANTOM_CDN_IDS: Record<string, string> = {
     'Chest Mimic': 'SG_31048',
     'Fae Ignis' : 'SG_31043',
     'Cuddle Wuddle': 'SG_32030',
-    'Nightmare Inferno Rider': 'SG_33019'
+    'Nightmare Inferno Rider': 'SG_33019',
+    'Nightmare Mourning Aix': 'SG_33020',
+    'Fallacy of No Return': 'SG_350',
+    'Kerasaur': 'SG_31062'
 };
