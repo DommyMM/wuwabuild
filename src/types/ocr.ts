@@ -143,7 +143,7 @@ export const validateEchoLevel = (level: string | number | undefined): number =>
 };
 
 export const validateEchoElement = (element: string | undefined): string => {
-  const validElements = ['healing', 'attack', 'electro', 'er', 'fusion', 'glacio', 'havoc', 'aero', 'spectro'];
+  const validElements = ['healing', 'attack', 'electro', 'er', 'fusion', 'glacio', 'havoc', 'aero', 'spectro', 'crown', 'law'];
   return validElements.includes(element?.toLowerCase() || '') ? element! : 'unknown';
 };
 

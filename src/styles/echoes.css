@@ -623,6 +623,14 @@
     background-image: linear-gradient(to right, #ff4500, #ff8c00, #ffd700, #ff4d00);
 }
 
+.set-name-display.crown {
+    background-image: linear-gradient(to right, #d2691e, #cd853f, #ffffff, #daa520, #d2691e);
+}
+
+.set-name-display.law {
+    background-image: linear-gradient(to right, #4ba3ff, #87ceeb, #ffffff, #4682b4, #4ba3ff);
+}
+
 .stats-tab {
     display: flex;
     flex-direction: column;

@@ -191,6 +191,8 @@
 .save-sets.empyrean { color: #4ba3ff; }
 .save-sets.midnight { color: #e086e0; }
 .save-sets.radiance { color: #ffd54f; }
+.save-sets.crown { color: #d2691e; }
+.save-sets.law { color: #4ba3ff; }
 
 .name-section {
     display: flex;

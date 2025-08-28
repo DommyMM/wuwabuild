@@ -55,14 +55,16 @@ export const ELEMENT_SETS = {
   'Gust': 'Gusts of Welkin',
   'Windward' : 'Windward Pilgrimage',
   'Flaming' : 'Flaming Clawprint',
-  'Dream' : 'Dream of the Lost'
+  'Dream' : 'Dream of the Lost',
+  'Crown': 'Crown of Valor',
+  'Law': 'Law of Harmony'
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
 export type CostSection = typeof COST_SECTIONS[number];
 export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' | 
 'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
-'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward'| 'Flaming' | 'Dream';
+'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward'| 'Flaming' | 'Dream' | 'Crown' | 'Law';
 
 interface EchoBonus {
   stat: StatName;
@@ -131,6 +133,20 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
   ['Fenrico']: [
     { stat: 'Aero DMG', value: 12 },
     { stat: 'Heavy Attack DMG Bonus', value: 12 }
+  ],
+  'Nightmare Hecate': [
+    { stat: 'Havoc DMG', value: 12 }
+  ],
+  'Corrosaurus': [
+    { stat: 'Fusion DMG', value: 12 }
+  ],
+  'The False Sovereign': [
+    { stat: 'Electro DMG', value: 12 },
+    { stat: 'Heavy Attack DMG Bonus', value: 12 }
+  ],
+  'Lady of the Sea': [
+    { stat: 'Aero DMG', value: 12 },
+    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
   ]
 } as const;
 
@@ -157,5 +173,8 @@ export const PHANTOM_ECHOES = [
   'Nightmare Crownless',
   'Chest Mimic',
   'Fae Ignis',
-  'Nightmare Inferno Rider'
+  'Nightmare Inferno Rider',
+  'Nightmare Mourning Aix',
+  'Fallacy of No Return',
+  'Kerasaur'
 ] as readonly string[];

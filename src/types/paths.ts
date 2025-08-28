@@ -49,7 +49,9 @@ const SET_NAME_MAP: ElementMapping = {
     'Gust' : 'WindError',
     'Windward' : 'WindErrorA',
     'Flaming' : 'FireUltimateSkill',
-    'Dream' : 'DarkVision'
+    'Dream' : 'DarkVision',
+    'Crown': 'Shield',
+    'Law': 'Support'
 };
 
 export interface ImagePaths {
@@ -83,6 +85,8 @@ export const PATHS = {
         sets: 'SetIcons'
     } as PathConfig
 };
+// Seqeunce images = IconRup
+// Sequence Icons = IconDevice
 
 export const getAssetPath = (category: ImageCategory, input: string | Character | Weapon | Echo, useAltSkin?: boolean, isPhantom?: boolean, skillType?: string): ImagePaths => {
     const name = typeof input === 'string' ? input : input.name;

@@ -353,6 +353,14 @@
     border-color: #D5740C;
 }
 
+.connector-segment.crown {
+    border-color: #d2691e;
+}
+
+.connector-segment.law {
+    border-color: #4ba3ff;
+}
+
 .echo-left {
     width: 25%;
     height: 100%;
