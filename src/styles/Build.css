@@ -841,6 +841,7 @@ input:-webkit-autofill {
     letter-spacing: 0;
     line-height: 1;
     margin-bottom: 2px;
+    white-space: normal;
 }
 
 .weapon-stat.weapon-attack {

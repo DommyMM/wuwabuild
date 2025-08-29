@@ -61,10 +61,10 @@ const SimplifiedBranch: React.FC<SimplifiedBranchProps> = ({
     
     if (isRover(character)) {
       if (isElementTree) {
-        return getAssetPath('stats', elementValue).local;
+        return getAssetPath('stats', elementValue).cdn;
       }
       if (isStatTree) {
-        return getAssetPath('stats', 'ATK').local;
+        return getAssetPath('stats', 'ATK').cdn;
       }
     }
   

@@ -53,7 +53,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         <div>Select Resonator:</div>
         <div className="select-box" onClick={() => setIsModalOpen(true)}>
           <div className="select-img">
-            <img src={selectedCharacter ? getAssetPath('faces', selectedCharacter).local : "/images/Resources/Resonator.png"} alt="Select Character" className="select-img-inner" />
+            <img src={selectedCharacter ? getAssetPath('faces', selectedCharacter).cdn : "/images/Resources/Resonator.png"} alt="Select Character" className="select-img-inner" />
           </div>
           {selectedCharacter && (
             <p id="selectedCharacterLabel">
@@ -77,7 +77,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
               {characters.map(character => (
                 <div key={character.name} className="character-option" onClick={() => handleCharacterSelect(character)}>
                   <div className="border-wrapper" data-element={character.element}></div>
-                  <img src={getAssetPath('faces', character).local} alt={character.name} className="char-img" />
+                  <img src={getAssetPath('faces', character).cdn} alt={character.name} className="char-img" />
                   <div className="char-label">{character.name}</div>
                 </div>
               ))}
