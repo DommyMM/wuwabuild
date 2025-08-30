@@ -66,6 +66,14 @@ export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
 'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
 'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward'| 'Flaming' | 'Dream' | 'Crown' | 'Law';
 
+// Configuration for echo sets that only support 3-piece (exceptions to the default 2,5)
+export const THREE_PIECE_SETS: readonly ElementType[] = ['Dream', 'Crown', 'Law'] as const;
+
+// Helper function to get piece counts for an element
+export const getEchoPieceCounts = (element: ElementType): number[] => {
+  return THREE_PIECE_SETS.includes(element) ? [3] : [2, 5];
+};
+
 interface EchoBonus {
   stat: StatName;
   value: number;

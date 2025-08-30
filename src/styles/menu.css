@@ -682,6 +682,14 @@
     border: 2px solid #D5740C;
 }
 
+.set-crown {
+    border: 2px solid #d2691e;
+}
+
+.set-law {
+    border: 2px solid #4ba3ff;
+}
+
 .set-row.aero .set-name { color: #98FB98; }
 .set-row.er .set-name { color: white; }
 .set-row.electro .set-name { color: #BA55D3; }
@@ -700,6 +708,8 @@
 .set-row.gust .set-name { color: #7CFC00; }
 .set-row.windward .set-name { color: #98FB98; }
 .set-row.flaming .set-name { color: #D5740C; }
+.set-row.crown .set-name { color: #d2691e; }
+.set-row.law .set-name { color: #4ba3ff; }
 
 .popuptext {
     visibility: hidden;

@@ -5,7 +5,7 @@ import { getAssetPath } from '@/types/paths';
 import { cachedCharacters } from '@/hooks/useCharacters';
 import { Character } from '@/types/character';
 import { weaponList } from '@/hooks/useWeapons';
-import { ELEMENT_SETS } from '@/types/echo';
+import { ELEMENT_SETS, getEchoPieceCounts } from '@/types/echo';
 import { mainStatsCache } from '@/hooks/useMain';
 import { STAT_MAP } from '../Save/Backup';
 import { getStatPaths } from '@/types/stats';
@@ -390,13 +390,16 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                 .filter(([, name]) => 
                     name.toLowerCase().includes(search.toLowerCase())
                 );
-            // Offer 2p/5p for all sets, and 3p only for 'Dream'
-            const countsPerElement = (element: string) => element === 'Dream' ? [3] : [2, 5];
+            
+            // Collect all echo items
+            const echoItems: VisibleItem[] = [];
+            
             filteredEchoes.forEach(([element]) => {
                 const setIndex = Object.keys(ELEMENT_SETS).indexOf(element);
-                countsPerElement(element).forEach(count => {
+                const pieceCounts = getEchoPieceCounts(element as keyof typeof ELEMENT_SETS);
+                pieceCounts.forEach(count => {
                     if (!filterState.echoSets.some(([c, i]) => c === count && i === setIndex)) {
-                        items.push({
+                        echoItems.push({
                             type: 'echo',
                             data: [count, setIndex] as [number, number],
                             sectionTitle: 'Echo Sets'
@@ -404,6 +407,15 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                     }
                 });
             });
+            
+            // Sort echo items by cost (2p, 3p, 5p) - 3p sets are exceptions to the default 2,5
+            echoItems.sort((a, b) => {
+                const [countA] = a.data as [number, number];
+                const [countB] = b.data as [number, number];
+                return countA - countB;
+            });
+            
+            items.push(...echoItems);
         }
 
         if (options.includeMainStats) {
@@ -525,28 +537,38 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
 
     const getSectionHeader = (item: VisibleItem, index: number, items: VisibleItem[]) => {
         if (index === 0 || items[index - 1].sectionTitle !== item.sectionTitle) {
-            const header = <div key={`header-${item.sectionTitle}`} className="section-header">
+            const header = <div key={`header-${item.sectionTitle}-${index}`} className="section-header">
                 {item.sectionTitle}
             </div>;
             const subHeader = (() => {
                 switch (item.type) {
                     case 'weapon':
                         if (index === 0 || items[index - 1].subSection !== item.subSection) {
-                            return <div key={`subheader-${item.subSection}`} className="weapon-type-header">
+                            return <div key={`subheader-weapon-${item.subSection}-${index}`} className="weapon-type-header">
                                 {item.subSection}
                             </div>;
                         }
                         return null;
                     case 'echo':
                         const [count] = item.data as [number, number];
-                        return <div key={`subheader-${count}`} className="echo-count-header">
-                            {count}p sets
-                        </div>;
+                        // Only show subheader if this is the first echo or cost changed from previous
+                        if (index === 0 || items[index - 1].type !== 'echo' || 
+                            (items[index - 1].data as [number, number])[0] !== count) {
+                            return <div key={`subheader-echo-${count}-${index}`} className="echo-count-header">
+                                {count}p sets
+                            </div>;
+                        }
+                        return null;
                     case 'mainstat':
                         const [cost] = item.data as [number, string];
-                        return <div key={`subheader-${cost}`} className="weapon-type-header">
-                            {cost} Cost
-                        </div>;
+                        // Only show subheader if this is the first mainstat or cost changed from previous
+                        if (index === 0 || items[index - 1].type !== 'mainstat' || 
+                            (items[index - 1].data as [number, string])[0] !== cost) {
+                            return <div key={`subheader-mainstat-${cost}-${index}`} className="weapon-type-header">
+                                {cost} Cost
+                            </div>;
+                        }
+                        return null;
                     default:
                         return null;
                 }
@@ -557,7 +579,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
         switch (item.type) {
             case 'weapon':
                 if (items[index - 1].subSection !== item.subSection) {
-                    return <div key={`subheader-${item.subSection}`} className="weapon-type-header">
+                    return <div key={`subheader-weapon-${item.subSection}-${index}`} className="weapon-type-header">
                         {item.subSection}
                     </div>;
                 }
@@ -566,7 +588,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                 const [currentCount] = item.data as [number, number];
                 const [previousCount] = (items[index - 1].data as [number, number]);
                 if (currentCount !== previousCount) {
-                    return <div key={`subheader-${currentCount}`} className="echo-count-header">
+                    return <div key={`subheader-echo-${currentCount}-${index}`} className="echo-count-header">
                         {currentCount}p sets
                     </div>;
                 }
@@ -575,7 +597,7 @@ export const BuildFilter: React.FC<BuildFilterProps> = ({
                 const [currentCost] = item.data as [number, string];
                 const [previousCost] = (items[index - 1].data as [number, string]);
                 if (currentCost !== previousCost) {
-                    return <div key={`subheader-${currentCost}`} className="weapon-type-header">
+                    return <div key={`subheader-mainstat-${currentCost}-${index}`} className="weapon-type-header">
                         {currentCost} Cost
                     </div>;
                 }
