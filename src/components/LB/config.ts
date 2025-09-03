@@ -91,15 +91,15 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         notes: '5-star weapons at R1, 4-star at R5. Blazing Justice full uptime. \n S0R1 Shorekeeper + Moonlit R1 Phoebe',
         enabled: true
     },
-    // '40': {
-    //     teamIds: ['47', '5'],
-    //     stats: ['HP', 'Energy Regen', 'Basic Attack DMG Bonus', 'Aero DMG'],
-    //     weapons: ['21020056', '21020015', '21020044', '21020084'],
-    //     sequences: ['s0'],
-    //     rotation: ['Intro', 'Basic 4 + Skill', '3-Sword Plunge', 'Fleurdelys Combo', 'Blade of Howling Squall'],
-    //     notes: '5-star weapons at R1, 4-star at R5. Defier\'s Thorn DEF ignore is permanent after trigger. \n S0R1 CiacconaA + Aero Rover for max Aero/Erosion buffs.',
-    //     enabled: true
-    // },
+    '40': {
+        teamIds: ['37', '5'],
+        stats: ['HP', 'Energy Regen', 'Basic Attack DMG Bonus', 'Aero DMG'],
+        weapons: ['21020056', '21020015', '21020044', '21020084'],
+        sequences: ['s0'],
+        rotation: ['Intro', 'Basic + Skill + Plunge', 'Fleurdelys Combo', 'Nuke'],
+        notes: '5-star weapons at R1, 4-star at R5. Defier\'s Thorn DEF ignore is permanent after trigger. \n S0R1 CiacconaA + Aero Rover for max Aero/Erosion buffs.',
+        enabled: true
+    },
     '45': {
         teamIds: ['37', '5'], 
         stats: ['ATK', 'Energy Regen', 'Heavy Attack DMG Bonus', 'Spectro DMG'],
