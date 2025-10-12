@@ -623,6 +623,10 @@
     background-image: linear-gradient(to right, #ff4500, #ff8c00, #ffd700, #ff4d00);
 }
 
+.set-name-display.flamewing {
+    background-image: linear-gradient(to right, #ff4500, #ff8c00, #ffd700, #ff4d00);
+}
+
 .set-name-display.crown {
     background-image: linear-gradient(to right, #d2691e, #cd853f, #ffffff, #daa520, #d2691e);
 }

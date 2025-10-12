@@ -51,7 +51,8 @@ const SET_NAME_MAP: ElementMapping = {
     'Flaming' : 'FireUltimateSkill',
     'Dream' : 'DarkVision',
     'Crown': 'Shield',
-    'Law': 'Support'
+    'Law': 'Support',
+    'Flamewing': 'FireA'
 };
 
 export interface ImagePaths {
@@ -147,9 +148,15 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
             const defaultName = character.title.charAt(0).toUpperCase() + character.title.slice(1).toLowerCase();
             const folderName = SKILL_CDN_NAMES[character.id] || defaultName;
             const iconName = SKILL_ICON_NAMES[character.id] || defaultName;
+            // Special handling for Galbrena's non-standard skill naming (D1 -> 1D1, D2 -> 2D2)
+            let adjustedSkillType = skillType;
+            if (character.id === '55') {
+                if (skillType === 'D1') adjustedSkillType = '1D1';
+                else if (skillType === 'D2') adjustedSkillType = '2D2';
+            }
             return {
-                cdn: `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${folderName}/SP_Icon${iconName}${skillType}.png`,
-                local: `${PATHS.local.base}/${PATHS.local.skills}/${character.name}/SP_Icon${character.name}${skillType}.png`
+                cdn: `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${folderName}/SP_Icon${iconName}${adjustedSkillType}.png`,
+                local: `${PATHS.local.base}/${PATHS.local.skills}/${character.name}/SP_Icon${character.name}${adjustedSkillType}.png`
             };
         }
         case 'stats': {
@@ -179,14 +186,16 @@ const getRoverVariant = (name: string) => {
 const SKILL_CDN_NAMES: Record<string, string> = {
     '13': 'Motefei',
     '23': 'Jianxin',
-    '7': 'Sanhua'
+    '7': 'Sanhua',
+    '55': 'JiaBeiLiNa'
 };
 
 const SKILL_ICON_NAMES: Record<string, string> = {
     '9': 'TaoHua',
     '13': 'Motefei',
     '23': 'Jianxin',
-    '7': 'Sanhua'
+    '7': 'Sanhua',
+    '55': 'JiaBeiLiNa'
 };
 
 const PHANTOM_CDN_IDS: Record<string, string> = {

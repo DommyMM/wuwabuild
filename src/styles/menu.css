@@ -353,6 +353,10 @@
     border-color: #D5740C;
 }
 
+.connector-segment.flamewing {
+    border-color: #D5740C;
+}
+
 .connector-segment.crown {
     border-color: #d2691e;
 }
@@ -682,6 +686,10 @@
     border: 2px solid #D5740C;
 }
 
+.set-flamewing {
+    border: 2px solid #D5740C;
+}
+
 .set-crown {
     border: 2px solid #d2691e;
 }
@@ -708,6 +716,7 @@
 .set-row.gust .set-name { color: #7CFC00; }
 .set-row.windward .set-name { color: #98FB98; }
 .set-row.flaming .set-name { color: #D5740C; }
+.set-row.flamewing .set-name { color: #D5740C; }
 .set-row.crown .set-name { color: #d2691e; }
 .set-row.law .set-name { color: #4ba3ff; }
 

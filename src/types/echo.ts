@@ -43,7 +43,7 @@ export const ELEMENT_SETS = {
   'Electro': 'Void Thunder',
   'Spectro': 'Celestial Light',
   'Glacio': 'Freezing Frost',
-  'Attack': 'Lingering Tunes', 
+  'Attack': 'Lingering Tunes',
   'Fusion': 'Molten Rift',
   'Havoc': 'Havoc Eclipse',
   'Healing': 'Rejuvenating Glow',
@@ -57,17 +57,18 @@ export const ELEMENT_SETS = {
   'Flaming' : 'Flaming Clawprint',
   'Dream' : 'Dream of the Lost',
   'Crown': 'Crown of Valor',
-  'Law': 'Law of Harmony'
+  'Law': 'Law of Harmony',
+  'Flamewing': 'Flamewing\'s Shadow'
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
 export type CostSection = typeof COST_SECTIONS[number];
-export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' | 
+export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
 'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
-'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward'| 'Flaming' | 'Dream' | 'Crown' | 'Law';
+'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward'| 'Flaming' | 'Dream' | 'Crown' | 'Law' | 'Flamewing';
 
 // Configuration for echo sets that only support 3-piece (exceptions to the default 2,5)
-export const THREE_PIECE_SETS: readonly ElementType[] = ['Dream', 'Crown', 'Law'] as const;
+export const THREE_PIECE_SETS: readonly ElementType[] = ['Dream', 'Crown', 'Law', 'Flamewing'] as const;
 
 // Helper function to get piece counts for an element
 export const getEchoPieceCounts = (element: ElementType): number[] => {
@@ -154,6 +155,10 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
   ],
   'Lady of the Sea': [
     { stat: 'Aero DMG', value: 12 },
+    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
+  ],
+  'Threnodian - Leviathan': [
+    { stat: 'Havoc DMG', value: 12 },
     { stat: 'Resonance Liberation DMG Bonus', value: 12 }
   ]
 } as const;
