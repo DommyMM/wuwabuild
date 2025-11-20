@@ -365,6 +365,10 @@
     border-color: #4ba3ff;
 }
 
+.connector-segment.thread {
+    border-color: #c06ac0;
+}
+
 .echo-left {
     width: 25%;
     height: 100%;

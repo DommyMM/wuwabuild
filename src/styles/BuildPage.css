@@ -432,7 +432,6 @@
 .char-name.glacio { color: #40C4FF; }
 .char-name.fusion { color: #FF9100; }
 .char-name.havoc { color: #FF4081; }
-.char-name.dream { color: #c06ac0; }
 .char-name.rover { color: #FF4500; }
 
 .build-sequence {
@@ -628,9 +627,6 @@
 
 .build-stat-icon.havoc {
     filter: brightness(0) saturate(100%) invert(79%) sepia(93%) saturate(407%) hue-rotate(279deg) brightness(85%) contrast(90%);
-}
-.build-stat-icon.dream {
-    filter: brightness(0) saturate(100%) invert(61%) sepia(24%) saturate(1212%) hue-rotate(268deg) brightness(88%) contrast(96%);
 }
 
 .build-stat-icon.glacio {

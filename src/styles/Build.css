@@ -54,6 +54,7 @@
 #build-tab.fusion { background-image: linear-gradient(rgba(213, 116, 12, 0.25), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
 #build-tab.havoc { background-image: linear-gradient(rgba(255, 20, 147, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
 #build-tab.dream { background-image: linear-gradient(rgba(160, 70, 160, 0.22), rgba(0, 0, 0, 0.5)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+#build-tab.thread { background-image: linear-gradient(rgba(160, 70, 160, 0.22), rgba(0, 0, 0, 0.5)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
 #build-tab.glacio { background-image: linear-gradient(rgba(0, 206, 209, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
 
 #build-tab.downloading {
@@ -387,10 +388,6 @@ input:-webkit-autofill {
 .character-display.havoc {
     border-right: 1.8px solid #FF1493;
     box-shadow: 4px 0 10px -4px #FF1493;
-}
-.character-display.dream {
-    border-right: 1.8px solid #c06ac0;
-    box-shadow: 4px 0 10px -4px #c06ac0;
 }
 
 .character-icon {

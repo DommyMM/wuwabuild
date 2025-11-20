@@ -599,9 +599,6 @@
 .set-name-display.midnight {
     background-image: linear-gradient(to right, #e086e0, #dda0dd, #ffffff, #d8bfd8, #e086e0);
 }
-.set-name-display.dream {
-    background-image: linear-gradient(to right, #c06ac0, #b060b0, #ffffff, #a050a0, #c06ac0);
-}
 
 .set-name-display.radiance {
     background-image: linear-gradient(to right, #ffd700, #fff5b0, #ffffff, #ffe87c, #ffd700);
@@ -623,6 +620,10 @@
     background-image: linear-gradient(to right, #ff4500, #ff8c00, #ffd700, #ff4d00);
 }
 
+.set-name-display.dream {
+    background-image: linear-gradient(to right, #c06ac0, #b060b0, #ffffff, #a050a0, #c06ac0);
+}
+
 .set-name-display.flamewing {
     background-image: linear-gradient(to right, #ff4500, #ff8c00, #ffd700, #ff4d00);
 }
@@ -633,6 +634,10 @@
 
 .set-name-display.law {
     background-image: linear-gradient(to right, #4ba3ff, #87ceeb, #ffffff, #4682b4, #4ba3ff);
+}
+
+.set-name-display.thread {
+    background-image: linear-gradient(to right, #c06ac0, #b060b0, #ffffff, #a050a0, #c06ac0);
 }
 
 .stats-tab {
