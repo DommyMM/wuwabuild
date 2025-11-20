@@ -95,7 +95,7 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
       <div className="weapon-selection">
         <div className="weapon-choice">Weapon</div>
         <div className="weapon-box" id="selectWeapon" onClick={() => setIsModalOpen(true)}>
-          <img id="weaponImg" src={selectedWeapon ? getAssetPath('weapons', selectedWeapon).cdn : '/images/Resources/Weapon.png'}
+          <img id="weaponImg" src={selectedWeapon ? getAssetPath('weapons', selectedWeapon).local : '/images/Resources/Weapon.png'}
             alt={selectedWeapon?.name || 'Select Weapon'} className="select-img"
             style={selectedWeapon ? { 
               backgroundColor: rarityColors[selectedWeapon.rarity],
@@ -139,7 +139,7 @@ export const WeaponSelection: React.FC<WeaponSelectionProps> = ({
                     setIsModalOpen(false);
                   }}
                 >
-                  <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="weapon-img"/>
+                  <img src={getAssetPath('weapons', weapon).local} alt={weapon.name} className="weapon-img"/>
                   <div className="weapon-name">{weapon.name}</div>
                 </div>
               ))}

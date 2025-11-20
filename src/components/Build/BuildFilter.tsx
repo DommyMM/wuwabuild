@@ -77,7 +77,7 @@ export const FilterOption: React.FC<{ item: VisibleItem }> = ({ item }) => {
             const char = item.data as Character;
             return (
                 <>
-                    <img src={getAssetPath('face1', char).cdn} alt={char.name} className="filter-icon" />
+                    <img src={getAssetPath('face1', char).local} alt={char.name} className="filter-icon" />
                     <span>{char.name}</span>
                 </>
             );
@@ -86,7 +86,7 @@ export const FilterOption: React.FC<{ item: VisibleItem }> = ({ item }) => {
             return (
                 <>
                     <div className="filter-weapon">
-                        <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="filter-icon" />
+                        <img src={getAssetPath('weapons', weapon).local} alt={weapon.name} className="filter-icon" />
                         <span>{weapon.name}</span>
                     </div>
                     <span className="weapon-rarity">{weapon.rarity}</span>
@@ -98,7 +98,7 @@ export const FilterOption: React.FC<{ item: VisibleItem }> = ({ item }) => {
             const setName = ELEMENT_SETS[element as keyof typeof ELEMENT_SETS];
             return (
                 <>
-                    <img src={getAssetPath('sets', element).cdn} alt={setName} className="filter-icon" />
+                    <img src={getAssetPath('sets', element).local} alt={setName} className="filter-icon" />
                     <span>{setName}</span>
                 </>
             );
@@ -107,7 +107,7 @@ export const FilterOption: React.FC<{ item: VisibleItem }> = ({ item }) => {
             return (
                 <div className="filter-mainstat">
                     <img 
-                        src={getStatPaths(stat).cdn} 
+                        src={getStatPaths(stat).local} 
                         alt={stat} 
                         className={`build-stat-icon ${getElementClass(stat)}`}
                     />
@@ -151,7 +151,7 @@ const SelectedTag: React.FC<{
                 const char = data as Character;
                 return (
                     <>
-                        <img src={getAssetPath('face1', char).cdn} alt={char.name} className="tag-icon"/>
+                        <img src={getAssetPath('face1', char).local} alt={char.name} className="tag-icon"/>
                         <span>{char.name}</span>
                     </>
                 );
@@ -159,7 +159,7 @@ const SelectedTag: React.FC<{
                 const weapon = data as typeof weaponList[0];
                 return (
                     <>
-                        <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="tag-icon"/>
+                        <img src={getAssetPath('weapons', weapon).local} alt={weapon.name} className="tag-icon"/>
                         <span>{weapon.name}</span>
                     </>
                 );
@@ -170,7 +170,7 @@ const SelectedTag: React.FC<{
                 return (
                     <>
                         <span>{count}p</span>
-                        <img src={getAssetPath('sets', element).cdn} alt={setName} className="tag-icon echo"/>
+                        <img src={getAssetPath('sets', element).local} alt={setName} className="tag-icon echo"/>
                         <span>{setName}</span>
                     </>
                 );
@@ -178,7 +178,7 @@ const SelectedTag: React.FC<{
                 const [cost, stat] = data as [number, string];
                 return (
                     <>
-                        <img src={getStatPaths(stat).cdn} alt={stat} className={`build-stat-icon ${getElementClass(stat)}`}/>
+                        <img src={getStatPaths(stat).local} alt={stat} className={`build-stat-icon ${getElementClass(stat)}`}/>
                         <span>{stat}</span>
                         <span className="mainstat-cost">| {cost} Cost</span>
                     </>

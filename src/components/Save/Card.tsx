@@ -92,7 +92,7 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
     return (
         <div className="preview-echo">
             <div className="echo-circle" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-                <img src={getAssetPath('echoes', echo, false, panel.phantom).cdn} alt={echo.name} className={`echo-icon ${panel.selectedElement?.toLowerCase() || ''}`} />
+                <img src={getAssetPath('echoes', echo, false, panel.phantom).local} alt={echo.name} className={`echo-icon ${panel.selectedElement?.toLowerCase() || ''}`} />
                 <div className={`echo-details ${isHovered ? 'visible' : ''}`}>
                     <div className="echo-header">
                         <h4>{echo.name}</h4>
@@ -104,7 +104,7 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
                     {(panel.stats.mainStat.type && panel.stats.mainStat.value) && (
                         <div className="main-stat-row">
                             <div className="stat-name">
-                                <img src={getStatPaths(panel.stats.mainStat.type as StatName).cdn} alt={String(panel.stats.mainStat.type)} className="save-stat-icon" />
+                                <img src={getStatPaths(panel.stats.mainStat.type as StatName).local} alt={String(panel.stats.mainStat.type)} className="save-stat-icon" />
                                 <span>{getDisplayName(panel.stats.mainStat.type as StatName).replace('%', '')}</span>
                             </div>
                             <span>{panel.stats.mainStat.value}%</span>
@@ -119,7 +119,7 @@ export const PreviewEcho: React.FC<{ panel: EchoPanelState }> = ({ panel }) => {
                                 return (
                                     <div key={index} className="stat-row">
                                         <div className="stat-name">
-                                            <img src={getStatPaths(stat.type).cdn} alt={String(stat.type)} className="save-stat-icon" />
+                                            <img src={getStatPaths(stat.type).local} alt={String(stat.type)} className="save-stat-icon" />
                                             <span>{getDisplayName(stat.type).replace(' DMG Bonus', '').replace('%', '')}</span>
                                         </div>
                                         <span className={`sub ${getQualityClass(stat.value, stat.type)}`}> {stat.value}{isPercentage ? '%' : ''} </span>

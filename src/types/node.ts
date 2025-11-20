@@ -44,14 +44,14 @@ export const forteImagePaths: ForteImagePaths = {
       (character: Character) => {
         const paths = getAssetPath('skills', character, false, false, value);
         const id = Number(character.id);
-        return (value === 'A1' && id in A1_LOCAL_IDS) ? paths.local : paths.cdn;
+        return (value === 'A1' && id in A1_LOCAL_IDS) ? paths.local : paths.local;
       }
     ])
   ),
   sharedImages: {
-    'tree1': (character) => getAssetPath('stats', character.Bonus1).cdn,
-    'tree2': (character) => getAssetPath('stats', character.Bonus2).cdn,
-    'tree4': (character) => getAssetPath('stats', character.Bonus2).cdn,
-    'tree5': (character) => getAssetPath('stats', character.Bonus1).cdn
+    'tree1': (character) => getAssetPath('stats', character.Bonus1).local,
+    'tree2': (character) => getAssetPath('stats', character.Bonus2).local,
+    'tree4': (character) => getAssetPath('stats', character.Bonus2).local,
+    'tree5': (character) => getAssetPath('stats', character.Bonus1).local
   }
 };
