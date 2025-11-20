@@ -3,7 +3,7 @@
         "name": "Abyssal Gladius",
         "id": "32026",
         "cost": 3,
-        "elements": ["Midnight", "Tidebreaking"]
+        "elements": ["Midnight", "Tidebreaking", "Thread"]
     },
     {
         "name": "Abyssal Mercator",
@@ -651,7 +651,7 @@
         "name": "Havoc Drake",
         "id": "31060",
         "cost": 1,
-        "elements": ["Windward", "Flaming"]
+        "elements": ["Windward", "Flaming", "Thread"]
     },
     {
         "name": "Devotees Flesh",
@@ -789,6 +789,24 @@
         "name": "Threnodian - Leviathan",
         "id": "34020_1",
         "cost": 4,
-        "elements": ["Flamewing"]
+        "elements": ["Flamewing", "Thread"]
+    },
+    {
+        "name": "Nightmare Tick Tack",
+        "id": "31075",
+        "cost": 1,
+        "elements": ["Thread"]
+    },
+    {
+        "name": "Nightmare Dwarf Cassowary",
+        "id": "31076",
+        "cost": 1,
+        "elements": ["Thread"]
+    },
+    {
+        "name": "Nightmare Rosheshroom",
+        "id": "32048",
+        "cost": 3,
+        "elements": ["Thread"]
     }
 ]

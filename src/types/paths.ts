@@ -52,7 +52,8 @@ const SET_NAME_MAP: ElementMapping = {
     'Dream' : 'DarkVision',
     'Crown': 'Shield',
     'Law': 'Support',
-    'Flamewing': 'FireA'
+    'Flamewing': 'FireA',
+    'Thread': 'QianXiao'
 };
 
 export interface ImagePaths {
@@ -216,6 +217,7 @@ const PHANTOM_CDN_IDS: Record<string, string> = {
     'Thundering Mephis': '1008',
     'Vitreum Dancer': 'SG_32029',
     'Lorelei': 'SG_33011',
+    'Crownless': 'SG_33018',
     'Capitaneus': '32033_1',
     'Nimbus Wraith': 'SG_31044',
     'Nightmare Crownless': 'SG_33018',
@@ -225,5 +227,6 @@ const PHANTOM_CDN_IDS: Record<string, string> = {
     'Nightmare Inferno Rider': 'SG_33019',
     'Nightmare Mourning Aix': 'SG_33020',
     'Fallacy of No Return': 'SG_350',
-    'Kerasaur': 'SG_31062'
+    'Kerasaur': 'SG_31062',
+    'The False Sovereign': 'SG_34017'
 };

@@ -183,11 +183,14 @@ export const PHANTOM_ECHOES = [
   'Lorelei',
   'Capitaneus',
   'Nimbus Wraith',
+  'Crownless',
   'Nightmare Crownless',
   'Chest Mimic',
   'Fae Ignis',
+  'Cuddle Wuddle',
   'Nightmare Inferno Rider',
   'Nightmare Mourning Aix',
   'Fallacy of No Return',
-  'Kerasaur'
+  'Kerasaur',
+  'The False Sovereign'
 ] as readonly string[];
