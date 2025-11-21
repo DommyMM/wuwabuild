@@ -51,7 +51,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <div className="convert-content" onClick={(e) => e.stopPropagation()}>
                 <div className="import-row">
                     <div className="char-convert">
-                        <img src={getAssetPath('face1', character as Character).local} alt={character?.name || ""} className={`char-portrait-large ${elementClass}`}/>
+                        <img src={getAssetPath('face1', character as Character).cdn} alt={character?.name || ""} className={`char-portrait-large ${elementClass}`}/>
                         <span className={`char-sig ${elementClass}`}>{character?.name}</span>
                         <span>Lv.{build.characterState.level}</span>
                     </div>
@@ -66,7 +66,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     </div>
                     {weapon && (
                         <div className="weap-convert">
-                            <img src={getAssetPath('weapons', weapon).local} alt={weapon.name} className="weap-portrait-large"/>
+                            <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="weap-portrait-large"/>
                             <span className="weap">{weapon.name}</span>
                             <span>Lv.{build.weaponState.level}</span>
                         </div>
@@ -90,7 +90,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                                 <div key={index} className="echo-import-column">
                                     <div className="echo-view">
                                         {echo && (
-                                            <img src={getAssetPath('echoes', echo).local} alt={echo.name} className="echo-portrait"/>
+                                            <img src={getAssetPath('echoes', echo).cdn} alt={echo.name} className="echo-portrait"/>
                                         )}
                                     </div>
                                     <div className="stat-import">

@@ -149,7 +149,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
           {echo?.name || `Echo ${index}`}
         </div>
         <div className="select-box" id="selectEcho" onClick={onSelect} style={{ right: echo ? '10%' : '0' }}>
-          <img src={echo ? getAssetPath('echoes', echo).local : '/images/Resources/Echo.png'}
+          <img src={echo ? getAssetPath('echoes', echo).cdn : '/images/Resources/Echo.png'}
             alt={echo?.name || 'Select Echo'}
             className="select-img"
             id="echoImg"
@@ -392,7 +392,7 @@ export const EchoesSection = ({
                       <div className="echo-grid">
                         {costEchoes.map(echo => (
                         <div key={echo.name} className="echo-option" onClick={() => handleSelectEcho(echo)}>
-                          <img src={getAssetPath('echoes', echo as Echo).local} alt={echo.name} className="echo-img"/>
+                          <img src={getAssetPath('echoes', echo as Echo).cdn} alt={echo.name} className="echo-img"/>
                         <span className="echo-name">{echo.name}</span>
                       </div>
                         ))}
@@ -429,7 +429,7 @@ export const EchoesSection = ({
                         }
                       }}
                     >
-                      <img src={savedEchoData ? getAssetPath('echoes', savedEchoData).local : '/images/Resources/Echo.png'} alt={savedEchoData?.name || 'Empty Echo'} className="echo-img"/>
+                      <img src={savedEchoData ? getAssetPath('echoes', savedEchoData).cdn : '/images/Resources/Echo.png'} alt={savedEchoData?.name || 'Empty Echo'} className="echo-img"/>
                       <div className="echo-info">
                         <div className="echo-name">
                           {savedEchoData?.name || 'Empty Echo'}

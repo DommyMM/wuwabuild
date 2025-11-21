@@ -19,7 +19,7 @@ const TeamDisplay: React.FC<{
 }> = ({ mainChar, teamIds, characters }) => (
     <div className="team-grid">
         <div className="team-member">
-            <img src={getAssetPath('face1', mainChar).local} alt={mainChar.name} className="team-portrait" />
+            <img src={getAssetPath('face1', mainChar).cdn} alt={mainChar.name} className="team-portrait" />
             <span className="team-name">{mainChar.name}</span>
         </div>
         {teamIds.map(id => {
@@ -27,7 +27,7 @@ const TeamDisplay: React.FC<{
             if (!teamMember) return null;
             return (
                 <div key={id} className="team-member">
-                    <img src={getAssetPath('face1', teamMember).local} alt={teamMember.name} className="team-portrait" />
+                    <img src={getAssetPath('face1', teamMember).cdn} alt={teamMember.name} className="team-portrait" />
                     <span className="team-name">{teamMember.name}</span>
                 </div>
             );
@@ -111,7 +111,7 @@ const BuildSelector: React.FC<{
                                 className={`lb-weapon-option ${index === selectedIndex ? 'selected' : ''}`}
                                 onClick={() => onWeaponSelect?.(index)}
                             >
-                                <img src={getAssetPath('weapons', weapon).local} alt={weapon.name} className="lb-weapon-portrait" />
+                                <img src={getAssetPath('weapons', weapon).cdn} alt={weapon.name} className="lb-weapon-portrait" />
                                 <span className="lb-weapon-name">{weapon.name}</span>
                                 {maxDamage && (
                                     <span className="weapon-damage">{Number(maxDamage.toFixed(0)).toLocaleString()}</span>

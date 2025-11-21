@@ -38,7 +38,7 @@ const GlowingNode: React.FC<GlowingNodeProps> = ({
   
   let imagePath;
   if (isRover && isElementTree) {
-    imagePath = getAssetPath('stats', elementValue).local;
+    imagePath = getAssetPath('stats', elementValue).cdn;
   } else {
     imagePath = forteImagePaths.sharedImages[treeKey]?.(character) || forteImagePaths.imagePaths[skillKey]?.(character);
   }
