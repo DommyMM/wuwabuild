@@ -33,23 +33,23 @@ const ELEMENT_NAME_MAP: ElementMapping = {
 
 const SET_NAME_MAP: ElementMapping = {
     'Attack': 'Attack',
-    'ER' : 'Cloud',
-    'Empyrean' : 'Cooperate',
-    'Healing' : 'Cure',
-    'Havoc' : 'Dark',
-    'Midnight' : 'DarkAssist',
-    'Tidebreaking' : 'Energy',
-    'Fusion' : 'Fire',
-    'Glacio' : 'Ice',
-    'Frosty' : 'IceUltimateSkill',
-    'Spectro' : 'Light',
-    'Radiance' : 'LightError',
-    'Electro' : 'Thunder',
-    'Aero' : 'Wind',
-    'Gust' : 'WindError',
-    'Windward' : 'WindErrorA',
-    'Flaming' : 'FireUltimateSkill',
-    'Dream' : 'DarkVision',
+    'ER': 'Cloud',
+    'Empyrean': 'Cooperate',
+    'Healing': 'Cure',
+    'Havoc': 'Dark',
+    'Midnight': 'DarkAssist',
+    'Tidebreaking': 'Energy',
+    'Fusion': 'Fire',
+    'Glacio': 'Ice',
+    'Frosty': 'IceUltimateSkill',
+    'Spectro': 'Light',
+    'Radiance': 'LightError',
+    'Electro': 'Thunder',
+    'Aero': 'Wind',
+    'Gust': 'WindError',
+    'Windward': 'WindErrorA',
+    'Flaming': 'FireUltimateSkill',
+    'Dream': 'DarkVision',
     'Crown': 'Shield',
     'Law': 'Support',
     'Flamewing': 'FireA',
@@ -110,8 +110,11 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
             };
         case 'icons': {
             const skinSuffix = useAltSkin && SKIN_CHARACTERS.includes(name) ? '2' : '';
+            const iconTitle = ICON_CAPITALIZE_TITLES.includes(title.toLowerCase())
+                ? title.charAt(0).toUpperCase() + title.slice(1).toLowerCase()
+                : title;
             return {
-                cdn: `${PATHS.cdn.base}/${PATHS.cdn.icons}/T_IconRole_Pile_${title}${skinSuffix}_UI.png`,
+                cdn: `${PATHS.cdn.base}/${PATHS.cdn.icons}/T_IconRole_Pile_${iconTitle}${skinSuffix}_UI.png`,
                 local: `${PATHS.local.base}/${PATHS.local.icons}/${name}${skinSuffix}.png`
             };
         }
@@ -127,7 +130,7 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
                 cdn: `${PATHS.cdn.base}/${PATHS.cdn.weapons}/T_IconWeapon${weaponId}_UI.png`,
                 local: `${PATHS.local.base}/${PATHS.local.weapons}/${weapon.type}/${encodeURIComponent(weapon.name)}.png`
             };
-        }   
+        }
         case 'echoes': {
             const echo = input as Echo;
             const localName = isPhantom ? `Phantom ${echo.name}` : echo.name;
@@ -139,6 +142,16 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
         }
         case 'skills': {
             const character = input as Character;
+            const localPath = `${PATHS.local.base}/${PATHS.local.skills}/${character.name}/SP_Icon${character.name}${skillType}.png`;
+
+            // Force local paths for characters without CDN skill assets
+            if (SKILL_USE_LOCAL_TITLES.includes(character.title.toLowerCase())) {
+                return {
+                    cdn: localPath,
+                    local: localPath
+                };
+            }
+
             const roverVariant = getRoverVariant(character.name);
             if (roverVariant) {
                 return {
@@ -199,6 +212,12 @@ const SKILL_ICON_NAMES: Record<string, string> = {
     '55': 'JiaBeiLiNa'
 };
 
+// Characters that need capitalized first letter for icon CDN paths
+const ICON_CAPITALIZE_TITLES = ['buling', 'qiuyuan', 'qianxiao'];
+
+// Characters that should use local paths for skills (CDN not available)
+const SKILL_USE_LOCAL_TITLES = ['buling', 'qiuyuan', 'qianxiao'];
+
 const PHANTOM_CDN_IDS: Record<string, string> = {
     'Clang Bang': '1015',
     'Diggy Duggy': 'SG_31047',
@@ -222,7 +241,7 @@ const PHANTOM_CDN_IDS: Record<string, string> = {
     'Nimbus Wraith': 'SG_31044',
     'Nightmare Crownless': 'SG_33018',
     'Chest Mimic': 'SG_31048',
-    'Fae Ignis' : 'SG_31043',
+    'Fae Ignis': 'SG_31043',
     'Cuddle Wuddle': 'SG_32030',
     'Nightmare Inferno Rider': 'SG_33019',
     'Nightmare Mourning Aix': 'SG_33020',
