@@ -9,6 +9,7 @@ import { SequenceGroup } from './SequenceGroup';
 import { WeaponSelection } from './WeaponSelection';
 import { ForteGroup } from './ForteGroup';
 import { getAssetPath } from '@/types/paths';
+import { AssetImage } from '@/components/AssetImage';
 import '@/styles/CharacterInfo.css';
 import '@/styles/SequenceGroup.css';
 import { useState } from 'react';
@@ -121,8 +122,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
         <div className={`character-content${props.isMinimized ? '' : ' open'}`}>
           {selectedCharacter && (
             <>
-              <img id="selectedCharacterIcon" src={getAssetPath('icons', selectedCharacter).cdn}
-                alt="Selected Character Icon" 
+              <AssetImage id="selectedCharacterIcon" paths={getAssetPath('icons', selectedCharacter)}
+                alt="Selected Character Icon"
                 className="character-tab-icon"
               />
               {selectedCharacter.name.startsWith('Rover') && (
@@ -137,7 +138,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                       </div>
                       
                       <div className="element-center" onClick={() => setShowElementModal(true)}>
-                        <img src={getAssetPath('elements', element || 'Havoc').cdn}
+                        <AssetImage paths={getAssetPath('elements', element || 'Havoc')}
                           alt={element || 'Element'}
                           className="carousel-icon"
                         />
@@ -165,7 +166,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                               data-element={elementType}
                               onClick={() => handleElementSelect(elementType)}
                             >
-                              <img src={getAssetPath('elements', elementType).cdn}
+                              <AssetImage paths={getAssetPath('elements', elementType)}
                                 alt={elementType}
                                 className="element-option-icon"
                               />

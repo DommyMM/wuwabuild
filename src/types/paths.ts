@@ -110,11 +110,8 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
             };
         case 'icons': {
             const skinSuffix = useAltSkin && SKIN_CHARACTERS.includes(name) ? '2' : '';
-            const iconTitle = ICON_CAPITALIZE_TITLES.includes(title.toLowerCase())
-                ? title.charAt(0).toUpperCase() + title.slice(1).toLowerCase()
-                : title;
             return {
-                cdn: `${PATHS.cdn.base}/${PATHS.cdn.icons}/T_IconRole_Pile_${iconTitle}${skinSuffix}_UI.png`,
+                cdn: `${PATHS.cdn.base}/${PATHS.cdn.icons}/T_IconRole_Pile_${title}${skinSuffix}_UI.png`,
                 local: `${PATHS.local.base}/${PATHS.local.icons}/${name}${skinSuffix}.png`
             };
         }
@@ -142,16 +139,6 @@ export const getAssetPath = (category: ImageCategory, input: string | Character 
         }
         case 'skills': {
             const character = input as Character;
-            const localPath = `${PATHS.local.base}/${PATHS.local.skills}/${character.name}/SP_Icon${character.name}${skillType}.png`;
-
-            // Force local paths for characters without CDN skill assets
-            if (SKILL_USE_LOCAL_TITLES.includes(character.title.toLowerCase())) {
-                return {
-                    cdn: localPath,
-                    local: localPath
-                };
-            }
-
             const roverVariant = getRoverVariant(character.name);
             if (roverVariant) {
                 return {
@@ -211,12 +198,6 @@ const SKILL_ICON_NAMES: Record<string, string> = {
     '7': 'Sanhua',
     '55': 'JiaBeiLiNa'
 };
-
-// Characters that need capitalized first letter for icon CDN paths
-const ICON_CAPITALIZE_TITLES = ['buling', 'qiuyuan', 'qianxiao'];
-
-// Characters that should use local paths for skills (CDN not available)
-const SKILL_USE_LOCAL_TITLES = ['buling', 'qiuyuan', 'qianxiao'];
 
 const PHANTOM_CDN_IDS: Record<string, string> = {
     'Clang Bang': '1015',
