@@ -2,6 +2,7 @@ import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { Character, isRover } from '@/types/character';
 import { SequenceSection } from './SequenceSection';
 import { getAssetPath } from '@/types/paths';
+import { AssetImage } from '@/components/AssetImage';
 import { Delete, RefreshCcw, ZoomIn, ZoomOut, Upload } from 'lucide-react';
 
 interface CharacterSectionProps {
@@ -197,12 +198,17 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
     }
   }, [customImage]);
   
+  const assetPaths = useMemo(() =>
+    getAssetPath('icons', character, useAltSkin),
+    [character, useAltSkin]
+  );
+
   const imagePath = useMemo(() => {
     if (customImage) {
       return imageUrl ?? undefined;
     }
-    return getAssetPath('icons', character, useAltSkin).cdn;
-  }, [character, customImage, imageUrl, useAltSkin]);
+    return assetPaths.cdn;
+  }, [customImage, imageUrl, assetPaths.cdn]);
 
   const imageStyle = useMemo(() => ({
     '--tx': `${position.x}px`,
@@ -211,16 +217,28 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
   } as React.CSSProperties), [position.x, position.y, scale]);
 
   const CharacterImage = useMemo(() => (
-    <img 
-      src={imagePath} 
-      className={`character-icon ${isEditMode ? 'editable' : ''}`}
-      alt={characterName}
-      style={{ cursor: isEditMode ? 'move' : 'default' }}
-      onMouseDown={handleMouseDown}
-      draggable={false}
-      onDragStart={(e) => e.preventDefault()}
-    />
-  ), [imagePath, isEditMode, characterName, handleMouseDown]);
+    customImage ? (
+      <img
+        src={imagePath}
+        className={`character-icon ${isEditMode ? 'editable' : ''}`}
+        alt={characterName}
+        style={{ cursor: isEditMode ? 'move' : 'default' }}
+        onMouseDown={handleMouseDown}
+        draggable={false}
+        onDragStart={(e) => e.preventDefault()}
+      />
+    ) : (
+      <AssetImage
+        paths={assetPaths}
+        className={`character-icon ${isEditMode ? 'editable' : ''}`}
+        alt={characterName}
+        style={{ cursor: isEditMode ? 'move' : 'default' }}
+        onMouseDown={handleMouseDown}
+        draggable={false}
+        onDragStart={(e) => e.preventDefault()}
+      />
+    )
+  ), [customImage, imagePath, assetPaths, isEditMode, characterName, handleMouseDown]);
 
   return (
     <>
@@ -231,7 +249,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         style={imageStyle}
       >
         {!customImage && (
-          <img src={imagePath} className="character-icon shadow" alt="Character Shadow"/>
+          <AssetImage paths={assetPaths} className="character-icon shadow" alt="Character Shadow"/>
         )}
         {CharacterImage}
         <svg className="fade-overlay" xmlns="http://www.w3.org/2000/svg" width="515" height="620" viewBox="0 0 136.26 152.595" preserveAspectRatio="none"   style={{ opacity: (customImage || useAltSkin) ? 0 : 0.35 }}
