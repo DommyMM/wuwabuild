@@ -58,16 +58,16 @@ export default function Navigation() {
                     </Link>
 
                     {/* Desktop Nav */}
-                    <div className="hidden md:flex gap-1">
+                    <div className="hidden md:flex">
                         {navLinks.map(({ href, label }) => (
                             <Link
                                 key={href}
                                 href={href}
                                 className={`
-                                    text-2xl font-medium px-4 py-2 rounded text-center no-underline transition-all duration-200
+                                    text-2xl font-medium px-4 pb-[calc(0.5rem+2px)] pt-2 rounded text-center no-underline transition-all duration-200 -mb-2 border-b-2
                                     ${isActive(href)
-                                        ? 'text-accent bg-accent/15 font-semibold border-b-2 border-accent'
-                                        : 'text-text-primary hover:text-accent-hover hover:bg-accent/8 hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(166,150,98,0.2)]'
+                                        ? 'text-accent bg-accent/15 font-semibold border-accent'
+                                        : 'text-text-primary border-transparent hover:text-accent-hover hover:bg-accent/8 hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(166,150,98,0.2)]'
                                     }
                                 `}
                             >
@@ -118,9 +118,6 @@ export default function Navigation() {
 
                         {/* Navigation Section */}
                         <div className="px-4 py-2">
-                            <div className="text-sm text-text-primary/50 uppercase tracking-wider mb-2 pb-2 border-b border-border/50">
-                                Navigation
-                            </div>
                             <div className="flex flex-col gap-1">
                                 {navLinks.map(({ href, label }) => (
                                     <Link
