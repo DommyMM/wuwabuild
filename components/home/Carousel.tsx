@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pause, Play } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 
@@ -15,7 +15,7 @@ const BUILD_CARDS = [
 
 export default function Carousel() {
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [isHovered, setIsHovered] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
     const checkMobile = useCallback(() => {
@@ -36,20 +36,12 @@ export default function Carousel() {
     }, [checkMobile, isMobile]);
 
     useEffect(() => {
-        if (isHovered) return;
+        if (isPaused) return;
         const timer = setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % BUILD_CARDS.length);
         }, 4000);
         return () => clearInterval(timer);
-    }, [isHovered]);
-
-    const goToPrev = () => {
-        setCurrentIndex((prev) => (prev - 1 + BUILD_CARDS.length) % BUILD_CARDS.length);
-    };
-
-    const goToNext = () => {
-        setCurrentIndex((prev) => (prev + 1) % BUILD_CARDS.length);
-    };
+    }, [isPaused]);
 
     const getCardStyle = (index: number) => {
         const diff = (index - currentIndex + BUILD_CARDS.length) % BUILD_CARDS.length;
@@ -82,11 +74,18 @@ export default function Carousel() {
 
     return (
         <div
-            className="relative w-[85%] mx-auto mb-5 max-md:w-full max-md:mb-0"
+            className="relative"
             style={{ perspective: '1200px' }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
         >
+            {/* Pause button - top right of carousel */}
+            <button
+                onClick={() => setIsPaused(!isPaused)}
+                className="absolute top-2 right-2 z-30 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white/70 hover:text-white transition-all duration-200 cursor-pointer backdrop-blur-sm"
+                title={isPaused ? 'Play' : 'Pause'}
+            >
+                {isPaused ? <Play size={16} /> : <Pause size={16} />}
+            </button>
+
             <div
                 className="relative h-[400px] max-md:h-[150px]"
                 style={{ transformStyle: 'preserve-3d' }}
@@ -114,37 +113,6 @@ export default function Carousel() {
                     </motion.div>
                 ))}
             </div>
-
-            {/* Navigation buttons - hidden on mobile */}
-            <button
-                onClick={goToPrev}
-                className="absolute top-1/2 -translate-y-1/2 -left-8 p-2 text-accent hover:text-accent-hover transition-colors z-20 max-md:hidden"
-            >
-                <ChevronLeft size={32} />
-            </button>
-            <button
-                onClick={goToNext}
-                className="absolute top-1/2 -translate-y-1/2 -right-8 p-2 text-accent hover:text-accent-hover transition-colors z-20 max-md:hidden"
-            >
-                <ChevronRight size={32} />
-            </button>
-
-            {/* Dot indicators for mobile */}
-            {isMobile && (
-                <div className="flex justify-center gap-2 mt-3">
-                    {BUILD_CARDS.map((_, index) => (
-                        <button
-                            key={index}
-                            onClick={() => setCurrentIndex(index)}
-                            className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                                index === currentIndex
-                                    ? 'bg-accent scale-125 shadow-[0_0_8px_rgba(166,150,98,0.4)]'
-                                    : 'bg-accent/30'
-                            }`}
-                        />
-                    ))}
-                </div>
-            )}
         </div>
     );
 }

@@ -40,7 +40,7 @@ export default function Typewriter() {
     }, [text, featureIndex, isDeleting]);
 
     return (
-        <div className="min-h-[60px] flex items-center justify-center mb-5">
+        <div className="flex items-center justify-start mb-6">
             <span className="text-accent text-4xl mr-2 max-md:text-2xl">·</span>
             <span className="font-gowun text-text-primary text-4xl whitespace-nowrap max-md:text-xl">
                 {text}
