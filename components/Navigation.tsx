@@ -52,26 +52,37 @@ export default function Navigation() {
                 <div className="flex items-center gap-5 w-[calc(100%-36px)] ml-10 font-gowun max-md:ml-4 max-md:w-[calc(100%-32px)] max-md:justify-between">
                     <Link
                         href="/"
-                        className="text-4xl font-bold text-text-primary no-underline transition-all duration-200 hover:text-accent hover:drop-shadow-[0_0_8px_rgba(166,150,98,0.3)]"
+                        className={`text-4xl font-bold no-underline transition-all duration-200 ${
+                            isActive('/')
+                                ? 'text-accent drop-shadow-[0_0_8px_rgba(166,150,98,0.3)]'
+                                : 'text-text-primary hover:text-accent hover:drop-shadow-[0_0_8px_rgba(166,150,98,0.3)]'
+                        }`}
                     >
                         WuWaBuilds
                     </Link>
 
                     {/* Desktop Nav */}
-                    <div className="hidden md:flex">
+                    <div className="hidden md:flex -mb-2">
                         {navLinks.map(({ href, label }) => (
                             <Link
                                 key={href}
                                 href={href}
                                 className={`
-                                    text-2xl font-medium px-4 pb-[calc(0.5rem+2px)] pt-2 rounded text-center no-underline transition-all duration-200 -mb-2 border-b-2
+                                    group relative text-2xl font-medium px-4 pt-2 pb-[calc(0.5rem+2px)] rounded text-center no-underline transition-colors duration-200
                                     ${isActive(href)
-                                        ? 'text-accent bg-accent/15 font-semibold border-accent'
-                                        : 'text-text-primary border-transparent hover:text-accent-hover hover:bg-accent/8 hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(166,150,98,0.2)]'
+                                        ? 'text-accent bg-accent/15 font-semibold'
+                                        : 'text-text-primary hover:text-accent-hover hover:bg-accent/8'
                                     }
                                 `}
                             >
                                 {label}
+                                {/* Animated underline - grows from center */}
+                                <span
+                                    className={`
+                                        absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-accent transition-all duration-300 ease-out
+                                        ${isActive(href) ? 'w-full' : 'w-0 group-hover:w-full'}
+                                    `}
+                                />
                             </Link>
                         ))}
                     </div>
