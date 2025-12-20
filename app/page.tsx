@@ -1,7 +1,5 @@
+import HomePage from '@/components/home/HomePage';
+
 export default function Home() {
-    return (
-        <main className="min-h-screen bg-background">
-            {/* Homepage content will go here */}
-        </main>
-    );
+    return <HomePage />;
 }
