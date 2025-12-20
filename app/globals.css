@@ -1,26 +1,62 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Font Declarations */
+@font-face {
+  font-family: 'Ropa';
+  src: url('/fonts/Ropa.OTF') format('opentype');
+  font-weight: normal;
+  font-style: normal;
 }
 
+@font-face {
+  font-family: 'Gowun';
+  src: url('/fonts/GowunDodum-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Theme Configuration */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: #121212;
+  --color-background-secondary: #1E1E1E;
+  --color-text-primary: #E0E0E0;
+  --color-accent: #a69662;
+  --color-accent-hover: #bfad7d;
+  --color-border: #333333;
+
+  /* Element Colors */
+  --color-spectro: #f7eb95;
+  --color-havoc: #f2b6de;
+  --color-aero: #b0ffb0;
+
+  /* Fonts */
+  --font-ropa: 'Ropa', sans-serif;
+  --font-gowun: 'Gowun', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Base Styles */
+html, body {
+  background: var(--color-background);
+  max-width: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-text-primary);
+  font-family: var(--font-ropa);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  background-color: var(--color-background-secondary);
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 100px;
 }
