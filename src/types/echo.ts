@@ -53,20 +53,24 @@ export const ELEMENT_SETS = {
   'Radiance': 'Eternal Radiance',
   'Tidebreaking': 'Tidebreaking Courage',
   'Gust': 'Gusts of Welkin',
-  'Windward' : 'Windward Pilgrimage',
-  'Flaming' : 'Flaming Clawprint',
-  'Dream' : 'Dream of the Lost',
+  'Windward': 'Windward Pilgrimage',
+  'Flaming': 'Flaming Clawprint',
+  'Dream': 'Dream of the Lost',
   'Crown': 'Crown of Valor',
   'Law': 'Law of Harmony',
   'Flamewing': 'Flamewing\'s Shadow',
-  'Thread': 'Thread of Severed Fate'
+  'Thread': 'Thread of Severed Fate',
+  'Pact': 'Pact of Neonlight Leap',
+  'Halo': 'Halo of Starry Radiance',
+  'Rite': 'Rite of Gilded Revelation'
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
 export type CostSection = typeof COST_SECTIONS[number];
 export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
-'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
-'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward'| 'Flaming' | 'Dream' | 'Crown' | 'Law' | 'Flamewing' | 'Thread';
+  'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
+  'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward' | 'Flaming' | 'Dream' | 'Crown' | 'Law' | 'Flamewing' |
+  'Thread' | 'Pact' | 'Halo' | 'Rite';
 
 // Configuration for echo sets that only support 3-piece (exceptions to the default 2,5)
 export const THREE_PIECE_SETS: readonly ElementType[] = ['Dream', 'Crown', 'Law', 'Flamewing', 'Thread'] as const;
@@ -94,7 +98,7 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
     { stat: 'Fusion DMG', value: 12 },
     { stat: 'Basic Attack DMG Bonus', value: 12 }
   ],
-'Nightmare Feilian Beringal': [
+  'Nightmare Feilian Beringal': [
     { stat: 'Aero DMG', value: 12 },
     { stat: 'Heavy Attack DMG Bonus', value: 12 }
   ],
@@ -161,6 +165,17 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
   'Threnodian - Leviathan': [
     { stat: 'Havoc DMG', value: 12 },
     { stat: 'Resonance Liberation DMG Bonus', value: 12 }
+  ],
+  'Twin Nova Nebulous Cannon': [
+    { stat: 'Spectro DMG', value: 12 },
+    { stat: 'Basic Attack DMG Bonus', value: 12 }
+  ],
+  'Twin Nova Collapsar Blade': [
+    { stat: 'Electro DMG', value: 12 },
+    { stat: 'Basic Attack DMG Bonus', value: 12 }
+  ],
+  'Reactor Husk': [
+    { stat: 'Energy Regen', value: 10 }
   ]
 } as const;
 

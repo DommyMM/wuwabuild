@@ -52,9 +52,12 @@ export const SET_TO_STAT_MAPPING = {
   'Tidebreaking Courage': 'Energy Regen',
   'Frosty Resolve': 'Resonance Skill DMG Bonus',
   'Eternal Radiance': 'Spectro DMG',
-  'Gusts of Welkin' : 'Aero DMG',
-  'Windward Pilgrimage' : 'Aero DMG',
-  'Flaming Clawprint' : 'Fusion DMG',
+  'Gusts of Welkin': 'Aero DMG',
+  'Windward Pilgrimage': 'Aero DMG',
+  'Flaming Clawprint': 'Fusion DMG',
+  'Pact of Neonlight Leap': 'Spectro DMG',
+  'Halo of Starry Radiance': 'Healing Bonus',
+  'Rite of Gilded Revelation': 'Spectro DMG'
 } as const;
 
 export const initialStatState: StatState = {
@@ -64,10 +67,10 @@ export const initialStatState: StatState = {
 };
 
 export const calculateEchoDefaultStat = (cost: number, level: number): number => {
-  const normalLevels = Math.floor(level - Math.floor(level/5));
-  const bonusLevels = Math.floor(level/5);
-  
-  switch(cost) {
+  const normalLevels = Math.floor(level - Math.floor(level / 5));
+  const bonusLevels = Math.floor(level / 5);
+
+  switch (cost) {
     case 4:
       return 30 + (normalLevels * 4.5) + (bonusLevels * 6);
     case 3:
@@ -83,7 +86,7 @@ export const calculateEchoDefaultStat = (cost: number, level: number): number =>
 export const sumEchoDefaultStats = (echoPanels: EchoPanelState[]): { atk: number; hp: number } => {
   let totalATK = 0;
   let totalHP = 0;
-  
+
   echoPanels.forEach(panel => {
     if (!panel.id || panel.level === undefined) return;
     const echo = getCachedEchoes(panel.id);
@@ -147,7 +150,7 @@ export const sumSubStats = (statType: StatName, panels: EchoPanelState[]): numbe
 };
 
 export const getDisplayName = (stat: StatName): StatName => {
-  switch(stat) {
+  switch (stat) {
     case 'Basic Attack': return 'Basic Attack DMG Bonus';
     case 'Heavy Attack': return 'Heavy Attack DMG Bonus';
     case 'Skill': return 'Resonance Skill DMG Bonus';
@@ -165,82 +168,82 @@ export const calculateCV = (echoPanels: EchoPanelState[]): number => {
 let statsDataCache: StatsData | null = null;
 
 export const getStatsData = async () => {
-    if (statsDataCache) return statsDataCache;
-    
-    const response = await fetch('/Data/Stats.json');
-    const data = await response.json();
-    statsDataCache = data;
-    return data;
+  if (statsDataCache) return statsDataCache;
+
+  const response = await fetch('/Data/Stats.json');
+  const data = await response.json();
+  statsDataCache = data;
+  return data;
 };
 
 export interface CompressedStatBreakdown {
-    f: number;
-    p: number;
-    e: number;
+  f: number;
+  p: number;
+  e: number;
 }
 
 export interface CompressedStats {
-    v: Record<string, number>;
-    u: Record<string, number>;
-    b: Record<string, CompressedStatBreakdown>;
+  v: Record<string, number>;
+  u: Record<string, number>;
+  b: Record<string, CompressedStatBreakdown>;
 }
 
 export const compressStats = (state: StatState): CompressedStats => ({
-    v: Object.entries(state.values)
-        .filter(([, v]) => v !== 0)
-        .reduce((acc, [k, v]) => ({
-            ...acc,
-            [STAT_MAP[k as keyof typeof STAT_MAP] || k]: v
-        }), {}),
-    u: Object.entries(state.updates)
-        .filter(([, v]) => v !== 0)
-        .reduce((acc, [k, v]) => ({
-            ...acc,
-            [STAT_MAP[k as keyof typeof STAT_MAP] || k]: v
-        }), {}),
-    b: Object.entries(state.breakdowns || {})
-        .reduce((acc, [k, v]) => ({
-            ...acc,
-            [STAT_MAP[k as keyof typeof STAT_MAP] || k]: {
-                f: v.flat,
-                p: v.percent,
-                e: v.echoDefault
-            }
-        }), {})
+  v: Object.entries(state.values)
+    .filter(([, v]) => v !== 0)
+    .reduce((acc, [k, v]) => ({
+      ...acc,
+      [STAT_MAP[k as keyof typeof STAT_MAP] || k]: v
+    }), {}),
+  u: Object.entries(state.updates)
+    .filter(([, v]) => v !== 0)
+    .reduce((acc, [k, v]) => ({
+      ...acc,
+      [STAT_MAP[k as keyof typeof STAT_MAP] || k]: v
+    }), {}),
+  b: Object.entries(state.breakdowns || {})
+    .reduce((acc, [k, v]) => ({
+      ...acc,
+      [STAT_MAP[k as keyof typeof STAT_MAP] || k]: {
+        f: v.flat,
+        p: v.percent,
+        e: v.echoDefault
+      }
+    }), {})
 });
 
 export const REVERSE_STAT_MAP = Object.entries(STAT_MAP).reduce(
-    (acc, [key, value]) => ({ ...acc, [value]: key }), 
-    {} as Record<string, string>
+  (acc, [key, value]) => ({ ...acc, [value]: key }),
+  {} as Record<string, string>
 );
 
 export const decompressStats = (compressed: CompressedStats): StatState => ({
-    values: Object.entries(compressed.v).reduce((acc, [k, v]) => ({
+  values: Object.entries(compressed.v).reduce((acc, [k, v]) => ({
+    ...acc,
+    [REVERSE_STAT_MAP[k] || k]: v
+  }), {} as Record<StatName, number>),
+
+  updates: Object.entries(compressed.u).reduce((acc, [k, v]) => ({
+    ...acc,
+    [REVERSE_STAT_MAP[k] || k]: v
+  }), {} as Record<StatName, number>),
+
+  breakdowns: Object.entries(compressed.b).reduce((acc, [k, v]) => {
+    const key = REVERSE_STAT_MAP[k] || k;
+    if (['HP', 'ATK', 'DEF'].includes(key)) {
+      return {
         ...acc,
-        [REVERSE_STAT_MAP[k] || k]: v
-    }), {} as Record<StatName, number>),
-    
-    updates: Object.entries(compressed.u).reduce((acc, [k, v]) => ({
-        ...acc,
-        [REVERSE_STAT_MAP[k] || k]: v
-    }), {} as Record<StatName, number>),
-    
-    breakdowns: Object.entries(compressed.b).reduce((acc, [k, v]) => {
-        const key = REVERSE_STAT_MAP[k] || k;
-        if (['HP', 'ATK', 'DEF'].includes(key)) {
-            return {
-                ...acc,
-                [key]: {
-                    flat: v.f,
-                    percent: v.p,
-                    echoDefault: v.e
-                }
-            };
+        [key]: {
+          flat: v.f,
+          percent: v.p,
+          echoDefault: v.e
         }
-        return acc;
-    }, {} as Record<'HP' | 'ATK' | 'DEF', StatBreakdown>),
-    
-    baseValues: {} as Record<StatName, number>
+      };
+    }
+    return acc;
+  }, {} as Record<'HP' | 'ATK' | 'DEF', StatBreakdown>),
+
+  baseValues: {} as Record<StatName, number>
 });
 
 export const useStats = ({
@@ -262,11 +265,11 @@ export const useStats = ({
 
   const baseStats = useMemo(() => {
     if (!character) return null;
-    
+
     const levelNum = parseInt(characterState.level) || 1;
     const characterAtk = scaleStat(character.ATK, levelNum, 'ATK');
     const weaponAtk = weaponStats?.scaledAtk ?? 0;
-    
+
     return {
       levelNum,
       baseHP: scaleStat(character.HP, levelNum, 'HP'),
@@ -285,13 +288,13 @@ export const useStats = ({
       const echo = getCachedEchoes(panel.id);
       if (!echo || usedEchoes.has(echo.name)) return;
 
-      const element = echo.elements.length === 1 ? 
+      const element = echo.elements.length === 1 ?
         echo.elements[0] : panel.selectedElement;
-      
+
       if (element) {
         counts[element] = (counts[element] || 0) + 1;
         usedEchoes.add(echo.name);
-        
+
         if (element === 'Tidebreaking' && counts[element] === 5) {
           bonus = 15;
         } else if (element === 'Attack' && counts[element] >= 2) {
@@ -314,8 +317,8 @@ export const useStats = ({
 
   const firstPanelId = echoPanels[0]?.id;
   const firstEcho = firstPanelId ? getCachedEchoes(firstPanelId) : null;
-  const firstPanelBonus = useMemo(() => 
-    firstEcho ? ECHO_BONUSES[firstEcho.name] : null, 
+  const firstPanelBonus = useMemo(() =>
+    firstEcho ? ECHO_BONUSES[firstEcho.name] : null,
     [firstEcho]
   );
 
@@ -331,9 +334,9 @@ export const useStats = ({
 
     const displayStat = getDisplayName(stat);
     const result: StatResult = {
-        value: 0,
-        update: 0,
-        baseValue: 0
+      value: 0,
+      update: 0,
+      baseValue: 0
     };
 
     if (['HP', 'ATK', 'DEF'].includes(displayStat)) {
@@ -342,9 +345,9 @@ export const useStats = ({
       const echoDefault = baseStat === 'HP' ? echoStats.hp : baseStat === 'ATK' ? echoStats.atk : 0;
       const flat = sumMainStats(baseStat, echoPanels) + sumSubStats(baseStat, echoPanels);
       let percent = sumMainStats(getPercentVariant(baseStat), echoPanels) + sumSubStats(getPercentVariant(baseStat), echoPanels);
-      
+
       result.breakdown = { flat, percent, echoDefault };
-      
+
       if (weapon && weaponStats) {
         const percentStatName = `${displayStat}%`;
         if (weapon.main_stat === displayStat) {
@@ -360,42 +363,42 @@ export const useStats = ({
       if (character.Bonus2 === displayStat) {
         percent += forteBonus.bonus2Total;
       }
-      result.value = Math.round(result.baseValue * (1 + percent/100)) + flat + echoDefault;
+      result.value = Math.round(result.baseValue * (1 + percent / 100)) + flat + echoDefault;
       result.update = result.value - result.baseValue;
     } else {
       result.baseValue = displayStat === 'Crit Rate' ? 5.0 : displayStat === 'Crit DMG' ? 150.0 : displayStat === 'Energy Regen' ? character.ER : 0;
-      
+
       result.update = sumMainStats(stat, echoPanels) + sumSubStats(stat, echoPanels);
-      
+
       if (firstPanelBonus) {
         const bonusForStat = firstPanelBonus.find(bonus => bonus.stat === displayStat);
         if (bonusForStat) {
           result.update += bonusForStat.value;
         }
-        
+
         // Special case for Fleurdelys with Rover Aero or Carthethyia
-        if (firstEcho?.name === 'Fleurdelys' && 
-            displayStat === 'Aero DMG' && 
-            ((isRover(character) && characterState.element === 'Aero') || character?.name === 'Carthethyia')) {
+        if (firstEcho?.name === 'Fleurdelys' &&
+          displayStat === 'Aero DMG' &&
+          ((isRover(character) && characterState.element === 'Aero') || character?.name === 'Carthethyia')) {
           result.update += 10; // Additional 10% for Rover:Aero or Carthethyia
         }
       }
-      
+
       if (weapon && weaponStats) {
         const weaponStatName = displayStat === 'Energy Regen' ? 'ER' : displayStat;
-        
+
         if (weaponStatName === weapon.main_stat) {
           result.update += weaponStats.scaledMainStat;
         }
-        
+
         if (weapon.passive === weaponStatName) {
           result.update += weaponStats.scaledPassive ?? 0;
         }
-        
+
         if (weapon.passive2 === weaponStatName) {
           result.update += weaponStats.scaledPassive2 ?? 0;
         }
-        
+
         if (weapon.passive === 'Attribute' && displayStat.endsWith('DMG')) {
           const element = displayStat.split(' ')[0];
           if (element === character.element) {
@@ -476,12 +479,12 @@ export const useStats = ({
 
       const newValuesString = JSON.stringify(newValues);
       const hasChanged = newValuesString !== prevValuesRef.current;
-      
+
       if (hasChanged) {
         prevValuesRef.current = newValuesString;
-        setStatState({ 
-          values: newValues, 
-          updates: newUpdates, 
+        setStatState({
+          values: newValues,
+          updates: newUpdates,
           baseValues: newBaseValues,
           breakdowns: newBreakdowns
         });

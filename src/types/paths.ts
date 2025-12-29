@@ -53,7 +53,10 @@ const SET_NAME_MAP: ElementMapping = {
     'Crown': 'Shield',
     'Law': 'Support',
     'Flamewing': 'FireA',
-    'Thread': 'QianXiao'
+    'Thread': 'QianXiao',
+    'Pact': 'LightWeakness',
+    'Halo': 'CureWeakness',
+    'Rite': 'AttackWeakness'
 };
 
 export interface ImagePaths {
