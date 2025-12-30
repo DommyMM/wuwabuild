@@ -28,24 +28,20 @@ interface WeaponBaseData {
     name: string;
     type: string;
     rarity: string;
-    stats: {
-        atk: number;
-        [key: string]: number;
-    };
-    passive: {
-        type: string;
-        value: number;
-    } | null;
-    passive2: {
-        type: string;
-        value: number;
-    } | null;
+    ATK: number;
+    main_stat: string;
+    base_main: number;
+    passive?: string;
+    passive_stat?: number;
+    passive2?: string;
+    passive_stat2?: number;
 }
 
-const CharacterProcessor = ({ character, onProcess }: { 
+const CharacterProcessor = ({ character, onProcess }: {
     character: Character;
     onProcess: (id: string, data: CharacterBaseData) => void;
 }) => {
+    const processedRef = useRef(false);
     const stats = useStats({
         character,
         characterState: {
@@ -60,14 +56,18 @@ const CharacterProcessor = ({ character, onProcess }: {
     });
 
     useEffect(() => {
-        onProcess(character.id, {
-            name: character.name,
-            element: character.element,
-            weaponType: character.weaponType,
-            bonus1: character.Bonus1,
-            bonus2: character.Bonus2,
-            stats: stats.values
-        });
+        // Only process once when stats are ready (HP > 0 indicates stats are computed)
+        if (!processedRef.current && stats.values.HP > 0) {
+            processedRef.current = true;
+            onProcess(character.id, {
+                name: character.name,
+                element: character.element,
+                weaponType: character.weaponType,
+                bonus1: character.Bonus1,
+                bonus2: character.Bonus2,
+                stats: stats.values
+            });
+        }
     }, [character, stats.values, onProcess]);
 
     return null;
@@ -93,23 +93,23 @@ export default function Page() {
         const wpnBases: Record<string, WeaponBaseData> = {};
         for (const [type, weapons] of weaponCache.entries()) {
             for (const weapon of weapons) {
-                wpnBases[weapon.id] = {
+                const base: WeaponBaseData = {
                     name: weapon.name,
                     type: type,
                     rarity: weapon.rarity,
-                    stats: {
-                        atk: scaleAtk(Number(weapon.ATK), 90),
-                        [weapon.main_stat]: scaleStat(Number(weapon.base_main), 90)
-                    },
-                    passive: weapon.passive && weapon.passive_stat !== undefined ? {
-                        type: weapon.passive,
-                        value: weapon.passive_stat
-                    } : null,
-                    passive2: weapon.passive2 && weapon.passive_stat2 !== undefined ? {
-                        type: weapon.passive2,
-                        value: weapon.passive_stat2
-                    } : null
+                    ATK: scaleAtk(Number(weapon.ATK), 90),
+                    main_stat: weapon.main_stat,
+                    base_main: scaleStat(Number(weapon.base_main), 90)
                 };
+                if (weapon.passive && weapon.passive_stat !== undefined) {
+                    base.passive = weapon.passive;
+                    base.passive_stat = weapon.passive_stat;
+                }
+                if (weapon.passive2 && weapon.passive_stat2 !== undefined) {
+                    base.passive2 = weapon.passive2;
+                    base.passive_stat2 = weapon.passive_stat2;
+                }
+                wpnBases[weapon.id] = base;
             }
         }
         setWeaponBases(wpnBases);
@@ -170,27 +170,24 @@ ${characterEntries}
         } else {
             const weaponEntries = Object.entries(weaponBases).map(([id, weaponData]) => {
                 let passiveSection = '';
-                if (weaponData.passive) {
+                if (weaponData.passive !== undefined) {
                     passiveSection = `,
-        passive: "${weaponData.passive.type}",
-        passive_stat: ${weaponData.passive.value}`;
+        passive: "${weaponData.passive}",
+        passive_stat: ${weaponData.passive_stat}`;
                 }
-                if (weaponData.passive2) {
+                if (weaponData.passive2 !== undefined) {
                     passiveSection += `,
-        passive2: "${weaponData.passive2.type}",
-        passive_stat2: ${weaponData.passive2.value}`;
+        passive2: "${weaponData.passive2}",
+        passive_stat2: ${weaponData.passive_stat2}`;
                 }
-
-                const mainStatKey = Object.keys(weaponData.stats).find(key => key !== 'atk') || '';
-                const mainStatValue = mainStatKey ? weaponData.stats[mainStatKey] : 0;
 
                 return `    "${id}": {
         name: "${weaponData.name}",
         type: "${weaponData.type}",
         rarity: "${weaponData.rarity}",
-        ATK: ${weaponData.stats.atk},
-        main_stat: "${mainStatKey}",
-        base_main: ${mainStatValue}${passiveSection}
+        ATK: ${weaponData.ATK},
+        main_stat: "${weaponData.main_stat}",
+        base_main: ${weaponData.base_main}${passiveSection}
     }`;
             }).join(',\n');
             const tsContent = `import { WeaponBase } from '../types/base';
@@ -198,7 +195,7 @@ ${characterEntries}
 export const WEAPONBASES: Record<string, WeaponBase> = {
 ${weaponEntries}
 } as const;`;
-            
+
             navigator.clipboard.writeText(tsContent);
         }
         
