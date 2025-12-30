@@ -191,7 +191,10 @@ const SKILL_CDN_NAMES: Record<string, string> = {
     '13': 'Motefei',
     '23': 'Jianxin',
     '7': 'Sanhua',
-    '55': 'JiaBeiLiNa'
+    '55': 'JiaBeiLiNa',
+    '57': 'Qianxiao',
+    '60': 'LinNai',
+    '61': 'MoNing'
 };
 
 const SKILL_ICON_NAMES: Record<string, string> = {
@@ -199,7 +202,10 @@ const SKILL_ICON_NAMES: Record<string, string> = {
     '13': 'Motefei',
     '23': 'Jianxin',
     '7': 'Sanhua',
-    '55': 'JiaBeiLiNa'
+    '55': 'JiaBeiLiNa',
+    '57': 'Qianxiao',
+    '60': 'LinNai',
+    '61': 'MoNing'
 };
 
 const PHANTOM_CDN_IDS: Record<string, string> = {
