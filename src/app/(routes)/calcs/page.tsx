@@ -4,6 +4,7 @@ import { useStats } from '@/hooks/useStats';
 import { useLevelCurves } from '@/hooks/useLevelCurves';
 import { cachedCharacters } from '@/hooks/useCharacters';
 import { weaponCache } from '@/hooks/useWeapons';
+import { useEchoes } from '@/hooks/useEchoes';
 import { Character } from '@/types/character';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -14,6 +15,8 @@ const MAX_NODES = {
     'intro': { 'top': true, 'middle': true },
     'liberation': { 'top': true, 'middle': true }
 } as const;
+
+type TabType = 'character' | 'weapon' | 'echo';
 
 interface CharacterBaseData {
     name: string;
@@ -37,6 +40,12 @@ interface WeaponBaseData {
     passive_stat2?: number;
 }
 
+interface EchoBaseData {
+    name: string;
+    cost: number;
+    elements: string[];
+}
+
 const CharacterProcessor = ({ character, onProcess }: {
     character: Character;
     onProcess: (id: string, data: CharacterBaseData) => void;
@@ -56,7 +65,6 @@ const CharacterProcessor = ({ character, onProcess }: {
     });
 
     useEffect(() => {
-        // Only process once when stats are ready (HP > 0 indicates stats are computed)
         if (!processedRef.current && stats.values.HP > 0) {
             processedRef.current = true;
             onProcess(character.id, {
@@ -74,16 +82,19 @@ const CharacterProcessor = ({ character, onProcess }: {
 };
 
 export default function Page() {
+    const [activeTab, setActiveTab] = useState<TabType>('character');
     const [characterBases, setCharacterBases] = useState<Record<string, CharacterBaseData>>({});
     const [weaponBases, setWeaponBases] = useState<Record<string, WeaponBaseData>>({});
+    const [echoBases, setEchoBases] = useState<Record<string, EchoBaseData>>({});
     const [processedCount, setProcessedCount] = useState(0);
     const { scaleAtk, scaleStat } = useLevelCurves();
+    const { echoesByCost } = useEchoes();
     const characterDataRef = useRef<Record<string, CharacterBaseData>>({});
 
     const handleCharacterProcess = useCallback((id: string, data: CharacterBaseData) => {
         characterDataRef.current[id] = data;
         setProcessedCount(prev => prev + 1);
-        
+
         if (Object.keys(characterDataRef.current).length === (cachedCharacters?.length || 0)) {
             setCharacterBases(characterDataRef.current);
         }
@@ -115,21 +126,23 @@ export default function Page() {
         setWeaponBases(wpnBases);
     }, [scaleAtk, scaleStat]);
 
-    const downloadBases = (type: 'character' | 'weapon') => {
-        const data = type === 'character' ? characterBases : weaponBases;
-        const filename = `${type}_bases.json`;
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
+    useEffect(() => {
+        const echoBasesData: Record<string, EchoBaseData> = {};
+        for (const echoes of Object.values(echoesByCost)) {
+            for (const echo of echoes) {
+                echoBasesData[echo.id] = {
+                    name: echo.name,
+                    cost: echo.cost,
+                    elements: echo.elements
+                };
+            }
+        }
+        setEchoBases(echoBasesData);
+    }, [echoesByCost]);
 
-    const copyToClipboard = (type: 'character' | 'weapon') => {
+    const copyToClipboard = (type: TabType) => {
+        let tsContent = '';
+
         if (type === 'character') {
             const characterEntries = Object.entries(characterBases).map(([id, charData]) => {
                 return `    "${id}": {
@@ -160,14 +173,12 @@ export default function Page() {
     }`;
             }).join(',\n');
 
-            const tsContent = `import { CharacterBase } from '../types/base';
+            tsContent = `import { CharacterBase } from '../types/base';
 
 export const CHARACTER_BASES: Record<string, CharacterBase> = {
 ${characterEntries}
 } as const;`;
-            
-            navigator.clipboard.writeText(tsContent);
-        } else {
+        } else if (type === 'weapon') {
             const weaponEntries = Object.entries(weaponBases).map(([id, weaponData]) => {
                 let passiveSection = '';
                 if (weaponData.passive !== undefined) {
@@ -190,118 +201,125 @@ ${characterEntries}
         base_main: ${weaponData.base_main}${passiveSection}
     }`;
             }).join(',\n');
-            const tsContent = `import { WeaponBase } from '../types/base';
+
+            tsContent = `import { WeaponBase } from '../types/base';
 
 export const WEAPONBASES: Record<string, WeaponBase> = {
 ${weaponEntries}
 } as const;`;
+        } else if (type === 'echo') {
+            const echoEntries = Object.entries(echoBases).map(([id, echoData]) => {
+                const elementsStr = JSON.stringify(echoData.elements);
+                return `    "${id}": {
+        name: "${echoData.name}",
+        cost: ${echoData.cost},
+        elements: ${elementsStr}
+    }`;
+            }).join(',\n');
 
-            navigator.clipboard.writeText(tsContent);
+            tsContent = `import { EchoBase } from '../types/base';
+
+export const ECHOBASES: Record<string, EchoBase> = {
+${echoEntries}
+} as const;`;
         }
-        
+
+        navigator.clipboard.writeText(tsContent);
         alert('Copied to clipboard!');
     };
 
+    const getTabData = () => {
+        switch (activeTab) {
+            case 'character':
+                return { data: characterBases, count: Object.keys(characterBases).length };
+            case 'weapon':
+                return { data: weaponBases, count: Object.keys(weaponBases).length };
+            case 'echo':
+                return { data: echoBases, count: Object.keys(echoBases).length };
+        }
+    };
+
+    const tabData = getTabData();
+    const tabs: { key: TabType; label: string }[] = [
+        { key: 'character', label: 'Characters' },
+        { key: 'weapon', label: 'Weapons' },
+        { key: 'echo', label: 'Echoes' }
+    ];
+
     return (
-        <div style={{ padding: '20px' }}>
+        <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
             <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
                 Base Stats Generator
             </h1>
-            
-            <div style={{ marginBottom: '20px' }}>
-                Processing: {processedCount}/{cachedCharacters?.length || 0}
-            </div>
-            
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', justifyContent: 'flex-start' }}>
-                <button 
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#2563eb',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                    onClick={() => downloadBases('character')}
-                >
-                    Download Character Bases
-                </button>
-                <button 
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#2563eb',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                    onClick={() => downloadBases('weapon')}
-                >
-                    Download Weapon Bases
-                </button>
+
+            <div style={{ marginBottom: '20px', color: '#888' }}>
+                Characters Processing: {processedCount}/{cachedCharacters?.length || 0}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                        <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>
-                            Character Bases
-                        </h2>
-                        <button 
-                            style={{
-                                padding: '4px 8px',
-                                backgroundColor: '#16a34a',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '12px'
-                            }}
-                            onClick={() => copyToClipboard('character')}
-                        >
-                            Copy
-                        </button>
-                    </div>
-                    <pre style={{ 
-                        fontSize: '12px', 
-                        maxHeight: '600px', 
-                        overflow: 'auto',
-                        padding: '16px',
-                        borderRadius: '4px'
-                    }}>
-                        {JSON.stringify(characterBases, null, 2)}
-                    </pre>
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '20px' }}>
+                {tabs.map(tab => (
+                    <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: activeTab === tab.key ? '#2563eb' : '#374151',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px 4px 0 0',
+                            cursor: 'pointer',
+                            fontWeight: activeTab === tab.key ? 600 : 400
+                        }}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Content Panel */}
+            <div style={{
+                border: '1px solid #374151',
+                borderRadius: '0 4px 4px 4px',
+                padding: '20px',
+                backgroundColor: '#1f2937'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>
+                        {activeTab === 'character' && 'Character Bases'}
+                        {activeTab === 'weapon' && 'Weapon Bases'}
+                        {activeTab === 'echo' && 'Echo Bases'}
+                        <span style={{ color: '#888', fontWeight: 400, marginLeft: '8px' }}>
+                            ({tabData.count} items)
+                        </span>
+                    </h2>
+                    <button
+                        onClick={() => copyToClipboard(activeTab)}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#16a34a',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 500
+                        }}
+                    >
+                        Copy TypeScript
+                    </button>
                 </div>
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                        <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>
-                            Weapon Bases
-                        </h2>
-                        <button 
-                            style={{
-                                padding: '4px 8px',
-                                backgroundColor: '#16a34a',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '12px'
-                            }}
-                            onClick={() => copyToClipboard('weapon')}
-                        >
-                            Copy
-                        </button>
-                    </div>
-                    <pre style={{ 
-                        fontSize: '12px', 
-                        maxHeight: '600px', 
-                        overflow: 'auto',
-                        padding: '16px',
-                        borderRadius: '4px'
-                    }}>
-                        {JSON.stringify(weaponBases, null, 2)}
-                    </pre>
-                </div>
+
+                <pre style={{
+                    fontSize: '12px',
+                    maxHeight: '600px',
+                    overflow: 'auto',
+                    padding: '16px',
+                    borderRadius: '4px',
+                    backgroundColor: '#111827',
+                    margin: 0
+                }}>
+                    {JSON.stringify(tabData.data, null, 2)}
+                </pre>
             </div>
 
             {cachedCharacters?.map(character => (
