@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { motion } from 'motion/react';
-import Image from 'next/image';
 
 const BUILD_CARDS = [
     { src: "/images/card0.png", alt: "Build Card 1" },
@@ -72,44 +71,41 @@ export default function Carousel() {
         };
     };
 
+    const isActive = (index: number) => index === currentIndex;
+
     return (
         <div
-            className="relative"
+            className="relative flex justify-center"
             style={{ perspective: '1200px' }}
         >
-            {/* Pause button - top right of carousel */}
-            <button
-                onClick={() => setIsPaused(!isPaused)}
-                className="absolute top-2 right-2 z-30 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white/70 hover:text-white transition-all duration-200 cursor-pointer backdrop-blur-sm"
-                title={isPaused ? 'Play' : 'Pause'}
-            >
-                {isPaused ? <Play size={16} /> : <Pause size={16} />}
-            </button>
-
             <div
-                className="relative h-[400px] max-md:h-[150px]"
+                className="relative w-fit"
                 style={{ transformStyle: 'preserve-3d' }}
             >
                 {BUILD_CARDS.map((card, index) => (
                     <motion.div
                         key={index}
-                        className="absolute w-full h-full"
+                        className={index === 0 ? "relative" : "absolute inset-0"}
                         initial={false}
                         animate={getCardStyle(index)}
                         transition={{ duration: 0.3, ease: 'easeOut' }}
                     >
-                        <Image
-                            src={card.src}
-                            alt={card.alt}
-                            fill
-                            className="object-contain rounded-lg"
-                            style={{
-                                boxShadow: isMobile
-                                    ? 'none'
-                                    : '20px 0 20px -20px rgba(0, 0, 0, 0.5), -20px 0 20px -20px rgba(0, 0, 0, 0.5)',
-                            }}
-                            priority={index === 0}
-                        />
+                        <div className="relative">
+                            <img
+                                src={card.src}
+                                alt={card.alt}
+                                className="h-96 max-md:h-32 w-auto rounded-lg"
+                            />
+                            {isActive(index) && (
+                                <button
+                                    onClick={() => setIsPaused(!isPaused)}
+                                    className="absolute top-3 right-3 z-30 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white/70 hover:text-white transition-all duration-200 cursor-pointer backdrop-blur-sm"
+                                    title={isPaused ? 'Play' : 'Pause'}
+                                >
+                                    {isPaused ? <Play size={16} /> : <Pause size={16} />}
+                                </button>
+                            )}
+                        </div>
                     </motion.div>
                 ))}
             </div>
