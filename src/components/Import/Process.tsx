@@ -147,27 +147,26 @@ export const Process: React.FC<ProcessProps> = ({
         try {
             onProcessStart();
 
-            // Upload image to R2 for ML training (non-blocking)
-            const uploadToR2 = async () => {
-                try {
+            // Upload image to R2 for ML training (non-blocking, fire-and-forget)
+            // Only upload if image is exactly 1920x1080 (official Discord bot format)
+            const img = new Image();
+            img.src = URL.createObjectURL(image);
+            img.onload = () => {
+                if (img.width === 1920 && img.height === 1080) {
                     const reader = new FileReader();
-                    reader.onloadend = async () => {
+                    reader.onloadend = () => {
                         const base64Data = reader.result?.toString().split(',')[1];
-                        if (!base64Data) return;
-
-                        await fetch('/api/upload-training', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ image: base64Data })
-                        });
+                        if (base64Data) {
+                            fetch('/api/upload-training', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ image: base64Data })
+                            }).catch(() => {}); // Silent fail
+                        }
                     };
                     reader.readAsDataURL(image);
-                } catch (error) {
-                    // Silently fail - don't interrupt OCR processing
-                    console.log('R2 upload failed (non-critical):', error);
                 }
             };
-            uploadToR2(); // Fire and forget
 
             const regions: ImportRegion[] = ['character', 'watermark', 'forte', 'sequences', 'weapon', 'echo1', 'echo2', 'echo3', 'echo4', 'echo5'];
             const results = await Promise.all(regions.map(processRegion));
