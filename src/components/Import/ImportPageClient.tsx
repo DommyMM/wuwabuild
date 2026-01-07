@@ -90,6 +90,7 @@ export default function ImportPageClient() {
     const [results, setResults] = useState<AnalysisData>(initialResults);
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [saveToLb, setSaveToLb] = useState(true);
     const processRef = React.useRef<(() => void) | null>(null);
 
     const handleFilesSelected = (newFiles: File[]) => {
@@ -152,6 +153,7 @@ export default function ImportPageClient() {
                                 ) : 'Process'}
                             </button>
                             <Process image={file}
+                                saveToLb={saveToLb}
                                 onProcessStart={() => setIsProcessing(true)}
                                 onRegionComplete={(region, data) => {
                                     setResults(prev => ({
@@ -165,7 +167,7 @@ export default function ImportPageClient() {
                             />
                         </div>
                         {error && <div className="error-message">{error}</div>}
-                        {results && <Results results={results} onPlayerEdit={handlePlayerEdit} />}
+                        {results && <Results results={results} onPlayerEdit={handlePlayerEdit} saveToLb={saveToLb} onSaveToLbChange={setSaveToLb} />}
                     </div>
                 )}
             </div>
