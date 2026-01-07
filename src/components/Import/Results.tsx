@@ -235,8 +235,9 @@ const DMG_BONUS_MAPPING: Record<string, string> = {
 export const Results: React.FC<{
     results: AnalysisData;
     onPlayerEdit: (data: { username: string; uid: string }) => void;
-}> = ({ results, onPlayerEdit }) => {
-    const [saveToLb, setSaveToLb] = useState(true);
+    saveToLb: boolean;
+    onSaveToLbChange: (value: boolean) => void;
+}> = ({ results, onPlayerEdit, saveToLb, onSaveToLbChange }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [convertedBuild, setConvertedBuild] = useState<SavedState | null>(null);
@@ -355,7 +356,7 @@ export const Results: React.FC<{
                             <input
                                 type="checkbox"
                                 checked={saveToLb}
-                                onChange={(e) => setSaveToLb(e.target.checked)}
+                                onChange={(e) => onSaveToLbChange(e.target.checked)}
                             />
                             Save to LB
                         </label>

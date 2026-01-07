@@ -27,6 +27,7 @@ export interface RegionResult {
 
 interface ProcessProps {
     image: File;
+    saveToLb: boolean;
     onProcessStart: () => void;
     onError: (error: string) => void;
     onProcessComplete: (results: AnalysisData) => void;
@@ -105,9 +106,10 @@ const checkGender = async (image: File) => {
     return ratio > GENDER_THRESHOLD ? 'M' : 'F';
 };
 
-export const Process: React.FC<ProcessProps> = ({ 
-    image, 
-    onProcessStart, 
+export const Process: React.FC<ProcessProps> = ({
+    image,
+    saveToLb,
+    onProcessStart,
     onProcessComplete,
     onRegionComplete,
     onError,
@@ -146,7 +148,30 @@ export const Process: React.FC<ProcessProps> = ({
         };
         try {
             onProcessStart();
-            
+
+            // Upload image to R2 for ML training (fire-and-forget, only if user consents via saveToLb)
+            if (saveToLb) {
+                const img = new Image();
+                img.src = URL.createObjectURL(image);
+                img.onload = () => {
+                    // Only upload if image is exactly 1920x1080 (official Discord bot format)
+                    if (img.width === 1920 && img.height === 1080) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const base64Data = reader.result?.toString().split(',')[1];
+                            if (base64Data) {
+                                fetch('/api/upload-training', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ image: base64Data })
+                                }).catch(() => {}); // Silent fail
+                            }
+                        };
+                        reader.readAsDataURL(image);
+                    }
+                };
+            }
+
             const regions: ImportRegion[] = ['character', 'watermark', 'forte', 'sequences', 'weapon', 'echo1', 'echo2', 'echo3', 'echo4', 'echo5'];
             const results = await Promise.all(regions.map(processRegion));
             
@@ -184,7 +209,7 @@ export const Process: React.FC<ProcessProps> = ({
         } catch (error) {
             onError(error instanceof Error ? error.message : 'Unknown error');
         }
-    }, [image, onProcessStart, onProcessComplete, onRegionComplete, onError]);
+    }, [image, saveToLb, onProcessStart, onProcessComplete, onRegionComplete, onError]);
     React.useEffect(() => {
         if (triggerRef && 'current' in triggerRef) {
             triggerRef.current = processImage;
