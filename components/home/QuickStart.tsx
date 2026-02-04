@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
+import { X } from 'lucide-react';
 
 const STEPS = [
     {
@@ -32,6 +33,10 @@ const STEPS = [
 export default function QuickStart() {
     const [currentStep, setCurrentStep] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
+    const [fullscreenImage, setFullscreenImage] = useState<{
+        src: string;
+        alt: string;
+    } | null>(null);
     const touchStartRef = useRef<number>(0);
 
     const checkMobile = useCallback(() => {
@@ -50,6 +55,20 @@ export default function QuickStart() {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [checkMobile, isMobile]);
+
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setFullscreenImage(null);
+        };
+        if (fullscreenImage) {
+            document.addEventListener('keydown', handleEscape);
+            document.body.style.overflow = 'hidden';
+        }
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+            document.body.style.overflow = '';
+        };
+    }, [fullscreenImage]);
 
     const handleTouchStart = (e: React.TouchEvent) => {
         touchStartRef.current = e.targetTouches[0].clientX;
@@ -97,14 +116,22 @@ export default function QuickStart() {
                                 <h4 className="text-lg font-semibold text-text-primary mb-3">
                                     {step.title}
                                 </h4>
-                                <div className="relative w-full aspect-video mb-3 rounded-lg overflow-hidden shadow-lg">
+                                <button
+                                    onClick={() =>
+                                        setFullscreenImage({
+                                            src: step.image,
+                                            alt: step.title,
+                                        })
+                                    }
+                                    className="relative w-full aspect-video mb-3 rounded-lg overflow-hidden shadow-lg cursor-zoom-in hover:ring-2 hover:ring-accent transition-all"
+                                >
                                     <Image
                                         src={step.image}
                                         alt={step.title}
                                         fill
                                         className="object-cover"
                                     />
-                                </div>
+                                </button>
                                 <p className="text-sm text-text-primary/70 leading-relaxed">
                                     {step.description}
                                     {step.link && (
@@ -148,14 +175,22 @@ export default function QuickStart() {
                                         <h4 className="text-lg font-semibold text-text-primary mb-3">
                                             {step.title}
                                         </h4>
-                                        <div className="relative w-full aspect-video mb-3 rounded-lg overflow-hidden shadow-lg">
+                                        <button
+                                            onClick={() =>
+                                                setFullscreenImage({
+                                                    src: step.image,
+                                                    alt: step.title,
+                                                })
+                                            }
+                                            className="relative w-full aspect-video mb-3 rounded-lg overflow-hidden shadow-lg cursor-zoom-in"
+                                        >
                                             <Image
                                                 src={step.image}
                                                 alt={step.title}
                                                 fill
                                                 className="object-cover"
                                             />
-                                        </div>
+                                        </button>
                                         <p className="text-sm text-text-primary/70 leading-relaxed">
                                             {step.description}
                                             {step.link && (
@@ -194,6 +229,45 @@ export default function QuickStart() {
                     </>
                 )}
             </div>
+
+            {/* Fullscreen Image Modal */}
+            <AnimatePresence>
+                {fullscreenImage && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 cursor-zoom-out"
+                        onClick={() => setFullscreenImage(null)}
+                    >
+                        <button
+                            onClick={() => setFullscreenImage(null)}
+                            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors"
+                            aria-label="Close"
+                        >
+                            <X size={32} />
+                        </button>
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="relative w-[90vw] h-[90vh] max-w-7xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <Image
+                                src={fullscreenImage.src}
+                                alt={fullscreenImage.alt}
+                                fill
+                                className="object-contain"
+                                sizes="90vw"
+                                priority
+                            />
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </section>
     );
 }

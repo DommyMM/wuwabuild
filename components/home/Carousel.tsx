@@ -50,10 +50,8 @@ export default function Carousel() {
 
         if (isMobile) {
             return {
-                transform: `translateX(${direction * 100}%)`,
                 opacity: absOffset === 0 ? 1 : 0,
                 pointerEvents: absOffset === 0 ? 'auto' as const : 'none' as const,
-                zIndex: absOffset === 0 ? 10 : 0,
             };
         }
 

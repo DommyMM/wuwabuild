@@ -9,7 +9,7 @@ import Disclaimer from './Disclaimer';
 export default function HomePage() {
     return (
         <main className="min-h-screen bg-background">
-            <div className="max-w-3/4 mx-auto px-5 py-0 leading-relaxed">
+            <div className="max-w-3/4 mx-auto px-2 md:px-5 py-0 leading-relaxed">
                 {/* Hero Section */}
                 <section className="py-6">
                     <h3 className="text-4xl font-bold font-gowun text-accent mb-6 max-md:text-2xl max-md:mb-3 text-center">
