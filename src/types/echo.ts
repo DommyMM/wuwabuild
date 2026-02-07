@@ -62,7 +62,10 @@ export const ELEMENT_SETS = {
   'Thread': 'Thread of Severed Fate',
   'Pact': 'Pact of Neonlight Leap',
   'Halo': 'Halo of Starry Radiance',
-  'Rite': 'Rite of Gilded Revelation'
+  'Rite': 'Rite of Gilded Revelation',
+  'Trailblazing': 'Trailblazing Star',
+  'Chromatic': 'Chromatic Foam',
+  'Sound': 'Sound of True Name'
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
@@ -70,7 +73,7 @@ export type CostSection = typeof COST_SECTIONS[number];
 export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
   'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
   'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward' | 'Flaming' | 'Dream' | 'Crown' | 'Law' | 'Flamewing' |
-  'Thread' | 'Pact' | 'Halo' | 'Rite';
+  'Thread' | 'Pact' | 'Halo' | 'Rite' | 'Trailblazing' | 'Chromatic' | 'Sound';
 
 // Configuration for echo sets that only support 3-piece (exceptions to the default 2,5)
 export const THREE_PIECE_SETS: readonly ElementType[] = ['Dream', 'Crown', 'Law', 'Flamewing', 'Thread'] as const;
@@ -176,6 +179,9 @@ export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = 
   ],
   'Reactor Husk': [
     { stat: 'Energy Regen', value: 10 }
+  ],
+  'Nameless Explorer': [
+    { stat: 'Aero DMG', value: 12 }
   ]
 } as const;
 
@@ -208,5 +214,10 @@ export const PHANTOM_ECHOES = [
   'Nightmare Mourning Aix',
   'Fallacy of No Return',
   'Kerasaur',
-  'The False Sovereign'
+  'The False Sovereign',
+  'Twin Nebulous Cannon',
+  'Twin Nova Collapsar Blade',
+  'Zip Zap',
+  'Iceglint Dancer',
+  'Sigillum'
 ] as readonly string[];

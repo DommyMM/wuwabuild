@@ -43,7 +43,7 @@ export type StatName =
   | 'Electro DMG' | 'Havoc DMG' | 'Spectro DMG'
   | 'Healing Bonus';
 
-export const getPercentVariant = (stat: BaseStatName): StatName => 
+export const getPercentVariant = (stat: BaseStatName): StatName =>
   `${stat}%` as StatName;
 
 export const getStatIconName = (statName: string | null): string => {
@@ -99,8 +99,8 @@ export const STAT_CDN_NAMES: Record<string, string> = {
 };
 
 export const getStatPaths = (statName: string | null) => {
-    const iconName = getStatIconName(statName);
-    return getAssetPath('stats', iconName);
+  const iconName = getStatIconName(statName);
+  return getAssetPath('stats', iconName);
 };
 
 export interface StatsState {

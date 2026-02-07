@@ -57,7 +57,10 @@ export const SET_TO_STAT_MAPPING = {
   'Flaming Clawprint': 'Fusion DMG',
   'Pact of Neonlight Leap': 'Spectro DMG',
   'Halo of Starry Radiance': 'Healing Bonus',
-  'Rite of Gilded Revelation': 'Spectro DMG'
+  'Rite of Gilded Revelation': 'Spectro DMG',
+  'Trailblazing Star': 'Fusion DMG',
+  'Chromatic Foam': 'Fusion DMG',
+  'Sound of True Name': 'Aero DMG'
 } as const;
 
 export const initialStatState: StatState = {
@@ -381,6 +384,10 @@ export const useStats = ({
           displayStat === 'Aero DMG' &&
           ((isRover(character) && characterState.element === 'Aero') || character?.name === 'Carthethyia')) {
           result.update += 10; // Additional 10% for Rover:Aero or Carthethyia
+        }
+        // Aemeath gets 25 Liberation DMG Bonus from Sigillum
+        if (firstEcho?.name === 'Sigillum' && character?.name === 'Aemeath' && displayStat === 'Resonance Liberation DMG Bonus') {
+          result.update += 25;
         }
       }
 

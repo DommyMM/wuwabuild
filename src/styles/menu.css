@@ -17,7 +17,7 @@
     border-radius: 8px;
     height: 7.5%;
     width: 100%;
-    text-shadow: 
+    text-shadow:
         -1px -1px 0 #000,
         1px -1px 0 #000,
         -1px 1px 0 #000,
@@ -32,7 +32,7 @@
     max-width: 80%;
 }
 
-.stat-number{
+.stat-number {
     font-size: 24px;
 }
 
@@ -44,11 +44,13 @@
     line-height: 1;
 }
 
-#build-tab.downloading .stat-name, #build-tab.downloading .stat-number{
+#build-tab.downloading .stat-name,
+#build-tab.downloading .stat-number {
     font-size: 24px;
 }
 
-#build-tab.downloading .base-value, #build-tab.downloading .update-value{
+#build-tab.downloading .base-value,
+#build-tab.downloading .update-value {
     font-size: 18px;
 }
 
@@ -79,7 +81,7 @@
     width: fit-content;
 }
 
-.update-value{
+.update-value {
     -webkit-text-fill-color: #a69662;
 }
 
@@ -171,11 +173,11 @@
     border-radius: 2px;
 }
 
-.connector-segment.left.start{
+.connector-segment.left.start {
     border-top-left-radius: 8px;
 }
 
-.connector-segment.right.start{
+.connector-segment.right.start {
     border-top-right-radius: 8px;
 }
 
@@ -266,7 +268,7 @@
     left: 0;
 }
 
-.connector-segment.right.none{
+.connector-segment.right.none {
     width: 0;
 }
 
@@ -329,6 +331,7 @@
 .connector-segment.midnight {
     border-color: #e086e0;
 }
+
 .connector-segment.dream {
     border-color: #c06ac0;
 }
@@ -367,6 +370,18 @@
 
 .connector-segment.thread {
     border-color: #c06ac0;
+}
+
+.connector-segment.trailblazing {
+    border-color: #D5740C;
+}
+
+.connector-segment.chromatic {
+    border-color: #D5740C;
+}
+
+.connector-segment.sound {
+    border-color: #7CFC00;
 }
 
 .echo-left {
@@ -464,13 +479,13 @@
     margin: 10px 0;
 }
 
-.substat-grid > *:nth-child(4) {
+.substat-grid>*:nth-child(4) {
     grid-column: 1 / 2;
     grid-row: 2;
     transform: translateX(50%);
 }
 
-.substat-grid > *:nth-child(5) {
+.substat-grid>*:nth-child(5) {
     grid-column: 3 / 4;
     grid-row: 2;
     transform: translateX(-50%);
@@ -506,7 +521,7 @@
     left: 35%;
     height: 34px;
     display: flex;
-    align-items: center;   
+    align-items: center;
     text-align: center;
     font-family: 'Gowun', sans-serif;
     letter-spacing: 1px;
@@ -570,18 +585,23 @@
 .cv-value.goat {
     color: #FF00FF;
 }
+
 .cv-value.excellent {
     color: #00FFFF;
 }
+
 .cv-value.high {
     color: #00FF00;
 }
+
 .cv-value.good {
     color: #E6B800;
 }
+
 .cv-value.decent {
     color: #FF8C00;
 }
+
 .cv-value.low {
     color: #666;
 }
@@ -610,11 +630,11 @@
     text-shadow: -0.75px -0.75px 0 #000, 0.75px -0.75px 0 #000, -0.75px 0.75px 0 #000, 0.75px 0.75px 0 #000;
 }
 
-#build-tab.downloading .set-name{
+#build-tab.downloading .set-name {
     font-size: 18px;
 }
 
-.set-count{
+.set-count {
     font-size: 14px;
     text-align: center;
     padding: 0 8px;
@@ -702,27 +722,113 @@
     border: 2px solid #4ba3ff;
 }
 
-.set-row.aero .set-name { color: #98FB98; }
-.set-row.er .set-name { color: white; }
-.set-row.electro .set-name { color: #BA55D3; }
-.set-row.spectro .set-name { color: #FFD700; }
-.set-row.glacio .set-name { color: #87CEEB; }
-.set-row.attack .set-name { color: #BC2514; }
-.set-row.fusion .set-name { color: #D5740C; }
-.set-row.havoc .set-name { color: #FF1493; }
-.set-row.healing .set-name { color: #2FE32F; }
-.set-row.empyrean .set-name { color: #4ba3ff; }
-.set-row.frosty .set-name { color: #87CEEB; }
-.set-row.midnight .set-name { color: #e086e0; }
-.set-row.dream .set-name { color: #c06ac0; }
-.set-row.radiance .set-name { color: #ffd54f; }
-.set-row.tidebreaking .set-name { color: white; }
-.set-row.gust .set-name { color: #7CFC00; }
-.set-row.windward .set-name { color: #98FB98; }
-.set-row.flaming .set-name { color: #D5740C; }
-.set-row.flamewing .set-name { color: #D5740C; }
-.set-row.crown .set-name { color: #d2691e; }
-.set-row.law .set-name { color: #4ba3ff; }
+.set-trailblazing {
+    border: 2px solid #D5740C;
+}
+
+.set-chromatic {
+    border: 2px solid #D5740C;
+}
+
+.set-sound {
+    border: 2px solid #7CFC00;
+}
+
+.set-row.aero .set-name {
+    color: #98FB98;
+}
+
+.set-row.er .set-name {
+    color: white;
+}
+
+.set-row.electro .set-name {
+    color: #BA55D3;
+}
+
+.set-row.spectro .set-name {
+    color: #FFD700;
+}
+
+.set-row.glacio .set-name {
+    color: #87CEEB;
+}
+
+.set-row.attack .set-name {
+    color: #BC2514;
+}
+
+.set-row.fusion .set-name {
+    color: #D5740C;
+}
+
+.set-row.havoc .set-name {
+    color: #FF1493;
+}
+
+.set-row.healing .set-name {
+    color: #2FE32F;
+}
+
+.set-row.empyrean .set-name {
+    color: #4ba3ff;
+}
+
+.set-row.frosty .set-name {
+    color: #87CEEB;
+}
+
+.set-row.midnight .set-name {
+    color: #e086e0;
+}
+
+.set-row.dream .set-name {
+    color: #c06ac0;
+}
+
+.set-row.radiance .set-name {
+    color: #ffd54f;
+}
+
+.set-row.tidebreaking .set-name {
+    color: white;
+}
+
+.set-row.gust .set-name {
+    color: #7CFC00;
+}
+
+.set-row.windward .set-name {
+    color: #98FB98;
+}
+
+.set-row.flaming .set-name {
+    color: #D5740C;
+}
+
+.set-row.flamewing .set-name {
+    color: #D5740C;
+}
+
+.set-row.crown .set-name {
+    color: #d2691e;
+}
+
+.set-row.law .set-name {
+    color: #4ba3ff;
+}
+
+.set-row.trailblazing .set-name {
+    color: #D5740C;
+}
+
+.set-row.chromatic .set-name {
+    color: #D5740C;
+}
+
+.set-row.sound .set-name {
+    color: #7CFC00;
+}
 
 .popuptext {
     visibility: hidden;
@@ -751,12 +857,25 @@
 }
 
 @keyframes fadeIn {
-    from {opacity: 0;}
-    to {opacity: 1;}
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
-.weapon-stat.weapon-attack.hover-highlight,.weapon-stat.weapon-main-stat.hover-highlight, .stat-row.hover-highlight, .main-stat-display.hover-highlight, .connector-segment:not(.none).hover-highlight,
-.weapon-passive.hover-highlight, .simplified-node.circle.active.hover-highlight, .substat-container.hover-highlight, .main-stat-icon.hover-highlight , .set-row.hover-highlight, 
+.weapon-stat.weapon-attack.hover-highlight,
+.weapon-stat.weapon-main-stat.hover-highlight,
+.stat-row.hover-highlight,
+.main-stat-display.hover-highlight,
+.connector-segment:not(.none).hover-highlight,
+.weapon-passive.hover-highlight,
+.simplified-node.circle.active.hover-highlight,
+.substat-container.hover-highlight,
+.main-stat-icon.hover-highlight,
+.set-row.hover-highlight,
 .row-container:nth-child(1) .echo-display-icon.hover-highlight {
     background-color: rgba(17, 194, 238, 1);
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
@@ -768,10 +887,7 @@
     transition: transform 0.2s ease, font-size 0.2s ease;
     font-size: 16px;
     letter-spacing: 1px;
-    filter: drop-shadow(-0.3px -0.3px 0 #000) 
-            drop-shadow(0.3px -0.3px 0 #000) 
-            drop-shadow(-0.3px 0.3px 0 #000) 
-            drop-shadow(0.3px 0.3px 0 #000);
+    filter: drop-shadow(-0.3px -0.3px 0 #000) drop-shadow(0.3px -0.3px 0 #000) drop-shadow(-0.3px 0.3px 0 #000) drop-shadow(0.3px 0.3px 0 #000);
     text-shadow: none;
     backface-visibility: hidden;
     will-change: transform;

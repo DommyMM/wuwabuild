@@ -47,14 +47,37 @@
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.profile-card.aero { background-image: linear-gradient(rgba(144, 238, 144, 0.25), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
-.profile-card.spectro { background-image: linear-gradient(rgba(255, 223, 0, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
-.profile-card.electro { background-image: linear-gradient(rgba(138, 43, 226, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
-.profile-card.fusion { background-image: linear-gradient(rgba(213, 116, 12, 0.25), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
-.profile-card.havoc { background-image: linear-gradient(rgba(255, 20, 147, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
-.profile-card.dream { background-image: linear-gradient(rgba(160, 70, 160, 0.22), rgba(0, 0, 0, 0.5)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
-.profile-card.thread { background-image: linear-gradient(rgba(160, 70, 160, 0.22), rgba(0, 0, 0, 0.5)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
-.profile-card.glacio { background-image: linear-gradient(rgba(0, 206, 209, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png'); }
+.profile-card.aero {
+    background-image: linear-gradient(rgba(144, 238, 144, 0.25), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
+}
+
+.profile-card.spectro {
+    background-image: linear-gradient(rgba(255, 223, 0, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
+}
+
+.profile-card.electro {
+    background-image: linear-gradient(rgba(138, 43, 226, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
+}
+
+.profile-card.fusion {
+    background-image: linear-gradient(rgba(213, 116, 12, 0.25), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
+}
+
+.profile-card.havoc {
+    background-image: linear-gradient(rgba(255, 20, 147, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
+}
+
+.profile-card.dream {
+    background-image: linear-gradient(rgba(160, 70, 160, 0.22), rgba(0, 0, 0, 0.5)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
+}
+
+.profile-card.thread {
+    background-image: linear-gradient(rgba(160, 70, 160, 0.22), rgba(0, 0, 0, 0.5)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
+}
+
+.profile-card.glacio {
+    background-image: linear-gradient(rgba(0, 206, 209, 0.2), rgba(0, 0, 0, 0.45)), url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png');
+}
 
 .profile-character-display {
     position: relative;
@@ -99,26 +122,97 @@
     overflow: hidden;
 }
 
-.profile-echo-panel.aero { border: 1px solid rgba(144, 238, 144, 0.6); }
-.profile-echo-panel.spectro { border: 1px solid rgba(255, 223, 0, 0.6); }
-.profile-echo-panel.electro { border: 1px solid rgba(138, 43, 226, 0.6); }
-.profile-echo-panel.fusion { border: 1px solid rgba(213, 116, 12, 0.6); }
-.profile-echo-panel.havoc { border: 1px solid rgba(255, 20, 147, 0.6); }
-.profile-echo-panel.glacio { border: 1px solid rgba(0, 206, 209, 0.6); }
-.profile-echo-panel.er { border: 1px solid rgba(255, 255, 255, 0.6); }
-.profile-echo-panel.attack { border: 1px solid rgba(188, 37, 20, 0.6); }
-.profile-echo-panel.healing { border: 1px solid rgba(47, 227, 47, 0.6); }
-.profile-echo-panel.empyrean { border: 1px solid rgba(75, 163, 255, 0.6); }
-.profile-echo-panel.frosty { border: 1px solid rgba(135, 206, 235, 0.6); }
-.profile-echo-panel.midnight { border: 1px solid rgba(224, 134, 224, 0.6); }
-.profile-echo-panel.radiance { border: 1px solid rgba(255, 213, 79, 0.6); }
-.profile-echo-panel.tidebreaking { border: 1px solid rgba(255, 255, 255, 0.6); }
-.profile-echo-panel.gust { border: 1px solid rgba(124, 252, 0, 0.6); }
-.profile-echo-panel.windward { border: 1px solid rgba(152, 251, 152, 0.6); }
-.profile-echo-panel.flaming { border: 1px solid rgba(213, 116, 12, 0.6); }
-.profile-echo-panel.flamewing { border: 1px solid rgba(213, 116, 12, 0.6); }
-.profile-echo-panel.dream { border: 1px solid rgba(192, 106, 192, 0.6); }
-.profile-echo-panel.thread { border: 1px solid rgba(192, 106, 192, 0.6); }
+.profile-echo-panel.aero {
+    border: 1px solid rgba(144, 238, 144, 0.6);
+}
+
+.profile-echo-panel.spectro {
+    border: 1px solid rgba(255, 223, 0, 0.6);
+}
+
+.profile-echo-panel.electro {
+    border: 1px solid rgba(138, 43, 226, 0.6);
+}
+
+.profile-echo-panel.fusion {
+    border: 1px solid rgba(213, 116, 12, 0.6);
+}
+
+.profile-echo-panel.havoc {
+    border: 1px solid rgba(255, 20, 147, 0.6);
+}
+
+.profile-echo-panel.glacio {
+    border: 1px solid rgba(0, 206, 209, 0.6);
+}
+
+.profile-echo-panel.er {
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.profile-echo-panel.attack {
+    border: 1px solid rgba(188, 37, 20, 0.6);
+}
+
+.profile-echo-panel.healing {
+    border: 1px solid rgba(47, 227, 47, 0.6);
+}
+
+.profile-echo-panel.empyrean {
+    border: 1px solid rgba(75, 163, 255, 0.6);
+}
+
+.profile-echo-panel.frosty {
+    border: 1px solid rgba(135, 206, 235, 0.6);
+}
+
+.profile-echo-panel.midnight {
+    border: 1px solid rgba(224, 134, 224, 0.6);
+}
+
+.profile-echo-panel.radiance {
+    border: 1px solid rgba(255, 213, 79, 0.6);
+}
+
+.profile-echo-panel.tidebreaking {
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.profile-echo-panel.gust {
+    border: 1px solid rgba(124, 252, 0, 0.6);
+}
+
+.profile-echo-panel.windward {
+    border: 1px solid rgba(152, 251, 152, 0.6);
+}
+
+.profile-echo-panel.flaming {
+    border: 1px solid rgba(213, 116, 12, 0.6);
+}
+
+.profile-echo-panel.flamewing {
+    border: 1px solid rgba(213, 116, 12, 0.6);
+}
+
+.profile-echo-panel.dream {
+    border: 1px solid rgba(192, 106, 192, 0.6);
+}
+
+.profile-echo-panel.thread {
+    border: 1px solid rgba(192, 106, 192, 0.6);
+}
+
+.profile-echo-panel.trailblazing {
+    border: 1px solid rgba(213, 116, 12, 0.6);
+}
+
+.profile-echo-panel.chromatic {
+    border: 1px solid rgba(213, 116, 12, 0.6);
+}
+
+.profile-echo-panel.sound {
+    border: 1px solid rgba(124, 252, 0, 0.6);
+}
 
 .profile-echo-icon {
     width: 60%;
@@ -193,8 +287,9 @@
         opacity: 0;
         height: 0;
     }
+
     to {
         opacity: 1;
-        height: 600px; 
+        height: 600px;
     }
 }

@@ -56,7 +56,10 @@ const SET_NAME_MAP: ElementMapping = {
     'Thread': 'QianXiao',
     'Pact': 'LightWeakness',
     'Halo': 'CureWeakness',
-    'Rite': 'AttackWeakness'
+    'Rite': 'AttackWeakness',
+    'Trailblazing': 'FireA1',
+    'Chromatic': 'FireA2',
+    'Sound': 'WindVision'
 };
 
 export interface ImagePaths {
@@ -237,5 +240,10 @@ const PHANTOM_CDN_IDS: Record<string, string> = {
     'Nightmare Mourning Aix': 'SG_33020',
     'Fallacy of No Return': 'SG_350',
     'Kerasaur': 'SG_31062',
-    'The False Sovereign': 'SG_34017'
+    'The False Sovereign': 'SG_34017',
+    'Twin Nebulous Cannon': 'SG_32049',
+    'Twin Nova Collapsar Blade': 'SG_32050',
+    'Zip Zap': 'SG_31082',
+    'Iceglint Dancer': 'SG_31083',
+    'Sigillum': 'SG_34025'
 };
