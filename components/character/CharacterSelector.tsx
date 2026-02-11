@@ -8,6 +8,8 @@ import { Character, Element } from '@/types/character';
 
 interface CharacterSelectorProps {
   className?: string;
+  inline?: boolean; // If true, renders just the grid without button/modal wrapper
+  onSelect?: (character: Character) => void; // Optional callback for inline mode
 }
 
 // Element to color mapping for border styling
@@ -33,7 +35,9 @@ const ELEMENT_GRADIENTS: Record<string, string> = {
 };
 
 export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
-  className = ''
+  className = '',
+  inline = false,
+  onSelect
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { characters, loading, error, getCharacter } = useGameData();
@@ -48,7 +52,9 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     // For Rover, set default element to Havoc
     const element = character.name.startsWith('Rover') ? 'Havoc' : undefined;
     setCharacter(character.id, element);
-  }, [setCharacter, setCharacterLevel]);
+    // Call optional callback
+    onSelect?.(character);
+  }, [setCharacter, setCharacterLevel, onSelect]);
 
   const openModal = useCallback(() => {
     setIsModalOpen(true);
@@ -64,6 +70,61 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     return `https://files.wuthery.com/p/GameData/UIResources/Common/Image/IconRolePile/${character.id}.png`;
   };
 
+  // Character grid component (shared between inline and modal mode)
+  const CharacterGrid = () => (
+    <>
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <span className="text-text-primary/60">Loading characters...</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center justify-center py-8">
+          <span className="text-red-400">{error}</span>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
+          {characters.map((character) => (
+            <button
+              key={character.id}
+              onClick={() => handleCharacterSelect(character)}
+              className={`group relative flex flex-col items-center gap-1 rounded-lg border bg-linear-to-b p-2 transition-all hover:scale-105 hover:border-accent ${ELEMENT_COLORS[character.element]
+                } ${ELEMENT_GRADIENTS[character.element]} ${selectedCharacter?.id === character.id ? 'ring-2 ring-accent' : ''
+                }`}
+            >
+              {/* Character Portrait */}
+              <div className="relative h-16 w-16 overflow-hidden rounded-lg">
+                <img
+                  src={getCharacterFaceUrl(character)}
+                  alt={character.name}
+                  className="h-full w-full object-cover transition-transform group-hover:scale-110"
+                />
+              </div>
+
+              {/* Character Name */}
+              <span className="text-center text-xs text-text-primary">
+                {character.name}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  // Inline mode - just render the grid
+  if (inline) {
+    return (
+      <div className={className}>
+        <CharacterGrid />
+      </div>
+    );
+  }
+
+  // Standard mode - button with modal
   return (
     <>
       {/* Character Selection Button */}
@@ -74,9 +135,8 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           className="flex items-center gap-3 rounded-lg border border-border bg-background-secondary p-3 transition-colors hover:border-accent hover:bg-background"
         >
           {/* Character Portrait */}
-          <div className={`relative h-16 w-16 overflow-hidden rounded-lg border-2 ${
-            selectedCharacter ? ELEMENT_COLORS[selectedCharacter.element] : 'border-border'
-          }`}>
+          <div className={`relative h-16 w-16 overflow-hidden rounded-lg border-2 ${selectedCharacter ? ELEMENT_COLORS[selectedCharacter.element] : 'border-border'
+            }`}>
             <img
               src={getCharacterFaceUrl(selectedCharacter)}
               alt={selectedCharacter?.name || 'Select Character'}
@@ -109,47 +169,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         title="Select Resonator"
         contentClassName="w-[800px] max-w-[90vw]"
       >
-        {loading && (
-          <div className="flex items-center justify-center py-8">
-            <span className="text-text-primary/60">Loading characters...</span>
-          </div>
-        )}
-
-        {error && (
-          <div className="flex items-center justify-center py-8">
-            <span className="text-red-400">{error}</span>
-          </div>
-        )}
-
-        {!loading && !error && (
-          <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
-            {characters.map((character) => (
-              <button
-                key={character.id}
-                onClick={() => handleCharacterSelect(character)}
-                className={`group relative flex flex-col items-center gap-1 rounded-lg border bg-gradient-to-b p-2 transition-all hover:scale-105 hover:border-accent ${
-                  ELEMENT_COLORS[character.element]
-                } ${ELEMENT_GRADIENTS[character.element]} ${
-                  selectedCharacter?.id === character.id ? 'ring-2 ring-accent' : ''
-                }`}
-              >
-                {/* Character Portrait */}
-                <div className="relative h-16 w-16 overflow-hidden rounded-lg">
-                  <img
-                    src={getCharacterFaceUrl(character)}
-                    alt={character.name}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-110"
-                  />
-                </div>
-
-                {/* Character Name */}
-                <span className="text-center text-xs text-text-primary">
-                  {character.name}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
+        <CharacterGrid />
       </Modal>
     </>
   );

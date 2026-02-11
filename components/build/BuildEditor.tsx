@@ -3,7 +3,7 @@
 import React, { useCallback, useState } from 'react';
 import { Save, Download, Upload, RotateCcw, Share2 } from 'lucide-react';
 import { useGameData, useBuild } from '@/contexts';
-import { CharacterSelector, CharacterInfo } from '@/components/character';
+import { CharacterSelector, CharacterInfo, SequenceSelector } from '@/components/character';
 import { WeaponInfo } from '@/components/weapon';
 import { ForteGroup } from '@/components/forte';
 import { EchoGrid } from '@/components/echo';
@@ -28,7 +28,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   const { getCharacter } = useGameData();
   const {
     state,
-    setCharacter,
+    setSequence,
     setNodeStates,
     setForteLevels,
     maxAllFortes,
@@ -38,16 +38,8 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
 
   const selectedCharacter = getCharacter(state.characterState.id);
   const currentElement = state.characterState.element || 'Havoc';
-
-  // Handle character selection
-  const handleCharacterSelect = useCallback((characterId: string) => {
-    const character = getCharacter(characterId);
-    if (character) {
-      const isRover = character.name.startsWith('Rover');
-      setCharacter(characterId, isRover ? 'Havoc' : undefined);
-    }
-    setShowCharacterSelector(false);
-  }, [getCharacter, setCharacter]);
+  const isRover = selectedCharacter?.name.startsWith('Rover') ?? false;
+  const displayName = isRover ? `Rover${currentElement}` : selectedCharacter?.name ?? '';
 
   // Handle node state changes
   const handleNodeChange = useCallback((nodeStates: Record<string, Record<string, boolean>>) => {
@@ -76,45 +68,10 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
     }
   }, [resetBuild]);
 
-  // Handle save
-  const handleSave = useCallback(() => {
-    if (onSave) {
-      onSave();
-    } else {
-      // Default save behavior - could be implemented later
-      console.log('Save clicked - implement save functionality');
-    }
-  }, [onSave]);
-
-  // Handle load
-  const handleLoad = useCallback(() => {
-    if (onLoad) {
-      onLoad();
-    } else {
-      // Default load behavior - could be implemented later
-      console.log('Load clicked - implement load functionality');
-    }
-  }, [onLoad]);
-
-  // Handle export
-  const handleExport = useCallback(() => {
-    if (onExport) {
-      onExport();
-    } else {
-      // Default export behavior - could be implemented later
-      console.log('Export clicked - implement export functionality');
-    }
-  }, [onExport]);
-
-  // Handle share
-  const handleShare = useCallback(() => {
-    if (onShare) {
-      onShare();
-    } else {
-      // Default share behavior - could be implemented later
-      console.log('Share clicked - implement share functionality');
-    }
-  }, [onShare]);
+  // Handle sequence change
+  const handleSequenceChange = useCallback((newSequence: number) => {
+    setSequence(newSequence);
+  }, [setSequence]);
 
   return (
     <div className={`flex flex-col gap-6 ${className}`}>
@@ -132,7 +89,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           {/* Save Button */}
           <button
-            onClick={handleSave}
+            onClick={onSave}
             className="flex items-center gap-2 rounded-lg border border-accent bg-accent/10 px-4 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
           >
             <Save size={16} />
@@ -141,7 +98,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
 
           {/* Load Button */}
           <button
-            onClick={handleLoad}
+            onClick={onLoad}
             className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
           >
             <Upload size={16} />
@@ -150,7 +107,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
 
           {/* Export Button */}
           <button
-            onClick={handleExport}
+            onClick={onExport}
             className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
           >
             <Download size={16} />
@@ -159,7 +116,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
 
           {/* Share Button */}
           <button
-            onClick={handleShare}
+            onClick={onShare}
             className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
           >
             <Share2 size={16} />
@@ -177,49 +134,39 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
         </div>
       </div>
 
-      {/* Main Editor Layout */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* Left Column: Character + Weapon */}
-        <div className="flex flex-col gap-6">
-          {/* Character Section */}
-          <div className="rounded-lg border border-border bg-background-secondary p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-semibold text-text-primary">Resonator</h2>
-              <button
-                onClick={() => setShowCharacterSelector(true)}
-                className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-text-primary/80 transition-colors hover:border-text-primary/40"
-              >
-                {selectedCharacter ? 'Change' : 'Select'}
-              </button>
-            </div>
-
-            {selectedCharacter ? (
-              <CharacterInfo />
-            ) : (
-              <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-border py-8">
-                <button
-                  onClick={() => setShowCharacterSelector(true)}
-                  className="text-text-primary/60 hover:text-text-primary transition-colors"
-                >
-                  Click to select a resonator
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Weapon Section */}
-          {selectedCharacter && <WeaponInfo />}
-
-          {/* Stats Display - shown on mobile/tablet at bottom of left column */}
-          <div className="xl:hidden">
-            <StatsDisplay />
-          </div>
+      {/* Row 1: Resonator (Character + Weapon + Sequences + Forte) */}
+      <div className="rounded-lg border border-border bg-background-secondary p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-semibold text-text-primary">Resonator</h2>
+          <button
+            onClick={() => setShowCharacterSelector(true)}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-text-primary/80 transition-colors hover:border-text-primary/40"
+          >
+            {selectedCharacter ? 'Change' : 'Select Character'}
+          </button>
         </div>
 
-        {/* Center Column: Forte + Echoes */}
-        <div className="flex flex-col gap-6 xl:col-span-2">
-          {/* Forte Section */}
-          {selectedCharacter && (
+        {selectedCharacter ? (
+          <div className="flex flex-col gap-4">
+            {/* Top row: Character + Weapon + Sequences */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {/* Character Info */}
+              <CharacterInfo defaultMinimized={false} />
+
+              {/* Weapon */}
+              <WeaponInfo />
+
+              {/* Sequences */}
+              <div className="rounded-lg border border-border bg-background p-4">
+                <SequenceSelector
+                  characterName={displayName}
+                  sequence={state.currentSequence}
+                  onSequenceChange={handleSequenceChange}
+                />
+              </div>
+            </div>
+
+            {/* Bottom row: Forte (full width) */}
             <ForteGroup
               character={selectedCharacter}
               elementValue={currentElement}
@@ -230,17 +177,24 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
               onMaxAll={handleMaxAll}
               onReset={handleResetFortes}
             />
-          )}
-
-          {/* Echo Grid */}
-          <EchoGrid />
-        </div>
-
-        {/* Right Column: Stats Display (desktop only) */}
-        <div className="hidden xl:col-span-3 xl:block">
-          <StatsDisplay />
-        </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-border py-12">
+            <button
+              onClick={() => setShowCharacterSelector(true)}
+              className="text-text-primary/60 hover:text-text-primary transition-colors"
+            >
+              Click to select a resonator
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Row 2: Echoes */}
+      <EchoGrid />
+
+      {/* Row 3: Stats */}
+      <StatsDisplay />
 
       {/* Character Selector Modal */}
       {showCharacterSelector && (
@@ -274,7 +228,10 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                 </svg>
               </button>
             </div>
-            <CharacterSelector />
+            <CharacterSelector
+              inline
+              onSelect={() => setShowCharacterSelector(false)}
+            />
           </div>
         </div>
       )}
