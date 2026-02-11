@@ -274,10 +274,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                 </svg>
               </button>
             </div>
-            <CharacterSelector
-              onSelect={handleCharacterSelect}
-              selectedId={state.characterState.id}
-            />
+            <CharacterSelector />
           </div>
         </div>
       )}
