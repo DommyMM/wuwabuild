@@ -334,6 +334,16 @@ export const getCharacterIconPaths = (character: Character | null, useAltSkin?: 
   return getAssetPath('icons', character, { useAltSkin });
 };
 
+export const getCharacterHeadPaths = (character: Character | null): ImagePaths => {
+  if (!character) {
+    return {
+      cdn: '/images/Resources/Resonator.png',
+      local: '/images/Resources/Resonator.png'
+    };
+  }
+  return getAssetPath('face1', character);
+};
+
 export const getWeaponPaths = (weapon: Weapon | null): ImagePaths => {
   if (!weapon) {
     return {

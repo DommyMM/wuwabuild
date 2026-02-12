@@ -5,7 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { Modal, AssetImage } from '@/components/ui';
 import { Character, Element } from '@/types/character';
-import { getCharacterIconPaths } from '@/lib/paths';
+import { getCharacterFacePaths } from '@/lib/paths';
 
 interface CharacterSelectorProps {
   className?: string;
@@ -94,7 +94,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
               {/* Character Portrait */}
               <div className="relative h-16 w-16 overflow-hidden rounded-lg">
                 <AssetImage
-                  paths={getCharacterIconPaths(character)}
+                  paths={getCharacterFacePaths(character)}
                   alt={character.name}
                   className="h-full w-full object-cover transition-transform group-hover:scale-110"
                 />
@@ -134,7 +134,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           <div className={`relative h-16 w-16 overflow-hidden rounded-lg border-2 ${selectedCharacter ? ELEMENT_COLORS[selectedCharacter.element] : 'border-border'
             }`}>
             <AssetImage
-              paths={getCharacterIconPaths(selectedCharacter)}
+              paths={getCharacterFacePaths(selectedCharacter)}
               alt={selectedCharacter?.name || 'Select Character'}
               className="h-full w-full object-cover"
             />

@@ -7,7 +7,7 @@ import { useBuild } from '@/contexts/BuildContext';
 import { LevelSlider, AssetImage } from '@/components/ui';
 import { SequenceSelector } from './SequenceSelector';
 import { Element } from '@/types/character';
-import { getCharacterFacePaths, getElementPaths } from '@/lib/paths';
+import { getCharacterHeadPaths, getElementPaths } from '@/lib/paths';
 
 interface CharacterInfoProps {
   className?: string;
@@ -118,7 +118,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
           {/* Character Icon */}
           <div className={`h-10 w-10 overflow-hidden rounded-full border-2 ${elementStyle?.border || 'border-border'}`}>
             <AssetImage
-              paths={getCharacterFacePaths(selectedCharacter)}
+              paths={getCharacterHeadPaths(selectedCharacter)}
               alt={displayName}
               className="h-full w-full object-cover"
             />
