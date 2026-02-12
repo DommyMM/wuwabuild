@@ -2,8 +2,9 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { Modal } from '@/components/ui';
+import { Modal, AssetImage } from '@/components/ui';
 import { Echo, ElementType, ELEMENT_SETS, COST_SECTIONS } from '@/types/echo';
+import { getEchoPaths } from '@/lib/paths';
 
 interface EchoSelectorProps {
   isOpen: boolean;
@@ -60,10 +61,6 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const { echoesByCost, loading, error } = useGameData();
 
-  // Get CDN path for echo image
-  const getEchoImageUrl = useCallback((echo: Echo): string => {
-    return `https://files.wuthery.com/p/GameData/UIResources/Common/Image/IconMonsterHead/${echo.id}.png`;
-  }, []);
 
   // Filter echoes by search query
   const filteredEchoesByCost = useMemo(() => {
@@ -108,14 +105,13 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
       <button
         key={echo.id}
         onClick={() => handleEchoSelect(echo)}
-        className={`group relative flex flex-col items-center gap-1 rounded-lg border-2 bg-background-secondary p-2 transition-all hover:scale-105 hover:border-accent ${
-          COST_BORDER_COLORS[echo.cost]
-        } ${isSelected ? 'ring-2 ring-accent' : ''}`}
+        className={`group relative flex flex-col items-center gap-1 rounded-lg border-2 bg-background-secondary p-2 transition-all hover:scale-105 hover:border-accent ${COST_BORDER_COLORS[echo.cost]
+          } ${isSelected ? 'ring-2 ring-accent' : ''}`}
       >
         {/* Echo Image */}
         <div className="relative h-14 w-14 overflow-hidden rounded-lg">
-          <img
-            src={getEchoImageUrl(echo)}
+          <AssetImage
+            paths={getEchoPaths(echo)}
             alt={echo.name}
             className="h-full w-full object-cover transition-transform group-hover:scale-110"
             loading="lazy"
@@ -123,7 +119,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
         </div>
 
         {/* Echo Name */}
-        <span className="text-center text-xs text-text-primary leading-tight line-clamp-2 min-h-[2rem]">
+        <span className="text-center text-xs text-text-primary leading-tight line-clamp-2 min-h-8">
           {echo.name}
         </span>
 
@@ -133,9 +129,8 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
             {echo.elements.slice(0, 3).map((element) => (
               <span
                 key={element}
-                className={`px-1 py-0.5 text-[8px] font-medium rounded ${
-                  ELEMENT_BADGE_COLORS[element] || 'bg-gray-400 text-white'
-                }`}
+                className={`px-1 py-0.5 text-[8px] font-medium rounded ${ELEMENT_BADGE_COLORS[element] || 'bg-gray-400 text-white'
+                  }`}
                 title={ELEMENT_SETS[element as ElementType]}
               >
                 {element.slice(0, 3)}
@@ -160,9 +155,8 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
 
     return (
       <div key={cost} className="mb-6">
-        <h3 className={`mb-3 text-sm font-semibold border-b-2 pb-1 ${
-          COST_BORDER_COLORS[cost]
-        } text-text-primary`}>
+        <h3 className={`mb-3 text-sm font-semibold border-b-2 pb-1 ${COST_BORDER_COLORS[cost]
+          } text-text-primary`}>
           {costLabels[cost]} ({echoes.length})
         </h3>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
@@ -209,13 +203,13 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
 
           {/* No results message */}
           {searchQuery &&
-           filteredEchoesByCost[4]?.length === 0 &&
-           filteredEchoesByCost[3]?.length === 0 &&
-           filteredEchoesByCost[1]?.length === 0 && (
-            <div className="flex items-center justify-center py-8">
-              <span className="text-text-primary/60">No echoes found matching &quot;{searchQuery}&quot;</span>
-            </div>
-          )}
+            filteredEchoesByCost[4]?.length === 0 &&
+            filteredEchoesByCost[3]?.length === 0 &&
+            filteredEchoesByCost[1]?.length === 0 && (
+              <div className="flex items-center justify-center py-8">
+                <span className="text-text-primary/60">No echoes found matching &quot;{searchQuery}&quot;</span>
+              </div>
+            )}
         </div>
       )}
     </Modal>

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useCallback } from 'react';
+import { AssetImage } from '@/components/ui';
+import { getWavebandPaths } from '@/lib/paths';
 
 interface SequenceSelectorProps {
   characterName: string;
@@ -23,26 +25,17 @@ export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
     onSequenceChange(Math.max(0, newSequence));
   }, [sequence, onSequenceChange]);
 
-  // Get waveband image URL
-  const getWavebandUrl = (name: string): string => {
-    return `/images/Wavebands/${name}.png`;
-  };
-
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <span className="text-sm font-medium text-text-primary/80">Sequence</span>
 
       <div className="relative flex items-center gap-2 rounded-lg border border-border bg-background-secondary p-3">
         {/* Waveband Image */}
-        <div className="relative h-12 w-12 flex-shrink-0">
-          <img
-            src={getWavebandUrl(characterName)}
+        <div className="relative h-12 w-12 shrink-0">
+          <AssetImage
+            paths={getWavebandPaths(characterName)}
             alt={`${characterName} Waveband`}
             className="h-full w-full object-contain opacity-80"
-            onError={(e) => {
-              // Fallback if waveband image doesn't exist
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
           />
         </div>
 
@@ -52,11 +45,10 @@ export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
             <button
               key={num}
               onClick={() => handleSequenceClick(num)}
-              className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all ${
-                num <= sequence
+              className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all ${num <= sequence
                   ? 'border-accent bg-accent/20 text-accent'
                   : 'border-border bg-transparent text-text-primary/40 hover:border-text-primary/40 hover:text-text-primary/60'
-              }`}
+                }`}
               aria-label={`Sequence ${num}`}
               aria-pressed={num <= sequence}
             >

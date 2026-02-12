@@ -4,9 +4,10 @@ import React, { useState, useCallback } from 'react';
 import { ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
-import { LevelSlider } from '@/components/ui';
+import { LevelSlider, AssetImage } from '@/components/ui';
 import { SequenceSelector } from './SequenceSelector';
 import { Element } from '@/types/character';
+import { getCharacterFacePaths, getElementPaths } from '@/lib/paths';
 
 interface CharacterInfoProps {
   className?: string;
@@ -57,11 +58,6 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   // Get effective element for display
   const effectiveElement = isRover ? currentElement : selectedCharacter?.element;
 
-  // Get character icon URL
-  const getCharacterIconUrl = (characterId: string | null): string => {
-    if (!characterId) return '/images/Resources/Resonator.png';
-    return `https://files.wuthery.com/p/GameData/UIResources/Common/Image/IconRoleHead/${characterId}.png`;
-  };
 
   // Handle level change
   const handleLevelChange = useCallback((newLevel: number) => {
@@ -121,8 +117,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
         <div className="flex items-center gap-3">
           {/* Character Icon */}
           <div className={`h-10 w-10 overflow-hidden rounded-full border-2 ${elementStyle?.border || 'border-border'}`}>
-            <img
-              src={getCharacterIconUrl(selectedCharacter.id)}
+            <AssetImage
+              paths={getCharacterFacePaths(selectedCharacter)}
               alt={displayName}
               className="h-full w-full object-cover"
             />
@@ -164,8 +160,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                   onClick={() => setShowElementModal(true)}
                   className="flex items-center gap-2"
                 >
-                  <img
-                    src={`/images/Elements/${currentElement}.png`}
+                  <AssetImage
+                    paths={getElementPaths(currentElement)}
                     alt={currentElement}
                     className="h-6 w-6"
                   />
@@ -211,8 +207,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                             : 'border-border hover:border-text-primary/40'
                         }`}
                       >
-                        <img
-                          src={`/images/Elements/${element}.png`}
+                        <AssetImage
+                          paths={getElementPaths(element)}
                           alt={element}
                           className="h-10 w-10"
                         />

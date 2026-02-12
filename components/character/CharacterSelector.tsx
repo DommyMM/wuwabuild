@@ -3,8 +3,9 @@
 import React, { useState, useCallback } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
-import { Modal } from '@/components/ui';
+import { Modal, AssetImage } from '@/components/ui';
 import { Character, Element } from '@/types/character';
+import { getCharacterIconPaths } from '@/lib/paths';
 
 interface CharacterSelectorProps {
   className?: string;
@@ -64,11 +65,6 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     setIsModalOpen(false);
   }, []);
 
-  // Get CDN path for character face image
-  const getCharacterFaceUrl = (character: Character | null): string => {
-    if (!character) return '/images/Resources/Resonator.png';
-    return `https://files.wuthery.com/p/GameData/UIResources/Common/Image/IconRolePile/${character.id}.png`;
-  };
 
   // Character grid component (shared between inline and modal mode)
   const CharacterGrid = () => (
@@ -97,8 +93,8 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
             >
               {/* Character Portrait */}
               <div className="relative h-16 w-16 overflow-hidden rounded-lg">
-                <img
-                  src={getCharacterFaceUrl(character)}
+                <AssetImage
+                  paths={getCharacterIconPaths(character)}
                   alt={character.name}
                   className="h-full w-full object-cover transition-transform group-hover:scale-110"
                 />
@@ -137,8 +133,8 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           {/* Character Portrait */}
           <div className={`relative h-16 w-16 overflow-hidden rounded-lg border-2 ${selectedCharacter ? ELEMENT_COLORS[selectedCharacter.element] : 'border-border'
             }`}>
-            <img
-              src={getCharacterFaceUrl(selectedCharacter)}
+            <AssetImage
+              paths={getCharacterIconPaths(selectedCharacter)}
               alt={selectedCharacter?.name || 'Select Character'}
               className="h-full w-full object-cover"
             />

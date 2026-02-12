@@ -8,6 +8,8 @@ import { MainStatSelector, SubstatsList } from './StatSelector';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/types/echo';
 import { hasPhantomVariant } from '@/lib/constants/echoBonuses';
 import { ChevronDown, X, Ghost } from 'lucide-react';
+import { AssetImage } from '@/components/ui';
+import { getEchoPaths } from '@/lib/paths';
 
 // ============================================================================
 // Types
@@ -91,11 +93,6 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
     return echo ? hasPhantomVariant(echo.name) : false;
   }, [echo]);
 
-  // Get CDN path for echo image
-  const getEchoImageUrl = useCallback((echoData: Echo | null): string => {
-    if (!echoData) return '/images/Resources/Echo.png';
-    return `https://files.wuthery.com/p/GameData/UIResources/Common/Image/IconMonsterHead/${echoData.id}.png`;
-  }, []);
 
   // Handle echo selection
   const handleEchoSelect = useCallback((selectedEcho: Echo) => {
@@ -208,8 +205,8 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
           >
             {/* Echo Image */}
             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-background-secondary">
-              <img
-                src={getEchoImageUrl(echo)}
+              <AssetImage
+                paths={getEchoPaths(echo, panelState.phantom)}
                 alt={echo?.name || 'Select Echo'}
                 className="h-full w-full object-cover"
               />

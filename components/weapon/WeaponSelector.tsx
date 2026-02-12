@@ -3,9 +3,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
-import { Modal } from '@/components/ui';
+import { Modal, AssetImage } from '@/components/ui';
 import { Weapon, WeaponType, WeaponRarity } from '@/types/weapon';
 import { Character } from '@/types/character';
+import { getWeaponPaths, getQualityPaths } from '@/lib/paths';
 
 interface WeaponSelectorProps {
   selectedCharacter: Character;
@@ -62,11 +63,6 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
     setIsModalOpen(false);
   }, [setWeapon]);
 
-  // Get weapon image URL
-  const getWeaponImageUrl = (weapon: Weapon | null): string => {
-    if (!weapon) return '/images/Resources/Weapon.png';
-    return `https://files.wuthery.com/p/GameData/UIResources/Common/Image/IconWeapon/${weapon.id}.png`;
-  };
 
   const openModal = useCallback(() => {
     setIsModalOpen(true);
@@ -91,8 +87,8 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
               selectedWeapon ? RARITY_BORDERS[selectedWeapon.rarity] : 'border-border'
             } ${selectedWeapon ? RARITY_COLORS[selectedWeapon.rarity] : 'bg-background'}`}
           >
-            <img
-              src={getWeaponImageUrl(selectedWeapon)}
+            <AssetImage
+              paths={getWeaponPaths(selectedWeapon)}
               alt={selectedWeapon?.name || 'Select Weapon'}
               className="h-full w-full object-contain"
             />
@@ -141,8 +137,8 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
             >
               {/* Weapon Image */}
               <div className="relative h-16 w-16">
-                <img
-                  src={getWeaponImageUrl(weapon)}
+                <AssetImage
+                  paths={getWeaponPaths(weapon)}
                   alt={weapon.name}
                   className="h-full w-full object-contain transition-transform group-hover:scale-110"
                 />
