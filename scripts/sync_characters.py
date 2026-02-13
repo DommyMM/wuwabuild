@@ -18,6 +18,7 @@ import json
 import argparse
 from pathlib import Path
 from typing import Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 CDN_BASE = "https://files.wuthery.com"
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
@@ -202,32 +203,47 @@ def load_local_characters(input_dir: Path, single_id: str = None) -> list[dict]:
     return characters
 
 
-def fetch_cdn_characters(single_id: str = None) -> list[dict]:
-    """Fetch character data from CDN."""
+def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
+    """Fetch a single character JSON from CDN. Returns (filename, data_or_None)."""
+    url = f"{CDN_DOWNLOAD_BASE}/{filename}"
+    try:
+        resp = session.get(url, timeout=30)
+        if resp.status_code == 200:
+            return (filename, resp.json())
+        else:
+            print(f"  Failed {filename}: HTTP {resp.status_code}")
+            return (filename, None)
+    except Exception as e:
+        print(f"  Error {filename}: {e}")
+        return (filename, None)
+
+
+def fetch_cdn_characters(single_id: str = None, workers: int = 10) -> list[dict]:
+    """Fetch character data from CDN, parallelized with threads."""
     try:
         import requests
     except ImportError:
         print("Install requests library: pip install requests")
         return []
 
-    characters = []
+    session = requests.Session()
 
     if single_id:
         url = f"{CDN_DOWNLOAD_BASE}/{single_id}.json"
         print(f"Fetching {url}")
         try:
-            resp = requests.get(url, timeout=30)
+            resp = session.get(url, timeout=30)
             if resp.status_code == 200:
-                characters.append(resp.json())
+                return [resp.json()]
             else:
                 print(f"Failed to fetch {single_id}: HTTP {resp.status_code}")
         except Exception as e:
             print(f"Error fetching {single_id}: {e}")
-        return characters
+        return []
 
     print("Listing characters from CDN...")
     try:
-        list_resp = requests.post(
+        list_resp = session.post(
             CDN_LIST_API,
             json={"path": "/GameData/Grouped/Character"},
             headers={"Content-Type": "application/json"},
@@ -241,24 +257,23 @@ def fetch_cdn_characters(single_id: str = None) -> list[dict]:
 
         files = list_data.get("data", {}).get("content", [])
         json_files = [f["name"] for f in files if f["name"].endswith(".json")]
-        print(f"Found {len(json_files)} character files")
+        print(f"Found {len(json_files)} character files, fetching with {workers} threads...")
 
-        for filename in json_files:
-            url = f"{CDN_DOWNLOAD_BASE}/{filename}"
-            try:
-                resp = requests.get(url, timeout=30)
-                if resp.status_code == 200:
-                    characters.append(resp.json())
+        characters = []
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(_fetch_one, session, f): f for f in json_files}
+            for future in as_completed(futures):
+                filename, data = future.result()
+                if data:
+                    characters.append(data)
                     print(f"  Fetched {filename}")
-                else:
-                    print(f"  Failed {filename}: HTTP {resp.status_code}")
-            except Exception as e:
-                print(f"  Error {filename}: {e}")
+
+        return characters
 
     except Exception as e:
         print(f"Error listing CDN: {e}")
 
-    return characters
+    return []
 
 
 # --- Main ---
@@ -273,6 +288,8 @@ def main():
                        help="Fetch from CDN (required if no --input)")
     parser.add_argument("--include-trees", action="store_true",
                        help="Include skillTrees in output (off by default, useful for lb backend)")
+    parser.add_argument("--workers", "-w", type=int, default=10,
+                       help="Parallel fetch threads (default: 10)")
     parser.add_argument("--output", "-o", type=Path, default=OUTPUT_DIR,
                        help=f"Output directory (default: {OUTPUT_DIR})")
     parser.add_argument("--dry-run", action="store_true",
@@ -291,7 +308,7 @@ def main():
     if args.input:
         raw_characters = load_local_characters(args.input, single_id=args.id)
     elif args.fetch:
-        raw_characters = fetch_cdn_characters(single_id=args.id)
+        raw_characters = fetch_cdn_characters(single_id=args.id, workers=args.workers)
     else:
         parser.error("Specify --input <dir> for local files or --fetch for CDN")
         return 1
