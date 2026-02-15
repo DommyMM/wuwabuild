@@ -125,9 +125,10 @@ export const validateCharacter = (char: Character): boolean => {
 };
 
 export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
-  const elementName = cdn.element.name.en;
-  const element = ELEMENT_ID_MAP[cdn.element.id] ??
-    (elementName.includes('Rover') ? Element.Rover : Element.Spectro);
+  const isRoverChar = cdn.name.en.startsWith('Rover');
+  const element = isRoverChar
+    ? Element.Rover
+    : (ELEMENT_ID_MAP[cdn.element.id] ?? Element.Spectro);
 
   // Determine role from tags (first matching tag)
   let role = Role.DPS;
@@ -143,7 +144,7 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
   const bonus2: "ATK" | "HP" | "DEF" = "ATK";
 
   return {
-    name: cdn.name.en,
+    name: isRoverChar ? 'Rover' : cdn.name.en,
     id: String(cdn.id),
     legacyId: cdn.legacyId,
     title: '',

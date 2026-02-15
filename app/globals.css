@@ -25,10 +25,18 @@
   --color-accent-hover: #bfad7d;
   --color-border: #333333;
 
-  /* Element Colors */
-  --color-spectro: #f7eb95;
-  --color-havoc: #f2b6de;
-  --color-aero: #b0ffb0;
+  /* Element Colors (official game data) */
+  --color-glacio: #41AEFB;
+  --color-fusion: #F0744E;
+  --color-electro: #B46BFF;
+  --color-aero: #55FFB5;
+  --color-spectro: #F8E56C;
+  --color-havoc: #E649A6;
+  --color-rover: #7892A1;
+
+  /* Rarity Colors (official game data) */
+  --color-rarity-4: #E400F0;
+  --color-rarity-5: #CFB17F;
 
   /* Fonts */
   --font-ropa: 'Ropa', sans-serif;
@@ -61,4 +69,14 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #444;
   border-radius: 100px;
+}
+
+/* Rover rainbow animation (cycles through all element colors) */
+@keyframes rover {
+  0%, 100% { border-color: #F0744E; } /* Fusion */
+  17% { border-color: #41AEFB; }      /* Glacio */
+  33% { border-color: #55FFB5; }      /* Aero */
+  50% { border-color: #B46BFF; }      /* Electro */
+  67% { border-color: #F8E56C; }      /* Spectro */
+  83% { border-color: #E649A6; }      /* Havoc */
 }

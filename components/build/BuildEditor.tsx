@@ -26,7 +26,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   onExport,
   onShare
 }) => {
-  const [showCharacterSelector, setShowCharacterSelector] = useState(false);
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -206,25 +205,16 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
       <div className="rounded-lg border border-border bg-background-secondary p-4">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold text-text-primary">Resonator</h2>
-          <button
-            onClick={() => setShowCharacterSelector(true)}
-            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-text-primary/80 transition-colors hover:border-text-primary/40"
-          >
-            {selectedCharacter ? 'Change' : 'Select Character'}
-          </button>
+          {/* Character slot — handles its own modal */}
+          <CharacterSelector />
         </div>
 
         {selectedCharacter ? (
           <div className="flex flex-col gap-4">
             {/* Top row: Character + Weapon + Sequences */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {/* Character Info */}
               <CharacterInfo defaultMinimized={false} />
-
-              {/* Weapon */}
               <WeaponInfo />
-
-              {/* Sequences */}
               <div className="rounded-lg border border-border bg-background p-4">
                 <SequenceSelector
                   characterName={displayName}
@@ -247,13 +237,10 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
             />
           </div>
         ) : (
-          <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-border py-12">
-            <button
-              onClick={() => setShowCharacterSelector(true)}
-              className="text-text-primary/60 hover:text-text-primary transition-colors"
-            >
-              Click to select a resonator
-            </button>
+          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border py-12">
+            <span className="text-text-primary/40 text-sm">
+              No resonator selected — pick one above to start building
+            </span>
           </div>
         )}
       </div>
@@ -264,45 +251,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
       {/* Row 3: Stats */}
       <StatsDisplay />
 
-      {/* Character Selector Modal */}
-      {showCharacterSelector && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
-          onClick={() => setShowCharacterSelector(false)}
-        >
-          <div
-            className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-lg border border-border bg-background-secondary p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-text-primary">Select Resonator</h2>
-              <button
-                onClick={() => setShowCharacterSelector(false)}
-                className="rounded p-1 text-text-primary/60 transition-colors hover:bg-background hover:text-text-primary"
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M5 5L15 15M15 5L5 15"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
-            </div>
-            <CharacterSelector
-              inline
-              onSelect={() => setShowCharacterSelector(false)}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };
