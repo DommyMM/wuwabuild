@@ -53,7 +53,7 @@ export default function Navigation() {
                 <div className="flex items-center gap-5 w-[calc(100%-36px)] ml-10 font-gowun max-md:ml-4 max-md:w-[calc(100%-32px)] max-md:justify-between">
                     <Link
                         href="/"
-                        className={`text-4xl font-bold no-underline transition-all duration-200 ${
+                        className={`md:text-4xl text-2xl font-bold no-underline transition-all duration-200 ${
                             isActive('/')
                                 ? 'text-accent drop-shadow-[0_0_8px_rgba(166,150,98,0.3)]'
                                 : 'text-text-primary hover:text-accent hover:drop-shadow-[0_0_8px_rgba(166,150,98,0.3)]'
@@ -87,6 +87,9 @@ export default function Navigation() {
                             </Link>
                         ))}
                     </div>
+
+                    {/* Toolbar Portal Target - BuildEditor buttons appear here on scroll */}
+                    <div id="nav-toolbar-portal" className="flex items-center" />
 
                     {/* Language Switcher - Desktop */}
                     <div className="hidden md:block mr-4">

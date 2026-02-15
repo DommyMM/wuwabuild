@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
 import { Save, Download, Upload, RotateCcw, Share2 } from 'lucide-react';
 import { useGameData, useBuild } from '@/contexts';
 import { CharacterSelector, CharacterInfo, SequenceSelector } from '@/components/character';
@@ -25,6 +27,10 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   onShare
 }) => {
   const [showCharacterSelector, setShowCharacterSelector] = useState(false);
+  const [isActionBarVisible, setIsActionBarVisible] = useState(true);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  const actionBarRef = useRef<HTMLDivElement>(null);
+
   const { getCharacter } = useGameData();
   const {
     state,
@@ -35,6 +41,22 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
     resetFortes,
     resetBuild
   } = useBuild();
+
+  const { scrollY } = useScroll();
+
+  // Find the navbar portal target on mount
+  useEffect(() => {
+    setPortalTarget(document.getElementById('nav-toolbar-portal'));
+  }, []);
+
+  // Track action bar visibility via scroll position + bounding rect
+  useMotionValueEvent(scrollY, 'change', () => {
+    const el = actionBarRef.current;
+    if (!el) return;
+    const bottom = el.getBoundingClientRect().bottom;
+    console.log('[NavToolbar] actionBar bottom:', bottom, '| visible:', bottom > 70);
+    setIsActionBarVisible(bottom > 70);
+  });
 
   const selectedCharacter = getCharacter(state.characterState.id);
   const currentElement = state.characterState.element || 'Havoc';
@@ -76,18 +98,16 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   return (
     <div className={`flex flex-col gap-6 ${className}`}>
       {/* Action Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-background-secondary p-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-text-primary">Build Editor</h1>
-          {state.isDirty && (
-            <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
-              Unsaved
-            </span>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Save Button */}
+      <div
+        ref={actionBarRef}
+        className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background-secondary p-4"
+      >
+        {state.isDirty && (
+          <span className="mr-auto rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
+            Unsaved
+          </span>
+        )}
+        <div className="flex flex-wrap items-center gap-2 ml-auto">
           <button
             onClick={onSave}
             className="flex items-center gap-2 rounded-lg border border-accent bg-accent/10 px-4 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
@@ -95,8 +115,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
             <Save size={16} />
             <span>Save</span>
           </button>
-
-          {/* Load Button */}
           <button
             onClick={onLoad}
             className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
@@ -104,8 +122,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
             <Upload size={16} />
             <span>Load</span>
           </button>
-
-          {/* Export Button */}
           <button
             onClick={onExport}
             className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
@@ -113,8 +129,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
             <Download size={16} />
             <span>Export</span>
           </button>
-
-          {/* Share Button */}
           <button
             onClick={onShare}
             className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
@@ -122,8 +136,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
             <Share2 size={16} />
             <span>Share</span>
           </button>
-
-          {/* Reset Button */}
           <button
             onClick={handleResetBuild}
             className="flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
@@ -133,6 +145,64 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Portal: Compact action buttons in navbar when action bar scrolls out of view */}
+      {portalTarget && createPortal(
+        <AnimatePresence>
+          {!isActionBarVisible && (
+            <motion.div
+              key="nav-toolbar"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center gap-1 md:gap-1.5"
+            >
+              {state.isDirty && (
+                <span className="hidden md:inline rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400">
+                  Unsaved
+                </span>
+              )}
+              <button
+                onClick={onSave}
+                className="flex items-center gap-1.5 rounded-md border border-accent bg-accent/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20"
+              >
+                <Save size={14} />
+                <span className="hidden md:inline">Save</span>
+              </button>
+              <button
+                onClick={onLoad}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-background p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-text-primary/40"
+              >
+                <Upload size={14} />
+                <span className="hidden md:inline">Load</span>
+              </button>
+              <button
+                onClick={onExport}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-background p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-text-primary/40"
+              >
+                <Download size={14} />
+                <span className="hidden md:inline">Export</span>
+              </button>
+              <button
+                onClick={onShare}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-background p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-text-primary/40"
+              >
+                <Share2 size={14} />
+                <span className="hidden md:inline">Share</span>
+              </button>
+              <button
+                onClick={handleResetBuild}
+                className="flex items-center gap-1.5 rounded-md border border-red-500/50 bg-red-500/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20"
+              >
+                <RotateCcw size={14} />
+                <span className="hidden md:inline">Reset</span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        portalTarget
+      )}
 
       {/* Row 1: Resonator (Character + Weapon + Sequences + Forte) */}
       <div className="rounded-lg border border-border bg-background-secondary p-4">
