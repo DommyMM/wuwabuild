@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useMemo, forwardRef } from 'react';
-import { useGameData, useBuild, useStats } from '@/contexts';
+import { useMemo, forwardRef } from 'react';
+import { useGameData } from '@/contexts/GameDataContext';
+import { useBuild } from '@/contexts/BuildContext';
+import { useStats } from '@/contexts/StatsContext';
 import { getCVRating, getCVRatingColor } from '@/lib/calculations/cv';
 import { STAT_ABBREV, STAT_CDN_NAMES, getStatIconName } from '@/lib/constants';
 import { StatName } from '@/types/stats';

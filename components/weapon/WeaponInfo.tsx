@@ -3,7 +3,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
-import { LevelSlider } from '@/components/ui';
+import { LevelSlider } from '@/components/ui/LevelSlider';
 import { WeaponSelector } from './WeaponSelector';
 import { WeaponRarity } from '@/types/weapon';
 

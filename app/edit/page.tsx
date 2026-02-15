@@ -1,8 +1,7 @@
 'use client';
 
-import React from 'react';
-import { AppProviders, DataLoadingGate } from '@/contexts';
-import { BuildEditor } from '@/components/build';
+import { AppProviders, DataLoadingGate } from '@/contexts/index';
+import { BuildEditor } from '@/components/build/BuildEditor';
 
 export default function EditPage() {
   return (

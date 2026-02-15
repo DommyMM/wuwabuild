@@ -3,7 +3,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
-import { Modal, AssetImage } from '@/components/ui';
+import { Modal } from '@/components/ui/Modal';
+import { AssetImage } from '@/components/ui/AssetImage';
 import { Character, Element } from '@/types/character';
 import type { ImagePaths } from '@/lib/paths';
 

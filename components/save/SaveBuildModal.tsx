@@ -2,9 +2,9 @@
 
 import React, { useState, useCallback } from 'react';
 import { Save } from 'lucide-react';
-import { Modal } from '@/components/ui';
+import { Modal } from '@/components/ui/Modal';
 import { saveBuild } from '@/lib/storage';
-import { useBuild } from '@/contexts';
+import { useBuild } from '@/contexts/BuildContext';
 import { SavedBuild } from '@/types/build';
 
 interface SaveBuildModalProps {

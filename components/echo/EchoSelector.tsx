@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { Modal, AssetImage } from '@/components/ui';
+import { Modal } from '@/components/ui/Modal';
+import { AssetImage } from '@/components/ui/AssetImage';
 import { Echo, ElementType, ELEMENT_SETS, COST_SECTIONS } from '@/types/echo';
 import { getEchoPaths } from '@/lib/paths';
 

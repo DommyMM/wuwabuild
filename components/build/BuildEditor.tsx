@@ -4,12 +4,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
 import { Save, Download, Upload, RotateCcw, Share2 } from 'lucide-react';
-import { useGameData, useBuild } from '@/contexts';
-import { CharacterSelector, CharacterInfo, SequenceSelector } from '@/components/character';
-import { WeaponInfo } from '@/components/weapon';
-import { ForteGroup } from '@/components/forte';
-import { EchoGrid } from '@/components/echo';
-import { StatsDisplay } from '@/components/stats';
+import { useGameData } from '@/contexts/GameDataContext';
+import { useBuild } from '@/contexts/BuildContext';
+import { CharacterSelector } from '@/components/character/CharacterSelector';
 
 interface BuildEditorProps {
   className?: string;
@@ -31,15 +28,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   const actionBarRef = useRef<HTMLDivElement>(null);
 
   const { getCharacter } = useGameData();
-  const {
-    state,
-    setSequence,
-    setNodeStates,
-    setForteLevels,
-    maxAllFortes,
-    resetFortes,
-    resetBuild
-  } = useBuild();
+  const { state, resetBuild } = useBuild();
 
   const { scrollY } = useScroll();
 
@@ -56,41 +45,12 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   });
 
   const selectedCharacter = getCharacter(state.characterState.id);
-  const currentElement = state.characterState.element || 'Havoc';
-  const isRover = selectedCharacter?.name.startsWith('Rover') ?? false;
-  const displayName = isRover ? `Rover${currentElement}` : selectedCharacter?.name ?? '';
 
-  // Handle node state changes
-  const handleNodeChange = useCallback((nodeStates: Record<string, Record<string, boolean>>) => {
-    setNodeStates(nodeStates);
-  }, [setNodeStates]);
-
-  // Handle forte level changes
-  const handleLevelChange = useCallback((levels: typeof state.forteLevels) => {
-    setForteLevels(levels);
-  }, [setForteLevels]);
-
-  // Handle max all fortes
-  const handleMaxAll = useCallback(() => {
-    maxAllFortes();
-  }, [maxAllFortes]);
-
-  // Handle reset fortes
-  const handleResetFortes = useCallback(() => {
-    resetFortes();
-  }, [resetFortes]);
-
-  // Handle reset entire build
   const handleResetBuild = useCallback(() => {
     if (window.confirm('Are you sure you want to reset the entire build? This cannot be undone.')) {
       resetBuild();
     }
   }, [resetBuild]);
-
-  // Handle sequence change
-  const handleSequenceChange = useCallback((newSequence: number) => {
-    setSequence(newSequence);
-  }, [setSequence]);
 
   return (
     <div className={`flex flex-col gap-6 ${className}`}>
@@ -201,55 +161,13 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
         portalTarget
       )}
 
-      {/* Row 1: Resonator (Character + Weapon + Sequences + Forte) */}
+      {/* Resonator */}
       <div className="rounded-lg border border-border bg-background-secondary p-4">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <h2 className="font-semibold text-text-primary">Resonator</h2>
-          {/* Character slot — handles its own modal */}
           <CharacterSelector />
         </div>
-
-        {selectedCharacter ? (
-          <div className="flex flex-col gap-4">
-            {/* Top row: Character + Weapon + Sequences */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <CharacterInfo defaultMinimized={false} />
-              <WeaponInfo />
-              <div className="rounded-lg border border-border bg-background p-4">
-                <SequenceSelector
-                  characterName={displayName}
-                  sequence={state.currentSequence}
-                  onSequenceChange={handleSequenceChange}
-                />
-              </div>
-            </div>
-
-            {/* Bottom row: Forte (full width) */}
-            <ForteGroup
-              character={selectedCharacter}
-              elementValue={currentElement}
-              nodeStates={state.nodeStates}
-              levels={state.forteLevels}
-              onNodeChange={handleNodeChange}
-              onLevelChange={handleLevelChange}
-              onMaxAll={handleMaxAll}
-              onReset={handleResetFortes}
-            />
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border py-12">
-            <span className="text-text-primary/40 text-sm">
-              No resonator selected — pick one above to start building
-            </span>
-          </div>
-        )}
       </div>
-
-      {/* Row 2: Echoes */}
-      <EchoGrid />
-
-      {/* Row 3: Stats */}
-      <StatsDisplay />
 
     </div>
   );

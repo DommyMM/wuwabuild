@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { getCVRating, getCVRatingColor, CV_RATINGS, CVRating } from '@/lib/calculations/cv';
-import { useStats } from '@/contexts';
+import { useStats } from '@/contexts/StatsContext';
 
 interface CVDisplayProps {
   className?: string;

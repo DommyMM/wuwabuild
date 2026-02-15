@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useStats } from '@/contexts';
+import { useStats } from '@/contexts/StatsContext';
 import { StatRow } from './StatRow';
 import { StatBreakdown } from './StatBreakdown';
 import { CVDisplay } from './CVDisplay';

@@ -2,10 +2,10 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, Download, Trash2, Search } from 'lucide-react';
-import { Modal } from '@/components/ui';
+import { Modal } from '@/components/ui/Modal';
 import { BuildList } from './BuildList';
 import { loadBuilds, deleteBuild, duplicateBuild, exportBuild, importBuild, exportAllBuilds } from '@/lib/storage';
-import { useBuild } from '@/contexts';
+import { useBuild } from '@/contexts/BuildContext';
 import { SavedBuild } from '@/types/build';
 import { useDebounce } from '@/hooks';
 

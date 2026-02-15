@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { AssetImage } from '@/components/ui';
+import { AssetImage } from '@/components/ui/AssetImage';
 import { getWavebandPaths } from '@/lib/paths';
 
 interface SequenceSelectorProps {

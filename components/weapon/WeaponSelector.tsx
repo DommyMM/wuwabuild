@@ -3,7 +3,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
-import { Modal, AssetImage } from '@/components/ui';
+import { Modal } from '@/components/ui/Modal';
+import { AssetImage } from '@/components/ui/AssetImage';
 import { Weapon, WeaponType, WeaponRarity } from '@/types/weapon';
 import { Character } from '@/types/character';
 import { getWeaponPaths, getQualityPaths } from '@/lib/paths';
