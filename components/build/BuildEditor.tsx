@@ -53,9 +53,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   useMotionValueEvent(scrollY, 'change', () => {
     const el = actionBarRef.current;
     if (!el) return;
-    const bottom = el.getBoundingClientRect().bottom;
-    console.log('[NavToolbar] actionBar bottom:', bottom, '| visible:', bottom > 70);
-    setIsActionBarVisible(bottom > 70);
+    setIsActionBarVisible(el.getBoundingClientRect().bottom > 70);
   });
 
   const selectedCharacter = getCharacter(state.characterState.id);
@@ -100,48 +98,48 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
       {/* Action Bar */}
       <div
         ref={actionBarRef}
-        className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background-secondary p-4"
+        className="flex flex-wrap items-center gap-2 self-end rounded-lg border border-border bg-background-secondary p-3"
       >
         {state.isDirty && (
-          <span className="mr-auto rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
+          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
             Unsaved
           </span>
         )}
-        <div className="flex flex-wrap items-center gap-2 ml-auto">
+        <div className="flex items-center gap-1.5 md:gap-2">
           <button
             onClick={onSave}
-            className="flex items-center gap-2 rounded-lg border border-accent bg-accent/10 px-4 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
+            className="flex items-center gap-2 rounded-lg border border-accent bg-accent/10 p-2 md:px-4 md:py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
           >
             <Save size={16} />
-            <span>Save</span>
+            <span className="hidden md:inline">Save</span>
           </button>
           <button
             onClick={onLoad}
-            className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
+            className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 md:px-4 md:py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
           >
             <Upload size={16} />
-            <span>Load</span>
+            <span className="hidden md:inline">Load</span>
           </button>
           <button
             onClick={onExport}
-            className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
+            className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 md:px-4 md:py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
           >
             <Download size={16} />
-            <span>Export</span>
+            <span className="hidden md:inline">Export</span>
           </button>
           <button
             onClick={onShare}
-            className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
+            className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 md:px-4 md:py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
           >
             <Share2 size={16} />
-            <span>Share</span>
+            <span className="hidden md:inline">Share</span>
           </button>
           <button
             onClick={handleResetBuild}
-            className="flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
+            className="flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 md:px-4 md:py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
           >
             <RotateCcw size={16} />
-            <span>Reset</span>
+            <span className="hidden md:inline">Reset</span>
           </button>
         </div>
       </div>
