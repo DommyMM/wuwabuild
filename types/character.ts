@@ -23,11 +23,6 @@ export enum Role {
 }
 
 export type BonusType = Element | "Crit Rate" | "Crit DMG" | "Healing" | "ATK" | "HP" | "DEF";
-
-// ============================================================================
-// CDN Character Types (from sync_characters.py)
-// ============================================================================
-
 export interface I18nString {
   en: string;
   ja?: string;
@@ -85,13 +80,11 @@ const ROLE_TAG_MAP: Record<number, Role> = {
   4: Role.Support,    // Healing
 };
 
-// ============================================================================
-// Legacy Character Interface (for backward compatibility)
-// ============================================================================
 
 export interface Character {
   name: string;
   id: string;
+  legacyId?: string; // Old sequential ID for backward compatibility
   title: string;
   weaponType: WeaponType;
   element: Element;
@@ -131,10 +124,6 @@ export const validateCharacter = (char: Character): boolean => {
   );
 };
 
-// ============================================================================
-// CDN to Legacy Adapter
-// ============================================================================
-
 export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
   const elementName = cdn.element.name.en;
   const element = ELEMENT_ID_MAP[cdn.element.id] ??
@@ -155,8 +144,9 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
 
   return {
     name: cdn.name.en,
-    id: cdn.legacyId,
-    title: '', // Not available in CDN data
+    id: String(cdn.id),
+    legacyId: cdn.legacyId,
+    title: '',
     weaponType: WEAPON_ID_MAP[cdn.weapon.id] ?? WeaponType.Sword,
     element,
     Role: role,
@@ -165,8 +155,7 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     HP: cdn.stats.Life,
     ATK: cdn.stats.Atk,
     DEF: cdn.stats.Def,
-    ER: 100, // Default ER
-    // New fields
+    ER: 100,
     cdnId: cdn.id,
     iconRound: cdn.icon.iconRound,
     banner: cdn.icon.banner,
