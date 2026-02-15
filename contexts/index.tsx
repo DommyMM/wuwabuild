@@ -4,17 +4,20 @@ import React, { ReactNode } from 'react';
 import { GameDataProvider, useGameData } from './GameDataContext';
 import { BuildProvider, useBuild } from './BuildContext';
 import { StatsProvider, useStats } from './StatsContext';
+import { LanguageProvider, useLanguage } from './LanguageContext';
 import { SavedState } from '@/types/build';
 
 // Re-export hooks
 export { useGameData } from './GameDataContext';
 export { useBuild } from './BuildContext';
 export { useStats } from './StatsContext';
+export { useLanguage } from './LanguageContext';
 
 // Re-export providers for individual use
 export { GameDataProvider } from './GameDataContext';
 export { BuildProvider } from './BuildContext';
 export { StatsProvider } from './StatsContext';
+export { LanguageProvider } from './LanguageContext';
 
 // ============================================================================
 // Combined Provider
@@ -30,19 +33,22 @@ interface AppProvidersProps {
  * Use this to wrap your app or pages that need access to game data, build state, and stats.
  *
  * Provider hierarchy:
- * 1. GameDataProvider - Loads and caches all game data (characters, weapons, echoes, etc.)
- * 2. BuildProvider - Manages the current build state (character, weapon, echoes, etc.)
- * 3. StatsProvider - Calculates derived stats from game data + build state
+ * 1. LanguageProvider - Manages i18n language selection
+ * 2. GameDataProvider - Loads and caches all game data (characters, weapons, echoes, etc.)
+ * 3. BuildProvider - Manages the current build state (character, weapon, echoes, etc.)
+ * 4. StatsProvider - Calculates derived stats from game data + build state
  */
 export function AppProviders({ children, initialBuildState }: AppProvidersProps) {
   return (
-    <GameDataProvider>
-      <BuildProvider initialState={initialBuildState}>
-        <StatsProvider>
-          {children}
-        </StatsProvider>
-      </BuildProvider>
-    </GameDataProvider>
+    <LanguageProvider>
+      <GameDataProvider>
+        <BuildProvider initialState={initialBuildState}>
+          <StatsProvider>
+            {children}
+          </StatsProvider>
+        </BuildProvider>
+      </GameDataProvider>
+    </LanguageProvider>
   );
 }
 

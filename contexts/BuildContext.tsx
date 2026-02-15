@@ -16,9 +16,6 @@ import {
   createDefaultSavedState
 } from '@/types/build';
 
-// ============================================================================
-// Types
-// ============================================================================
 
 interface BuildState {
   characterState: CharacterState;
@@ -100,10 +97,6 @@ interface BuildContextType {
   markClean: () => void;
 }
 
-// ============================================================================
-// Initial State
-// ============================================================================
-
 const initialState: BuildState = {
   characterState: { ...DEFAULT_CHARACTER_STATE },
   currentSequence: 0,
@@ -114,10 +107,6 @@ const initialState: BuildState = {
   watermark: { ...DEFAULT_WATERMARK },
   isDirty: false
 };
-
-// ============================================================================
-// Reducer
-// ============================================================================
 
 function buildReducer(state: BuildState, action: BuildAction): BuildState {
   switch (action.type) {
@@ -340,10 +329,6 @@ function buildReducer(state: BuildState, action: BuildAction): BuildState {
   }
 }
 
-// ============================================================================
-// Context
-// ============================================================================
-
 const BuildContext = createContext<BuildContextType | null>(null);
 
 export const useBuild = (): BuildContextType => {
@@ -353,10 +338,6 @@ export const useBuild = (): BuildContextType => {
   }
   return context;
 };
-
-// ============================================================================
-// Provider
-// ============================================================================
 
 interface BuildProviderProps {
   children: ReactNode;
