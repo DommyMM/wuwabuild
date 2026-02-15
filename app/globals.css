@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "flag-icons/css/flag-icons.min.css";
 
 /* Font Declarations */
 @font-face {
@@ -35,7 +36,8 @@
 }
 
 /* Base Styles */
-html, body {
+html,
+body {
   background: var(--color-background);
   max-width: 100%;
 }

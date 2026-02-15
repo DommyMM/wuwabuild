@@ -42,7 +42,7 @@ export default function LanguageSwitcher() {
         aria-label="Select language"
         aria-expanded={isOpen}
       >
-        <span className="text-lg leading-none">{currentLang.flag}</span>
+        <span className={`fi fi-${currentLang.countryCode} rounded-sm`} />
         <span className="text-sm font-medium text-text-primary hidden sm:inline">
           {language.toUpperCase()}
         </span>
@@ -75,7 +75,7 @@ export default function LanguageSwitcher() {
                 }
               `}
             >
-              <span className="text-xl leading-none">{lang.flag}</span>
+              <span className={`fi fi-${lang.countryCode} text-lg rounded-sm`} />
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{lang.nativeName}</span>
                 <span className="text-xs text-text-secondary">{lang.name}</span>
