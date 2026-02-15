@@ -2,23 +2,29 @@
 Sync Characters from Wuthery CDN to local JSON files.
 
 Fetches character data from CDN (or reads local raw files), transforms it
-using a schema (keeping all languages), and outputs:
-  - Individual per-character JSON files (by CDN ID)
-  - Combined Characters.json for grid/selector views
+using a schema (keeping all languages), and outputs individual per-character
+JSON files (by CDN ID).
 
 Usage:
     python sync_characters.py --fetch                    # Sync all from CDN
     python sync_characters.py --fetch --id 1102          # Sync single from CDN
     python sync_characters.py --fetch --id 1102 --dry-run --pretty
+    python sync_characters.py --fetch --combined         # Also generate Characters.json
     python sync_characters.py --fetch --include-trees    # Include skillTrees (for lb backend)
+    python sync_characters.py --fetch --include-skills   # Include chains/skills
     python sync_characters.py --input ../../Character    # Process local raw files
 """
 
 import json
 import argparse
+import re
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Regex to extract legacy ID from iconRound URL
+# e.g. "T_IconRoleHeadCircle256_26_UI.png" -> 26
+LEGACY_ID_PATTERN = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI\.png")
 
 CDN_BASE = "https://files.wuthery.com"
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
@@ -30,7 +36,7 @@ OUTPUT_DIR = Path(__file__).parent.parent / "public/Data/Characters"
 # Skip test/placeholder characters
 SKIP_IDS = {9990, 9991}
 
-# Full schema for individual character files.
+# Default schema for character files (lightweight, no skills/chains).
 #   True           = keep entire field as-is
 #   ["k1", "k2"]   = keep only these keys (auto-recurses into dicts-of-dicts and lists-of-dicts)
 #   "value"        = extract just the 'value' from each stat entry
@@ -44,21 +50,12 @@ SCHEMA = {
     "skins": ["id", "icon", "color"],
     "tags": ["id", "name", "icon"],
     "stats": "value",
-    "chains": ["id", "name", "description", "icon", "params"],
-    "skill": ["id", "params"],
 }
 
-# Lightweight schema for combined Characters.json (grid/selector)
-GRID_SCHEMA = {
-    "id": True,
-    "name": True,
-    "rarity": ["id", "color"],
-    "weapon": ["id", "name", "icon"],
-    "element": ["id", "name", "color", "icon"],
-    "icon": ["iconRound", "banner"],
-    "skins": ["id", "icon", "color"],
-    "tags": ["id", "name", "icon"],
-    "stats": "value",
+# Optional fields for --include-skills flag
+SKILLS_SCHEMA = {
+    "chains": ["id", "name", "description", "icon", "params"],
+    "skill": ["id", "params"],
 }
 
 # Sub-filters applied after main schema extraction to trim nested icon dicts.
@@ -137,6 +134,20 @@ def extract_stats(value: Any) -> Any:
     return value
 
 
+def extract_legacy_id(data: dict) -> str | None:
+    """Extract legacy ID from iconRound URL.
+
+    The iconRound URL contains the old sequential ID used in frontend/backends:
+    e.g. ".../T_IconRoleHeadCircle256_26_UI.png" -> "26" (Changli)
+         ".../T_IconRoleHeadCircle256_7_UI.png"  -> "7"  (Sanhua)
+    """
+    icon_data = data.get("icon", {})
+    icon_round = icon_data.get("iconRound", "") if isinstance(icon_data, dict) else ""
+
+    match = LEGACY_ID_PATTERN.search(icon_round)
+    return match.group(1) if match else None
+
+
 def extract_by_schema(data: dict, schema: dict) -> dict:
     """Extract fields from data according to schema."""
     output = {}
@@ -170,6 +181,12 @@ def transform_character(data: dict, schema: dict) -> dict | None:
 
     result = extract_by_schema(data, schema)
     apply_sub_filters(result, SUB_FILTERS)
+
+    # Add legacyId extracted from iconRound URL for backwards compatibility
+    legacy_id = extract_legacy_id(data)
+    if legacy_id:
+        result["legacyId"] = legacy_id
+
     return result
 
 
@@ -218,8 +235,13 @@ def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
         return (filename, None)
 
 
-def fetch_cdn_characters(single_id: str = None, workers: int = 10) -> list[dict]:
-    """Fetch character data from CDN, parallelized with threads."""
+def fetch_cdn_characters(single_id: str = None, workers: int | None = None) -> list[dict]:
+    """Fetch character data from CDN, parallelized with threads.
+
+    Args:
+        single_id: Optional single character ID to fetch
+        workers: Number of parallel threads. None = all files in parallel
+    """
     try:
         import requests
     except ImportError:
@@ -257,10 +279,13 @@ def fetch_cdn_characters(single_id: str = None, workers: int = 10) -> list[dict]
 
         files = list_data.get("data", {}).get("content", [])
         json_files = [f["name"] for f in files if f["name"].endswith(".json")]
-        print(f"Found {len(json_files)} character files, fetching with {workers} threads...")
+
+        # Default to all files in parallel if workers not specified
+        actual_workers = workers if workers else len(json_files)
+        print(f"Found {len(json_files)} character files, fetching with {actual_workers} threads...")
 
         characters = []
-        with ThreadPoolExecutor(max_workers=workers) as pool:
+        with ThreadPoolExecutor(max_workers=actual_workers) as pool:
             futures = {pool.submit(_fetch_one, session, f): f for f in json_files}
             for future in as_completed(futures):
                 filename, data = future.result()
@@ -288,8 +313,12 @@ def main():
                        help="Fetch from CDN (required if no --input)")
     parser.add_argument("--include-trees", action="store_true",
                        help="Include skillTrees in output (off by default, useful for lb backend)")
-    parser.add_argument("--workers", "-w", type=int, default=10,
-                       help="Parallel fetch threads (default: 10)")
+    parser.add_argument("--include-skills", action="store_true",
+                       help="Include chains and skill fields (off by default)")
+    parser.add_argument("--combined", action="store_true",
+                       help="Also generate combined Characters.json for grid/selector")
+    parser.add_argument("--workers", "-w", type=int, default=None,
+                       help="Parallel fetch threads (default: all files in parallel)")
     parser.add_argument("--output", "-o", type=Path, default=OUTPUT_DIR,
                        help=f"Output directory (default: {OUTPUT_DIR})")
     parser.add_argument("--dry-run", action="store_true",
@@ -299,8 +328,10 @@ def main():
 
     args = parser.parse_args()
 
-    # Optionally include skillTrees
+    # Build schema based on flags
     schema = {**SCHEMA}
+    if args.include_skills:
+        schema.update(SKILLS_SCHEMA)
     if args.include_trees:
         schema["skillTrees"] = True
 
@@ -315,19 +346,12 @@ def main():
 
     print(f"\nLoaded {len(raw_characters)} raw character files")
 
-    # Transform: full schema for individual files
+    # Transform characters using schema
     characters = []
     for data in raw_characters:
         char = transform_character(data, schema)
         if char:
             characters.append(char)
-
-    # Transform: grid schema for combined file
-    grid_characters = []
-    for data in raw_characters:
-        char = transform_character(data, GRID_SCHEMA)
-        if char:
-            grid_characters.append(char)
 
     print(f"Transformed {len(characters)} characters")
 
@@ -335,7 +359,7 @@ def main():
         print("No characters to save")
         return 1
 
-    grid_characters.sort(key=lambda c: c.get("name", {}).get("en", ""))
+    characters.sort(key=lambda c: c.get("name", {}).get("en", ""))
 
     json_kwargs = (
         {"indent": 2, "ensure_ascii": False}
@@ -353,13 +377,6 @@ def main():
             print(output_json[:5000])
             if len(output_json) > 5000:
                 print(f"\n... [{size_kb:.1f}KB total, truncated]")
-
-        # Show grid entry too
-        if grid_characters:
-            grid_json = json.dumps(grid_characters[0], **json_kwargs)
-            grid_size = len(grid_json.encode("utf-8")) / 1024
-            print(f"\n=== Grid entry ({grid_size:.1f}KB) ===")
-            print(grid_json[:3000])
     else:
         # Write individual files
         args.output.mkdir(parents=True, exist_ok=True)
@@ -373,12 +390,13 @@ def main():
             size_kb = output_path.stat().st_size / 1024
             print(f"  Saved {output_path.name} ({en_name}) [{size_kb:.1f}KB]")
 
-        # Write combined grid file
-        combined_path = args.output.parent / "Characters.json"
-        with open(combined_path, "w", encoding="utf-8") as f:
-            json.dump(grid_characters, f, **json_kwargs)
-        size_kb = combined_path.stat().st_size / 1024
-        print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(grid_characters)} characters)")
+        # Optionally write combined Characters.json
+        if args.combined:
+            combined_path = args.output.parent / "Characters.json"
+            with open(combined_path, "w", encoding="utf-8") as f:
+                json.dump(characters, f, **json_kwargs)
+            size_kb = combined_path.stat().st_size / 1024
+            print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(characters)} characters)")
 
         print(f"\nDone: {len(characters)} characters → {args.output}")
 
