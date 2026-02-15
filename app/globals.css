@@ -72,11 +72,11 @@ body {
 }
 
 /* Rover rainbow animation (cycles through all element colors) */
-@keyframes rover {
-  0%, 100% { border-color: #F0744E; } /* Fusion */
-  17% { border-color: #41AEFB; }      /* Glacio */
-  33% { border-color: #55FFB5; }      /* Aero */
-  50% { border-color: #B46BFF; }      /* Electro */
-  67% { border-color: #F8E56C; }      /* Spectro */
-  83% { border-color: #E649A6; }      /* Havoc */
+@keyframes rover-rainbow {
+  0%, 100% { border-color: #F0744E; }
+  17% { border-color: #41AEFB; }
+  33% { border-color: #55FFB5; }
+  50% { border-color: #B46BFF; }
+  67% { border-color: #F8E56C; }
+  83% { border-color: #E649A6; }
 }

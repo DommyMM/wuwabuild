@@ -23,15 +23,15 @@ const ELEMENTS = [
   Element.Havoc,
 ] as const;
 
-/** Element name -> Tailwind bg fill for card */
+/** Element name -> Tailwind bg fill for card + hover gradient */
 const ELEMENT_BG: Record<string, string> = {
-  [Element.Glacio]:  'bg-glacio/15',
-  [Element.Fusion]:  'bg-fusion/15',
-  [Element.Electro]: 'bg-electro/15',
-  [Element.Aero]:    'bg-aero/15',
-  [Element.Spectro]: 'bg-spectro/15',
-  [Element.Havoc]:   'bg-havoc/15',
-  [Element.Rover]:   'bg-rover/15',
+  [Element.Glacio]:  'bg-glacio/15 hover:bg-gradient-to-b hover:from-glacio/30 hover:to-glacio/5',
+  [Element.Fusion]:  'bg-fusion/15 hover:bg-gradient-to-b hover:from-fusion/30 hover:to-fusion/5',
+  [Element.Electro]: 'bg-electro/15 hover:bg-gradient-to-b hover:from-electro/30 hover:to-electro/5',
+  [Element.Aero]:    'bg-aero/15 hover:bg-gradient-to-b hover:from-aero/30 hover:to-aero/5',
+  [Element.Spectro]: 'bg-spectro/15 hover:bg-gradient-to-b hover:from-spectro/30 hover:to-spectro/5',
+  [Element.Havoc]:   'bg-havoc/15 hover:bg-gradient-to-b hover:from-havoc/30 hover:to-havoc/5',
+  [Element.Rover]:   'bg-rover/15 hover:bg-gradient-to-b hover:from-rover/30 hover:to-rover/5',
 };
 
 /** Element name -> Tailwind border class (for the compact slot) */
@@ -65,10 +65,22 @@ const ELEMENT_CHIP_ACTIVE: Record<string, string> = {
   [Element.Havoc]:   'bg-havoc/20 border-havoc/50 text-havoc',
 };
 
-/** Rarity id -> border color for the card */
+/** Rarity id -> default border color */
 const RARITY_CARD_BORDER: Record<number, string> = {
   4: 'border-rarity-4/50',
   5: 'border-rarity-5/60',
+};
+
+/** Rarity id -> hover: brighten border + soft glow */
+const RARITY_HOVER: Record<number, string> = {
+  4: 'hover:border-rarity-4 hover:shadow-[0_0_10px_var(--color-rarity-4)]',
+  5: 'hover:border-rarity-5 hover:shadow-[0_0_10px_var(--color-rarity-5)]',
+};
+
+/** Rarity id -> selected: solid bright border + glow */
+const RARITY_SELECTED: Record<number, string> = {
+  4: 'border-rarity-4 shadow-[0_0_10px_var(--color-rarity-4)]',
+  5: 'border-rarity-5 shadow-[0_0_10px_var(--color-rarity-5)]',
 };
 
 // ---------------------------------------------------------------------------
@@ -206,15 +218,15 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     }
 
     return (
-      <div className="flex flex-col gap-3">
-        {/* Filter chips */}
-        <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex h-full flex-col gap-3">
+        {/* Filter chips (pinned) */}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {/* Rarity */}
           {[5, 4].map((r) => (
             <button
               key={r}
               onClick={() => toggleRarity(r)}
-              className={`rounded-md border px-2 py-0.5 text-xs font-medium transition-colors
+              className={`rounded-md border px-3 py-1 text-sm font-medium transition-colors
                 ${rarityFilter.has(r)
                   ? r === 5
                     ? 'border-rarity-5/50 bg-rarity-5/20 text-rarity-5'
@@ -227,14 +239,14 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
             </button>
           ))}
 
-          <span className="mx-0.5 h-4 w-px bg-border" />
+          <span className="mx-1 h-5 w-px bg-border" />
 
           {/* Elements */}
           {ELEMENTS.map((el) => (
             <button
               key={el}
               onClick={() => toggleElement(el)}
-              className={`rounded-md border px-2 py-0.5 text-xs font-medium transition-colors
+              className={`rounded-md border px-3 py-1 text-sm font-medium transition-colors
                 ${elementFilter.has(el)
                   ? ELEMENT_CHIP_ACTIVE[el]
                   : 'border-border text-text-primary/50 hover:border-text-primary/30'
@@ -247,10 +259,10 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
           {hasFilters && (
             <>
-              <span className="mx-0.5 h-4 w-px bg-border" />
+              <span className="mx-1 h-5 w-px bg-border" />
               <button
                 onClick={clearFilters}
-                className="rounded-md px-2 py-0.5 text-xs text-text-primary/40 hover:text-text-primary"
+                className="rounded-md px-3 py-1 text-sm text-text-primary/40 hover:text-text-primary"
               >
                 Clear
               </button>
@@ -258,13 +270,14 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           )}
         </div>
 
-        {/* Grid */}
+        {/* Grid (scrollable) */}
         {filteredCharacters.length === 0 ? (
           <div className="flex items-center justify-center py-8">
             <span className="text-sm text-text-primary/40">No resonators found</span>
           </div>
         ) : (
-          <div className="grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="grid grid-cols-5 gap-2.5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
             {filteredCharacters.map((character) => {
               const isSelected = selectedCharacter?.id === character.id;
               const isRover = character.element === Element.Rover;
@@ -274,11 +287,16 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
                 <button
                   key={character.id}
                   onClick={() => handleSelect(character)}
-                  className={`group relative flex flex-col items-center overflow-hidden rounded-lg border-2 transition-transform duration-150
-                    ${isRover ? 'animate-[rover-rainbow_4s_linear_infinite]' : RARITY_CARD_BORDER[rarity] ?? 'border-border'}
+                  className={`group relative flex flex-col items-center overflow-hidden rounded-lg border-2 transition-all duration-200
                     ${ELEMENT_BG[character.element] ?? ''}
-                    ${isSelected ? 'ring-2 ring-accent ring-offset-1 ring-offset-background-secondary' : ''}
-                    hover:scale-105
+                    ${isRover
+                      ? isSelected
+                        ? 'border-rarity-5 shadow-[0_0_10px_var(--color-rarity-5)]'
+                        : 'border-rarity-5/60 hover:animate-[rover-rainbow_4s_linear_infinite]'
+                      : isSelected
+                        ? RARITY_SELECTED[rarity] ?? 'border-accent'
+                        : `${RARITY_CARD_BORDER[rarity] ?? 'border-border'} ${RARITY_HOVER[rarity] ?? ''}`
+                    }
                   `}
                 >
                   {/* Face (square head icon) */}
@@ -291,15 +309,16 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
                   </div>
 
                   {/* Divider */}
-                  <div className={`h-px w-full ${isRover ? 'bg-rover/30' : rarity === 5 ? 'bg-rarity-5/30' : 'bg-rarity-4/30'}`} />
+                  <div className={`h-0.5 w-full ${isRover ? 'bg-rover/40' : rarity === 5 ? 'bg-rarity-5/40' : 'bg-rarity-4/40'}`} />
 
                   {/* Name */}
-                  <span className="max-w-full truncate px-1 py-1 text-center text-xs leading-tight text-text-primary/80 group-hover:text-text-primary">
+                  <span className="max-w-full truncate px-1.5 py-1 text-center text-sm leading-tight text-text-primary/80 group-hover:text-text-primary">
                     {character.name}
                   </span>
                 </button>
               );
             })}
+          </div>
           </div>
         )}
       </div>
@@ -362,7 +381,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Select Resonator"
-        contentClassName="w-[720px] max-w-[95vw]"
+        contentClassName="w-full mx-8 lg:mx-32 max-h-[90vh]"
       >
         <CharacterGrid />
       </Modal>

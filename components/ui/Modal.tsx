@@ -65,12 +65,12 @@ export const Modal: React.FC<ModalProps> = ({
       aria-labelledby={title ? 'modal-title' : undefined}
     >
       <div
-        className={`relative max-h-[90vh] max-w-[90vw] overflow-auto rounded-lg bg-background-secondary border border-border shadow-xl ${contentClassName}`}
+        className={`relative flex h-[85vh] max-w-[90vw] flex-col overflow-hidden rounded-lg bg-background-secondary border border-border shadow-xl ${contentClassName}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with title and close button */}
         {(title || showCloseButton) && (
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background-secondary px-4 py-3">
+          <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
             {title && (
               <h2 id="modal-title" className="text-lg font-semibold text-text-primary">
                 {title}
@@ -88,8 +88,8 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
 
-        {/* Modal content */}
-        <div className="p-4">
+        {/* Modal content — scrolls internally */}
+        <div className="flex-1 overflow-y-auto p-4">
           {children}
         </div>
       </div>
