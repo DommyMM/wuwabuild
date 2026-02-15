@@ -115,7 +115,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   return (
     <div
       ref={ref}
-      className={`relative overflow-hidden rounded-lg border border-border bg-gradient-to-br from-background-secondary to-background ${className}`}
+      className={`relative overflow-hidden rounded-lg border border-border bg-linear-to-br from-background-secondary to-background ${className}`}
       style={{ minWidth: '400px', maxWidth: '600px' }}
     >
       {/* Background Gradient */}

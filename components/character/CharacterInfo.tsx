@@ -137,9 +137,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
 
       {/* Expandable Content */}
       <div
-        className={`overflow-hidden transition-all duration-300 ${
-          isMinimized ? 'max-h-0' : 'max-h-[1000px]'
-        }`}
+        className={`overflow-hidden transition-all duration-300 ${isMinimized ? 'max-h-0' : 'max-h-[1000px]'
+          }`}
       >
         <div className="space-y-4 border-t border-border p-4">
           {/* Rover Element Selector */}
@@ -202,11 +201,10 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                       <button
                         key={element}
                         onClick={() => handleElementChange(element)}
-                        className={`flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all hover:scale-105 ${
-                          currentElement === element
+                        className={`flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all hover:scale-105 ${currentElement === element
                             ? `${style.border} ${style.bg}`
                             : 'border-border hover:border-text-primary/40'
-                        }`}
+                          }`}
                       >
                         <AssetImage
                           paths={getElementPaths(element)}

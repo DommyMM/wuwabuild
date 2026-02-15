@@ -8,7 +8,7 @@ import { MainStatSelector, SubstatsList } from './StatSelector';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/types/echo';
 import { hasPhantomVariant } from '@/lib/constants/echoBonuses';
 import { ChevronDown, X, Ghost } from 'lucide-react';
-import { AssetImage } from '@/components/ui';
+import { AssetImage } from '@/components/ui/AssetImage';
 import { getEchoPaths } from '@/lib/paths';
 
 // ============================================================================
@@ -177,11 +177,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
               Echo {index + 1}
             </span>
             {echo && (
-              <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
-                echo.cost === 4 ? 'bg-yellow-500/20 text-yellow-500' :
+              <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${echo.cost === 4 ? 'bg-yellow-500/20 text-yellow-500' :
                 echo.cost === 3 ? 'bg-purple-500/20 text-purple-500' :
-                'bg-blue-400/20 text-blue-400'
-              }`}>
+                  'bg-blue-400/20 text-blue-400'
+                }`}>
                 {echo.cost} Cost
               </span>
             )}
@@ -247,11 +246,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                     <select
                       value={panelState.selectedElement || ''}
                       onChange={handleElementChange}
-                      className={`w-full appearance-none rounded border px-3 py-1.5 pr-8 text-sm focus:outline-none ${
-                        panelState.selectedElement
-                          ? ELEMENT_BADGE_COLORS[panelState.selectedElement]?.replace('bg-', 'bg-').replace('/80', '/20') || 'bg-background border-border'
-                          : 'bg-background border-border'
-                      } text-text-primary`}
+                      className={`w-full appearance-none rounded border px-3 py-1.5 pr-8 text-sm focus:outline-none ${panelState.selectedElement
+                        ? ELEMENT_BADGE_COLORS[panelState.selectedElement]?.replace('bg-', 'bg-').replace('/80', '/20') || 'bg-background border-border'
+                        : 'bg-background border-border'
+                        } text-text-primary`}
                     >
                       {echo.elements.map((element) => (
                         <option key={element} value={element}>
@@ -292,11 +290,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handlePhantomToggle}
-                    className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      panelState.phantom
-                        ? 'border-purple-500 bg-purple-500/20 text-purple-300'
-                        : 'border-border bg-background text-text-primary/70 hover:border-purple-500/50'
-                    }`}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${panelState.phantom
+                      ? 'border-purple-500 bg-purple-500/20 text-purple-300'
+                      : 'border-border bg-background text-text-primary/70 hover:border-purple-500/50'
+                      }`}
                   >
                     <Ghost size={14} />
                     Phantom
