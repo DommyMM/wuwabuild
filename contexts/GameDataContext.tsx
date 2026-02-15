@@ -1,14 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { Character, validateCharacter } from '@/types/character';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { Character, adaptCDNCharacter, validateCDNCharacter } from '@/types/character';
 import { Weapon, WeaponType } from '@/types/weapon';
 import { Echo, COST_SECTIONS } from '@/types/echo';
 import { CharacterCurve, LevelCurves } from '@/lib/calculations';
-
-// ============================================================================
-// Types
-// ============================================================================
 
 interface MainStatData {
   [key: string]: {
@@ -38,36 +34,26 @@ interface GameDataState {
 }
 
 interface GameDataContextType extends GameDataState {
-  // Character helpers
   getCharacter: (id: string | null) => Character | null;
   getCharacterByName: (name: string) => Character | null;
 
-  // Echo helpers
   getEcho: (id: string | null) => Echo | null;
   getEchoByName: (name: string) => Echo | null;
 
-  // Weapon helpers
   getWeapon: (id: string | null) => Weapon | null;
   getWeaponsByType: (type: WeaponType) => Weapon[];
 
-  // Main stat helpers
   getMainStatsByCost: (cost: number | null) => { [statName: string]: [number, number] };
   calculateMainStatValue: (min: number, max: number, level: number) => number;
 
-  // Substat helpers
   getSubstatValues: (stat: string) => number[] | null;
   getLowestSubstatValue: (stat: string) => number | null;
   getAvailableSubstats: () => string[];
 
-  // Curve helpers
   scaleCharacterStat: (baseStat: number, level: number, statType: 'HP' | 'ATK' | 'DEF') => number;
   scaleWeaponAtk: (baseAtk: number, level: number) => number;
   scaleWeaponStat: (baseStat: number, level: number) => number;
 }
-
-// ============================================================================
-// Context
-// ============================================================================
 
 const GameDataContext = createContext<GameDataContextType | null>(null);
 
@@ -78,10 +64,6 @@ export const useGameData = (): GameDataContextType => {
   }
   return context;
 };
-
-// ============================================================================
-// Provider
-// ============================================================================
 
 interface GameDataProviderProps {
   children: ReactNode;
@@ -160,9 +142,11 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           levelCurvesRes.json()
         ]);
 
-        // Process characters
-        const validCharacters = Array.isArray(charactersData)
-          ? charactersData.filter(validateCharacter)
+        // Process characters (CDN format -> legacy Character format)
+        const validCharacters: Character[] = Array.isArray(charactersData)
+          ? charactersData
+            .filter(validateCDNCharacter)
+            .map(adaptCDNCharacter)
           : [];
 
         // Process echoes
@@ -218,10 +202,6 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     loadGameData();
   }, []);
 
-  // ============================================================================
-  // Character Helpers
-  // ============================================================================
-
   const getCharacter = useCallback((id: string | null): Character | null => {
     if (!id) return null;
     return state.characters.find(c => c.id === id) ?? null;
@@ -230,10 +210,6 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
   const getCharacterByName = useCallback((name: string): Character | null => {
     return state.characters.find(c => c.name === name) ?? null;
   }, [state.characters]);
-
-  // ============================================================================
-  // Echo Helpers
-  // ============================================================================
 
   const getEcho = useCallback((id: string | null): Echo | null => {
     if (!id) return null;
@@ -244,10 +220,6 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     return state.echoes.find(e => e.name === name) ?? null;
   }, [state.echoes]);
 
-  // ============================================================================
-  // Weapon Helpers
-  // ============================================================================
-
   const getWeapon = useCallback((id: string | null): Weapon | null => {
     if (!id) return null;
     return state.weaponList.find(w => w.id === id) ?? null;
@@ -257,10 +229,6 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     return state.weapons.get(type) ?? [];
   }, [state.weapons]);
 
-  // ============================================================================
-  // Main Stat Helpers
-  // ============================================================================
-
   const getMainStatsByCost = useCallback((cost: number | null): { [statName: string]: [number, number] } => {
     if (!state.mainStats || !cost) return {};
     return state.mainStats[`${cost}cost`]?.mainStats || {};
@@ -269,10 +237,6 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
   const calculateMainStatValue = useCallback((min: number, max: number, level: number): number => {
     return min + ((max - min) * level / 25);
   }, []);
-
-  // ============================================================================
-  // Substat Helpers
-  // ============================================================================
 
   const getSubstatValues = useCallback((stat: string): number[] | null => {
     return state.substats?.[stat] ?? null;
@@ -285,10 +249,6 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
   const getAvailableSubstats = useCallback((): string[] => {
     return state.substats ? Object.keys(state.substats) : [];
   }, [state.substats]);
-
-  // ============================================================================
-  // Curve Helpers
-  // ============================================================================
 
   const getLevelKey = useCallback((level: number): string => {
     if (level <= 20) {
@@ -334,10 +294,6 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     const key = getLevelKey(level);
     return parseFloat((baseStat * state.levelCurves.STAT_CURVE[key]).toFixed(1));
   }, [state.levelCurves, getLevelKey]);
-
-  // ============================================================================
-  // Context Value
-  // ============================================================================
 
   const value = useMemo<GameDataContextType>(() => ({
     ...state,

@@ -378,27 +378,29 @@ def main():
             if len(output_json) > 5000:
                 print(f"\n... [{size_kb:.1f}KB total, truncated]")
     else:
-        # Write individual files
-        args.output.mkdir(parents=True, exist_ok=True)
-
-        for char in characters:
-            char_id = char["id"]
-            en_name = char.get("name", {}).get("en", str(char_id))
-            output_path = args.output / f"{char_id}.json"
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(char, f, **json_kwargs)
-            size_kb = output_path.stat().st_size / 1024
-            print(f"  Saved {output_path.name} ({en_name}) [{size_kb:.1f}KB]")
-
-        # Optionally write combined Characters.json
         if args.combined:
+            # Write only combined Characters.json
             combined_path = args.output.parent / "Characters.json"
+            combined_path.parent.mkdir(parents=True, exist_ok=True)
             with open(combined_path, "w", encoding="utf-8") as f:
                 json.dump(characters, f, **json_kwargs)
             size_kb = combined_path.stat().st_size / 1024
             print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(characters)} characters)")
+            print(f"\nDone: {len(characters)} characters → {combined_path}")
+        else:
+            # Write individual files
+            args.output.mkdir(parents=True, exist_ok=True)
 
-        print(f"\nDone: {len(characters)} characters → {args.output}")
+            for char in characters:
+                char_id = char["id"]
+                en_name = char.get("name", {}).get("en", str(char_id))
+                output_path = args.output / f"{char_id}.json"
+                with open(output_path, "w", encoding="utf-8") as f:
+                    json.dump(char, f, **json_kwargs)
+                size_kb = output_path.stat().st_size / 1024
+                print(f"  Saved {output_path.name} ({en_name}) [{size_kb:.1f}KB]")
+
+            print(f"\nDone: {len(characters)} characters → {args.output}")
 
     return 0
 
