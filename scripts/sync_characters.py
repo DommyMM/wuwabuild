@@ -6,10 +6,10 @@ using a schema (keeping all languages), and outputs individual per-character
 JSON files (by CDN ID).
 
 Usage:
-    python sync_characters.py --fetch                    # Sync all from CDN
+    python sync_characters.py --fetch                    # Sync all → combined Characters.json
     python sync_characters.py --fetch --id 1102          # Sync single from CDN
     python sync_characters.py --fetch --id 1102 --dry-run --pretty
-    python sync_characters.py --fetch --combined         # Also generate Characters.json
+    python sync_characters.py --fetch --individual       # Write per-character files instead
     python sync_characters.py --fetch --include-trees    # Include skillTrees (for lb backend)
     python sync_characters.py --fetch --include-skills   # Include chains/skills
     python sync_characters.py --input ../../Character    # Process local raw files
@@ -315,8 +315,8 @@ def main():
                        help="Include skillTrees in output (off by default, useful for lb backend)")
     parser.add_argument("--include-skills", action="store_true",
                        help="Include chains and skill fields (off by default)")
-    parser.add_argument("--combined", action="store_true",
-                       help="Also generate combined Characters.json for grid/selector")
+    parser.add_argument("--individual", action="store_true",
+                       help="Write per-character files instead of combined Characters.json")
     parser.add_argument("--workers", "-w", type=int, default=None,
                        help="Parallel fetch threads (default: all files in parallel)")
     parser.add_argument("--output", "-o", type=Path, default=OUTPUT_DIR,
@@ -378,17 +378,8 @@ def main():
             if len(output_json) > 5000:
                 print(f"\n... [{size_kb:.1f}KB total, truncated]")
     else:
-        if args.combined:
-            # Write only combined Characters.json
-            combined_path = args.output.parent / "Characters.json"
-            combined_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(combined_path, "w", encoding="utf-8") as f:
-                json.dump(characters, f, **json_kwargs)
-            size_kb = combined_path.stat().st_size / 1024
-            print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(characters)} characters)")
-            print(f"\nDone: {len(characters)} characters → {combined_path}")
-        else:
-            # Write individual files
+        if args.individual:
+            # Write per-character files
             args.output.mkdir(parents=True, exist_ok=True)
 
             for char in characters:
@@ -401,6 +392,15 @@ def main():
                 print(f"  Saved {output_path.name} ({en_name}) [{size_kb:.1f}KB]")
 
             print(f"\nDone: {len(characters)} characters → {args.output}")
+        else:
+            # Default: combined Characters.json
+            combined_path = args.output.parent / "Characters.json"
+            combined_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(combined_path, "w", encoding="utf-8") as f:
+                json.dump(characters, f, **json_kwargs)
+            size_kb = combined_path.stat().st_size / 1024
+            print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(characters)} characters)")
+            print(f"\nDone: {len(characters)} characters → {combined_path}")
 
     return 0
 

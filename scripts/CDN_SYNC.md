@@ -6,20 +6,21 @@ This system syncs game data from Wuthery's CDN to keep character/weapon/echo dat
 
 - **CDN Base**: `https://files.wuthery.com`
 - **List API**: `POST /api/fs/list` (AList/OpenList server)
-- **Download**: `GET /d/GameData/Grouped/Character/{id}.json`
+- **Download**: `GET /d/GameData/Grouped/{Character,Weapon}/{id}.json`
 
 ## Architecture
 
 ```
 wuwabuilds/
 ├── scripts/
-│   ├── sync_characters.py    # Sync script
+│   ├── sync_characters.py    # Character sync script
+│   ├── sync_weapons.py       # Weapon sync script
 │   └── CDN_SYNC.md           # This file
 ├── public/Data/
-│   ├── Characters/           # Individual character JSONs (synced from CDN)
-│   │   ├── Changli.json
-│   │   ├── Jiyan.json
-│   │   └── ...
+│   ├── Characters.json       # Combined character data (default output)
+│   ├── Characters/           # Individual character JSONs (--individual)
+│   ├── Weapons.json          # Combined weapon data (default output)
+│   ├── Weapons/              # Individual weapon JSONs (--individual)
 │   └── LevelCurve.json       # Static scaling data (manual)
 ```
 
@@ -63,25 +64,24 @@ const faceUrl = character.icon.iconRound; // Direct URL
 
 ## Usage
 
-### Sync all characters
+### Characters
+
 ```bash
-cd wuwabuilds/scripts
-python sync_characters.py --fetch
+python sync_characters.py --fetch                     # Sync all → Characters.json (default)
+python sync_characters.py --fetch --individual        # Write per-character files instead
+python sync_characters.py --fetch --id 1205           # Sync single character
+python sync_characters.py --fetch --dry-run --pretty  # Preview
+python sync_characters.py --input ../../Character     # From local files
 ```
 
-### Sync single character
-```bash
-python sync_characters.py --id 1205
-```
+### Weapons
 
-### Preview without saving
 ```bash
-python sync_characters.py --id 1205 --dry-run --pretty
-```
-
-### Use local Character/ folder (if you have raw CDN data cached)
-```bash
-python sync_characters.py --input ../../Character
+python sync_weapons.py --fetch                        # Sync all → Weapons.json (default)
+python sync_weapons.py --fetch --individual           # Write per-weapon files instead
+python sync_weapons.py --fetch --id 21010015          # Sync single weapon
+python sync_weapons.py --fetch --dry-run --pretty     # Preview
+python sync_weapons.py --input ../../Weapon           # From local files
 ```
 
 ## Stat Scaling
@@ -118,8 +118,26 @@ The following paths.ts logic can be simplified:
 | `getCharacterIconPaths()` | `character.icon.banner` |
 | Manual ID construction | Direct URLs from CDN |
 
-## Future: Weapons & Echoes
+## What Gets Synced — Weapons
 
-Similar sync scripts can be created for:
-- `/GameData/Grouped/Weapon/{id}.json`
+Each weapon JSON includes:
+
+| Field | Description |
+|-------|-------------|
+| `id` | Weapon ID (e.g., 21010015) |
+| `name` | All languages |
+| `type` | Weapon type (Broadblade/Sword/Pistol/Gauntlet/Rectifier) with icon |
+| `rarity` | Star count (1-5) and color hex |
+| `icon` | Icon URLs (full, medium, small) |
+| `description` | Flavor text (all languages) |
+| `effect` | Passive effect description with `{0}` placeholders |
+| `effectName` | Passive effect name |
+| `params` | Refinement values per rank (5 levels per param) |
+| `stats` | Lv1 base ATK + substat (attribute, value, isRatio) |
+
+Skipped: `statsLevel` (use LevelCurve scaling), `ascensions` (material costs), test/placeholder weapons.
+
+## Future: Echoes
+
+Similar sync script can be created for:
 - `/GameData/Grouped/Phantom/{id}.json`
