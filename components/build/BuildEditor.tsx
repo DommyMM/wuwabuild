@@ -3,17 +3,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { Save, Download, Upload, RotateCcw, Share2 } from 'lucide-react';
+import { Save, Download, Upload, RotateCcw } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
+import { AssetImage } from '@/components/ui/AssetImage';
+import type { ImagePaths } from '@/lib/paths';
 
 interface BuildEditorProps {
   className?: string;
   onSave?: () => void;
   onLoad?: () => void;
   onExport?: () => void;
-  onShare?: () => void;
 }
 
 export const BuildEditor: React.FC<BuildEditorProps> = ({
@@ -21,7 +22,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   onSave,
   onLoad,
   onExport,
-  onShare
 }) => {
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
@@ -45,6 +45,10 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   });
 
   const selectedCharacter = getCharacter(state.characterState.id);
+
+  const bannerPaths: ImagePaths | null = selectedCharacter?.banner
+    ? { cdn: selectedCharacter.banner, local: '/images/Resources/Resonator.png' }
+    : null;
 
   const handleResetBuild = useCallback(() => {
     if (window.confirm('Are you sure you want to reset the entire build? This cannot be undone.')) {
@@ -85,13 +89,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
           >
             <Download size={16} />
             <span className="hidden md:inline">Export</span>
-          </button>
-          <button
-            onClick={onShare}
-            className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 md:px-4 md:py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
-          >
-            <Share2 size={16} />
-            <span className="hidden md:inline">Share</span>
           </button>
           <button
             onClick={handleResetBuild}
@@ -142,13 +139,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                 <span className="hidden md:inline">Export</span>
               </button>
               <button
-                onClick={onShare}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-background p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-text-primary/40"
-              >
-                <Share2 size={14} />
-                <span className="hidden md:inline">Share</span>
-              </button>
-              <button
                 onClick={handleResetBuild}
                 className="flex items-center gap-1.5 rounded-md border border-red-500/50 bg-red-500/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20"
               >
@@ -167,6 +157,22 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
           <h2 className="font-semibold text-text-primary">Resonator</h2>
           <CharacterSelector />
         </div>
+
+        {selectedCharacter && bannerPaths && (
+          <div className="mt-4 flex gap-6">
+            {/* Character RolePile portrait */}
+            <div className="shrink-0">
+              <AssetImage
+                paths={bannerPaths}
+                alt={selectedCharacter.name}
+                className="h-72 w-auto rounded-lg object-contain"
+              />
+            </div>
+
+            {/* Character info — future components (level, sequence, forte) go here */}
+            <div className="flex-1" />
+          </div>
+        )}
       </div>
 
     </div>

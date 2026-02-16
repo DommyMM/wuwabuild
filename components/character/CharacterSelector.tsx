@@ -97,6 +97,14 @@ const getHeadPaths = (character: Character | null): ImagePaths => {
   return { cdn: face1Url, local: FALLBACK_FACE };
 };
 
+/** Use iconRound (circular face) directly */
+const getIconRoundPaths = (character: Character | null): ImagePaths => {
+  if (!character?.iconRound) {
+    return { cdn: FALLBACK_FACE, local: FALLBACK_FACE };
+  }
+  return { cdn: character.iconRound, local: FALLBACK_FACE };
+};
+
 /** Keep one Rover per gender (legacyId 4=male, 5=female) */
 const deduplicateRovers = (chars: Character[]): Character[] => {
   const seen = new Set<string>();
@@ -350,13 +358,9 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         onClick={() => setIsModalOpen(true)}
         className={`group flex items-center gap-3 rounded-lg border border-border bg-background p-2 transition-colors hover:border-text-primary/30 ${className}`}
       >
-        <div
-          className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-md border-2 transition-all
-            ${!selectedCharacter ? 'border-border' : isRover ? 'animate-[rover-rainbow_4s_linear_infinite]' : ELEMENT_BORDER[selectedCharacter.element] ?? 'border-border'}
-          `}
-        >
+        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
           <AssetImage
-            paths={getHeadPaths(selectedCharacter)}
+            paths={getIconRoundPaths(selectedCharacter)}
             alt={selectedCharacter?.name ?? 'Select Resonator'}
             className="h-full w-full object-cover"
           />
