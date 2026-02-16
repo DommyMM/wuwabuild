@@ -1,15 +1,33 @@
-import { SavedBuild, SavedBuilds, SavedState, createDefaultSavedState } from '@/types/build';
+import { SavedBuild, SavedBuilds, SavedState, ForteState, ForteEntry, DEFAULT_FORTE, createDefaultSavedState } from '@/types/build';
 
 // Storage keys
 const STORAGE_KEY = 'wuwabuilds_saves';
 const CURRENT_VERSION = '2.0.0';
+
+/** Convert old nodeStates+forteLevels into a ForteState array. */
+function migrateForte(raw: Record<string, unknown>): ForteState {
+  if (Array.isArray(raw.forte) && raw.forte.length === 5) return raw.forte as ForteState;
+
+  const ns = (raw.nodeStates ?? {}) as Record<string, Record<string, boolean>>;
+  const fl = (raw.forteLevels ?? {}) as Record<string, number>;
+  const keys = ['normal-attack', 'skill', 'circuit', 'liberation', 'intro'];
+  const trees = ['tree1', 'tree2', 'tree3', 'tree4', 'tree5'];
+
+  return keys.map((key, i) => [
+    fl[key] ?? 1,
+    ns[trees[i]]?.top ?? false,
+    ns[trees[i]]?.middle ?? false,
+  ] as ForteEntry) as ForteState;
+}
 
 /** Migrate a single SavedState from the old nested shape to the new flat shape. */
 function migrateSavedState(raw: Record<string, unknown>): SavedState {
   const defaults = createDefaultSavedState();
 
   // Already new flat shape
-  if ('characterId' in raw) return { ...defaults, ...raw } as SavedState;
+  if ('characterId' in raw) {
+    return { ...defaults, ...raw, forte: migrateForte(raw) } as SavedState;
+  }
 
   // Legacy nested shape — flatten
   const cs = (raw.characterState as Record<string, unknown>) ?? {};
@@ -24,8 +42,7 @@ function migrateSavedState(raw: Record<string, unknown>): SavedState {
     weaponId: (ws.id as string) ?? null,
     weaponLevel: (ws.level as number) ?? 1,
     weaponRank: (ws.rank as number) ?? 1,
-    nodeStates: (raw.nodeStates as Record<string, Record<string, boolean>>) ?? {},
-    forteLevels: { ...defaults.forteLevels, ...(raw.forteLevels as object ?? {}) },
+    forte: migrateForte(raw),
     echoPanels: (raw.echoPanels as SavedState['echoPanels']) ?? defaults.echoPanels,
     watermark: { ...defaults.watermark, ...(raw.watermark as object ?? {}) },
     verified: raw.verified as boolean | undefined,

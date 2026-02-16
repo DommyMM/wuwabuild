@@ -115,24 +115,33 @@ export const calculateWeaponStats = (
 
 /**
  * Calculate forte bonus from tree nodes using CDN values.
+ * forte: [[level, top, middle], ...] indexed 0–4 for tree1–tree5.
  */
 export const calculateForteBonus = (
   character: Character,
-  nodeStates: Record<string, Record<string, boolean>>
+  forte: import('@/types/build').ForteState
 ): { bonus1Total: number; bonus2Total: number; bonus1Type: string } => {
   const fn = character.forteNodes;
   let bonus1Total = 0;
   let bonus2Total = 0;
 
-  // tree1/tree5 → Bonus1, tree2/tree4 → Bonus2
-  for (const tree of ['tree1', 'tree2', 'tree4', 'tree5'] as const) {
-    const nodes = nodeStates[tree] || {};
-    const isBonus1 = tree === 'tree1' || tree === 'tree5';
-    for (const pos of ['top', 'middle'] as const) {
-      if (!nodes[pos]) continue;
-      const val = fn?.[`${tree}.${pos}`]?.value ?? 0;
-      if (isBonus1) bonus1Total += val;
-      else bonus2Total += val;
+  // tree indices: 0=tree1, 1=tree2, 3=tree4, 4=tree5  (tree3 has no stat nodes)
+  const treeMap: [number, string, boolean][] = [
+    [0, 'tree1', true],   // Bonus1
+    [1, 'tree2', false],  // Bonus2
+    [3, 'tree4', false],  // Bonus2
+    [4, 'tree5', true],   // Bonus1
+  ];
+
+  for (const [col, treeName, isBonus1] of treeMap) {
+    const [, top, middle] = forte[col];
+    if (top) {
+      const val = fn?.[`${treeName}.top`]?.value ?? 0;
+      if (isBonus1) bonus1Total += val; else bonus2Total += val;
+    }
+    if (middle) {
+      const val = fn?.[`${treeName}.middle`]?.value ?? 0;
+      if (isBonus1) bonus1Total += val; else bonus2Total += val;
     }
   }
 

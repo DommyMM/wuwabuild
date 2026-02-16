@@ -345,7 +345,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     <>
       <button
         onClick={() => setIsModalOpen(true)}
-        className={`group flex items-center gap-2 rounded-lg border border-border bg-background p-2 transition-colors hover:border-text-primary/30 ${className}`}
+        className={`group flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background p-2 transition-colors hover:border-text-primary/30 ${className}`}
       >
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
           <img

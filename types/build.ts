@@ -10,6 +10,16 @@ export interface WatermarkState {
   uid: string;
 }
 
+/**
+ * Per-column forte data: [level, topNode, middleNode]
+ * Column order: normal-attack, skill, circuit, liberation, intro (tree1–5)
+ */
+export type ForteEntry = [number, boolean, boolean];
+
+/** 5-column forte state matching tree1–5 */
+export type ForteState = [ForteEntry, ForteEntry, ForteEntry, ForteEntry, ForteEntry];
+
+/** @deprecated Use ForteState — kept for migration only */
 export interface ForteLevels {
   'normal-attack': number;
   skill: number;
@@ -27,8 +37,7 @@ export interface SavedState {
   weaponId: string | null;
   weaponLevel: number;
   weaponRank: number;
-  nodeStates: Record<string, Record<string, boolean>>;
-  forteLevels: ForteLevels;
+  forte: ForteState;
   echoPanels: EchoPanelState[];
   watermark: WatermarkState;
   verified?: boolean;
@@ -72,6 +81,14 @@ export const createDefaultEchoPanelState = (): EchoPanelState => ({
   phantom: false
 });
 
+export const DEFAULT_FORTE: ForteState = [
+  [1, false, false],
+  [1, false, false],
+  [1, false, false],
+  [1, false, false],
+  [1, false, false],
+];
+
 export const createDefaultSavedState = (): SavedState => ({
   characterId: null,
   characterLevel: 1,
@@ -80,8 +97,7 @@ export const createDefaultSavedState = (): SavedState => ({
   weaponId: null,
   weaponLevel: 1,
   weaponRank: 1,
-  nodeStates: {},
-  forteLevels: { ...DEFAULT_FORTE_LEVELS },
+  forte: DEFAULT_FORTE.map(e => [...e]) as ForteState,
   echoPanels: Array(5).fill(null).map(() => createDefaultEchoPanelState()),
   watermark: { ...DEFAULT_WATERMARK }
 });

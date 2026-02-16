@@ -35,7 +35,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
     state, resetBuild,
     setCharacterLevel, setSequence,
     setWeapon, setWeaponLevel, setWeaponRank,
-    setNodeStates, setForteLevels, maxAllFortes,
+    setForteNode, setForteLevel, maxAllFortes,
   } = useBuild();
   const { getWeapon } = useGameData();
   const { t } = useLanguage();
@@ -71,7 +71,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   }, [resetBuild]);
 
   return (
-    <div className={`flex flex-col gap-6 ${className}`}>
+    <div className={`flex flex-col ${className}`}>
       {/* Action Bar */}
       <div
         ref={actionBarRef}
@@ -133,18 +133,18 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
 
       {/* Resonator */}
       <div className="flex flex-col">
-        <div className="flex justify-end">
+        <div className="flex justify-start">
           <CharacterSelector className="rounded-b-none border-b-0" />
         </div>
 
-        <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-4">
+        <div className="select-none rounded-lg rounded-tl-none border border-border bg-background-secondary p-4">
           {selected ? (
             <div className="grid grid-cols-[auto_auto_1fr] grid-rows-[28rem_auto] gap-x-6 gap-y-3">
               {/* Row 1, Col 1: Portrait */}
               <img
                 src={selected.banner}
                 alt={t(selected.nameI18n)}
-                className="col-start-1 row-start-1 h-full w-auto rounded-lg object-contain"
+                className="pointer-events-none col-start-1 row-start-1 h-full w-auto rounded-lg object-contain"
               />
 
               {/* Row 1, Col 2: Sequences + Weapon + Rank slider */}
@@ -190,10 +190,10 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                 <ForteGroup
                   character={selected.character}
                   elementValue={state.roverElement || selected.character.element}
-                  nodeStates={state.nodeStates}
-                  levels={state.forteLevels}
-                  onNodeChange={setNodeStates}
-                  onLevelChange={setForteLevels}
+                  forte={state.forte}
+                  onNodeChange={setForteNode}
+                  onLevelChange={setForteLevel}
+                  onMaxAll={maxAllFortes}
                 />
               </div>
             </div>

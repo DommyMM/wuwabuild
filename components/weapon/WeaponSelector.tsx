@@ -134,7 +134,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
       <div className={`relative flex flex-col items-center gap-2 ${className}`}>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="group h-32 w-32 overflow-hidden rounded-xl border border-border bg-background-secondary transition-colors hover:border-[rgba(166,150,98,0.4)]"
+          className="group h-32 w-32 cursor-pointer overflow-hidden rounded-xl border border-border bg-background-secondary transition-colors hover:border-[rgba(166,150,98,0.4)]"
         >
           <img
             src={weaponPaths}

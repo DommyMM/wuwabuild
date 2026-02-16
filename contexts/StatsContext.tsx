@@ -75,7 +75,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
   } = gameData;
 
   const { state } = build;
-  const { characterId, characterLevel, roverElement, weaponId, weaponLevel, weaponRank, echoPanels, nodeStates, sequence } = state;
+  const { characterId, characterLevel, roverElement, weaponId, weaponLevel, weaponRank, echoPanels, forte, sequence } = state;
 
   // Get current character and weapon
   const character = useMemo(() =>
@@ -154,8 +154,8 @@ export function StatsProvider({ children }: StatsProviderProps) {
   // Calculate forte bonus
   const forteBonus = useMemo(() => {
     if (!character) return null;
-    return calculateForteBonus(character, nodeStates);
-  }, [character, nodeStates]);
+    return calculateForteBonus(character, forte);
+  }, [character, forte]);
 
   // Calculate echo default stats
   const echoStats = useMemo(() => {

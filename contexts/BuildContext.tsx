@@ -5,13 +5,21 @@ import { EchoPanelState, ElementType } from '@/types/echo';
 import {
   SavedState,
   WatermarkState,
-  ForteLevels,
-  DEFAULT_FORTE_LEVELS,
+  ForteState,
+  ForteEntry,
+  DEFAULT_FORTE,
   DEFAULT_WATERMARK,
   createDefaultEchoPanelState,
   createDefaultSavedState
 } from '@/types/build';
 
+/** Column index order: 0=normal-attack, 1=skill, 2=circuit, 3=liberation, 4=intro */
+const FORTE_KEY_TO_INDEX: Record<string, number> = {
+  'normal-attack': 0, skill: 1, circuit: 2, liberation: 3, intro: 4,
+};
+const TREE_TO_INDEX: Record<string, number> = {
+  tree1: 0, tree2: 1, tree3: 2, tree4: 3, tree5: 4,
+};
 
 interface BuildState {
   characterId: string | null;
@@ -21,8 +29,7 @@ interface BuildState {
   weaponId: string | null;
   weaponLevel: number;
   weaponRank: number;
-  nodeStates: Record<string, Record<string, boolean>>;
-  forteLevels: ForteLevels;
+  forte: ForteState;
   echoPanels: EchoPanelState[];
   watermark: WatermarkState;
   isDirty: boolean;
@@ -40,10 +47,10 @@ type BuildAction =
   | { type: 'SET_ECHO_PANELS'; payload: EchoPanelState[] }
   | { type: 'REORDER_ECHO_PANELS'; payload: { from: number; to: number } }
   | { type: 'CLEAR_ECHO_PANEL'; payload: number }
-  | { type: 'SET_NODE_STATE'; payload: { tree: string; node: string; active: boolean } }
-  | { type: 'SET_NODE_STATES'; payload: Record<string, Record<string, boolean>> }
-  | { type: 'SET_FORTE_LEVEL'; payload: { skill: keyof ForteLevels; level: number } }
-  | { type: 'SET_FORTE_LEVELS'; payload: ForteLevels }
+  | { type: 'SET_FORTE'; payload: ForteState }
+  | { type: 'SET_FORTE_COLUMN'; payload: { col: number; entry: ForteEntry } }
+  | { type: 'SET_FORTE_LEVEL'; payload: { col: number; level: number } }
+  | { type: 'SET_FORTE_NODE'; payload: { col: number; pos: 'top' | 'middle'; active: boolean } }
   | { type: 'MAX_ALL_FORTES' }
   | { type: 'RESET_FORTES' }
   | { type: 'SET_WATERMARK'; payload: Partial<WatermarkState> }
@@ -78,10 +85,9 @@ interface BuildContextType {
   setEchoPhantom: (index: number, phantom: boolean) => void;
 
   // Forte actions
-  setNodeState: (tree: string, node: string, active: boolean) => void;
-  setNodeStates: (nodeStates: Record<string, Record<string, boolean>>) => void;
-  setForteLevel: (skill: keyof ForteLevels, level: number) => void;
-  setForteLevels: (levels: ForteLevels) => void;
+  setForte: (forte: ForteState) => void;
+  setForteLevel: (col: number, level: number) => void;
+  setForteNode: (col: number, pos: 'top' | 'middle', active: boolean) => void;
   maxAllFortes: () => void;
   resetFortes: () => void;
 
@@ -105,12 +111,31 @@ const initialState: BuildState = {
   weaponId: null,
   weaponLevel: 1,
   weaponRank: 1,
-  nodeStates: {},
-  forteLevels: { ...DEFAULT_FORTE_LEVELS },
+  forte: DEFAULT_FORTE.map(e => [...e]) as ForteState,
   echoPanels: Array(5).fill(null).map(() => createDefaultEchoPanelState()),
   watermark: { ...DEFAULT_WATERMARK },
   isDirty: false
 };
+
+/** Migrate old nodeStates+forteLevels into a ForteState array. */
+function migrateToForteArray(raw: Record<string, unknown>): ForteState {
+  // Already new format
+  if (Array.isArray(raw.forte) && raw.forte.length === 5) {
+    return raw.forte as ForteState;
+  }
+
+  const ns = (raw.nodeStates ?? {}) as Record<string, Record<string, boolean>>;
+  const fl = (raw.forteLevels ?? {}) as Record<string, number>;
+
+  const keys = ['normal-attack', 'skill', 'circuit', 'liberation', 'intro'];
+  const trees = ['tree1', 'tree2', 'tree3', 'tree4', 'tree5'];
+
+  return keys.map((key, i) => [
+    fl[key] ?? 1,
+    ns[trees[i]]?.top ?? false,
+    ns[trees[i]]?.middle ?? false,
+  ] as ForteEntry) as ForteState;
+}
 
 /** Read draft from localStorage synchronously (avoids flicker). */
 function loadDraftFromStorage(): BuildState | null {
@@ -123,16 +148,17 @@ function loadDraftFromStorage(): BuildState | null {
 
     // Handle legacy nested shape (characterState / weaponState)
     if (saved.characterState) {
+      const cs = saved.characterState;
+      const ws = saved.weaponState ?? {};
       return {
-        characterId: saved.characterState.id ?? null,
-        characterLevel: parseInt(saved.characterState.level) || 1,
-        roverElement: saved.characterState.element,
+        characterId: cs.id ?? null,
+        characterLevel: parseInt(cs.level) || 1,
+        roverElement: cs.element,
         sequence: saved.currentSequence ?? 0,
-        weaponId: saved.weaponState?.id ?? null,
-        weaponLevel: saved.weaponState?.level ?? 1,
-        weaponRank: saved.weaponState?.rank ?? 1,
-        nodeStates: saved.nodeStates ?? {},
-        forteLevels: saved.forteLevels ?? { ...DEFAULT_FORTE_LEVELS },
+        weaponId: ws.id ?? null,
+        weaponLevel: ws.level ?? 1,
+        weaponRank: ws.rank ?? 1,
+        forte: migrateToForteArray(saved),
         echoPanels: saved.echoPanels ?? Array(5).fill(null).map(() => createDefaultEchoPanelState()),
         watermark: saved.watermark ?? { ...DEFAULT_WATERMARK },
         isDirty: false,
@@ -141,13 +167,24 @@ function loadDraftFromStorage(): BuildState | null {
 
     // New flat shape
     if (saved.characterId !== undefined) {
-      return { ...saved, isDirty: false };
+      return {
+        ...saved,
+        forte: migrateToForteArray(saved),
+        isDirty: false,
+      };
     }
 
     return null;
   } catch {
     return null;
   }
+}
+
+/** Helper: clone forte and update a single column */
+function updateForteCol(forte: ForteState, col: number, updater: (entry: ForteEntry) => ForteEntry): ForteState {
+  const next = forte.map(e => [...e]) as ForteState;
+  next[col] = updater(next[col]);
+  return next;
 }
 
 function buildReducer(state: BuildState, action: BuildAction): BuildState {
@@ -195,44 +232,49 @@ function buildReducer(state: BuildState, action: BuildAction): BuildState {
       return { ...state, echoPanels: newPanels, isDirty: true };
     }
 
-    case 'SET_NODE_STATE': {
-      const { tree, node, active } = action.payload;
+    case 'SET_FORTE':
+      return { ...state, forte: action.payload, isDirty: true };
+
+    case 'SET_FORTE_COLUMN':
       return {
         ...state,
-        nodeStates: { ...state.nodeStates, [tree]: { ...state.nodeStates[tree], [node]: active } },
-        isDirty: true
+        forte: updateForteCol(state.forte, action.payload.col, () => action.payload.entry),
+        isDirty: true,
       };
-    }
-
-    case 'SET_NODE_STATES':
-      return { ...state, nodeStates: action.payload, isDirty: true };
 
     case 'SET_FORTE_LEVEL':
       return {
         ...state,
-        forteLevels: { ...state.forteLevels, [action.payload.skill]: action.payload.level },
-        isDirty: true
+        forte: updateForteCol(state.forte, action.payload.col, ([, t, m]) => [action.payload.level, t, m]),
+        isDirty: true,
       };
 
-    case 'SET_FORTE_LEVELS':
-      return { ...state, forteLevels: action.payload, isDirty: true };
+    case 'SET_FORTE_NODE': {
+      const { col, pos, active } = action.payload;
+      return {
+        ...state,
+        forte: updateForteCol(state.forte, col, ([lv, t, m]) =>
+          pos === 'top' ? [lv, active, m] : [lv, t, active]
+        ),
+        isDirty: true,
+      };
+    }
 
     case 'MAX_ALL_FORTES':
       return {
         ...state,
-        forteLevels: { 'normal-attack': 10, skill: 10, circuit: 10, liberation: 10, intro: 10 },
-        nodeStates: {
-          tree1: { top: true, middle: true },
-          tree2: { top: true, middle: true },
-          tree3: {},
-          tree4: { top: true, middle: true },
-          tree5: { top: true, middle: true }
-        },
-        isDirty: true
+        forte: [
+          [10, true, true],
+          [10, true, true],
+          [10, true, true],
+          [10, true, true],
+          [10, true, true],
+        ] as ForteState,
+        isDirty: true,
       };
 
     case 'RESET_FORTES':
-      return { ...state, forteLevels: { ...DEFAULT_FORTE_LEVELS }, nodeStates: {}, isDirty: true };
+      return { ...state, forte: DEFAULT_FORTE.map(e => [...e]) as ForteState, isDirty: true };
 
     case 'SET_WATERMARK':
       return { ...state, watermark: { ...state.watermark, ...action.payload }, isDirty: true };
@@ -246,8 +288,7 @@ function buildReducer(state: BuildState, action: BuildAction): BuildState {
         weaponId: action.payload.weaponId,
         weaponLevel: action.payload.weaponLevel,
         weaponRank: action.payload.weaponRank,
-        nodeStates: action.payload.nodeStates,
-        forteLevels: action.payload.forteLevels,
+        forte: action.payload.forte,
         echoPanels: action.payload.echoPanels,
         watermark: action.payload.watermark,
         isDirty: false
@@ -296,17 +337,7 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
     debounceRef.current = setTimeout(() => {
       try {
         const { isDirty: _, ...saved } = state;
-        // Strip false values from nodeStates to keep storage compact
-        const compactNodes = Object.fromEntries(
-          Object.entries(saved.nodeStates).map(([tree, nodes]) => [
-            tree,
-            Object.fromEntries(Object.entries(nodes).filter(([, v]) => v)),
-          ])
-        );
-        window.localStorage.setItem(
-          DRAFT_STORAGE_KEY,
-          JSON.stringify({ ...saved, nodeStates: compactNodes })
-        );
+        window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(saved));
       } catch { /* quota exceeded — silently ignore */ }
     }, 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
@@ -394,20 +425,16 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
   }, []);
 
   // Forte actions
-  const setNodeState = useCallback((tree: string, node: string, active: boolean) => {
-    dispatch({ type: 'SET_NODE_STATE', payload: { tree, node, active } });
+  const setForte = useCallback((forte: ForteState) => {
+    dispatch({ type: 'SET_FORTE', payload: forte });
   }, []);
 
-  const setNodeStates = useCallback((nodeStates: Record<string, Record<string, boolean>>) => {
-    dispatch({ type: 'SET_NODE_STATES', payload: nodeStates });
+  const setForteLevel = useCallback((col: number, level: number) => {
+    dispatch({ type: 'SET_FORTE_LEVEL', payload: { col, level } });
   }, []);
 
-  const setForteLevel = useCallback((skill: keyof ForteLevels, level: number) => {
-    dispatch({ type: 'SET_FORTE_LEVEL', payload: { skill, level } });
-  }, []);
-
-  const setForteLevels = useCallback((levels: ForteLevels) => {
-    dispatch({ type: 'SET_FORTE_LEVELS', payload: levels });
+  const setForteNode = useCallback((col: number, pos: 'top' | 'middle', active: boolean) => {
+    dispatch({ type: 'SET_FORTE_NODE', payload: { col, pos, active } });
   }, []);
 
   const maxAllFortes = useCallback(() => {
@@ -462,10 +489,9 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
     setEchoElement,
     setEchoLevel,
     setEchoPhantom,
-    setNodeState,
-    setNodeStates,
+    setForte,
     setForteLevel,
-    setForteLevels,
+    setForteNode,
     maxAllFortes,
     resetFortes,
     setWatermark,
@@ -491,10 +517,9 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
     setEchoElement,
     setEchoLevel,
     setEchoPhantom,
-    setNodeState,
-    setNodeStates,
+    setForte,
     setForteLevel,
-    setForteLevels,
+    setForteNode,
     maxAllFortes,
     resetFortes,
     setWatermark,
@@ -510,3 +535,5 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
     </BuildContext.Provider>
   );
 }
+
+export { FORTE_KEY_TO_INDEX, TREE_TO_INDEX };

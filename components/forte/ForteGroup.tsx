@@ -3,22 +3,21 @@
 import React, { useCallback, useMemo } from 'react';
 import { SkillBranch } from './SkillBranch';
 import { Character } from '@/types/character';
-import { ForteLevels } from '@/types/build';
+import { ForteState } from '@/types/build';
 import { calculateForteBonus } from '@/lib/calculations/stats';
 
 interface ForteGroupProps {
   character: Character;
   elementValue: string;
-  nodeStates: Record<string, Record<string, boolean>>;
-  levels: ForteLevels;
-  onNodeChange: (nodeStates: Record<string, Record<string, boolean>>) => void;
-  onLevelChange: (levels: ForteLevels) => void;
+  forte: ForteState;
+  onNodeChange: (col: number, pos: 'top' | 'middle', active: boolean) => void;
+  onLevelChange: (col: number, level: number) => void;
+  onMaxAll?: () => void;
   className?: string;
 }
 
 interface SkillBranchDef {
   skillName: string;
-  skillKey: keyof ForteLevels;
   treeKey: string;
   hasNodes: boolean;
 }
@@ -27,26 +26,29 @@ interface SkillBranchDef {
 const BRANCH_OFFSETS = ['', 'mb-8', 'mb-12', 'mb-8', ''];
 
 const SKILL_BRANCHES: SkillBranchDef[] = [
-  { skillName: 'Normal Attack',        skillKey: 'normal-attack', treeKey: 'tree1', hasNodes: true },
-  { skillName: 'Resonance Skill',      skillKey: 'skill',         treeKey: 'tree2', hasNodes: true },
-  { skillName: 'Forte Circuit',        skillKey: 'circuit',       treeKey: 'tree3', hasNodes: false },
-  { skillName: 'Res. Liberation', skillKey: 'liberation',    treeKey: 'tree4', hasNodes: true },
-  { skillName: 'Intro Skill',          skillKey: 'intro',         treeKey: 'tree5', hasNodes: true },
+  { skillName: 'Normal Attack',        treeKey: 'tree1', hasNodes: true },
+  { skillName: 'Resonance Skill',      treeKey: 'tree2', hasNodes: true },
+  { skillName: 'Forte Circuit',        treeKey: 'tree3', hasNodes: false },
+  { skillName: 'Res. Liberation', treeKey: 'tree4', hasNodes: true },
+  { skillName: 'Intro Skill',          treeKey: 'tree5', hasNodes: true },
 ];
+
+/** Skill key by column index (for icon lookup) */
+const COL_SKILL_KEYS = ['normal-attack', 'skill', 'circuit', 'liberation', 'intro'] as const;
 
 export const ForteGroup: React.FC<ForteGroupProps> = ({
   character,
   elementValue,
-  nodeStates,
-  levels,
+  forte,
   onNodeChange,
   onLevelChange,
+  onMaxAll,
   className = '',
 }) => {
   // ── Bonus stats ──
   const { bonus1Total, bonus2Total, bonus1Type } = useMemo(
-    () => calculateForteBonus(character, nodeStates),
-    [character, nodeStates],
+    () => calculateForteBonus(character, forte),
+    [character, forte],
   );
 
   // Use CDN node icons directly (tree1 for bonus1, tree2 for bonus2)
@@ -61,23 +63,19 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
 
   // ── Handlers ──
   const handleNodeClick = useCallback(
-    (treeKey: string, position: 'top' | 'middle') => {
-      onNodeChange({
-        ...nodeStates,
-        [treeKey]: {
-          ...nodeStates[treeKey],
-          [position]: !nodeStates[treeKey]?.[position],
-        },
-      });
+    (col: number, position: 'top' | 'middle') => {
+      const current = forte[col];
+      const posIdx = position === 'top' ? 1 : 2;
+      onNodeChange(col, position, !current[posIdx]);
     },
-    [nodeStates, onNodeChange],
+    [forte, onNodeChange],
   );
 
   const handleLevelChange = useCallback(
-    (skillKey: keyof ForteLevels, level: number) => {
-      onLevelChange({ ...levels, [skillKey]: level });
+    (col: number, level: number) => {
+      onLevelChange(col, level);
     },
-    [levels, onLevelChange],
+    [onLevelChange],
   );
 
 
@@ -97,26 +95,36 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
         </span>
       </div>
 
-      <div className="flex flex-1 items-end">
+      <div className="relative flex flex-1 items-end">
         {SKILL_BRANCHES.map((branch, i) => (
           <SkillBranch
-            key={branch.skillKey}
+            key={branch.treeKey}
             skillName={branch.skillName}
-            skillKey={branch.skillKey}
+            skillKey={COL_SKILL_KEYS[i]}
             treeKey={branch.treeKey}
             character={character}
             elementValue={elementValue}
             hasNodes={branch.hasNodes}
             isActive={{
-              top: nodeStates[branch.treeKey]?.top || false,
-              middle: nodeStates[branch.treeKey]?.middle || false,
+              top: forte[i][1],
+              middle: forte[i][2],
             }}
-            level={levels[branch.skillKey] || 1}
-            onNodeClick={(pos) => handleNodeClick(branch.treeKey, pos)}
-            onLevelChange={(lvl) => handleLevelChange(branch.skillKey, lvl)}
+            level={forte[i][0]}
+            onNodeClick={(pos) => handleNodeClick(i, pos)}
+            onLevelChange={(lvl) => handleLevelChange(i, lvl)}
             className={`flex-1 ${BRANCH_OFFSETS[i]}`}
           />
         ))}
+
+        {/* Max All button */}
+        {onMaxAll && (
+          <button
+            onClick={onMaxAll}
+            className="absolute bottom-0 left-1/2 z-10 -translate-x-1/2 rounded-md border border-border bg-background px-4 py-1.5 text-xs font-medium text-text-primary/50 transition-colors hover:border-accent/50 hover:text-accent"
+          >
+            Max All
+          </button>
+        )}
       </div>
 
     </div>

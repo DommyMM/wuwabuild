@@ -3,11 +3,10 @@
 import React, { useCallback, useState } from 'react';
 import { ForteNode } from './ForteNode';
 import { Character } from '@/types/character';
-import { ForteLevels } from '@/types/build';
 
 interface SkillBranchProps {
   skillName: string;
-  skillKey: keyof ForteLevels;
+  skillKey: string;
   treeKey: string;
   character: Character;
   elementValue: string;
@@ -155,7 +154,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
       </div>
 
       {/* ── Level display ── */}
-      <div className="flex flex-col items-center gap-2">
+      <div className="relative z-10 flex flex-col items-center gap-2">
         <div className="flex items-center gap-1 text-sm text-text-primary/70">
           <span>Lv.</span>
           {isEditing ? (
