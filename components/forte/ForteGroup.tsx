@@ -5,7 +5,6 @@ import { SkillBranch } from './SkillBranch';
 import { Character } from '@/types/character';
 import { ForteLevels } from '@/types/build';
 import { calculateForteBonus } from '@/lib/calculations/stats';
-import { getAssetPath } from '@/lib/paths';
 
 interface ForteGroupProps {
   character: Character;
@@ -49,8 +48,9 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
     [character, nodeStates],
   );
 
-  const bonus1Icon = useMemo(() => getAssetPath('stats', bonus1Type), [bonus1Type]);
-  const bonus2Icon = useMemo(() => getAssetPath('stats', `${character.Bonus2}%`), [character.Bonus2]);
+  // Use CDN node icons directly (tree1 for bonus1, tree2 for bonus2)
+  const bonus1Icon = character.forteNodes?.['tree1.top']?.icon ?? '';
+  const bonus2Icon = character.forteNodes?.['tree2.top']?.icon ?? '';
 
   // Format bonus display — percentages get %, flat stats don't
   const formatBonus = (type: string, value: number) => {

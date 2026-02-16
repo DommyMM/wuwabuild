@@ -175,7 +175,8 @@ The CDN's `statsLevel` field is redundant - our LevelCurve scaling matches it ex
 | Element icon (shine) | `element.icon["7"]` |
 | Forte stat node icon | `skillTrees[n].icon` |
 | Chain/sequence icon | `chains[n].icon` |
-| Skill icons | `skill[id].params.icon` (with `--include-skills`) |
+| Skill icons (all types) | `skillIcons["normal-attack"]`, `skillIcons["skill"]`, etc. |
+| Skill multiplier data | `skill[id].params` (with `--include-skills`) |
 
 ## Migration from paths.ts
 
@@ -188,6 +189,7 @@ The following paths.ts logic can be simplified:
 | `getCharacterFacePaths()` | `character.icon.iconRound` |
 | `getCharacterIconPaths()` | `character.icon.banner` |
 | `Bonus1`/`Bonus2` heuristic | Derived from `skillTrees` node names |
+| `SKILL_CDN_NAMES` / `SKILL_ICON_NAMES` / `getRoverVariant` | `character.skillIcons[skillKey]` (direct URLs) |
 | Manual ID construction | Direct URLs from CDN |
 
 ## What Gets Synced — Weapons

@@ -114,32 +114,29 @@ export const calculateWeaponStats = (
 });
 
 /**
- * Calculate forte bonus from tree nodes.
+ * Calculate forte bonus from tree nodes using CDN values.
  */
 export const calculateForteBonus = (
   character: Character,
   nodeStates: Record<string, Record<string, boolean>>
 ): { bonus1Total: number; bonus2Total: number; bonus1Type: string } => {
-  const baseValue1 = character.Bonus1 === 'Crit Rate' ? 4.0 : character.Bonus1 === 'Crit DMG' ? 8.0 : 6.0;
-  const baseValue2 = character.Bonus2 === 'DEF' ? 7.6 : 6.0;
-
+  const fn = character.forteNodes;
   let bonus1Total = 0;
   let bonus2Total = 0;
 
-  ['tree1', 'tree2', 'tree4', 'tree5'].forEach(tree => {
+  // tree1/tree5 → Bonus1, tree2/tree4 → Bonus2
+  for (const tree of ['tree1', 'tree2', 'tree4', 'tree5'] as const) {
     const nodes = nodeStates[tree] || {};
-    if (['tree1', 'tree5'].includes(tree)) {
-      if (nodes.top) bonus1Total += baseValue1 * 0.7;
-      if (nodes.middle) bonus1Total += baseValue1 * 0.3;
-    } else {
-      if (nodes.top) bonus2Total += baseValue2 * 0.7;
-      if (nodes.middle) bonus2Total += baseValue2 * 0.3;
+    const isBonus1 = tree === 'tree1' || tree === 'tree5';
+    for (const pos of ['top', 'middle'] as const) {
+      if (!nodes[pos]) continue;
+      const val = fn?.[`${tree}.${pos}`]?.value ?? 0;
+      if (isBonus1) bonus1Total += val;
+      else bonus2Total += val;
     }
-  });
+  }
 
-  const bonus1Type = character.Bonus1;
-
-  return { bonus1Total, bonus2Total, bonus1Type };
+  return { bonus1Total, bonus2Total, bonus1Type: character.Bonus1 };
 };
 
 /**
