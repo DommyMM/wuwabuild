@@ -377,7 +377,17 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
     debounceRef.current = setTimeout(() => {
       try {
         const { isDirty: _, ...saved } = state;
-        window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(saved));
+        // Strip false values from nodeStates to keep storage compact
+        const compactNodes = Object.fromEntries(
+          Object.entries(saved.nodeStates).map(([tree, nodes]) => [
+            tree,
+            Object.fromEntries(Object.entries(nodes).filter(([, v]) => v)),
+          ])
+        );
+        window.localStorage.setItem(
+          DRAFT_STORAGE_KEY,
+          JSON.stringify({ ...saved, nodeStates: compactNodes })
+        );
       } catch { /* quota exceeded — silently ignore */ }
     }, 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };

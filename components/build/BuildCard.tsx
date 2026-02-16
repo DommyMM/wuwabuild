@@ -3,6 +3,7 @@
 import { useMemo, forwardRef } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useStats } from '@/contexts/StatsContext';
 import { getCVRating, getCVRatingColor } from '@/lib/calculations/cv';
 import { STAT_ABBREV, STAT_CDN_NAMES, getStatIconName } from '@/lib/constants/statMappings';
@@ -64,18 +65,20 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
 }, ref) => {
   const { getCharacter, getWeapon, getEcho } = useGameData();
   const { state } = useBuild();
+  const { t } = useLanguage();
   const { stats, getStatValue } = useStats();
 
   const selectedCharacter = getCharacter(state.characterState.id);
   const selectedWeapon = getWeapon(state.weaponState.id);
   const currentElement = state.characterState.element || selectedCharacter?.element || 'Havoc';
 
-  // Get display name for character
+  // Get display name for character (translated)
   const displayName = useMemo(() => {
     if (!selectedCharacter) return 'No Resonator';
+    const name = t(selectedCharacter.nameI18n ?? { en: selectedCharacter.name });
     const isRover = selectedCharacter.name.startsWith('Rover');
-    return isRover ? `Rover${currentElement}` : selectedCharacter.name;
-  }, [selectedCharacter, currentElement]);
+    return isRover ? `${name}${currentElement}` : name;
+  }, [selectedCharacter, currentElement, t]);
 
   // Get CV info
   const cv = stats.cv;

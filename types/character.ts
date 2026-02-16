@@ -95,6 +95,10 @@ export interface Character {
   ATK: number;
   DEF: number;
   ER: number;
+  // I18n display names (English fallback via `name` / enums)
+  nameI18n?: I18nString;
+  elementI18n?: I18nString;
+  weaponI18n?: I18nString;
   // New fields from CDN
   cdnId?: number;
   iconRound?: string;
@@ -145,6 +149,9 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
 
   return {
     name: isRoverChar ? 'Rover' : cdn.name.en,
+    nameI18n: cdn.name,
+    elementI18n: cdn.element.name,
+    weaponI18n: cdn.weapon.name,
     id: String(cdn.id),
     legacyId: cdn.legacyId,
     title: '',

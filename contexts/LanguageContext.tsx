@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import type { I18nString } from '@/types/character';
 
 // Supported languages matching I18nString from character.ts
 // countryCode is used with flag-icons library (lowercase ISO 3166-1 alpha-2)
@@ -22,7 +23,7 @@ export type LanguageCode = keyof typeof SUPPORTED_LANGUAGES;
 interface LanguageContextType {
   language: LanguageCode;
   setLanguage: (lang: LanguageCode) => void;
-  t: (text: Record<string, string | undefined>) => string;
+  t: (text: I18nString | Record<string, string | undefined>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | null>(null);
@@ -59,8 +60,8 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   }, []);
 
   // Translation helper - returns text in current language, falls back to English
-  const t = useCallback((text: Record<string, string | undefined>): string => {
-    return text[language] || text.en || '';
+  const t = useCallback((text: I18nString | Record<string, string | undefined>): string => {
+    return (text as Record<string, string | undefined>)[language] || text.en || '';
   }, [language]);
 
   const value = useMemo<LanguageContextType>(() => ({

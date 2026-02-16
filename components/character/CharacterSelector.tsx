@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { Modal } from '@/components/ui/Modal';
 import { AssetImage } from '@/components/ui/AssetImage';
@@ -136,6 +137,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
   const { characters, loading, error } = useGameData();
   const { setCharacter, setCharacterLevel } = useBuild();
+  const { t } = useLanguage();
   const selected = useSelectedCharacter();
 
   // Dedupe rovers, sort: 5-star first then alphabetical
@@ -305,7 +307,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
                   <div className="relative aspect-square w-full overflow-hidden">
                     <AssetImage
                       paths={getHeadPaths(character)}
-                      alt={character.name}
+                      alt={t(character.nameI18n ?? { en: character.name })}
                       className="h-full w-full object-cover"
                     />
                   </div>
@@ -315,7 +317,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
                   {/* Name */}
                   <span className="max-w-full truncate px-1.5 py-1 text-center text-sm leading-tight text-text-primary/80 group-hover:text-text-primary">
-                    {character.name}
+                    {t(character.nameI18n ?? { en: character.name })}
                   </span>
                 </button>
               );
@@ -352,13 +354,13 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
           <AssetImage
             paths={selected?.iconRoundPaths ?? { cdn: FALLBACK_FACE, local: FALLBACK_FACE }}
-            alt={selected?.displayName ?? 'Select Resonator'}
+            alt={selected ? t(selected.nameI18n) : 'Select Resonator'}
             className="h-full w-full object-cover"
           />
         </div>
 
         <span className={`text-2xl font-medium ${selected ? `char-sig ${selected.element.toLowerCase()}` : 'text-text-primary/50'}`}>
-          {selected?.displayName ?? 'Select Resonator'}
+          {selected ? t(selected.nameI18n) : 'Select Resonator'}
         </span>
       </button>
 

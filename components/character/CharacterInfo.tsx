@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { LevelSlider } from '@/components/ui/LevelSlider';
 import { AssetImage } from '@/components/ui/AssetImage';
@@ -40,6 +41,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
     setCharacterElement,
     setSequence
   } = useBuild();
+  const { t } = useLanguage();
   const selected = useSelectedCharacter();
 
   const characterLevel = parseInt(state.characterState.level) || 1;
@@ -47,7 +49,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   const currentSequence = state.currentSequence;
 
   const isRover = selected?.isRover ?? false;
-  const displayName = selected ? (isRover ? `Rover${currentElement}` : selected.displayName) : '';
+  const translatedName = selected ? t(selected.nameI18n) : '';
+  const displayName = selected ? (isRover ? `${translatedName}${currentElement}` : translatedName) : '';
   const effectiveElement = selected?.element;
 
 

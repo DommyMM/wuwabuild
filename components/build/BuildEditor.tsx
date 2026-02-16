@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
 import { Save, Download, Upload, RotateCcw } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { AssetImage } from '@/components/ui/AssetImage';
@@ -27,6 +28,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   const actionBarRef = useRef<HTMLDivElement>(null);
 
   const { state, resetBuild } = useBuild();
+  const { t } = useLanguage();
   const selected = useSelectedCharacter();
 
   const { scrollY } = useScroll();
@@ -159,7 +161,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
               <div className="shrink-0">
                 <AssetImage
                   paths={selected.bannerPaths}
-                  alt={selected.displayName}
+                  alt={t(selected.nameI18n)}
                   className="h-120 w-auto rounded-lg object-contain"
                 />
               </div>

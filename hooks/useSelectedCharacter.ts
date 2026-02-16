@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
-import { Character, Element } from '@/types/character';
+import { Character, Element, I18nString } from '@/types/character';
 import type { ImagePaths } from '@/lib/paths';
 
 const FALLBACK: ImagePaths = {
@@ -16,7 +16,8 @@ export interface SelectedCharacter {
   isRover: boolean;
   /** Effective element (resolves Rover to their chosen element) */
   element: string;
-  displayName: string;              // Display name (e.g. "Rover", "Resonator")
+  displayName: string;              // Display name (English, e.g. "Rover", "Camellya")
+  nameI18n: I18nString;            // Translated display name for t() usage
   iconRoundPaths: ImagePaths;      // Circular face icon (HeadCircle256)
   headPaths: ImagePaths;           // Square head icon (Head256, derived from iconRound)
   bannerPaths: ImagePaths;         // Full character portrait (RolePile / banner)
@@ -41,6 +42,7 @@ export function useSelectedCharacter(): SelectedCharacter | null {
     const isRover = character.element === Element.Rover;
     const element = isRover ? (roverElement || 'Havoc') : character.element;
     const displayName = isRover ? `Rover` : character.name;
+    const nameI18n: I18nString = character.nameI18n ?? { en: character.name };
 
     const iconRoundPaths: ImagePaths = character.iconRound
       ? { cdn: character.iconRound, local: FALLBACK.local }
@@ -59,6 +61,7 @@ export function useSelectedCharacter(): SelectedCharacter | null {
       isRover,
       element,
       displayName,
+      nameI18n,
       iconRoundPaths,
       headPaths,
       bannerPaths,
