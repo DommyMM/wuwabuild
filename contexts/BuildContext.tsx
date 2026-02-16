@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef, ReactNode } from 'react';
 import { EchoPanelState, ElementType } from '@/types/echo';
 import { WeaponState } from '@/types/weapon';
 import {
@@ -97,6 +97,8 @@ interface BuildContextType {
   markClean: () => void;
 }
 
+const DRAFT_STORAGE_KEY = 'wuwa_draft_build';
+
 const initialState: BuildState = {
   characterState: { ...DEFAULT_CHARACTER_STATE },
   currentSequence: 0,
@@ -107,6 +109,20 @@ const initialState: BuildState = {
   watermark: { ...DEFAULT_WATERMARK },
   isDirty: false
 };
+
+/** Read draft from localStorage synchronously (avoids flicker). */
+function loadDraftFromStorage(): BuildState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const saved: SavedState = JSON.parse(raw);
+    if (!saved.characterState) return null;
+    return { ...saved, isDirty: false };
+  } catch {
+    return null;
+  }
+}
 
 function buildReducer(state: BuildState, action: BuildAction): BuildState {
   switch (action.type) {
@@ -347,8 +363,25 @@ interface BuildProviderProps {
 export function BuildProvider({ children, initialState: providedInitialState }: BuildProviderProps) {
   const [state, dispatch] = useReducer(
     buildReducer,
-    providedInitialState ? { ...providedInitialState, isDirty: false } : initialState
+    undefined,
+    () => {
+      if (providedInitialState) return { ...providedInitialState, isDirty: false };
+      return loadDraftFromStorage() ?? initialState;
+    }
   );
+
+  // Auto-persist to localStorage (debounced 500ms)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      try {
+        const { isDirty: _, ...saved } = state;
+        window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(saved));
+      } catch { /* quota exceeded — silently ignore */ }
+    }, 500);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [state]);
 
   // Character actions
   const setCharacter = useCallback((id: string | null, element?: string) => {
@@ -491,6 +524,7 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
 
   const resetBuild = useCallback(() => {
     dispatch({ type: 'RESET_BUILD' });
+    try { window.localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* ignore */ }
   }, []);
 
   const getSavedState = useCallback((): SavedState => {

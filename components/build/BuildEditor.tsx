@@ -160,7 +160,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                 <AssetImage
                   paths={selected.bannerPaths}
                   alt={selected.displayName}
-                  className="h-112 w-auto rounded-lg object-contain"
+                  className="h-120 w-auto rounded-lg object-contain"
                 />
               </div>
 
