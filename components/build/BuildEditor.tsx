@@ -33,7 +33,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   const {
     state, resetBuild,
     setCharacterLevel, setSequence,
-    setWeaponLevel, setWeaponRank,
+    setWeapon, setWeaponLevel, setWeaponRank,
   } = useBuild();
   const { getWeapon } = useGameData();
   const { t } = useLanguage();
@@ -45,6 +45,16 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   useEffect(() => {
     setPortalTarget(document.getElementById('nav-toolbar-portal'));
   }, []);
+
+  // Reset weapon when switching to a character with a different weapon type
+  useEffect(() => {
+    if (!selectedWeapon || !selected) return;
+    if (selectedWeapon.type !== selected.character.weaponType) {
+      setWeapon(null);
+      setWeaponLevel(1);
+      setWeaponRank(1);
+    }
+  }, [selected, selectedWeapon, setWeapon, setWeaponLevel, setWeaponRank]);
 
   useMotionValueEvent(scrollY, 'change', () => {
     const el = actionBarRef.current;
@@ -127,26 +137,16 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
 
         <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-4">
           {selected ? (
-            <div className="flex gap-6">
-              {/* Left column: portrait + level */}
-              <div className="flex shrink-0 flex-col gap-3">
-                <img
-                  src={selected.banner}
-                  alt={t(selected.nameI18n)}
-                  className="h-96 w-auto rounded-lg object-contain"
-                />
-                <LevelSlider
-                  value={state.characterLevel}
-                  onLevelChange={setCharacterLevel}
-                  label="Level"
-                  showDiamonds={false}
-                  showBreakpoints={false}
-                />
-              </div>
+            <div className="grid grid-cols-[auto_auto_1fr] grid-rows-[28rem_auto] gap-x-6 gap-y-3">
+              {/* Row 1, Col 1: Portrait */}
+              <img
+                src={selected.banner}
+                alt={t(selected.nameI18n)}
+                className="col-start-1 row-start-1 h-full w-auto rounded-lg object-contain"
+              />
 
-              {/* Middle column: sequences + weapon (capped to arc width) */}
-              <div className="flex flex-col gap-5">
-                {/* Sequences */}
+              {/* Row 1, Col 2: Sequences + Weapon + Rank slider */}
+              <div className="relative flex flex-col justify-between overflow-hidden">
                 {selected.character.cdnId && (
                   <SequenceSelector
                     cdnId={selected.character.cdnId}
@@ -156,44 +156,35 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                   />
                 )}
 
-                {/* Weapon */}
                 <WeaponSelector />
-
-                {selectedWeapon && (
-                  <div className="flex flex-col gap-4">
-                    <LevelSlider
-                      value={state.weaponLevel}
-                      onLevelChange={setWeaponLevel}
-                      label="Weapon Level"
-                      showDiamonds={false}
-                      showBreakpoints={false}
-                    />
-
-                    {/* Rank (Refinement) */}
-                    <div className="flex items-center gap-1.5">
-                      <span className="mr-2 text-sm font-medium text-text-primary/60">Rank</span>
-                      {[1, 2, 3, 4, 5].map(r => (
-                        <button
-                          key={r}
-                          onClick={() => setWeaponRank(r)}
-                          className={`flex h-8 w-8 items-center justify-center rounded-md border text-xs font-semibold transition-all
-                            ${r === state.weaponRank
-                              ? 'border-accent bg-accent/20 text-accent'
-                              : 'border-border text-text-primary/40 hover:border-text-primary/30 hover:text-text-primary/60'
-                            }
-                          `}
-                        >
-                          R{r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Right column: (reserved) */}
-              <div className="flex flex-1 flex-col gap-5">
+              {/* Row 2, Col 1: Character Level */}
+              <div className="col-start-1 row-start-2">
+                <LevelSlider
+                  value={state.characterLevel}
+                  onLevelChange={setCharacterLevel}
+                  label="Level"
+                  showDiamonds={false}
+                  showBreakpoints={false}
+                />
               </div>
+
+              {/* Row 2, Col 2: Weapon Level */}
+              {selectedWeapon && (
+                <div className="col-start-2 row-start-2">
+                  <LevelSlider
+                    value={state.weaponLevel}
+                    onLevelChange={setWeaponLevel}
+                    label="Weapon Level"
+                    showDiamonds={false}
+                    showBreakpoints={false}
+                  />
+                </div>
+              )}
+
+              {/* Col 3: Reserved */}
+              <div className="col-start-3 row-span-2" />
             </div>
           ) : (
             <div className="flex items-center justify-center py-12 text-text-primary/40">

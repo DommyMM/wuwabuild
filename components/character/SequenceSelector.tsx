@@ -8,9 +8,9 @@ import { PATHS } from '@/lib/paths';
 const NODES = [1, 2, 3, 4, 5, 6] as const;
 const ARC_START = 0;
 const ARC_END = 210;
-const ARC_RADIUS = 92;
-const SIZE = 224;
-const ORB = 30;
+const ARC_RADIUS = 104;
+const SIZE = 252;
+const ORB = 34;
 const MID = SIZE / 2;
 
 const ORB_POS = NODES.map((_, i) => {
@@ -51,7 +51,7 @@ export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
         <img
           src={sequenceIconUrl}
           alt="Sequence"
-          className="h-32 object-contain drop-shadow-[0_0_12px_rgba(166,150,98,0.3)]"
+          className="h-36 object-contain drop-shadow-[0_0_12px_rgba(166,150,98,0.3)]"
         />
       </div>
 

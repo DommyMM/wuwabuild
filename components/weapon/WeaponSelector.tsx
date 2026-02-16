@@ -130,24 +130,39 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
 
   return (
     <>
-      {/* Weapon trigger — icon-centric, text below */}
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className={`group flex flex-col items-center gap-2 ${className}`}
-      >
-        {selectedWeapon ? (
-          <div className="h-32 w-32 overflow-hidden rounded-xl border border-border bg-background-secondary transition-colors group-hover:border-[rgba(166,150,98,0.4)]">
-            <img
-              src={weaponPaths}
-              alt={weaponLabel}
-              className="h-full w-full object-cover drop-shadow-[0_0_12px_rgba(166,150,98,0.3)]"
-            />
-          </div>
-        ) : (
-          <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-[#555] transition-colors group-hover:border-[rgba(166,150,98,0.5)]">
-            <img src={FALLBACK_WEAPON} alt="Select Weapon" className="h-10 w-10 object-contain opacity-30" />
+      {/* Weapon trigger — centered card + rank slider */}
+      <div className={`relative flex flex-col items-center gap-2 ${className}`}>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="group h-32 w-32 overflow-hidden rounded-xl border border-border bg-background-secondary transition-colors hover:border-[rgba(166,150,98,0.4)]"
+        >
+          <img
+            src={weaponPaths}
+            alt={weaponLabel}
+            className="h-full w-full object-cover drop-shadow-[0_0_12px_rgba(166,150,98,0.3)]"
+          />
+        </button>
+
+        {/* Rank slider — vertical 1-5, right edge */}
+        {selectedWeapon && (
+          <div className="absolute right-4 top-0 flex flex-col items-center">
+            <span className="text-xs font-bold text-text-primary/40 mb-1">5</span>
+            <div className="relative">
+              <input
+                type="range"
+                min={1}
+                max={5}
+                step={1}
+                value={state.weaponRank}
+                onChange={e => setWeaponRank(parseInt(e.target.value))}
+                className="rank-slider h-28"
+              />
+            </div>
+            <span className="text-xs font-bold text-text-primary/40">1</span>
           </div>
         )}
+
+        {/* Weapon name */}
         <span
           className="text-xl font-medium"
           style={selectedWeapon ? {
@@ -161,7 +176,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
         >
           {weaponLabel}
         </span>
-      </button>
+      </div>
 
       {/* Selection modal */}
       <Modal

@@ -129,6 +129,64 @@ body {
     0 0 8px rgba(166, 150, 98, 0.5);
 }
 
+/* Vertical rank slider (1–5) — golden orb, slim track */
+.rank-slider {
+  writing-mode: vertical-lr;
+  direction: rtl;          /* max (5) at top, min (1) at bottom */
+  width: 24px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+.rank-slider::-webkit-slider-runnable-track {
+  width: 6px;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(to top, #333333, #333333);
+}
+.rank-slider::-moz-range-track {
+  width: 6px;
+  height: 100%;
+  border-radius: 3px;
+  background: #333333;
+}
+.rank-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-left: -6px;       /* center thumb on track */
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(18, 16, 10, 0.55) 12%, transparent 38%),
+    conic-gradient(from 45deg, #bfad7d, #8a7c52 90deg, #bfad7d 180deg, #8a7c52 270deg, #bfad7d 360deg);
+  border: 2px solid #d4c48c;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 2px rgba(0, 0, 0, 0.4),
+    0 0 6px rgba(166, 150, 98, 0.45);
+  transition: box-shadow 0.15s;
+}
+.rank-slider::-webkit-slider-thumb:hover {
+  box-shadow:
+    inset 0 0 2px rgba(0, 0, 0, 0.4),
+    0 0 12px rgba(191, 173, 125, 0.8);
+}
+.rank-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(18, 16, 10, 0.55) 12%, transparent 38%),
+    conic-gradient(from 45deg, #bfad7d, #8a7c52 90deg, #bfad7d 180deg, #8a7c52 270deg, #bfad7d 360deg);
+  border: 2px solid #d4c48c;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 2px rgba(0, 0, 0, 0.4),
+    0 0 6px rgba(166, 150, 98, 0.45);
+}
+
 /* Rover rainbow animation (cycles through all element colors) */
 @keyframes rover-rainbow {
   0%, 100% { border-color: #F0744E; }
