@@ -1,156 +1,225 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Modal } from '@/components/ui/Modal';
 import { AssetImage } from '@/components/ui/AssetImage';
-import { Weapon, WeaponType, WeaponRarity } from '@/types/weapon';
-import { Character } from '@/types/character';
-import { getWeaponPaths, getQualityPaths } from '@/lib/paths';
+import { Weapon, WeaponRarity } from '@/types/weapon';
+import { getWeaponPaths } from '@/lib/paths';
+import type { ImagePaths } from '@/lib/paths';
+
+const FALLBACK_WEAPON: ImagePaths = {
+  cdn: '/images/Resources/Weapon.png',
+  local: '/images/Resources/Weapon.png',
+};
+
+const RARITIES = [5, 4, 3] as const;
+
+/** Rarity → default card border */
+const RARITY_BORDER: Record<WeaponRarity, string> = {
+  '5-star': 'border-rarity-5/50',
+  '4-star': 'border-rarity-4/50',
+  '3-star': 'border-blue-400/40',
+  '2-star': 'border-green-400/40',
+  '1-star': 'border-gray-400/40',
+};
+
+/** Rarity → hover glow */
+const RARITY_HOVER: Record<WeaponRarity, string> = {
+  '5-star': 'hover:border-rarity-5 hover:shadow-[0_0_10px_var(--color-rarity-5)]',
+  '4-star': 'hover:border-rarity-4 hover:shadow-[0_0_10px_var(--color-rarity-4)]',
+  '3-star': 'hover:border-blue-400',
+  '2-star': 'hover:border-green-400',
+  '1-star': 'hover:border-gray-400',
+};
+
+/** Rarity → selected highlight */
+const RARITY_SELECTED: Record<WeaponRarity, string> = {
+  '5-star': 'border-rarity-5 shadow-[0_0_12px_var(--color-rarity-5)]',
+  '4-star': 'border-rarity-4 shadow-[0_0_12px_var(--color-rarity-4)]',
+  '3-star': 'border-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.4)]',
+  '2-star': 'border-green-400',
+  '1-star': 'border-gray-400',
+};
+
+/** Rarity → subtle card background tint */
+const RARITY_BG: Record<WeaponRarity, string> = {
+  '5-star': 'bg-rarity-5/10',
+  '4-star': 'bg-rarity-4/10',
+  '3-star': 'bg-blue-400/8',
+  '2-star': 'bg-green-400/8',
+  '1-star': 'bg-gray-400/8',
+};
+
+/** Rarity → divider strip */
+const RARITY_DIVIDER: Record<WeaponRarity, string> = {
+  '5-star': 'bg-rarity-5/40',
+  '4-star': 'bg-rarity-4/40',
+  '3-star': 'bg-blue-400/30',
+  '2-star': 'bg-green-400/30',
+  '1-star': 'bg-gray-400/30',
+};
+
+/** Numeric rarity → active filter chip styling */
+const RARITY_CHIP_ACTIVE: Record<number, string> = {
+  5: 'bg-rarity-5/20 border-rarity-5/50 text-rarity-5',
+  4: 'bg-rarity-4/20 border-rarity-4/50 text-rarity-4',
+  3: 'bg-blue-400/20 border-blue-400/50 text-blue-400',
+};
 
 interface WeaponSelectorProps {
-  selectedCharacter: Character;
   className?: string;
 }
 
-// Rarity to background color mapping
-const RARITY_COLORS: Record<WeaponRarity, string> = {
-  '5-star': 'bg-amber-100',
-  '4-star': 'bg-purple-200',
-  '3-star': 'bg-blue-200',
-  '2-star': 'bg-green-200',
-  '1-star': 'bg-gray-300'
-};
-
-// Rarity to border color mapping
-const RARITY_BORDERS: Record<WeaponRarity, string> = {
-  '5-star': 'border-amber-400',
-  '4-star': 'border-purple-400',
-  '3-star': 'border-blue-400',
-  '2-star': 'border-green-400',
-  '1-star': 'border-gray-400'
-};
-
-// Rarity sort order
-const RARITY_ORDER: WeaponRarity[] = ['5-star', '4-star', '3-star', '2-star', '1-star'];
-
 export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
-  selectedCharacter,
-  className = ''
+  className = '',
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [rarityFilter, setRarityFilter] = useState<Set<number>>(new Set());
 
-  const { getWeaponsByType, getWeapon } = useGameData();
-  const { state, setWeapon } = useBuild();
+  const { getCharacter, getWeapon, getWeaponsByType } = useGameData();
+  const { state, setWeapon, setWeaponLevel, setWeaponRank } = useBuild();
+  const { t } = useLanguage();
 
+  const character = getCharacter(state.characterId);
   const selectedWeapon = getWeapon(state.weaponId);
 
-  // Get weapons for the character's weapon type
-  const weapons = useMemo(() => {
-    return getWeaponsByType(selectedCharacter.weaponType);
-  }, [getWeaponsByType, selectedCharacter.weaponType]);
-
-  // Sort weapons by rarity
+  // 5-star first, then alphabetical
   const sortedWeapons = useMemo(() => {
-    return [...weapons].sort((a, b) => {
-      return RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity);
+    if (!character) return [];
+    return [...getWeaponsByType(character.weaponType)].sort((a, b) => {
+      const diff = parseInt(b.rarity) - parseInt(a.rarity);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
     });
-  }, [weapons]);
+  }, [character, getWeaponsByType]);
 
-  // Handle weapon selection
-  const handleWeaponSelect = useCallback((weapon: Weapon) => {
+  const filteredWeapons = useMemo(() => {
+    if (rarityFilter.size === 0) return sortedWeapons;
+    return sortedWeapons.filter(w => rarityFilter.has(parseInt(w.rarity)));
+  }, [sortedWeapons, rarityFilter]);
+
+  const handleSelect = useCallback((weapon: Weapon) => {
     setWeapon(weapon.id);
+    setWeaponLevel(1);
+    setWeaponRank(1);
     setIsModalOpen(false);
-  }, [setWeapon]);
+  }, [setWeapon, setWeaponLevel, setWeaponRank]);
 
-
-  const openModal = useCallback(() => {
-    setIsModalOpen(true);
+  const toggleRarity = useCallback((r: number) => {
+    setRarityFilter(prev => {
+      const next = new Set(prev);
+      next.has(r) ? next.delete(r) : next.add(r);
+      return next;
+    });
   }, []);
 
-  const closeModal = useCallback(() => {
-    setIsModalOpen(false);
-  }, []);
+  const clearFilters = useCallback(() => setRarityFilter(new Set()), []);
+
+  if (!character) return null;
+
+  const weaponPaths = selectedWeapon ? getWeaponPaths(selectedWeapon) : FALLBACK_WEAPON;
+  const weaponLabel = selectedWeapon
+    ? t(selectedWeapon.nameI18n ?? { en: selectedWeapon.name })
+    : 'Select Weapon';
 
   return (
     <>
-      {/* Weapon Selection Button */}
-      <div className={`flex flex-col gap-2 ${className}`}>
-        <span className="text-sm font-medium text-text-primary/80">Weapon</span>
-        <button
-          onClick={openModal}
-          className="flex items-center gap-3 rounded-lg border border-border bg-background-secondary p-3 transition-colors hover:border-accent hover:bg-background"
-        >
-          {/* Weapon Image */}
-          <div
-            className={`relative h-16 w-16 overflow-hidden rounded-lg border-2 ${
-              selectedWeapon ? RARITY_BORDERS[selectedWeapon.rarity] : 'border-border'
-            } ${selectedWeapon ? RARITY_COLORS[selectedWeapon.rarity] : 'bg-background'}`}
-          >
-            <AssetImage
-              paths={getWeaponPaths(selectedWeapon)}
-              alt={selectedWeapon?.name || 'Select Weapon'}
-              className="h-full w-full object-contain"
-            />
-          </div>
+      {/* Compact trigger */}
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className={`group flex items-center gap-2.5 rounded-lg border border-border bg-background p-2 transition-colors hover:border-text-primary/30 ${className}`}
+      >
+        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+          <AssetImage paths={weaponPaths} alt={weaponLabel} className="h-full w-full object-contain" />
+        </div>
+        <span className={`text-lg font-medium ${selectedWeapon ? 'text-text-primary' : 'text-text-primary/50'}`}>
+          {weaponLabel}
+        </span>
+      </button>
 
-          {/* Weapon Info */}
-          <div className="flex flex-col items-start">
-            {selectedWeapon ? (
-              <>
-                <span className="font-semibold text-text-primary">
-                  {selectedWeapon.name}
-                </span>
-                <span className="text-xs text-text-primary/60">
-                  {selectedWeapon.rarity} | {selectedWeapon.main_stat}
-                </span>
-              </>
-            ) : (
-              <span className="text-text-primary/60">Click to select...</span>
-            )}
-          </div>
-        </button>
-      </div>
-
-      {/* Weapon Selection Modal */}
+      {/* Selection modal */}
       <Modal
         isOpen={isModalOpen}
-        onClose={closeModal}
-        title={`Select ${selectedCharacter.weaponType}`}
-        contentClassName="w-[700px] max-w-[90vw]"
+        onClose={() => setIsModalOpen(false)}
+        title={`Select ${character.weaponType}`}
+        contentClassName="w-full mx-8 lg:mx-32 max-h-[90vh]"
       >
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
-          {sortedWeapons.map((weapon) => (
-            <button
-              key={weapon.id}
-              onClick={() => handleWeaponSelect(weapon)}
-              className={`group relative flex flex-col items-center gap-1 overflow-hidden rounded-lg border-2 p-2 transition-all hover:scale-105 ${
-                RARITY_BORDERS[weapon.rarity]
-              } ${
-                selectedWeapon?.id === weapon.id ? 'ring-2 ring-accent' : ''
-              }`}
-              style={{
-                backgroundImage: `url('/images/Quality/${weapon.rarity}.png')`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }}
-            >
-              {/* Weapon Image */}
-              <div className="relative h-16 w-16">
-                <AssetImage
-                  paths={getWeaponPaths(weapon)}
-                  alt={weapon.name}
-                  className="h-full w-full object-contain transition-transform group-hover:scale-110"
-                />
-              </div>
+        <div className="flex h-full flex-col gap-3">
+          {/* Rarity filter chips */}
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {RARITIES.map(r => (
+              <button
+                key={r}
+                onClick={() => toggleRarity(r)}
+                className={`rounded-md border px-3 py-1 text-sm font-medium transition-colors
+                  ${rarityFilter.has(r)
+                    ? RARITY_CHIP_ACTIVE[r]
+                    : 'border-border text-text-primary/50 hover:border-text-primary/30'
+                  }
+                `}
+              >
+                {r}★
+              </button>
+            ))}
 
-              {/* Weapon Name */}
-              <span className="text-center text-xs font-medium text-gray-900">
-                {weapon.name}
-              </span>
-            </button>
-          ))}
+            {rarityFilter.size > 0 && (
+              <>
+                <span className="mx-1 h-5 w-px bg-border" />
+                <button
+                  onClick={clearFilters}
+                  className="rounded-md px-3 py-1 text-sm text-text-primary/40 hover:text-text-primary"
+                >
+                  Clear
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Weapon grid */}
+          {filteredWeapons.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <span className="text-sm text-text-primary/40">No weapons found</span>
+            </div>
+          ) : (
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9">
+                {filteredWeapons.map(weapon => {
+                  const isSelected = selectedWeapon?.id === weapon.id;
+                  const name = t(weapon.nameI18n ?? { en: weapon.name });
+
+                  return (
+                    <button
+                      key={weapon.id}
+                      onClick={() => handleSelect(weapon)}
+                      className={`group relative flex flex-col items-center overflow-hidden rounded-lg border-2 transition-all duration-200
+                        ${RARITY_BG[weapon.rarity] ?? ''}
+                        ${isSelected
+                          ? RARITY_SELECTED[weapon.rarity] ?? 'border-accent'
+                          : `${RARITY_BORDER[weapon.rarity] ?? 'border-border'} ${RARITY_HOVER[weapon.rarity] ?? ''}`
+                        }
+                      `}
+                    >
+                      <div className="relative aspect-square w-full overflow-hidden">
+                        <AssetImage
+                          paths={getWeaponPaths(weapon)}
+                          alt={name}
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+
+                      <div className={`h-0.5 w-full ${RARITY_DIVIDER[weapon.rarity] ?? 'bg-border'}`} />
+
+                      <span className="max-w-full truncate px-1.5 py-1 text-center text-xs leading-tight text-text-primary/80 group-hover:text-text-primary">
+                        {name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </>

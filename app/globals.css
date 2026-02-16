@@ -93,6 +93,42 @@ body {
 .char-sig.havoc   { background-image: linear-gradient(to right, #ff1493, #8b008b, #ff69b4, #9400d3, #ff1493); }
 .char-sig.rover   { background-image: linear-gradient(to right, #ff4500, #00ced1, #b0ffb0, #8a2be2, #fffacd, #8b008b, #ff69b4); }
 
+/* Level slider thumb — golden orb with concave inner diamond */
+.level-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(18, 16, 10, 0.55) 12%, transparent 38%),
+    conic-gradient(from 45deg, #bfad7d, #8a7c52 90deg, #bfad7d 180deg, #8a7c52 270deg, #bfad7d 360deg);
+  border: 2px solid #d4c48c;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 3px rgba(0, 0, 0, 0.45),
+    0 0 8px rgba(166, 150, 98, 0.5);
+  transition: box-shadow 0.15s;
+}
+.level-slider::-webkit-slider-thumb:hover {
+  box-shadow:
+    inset 0 0 3px rgba(0, 0, 0, 0.45),
+    0 0 14px rgba(191, 173, 125, 0.85);
+}
+.level-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(18, 16, 10, 0.55) 12%, transparent 38%),
+    conic-gradient(from 45deg, #bfad7d, #8a7c52 90deg, #bfad7d 180deg, #8a7c52 270deg, #bfad7d 360deg);
+  border: 2px solid #d4c48c;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 3px rgba(0, 0, 0, 0.45),
+    0 0 8px rgba(166, 150, 98, 0.5);
+}
+
 /* Rover rainbow animation (cycles through all element colors) */
 @keyframes rover-rainbow {
   0%, 100% { border-color: #F0744E; }

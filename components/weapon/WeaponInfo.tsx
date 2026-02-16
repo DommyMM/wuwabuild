@@ -65,7 +65,7 @@ export const WeaponInfo: React.FC<WeaponInfoProps> = ({
   return (
     <div className={`rounded-lg border border-border bg-background-secondary p-4 ${className}`}>
       {/* Weapon Selector */}
-      <WeaponSelector selectedCharacter={selectedCharacter} />
+      <WeaponSelector />
 
       {/* Weapon Details (only show if weapon is selected) */}
       {selectedWeapon && (

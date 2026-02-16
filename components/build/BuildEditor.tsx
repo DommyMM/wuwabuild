@@ -5,10 +5,67 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
 import { Save, Download, Upload, RotateCcw } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
+import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
+import { WeaponSelector } from '@/components/weapon/WeaponSelector';
 import { AssetImage } from '@/components/ui/AssetImage';
+import { LevelSlider } from '@/components/ui/LevelSlider';
+import { getSequenceIconPaths } from '@/lib/paths';
+
+// ---------------------------------------------------------------------------
+// Sequence selector sub-component
+// ---------------------------------------------------------------------------
+
+const SEQUENCE_NODES = [1, 2, 3, 4, 5, 6] as const;
+
+interface SequenceSelectorProps {
+  cdnId: number;
+  current: number;
+  onChange: (seq: number) => void;
+}
+
+const SequenceSelector: React.FC<SequenceSelectorProps> = ({ cdnId, current, onChange }) => {
+  const iconPaths = getSequenceIconPaths(cdnId);
+
+  const handleClick = (n: number) => {
+    // Click active node → deactivate (set to n-1); click inactive → activate up to n
+    onChange(n <= current ? n - 1 : n);
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="mr-1 text-xs font-medium text-text-primary/50">S{current}</span>
+      {SEQUENCE_NODES.map(n => {
+        const active = n <= current;
+        return (
+          <button
+            key={n}
+            onClick={() => handleClick(n)}
+            className={`relative h-9 w-9 overflow-hidden rounded-full border-2 transition-all duration-200
+              ${active
+                ? 'border-accent shadow-[0_0_8px_var(--color-accent)] brightness-110'
+                : 'border-border brightness-50 grayscale hover:brightness-75 hover:grayscale-50'
+              }
+            `}
+            aria-label={`Sequence ${n}`}
+          >
+            <AssetImage
+              paths={iconPaths}
+              alt={`S${n}`}
+              className="h-full w-full object-cover"
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// BuildEditor
+// ---------------------------------------------------------------------------
 
 interface BuildEditorProps {
   className?: string;
@@ -27,18 +84,22 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
 
-  const { state, resetBuild } = useBuild();
+  const {
+    state, resetBuild,
+    setCharacterLevel, setSequence,
+    setWeaponLevel, setWeaponRank,
+  } = useBuild();
+  const { getWeapon } = useGameData();
   const { t } = useLanguage();
   const selected = useSelectedCharacter();
+  const selectedWeapon = getWeapon(state.weaponId);
 
   const { scrollY } = useScroll();
 
-  // Find the navbar portal target on mount
   useEffect(() => {
     setPortalTarget(document.getElementById('nav-toolbar-portal'));
   }, []);
 
-  // Track action bar visibility via scroll position + bounding rect
   useMotionValueEvent(scrollY, 'change', () => {
     const el = actionBarRef.current;
     if (!el) return;
@@ -64,38 +125,22 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
           </span>
         )}
         <div className="flex items-center gap-1.5 md:gap-2">
-          <button
-            onClick={onSave}
-            className="flex items-center gap-2 rounded-lg border border-accent bg-accent/10 p-2 md:px-4 md:py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
-          >
-            <Save size={16} />
-            <span className="hidden md:inline">Save</span>
+          <button onClick={onSave} className="flex items-center gap-2 rounded-lg border border-accent bg-accent/10 p-2 md:px-4 md:py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20">
+            <Save size={16} /><span className="hidden md:inline">Save</span>
           </button>
-          <button
-            onClick={onLoad}
-            className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 md:px-4 md:py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
-          >
-            <Upload size={16} />
-            <span className="hidden md:inline">Load</span>
+          <button onClick={onLoad} className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 md:px-4 md:py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40">
+            <Upload size={16} /><span className="hidden md:inline">Load</span>
           </button>
-          <button
-            onClick={onExport}
-            className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 md:px-4 md:py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40"
-          >
-            <Download size={16} />
-            <span className="hidden md:inline">Export</span>
+          <button onClick={onExport} className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 md:px-4 md:py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40">
+            <Download size={16} /><span className="hidden md:inline">Export</span>
           </button>
-          <button
-            onClick={handleResetBuild}
-            className="flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 md:px-4 md:py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
-          >
-            <RotateCcw size={16} />
-            <span className="hidden md:inline">Reset</span>
+          <button onClick={handleResetBuild} className="flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 md:px-4 md:py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20">
+            <RotateCcw size={16} /><span className="hidden md:inline">Reset</span>
           </button>
         </div>
       </div>
 
-      {/* Portal: Compact action buttons in navbar when action bar scrolls out of view */}
+      {/* Portal: compact nav toolbar */}
       {portalTarget && createPortal(
         <AnimatePresence>
           {!isActionBarVisible && (
@@ -108,37 +153,19 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
               className="flex items-center gap-1 md:gap-1.5"
             >
               {state.isDirty && (
-                <span className="hidden md:inline rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400">
-                  Unsaved
-                </span>
+                <span className="hidden md:inline rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400">Unsaved</span>
               )}
-              <button
-                onClick={onSave}
-                className="flex items-center gap-1.5 rounded-md border border-accent bg-accent/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20"
-              >
-                <Save size={14} />
-                <span className="hidden md:inline">Save</span>
+              <button onClick={onSave} className="flex items-center gap-1.5 rounded-md border border-accent bg-accent/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20">
+                <Save size={14} /><span className="hidden md:inline">Save</span>
               </button>
-              <button
-                onClick={onLoad}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-background p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-text-primary/40"
-              >
-                <Upload size={14} />
-                <span className="hidden md:inline">Load</span>
+              <button onClick={onLoad} className="flex items-center gap-1.5 rounded-md border border-border bg-background p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-text-primary/40">
+                <Upload size={14} /><span className="hidden md:inline">Load</span>
               </button>
-              <button
-                onClick={onExport}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-background p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-text-primary/40"
-              >
-                <Download size={14} />
-                <span className="hidden md:inline">Export</span>
+              <button onClick={onExport} className="flex items-center gap-1.5 rounded-md border border-border bg-background p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-text-primary/40">
+                <Download size={14} /><span className="hidden md:inline">Export</span>
               </button>
-              <button
-                onClick={handleResetBuild}
-                className="flex items-center gap-1.5 rounded-md border border-red-500/50 bg-red-500/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20"
-              >
-                <RotateCcw size={14} />
-                <span className="hidden md:inline">Reset</span>
+              <button onClick={handleResetBuild} className="flex items-center gap-1.5 rounded-md border border-red-500/50 bg-red-500/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20">
+                <RotateCcw size={14} /><span className="hidden md:inline">Reset</span>
               </button>
             </motion.div>
           )}
@@ -148,26 +175,76 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
 
       {/* Resonator */}
       <div className="flex flex-col">
-        {/* Top row — selector pinned right, merges with card corner */}
         <div className="flex justify-end">
           <CharacterSelector className="rounded-b-none border-b-0" />
         </div>
 
-        {/* Main content — top-right merges with selector */}
         <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-4">
           {selected ? (
             <div className="flex gap-6">
-              {/* Character RolePile portrait */}
-              <div className="shrink-0">
+              {/* Left column: portrait + level */}
+              <div className="flex shrink-0 flex-col gap-3">
                 <AssetImage
                   paths={selected.bannerPaths}
                   alt={t(selected.nameI18n)}
-                  className="h-120 w-auto rounded-lg object-contain"
+                  className="h-96 w-auto rounded-lg object-contain"
+                />
+                <LevelSlider
+                  value={state.characterLevel}
+                  onLevelChange={setCharacterLevel}
+                  label="Level"
+                  showDiamonds={false}
+                  showBreakpoints={false}
                 />
               </div>
 
-              {/* Character info — future components (level, sequence, forte) go here */}
-              <div className="flex-1" />
+              {/* Right column: sequences + weapon */}
+              <div className="flex flex-1 flex-col gap-5">
+                {/* Sequences */}
+                {selected.character.cdnId && (
+                  <SequenceSelector
+                    cdnId={selected.character.cdnId}
+                    current={state.sequence}
+                    onChange={setSequence}
+                  />
+                )}
+
+                <div className="h-px bg-border" />
+
+                {/* Weapon */}
+                <WeaponSelector />
+
+                {selectedWeapon && (
+                  <div className="flex max-w-sm flex-col gap-4">
+                    <LevelSlider
+                      value={state.weaponLevel}
+                      onLevelChange={setWeaponLevel}
+                      label="Weapon Level"
+                      showDiamonds={false}
+                      showBreakpoints={false}
+                    />
+
+                    {/* Rank (Refinement) */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="mr-2 text-sm font-medium text-text-primary/60">Rank</span>
+                      {[1, 2, 3, 4, 5].map(r => (
+                        <button
+                          key={r}
+                          onClick={() => setWeaponRank(r)}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md border text-xs font-semibold transition-all
+                            ${r === state.weaponRank
+                              ? 'border-accent bg-accent/20 text-accent'
+                              : 'border-border text-text-primary/40 hover:border-text-primary/30 hover:text-text-primary/60'
+                            }
+                          `}
+                        >
+                          R{r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-center py-12 text-text-primary/40">

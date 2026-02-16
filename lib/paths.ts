@@ -365,3 +365,9 @@ export const getWavebandPaths = (characterName: string, characterId?: string): I
 export const getQualityPaths = (rarity: string): ImagePaths => {
   return getAssetPath('quality', rarity);
 };
+
+// Sequence (Resonance Chain) icon for a character.
+export const getSequenceIconPaths = (cdnId: number): ImagePaths => ({
+  cdn: `${PATHS.cdn.base}/Image/IconRup/T_IconRup_Part_${cdnId}_UI.png`,
+  local: '/images/Resources/Resonator.png',
+});
