@@ -57,6 +57,15 @@ const RARITY_DIVIDER: Record<WeaponRarity, string> = {
   '1-star': 'bg-gray-400/30',
 };
 
+/** Rarity → shimmering gradient for weapon name text */
+const RARITY_GRADIENT: Record<WeaponRarity, string> = {
+  '5-star': 'linear-gradient(to right, #ffd700, #fff7b5, #ffd700)',
+  '4-star': 'linear-gradient(to right, #c468e9, #e1bef3, #c468e9)',
+  '3-star': 'linear-gradient(to right, #6ebfce, #b4d4da, #6ebfce)',
+  '2-star': 'linear-gradient(to right, #7ab488, #bad1bf, #7ab488)',
+  '1-star': 'linear-gradient(to right, #595959, #868686, #595959)',
+};
+
 /** Numeric rarity → active filter chip styling */
 const RARITY_CHIP_ACTIVE: Record<number, string> = {
   5: 'bg-rarity-5/20 border-rarity-5/50 text-rarity-5',
@@ -121,15 +130,35 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
 
   return (
     <>
-      {/* Compact trigger */}
+      {/* Weapon trigger — icon-centric, text below */}
       <button
         onClick={() => setIsModalOpen(true)}
-        className={`group flex items-center gap-2.5 rounded-lg border border-border bg-background p-2 transition-colors hover:border-text-primary/30 ${className}`}
+        className={`group flex flex-col items-center gap-2 ${className}`}
       >
-        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
-          <img src={weaponPaths} alt={weaponLabel} className="h-full w-full object-contain" />
-        </div>
-        <span className={`text-lg font-medium ${selectedWeapon ? 'text-text-primary' : 'text-text-primary/50'}`}>
+        {selectedWeapon ? (
+          <div className="h-32 w-32 overflow-hidden rounded-xl border border-border bg-background-secondary transition-colors group-hover:border-[rgba(166,150,98,0.4)]">
+            <img
+              src={weaponPaths}
+              alt={weaponLabel}
+              className="h-full w-full object-cover drop-shadow-[0_0_12px_rgba(166,150,98,0.3)]"
+            />
+          </div>
+        ) : (
+          <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-[#555] transition-colors group-hover:border-[rgba(166,150,98,0.5)]">
+            <img src={FALLBACK_WEAPON} alt="Select Weapon" className="h-10 w-10 object-contain opacity-30" />
+          </div>
+        )}
+        <span
+          className="text-xl font-medium"
+          style={selectedWeapon ? {
+            backgroundImage: RARITY_GRADIENT[selectedWeapon.rarity],
+            backgroundSize: '200% auto',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            animation: 'shine 3s linear infinite',
+          } : undefined}
+        >
           {weaponLabel}
         </span>
       </button>

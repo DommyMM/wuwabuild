@@ -156,8 +156,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                   />
                 )}
 
-                <div className="h-px bg-border" />
-
                 {/* Weapon */}
                 <WeaponSelector />
 
