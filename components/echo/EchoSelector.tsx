@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Modal } from '@/components/ui/Modal';
-import { AssetImage } from '@/components/ui/AssetImage';
 import { Echo, ElementType, ELEMENT_SETS, COST_SECTIONS } from '@/types/echo';
 import { getEchoPaths } from '@/lib/paths';
 
@@ -111,8 +110,8 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
       >
         {/* Echo Image */}
         <div className="relative h-14 w-14 overflow-hidden rounded-lg">
-          <AssetImage
-            paths={getEchoPaths(echo)}
+          <img
+            src={getEchoPaths(echo)}
             alt={echo.name}
             className="h-full w-full object-cover transition-transform group-hover:scale-110"
             loading="lazy"

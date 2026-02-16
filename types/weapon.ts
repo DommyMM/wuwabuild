@@ -132,7 +132,7 @@ export const adaptCDNWeapon = (cdn: CDNWeapon): Weapon => ({
   // CDN-native fields
   nameI18n: cdn.name,
   cdnId: cdn.id,
-  iconUrl: cdn.icon.iconMiddle,
+  iconUrl: cdn.icon.icon,
   rarityColor: cdn.rarity.color,
   effect: cdn.effect,
   effectName: cdn.effectName,

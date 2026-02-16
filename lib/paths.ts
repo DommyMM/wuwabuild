@@ -87,11 +87,7 @@ const STAT_CDN_NAMES: Record<string, string> = {
   'Liberation DMG': 'SkillDamage4'
 };
 
-export interface ImagePaths {
-  cdn: string;
-  local: string;
-}
-
+/** CDN-only path segments. All asset URLs are built from this base. */
 export const PATHS = {
   cdn: {
     base: 'https://files.wuthery.com/p/GameData/UIResources/Common',
@@ -107,20 +103,6 @@ export const PATHS = {
     wavebands: 'Image/IconDevice',
     quality: 'Image/Quality'
   } as PathConfig,
-  local: {
-    base: '/images',
-    faces: 'Faces',
-    icons: 'Icons',
-    elements: 'Elements',
-    face1: 'Face1',
-    weapons: 'Weapons',
-    echoes: 'Echoes',
-    skills: 'Skills',
-    stats: 'Stats',
-    sets: 'SetIcons',
-    wavebands: 'Wavebands',
-    quality: 'Quality'
-  } as PathConfig
 };
 
 // Phantom echo CDN ID mappings
@@ -197,11 +179,15 @@ export interface GetAssetPathOptions {
   skillType?: string;
 }
 
+/**
+ * Build a CDN URL for the given asset category + entity.
+ * Returns a single string (the CDN URL).
+ */
 export const getAssetPath = (
   category: ImageCategory,
   input: string | Character | Weapon | Echo,
   options: GetAssetPathOptions = {}
-): ImagePaths => {
+): string => {
   const { useAltSkin, isPhantom, skillType } = options;
   const name = typeof input === 'string' ? input : input.name;
   const id = typeof input === 'string' ? input : input.id;
@@ -210,53 +196,31 @@ export const getAssetPath = (
   switch (category) {
     case 'elements': {
       const cdnName = ELEMENT_NAME_MAP[name];
-      return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.elements}/T_IconElement${cdnName}2_UI.png`,
-        local: `${PATHS.local.base}/${PATHS.local.elements}/${name}.png`
-      };
+      return `${PATHS.cdn.base}/${PATHS.cdn.elements}/T_IconElement${cdnName}2_UI.png`;
     }
     case 'faces':
-      return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.faces}/T_IconRoleHeadCircle256_${id}_UI.png`,
-        local: `${PATHS.local.base}/${PATHS.local.faces}/${name}.png`
-      };
+      return `${PATHS.cdn.base}/${PATHS.cdn.faces}/T_IconRoleHeadCircle256_${id}_UI.png`;
     case 'icons': {
       const skinSuffix = useAltSkin && SKIN_CHARACTERS.includes(name) ? '2' : '';
-      return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.icons}/T_IconRole_Pile_${title}${skinSuffix}_UI.png`,
-        local: `${PATHS.local.base}/${PATHS.local.icons}/${name}${skinSuffix}.png`
-      };
+      return `${PATHS.cdn.base}/${PATHS.cdn.icons}/T_IconRole_Pile_${title}${skinSuffix}_UI.png`;
     }
     case 'face1':
-      return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.face1}/T_IconRoleHead256_${id}_UI.png`,
-        local: `${PATHS.local.base}/${PATHS.local.face1}/${name}.png`
-      };
+      return `${PATHS.cdn.base}/${PATHS.cdn.face1}/T_IconRoleHead256_${id}_UI.png`;
     case 'weapons': {
       const weapon = input as Weapon;
       // Icon URL comes directly from CDN sync data
-      return {
-        cdn: weapon.iconUrl ?? '',
-        local: `${PATHS.local.base}/${PATHS.local.weapons}/${weapon.type}/${encodeURIComponent(weapon.name)}.png`
-      };
+      return weapon.iconUrl ?? '';
     }
     case 'echoes': {
       const echo = input as Echo;
-      const localName = isPhantom ? `Phantom ${echo.name}` : echo.name;
       const echocdn = isPhantom && echo.name in PHANTOM_CDN_IDS ? PHANTOM_CDN_IDS[echo.name] : echo.id;
-      return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.echoes}/T_IconMonsterHead_${echocdn}_UI.png`,
-        local: `${PATHS.local.base}/${PATHS.local.echoes}/${localName}.png`
-      };
+      return `${PATHS.cdn.base}/${PATHS.cdn.echoes}/T_IconMonsterHead_${echocdn}_UI.png`;
     }
     case 'skills': {
       const character = input as Character;
       const roverVariant = getRoverVariant(character.name);
       if (roverVariant) {
-        return {
-          cdn: `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${roverVariant}/SP_Icon${roverVariant}${skillType}.png`,
-          local: `${PATHS.local.base}/${PATHS.local.skills}/${character.name}/SP_Icon${character.name}${skillType}.png`
-        };
+        return `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${roverVariant}/SP_Icon${roverVariant}${skillType}.png`;
       }
       const defaultName = character.title.charAt(0).toUpperCase() + character.title.slice(1).toLowerCase();
       const folderName = SKILL_CDN_NAMES[character.id] || defaultName;
@@ -266,108 +230,35 @@ export const getAssetPath = (
         if (skillType === 'D1') adjustedSkillType = '1D1';
         else if (skillType === 'D2') adjustedSkillType = '2D2';
       }
-      return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${folderName}/SP_Icon${iconName}${adjustedSkillType}.png`,
-        local: `${PATHS.local.base}/${PATHS.local.skills}/${character.name}/SP_Icon${character.name}${adjustedSkillType}.png`
-      };
+      return `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${folderName}/SP_Icon${iconName}${adjustedSkillType}.png`;
     }
     case 'stats': {
       const cdnName = STAT_CDN_NAMES[input as string];
-      return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.stats}/T_Iconproperty${cdnName}_UI.png`,
-        local: `${PATHS.local.base}/${PATHS.local.stats}/${input}.png`
-      };
+      return `${PATHS.cdn.base}/${PATHS.cdn.stats}/T_Iconproperty${cdnName}_UI.png`;
     }
     case 'sets': {
       const setName = SET_NAME_MAP[input as string];
-      return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.sets}/T_IconElementAttri${setName}.png`,
-        local: `${PATHS.local.base}/${PATHS.local.sets}/${input}.png`
-      };
+      return `${PATHS.cdn.base}/${PATHS.cdn.sets}/T_IconElementAttri${setName}.png`;
     }
     case 'wavebands': {
-      return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.wavebands}/T_IconDevice_${id}_UI.png`,
-        local: `${PATHS.local.base}/${PATHS.local.wavebands}/${name}.png`
-      };
+      return `${PATHS.cdn.base}/${PATHS.cdn.wavebands}/T_IconDevice_${id}_UI.png`;
     }
     case 'quality': {
-      return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.quality}/${input}.png`,
-        local: `${PATHS.local.base}/${PATHS.local.quality}/${input}.png`
-      };
+      return `${PATHS.cdn.base}/${PATHS.cdn.quality}/${input}.png`;
     }
   }
 };
 
-// Simple helper functions for common cases that return ImagePaths
-export const getCharacterFacePaths = (character: Character | null): ImagePaths => {
-  if (!character) {
-    return {
-      cdn: '/images/Resources/Resonator.png',
-      local: '/images/Resources/Resonator.png'
-    };
-  }
-  return getAssetPath('faces', character);
-};
-
-export const getCharacterIconPaths = (character: Character | null, useAltSkin?: boolean): ImagePaths => {
-  if (!character) {
-    return {
-      cdn: '/images/Resources/Resonator.png',
-      local: '/images/Resources/Resonator.png'
-    };
-  }
-  return getAssetPath('icons', character, { useAltSkin });
-};
-
-export const getCharacterHeadPaths = (character: Character | null): ImagePaths => {
-  if (!character) {
-    return {
-      cdn: '/images/Resources/Resonator.png',
-      local: '/images/Resources/Resonator.png'
-    };
-  }
-  return getAssetPath('face1', character);
-};
-
-export const getWeaponPaths = (weapon: Weapon | null): ImagePaths => {
-  if (!weapon) {
-    return {
-      cdn: '/images/Resources/Weapon.png',
-      local: '/images/Resources/Weapon.png'
-    };
-  }
+export const getWeaponPaths = (weapon: Weapon | null): string => {
+  if (!weapon) return '/images/Resources/Weapon.png';
   return getAssetPath('weapons', weapon);
 };
 
-export const getEchoPaths = (echo: Echo | null, isPhantom?: boolean): ImagePaths => {
-  if (!echo) {
-    return {
-      cdn: '/images/Resources/Echo.png',
-      local: '/images/Resources/Echo.png'
-    };
-  }
+export const getEchoPaths = (echo: Echo | null, isPhantom?: boolean): string => {
+  if (!echo) return '/images/Resources/Echo.png';
   return getAssetPath('echoes', echo, { isPhantom });
 };
 
-export const getElementPaths = (element: string): ImagePaths => {
+export const getElementPaths = (element: string): string => {
   return getAssetPath('elements', element);
 };
-
-export const getWavebandPaths = (characterName: string, characterId?: string): ImagePaths => {
-  return {
-    cdn: `${PATHS.cdn.base}/${PATHS.cdn.wavebands}/T_IconDevice_${characterId || characterName}_UI.png`,
-    local: `${PATHS.local.base}/${PATHS.local.wavebands}/${characterName}.png`
-  };
-};
-
-export const getQualityPaths = (rarity: string): ImagePaths => {
-  return getAssetPath('quality', rarity);
-};
-
-// Sequence (Resonance Chain) icon for a character.
-export const getSequenceIconPaths = (cdnId: number): ImagePaths => ({
-  cdn: `${PATHS.cdn.base}/Image/IconRup/T_IconRup_Part_${cdnId}_UI.png`,
-  local: '/images/Resources/Resonator.png',
-});

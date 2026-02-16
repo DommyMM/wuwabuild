@@ -11,7 +11,6 @@ import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { SequenceSelector } from '@/components/character/SequenceSelector';
 import { WeaponSelector } from '@/components/weapon/WeaponSelector';
-import { AssetImage } from '@/components/ui/AssetImage';
 import { LevelSlider } from '@/components/ui/LevelSlider';
 
 interface BuildEditorProps {
@@ -131,8 +130,8 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
             <div className="flex gap-6">
               {/* Left column: portrait + level */}
               <div className="flex shrink-0 flex-col gap-3">
-                <AssetImage
-                  paths={selected.bannerPaths}
+                <img
+                  src={selected.banner}
                   alt={t(selected.nameI18n)}
                   className="h-96 w-auto rounded-lg object-contain"
                 />

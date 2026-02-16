@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { AssetImage } from '@/components/ui/AssetImage';
 import { PATHS } from '@/lib/paths';
 
 // Arc geometry: 6 orbs sweep clockwise from 0° (top) to 210° (bottom-left)
@@ -9,9 +8,9 @@ import { PATHS } from '@/lib/paths';
 const NODES = [1, 2, 3, 4, 5, 6] as const;
 const ARC_START = 0;
 const ARC_END = 210;
-const ARC_RADIUS = 115;
-const SIZE = 280;
-const ORB = 36;
+const ARC_RADIUS = 92;
+const SIZE = 224;
+const ORB = 30;
 const MID = SIZE / 2;
 
 const ORB_POS = NODES.map((_, i) => {
@@ -39,11 +38,7 @@ interface SequenceSelectorProps {
 export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
   cdnId, characterName, current, onChange, className = '',
 }) => {
-  // CDN waveband: T_IconDevice_{cdnId}_UI.png
-  const wavebandPaths = {
-    cdn: `${PATHS.cdn.base}/${PATHS.cdn.wavebands}/T_IconDevice_${cdnId}_UI.png`,
-    local: `${PATHS.local.base}/${PATHS.local.wavebands}/${characterName}.png`,
-  };
+  const sequenceIconUrl = `${PATHS.cdn.base}/Image/IconRup/T_IconRup_Part_${cdnId}_UI.png`;
 
   const handleClick = (n: number) => {
     onChange(n <= current ? n - 1 : n);
@@ -53,10 +48,10 @@ export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
     <div className={`relative ${className}`} style={{ width: SIZE, height: SIZE }}>
       {/* Center waveband icon */}
       <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-        <AssetImage
-          paths={wavebandPaths}
-          alt="Waveband"
-          className="h-40 w-auto object-contain drop-shadow-[0_0_12px_rgba(166,150,98,0.3)]"
+        <img
+          src={sequenceIconUrl}
+          alt="Sequence"
+          className="h-32 object-contain drop-shadow-[0_0_12px_rgba(166,150,98,0.3)]"
         />
       </div>
 

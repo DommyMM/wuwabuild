@@ -8,7 +8,6 @@ import { MainStatSelector, SubstatsList } from './StatSelector';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/types/echo';
 import { hasPhantomVariant } from '@/lib/constants/echoBonuses';
 import { ChevronDown, X, Ghost } from 'lucide-react';
-import { AssetImage } from '@/components/ui/AssetImage';
 import { getEchoPaths } from '@/lib/paths';
 
 // ============================================================================
@@ -204,8 +203,8 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
           >
             {/* Echo Image */}
             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-background-secondary">
-              <AssetImage
-                paths={getEchoPaths(echo, panelState.phantom)}
+              <img
+                src={getEchoPaths(echo, panelState.phantom)}
                 alt={echo?.name || 'Select Echo'}
                 className="h-full w-full object-cover"
               />

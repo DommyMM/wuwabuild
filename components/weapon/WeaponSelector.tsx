@@ -5,15 +5,10 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Modal } from '@/components/ui/Modal';
-import { AssetImage } from '@/components/ui/AssetImage';
 import { Weapon, WeaponRarity } from '@/types/weapon';
 import { getWeaponPaths } from '@/lib/paths';
-import type { ImagePaths } from '@/lib/paths';
 
-const FALLBACK_WEAPON: ImagePaths = {
-  cdn: '/images/Resources/Weapon.png',
-  local: '/images/Resources/Weapon.png',
-};
+const FALLBACK_WEAPON = '/images/Resources/Weapon.png';
 
 const RARITIES = [5, 4, 3] as const;
 
@@ -132,7 +127,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
         className={`group flex items-center gap-2.5 rounded-lg border border-border bg-background p-2 transition-colors hover:border-text-primary/30 ${className}`}
       >
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
-          <AssetImage paths={weaponPaths} alt={weaponLabel} className="h-full w-full object-contain" />
+          <img src={weaponPaths} alt={weaponLabel} className="h-full w-full object-contain" />
         </div>
         <span className={`text-lg font-medium ${selectedWeapon ? 'text-text-primary' : 'text-text-primary/50'}`}>
           {weaponLabel}
@@ -202,8 +197,8 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
                       `}
                     >
                       <div className="relative aspect-square w-full overflow-hidden">
-                        <AssetImage
-                          paths={getWeaponPaths(weapon)}
+                        <img
+                          src={getWeaponPaths(weapon)}
                           alt={name}
                           className="h-full w-full object-contain"
                         />

@@ -6,7 +6,6 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { LevelSlider } from '@/components/ui/LevelSlider';
-import { AssetImage } from '@/components/ui/AssetImage';
 import { SequenceSelector } from './SequenceSelector';
 import { getElementPaths } from '@/lib/paths';
 
@@ -112,8 +111,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
         <div className="flex items-center gap-3">
           {/* Character Icon */}
           <div className={`h-10 w-10 overflow-hidden rounded-full border-2 ${elementStyle?.border || 'border-border'}`}>
-            <AssetImage
-              paths={selected.iconRoundPaths}
+            <img
+              src={selected.iconRound}
               alt={displayName}
               className="h-full w-full object-cover"
             />
@@ -154,8 +153,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                   onClick={() => setShowElementModal(true)}
                   className="flex items-center gap-2"
                 >
-                  <AssetImage
-                    paths={getElementPaths(currentElement)}
+                  <img
+                    src={getElementPaths(currentElement)}
                     alt={currentElement}
                     className="h-6 w-6"
                   />
@@ -200,8 +199,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
                             : 'border-border hover:border-text-primary/40'
                           }`}
                       >
-                        <AssetImage
-                          paths={getElementPaths(element)}
+                        <img
+                          src={getElementPaths(element)}
                           alt={element}
                           className="h-10 w-10"
                         />

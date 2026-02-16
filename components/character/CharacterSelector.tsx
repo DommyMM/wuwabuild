@@ -6,9 +6,7 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { Modal } from '@/components/ui/Modal';
-import { AssetImage } from '@/components/ui/AssetImage';
 import { Character, Element } from '@/types/character';
-import type { ImagePaths } from '@/lib/paths';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -90,13 +88,10 @@ const RARITY_SELECTED: Record<number, string> = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Derive face1 (square head) URL from iconRound URL */
-const getHeadPaths = (character: Character | null): ImagePaths => {
-  if (!character?.iconRound) {
-    return { cdn: FALLBACK_FACE, local: FALLBACK_FACE };
-  }
-  const face1Url = character.iconRound.replace(/HeadCircle256/g, 'Head256');
-  return { cdn: face1Url, local: FALLBACK_FACE };
+/** Derive face1 (square head) CDN URL from iconRound URL */
+const getHeadUrl = (character: Character | null): string => {
+  if (!character?.iconRound) return FALLBACK_FACE;
+  return character.iconRound.replace(/HeadCircle256/g, 'Head256');
 };
 
 
@@ -306,8 +301,8 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
                 >
                   {/* Face (square head icon) */}
                   <div className="relative aspect-square w-full overflow-hidden">
-                    <AssetImage
-                      paths={getHeadPaths(character)}
+                    <img
+                      src={getHeadUrl(character)}
                       alt={t(character.nameI18n ?? { en: character.name })}
                       className="h-full w-full object-cover"
                     />
@@ -353,8 +348,8 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         className={`group flex items-center gap-2 rounded-lg border border-border bg-background p-2 transition-colors hover:border-text-primary/30 ${className}`}
       >
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
-          <AssetImage
-            paths={selected?.iconRoundPaths ?? { cdn: FALLBACK_FACE, local: FALLBACK_FACE }}
+          <img
+            src={selected?.iconRound ?? FALLBACK_FACE}
             alt={selected ? t(selected.nameI18n) : 'Select Resonator'}
             className="h-full w-full object-cover"
           />
