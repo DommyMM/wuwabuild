@@ -45,7 +45,6 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   const setLanguage = useCallback((lang: LanguageCode) => {
     setLanguageState(lang);
-    // Persist to localStorage
     if (typeof window !== 'undefined') {
       localStorage.setItem('wuwabuilds-language', lang);
     }
