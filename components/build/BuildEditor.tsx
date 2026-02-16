@@ -139,7 +139,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
 
         <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-4">
           {selected ? (
-            <div className="grid grid-cols-[auto_auto_1fr] grid-rows-[28rem_auto] gap-x-6 gap-y-3">
+            <div className="grid grid-cols-[auto_auto_1fr] grid-rows-[24rem_auto] gap-x-6 gap-y-3">
               {/* Row 1, Col 1: Portrait */}
               <img
                 src={selected.banner}
@@ -186,7 +186,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
               )}
 
               {/* Col 3: Forte */}
-              <div className="col-start-3 row-span-2">
+              <div className="col-start-3 row-span-2 overflow-hidden">
                 <ForteGroup
                   character={selected.character}
                   elementValue={state.roverElement || selected.character.element}
@@ -194,7 +194,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                   levels={state.forteLevels}
                   onNodeChange={setNodeStates}
                   onLevelChange={setForteLevels}
-                  onMaxAll={maxAllFortes}
                 />
               </div>
             </div>

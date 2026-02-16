@@ -207,14 +207,6 @@ body {
   padding: 0;
 }
 
-/* ── Forte: connection line between nodes ── */
-.forte-line {
-  width: 3px;
-  background-image: url('/images/Resources/Line.png');
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  opacity: 0.5;
-}
 
 /* ── Forte: small horizontal level slider (1–10) ── */
 .forte-level-slider::-webkit-slider-thumb {

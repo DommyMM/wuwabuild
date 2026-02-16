@@ -13,7 +13,6 @@ interface ForteGroupProps {
   levels: ForteLevels;
   onNodeChange: (nodeStates: Record<string, Record<string, boolean>>) => void;
   onLevelChange: (levels: ForteLevels) => void;
-  onMaxAll: () => void;
   className?: string;
 }
 
@@ -23,6 +22,9 @@ interface SkillBranchDef {
   treeKey: string;
   hasNodes: boolean;
 }
+
+// Ascending pyramid offsets: outer cols lowest, center highest
+const BRANCH_OFFSETS = ['', 'mb-10', 'mb-20', 'mb-10', ''];
 
 const SKILL_BRANCHES: SkillBranchDef[] = [
   { skillName: 'Normal Attack',        skillKey: 'normal-attack', treeKey: 'tree1', hasNodes: true },
@@ -39,7 +41,6 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
   levels,
   onNodeChange,
   onLevelChange,
-  onMaxAll,
   className = '',
 }) => {
   // ── Bonus stats ──
@@ -79,22 +80,11 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
     [levels, onLevelChange],
   );
 
-  const handleMaxClick = useCallback(() => {
-    onLevelChange({ 'normal-attack': 10, skill: 10, circuit: 10, liberation: 10, intro: 10 });
-    onNodeChange({
-      tree1: { top: true, middle: true },
-      tree2: { top: true, middle: true },
-      tree3: {},
-      tree4: { top: true, middle: true },
-      tree5: { top: true, middle: true },
-    });
-    onMaxAll();
-  }, [onLevelChange, onNodeChange, onMaxAll]);
 
   return (
     <div className={`flex h-full flex-col ${className}`}>
       {/* ── Bonus stat chips ── */}
-      <div className="mb-3 flex flex-wrap items-center justify-center gap-3 text-xs">
+      <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
         <span className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1">
           <img src={bonus1Icon} alt={bonus1Type} className="h-4 w-4 object-contain" />
           <span className="text-text-primary/60">{bonus1Type}</span>
@@ -107,9 +97,8 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
         </span>
       </div>
 
-      {/* ── 5 Skill Branches ── */}
-      <div className="flex flex-1 items-end justify-center gap-1">
-        {SKILL_BRANCHES.map((branch) => (
+      <div className="flex flex-1 items-end">
+        {SKILL_BRANCHES.map((branch, i) => (
           <SkillBranch
             key={branch.skillKey}
             skillName={branch.skillName}
@@ -125,21 +114,11 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
             level={levels[branch.skillKey] || 1}
             onNodeClick={(pos) => handleNodeClick(branch.treeKey, pos)}
             onLevelChange={(lvl) => handleLevelChange(branch.skillKey, lvl)}
+            className={`flex-1 ${BRANCH_OFFSETS[i]}`}
           />
         ))}
       </div>
 
-      {/* ── Max button ── */}
-      <div className="mt-2 flex justify-center">
-        <button onClick={handleMaxClick} className="relative h-10 w-28">
-          <img
-            src="/images/Resources/Max.png"
-            alt="Max"
-            className="h-full w-full object-contain transition-all hover:brightness-125"
-            draggable={false}
-          />
-        </button>
-      </div>
     </div>
   );
 };
