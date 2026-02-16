@@ -139,7 +139,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
 
         <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-4">
           {selected ? (
-            <div className="grid grid-cols-[auto_auto_1fr] grid-rows-[24rem_auto] gap-x-6 gap-y-3">
+            <div className="grid grid-cols-[auto_auto_1fr] grid-rows-[28rem_auto] gap-x-6 gap-y-3">
               {/* Row 1, Col 1: Portrait */}
               <img
                 src={selected.banner}

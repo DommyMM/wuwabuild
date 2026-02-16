@@ -83,7 +83,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
           />
 
           {/* Connection line */}
-          <div className="h-5 w-[2px] bg-text-primary/30" />
+          <div className="h-8 w-[2px] bg-text-primary" />
 
           {/* Middle node */}
           <ForteNode
@@ -97,7 +97,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
           />
 
           {/* Connection line to skill */}
-          <div className="h-5 w-[2px] bg-text-primary/30" />
+          <div className="h-8 w-[2px] bg-text-primary" />
         </>
       ) : (
         /* tree3 — inherent skill nodes (D1 top, D2 middle) */
@@ -105,48 +105,34 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
           {(['top', 'middle'] as const).map((pos, i) => {
             const inherentIcon = character.skillIcons?.[`inherent-${i + 1}`] ?? '';
             const active = isActive[pos];
+            const frameBg = active
+              ? "bg-[url('https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillAHold.png')]"
+              : "bg-[url('https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillALockHold.png')]";
             return (
               <React.Fragment key={pos}>
                 <button
                   onClick={() => onNodeClick(pos)}
-                  className="forte-node group relative h-20 w-20"
+                  className={`group relative flex items-center justify-center cursor-pointer -mx-16 -my-0.5 h-32 w-32 ${frameBg} bg-contain bg-center bg-no-repeat transition-all duration-200 hover:scale-105`}
                   aria-label={`${treeKey} ${pos} inherent`}
                   aria-pressed={active}
                 >
-                  {active ? (
-                    <>
-                      {/* Outer ring frame (empty center) */}
-                      <img
-                        src="https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillAHold.png"
-                        alt=""
-                        className="h-full w-full object-contain transition-transform duration-200 group-hover:scale-105"
-                        draggable={false}
-                      />
-                      {/* Center fill */}
-                      <img
-                        src="https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillANor.png"
-                        alt=""
-                        className="absolute inset-0 h-full w-full object-contain"
-                        draggable={false}
-                      />
-                    </>
-                  ) : (
+                  {active && (
                     <img
-                      src="https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillALockHold.png"
+                      src="https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillANor.png"
                       alt=""
-                      className="h-full w-full object-contain transition-transform duration-200 group-hover:scale-105"
+                      className="absolute inset-0 h-full w-full object-contain"
                       draggable={false}
                     />
                   )}
                   <img
                     src={inherentIcon}
                     alt={`Inherent ${i + 1}`}
-                    className={`absolute left-1/2 top-1/2 h-[32%] w-[32%] -translate-x-1/2 -translate-y-1/2 object-contain invert transition-all
-                      ${active ? 'brightness-100 drop-shadow-[0_0_4px_rgba(166,150,98,0.6)]' : 'brightness-50'}`}
+                    className={`h-8 w-8 object-contain invert transition-all
+                      ${active ? 'opacity-100 drop-shadow-[0_0_4px_rgba(166,150,98,0.6)]' : 'opacity-40'}`}
                     draggable={false}
                   />
                 </button>
-                <div className="h-5 w-[2px] bg-text-primary/30" />
+                <div className="h-6 w-[2px] bg-text-primary" />
               </React.Fragment>
             );
           })}
@@ -154,17 +140,13 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
       )}
 
       {/* ── Skill icon ── */}
-      <div className="relative flex h-24 w-24 items-center justify-center">
-        <img
-          src="https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillBSel1.png"
-          alt=""
-          className="absolute inset-0 h-full w-full object-contain"
-          draggable={false}
-        />
+      <div
+        className="relative -mx-6 -my-10 flex h-44 w-44 items-center justify-center bg-[url('https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillANor.png')] bg-contain bg-center bg-no-repeat transition-all duration-300"
+      >
         <img
           src={skillIcon}
           alt={skillName}
-          className="relative h-[32%] w-[32%] object-contain invert"
+          className="relative h-10 w-10 object-contain invert"
           draggable={false}
           onError={(e) => {
             if (character.elementIcon) (e.target as HTMLImageElement).src = character.elementIcon;
@@ -173,7 +155,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
       </div>
 
       {/* ── Level display ── */}
-      <div className="flex flex-col items-center gap-1">
+      <div className="flex flex-col items-center gap-2">
         <div className="flex items-center gap-1 text-sm text-text-primary/70">
           <span>Lv.</span>
           {isEditing ? (
@@ -207,7 +189,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
           step={1}
           value={level}
           onChange={handleSliderChange}
-          className="forte-level-slider h-1.5 w-20 cursor-pointer appearance-none rounded-full"
+          className="forte-level-slider h-1.5 w-24 cursor-pointer appearance-none rounded-full"
           style={{
             background: `linear-gradient(to right, #a69662 0%, #bfad7d ${fillPct}%, #333333 ${fillPct}%)`,
           }}
@@ -215,7 +197,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
       </div>
 
       {/* ── Skill name ── */}
-      <span className="mt-1 max-w-22 text-center text-[11px] leading-tight text-text-primary/60">
+      <span className="mt-2 text-center text-base leading-tight text-text-primary/60">
         {skillName}
       </span>
     </div>

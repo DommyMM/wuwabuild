@@ -24,8 +24,6 @@
   --color-accent: #a69662;
   --color-accent-hover: #bfad7d;
   --color-border: #333333;
-
-  /* Element Colors (official game data) */
   --color-glacio: #41AEFB;
   --color-fusion: #F0744E;
   --color-electro: #B46BFF;
@@ -33,12 +31,8 @@
   --color-spectro: #F8E56C;
   --color-havoc: #E649A6;
   --color-rover: #7892A1;
-
-  /* Rarity Colors (official game data) */
   --color-rarity-4: #E400F0;
   --color-rarity-5: #CFB17F;
-
-  /* Fonts */
   --font-ropa: 'Ropa', sans-serif;
   --font-gowun: 'Gowun', sans-serif;
 }
@@ -93,7 +87,6 @@ body {
 .char-sig.havoc   { background-image: linear-gradient(to right, #ff1493, #8b008b, #ff69b4, #9400d3, #ff1493); }
 .char-sig.rover   { background-image: linear-gradient(to right, #ff4500, #00ced1, #b0ffb0, #8a2be2, #fffacd, #8b008b, #ff69b4); }
 
-/* Level slider thumb — golden orb with concave inner diamond */
 .level-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -129,10 +122,9 @@ body {
     0 0 8px rgba(166, 150, 98, 0.5);
 }
 
-/* Vertical rank slider (1–5) — golden orb, slim track */
 .rank-slider {
   writing-mode: vertical-lr;
-  direction: rtl;          /* max (5) at top, min (1) at bottom */
+  direction: rtl;
   width: 24px;
   cursor: pointer;
   -webkit-appearance: none;
@@ -168,7 +160,7 @@ body {
   appearance: none;
   width: 18px;
   height: 18px;
-  margin-left: -6px;       /* center thumb on track */
+  margin-left: -6px;
   border-radius: 50%;
   background:
     radial-gradient(circle at 50% 50%, rgba(18, 16, 10, 0.55) 12%, transparent 38%),
@@ -199,16 +191,6 @@ body {
     0 0 6px rgba(166, 150, 98, 0.45);
 }
 
-/* ── Forte: node button ── */
-.forte-node {
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  padding: 0;
-}
-
-
-/* ── Forte: small horizontal level slider (1–10) ── */
 .forte-level-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;

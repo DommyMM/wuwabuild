@@ -24,7 +24,7 @@ interface SkillBranchDef {
 }
 
 // Ascending pyramid offsets: outer cols lowest, center highest
-const BRANCH_OFFSETS = ['', 'mb-10', 'mb-20', 'mb-10', ''];
+const BRANCH_OFFSETS = ['', 'mb-8', 'mb-12', 'mb-8', ''];
 
 const SKILL_BRANCHES: SkillBranchDef[] = [
   { skillName: 'Normal Attack',        skillKey: 'normal-attack', treeKey: 'tree1', hasNodes: true },
@@ -84,7 +84,7 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
   return (
     <div className={`flex h-full flex-col ${className}`}>
       {/* ── Bonus stat chips ── */}
-      <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
+      <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
         <span className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1">
           <img src={bonus1Icon} alt={bonus1Type} className="h-4 w-4 object-contain" />
           <span className="text-text-primary/60">{bonus1Type}</span>
