@@ -9,63 +9,10 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
+import { SequenceSelector } from '@/components/character/SequenceSelector';
 import { WeaponSelector } from '@/components/weapon/WeaponSelector';
 import { AssetImage } from '@/components/ui/AssetImage';
 import { LevelSlider } from '@/components/ui/LevelSlider';
-import { getSequenceIconPaths } from '@/lib/paths';
-
-// ---------------------------------------------------------------------------
-// Sequence selector sub-component
-// ---------------------------------------------------------------------------
-
-const SEQUENCE_NODES = [1, 2, 3, 4, 5, 6] as const;
-
-interface SequenceSelectorProps {
-  cdnId: number;
-  current: number;
-  onChange: (seq: number) => void;
-}
-
-const SequenceSelector: React.FC<SequenceSelectorProps> = ({ cdnId, current, onChange }) => {
-  const iconPaths = getSequenceIconPaths(cdnId);
-
-  const handleClick = (n: number) => {
-    // Click active node → deactivate (set to n-1); click inactive → activate up to n
-    onChange(n <= current ? n - 1 : n);
-  };
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="mr-1 text-xs font-medium text-text-primary/50">S{current}</span>
-      {SEQUENCE_NODES.map(n => {
-        const active = n <= current;
-        return (
-          <button
-            key={n}
-            onClick={() => handleClick(n)}
-            className={`relative h-9 w-9 overflow-hidden rounded-full border-2 transition-all duration-200
-              ${active
-                ? 'border-accent shadow-[0_0_8px_var(--color-accent)] brightness-110'
-                : 'border-border brightness-50 grayscale hover:brightness-75 hover:grayscale-50'
-              }
-            `}
-            aria-label={`Sequence ${n}`}
-          >
-            <AssetImage
-              paths={iconPaths}
-              alt={`S${n}`}
-              className="h-full w-full object-cover"
-            />
-          </button>
-        );
-      })}
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// BuildEditor
-// ---------------------------------------------------------------------------
 
 interface BuildEditorProps {
   className?: string;
@@ -198,12 +145,13 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                 />
               </div>
 
-              {/* Right column: sequences + weapon */}
-              <div className="flex flex-1 flex-col gap-5">
+              {/* Middle column: sequences + weapon (capped to arc width) */}
+              <div className="flex flex-col gap-5">
                 {/* Sequences */}
                 {selected.character.cdnId && (
                   <SequenceSelector
                     cdnId={selected.character.cdnId}
+                    characterName={selected.character.name}
                     current={state.sequence}
                     onChange={setSequence}
                   />
@@ -215,7 +163,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                 <WeaponSelector />
 
                 {selectedWeapon && (
-                  <div className="flex max-w-sm flex-col gap-4">
+                  <div className="flex flex-col gap-4">
                     <LevelSlider
                       value={state.weaponLevel}
                       onLevelChange={setWeaponLevel}
@@ -244,6 +192,10 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Right column: (reserved) */}
+              <div className="flex flex-1 flex-col gap-5">
               </div>
             </div>
           ) : (

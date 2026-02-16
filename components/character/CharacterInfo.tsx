@@ -225,11 +225,14 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
           />
 
           {/* Sequence Selector */}
-          <SequenceSelector
-            characterName={displayName}
-            sequence={currentSequence}
-            onSequenceChange={handleSequenceChange}
-          />
+          {selected?.character.cdnId && (
+            <SequenceSelector
+              cdnId={selected.character.cdnId}
+              characterName={selected.character.name}
+              current={currentSequence}
+              onChange={handleSequenceChange}
+            />
+          )}
         </div>
       </div>
     </div>
