@@ -71,6 +71,28 @@ body {
   border-radius: 100px;
 }
 
+/* Element gradient text shine */
+@keyframes shine {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.char-sig {
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 3s linear infinite;
+}
+
+.char-sig.fusion  { background-image: linear-gradient(to right, #ff4500, #ff8c00, #ffd700, #ff4d00); }
+.char-sig.glacio  { background-image: linear-gradient(to right, #00ced1, #87ceeb, #b0e0e6, #ffffff, #00ffff); }
+.char-sig.aero    { background-image: linear-gradient(to right, #b0ffb0, #d0f0c0, #ffffff, #90ee90, #b0ffb0); }
+.char-sig.electro { background-image: linear-gradient(to right, #8a2be2, #7b68ee, #9370db, #6a5acd, #8a2be2); }
+.char-sig.spectro { background-image: linear-gradient(to right, #fffacd, #ffd700, #ffa500, #fffacd); }
+.char-sig.havoc   { background-image: linear-gradient(to right, #ff1493, #8b008b, #ff69b4, #9400d3, #ff1493); }
+.char-sig.rover   { background-image: linear-gradient(to right, #ff4500, #00ced1, #b0ffb0, #8a2be2, #fffacd, #8b008b, #ff69b4); }
+
 /* Rover rainbow animation (cycles through all element colors) */
 @keyframes rover-rainbow {
   0%, 100% { border-color: #F0744E; }

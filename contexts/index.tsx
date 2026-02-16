@@ -1,15 +1,11 @@
 'use client';
 
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { GameDataProvider, useGameData } from './GameDataContext';
 import { BuildProvider } from './BuildContext';
 import { StatsProvider } from './StatsContext';
 import { LanguageProvider } from './LanguageContext';
 import { SavedState } from '@/types/build';
-
-// ============================================================================
-// Combined Provider
-// ============================================================================
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -39,10 +35,6 @@ export function AppProviders({ children, initialBuildState }: AppProvidersProps)
     </LanguageProvider>
   );
 }
-
-// ============================================================================
-// Loading Component
-// ============================================================================
 
 interface DataLoadingGateProps {
   children: ReactNode;

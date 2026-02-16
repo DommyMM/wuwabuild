@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, ImgHTMLAttributes } from 'react';
+import { useState, ImgHTMLAttributes } from 'react';
 import { ImagePaths } from '@/lib/paths';
 
 interface AssetImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
@@ -8,21 +8,17 @@ interface AssetImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src
 }
 
 export const AssetImage: React.FC<AssetImageProps> = ({ paths, alt, ...props }) => {
-  const [src, setSrc] = useState(paths.cdn);
-  const [hasError, setHasError] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  const handleError = () => {
-    if (!hasError && paths.local !== paths.cdn) {
-      setHasError(true);
-      setSrc(paths.local);
-    }
-  };
+  const src = failedSrc === paths.cdn ? paths.local : paths.cdn;
 
   return (
     <img
       src={src}
       alt={alt}
-      onError={handleError}
+      onError={() => {
+        if (paths.local !== paths.cdn) setFailedSrc(paths.cdn);
+      }}
       {...props}
     />
   );

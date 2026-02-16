@@ -347,7 +347,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     <>
       <button
         onClick={() => setIsModalOpen(true)}
-        className={`group flex items-center gap-3 rounded-lg border border-border bg-background p-2 transition-colors hover:border-text-primary/30 ${className}`}
+        className={`group flex items-center gap-2 rounded-lg border border-border bg-background p-2 transition-colors hover:border-text-primary/30 ${className}`}
       >
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
           <AssetImage
@@ -357,20 +357,9 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           />
         </div>
 
-        <div className="flex flex-col items-start text-left">
-          {selected ? (
-            <>
-              <span className="text-sm font-semibold text-text-primary">
-                {selected.displayName}
-              </span>
-              <span className="text-xs text-text-primary/50">
-                {selected.element} · {selected.character.weaponType}
-              </span>
-            </>
-          ) : (
-            <span className="text-sm text-text-primary/50">Select Resonator</span>
-          )}
-        </div>
+        <span className={`text-2xl font-medium ${selected ? `char-sig ${selected.element.toLowerCase()}` : 'text-text-primary/50'}`}>
+          {selected?.displayName ?? 'Select Resonator'}
+        </span>
       </button>
 
       <Modal
