@@ -156,6 +156,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
                 value={state.weaponRank}
                 onChange={e => setWeaponRank(parseInt(e.target.value))}
                 className="rank-slider h-28"
+                style={{ '--fill': `${((state.weaponRank - 1) / 4) * 100}%` } as React.CSSProperties}
               />
             </div>
             <span className="text-xs font-bold text-text-primary/40">1</span>

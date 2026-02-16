@@ -2,7 +2,7 @@ import { Character, SKIN_CHARACTERS } from '@/types/character';
 import { Weapon } from '@/types/weapon';
 import { Echo } from '@/types/echo';
 
-export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes' | 'skills' | 'stats' | 'sets' | 'wavebands' | 'quality';
+export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes' | 'stats' | 'sets' | 'wavebands' | 'quality';
 
 interface PathConfig {
   base: string;
@@ -12,7 +12,6 @@ interface PathConfig {
   face1: string;
   weapons: string;
   echoes: string;
-  skills: string;
   stats: string;
   sets: string;
   wavebands: string;
@@ -97,7 +96,6 @@ export const PATHS = {
     face1: 'Image/IconRoleHead256',
     weapons: 'Image/IconWeapon',
     echoes: 'Image/IconMonsterHead',
-    skills: 'Atlas/SkillIcon',
     stats: 'Image/IconAttribute',
     sets: 'Image/IconElementAttri',
     wavebands: 'Image/IconDevice',
@@ -143,40 +141,9 @@ const PHANTOM_CDN_IDS: Record<string, string> = {
   'Sigillum': 'SG_34025'
 };
 
-// Skill folder name overrides for CDN
-const SKILL_CDN_NAMES: Record<string, string> = {
-  '13': 'Motefei',
-  '23': 'Jianxin',
-  '7': 'Sanhua',
-  '55': 'JiaBeiLiNa',
-  '57': 'Qianxiao',
-  '60': 'LinNai',
-  '61': 'MoNing'
-};
-
-// Skill icon name overrides for CDN
-const SKILL_ICON_NAMES: Record<string, string> = {
-  '9': 'TaoHua',
-  '13': 'Motefei',
-  '23': 'Jianxin',
-  '7': 'Sanhua',
-  '55': 'JiaBeiLiNa',
-  '57': 'Qianxiao',
-  '60': 'LinNai',
-  '61': 'MoNing'
-};
-
-const getRoverVariant = (name: string): string | null => {
-  if (name === 'RoverSpectro') return 'Zhujue';
-  if (name === 'RoverHavoc') return 'ZhujueDark';
-  if (name === 'RoverAero') return 'Fengzhu';
-  return null;
-};
-
 export interface GetAssetPathOptions {
   useAltSkin?: boolean;
   isPhantom?: boolean;
-  skillType?: string;
 }
 
 /**
@@ -188,7 +155,7 @@ export const getAssetPath = (
   input: string | Character | Weapon | Echo,
   options: GetAssetPathOptions = {}
 ): string => {
-  const { useAltSkin, isPhantom, skillType } = options;
+  const { useAltSkin, isPhantom } = options;
   const name = typeof input === 'string' ? input : input.name;
   const id = typeof input === 'string' ? input : input.id;
   const title = typeof input === 'string' ? input : (input as Character).title ?? id;
@@ -215,22 +182,6 @@ export const getAssetPath = (
       const echo = input as Echo;
       const echocdn = isPhantom && echo.name in PHANTOM_CDN_IDS ? PHANTOM_CDN_IDS[echo.name] : echo.id;
       return `${PATHS.cdn.base}/${PATHS.cdn.echoes}/T_IconMonsterHead_${echocdn}_UI.png`;
-    }
-    case 'skills': {
-      const character = input as Character;
-      const roverVariant = getRoverVariant(character.name);
-      if (roverVariant) {
-        return `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${roverVariant}/SP_Icon${roverVariant}${skillType}.png`;
-      }
-      const defaultName = character.title.charAt(0).toUpperCase() + character.title.slice(1).toLowerCase();
-      const folderName = SKILL_CDN_NAMES[character.id] || defaultName;
-      const iconName = SKILL_ICON_NAMES[character.id] || defaultName;
-      let adjustedSkillType = skillType;
-      if (character.id === '55') {
-        if (skillType === 'D1') adjustedSkillType = '1D1';
-        else if (skillType === 'D2') adjustedSkillType = '2D2';
-      }
-      return `${PATHS.cdn.base}/${PATHS.cdn.skills}/SkillIcon${folderName}/SP_Icon${iconName}${adjustedSkillType}.png`;
     }
     case 'stats': {
       const cdnName = STAT_CDN_NAMES[input as string];

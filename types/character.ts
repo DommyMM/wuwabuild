@@ -51,6 +51,7 @@ export interface CDNCharacter {
   skins: Array<{ id: number; icon: { iconRound: string; banner: string }; color: Record<string, string | null> }>;
   tags: Array<{ id: number; name: I18nString; icon: string }>;
   stats: { Life: number; Atk: number; Def: number; Crit: number; CritDamage: number; DamageChangeNormalSkill?: number };
+  skillIcons?: Record<string, string>;
 }
 
 // CDN weapon ID -> WeaponType mapping
@@ -105,6 +106,8 @@ export interface Character {
   banner?: string;
   rarity?: number;
   skins?: CDNCharacter['skins'];
+  elementIcon?: string; // CDN element icon URL (element.icon["1"])
+  skillIcons?: Record<string, string>; // CDN skill icon URLs keyed by type
 }
 
 export const SKIN_CHARACTERS = ['Jinhsi', 'Sanhua', 'Changli', 'Carlotta'] as readonly string[];
@@ -169,6 +172,8 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     banner: cdn.icon.banner,
     rarity: cdn.rarity.id,
     skins: cdn.skins,
+    elementIcon: cdn.element.icon?.['1'],
+    skillIcons: cdn.skillIcons,
   };
 };
 

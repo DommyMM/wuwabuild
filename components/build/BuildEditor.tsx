@@ -12,6 +12,7 @@ import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { SequenceSelector } from '@/components/character/SequenceSelector';
 import { WeaponSelector } from '@/components/weapon/WeaponSelector';
 import { LevelSlider } from '@/components/ui/LevelSlider';
+import { ForteGroup } from '@/components/forte/ForteGroup';
 
 interface BuildEditorProps {
   className?: string;
@@ -34,6 +35,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
     state, resetBuild,
     setCharacterLevel, setSequence,
     setWeapon, setWeaponLevel, setWeaponRank,
+    setNodeStates, setForteLevels, maxAllFortes,
   } = useBuild();
   const { getWeapon } = useGameData();
   const { t } = useLanguage();
@@ -183,8 +185,18 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
                 </div>
               )}
 
-              {/* Col 3: Reserved */}
-              <div className="col-start-3 row-span-2" />
+              {/* Col 3: Forte */}
+              <div className="col-start-3 row-span-2">
+                <ForteGroup
+                  character={selected.character}
+                  elementValue={state.roverElement || selected.character.element}
+                  nodeStates={state.nodeStates}
+                  levels={state.forteLevels}
+                  onNodeChange={setNodeStates}
+                  onLevelChange={setForteLevels}
+                  onMaxAll={maxAllFortes}
+                />
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-center py-12 text-text-primary/40">

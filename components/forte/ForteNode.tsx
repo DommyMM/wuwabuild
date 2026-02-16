@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useCallback } from 'react';
-import { Character } from '@/types/character';
+import React from 'react';
+import { Character, Element } from '@/types/character';
+import { getAssetPath } from '@/lib/paths';
 
 interface ForteNodeProps {
   treeKey: string;
@@ -13,6 +14,19 @@ interface ForteNodeProps {
   className?: string;
 }
 
+/** Non-element Bonus1 types → stat key for getAssetPath('stats', …). */
+const NON_ELEMENT_STAT_KEY: Record<string, string> = {
+  'Crit Rate': 'Crit Rate',
+  'Crit DMG': 'Crit DMG',
+  'Healing': 'Healing Bonus',
+  'ATK': 'ATK%',
+  'HP': 'HP%',
+  'DEF': 'DEF%',
+};
+
+/** All Element enum values for quick lookup. */
+const ELEMENT_VALUES = new Set<string>(Object.values(Element));
+
 export const ForteNode: React.FC<ForteNodeProps> = ({
   treeKey,
   nodePosition,
@@ -20,63 +34,50 @@ export const ForteNode: React.FC<ForteNodeProps> = ({
   elementValue,
   isActive,
   onClick,
-  className = ''
+  className = '',
 }) => {
-  const isRover = character.name.startsWith('Rover');
-  const isElementTree = treeKey === 'tree1' || treeKey === 'tree5';
+  const isBonus1Tree = treeKey === 'tree1' || treeKey === 'tree5';
 
-  // Get node image URL
-  const getNodeImageUrl = (): string => {
-    // For Rover's element trees (tree1 and tree5), use element-based icons
-    if (isRover && isElementTree) {
-      return `/images/Elements/${elementValue}.png`;
+  const getNodeIcon = (): string => {
+    if (isBonus1Tree) {
+      // If Bonus1 is an element type (Fusion, Glacio, etc.) → use CDN element icon
+      if (ELEMENT_VALUES.has(character.Bonus1)) {
+        return character.elementIcon ?? getAssetPath('stats', `${character.Bonus1} DMG`);
+      }
+      // Non-element Bonus1 (Crit Rate, Crit DMG, Healing, etc.)
+      const key = NON_ELEMENT_STAT_KEY[character.Bonus1] ?? character.Bonus1;
+      return getAssetPath('stats', key);
     }
 
-    // For other nodes, use stat/bonus type icons
-    // tree1: Normal Attack (ATK based)
-    // tree2: Skill (element based)
-    // tree3: Circuit (character specific)
-    // tree4: Liberation (element based)
-    // tree5: Intro (element based)
-    const treeToStat: Record<string, string> = {
-      tree1: 'Attack',
-      tree2: elementValue,
-      tree3: 'ER',
-      tree4: elementValue,
-      tree5: elementValue
-    };
-
-    return `/images/Elements/${treeToStat[treeKey] || elementValue}.png`;
+    // tree2 / tree4 → Bonus2 (ATK / HP / DEF percentage)
+    return getAssetPath('stats', `${character.Bonus2}%`);
   };
 
-  // Handle click
-  const handleClick = useCallback(() => {
-    onClick();
-  }, [onClick]);
+  // Game's actual node frame images
+  const frameSrc = isActive
+    ? '/images/Resources/NodeFull.png'
+    : '/images/Resources/NodeEmpty.png';
 
   return (
     <button
-      onClick={handleClick}
-      className={`group relative flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all ${
-        isActive
-          ? 'border-accent bg-accent/30 shadow-[0_0_12px_rgba(166,150,98,0.5)]'
-          : 'border-border bg-background-secondary hover:border-text-primary/40'
-      } ${className}`}
+      onClick={onClick}
+      className={`forte-node group relative ${className}`}
       aria-label={`${treeKey} ${nodePosition} node`}
       aria-pressed={isActive}
     >
-      {/* Node glow effect when active */}
-      {isActive && (
-        <div className="absolute inset-0 animate-pulse rounded-full bg-accent/20" />
-      )}
-
-      {/* Node image */}
       <img
-        src={getNodeImageUrl()}
+        src={frameSrc}
+        alt=""
+        className="h-full w-full object-contain transition-transform duration-200 group-hover:scale-105"
+        draggable={false}
+      />
+
+      <img
+        src={getNodeIcon()}
         alt={`${treeKey} ${nodePosition}`}
-        className={`relative h-6 w-6 transition-transform group-hover:scale-110 ${
-          isActive ? 'brightness-125' : 'brightness-75 grayscale-[30%]'
-        }`}
+        className={`absolute left-1/2 top-1/2 h-[28%] w-[28%] -translate-x-1/2 -translate-y-1/2 object-contain transition-all
+          ${isActive ? 'brightness-100 drop-shadow-[0_0_4px_rgba(166,150,98,0.6)]' : 'brightness-50'}`}
+        draggable={false}
       />
     </button>
   );

@@ -10,8 +10,7 @@ Usage:
     python sync_characters.py --fetch --id 1102          # Sync single from CDN
     python sync_characters.py --fetch --id 1102 --dry-run --pretty
     python sync_characters.py --fetch --individual       # Write per-character files instead
-    python sync_characters.py --fetch --include-trees    # Include skillTrees (for lb backend)
-    python sync_characters.py --fetch --include-skills   # Include chains/skills
+    python sync_characters.py --fetch --include-skills   # Include full skill multiplier data
     python sync_characters.py --input ../../Character    # Process local raw files
 """
 
@@ -36,10 +35,13 @@ OUTPUT_DIR = Path(__file__).parent.parent / "public/Data/Characters"
 # Skip test/placeholder characters
 SKIP_IDS = {9990, 9991}
 
-# Default schema for character files (lightweight, no skills/chains).
+# Default schema for character files.
 #   True           = keep entire field as-is
 #   ["k1", "k2"]   = keep only these keys (auto-recurses into dicts-of-dicts and lists-of-dicts)
 #   "value"        = extract just the 'value' from each stat entry
+#
+# skillTrees and chains are included by default but post-processed
+# to English-only trimmed format (see simplify_skill_trees / simplify_chains).
 SCHEMA = {
     "id": True,
     "name": True,
@@ -50,11 +52,12 @@ SCHEMA = {
     "skins": ["id", "icon", "color"],
     "tags": ["id", "name", "icon"],
     "stats": "value",
+    "skillTrees": True,
+    "chains": True,
 }
 
-# Optional fields for --include-skills flag
+# Optional fields for --include-skills flag (full skill multiplier data)
 SKILLS_SCHEMA = {
-    "chains": ["id", "name", "description", "icon", "params"],
     "skill": ["id", "params"],
 }
 
@@ -148,6 +151,144 @@ def extract_legacy_id(data: dict) -> str | None:
     return match.group(1) if match else None
 
 
+def simplify_skill_trees(trees: Any) -> list[dict] | None:
+    """Simplify skillTrees to a flat English-only list of forte stat nodes.
+
+    Raw CDN shape (dict of dicts keyed by node ID):
+        { "746": { id, consume, coordinate, params: { name: {i18n}, icon, value, ... }, parentNodes, ... } }
+
+    Output (flat list, English-only, internal-facing):
+        [ { id, coordinate, parentNodes, name, icon, value, valueText } ]
+
+    coordinate: 1 = middle/lower node, 2 = top/upper node
+    parentNodes: maps to which skill branch the node belongs to
+    """
+    if not isinstance(trees, dict):
+        return None
+
+    nodes = []
+    for node_id, node in trees.items():
+        if not isinstance(node, dict):
+            continue
+
+        params = node.get("params", {})
+        if not isinstance(params, dict):
+            continue
+
+        # Extract English name from i18n dict
+        name_field = params.get("name", {})
+        name = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field)
+
+        # Get icon and prepend CDN base
+        icon = params.get("icon", "")
+        if isinstance(icon, str) and icon.startswith("/d/"):
+            icon = f"{CDN_BASE}{icon}"
+
+        nodes.append({
+            "id": node.get("id"),
+            "coordinate": node.get("coordinate"),
+            "parentNodes": node.get("parentNodes"),
+            "name": name,
+            "icon": icon,
+            "value": params.get("value"),
+            "valueText": params.get("valueText"),
+        })
+
+    return nodes if nodes else None
+
+
+def extract_skill_icons(data: dict) -> dict[str, str] | None:
+    """Extract skill icon URLs from the raw skill field, keyed by skill type.
+
+    Reads the raw CDN `skill` dict (before schema filtering) and pulls out
+    `params.icon` for each non-tree skill entry, mapped by its `type` field:
+
+        type 1  → "normal-attack"
+        type 2  → "skill"
+        type 3  → "liberation"
+        type 4  → "inherent-1" / "inherent-2" (two passives, sorted by sort order)
+        type 5  → "intro"
+        type 6  → "circuit"
+        type 11 → "outro"
+
+    Returns a flat dict like:
+        { "normal-attack": "https://...png", "skill": "https://...png", ... }
+    """
+    skill_data = data.get("skill")
+    if not isinstance(skill_data, dict):
+        return None
+
+    # CDN type number → our key name
+    TYPE_MAP = {1: "normal-attack", 2: "skill", 3: "liberation", 5: "intro", 6: "circuit", 11: "outro"}
+
+    icons: dict[str, str] = {}
+    # Collect type-4 entries separately to sort them
+    type4_entries: list[tuple[int, str]] = []
+
+    for entry in skill_data.values():
+        if not isinstance(entry, dict) or entry.get("tree", False):
+            continue
+
+        skill_type = entry.get("type")
+        params = entry.get("params", {})
+        icon = params.get("icon", "") if isinstance(params, dict) else ""
+        if not icon:
+            continue
+
+        if isinstance(icon, str) and icon.startswith("/d/"):
+            icon = f"{CDN_BASE}{icon}"
+
+        if skill_type in TYPE_MAP:
+            icons[TYPE_MAP[skill_type]] = icon
+        elif skill_type == 4:
+            type4_entries.append((entry.get("sort", 0), icon))
+
+    # Sort type-4 by sort order → first is inherent-1, second is inherent-2
+    type4_entries.sort(key=lambda x: x[0])
+    for i, (_, icon) in enumerate(type4_entries):
+        icons[f"inherent-{i + 1}"] = icon
+
+    return icons if icons else None
+
+
+def simplify_chains(chains: Any) -> list[dict] | None:
+    """Simplify chains to a flat English-only list.
+
+    Raw CDN shape (dict of dicts keyed by chain ID):
+        { "271": { id, name: {i18n}, description: {i18n}, icon, param } }
+
+    Output (flat list, English-only):
+        [ { id, name, description, icon, param } ]
+    """
+    if not isinstance(chains, dict):
+        return None
+
+    result = []
+    for chain_id, chain in chains.items():
+        if not isinstance(chain, dict):
+            continue
+
+        name_field = chain.get("name", {})
+        name = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field)
+
+        desc_field = chain.get("description", {})
+        desc = desc_field.get("en", "") if isinstance(desc_field, dict) else str(desc_field)
+
+        icon = chain.get("icon", "")
+        if isinstance(icon, str) and icon.startswith("/d/"):
+            icon = f"{CDN_BASE}{icon}"
+
+        result.append({
+            "id": chain.get("id"),
+            "name": name,
+            "description": desc,
+            "icon": icon,
+            "param": chain.get("param"),
+        })
+
+    return result if result else None
+
+
 def extract_by_schema(data: dict, schema: dict) -> dict:
     """Extract fields from data according to schema."""
     output = {}
@@ -181,6 +322,27 @@ def transform_character(data: dict, schema: dict) -> dict | None:
 
     result = extract_by_schema(data, schema)
     apply_sub_filters(result, SUB_FILTERS)
+
+    # Post-process skillTrees → flat English-only list
+    if "skillTrees" in result:
+        simplified = simplify_skill_trees(result["skillTrees"])
+        if simplified:
+            result["skillTrees"] = simplified
+        else:
+            del result["skillTrees"]
+
+    # Post-process chains → flat English-only list
+    if "chains" in result:
+        simplified = simplify_chains(result["chains"])
+        if simplified:
+            result["chains"] = simplified
+        else:
+            del result["chains"]
+
+    # Extract skill icons from raw data (before schema filtering strips it)
+    skill_icons = extract_skill_icons(data)
+    if skill_icons:
+        result["skillIcons"] = skill_icons
 
     # Add legacyId extracted from iconRound URL for backwards compatibility
     legacy_id = extract_legacy_id(data)
@@ -311,10 +473,8 @@ def main():
                        help="Read from local directory instead of CDN")
     parser.add_argument("--fetch", action="store_true",
                        help="Fetch from CDN (required if no --input)")
-    parser.add_argument("--include-trees", action="store_true",
-                       help="Include skillTrees in output (off by default, useful for lb backend)")
     parser.add_argument("--include-skills", action="store_true",
-                       help="Include chains and skill fields (off by default)")
+                       help="Include full skill multiplier data (off by default)")
     parser.add_argument("--individual", action="store_true",
                        help="Write per-character files instead of combined Characters.json")
     parser.add_argument("--workers", "-w", type=int, default=None,
@@ -332,8 +492,6 @@ def main():
     schema = {**SCHEMA}
     if args.include_skills:
         schema.update(SKILLS_SCHEMA)
-    if args.include_trees:
-        schema["skillTrees"] = True
 
     # Load raw data
     if args.input:

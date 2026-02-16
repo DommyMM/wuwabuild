@@ -143,13 +143,25 @@ body {
   width: 6px;
   height: 100%;
   border-radius: 3px;
-  background: linear-gradient(to top, #333333, #333333);
+  background: linear-gradient(
+    to top,
+    #a69662 0%,
+    #bfad7d var(--fill, 0%),
+    #333333 var(--fill, 0%),
+    #333333 100%
+  );
 }
 .rank-slider::-moz-range-track {
   width: 6px;
   height: 100%;
   border-radius: 3px;
-  background: #333333;
+  background: linear-gradient(
+    to top,
+    #a69662 0%,
+    #bfad7d var(--fill, 0%),
+    #333333 var(--fill, 0%),
+    #333333 100%
+  );
 }
 .rank-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -185,6 +197,51 @@ body {
   box-shadow:
     inset 0 0 2px rgba(0, 0, 0, 0.4),
     0 0 6px rgba(166, 150, 98, 0.45);
+}
+
+/* ── Forte: node button ── */
+.forte-node {
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* ── Forte: connection line between nodes ── */
+.forte-line {
+  width: 3px;
+  background-image: url('/images/Resources/Line.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  opacity: 0.5;
+}
+
+/* ── Forte: small horizontal level slider (1–10) ── */
+.forte-level-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 45deg, #bfad7d, #8a7c52 90deg, #bfad7d 180deg, #8a7c52 270deg, #bfad7d 360deg);
+  border: 1.5px solid #d4c48c;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 4px rgba(166, 150, 98, 0.4);
+}
+.forte-level-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 45deg, #bfad7d, #8a7c52 90deg, #bfad7d 180deg, #8a7c52 270deg, #bfad7d 360deg);
+  border: 1.5px solid #d4c48c;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 4px rgba(166, 150, 98, 0.4);
 }
 
 /* Rover rainbow animation (cycles through all element colors) */
