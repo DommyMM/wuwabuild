@@ -86,48 +86,46 @@ export function StatsProvider({ children }: StatsProviderProps) {
   } = gameData;
 
   const { state } = build;
-  const { characterState, weaponState, echoPanels, nodeStates, currentSequence } = state;
+  const { characterId, characterLevel, roverElement, weaponId, weaponLevel, weaponRank, echoPanels, nodeStates, sequence } = state;
 
   // Get current character and weapon
   const character = useMemo(() =>
-    getCharacter(characterState.id),
-    [getCharacter, characterState.id]
+    getCharacter(characterId),
+    [getCharacter, characterId]
   );
 
   const weapon = useMemo(() =>
-    getWeapon(weaponState.id),
-    [getWeapon, weaponState.id]
+    getWeapon(weaponId),
+    [getWeapon, weaponId]
   );
 
   // Calculate weapon stats
   const weaponStats = useMemo(() => {
     if (!weapon) return null;
     return {
-      scaledAtk: scaleWeaponAtk(weapon.ATK, weaponState.level),
-      scaledMainStat: scaleWeaponStat(weapon.base_main, weaponState.level),
+      scaledAtk: scaleWeaponAtk(weapon.ATK, weaponLevel),
+      scaledMainStat: scaleWeaponStat(weapon.base_main, weaponLevel),
       scaledPassive: weapon.passive_stat
-        ? Math.floor(weapon.passive_stat * (1 + ((weaponState.rank - 1) * 0.25)))
+        ? Math.floor(weapon.passive_stat * (1 + ((weaponRank - 1) * 0.25)))
         : undefined,
       scaledPassive2: weapon.passive_stat2
-        ? Math.floor(weapon.passive_stat2 * (1 + ((weaponState.rank - 1) * 0.25)))
+        ? Math.floor(weapon.passive_stat2 * (1 + ((weaponRank - 1) * 0.25)))
         : undefined
     };
-  }, [weapon, weaponState.level, weaponState.rank, scaleWeaponAtk, scaleWeaponStat]);
+  }, [weapon, weaponLevel, weaponRank, scaleWeaponAtk, scaleWeaponStat]);
 
   // Calculate base stats
   const baseStats = useMemo(() => {
     if (!character) return null;
-    const levelNum = parseInt(characterState.level) || 1;
-    const characterAtk = scaleCharacterStat(character.ATK, levelNum, 'ATK');
+    const characterAtk = scaleCharacterStat(character.ATK, characterLevel, 'ATK');
     const weaponAtk = weaponStats?.scaledAtk ?? 0;
 
     return {
-      levelNum,
-      baseHP: scaleCharacterStat(character.HP, levelNum, 'HP'),
+      baseHP: scaleCharacterStat(character.HP, characterLevel, 'HP'),
       baseATK: characterAtk + weaponAtk,
-      baseDEF: scaleCharacterStat(character.DEF, levelNum, 'DEF')
+      baseDEF: scaleCharacterStat(character.DEF, characterLevel, 'DEF')
     };
-  }, [character, characterState.level, weaponStats?.scaledAtk, scaleCharacterStat]);
+  }, [character, characterLevel, weaponStats?.scaledAtk, scaleCharacterStat]);
 
   // Calculate element counts and ATK bonus from sets
   const { elementCounts, atkPercentBonus, activeSets } = useMemo(() => {
@@ -277,7 +275,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
           // Special case for Fleurdelys with Rover Aero or Carthethyia
           if (firstEcho?.name === 'Fleurdelys' &&
             displayStat === 'Aero DMG' &&
-            ((isRover(character) && characterState.element === 'Aero') || character?.name === 'Carthethyia')) {
+            ((isRover(character) && roverElement === 'Aero') || character?.name === 'Carthethyia')) {
             result.update += 10;
           }
 
@@ -327,13 +325,13 @@ export function StatsProvider({ children }: StatsProviderProps) {
         const isDirectStat = (bonus: string) => ['Crit Rate', 'Crit DMG', 'Healing'].includes(bonus);
         if (
           (isDirectStat(forteBonus.bonus1Type) && displayStat === (forteBonus.bonus1Type === 'Healing' ? 'Healing Bonus' : forteBonus.bonus1Type)) ||
-          (!isDirectStat(forteBonus.bonus1Type) && displayStat === `${character.name.startsWith('Rover') ? characterState.element : forteBonus.bonus1Type} DMG`)
+          (!isDirectStat(forteBonus.bonus1Type) && displayStat === `${character.name.startsWith('Rover') ? roverElement : forteBonus.bonus1Type} DMG`)
         ) {
           result.update += forteBonus.bonus1Total;
         }
 
         // Zani's S2 passive
-        if (displayStat === 'Crit Rate' && character.id === '38' && currentSequence >= 2) {
+        if (displayStat === 'Crit Rate' && character.id === '38' && sequence >= 2) {
           result.update += 20;
         }
 
@@ -359,7 +357,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     };
   }, [
     character,
-    characterState.element,
+    roverElement,
     baseStats,
     weapon,
     weaponStats,
@@ -370,7 +368,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     echoStats,
     firstPanelBonus,
     firstEcho,
-    currentSequence,
+    sequence,
     activeSets
   ]);
 

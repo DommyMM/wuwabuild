@@ -38,15 +38,15 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   const {
     state,
     setCharacterLevel,
-    setCharacterElement,
+    setRoverElement,
     setSequence
   } = useBuild();
   const { t } = useLanguage();
   const selected = useSelectedCharacter();
 
-  const characterLevel = parseInt(state.characterState.level) || 1;
-  const currentElement = state.characterState.element || 'Havoc';
-  const currentSequence = state.currentSequence;
+  const characterLevel = state.characterLevel;
+  const currentElement = state.roverElement || 'Havoc';
+  const currentSequence = state.sequence;
 
   const isRover = selected?.isRover ?? false;
   const translatedName = selected ? t(selected.nameI18n) : '';
@@ -56,7 +56,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
 
   // Handle level change
   const handleLevelChange = useCallback((newLevel: number) => {
-    setCharacterLevel(newLevel.toString());
+    setCharacterLevel(newLevel);
   }, [setCharacterLevel]);
 
   // Handle sequence change
@@ -66,9 +66,9 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
 
   // Handle element change for Rover
   const handleElementChange = useCallback((element: string) => {
-    setCharacterElement(element);
+    setRoverElement(element);
     setShowElementModal(false);
-  }, [setCharacterElement]);
+  }, [setRoverElement]);
 
   // Cycle through Rover elements
   const handleElementCycle = useCallback((direction: 'next' | 'prev') => {
@@ -81,8 +81,8 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
       newIndex = (currentIndex - 1 + ROVER_ELEMENTS.length) % ROVER_ELEMENTS.length;
     }
 
-    setCharacterElement(ROVER_ELEMENTS[newIndex]);
-  }, [currentElement, setCharacterElement]);
+    setRoverElement(ROVER_ELEMENTS[newIndex]);
+  }, [currentElement, setRoverElement]);
 
   // Toggle minimized state
   const toggleMinimized = useCallback(() => {

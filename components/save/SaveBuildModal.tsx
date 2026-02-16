@@ -106,16 +106,16 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
           <p className="text-sm text-text-primary/70 mb-1">Build Preview</p>
           <div className="flex items-center gap-2">
             <span className="text-text-primary">
-              {state.characterState.id ? (
-                <>Character: {state.characterState.id} (Lv.{state.characterState.level})</>
+              {state.characterId ? (
+                <>Character: {state.characterId} (Lv.{state.characterLevel})</>
               ) : (
                 'No character selected'
               )}
             </span>
           </div>
-          {state.weaponState.id && (
+          {state.weaponId && (
             <div className="text-sm text-text-primary/70 mt-1">
-              Weapon: {state.weaponState.id} (R{state.weaponState.rank})
+              Weapon: {state.weaponId} (R{state.weaponRank})
             </div>
           )}
         </div>

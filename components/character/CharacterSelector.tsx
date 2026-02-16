@@ -137,6 +137,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
   const { characters, loading, error } = useGameData();
   const { setCharacter, setCharacterLevel } = useBuild();
+  // Note: setCharacterLevel now takes number directly
   const { t } = useLanguage();
   const selected = useSelectedCharacter();
 
@@ -169,9 +170,9 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   const handleSelect = useCallback(
     (character: Character) => {
       setIsModalOpen(false);
-      setCharacterLevel('1');
-      const element = character.element === Element.Rover ? 'Havoc' : undefined;
-      setCharacter(character.id, element);
+      setCharacterLevel(1);
+      const roverElement = character.element === Element.Rover ? 'Havoc' : undefined;
+      setCharacter(character.id, roverElement);
       onSelect?.(character);
     },
     [setCharacter, setCharacterLevel, onSelect],

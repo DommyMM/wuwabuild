@@ -44,7 +44,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
   const { getWeaponsByType, getWeapon } = useGameData();
   const { state, setWeapon } = useBuild();
 
-  const selectedWeapon = getWeapon(state.weaponState.id);
+  const selectedWeapon = getWeapon(state.weaponId);
 
   // Get weapons for the character's weapon type
   const weapons = useMemo(() => {

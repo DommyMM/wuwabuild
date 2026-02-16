@@ -68,9 +68,9 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   const { t } = useLanguage();
   const { stats, getStatValue } = useStats();
 
-  const selectedCharacter = getCharacter(state.characterState.id);
-  const selectedWeapon = getWeapon(state.weaponState.id);
-  const currentElement = state.characterState.element || selectedCharacter?.element || 'Havoc';
+  const selectedCharacter = getCharacter(state.characterId);
+  const selectedWeapon = getWeapon(state.weaponId);
+  const currentElement = state.roverElement || selectedCharacter?.element || 'Havoc';
 
   // Get display name for character (translated)
   const displayName = useMemo(() => {
@@ -149,9 +149,9 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
           <div className="flex-1">
             <h2 className="text-xl font-bold text-text-primary">{displayName}</h2>
             <div className="mt-1 flex items-center gap-2 text-sm text-text-primary/60">
-              <span>Lv. {state.characterState.level}</span>
+              <span>Lv. {state.characterLevel}</span>
               <span>|</span>
-              <span>S{state.currentSequence}</span>
+              <span>S{state.sequence}</span>
             </div>
 
             {/* Weapon Info */}
@@ -167,7 +167,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                     {selectedWeapon.name}
                   </div>
                   <div className="text-xs text-text-primary/50">
-                    Lv. {state.weaponState.level} | R{state.weaponState.rank}
+                    Lv. {state.weaponLevel} | R{state.weaponRank}
                   </div>
                 </div>
               </div>

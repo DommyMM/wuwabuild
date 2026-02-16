@@ -2,41 +2,40 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef, ReactNode } from 'react';
 import { EchoPanelState, ElementType } from '@/types/echo';
-import { WeaponState } from '@/types/weapon';
 import {
   SavedState,
-  CharacterState,
   WatermarkState,
   ForteLevels,
-  DEFAULT_CHARACTER_STATE,
-  DEFAULT_WEAPON_STATE,
-  DEFAULT_WATERMARK,
   DEFAULT_FORTE_LEVELS,
+  DEFAULT_WATERMARK,
   createDefaultEchoPanelState,
   createDefaultSavedState
 } from '@/types/build';
 
 
 interface BuildState {
-  characterState: CharacterState;
-  currentSequence: number;
-  weaponState: WeaponState;
+  characterId: string | null;
+  characterLevel: number;
+  roverElement?: string;
+  sequence: number;
+  weaponId: string | null;
+  weaponLevel: number;
+  weaponRank: number;
   nodeStates: Record<string, Record<string, boolean>>;
   forteLevels: ForteLevels;
   echoPanels: EchoPanelState[];
   watermark: WatermarkState;
-  isDirty: boolean; // Track unsaved changes
+  isDirty: boolean;
 }
 
 type BuildAction =
-  | { type: 'SET_CHARACTER'; payload: { id: string | null; element?: string } }
-  | { type: 'SET_CHARACTER_LEVEL'; payload: string }
-  | { type: 'SET_CHARACTER_ELEMENT'; payload: string }
+  | { type: 'SET_CHARACTER'; payload: { id: string | null; roverElement?: string } }
+  | { type: 'SET_CHARACTER_LEVEL'; payload: number }
+  | { type: 'SET_ROVER_ELEMENT'; payload: string }
   | { type: 'SET_SEQUENCE'; payload: number }
-  | { type: 'SET_WEAPON'; payload: { id: string | null } }
+  | { type: 'SET_WEAPON'; payload: string | null }
   | { type: 'SET_WEAPON_LEVEL'; payload: number }
   | { type: 'SET_WEAPON_RANK'; payload: number }
-  | { type: 'SET_WEAPON_STATE'; payload: WeaponState }
   | { type: 'SET_ECHO_PANEL'; payload: { index: number; panel: Partial<EchoPanelState> } }
   | { type: 'SET_ECHO_PANELS'; payload: EchoPanelState[] }
   | { type: 'REORDER_ECHO_PANELS'; payload: { from: number; to: number } }
@@ -57,16 +56,15 @@ interface BuildContextType {
   dispatch: React.Dispatch<BuildAction>;
 
   // Character actions
-  setCharacter: (id: string | null, element?: string) => void;
-  setCharacterLevel: (level: string) => void;
-  setCharacterElement: (element: string) => void;
+  setCharacter: (id: string | null, roverElement?: string) => void;
+  setCharacterLevel: (level: number) => void;
+  setRoverElement: (element: string) => void;
   setSequence: (sequence: number) => void;
 
   // Weapon actions
   setWeapon: (id: string | null) => void;
   setWeaponLevel: (level: number) => void;
   setWeaponRank: (rank: number) => void;
-  setWeaponState: (weaponState: WeaponState) => void;
 
   // Echo actions
   setEchoPanel: (index: number, panel: Partial<EchoPanelState>) => void;
@@ -100,9 +98,13 @@ interface BuildContextType {
 const DRAFT_STORAGE_KEY = 'wuwa_draft_build';
 
 const initialState: BuildState = {
-  characterState: { ...DEFAULT_CHARACTER_STATE },
-  currentSequence: 0,
-  weaponState: { ...DEFAULT_WEAPON_STATE },
+  characterId: null,
+  characterLevel: 1,
+  roverElement: undefined,
+  sequence: 0,
+  weaponId: null,
+  weaponLevel: 1,
+  weaponRank: 1,
   nodeStates: {},
   forteLevels: { ...DEFAULT_FORTE_LEVELS },
   echoPanels: Array(5).fill(null).map(() => createDefaultEchoPanelState()),
@@ -116,9 +118,33 @@ function loadDraftFromStorage(): BuildState | null {
   try {
     const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
     if (!raw) return null;
-    const saved: SavedState = JSON.parse(raw);
-    if (!saved.characterState) return null;
-    return { ...saved, isDirty: false };
+    const saved = JSON.parse(raw);
+    if (!saved) return null;
+
+    // Handle legacy nested shape (characterState / weaponState)
+    if (saved.characterState) {
+      return {
+        characterId: saved.characterState.id ?? null,
+        characterLevel: parseInt(saved.characterState.level) || 1,
+        roverElement: saved.characterState.element,
+        sequence: saved.currentSequence ?? 0,
+        weaponId: saved.weaponState?.id ?? null,
+        weaponLevel: saved.weaponState?.level ?? 1,
+        weaponRank: saved.weaponState?.rank ?? 1,
+        nodeStates: saved.nodeStates ?? {},
+        forteLevels: saved.forteLevels ?? { ...DEFAULT_FORTE_LEVELS },
+        echoPanels: saved.echoPanels ?? Array(5).fill(null).map(() => createDefaultEchoPanelState()),
+        watermark: saved.watermark ?? { ...DEFAULT_WATERMARK },
+        isDirty: false,
+      };
+    }
+
+    // New flat shape
+    if (saved.characterId !== undefined) {
+      return { ...saved, isDirty: false };
+    }
+
+    return null;
   } catch {
     return null;
   }
@@ -127,170 +153,74 @@ function loadDraftFromStorage(): BuildState | null {
 function buildReducer(state: BuildState, action: BuildAction): BuildState {
   switch (action.type) {
     case 'SET_CHARACTER':
-      return {
-        ...state,
-        characterState: {
-          ...state.characterState,
-          id: action.payload.id,
-          element: action.payload.element
-        },
-        isDirty: true
-      };
+      return { ...state, characterId: action.payload.id, roverElement: action.payload.roverElement, isDirty: true };
 
     case 'SET_CHARACTER_LEVEL':
-      return {
-        ...state,
-        characterState: {
-          ...state.characterState,
-          level: action.payload
-        },
-        isDirty: true
-      };
+      return { ...state, characterLevel: action.payload, isDirty: true };
 
-    case 'SET_CHARACTER_ELEMENT':
-      return {
-        ...state,
-        characterState: {
-          ...state.characterState,
-          element: action.payload
-        },
-        isDirty: true
-      };
+    case 'SET_ROVER_ELEMENT':
+      return { ...state, roverElement: action.payload, isDirty: true };
 
     case 'SET_SEQUENCE':
-      return {
-        ...state,
-        currentSequence: action.payload,
-        isDirty: true
-      };
+      return { ...state, sequence: action.payload, isDirty: true };
 
     case 'SET_WEAPON':
-      return {
-        ...state,
-        weaponState: {
-          ...state.weaponState,
-          id: action.payload.id
-        },
-        isDirty: true
-      };
+      return { ...state, weaponId: action.payload, isDirty: true };
 
     case 'SET_WEAPON_LEVEL':
-      return {
-        ...state,
-        weaponState: {
-          ...state.weaponState,
-          level: action.payload
-        },
-        isDirty: true
-      };
+      return { ...state, weaponLevel: action.payload, isDirty: true };
 
     case 'SET_WEAPON_RANK':
-      return {
-        ...state,
-        weaponState: {
-          ...state.weaponState,
-          rank: action.payload
-        },
-        isDirty: true
-      };
-
-    case 'SET_WEAPON_STATE':
-      return {
-        ...state,
-        weaponState: action.payload,
-        isDirty: true
-      };
+      return { ...state, weaponRank: action.payload, isDirty: true };
 
     case 'SET_ECHO_PANEL': {
       const newPanels = [...state.echoPanels];
-      newPanels[action.payload.index] = {
-        ...newPanels[action.payload.index],
-        ...action.payload.panel
-      };
-      return {
-        ...state,
-        echoPanels: newPanels,
-        isDirty: true
-      };
+      newPanels[action.payload.index] = { ...newPanels[action.payload.index], ...action.payload.panel };
+      return { ...state, echoPanels: newPanels, isDirty: true };
     }
 
     case 'SET_ECHO_PANELS':
-      return {
-        ...state,
-        echoPanels: action.payload,
-        isDirty: true
-      };
+      return { ...state, echoPanels: action.payload, isDirty: true };
 
     case 'REORDER_ECHO_PANELS': {
       const newPanels = [...state.echoPanels];
       const [removed] = newPanels.splice(action.payload.from, 1);
       newPanels.splice(action.payload.to, 0, removed);
-      return {
-        ...state,
-        echoPanels: newPanels,
-        isDirty: true
-      };
+      return { ...state, echoPanels: newPanels, isDirty: true };
     }
 
     case 'CLEAR_ECHO_PANEL': {
       const newPanels = [...state.echoPanels];
       newPanels[action.payload] = createDefaultEchoPanelState();
-      return {
-        ...state,
-        echoPanels: newPanels,
-        isDirty: true
-      };
+      return { ...state, echoPanels: newPanels, isDirty: true };
     }
 
     case 'SET_NODE_STATE': {
       const { tree, node, active } = action.payload;
       return {
         ...state,
-        nodeStates: {
-          ...state.nodeStates,
-          [tree]: {
-            ...state.nodeStates[tree],
-            [node]: active
-          }
-        },
+        nodeStates: { ...state.nodeStates, [tree]: { ...state.nodeStates[tree], [node]: active } },
         isDirty: true
       };
     }
 
     case 'SET_NODE_STATES':
-      return {
-        ...state,
-        nodeStates: action.payload,
-        isDirty: true
-      };
+      return { ...state, nodeStates: action.payload, isDirty: true };
 
     case 'SET_FORTE_LEVEL':
       return {
         ...state,
-        forteLevels: {
-          ...state.forteLevels,
-          [action.payload.skill]: action.payload.level
-        },
+        forteLevels: { ...state.forteLevels, [action.payload.skill]: action.payload.level },
         isDirty: true
       };
 
     case 'SET_FORTE_LEVELS':
-      return {
-        ...state,
-        forteLevels: action.payload,
-        isDirty: true
-      };
+      return { ...state, forteLevels: action.payload, isDirty: true };
 
     case 'MAX_ALL_FORTES':
       return {
         ...state,
-        forteLevels: {
-          'normal-attack': 10,
-          skill: 10,
-          circuit: 10,
-          liberation: 10,
-          intro: 10
-        },
+        forteLevels: { 'normal-attack': 10, skill: 10, circuit: 10, liberation: 10, intro: 10 },
         nodeStates: {
           tree1: { top: true, middle: true },
           tree2: { top: true, middle: true },
@@ -302,28 +232,20 @@ function buildReducer(state: BuildState, action: BuildAction): BuildState {
       };
 
     case 'RESET_FORTES':
-      return {
-        ...state,
-        forteLevels: { ...DEFAULT_FORTE_LEVELS },
-        nodeStates: {},
-        isDirty: true
-      };
+      return { ...state, forteLevels: { ...DEFAULT_FORTE_LEVELS }, nodeStates: {}, isDirty: true };
 
     case 'SET_WATERMARK':
-      return {
-        ...state,
-        watermark: {
-          ...state.watermark,
-          ...action.payload
-        },
-        isDirty: true
-      };
+      return { ...state, watermark: { ...state.watermark, ...action.payload }, isDirty: true };
 
     case 'LOAD_STATE':
       return {
-        characterState: action.payload.characterState,
-        currentSequence: action.payload.currentSequence,
-        weaponState: action.payload.weaponState,
+        characterId: action.payload.characterId,
+        characterLevel: action.payload.characterLevel,
+        roverElement: action.payload.roverElement,
+        sequence: action.payload.sequence,
+        weaponId: action.payload.weaponId,
+        weaponLevel: action.payload.weaponLevel,
+        weaponRank: action.payload.weaponRank,
         nodeStates: action.payload.nodeStates,
         forteLevels: action.payload.forteLevels,
         echoPanels: action.payload.echoPanels,
@@ -335,10 +257,7 @@ function buildReducer(state: BuildState, action: BuildAction): BuildState {
       return { ...initialState };
 
     case 'MARK_CLEAN':
-      return {
-        ...state,
-        isDirty: false
-      };
+      return { ...state, isDirty: false };
 
     default:
       return state;
@@ -394,16 +313,16 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
   }, [state]);
 
   // Character actions
-  const setCharacter = useCallback((id: string | null, element?: string) => {
-    dispatch({ type: 'SET_CHARACTER', payload: { id, element } });
+  const setCharacter = useCallback((id: string | null, roverElement?: string) => {
+    dispatch({ type: 'SET_CHARACTER', payload: { id, roverElement } });
   }, []);
 
-  const setCharacterLevel = useCallback((level: string) => {
+  const setCharacterLevel = useCallback((level: number) => {
     dispatch({ type: 'SET_CHARACTER_LEVEL', payload: level });
   }, []);
 
-  const setCharacterElement = useCallback((element: string) => {
-    dispatch({ type: 'SET_CHARACTER_ELEMENT', payload: element });
+  const setRoverElement = useCallback((element: string) => {
+    dispatch({ type: 'SET_ROVER_ELEMENT', payload: element });
   }, []);
 
   const setSequence = useCallback((sequence: number) => {
@@ -412,7 +331,7 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
 
   // Weapon actions
   const setWeapon = useCallback((id: string | null) => {
-    dispatch({ type: 'SET_WEAPON', payload: { id } });
+    dispatch({ type: 'SET_WEAPON', payload: id });
   }, []);
 
   const setWeaponLevel = useCallback((level: number) => {
@@ -421,10 +340,6 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
 
   const setWeaponRank = useCallback((rank: number) => {
     dispatch({ type: 'SET_WEAPON_RANK', payload: rank });
-  }, []);
-
-  const setWeaponState = useCallback((weaponState: WeaponState) => {
-    dispatch({ type: 'SET_WEAPON_STATE', payload: weaponState });
   }, []);
 
   // Echo actions
@@ -449,12 +364,7 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
       type: 'SET_ECHO_PANEL',
       payload: {
         index,
-        panel: {
-          stats: {
-            ...state.echoPanels[index].stats,
-            mainStat: { type, value }
-          }
-        }
+        panel: { stats: { ...state.echoPanels[index].stats, mainStat: { type, value } } }
       }
     });
   }, [state.echoPanels]);
@@ -466,35 +376,21 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
       type: 'SET_ECHO_PANEL',
       payload: {
         index,
-        panel: {
-          stats: {
-            ...state.echoPanels[index].stats,
-            subStats: newSubStats
-          }
-        }
+        panel: { stats: { ...state.echoPanels[index].stats, subStats: newSubStats } }
       }
     });
   }, [state.echoPanels]);
 
   const setEchoElement = useCallback((index: number, element: ElementType | null) => {
-    dispatch({
-      type: 'SET_ECHO_PANEL',
-      payload: { index, panel: { selectedElement: element } }
-    });
+    dispatch({ type: 'SET_ECHO_PANEL', payload: { index, panel: { selectedElement: element } } });
   }, []);
 
   const setEchoLevel = useCallback((index: number, level: number) => {
-    dispatch({
-      type: 'SET_ECHO_PANEL',
-      payload: { index, panel: { level } }
-    });
+    dispatch({ type: 'SET_ECHO_PANEL', payload: { index, panel: { level } } });
   }, []);
 
   const setEchoPhantom = useCallback((index: number, phantom: boolean) => {
-    dispatch({
-      type: 'SET_ECHO_PANEL',
-      payload: { index, panel: { phantom } }
-    });
+    dispatch({ type: 'SET_ECHO_PANEL', payload: { index, panel: { phantom } } });
   }, []);
 
   // Forte actions
@@ -538,15 +434,8 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
   }, []);
 
   const getSavedState = useCallback((): SavedState => {
-    return {
-      characterState: state.characterState,
-      currentSequence: state.currentSequence,
-      weaponState: state.weaponState,
-      nodeStates: state.nodeStates,
-      forteLevels: state.forteLevels,
-      echoPanels: state.echoPanels,
-      watermark: state.watermark
-    };
+    const { isDirty: _, ...rest } = state;
+    return rest;
   }, [state]);
 
   const markClean = useCallback(() => {
@@ -559,12 +448,11 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
     dispatch,
     setCharacter,
     setCharacterLevel,
-    setCharacterElement,
+    setRoverElement,
     setSequence,
     setWeapon,
     setWeaponLevel,
     setWeaponRank,
-    setWeaponState,
     setEchoPanel,
     setEchoPanels,
     reorderEchoPanels,
@@ -589,12 +477,11 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
     state,
     setCharacter,
     setCharacterLevel,
-    setCharacterElement,
+    setRoverElement,
     setSequence,
     setWeapon,
     setWeaponLevel,
     setWeaponRank,
-    setWeaponState,
     setEchoPanel,
     setEchoPanels,
     reorderEchoPanels,

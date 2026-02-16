@@ -26,10 +26,10 @@ export const WeaponInfo: React.FC<WeaponInfoProps> = ({
   const { getWeapon, getCharacter, scaleWeaponAtk, scaleWeaponStat } = useGameData();
   const { state, setWeaponLevel, setWeaponRank } = useBuild();
 
-  const selectedCharacter = getCharacter(state.characterState.id);
-  const selectedWeapon = getWeapon(state.weaponState.id);
-  const weaponLevel = state.weaponState.level;
-  const weaponRank = state.weaponState.rank;
+  const selectedCharacter = getCharacter(state.characterId);
+  const selectedWeapon = getWeapon(state.weaponId);
+  const weaponLevel = state.weaponLevel;
+  const weaponRank = state.weaponRank;
 
   // Calculate scaled weapon stats
   const scaledStats = useMemo(() => {

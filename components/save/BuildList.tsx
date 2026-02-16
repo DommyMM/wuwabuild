@@ -46,8 +46,8 @@ const BuildItem: React.FC<BuildItemProps> = ({
     }
   }, [build.date]);
 
-  const characterName = build.state.characterState.id || 'No Character';
-  const characterLevel = build.state.characterState.level || '1';
+  const characterName = build.state.characterId || 'No Character';
+  const characterLevel = build.state.characterLevel || 1;
 
   return (
     <div
@@ -119,14 +119,14 @@ const BuildItem: React.FC<BuildItemProps> = ({
 
       {/* Build Stats Preview */}
       <div className="flex items-center gap-2 mt-2 flex-wrap">
-        {build.state.currentSequence > 0 && (
+        {build.state.sequence > 0 && (
           <span className="px-2 py-0.5 text-xs rounded bg-accent/20 text-accent">
-            S{build.state.currentSequence}
+            S{build.state.sequence}
           </span>
         )}
-        {build.state.weaponState.id && (
+        {build.state.weaponId && (
           <span className="px-2 py-0.5 text-xs rounded bg-border text-text-primary/70">
-            {build.state.weaponState.id} R{build.state.weaponState.rank}
+            {build.state.weaponId} R{build.state.weaponRank}
           </span>
         )}
         {build.state.echoPanels.filter(p => p.id).length > 0 && (

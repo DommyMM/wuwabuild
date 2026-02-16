@@ -33,7 +33,7 @@ export function useSelectedCharacter(): SelectedCharacter | null {
   const { state } = useBuild();
   const { getCharacter } = useGameData();
 
-  const { id, element: roverElement } = state.characterState;
+  const { characterId: id, roverElement } = state;
 
   return useMemo(() => {
     const character = getCharacter(id);

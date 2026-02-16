@@ -1,15 +1,8 @@
-import { WeaponState } from './weapon';
 import { EchoPanelState } from './echo';
 
 export interface SavedEchoData {
   id: string;
   panelData: EchoPanelState;
-}
-
-export interface CharacterState {
-  id: string | null;
-  level: string;
-  element?: string;
 }
 
 export interface WatermarkState {
@@ -27,9 +20,13 @@ export interface ForteLevels {
 
 export interface SavedState {
   version?: string;
-  characterState: CharacterState;
-  currentSequence: number;
-  weaponState: WeaponState;
+  characterId: string | null;
+  characterLevel: number;
+  roverElement?: string;
+  sequence: number;
+  weaponId: string | null;
+  weaponLevel: number;
+  weaponRank: number;
   nodeStates: Record<string, Record<string, boolean>>;
   forteLevels: ForteLevels;
   echoPanels: EchoPanelState[];
@@ -64,18 +61,6 @@ export const DEFAULT_FORTE_LEVELS: ForteLevels = {
   intro: 1
 };
 
-export const DEFAULT_CHARACTER_STATE: CharacterState = {
-  id: null,
-  level: '1',
-  element: undefined
-};
-
-export const DEFAULT_WEAPON_STATE: WeaponState = {
-  id: null,
-  level: 1,
-  rank: 1
-};
-
 export const createDefaultEchoPanelState = (): EchoPanelState => ({
   id: null,
   level: 0,
@@ -88,9 +73,13 @@ export const createDefaultEchoPanelState = (): EchoPanelState => ({
 });
 
 export const createDefaultSavedState = (): SavedState => ({
-  characterState: { ...DEFAULT_CHARACTER_STATE },
-  currentSequence: 0,
-  weaponState: { ...DEFAULT_WEAPON_STATE },
+  characterId: null,
+  characterLevel: 1,
+  roverElement: undefined,
+  sequence: 0,
+  weaponId: null,
+  weaponLevel: 1,
+  weaponRank: 1,
   nodeStates: {},
   forteLevels: { ...DEFAULT_FORTE_LEVELS },
   echoPanels: Array(5).fill(null).map(() => createDefaultEchoPanelState()),

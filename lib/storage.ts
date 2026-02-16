@@ -4,6 +4,34 @@ import { SavedBuild, SavedBuilds, SavedState, createDefaultSavedState } from '@/
 const STORAGE_KEY = 'wuwabuilds_saves';
 const CURRENT_VERSION = '2.0.0';
 
+/** Migrate a single SavedState from the old nested shape to the new flat shape. */
+function migrateSavedState(raw: Record<string, unknown>): SavedState {
+  const defaults = createDefaultSavedState();
+
+  // Already new flat shape
+  if ('characterId' in raw) return { ...defaults, ...raw } as SavedState;
+
+  // Legacy nested shape — flatten
+  const cs = (raw.characterState as Record<string, unknown>) ?? {};
+  const ws = (raw.weaponState as Record<string, unknown>) ?? {};
+
+  return {
+    ...defaults,
+    characterId: (cs.id as string) ?? null,
+    characterLevel: parseInt(String(cs.level)) || 1,
+    roverElement: cs.element as string | undefined,
+    sequence: (raw.currentSequence as number) ?? 0,
+    weaponId: (ws.id as string) ?? null,
+    weaponLevel: (ws.level as number) ?? 1,
+    weaponRank: (ws.rank as number) ?? 1,
+    nodeStates: (raw.nodeStates as Record<string, Record<string, boolean>>) ?? {},
+    forteLevels: { ...defaults.forteLevels, ...(raw.forteLevels as object ?? {}) },
+    echoPanels: (raw.echoPanels as SavedState['echoPanels']) ?? defaults.echoPanels,
+    watermark: { ...defaults.watermark, ...(raw.watermark as object ?? {}) },
+    verified: raw.verified as boolean | undefined,
+  };
+}
+
 // ============================================================================
 // Compression utilities (using LZ-based string compression)
 // ============================================================================
@@ -320,37 +348,11 @@ function validateBuild(build: unknown): build is SavedBuild {
  * Migrate old data format to current version.
  */
 function migrateData(data: SavedBuilds): SavedBuilds {
-  // Ensure all builds have required fields
-  const migratedBuilds = data.builds.map(build => {
-    // Ensure state has all required fields
-    const defaultState = createDefaultSavedState();
-    const migratedState: SavedState = {
-      ...defaultState,
-      ...build.state,
-      characterState: {
-        ...defaultState.characterState,
-        ...(build.state?.characterState || {})
-      },
-      weaponState: {
-        ...defaultState.weaponState,
-        ...(build.state?.weaponState || {})
-      },
-      forteLevels: {
-        ...defaultState.forteLevels,
-        ...(build.state?.forteLevels || {})
-      },
-      watermark: {
-        ...defaultState.watermark,
-        ...(build.state?.watermark || {})
-      }
-    };
-
-    return {
-      ...build,
-      id: build.id || generateId(),
-      state: migratedState
-    };
-  });
+  const migratedBuilds = data.builds.map(build => ({
+    ...build,
+    id: build.id || generateId(),
+    state: migrateSavedState(build.state as unknown as Record<string, unknown>)
+  }));
 
   return {
     builds: migratedBuilds,

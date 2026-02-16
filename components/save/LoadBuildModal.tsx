@@ -57,8 +57,8 @@ export const LoadBuildModal: React.FC<LoadBuildModalProps> = ({
     const query = debouncedSearch.toLowerCase();
     return builds.filter(build =>
       build.name.toLowerCase().includes(query) ||
-      (build.state.characterState.id?.toLowerCase().includes(query)) ||
-      (build.state.weaponState.id?.toLowerCase().includes(query))
+      (build.state.characterId?.toLowerCase().includes(query)) ||
+      (build.state.weaponId?.toLowerCase().includes(query))
     );
   }, [builds, debouncedSearch]);
 
