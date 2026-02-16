@@ -2,22 +2,10 @@
 
 import React, { ReactNode } from 'react';
 import { GameDataProvider, useGameData } from './GameDataContext';
-import { BuildProvider, useBuild } from './BuildContext';
-import { StatsProvider, useStats } from './StatsContext';
-import { LanguageProvider, useLanguage } from './LanguageContext';
+import { BuildProvider } from './BuildContext';
+import { StatsProvider } from './StatsContext';
+import { LanguageProvider } from './LanguageContext';
 import { SavedState } from '@/types/build';
-
-// Re-export hooks
-export { useGameData } from './GameDataContext';
-export { useBuild } from './BuildContext';
-export { useStats } from './StatsContext';
-export { useLanguage } from './LanguageContext';
-
-// Re-export providers for individual use
-export { GameDataProvider } from './GameDataContext';
-export { BuildProvider } from './BuildContext';
-export { StatsProvider } from './StatsContext';
-export { LanguageProvider } from './LanguageContext';
 
 // ============================================================================
 // Combined Provider
@@ -100,55 +88,3 @@ function DefaultErrorComponent(error: string) {
   );
 }
 
-// ============================================================================
-// Utility Hooks
-// ============================================================================
-
-/**
- * Combined hook that returns all context values at once.
- * Useful when you need access to multiple contexts.
- */
-export function useAppContext() {
-  const gameData = useGameData();
-  const build = useBuild();
-  const stats = useStats();
-
-  return {
-    gameData,
-    build,
-    stats
-  };
-}
-
-/**
- * Hook to get the current character from game data based on build state.
- */
-export function useCurrentCharacter() {
-  const { getCharacter } = useGameData();
-  const { state } = useBuild();
-
-  return getCharacter(state.characterState.id);
-}
-
-/**
- * Hook to get the current weapon from game data based on build state.
- */
-export function useCurrentWeapon() {
-  const { getWeapon } = useGameData();
-  const { state } = useBuild();
-
-  return getWeapon(state.weaponState.id);
-}
-
-/**
- * Hook to get echoes for the current build's echo panels.
- */
-export function useCurrentEchoes() {
-  const { getEcho } = useGameData();
-  const { state } = useBuild();
-
-  return state.echoPanels.map(panel => ({
-    panel,
-    echo: panel.id ? getEcho(panel.id) : null
-  }));
-}

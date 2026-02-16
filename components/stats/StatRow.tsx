@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { STAT_CDN_NAMES, getStatIconName, STAT_ABBREV } from '@/lib/constants';
+import { STAT_CDN_NAMES, getStatIconName, STAT_ABBREV } from '@/lib/constants/statMappings';
 import { StatName } from '@/types/stats';
 
 interface StatRowProps {

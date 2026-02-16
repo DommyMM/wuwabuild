@@ -2,13 +2,12 @@
 
 import React, { useState, useCallback } from 'react';
 import { ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
-import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
+import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { LevelSlider } from '@/components/ui/LevelSlider';
 import { AssetImage } from '@/components/ui/AssetImage';
 import { SequenceSelector } from './SequenceSelector';
-import { Element } from '@/types/character';
-import { getCharacterHeadPaths, getElementPaths } from '@/lib/paths';
+import { getElementPaths } from '@/lib/paths';
 
 interface CharacterInfoProps {
   className?: string;
@@ -35,29 +34,21 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   const [isMinimized, setIsMinimized] = useState(defaultMinimized);
   const [showElementModal, setShowElementModal] = useState(false);
 
-  const { getCharacter } = useGameData();
   const {
     state,
     setCharacterLevel,
     setCharacterElement,
     setSequence
   } = useBuild();
+  const selected = useSelectedCharacter();
 
-  const selectedCharacter = getCharacter(state.characterState.id);
   const characterLevel = parseInt(state.characterState.level) || 1;
   const currentElement = state.characterState.element || 'Havoc';
   const currentSequence = state.currentSequence;
 
-  // Check if character is Rover
-  const isRover = selectedCharacter?.name.startsWith('Rover') ?? false;
-
-  // Display name for Rover includes element
-  const displayName = isRover
-    ? `Rover${currentElement}`
-    : selectedCharacter?.name ?? '';
-
-  // Get effective element for display
-  const effectiveElement = isRover ? currentElement : selectedCharacter?.element;
+  const isRover = selected?.isRover ?? false;
+  const displayName = selected ? (isRover ? `Rover${currentElement}` : selected.displayName) : '';
+  const effectiveElement = selected?.element;
 
 
   // Handle level change
@@ -96,7 +87,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
   }, []);
 
   // No character selected
-  if (!selectedCharacter) {
+  if (!selected) {
     return (
       <div className={`rounded-lg border border-border bg-background-secondary p-4 ${className}`}>
         <div className="text-center text-text-primary/60">
@@ -119,7 +110,7 @@ export const CharacterInfo: React.FC<CharacterInfoProps> = ({
           {/* Character Icon */}
           <div className={`h-10 w-10 overflow-hidden rounded-full border-2 ${elementStyle?.border || 'border-border'}`}>
             <AssetImage
-              paths={getCharacterHeadPaths(selectedCharacter)}
+              paths={selected.iconRoundPaths}
               alt={displayName}
               className="h-full w-full object-cover"
             />

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { STAT_CDN_NAMES, getStatIconName } from '@/lib/constants';
+import { STAT_CDN_NAMES, getStatIconName } from '@/lib/constants/statMappings';
 import { BaseStatName } from '@/types/stats';
 
 interface StatBreakdownProps {

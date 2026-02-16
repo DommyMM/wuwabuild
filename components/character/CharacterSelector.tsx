@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
+import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { Modal } from '@/components/ui/Modal';
 import { AssetImage } from '@/components/ui/AssetImage';
 import { Character, Element } from '@/types/character';
@@ -97,13 +98,6 @@ const getHeadPaths = (character: Character | null): ImagePaths => {
   return { cdn: face1Url, local: FALLBACK_FACE };
 };
 
-/** Use iconRound (circular face) directly */
-const getIconRoundPaths = (character: Character | null): ImagePaths => {
-  if (!character?.iconRound) {
-    return { cdn: FALLBACK_FACE, local: FALLBACK_FACE };
-  }
-  return { cdn: character.iconRound, local: FALLBACK_FACE };
-};
 
 /** Keep one Rover per gender (legacyId 4=male, 5=female) */
 const deduplicateRovers = (chars: Character[]): Character[] => {
@@ -140,10 +134,9 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   const [elementFilter, setElementFilter] = useState<Set<string>>(new Set());
   const [rarityFilter, setRarityFilter] = useState<Set<number>>(new Set());
 
-  const { characters, loading, error, getCharacter } = useGameData();
-  const { state, setCharacter, setCharacterLevel } = useBuild();
-
-  const selectedCharacter = getCharacter(state.characterState.id);
+  const { characters, loading, error } = useGameData();
+  const { setCharacter, setCharacterLevel } = useBuild();
+  const selected = useSelectedCharacter();
 
   // Dedupe rovers, sort: 5-star first then alphabetical
   const processedCharacters = useMemo(() => {
@@ -288,7 +281,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="grid grid-cols-5 gap-2.5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
             {filteredCharacters.map((character) => {
-              const isSelected = selectedCharacter?.id === character.id;
+              const isSelected = selected?.character.id === character.id;
               const isRover = character.element === Element.Rover;
               const rarity = character.rarity ?? 4;
 
@@ -350,8 +343,6 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   // Standard mode – compact slot + modal
   // -----------------------------------------------------------------------
 
-  const isRover = selectedCharacter?.element === Element.Rover;
-
   return (
     <>
       <button
@@ -360,20 +351,20 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
       >
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
           <AssetImage
-            paths={getIconRoundPaths(selectedCharacter)}
-            alt={selectedCharacter?.name ?? 'Select Resonator'}
+            paths={selected?.iconRoundPaths ?? { cdn: FALLBACK_FACE, local: FALLBACK_FACE }}
+            alt={selected?.displayName ?? 'Select Resonator'}
             className="h-full w-full object-cover"
           />
         </div>
 
         <div className="flex flex-col items-start text-left">
-          {selectedCharacter ? (
+          {selected ? (
             <>
               <span className="text-sm font-semibold text-text-primary">
-                {isRover ? 'Rover' : selectedCharacter.name}
+                {selected.displayName}
               </span>
               <span className="text-xs text-text-primary/50">
-                {isRover ? 'Rover' : selectedCharacter.element} · {selectedCharacter.weaponType}
+                {selected.element} · {selected.character.weaponType}
               </span>
             </>
           ) : (

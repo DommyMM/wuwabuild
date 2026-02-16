@@ -4,11 +4,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
 import { Save, Download, Upload, RotateCcw } from 'lucide-react';
-import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
+import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { AssetImage } from '@/components/ui/AssetImage';
-import type { ImagePaths } from '@/lib/paths';
 
 interface BuildEditorProps {
   className?: string;
@@ -27,8 +26,8 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
 
-  const { getCharacter } = useGameData();
   const { state, resetBuild } = useBuild();
+  const selected = useSelectedCharacter();
 
   const { scrollY } = useScroll();
 
@@ -43,12 +42,6 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
     if (!el) return;
     setIsActionBarVisible(el.getBoundingClientRect().bottom > 70);
   });
-
-  const selectedCharacter = getCharacter(state.characterState.id);
-
-  const bannerPaths: ImagePaths | null = selectedCharacter?.banner
-    ? { cdn: selectedCharacter.banner, local: '/images/Resources/Resonator.png' }
-    : null;
 
   const handleResetBuild = useCallback(() => {
     if (window.confirm('Are you sure you want to reset the entire build? This cannot be undone.')) {
@@ -152,27 +145,34 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
       )}
 
       {/* Resonator */}
-      <div className="rounded-lg border border-border bg-background-secondary p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-text-primary">Resonator</h2>
-          <CharacterSelector />
+      <div className="flex flex-col">
+        {/* Top row — selector pinned right, merges with card corner */}
+        <div className="flex justify-end">
+          <CharacterSelector className="rounded-b-none border-b-0" />
         </div>
 
-        {selectedCharacter && bannerPaths && (
-          <div className="mt-4 flex gap-6">
-            {/* Character RolePile portrait */}
-            <div className="shrink-0">
-              <AssetImage
-                paths={bannerPaths}
-                alt={selectedCharacter.name}
-                className="h-72 w-auto rounded-lg object-contain"
-              />
-            </div>
+        {/* Main content — top-right merges with selector */}
+        <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-4">
+          {selected ? (
+            <div className="flex gap-6">
+              {/* Character RolePile portrait */}
+              <div className="shrink-0">
+                <AssetImage
+                  paths={selected.bannerPaths}
+                  alt={selected.displayName}
+                  className="h-112 w-auto rounded-lg object-contain"
+                />
+              </div>
 
-            {/* Character info — future components (level, sequence, forte) go here */}
-            <div className="flex-1" />
-          </div>
-        )}
+              {/* Character info — future components (level, sequence, forte) go here */}
+              <div className="flex-1" />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-12 text-text-primary/40">
+              Select a resonator to get started
+            </div>
+          )}
+        </div>
       </div>
 
     </div>

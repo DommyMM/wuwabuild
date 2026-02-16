@@ -5,7 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { useStats } from '@/contexts/StatsContext';
 import { getCVRating, getCVRatingColor } from '@/lib/calculations/cv';
-import { STAT_ABBREV, STAT_CDN_NAMES, getStatIconName } from '@/lib/constants';
+import { STAT_ABBREV, STAT_CDN_NAMES, getStatIconName } from '@/lib/constants/statMappings';
 import { StatName } from '@/types/stats';
 
 interface BuildCardProps {

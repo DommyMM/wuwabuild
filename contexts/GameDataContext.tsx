@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, R
 import { Character, adaptCDNCharacter, validateCDNCharacter } from '@/types/character';
 import { Weapon, WeaponType } from '@/types/weapon';
 import { Echo, COST_SECTIONS } from '@/types/echo';
-import { CharacterCurve, LevelCurves } from '@/lib/calculations';
+import { CharacterCurve, LevelCurves } from '@/lib/calculations/stats';
 
 interface MainStatData {
   [key: string]: {

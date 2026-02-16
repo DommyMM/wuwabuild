@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, ImgHTMLAttributes } from 'react';
+import { useState, useEffect, ImgHTMLAttributes } from 'react';
 import { ImagePaths } from '@/lib/paths';
 
 interface AssetImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
