@@ -1,5 +1,5 @@
 import { Character } from '@/types/character';
-import { Weapon, ScaledStats } from '@/types/weapon';
+import { Weapon } from '@/types/weapon';
 import { BaseStatName, StatName } from '@/types/stats';
 
 /**
@@ -101,22 +101,16 @@ export const scaleWeaponStat = (
 };
 
 /**
- * Calculate all scaled weapon stats at once.
+ * Calculate scaled weapon stats (ATK + substat) at a given level.
+ * Passive effect values are available directly via weapon.params[paramIndex][rank-1].
  */
 export const calculateWeaponStats = (
   weapon: Weapon,
   level: number,
-  rank: number,
   curves: LevelCurves | null
-): ScaledStats => ({
+): { scaledAtk: number; scaledMainStat: number } => ({
   scaledAtk: scaleWeaponAtk(weapon.ATK, level, curves),
   scaledMainStat: scaleWeaponStat(weapon.base_main, level, curves),
-  scaledPassive: weapon.passive_stat
-    ? Math.floor(weapon.passive_stat * (1 + ((rank - 1) * 0.25)))
-    : undefined,
-  scaledPassive2: weapon.passive_stat2
-    ? Math.floor(weapon.passive_stat2 * (1 + ((rank - 1) * 0.25)))
-    : undefined
 });
 
 /**

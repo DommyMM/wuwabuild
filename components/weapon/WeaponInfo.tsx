@@ -120,17 +120,19 @@ export const WeaponInfo: React.FC<WeaponInfoProps> = ({
             </div>
           </div>
 
-          {/* Passive Stats (if available) */}
-          {selectedWeapon.passive && (
+          {/* Passive Effect (from CDN effect template + params) */}
+          {selectedWeapon.effect?.en && selectedWeapon.params && (
             <div className="rounded-lg border border-border bg-background p-3">
-              <div className="text-xs text-text-primary/60">Passive Effect</div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs text-text-primary/60">
+                  {selectedWeapon.effectName?.en ?? 'Passive Effect'}
+                </span>
+                <span className="text-xs text-text-primary/40">R{weaponRank}</span>
+              </div>
               <div className="mt-1 text-sm text-text-primary">
-                {selectedWeapon.passive}: {selectedWeapon.passive_stat}%
-                {selectedWeapon.passive2 && (
-                  <>
-                    <br />
-                    {selectedWeapon.passive2}: {selectedWeapon.passive_stat2}%
-                  </>
+                {selectedWeapon.effect.en.replace(
+                  /\{(\d+)\}/g,
+                  (_, idx) => selectedWeapon.params?.[idx]?.[weaponRank - 1] ?? `{${idx}}`
                 )}
               </div>
             </div>

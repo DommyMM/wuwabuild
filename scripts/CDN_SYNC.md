@@ -129,13 +129,12 @@ Each weapon JSON includes:
 | `type` | Weapon type (Broadblade/Sword/Pistol/Gauntlet/Rectifier) with icon |
 | `rarity` | Star count (1-5) and color hex |
 | `icon` | Icon URLs (full, medium, small) |
-| `description` | Flavor text (all languages) |
 | `effect` | Passive effect description with `{0}` placeholders |
 | `effectName` | Passive effect name |
 | `params` | Refinement values per rank (5 levels per param) |
 | `stats` | Lv1 base ATK + substat (attribute, value, isRatio) |
 
-Skipped: `statsLevel` (use LevelCurve scaling), `ascensions` (material costs), test/placeholder weapons.
+Skipped: `description` (flavor text), `statsLevel` (use LevelCurve scaling), `ascensions` (material costs), test/placeholder weapons.
 
 ## Future: Echoes
 

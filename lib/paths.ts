@@ -184,16 +184,6 @@ const SKILL_ICON_NAMES: Record<string, string> = {
   '61': 'MoNing'
 };
 
-// Weapons with underscores in CDN filename
-const UNDERSCORE_WEAPON_IDS = new Set([
-  '21050045', // Boson Astrolabe
-  '21030045', // Phasic Homogenizer
-  '21020045', // Laser Shearer
-  '21010045', // Radiance Cleaver
-  '21040045', // Pulsation Bracer
-  '21040056', // Daybreaker's Spine
-]);
-
 const getRoverVariant = (name: string): string | null => {
   if (name === 'RoverSpectro') return 'Zhujue';
   if (name === 'RoverHavoc') return 'ZhujueDark';
@@ -244,12 +234,9 @@ export const getAssetPath = (
       };
     case 'weapons': {
       const weapon = input as Weapon;
-      const weaponId = useAltSkin && weapon.id === '21010026' ? '21010017' : weapon.id;
-      const weaponFileName = UNDERSCORE_WEAPON_IDS.has(weaponId)
-        ? `T_IconWeapon_${weaponId}_UI.png`
-        : `T_IconWeapon${weaponId}_UI.png`;
+      // Icon URL comes directly from CDN sync data
       return {
-        cdn: `${PATHS.cdn.base}/${PATHS.cdn.weapons}/${weaponFileName}`,
+        cdn: weapon.iconUrl ?? '',
         local: `${PATHS.local.base}/${PATHS.local.weapons}/${weapon.type}/${encodeURIComponent(weapon.name)}.png`
       };
     }

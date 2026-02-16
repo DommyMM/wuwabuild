@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Character, adaptCDNCharacter, validateCDNCharacter } from '@/types/character';
-import { Weapon, WeaponType } from '@/types/weapon';
+import { Weapon, WeaponType, CDNWeapon, adaptCDNWeapon, validateCDNWeapon } from '@/types/weapon';
 import { Echo, COST_SECTIONS } from '@/types/echo';
 import { CharacterCurve, LevelCurves } from '@/lib/calculations/stats';
 
@@ -158,22 +158,18 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
             .sort((a, b) => a.name.localeCompare(b.name));
         });
 
-        // Process weapons
+        // Process weapons (CDN format → app Weapon via adapter, grouped by type)
         const weaponMap = new Map<WeaponType, Weapon[]>();
         const weaponList: Weapon[] = [];
-        Object.entries(weaponsData).forEach(([key, weapons]) => {
-          const type = key.slice(0, -1) as WeaponType;
-          const processed = (weapons as Omit<Weapon, 'type'>[]).map(weapon => ({
-            ...weapon,
-            type,
-            ATK: Number(weapon.ATK),
-            base_main: Number(weapon.base_main),
-            passive_stat: weapon.passive_stat ? Number(weapon.passive_stat) : undefined,
-            passive_stat2: weapon.passive_stat2 ? Number(weapon.passive_stat2) : undefined
-          }));
-          weaponMap.set(type, processed);
-          weaponList.push(...processed);
-        });
+        const cdnWeapons: CDNWeapon[] = Array.isArray(weaponsData) ? weaponsData : [];
+        for (const raw of cdnWeapons) {
+          if (!validateCDNWeapon(raw)) continue;
+          const weapon = adaptCDNWeapon(raw);
+          weaponList.push(weapon);
+          const existing = weaponMap.get(weapon.type) ?? [];
+          existing.push(weapon);
+          weaponMap.set(weapon.type, existing);
+        }
 
         setState({
           characters: validCharacters,

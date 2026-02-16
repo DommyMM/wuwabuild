@@ -13,10 +13,6 @@ import { ECHO_BONUSES } from '@/lib/constants/echoBonuses';
 import { getDisplayName, getPercentVariant } from '@/lib/constants/statMappings';
 import { isRover } from '@/types/character';
 
-// ============================================================================
-// Types
-// ============================================================================
-
 interface StatBreakdown {
   flat: number;
   percent: number;
@@ -49,9 +45,6 @@ interface StatsContextType {
   getStatBreakdown: (stat: 'HP' | 'ATK' | 'DEF') => StatBreakdown | null;
 }
 
-// ============================================================================
-// Context
-// ============================================================================
 
 const StatsContext = createContext<StatsContextType | null>(null);
 
@@ -62,10 +55,6 @@ export const useStats = (): StatsContextType => {
   }
   return context;
 };
-
-// ============================================================================
-// Provider
-// ============================================================================
 
 interface StatsProviderProps {
   children: ReactNode;
@@ -100,19 +89,16 @@ export function StatsProvider({ children }: StatsProviderProps) {
   );
 
   // Calculate weapon stats
+  // NOTE: Passive bonuses from weapon.params will be integrated in a future update.
+  // For now, ATK + substat scaling work via level curves; passive effect values are
+  // available in weapon.params[paramIndex][rank-1] for direct lookup when needed.
   const weaponStats = useMemo(() => {
     if (!weapon) return null;
     return {
       scaledAtk: scaleWeaponAtk(weapon.ATK, weaponLevel),
       scaledMainStat: scaleWeaponStat(weapon.base_main, weaponLevel),
-      scaledPassive: weapon.passive_stat
-        ? Math.floor(weapon.passive_stat * (1 + ((weaponRank - 1) * 0.25)))
-        : undefined,
-      scaledPassive2: weapon.passive_stat2
-        ? Math.floor(weapon.passive_stat2 * (1 + ((weaponRank - 1) * 0.25)))
-        : undefined
     };
-  }, [weapon, weaponLevel, weaponRank, scaleWeaponAtk, scaleWeaponStat]);
+  }, [weapon, weaponLevel, scaleWeaponAtk, scaleWeaponStat]);
 
   // Calculate base stats
   const baseStats = useMemo(() => {
@@ -237,13 +223,10 @@ export function StatsProvider({ children }: StatsProviderProps) {
         result.breakdown = { flat, percent, echoDefault };
 
         if (weapon && weaponStats) {
-          const percentStatName = `${displayStat}%`;
           if (weapon.main_stat === displayStat) {
             percent += weaponStats.scaledMainStat;
           }
-          if (weapon.passive === percentStatName) {
-            percent += weaponStats.scaledPassive ?? 0;
-          }
+          // TODO: weapon passive bonuses (from weapon.params) to be integrated
           if (displayStat === 'ATK') {
             percent += atkPercentBonus;
           }
@@ -285,7 +268,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
           }
         }
 
-        // Add weapon bonuses
+        // Add weapon substat bonus
         if (weapon && weaponStats) {
           const weaponStatName = displayStat === 'Energy Regen' ? 'ER' : displayStat;
 
@@ -293,20 +276,9 @@ export function StatsProvider({ children }: StatsProviderProps) {
             result.update += weaponStats.scaledMainStat;
           }
 
-          if (weapon.passive === weaponStatName) {
-            result.update += weaponStats.scaledPassive ?? 0;
-          }
-
-          if (weapon.passive2 === weaponStatName) {
-            result.update += weaponStats.scaledPassive2 ?? 0;
-          }
-
-          if (weapon.passive === 'Attribute' && displayStat.endsWith('DMG')) {
-            const element = displayStat.split(' ')[0];
-            if (element === character.element) {
-              result.update += weaponStats.scaledPassive ?? 0;
-            }
-          }
+          // TODO: weapon passive bonuses (effect + params) to be integrated.
+          // Passive data is available in weapon.params[paramIndex][rank-1] for
+          // direct R1–R5 lookup — no scaling formula needed.
         }
 
         // Add set bonuses

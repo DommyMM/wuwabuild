@@ -31,12 +31,23 @@ SCHEMA = {
     "name": True,
     "type": ["id", "name", "icon"],
     "rarity": ["id", "color"],
-    "description": True,
     "icon": True,
+    # Passive: effect template ("{0}" placeholders) + effectName + params (R1-R5 per placeholder).
+    # Params are NOT uniformly scaled — ratios vary (1.5x, 2x, 3.2x etc.), so all 5 ranks are kept.
+    # Weapons with multi-stat passives (e.g. Guardian series boosting Basic + Heavy ATK) use a
+    # single {0} param for both; there is no separate "passive2" — the effect text describes it.
     "effect": True,
     "effectName": True,
     "params": True,
-    "stats": True,  # custom handler: extracts lv1 base values only
+    # Stats: custom handler extracts lv1 base values only (statsLevel is redundant bulk).
+    # NOTE on CDN stat value formats:
+    #   - stats.first.value: flat base ATK (e.g. 47 = 47 ATK). Always isRatio=false.
+    #   - stats.second: substat. Two formats depending on isRatio:
+    #       isRatio=true:  decimal ratio, multiply by 100 for display (0.081 → "8.1%")
+    #       isRatio=false: raw int, divide by 100 for display (1080 → "10.8%")
+    #     The attribute field uses internal names: "Atk", "CritRate", "CritDamage",
+    #     "Hp", "Def", "EnergyRecover". The name field has the display-ready label per language.
+    "stats": True,
 }
 
 
@@ -71,8 +82,14 @@ def filter_keys(obj: Any, keys: list[str]) -> Any:
 def extract_stats(stats: dict) -> dict:
     """Extract lv1 base stats from the stats object.
 
-    Input shape: { first: {attribute, name, value, isRatio, icon}, second: {...} }
-    Output: { first: {attribute, value}, second: {attribute, value, isRatio} }
+    Input:  { first: {attribute, name, value, isRatio, icon}, second: {...} }
+    Output: { first: {attribute, value},
+              second: {attribute, name, value, isRatio} }
+
+    first is always flat ATK (value=47 means 47 ATK).
+    second is the substat — see SCHEMA comments for value format notes.
+    We keep second.name (multilingual display label) so consumers don't need
+    to map internal attribute names like "CritDamage" → "Crit. DMG".
     """
     result = {}
     first = stats.get("first")
@@ -83,6 +100,7 @@ def extract_stats(stats: dict) -> dict:
     if isinstance(second, dict):
         result["second"] = {
             "attribute": second.get("attribute"),
+            "name": second.get("name"),
             "value": second.get("value"),
             "isRatio": second.get("isRatio"),
         }
