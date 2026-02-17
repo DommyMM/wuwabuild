@@ -170,7 +170,7 @@ export const getWeaponPaths = (weapon: Weapon | null): string => {
 };
 
 export const getEchoPaths = (echo: Echo | null, isPhantom?: boolean): string => {
-  if (!echo) return '/images/Resources/Echo.png';
+  if (!echo) return 'https://files.wuthery.com/p/GameData/UIResources/UiRole/Atlas/SP_RoleTabiconyiyin.png';
   return getAssetPath('echoes', echo, { isPhantom });
 };
 
