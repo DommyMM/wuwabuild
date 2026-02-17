@@ -57,16 +57,6 @@ const ELEMENT_BADGE_COLORS: Record<string, string> = {
   'Sound': 'bg-teal-300/80 text-black border-teal-300'
 };
 
-// Cost to border/accent color mapping
-const COST_COLORS: Record<number, string> = {
-  4: 'border-yellow-500/50 hover:border-yellow-500',
-  3: 'border-purple-500/50 hover:border-purple-500',
-  1: 'border-blue-400/50 hover:border-blue-400'
-};
-
-// ============================================================================
-// Component
-// ============================================================================
 
 export const EchoPanel: React.FC<EchoPanelProps> = ({
   index,
@@ -153,57 +143,63 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
     setEchoSubStat(index, subIndex, type, value);
   }, [index, setEchoSubStat]);
 
-  // Handle phantom toggle
-  const handlePhantomToggle = useCallback(() => {
-    setEchoPhantom(index, !panelState.phantom);
-  }, [index, panelState.phantom, setEchoPhantom]);
-
   // Handle clear
   const handleClear = useCallback(() => {
     clearEchoPanel(index);
   }, [index, clearEchoPanel]);
 
-  // Get border color based on cost
-  const borderColorClass = echo ? COST_COLORS[echo.cost] : 'border-border hover:border-accent';
-
   return (
     <>
       <div
-        className={`flex flex-col rounded-lg border-2 transition-colors ${borderColorClass} ${isDragging ? 'bg-[#3a3a3a] shadow-[0_0_20px_rgba(0,0,0,0.3)]' : 'bg-background-secondary'} ${className}`}
+        className={`flex flex-col rounded-lg border-2 transition-colors border-border hover:border-accent ${isDragging ? 'bg-[#3a3a3a] shadow-[0_0_20px_rgba(0,0,0,0.3)]' : 'bg-background-secondary'} ${className}`}
       >
-        {/* Header — entire bar is the drag handle */}
+        {/* Header — drag handle bar with phantom toggle (left) and clear (right) */}
         <div
           {...dragHandleProps}
-          className="relative flex items-center justify-between border-b border-border px-3 py-2 cursor-grab active:cursor-grabbing"
+          className="relative flex items-center justify-between border-b border-border px-2 py-2 cursor-grab active:cursor-grabbing"
         >
-          {/* Cost badge at start */}
-          <div className="flex items-center">
-            {echo ? (
-              <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${echo.cost === 4 ? 'bg-yellow-500/20 text-yellow-500' :
-                echo.cost === 3 ? 'bg-purple-500/20 text-purple-500' :
-                  'bg-blue-400/20 text-blue-400'
-                }`}>
-                {echo.cost} Cost
-              </span>
+          {/* Left: Phantom checkbox (only for applicable echoes) */}
+          <div className="flex items-center" onPointerDown={(e) => e.stopPropagation()}>
+            {echo && canBePhantom ? (
+              <label
+                htmlFor={`phantom-${index}`}
+                className={`flex cursor-pointer items-center gap-1.5 rounded border px-1.5 py-1 text-xs font-medium transition-colors select-none ${panelState.phantom
+                  ? 'border-purple-500 bg-purple-500/20 text-purple-300'
+                  : 'border-border bg-background text-text-primary hover:border-purple-500/50 hover:text-purple-400'
+                  }`}
+              >
+                <input
+                  type="checkbox"
+                  id={`phantom-${index}`}
+                  checked={panelState.phantom}
+                  onChange={(e) => setEchoPhantom(index, e.target.checked)}
+                  className="h-3 w-3 cursor-pointer rounded border-border accent-purple-500"
+                />
+                Phantom
+              </label>
             ) : (
-              <span className="text-xs text-text-primary/40">—</span>
+              <span className="w-14" />
             )}
           </div>
 
-          {/* Centered grip icon — visual hint that bar is draggable */}
-          <GripHorizontal size={14} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-text-primary/25" />
+          {/* Center: Grip icon */}
+          <GripHorizontal size={14} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-text-primary/25 pointer-events-none" />
 
-          {/* Clear button — stops drag propagation */}
-          {echo && (
-            <button
-              onClick={handleClear}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="rounded-md px-1.5 py-0.5 bg-red-500/15 text-red-400/70 transition-colors hover:bg-red-500/30 hover:text-red-300"
-              title="Clear echo"
-            >
-              <X size={16} />
-            </button>
-          )}
+          {/* Right: Clear button */}
+          <div className="flex items-center">
+            {echo ? (
+              <button
+                onClick={handleClear}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="flex items-center rounded border border-red-500/50 bg-red-500/10 p-1 text-red-400/70 transition-colors hover:bg-red-500/20 hover:text-red-300"
+                title="Clear echo"
+              >
+                <X size={12} />
+              </button>
+            ) : (
+              <span className="w-6" />
+            )}
+          </div>
         </div>
 
         {/* Echo Selection Area */}
@@ -294,22 +290,6 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                   <span>25</span>
                 </div>
               </div>
-
-              {/* Phantom Toggle (for applicable echoes) */}
-              {canBePhantom && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handlePhantomToggle}
-                    className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${panelState.phantom
-                      ? 'border-purple-500 bg-purple-500/20 text-purple-300'
-                      : 'border-border bg-background text-text-primary/70 hover:border-purple-500/50'
-                      }`}
-                  >
-                    <Ghost size={14} />
-                    Phantom
-                  </button>
-                </div>
-              )}
 
               {/* Main Stat Selector */}
               <MainStatSelector
