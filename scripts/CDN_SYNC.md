@@ -13,14 +13,17 @@ This system syncs game data from Wuthery's CDN to keep character/weapon/echo dat
 ```
 wuwabuilds/
 ├── scripts/
-│   ├── sync_characters.py    # Character sync script
-│   ├── sync_weapons.py       # Weapon sync script
-│   └── CDN_SYNC.md           # This file
+│   ├── sync_characters.py    # Character sync script (Python, CDN API)
+│   ├── sync_weapons.py       # Weapon sync script (Python, CDN API)
+│   ├── CDN_SYNC.md           # This file
+│   └── (repo root)/scripts/
+│       └── sync_echoes.js    # Echo sync script (Node, local Phantom/ repo)
 ├── public/Data/
-│   ├── Characters.json       # Combined character data (default output)
+│   ├── Characters.json       # Combined character data
 │   ├── Characters/           # Individual character JSONs (--individual)
-│   ├── Weapons.json          # Combined weapon data (default output)
+│   ├── Weapons.json          # Combined weapon data
 │   ├── Weapons/              # Individual weapon JSONs (--individual)
+│   ├── Echoes.json           # Combined echo data (193 echoes)
 │   └── LevelCurve.json       # Static scaling data (manual)
 ```
 
@@ -210,7 +213,120 @@ Each weapon JSON includes:
 
 Skipped: `description` (flavor text), `statsLevel` (use LevelCurve scaling), `ascensions` (material costs), test/placeholder weapons.
 
-## Future: Echoes
+## What Gets Synced — Echoes
 
-Similar sync script can be created for:
-- `/GameData/Grouped/Phantom/{id}.json`
+Each echo JSON includes:
+
+| Field | Description |
+|-------|-------------|
+| `id` | Phantom ID (e.g., 60000425) |
+| `name` | All languages |
+| `cost` | Echo cost (1, 3, or 4) |
+| `fetter` | Raw fetter IDs — frontend maps to sonata set names |
+| `element` | Raw element numbers — frontend maps to names |
+| `icon` | Raw `/d/` icon paths (full, 160px, 80px) — frontend prepends CDN base |
+| `phantomIcon` | Phantom skin icon paths (same structure as `icon`), if skin exists |
+| `bonuses` | First-panel (main slot) stat bonuses, if any |
+
+Optional with `--include-skills`:
+
+| Field | Description |
+|-------|-------------|
+| `skill.description` | `descriptionEx` with `{N}` placeholders (all languages) |
+| `skill.params` | `levelDescriptionStrArray` — values to fill placeholders |
+
+### Echo Data Source
+
+Echo data comes from the **local `Phantom/` repo** (not CDN API), containing 733 individual JSON files:
+
+```
+Phantom/
+├── 60000012.json  (Vanguard Junrock, rarity 2)
+├── 60000225.json  (Thundering Mephis, rarity 5, base)
+├── 60001225.json  (Phantom: Thundering Mephis, rarity 5, skin → merged)
+├── 60100425.json  (Phantom: Crownless, rarity 5, skin → merged)
+├── ...
+└── 60201015.json  (Phantom: Sigillum, phantomType 2 → skipped)
+```
+
+### Phantom Skin Merging
+
+**Phantom skins** ("Phantom: X") are cosmetic variants with different icons but identical stats/skills. They are merged into their base echo as a `phantomIcon` field, not kept as separate entries.
+
+**Nightmare echoes** ("Nightmare: X") are entirely different echoes with different stats, skills, and elements (like "mega evolutions"). They stay as separate entries and can also have their own phantom skins.
+
+Matching: Strip "Phantom: " prefix and match by English name, with normalization for inconsistencies ("Phantom: Nightmare Crownless" → "Nightmare: Crownless", "Phantom: Twin Nova - Collapsar Blade" → "Twin Nova: Collapsar Blade").
+
+**Result**: 34 phantom skins merged, 0 orphaned.
+
+### Filtering & Result
+
+- `phantomType === 1` only (filters out 63 `phantomType 2` cosmetic unlock items)
+- `rarity.id === 5` only (5-star echoes)
+- Deduplicated by English name
+- Phantom skins merged into base echoes
+
+**Result**: 159 unique echoes (37 cost-4, 50 cost-3, 72 cost-1), 34 with phantom skins
+
+### Fetter → Sonata Set Mapping
+
+The `fetter` array in each Phantom file maps to sonata set names. These are kept as raw IDs in Echoes.json — frontend maps them:
+
+| Fetter | Set | Fetter | Set | Fetter | Set |
+|--------|-----|--------|-----|--------|-----|
+| 1 | Glacio | 11 | Radiance | 21 | Law |
+| 2 | Fusion | 12 | Midnight | 22 | Flamewing |
+| 3 | Electro | 13 | Empyrean | 23 | Thread |
+| 4 | Aero | 14 | Tidebreaking | 24 | Pact |
+| 5 | Spectro | 16 | Gust | 25 | Halo |
+| 6 | Havoc | 17 | Windward | 26 | Rite |
+| 7 | Healing | 18 | Flaming | 27 | Trailblazing |
+| 8 | ER | 19 | Dream | 28 | Chromatic |
+| 9 | Attack | 20 | Crown | 29 | Sound |
+| 10 | Frosty | | | | |
+
+No fetter 15 exists (gap in numbering).
+
+### Element Number Mapping
+
+The `element` array uses numeric IDs for the monster's innate element. Kept as raw numbers in Echoes.json — frontend maps them:
+
+| Number | Element |
+|--------|---------|
+| 0 | Common |
+| 1 | Glacio |
+| 2 | Fusion |
+| 3 | Electro |
+| 4 | Aero |
+| 5 | Spectro |
+| 6 | Havoc |
+
+### Main-Slot Bonuses (Auto-Extracted)
+
+29 echoes have first-panel bonuses, extracted from skill description templates like:
+```
+"The Resonator with this Echo equipped in their main slot gains {1} Fusion DMG Bonus and {2} Resonance Skill DMG Bonus."
+```
+
+The `{N}` placeholders are resolved from `skill.levelDescriptionStrArray[0].ArrayString`. These bonuses replace the hardcoded `ECHO_BONUSES` in `frontend/src/types/echo.ts`.
+
+### Echo Icon URLs
+
+| Size | CDN Field | Phantom Skin |
+|------|-----------|--------------|
+| Full size | `icon.icon` | `phantomIcon.icon` |
+| 160px | `icon.iconMiddle` | `phantomIcon.iconMiddle` |
+| 80px | `icon.iconSmall` | `phantomIcon.iconSmall` |
+
+All paths are raw `/d/` paths — frontend prepends CDN base URL.
+
+### Usage
+
+```bash
+# From the repo root:
+node scripts/sync_echoes.js                    # Sync all → wuwabuilds/public/Data/Echoes.json
+node scripts/sync_echoes.js --dry-run --pretty # Preview without writing
+node scripts/sync_echoes.js --include-skills   # Include echo skill descriptions
+```
+
+Skipped: `phantomType 2` (cosmetic unlock items), `rarity < 5`, `type`, `attributes` (generic equip text), `obtainedDescription`, redundant skill sub-fields (`id`, `cd`, `simplyDescription`).

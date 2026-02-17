@@ -1,10 +1,48 @@
+import { I18nString } from './character';
 import { StatName } from './stats';
 
+// ============================================================================
+// CDN echo shape (raw from sync_echoes.js output)
+// ============================================================================
+
+interface CDNEchoIcon {
+  icon: string;
+  iconMiddle: string;
+  iconSmall: string;
+}
+
+export interface CDNEcho {
+  id: number;
+  name: I18nString;
+  cost: number;
+  fetter: number[];
+  element: number[];
+  icon: CDNEchoIcon;
+  phantomIcon?: CDNEchoIcon;
+  bonuses?: Array<{ stat: string; value: number }>;
+  skill: {
+    description: I18nString;
+    params: Array<{ ArrayString: string[] }>;
+  };
+}
+
+// ============================================================================
+// App-facing echo (backward-compatible + CDN extras)
+// ============================================================================
+
 export interface Echo {
+  // Legacy fields (used by EchoSelector, EchoPanel, StatsContext, BuildCard, etc.)
   name: string;
   id: string;
   cost: number;
   elements: ElementType[];
+
+  // CDN-native fields
+  nameI18n?: I18nString;
+  cdnId?: number;
+  iconUrl: string;
+  phantomIconUrl?: string;
+  bonuses?: Array<{ stat: StatName; value: number }>;
 }
 
 export type EchoPanel = {
@@ -36,6 +74,10 @@ export interface SetRowProps {
 export interface SetSectionProps {
   sets: SetInfo[];
 }
+
+// ============================================================================
+// Set / element constants
+// ============================================================================
 
 export const ELEMENT_SETS = {
   'Aero': 'Sierra Gale',
@@ -83,141 +125,70 @@ export const getEchoPieceCounts = (element: ElementType): number[] => {
   return THREE_PIECE_SETS.includes(element) ? [3] : [2, 5];
 };
 
-interface EchoBonus {
-  stat: StatName;
-  value: number;
-}
+// ============================================================================
+// CDN → App adapter
+// ============================================================================
 
-export const ECHO_BONUSES: Readonly<Record<string, ReadonlyArray<EchoBonus>>> = {
-  'Lorelei': [
-    { stat: 'Havoc DMG', value: 12 },
-    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
-  ],
-  'Sentry Construct': [
-    { stat: 'Glacio DMG', value: 12 },
-    { stat: 'Resonance Skill DMG Bonus', value: 12 }
-  ],
-  'Dragon of Dirge': [
-    { stat: 'Fusion DMG', value: 12 },
-    { stat: 'Basic Attack DMG Bonus', value: 12 }
-  ],
-  'Nightmare Feilian Beringal': [
-    { stat: 'Aero DMG', value: 12 },
-    { stat: 'Heavy Attack DMG Bonus', value: 12 }
-  ],
-  'Nightmare Impermanence Heron': [
-    { stat: 'Havoc DMG', value: 12 },
-    { stat: 'Heavy Attack DMG Bonus', value: 12 }
-  ],
-  'Nightmare Thundering Mephis': [
-    { stat: 'Electro DMG', value: 12 },
-    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
-  ],
-  'Nightmare Tempest Mephis': [
-    { stat: 'Electro DMG', value: 12 },
-    { stat: 'Resonance Skill DMG Bonus', value: 12 }
-  ],
-  'Nightmare Crownless': [
-    { stat: 'Havoc DMG', value: 12 },
-    { stat: 'Basic Attack DMG Bonus', value: 12 }
-  ],
-  'Nightmare Inferno Rider': [
-    { stat: 'Fusion DMG', value: 12 },
-    { stat: 'Resonance Skill DMG Bonus', value: 12 }
-  ],
-  'Nightmare Lampylumen Myriad': [
-    { stat: 'Glacio DMG', value: 12 }
-  ],
-  'Capitaneus': [
-    { stat: 'Spectro DMG', value: 12 },
-    { stat: 'Heavy Attack DMG Bonus', value: 12 }
-  ],
-  'Fleurdelys': [
-    { stat: 'Aero DMG', value: 10 }
-  ],
-  'Kerasaur': [
-    { stat: 'Aero DMG', value: 12 },
-    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
-  ],
-  'Nightmare Kelpie': [
-    { stat: 'Glacio DMG', value: 12 },
-    { stat: 'Aero DMG', value: 12 }
-  ],
-  'Lioness of Glory': [
-    { stat: 'Fusion DMG', value: 12 },
-    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
-  ],
-  'Fenrico': [
-    { stat: 'Aero DMG', value: 12 },
-    { stat: 'Heavy Attack DMG Bonus', value: 12 }
-  ],
-  'Nightmare Hecate': [
-    { stat: 'Havoc DMG', value: 12 }
-  ],
-  'Corrosaurus': [
-    { stat: 'Fusion DMG', value: 12 }
-  ],
-  'The False Sovereign': [
-    { stat: 'Electro DMG', value: 12 },
-    { stat: 'Heavy Attack DMG Bonus', value: 12 }
-  ],
-  'Lady of the Sea': [
-    { stat: 'Aero DMG', value: 12 },
-    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
-  ],
-  'Threnodian - Leviathan': [
-    { stat: 'Havoc DMG', value: 12 },
-    { stat: 'Resonance Liberation DMG Bonus', value: 12 }
-  ],
-  'Twin Nova Nebulous Cannon': [
-    { stat: 'Spectro DMG', value: 12 },
-    { stat: 'Basic Attack DMG Bonus', value: 12 }
-  ],
-  'Twin Nova Collapsar Blade': [
-    { stat: 'Electro DMG', value: 12 },
-    { stat: 'Basic Attack DMG Bonus', value: 12 }
-  ],
-  'Reactor Husk': [
-    { stat: 'Energy Regen', value: 10 }
-  ],
-  'Nameless Explorer': [
-    { stat: 'Aero DMG', value: 12 }
-  ]
-} as const;
+const CDN_BASE = 'https://files.wuthery.com';
 
-export const PHANTOM_ECHOES = [
-  'Clang Bang',
-  'Diggy Duggy',
-  'Dreamless',
-  'Feilian Beringal',
-  'Gulpuff',
-  'Hoartoise',
-  'Impermanence Heron',
-  'Inferno Rider',
-  'Lightcrusher',
-  'Lumiscale Construct',
-  'Mourning Aix',
-  'Questless Knight',
-  'Rocksteady Guardian',
-  'Sentry Construct',
-  'Thundering Mephis',
-  'Vitreum Dancer',
-  'Lorelei',
-  'Capitaneus',
-  'Nimbus Wraith',
-  'Crownless',
-  'Nightmare Crownless',
-  'Chest Mimic',
-  'Fae Ignis',
-  'Cuddle Wuddle',
-  'Nightmare Inferno Rider',
-  'Nightmare Mourning Aix',
-  'Fallacy of No Return',
-  'Kerasaur',
-  'The False Sovereign',
-  'Twin Nebulous Cannon',
-  'Twin Nova Collapsar Blade',
-  'Zip Zap',
-  'Iceglint Dancer',
-  'Sigillum'
-] as readonly string[];
+/** Fetter ID → ElementType mapping (from Phantom repo analysis) */
+const FETTER_MAP: Record<number, ElementType> = {
+  1: 'Glacio',
+  2: 'Fusion',
+  3: 'Electro',
+  4: 'Aero',
+  5: 'Spectro',
+  6: 'Havoc',
+  7: 'Healing',
+  8: 'ER',
+  9: 'Attack',
+  10: 'Frosty',
+  11: 'Radiance',
+  12: 'Midnight',
+  13: 'Empyrean',
+  14: 'Tidebreaking',
+  // 15: (gap — no fetter 15 exists)
+  16: 'Gust',
+  17: 'Windward',
+  18: 'Flaming',
+  19: 'Dream',
+  20: 'Crown',
+  21: 'Law',
+  22: 'Flamewing',
+  23: 'Thread',
+  24: 'Pact',
+  25: 'Halo',
+  26: 'Rite',
+  27: 'Trailblazing',
+  28: 'Chromatic',
+  29: 'Sound',
+};
+
+/** Prepend CDN base to a raw /d/ icon path */
+const toCdnUrl = (rawPath: string): string => `${CDN_BASE}${rawPath}`;
+
+export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
+  // Legacy fields
+  name: cdn.name.en,
+  id: String(cdn.id),
+  cost: cdn.cost,
+  elements: cdn.fetter
+    .map(id => FETTER_MAP[id])
+    .filter((el): el is ElementType => el !== undefined),
+
+  // CDN-native fields
+  nameI18n: cdn.name,
+  cdnId: cdn.id,
+  iconUrl: toCdnUrl(cdn.icon.icon),
+  phantomIconUrl: cdn.phantomIcon ? toCdnUrl(cdn.phantomIcon.icon) : undefined,
+  bonuses: cdn.bonuses as Array<{ stat: StatName; value: number }> | undefined,
+});
+
+export const validateCDNEcho = (echo: CDNEcho): boolean => {
+  return (
+    typeof echo.id === 'number' &&
+    typeof echo.name?.en === 'string' &&
+    typeof echo.cost === 'number' &&
+    Array.isArray(echo.fetter)
+  );
+};

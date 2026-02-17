@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Character, adaptCDNCharacter, validateCDNCharacter } from '@/types/character';
 import { Weapon, WeaponType, CDNWeapon, adaptCDNWeapon, validateCDNWeapon } from '@/types/weapon';
-import { Echo, COST_SECTIONS } from '@/types/echo';
+import { Echo, CDNEcho, COST_SECTIONS, adaptCDNEcho, validateCDNEcho } from '@/types/echo';
 import { CharacterCurve, LevelCurves } from '@/lib/calculations/stats';
 
 interface MainStatData {
@@ -149,8 +149,11 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
             .map(adaptCDNCharacter)
           : [];
 
-        // Process echoes
-        const echoes: Echo[] = Array.isArray(echoesData) ? echoesData : [];
+        // Process echoes (CDN format → legacy Echo format via adapter)
+        const cdnEchoes: CDNEcho[] = Array.isArray(echoesData) ? echoesData : [];
+        const echoes: Echo[] = cdnEchoes
+          .filter(validateCDNEcho)
+          .map(adaptCDNEcho);
         const echoesByCost: Record<number, Echo[]> = {};
         COST_SECTIONS.forEach(cost => {
           echoesByCost[cost] = echoes

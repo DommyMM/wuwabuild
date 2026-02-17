@@ -103,43 +103,6 @@ export const PATHS = {
   } as PathConfig,
 };
 
-// Phantom echo CDN ID mappings
-const PHANTOM_CDN_IDS: Record<string, string> = {
-  'Clang Bang': '1015',
-  'Diggy Duggy': 'SG_31047',
-  'Dreamless': '998_1',
-  'Feilian Beringal': '1009',
-  'Gulpuff': '115_1',
-  'Hoartoise': '1010',
-  'Impermanence Heron': '1014',
-  'Inferno Rider': '325_1',
-  'Lightcrusher': '1016',
-  'Lumiscale Construct': '329_1',
-  'Mourning Aix': '1006',
-  'Questless Knight': 'SG_32022',
-  'Rocksteady Guardian': '1007',
-  'Sentry Construct': 'SG_33009',
-  'Thundering Mephis': '1008',
-  'Vitreum Dancer': 'SG_32029',
-  'Lorelei': 'SG_33011',
-  'Crownless': 'SG_33018',
-  'Capitaneus': '32033_1',
-  'Nimbus Wraith': 'SG_31044',
-  'Nightmare Crownless': 'SG_33018',
-  'Chest Mimic': 'SG_31048',
-  'Fae Ignis': 'SG_31043',
-  'Cuddle Wuddle': 'SG_32030',
-  'Nightmare Inferno Rider': 'SG_33019',
-  'Nightmare Mourning Aix': 'SG_33020',
-  'Fallacy of No Return': 'SG_350',
-  'Kerasaur': 'SG_31062',
-  'The False Sovereign': 'SG_34017',
-  'Twin Nebulous Cannon': 'SG_32049',
-  'Twin Nova Collapsar Blade': 'SG_32050',
-  'Zip Zap': 'SG_31082',
-  'Iceglint Dancer': 'SG_31083',
-  'Sigillum': 'SG_34025'
-};
 
 export interface GetAssetPathOptions {
   useAltSkin?: boolean;
@@ -180,8 +143,9 @@ export const getAssetPath = (
     }
     case 'echoes': {
       const echo = input as Echo;
-      const echocdn = isPhantom && echo.name in PHANTOM_CDN_IDS ? PHANTOM_CDN_IDS[echo.name] : echo.id;
-      return `${PATHS.cdn.base}/${PATHS.cdn.echoes}/T_IconMonsterHead_${echocdn}_UI.png`;
+      // Icon URLs come directly from CDN sync data (like weapons)
+      if (isPhantom && echo.phantomIconUrl) return echo.phantomIconUrl;
+      return echo.iconUrl;
     }
     case 'stats': {
       const cdnName = STAT_CDN_NAMES[input as string];

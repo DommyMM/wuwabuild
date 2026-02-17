@@ -89,7 +89,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
 
   // Check if this echo has phantom variant
   const canBePhantom = useMemo(() => {
-    return echo ? hasPhantomVariant(echo.name) : false;
+    return echo ? hasPhantomVariant(echo) : false;
   }, [echo]);
 
 

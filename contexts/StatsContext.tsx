@@ -9,7 +9,7 @@ import { calculateCV } from '@/lib/calculations/cv';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
 import { calculateForteBonus } from '@/lib/calculations/stats';
 import { SET_TO_STAT, SPECIAL_SET_BONUS_VALUES, DEFAULT_SET_BONUS_VALUE } from '@/lib/constants/setBonuses';
-import { ECHO_BONUSES } from '@/lib/constants/echoBonuses';
+import { getEchoBonus } from '@/lib/constants/echoBonuses';
 import { getDisplayName, getPercentVariant } from '@/lib/constants/statMappings';
 import { isRover } from '@/types/character';
 
@@ -166,7 +166,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
   const firstPanelId = echoPanels[0]?.id;
   const firstEcho = firstPanelId ? getEcho(firstPanelId) : null;
   const firstPanelBonus = useMemo(() =>
-    firstEcho ? ECHO_BONUSES[firstEcho.name] : null,
+    firstEcho ? getEchoBonus(firstEcho) : null,
     [firstEcho]
   );
 
