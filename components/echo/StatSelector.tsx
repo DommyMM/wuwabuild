@@ -75,44 +75,40 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
 
   // Format display value
   const formatValue = (value: number | null, statName: string | null): string => {
-    if (value === null || statName === null) return '';
+    if (value === null || statName === null) return '0';
     const isPercent = isPercentStat(statName);
     return isPercent ? `${value.toFixed(1)}%` : Math.floor(value).toString();
   };
 
-  if (!cost) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-text-primary/50">Main Stat:</span>
-        <span className="text-xs text-text-primary/40">Select an echo first</span>
-      </div>
-    );
-  }
+  const isDisabled = disabled || !cost;
 
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs text-text-primary/70">Main Stat</span>
-      <div className="relative">
-        <select
-          value={selectedStat || ''}
-          onChange={handleStatChange}
-          disabled={disabled}
-          className="w-full appearance-none rounded border border-border bg-background px-3 py-1.5 pr-8 text-sm text-text-primary focus:border-accent focus:outline-none disabled:opacity-50"
-        >
-          <option value="">Select main stat...</option>
-          {options.map((option) => (
-            <option key={option.name} value={option.name}>
-              {option.displayName}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-primary/50 pointer-events-none" />
-      </div>
-      {selectedStat && selectedValue !== null && (
-        <span className="text-xs text-accent font-medium">
+      <div className="flex items-center gap-2">
+        {/* Stat Type Dropdown */}
+        <div className="relative flex-1">
+          <select
+            value={selectedStat || ''}
+            onChange={handleStatChange}
+            disabled={isDisabled}
+            className="w-full appearance-none rounded border border-border bg-background px-3 py-1.5 pr-8 text-sm text-text-primary focus:border-accent focus:outline-none disabled:opacity-50"
+          >
+            <option value="">Main Stat</option>
+            {options.map((option) => (
+              <option key={option.name} value={option.name}>
+                {option.displayName}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-primary/50 pointer-events-none" />
+        </div>
+
+        {/* Value Badge */}
+        <span className="shrink-0 rounded border border-accent/50 bg-accent/10 px-2 py-1.5 text-xs font-medium text-accent">
           {formatValue(selectedValue, selectedStat)}
         </span>
-      )}
+      </div>
     </div>
   );
 };
@@ -192,9 +188,9 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
           value={selectedStat || ''}
           onChange={handleStatChange}
           disabled={disabled}
-          className="w-full appearance-none rounded border border-border bg-background px-2 py-1 pr-6 text-xs text-text-primary focus:border-accent focus:outline-none disabled:opacity-50"
+          className="w-full appearance-none rounded border border-border bg-background p-2 pr-6 text-xs text-text-primary focus:border-accent focus:outline-none disabled:opacity-50"
         >
-          <option value="">Substat {index + 1}...</option>
+          <option value="">Substat {index + 1}</option>
           {availableStats.map((option) => (
             <option key={option.name} value={option.name}>
               {option.displayName}
@@ -211,7 +207,7 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
             value={selectedValue?.toString() || ''}
             onChange={handleValueChange}
             disabled={disabled}
-            className="w-full appearance-none rounded border border-border bg-background px-2 py-1 pr-6 text-xs text-accent font-medium focus:border-accent focus:outline-none disabled:opacity-50"
+            className="w-full appearance-none rounded border border-border bg-background p-2 pr-6 text-xs text-accent font-medium focus:border-accent focus:outline-none disabled:opacity-50"
           >
             {statValues.map((value) => (
               <option key={value} value={value}>
@@ -274,7 +270,7 @@ export const SubstatsList: React.FC<SubstatsListProps> = ({
   }, [stats, mainStatType]);
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2.5">
       <span className="text-xs text-text-primary/70">Substats</span>
       {stats.map((stat, index) => (
         <SubstatSelector

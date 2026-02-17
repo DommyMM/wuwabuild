@@ -7,7 +7,7 @@ import { EchoSelector } from './EchoSelector';
 import { MainStatSelector, SubstatsList } from './StatSelector';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/types/echo';
 import { hasPhantomVariant } from '@/lib/constants/echoBonuses';
-import { ChevronDown, X, Ghost, GripHorizontal } from 'lucide-react';
+import { ChevronDown, X, GripHorizontal } from 'lucide-react';
 import { getEchoPaths } from '@/lib/paths';
 
 export interface DragHandleProps {
@@ -164,8 +164,8 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
               <label
                 htmlFor={`phantom-${index}`}
                 className={`flex cursor-pointer items-center gap-1.5 rounded border px-1.5 py-1 text-xs font-medium transition-colors select-none ${panelState.phantom
-                  ? 'border-purple-500 bg-purple-500/20 text-purple-300'
-                  : 'border-border bg-background text-text-primary hover:border-purple-500/50 hover:text-purple-400'
+                  ? 'border-amber-500 bg-amber-500/20 text-amber-300'
+                  : 'border-border bg-background text-text-primary hover:border-amber-500/50 hover:text-amber-400'
                   }`}
               >
                 <input
@@ -173,7 +173,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                   id={`phantom-${index}`}
                   checked={panelState.phantom}
                   onChange={(e) => setEchoPhantom(index, e.target.checked)}
-                  className="h-3 w-3 cursor-pointer rounded border-border accent-purple-500"
+                  className="h-3 w-3 cursor-pointer rounded border-border accent-amber-500"
                 />
                 Phantom
               </label>
@@ -185,130 +185,78 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
           {/* Center: Grip icon */}
           <GripHorizontal size={14} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-text-primary/25 pointer-events-none" />
 
-          {/* Right: Clear button */}
+          {/* Right: Clear button — always visible */}
           <div className="flex items-center">
-            {echo ? (
-              <button
-                onClick={handleClear}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="flex items-center rounded border border-red-500/50 bg-red-500/10 p-1 text-red-400/70 transition-colors hover:bg-red-500/20 hover:text-red-300"
-                title="Clear echo"
-              >
-                <X size={12} />
-              </button>
-            ) : (
-              <span className="w-6" />
-            )}
+            <button
+              onClick={handleClear}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="flex items-center rounded border border-red-500/50 bg-red-500/10 p-1.5 text-red-400/70 transition-colors hover:bg-red-500/20 hover:text-red-300"
+              title="Clear echo"
+            >
+              <X size={12} />
+            </button>
           </div>
         </div>
 
         {/* Echo Selection Area */}
         <div className="p-3">
-          <button
-            onClick={() => setIsSelectorOpen(true)}
-            className="flex w-full items-center gap-3 rounded-lg border border-border bg-background p-2 transition-colors hover:border-accent"
-          >
-            {/* Echo Image */}
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-background-secondary">
+          <div className="flex justify-center">
+            <button
+              onClick={() => setIsSelectorOpen(true)}
+              className="overflow-hidden rounded-lg border border-border transition-colors hover:border-accent"
+            >
               <img
                 src={getEchoPaths(echo, panelState.phantom)}
                 alt={echo?.name || 'Select Echo'}
-                className="h-full w-full object-cover"
+                className="h-24 w-24 object-cover"
               />
-              {panelState.phantom && (
-                <div className="absolute inset-0 flex items-center justify-center bg-purple-500/30">
-                  <Ghost size={16} className="text-purple-300" />
-                </div>
-              )}
-            </div>
+            </button>
+          </div>
 
-            {/* Echo Info */}
-            <div className="flex flex-col items-start text-left min-w-0 flex-1">
-              {echo ? (
-                <>
-                  <span className="text-sm font-medium text-text-primary truncate w-full">
-                    {panelState.phantom ? `Phantom ${echo.name}` : echo.name}
-                  </span>
-                  {panelState.selectedElement && (
-                    <span className="text-xs text-text-primary/60">
-                      {ELEMENT_SETS[panelState.selectedElement]}
-                    </span>
-                  )}
-                </>
-              ) : (
-                <span className="text-sm text-text-primary/50">Click to select...</span>
-              )}
-            </div>
-          </button>
+          {/* Echo Controls — always visible */}
+          <div className="mt-3 space-y-3">
 
-          {/* Echo Controls (only show when echo is selected) */}
-          {echo && (
-            <div className="mt-3 space-y-3">
-              {/* Element Selector (for multi-element echoes) */}
-              {echo.elements.length > 1 && (
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-text-primary/70">Element Set</span>
-                  <div className="relative">
-                    <select
-                      value={panelState.selectedElement || ''}
-                      onChange={handleElementChange}
-                      className={`w-full appearance-none rounded border px-3 py-1.5 pr-8 text-sm focus:outline-none ${panelState.selectedElement
-                        ? ELEMENT_BADGE_COLORS[panelState.selectedElement]?.replace('bg-', 'bg-').replace('/80', '/20') || 'bg-background border-border'
-                        : 'bg-background border-border'
-                        } text-text-primary`}
-                    >
-                      {echo.elements.map((element) => (
-                        <option key={element} value={element}>
-                          {ELEMENT_SETS[element as ElementType]}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-primary/50 pointer-events-none" />
-                  </div>
-                </div>
-              )}
-
-              {/* Level Slider */}
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-text-primary/70">Level</span>
-                  <span className="text-xs font-medium text-accent">{panelState.level}</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={25}
-                  value={panelState.level}
-                  onChange={handleLevelChange}
-                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border"
-                  style={{
-                    background: `linear-gradient(to right, #a69662 0%, #bfad7d ${(panelState.level / 25) * 100}%, #333333 ${(panelState.level / 25) * 100}%)`
-                  }}
-                />
-                <div className="flex justify-between text-[10px] text-text-primary/40">
-                  <span>0</span>
-                  <span>25</span>
-                </div>
+            {/* Level Slider */}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-text-primary/70">Level</span>
+                <span className="text-xs font-medium text-accent">{panelState.level}</span>
               </div>
-
-              {/* Main Stat Selector */}
-              <MainStatSelector
-                cost={echo.cost}
-                level={panelState.level}
-                selectedStat={panelState.stats.mainStat.type}
-                selectedValue={panelState.stats.mainStat.value}
-                onChange={handleMainStatChange}
+              <input
+                type="range"
+                min={0}
+                max={25}
+                value={panelState.level}
+                onChange={handleLevelChange}
+                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border"
+                style={{
+                  background: `linear-gradient(to right, #a69662 0%, #bfad7d ${(panelState.level / 25) * 100}%, #333333 ${(panelState.level / 25) * 100}%)`
+                }}
               />
-
-              {/* Substats */}
-              <SubstatsList
-                stats={panelState.stats.subStats}
-                panelId={`echo-${index}`}
-                mainStatType={panelState.stats.mainStat.type}
-                onChange={handleSubstatChange}
-              />
+              <div className="flex justify-between text-[10px] text-text-primary/40">
+                <span>0</span>
+                <span>25</span>
+              </div>
             </div>
-          )}
+
+            {/* Main Stat Selector */}
+            <MainStatSelector
+              cost={echo?.cost ?? null}
+              level={panelState.level}
+              selectedStat={panelState.stats.mainStat.type}
+              selectedValue={panelState.stats.mainStat.value}
+              onChange={handleMainStatChange}
+              disabled={!echo}
+            />
+
+            {/* Substats */}
+            <SubstatsList
+              stats={panelState.stats.subStats}
+              panelId={`echo-${index}`}
+              mainStatType={panelState.stats.mainStat.type}
+              onChange={handleSubstatChange}
+            />
+          </div>
         </div>
       </div>
 
