@@ -1,16 +1,14 @@
 """
-Sync Weapons from Wuthery CDN to local JSON files.
+Sync Weapons from Wuthery CDN to public/Data.
 
-Fetches weapon data from CDN (or reads local raw files), transforms it
-using a schema (keeping all languages), and outputs a combined Weapons.json
-by default (or individual per-weapon files with --individual).
+Fetches weapon data from CDN, transforms it using a schema (keeping all
+languages), and writes to public/Data/Weapons (combined or --individual).
 
 Usage:
     python sync_weapons.py --fetch                     # Sync all → combined Weapons.json
     python sync_weapons.py --fetch --id 21010015       # Sync single weapon from CDN
     python sync_weapons.py --fetch --dry-run --pretty  # Preview without writing
     python sync_weapons.py --fetch --individual        # Write per-weapon files instead
-    python sync_weapons.py --input ../../Weapon        # Process local raw files
 """
 
 import json
@@ -149,35 +147,7 @@ def transform_weapon(data: dict, schema: dict) -> dict | None:
     return extract_by_schema(data, schema)
 
 
-# --- Data loading ---
-
-def load_local_weapons(input_dir: Path, single_id: str = None) -> list[dict]:
-    """Load weapon data from local JSON files."""
-    weapons = []
-
-    if single_id:
-        filepath = input_dir / f"{single_id}.json"
-        if filepath.exists():
-            with open(filepath, "r", encoding="utf-8") as f:
-                weapons.append(json.load(f))
-            print(f"  Loaded {filepath.name}")
-        else:
-            print(f"  File not found: {filepath}")
-        return weapons
-
-    json_files = sorted(input_dir.glob("*.json"))
-    print(f"Found {len(json_files)} weapon files in {input_dir}")
-
-    for filepath in json_files:
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                weapons.append(json.load(f))
-            print(f"  Loaded {filepath.name}")
-        except Exception as e:
-            print(f"  Error loading {filepath.name}: {e}")
-
-    return weapons
-
+# --- CDN fetch ---
 
 def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
     """Fetch a single weapon JSON from CDN."""
@@ -260,10 +230,8 @@ def main():
     parser = argparse.ArgumentParser(description="Sync weapon data from Wuthery CDN")
     parser.add_argument("--id", type=str, default=None,
                         help="Process single weapon by ID (e.g., --id 21010015)")
-    parser.add_argument("--input", "-i", type=Path, default=None,
-                        help="Read from local directory instead of CDN")
     parser.add_argument("--fetch", action="store_true",
-                        help="Fetch from CDN (required if no --input)")
+                        help="Fetch from CDN")
     parser.add_argument("--individual", action="store_true",
                         help="Write per-weapon files instead of combined Weapons.json")
     parser.add_argument("--workers", "-w", type=int, default=None,
@@ -277,14 +245,10 @@ def main():
 
     args = parser.parse_args()
 
-    # Load raw data
-    if args.input:
-        raw_weapons = load_local_weapons(args.input, single_id=args.id)
-    elif args.fetch:
-        raw_weapons = fetch_cdn_weapons(single_id=args.id, workers=args.workers)
-    else:
-        parser.error("Specify --input <dir> for local files or --fetch for CDN")
+    if not args.fetch:
+        parser.error("Specify --fetch to sync from CDN")
         return 1
+    raw_weapons = fetch_cdn_weapons(single_id=args.id, workers=args.workers)
 
     print(f"\nLoaded {len(raw_weapons)} raw weapon files")
 

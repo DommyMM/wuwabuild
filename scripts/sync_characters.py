@@ -1,9 +1,8 @@
 """
-Sync Characters from Wuthery CDN to local JSON files.
+Sync Characters from Wuthery CDN to public/Data.
 
-Fetches character data from CDN (or reads local raw files), transforms it
-using a schema (keeping all languages), and outputs individual per-character
-JSON files (by CDN ID).
+Fetches character data from CDN, transforms it using a schema (keeping all
+languages), and writes to public/Data/Characters (combined or --individual).
 
 Usage:
     python sync_characters.py --fetch                    # Sync all → combined Characters.json
@@ -11,7 +10,6 @@ Usage:
     python sync_characters.py --fetch --id 1102 --dry-run --pretty
     python sync_characters.py --fetch --individual       # Write per-character files instead
     python sync_characters.py --fetch --include-skills   # Include full skill multiplier data
-    python sync_characters.py --input ../../Character    # Process local raw files
 """
 
 import json
@@ -352,35 +350,7 @@ def transform_character(data: dict, schema: dict) -> dict | None:
     return result
 
 
-# --- Data loading ---
-
-def load_local_characters(input_dir: Path, single_id: str = None) -> list[dict]:
-    """Load character data from local JSON files."""
-    characters = []
-
-    if single_id:
-        filepath = input_dir / f"{single_id}.json"
-        if filepath.exists():
-            with open(filepath, "r", encoding="utf-8") as f:
-                characters.append(json.load(f))
-            print(f"  Loaded {filepath.name}")
-        else:
-            print(f"  File not found: {filepath}")
-        return characters
-
-    json_files = sorted(input_dir.glob("*.json"))
-    print(f"Found {len(json_files)} character files in {input_dir}")
-
-    for filepath in json_files:
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                characters.append(json.load(f))
-            print(f"  Loaded {filepath.name}")
-        except Exception as e:
-            print(f"  Error loading {filepath.name}: {e}")
-
-    return characters
-
+# --- CDN fetch ---
 
 def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
     """Fetch a single character JSON from CDN. Returns (filename, data_or_None)."""
@@ -469,10 +439,8 @@ def main():
     parser = argparse.ArgumentParser(description="Sync character data from Wuthery CDN")
     parser.add_argument("--id", type=str, default=None,
                        help="Process single character by ID (e.g., --id 1102)")
-    parser.add_argument("--input", "-i", type=Path, default=None,
-                       help="Read from local directory instead of CDN")
     parser.add_argument("--fetch", action="store_true",
-                       help="Fetch from CDN (required if no --input)")
+                       help="Fetch from CDN")
     parser.add_argument("--include-skills", action="store_true",
                        help="Include full skill multiplier data (off by default)")
     parser.add_argument("--individual", action="store_true",
@@ -493,14 +461,10 @@ def main():
     if args.include_skills:
         schema.update(SKILLS_SCHEMA)
 
-    # Load raw data
-    if args.input:
-        raw_characters = load_local_characters(args.input, single_id=args.id)
-    elif args.fetch:
-        raw_characters = fetch_cdn_characters(single_id=args.id, workers=args.workers)
-    else:
-        parser.error("Specify --input <dir> for local files or --fetch for CDN")
+    if not args.fetch:
+        parser.error("Specify --fetch to sync from CDN")
         return 1
+    raw_characters = fetch_cdn_characters(single_id=args.id, workers=args.workers)
 
     print(f"\nLoaded {len(raw_characters)} raw character files")
 

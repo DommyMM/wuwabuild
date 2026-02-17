@@ -13,11 +13,11 @@ This system syncs game data from Wuthery's CDN to keep character/weapon/echo dat
 ```
 wuwabuilds/
 ├── scripts/
-│   ├── sync_characters.py    # Character sync script (Python, CDN API)
-│   ├── sync_weapons.py       # Weapon sync script (Python, CDN API)
-│   ├── CDN_SYNC.md           # This file
-│   └── (repo root)/scripts/
-│       └── sync_echoes.js    # Echo sync script (Node, local Phantom/ repo)
+│   ├── sync_characters.py    # Character sync (Python, CDN API)
+│   ├── sync_weapons.py       # Weapon sync (Python, CDN API)
+│   ├── sync_echoes.py        # Echo sync (Python, CDN Grouped/Phantom)
+│   ├── sync_all.py           # Run all three syncs with default options
+│   └── CDN_SYNC.md           # This file
 ├── public/Data/
 │   ├── Characters.json       # Combined character data
 │   ├── Characters/           # Individual character JSONs (--individual)
@@ -144,7 +144,6 @@ python sync_characters.py --fetch --individual        # Write per-character file
 python sync_characters.py --fetch --id 1205           # Sync single character
 python sync_characters.py --fetch --dry-run --pretty  # Preview
 python sync_characters.py --fetch --include-skills    # Include full skill multiplier data
-python sync_characters.py --input ../../Character     # From local files
 ```
 
 ### Weapons
@@ -154,7 +153,6 @@ python sync_weapons.py --fetch                        # Sync all → Weapons.jso
 python sync_weapons.py --fetch --individual           # Write per-weapon files instead
 python sync_weapons.py --fetch --id 21010015          # Sync single weapon
 python sync_weapons.py --fetch --dry-run --pretty     # Preview
-python sync_weapons.py --input ../../Weapon           # From local files
 ```
 
 ## Stat Scaling
@@ -237,17 +235,10 @@ Optional with `--include-skills`:
 
 ### Echo Data Source
 
-Echo data comes from the **local `Phantom/` repo** (not CDN API), containing 733 individual JSON files:
+Echo data is fetched from the CDN **Grouped/Phantom** folder (same list + parallel-download pattern as Character and Weapon):
 
-```
-Phantom/
-├── 60000012.json  (Vanguard Junrock, rarity 2)
-├── 60000225.json  (Thundering Mephis, rarity 5, base)
-├── 60001225.json  (Phantom: Thundering Mephis, rarity 5, skin → merged)
-├── 60100425.json  (Phantom: Crownless, rarity 5, skin → merged)
-├── ...
-└── 60201015.json  (Phantom: Sigillum, phantomType 2 → skipped)
-```
+- **List**: `POST /api/fs/list` with `path: "/GameData/Grouped/Phantom"`
+- **Download**: `GET /d/GameData/Grouped/Phantom/{id}.json`
 
 ### Phantom Skin Merging
 
@@ -323,10 +314,12 @@ All paths are raw `/d/` paths — frontend prepends CDN base URL.
 ### Usage
 
 ```bash
-# From the repo root:
-node scripts/sync_echoes.js                    # Sync all → wuwabuilds/public/Data/Echoes.json
-node scripts/sync_echoes.js --dry-run --pretty # Preview without writing
-node scripts/sync_echoes.js --include-skills   # Include echo skill descriptions
+# From wuwabuilds/scripts:
+python sync_echoes.py --fetch                     # Sync from CDN → public/Data/Echoes.json
+python sync_echoes.py --fetch --dry-run --pretty  # Preview
+python sync_echoes.py --fetch --id 60000425       # Single phantom from CDN
+python sync_all.py                                # Run characters + weapons + echoes (all from CDN)
+python sync_all.py --dry-run --pretty             # Preview all three
 ```
 
 Skipped: `phantomType 2` (cosmetic unlock items), `rarity < 5`, `type`, `attributes` (generic equip text), `obtainedDescription`, redundant skill sub-fields (`id`, `cd`, `simplyDescription`).
