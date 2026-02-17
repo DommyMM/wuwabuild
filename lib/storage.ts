@@ -49,10 +49,6 @@ function migrateSavedState(raw: Record<string, unknown>): SavedState {
   };
 }
 
-// ============================================================================
-// Compression utilities (using LZ-based string compression)
-// ============================================================================
-
 /**
  * Simple compression using base64 encoding with run-length encoding.
  * For more advanced compression, consider using lz-string library.
@@ -78,10 +74,6 @@ function decompress(data: string): string {
     return data;
   }
 }
-
-// ============================================================================
-// Local Storage Operations
-// ============================================================================
 
 /**
  * Load all saved builds from localStorage.
@@ -209,10 +201,6 @@ export function clearAllBuilds(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-// ============================================================================
-// Import/Export Operations
-// ============================================================================
-
 /**
  * Export a single build to a downloadable JSON file.
  */
@@ -321,10 +309,6 @@ export async function importBuild(file: File): Promise<SavedBuild[]> {
     reader.readAsText(file);
   });
 }
-
-// ============================================================================
-// Utility Functions
-// ============================================================================
 
 /**
  * Generate a unique ID for builds.

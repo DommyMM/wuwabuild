@@ -214,13 +214,15 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
           </div>
 
           {/* Echo Controls — always visible */}
-          <div className="mt-3 space-y-3">
+          <div className="mt-3">
 
             {/* Level Slider */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-text-primary/70">Level</span>
-                <span className="text-xs font-medium text-accent">{panelState.level}</span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 cursor-default">
+                <span className="text-sm font-medium text-text-primary/80">Level</span>
+                <span className="min-w-12 rounded-md border border-border bg-background px-2.5 py-1 text-center text-sm font-medium text-accent">
+                  {panelState.level}
+                </span>
               </div>
               <input
                 type="range"
@@ -228,15 +230,11 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                 max={25}
                 value={panelState.level}
                 onChange={handleLevelChange}
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border"
+                className="level-slider h-2 w-full cursor-pointer appearance-none rounded-full bg-border"
                 style={{
                   background: `linear-gradient(to right, #a69662 0%, #bfad7d ${(panelState.level / 25) * 100}%, #333333 ${(panelState.level / 25) * 100}%)`
                 }}
               />
-              <div className="flex justify-between text-[10px] text-text-primary/40">
-                <span>0</span>
-                <span>25</span>
-              </div>
             </div>
 
             {/* Main Stat Selector */}

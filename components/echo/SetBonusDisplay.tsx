@@ -5,10 +5,6 @@ import { ElementType, ELEMENT_SETS, THREE_PIECE_SETS } from '@/types/echo';
 import { ELEMENT_TO_SET, SET_TO_STAT, getSetBonus } from '@/lib/constants/setBonuses';
 import { STAT_ABBREV } from '@/lib/constants/statMappings';
 
-// ============================================================================
-// Types
-// ============================================================================
-
 interface SetInfo {
   element: string;
   count: number;
@@ -54,10 +50,6 @@ const ELEMENT_COLORS: Record<string, { bg: string; border: string; text: string 
 // Default colors for unknown elements
 const DEFAULT_COLORS = { bg: 'bg-gray-400/20', border: 'border-gray-400/50', text: 'text-gray-400' };
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
 /**
  * Get the active bonuses for a set based on piece count
  */
@@ -89,10 +81,6 @@ const getActiveBonuses = (element: string, count: number): string[] => {
 
   return bonuses;
 };
-
-// ============================================================================
-// Component
-// ============================================================================
 
 export const SetBonusDisplay: React.FC<SetBonusDisplayProps> = ({
   sets,

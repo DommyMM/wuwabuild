@@ -5,20 +5,12 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { ChevronDown } from 'lucide-react';
 import { STAT_ABBREV, isPercentStat } from '@/lib/constants/statMappings';
 
-// ============================================================================
-// Shared Types
-// ============================================================================
-
 interface StatOption {
   name: string;
   displayName: string;
   values?: number[];
   minMax?: [number, number];
 }
-
-// ============================================================================
-// MainStatSelector Component
-// ============================================================================
 
 interface MainStatSelectorProps {
   cost: number | null;
@@ -83,39 +75,32 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
   const isDisabled = disabled || !cost;
 
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs text-text-primary/70">Main Stat</span>
-      <div className="flex items-center gap-2">
-        {/* Stat Type Dropdown */}
-        <div className="relative flex-1">
-          <select
-            value={selectedStat || ''}
-            onChange={handleStatChange}
-            disabled={isDisabled}
-            className="w-full appearance-none rounded border border-border bg-background px-3 py-1.5 pr-8 text-sm text-text-primary focus:border-accent focus:outline-none disabled:opacity-50"
-          >
-            <option value="">Main Stat</option>
-            {options.map((option) => (
-              <option key={option.name} value={option.name}>
-                {option.displayName}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-primary/50 pointer-events-none" />
-        </div>
-
-        {/* Value Badge */}
-        <span className="shrink-0 rounded border border-accent/50 bg-accent/10 px-2 py-1.5 text-xs font-medium text-accent">
-          {formatValue(selectedValue, selectedStat)}
-        </span>
+    <div className="flex items-center gap-2 mt-4">
+      {/* Stat Type Dropdown */}
+      <div className="relative w-3/4">
+        <select
+          value={selectedStat || ''}
+          onChange={handleStatChange}
+          disabled={isDisabled}
+          className="w-full appearance-none rounded border border-border bg-background px-3 py-1.5 pr-8 text-sm text-text-primary focus:border-accent focus:outline-none disabled:opacity-50"
+        >
+          <option value="" disabled>Main Stat</option>
+          {options.map((option) => (
+            <option key={option.name} value={option.name}>
+              {option.displayName}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-primary/50 pointer-events-none" />
       </div>
+
+      {/* Value Badge */}
+      <span className="w-1/4 rounded border border-accent/50 bg-accent/10 px-2 py-1.5 text-center text-sm font-medium text-accent">
+        {formatValue(selectedValue, selectedStat)}
+      </span>
     </div>
   );
 };
-
-// ============================================================================
-// SubstatSelector Component
-// ============================================================================
 
 interface SubstatSelectorProps {
   index: number;
@@ -190,7 +175,7 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
           disabled={disabled}
           className="w-full appearance-none rounded border border-border bg-background p-2 pr-6 text-xs text-text-primary focus:border-accent focus:outline-none disabled:opacity-50"
         >
-          <option value="">Substat {index + 1}</option>
+          <option value="" disabled>Substat {index + 1}</option>
           {availableStats.map((option) => (
             <option key={option.name} value={option.name}>
               {option.displayName}
@@ -221,10 +206,6 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
     </div>
   );
 };
-
-// ============================================================================
-// SubstatsList Component - Manages all 5 substats for a panel
-// ============================================================================
 
 interface SubstatsListProps {
   stats: Array<{ type: string | null; value: number | null }>;
@@ -270,8 +251,7 @@ export const SubstatsList: React.FC<SubstatsListProps> = ({
   }, [stats, mainStatType]);
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <span className="text-xs text-text-primary/70">Substats</span>
+    <div className="flex flex-col gap-2.5 mt-2.5">
       {stats.map((stat, index) => (
         <SubstatSelector
           key={`${panelId}-substat-${index}`}

@@ -1,10 +1,6 @@
 import { I18nString } from './character';
 import { StatName } from './stats';
 
-// ============================================================================
-// CDN echo shape (raw from sync_echoes.js output)
-// ============================================================================
-
 interface CDNEchoIcon {
   icon: string;
   iconMiddle: string;
@@ -25,10 +21,6 @@ export interface CDNEcho {
     params: Array<{ ArrayString: string[] }>;
   };
 }
-
-// ============================================================================
-// App-facing echo (backward-compatible + CDN extras)
-// ============================================================================
 
 export interface Echo {
   // Legacy fields (used by EchoSelector, EchoPanel, StatsContext, BuildCard, etc.)
@@ -75,10 +67,6 @@ export interface SetSectionProps {
   sets: SetInfo[];
 }
 
-// ============================================================================
-// Set / element constants
-// ============================================================================
-
 export const ELEMENT_SETS = {
   'Aero': 'Sierra Gale',
   'ER': 'Moonlit Clouds',
@@ -124,10 +112,6 @@ export const THREE_PIECE_SETS: readonly ElementType[] = ['Dream', 'Crown', 'Law'
 export const getEchoPieceCounts = (element: ElementType): number[] => {
   return THREE_PIECE_SETS.includes(element) ? [3] : [2, 5];
 };
-
-// ============================================================================
-// CDN → App adapter
-// ============================================================================
 
 const CDN_BASE = 'https://files.wuthery.com';
 

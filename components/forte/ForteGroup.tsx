@@ -26,11 +26,11 @@ interface SkillBranchDef {
 const BRANCH_OFFSETS = ['', 'mb-8', 'mb-12', 'mb-8', ''];
 
 const SKILL_BRANCHES: SkillBranchDef[] = [
-  { skillName: 'Normal Attack',        treeKey: 'tree1', hasNodes: true },
-  { skillName: 'Resonance Skill',      treeKey: 'tree2', hasNodes: true },
-  { skillName: 'Forte Circuit',        treeKey: 'tree3', hasNodes: false },
+  { skillName: 'Normal Attack', treeKey: 'tree1', hasNodes: true },
+  { skillName: 'Resonance Skill', treeKey: 'tree2', hasNodes: true },
+  { skillName: 'Forte Circuit', treeKey: 'tree3', hasNodes: false },
   { skillName: 'Res. Liberation', treeKey: 'tree4', hasNodes: true },
-  { skillName: 'Intro Skill',          treeKey: 'tree5', hasNodes: true },
+  { skillName: 'Intro Skill', treeKey: 'tree5', hasNodes: true },
 ];
 
 /** Skill key by column index (for icon lookup) */

@@ -1,9 +1,5 @@
 import { I18nString } from './character';
 
-// ============================================================================
-// Enums & basic types
-// ============================================================================
-
 export enum WeaponType {
   Pistol = "Pistol",
   Rectifier = "Rectifier",
@@ -13,10 +9,6 @@ export enum WeaponType {
 }
 
 export type WeaponRarity = "1-star" | "2-star" | "3-star" | "4-star" | "5-star";
-
-// ============================================================================
-// CDN weapon shape (raw from sync_weapons.py output)
-// ============================================================================
 
 export interface CDNWeapon {
   id: number;
@@ -38,10 +30,6 @@ export interface CDNWeapon {
     second: { attribute: string; name: I18nString; value: number; isRatio: boolean };
   };
 }
-
-// ============================================================================
-// App-facing weapon (backward-compatible + CDN extras)
-// ============================================================================
 
 export interface Weapon {
   // Legacy fields (used by StatsContext, WeaponInfo, WeaponSelector, paths.ts)
@@ -78,10 +66,6 @@ export interface WeaponState {
   level: number;
   rank: number;
 }
-
-// ============================================================================
-// CDN → App adapter (mirrors adaptCDNCharacter pattern)
-// ============================================================================
 
 /** CDN weapon type.id → WeaponType enum */
 const WEAPON_TYPE_MAP: Record<number, WeaponType> = {
