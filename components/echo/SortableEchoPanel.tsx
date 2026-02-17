@@ -2,10 +2,8 @@
 
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { EchoPanel } from './EchoPanel';
 import { EchoPanelState } from '@/types/echo';
-import { GripVertical } from 'lucide-react';
 
 interface SortableEchoPanelProps {
   id: string;
@@ -22,54 +20,42 @@ export const SortableEchoPanel: React.FC<SortableEchoPanelProps> = ({
     attributes,
     listeners,
     setNodeRef,
-    setActivatorNodeRef,
     transform,
     transition,
     isDragging
   } = useSortable({ id });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 1000 : undefined
-  };
-
-  // Drag handle props to pass to EchoPanel
+  // Replicate frontend pattern: only apply drag handle props to the handle element
   const dragHandleProps = {
-    ref: setActivatorNodeRef,
     ...attributes,
     ...listeners,
-    style: { touchAction: 'none' } as React.CSSProperties
-  };
+    role: 'button',
+    tabIndex: 0,
+    'aria-describedby': `drag-handle-${id}`
+  } as const;
+
+  // Replicate frontend pattern: translate3d with transition only while dragging
+  const style: React.CSSProperties | undefined = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    transition: isDragging ? transition : 'none',
+  } : undefined;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative ${isDragging ? 'shadow-2xl' : ''}`}
+      className={`relative ${isDragging ? 'z-999 opacity-80' : ''}`}
+      data-dragging={isDragging}
     >
-      {/* Custom Drag Handle Overlay */}
-      <div
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
-        className="absolute -left-2 top-2 z-10 flex h-8 w-6 cursor-grab items-center justify-center rounded-l-md bg-background-secondary border border-r-0 border-border opacity-0 transition-opacity hover:opacity-100 group-hover:opacity-100 active:cursor-grabbing"
-        style={{ touchAction: 'none' }}
-        title="Drag to reorder"
-      >
-        <GripVertical size={14} className="text-text-primary/50" />
+      {/* Replicate frontend: box-shadow on inner panel when dragging */}
+      <div className={isDragging ? '[&>div]:shadow-[0_0_20px_rgba(0,0,0,0.3)]' : ''}>
+        <EchoPanel
+          index={index}
+          panelState={panelState}
+          dragHandleProps={dragHandleProps}
+          isDragging={isDragging}
+        />
       </div>
-
-      <EchoPanel
-        index={index}
-        panelState={panelState}
-        dragHandleProps={{
-          className: 'cursor-grab active:cursor-grabbing',
-          style: { touchAction: 'none' }
-        }}
-        className="group"
-      />
     </div>
   );
 };

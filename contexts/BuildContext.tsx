@@ -221,8 +221,11 @@ function buildReducer(state: BuildState, action: BuildAction): BuildState {
 
     case 'REORDER_ECHO_PANELS': {
       const newPanels = [...state.echoPanels];
-      const [removed] = newPanels.splice(action.payload.from, 1);
-      newPanels.splice(action.payload.to, 0, removed);
+      const { from, to } = action.payload;
+      // Swap the two panels directly instead of shifting
+      const temp = newPanels[from];
+      newPanels[from] = newPanels[to];
+      newPanels[to] = temp;
       return { ...state, echoPanels: newPanels, isDirty: true };
     }
 

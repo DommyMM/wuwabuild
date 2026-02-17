@@ -13,7 +13,7 @@ import { SequenceSelector } from '@/components/character/SequenceSelector';
 import { WeaponSelector } from '@/components/weapon/WeaponSelector';
 import { LevelSlider } from '@/components/ui/LevelSlider';
 import { ForteGroup } from '@/components/forte/ForteGroup';
-import { EchoGrid } from '@/components/echo/EchoGrid';
+import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
 
 interface BuildEditorProps {
   className?: string;
@@ -207,8 +207,13 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
       </div>
 
       {/* Echoes */}
-      <div className="mt-4 rounded-lg border border-border bg-background-secondary p-4">
-        <EchoGrid />
+      <div className="mt-4 flex flex-col">
+        <div className="flex justify-end">
+          <EchoCostBadge className="rounded-b-none border-b-0" />
+        </div>
+        <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-4">
+          <EchoGrid />
+        </div>
       </div>
 
     </div>

@@ -7,17 +7,21 @@ import { EchoSelector } from './EchoSelector';
 import { MainStatSelector, SubstatsList } from './StatSelector';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/types/echo';
 import { hasPhantomVariant } from '@/lib/constants/echoBonuses';
-import { ChevronDown, X, Ghost } from 'lucide-react';
+import { ChevronDown, X, Ghost, GripHorizontal } from 'lucide-react';
 import { getEchoPaths } from '@/lib/paths';
 
-// ============================================================================
-// Types
-// ============================================================================
+export interface DragHandleProps {
+  [key: string]: unknown;
+  role?: string;
+  tabIndex?: number;
+  'aria-describedby'?: string;
+}
 
 interface EchoPanelProps {
   index: number;
   panelState: EchoPanelState;
-  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
+  dragHandleProps?: DragHandleProps;
+  isDragging?: boolean;
   className?: string;
 }
 
@@ -68,6 +72,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   index,
   panelState,
   dragHandleProps,
+  isDragging = false,
   className = ''
 }) => {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
@@ -164,33 +169,39 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   return (
     <>
       <div
-        className={`flex flex-col rounded-lg border-2 bg-background-secondary transition-colors ${borderColorClass} ${className}`}
+        className={`flex flex-col rounded-lg border-2 transition-colors ${borderColorClass} ${isDragging ? 'bg-[#3a3a3a] shadow-[0_0_20px_rgba(0,0,0,0.3)]' : 'bg-background-secondary'} ${className}`}
       >
-        {/* Header with drag handle and clear button */}
-        <div className="flex items-center justify-between border-b border-border px-3 py-2">
-          <div
-            className="flex items-center gap-2 cursor-grab active:cursor-grabbing"
-            {...dragHandleProps}
-          >
-            <span className="text-xs font-semibold text-text-primary/70">
-              Echo {index + 1}
-            </span>
-            {echo && (
+        {/* Header — entire bar is the drag handle */}
+        <div
+          {...dragHandleProps}
+          className="relative flex items-center justify-between border-b border-border px-3 py-2 cursor-grab active:cursor-grabbing"
+        >
+          {/* Cost badge at start */}
+          <div className="flex items-center">
+            {echo ? (
               <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${echo.cost === 4 ? 'bg-yellow-500/20 text-yellow-500' :
                 echo.cost === 3 ? 'bg-purple-500/20 text-purple-500' :
                   'bg-blue-400/20 text-blue-400'
                 }`}>
                 {echo.cost} Cost
               </span>
+            ) : (
+              <span className="text-xs text-text-primary/40">—</span>
             )}
           </div>
+
+          {/* Centered grip icon — visual hint that bar is draggable */}
+          <GripHorizontal size={14} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-text-primary/25" />
+
+          {/* Clear button — stops drag propagation */}
           {echo && (
             <button
               onClick={handleClear}
-              className="rounded p-1 text-text-primary/50 transition-colors hover:bg-red-500/20 hover:text-red-400"
+              onPointerDown={(e) => e.stopPropagation()}
+              className="rounded-md px-1.5 py-0.5 bg-red-500/15 text-red-400/70 transition-colors hover:bg-red-500/30 hover:text-red-300"
               title="Clear echo"
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           )}
         </div>

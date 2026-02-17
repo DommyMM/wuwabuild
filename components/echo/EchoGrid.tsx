@@ -26,51 +26,78 @@ interface EchoGridProps {
   className?: string;
 }
 
-const ECHO_COST_LIMIT = 12;
+interface EchoCostBadgeProps {
+  className?: string;
+}
+
+export const EchoCostBadge: React.FC<EchoCostBadgeProps> = ({ className = '' }) => {
+  const { state } = useBuild();
+  const { getEcho } = useGameData();
+
+  const totalCost = useMemo(() => {
+    return getTotalEchoCost(state.echoPanels, getEcho);
+  }, [state.echoPanels, getEcho]);
+
+  const isCostValid = totalCost <= 12;
+  const isCostComplete = totalCost === 12;
+
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-lg border border-border bg-background p-2 ${className}`}
+    >
+      {isCostComplete ? (
+        <CheckCircle size={20} className="text-green-500" />
+      ) : !isCostValid ? (
+        <AlertTriangle size={20} className="text-red-500" />
+      ) : null}
+      <span
+        className={`text-2xl font-medium ${isCostComplete
+          ? 'text-green-500'
+          : isCostValid
+            ? 'text-text-primary/50'
+            : 'text-red-500'
+          }`}
+      >
+        Cost {totalCost} / 12
+      </span>
+    </div>
+  );
+};
+
 
 export const EchoGrid: React.FC<EchoGridProps> = ({ className = '' }) => {
   const { state, reorderEchoPanels } = useBuild();
   const { getEcho } = useGameData();
 
-  // DND sensors
+  // Replicate frontend sensor setup exactly
+  // Added distance activation constraint so clicks on child elements don't trigger drag
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8 // Require 8px movement before starting drag
-      }
+        distance: 5,
+      },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates
     })
   );
 
-  // Calculate total cost
-  const totalCost = useMemo(() => {
-    return getTotalEchoCost(state.echoPanels, getEcho);
-  }, [state.echoPanels, getEcho]);
-
-  // Check if cost is valid
-  const isCostValid = totalCost <= ECHO_COST_LIMIT;
-  const isCostComplete = totalCost === ECHO_COST_LIMIT;
-
-  // Generate unique IDs for sortable items
+  // Stable panel IDs that match the frontend pattern: `panel-${index}`
   const panelIds = useMemo(() => {
-    return state.echoPanels.map((_, index) => `echo-panel-${index}`);
+    return state.echoPanels.map((_, index) => `panel-${index}`);
   }, [state.echoPanels]);
 
-  // Handle drag end
+  // Replicate frontend's handleDragEnd: parse index from ID, call reorder
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const oldIndex = panelIds.indexOf(active.id as string);
-      const newIndex = panelIds.indexOf(over.id as string);
+      const oldIndex = parseInt(active.id.toString().split('-')[1]);
+      const newIndex = parseInt(over.id.toString().split('-')[1]);
 
-      if (oldIndex !== -1 && newIndex !== -1) {
-        reorderEchoPanels(oldIndex, newIndex);
-      }
+      reorderEchoPanels(oldIndex, newIndex);
     }
-  }, [panelIds, reorderEchoPanels]);
+  }, [reorderEchoPanels]);
 
   // Calculate active set bonuses
   const activeSets = useMemo(() => {
@@ -90,34 +117,6 @@ export const EchoGrid: React.FC<EchoGridProps> = ({ className = '' }) => {
 
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
-      {/* Header with cost display */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-text-primary">Echoes</h2>
-
-        {/* Cost Display */}
-        <div className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 ${
-          isCostComplete
-            ? 'border-green-500/50 bg-green-500/10'
-            : isCostValid
-            ? 'border-border bg-background-secondary'
-            : 'border-red-500/50 bg-red-500/10'
-        }`}>
-          {isCostComplete ? (
-            <CheckCircle size={16} className="text-green-500" />
-          ) : !isCostValid ? (
-            <AlertTriangle size={16} className="text-red-500" />
-          ) : null}
-          <span className={`text-sm font-medium ${
-            isCostComplete
-              ? 'text-green-500'
-              : isCostValid
-              ? 'text-text-primary'
-              : 'text-red-500'
-          }`}>
-            Cost: {totalCost} / {ECHO_COST_LIMIT}
-          </span>
-        </div>
-      </div>
 
       {/* Set Bonuses */}
       {activeSets.length > 0 && (
@@ -146,24 +145,6 @@ export const EchoGrid: React.FC<EchoGridProps> = ({ className = '' }) => {
           </div>
         </SortableContext>
       </DndContext>
-
-      {/* Cost warning/info */}
-      {!isCostValid && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-2">
-          <AlertTriangle size={16} className="shrink-0 text-red-500" />
-          <span className="text-sm text-red-400">
-            Total echo cost exceeds the limit of {ECHO_COST_LIMIT}. Remove or change echoes to fix.
-          </span>
-        </div>
-      )}
-
-      {isCostValid && totalCost > 0 && totalCost < ECHO_COST_LIMIT && (
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2">
-          <span className="text-sm text-text-primary/60">
-            You can still equip {ECHO_COST_LIMIT - totalCost} more cost worth of echoes.
-          </span>
-        </div>
-      )}
     </div>
   );
 };
