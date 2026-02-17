@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Modal } from '@/components/ui/Modal';
 import { Echo, ElementType, ELEMENT_SETS, COST_SECTIONS } from '@/types/echo';
-import { getEchoPaths } from '@/lib/paths';
+import { getEchoPaths, getAssetPath } from '@/lib/paths';
 
 interface EchoSelectorProps {
   isOpen: boolean;
@@ -45,17 +45,47 @@ const SET_CHIP_ACTIVE: Record<string, string> = {
   'Sound': 'bg-teal-300/20 border-teal-300/50 text-teal-300'
 };
 
-// Cost to border/accent color
-const COST_BORDER_COLORS: Record<number, string> = {
-  4: 'border-yellow-500',
-  3: 'border-purple-500',
-  1: 'border-blue-400'
+// Cost-based card styling (matches weapon/character rarity pattern)
+const COST_BORDER: Record<number, string> = {
+  4: 'border-yellow-500/50',
+  3: 'border-purple-500/50',
+  1: 'border-blue-400/40'
 };
 
-const COST_TEXT_COLORS: Record<number, string> = {
+const COST_HOVER: Record<number, string> = {
+  4: 'hover:border-yellow-500 hover:shadow-[0_0_10px_rgba(234,179,8,0.4)]',
+  3: 'hover:border-purple-500 hover:shadow-[0_0_10px_rgba(168,85,247,0.4)]',
+  1: 'hover:border-blue-400 hover:shadow-[0_0_8px_rgba(96,165,250,0.3)]'
+};
+
+const COST_SELECTED: Record<number, string> = {
+  4: 'border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.5)]',
+  3: 'border-purple-500 shadow-[0_0_12px_rgba(168,85,247,0.5)]',
+  1: 'border-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.4)]'
+};
+
+const COST_BG: Record<number, string> = {
+  4: 'bg-yellow-500/10',
+  3: 'bg-purple-500/10',
+  1: 'bg-blue-400/8'
+};
+
+const COST_DIVIDER: Record<number, string> = {
+  4: 'bg-yellow-500/40',
+  3: 'bg-purple-500/40',
+  1: 'bg-blue-400/30'
+};
+
+const COST_TEXT: Record<number, string> = {
   4: 'text-yellow-500',
   3: 'text-purple-400',
   1: 'text-blue-400'
+};
+
+const COST_HEADER_BORDER: Record<number, string> = {
+  4: 'border-yellow-500',
+  3: 'border-purple-500',
+  1: 'border-blue-400'
 };
 
 const COST_LABELS: Record<number, string> = {
@@ -66,13 +96,9 @@ const COST_LABELS: Record<number, string> = {
 
 // Ordered set types for filter chips
 const SET_FILTER_ORDER: ElementType[] = [
-  // Elemental
   'Glacio', 'Fusion', 'Electro', 'Aero', 'Spectro', 'Havoc',
-  // Utility
   'ER', 'Attack', 'Healing',
-  // Enhanced
   'Empyrean', 'Frosty', 'Midnight', 'Radiance', 'Tidebreaking',
-  // Newer
   'Gust', 'Windward', 'Flaming', 'Dream', 'Crown', 'Law',
   'Flamewing', 'Thread', 'Pact', 'Halo', 'Rite',
   'Trailblazing', 'Chromatic', 'Sound'
@@ -84,33 +110,19 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
   onSelect,
   selectedEchoId
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [setFilter, setSetFilter] = useState<Set<string>>(new Set());
   const { echoesByCost, loading, error } = useGameData();
 
-  // Filter echoes by search query + set filter
+  // Filter echoes by set filter
   const filteredEchoesByCost = useMemo(() => {
     const result: Record<number, Echo[]> = {};
-    const query = searchQuery.toLowerCase().trim();
 
     COST_SECTIONS.forEach(cost => {
       let echoes = echoesByCost[cost] || [];
 
-      // Apply set filter
       if (setFilter.size > 0) {
         echoes = echoes.filter(echo =>
           echo.elements.some(el => setFilter.has(el))
-        );
-      }
-
-      // Apply search filter
-      if (query) {
-        echoes = echoes.filter(echo =>
-          echo.name.toLowerCase().includes(query) ||
-          echo.elements.some(el =>
-            el.toLowerCase().includes(query) ||
-            ELEMENT_SETS[el as ElementType]?.toLowerCase().includes(query)
-          )
         );
       }
 
@@ -118,18 +130,16 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
     });
 
     return result;
-  }, [echoesByCost, searchQuery, setFilter]);
+  }, [echoesByCost, setFilter]);
 
   const handleEchoSelect = useCallback((echo: Echo) => {
     onSelect(echo);
     onClose();
-    setSearchQuery('');
     setSetFilter(new Set());
   }, [onSelect, onClose]);
 
   const handleClose = useCallback(() => {
     onClose();
-    setSearchQuery('');
     setSetFilter(new Set());
   }, [onClose]);
 
@@ -143,16 +153,15 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
 
   const clearFilters = useCallback(() => {
     setSetFilter(new Set());
-    setSearchQuery('');
   }, []);
 
-  const hasFilters = setFilter.size > 0 || searchQuery.length > 0;
+  const hasFilters = setFilter.size > 0;
 
   const totalFiltered = (filteredEchoesByCost[4]?.length ?? 0) +
     (filteredEchoesByCost[3]?.length ?? 0) +
     (filteredEchoesByCost[1]?.length ?? 0);
 
-  // Render a single echo card
+  // Render a single echo card — matches weapon/character card pattern
   const renderEchoCard = (echo: Echo) => {
     const isSelected = selectedEchoId === echo.id;
 
@@ -160,35 +169,44 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
       <button
         key={echo.id}
         onClick={() => handleEchoSelect(echo)}
-        className={`group flex flex-col items-center gap-1 rounded-lg border-2 bg-background p-1.5 transition-all hover:scale-105 hover:border-accent ${
-          COST_BORDER_COLORS[echo.cost]
-        } ${isSelected ? 'ring-2 ring-accent' : ''}`}
+        className={`group relative flex flex-col items-center overflow-hidden rounded-lg border-2 transition-all duration-200
+          ${COST_BG[echo.cost] ?? ''}
+          ${isSelected
+            ? COST_SELECTED[echo.cost] ?? 'border-accent'
+            : `${COST_BORDER[echo.cost] ?? 'border-border'} ${COST_HOVER[echo.cost] ?? ''}`
+          }
+        `}
       >
-        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
+        {/* Image — no padding, fills card width */}
+        <div className="relative aspect-square w-full overflow-hidden">
           <img
             src={getEchoPaths(echo)}
             alt={echo.name}
-            className="h-full w-full object-cover transition-transform group-hover:scale-110"
+            className="h-full w-full object-cover"
             loading="lazy"
           />
         </div>
 
-        <span className="w-full truncate text-center text-[10px] leading-tight text-text-primary">
+        {/* Divider */}
+        <div className={`h-0.5 w-full ${COST_DIVIDER[echo.cost] ?? 'bg-border'}`} />
+
+        {/* Name */}
+        <span className="max-w-full truncate px-1.5 py-1 text-center text-xs leading-tight text-text-primary/80 group-hover:text-text-primary">
           {echo.name}
         </span>
       </button>
     );
   };
 
-  // Render a cost column
+  // Render a cost column (header pinned, list scrolls independently)
   const renderCostColumn = (cost: number) => {
     const echoes = filteredEchoesByCost[cost] || [];
 
     return (
-      <div key={cost} className="flex min-w-0 flex-1 flex-col">
-        {/* Column header */}
-        <div className={`mb-2 border-b-2 pb-1.5 ${COST_BORDER_COLORS[cost]}`}>
-          <span className={`text-sm font-semibold ${COST_TEXT_COLORS[cost]}`}>
+      <div key={cost} className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {/* Column header — stays visible */}
+        <div className={`shrink-0 border-b-2 pb-1.5 ${COST_HEADER_BORDER[cost]}`}>
+          <span className={`text-sm font-semibold ${COST_TEXT[cost]}`}>
             {COST_LABELS[cost]}
           </span>
           <span className="ml-1.5 text-xs text-text-primary/50">
@@ -196,16 +214,20 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
           </span>
         </div>
 
-        {/* Echo grid */}
-        {echoes.length > 0 ? (
-          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-            {echoes.map(renderEchoCard)}
-          </div>
-        ) : (
-          <div className="flex items-center justify-center py-6 text-xs text-text-primary/40">
-            No echoes
-          </div>
-        )}
+        {/* Scrollable echo list — thin scrollbar (Tailwind arbitrary variants) */}
+        <div
+          className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#444_var(--color-background-secondary)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-background-secondary [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#444]"
+        >
+          {echoes.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2 py-2 sm:grid-cols-4">
+              {echoes.map(renderEchoCard)}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-6 text-xs text-text-primary/40">
+              No echoes
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -218,46 +240,38 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
       contentClassName="w-full mx-4 lg:mx-16 max-h-[90vh]"
     >
       <div className="flex h-full flex-col gap-3">
-        {/* Search + Filters (pinned) */}
-        <div className="flex shrink-0 flex-col gap-2">
-          {/* Search */}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search echoes by name or set..."
-            className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary placeholder:text-text-primary/50 focus:border-accent focus:outline-none"
-            autoFocus
-          />
+        {/* Set filter chips */}
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+          {SET_FILTER_ORDER.map(el => (
+            <button
+              key={el}
+              onClick={() => toggleSetFilter(el)}
+              className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
+                setFilter.has(el)
+                  ? SET_CHIP_ACTIVE[el]
+                  : 'border-border text-text-primary/50 hover:border-text-primary/30'
+              }`}
+            >
+              <img
+                src={getAssetPath('sets', el)}
+                alt=""
+                className="h-4 w-4 object-contain"
+              />
+              {ELEMENT_SETS[el]}
+            </button>
+          ))}
 
-          {/* Set filter chips */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {SET_FILTER_ORDER.map(el => (
+          {hasFilters && (
+            <>
+              <span className="mx-1 h-4 w-px bg-border" />
               <button
-                key={el}
-                onClick={() => toggleSetFilter(el)}
-                className={`rounded-md border px-2 py-0.5 text-xs font-medium transition-colors ${
-                  setFilter.has(el)
-                    ? SET_CHIP_ACTIVE[el]
-                    : 'border-border text-text-primary/50 hover:border-text-primary/30'
-                }`}
+                onClick={clearFilters}
+                className="rounded-md px-2 py-0.5 text-xs text-text-primary/40 hover:text-text-primary"
               >
-                {ELEMENT_SETS[el]}
+                Clear
               </button>
-            ))}
-
-            {hasFilters && (
-              <>
-                <span className="mx-1 h-4 w-px bg-border" />
-                <button
-                  onClick={clearFilters}
-                  className="rounded-md px-2 py-0.5 text-xs text-text-primary/40 hover:text-text-primary"
-                >
-                  Clear
-                </button>
-              </>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Content */}
@@ -274,15 +288,13 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
         )}
 
         {!loading && !error && (
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 flex flex-col">
             {totalFiltered === 0 ? (
               <div className="flex items-center justify-center py-8">
-                <span className="text-text-primary/60">
-                  No echoes found{searchQuery ? ` matching "${searchQuery}"` : ''}
-                </span>
+                <span className="text-text-primary/60">No echoes found</span>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 overflow-hidden md:grid-cols-3">
+              <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-3">
                 {COST_SECTIONS.map(renderCostColumn)}
               </div>
             )}
