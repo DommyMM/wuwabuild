@@ -204,7 +204,7 @@ def fetch_cdn_weapons(single_id: str = None, workers: int | None = None) -> list
         files = list_data.get("data", {}).get("content", [])
         json_files = [f["name"] for f in files if f["name"].endswith(".json")]
 
-        actual_workers = workers if workers else len(json_files)
+        actual_workers = workers if workers else 20
         print(f"Found {len(json_files)} weapon files, fetching with {actual_workers} threads...")
 
         weapons = []

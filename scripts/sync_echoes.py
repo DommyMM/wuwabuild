@@ -60,20 +60,30 @@ def extract_main_slot_bonuses(skill: dict) -> list[dict] | None:
     return bonuses if bonuses else None
 
 
+def extract_legacy_id(icon_path: str) -> str | None:
+    """Extract legacy numeric ID from icon path like T_IconMonsterGoods_992_UI.png."""
+    m = re.search(r"T_IconMonsterGoods_(\d+)_UI\.png", icon_path)
+    return m.group(1) if m else None
+
+
 def transform_echo(raw: dict) -> dict:
     """Transform raw Phantom JSON to our Echo schema."""
+    icon_path = raw["icon"].get("icon", "")
+    legacy_id = extract_legacy_id(icon_path)
     echo: dict[str, Any] = {
         "id": raw["id"],
         "name": raw["name"],
         "cost": raw["cost"]["cost"],
         "fetter": raw["fetter"],
         "element": raw["element"],
-        "icon": raw["icon"],
+        "icon": icon_path,
         "skill": {
-            "description": raw["skill"].get("descriptionEx"),
+            "description": (raw["skill"].get("descriptionEx") or {}).get("en"),
             "params": raw["skill"].get("levelDescriptionStrArray"),
         },
     }
+    if legacy_id:
+        echo["legacyId"] = legacy_id
     bonuses = extract_main_slot_bonuses(raw["skill"])
     if bonuses:
         echo["bonuses"] = bonuses
@@ -130,7 +140,7 @@ def fetch_cdn_echoes(single_id: str | None = None, workers: int | None = None) -
 
         files = list_data.get("data", {}).get("content", [])
         json_files = [f["name"] for f in files if f["name"].endswith(".json")]
-        actual_workers = workers if workers else len(json_files)
+        actual_workers = workers if workers else 20
         print(f"Found {len(json_files)} phantom files, fetching with {actual_workers} threads...")
 
         raw_list = []
@@ -183,7 +193,7 @@ def _process_raw_list(raw_list: list[dict]) -> tuple[list[dict], dict]:
                     break
         base = base_echoes.get(base_name)
         if base:
-            base["phantomIcon"] = skin["icon"]
+            base["phantomIcon"] = skin["icon"].get("icon", "")
             merged += 1
         else:
             print(f"  Warning: orphaned phantom skin \"{skin['name']['en']}\" ({skin['id']})")

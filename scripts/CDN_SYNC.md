@@ -218,19 +218,20 @@ Each echo JSON includes:
 | Field | Description |
 |-------|-------------|
 | `id` | Phantom ID (e.g., 60000425) |
+| `legacyId` | Legacy numeric ID extracted from icon path (e.g., `"992"`) |
 | `name` | All languages |
 | `cost` | Echo cost (1, 3, or 4) |
 | `fetter` | Raw fetter IDs — frontend maps to sonata set names |
 | `element` | Raw element numbers — frontend maps to names |
-| `icon` | Raw `/d/` icon paths (full, 160px, 80px) — frontend prepends CDN base |
-| `phantomIcon` | Phantom skin icon paths (same structure as `icon`), if skin exists |
+| `icon` | Raw `/d/` full-size icon path — frontend prepends CDN base |
+| `phantomIcon` | Phantom skin full-size icon path, if skin exists |
 | `bonuses` | First-panel (main slot) stat bonuses, if any |
 
 Optional with `--include-skills`:
 
 | Field | Description |
 |-------|-------------|
-| `skill.description` | `descriptionEx` with `{N}` placeholders (all languages) |
+| `skill.description` | `descriptionEx` English text with `{N}` placeholders |
 | `skill.params` | `levelDescriptionStrArray` — values to fill placeholders |
 
 ### Echo Data Source
@@ -303,11 +304,7 @@ The `{N}` placeholders are resolved from `skill.levelDescriptionStrArray[0].Arra
 
 ### Echo Icon URLs
 
-| Size | CDN Field | Phantom Skin |
-|------|-----------|--------------|
-| Full size | `icon.icon` | `phantomIcon.icon` |
-| 160px | `icon.iconMiddle` | `phantomIcon.iconMiddle` |
-| 80px | `icon.iconSmall` | `phantomIcon.iconSmall` |
+`icon` and `phantomIcon` are raw `/d/` full-size paths — frontend prepends CDN base URL.
 
 All paths are raw `/d/` paths — frontend prepends CDN base URL.
 
