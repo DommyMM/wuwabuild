@@ -18,7 +18,6 @@ import {
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { SortableEchoPanel } from './SortableEchoPanel';
-import { SetBonusDisplay } from './SetBonusDisplay';
 import { getTotalEchoCost } from '@/lib/calculations/echoes';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 
@@ -99,29 +98,8 @@ export const EchoGrid: React.FC<EchoGridProps> = ({ className = '' }) => {
     }
   }, [reorderEchoPanels]);
 
-  // Calculate active set bonuses
-  const activeSets = useMemo(() => {
-    const elementCounts: Record<string, number> = {};
-
-    state.echoPanels.forEach(panel => {
-      if (panel.id && panel.selectedElement) {
-        elementCounts[panel.selectedElement] = (elementCounts[panel.selectedElement] || 0) + 1;
-      }
-    });
-
-    return Object.entries(elementCounts)
-      .filter(([_, count]) => count >= 2)
-      .map(([element, count]) => ({ element, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [state.echoPanels]);
-
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
-
-      {/* Set Bonuses */}
-      {activeSets.length > 0 && (
-        <SetBonusDisplay sets={activeSets} />
-      )}
 
       {/* Echo Panels Grid */}
       <DndContext

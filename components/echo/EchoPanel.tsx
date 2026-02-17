@@ -7,7 +7,7 @@ import { EchoSelector } from './EchoSelector';
 import { MainStatSelector, SubstatsList } from './StatSelector';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/types/echo';
 import { hasPhantomVariant } from '@/lib/constants/echoBonuses';
-import { ChevronDown, X, GripHorizontal } from 'lucide-react';
+import { X } from 'lucide-react';
 import { getEchoPaths } from '@/lib/paths';
 
 export interface DragHandleProps {
@@ -25,36 +25,59 @@ interface EchoPanelProps {
   className?: string;
 }
 
-// Element badge colors
+// Element badge colors — matched to SetIcons images, co-occurring sets kept visually distinct
 const ELEMENT_BADGE_COLORS: Record<string, string> = {
-  'Aero': 'bg-aero/80 text-white border-aero',
-  'Glacio': 'bg-blue-400/80 text-white border-blue-400',
-  'Electro': 'bg-purple-400/80 text-white border-purple-400',
-  'Fusion': 'bg-orange-400/80 text-white border-orange-400',
-  'Havoc': 'bg-pink-400/80 text-white border-pink-400',
-  'Spectro': 'bg-spectro/80 text-black border-spectro',
-  'ER': 'bg-green-400/80 text-white border-green-400',
-  'Attack': 'bg-red-400/80 text-white border-red-400',
-  'Healing': 'bg-emerald-400/80 text-white border-emerald-400',
-  'Empyrean': 'bg-cyan-400/80 text-white border-cyan-400',
-  'Frosty': 'bg-sky-400/80 text-white border-sky-400',
-  'Midnight': 'bg-indigo-400/80 text-white border-indigo-400',
-  'Radiance': 'bg-yellow-300/80 text-black border-yellow-300',
-  'Tidebreaking': 'bg-teal-400/80 text-white border-teal-400',
-  'Gust': 'bg-lime-400/80 text-black border-lime-400',
-  'Windward': 'bg-emerald-300/80 text-black border-emerald-300',
-  'Flaming': 'bg-rose-500/80 text-white border-rose-500',
-  'Dream': 'bg-violet-400/80 text-white border-violet-400',
-  'Crown': 'bg-amber-400/80 text-black border-amber-400',
-  'Law': 'bg-slate-400/80 text-white border-slate-400',
-  'Flamewing': 'bg-orange-500/80 text-white border-orange-500',
-  'Thread': 'bg-gray-500/80 text-white border-gray-500',
-  'Pact': 'bg-yellow-400/80 text-black border-yellow-400',
-  'Halo': 'bg-cyan-300/80 text-black border-cyan-300',
-  'Rite': 'bg-amber-300/80 text-black border-amber-300',
+  // Core 6 game elements
+  'Aero':       'bg-aero/80 text-white border-aero',
+  'Glacio':     'bg-blue-400/80 text-white border-blue-400',
+  'Electro':    'bg-purple-500/80 text-white border-purple-500',
+  'Fusion':     'bg-orange-400/80 text-white border-orange-400',
+  'Havoc':      'bg-pink-500/80 text-white border-pink-500',
+  'Spectro':    'bg-spectro/80 text-black border-spectro',
+  // Echo sets — icon: gray circle
+  'ER':         'bg-zinc-500/80 text-white border-zinc-500',
+  // Icon: dark crimson
+  'Attack':     'bg-red-700/80 text-white border-red-700',
+  // Icon: medium green with +
+  'Healing':    'bg-green-500/80 text-white border-green-500',
+  // Icon: muted blue-gray with stars
+  'Empyrean':   'bg-slate-400/80 text-white border-slate-400',
+  // Icon: bright sky blue star — co-occurs with Empyrean (distinct ✓)
+  'Frosty':     'bg-sky-400/80 text-white border-sky-400',
+  // Icon: purple-mauve — co-occurs with Dream (different ✓)
+  'Midnight':   'bg-purple-400/80 text-white border-purple-400',
+  // Icon: bright yellow sun
+  'Radiance':   'bg-yellow-400/80 text-black border-yellow-400',
+  // Icon: dark charcoal gray (NOT teal)
+  'Tidebreaking': 'bg-zinc-600/80 text-white border-zinc-600',
+  // Icon: light mint cyan — co-occurs with Windward; Windward made deeper to differ
+  'Gust':       'bg-cyan-300/80 text-black border-cyan-300',
+  // Icon: same mint as Gust but co-occurs → deeper teal
+  'Windward':   'bg-teal-500/80 text-white border-teal-500',
+  // Icon: dark brown-red flame — co-occurs with Flamewing
+  'Flaming':    'bg-red-900/80 text-white border-red-900',
+  // Icon: light pink-mauve — co-occurs with Midnight (different ✓)
+  'Dream':      'bg-pink-300/80 text-black border-pink-300',
+  // Icon: amber-brown
+  'Crown':      'bg-amber-600/80 text-white border-amber-600',
+  // Icon: blue-gray (darker than Empyrean)
+  'Law':        'bg-slate-600/80 text-white border-slate-600',
+  // Icon: lighter orange-red wing — co-occurs with Flaming
+  'Flamewing':  'bg-orange-500/80 text-white border-orange-500',
+  // Icon: purple-mauve scissors (lighter than Midnight)
+  'Thread':     'bg-fuchsia-400/80 text-white border-fuchsia-400',
+  // Icon: yellow-olive shield — co-occurs with Rite; Rite made amber-gold to differ
+  'Pact':       'bg-yellow-500/80 text-black border-yellow-500',
+  // Icon: bright lime green shield (NOT cyan)
+  'Halo':       'bg-lime-400/80 text-black border-lime-400',
+  // Icon: darker gold moons — co-occurs with Pact
+  'Rite':       'bg-amber-500/80 text-white border-amber-500',
+  // Icon: orange-red — co-occurs with Chromatic; Chromatic made rose/pink to differ
   'Trailblazing': 'bg-red-500/80 text-white border-red-500',
-  'Chromatic': 'bg-pink-300/80 text-black border-pink-300',
-  'Sound': 'bg-teal-300/80 text-black border-teal-300'
+  // Icon: orange-red compass — must differ from Trailblazing (co-occurs)
+  'Chromatic':  'bg-rose-400/80 text-white border-rose-400',
+  // Icon: dark teal-green compass
+  'Sound':      'bg-emerald-600/80 text-white border-emerald-600',
 };
 
 
@@ -111,12 +134,6 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
     });
   }, [index, panelState.level, panelState.stats.subStats, getMainStatsByCost, calculateMainStatValue, setEchoPanel]);
 
-  // Handle element selection
-  const handleElementChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const element = e.target.value as ElementType;
-    setEchoElement(index, element);
-  }, [index, setEchoElement]);
-
   // Handle level change
   const handleLevelChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const level = parseInt(e.target.value, 10);
@@ -151,7 +168,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   return (
     <>
       <div
-        className={`flex flex-col rounded-lg border-2 transition-colors border-border hover:border-accent ${isDragging ? 'bg-[#3a3a3a] shadow-[0_0_20px_rgba(0,0,0,0.3)]' : 'bg-background-secondary'} ${className}`}
+        className={`flex flex-col rounded-lg border-2 transition-colors border-border  ${isDragging ? 'bg-[#3a3a3a] shadow-[0_0_20px_rgba(0,0,0,0.3)]' : 'bg-background-secondary'} ${className}`}
       >
         {/* Header — drag handle bar with phantom toggle (left) and clear (right) */}
         <div
@@ -182,8 +199,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
             )}
           </div>
 
-          {/* Center: Grip icon */}
-          <GripHorizontal size={14} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-text-primary/25 pointer-events-none" />
+          {/* Center: Echo name */}
+          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 truncate text-lg text-text-primary pointer-events-none select-none">
+            {echo?.name ?? `Echo ${index + 1}`}
+          </span>
 
           {/* Right: Clear button — always visible */}
           <div className="flex items-center">
@@ -200,10 +219,29 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
 
         {/* Echo Selection Area */}
         <div className="p-3">
-          <div className="flex justify-center">
+          <div className="relative flex justify-center">
+            {/* Element tabs — only shown for multi-element echoes */}
+            {echo && echo.elements.length > 1 && (
+              <div className="absolute left-0 top-0 grid grid-cols-2 gap-1" onPointerDown={(e) => e.stopPropagation()}>
+                {echo.elements.map((el, i) => (
+                  <button
+                    key={el}
+                    onClick={() => setEchoElement(index, el)}
+                    title={ELEMENT_SETS[el]}
+                    className={`h-6 w-6 rounded border text-xs font-bold transition-colors ${
+                      panelState.selectedElement === el
+                        ? (ELEMENT_BADGE_COLORS[el] ?? 'bg-accent text-white border-accent')
+                        : 'border-border bg-background/60 text-text-primary/30 hover:border-accent/40 hover:text-text-primary/60'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
             <button
               onClick={() => setIsSelectorOpen(true)}
-              className="overflow-hidden rounded-lg border border-border transition-colors hover:border-accent"
+              className="overflow-hidden rounded-lg border border-border transition-colors hover:border-accent/50"
             >
               <img
                 src={getEchoPaths(echo, panelState.phantom)}

@@ -1,23 +1,17 @@
 import { I18nString } from './character';
 import { StatName } from './stats';
 
-interface CDNEchoIcon {
-  icon: string;
-  iconMiddle: string;
-  iconSmall: string;
-}
-
 export interface CDNEcho {
   id: number;
   name: I18nString;
   cost: number;
   fetter: number[];
   element: number[];
-  icon: CDNEchoIcon;
-  phantomIcon?: CDNEchoIcon;
+  icon: string;
+  phantomIcon?: string;
   bonuses?: Array<{ stat: string; value: number }>;
   skill: {
-    description: I18nString;
+    description: string;
     params: Array<{ ArrayString: string[] }>;
   };
 }
@@ -163,8 +157,8 @@ export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
   // CDN-native fields
   nameI18n: cdn.name,
   cdnId: cdn.id,
-  iconUrl: toCdnUrl(cdn.icon.icon),
-  phantomIconUrl: cdn.phantomIcon ? toCdnUrl(cdn.phantomIcon.icon) : undefined,
+  iconUrl: toCdnUrl(cdn.icon),
+  phantomIconUrl: cdn.phantomIcon ? toCdnUrl(cdn.phantomIcon) : undefined,
   bonuses: cdn.bonuses as Array<{ stat: StatName; value: number }> | undefined,
 });
 
