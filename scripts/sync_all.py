@@ -1,8 +1,9 @@
 """
-Run all three CDN sync scripts with default options.
+Run all CDN sync scripts with default options.
 
-Characters, weapons, and echoes are fetched from Wuthery CDN and written to
-public/Data. Pass-through flags (e.g. --dry-run, --pretty) apply to all.
+Fetches characters, weapons, echoes, fetters (element/sonata sets), and stat
+translations from Wuthery CDN and writes them to public/Data.
+Pass-through flags (e.g. --dry-run, --pretty) apply to all scripts.
 """
 
 import argparse
@@ -12,10 +13,9 @@ from pathlib import Path
 
 
 def main() -> int:
-    # All sync scripts live in wuwabuilds/scripts; run from here
     scripts_dir = Path(__file__).resolve().parent
 
-    parser = argparse.ArgumentParser(description="Run characters, weapons, and echoes sync")
+    parser = argparse.ArgumentParser(description="Run all CDN sync scripts")
     parser.add_argument("--dry-run", action="store_true", help="Preview only (no writes)")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output")
     args, rest = parser.parse_known_args()
@@ -29,8 +29,10 @@ def main() -> int:
 
     scripts = [
         ("Characters", [sys.executable, str(scripts_dir / "sync_characters.py"), "--fetch"]),
-        ("Weapons", [sys.executable, str(scripts_dir / "sync_weapons.py"), "--fetch"]),
-        ("Echoes", [sys.executable, str(scripts_dir / "sync_echoes.py"), "--fetch"]),
+        ("Weapons",    [sys.executable, str(scripts_dir / "sync_weapons.py"), "--fetch"]),
+        ("Echoes",     [sys.executable, str(scripts_dir / "sync_echoes.py"), "--fetch"]),
+        ("Fetters",    [sys.executable, str(scripts_dir / "sync_fetters.py")]),
+        ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py")]),
     ]
     for name, cmd in scripts:
         cmd.extend(passthrough)

@@ -3,6 +3,8 @@
 import React, { useState, useCallback } from 'react';
 import { STAT_CDN_NAMES, getStatIconName, STAT_ABBREV } from '@/lib/constants/statMappings';
 import { StatName } from '@/types/stats';
+import { useGameData } from '@/contexts/GameDataContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface StatRowProps {
   statName: StatName;
@@ -50,6 +52,8 @@ export const StatRow: React.FC<StatRowProps> = ({
   showBreakdown = false,
   className = ''
 }) => {
+  const { statTranslations } = useGameData();
+  const { t } = useLanguage();
   const [showTooltip, setShowTooltip] = useState(false);
 
   const handleMouseEnter = useCallback(() => {
@@ -66,8 +70,10 @@ export const StatRow: React.FC<StatRowProps> = ({
     }
   }, [onExpand]);
 
-  // Get display abbreviation
-  const displayName = STAT_ABBREV[statName] || statName;
+  // Get display name: translated if available, abbreviated English as fallback
+  const displayName = statTranslations?.[statName]
+    ? t(statTranslations[statName])
+    : (STAT_ABBREV[statName] || statName);
   const hasUpdate = update !== 0;
   const isClickable = !!onExpand;
 

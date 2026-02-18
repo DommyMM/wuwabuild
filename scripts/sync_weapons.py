@@ -1,8 +1,8 @@
 """
-Sync Weapons from Wuthery CDN to public/Data.
+Sync Weapons to public/Data/Weapons.json.
 
-Fetches weapon data from CDN, transforms it using a schema (keeping all
-languages), and writes to public/Data/Weapons (combined or --individual).
+Fetches weapon data from CDN, transforms it using a schema (keeping all languages),
+and writes to public/Data/Weapons.json (combined or --individual).
 
 Usage:
     python sync_weapons.py --fetch                     # Sync all → combined Weapons.json

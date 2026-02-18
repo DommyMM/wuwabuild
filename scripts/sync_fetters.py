@@ -1,5 +1,5 @@
 """
-Sync PhantomFetter data from Wuthery CDN to public/Data/Fetters.json.
+Sync fetter data to public/Data/Fetters.json.
 
 Fetches PhantomFetters.json and PhantomFetterGroups.json, merges them into one
 file keyed by FetterGroup ID (the same IDs used in Echo.fetter arrays).

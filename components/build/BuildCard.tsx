@@ -63,7 +63,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   className = '',
   showWatermark = true
 }, ref) => {
-  const { getCharacter, getWeapon, getEcho } = useGameData();
+  const { getCharacter, getWeapon, getEcho, statTranslations } = useGameData();
   const { state } = useBuild();
   const { t } = useLanguage();
   const { stats, getStatValue } = useStats();
@@ -211,7 +211,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                     className="h-4 w-4"
                   />
                   <span className="text-xs text-text-primary/50">
-                    {STAT_ABBREV[stat] || stat}
+                    {statTranslations?.[stat] ? t(statTranslations[stat]) : (STAT_ABBREV[stat] || stat)}
                   </span>
                 </div>
                 <div className="font-bold text-text-primary">
@@ -230,7 +230,9 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
               alt={elementDmgStat}
               className="h-5 w-5"
             />
-            <span className="text-sm text-text-primary/70">{elementDmgStat}</span>
+            <span className="text-sm text-text-primary/70">
+              {elementDmgStat && statTranslations?.[elementDmgStat] ? t(statTranslations[elementDmgStat]) : elementDmgStat}
+            </span>
             <span className="font-bold" style={{ color: elementColor }}>
               {getStatValue(elementDmgStat).toFixed(1)}%
             </span>

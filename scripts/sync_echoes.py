@@ -1,7 +1,7 @@
 """
-Sync Echoes from Wuthery CDN (Grouped/Phantom) to public/Data/Echoes.json.
+Sync Echoes to public/Data/Echoes.json.
 
-Fetches phantom data from CDN, filters to phantomType 1 / rarity 5,
+Fetches phantom data from CDN, filters to 5-star echoes,
 deduplicates by English name, merges phantom skin variants into base echoes.
 
 Usage:
