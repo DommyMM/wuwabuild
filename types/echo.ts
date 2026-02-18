@@ -1,6 +1,20 @@
 import { I18nString } from './character';
 import { StatName } from './stats';
 
+export interface CDNFetter {
+  id: number;
+  name: I18nString;
+  icon: string;
+  color: string;
+  pieceCount: number;
+  fetterId: number;
+  addProp: Array<{ id: number; value: number; isRatio: boolean }>;
+  buffIds: number[];
+  effectDescription: I18nString;
+  fetterIcon: string;
+  effectDefineDescription: I18nString;
+}
+
 export interface CDNEcho {
   id: number;
   name: I18nString;
@@ -110,7 +124,7 @@ export const getEchoPieceCounts = (element: ElementType): number[] => {
 const CDN_BASE = 'https://files.wuthery.com';
 
 /** Fetter ID → ElementType mapping (from Phantom repo analysis) */
-const FETTER_MAP: Record<number, ElementType> = {
+export const FETTER_MAP: Record<number, ElementType> = {
   1: 'Glacio',
   2: 'Fusion',
   3: 'Electro',

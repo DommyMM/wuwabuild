@@ -2,7 +2,7 @@ import { Character, SKIN_CHARACTERS } from '@/types/character';
 import { Weapon } from '@/types/weapon';
 import { Echo } from '@/types/echo';
 
-export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes' | 'stats' | 'sets' | 'wavebands' | 'quality';
+export type ImageCategory = 'faces' | 'icons' | 'elements' | 'face1' | 'weapons' | 'echoes' | 'stats' | 'wavebands' | 'quality';
 
 interface PathConfig {
   base: string;
@@ -13,7 +13,6 @@ interface PathConfig {
   weapons: string;
   echoes: string;
   stats: string;
-  sets: string;
   wavebands: string;
   quality: string;
 }
@@ -29,37 +28,6 @@ const ELEMENT_NAME_MAP: ElementMapping = {
   'Spectro': 'Light',
   'Electro': 'Thunder',
   'Aero': 'Wind'
-};
-
-const SET_NAME_MAP: ElementMapping = {
-  'Attack': 'Attack',
-  'ER': 'Cloud',
-  'Empyrean': 'Cooperate',
-  'Healing': 'Cure',
-  'Havoc': 'Dark',
-  'Midnight': 'DarkAssist',
-  'Tidebreaking': 'Energy',
-  'Fusion': 'Fire',
-  'Glacio': 'Ice',
-  'Frosty': 'IceUltimateSkill',
-  'Spectro': 'Light',
-  'Radiance': 'LightError',
-  'Electro': 'Thunder',
-  'Aero': 'Wind',
-  'Gust': 'WindError',
-  'Windward': 'WindErrorA',
-  'Flaming': 'FireUltimateSkill',
-  'Dream': 'DarkVision',
-  'Crown': 'Shield',
-  'Law': 'Support',
-  'Flamewing': 'FireA',
-  'Thread': 'QianXiao',
-  'Pact': 'LightWeakness',
-  'Halo': 'CureWeakness',
-  'Rite': 'AttackWeakness',
-  'Trailblazing': 'FireA1',
-  'Chromatic': 'FireA2',
-  'Sound': 'WindVision'
 };
 
 // Stat names to CDN property names
@@ -97,7 +65,6 @@ export const PATHS = {
     weapons: 'Image/IconWeapon',
     echoes: 'Image/IconMonsterHead',
     stats: 'Image/IconAttribute',
-    sets: 'Image/IconElementAttri',
     wavebands: 'Image/IconDevice',
     quality: 'Image/Quality'
   } as PathConfig,
@@ -112,6 +79,9 @@ export interface GetAssetPathOptions {
 /**
  * Build a CDN URL for the given asset category + entity.
  * Returns a single string (the CDN URL).
+ *
+ * Note: set/sonata icons are NOT here — use getFetterByElement(el)?.icon from
+ * GameDataContext instead (direct CDN URLs from Fetters.json).
  */
 export const getAssetPath = (
   category: ImageCategory,
@@ -150,10 +120,6 @@ export const getAssetPath = (
     case 'stats': {
       const cdnName = STAT_CDN_NAMES[input as string];
       return `${PATHS.cdn.base}/${PATHS.cdn.stats}/T_Iconproperty${cdnName}_UI.png`;
-    }
-    case 'sets': {
-      const setName = SET_NAME_MAP[input as string];
-      return `${PATHS.cdn.base}/${PATHS.cdn.sets}/T_IconElementAttri${setName}.png`;
     }
     case 'wavebands': {
       return `${PATHS.cdn.base}/${PATHS.cdn.wavebands}/T_IconDevice_${id}_UI.png`;

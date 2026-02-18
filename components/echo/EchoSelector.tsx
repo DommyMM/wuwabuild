@@ -5,7 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Modal } from '@/components/ui/Modal';
 import { Echo, ElementType, ELEMENT_SETS, COST_SECTIONS } from '@/types/echo';
-import { getEchoPaths, getAssetPath } from '@/lib/paths';
+import { getEchoPaths } from '@/lib/paths';
 
 interface EchoSelectorProps {
   isOpen: boolean;
@@ -112,7 +112,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
   selectedEchoId
 }) => {
   const [setFilter, setSetFilter] = useState<Set<string>>(new Set());
-  const { echoesByCost, loading, error } = useGameData();
+  const { echoesByCost, loading, error, getFetterByElement } = useGameData();
   const { t } = useLanguage();
 
   // Filter echoes by set filter
@@ -244,24 +244,27 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
       <div className="flex h-full flex-col gap-3">
         {/* Set filter chips */}
         <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          {SET_FILTER_ORDER.map(el => (
-            <button
-              key={el}
-              onClick={() => toggleSetFilter(el)}
-              className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
-                setFilter.has(el)
-                  ? SET_CHIP_ACTIVE[el]
-                  : 'border-border text-text-primary/50 hover:border-text-primary/30'
-              }`}
-            >
-              <img
-                src={getAssetPath('sets', el)}
-                alt=""
-                className="h-4 w-4 object-contain"
-              />
-              {ELEMENT_SETS[el]}
-            </button>
-          ))}
+          {SET_FILTER_ORDER.map(el => {
+            const fetter = getFetterByElement(el);
+            return (
+              <button
+                key={el}
+                onClick={() => toggleSetFilter(el)}
+                className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
+                  setFilter.has(el)
+                    ? SET_CHIP_ACTIVE[el]
+                    : 'border-border text-text-primary/50 hover:border-text-primary/30'
+                }`}
+              >
+                <img
+                  src={fetter?.icon ?? ''}
+                  alt=""
+                  className="h-4 w-4 object-contain"
+                />
+                {fetter ? t(fetter.name) : ELEMENT_SETS[el]}
+              </button>
+            );
+          })}
 
           {hasFilters && (
             <>

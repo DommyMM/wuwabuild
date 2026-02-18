@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Character, adaptCDNCharacter, validateCDNCharacter } from '@/types/character';
 import { Weapon, WeaponType, CDNWeapon, adaptCDNWeapon, validateCDNWeapon } from '@/types/weapon';
-import { Echo, CDNEcho, COST_SECTIONS, adaptCDNEcho, validateCDNEcho } from '@/types/echo';
+import { Echo, CDNEcho, CDNFetter, COST_SECTIONS, adaptCDNEcho, validateCDNEcho, ElementType, FETTER_MAP } from '@/types/echo';
 import { CharacterCurve, LevelCurves } from '@/lib/calculations/stats';
 
 interface MainStatData {
@@ -27,6 +27,9 @@ interface GameDataState {
   weaponList: Weapon[];
   mainStats: MainStatData | null;
   substats: SubstatData | null;
+  statTranslations: Record<string, Record<string, string>> | null;
+  fetters: CDNFetter[];
+  fettersByElement: Partial<Record<ElementType, CDNFetter>>;
   characterCurves: CharacterCurve | null;
   levelCurves: LevelCurves | null;
   loading: boolean;
@@ -39,6 +42,8 @@ interface GameDataContextType extends GameDataState {
 
   getEcho: (id: string | null) => Echo | null;
   getEchoByName: (name: string) => Echo | null;
+
+  getFetterByElement: (element: ElementType) => CDNFetter | undefined;
 
   getWeapon: (id: string | null) => Weapon | null;
   getWeaponsByType: (type: WeaponType) => Weapon[];
@@ -78,6 +83,9 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     weaponList: [],
     mainStats: null,
     substats: null,
+    statTranslations: null,
+    fetters: [],
+    fettersByElement: {},
     characterCurves: null,
     levelCurves: null,
     loading: true,
@@ -94,6 +102,8 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           weaponsRes,
           mainStatsRes,
           substatsRes,
+          statTranslationsRes,
+          fettersRes,
           characterCurvesRes,
           levelCurvesRes
         ] = await Promise.all([
@@ -102,6 +112,8 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           fetch('/Data/Weapons.json'),
           fetch('/Data/Mainstat.json'),
           fetch('/Data/Substats.json'),
+          fetch('/Data/Stats.json'),
+          fetch('/Data/Fetters.json'),
           fetch('/Data/CharacterCurve.json'),
           fetch('/Data/LevelCurve.json')
         ]);
@@ -113,6 +125,8 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           { res: weaponsRes, name: 'Weapons' },
           { res: mainStatsRes, name: 'Main Stats' },
           { res: substatsRes, name: 'Substats' },
+          { res: statTranslationsRes, name: 'Stat Translations' },
+          { res: fettersRes, name: 'Fetters' },
           { res: characterCurvesRes, name: 'Character Curves' },
           { res: levelCurvesRes, name: 'Level Curves' }
         ];
@@ -130,6 +144,8 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           weaponsData,
           mainStatsData,
           substatsData,
+          statTranslationsData,
+          fettersData,
           characterCurvesData,
           levelCurvesData
         ] = await Promise.all([
@@ -138,6 +154,8 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           weaponsRes.json(),
           mainStatsRes.json(),
           substatsRes.json(),
+          statTranslationsRes.json(),
+          fettersRes.json(),
           characterCurvesRes.json(),
           levelCurvesRes.json()
         ]);
@@ -174,6 +192,15 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           weaponMap.set(weapon.type, existing);
         }
 
+        // Index fetters by element type using the same FETTER_MAP used by adaptCDNEcho
+        const fetters: CDNFetter[] = Array.isArray(fettersData) ? fettersData : [];
+        const fettersByElement: Partial<Record<ElementType, CDNFetter>> = {};
+        for (const [groupIdStr, elementType] of Object.entries(FETTER_MAP)) {
+          const groupId = Number(groupIdStr);
+          const fetter = fetters.find(f => f.id === groupId);
+          if (fetter) fettersByElement[elementType as ElementType] = fetter;
+        }
+
         setState({
           characters: validCharacters,
           echoes,
@@ -182,6 +209,9 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           weaponList,
           mainStats: mainStatsData,
           substats: substatsData.subStats || substatsData,
+          statTranslations: statTranslationsData,
+          fetters,
+          fettersByElement,
           characterCurves: characterCurvesData,
           levelCurves: levelCurvesData,
           loading: false,
@@ -218,6 +248,10 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
   const getEchoByName = useCallback((name: string): Echo | null => {
     return state.echoes.find(e => e.name === name) ?? null;
   }, [state.echoes]);
+
+  const getFetterByElement = useCallback((element: ElementType): CDNFetter | undefined => {
+    return state.fettersByElement[element];
+  }, [state.fettersByElement]);
 
   const getWeapon = useCallback((id: string | null): Weapon | null => {
     if (!id) return null;
@@ -300,6 +334,7 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     getCharacterByName,
     getEcho,
     getEchoByName,
+    getFetterByElement,
     getWeapon,
     getWeaponsByType,
     getMainStatsByCost,
@@ -316,6 +351,7 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     getCharacterByName,
     getEcho,
     getEchoByName,
+    getFetterByElement,
     getWeapon,
     getWeaponsByType,
     getMainStatsByCost,

@@ -2,8 +2,9 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ChevronDown } from 'lucide-react';
-import { STAT_ABBREV, isPercentStat } from '@/lib/constants/statMappings';
+import { isPercentStat } from '@/lib/constants/statMappings';
 
 interface StatOption {
   name: string;
@@ -29,7 +30,8 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
   onChange,
   disabled = false
 }) => {
-  const { getMainStatsByCost, calculateMainStatValue } = useGameData();
+  const { getMainStatsByCost, calculateMainStatValue, statTranslations } = useGameData();
+  const { t } = useLanguage();
 
   // Get available main stats for this cost
   const mainStats = useMemo(() => {
@@ -41,10 +43,10 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
   const options = useMemo((): StatOption[] => {
     return Object.entries(mainStats).map(([statName, [min, max]]) => ({
       name: statName,
-      displayName: STAT_ABBREV[statName] || statName,
+      displayName: statTranslations?.[statName] ? t(statTranslations[statName]) : statName,
       minMax: [min, max] as [number, number]
     }));
-  }, [mainStats]);
+  }, [mainStats, statTranslations, t]);
 
   // Calculate value based on level
   const getValueForStat = useCallback((statName: string): number | null => {
@@ -119,7 +121,8 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
   onChange,
   disabled = false
 }) => {
-  const { substats, getSubstatValues } = useGameData();
+  const { substats, getSubstatValues, statTranslations } = useGameData();
+  const { t } = useLanguage();
 
   // Get available substats
   const availableStats = useMemo((): StatOption[] => {
@@ -129,10 +132,10 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
       .filter(stat => !usedStats.has(stat) || stat === selectedStat)
       .map(statName => ({
         name: statName,
-        displayName: STAT_ABBREV[statName] || statName,
+        displayName: statTranslations?.[statName] ? t(statTranslations[statName]) : statName,
         values: getSubstatValues(statName) || []
       }));
-  }, [substats, usedStats, selectedStat, getSubstatValues]);
+  }, [substats, usedStats, selectedStat, getSubstatValues, statTranslations, t]);
 
   // Get values for selected stat
   const statValues = useMemo(() => {

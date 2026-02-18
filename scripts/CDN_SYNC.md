@@ -16,6 +16,7 @@ wuwabuilds/
 │   ├── sync_characters.py    # Character sync (Python, CDN API)
 │   ├── sync_weapons.py       # Weapon sync (Python, CDN API)
 │   ├── sync_echoes.py        # Echo sync (Python, CDN Grouped/Phantom)
+│   ├── sync_fetters.py       # Sonata/element set sync (Python, CDN LocalizationIndex)
 │   ├── sync_all.py           # Run all three syncs with default options
 │   └── CDN_SYNC.md           # This file
 ├── public/Data/
@@ -24,8 +25,14 @@ wuwabuilds/
 │   ├── Weapons.json          # Combined weapon data
 │   ├── Weapons/              # Individual weapon JSONs (--individual)
 │   ├── Echoes.json           # Combined echo data (193 echoes)
+│   ├── Fetters.json          # Sonata/element set data (28 sets) — see below
 │   └── LevelCurve.json       # Static scaling data (manual)
 ```
+
+> **Terminology note:** The CDN calls these "PhantomFetters" / "PhantomFetterGroups" internally.
+> In the game UI and in this codebase they are referred to as **sonata sets** or **element sets**.
+> The `fetter` field in each Echo entry is an array of FetterGroup IDs that map to sonata sets
+> via the `FETTER_MAP` in `types/echo.ts`.
 
 ## What Gets Synced — Characters
 
@@ -320,3 +327,52 @@ python sync_all.py --dry-run --pretty             # Preview all three
 ```
 
 Skipped: `phantomType 2` (cosmetic unlock items), `rarity < 5`, `type`, `attributes` (generic equip text), `obtainedDescription`, redundant skill sub-fields (`id`, `cd`, `simplyDescription`).
+
+## What Gets Synced — Fetters (Sonata/Element Sets)
+
+**Source files:** `PhantomFetterGroups.json` (28 set groups) + `PhantomFetters.json` (53 individual tier entries)
+**Output:** `public/Data/Fetters.json` (one entry per sonata set, 28 total)
+
+Each entry in Fetters.json represents one complete sonata/element set (e.g., Freezing Frost, Molten Rift).
+The `id` matches what the echo's `fetter[]` array contains and what `FETTER_MAP` in `types/echo.ts` keys on.
+
+| Field | Description |
+|-------|-------------|
+| `id` | FetterGroup ID — matches `echo.fetter[]` values and `FETTER_MAP` keys |
+| `name` | Set name in all languages (e.g., `{"en": "Freezing Frost", "de": "Eisiger Frost", ...}`) |
+| `icon` | Direct CDN URL for the set icon — use this in UI, replaces the old `SET_NAME_MAP` in `paths.ts` |
+| `color` | `RRGGBBAA` color string from the CDN (currently `FFFFFF00` for all sets — not used in UI) |
+| `pieceCount` | Smallest activation count: `2` for standard sets, `3` for 3-piece-only sets |
+| `fetterId` | ID of the corresponding `PhantomFetter` entry for this tier |
+| `addProp` | Stat bonus(es) for activating this set tier — `[{ id, value, isRatio }]` |
+| `buffIds` | Associated buff IDs (informational) |
+| `effectDescription` | Full set bonus description in all languages |
+| `fetterIcon` | Element icon URL (CDN direct) |
+| `effectDefineDescription` | Lore/flavour text in all languages |
+
+**Only the 2-piece (or 3-piece) entry is kept.** The 5-piece entries are omitted — their effects are
+all conditional on specific attack types and are not needed for base stat display.
+
+### CDN Source URLs
+
+```
+PhantomFetterGroups.json  →  /d/GameData/Grouped/LocalizationIndex/PhantomFetterGroups.json
+PhantomFetters.json       →  /d/GameData/Grouped/LocalizationIndex/PhantomFetters.json
+```
+
+### Usage
+
+```bash
+# From wuwabuilds/scripts:
+python sync_fetters.py            # Sync from CDN → public/Data/Fetters.json
+python sync_fetters.py --dry-run  # Preview first 3 entries without writing
+python sync_fetters.py --pretty   # Pretty-print output
+```
+
+### Migration from paths.ts
+
+| Old approach | Replaced by |
+|---|---|
+| `SET_NAME_MAP` + constructed URL | `getFetterByElement(el)?.icon` (direct CDN URL from Fetters.json) |
+| `ELEMENT_SETS[el]` (English only) | `t(getFetterByElement(el)?.name)` (full i18n from Fetters.json) |
+| `ELEMENT_TO_SET` / `THREE_PIECE_SETS` | `fetter.pieceCount` (2 or 3) |

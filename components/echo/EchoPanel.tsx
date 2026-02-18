@@ -104,7 +104,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
 }) => {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const { t } = useLanguage();
-  const { getEcho, calculateMainStatValue, getMainStatsByCost } = useGameData();
+  const { getEcho, calculateMainStatValue, getMainStatsByCost, getFetterByElement } = useGameData();
   const {
     setEchoPanel,
     clearEchoPanel,
@@ -242,7 +242,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                     <button
                       key={el}
                       onClick={() => setEchoElement(index, el)}
-                      title={ELEMENT_SETS[el]}
+                      title={t(getFetterByElement(el)?.name ?? {}) || ELEMENT_SETS[el]}
                       className={`h-6 w-6 rounded border text-xs font-bold transition-colors ${
                         panelState.selectedElement === el
                           ? (ELEMENT_BADGE_COLORS[el] ?? 'bg-accent text-white border-accent')

@@ -16,14 +16,12 @@ import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
 
 interface BuildEditorProps {
-  className?: string;
   onSave?: () => void;
   onLoad?: () => void;
   onExport?: () => void;
 }
 
 export const BuildEditor: React.FC<BuildEditorProps> = ({
-  className = '',
   onSave,
   onLoad,
   onExport,
@@ -72,7 +70,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   }, [resetBuild]);
 
   return (
-    <div className={`flex flex-col ${className}`}>
+    <div className="flex flex-col max-w-[1440px] mx-auto">
       {/* Action Bar */}
       <div
         ref={actionBarRef}
