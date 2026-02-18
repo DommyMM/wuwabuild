@@ -17,7 +17,8 @@
     "motion": "^12.23.26",
     "next": "16.1.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-fast-marquee": "^1.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

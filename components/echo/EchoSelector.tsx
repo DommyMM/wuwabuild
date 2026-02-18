@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Modal } from '@/components/ui/Modal';
 import { Echo, ElementType, ELEMENT_SETS, COST_SECTIONS } from '@/types/echo';
 import { getEchoPaths, getAssetPath } from '@/lib/paths';
@@ -112,6 +113,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
 }) => {
   const [setFilter, setSetFilter] = useState<Set<string>>(new Set());
   const { echoesByCost, loading, error } = useGameData();
+  const { t } = useLanguage();
 
   // Filter echoes by set filter
   const filteredEchoesByCost = useMemo(() => {
@@ -181,7 +183,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
         <div className="relative aspect-square w-full overflow-hidden">
           <img
             src={getEchoPaths(echo)}
-            alt={echo.name}
+            alt={echo.nameI18n ? t(echo.nameI18n) : echo.name}
             className="h-full w-full object-cover"
             loading="lazy"
           />
@@ -192,7 +194,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
 
         {/* Name */}
         <span className="max-w-full truncate px-1.5 py-1 text-center text-xs leading-tight text-text-primary/80 group-hover:text-text-primary">
-          {echo.name}
+          {echo.nameI18n ? t(echo.nameI18n) : echo.name}
         </span>
       </button>
     );

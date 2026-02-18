@@ -1,14 +1,51 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { EchoSelector } from './EchoSelector';
 import { MainStatSelector, SubstatsList } from './StatSelector';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/types/echo';
 import { hasPhantomVariant } from '@/lib/constants/echoBonuses';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { X } from 'lucide-react';
 import { getEchoPaths } from '@/lib/paths';
+import Marquee from 'react-fast-marquee';
+
+/** Scrolls text only when it overflows the available width. */
+function EchoName({ text, className }: { text: string; className?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [scrolls, setScrolls] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const measure = measureRef.current;
+    if (!container || !measure) return;
+    // 16px buffer — text that barely fits still gets a marquee for breathing room
+    const check = () => setScrolls(measure.scrollWidth + 16 > container.clientWidth);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [text]);
+
+  return (
+    <div ref={containerRef} className={`min-w-0 overflow-hidden ${className ?? ''}`}>
+      {/* Hidden span used purely to measure natural text width */}
+      <span ref={measureRef} className="invisible absolute whitespace-nowrap pointer-events-none" aria-hidden="true">
+        {text}
+      </span>
+      {scrolls ? (
+        <Marquee speed={35} gradient={false} pauseOnHover>
+          <span className="pr-12">{text}</span>
+        </Marquee>
+      ) : (
+        <span className="block whitespace-nowrap text-center">{text}</span>
+      )}
+    </div>
+  );
+}
 
 export interface DragHandleProps {
   [key: string]: unknown;
@@ -25,58 +62,35 @@ interface EchoPanelProps {
   className?: string;
 }
 
-// Element badge colors — matched to SetIcons images, co-occurring sets kept visually distinct
+// Element badge colors, co-occurring sets kept visually distinct
 const ELEMENT_BADGE_COLORS: Record<string, string> = {
-  // Core 6 game elements
   'Aero':       'bg-aero/80 text-white border-aero',
   'Glacio':     'bg-blue-400/80 text-white border-blue-400',
   'Electro':    'bg-purple-500/80 text-white border-purple-500',
   'Fusion':     'bg-orange-400/80 text-white border-orange-400',
   'Havoc':      'bg-pink-500/80 text-white border-pink-500',
   'Spectro':    'bg-spectro/80 text-black border-spectro',
-  // Echo sets — icon: gray circle
   'ER':         'bg-zinc-500/80 text-white border-zinc-500',
-  // Icon: dark crimson
   'Attack':     'bg-red-700/80 text-white border-red-700',
-  // Icon: medium green with +
   'Healing':    'bg-green-500/80 text-white border-green-500',
-  // Icon: muted blue-gray with stars
   'Empyrean':   'bg-slate-400/80 text-white border-slate-400',
-  // Icon: bright sky blue star — co-occurs with Empyrean (distinct ✓)
   'Frosty':     'bg-sky-400/80 text-white border-sky-400',
-  // Icon: purple-mauve — co-occurs with Dream (different ✓)
   'Midnight':   'bg-purple-400/80 text-white border-purple-400',
-  // Icon: bright yellow sun
   'Radiance':   'bg-yellow-400/80 text-black border-yellow-400',
-  // Icon: dark charcoal gray (NOT teal)
   'Tidebreaking': 'bg-zinc-600/80 text-white border-zinc-600',
-  // Icon: light mint cyan — co-occurs with Windward; Windward made deeper to differ
   'Gust':       'bg-cyan-300/80 text-black border-cyan-300',
-  // Icon: same mint as Gust but co-occurs → deeper teal
   'Windward':   'bg-teal-500/80 text-white border-teal-500',
-  // Icon: dark brown-red flame — co-occurs with Flamewing
   'Flaming':    'bg-red-900/80 text-white border-red-900',
-  // Icon: light pink-mauve — co-occurs with Midnight (different ✓)
   'Dream':      'bg-pink-300/80 text-black border-pink-300',
-  // Icon: amber-brown
   'Crown':      'bg-amber-600/80 text-white border-amber-600',
-  // Icon: blue-gray (darker than Empyrean)
   'Law':        'bg-slate-600/80 text-white border-slate-600',
-  // Icon: lighter orange-red wing — co-occurs with Flaming
   'Flamewing':  'bg-orange-500/80 text-white border-orange-500',
-  // Icon: purple-mauve scissors (lighter than Midnight)
   'Thread':     'bg-fuchsia-400/80 text-white border-fuchsia-400',
-  // Icon: yellow-olive shield — co-occurs with Rite; Rite made amber-gold to differ
   'Pact':       'bg-yellow-500/80 text-black border-yellow-500',
-  // Icon: bright lime green shield (NOT cyan)
   'Halo':       'bg-lime-400/80 text-black border-lime-400',
-  // Icon: darker gold moons — co-occurs with Pact
   'Rite':       'bg-amber-500/80 text-white border-amber-500',
-  // Icon: orange-red — co-occurs with Chromatic; Chromatic made rose/pink to differ
   'Trailblazing': 'bg-red-500/80 text-white border-red-500',
-  // Icon: orange-red compass — must differ from Trailblazing (co-occurs)
   'Chromatic':  'bg-rose-400/80 text-white border-rose-400',
-  // Icon: dark teal-green compass
   'Sound':      'bg-emerald-600/80 text-white border-emerald-600',
 };
 
@@ -89,6 +103,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   className = ''
 }) => {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const { t } = useLanguage();
   const { getEcho, calculateMainStatValue, getMainStatsByCost } = useGameData();
   const {
     setEchoPanel,
@@ -173,11 +188,11 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
         {/* Header — drag handle bar with phantom toggle (left) and clear (right) */}
         <div
           {...dragHandleProps}
-          className="relative flex items-center justify-between border-b border-border px-2 py-2 cursor-grab active:cursor-grabbing"
+          className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2 border-b border-border px-2 py-2 cursor-grab active:cursor-grabbing"
         >
           {/* Left: Phantom checkbox (only for applicable echoes) */}
           <div className="flex items-center" onPointerDown={(e) => e.stopPropagation()}>
-            {echo && canBePhantom ? (
+            {echo && canBePhantom && (
               <label
                 htmlFor={`phantom-${index}`}
                 className={`flex cursor-pointer items-center gap-1.5 rounded border px-1.5 py-1 text-xs font-medium transition-colors select-none ${panelState.phantom
@@ -194,18 +209,17 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                 />
                 Phantom
               </label>
-            ) : (
-              <span className="w-14" />
             )}
           </div>
 
-          {/* Center: Echo name */}
-          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 truncate text-lg text-text-primary pointer-events-none select-none">
-            {echo?.name ?? `Echo ${index + 1}`}
-          </span>
+          {/* Center: Echo name — scrolls when overflowing */}
+          <EchoName
+            text={echo ? (echo.nameI18n ? t(echo.nameI18n) : echo.name) : `Echo ${index + 1}`}
+            className="text-lg text-text-primary pointer-events-none select-none px-1"
+          />
 
-          {/* Right: Clear button — always visible */}
-          <div className="flex items-center">
+          {/* Right: Clear button */}
+          <div className="flex items-center justify-end">
             <button
               onClick={handleClear}
               onPointerDown={(e) => e.stopPropagation()}
@@ -219,36 +233,43 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
 
         {/* Echo Selection Area */}
         <div className="p-3">
-          <div className="relative flex justify-center">
-            {/* Element tabs — only shown for multi-element echoes */}
-            {echo && echo.elements.length > 1 && (
-              <div className="absolute left-0 top-0 grid grid-cols-2 gap-1" onPointerDown={(e) => e.stopPropagation()}>
-                {echo.elements.map((el, i) => (
-                  <button
-                    key={el}
-                    onClick={() => setEchoElement(index, el)}
-                    title={ELEMENT_SETS[el]}
-                    className={`h-6 w-6 rounded border text-xs font-bold transition-colors ${
-                      panelState.selectedElement === el
-                        ? (ELEMENT_BADGE_COLORS[el] ?? 'bg-accent text-white border-accent')
-                        : 'border-border bg-background/60 text-text-primary/30 hover:border-accent/40 hover:text-text-primary/60'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="flex items-start justify-center gap-2">
+            {/* Left: element tabs — flex-1 so image stays centered */}
+            <div className="flex flex-1 justify-end">
+              {echo && echo.elements.length > 1 && (
+                <div className="grid grid-cols-2 gap-1" onPointerDown={(e) => e.stopPropagation()}>
+                  {echo.elements.map((el, i) => (
+                    <button
+                      key={el}
+                      onClick={() => setEchoElement(index, el)}
+                      title={ELEMENT_SETS[el]}
+                      className={`h-6 w-6 rounded border text-xs font-bold transition-colors ${
+                        panelState.selectedElement === el
+                          ? (ELEMENT_BADGE_COLORS[el] ?? 'bg-accent text-white border-accent')
+                          : 'border-border bg-background/60 text-text-primary/30 hover:border-accent/40 hover:text-text-primary/60'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Center: echo image — shrink-0 so it never squishes */}
             <button
               onClick={() => setIsSelectorOpen(true)}
-              className="overflow-hidden rounded-lg border border-border transition-colors hover:border-accent/50"
+              className="shrink-0 overflow-hidden rounded-lg border border-border transition-colors hover:border-accent/50"
             >
               <img
                 src={getEchoPaths(echo, panelState.phantom)}
-                alt={echo?.name || 'Select Echo'}
+                alt={echo ? (echo.nameI18n ? t(echo.nameI18n) : echo.name) : 'Select Echo'}
                 className="h-24 w-24 object-cover"
               />
             </button>
+
+            {/* Right: balancing flex-1 */}
+            <div className="flex-1" />
           </div>
 
           {/* Echo Controls — always visible */}
