@@ -87,64 +87,6 @@ export const REVERSE_STAT_MAP = Object.entries(STAT_MAP).reduce(
 );
 
 /**
- * CDN file names for stat icons
- */
-export const STAT_CDN_NAMES: Record<string, string> = {
-  'HP': 'greenlife',
-  'ATK': 'redattack',
-  'DEF': 'greendefense',
-  'ER': 'greenenergy',
-  'Crit Rate': 'redbaoji',
-  'Crit DMG': 'redcrit',
-  'Basic': 'redphysics',
-  'Heavy': 'redfoco',
-  'Skill': 'redspeed',
-  'Liberation': 'redskill',
-  'Aero': 'redwind',
-  'Glacio': 'redice',
-  'Fusion': 'redhot',
-  'Electro': 'redmine',
-  'Havoc': 'reddark',
-  'Spectro': 'redlight',
-  'Healing': 'greencure'
-};
-
-/**
- * Map short stat names to icon names
- */
-export const getStatIconName = (statName: string | null): string => {
-  if (!statName) return 'ATK';
-
-  const statMap: Record<string, string> = {
-    'HP': 'HP',
-    'HP%': 'HP',
-    'ATK': 'ATK',
-    'ATK%': 'ATK',
-    'DEF': 'DEF',
-    'DEF%': 'DEF',
-    'Crit Rate': 'Crit Rate',
-    'Crit DMG': 'Crit DMG',
-    'Energy Regen': 'ER',
-    'Basic Attack': 'Basic',
-    'Basic Attack DMG Bonus': 'Basic',
-    'Heavy Attack': 'Heavy',
-    'Heavy Attack DMG Bonus': 'Heavy',
-    'Skill': 'Skill',
-    'Resonance Skill DMG Bonus': 'Skill',
-    'Liberation': 'Liberation',
-    'Resonance Liberation DMG Bonus': 'Liberation',
-    'Aero DMG': 'Aero',
-    'Glacio DMG': 'Glacio',
-    'Fusion DMG': 'Fusion',
-    'Electro DMG': 'Electro',
-    'Havoc DMG': 'Havoc',
-    'Spectro DMG': 'Spectro',
-    'Healing Bonus': 'Healing'
-  };
-  return statMap[statName] || 'ATK';
-};
-
-/**
  * Get display name for short stat names
  */
 export const getDisplayName = (stat: StatName): StatName => {

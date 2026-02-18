@@ -6,6 +6,10 @@ Fetches PropertyIndexs.json and picks out the stats used in Mainstat.json and Su
 HP%, ATK%, DEF% are not separate entries so they're derived by
 appending "%" to each translation of their base stat (HP / ATK / DEF).
 
+Each stat entry also includes an "icon" field — the direct CDN icon URL from
+PropertyIndexs — so the frontend can display stat icons without any hardcoded
+name→filename mapping.
+
 Usage:
     python stat_translations.py            # Fetch and write Stats.json
     python stat_translations.py --dry-run  # Preview without writing
@@ -73,8 +77,15 @@ PCT_AFTER: dict[str, str] = {
 }
 
 
+def get_icon_url(entry: dict) -> str:
+    """Return full CDN icon URL from a PropertyIndexs entry, or empty string."""
+    icon = entry.get("Icon") or ""
+    return f"{CDN_BASE}{icon}" if icon.startswith("/d/") else ""
+
+
 def derive_percent(base_i18n: dict) -> dict:
-    """Append '%' to each non-empty translation; leave empty strings empty."""
+    """Append '%' to each non-empty translation; leave empty strings empty.
+    Does NOT touch the 'icon' key — that is added separately."""
     return {lang: (val + "%" if val else "") for lang, val in base_i18n.items()}
 
 
@@ -107,12 +118,20 @@ def main():
         if not entry:
             print(f"  WARNING: '{en_name}' not found in PropertyIndexs")
             continue
+
+        # Translations only (no icon yet — keep derive_percent clean)
         i18n = {lang: entry["Name"].get(lang, "") for lang in LANGS}
-        output[our_key] = i18n
-        # Insert % variant immediately after if applicable
+
+        # Icon URL from PropertyIndexs
+        icon_url = get_icon_url(entry)
+
+        output[our_key] = {**i18n, **({"icon": icon_url} if icon_url else {})}
+
+        # Insert % variant immediately after if applicable — same icon as base
         pct_key = PCT_AFTER.get(our_key)
         if pct_key:
-            output[pct_key] = derive_percent(i18n)
+            pct_i18n = derive_percent(i18n)
+            output[pct_key] = {**pct_i18n, **({"icon": icon_url} if icon_url else {})}
 
     json_kwargs = (
         {"indent": 2, "ensure_ascii": False}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { STAT_CDN_NAMES, getStatIconName, STAT_ABBREV } from '@/lib/constants/statMappings';
+import { STAT_ABBREV } from '@/lib/constants/statMappings';
 import { StatName } from '@/types/stats';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -16,13 +16,6 @@ interface StatRowProps {
   showBreakdown?: boolean;
   className?: string;
 }
-
-// Get CDN URL for stat icon
-const getStatIconUrl = (statName: string): string => {
-  const iconName = getStatIconName(statName);
-  const cdnName = STAT_CDN_NAMES[iconName] || 'redattack';
-  return `https://files.wuthery.com/p/GameData/UIResources/Common/Image/IconAttribute/${cdnName}.png`;
-};
 
 // Format stat value for display
 const formatStatValue = (value: number, isPercent: boolean): string => {
@@ -52,7 +45,7 @@ export const StatRow: React.FC<StatRowProps> = ({
   showBreakdown = false,
   className = ''
 }) => {
-  const { statTranslations } = useGameData();
+  const { statTranslations, statIcons } = useGameData();
   const { t } = useLanguage();
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -89,7 +82,7 @@ export const StatRow: React.FC<StatRowProps> = ({
       {/* Left side: Icon + Name */}
       <div className="flex items-center gap-2">
         <img
-          src={getStatIconUrl(statName)}
+          src={statIcons?.[statName] ?? ''}
           alt={statName}
           className="h-5 w-5"
         />

@@ -28,6 +28,7 @@ interface GameDataState {
   mainStats: MainStatData | null;
   substats: SubstatData | null;
   statTranslations: Record<string, Record<string, string>> | null;
+  statIcons: Record<string, string> | null;
   fetters: CDNFetter[];
   fettersByElement: Partial<Record<ElementType, CDNFetter>>;
   characterCurves: CharacterCurve | null;
@@ -84,6 +85,7 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     mainStats: null,
     substats: null,
     statTranslations: null,
+    statIcons: null,
     fetters: [],
     fettersByElement: {},
     characterCurves: null,
@@ -192,6 +194,16 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           weaponMap.set(weapon.type, existing);
         }
 
+        // Split Stats.json into translations (lang keys) and icons
+        const rawStatsData: Record<string, Record<string, string>> = statTranslationsData;
+        const statTranslations: Record<string, Record<string, string>> = {};
+        const statIcons: Record<string, string> = {};
+        for (const [stat, entry] of Object.entries(rawStatsData)) {
+          const { icon, ...langs } = entry as Record<string, string>;
+          statTranslations[stat] = langs;
+          if (icon) statIcons[stat] = icon;
+        }
+
         // Index fetters by element type using the same FETTER_MAP used by adaptCDNEcho
         const fetters: CDNFetter[] = Array.isArray(fettersData) ? fettersData : [];
         const fettersByElement: Partial<Record<ElementType, CDNFetter>> = {};
@@ -209,7 +221,8 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           weaponList,
           mainStats: mainStatsData,
           substats: substatsData.subStats || substatsData,
-          statTranslations: statTranslationsData,
+          statTranslations,
+          statIcons,
           fetters,
           fettersByElement,
           characterCurves: characterCurvesData,

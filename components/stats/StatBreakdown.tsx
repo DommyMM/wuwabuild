@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { STAT_CDN_NAMES, getStatIconName } from '@/lib/constants/statMappings';
+import { useGameData } from '@/contexts/GameDataContext';
 import { BaseStatName } from '@/types/stats';
 
 interface StatBreakdownProps {
@@ -14,13 +14,6 @@ interface StatBreakdownProps {
   onClose?: () => void;
   className?: string;
 }
-
-// Get CDN URL for stat icon
-const getStatIconUrl = (statName: string): string => {
-  const iconName = getStatIconName(statName);
-  const cdnName = STAT_CDN_NAMES[iconName] || 'redattack';
-  return `https://files.wuthery.com/p/GameData/UIResources/Common/Image/IconAttribute/${cdnName}.png`;
-};
 
 // Source labels for breakdown
 const SOURCE_LABELS: Record<string, { label: string; description: string }> = {
@@ -88,6 +81,7 @@ export const StatBreakdown: React.FC<StatBreakdownProps> = ({
   onClose,
   className = ''
 }) => {
+  const { statIcons } = useGameData();
   // Calculate the percent contribution
   const percentContribution = Math.round(baseValue * (percent / 100));
 
@@ -97,7 +91,7 @@ export const StatBreakdown: React.FC<StatBreakdownProps> = ({
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <img
-            src={getStatIconUrl(statName)}
+            src={statIcons?.[statName] ?? ''}
             alt={statName}
             className="h-6 w-6"
           />

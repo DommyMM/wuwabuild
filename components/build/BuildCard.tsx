@@ -6,20 +6,13 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useStats } from '@/contexts/StatsContext';
 import { getCVRating, getCVRatingColor } from '@/lib/calculations/cv';
-import { STAT_ABBREV, STAT_CDN_NAMES, getStatIconName } from '@/lib/constants/statMappings';
+import { STAT_ABBREV } from '@/lib/constants/statMappings';
 import { StatName } from '@/types/stats';
 
 interface BuildCardProps {
   className?: string;
   showWatermark?: boolean;
 }
-
-// Get CDN URL for stat icon
-const getStatIconUrl = (statName: string): string => {
-  const iconName = getStatIconName(statName);
-  const cdnName = STAT_CDN_NAMES[iconName] || 'redattack';
-  return `https://files.wuthery.com/p/GameData/UIResources/Common/Image/IconAttribute/${cdnName}.png`;
-};
 
 // Get character portrait URL
 const getCharacterPortraitUrl = (characterId: string | null): string => {
@@ -63,7 +56,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   className = '',
   showWatermark = true
 }, ref) => {
-  const { getCharacter, getWeapon, getEcho, statTranslations } = useGameData();
+  const { getCharacter, getWeapon, getEcho, statTranslations, statIcons } = useGameData();
   const { state } = useBuild();
   const { t } = useLanguage();
   const { stats, getStatValue } = useStats();
@@ -206,7 +199,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
               >
                 <div className="mb-1 flex items-center justify-center gap-1">
                   <img
-                    src={getStatIconUrl(stat)}
+                    src={statIcons?.[stat] ?? ''}
                     alt={stat}
                     className="h-4 w-4"
                   />
@@ -226,7 +219,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
         {elementDmgStat && (
           <div className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-background/50 p-2">
             <img
-              src={getStatIconUrl(elementDmgStat)}
+              src={statIcons?.[elementDmgStat] ?? ''}
               alt={elementDmgStat}
               className="h-5 w-5"
             />
