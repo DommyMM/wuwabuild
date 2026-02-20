@@ -3,10 +3,13 @@
 import React, { useMemo } from 'react';
 import { Trash2, Copy, Download, Calendar, User } from 'lucide-react';
 import { SavedBuild } from '@/lib/build';
+import { useGameData } from '@/contexts/GameDataContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface BuildListProps {
   builds: SavedBuild[];
-  onSelect: (build: SavedBuild) => void;
+  onSelect?: (build: SavedBuild) => void;
+  onLoad?: (build: SavedBuild) => void;
   onDelete?: (build: SavedBuild) => void;
   onDuplicate?: (build: SavedBuild) => void;
   onExport?: (build: SavedBuild) => void;
@@ -17,7 +20,8 @@ interface BuildListProps {
 interface BuildItemProps {
   build: SavedBuild;
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect?: () => void;
+  onLoad?: () => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onExport?: () => void;
@@ -27,10 +31,14 @@ const BuildItem: React.FC<BuildItemProps> = ({
   build,
   isSelected,
   onSelect,
+  onLoad,
   onDelete,
   onDuplicate,
   onExport
 }) => {
+  const { getCharacter, getWeapon } = useGameData();
+  const { t } = useLanguage();
+
   const formattedDate = useMemo(() => {
     try {
       const date = new Date(build.date);
@@ -46,14 +54,23 @@ const BuildItem: React.FC<BuildItemProps> = ({
     }
   }, [build.date]);
 
-  const characterName = build.state.characterId || 'No Character';
+  const character = getCharacter(build.state.characterId);
+  const weapon = getWeapon(build.state.weaponId);
+  const characterName = character
+    ? t(character.nameI18n ?? { en: character.name })
+    : build.state.characterId || 'No Character';
   const characterLevel = build.state.characterLevel || 1;
+  const weaponName = weapon
+    ? t(weapon.nameI18n ?? { en: weapon.name })
+    : build.state.weaponId;
 
   return (
     <div
-      className={`group relative p-3 rounded-lg border transition-all cursor-pointer ${
-        isSelected
-          ? 'border-accent bg-accent/10'
+      className={`group relative rounded-lg border p-3 transition-all ${
+        onSelect
+          ? isSelected
+            ? 'cursor-pointer border-accent bg-accent/10'
+            : 'cursor-pointer border-border bg-background hover:border-accent/50 hover:bg-background-secondary'
           : 'border-border bg-background hover:border-accent/50 hover:bg-background-secondary'
       }`}
       onClick={onSelect}
@@ -77,7 +94,19 @@ const BuildItem: React.FC<BuildItemProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className={onLoad ? 'flex items-center gap-1' : 'flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity'}>
+          {onLoad && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onLoad();
+              }}
+              className="cursor-pointer rounded-lg border border-accent bg-accent/10 px-3 py-1.5 text-sm font-semibold text-accent transition-colors hover:bg-accent/20"
+              title="Load build"
+            >
+              Load
+            </button>
+          )}
           {onDuplicate && (
             <button
               onClick={(e) => {
@@ -126,7 +155,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
         )}
         {build.state.weaponId && (
           <span className="px-2 py-0.5 text-xs rounded bg-border text-text-primary/70">
-            {build.state.weaponId} R{build.state.weaponRank}
+            {weaponName} R{build.state.weaponRank}
           </span>
         )}
         {build.state.echoPanels.filter(p => p.id).length > 0 && (
@@ -147,6 +176,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
 export const BuildList: React.FC<BuildListProps> = ({
   builds,
   onSelect,
+  onLoad,
   onDelete,
   onDuplicate,
   onExport,
@@ -168,7 +198,8 @@ export const BuildList: React.FC<BuildListProps> = ({
           key={build.id}
           build={build}
           isSelected={selectedBuildId === build.id}
-          onSelect={() => onSelect(build)}
+          onSelect={onSelect ? () => onSelect(build) : undefined}
+          onLoad={onLoad ? () => onLoad(build) : undefined}
           onDelete={onDelete ? () => onDelete(build) : undefined}
           onDuplicate={onDuplicate ? () => onDuplicate(build) : undefined}
           onExport={onExport ? () => onExport(build) : undefined}

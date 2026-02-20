@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Download, Search } from 'lucide-react';
+import { AlertTriangle, ArrowDownAZ, ArrowUpAZ, ChevronDown, Download, Search, Upload } from 'lucide-react';
 import { SavedBuild } from '@/lib/build';
-import { DRAFT_BUILD_STORAGE_KEY, deleteBuild, exportAllBuilds, exportBuild, loadBuilds } from '@/lib/storage';
+import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, exportAllBuilds, importBuild, loadBuilds } from '@/lib/storage';
 import { calculateCV } from '@/lib/calculations/cv';
 import { BuildList } from './BuildList';
 
@@ -15,20 +15,15 @@ export const SavesPageClient: React.FC = () => {
   const router = useRouter();
   const [builds, setBuilds] = useState<SavedBuild[]>(() => loadBuilds().builds);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBuildId, setSelectedBuildId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [deleteAllArmed, setDeleteAllArmed] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const refreshBuilds = useCallback(() => {
     const data = loadBuilds();
     setBuilds(data.builds);
   }, []);
-
-  const selectedBuild = useMemo(
-    () => builds.find((build) => build.id === selectedBuildId) ?? null,
-    [builds, selectedBuildId]
-  );
 
   const buildCVs = useMemo(() => (
     new Map(builds.map((build) => [build.id, calculateCV(build.state.echoPanels)]))
@@ -59,31 +54,6 @@ export const SavesPageClient: React.FC = () => {
     return sorted;
   }, [buildCVs, builds, searchQuery, sortBy, sortDirection]);
 
-  const handleDelete = useCallback((build: SavedBuild) => {
-    if (!window.confirm(`Delete "${build.name}"? This cannot be undone.`)) return;
-
-    const removed = deleteBuild(build.id);
-    if (!removed) {
-      setStatus({ type: 'error', text: 'Failed to delete build.' });
-      return;
-    }
-
-    if (selectedBuildId === build.id) {
-      setSelectedBuildId(null);
-    }
-    refreshBuilds();
-    setStatus({ type: 'success', text: `Deleted "${build.name}".` });
-  }, [refreshBuilds, selectedBuildId]);
-
-  const handleExport = useCallback((build: SavedBuild) => {
-    try {
-      exportBuild(build);
-      setStatus({ type: 'success', text: `Exported "${build.name}".` });
-    } catch {
-      setStatus({ type: 'error', text: 'Failed to export build.' });
-    }
-  }, []);
-
   const handleExportAll = useCallback(() => {
     try {
       exportAllBuilds();
@@ -93,17 +63,50 @@ export const SavesPageClient: React.FC = () => {
     }
   }, []);
 
-  const handleLoadSelected = useCallback(() => {
-    if (!selectedBuild) return;
-    if (!window.confirm(`Load "${selectedBuild.name}" and replace your current draft?`)) return;
+  const handleLoadBuild = useCallback((build: SavedBuild) => {
+    if (!window.confirm(`Load "${build.name}" and replace your current draft?`)) return;
 
     try {
-      window.localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(selectedBuild.state));
+      window.localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(build.state));
       router.push('/edit');
     } catch {
-      setStatus({ type: 'error', text: 'Failed to load selected build.' });
+      setStatus({ type: 'error', text: 'Failed to load build.' });
     }
-  }, [router, selectedBuild]);
+  }, [router]);
+
+  const handleImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const imported = await importBuild(file);
+      refreshBuilds();
+      setStatus({ type: 'success', text: `Imported ${imported.length} build(s).` });
+    } catch (error) {
+      setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Failed to import file.' });
+    } finally {
+      event.target.value = '';
+    }
+  }, [refreshBuilds]);
+
+  const handleDeleteAll = useCallback(() => {
+    if (!deleteAllArmed) {
+      setDeleteAllArmed(true);
+      setStatus({ type: 'error', text: 'Warning: click Delete All again to confirm.' });
+      return;
+    }
+
+    clearAllBuilds();
+    setBuilds([]);
+    setDeleteAllArmed(false);
+    setStatus({ type: 'success', text: 'Deleted all saved builds.' });
+  }, [deleteAllArmed]);
+
+  useEffect(() => {
+    if (!deleteAllArmed) return;
+    const timer = window.setTimeout(() => setDeleteAllArmed(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, [deleteAllArmed]);
 
   return (
     <main className="min-h-screen bg-background">
@@ -153,6 +156,19 @@ export const SavesPageClient: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <label className="cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-text-primary/40">
+              <span className="flex items-center gap-1.5">
+                <Upload size={16} />
+                Import
+              </span>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImport}
+                className="hidden"
+              />
+            </label>
+
             <button
               onClick={handleExportAll}
               disabled={builds.length === 0}
@@ -164,11 +180,16 @@ export const SavesPageClient: React.FC = () => {
               </span>
             </button>
             <button
-              onClick={handleLoadSelected}
-              disabled={!selectedBuild}
-              className="rounded-lg border border-accent bg-accent/10 px-3 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={handleDeleteAll}
+              disabled={builds.length === 0}
+              className={deleteAllArmed
+                ? 'rounded-lg border border-red-500 bg-red-500/25 px-3 py-2 text-sm font-medium text-red-200 transition-colors hover:bg-red-500/35 disabled:cursor-not-allowed disabled:opacity-50'
+                : 'rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50'}
             >
-              Load Selected
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle size={16} />
+                {deleteAllArmed ? 'Confirm Delete All' : 'Delete All'}
+              </span>
             </button>
           </div>
         </div>
@@ -185,10 +206,7 @@ export const SavesPageClient: React.FC = () => {
         <div className="max-h-[65vh] overflow-y-auto pr-1">
           <BuildList
             builds={filteredAndSortedBuilds}
-            onSelect={(build) => setSelectedBuildId(build.id)}
-            onDelete={handleDelete}
-            onExport={handleExport}
-            selectedBuildId={selectedBuildId}
+            onLoad={handleLoadBuild}
             emptyMessage={searchQuery ? 'No builds match your search.' : 'No saved builds yet.'}
           />
         </div>
