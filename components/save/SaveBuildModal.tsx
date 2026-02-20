@@ -163,33 +163,28 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
               Weapon: {weaponName || state.weaponId} (R{state.weaponRank})
             </div>
           )}
-          <div className="text-sm text-text-primary/70 mt-1">
-            Total CV: {totalCV.toFixed(1)}
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="rounded bg-accent/20 px-2 py-0.5 text-xs text-accent">
+              CV {totalCV.toFixed(1)}
+            </span>
+            {setSummaries.map((setSummary) => (
+              <span
+                key={setSummary.key}
+                className={setSummary.isActive
+                  ? 'inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent'
+                  : 'inline-flex items-center gap-1 rounded-md border border-border bg-background-secondary px-2 py-0.5 text-xs text-text-primary/70'}
+              >
+                {setSummary.icon && (
+                  <img
+                    src={setSummary.icon}
+                    alt=""
+                    className="h-3.5 w-3.5 object-contain"
+                  />
+                )}
+                {setSummary.name} {setSummary.count}pc
+              </span>
+            ))}
           </div>
-          {setSummaries.length > 0 && (
-            <div className="mt-2 border-t border-border pt-2">
-              <div className="mb-1 text-xs text-text-primary/60">Sets</div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {setSummaries.map((setSummary) => (
-                  <span
-                    key={setSummary.key}
-                    className={setSummary.isActive
-                      ? 'inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent'
-                      : 'inline-flex items-center gap-1 rounded-md border border-border bg-background-secondary px-2 py-0.5 text-xs text-text-primary/70'}
-                  >
-                    {setSummary.icon && (
-                      <img
-                        src={setSummary.icon}
-                        alt=""
-                        className="h-3.5 w-3.5 object-contain"
-                      />
-                    )}
-                    {setSummary.name} {setSummary.count}pc
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
           {echoSummaries.length > 0 && (
             <div className="mt-2 border-t border-border pt-2 space-y-1">
               {echoSummaries.slice(0, 3).map((echo, index) => (

@@ -195,6 +195,34 @@ export function duplicateBuild(id: string, newName?: string): SavedBuild | null 
 }
 
 /**
+ * Rename an existing build without changing date/state.
+ */
+export function renameBuild(id: string, newName: string): SavedBuild | null {
+  const trimmedName = newName.trim();
+  if (!trimmedName) {
+    throw new Error('Please enter a build name');
+  }
+
+  if (trimmedName.length > 100) {
+    throw new Error('Build name must be 100 characters or less');
+  }
+
+  const data = loadBuilds();
+  const buildIndex = data.builds.findIndex((build) => build.id === id);
+  if (buildIndex < 0) return null;
+
+  const updatedBuild: SavedBuild = {
+    ...data.builds[buildIndex],
+    name: trimmedName
+  };
+
+  data.builds[buildIndex] = updatedBuild;
+  saveBuilds(data);
+
+  return updatedBuild;
+}
+
+/**
  * Clear all saved builds.
  */
 export function clearAllBuilds(): void {

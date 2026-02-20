@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { Trash2, Copy, Download, Calendar, User } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Trash2, Copy, Download, Calendar, User, Pencil, Check, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { SavedBuild } from '@/lib/build';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -20,6 +20,7 @@ interface BuildListProps {
   onDelete?: (build: SavedBuild) => void;
   onDuplicate?: (build: SavedBuild) => void;
   onExport?: (build: SavedBuild) => void;
+  onRename?: (build: SavedBuild, name: string) => void;
   selectedBuildId?: string | null;
   emptyMessage?: string;
 }
@@ -33,6 +34,7 @@ interface BuildItemProps {
   onDelete?: () => void;
   onDuplicate?: () => void;
   onExport?: () => void;
+  onRename?: (name: string) => void;
 }
 
 const BuildItem: React.FC<BuildItemProps> = ({
@@ -44,9 +46,50 @@ const BuildItem: React.FC<BuildItemProps> = ({
   onDelete,
   onDuplicate,
   onExport,
+  onRename,
 }) => {
   const { getCharacter, getWeapon, getEcho, getFetterByElement } = useGameData();
   const { t } = useLanguage();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(build.name);
+
+  const beginRename = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setNameDraft(build.name);
+    setIsEditingName(true);
+  }, [build.name]);
+
+  const cancelRename = useCallback((e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.stopPropagation();
+    setNameDraft(build.name);
+    setIsEditingName(false);
+  }, [build.name]);
+
+  const submitRename = useCallback((e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.stopPropagation();
+    const trimmedName = nameDraft.trim();
+    if (!trimmedName) {
+      setNameDraft(build.name);
+      setIsEditingName(false);
+      return;
+    }
+    if (trimmedName !== build.name) {
+      onRename?.(trimmedName);
+    }
+    setIsEditingName(false);
+  }, [build.name, nameDraft, onRename]);
+
+  const handleRenameKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      submitRename();
+      return;
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelRename();
+    }
+  }, [cancelRename, submitRename]);
 
   const formattedDate = useMemo(() => {
     try {
@@ -100,9 +143,59 @@ const BuildItem: React.FC<BuildItemProps> = ({
     >
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate pr-2 font-medium text-text-primary">
-            {build.name}
-          </h3>
+          <div className="flex items-center gap-1.5 pr-2">
+            {isEditingName ? (
+              <input
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={handleRenameKeyDown}
+                maxLength={100}
+                autoFocus
+                className="h-7 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-sm font-medium text-text-primary focus:border-accent/60 focus:outline-none"
+              />
+            ) : (
+              <h3 className="truncate font-medium text-text-primary">
+                {build.name}
+              </h3>
+            )}
+
+            {onRename && !isEditingName && (
+              <button
+                onClick={beginRename}
+                className="rounded p-1 text-text-primary/60 transition-colors hover:bg-border hover:text-text-primary"
+                title="Rename build"
+                aria-label="Rename build"
+              >
+                <Pencil size={14} />
+              </button>
+            )}
+
+            {onRename && isEditingName && (
+              <div
+                className="flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={submitRename}
+                  className="rounded p-1 text-green-400/80 transition-colors hover:bg-green-500/10 hover:text-green-300"
+                  title="Save name"
+                  aria-label="Save name"
+                >
+                  <Check size={14} />
+                </button>
+                <button
+                  onClick={cancelRename}
+                  className="rounded p-1 text-text-primary/70 transition-colors hover:bg-border hover:text-text-primary"
+                  title="Cancel rename"
+                  aria-label="Cancel rename"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="mt-1 flex items-center gap-3 text-sm text-text-primary/70">
             <span className="flex items-center gap-1">
               <User size={14} />
@@ -191,32 +284,27 @@ const BuildItem: React.FC<BuildItemProps> = ({
             Verified
           </span>
         )}
+        {setSummaries.slice(0, 3).map((setSummary) => (
+          <span
+            key={setSummary.key}
+            className={setSummary.isActive
+              ? 'inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent'
+              : 'inline-flex items-center gap-1 rounded-md border border-border bg-background-secondary px-2 py-0.5 text-xs text-text-primary/70'}
+          >
+            {setSummary.icon && (
+              <img
+                src={setSummary.icon}
+                alt=""
+                className="h-3.5 w-3.5 object-contain"
+              />
+            )}
+            {setSummary.name} {setSummary.count}pc
+          </span>
+        ))}
+        {setSummaries.length > 3 && (
+          <span className="text-xs text-text-primary/50">+{setSummaries.length - 3} more</span>
+        )}
       </div>
-
-      {setSummaries.length > 0 && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {setSummaries.slice(0, 3).map((setSummary) => (
-            <span
-              key={setSummary.key}
-              className={setSummary.isActive
-                ? 'inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent'
-                : 'inline-flex items-center gap-1 rounded-md border border-border bg-background-secondary px-2 py-0.5 text-xs text-text-primary/70'}
-            >
-              {setSummary.icon && (
-                <img
-                  src={setSummary.icon}
-                  alt=""
-                  className="h-3.5 w-3.5 object-contain"
-                />
-              )}
-              {setSummary.name} {setSummary.count}pc
-            </span>
-          ))}
-          {setSummaries.length > 3 && (
-            <span className="text-xs text-text-primary/50">+{setSummaries.length - 3} more</span>
-          )}
-        </div>
-      )}
 
       <AnimatePresence initial={false}>
         {isExpanded && (
@@ -251,6 +339,7 @@ export const BuildList: React.FC<BuildListProps> = ({
   onDelete,
   onDuplicate,
   onExport,
+  onRename,
   selectedBuildId,
   emptyMessage = 'No saved builds yet',
 }) => {
@@ -275,6 +364,7 @@ export const BuildList: React.FC<BuildListProps> = ({
           onDelete={onDelete ? () => onDelete(build) : undefined}
           onDuplicate={onDuplicate ? () => onDuplicate(build) : undefined}
           onExport={onExport ? () => onExport(build) : undefined}
+          onRename={onRename ? (name) => onRename(build, name) : undefined}
         />
       ))}
     </div>

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, ArrowDownAZ, ArrowUpAZ, ChevronDown, Download, Search, Upload } from 'lucide-react';
 import { SavedBuild } from '@/lib/build';
-import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, exportAllBuilds, importBuild, loadBuilds } from '@/lib/storage';
+import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, exportAllBuilds, importBuild, loadBuilds, renameBuild } from '@/lib/storage';
 import { calculateCV } from '@/lib/calculations/cv';
 import { BuildList } from './BuildList';
 import { useBuild } from '@/contexts/BuildContext';
@@ -106,6 +106,23 @@ export const SavesPageClient: React.FC = () => {
     setDeleteAllArmed(false);
     setStatus({ type: 'success', text: 'Deleted all saved builds.' });
   }, [deleteAllArmed]);
+
+  const handleRenameBuild = useCallback((build: SavedBuild, nextName: string) => {
+    try {
+      const renamed = renameBuild(build.id, nextName);
+      if (!renamed) {
+        setStatus({ type: 'error', text: 'Build not found.' });
+        return;
+      }
+      refreshBuilds();
+      setStatus({ type: 'success', text: `Renamed to "${renamed.name}".` });
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to rename build.'
+      });
+    }
+  }, [refreshBuilds]);
 
   useEffect(() => {
     if (!deleteAllArmed) return;
@@ -236,6 +253,7 @@ export const SavesPageClient: React.FC = () => {
             builds={filteredAndSortedBuilds}
             onSelect={(build) => setExpandedBuildId((prev) => (prev === build.id ? null : build.id))}
             onLoad={handleLoadBuild}
+            onRename={handleRenameBuild}
             selectedBuildId={expandedBuildId}
             emptyMessage={searchQuery ? 'No builds match your search.' : 'No saved builds yet.'}
           />
