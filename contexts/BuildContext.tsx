@@ -9,9 +9,9 @@ import {
   ForteEntry,
   DEFAULT_FORTE,
   DEFAULT_WATERMARK,
-  createDefaultSavedState
 } from '@/lib/build';
 import { createDefaultEchoPanelState } from '@/lib/calculations/echoes';
+import { DRAFT_BUILD_STORAGE_KEY } from '@/lib/storage';
 
 /** Column index order: 0=normal-attack, 1=skill, 2=circuit, 3=liberation, 4=intro */
 const FORTE_KEY_TO_INDEX: Record<string, number> = {
@@ -101,8 +101,6 @@ interface BuildContextType {
   markClean: () => void;
 }
 
-const DRAFT_STORAGE_KEY = 'wuwa_draft_build';
-
 const initialState: BuildState = {
   characterId: null,
   characterLevel: 1,
@@ -141,7 +139,7 @@ function migrateToForteArray(raw: Record<string, unknown>): ForteState {
 function loadDraftFromStorage(): BuildState | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    const raw = window.localStorage.getItem(DRAFT_BUILD_STORAGE_KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw);
     if (!saved) return null;
@@ -178,6 +176,12 @@ function loadDraftFromStorage(): BuildState | null {
   } catch {
     return null;
   }
+}
+
+function stripDirtyFromState(state: BuildState): SavedState {
+  const { isDirty, ...rest } = state;
+  void isDirty;
+  return rest;
 }
 
 /** Helper: clone forte and update a single column */
@@ -339,8 +343,8 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       try {
-        const { isDirty: _, ...saved } = state;
-        window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(saved));
+        const saved = stripDirtyFromState(state);
+        window.localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(saved));
       } catch { /* quota exceeded — silently ignore */ }
     }, 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
@@ -460,12 +464,11 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
 
   const resetBuild = useCallback(() => {
     dispatch({ type: 'RESET_BUILD' });
-    try { window.localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* ignore */ }
+    try { window.localStorage.removeItem(DRAFT_BUILD_STORAGE_KEY); } catch { /* ignore */ }
   }, []);
 
   const getSavedState = useCallback((): SavedState => {
-    const { isDirty: _, ...rest } = state;
-    return rest;
+    return stripDirtyFromState(state);
   }, [state]);
 
   const markClean = useCallback(() => {

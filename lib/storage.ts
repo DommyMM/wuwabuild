@@ -1,7 +1,8 @@
-import { SavedBuild, SavedBuilds, SavedState, ForteState, ForteEntry, DEFAULT_FORTE, createDefaultSavedState } from '@/lib/build';
+import { SavedBuild, SavedBuilds, SavedState, ForteState, ForteEntry, createDefaultSavedState } from '@/lib/build';
 
 // Storage keys
-const STORAGE_KEY = 'wuwabuilds_saves';
+export const SAVED_BUILDS_STORAGE_KEY = 'wuwabuilds_saves';
+export const DRAFT_BUILD_STORAGE_KEY = 'wuwa_draft_build';
 const CURRENT_VERSION = '2.0.0';
 
 /** Convert old nodeStates+forteLevels into a ForteState array. */
@@ -84,7 +85,7 @@ export function loadBuilds(): SavedBuilds {
   }
 
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(SAVED_BUILDS_STORAGE_KEY);
     if (!stored) {
       return { builds: [], version: CURRENT_VERSION };
     }
@@ -118,13 +119,13 @@ function saveBuilds(data: SavedBuilds): void {
   try {
     const json = JSON.stringify(data);
     const compressed = compress(json);
-    localStorage.setItem(STORAGE_KEY, compressed);
+    localStorage.setItem(SAVED_BUILDS_STORAGE_KEY, compressed);
   } catch (error) {
     console.error('Error saving builds to localStorage:', error);
 
     // If compression fails, try saving uncompressed
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(SAVED_BUILDS_STORAGE_KEY, JSON.stringify(data));
     } catch (innerError) {
       console.error('Error saving uncompressed data:', innerError);
       throw new Error('Failed to save build. Storage may be full.');
@@ -198,7 +199,7 @@ export function duplicateBuild(id: string, newName?: string): SavedBuild | null 
  */
 export function clearAllBuilds(): void {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SAVED_BUILDS_STORAGE_KEY);
 }
 
 /**
