@@ -7,6 +7,7 @@ import { Save, Download, Upload, RotateCcw } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useStats } from '@/contexts/StatsContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { SequenceSelector } from '@/components/character/SequenceSelector';
@@ -29,6 +30,9 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+
+  const { stats } = useStats();
+  const [showDebug, setShowDebug] = useState(false);
 
   const {
     state, resetBuild,
@@ -212,6 +216,33 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
         <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-4">
           <EchoGrid />
         </div>
+      </div>
+
+      {/* Debug panel */}
+      <div className="fixed bottom-4 left-4 z-50">
+        <button
+          onClick={() => setShowDebug(v => !v)}
+          className="rounded border border-border bg-background-secondary/90 px-2 py-1 font-mono text-[10px] text-text-primary/40 backdrop-blur hover:text-text-primary/80"
+        >
+          {showDebug ? '✕ debug' : '⚙ debug'}
+        </button>
+        {showDebug && (
+          <div className="absolute bottom-8 left-0 max-h-[72vh] w-[460px] overflow-auto rounded-lg border border-border bg-background-secondary/96 p-3 shadow-xl backdrop-blur">
+            <div className="mb-1 font-mono text-[10px] font-bold text-accent">Build State</div>
+            <pre className="whitespace-pre-wrap font-mono text-[10px] leading-relaxed text-text-primary/60">
+              {JSON.stringify(state, null, 2)}
+            </pre>
+            <div className="mb-1 mt-3 font-mono text-[10px] font-bold text-accent">Stats</div>
+            <pre className="whitespace-pre-wrap font-mono text-[10px] leading-relaxed text-text-primary/60">
+              {JSON.stringify({
+                cv: stats.cv,
+                elementCounts: stats.elementCounts,
+                activeSets: stats.activeSets,
+                values: stats.values,
+              }, null, 2)}
+            </pre>
+          </div>
+        )}
       </div>
 
     </div>
