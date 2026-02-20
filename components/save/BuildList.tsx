@@ -2,13 +2,16 @@
 
 import React, { useMemo } from 'react';
 import { Trash2, Copy, Download, Calendar, User } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { SavedBuild } from '@/lib/build';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { AnimatePresence, motion } from 'motion/react';
 import { BuildProvider } from '@/contexts/BuildContext';
 import { StatsProvider } from '@/contexts/StatsContext';
 import { BuildCard } from '@/components/build/BuildCard';
+import { calculateCV } from '@/lib/calculations/cv';
+import { ELEMENT_SETS } from '@/lib/echo';
+import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 
 interface BuildListProps {
   builds: SavedBuild[];
@@ -40,9 +43,9 @@ const BuildItem: React.FC<BuildItemProps> = ({
   onLoad,
   onDelete,
   onDuplicate,
-  onExport
+  onExport,
 }) => {
-  const { getCharacter, getWeapon } = useGameData();
+  const { getCharacter, getWeapon, getEcho, getFetterByElement } = useGameData();
   const { t } = useLanguage();
 
   const formattedDate = useMemo(() => {
@@ -53,7 +56,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     } catch {
       return 'Unknown date';
@@ -69,11 +72,23 @@ const BuildItem: React.FC<BuildItemProps> = ({
   const weaponName = weapon
     ? t(weapon.nameI18n ?? { en: weapon.name })
     : build.state.weaponId;
+  const buildCV = calculateCV(build.state.echoPanels);
+  const setSummaries = useMemo(() => (
+    getBuildSetCounts(build.state.echoPanels, getEcho).map(({ element, count }) => {
+      const fetter = getFetterByElement(element);
+      const threshold = fetter?.pieceCount ?? 2;
+      return {
+        key: element,
+        count,
+        isActive: count >= threshold,
+        icon: fetter?.icon ?? '',
+        name: fetter ? t(fetter.name) : ELEMENT_SETS[element],
+      };
+    })
+  ), [build.state.echoPanels, getEcho, getFetterByElement, t]);
 
   return (
-    <motion.div
-      layout
-      transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+    <div
       className={`group relative rounded-lg border p-3 transition-all ${
         onSelect
           ? isSelected
@@ -83,13 +98,12 @@ const BuildItem: React.FC<BuildItemProps> = ({
       }`}
       onClick={onSelect}
     >
-      {/* Build Info */}
       <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-text-primary truncate pr-2">
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate pr-2 font-medium text-text-primary">
             {build.name}
           </h3>
-          <div className="flex items-center gap-3 mt-1 text-sm text-text-primary/70">
+          <div className="mt-1 flex items-center gap-3 text-sm text-text-primary/70">
             <span className="flex items-center gap-1">
               <User size={14} />
               {characterName} Lv.{characterLevel}
@@ -101,8 +115,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className={onLoad ? 'flex items-center gap-1' : 'flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity'}>
+        <div className={onLoad ? 'flex items-center gap-1' : 'flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100'}>
           {onLoad && (
             <button
               onClick={(e) => {
@@ -121,7 +134,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
                 e.stopPropagation();
                 onDuplicate();
               }}
-              className="p-1.5 rounded text-text-primary/70 hover:text-text-primary hover:bg-border transition-colors"
+              className="rounded p-1.5 text-text-primary/70 transition-colors hover:bg-border hover:text-text-primary"
               title="Duplicate build"
             >
               <Copy size={16} />
@@ -133,7 +146,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
                 e.stopPropagation();
                 onExport();
               }}
-              className="p-1.5 rounded text-text-primary/70 hover:text-text-primary hover:bg-border transition-colors"
+              className="rounded p-1.5 text-text-primary/70 transition-colors hover:bg-border hover:text-text-primary"
               title="Export build"
             >
               <Download size={16} />
@@ -145,7 +158,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
                 e.stopPropagation();
                 onDelete();
               }}
-              className="p-1.5 rounded text-text-primary/70 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+              className="rounded p-1.5 text-text-primary/70 transition-colors hover:bg-red-400/10 hover:text-red-400"
               title="Delete build"
             >
               <Trash2 size={16} />
@@ -154,29 +167,57 @@ const BuildItem: React.FC<BuildItemProps> = ({
         </div>
       </div>
 
-      {/* Build Stats Preview */}
-      <div className="flex items-center gap-2 mt-2 flex-wrap">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="rounded bg-accent/20 px-2 py-0.5 text-xs text-accent">
+          CV {buildCV.toFixed(1)}
+        </span>
         {build.state.sequence > 0 && (
-          <span className="px-2 py-0.5 text-xs rounded bg-accent/20 text-accent">
+          <span className="rounded bg-accent/20 px-2 py-0.5 text-xs text-accent">
             S{build.state.sequence}
           </span>
         )}
         {build.state.weaponId && (
-          <span className="px-2 py-0.5 text-xs rounded bg-border text-text-primary/70">
+          <span className="rounded bg-border px-2 py-0.5 text-xs text-text-primary/70">
             {weaponName} R{build.state.weaponRank}
           </span>
         )}
-        {build.state.echoPanels.filter(p => p.id).length > 0 && (
-          <span className="px-2 py-0.5 text-xs rounded bg-border text-text-primary/70">
-            {build.state.echoPanels.filter(p => p.id).length}/5 Echoes
+        {build.state.echoPanels.filter((panel) => panel.id).length > 0 && (
+          <span className="rounded bg-border px-2 py-0.5 text-xs text-text-primary/70">
+            {build.state.echoPanels.filter((panel) => panel.id).length}/5 Echoes
           </span>
         )}
         {build.state.verified && (
-          <span className="px-2 py-0.5 text-xs rounded bg-green-500/20 text-green-400">
+          <span className="rounded bg-green-500/20 px-2 py-0.5 text-xs text-green-400">
             Verified
           </span>
         )}
       </div>
+
+      {setSummaries.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {setSummaries.slice(0, 3).map((setSummary) => (
+            <span
+              key={setSummary.key}
+              className={setSummary.isActive
+                ? 'inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent'
+                : 'inline-flex items-center gap-1 rounded-md border border-border bg-background-secondary px-2 py-0.5 text-xs text-text-primary/70'}
+            >
+              {setSummary.icon && (
+                <img
+                  src={setSummary.icon}
+                  alt=""
+                  className="h-3.5 w-3.5 object-contain"
+                />
+              )}
+              {setSummary.name} {setSummary.count}pc
+            </span>
+          ))}
+          {setSummaries.length > 3 && (
+            <span className="text-xs text-text-primary/50">+{setSummaries.length - 3} more</span>
+          )}
+        </div>
+      )}
+
       <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
@@ -199,7 +240,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
@@ -211,7 +252,7 @@ export const BuildList: React.FC<BuildListProps> = ({
   onDuplicate,
   onExport,
   selectedBuildId,
-  emptyMessage = 'No saved builds yet'
+  emptyMessage = 'No saved builds yet',
 }) => {
   if (builds.length === 0) {
     return (
@@ -222,7 +263,7 @@ export const BuildList: React.FC<BuildListProps> = ({
   }
 
   return (
-    <motion.div layout className="space-y-2">
+    <div className="space-y-2">
       {builds.map((build) => (
         <BuildItem
           key={build.id}
@@ -236,7 +277,7 @@ export const BuildList: React.FC<BuildListProps> = ({
           onExport={onExport ? () => onExport(build) : undefined}
         />
       ))}
-    </motion.div>
+    </div>
   );
 };
 

@@ -20,6 +20,7 @@ export const SavesPageClient: React.FC = () => {
   const [expandedBuildId, setExpandedBuildId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [isSorting, setIsSorting] = useState(false);
   const [deleteAllArmed, setDeleteAllArmed] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -111,6 +112,12 @@ export const SavesPageClient: React.FC = () => {
     const timer = window.setTimeout(() => setDeleteAllArmed(false), 5000);
     return () => window.clearTimeout(timer);
   }, [deleteAllArmed]);
+
+  useEffect(() => {
+    setIsSorting(true);
+    const timer = window.setTimeout(() => setIsSorting(false), 160);
+    return () => window.clearTimeout(timer);
+  }, [sortBy, sortDirection]);
 
   return (
     <main className="min-h-screen bg-background">
@@ -207,7 +214,24 @@ export const SavesPageClient: React.FC = () => {
           </div>
         )}
 
-        <div className="max-h-[65vh] overflow-y-auto pr-1">
+        {isSorting ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="rounded-lg border border-border bg-background p-3"
+              >
+                <div className="h-4 w-1/3 animate-pulse rounded bg-border" />
+                <div className="mt-2 h-3 w-2/3 animate-pulse rounded bg-border" />
+                <div className="mt-3 flex gap-2">
+                  <div className="h-5 w-20 animate-pulse rounded bg-border" />
+                  <div className="h-5 w-16 animate-pulse rounded bg-border" />
+                  <div className="h-5 w-24 animate-pulse rounded bg-border" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
           <BuildList
             builds={filteredAndSortedBuilds}
             onSelect={(build) => setExpandedBuildId((prev) => (prev === build.id ? null : build.id))}
@@ -215,7 +239,7 @@ export const SavesPageClient: React.FC = () => {
             selectedBuildId={expandedBuildId}
             emptyMessage={searchQuery ? 'No builds match your search.' : 'No saved builds yet.'}
           />
-        </div>
+        )}
       </div>
     </main>
   );
