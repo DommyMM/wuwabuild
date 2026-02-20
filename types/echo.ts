@@ -113,12 +113,9 @@ export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
   'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward' | 'Flaming' | 'Dream' | 'Crown' | 'Law' | 'Flamewing' |
   'Thread' | 'Pact' | 'Halo' | 'Rite' | 'Trailblazing' | 'Chromatic' | 'Sound';
 
-// Configuration for echo sets that only support 3-piece (exceptions to the default 2,5)
-export const THREE_PIECE_SETS: readonly ElementType[] = ['Dream', 'Crown', 'Law', 'Flamewing', 'Thread'] as const;
-
-// Helper function to get piece counts for an element
-export const getEchoPieceCounts = (element: ElementType): number[] => {
-  return THREE_PIECE_SETS.includes(element) ? [3] : [2, 5];
+// Helper function to get piece counts for an element, derived from CDN fetter data
+export const getEchoPieceCounts = (element: ElementType, fettersByElement: Partial<Record<ElementType, CDNFetter>>): number[] => {
+  return fettersByElement[element]?.pieceCount === 3 ? [3] : [2, 5];
 };
 
 const CDN_BASE = 'https://files.wuthery.com';

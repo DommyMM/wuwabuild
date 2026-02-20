@@ -71,6 +71,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     scaleCharacterStat,
     scaleWeaponAtk,
     scaleWeaponStat,
+    fettersByElement,
     loading: gameDataLoading
   } = gameData;
 
@@ -142,7 +143,8 @@ export function StatsProvider({ children }: StatsProviderProps) {
 
     // Build active sets list
     Object.entries(counts).forEach(([element, count]) => {
-      if (count >= 2) {
+      const threshold = fettersByElement[element as ElementType]?.pieceCount ?? 2;
+      if (count >= threshold) {
         const setName = ELEMENT_SETS[element as ElementType];
         sets.push({ element: element as ElementType, count, setName });
       }
@@ -283,7 +285,8 @@ export function StatsProvider({ children }: StatsProviderProps) {
 
         // Add set bonuses
         Object.entries(elementCounts).forEach(([element, count]) => {
-          if (count >= 2) {
+          const threshold = fettersByElement[element as ElementType]?.pieceCount ?? 2;
+          if (count >= threshold) {
             const setName = ELEMENT_SETS[element as ElementType];
             const statToUpdate = SET_TO_STAT[setName];
             if (statToUpdate === displayStat) {
