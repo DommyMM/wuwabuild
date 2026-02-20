@@ -46,7 +46,7 @@ export const BuildActionBar: React.FC<BuildActionBarProps> = ({
         </span>
       )}
 
-      <div className={compact ? 'flex items-center gap-1' : 'flex items-center gap-1.5 md:gap-2'}>
+      <div className={compact ? 'flex items-center gap-1.5' : 'flex items-center gap-1.5 md:gap-2'}>
         {actions.map(({ key, label, icon: Icon, onClick, variant }) => (
           <button
             key={key}

@@ -15,7 +15,8 @@ type SortDirection = 'asc' | 'desc';
 export const SavesPageClient: React.FC = () => {
   const router = useRouter();
   const { loadState } = useBuild();
-  const [builds, setBuilds] = useState<SavedBuild[]>(() => loadBuilds().builds);
+  const [builds, setBuilds] = useState<SavedBuild[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedBuildId, setExpandedBuildId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>('date');
@@ -125,6 +126,11 @@ export const SavesPageClient: React.FC = () => {
   }, [refreshBuilds]);
 
   useEffect(() => {
+    refreshBuilds();
+    setIsLoaded(true);
+  }, [refreshBuilds]);
+
+  useEffect(() => {
     if (!deleteAllArmed) return;
     const timer = window.setTimeout(() => setDeleteAllArmed(false), 5000);
     return () => window.clearTimeout(timer);
@@ -199,7 +205,7 @@ export const SavesPageClient: React.FC = () => {
 
             <button
               onClick={handleExportAll}
-              disabled={builds.length === 0}
+              disabled={!isLoaded || builds.length === 0}
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <span className="flex items-center gap-1.5">
@@ -209,7 +215,7 @@ export const SavesPageClient: React.FC = () => {
             </button>
             <button
               onClick={handleDeleteAll}
-              disabled={builds.length === 0}
+              disabled={!isLoaded || builds.length === 0}
               className={deleteAllArmed
                 ? 'rounded-lg border border-red-500 bg-red-500/25 px-3 py-2 text-sm font-medium text-red-200 transition-colors hover:bg-red-500/35 disabled:cursor-not-allowed disabled:opacity-50'
                 : 'rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50'}
@@ -231,7 +237,7 @@ export const SavesPageClient: React.FC = () => {
           </div>
         )}
 
-        {isSorting ? (
+        {!isLoaded || isSorting ? (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, idx) => (
               <div
