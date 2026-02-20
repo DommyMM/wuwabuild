@@ -53,11 +53,11 @@ export const BuildActionBar: React.FC<BuildActionBarProps> = ({
             onClick={onClick}
             className={compact
               ? variant === 'accent'
-                ? 'flex items-center gap-1.5 rounded-md border border-accent bg-accent/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20'
-                : 'flex items-center gap-1.5 rounded-md border border-red-500/50 bg-red-500/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20'
+                ? 'flex items-center gap-1.5 rounded-md bg-accent px-2 py-1.5 text-xs font-semibold tracking-wide text-background cursor-pointer transition-all hover:brightness-110 hover:shadow-[0_0_12px_rgba(var(--color-accent),0.35)] active:scale-[0.97] md:px-3 md:py-1.5'
+                : 'flex items-center gap-1.5 rounded-md border border-red-500/50 bg-red-500/10 p-1.5 text-xs font-medium text-red-400 cursor-pointer transition-colors hover:bg-red-500/20 md:px-3 md:py-1.5'
               : variant === 'accent'
-                ? 'flex items-center gap-2 rounded-lg border border-accent bg-accent/10 p-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20 md:px-4 md:py-2'
-                : 'flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 md:px-4 md:py-2'}
+                ? 'flex items-center gap-2 rounded-lg bg-accent p-2 text-sm font-semibold tracking-wide text-background cursor-pointer transition-all hover:brightness-110 hover:shadow-[0_0_16px_rgba(var(--color-accent),0.4)] active:scale-[0.97] md:px-4 md:py-2'
+                : 'flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm font-medium text-red-400 cursor-pointer transition-colors hover:bg-red-500/20 md:px-4 md:py-2'}
           >
             <Icon size={compact ? 14 : 16} />
             <span className="hidden md:inline">{label}</span>

@@ -5,6 +5,8 @@ import { Save } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { saveBuild } from '@/lib/storage';
 import { useBuild } from '@/contexts/BuildContext';
+import { useGameData } from '@/contexts/GameDataContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { SavedBuild } from '@/lib/build';
 
 interface SaveBuildModalProps {
@@ -23,9 +25,16 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
   defaultName
 }) => {
   const { state, getSavedState, markClean } = useBuild();
+  const { getCharacter, getWeapon } = useGameData();
+  const { t } = useLanguage();
   const [name, setName] = useState(existingBuild?.name || '');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const character = getCharacter(state.characterId);
+  const weapon = getWeapon(state.weaponId);
+  const characterName = character ? t(character.nameI18n ?? { en: character.name }) : null;
+  const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : null;
 
   // Reset form when modal opens
   React.useEffect(() => {
@@ -80,6 +89,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={existingBuild ? 'Update Build' : 'Save Build'}
+      fitContent
       contentClassName="w-full max-w-md"
     >
       <div className="space-y-4">
@@ -110,7 +120,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-text-primary">
               {state.characterId ? (
-                <>Character: {state.characterId} (Lv.{state.characterLevel})</>
+                <>Character: {characterName || state.characterId} (Lv.{state.characterLevel})</>
               ) : (
                 'No character selected'
               )}
@@ -118,7 +128,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
           </div>
           {state.weaponId && (
             <div className="text-sm text-text-primary/70 mt-1">
-              Weapon: {state.weaponId} (R{state.weaponRank})
+              Weapon: {weaponName || state.weaponId} (R{state.weaponRank})
             </div>
           )}
         </div>

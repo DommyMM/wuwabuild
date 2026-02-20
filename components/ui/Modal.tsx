@@ -11,6 +11,7 @@ interface ModalProps {
   showCloseButton?: boolean;
   closeOnEscape?: boolean;
   closeOnOutsideClick?: boolean;
+  fitContent?: boolean;
   className?: string;
   contentClassName?: string;
 }
@@ -23,6 +24,7 @@ export const Modal: React.FC<ModalProps> = ({
   showCloseButton = true,
   closeOnEscape = true,
   closeOnOutsideClick = true,
+  fitContent = false,
   className = '',
   contentClassName = ''
 }) => {
@@ -65,7 +67,7 @@ export const Modal: React.FC<ModalProps> = ({
       aria-labelledby={title ? 'modal-title' : undefined}
     >
       <div
-        className={`relative flex h-[85vh] max-w-[90vw] flex-col overflow-hidden rounded-lg bg-background-secondary border border-border shadow-xl ${contentClassName}`}
+        className={`relative flex ${fitContent ? 'max-h-[85vh]' : 'h-[85vh]'} max-w-[90vw] flex-col overflow-hidden rounded-lg bg-background-secondary border border-border shadow-xl ${contentClassName}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with title and close button */}
@@ -89,7 +91,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Modal content — scrolls internally */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className={fitContent ? 'overflow-y-auto p-4' : 'flex-1 overflow-y-auto p-4'}>
           {children}
         </div>
       </div>
