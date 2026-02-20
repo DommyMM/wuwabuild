@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { Save, Download, Upload, RotateCcw, Trophy } from 'lucide-react';
+import { Download, Trophy } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -17,27 +17,20 @@ import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
 import BuildCardOptions, { CardOptions } from './BuildCardOptions';
 import { BuildCard } from './BuildCard';
+import { SaveBuildModal } from '@/components/save/SaveBuildModal';
+import { BuildActionBar } from './BuildActionBar';
 
-interface BuildEditorProps {
-  onSave?: () => void;
-  onLoad?: () => void;
-  onExport?: () => void;
-}
-
-export const BuildEditor: React.FC<BuildEditorProps> = ({
-  onSave,
-  onLoad,
-  onExport,
-}) => {
+export const BuildEditor: React.FC = () => {
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
 
   const { stats } = useStats();
   const [showDebug, setShowDebug] = useState(false);
-  const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
+  const [, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
   const [isCardGenerated, setIsCardGenerated] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -127,7 +120,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
       document.body.removeChild(clone);
       setIsDownloading(false);
     }
-  }, [isDownloading]);
+  }, [isDownloading, selected?.character.name]);
 
   const handleResetBuild = useCallback(() => {
     if (window.confirm('Are you sure you want to reset the entire build? This cannot be undone.')) {
@@ -135,33 +128,19 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
     }
   }, [resetBuild]);
 
+  const handleOpenSaveModal = useCallback(() => {
+    setIsSaveModalOpen(true);
+  }, []);
+
   return (
     <div className="flex flex-col max-w-[1440px] mx-auto">
       {/* Action Bar */}
-      <div
-        ref={actionBarRef}
-        className="flex flex-wrap items-center gap-2 self-end rounded-lg border border-border bg-background-secondary p-3"
-      >
-        {state.isDirty && (
-          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
-            Unsaved
-          </span>
-        )}
-        <div className="flex items-center gap-1.5 md:gap-2">
-          <button onClick={onSave} className="flex items-center gap-2 rounded-lg border border-accent bg-accent/10 p-2 md:px-4 md:py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20">
-            <Save size={16} /><span className="hidden md:inline">Save</span>
-          </button>
-          <button onClick={onLoad} className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 md:px-4 md:py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40">
-            <Upload size={16} /><span className="hidden md:inline">Load</span>
-          </button>
-          <button onClick={onExport} className="flex items-center gap-2 rounded-lg border border-border bg-background p-2 md:px-4 md:py-2 text-sm font-medium text-text-primary transition-colors hover:border-text-primary/40">
-            <Download size={16} /><span className="hidden md:inline">Export</span>
-          </button>
-          <button onClick={handleResetBuild} className="flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 md:px-4 md:py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20">
-            <RotateCcw size={16} /><span className="hidden md:inline">Reset</span>
-          </button>
-        </div>
-      </div>
+      <BuildActionBar
+        containerRef={actionBarRef}
+        isDirty={state.isDirty}
+        onSave={handleOpenSaveModal}
+        onReset={handleResetBuild}
+      />
 
       {/* Portal: compact nav toolbar */}
       {portalTarget && createPortal(
@@ -173,23 +152,14 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-1 md:gap-1.5"
+              className="flex items-center"
             >
-              {state.isDirty && (
-                <span className="hidden md:inline rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400">Unsaved</span>
-              )}
-              <button onClick={onSave} className="flex items-center gap-1.5 rounded-md border border-accent bg-accent/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20">
-                <Save size={14} /><span className="hidden md:inline">Save</span>
-              </button>
-              <button onClick={onLoad} className="flex items-center gap-1.5 rounded-md border border-border bg-background p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-text-primary/40">
-                <Upload size={14} /><span className="hidden md:inline">Load</span>
-              </button>
-              <button onClick={onExport} className="flex items-center gap-1.5 rounded-md border border-border bg-background p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-text-primary/40">
-                <Download size={14} /><span className="hidden md:inline">Export</span>
-              </button>
-              <button onClick={handleResetBuild} className="flex items-center gap-1.5 rounded-md border border-red-500/50 bg-red-500/10 p-1.5 md:px-3 md:py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20">
-                <RotateCcw size={14} /><span className="hidden md:inline">Reset</span>
-              </button>
+              <BuildActionBar
+                compact
+                isDirty={state.isDirty}
+                onSave={handleOpenSaveModal}
+                onReset={handleResetBuild}
+              />
             </motion.div>
           )}
         </AnimatePresence>,
@@ -361,6 +331,12 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
           </div>
         )}
       </div>
+
+      <SaveBuildModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        defaultName={selected?.character.name ? `${selected.character.name} Build` : undefined}
+      />
 
     </div>
   );

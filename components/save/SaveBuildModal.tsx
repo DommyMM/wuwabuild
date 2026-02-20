@@ -12,15 +12,17 @@ interface SaveBuildModalProps {
   onClose: () => void;
   onSave?: (build: SavedBuild) => void;
   existingBuild?: SavedBuild | null;
+  defaultName?: string;
 }
 
 export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  existingBuild
+  existingBuild,
+  defaultName
 }) => {
-  const { state } = useBuild();
+  const { state, getSavedState, markClean } = useBuild();
   const [name, setName] = useState(existingBuild?.name || '');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -28,10 +30,10 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
   // Reset form when modal opens
   React.useEffect(() => {
     if (isOpen) {
-      setName(existingBuild?.name || '');
+      setName(existingBuild?.name || defaultName || '');
       setError(null);
     }
-  }, [isOpen, existingBuild]);
+  }, [isOpen, existingBuild, defaultName]);
 
   const handleSave = useCallback(async () => {
     const trimmedName = name.trim();
@@ -53,9 +55,10 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
       const savedBuild = saveBuild({
         id: existingBuild?.id,
         name: trimmedName,
-        state
+        state: getSavedState()
       });
 
+      markClean();
       onSave?.(savedBuild);
       onClose();
     } catch (err) {
@@ -63,7 +66,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [name, state, existingBuild, onSave, onClose]);
+  }, [name, existingBuild, getSavedState, markClean, onSave, onClose]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
