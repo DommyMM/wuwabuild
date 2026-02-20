@@ -5,6 +5,10 @@ import { Trash2, Copy, Download, Calendar, User } from 'lucide-react';
 import { SavedBuild } from '@/lib/build';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { AnimatePresence, motion } from 'motion/react';
+import { BuildProvider } from '@/contexts/BuildContext';
+import { StatsProvider } from '@/contexts/StatsContext';
+import { BuildCard } from '@/components/build/BuildCard';
 
 interface BuildListProps {
   builds: SavedBuild[];
@@ -20,6 +24,7 @@ interface BuildListProps {
 interface BuildItemProps {
   build: SavedBuild;
   isSelected: boolean;
+  isExpanded: boolean;
   onSelect?: () => void;
   onLoad?: () => void;
   onDelete?: () => void;
@@ -30,6 +35,7 @@ interface BuildItemProps {
 const BuildItem: React.FC<BuildItemProps> = ({
   build,
   isSelected,
+  isExpanded,
   onSelect,
   onLoad,
   onDelete,
@@ -65,7 +71,9 @@ const BuildItem: React.FC<BuildItemProps> = ({
     : build.state.weaponId;
 
   return (
-    <div
+    <motion.div
+      layout
+      transition={{ type: 'spring', stiffness: 260, damping: 28 }}
       className={`group relative rounded-lg border p-3 transition-all ${
         onSelect
           ? isSelected
@@ -169,7 +177,29 @@ const BuildItem: React.FC<BuildItemProps> = ({
           </span>
         )}
       </div>
-    </div>
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 rounded-lg border border-border bg-background-secondary p-3">
+              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-text-primary/50">
+                Build Preview
+              </div>
+              <BuildProvider initialState={build.state} persistDraft={false}>
+                <StatsProvider>
+                  <BuildCard />
+                </StatsProvider>
+              </BuildProvider>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
@@ -192,12 +222,13 @@ export const BuildList: React.FC<BuildListProps> = ({
   }
 
   return (
-    <div className="space-y-2">
+    <motion.div layout className="space-y-2">
       {builds.map((build) => (
         <BuildItem
           key={build.id}
           build={build}
           isSelected={selectedBuildId === build.id}
+          isExpanded={selectedBuildId === build.id}
           onSelect={onSelect ? () => onSelect(build) : undefined}
           onLoad={onLoad ? () => onLoad(build) : undefined}
           onDelete={onDelete ? () => onDelete(build) : undefined}
@@ -205,7 +236,7 @@ export const BuildList: React.FC<BuildListProps> = ({
           onExport={onExport ? () => onExport(build) : undefined}
         />
       ))}
-    </div>
+    </motion.div>
   );
 };
 

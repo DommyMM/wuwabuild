@@ -325,9 +325,14 @@ export const useBuild = (): BuildContextType => {
 interface BuildProviderProps {
   children: ReactNode;
   initialState?: SavedState;
+  persistDraft?: boolean;
 }
 
-export function BuildProvider({ children, initialState: providedInitialState }: BuildProviderProps) {
+export function BuildProvider({
+  children,
+  initialState: providedInitialState,
+  persistDraft = true,
+}: BuildProviderProps) {
   const [state, dispatch] = useReducer(
     buildReducer,
     undefined,
@@ -340,6 +345,7 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
   // Auto-persist to localStorage (debounced 500ms)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (!persistDraft) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       try {
@@ -348,7 +354,7 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
       } catch { /* quota exceeded — silently ignore */ }
     }, 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [state]);
+  }, [persistDraft, state]);
 
   // Character actions
   const setCharacter = useCallback((id: string | null, roverElement?: string) => {
@@ -464,8 +470,9 @@ export function BuildProvider({ children, initialState: providedInitialState }: 
 
   const resetBuild = useCallback(() => {
     dispatch({ type: 'RESET_BUILD' });
+    if (!persistDraft) return;
     try { window.localStorage.removeItem(DRAFT_BUILD_STORAGE_KEY); } catch { /* ignore */ }
-  }, []);
+  }, [persistDraft]);
 
   const getSavedState = useCallback((): SavedState => {
     return stripDirtyFromState(state);

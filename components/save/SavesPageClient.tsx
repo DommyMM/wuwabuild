@@ -7,14 +7,17 @@ import { SavedBuild } from '@/lib/build';
 import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, exportAllBuilds, importBuild, loadBuilds } from '@/lib/storage';
 import { calculateCV } from '@/lib/calculations/cv';
 import { BuildList } from './BuildList';
+import { useBuild } from '@/contexts/BuildContext';
 
 type SortBy = 'date' | 'name' | 'cv';
 type SortDirection = 'asc' | 'desc';
 
 export const SavesPageClient: React.FC = () => {
   const router = useRouter();
+  const { loadState } = useBuild();
   const [builds, setBuilds] = useState<SavedBuild[]>(() => loadBuilds().builds);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedBuildId, setExpandedBuildId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [deleteAllArmed, setDeleteAllArmed] = useState(false);
@@ -67,12 +70,13 @@ export const SavesPageClient: React.FC = () => {
     if (!window.confirm(`Load "${build.name}" and replace your current draft?`)) return;
 
     try {
+      loadState(build.state);
       window.localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(build.state));
       router.push('/edit');
     } catch {
       setStatus({ type: 'error', text: 'Failed to load build.' });
     }
-  }, [router]);
+  }, [loadState, router]);
 
   const handleImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -206,7 +210,9 @@ export const SavesPageClient: React.FC = () => {
         <div className="max-h-[65vh] overflow-y-auto pr-1">
           <BuildList
             builds={filteredAndSortedBuilds}
+            onSelect={(build) => setExpandedBuildId((prev) => (prev === build.id ? null : build.id))}
             onLoad={handleLoadBuild}
+            selectedBuildId={expandedBuildId}
             emptyMessage={searchQuery ? 'No builds match your search.' : 'No saved builds yet.'}
           />
         </div>
