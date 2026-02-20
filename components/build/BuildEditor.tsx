@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { Save, Download, Upload, RotateCcw } from 'lucide-react';
+import { Save, Download, Upload, RotateCcw, Trophy } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -16,6 +16,7 @@ import { LevelSlider } from '@/components/ui/LevelSlider';
 import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
 import BuildCardOptions, { CardOptions } from './BuildCardOptions';
+import { BuildCard } from './BuildCard';
 
 interface BuildEditorProps {
   onSave?: () => void;
@@ -36,6 +37,8 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   const [showDebug, setShowDebug] = useState(false);
   const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
   const [isCardGenerated, setIsCardGenerated] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const {
     state, resetBuild,
@@ -69,6 +72,53 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
     if (!el) return;
     setIsActionBarVisible(el.getBoundingClientRect().bottom > 70);
   });
+
+  const handleDownload = useCallback(async () => {
+    if (!cardRef.current || isDownloading) return;
+    setIsDownloading(true);
+    const { toPng } = await import('html-to-image');
+
+    // 4K output: 3840 × 1600 (aspect ratio 2.4:1)
+    const exportWidth = 3840;
+    const exportHeight = Math.round(exportWidth / 2.4);
+
+    const clone = cardRef.current.cloneNode(true) as HTMLElement;
+    clone.style.position = 'fixed';
+    clone.style.left = '0';
+    clone.style.top = '0';
+    clone.style.zIndex = '-1000';
+    clone.style.pointerEvents = 'none';
+    clone.style.width = `${exportWidth}px`;
+    document.body.appendChild(clone);
+
+    try {
+      // Wait for next frame to ensure styles are applied, but no arbitrary delay
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
+      const dataUrl = await toPng(clone, {
+        cacheBust: true,
+        width: exportWidth,
+        height: exportHeight,
+        pixelRatio: 1,
+      });
+      const link = document.createElement('a');
+      const charName = selected?.character.name?.replace(/\s+/g, '-') || 'build';
+
+      // Format: YYYY-MM-DD_HH-mm-ss (ISO-like, easy to read/sort)
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+
+      link.download = `${charName}_${dateStr}_${timeStr}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (e) {
+      console.error('Download failed:', e);
+    } finally {
+      document.body.removeChild(clone);
+      setIsDownloading(false);
+    }
+  }, [isDownloading]);
 
   const handleResetBuild = useCallback(() => {
     if (window.confirm('Are you sure you want to reset the entire build? This cannot be undone.')) {
@@ -220,7 +270,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
           <EchoGrid />
         </div>
       </div>
-      
+
       {/* Build Card */}
       <div className="mt-8 flex flex-col">
         <div className="relative flex items-start">
@@ -236,9 +286,42 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
           </button>
         </div>
         {isCardGenerated && (
-          <div className="rounded-lg rounded-tl-none border border-border bg-background-secondary p-6">
-            {/* Card preview renders here */}
-          </div>
+          <>
+            <div className="rounded-lg rounded-tl-none border border-border relative overflow-hidden">
+              <BuildCard ref={cardRef} />
+            </div>
+            {/* Action bar — flipped version of BuildCardOptions */}
+            <div className="flex justify-start pl-12">
+              <div className="flex items-center gap-3 rounded-lg rounded-t-none border border-t-0 border-border bg-background p-3">
+                <button
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  className="group relative flex items-center gap-2 overflow-hidden rounded-lg border border-accent/40 bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary cursor-pointer transition-all duration-300 hover:border-accent hover:text-background disabled:opacity-50 disabled:cursor-wait"
+                >
+                  {/* Gold fill animation on hover */}
+                  <span className="absolute inset-0 origin-left scale-x-0 bg-accent transition-transform duration-300 ease-out group-hover:scale-x-100" />
+                  <Download size={14} className="relative z-10" />
+                  <span className="relative z-10">
+                    {isDownloading ? (
+                      <span className="flex items-center gap-0.5">
+                        <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '0ms' }} />
+                        <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '150ms' }} />
+                        <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '300ms' }} />
+                      </span>
+                    ) : 'Download'}
+                  </span>
+                </button>
+                {/* TODO: Add leaderboard logic once LB is set up in the rewrite */}
+                <button
+                  disabled
+                  className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary/40 cursor-not-allowed"
+                >
+                  <Trophy size={14} />
+                  View Ranking
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
