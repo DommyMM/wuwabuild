@@ -40,6 +40,15 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (isCardGenerated) {
+      // Scroll to bottom of page where card is generated
+      setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }, 100);
+    }
+  }, [isCardGenerated]);
+
   const {
     state, resetBuild,
     setCharacterLevel, setSequence,
@@ -270,6 +279,7 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
           <EchoGrid />
         </div>
       </div>
+
 
       {/* Build Card */}
       <div className="mt-8 flex flex-col">
