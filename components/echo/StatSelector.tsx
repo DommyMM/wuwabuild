@@ -213,7 +213,6 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
 interface SubstatsListProps {
   stats: Array<{ type: string | null; value: number | null }>;
   panelId: string;
-  mainStatType: string | null;
   onChange: (index: number, type: string | null, value: number | null) => void;
   disabled?: boolean;
 }
@@ -221,37 +220,20 @@ interface SubstatsListProps {
 export const SubstatsList: React.FC<SubstatsListProps> = ({
   stats,
   panelId,
-  mainStatType,
   onChange,
   disabled = false
 }) => {
-  // Track which stats are used (including main stat)
-  const usedStats = useMemo(() => {
-    const used = new Set<string>();
-    if (mainStatType) {
-      used.add(mainStatType);
-    }
-    stats.forEach(stat => {
-      if (stat.type) {
-        used.add(stat.type);
-      }
-    });
-    return used;
-  }, [stats, mainStatType]);
-
-  // Create a used set that excludes the current stat for each substat selector
+  // Create a used set that excludes the current stat for each substat selector.
+  // Only substats should be unique; main stat should not constrain this pool.
   const getUsedStatsForIndex = useCallback((index: number): Set<string> => {
     const used = new Set<string>();
-    if (mainStatType) {
-      used.add(mainStatType);
-    }
     stats.forEach((stat, i) => {
       if (stat.type && i !== index) {
         used.add(stat.type);
       }
     });
     return used;
-  }, [stats, mainStatType]);
+  }, [stats]);
 
   return (
     <div className="flex flex-col gap-2.5 mt-2.5">

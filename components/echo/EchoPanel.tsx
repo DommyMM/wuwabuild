@@ -310,7 +310,6 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
             <SubstatsList
               stats={panelState.stats.subStats}
               panelId={`echo-${index}`}
-              mainStatType={panelState.stats.mainStat.type}
               onChange={handleSubstatChange}
             />
           </div>
