@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { Save, Download, Upload, RotateCcw, Sparkles } from 'lucide-react';
+import { Save, Download, Upload, RotateCcw } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -223,21 +223,20 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
       
       {/* Build Card */}
       <div className="mt-8 flex flex-col">
-        <div className="relative flex items-end">
+        <div className="relative flex items-start">
           <BuildCardOptions
             className={isCardGenerated ? 'rounded-b-none border-b-0' : ''}
             onChange={setCardOptions}
           />
           <button
             onClick={() => setIsCardGenerated(true)}
-            className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-lg border border-accent bg-accent/10 px-6 py-2.5 text-sm font-semibold text-accent transition-colors hover:bg-accent/20 active:scale-[0.98]"
+            className="absolute left-1/2 -translate-x-1/2 rounded-lg bg-accent px-4 py-3 text-base font-semibold tracking-wide cursor-pointer text-background transition-all hover:brightness-110 hover:shadow-[0_0_16px_rgba(var(--color-accent),0.4)] active:scale-[0.97]"
           >
-            <Sparkles size={15} />
             Generate
           </button>
         </div>
         {isCardGenerated && (
-          <div className="mt-3 min-h-[120px] rounded-lg border border-border bg-background-secondary p-6">
+          <div className="rounded-lg rounded-tl-none border border-border bg-background-secondary p-6">
             {/* Card preview renders here */}
           </div>
         )}
