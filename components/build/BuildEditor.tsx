@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { Save, Download, Upload, RotateCcw } from 'lucide-react';
+import { Save, Download, Upload, RotateCcw, Sparkles } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -15,6 +15,7 @@ import { WeaponSelector } from '@/components/weapon/WeaponSelector';
 import { LevelSlider } from '@/components/ui/LevelSlider';
 import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
+import BuildCardOptions, { CardOptions } from './BuildCardOptions';
 
 interface BuildEditorProps {
   onSave?: () => void;
@@ -33,6 +34,8 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
 
   const { stats } = useStats();
   const [showDebug, setShowDebug] = useState(false);
+  const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
+  const [isCardGenerated, setIsCardGenerated] = useState(false);
 
   const {
     state, resetBuild,
@@ -216,6 +219,28 @@ export const BuildEditor: React.FC<BuildEditorProps> = ({
         <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-4">
           <EchoGrid />
         </div>
+      </div>
+      
+      {/* Build Card */}
+      <div className="mt-8 flex flex-col">
+        <div className="relative flex items-end">
+          <BuildCardOptions
+            className={isCardGenerated ? 'rounded-b-none border-b-0' : ''}
+            onChange={setCardOptions}
+          />
+          <button
+            onClick={() => setIsCardGenerated(true)}
+            className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-lg border border-accent bg-accent/10 px-6 py-2.5 text-sm font-semibold text-accent transition-colors hover:bg-accent/20 active:scale-[0.98]"
+          >
+            <Sparkles size={15} />
+            Generate
+          </button>
+        </div>
+        {isCardGenerated && (
+          <div className="mt-3 min-h-[120px] rounded-lg border border-border bg-background-secondary p-6">
+            {/* Card preview renders here */}
+          </div>
+        )}
       </div>
 
       {/* Debug panel */}
