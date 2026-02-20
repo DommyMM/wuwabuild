@@ -8,6 +8,7 @@ import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, exportAllBuilds, importBuild, 
 import { calculateCV } from '@/lib/calculations/cv';
 import { BuildList } from './BuildList';
 import { useBuild } from '@/contexts/BuildContext';
+import { useToast } from '@/contexts/ToastContext';
 
 type SortBy = 'date' | 'name' | 'cv';
 type SortDirection = 'asc' | 'desc';
@@ -15,6 +16,7 @@ type SortDirection = 'asc' | 'desc';
 export const SavesPageClient: React.FC = () => {
   const router = useRouter();
   const { loadState } = useBuild();
+  const { success, error: notifyError, warning } = useToast();
   const [builds, setBuilds] = useState<SavedBuild[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,7 +25,6 @@ export const SavesPageClient: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isSorting, setIsSorting] = useState(false);
   const [deleteAllArmed, setDeleteAllArmed] = useState(false);
-  const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const refreshBuilds = useCallback(() => {
     const data = loadBuilds();
@@ -62,11 +63,11 @@ export const SavesPageClient: React.FC = () => {
   const handleExportAll = useCallback(() => {
     try {
       exportAllBuilds();
-      setStatus({ type: 'success', text: 'Exported all builds.' });
+      success('Exported all builds.');
     } catch {
-      setStatus({ type: 'error', text: 'Failed to export all builds.' });
+      notifyError('Failed to export all builds.');
     }
-  }, []);
+  }, [notifyError, success]);
 
   const handleLoadBuild = useCallback((build: SavedBuild) => {
     if (!window.confirm(`Load "${build.name}" and replace your current draft?`)) return;
@@ -76,9 +77,9 @@ export const SavesPageClient: React.FC = () => {
       window.localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(build.state));
       router.push('/edit');
     } catch {
-      setStatus({ type: 'error', text: 'Failed to load build.' });
+      notifyError('Failed to load build.');
     }
-  }, [loadState, router]);
+  }, [loadState, notifyError, router]);
 
   const handleImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -87,43 +88,40 @@ export const SavesPageClient: React.FC = () => {
     try {
       const imported = await importBuild(file);
       refreshBuilds();
-      setStatus({ type: 'success', text: `Imported ${imported.length} build(s).` });
+      success(`Imported ${imported.length} build(s).`);
     } catch (error) {
-      setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Failed to import file.' });
+      notifyError(error instanceof Error ? error.message : 'Failed to import file.');
     } finally {
       event.target.value = '';
     }
-  }, [refreshBuilds]);
+  }, [notifyError, refreshBuilds, success]);
 
   const handleDeleteAll = useCallback(() => {
     if (!deleteAllArmed) {
       setDeleteAllArmed(true);
-      setStatus({ type: 'error', text: 'Warning: click Delete All again to confirm.' });
+      warning('Click Delete All again to confirm.');
       return;
     }
 
     clearAllBuilds();
     setBuilds([]);
     setDeleteAllArmed(false);
-    setStatus({ type: 'success', text: 'Deleted all saved builds.' });
-  }, [deleteAllArmed]);
+    success('Deleted all saved builds.');
+  }, [deleteAllArmed, success, warning]);
 
   const handleRenameBuild = useCallback((build: SavedBuild, nextName: string) => {
     try {
       const renamed = renameBuild(build.id, nextName);
       if (!renamed) {
-        setStatus({ type: 'error', text: 'Build not found.' });
+        notifyError('Build not found.');
         return;
       }
       refreshBuilds();
-      setStatus({ type: 'success', text: `Renamed to "${renamed.name}".` });
+      success(`Renamed to "${renamed.name}".`);
     } catch (error) {
-      setStatus({
-        type: 'error',
-        text: error instanceof Error ? error.message : 'Failed to rename build.'
-      });
+      notifyError(error instanceof Error ? error.message : 'Failed to rename build.');
     }
-  }, [refreshBuilds]);
+  }, [notifyError, refreshBuilds, success]);
 
   useEffect(() => {
     refreshBuilds();
@@ -227,15 +225,6 @@ export const SavesPageClient: React.FC = () => {
             </button>
           </div>
         </div>
-
-        {status && (
-          <div className={status.type === 'success'
-            ? 'mb-4 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-400'
-            : 'mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400'}
-          >
-            {status.text}
-          </div>
-        )}
 
         {!isLoaded || isSorting ? (
           <div className="space-y-2">

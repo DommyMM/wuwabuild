@@ -6,6 +6,7 @@ import { BuildProvider } from './BuildContext';
 import { StatsProvider } from './StatsContext';
 import { LanguageProvider } from './LanguageContext';
 import { SavedState } from '@/lib/build';
+import { ToastProvider } from './ToastContext';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -21,6 +22,7 @@ interface AppProvidersProps {
  * 2. GameDataProvider - Loads and caches all game data (characters, weapons, echoes, etc.)
  * 3. BuildProvider - Manages the current build state (character, weapon, echoes, etc.)
  * 4. StatsProvider - Calculates derived stats from game data + build state
+ * 5. ToastProvider - Global transient feedback (success/error/warning/info)
  */
 export function AppProviders({ children, initialBuildState }: AppProvidersProps) {
   return (
@@ -28,7 +30,9 @@ export function AppProviders({ children, initialBuildState }: AppProvidersProps)
       <GameDataProvider>
         <BuildProvider initialState={initialBuildState}>
           <StatsProvider>
-            {children}
+            <ToastProvider>
+              {children}
+            </ToastProvider>
           </StatsProvider>
         </BuildProvider>
       </GameDataProvider>
@@ -79,4 +83,3 @@ function DefaultErrorComponent(error: string) {
     </div>
   );
 }
-
