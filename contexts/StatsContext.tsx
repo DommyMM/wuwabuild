@@ -45,6 +45,33 @@ interface StatsContextType {
   getStatBreakdown: (stat: 'HP' | 'ATK' | 'DEF') => StatBreakdown | null;
 }
 
+const ROVER_ELEMENT_TOKENS = new Set([
+  'Aero',
+  'Glacio',
+  'Fusion',
+  'Electro',
+  'Havoc',
+  'Spectro'
+]);
+
+const matchesEchoBonusCondition = (
+  conditions: string[] | undefined,
+  characterName: string | undefined,
+  isRoverCharacter: boolean,
+  roverElement: string | undefined
+): boolean => {
+  if (!conditions || conditions.length === 0) return true;
+
+  return conditions.some(condition => {
+    const token = condition.trim();
+    if (!token) return false;
+    if (characterName === token) return true;
+    if (isRoverCharacter && roverElement && ROVER_ELEMENT_TOKENS.has(token)) {
+      return roverElement === token;
+    }
+    return false;
+  });
+};
 
 const StatsContext = createContext<StatsContextType | null>(null);
 
@@ -151,7 +178,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     });
 
     return { elementCounts: counts, atkPercentBonus: bonus, activeSets: sets };
-  }, [echoPanels, getEcho]);
+  }, [echoPanels, getEcho, fettersByElement]);
 
   // Calculate forte bonus
   const forteBonus = useMemo(() => {
@@ -252,22 +279,17 @@ export function StatsProvider({ children }: StatsProviderProps) {
 
         // Add first panel echo bonus
         if (firstPanelBonus) {
-          const bonusForStat = firstPanelBonus.find(bonus => bonus.stat === displayStat);
-          if (bonusForStat) {
-            result.update += bonusForStat.value;
-          }
-
-          // Special case for Fleurdelys with Rover Aero or Carthethyia
-          if (firstEcho?.name === 'Fleurdelys' &&
-            displayStat === 'Aero DMG' &&
-            ((isRover(character) && roverElement === 'Aero') || character?.name === 'Carthethyia')) {
-            result.update += 10;
-          }
-
-          // Aemeath gets 25 Liberation DMG Bonus from Sigillum
-          if (firstEcho?.name === 'Sigillum' && character?.name === 'Aemeath' && displayStat === 'Resonance Liberation DMG Bonus') {
-            result.update += 25;
-          }
+          const firstPanelBonusTotal = firstPanelBonus.reduce((sum, bonus) => {
+            if (bonus.stat !== displayStat) return sum;
+            const conditionMatched = matchesEchoBonusCondition(
+              bonus.characterCondition,
+              character?.name,
+              isRover(character),
+              roverElement
+            );
+            return conditionMatched ? sum + bonus.value : sum;
+          }, 0);
+          result.update += firstPanelBonusTotal;
         }
 
         // Add weapon substat bonus
@@ -342,9 +364,9 @@ export function StatsProvider({ children }: StatsProviderProps) {
     forteBonus,
     echoStats,
     firstPanelBonus,
-    firstEcho,
     sequence,
-    activeSets
+    activeSets,
+    fettersByElement
   ]);
 
   // Helper functions

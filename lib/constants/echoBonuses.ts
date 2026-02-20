@@ -4,6 +4,7 @@ import { StatName } from '@/lib/constants/statMappings';
 interface EchoBonus {
   stat: StatName;
   value: number;
+  characterCondition?: string[];
 }
 
 /**

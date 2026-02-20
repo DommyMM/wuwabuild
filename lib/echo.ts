@@ -23,7 +23,7 @@ export interface CDNEcho {
   element: number[];
   icon: string;
   phantomIcon?: string;
-  bonuses?: Array<{ stat: string; value: number }>;
+  bonuses?: Array<{ stat: string; value: number; characterCondition?: string[] }>;
   skill: {
     description: string;
     params: Array<{ ArrayString: string[] }>;
@@ -42,7 +42,7 @@ export interface Echo {
   cdnId?: number;
   iconUrl: string;
   phantomIconUrl?: string;
-  bonuses?: Array<{ stat: StatName; value: number }>;
+  bonuses?: Array<{ stat: StatName; value: number; characterCondition?: string[] }>;
 }
 
 export type EchoPanel = {
@@ -170,7 +170,7 @@ export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
   cdnId: cdn.id,
   iconUrl: toCdnUrl(cdn.icon),
   phantomIconUrl: cdn.phantomIcon ? toCdnUrl(cdn.phantomIcon) : undefined,
-  bonuses: cdn.bonuses as Array<{ stat: StatName; value: number }> | undefined,
+  bonuses: cdn.bonuses as Array<{ stat: StatName; value: number; characterCondition?: string[] }> | undefined,
 });
 
 export const validateCDNEcho = (echo: CDNEcho): boolean => {

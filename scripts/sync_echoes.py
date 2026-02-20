@@ -24,19 +24,52 @@ CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Phantom"
 OUTPUT_FILE = Path(__file__).parent.parent / "public/Data/Echoes.json"
 
 STAT_PATTERNS = [
-    (re.compile(r"\{(\d+)\}\s*Glacio DMG Bonus", re.I), "Glacio DMG"),
-    (re.compile(r"\{(\d+)\}\s*Fusion DMG Bonus", re.I), "Fusion DMG"),
-    (re.compile(r"\{(\d+)\}\s*Electro DMG Bonus", re.I), "Electro DMG"),
-    (re.compile(r"\{(\d+)\}\s*Aero DMG Bonus", re.I), "Aero DMG"),
-    (re.compile(r"\{(\d+)\}\s*Spectro DMG Bonus", re.I), "Spectro DMG"),
-    (re.compile(r"\{(\d+)\}\s*Havoc DMG Bonus", re.I), "Havoc DMG"),
-    (re.compile(r"\{(\d+)\}\s*Resonance Skill DMG Bonus", re.I), "Resonance Skill DMG Bonus"),
-    (re.compile(r"\{(\d+)\}\s*Resonance Liberation DMG Bonus", re.I), "Resonance Liberation DMG Bonus"),
-    (re.compile(r"\{(\d+)\}\s*Basic Attack DMG Bonus", re.I), "Basic Attack DMG Bonus"),
-    (re.compile(r"\{(\d+)\}\s*Heavy Attack DMG Bonus", re.I), "Heavy Attack DMG Bonus"),
-    (re.compile(r"\{(\d+)\}\s*Energy Regen", re.I), "Energy Regen"),
-    (re.compile(r"\{(\d+)\}\s*Healing Bonus", re.I), "Healing Bonus"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Glacio DMG Bonus", re.I), "Glacio DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Fusion DMG Bonus", re.I), "Fusion DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Electro DMG Bonus", re.I), "Electro DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Aero DMG Bonus", re.I), "Aero DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Spectro DMG Bonus", re.I), "Spectro DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Havoc DMG Bonus", re.I), "Havoc DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Resonance Skill DMG Bonus", re.I), "Resonance Skill DMG Bonus"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Resonance Liberation DMG Bonus", re.I), "Resonance Liberation DMG Bonus"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Basic Attack DMG Bonus", re.I), "Basic Attack DMG Bonus"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Heavy Attack DMG Bonus", re.I), "Heavy Attack DMG Bonus"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Energy Regen", re.I), "Energy Regen"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Healing Bonus", re.I), "Healing Bonus"),
 ]
+
+
+def _get_sentence_window(text: str, start: int, end: int) -> str:
+    """Get the sentence-like window around a matched bonus clause."""
+    left = max(text.rfind(".", 0, start), text.rfind("\n", 0, start))
+    right_candidates = [idx for idx in [text.find(".", end), text.find("\n", end)] if idx != -1]
+    right = min(right_candidates) if right_candidates else len(text)
+    return text[left + 1:right].strip()
+
+
+def _extract_character_condition(desc: str, match_start: int, match_end: int) -> list[str] | None:
+    """Extract known character conditions near a matched stat bonus."""
+    sentence = _get_sentence_window(desc, match_start, match_end)
+    if not sentence:
+        return None
+
+    # Pattern: "... main slot by Aemeath ..."
+    by_match = re.search(r"\bby\s+([A-Z][A-Za-z]+)\b", sentence)
+    if by_match:
+        return [by_match.group(1)]
+
+    # Pattern: "When Resonator: Aero or Cartethyia equips this Echo ..."
+    resonator_match = re.search(r"\bResonator:\s*([^.]+?)\s+equips\b", sentence, re.I)
+    if resonator_match:
+        raw_targets = resonator_match.group(1)
+        conditions = []
+        for token in re.split(r"\s+or\s+|,", raw_targets):
+            cleaned = token.strip()
+            if cleaned:
+                conditions.append(cleaned)
+        return conditions if conditions else None
+
+    return None
 
 
 def extract_main_slot_bonuses(skill: dict) -> list[dict] | None:
@@ -47,14 +80,17 @@ def extract_main_slot_bonuses(skill: dict) -> list[dict] | None:
     params = (skill.get("levelDescriptionStrArray") or [{}])[0].get("ArrayString") or []
     bonuses = []
     for regex, stat in STAT_PATTERNS:
-        m = regex.search(desc)
-        if m:
+        for m in regex.finditer(desc):
             param_index = int(m.group(1))
             if param_index < len(params):
                 val_str = params[param_index]
                 try:
                     val = float(val_str.replace("%", ""))
-                    bonuses.append({"stat": stat, "value": val})
+                    bonus: dict[str, Any] = {"stat": stat, "value": val}
+                    condition = _extract_character_condition(desc, m.start(), m.end())
+                    if condition:
+                        bonus["characterCondition"] = condition
+                    bonuses.append(bonus)
                 except ValueError:
                     pass
     return bonuses if bonuses else None
