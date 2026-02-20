@@ -2,12 +2,13 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDownAZ, ArrowUpAZ, Download, Search } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Download, Search } from 'lucide-react';
 import { SavedBuild } from '@/lib/build';
 import { DRAFT_BUILD_STORAGE_KEY, deleteBuild, exportAllBuilds, exportBuild, loadBuilds } from '@/lib/storage';
+import { calculateCV } from '@/lib/calculations/cv';
 import { BuildList } from './BuildList';
 
-type SortBy = 'date' | 'name';
+type SortBy = 'date' | 'name' | 'cv';
 type SortDirection = 'asc' | 'desc';
 
 export const SavesPageClient: React.FC = () => {
@@ -29,6 +30,10 @@ export const SavesPageClient: React.FC = () => {
     [builds, selectedBuildId]
   );
 
+  const buildCVs = useMemo(() => (
+    new Map(builds.map((build) => [build.id, calculateCV(build.state.echoPanels)]))
+  ), [builds]);
+
   const filteredAndSortedBuilds = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     const filtered = !query
@@ -40,14 +45,19 @@ export const SavesPageClient: React.FC = () => {
         );
 
     const sorted = [...filtered].sort((a, b) => {
-      const comparison = sortBy === 'name'
-        ? a.name.localeCompare(b.name)
-        : new Date(a.date).getTime() - new Date(b.date).getTime();
+      let comparison = 0;
+      if (sortBy === 'name') {
+        comparison = a.name.localeCompare(b.name);
+      } else if (sortBy === 'cv') {
+        comparison = (buildCVs.get(a.id) ?? 0) - (buildCVs.get(b.id) ?? 0);
+      } else {
+        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+      }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
 
     return sorted;
-  }, [builds, searchQuery, sortBy, sortDirection]);
+  }, [buildCVs, builds, searchQuery, sortBy, sortDirection]);
 
   const handleDelete = useCallback((build: SavedBuild) => {
     if (!window.confirm(`Delete "${build.name}"? This cannot be undone.`)) return;
@@ -98,13 +108,6 @@ export const SavesPageClient: React.FC = () => {
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-5xl p-6 md:px-16">
-        <div className="mb-4 flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold text-text-primary">Saved Builds</h1>
-          <p className="text-sm text-text-primary/70">
-            Manage saved builds, export backups, and load a build into the editor.
-          </p>
-        </div>
-
         <div className="mb-4 flex flex-col gap-3 rounded-lg border border-border bg-background-secondary p-3 md:flex-row md:items-center">
           <div className="relative flex-1">
             <Search
@@ -121,14 +124,21 @@ export const SavesPageClient: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-            >
-              <option value="date">Sort: Date</option>
-              <option value="name">Sort: Name</option>
-            </select>
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
+              >
+                <option value="date">Sort: Date</option>
+                <option value="name">Sort: Name</option>
+                <option value="cv">Sort: CV</option>
+              </select>
+              <ChevronDown
+                size={14}
+                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-primary/70"
+              />
+            </div>
 
             <button
               onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
