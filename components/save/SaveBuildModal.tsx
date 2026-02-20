@@ -5,7 +5,7 @@ import { Save } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { saveBuild } from '@/lib/storage';
 import { useBuild } from '@/contexts/BuildContext';
-import { SavedBuild } from '@/types/build';
+import { SavedBuild } from '@/lib/build';
 
 interface SaveBuildModalProps {
   isOpen: boolean;

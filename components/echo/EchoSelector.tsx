@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Modal } from '@/components/ui/Modal';
-import { Echo, ElementType, ELEMENT_SETS, COST_SECTIONS } from '@/types/echo';
+import { Echo, ElementType, ELEMENT_SETS, COST_SECTIONS } from '@/lib/echo';
 import { getEchoPaths } from '@/lib/paths';
 
 interface EchoSelectorProps {

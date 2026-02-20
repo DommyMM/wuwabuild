@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { STAT_ABBREV } from '@/lib/constants/statMappings';
-import { StatName } from '@/types/stats';
+import { StatName } from '@/lib/constants/statMappings';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 

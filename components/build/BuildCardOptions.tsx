@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
-import { SKIN_CHARACTERS } from '@/types/character';
+import { SKIN_CHARACTERS } from '@/lib/character';
 
 export interface CardOptions {
   source: string;

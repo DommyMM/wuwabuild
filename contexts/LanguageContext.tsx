@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import type { I18nString } from '@/types/character';
+import type { I18nString } from '@/lib/character';
 
 // Supported languages matching I18nString from character.ts
 // countryCode is used with flag-icons library (lowercase ISO 3166-1 alpha-2)

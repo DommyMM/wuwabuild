@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Character } from '@/types/character';
+import { Character } from '@/lib/character';
 
 interface ForteNodeProps {
   treeKey: string;

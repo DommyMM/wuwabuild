@@ -1,4 +1,4 @@
-import { StatName } from '@/types/stats';
+import { StatName } from '@/lib/constants/statMappings';
 
 /**
  * Maps set names to their 2-piece bonus stat

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef, ReactNode } from 'react';
-import { EchoPanelState, ElementType } from '@/types/echo';
+import { EchoPanelState, ElementType } from '@/lib/echo';
 import {
   SavedState,
   WatermarkState,
@@ -9,9 +9,9 @@ import {
   ForteEntry,
   DEFAULT_FORTE,
   DEFAULT_WATERMARK,
-  createDefaultEchoPanelState,
   createDefaultSavedState
-} from '@/types/build';
+} from '@/lib/build';
+import { createDefaultEchoPanelState } from '@/lib/calculations/echoes';
 
 /** Column index order: 0=normal-attack, 1=skill, 2=circuit, 3=liberation, 4=intro */
 const FORTE_KEY_TO_INDEX: Record<string, number> = {

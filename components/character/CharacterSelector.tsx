@@ -6,7 +6,7 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { Modal } from '@/components/ui/Modal';
-import { Character, Element } from '@/types/character';
+import { Character, Element } from '@/lib/character';
 
 // ---------------------------------------------------------------------------
 // Constants

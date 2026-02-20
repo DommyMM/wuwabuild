@@ -1,6 +1,6 @@
-import { Character } from '@/types/character';
-import { Weapon } from '@/types/weapon';
-import { BaseStatName, StatName } from '@/types/stats';
+import { Character } from '@/lib/character';
+import { Weapon } from '@/lib/weapon';
+import { ForteState } from '@/lib/build';
 
 /**
  * Character curve stats interface
@@ -119,7 +119,7 @@ export const calculateWeaponStats = (
  */
 export const calculateForteBonus = (
   character: Character,
-  forte: import('@/types/build').ForteState
+  forte: ForteState
 ): { bonus1Total: number; bonus2Total: number; bonus1Type: string } => {
   const fn = character.forteNodes;
   let bonus1Total = 0;
@@ -165,12 +165,6 @@ export const calculateBaseStats = (
     baseDEF: scaleStat(character.DEF, level, 'DEF')
   };
 };
-
-/**
- * Get the percent variant of a base stat name.
- */
-export const getPercentVariant = (stat: BaseStatName): StatName =>
-  `${stat}%` as StatName;
 
 /**
  * Calculate the final value of a flat stat (HP, ATK, DEF).

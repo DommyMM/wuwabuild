@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Trash2, Copy, Download, Calendar, User } from 'lucide-react';
-import { SavedBuild } from '@/types/build';
+import { SavedBuild } from '@/lib/build';
 
 interface BuildListProps {
   builds: SavedBuild[];

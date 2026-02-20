@@ -5,7 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { LevelSlider } from '@/components/ui/LevelSlider';
 import { WeaponSelector } from './WeaponSelector';
-import { WeaponRarity } from '@/types/weapon';
+import { WeaponRarity } from '@/lib/weapon';
 
 interface WeaponInfoProps {
   className?: string;

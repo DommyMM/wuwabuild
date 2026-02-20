@@ -3,15 +3,15 @@
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { useGameData } from './GameDataContext';
 import { useBuild } from './BuildContext';
-import { StatName, BaseStatName } from '@/types/stats';
-import { EchoPanelState, ELEMENT_SETS, ElementType } from '@/types/echo';
+import { StatName, BaseStatName } from '@/lib/constants/statMappings';
+import { EchoPanelState, ELEMENT_SETS, ElementType } from '@/lib/echo';
 import { calculateCV } from '@/lib/calculations/cv';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
 import { calculateForteBonus } from '@/lib/calculations/stats';
 import { SET_TO_STAT, SPECIAL_SET_BONUS_VALUES, DEFAULT_SET_BONUS_VALUE } from '@/lib/constants/setBonuses';
 import { getEchoBonus } from '@/lib/constants/echoBonuses';
 import { getDisplayName, getPercentVariant } from '@/lib/constants/statMappings';
-import { isRover } from '@/types/character';
+import { isRover } from '@/lib/character';
 
 interface StatBreakdown {
   flat: number;

@@ -1,4 +1,4 @@
-import { EchoPanelState } from '@/types/echo';
+import { EchoPanelState } from '@/lib/echo';
 import { sumMainStats, sumSubStats } from './echoes';
 
 /**

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { ForteNode } from './ForteNode';
-import { Character } from '@/types/character';
+import { Character } from '@/lib/character';
 
 interface SkillBranchProps {
   skillName: string;

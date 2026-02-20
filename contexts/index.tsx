@@ -5,7 +5,7 @@ import { GameDataProvider, useGameData } from './GameDataContext';
 import { BuildProvider } from './BuildContext';
 import { StatsProvider } from './StatsContext';
 import { LanguageProvider } from './LanguageContext';
-import { SavedState } from '@/types/build';
+import { SavedState } from '@/lib/build';
 
 interface AppProvidersProps {
   children: ReactNode;

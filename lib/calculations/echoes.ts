@@ -1,5 +1,5 @@
-import { EchoPanelState, Echo } from '@/types/echo';
-import { StatName } from '@/types/stats';
+import { EchoPanelState, Echo } from '@/lib/echo';
+import { StatName } from '@/lib/constants/statMappings';
 
 /**
  * Calculate the default stat value for an echo based on its cost and level.

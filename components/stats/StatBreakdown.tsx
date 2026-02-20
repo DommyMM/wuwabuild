@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { BaseStatName } from '@/types/stats';
+import { BaseStatName } from '@/lib/constants/statMappings';
 
 interface StatBreakdownProps {
   statName: BaseStatName;

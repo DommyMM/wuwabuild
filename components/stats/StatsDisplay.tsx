@@ -6,7 +6,7 @@ import { useStats } from '@/contexts/StatsContext';
 import { StatRow } from './StatRow';
 import { StatBreakdown } from './StatBreakdown';
 import { CVDisplay } from './CVDisplay';
-import { StatName, BaseStatName } from '@/types/stats';
+import { StatName, BaseStatName } from '@/lib/constants/statMappings';
 
 interface StatsDisplayProps {
   className?: string;

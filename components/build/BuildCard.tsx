@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useStats } from '@/contexts/StatsContext';
 import { getCVRating, getCVRatingColor } from '@/lib/calculations/cv';
 import { STAT_ABBREV } from '@/lib/constants/statMappings';
-import { StatName } from '@/types/stats';
+import { StatName } from '@/lib/constants/statMappings';
 
 interface BuildCardProps {
   className?: string;

@@ -1,9 +1,9 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { Character, adaptCDNCharacter, validateCDNCharacter } from '@/types/character';
-import { Weapon, WeaponType, CDNWeapon, adaptCDNWeapon, validateCDNWeapon } from '@/types/weapon';
-import { Echo, CDNEcho, CDNFetter, COST_SECTIONS, adaptCDNEcho, validateCDNEcho, ElementType, FETTER_MAP } from '@/types/echo';
+import { Character, adaptCDNCharacter, validateCDNCharacter } from '@/lib/character';
+import { Weapon, WeaponType, CDNWeapon, adaptCDNWeapon, validateCDNWeapon } from '@/lib/weapon';
+import { Echo, CDNEcho, CDNFetter, COST_SECTIONS, adaptCDNEcho, validateCDNEcho, ElementType, FETTER_MAP } from '@/lib/echo';
 import { CharacterCurve, LevelCurves } from '@/lib/calculations/stats';
 
 interface MainStatData {

@@ -3,7 +3,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { EchoPanel } from './EchoPanel';
-import { EchoPanelState } from '@/types/echo';
+import { EchoPanelState } from '@/lib/echo';
 
 interface SortableEchoPanelProps {
   id: string;

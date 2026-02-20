@@ -1,4 +1,4 @@
-import { SavedBuild, SavedBuilds, SavedState, ForteState, ForteEntry, DEFAULT_FORTE, createDefaultSavedState } from '@/types/build';
+import { SavedBuild, SavedBuilds, SavedState, ForteState, ForteEntry, DEFAULT_FORTE, createDefaultSavedState } from '@/lib/build';
 
 // Storage keys
 const STORAGE_KEY = 'wuwabuilds_saves';

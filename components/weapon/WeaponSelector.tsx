@@ -5,7 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Modal } from '@/components/ui/Modal';
-import { Weapon, WeaponRarity } from '@/types/weapon';
+import { Weapon, WeaponRarity } from '@/lib/weapon';
 import { getWeaponPaths } from '@/lib/paths';
 
 const FALLBACK_WEAPON = '/images/Resources/Weapon.png';

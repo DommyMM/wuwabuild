@@ -1,4 +1,55 @@
-import { StatName, BaseStatName } from '@/types/stats';
+// ─── Types (moved from types/stats.ts) ───────────────────────────────────────
+
+export interface StatValue {
+  type: string | null;
+  value: number | null;
+}
+
+export type BaseStatName = 'HP' | 'ATK' | 'DEF';
+
+export type StatName =
+  | BaseStatName
+  | `${BaseStatName}%`
+  | 'Crit Rate' | 'Crit DMG'
+  | 'Energy Regen'
+  | 'Basic Attack' | 'Basic Attack DMG Bonus'
+  | 'Heavy Attack' | 'Heavy Attack DMG Bonus'
+  | 'Skill' | 'Resonance Skill DMG Bonus'
+  | 'Liberation' | 'Resonance Liberation DMG Bonus'
+  | 'Aero DMG' | 'Glacio DMG' | 'Fusion DMG'
+  | 'Electro DMG' | 'Havoc DMG' | 'Spectro DMG'
+  | 'Healing Bonus';
+
+export interface StatsState {
+  mainStat: StatValue;
+  subStats: StatValue[];
+}
+
+export interface MainStatData {
+  [key: string]: {
+    mainStats: {
+      [statName: string]: [number, number];
+    };
+  };
+}
+
+export interface SubstatData {
+  [statName: string]: number[];
+}
+
+export interface SubstatsListProps {
+  substatsData: SubstatData | null;
+  stats: StatValue[];
+  panelId: string;
+  isStatAvailable: (panelId: string, stat: string, currentStat?: string | null) => boolean;
+  onChange: (index: number, type: string | null, value: number | null) => void;
+}
+
+export interface PanelSelections {
+  [panelId: string]: Set<string>;
+}
+
+// ─── Constants & helpers ──────────────────────────────────────────────────────
 
 /**
  * Order of stats for display purposes

@@ -1,5 +1,5 @@
-import { Weapon } from '@/types/weapon';
-import { Echo } from '@/types/echo';
+import { Weapon } from '@/lib/weapon';
+import { Echo } from '@/lib/echo';
 
 const ELEMENT_NAME_MAP: Record<string, string> = {
   'Havoc': 'Dark',

@@ -1,5 +1,5 @@
-import { Echo } from '@/types/echo';
-import { StatName } from '@/types/stats';
+import { Echo } from '@/lib/echo';
+import { StatName } from '@/lib/constants/statMappings';
 
 interface EchoBonus {
   stat: StatName;

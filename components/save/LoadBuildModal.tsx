@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { BuildList } from './BuildList';
 import { loadBuilds, deleteBuild, duplicateBuild, exportBuild, importBuild, exportAllBuilds } from '@/lib/storage';
 import { useBuild } from '@/contexts/BuildContext';
-import { SavedBuild } from '@/types/build';
+import { SavedBuild } from '@/lib/build';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface LoadBuildModalProps {

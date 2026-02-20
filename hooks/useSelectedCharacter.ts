@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
-import { Character, Element, I18nString } from '@/types/character';
+import { Character, Element, I18nString } from '@/lib/character';
 
 const FALLBACK_IMG = '/images/Resources/Resonator.png';
 

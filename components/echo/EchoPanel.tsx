@@ -5,7 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { EchoSelector } from './EchoSelector';
 import { MainStatSelector, SubstatsList } from './StatSelector';
-import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/types/echo';
+import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/lib/echo';
 import { hasPhantomVariant } from '@/lib/constants/echoBonuses';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { X } from 'lucide-react';

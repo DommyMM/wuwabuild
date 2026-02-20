@@ -2,8 +2,8 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { SkillBranch } from './SkillBranch';
-import { Character } from '@/types/character';
-import { ForteState } from '@/types/build';
+import { Character } from '@/lib/character';
+import { ForteState } from '@/lib/build';
 import { calculateForteBonus } from '@/lib/calculations/stats';
 
 interface ForteGroupProps {
