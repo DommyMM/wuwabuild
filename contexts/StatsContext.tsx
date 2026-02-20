@@ -47,9 +47,6 @@ interface StatsContextType {
 
 const ROVER_ELEMENT_TOKENS = new Set([
   'Aero',
-  'Glacio',
-  'Fusion',
-  'Electro',
   'Havoc',
   'Spectro'
 ]);
