@@ -8,21 +8,10 @@ import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { Modal } from '@/components/ui/Modal';
 import { Character, Element } from '@/lib/character';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const FALLBACK_FACE = '/images/Resources/Resonator.png';
 
 /** All filterable elements */
-const ELEMENTS = [
-  Element.Glacio,
-  Element.Fusion,
-  Element.Electro,
-  Element.Aero,
-  Element.Spectro,
-  Element.Havoc,
-] as const;
+const ELEMENTS = [ Element.Glacio, Element.Fusion, Element.Electro, Element.Aero, Element.Spectro, Element.Havoc ] as const;
 
 /** Element name -> Tailwind bg fill for card + hover gradient */
 const ELEMENT_BG: Record<string, string> = {
@@ -33,27 +22,6 @@ const ELEMENT_BG: Record<string, string> = {
   [Element.Spectro]: 'bg-spectro/15 hover:bg-gradient-to-b hover:from-spectro/30 hover:to-spectro/5',
   [Element.Havoc]:   'bg-havoc/15 hover:bg-gradient-to-b hover:from-havoc/30 hover:to-havoc/5',
   [Element.Rover]:   'bg-rover/15 hover:bg-gradient-to-b hover:from-rover/30 hover:to-rover/5',
-};
-
-/** Element name -> Tailwind border class (for the compact slot) */
-const ELEMENT_BORDER: Record<string, string> = {
-  [Element.Glacio]:  'border-glacio',
-  [Element.Fusion]:  'border-fusion',
-  [Element.Electro]: 'border-electro',
-  [Element.Aero]:    'border-aero',
-  [Element.Spectro]: 'border-spectro',
-  [Element.Havoc]:   'border-havoc',
-  [Element.Rover]:   'border-rover',
-};
-
-/** Element name -> Tailwind text color */
-const ELEMENT_TEXT: Record<string, string> = {
-  [Element.Glacio]:  'text-glacio',
-  [Element.Fusion]:  'text-fusion',
-  [Element.Electro]: 'text-electro',
-  [Element.Aero]:    'text-aero',
-  [Element.Spectro]: 'text-spectro',
-  [Element.Havoc]:   'text-havoc',
 };
 
 /** Element name -> active filter chip styling */
@@ -84,16 +52,11 @@ const RARITY_SELECTED: Record<number, string> = {
   5: 'border-rarity-5 shadow-[0_0_10px_var(--color-rarity-5)]',
 };
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 /** Derive face1 (square head) CDN URL from iconRound URL */
 const getHeadUrl = (character: Character | null): string => {
   if (!character?.iconRound) return FALLBACK_FACE;
   return character.iconRound.replace(/HeadCircle256/g, 'Head256');
 };
-
 
 /** Keep one Rover per gender (legacyId 4=male, 5=female) */
 const deduplicateRovers = (chars: Character[]): Character[] => {
@@ -107,19 +70,11 @@ const deduplicateRovers = (chars: Character[]): Character[] => {
   });
 };
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
-
 interface CharacterSelectorProps {
   className?: string;
   inline?: boolean;
   onSelect?: (character: Character) => void;
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   className = '',
@@ -195,10 +150,6 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   }, []);
 
   const hasFilters = elementFilter.size > 0 || rarityFilter.size > 0;
-
-  // -----------------------------------------------------------------------
-  // Character grid
-  // -----------------------------------------------------------------------
 
   const CharacterGrid = () => {
     if (loading) {
@@ -325,10 +276,6 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     );
   };
 
-  // -----------------------------------------------------------------------
-  // Inline mode
-  // -----------------------------------------------------------------------
-
   if (inline) {
     return (
       <div className={className}>
@@ -336,10 +283,6 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
       </div>
     );
   }
-
-  // -----------------------------------------------------------------------
-  // Standard mode – compact slot + modal
-  // -----------------------------------------------------------------------
 
   return (
     <>
