@@ -22,9 +22,9 @@ const ELEMENT_COLORS: Record<string, { bg: string; text: string; border: string 
   Havoc: { bg: 'bg-havoc/20', text: 'text-havoc', border: 'border-havoc' },
   Spectro: { bg: 'bg-spectro/20', text: 'text-spectro', border: 'border-spectro' },
   Aero: { bg: 'bg-aero/20', text: 'text-aero', border: 'border-aero' },
-  Glacio: { bg: 'bg-blue-400/20', text: 'text-blue-400', border: 'border-blue-400' },
-  Electro: { bg: 'bg-purple-400/20', text: 'text-purple-400', border: 'border-purple-400' },
-  Fusion: { bg: 'bg-orange-400/20', text: 'text-orange-400', border: 'border-orange-400' },
+  Glacio: { bg: 'bg-glacio/20', text: 'text-glacio', border: 'border-glacio' },
+  Electro: { bg: 'bg-electro/20', text: 'text-electro', border: 'border-electro' },
+  Fusion: { bg: 'bg-fusion/20', text: 'text-fusion', border: 'border-fusion' },
 };
 
 export const CharacterInfo: React.FC<CharacterInfoProps> = ({
