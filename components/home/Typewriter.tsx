@@ -10,7 +10,7 @@ const FEATURES = [
     "Compare builds with other players"
 ];
 
-export default function Typewriter() {
+export function Typewriter() {
     const [text, setText] = useState('');
     const [featureIndex, setFeatureIndex] = useState(0);
     const [isDeleting, setIsDeleting] = useState(false);

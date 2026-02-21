@@ -152,5 +152,3 @@ export const StatRow: React.FC<StatRowProps> = ({
     </div>
   );
 };
-
-export default StatRow;

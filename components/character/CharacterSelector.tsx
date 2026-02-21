@@ -371,5 +371,3 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     </>
   );
 };
-
-export default CharacterSelector;

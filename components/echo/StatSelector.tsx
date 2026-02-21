@@ -251,5 +251,3 @@ export const SubstatsList: React.FC<SubstatsListProps> = ({
     </div>
   );
 };
-
-export default { MainStatSelector, SubstatSelector, SubstatsList };

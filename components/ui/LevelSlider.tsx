@@ -166,5 +166,3 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
     </div>
   );
 };
-
-export default LevelSlider;

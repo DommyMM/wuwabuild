@@ -234,5 +234,3 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({
     </div>
   );
 };
-
-export default StatsDisplay;

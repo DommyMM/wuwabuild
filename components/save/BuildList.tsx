@@ -370,5 +370,3 @@ export const BuildList: React.FC<BuildListProps> = ({
     </div>
   );
 };
-
-export default BuildList;

@@ -202,5 +202,3 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
     </div>
   );
 };
-
-export default SkillBranch;

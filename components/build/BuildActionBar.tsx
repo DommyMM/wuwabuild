@@ -67,5 +67,3 @@ export const BuildActionBar: React.FC<BuildActionBarProps> = ({
     </div>
   );
 };
-
-export default BuildActionBar;

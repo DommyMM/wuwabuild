@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/Navigation";
 import { AppProviders } from "@/contexts/index";
 import "./globals.css";
 

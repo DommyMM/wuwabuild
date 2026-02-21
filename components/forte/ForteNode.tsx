@@ -42,5 +42,3 @@ export const ForteNode: React.FC<ForteNodeProps> = ({
     </button>
   );
 };
-
-export default ForteNode;

@@ -130,5 +130,3 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
     </div>
   );
 };
-
-export default ForteGroup;

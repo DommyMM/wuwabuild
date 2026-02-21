@@ -142,5 +142,3 @@ export const WeaponInfo: React.FC<WeaponInfoProps> = ({
     </div>
   );
 };
-
-export default WeaponInfo;

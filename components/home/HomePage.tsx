@@ -1,12 +1,12 @@
 'use client';
 
-import Typewriter from './Typewriter';
-import Carousel from './Carousel';
-import CTACards from './CTACards';
-import QuickStart from './QuickStart';
-import Disclaimer from './Disclaimer';
+import { Typewriter } from './Typewriter';
+import { Carousel } from './Carousel';
+import { CTACards } from './CTACards';
+import { QuickStart } from './QuickStart';
+import { Disclaimer } from './Disclaimer';
 
-export default function HomePage() {
+export function HomePage() {
     return (
         <main className="min-h-screen bg-background">
             <div className="max-w-3/4 mx-auto px-2 md:px-5 py-0 leading-relaxed">

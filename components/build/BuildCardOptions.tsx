@@ -128,5 +128,3 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
     </div>
   );
 };
-
-export default BuildCardOptions;

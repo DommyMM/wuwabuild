@@ -257,5 +257,3 @@ export const SavesPageClient: React.FC = () => {
     </main>
   );
 };
-
-export default SavesPageClient;

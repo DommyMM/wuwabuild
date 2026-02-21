@@ -30,7 +30,7 @@ const STEPS = [
     },
 ];
 
-export default function QuickStart() {
+export function QuickStart() {
     const [currentStep, setCurrentStep] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
     const [fullscreenImage, setFullscreenImage] = useState<{

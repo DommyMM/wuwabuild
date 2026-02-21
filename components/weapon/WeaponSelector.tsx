@@ -265,5 +265,3 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
     </>
   );
 };
-
-export default WeaponSelector;

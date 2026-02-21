@@ -12,7 +12,7 @@ const BUILD_CARDS = [
     { src: "/images/card4.png", alt: "Build Card 5" },
 ];
 
-export default function Carousel() {
+export function Carousel() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const [isMobile, setIsMobile] = useState(false);

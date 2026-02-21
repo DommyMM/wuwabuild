@@ -21,7 +21,7 @@ const cards = [
     },
 ];
 
-export default function CTACards() {
+export function CTACards() {
     return (
         <div className="flex justify-center gap-4 my-8 max-md:flex-col max-md:items-center max-md:gap-3 max-md:my-6 max-md:px-4">
             {cards.map((card, index) => (

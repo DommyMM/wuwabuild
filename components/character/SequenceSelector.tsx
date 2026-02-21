@@ -87,5 +87,3 @@ export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
     </div>
   );
 };
-
-export default SequenceSelector;

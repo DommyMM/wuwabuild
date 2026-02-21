@@ -15,7 +15,7 @@ import { WeaponSelector } from '@/components/weapon/WeaponSelector';
 import { LevelSlider } from '@/components/ui/LevelSlider';
 import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
-import BuildCardOptions, { CardOptions } from './BuildCardOptions';
+import { BuildCardOptions, CardOptions } from './BuildCardOptions';
 import { BuildCard } from './BuildCard';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
@@ -341,5 +341,3 @@ export const BuildEditor: React.FC = () => {
     </div>
   );
 };
-
-export default BuildEditor;

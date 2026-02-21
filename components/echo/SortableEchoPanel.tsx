@@ -59,5 +59,3 @@ export const SortableEchoPanel: React.FC<SortableEchoPanelProps> = ({
     </div>
   );
 };
-
-export default SortableEchoPanel;

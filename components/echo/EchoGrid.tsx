@@ -126,5 +126,3 @@ export const EchoGrid: React.FC<EchoGridProps> = ({ className = '' }) => {
     </div>
   );
 };
-
-export default EchoGrid;

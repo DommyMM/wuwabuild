@@ -326,5 +326,3 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
     </>
   );
 };
-
-export default EchoPanel;

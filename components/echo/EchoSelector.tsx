@@ -309,5 +309,3 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
     </Modal>
   );
 };
-
-export default EchoSelector;

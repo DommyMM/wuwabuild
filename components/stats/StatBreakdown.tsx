@@ -185,5 +185,3 @@ export const StatBreakdown: React.FC<StatBreakdownProps> = ({
     </div>
   );
 };
-
-export default StatBreakdown;

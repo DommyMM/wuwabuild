@@ -231,5 +231,3 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
     </Modal>
   );
 };
-
-export default SaveBuildModal;

@@ -205,5 +205,3 @@ export const CVDisplay: React.FC<CVDisplayProps> = ({
     </div>
   );
 };
-
-export default CVDisplay;

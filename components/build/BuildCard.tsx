@@ -17,5 +17,3 @@ export const BuildCard = forwardRef<HTMLDivElement>((_, ref) => {
 });
 
 BuildCard.displayName = 'BuildCard';
-
-export default BuildCard;
