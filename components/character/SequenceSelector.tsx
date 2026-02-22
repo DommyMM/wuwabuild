@@ -35,10 +35,24 @@ interface SequenceSelectorProps {
   className?: string;
 }
 
+function getLocalWavebandPath(name: string, cdnId: number): string {
+  let filename: string;
+  if (name === 'Rover') {
+    const hundreds = Math.floor(cdnId / 100);
+    if (hundreds === 14) filename = 'RoverAero';
+    else if (hundreds === 16) filename = 'RoverHavoc';
+    else filename = 'RoverSpectro';
+  } else {
+    filename = name;
+  }
+  return `/images/Wavebands/${filename}.png`;
+}
+
 export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
   cdnId, characterName, current, onChange, className = '',
 }) => {
   const sequenceIconUrl = `${PATHS.cdn.base}/Image/IconRup/T_IconRup_Part_${cdnId}_UI.png`;
+  const localFallback = getLocalWavebandPath(characterName, cdnId);
 
   const handleClick = (n: number) => {
     onChange(n <= current ? n - 1 : n);
@@ -51,6 +65,7 @@ export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
         <img
           src={sequenceIconUrl}
           alt="Sequence"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).src = localFallback; }}
           className="h-36 object-contain drop-shadow-[0_0_12px_rgba(166,150,98,0.3)]"
         />
       </div>
