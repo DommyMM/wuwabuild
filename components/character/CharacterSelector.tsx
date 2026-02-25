@@ -121,11 +121,20 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     (character: Character) => {
       setIsModalOpen(false);
       setCharacterLevel(1);
-      const roverElement = character.element === Element.Rover ? 'Havoc' : undefined;
-      setCharacter(character.id, roverElement);
+      if (character.element === Element.Rover) {
+        // Find the Spectro variant matching this gender so characterId and roverElement stay in sync
+        const spectroVariant = characters.find(
+          c => c.element === Element.Rover &&
+            c.legacyId === character.legacyId &&
+            c.roverElementName === 'Spectro',
+        );
+        setCharacter(spectroVariant?.id ?? character.id, 'Spectro');
+      } else {
+        setCharacter(character.id);
+      }
       onSelect?.(character);
     },
-    [setCharacter, setCharacterLevel, onSelect],
+    [setCharacter, setCharacterLevel, characters, onSelect],
   );
 
   const toggleElement = useCallback((el: string) => {
@@ -230,7 +239,10 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="grid grid-cols-5 gap-2.5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
             {filteredCharacters.map((character) => {
-              const isSelected = selected?.character.id === character.id;
+              const isSelected = selected?.character.id === character.id ||
+                (character.element === Element.Rover &&
+                  selected?.character.element === Element.Rover &&
+                  selected?.character.legacyId === character.legacyId);
               const isRover = character.element === Element.Rover;
               const rarity = character.rarity ?? 4;
 

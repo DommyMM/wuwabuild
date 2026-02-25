@@ -30,17 +30,17 @@ const ACTIVE_BG: React.CSSProperties = {
 interface SequenceSelectorProps {
   cdnId: number;
   characterName: string;
+  roverElement?: string;
   current: number;
   onChange: (seq: number) => void;
   className?: string;
 }
 
-function getLocalWavebandPath(name: string, cdnId: number): string {
+function getLocalWavebandPath(name: string, roverElement?: string): string {
   let filename: string;
   if (name === 'Rover') {
-    const hundreds = Math.floor(cdnId / 100);
-    if (hundreds === 14) filename = 'RoverAero';
-    else if (hundreds === 16) filename = 'RoverHavoc';
+    if (roverElement === 'Aero') filename = 'RoverAero';
+    else if (roverElement === 'Havoc') filename = 'RoverHavoc';
     else filename = 'RoverSpectro';
   } else {
     filename = name;
@@ -49,10 +49,10 @@ function getLocalWavebandPath(name: string, cdnId: number): string {
 }
 
 export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
-  cdnId, characterName, current, onChange, className = '',
+  cdnId, characterName, roverElement, current, onChange, className = '',
 }) => {
   const sequenceIconUrl = `${PATHS.cdn.base}/Image/IconRup/T_IconRup_Part_${cdnId}_UI.png`;
-  const localFallback = getLocalWavebandPath(characterName, cdnId);
+  const localFallback = getLocalWavebandPath(characterName, roverElement);
 
   const handleClick = (n: number) => {
     onChange(n <= current ? n - 1 : n);

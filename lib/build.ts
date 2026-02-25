@@ -9,6 +9,7 @@ export interface SavedEchoData {
 export interface WatermarkState {
   username: string;
   uid: string;
+  artSource: string;
 }
 
 /**
@@ -60,7 +61,8 @@ export interface SavedBuilds {
 // Default states for initialization
 export const DEFAULT_WATERMARK: WatermarkState = {
   username: '',
-  uid: ''
+  uid: '',
+  artSource: '',
 };
 
 export const DEFAULT_FORTE_LEVELS: ForteLevels = {

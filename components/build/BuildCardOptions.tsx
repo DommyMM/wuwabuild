@@ -23,7 +23,6 @@ const LABEL_BASE = 'text-[10px] font-medium uppercase tracking-wider text-text-p
 export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, className = '' }) => {
   const { state, setWatermark } = useBuild();
   const selected = useSelectedCharacter();
-  const [source, setSource] = useState('');
   const [showRollQuality, setShowRollQuality] = useState(true);
   const [showCV, setShowCV] = useState(true);
   const [useAltSkin, setUseAltSkin] = useState(false);
@@ -31,8 +30,8 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
   const hasSkin = selected ? SKIN_CHARACTERS.includes(selected.character.name) : false;
 
   useEffect(() => {
-    onChange({ source, showRollQuality, showCV, useAltSkin });
-  }, [source, showRollQuality, showCV, useAltSkin, onChange]);
+    onChange({ source: state.watermark.artSource, showRollQuality, showCV, useAltSkin });
+  }, [state.watermark.artSource, showRollQuality, showCV, useAltSkin, onChange]);
 
   const handlePaste = (field: 'username' | 'uid', max: number) =>
     (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -83,7 +82,6 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
                 onChange={e => setUseAltSkin(e.target.checked)}
                 className="h-4 w-4 accent-accent"
               />
-              <span className="select-none text-sm text-text-primary/60">Use Skin</span>
             </label>
           </>
         ) : (
@@ -91,8 +89,8 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
             <label className={LABEL_BASE}>Art Source</label>
             <input
               type="text"
-              value={source}
-              onChange={e => setSource(e.target.value)}
+              value={state.watermark.artSource}
+              onChange={e => setWatermark({ artSource: e.target.value })}
               placeholder="art by @artist"
               className={`${INPUT_BASE} w-[160px]`}
             />

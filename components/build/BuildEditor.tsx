@@ -6,6 +6,7 @@ import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/
 import { Download, Trophy } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
+import { Element } from '@/lib/character';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useStats } from '@/contexts/StatsContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
@@ -27,7 +28,7 @@ export const BuildEditor: React.FC = () => {
 
   const { stats } = useStats();
   const [showDebug, setShowDebug] = useState(false);
-  const [, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
+  const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
   const [isCardGenerated, setIsCardGenerated] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
@@ -47,8 +48,9 @@ export const BuildEditor: React.FC = () => {
     setCharacterLevel, setSequence,
     setWeapon, setWeaponLevel, setWeaponRank,
     setForteNode, setForteLevel, maxAllFortes,
+    setCharacter, setRoverElement,
   } = useBuild();
-  const { getWeapon } = useGameData();
+  const { getWeapon, characters } = useGameData();
   const { t } = useLanguage();
   const selected = useSelectedCharacter();
   const selectedWeapon = getWeapon(state.weaponId);
@@ -176,11 +178,41 @@ export const BuildEditor: React.FC = () => {
           {selected ? (
             <div className="grid grid-cols-[auto_auto_1fr] grid-rows-[28rem_auto] gap-x-6 gap-y-3">
               {/* Row 1, Col 1: Portrait */}
-              <img
-                src={selected.banner}
-                alt={t(selected.nameI18n)}
-                className="pointer-events-none col-start-1 row-start-1 h-full w-auto rounded-lg object-contain"
-              />
+              <div className="relative col-start-1 row-start-1 h-full">
+                <img
+                  src={selected.banner}
+                  alt={t(selected.nameI18n)}
+                  className="pointer-events-none h-full w-auto rounded-lg object-contain"
+                />
+                {selected.isRover && (
+                  <div className="absolute right-2 top-2 flex flex-col gap-1.5">
+                    {(['Spectro', 'Aero', 'Havoc'] as const).map((el) => {
+                      const active = selected.element === el;
+                      return (
+                        <button
+                          key={el}
+                          onClick={() => {
+                            const variant = characters.find(
+                              c => c.element === Element.Rover &&
+                                c.legacyId === selected.character.legacyId &&
+                                c.roverElementName === el,
+                            );
+                            if (variant) setCharacter(variant.id, el);
+                            else setRoverElement(el);
+                          }}
+                          className={`rounded-md border px-2 py-0.5 text-xs font-semibold backdrop-blur transition-colors
+                            ${active
+                              ? `bg-${el.toLowerCase()}/30 border-${el.toLowerCase()}/70 text-${el.toLowerCase()}`
+                              : 'border-white/20 bg-black/40 text-white/60 hover:border-white/40 hover:text-white/90'
+                            }`}
+                        >
+                          {el}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               {/* Row 1, Col 2: Sequences + Weapon + Rank slider */}
               <div className="relative flex flex-col justify-between overflow-hidden">
@@ -188,6 +220,7 @@ export const BuildEditor: React.FC = () => {
                   <SequenceSelector
                     cdnId={selected.character.cdnId}
                     characterName={selected.character.name}
+                    roverElement={state.roverElement}
                     current={state.sequence}
                     onChange={setSequence}
                   />
@@ -223,6 +256,7 @@ export const BuildEditor: React.FC = () => {
               {/* Col 3: Forte */}
               <div className="col-start-3 row-span-2 overflow-hidden">
                 <ForteGroup
+                  key={selected.character.id}
                   character={selected.character}
                   elementValue={state.roverElement || selected.character.element}
                   forte={state.forte}
@@ -268,7 +302,7 @@ export const BuildEditor: React.FC = () => {
         {isCardGenerated && (
           <>
             <div className="rounded-lg rounded-tl-none border border-border relative overflow-hidden">
-              <BuildCard ref={cardRef} />
+              <BuildCard ref={cardRef} useAltSkin={cardOptions.useAltSkin} />
             </div>
             {/* Action bar — flipped version of BuildCardOptions */}
             <div className="flex justify-start pl-12">

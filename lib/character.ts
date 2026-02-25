@@ -57,6 +57,14 @@ export interface ForteNodeData {
   value: number;    // Parsed percentage (e.g. 1.2 for "1.20%")
 }
 
+export interface CDNChainEntry {
+  id: number;
+  name: string;
+  description?: string;
+  icon: string;
+  param?: string[];
+}
+
 export interface CDNCharacter {
   id: number;
   legacyId: string;
@@ -70,6 +78,7 @@ export interface CDNCharacter {
   stats: { Life: number; Atk: number; Def: number; Crit: number; CritDamage: number; DamageChangeNormalSkill?: number };
   skillIcons?: Record<string, string>;
   skillTrees?: CDNSkillTreeNode[];
+  chains?: CDNChainEntry[];
 }
 
 // CDN weapon ID -> WeaponType mapping
@@ -114,19 +123,19 @@ export interface Character {
   ATK: number;
   DEF: number;
   ER: number;
-  // I18n display names (English fallback via `name` / enums)
-  nameI18n?: I18nString;
+  nameI18n?: I18nString;  // I18n display names (English fallback via `name` / enums)
   elementI18n?: I18nString;
   weaponI18n?: I18nString;
-  // New fields from CDN
   cdnId?: number;
   iconRound?: string;
   banner?: string;
   rarity?: number;
-  skins?: CDNCharacter['skins'];
+  skins?: CDNCharacter['skins']; // Character skins
   elementIcon?: string; // CDN element icon URL (element.icon["1"])
   skillIcons?: Record<string, string>; // CDN skill icon URLs keyed by type
   forteNodes?: Record<string, ForteNodeData>; // Keyed by "tree1.top", "tree1.middle", etc.
+  chains?: CDNChainEntry[]; // Resonance chains (S1–S6) with icon URLs
+  roverElementName?: Element; /** For Rover's element selection (Aero | Spectro | Havoc) */
 }
 
 export const SKIN_CHARACTERS = ['Jinhsi', 'Sanhua', 'Changli', 'Carlotta'] as readonly string[];
@@ -221,7 +230,7 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
 
   return {
     name: isRoverChar ? 'Rover' : cdn.name.en,
-    nameI18n: cdn.name,
+    nameI18n: isRoverChar ? { ...cdn.name, en: 'Rover' } : cdn.name,
     elementI18n: cdn.element.name,
     weaponI18n: cdn.weapon.name,
     id: String(cdn.id),
@@ -244,6 +253,8 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     elementIcon: cdn.element.icon?.['1'],
     skillIcons: cdn.skillIcons,
     forteNodes,
+    chains: cdn.chains,
+    roverElementName: isRoverChar ? (ELEMENT_ID_MAP[cdn.element.id] ?? Element.Spectro) : undefined,
   };
 };
 

@@ -36,9 +36,12 @@ export function useSelectedCharacter(): SelectedCharacter | null {
     if (!character) return null;
 
     const isRover = character.element === Element.Rover;
-    const element = isRover ? (roverElement || 'Havoc') : character.element;
-    const displayName = isRover ? `Rover` : character.name;
-    const nameI18n: I18nString = character.nameI18n ?? { en: character.name };
+    const element = isRover ? (roverElement || character.roverElementName || 'Spectro') : character.element;
+    const displayName = isRover ? `Rover · ${element}` : character.name;
+    const nameI18n: I18nString = {
+      ...(character.nameI18n ?? { en: character.name }),
+      en: displayName,
+    };
 
     const iconRound = character.iconRound || FALLBACK_IMG;
     const head = character.iconRound

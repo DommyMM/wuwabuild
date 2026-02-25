@@ -2,9 +2,9 @@
 
 import { forwardRef } from 'react';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
-
-const BASE_BG =
-  "bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]";
+import { useBuild } from '@/contexts/BuildContext';
+import { CharacterPanel } from './CharacterPanel';
+import { SequenceStrip } from './SequenceStrip';
 
 const ELEMENT_TINT: Record<string, string> = {
   Aero: 'from-aero/24 via-aero/10 to-transparent',
@@ -24,8 +24,14 @@ const ELEMENT_BLOOM: Record<string, string> = {
   Fusion: 'bg-[radial-gradient(120%_90%_at_50%_8%,rgba(240,116,78,0.28)_0%,rgba(240,116,78,0.09)_40%,transparent_78%)]',
 };
 
-export const BuildCard = forwardRef<HTMLDivElement>((_, ref) => {
+interface BuildCardProps {
+  useAltSkin?: boolean;
+}
+
+export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false }, ref) => {
   const selected = useSelectedCharacter();
+  const { state, setWatermark } = useBuild();
+
   const tintClass = selected?.element
     ? (ELEMENT_TINT[selected.element] ?? 'from-transparent via-transparent to-transparent')
     : 'from-transparent via-transparent to-transparent';
@@ -36,38 +42,30 @@ export const BuildCard = forwardRef<HTMLDivElement>((_, ref) => {
   return (
     <div
       ref={ref}
-      className={`relative overflow-hidden rounded-lg bg-cover bg-center ${BASE_BG}`}
+      className={"relative aspect-[2.4/1] flex overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]"}
     >
-      {/* Restored your exact original background lighting/overlays */}
+      {/* Background lighting/overlays */}
       <div className="absolute inset-0 bg-black/6" />
       <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
       <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_30%,rgba(0,0,0,0.18)_100%)]" />
 
       {selected && (
-        <div className="absolute inset-y-0 left-0 w-[36%] z-10">
-          
-          {/* Glass Pane - Adjusted to w-[36%] max */}
-          <div className="absolute inset-y-0 left-0 right-0 bg-white/4 backdrop-blur-[3px] border-r border-white/10 rounded-r-[3rem] shadow-[4px_0_15px_rgba(0,0,0,0.15)] overflow-hidden">
-            {/* Keeping the base element glow so the glass has some life */}
-            <div className={`absolute bottom-0 left-0 right-0 h-1/3 bg-linear-to-t ${tintClass} opacity-40 mix-blend-screen pointer-events-none`} />
-          </div>
-
-          {/* Character Integration - Shadows removed, full height restored */}
-          <div className="absolute inset-0 z-20 pointer-events-none flex items-end justify-center overflow-hidden">
-            <img
-              src={selected.banner}
-              alt={selected.displayName}
-              className="h-full w-auto object-contain"
-            />
-          </div>
-        </div>
+        <>
+          <CharacterPanel
+            selected={selected}
+            tintClass={tintClass}
+            artSource={state.watermark.artSource}
+            onArtSourceChange={v => setWatermark({ artSource: v })}
+            useAltSkin={useAltSkin}
+          />
+          <SequenceStrip
+            chains={selected.character.chains ?? []}
+            sequence={state.sequence}
+            element={selected.element}
+          />
+        </>
       )}
-
-      {/* Keeps the wide banner aspect ratio */}
-      <div className="aspect-[2.4/1]" />
     </div>
   );
 });
-
-BuildCard.displayName = 'BuildCard';
