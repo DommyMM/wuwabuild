@@ -42,13 +42,15 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
   return (
     <div
       ref={ref}
-      className={"relative aspect-[2.4/1] flex overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]"}
+      className={"relative aspect-[2.4/1] flex overflow-hidden rounded-lg bg-cover bg-center select-none bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]"}
     >
       {/* Background lighting/overlays */}
-      <div className="absolute inset-0 bg-black/6" />
-      <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
-      <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_30%,rgba(0,0,0,0.18)_100%)]" />
+      <div className="pointer-events-none">
+        <div className="absolute inset-0 bg-black/6" />
+        <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
+        <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_30%,rgba(0,0,0,0.18)_100%)]" />
+      </div>
 
       {selected && (
         <>

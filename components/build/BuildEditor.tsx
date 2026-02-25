@@ -82,28 +82,16 @@ export const BuildEditor: React.FC = () => {
     setIsDownloading(true);
     const { toPng } = await import('html-to-image');
 
-    // 4K output: 3840 × 1600 (aspect ratio 2.4:1)
+    // Scale up from current CSS size so all fixed values (border-radius, shadows etc.) scale proportionally
     const exportWidth = 3840;
-    const exportHeight = Math.round(exportWidth / 2.4);
-
-    const clone = cardRef.current.cloneNode(true) as HTMLElement;
-    clone.style.position = 'fixed';
-    clone.style.left = '0';
-    clone.style.top = '0';
-    clone.style.zIndex = '-1000';
-    clone.style.pointerEvents = 'none';
-    clone.style.width = `${exportWidth}px`;
-    document.body.appendChild(clone);
+    const pixelRatio = exportWidth / cardRef.current.offsetWidth;
 
     try {
-      // Wait for next frame to ensure styles are applied, but no arbitrary delay
       await new Promise(resolve => requestAnimationFrame(resolve));
 
-      const dataUrl = await toPng(clone, {
+      const dataUrl = await toPng(cardRef.current, {
         cacheBust: true,
-        width: exportWidth,
-        height: exportHeight,
-        pixelRatio: 1,
+        pixelRatio,
       });
       const link = document.createElement('a');
       const charName = selected?.character.name?.replace(/\s+/g, '-') || 'build';
@@ -119,7 +107,6 @@ export const BuildEditor: React.FC = () => {
     } catch (e) {
       console.error('Download failed:', e);
     } finally {
-      document.body.removeChild(clone);
       setIsDownloading(false);
     }
   }, [isDownloading, selected?.character.name]);
