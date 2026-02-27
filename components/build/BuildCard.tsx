@@ -1,10 +1,14 @@
 'use client';
 
-import { forwardRef } from 'react';
+import { forwardRef, useMemo } from 'react';
+
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { useBuild } from '@/contexts/BuildContext';
+import { useGameData } from '@/contexts/GameDataContext';
+import { calculateWeaponStats } from '@/lib/calculations/stats';
 import { CharacterPanel } from './CharacterPanel';
 import { SequenceStrip } from './SequenceStrip';
+import { WeaponSection } from './WeaponSection';
 
 const ELEMENT_TINT: Record<string, string> = {
   Aero: 'from-aero/24 via-aero/10 to-transparent',
@@ -31,6 +35,13 @@ interface BuildCardProps {
 export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false }, ref) => {
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
+  const { getWeapon, levelCurves } = useGameData();
+
+  const weapon = getWeapon(state.weaponId);
+  const weaponStats = useMemo(
+    () => weapon ? calculateWeaponStats(weapon, state.weaponLevel, levelCurves) : null,
+    [weapon, state.weaponLevel, levelCurves]
+  );
 
   const tintClass = selected?.element
     ? (ELEMENT_TINT[selected.element] ?? 'from-transparent via-transparent to-transparent')
@@ -66,6 +77,17 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
             sequence={state.sequence}
             element={selected.element}
           />
+          {weapon && weaponStats && (
+            <div className="self-start translate-y-1/8 w-3/20 ml-1">
+              <WeaponSection
+                weapon={weapon}
+                level={state.weaponLevel}
+                rank={state.weaponRank}
+                scaledAtk={weaponStats.scaledAtk}
+                scaledMainStat={weaponStats.scaledMainStat}
+              />
+            </div>
+          )}
         </>
       )}
     </div>
