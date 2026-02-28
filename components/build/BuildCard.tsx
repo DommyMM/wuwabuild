@@ -56,135 +56,129 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
   const elementColor = selected?.element ? (ELEMENT_COLOR[selected.element] ?? '#ffffff80') : '#ffffff80';
 
   const weaponAtkIcon = statIcons?.['ATK'];
-  // weapon.main_stat uses "ER" but Stats.json keys it as "Energy Regen"
   const weaponMainIcon = weapon
     ? (statIcons?.[weapon.main_stat] ?? statIcons?.['Energy Regen'])
     : null;
 
   return (
-    <div
-      ref={ref}
-      className={"relative aspect-[2.4/1] flex overflow-hidden rounded-lg bg-cover bg-center select-none bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]"}
-    >
-      {/* Background lighting/overlays */}
-      <div className="pointer-events-none">
-        <div className="absolute inset-0 bg-black/6" />
-        <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
-        <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_30%,rgba(0,0,0,0.18)_100%)]" />
-      </div>
-
+    <div ref={ref} className="relative flex flex-col select-none">
       {selected && (
         <>
-          {/* Left: Character portrait panel */}
-          <CharacterPanel
-            selected={selected}
-            tintClass={tintClass}
-            artSource={state.watermark.artSource}
-            onArtSourceChange={v => setWatermark({ artSource: v })}
-            useAltSkin={useAltSkin}
-          />
+          {/* ── TOP: main card — background confined here ── */}
+          <div
+            className={"relative flex overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]"}
+            style={{ aspectRatio: '2.4/1' }}
+          >
+            {/* Background overlays inside card only */}
+            <div className="pointer-events-none absolute inset-0 z-0">
+              <div className="absolute inset-0 bg-black/10" />
+              <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
+              <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,transparent_35%,rgba(0,0,0,0.22)_100%)]" />
+            </div>
+            {/* Character portrait */}
+            <CharacterPanel
+              selected={selected}
+              tintClass={tintClass}
+              artSource={state.watermark.artSource}
+              onArtSourceChange={v => setWatermark({ artSource: v })}
+              useAltSkin={useAltSkin}
+            />
 
-          {/* Sequence strip */}
-          <SequenceStrip
-            chains={selected.character.chains ?? []}
-            sequence={state.sequence}
-            element={selected.element}
-          />
+            {/* Sequence strip */}
+            <SequenceStrip
+              chains={selected.character.chains ?? []}
+              sequence={state.sequence}
+              element={selected.element}
+            />
 
-          {/* Right content panel */}
-          <div className="relative flex flex-col flex-1 min-w-0 p-2.5 gap-2 z-10">
-
-            {/* Header row: name/level + weapon */}
-            <div className="flex items-start justify-between gap-3 shrink-0">
-              {/* Character info */}
-              <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-1.5">
-                  {selected.character.elementIcon && (
-                    <img src={selected.character.elementIcon} alt={selected.element} className="h-4 w-4 object-contain" />
-                  )}
-                  <span className="text-white/95 text-sm font-bold leading-none tracking-wide">
-                    {selected.displayName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 pl-0.5">
-                  <span className="text-white/50 text-[10px] leading-none">
-                    Lv.{state.characterLevel}/90
-                  </span>
-                  <span
-                    className="text-[10px] font-semibold leading-none px-1.5 py-px rounded"
-                    style={{ color: elementColor, backgroundColor: `${elementColor}20`, border: `1px solid ${elementColor}40` }}
-                  >
-                    CV {stats.cv.toFixed(1)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Weapon compact */}
-              {weapon && weaponStats && (
-                <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm px-2 py-1.5">
-                  <img
-                    src={weapon.iconUrl}
-                    alt={weapon.name}
-                    className="h-9 w-9 object-contain shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
-                  />
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <span className="text-white/90 text-[10px] font-semibold leading-tight truncate max-w-[120px]">
-                      {weapon.name}
+            {/* Right content */}
+            <div className="relative flex flex-col flex-1 min-w-0 p-3 gap-2 z-10">
+              {/* Header: name/level/CV | weapon */}
+              <div className="flex items-start justify-between gap-3 shrink-0">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    {selected.character.elementIcon && (
+                      <img src={selected.character.elementIcon} alt={selected.element} className="h-4 w-4 object-contain" />
+                    )}
+                    <span className="text-white/95 text-sm font-bold leading-none tracking-wide">
+                      {selected.displayName}
                     </span>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-0.5">
-                        {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-3 w-3 object-contain" />}
-                        <span className="text-white/75 text-[9px]">{weaponStats.scaledAtk}</span>
-                      </div>
-                      <div className="flex items-center gap-0.5">
-                        {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-3 w-3 object-contain" />}
-                        <span className="text-white/75 text-[9px]">{weaponStats.scaledMainStat}%</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <span className="px-1 py-px rounded text-[8px] bg-black/40 border border-white/15 text-white/55 leading-none">
-                        Lv.{state.weaponLevel}
-                      </span>
-                      <span className="px-1 py-px rounded text-[8px] bg-black/40 border border-white/20 text-white/70 font-medium leading-none">
-                        R{state.weaponRank}
-                      </span>
-                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pl-0.5">
+                    <span className="text-white/50 text-[10px] leading-none">
+                      Lv.{state.characterLevel}/90
+                    </span>
+                    <span
+                      className="text-[10px] font-semibold leading-none px-1.5 py-px rounded"
+                      style={{ color: elementColor, backgroundColor: `${elementColor}20`, border: `1px solid ${elementColor}40` }}
+                    >
+                      CV {stats.cv.toFixed(1)}
+                    </span>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Body row: Stats (left) + Forte (right) */}
-            <div className="flex flex-1 gap-3 min-h-0 overflow-hidden">
-              {/* Stats table */}
-              <div className="flex-[3] flex flex-col justify-center min-w-0">
-                <StatsTableSection className="h-full" />
+                {weapon && weaponStats && (
+                  <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm px-2 py-1.5">
+                    <img
+                      src={weapon.iconUrl}
+                      alt={weapon.name}
+                      className="h-9 w-9 object-contain shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+                    />
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <span className="text-white/90 text-[10px] font-semibold leading-tight truncate max-w-[120px]">
+                        {weapon.name}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-0.5">
+                          {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-3 w-3 object-contain" />}
+                          <span className="text-white/75 text-[9px]">{weaponStats.scaledAtk}</span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-3 w-3 object-contain" />}
+                          <span className="text-white/75 text-[9px]">{weaponStats.scaledMainStat}%</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <span className="px-1 py-px rounded text-[8px] bg-black/40 border border-white/15 text-white/55 leading-none">
+                          Lv.{state.weaponLevel}
+                        </span>
+                        <span className="px-1 py-px rounded text-[8px] bg-black/40 border border-white/20 text-white/70 font-medium leading-none">
+                          R{state.weaponRank}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Vertical divider */}
-              <div className="w-px bg-white/10 shrink-0 self-stretch" />
+              {/* Body: FORTE LEFT | divider | STATS RIGHT */}
+              <div className="flex flex-1 gap-3 min-h-0 overflow-hidden">
+                {/* Forte — left side */}
+                <div className="flex-2 flex flex-col min-w-0">
+                  <div className="text-[8px] text-white/35 uppercase tracking-widest mb-1.5 text-center">Forte</div>
+                  <ForteCardSection
+                    character={selected.character}
+                    forte={state.forte}
+                    element={selected.element}
+                    className="flex-1"
+                  />
+                </div>
 
-              {/* Forte strip */}
-              <div className="flex-[2] flex flex-col justify-center min-w-0">
-                <div className="text-[8px] text-white/35 uppercase tracking-widest mb-1.5 text-center">Forte</div>
-                <ForteCardSection
-                  character={selected.character}
-                  forte={state.forte}
-                  element={selected.element}
-                  className="flex-1"
-                />
+                {/* Vertical divider */}
+                <div className="w-px bg-white/10 shrink-0 self-stretch" />
+
+                {/* Stats — right side */}
+                <div className="flex-3 flex flex-col justify-center min-w-0">
+                  <StatsTableSection />
+                </div>
               </div>
             </div>
+          </div>
 
-            {/* Echo row */}
-            <div className="shrink-0" style={{ height: '38%' }}>
-              <EchoesRowSection
-                echoPanels={state.echoPanels}
-                className="h-full"
-              />
-            </div>
-
+          {/* ── BOTTOM: Echo section absolutely overlapping card bottom ── */}
+          <div className="relative z-20 px-6" style={{ marginTop: '-72px' }}>
+            <EchoesRowSection echoPanels={state.echoPanels} />
           </div>
         </>
       )}

@@ -31,7 +31,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
   const color = ELEMENT_COLOR[element] ?? '#ffffff';
 
   return (
-    <div className={`flex items-stretch gap-1 ${className}`}>
+    <div className={`flex items-stretch gap-1.5 ${className}`}>
       {BRANCHES.map((branch, i) => {
         const [level, topActive, midActive] = forte[i];
         const skillIcon = character.skillIcons?.[branch.skillKey] ?? '';
@@ -39,58 +39,58 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
         const midNode = character.forteNodes?.[`${branch.treeKey}.middle`];
 
         return (
-          <div key={branch.skillKey} className="flex flex-col items-center justify-end gap-0.5 flex-1">
+          <div key={branch.skillKey} className="flex flex-col items-center justify-end gap-1 flex-1">
             {/* Top node — diamond */}
             {topNode ? (
               <div
-                className="w-2.5 h-2.5 rotate-45 border shrink-0"
+                className="w-3 h-3 rotate-45 border shrink-0"
                 style={{
                   borderColor: topActive ? color : 'rgba(255,255,255,0.25)',
                   backgroundColor: topActive ? `${color}55` : 'transparent',
-                  boxShadow: topActive ? `0 0 4px ${color}60` : 'none',
+                  boxShadow: topActive ? `0 0 5px ${color}70` : 'none',
                 }}
               />
-            ) : <div className="w-2.5 h-2.5" />}
+            ) : <div className="w-3 h-3" />}
 
             {/* Mid node — circle */}
             {midNode ? (
               <div
-                className="w-2.5 h-2.5 rounded-full border shrink-0"
+                className="w-3 h-3 rounded-full border shrink-0"
                 style={{
                   borderColor: midActive ? color : 'rgba(255,255,255,0.25)',
                   backgroundColor: midActive ? `${color}55` : 'transparent',
-                  boxShadow: midActive ? `0 0 4px ${color}60` : 'none',
+                  boxShadow: midActive ? `0 0 5px ${color}70` : 'none',
                 }}
               />
-            ) : <div className="w-2.5 h-2.5" />}
+            ) : <div className="w-3 h-3" />}
 
             {/* Connector line */}
-            <div className="w-px h-2 shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+            <div className="w-px h-3 shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
 
             {/* Skill icon frame */}
             <div
-              className="w-7 h-7 rounded-full border flex items-center justify-center shrink-0"
+              className="w-9 h-9 rounded-full border flex items-center justify-center shrink-0"
               style={{
                 borderColor: `${color}70`,
                 backgroundColor: `${color}18`,
-                boxShadow: `0 0 8px ${color}25`,
+                boxShadow: `0 0 10px ${color}30`,
               }}
             >
               {skillIcon && (
-                <img src={skillIcon} alt={branch.label} className="w-4 h-4 object-contain invert" />
+                <img src={skillIcon} alt={branch.label} className="w-5 h-5 object-contain invert" />
               )}
             </div>
 
-            {/* Level */}
+            {/* Level number */}
             <span
-              className="text-[9px] font-semibold leading-none"
-              style={{ color: level >= 10 ? color : 'rgba(255,255,255,0.6)' }}
+              className="text-[11px] font-bold leading-none"
+              style={{ color: level >= 10 ? color : 'rgba(255,255,255,0.65)' }}
             >
               {level}
             </span>
 
-            {/* Label */}
-            <span className="text-[7px] text-white/35 leading-none text-center">
+            {/* Skill label */}
+            <span className="text-[8px] text-white/40 leading-none text-center">
               {branch.label}
             </span>
           </div>

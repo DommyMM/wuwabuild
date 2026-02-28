@@ -12,12 +12,21 @@ const BONUS_STATS = [
   'Healing Bonus',
 ] as const;
 
-const ABBREV: Record<string, string> = {
-  'HP': 'HP', 'ATK': 'ATK', 'DEF': 'DEF',
-  'Energy Regen': 'Energy Regen', 'Crit Rate': 'Crit Rate', 'Crit DMG': 'Crit DMG',
-  'Aero DMG': 'Aero DMG', 'Glacio DMG': 'Glacio DMG', 'Fusion DMG': 'Fusion DMG',
-  'Electro DMG': 'Electro DMG', 'Havoc DMG': 'Havoc DMG', 'Spectro DMG': 'Spectro DMG',
-  'Basic Attack DMG Bonus': 'Basic ATK DMG', 'Heavy Attack DMG Bonus': 'Heavy ATK DMG',
+const LABEL: Record<string, string> = {
+  'HP': 'HP',
+  'ATK': 'ATK',
+  'DEF': 'DEF',
+  'Energy Regen': 'Energy Regen',
+  'Crit Rate': 'Crit Rate',
+  'Crit DMG': 'Crit DMG',
+  'Aero DMG': 'Aero DMG',
+  'Glacio DMG': 'Glacio DMG',
+  'Fusion DMG': 'Fusion DMG',
+  'Electro DMG': 'Electro DMG',
+  'Havoc DMG': 'Havoc DMG',
+  'Spectro DMG': 'Spectro DMG',
+  'Basic Attack DMG Bonus': 'Basic ATK DMG',
+  'Heavy Attack DMG Bonus': 'Heavy ATK DMG',
   'Resonance Skill DMG Bonus': 'Res. Skill DMG',
   'Resonance Liberation DMG Bonus': 'Res. Liberation DMG',
   'Healing Bonus': 'Healing Bonus',
@@ -47,20 +56,20 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({ className 
   const rightCol = statRows.slice(mid);
 
   return (
-    <div className={`flex gap-2 ${className}`}>
+    <div className={`flex gap-3 h-full ${className}`}>
       {[leftCol, rightCol].map((col, ci) => (
-        <div key={ci} className="flex flex-col gap-0.5 flex-1 min-w-0">
+        <div key={ci} className="flex flex-col justify-around flex-1 min-w-0">
           {col.map(({ key, value }) => {
             const icon = statIcons?.[key] ?? statIcons?.[key.replace('%', '')];
             return (
               <div key={key} className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1 min-w-0">
-                  {icon && <img src={icon} alt={key} className="h-3.5 w-3.5 object-contain shrink-0" />}
-                  <span className="text-white/55 text-[10px] leading-none truncate">
-                    {ABBREV[key] ?? key}
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {icon && <img src={icon} alt={key} className="h-4 w-4 object-contain shrink-0" />}
+                  <span className="text-white/60 text-[11px] leading-none truncate">
+                    {LABEL[key] ?? key}
                   </span>
                 </div>
-                <span className="text-white/90 text-[10px] font-semibold leading-none shrink-0 ml-1">
+                <span className="text-white/95 text-[11px] font-semibold leading-none shrink-0 ml-1">
                   {formatValue(key, value)}
                 </span>
               </div>
