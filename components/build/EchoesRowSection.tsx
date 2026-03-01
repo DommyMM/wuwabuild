@@ -44,7 +44,7 @@ export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels, 
   const { getEcho, fettersByElement, statIcons } = useGameData();
 
   return (
-    <div className={`flex gap-2 px-3 pt-0 pb-3 ${className}`}>
+    <div className={`relative z-20 pl-[20%] -mt-44 flex gap-2 ${className}`}>
       {echoPanels.map((panel, i) => {
         const echo = panel.id ? getEcho(panel.id) : null;
 

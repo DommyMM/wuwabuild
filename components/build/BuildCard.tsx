@@ -64,7 +64,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
     <div ref={ref} className="relative flex flex-col select-none">
       {selected && (
         <>
-          {/* ── TOP: main card — background confined here ── */}
+          {/* Main background */}
           <div
             className={"relative flex overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]"}
             style={{ aspectRatio: '2.4/1' }}
@@ -94,7 +94,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
 
             {/* Right content */}
             <div className="relative flex flex-col flex-1 min-w-0 p-3 gap-2 z-10">
-              {/* Header: name/level/CV | weapon */}
+              {/* Header: name/level | weapon */}
               <div className="flex items-start justify-between gap-3 shrink-0">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5">
@@ -108,12 +108,6 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                   <div className="flex items-center gap-2 pl-0.5">
                     <span className="text-white/50 text-[10px] leading-none">
                       Lv.{state.characterLevel}/90
-                    </span>
-                    <span
-                      className="text-[10px] font-semibold leading-none px-1.5 py-px rounded"
-                      style={{ color: elementColor, backgroundColor: `${elementColor}20`, border: `1px solid ${elementColor}40` }}
-                    >
-                      CV {stats.cv.toFixed(1)}
                     </span>
                   </div>
                 </div>
@@ -152,9 +146,9 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                 )}
               </div>
 
-              {/* Body: FORTE LEFT | divider | STATS RIGHT */}
+              {/* Forte and Stats */}
               <div className="flex flex-1 gap-3 min-h-0 overflow-hidden">
-                {/* Forte — left side */}
+                {/* Forte */}
                 <div className="flex-2 flex flex-col min-w-0">
                   <div className="text-[8px] text-white/35 uppercase tracking-widest mb-1.5 text-center">Forte</div>
                   <ForteCardSection
@@ -164,11 +158,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                     className="flex-1"
                   />
                 </div>
-
-                {/* Vertical divider */}
-                <div className="w-px bg-white/10 shrink-0 self-stretch" />
-
-                {/* Stats — right side */}
+                {/* Stats */}
                 <div className="flex-3 flex flex-col justify-center min-w-0">
                   <StatsTableSection />
                 </div>
@@ -176,10 +166,8 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
             </div>
           </div>
 
-          {/* ── BOTTOM: Echo section absolutely overlapping card bottom ── */}
-          <div className="relative z-20 px-6" style={{ marginTop: '-72px' }}>
-            <EchoesRowSection echoPanels={state.echoPanels} />
-          </div>
+          {/* Echoes */}
+          <EchoesRowSection echoPanels={state.echoPanels} />
         </>
       )}
     </div>
