@@ -3,48 +3,19 @@
 import React from 'react';
 import { EchoPanelState } from '@/lib/echo';
 import { useGameData } from '@/contexts/GameDataContext';
-
-const PERCENT_STATS = new Set([
-  'Crit Rate', 'Crit DMG', 'Energy Regen', 'HP%', 'ATK%', 'DEF%',
-  'Aero DMG', 'Glacio DMG', 'Fusion DMG', 'Electro DMG', 'Havoc DMG', 'Spectro DMG',
-  'Basic Attack DMG Bonus', 'Heavy Attack DMG Bonus',
-  'Resonance Skill DMG Bonus', 'Resonance Liberation DMG Bonus', 'Healing Bonus',
-]);
-
-// Full display names for substats (no abbreviations)
-const SUBSTAT_LABEL: Record<string, string> = {
-  'HP': 'HP',
-  'HP%': 'HP%',
-  'ATK': 'ATK',
-  'ATK%': 'ATK%',
-  'DEF': 'DEF',
-  'DEF%': 'DEF%',
-  'Crit Rate': 'Crit Rate',
-  'Crit DMG': 'Crit DMG',
-  'Energy Regen': 'Energy Regen',
-  'Basic Attack DMG Bonus': 'Basic ATK DMG',
-  'Heavy Attack DMG Bonus': 'Heavy ATK DMG',
-  'Resonance Skill DMG Bonus': 'Res. Skill DMG',
-  'Resonance Liberation DMG Bonus': 'Res. Liberation DMG',
-  'Healing Bonus': 'Healing Bonus',
-  'Aero DMG': 'Aero DMG',
-  'Glacio DMG': 'Glacio DMG',
-  'Fusion DMG': 'Fusion DMG',
-  'Electro DMG': 'Electro DMG',
-  'Havoc DMG': 'Havoc DMG',
-  'Spectro DMG': 'Spectro DMG',
-};
+import { useLanguage } from '@/contexts/LanguageContext';
+import { isPercentStat } from '@/lib/constants/statMappings';
 
 interface EchoesRowSectionProps {
   echoPanels: EchoPanelState[];
-  className?: string;
 }
 
-export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels, className = '' }) => {
-  const { getEcho, fettersByElement, statIcons } = useGameData();
+export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels }) => {
+  const { getEcho, fettersByElement, statIcons, statTranslations } = useGameData();
+  const { t } = useLanguage();
 
   return (
-    <div className={`relative z-20 pl-[20%] -mt-44 flex gap-2 ${className}`}>
+    <div className="relative z-20 pl-[20%] -mt-40 flex gap-2">
       {echoPanels.map((panel, i) => {
         const echo = panel.id ? getEcho(panel.id) : null;
 
@@ -71,7 +42,7 @@ export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels, 
         const mainStatIcon = mainStatType
           ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')])
           : null;
-        const isMainPercent = mainStatType ? PERCENT_STATS.has(mainStatType) : false;
+        const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
 
         return (
           <div
@@ -133,8 +104,9 @@ export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels, 
                 if (!sub.type || sub.value == null) {
                   return <div key={si} className="h-4" />;
                 }
-                const isSubPercent = PERCENT_STATS.has(sub.type);
+                const isSubPercent = isPercentStat(sub.type);
                 const subIcon = statIcons?.[sub.type] ?? statIcons?.[sub.type.replace('%', '')];
+                const subLabel = statTranslations?.[sub.type] ? t(statTranslations[sub.type]) : sub.type;
                 return (
                   <div key={si} className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1 min-w-0">
@@ -142,7 +114,7 @@ export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels, 
                         <img src={subIcon} alt={sub.type} className="h-3.5 w-3.5 object-contain shrink-0" />
                       )}
                       <span className="text-white/55 text-[10px] leading-none truncate">
-                        {SUBSTAT_LABEL[sub.type] ?? sub.type}
+                        {subLabel}
                       </span>
                     </div>
                     <span className="text-white/90 text-[10px] font-semibold leading-none shrink-0">

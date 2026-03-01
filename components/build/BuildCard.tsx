@@ -93,7 +93,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
             />
 
             {/* Right content */}
-            <div className="relative flex flex-col flex-1 min-w-0 p-3 gap-2 z-10">
+            <div className="relative flex flex-col flex-1 min-w-0 p-3 pb-40 gap-2 z-10">
               {/* Header: name/level | weapon */}
               <div className="flex items-start justify-between gap-3 shrink-0">
                 <div className="flex flex-col gap-1">
