@@ -8,7 +8,7 @@ Inputs:
 - ../public/Data/LB/*.compact.json
 
 Outputs:
-- ../../lb/src/constants/generated/*.generated.ts
+- ../../lb/src/constants/{characterBases.ts,weaponBases.ts,echoBases.ts,idMaps.ts}
 """
 
 from __future__ import annotations
@@ -23,7 +23,8 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPTS_DIR.parent / "public" / "Data"
 LB_DATA_DIR = DATA_DIR / "LB"
 LB_REPO_DIR = SCRIPTS_DIR.parent.parent / "lb"
-GEN_DIR = LB_REPO_DIR / "src" / "constants" / "generated"
+CONST_DIR = LB_REPO_DIR / "src" / "constants"
+LEGACY_GEN_DIR = CONST_DIR / "generated"
 
 CHARACTERS_JSON = DATA_DIR / "Characters.json"
 WEAPONS_JSON = DATA_DIR / "Weapons.json"
@@ -33,9 +34,10 @@ CHARACTERS_COMPACT = LB_DATA_DIR / "Characters.compact.json"
 WEAPONS_COMPACT = LB_DATA_DIR / "Weapons.compact.json"
 ECHOES_COMPACT = LB_DATA_DIR / "Echoes.compact.json"
 
-LEGACY_WEAPON_BASES = LB_REPO_DIR / "src" / "constants" / "weaponBases.ts"
-LEGACY_ECHO_BASES = LB_REPO_DIR / "src" / "constants" / "echoBases.ts"
-PREVIOUS_ID_MAPS = GEN_DIR / "idMaps.generated.ts"
+CHARACTER_BASES_FILE = CONST_DIR / "characterBases.ts"
+WEAPON_BASES_FILE = CONST_DIR / "weaponBases.ts"
+ECHO_BASES_FILE = CONST_DIR / "echoBases.ts"
+ID_MAPS_FILE = CONST_DIR / "idMaps.ts"
 
 HARDCODED_WEAPON_ID_OVERRIDES = {
     "21020019": "21020017",  # Somnoire Anchor
@@ -70,6 +72,9 @@ MAIN_STAT_NORMALIZE = {
     "Energy Regeneration": "ER",
 }
 
+ECHO_BLOCK_START = "// AUTO-GENERATED ECHOBASES START"
+ECHO_BLOCK_END = "// AUTO-GENERATED ECHOBASES END"
+
 
 def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -96,11 +101,11 @@ def _parse_legacy_weapon_bases(path: Path) -> dict[str, dict]:
         body = m.group("body")
 
         def _get_str(field: str) -> str | None:
-            x = re.search(rf'{field}:\s*"([^"]+)"', body)
+            x = re.search(rf'"?{re.escape(field)}"?\s*:\s*"([^"]+)"', body)
             return x.group(1) if x else None
 
         def _get_num(field: str) -> float | None:
-            x = re.search(rf'{field}:\s*([-]?[0-9]+(?:\.[0-9]+)?)', body)
+            x = re.search(rf'"?{re.escape(field)}"?\s*:\s*([-]?[0-9]+(?:\.[0-9]+)?)', body)
             return float(x.group(1)) if x else None
 
         name = _get_str("name")
@@ -167,6 +172,61 @@ def _parse_record_from_generated_maps(path: Path, export_name: str) -> dict[str,
     if not isinstance(parsed, dict):
         return {}
     return {str(k): str(v) for k, v in parsed.items()}
+
+
+def _first_nonempty_weapon_map(paths: list[Path]) -> dict[str, dict]:
+    for path in paths:
+        parsed = _parse_legacy_weapon_bases(path)
+        if parsed:
+            return parsed
+    return {}
+
+
+def _first_nonempty_echo_name_map(paths: list[Path]) -> dict[str, str]:
+    for path in paths:
+        parsed = _parse_legacy_echo_name_map(path)
+        if parsed:
+            return parsed
+    return {}
+
+
+def _first_nonempty_id_map(paths: list[Path], export_name: str) -> dict[str, str]:
+    for path in paths:
+        parsed = _parse_record_from_generated_maps(path, export_name)
+        if parsed:
+            return parsed
+    return {}
+
+
+def _upsert_echo_imports(text: str) -> str:
+    if "import type { EchoBase } from '../types/base';" not in text:
+        text = "import type { EchoBase } from '../types/base';\n" + text
+    return text
+
+
+def _strip_generated_echo_export(text: str) -> str:
+    text = re.sub(
+        r"^\s*export\s+\{\s*ECHOBASES_GENERATED\s+as\s+ECHOBASES\s*\}\s+from\s+['\"]\.\/generated\/echoBases\.generated['\"];\s*\n?",
+        "",
+        text,
+        flags=re.M,
+    )
+    return text
+
+
+def _replace_echo_bases_block(existing_text: str, block: str) -> str:
+    pattern = re.compile(
+        rf"{re.escape(ECHO_BLOCK_START)}.*?{re.escape(ECHO_BLOCK_END)}\n?",
+        re.S,
+    )
+    if pattern.search(existing_text):
+        return pattern.sub(block + "\n", existing_text)
+
+    insertion_anchor = "export const ECHO_DEFAULT_STATS"
+    idx = existing_text.find(insertion_anchor)
+    if idx >= 0:
+        return existing_text[:idx] + block + "\n\n" + existing_text[idx:]
+    return block + "\n\n" + existing_text
 
 
 def _choose_bonus(char: dict) -> tuple[str, str]:
@@ -418,10 +478,15 @@ def main() -> int:
     compact_weapons = _load_json(WEAPONS_COMPACT)
     compact_echoes = _load_json(ECHOES_COMPACT)
 
-    legacy_weapons = _parse_legacy_weapon_bases(LEGACY_WEAPON_BASES)
-    legacy_echo_name_map = _parse_legacy_echo_name_map(LEGACY_ECHO_BASES)
-    previous_weapon_old_to_cdn = _parse_record_from_generated_maps(PREVIOUS_ID_MAPS, "weaponOldToCdn")
-    previous_echo_old_to_cdn = _parse_record_from_generated_maps(PREVIOUS_ID_MAPS, "echoOldToCdn")
+    legacy_weapons = _first_nonempty_weapon_map(
+        [WEAPON_BASES_FILE, LEGACY_GEN_DIR / "weaponBases.generated.ts"]
+    )
+    legacy_echo_name_map = _first_nonempty_echo_name_map(
+        [ECHO_BASES_FILE, LEGACY_GEN_DIR / "echoBases.generated.ts"]
+    )
+    previous_maps_candidates = [ID_MAPS_FILE, LEGACY_GEN_DIR / "idMaps.generated.ts"]
+    previous_weapon_old_to_cdn = _first_nonempty_id_map(previous_maps_candidates, "weaponOldToCdn")
+    previous_echo_old_to_cdn = _first_nonempty_id_map(previous_maps_candidates, "echoOldToCdn")
 
     character_bases, character_old_to_cdn, character_cdn_to_old = _build_character_bases(full_chars, compact_chars)
     weapon_bases, weapon_old_to_cdn, weapon_cdn_to_old = _build_weapon_bases(
@@ -432,19 +497,20 @@ def main() -> int:
     )
 
     char_ts = (
-        "import { CharacterBase } from '../../types/base';\n\n"
-        "export const CHARACTER_BASES_GENERATED: Record<string, CharacterBase> = "
+        "import { CharacterBase } from '../types/base';\n\n"
+        "export const CHARACTER_BASES: Record<string, CharacterBase> = "
         f"{_to_ts_obj(character_bases)} as const;\n"
     )
     weapon_ts = (
-        "import { WeaponBase } from '../../types/base';\n\n"
-        "export const WEAPONBASES_GENERATED: Record<string, WeaponBase> = "
+        "import { WeaponBase } from '../types/base';\n\n"
+        "export const WEAPONBASES: Record<string, WeaponBase> = "
         f"{_to_ts_obj(weapon_bases)} as const;\n"
     )
-    echo_ts = (
-        "import { EchoBase } from '../../types/base';\n\n"
-        "export const ECHOBASES_GENERATED: Record<string, EchoBase> = "
+    echo_block = (
+        f"{ECHO_BLOCK_START}\n"
+        "export const ECHOBASES: Record<string, EchoBase> = "
         f"{_to_ts_obj(echo_bases)} as const;\n"
+        f"{ECHO_BLOCK_END}"
     )
     id_maps_ts = (
         "export const characterOldToCdn: Record<string, string> = "
@@ -463,10 +529,19 @@ def main() -> int:
         f"{_to_ts_obj(echo_cdn_to_old)} as const;\n"
     )
 
-    _write_ts(GEN_DIR / "characterBases.generated.ts", char_ts, args.dry_run)
-    _write_ts(GEN_DIR / "weaponBases.generated.ts", weapon_ts, args.dry_run)
-    _write_ts(GEN_DIR / "echoBases.generated.ts", echo_ts, args.dry_run)
-    _write_ts(GEN_DIR / "idMaps.generated.ts", id_maps_ts, args.dry_run)
+    _write_ts(CHARACTER_BASES_FILE, char_ts, args.dry_run)
+    _write_ts(WEAPON_BASES_FILE, weapon_ts, args.dry_run)
+    _write_ts(ID_MAPS_FILE, id_maps_ts, args.dry_run)
+
+    if args.dry_run:
+        print(f"[DRY RUN] Would patch {ECHO_BASES_FILE} ({ECHO_BLOCK_START}..{ECHO_BLOCK_END})")
+    else:
+        echo_existing = ECHO_BASES_FILE.read_text(encoding="utf-8") if ECHO_BASES_FILE.exists() else ""
+        echo_existing = _strip_generated_echo_export(echo_existing)
+        echo_existing = _upsert_echo_imports(echo_existing)
+        echo_updated = _replace_echo_bases_block(echo_existing, echo_block)
+        ECHO_BASES_FILE.write_text(echo_updated, encoding="utf-8")
+        print(f"Wrote {ECHO_BASES_FILE}")
 
     print("\nGenerated summary:")
     print(f"  Characters: {len(character_bases)}")

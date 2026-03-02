@@ -3,7 +3,7 @@ Run all CDN sync scripts with default options.
 
 Fetches characters, weapons, echoes, fetters (element/sonata sets), and stat
 translations from Wuthery CDN and writes them to public/Data.
-Also generates backend OCR data and LB generated constants.
+Also generates backend OCR data and LB constants.
 Pass-through flags (e.g. --dry-run, --pretty) apply to all scripts.
 """
 
