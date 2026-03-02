@@ -47,9 +47,10 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
   character, forte,
 }) => {
   return (
-    <div className="mt-2 flex items-end gap-2">
+    <div className="flex items-end gap-2 pt-4">
       {BRANCHES.map((branch, i) => {
         const [level, topActive, midActive] = forte[i];
+        const isMaxLevel = level >= 10;
         const skillIcon = character.skillIcons?.[branch.skillKey] ?? character.elementIcon ?? '';
         const isCircuit = branch.treeKey === 'tree3';
         const topNodeIcon = isCircuit
@@ -79,15 +80,20 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
 
             <div className="-my-0.5 h-2.5 w-px shrink-0 bg-white/28" />
 
-            {/* Skill icon frame */}
-            <div className="relative mt-0 h-8 w-8 shrink-0">
+            {/* Skill icon frame + level bubble below */}
+            <div className="flex flex-col items-center">
               <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)]">
                 {skillIcon && (
                   <img src={skillIcon} alt={branch.label} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
                 )}
               </div>
-
-              <span className="absolute -bottom-3 left-1/2 flex h-4.5 w-4.5 -translate-x-1/2 items-center justify-center rounded-full border border-black/40 bg-accent text-[10px] font-bold leading-none text-white shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
+              <span
+                className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 ${
+                  isMaxLevel
+                    ? 'border-amber-300/55 bg-amber-300/92 text-[#4a3400]'
+                    : 'border-black/35 bg-black/55 text-white/92'
+                }`}
+              >
                 {level}
               </span>
             </div>

@@ -52,11 +52,11 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
             <span className="text-lg font-semibold text-white/88">{weaponStats.scaledMainStat}%</span>
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
-          <span className="rounded-md border border-white/18 bg-black/40 px-3 py-1.5 text-sm font-medium leading-none text-white/78">
+        <div className="flex items-center gap-2.5 text-sm font-medium leading-none text-white/78">
+          <span className="rounded-md border border-white/18 bg-black/40 px-3 py-1.5">
             Lv.{weaponLevel}
           </span>
-          <span className="rounded-md border border-white/22 bg-black/40 px-3 py-1.5 text-sm font-semibold leading-none text-white/84">
+          <span className="rounded-md border border-white/22 bg-black/40 px-3 py-1.5">
             R{weaponRank}
           </span>
         </div>

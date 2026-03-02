@@ -55,7 +55,7 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
         );
       })}
       {typeof totalCV === 'number' && (
-        <div className="mt-2 rounded-md border border-white/25 bg-black/55 px-2 py-1 text-center text-[11px] font-semibold leading-none text-white shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
+        <div className="mt-2 rounded-md border border-white/25 bg-black/55 px-2 py-1 text-sm">
           {totalCV.toFixed(1)} CV
         </div>
       )}
