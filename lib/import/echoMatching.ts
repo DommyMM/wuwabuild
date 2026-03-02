@@ -3,13 +3,17 @@ import type { EchoOCRData } from './types';
 
 export interface GameDataArgs {
   echoes: Echo[];
-  mainStats: Record<string, Record<string, [number, number]>>;  // unused now but kept for API compat
-  substats: Record<string, number[]>;                            // unused now but kept for API compat
 }
 
 function parseValue(raw: string): number | null {
   const n = parseFloat(raw.replace(/[%,\s]/g, ''));
   return isNaN(n) ? null : n;
+}
+
+function normalizeStatName(rawName: string | null | undefined): string | null {
+  if (!rawName) return null;
+  const name = rawName.replace(/\s+/g, ' ').trim();
+  return name || null;
 }
 
 export function matchEchoData(
@@ -56,13 +60,13 @@ export function matchEchoData(
     selectedElement = echo.elements[0] ?? null;
   }
 
-  // Main stat — name and value already normalised by backend
-  const mainStatType  = ocrData.main?.name  || null;
+  // Main stat names are canonical from backend OCR output.
+  const mainStatType  = normalizeStatName(ocrData.main?.name);
   const mainStatValue = ocrData.main?.value ? parseValue(ocrData.main.value) : null;
 
-  // Substats — names and values already normalised/validated by backend
+  // Substats names are canonical from backend OCR output.
   const subStats = ocrData.substats.slice(0, 5).map(sub => ({
-    type:  sub?.name  || null,
+    type:  normalizeStatName(sub?.name),
     value: sub?.value ? parseValue(sub.value) : null,
   }));
   while (subStats.length < 5) subStats.push({ type: null, value: null });

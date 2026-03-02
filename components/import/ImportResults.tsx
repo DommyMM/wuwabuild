@@ -5,6 +5,7 @@ import type { AnalysisData, EchoOCRData } from '@/lib/import/types';
 import type { RegionKey } from '@/lib/import/regions';
 import { useGameData } from '@/contexts/GameDataContext';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
+import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 interface ImportResultsProps {
@@ -111,7 +112,9 @@ function EchoCard({ echo, pending, className }: { echo?: EchoOCRData; pending?: 
       )}
       {(echo.substats ?? []).slice(0, 5).map((sub, i) => (
         <div key={i} className="flex justify-between gap-1">
-          <span className="truncate text-text-primary/60">{sub?.name ?? ''}</span>
+          <span className="truncate text-text-primary/60">
+            {getEchoSubstatShortLabel(sub?.name ?? '')}
+          </span>
           <span className="shrink-0 text-text-primary/60">{sub?.value ?? ''}</span>
         </div>
       ))}
@@ -122,8 +125,9 @@ function EchoCard({ echo, pending, className }: { echo?: EchoOCRData; pending?: 
 export function ImportResults({ data, isProcessing, progress, onImport }: ImportResultsProps) {
   const { getCharacterByName, weaponList } = useGameData();
 
-  const [username, setUsername] = useState(data.watermark?.username ?? '');
-  const [uid, setUid]           = useState(String(data.watermark?.uid ?? ''));
+  const [watermarkOverride, setWatermarkOverride] = useState<{ username?: string; uid?: string }>({});
+  const username = watermarkOverride.username ?? data.watermark?.username ?? '';
+  const uid = watermarkOverride.uid ?? String(data.watermark?.uid ?? '');
 
   const char   = data.character;
   const weapon = data.weapon;
@@ -308,7 +312,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
             <input
               type="text"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={e => setWatermarkOverride(prev => ({ ...prev, username: e.target.value }))}
               placeholder="Username"
               className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors"
             />
@@ -318,7 +322,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
             <input
               type="text"
               value={uid}
-              onChange={e => setUid(e.target.value.replace(/\D/g, ''))}
+              onChange={e => setWatermarkOverride(prev => ({ ...prev, uid: e.target.value.replace(/\D/g, '') }))}
               placeholder="UID"
               className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors"
             />

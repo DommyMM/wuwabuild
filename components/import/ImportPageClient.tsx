@@ -63,20 +63,6 @@ export function ImportPageClient() {
   };
 
   const buildImportedState = (wm: { username: string; uid: string }) => {
-    const mainStatsArg: Record<string, Record<string, [number, number]>> = {};
-    if (gameData.mainStats) {
-      for (const [cost, costData] of Object.entries(gameData.mainStats)) {
-        mainStatsArg[cost] = costData.mainStats;
-      }
-    }
-
-    const subStatsArg: Record<string, number[]> = {};
-    if (gameData.substats) {
-      for (const [stat, values] of Object.entries(gameData.substats)) {
-        subStatsArg[stat] = values;
-      }
-    }
-
     const mergedData: AnalysisData = {
       ...analysisData,
       watermark: { username: wm.username, uid: Number(wm.uid) || 0 },
@@ -86,8 +72,6 @@ export function ImportPageClient() {
       characters: gameData.characters,
       weapons:    gameData.weapons,
       echoes:     gameData.echoes,
-      mainStats:  mainStatsArg,
-      substats:   subStatsArg,
     });
   };
 
