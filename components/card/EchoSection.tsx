@@ -16,7 +16,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
   const { t } = useLanguage();
 
   return (
-    <div className="flex w-full p-4 gap-3">
+    <div className="flex w-full gap-3">
       {echoPanels.map((panel, i) => {
         const echo = panel.id ? getEcho(panel.id) : null;
 

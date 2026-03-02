@@ -31,7 +31,10 @@ const ELEMENT_BLOOM: Record<string, string> = {
   Fusion: 'bg-[radial-gradient(120%_90%_at_50%_8%,rgba(240,116,78,0.28)_0%,rgba(240,116,78,0.09)_40%,transparent_78%)]',
 };
 
-interface BuildCardProps { useAltSkin?: boolean; }
+interface BuildCardProps {
+  useAltSkin?: boolean;
+  className?: string;
+}
 
 const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | null => {
   if (!stat) return null;
@@ -54,7 +57,7 @@ const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | n
   return alias[normalized] ?? normalized;
 };
 
-export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false }, ref) => {
+export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false, className = '' }, ref) => {
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
   const { getWeapon, levelCurves, statIcons } = useGameData();
@@ -79,21 +82,19 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
   const weaponMainIcon = weaponMainIconKey ? statIcons?.[weaponMainIconKey] ?? statIcons?.['Energy Regen'] : null;
 
   return (
-    <div ref={ref} className="relative select-none">
+    <div ref={ref} className={`relative select-none overflow-visible ${className}`}>
       {selected && (
-        <div
-          className={"relative overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')] aspect-[2.4/1]"}
-        >
-          {/* Background overlays inside card only */}
-          <div className="pointer-events-none absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-black/10" />
-            <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
-            <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,transparent_35%,rgba(0,0,0,0.22)_100%)]" />
-          </div>
+        <div className="CardContainer">
+          <div className="relative overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')] aspect-[2.4/1]">
+            {/* Background overlays inside the fixed-ratio frame */}
+            <div className="pointer-events-none absolute inset-0 z-0">
+              <div className="absolute inset-0 bg-black/10" />
+              <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
+              <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,transparent_35%,rgba(0,0,0,0.22)_100%)]" />
+            </div>
 
-          <div className="relative z-10 flex h-full flex-col">
-            <div className="relative flex h-full">
+            <div className="relative z-10 flex h-full">
               {/* Character portrait stays full-height as the left anchor */}
               <CharacterPanel
                 selected={selected}
@@ -103,9 +104,8 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                 useAltSkin={useAltSkin}
               />
 
-              {/* Right side: top info row + bottom echoes row */}
-              <div className="flex w-full flex-col justify-between">
-                {/* Top row */}
+              {/* Right side: top info row only */}
+              <div className="flex w-full flex-col">
                 <div className="flex">
                   <SequenceStrip
                     chains={selected.character.chains ?? []}
@@ -137,15 +137,17 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
 
                     {/* Stats panel */}
                     <div className="flex min-w-0 flex-1 pt-4">
-                      <StatsTableSection layout="single" />
+                      <StatsTableSection />
                     </div>
                   </div>
                 </div>
-
-                {/* Bottom row */}
-                <EchoSection echoPanels={state.echoPanels} />
               </div>
             </div>
+          </div>
+
+          {/* Hanging echoes live outside the fixed-ratio frame so export includes them naturally */}
+          <div className="relative z-20 -mt-40">
+            <EchoSection echoPanels={state.echoPanels} />
           </div>
         </div>
       )}
