@@ -16,16 +16,15 @@ interface SequenceStripProps {
   chains: CDNChainEntry[];
   sequence: number;
   element: string;
-  className?: string;
 }
 
 export const SequenceStrip: React.FC<SequenceStripProps> = ({
-  chains, sequence, element, className = '',
+  chains, sequence, element,
 }) => {
   const color = ELEMENT_COLOR[element] ?? '#ffffff';
 
   return (
-    <div className={`flex flex-col items-center translate-y-1/8 w-1/20 self-start gap-2 ${className}`}>
+    <div className="flex w-1/20 translate-y-1/8 flex-col items-center self-start gap-2">
       {[0, 1, 2, 3, 4, 5].map((i) => {
         const chain = chains[i];
         const active = i < sequence;

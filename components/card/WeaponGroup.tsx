@@ -14,7 +14,6 @@ interface WeaponGroupProps {
   weaponRank: number;
   weaponAtkIcon?: string | null;
   weaponMainIcon?: string | null;
-  className?: string;
 }
 
 export const WeaponGroup: React.FC<WeaponGroupProps> = ({
@@ -24,13 +23,12 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
   weaponRank,
   weaponAtkIcon,
   weaponMainIcon,
-  className = '',
 }) => {
   const { t } = useLanguage();
   const translatedWeaponName = t(weapon.nameI18n ?? { en: weapon.name });
 
   return (
-    <div className={`flex items-center gap-4 rounded-xl border border-white/18 bg-black/42 px-3.5 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.28)] ${className}`}>
+    <div className="flex items-center gap-4 rounded-xl border border-white/18 bg-black/42 px-3.5 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.28)]">
       <img
         src={weapon.iconUrl}
         alt={translatedWeaponName || weapon.name}

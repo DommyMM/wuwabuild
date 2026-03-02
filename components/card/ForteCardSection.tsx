@@ -17,7 +17,6 @@ const BRANCH_OFFSETS = ['mb-0', 'mb-6', 'mb-10', 'mb-6', 'mb-0'] as const;
 interface ForteCardSectionProps {
   character: Character;
   forte: ForteState;
-  className?: string;
 }
 
 interface NodeBadgeProps {
@@ -45,10 +44,10 @@ const NodeBadge: React.FC<NodeBadgeProps> = ({ icon, active, isCircuit, alt }) =
 };
 
 export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
-  character, forte, className = '',
+  character, forte,
 }) => {
   return (
-    <div className={`mt-2 flex items-end gap-2 ${className}`}>
+    <div className="mt-2 flex items-end gap-2">
       {BRANCHES.map((branch, i) => {
         const [level, topActive, midActive] = forte[i];
         const skillIcon = character.skillIcons?.[branch.skillKey] ?? character.elementIcon ?? '';

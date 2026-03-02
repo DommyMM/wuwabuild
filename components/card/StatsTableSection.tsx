@@ -35,9 +35,7 @@ const LABEL: Record<string, string> = {
 
 const FLAT_STATS = new Set(['HP', 'ATK', 'DEF']);
 
-interface StatsTableSectionProps { className?: string; }
-
-export const StatsTableSection: React.FC<StatsTableSectionProps> = ({ className = '' }) => {
+export const StatsTableSection: React.FC = () => {
   const { stats } = useStats();
   const { statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
@@ -60,7 +58,7 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({ className 
   const rightCol = statRows.slice(mid);
 
   return (
-    <div className={`flex gap-3 h-full ${className}`}>
+    <div className="flex h-full gap-3">
       {[leftCol, rightCol].map((col, ci) => (
         <div key={ci} className="flex flex-col justify-around flex-1 min-w-0">
           {col.map(({ key, value }) => {
