@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBuild } from '@/contexts/BuildContext';
+import { useGameData } from '@/contexts/GameDataContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
 import { loadImage, getImageDpi } from '@/lib/import/cropImage';
+import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
-import { ImportPreview } from './ImportPreview';
-import type { SavedState } from '@/lib/build';
+import type { AnalysisData } from '@/lib/import/types';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 
 type ImportStep = 'upload' | 'process' | 'results';
@@ -16,17 +17,16 @@ type ImportStep = 'upload' | 'process' | 'results';
 export function ImportPageClient() {
   const router = useRouter();
   const { loadState } = useBuild();
+  const gameData = useGameData();
   const { isProcessing, progress, analysisData, error, processImage, reset } = useOcrImport();
 
-  const [file, setFile]                     = useState<File | null>(null);
-  const [step, setStep]                     = useState<ImportStep>('upload');
-  const [showPreview, setShowPreview]       = useState(false);
-  const [watermarkOverride, setWatermark]   = useState<{ username: string; uid: string } | null>(null);
-  const [previewUrl, setPreviewUrl]         = useState<string | null>(null);
+  const [file, setFile]                       = useState<File | null>(null);
+  const [step, setStep]                       = useState<ImportStep>('upload');
+  const [previewUrl, setPreviewUrl]           = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [dpiWarning, setDpiWarning]           = useState(false);
 
-  // Silent wake-up ping, Railway will auto start server if sleeping
+  // Silent wake-up ping so Railway auto-starts the server if sleeping
   useEffect(() => { fetch('/api/ocr').catch(() => {}); }, []);
 
   // Generate preview thumbnail URL
@@ -41,7 +41,6 @@ export function ImportPageClient() {
     setValidationError(null);
     setDpiWarning(false);
 
-    // Validate dimensions
     const img = await loadImage(f);
     if (img.naturalWidth !== 1920 || img.naturalHeight !== 1080) {
       setValidationError(
@@ -51,11 +50,8 @@ export function ImportPageClient() {
       return;
     }
 
-    // Advisory DPI check (PNG only; JPEG/unknown → skip)
     const dpi = await getImageDpi(f);
-    if (dpi !== null && dpi !== 96) {
-      setDpiWarning(true);
-    }
+    if (dpi !== null && dpi !== 96) setDpiWarning(true);
 
     setFile(f);
     setStep('process');
@@ -64,14 +60,13 @@ export function ImportPageClient() {
 
   const handleProcess = async () => {
     if (!file) return;
+    setStep('results');       // Show results immediately so progress updates stream live
     await processImage(file);
-    setStep('results');
   };
 
   const handleBack = () => {
     if (step === 'results') {
       setStep('process');
-      setShowPreview(false);
     } else if (step === 'process') {
       setStep('upload');
       setFile(null);
@@ -81,11 +76,33 @@ export function ImportPageClient() {
   };
 
   const handleImport = (wm: { username: string; uid: string }) => {
-    setWatermark(wm);
-    setShowPreview(true);
-  };
+    const mainStatsArg: Record<string, Record<string, [number, number]>> = {};
+    if (gameData.mainStats) {
+      for (const [cost, costData] of Object.entries(gameData.mainStats)) {
+        mainStatsArg[cost] = costData.mainStats;
+      }
+    }
 
-  const handleConfirm = (state: SavedState) => {
+    const subStatsArg: Record<string, number[]> = {};
+    if (gameData.substats) {
+      for (const [stat, values] of Object.entries(gameData.substats)) {
+        subStatsArg[stat] = values;
+      }
+    }
+
+    const mergedData: AnalysisData = {
+      ...analysisData,
+      watermark: { username: wm.username, uid: Number(wm.uid) || 0 },
+    };
+
+    const state = convertAnalysisToSavedState(mergedData, {
+      characters: gameData.characters,
+      weapons:    gameData.weapons,
+      echoes:     gameData.echoes,
+      mainStats:  mainStatsArg,
+      substats:   subStatsArg,
+    });
+
     loadState(state);
     router.push('/edit');
   };
@@ -120,14 +137,14 @@ export function ImportPageClient() {
           </div>
         </div>
 
-        {/* Validation error (blocks progress) */}
+        {/* Validation error */}
         {validationError && (
           <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400">
             {validationError}
           </div>
         )}
 
-        {/* DPI warning (advisory only) */}
+        {/* DPI warning */}
         {dpiWarning && (
           <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-sm text-yellow-400 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -146,11 +163,9 @@ export function ImportPageClient() {
         )}
 
         {/* Step: Upload */}
-        {step === 'upload' && (
-          <ImportUploader onFile={handleFile} />
-        )}
+        {step === 'upload' && <ImportUploader onFile={handleFile} />}
 
-        {/* Step: Process */}
+        {/* Step: Process — show screenshot preview + scan button */}
         {step === 'process' && file && (
           <div className="flex flex-col items-center gap-6">
             {previewUrl && (
@@ -176,7 +191,7 @@ export function ImportPageClient() {
           </div>
         )}
 
-        {/* Step: Results */}
+        {/* Step: Results — shows live as regions complete */}
         {step === 'results' && (
           <ImportResults
             data={analysisData}
@@ -185,17 +200,8 @@ export function ImportPageClient() {
             onImport={handleImport}
           />
         )}
-      </div>
 
-      {/* Preview modal */}
-      {showPreview && (
-        <ImportPreview
-          data={analysisData}
-          watermarkOverride={watermarkOverride ?? undefined}
-          onConfirm={handleConfirm}
-          onCancel={() => setShowPreview(false)}
-        />
-      )}
+      </div>
     </main>
   );
 }
