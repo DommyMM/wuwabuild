@@ -59,12 +59,13 @@ function ProgressDot({ status }: { status: 'pending' | 'done' | 'error' }) {
   return <Loader2 className="w-4 h-4 text-text-primary/40 animate-spin" />;
 }
 
-function EchoCard({ echo, pending }: { echo?: EchoOCRData; pending?: boolean }) {
+function EchoCard({ echo, pending, className }: { echo?: EchoOCRData; pending?: boolean; className?: string }) {
   const { getEcho } = useGameData();
+  const rootClass = `bg-background-secondary rounded-lg p-2 flex flex-col border border-border text-[11px] overflow-hidden ${className ?? ''}`;
 
   if (pending) {
     return (
-      <div className="bg-background-secondary rounded-lg p-2 flex flex-col border border-border text-[11px] overflow-hidden">
+      <div className={rootClass}>
         <div className="flex justify-center mb-1.5">
           <Sk className="w-10 h-10" />
         </div>
@@ -79,7 +80,7 @@ function EchoCard({ echo, pending }: { echo?: EchoOCRData; pending?: boolean }) 
 
   if (!echo) {
     return (
-      <div className="bg-background-secondary rounded-lg p-2 flex flex-col items-center justify-center opacity-40 border border-border min-h-[160px]">
+      <div className={`${rootClass} items-center justify-center opacity-40 min-h-[160px]`}>
         <span className="text-xs text-text-primary/40">—</span>
       </div>
     );
@@ -89,7 +90,7 @@ function EchoCard({ echo, pending }: { echo?: EchoOCRData; pending?: boolean }) 
   const iconSrc = getEchoPaths(echoObj);
 
   return (
-    <div className="bg-background-secondary rounded-lg p-2 flex flex-col border border-border text-[11px] overflow-hidden">
+    <div className={rootClass}>
       <div className="flex justify-center mb-1.5">
         <ImageWithSkeleton
           key={iconSrc ?? 'echo-icon'}
@@ -129,6 +130,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
   const forte  = data.forte;
   const seq    = data.sequences?.sequence ?? 0;
   const echoKeys = ['echo1', 'echo2', 'echo3', 'echo4', 'echo5'] as const;
+  const progressEntries = Object.entries(progress) as [RegionKey, 'pending' | 'done' | 'error'][];
 
   const canImport = !isProcessing && (
     progress.character === 'done' || progress.character === 'error'
@@ -143,14 +145,20 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
   const weaponObj = weapon?.name ? (weaponList.find(w => w.name === weapon.name) ?? null) : null;
 
   return (
-    <div className="w-full mx-auto flex flex-col gap-6">
+    <div className="w-full mx-auto flex flex-col gap-4 sm:gap-6">
 
       {/* Scan progress */}
       <div className="bg-background-secondary rounded-xl p-4 border border-border">
         <p className="text-sm font-semibold mb-3 text-text-primary/70">Scan progress</p>
-        <div className="grid grid-cols-5 gap-2">
-          {(Object.entries(progress) as [RegionKey, 'pending' | 'done' | 'error'][]).map(([key, status]) => (
-            <div key={key} className="flex flex-col items-center gap-1">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          {progressEntries.map(([key, status], index) => (
+            <div
+              key={key}
+              className={[
+                'flex flex-col items-center gap-1',
+                index === progressEntries.length - 1 ? 'col-start-2 sm:col-start-auto' : '',
+              ].join(' ')}
+            >
               <ProgressDot status={status} />
               <span className="text-[10px] text-text-primary/50 capitalize">{key}</span>
             </div>
@@ -159,7 +167,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
       </div>
 
       {/* Character + Weapon */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div className="bg-background-secondary rounded-xl p-4 border border-border flex items-center justify-between gap-3">
           {charPending ? (
             <>
@@ -222,7 +230,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
       </div>
 
       {/* Sequence + Forte */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div className="bg-background-secondary rounded-xl p-4 border border-border">
           <p className="text-xs text-text-primary/50 mb-3">Sequence</p>
           {seqPending ? (
@@ -278,12 +286,15 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
 
       {/* Echoes — 5 equal columns */}
       <div>
-        <div className="grid grid-cols-5 gap-2">
-          {echoKeys.map(k => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {echoKeys.map((k, index) => (
             <EchoCard
               key={k}
               echo={data[k]}
               pending={progress[k] === 'pending'}
+              className={index === echoKeys.length - 1
+                ? 'col-span-2 w-[calc(50%-0.25rem)] justify-self-center sm:col-span-1 sm:w-auto sm:justify-self-auto'
+                : undefined}
             />
           ))}
         </div>
@@ -291,7 +302,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
 
       {/* Player info */}
       <div className="bg-background-secondary rounded-xl p-4 border border-border">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
             <span className="text-xs text-text-primary/60">Username</span>
             <input
