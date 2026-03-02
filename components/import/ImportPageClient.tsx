@@ -10,6 +10,7 @@ import { useOcrImport } from '@/hooks/useOcrImport';
 import { loadImage, getImageDpi } from '@/lib/import/cropImage';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { saveBuild } from '@/lib/storage';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
 import type { AnalysisData } from '@/lib/import/types';
@@ -209,54 +210,60 @@ export function ImportPageClient() {
       </div>
 
       {/* Override confirmation modal */}
-      {pendingWm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-text-primary">Replace current build?</p>
-                <p className="text-sm text-text-primary/60 mt-1">
-                  You have{' '}
-                  <span className="text-text-primary font-medium">
-                    {gameData.getCharacter(buildState.characterId)?.name ?? 'a build'}
-                  </span>{' '}
-                  loaded. You can overwrite it, or save this import as a build to the{' '}
-                  <Link
-                    href="/saves"
-                    className="text-accent hover:text-accent-hover underline underline-offset-2 transition-colors"
-                  >
-                    Saves page
-                  </Link>
-                  .
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
+      <ConfirmDialog
+        isOpen={Boolean(pendingWm)}
+        onClose={() => setPendingWm(null)}
+        title="Replace current build?"
+        icon={<AlertTriangle className="h-5 w-5" />}
+        description={
+          <>
+            You have{' '}
+            <span className="font-medium text-text-primary">
+              {gameData.getCharacter(buildState.characterId)?.name ?? 'a build'}
+            </span>{' '}
+            loaded. You can overwrite it, or save this import as a build to the{' '}
+            <Link
+              href="/saves"
+              className="text-accent underline underline-offset-2 transition-colors hover:text-accent-hover"
+            >
+              Saves page
+            </Link>
+            .
+          </>
+        }
+        actions={(
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => {
+                if (!pendingWm) return;
+                saveImportToSaves(pendingWm);
+                setPendingWm(null);
+              }}
+              className="w-full rounded-xl bg-accent py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover"
+            >
+              Save Build
+            </button>
+            <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => { saveImportToSaves(pendingWm); setPendingWm(null); }}
-                className="w-full py-2 rounded-xl bg-accent text-background text-sm font-semibold hover:bg-accent-hover transition-colors"
+                onClick={() => setPendingWm(null)}
+                className="w-full rounded-xl border border-border py-2 text-sm font-semibold text-text-primary/70 transition-colors hover:border-text-primary/30 hover:text-text-primary"
               >
-                Save Build
+                Cancel
               </button>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setPendingWm(null)}
-                  className="w-full py-2 rounded-xl border border-border text-sm font-semibold text-text-primary/70 hover:text-text-primary hover:border-text-primary/30 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => { doImport(pendingWm); setPendingWm(null); }}
-                  className="w-full py-2 rounded-xl bg-red-500/15 border border-red-500/45 text-red-300 text-sm font-semibold hover:bg-red-500/25 hover:border-red-500/70 transition-colors"
-                >
-                  Override Current
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  if (!pendingWm) return;
+                  doImport(pendingWm);
+                  setPendingWm(null);
+                }}
+                className="w-full rounded-xl border border-red-500/45 bg-red-500/15 py-2 text-sm font-semibold text-red-300 transition-colors hover:border-red-500/70 hover:bg-red-500/25"
+              >
+                Override Current
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      />
 
     </main>
   );

@@ -20,6 +20,7 @@ import { BuildCardOptions, CardOptions } from './BuildCardOptions';
 import { BuildCard } from './BuildCard';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export const BuildEditor: React.FC = () => {
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
@@ -32,6 +33,7 @@ export const BuildEditor: React.FC = () => {
   const [isCardGenerated, setIsCardGenerated] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -112,10 +114,8 @@ export const BuildEditor: React.FC = () => {
   }, [isDownloading, selected?.character.name]);
 
   const handleResetBuild = useCallback(() => {
-    if (window.confirm('Are you sure you want to reset the entire build? This cannot be undone.')) {
-      resetBuild();
-    }
-  }, [resetBuild]);
+    setIsResetDialogOpen(true);
+  }, []);
 
   const handleOpenSaveModal = useCallback(() => {
     setIsSaveModalOpen(true);
@@ -357,6 +357,19 @@ export const BuildEditor: React.FC = () => {
         isOpen={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}
         defaultName={selected?.character.name ? `${selected.character.name} Build` : undefined}
+      />
+
+      <ConfirmDialog
+        isOpen={isResetDialogOpen}
+        onClose={() => setIsResetDialogOpen(false)}
+        title="Reset entire build?"
+        description="This will clear your current character, weapon, forte, and echoes. This cannot be undone."
+        confirmLabel="Reset Build"
+        confirmTone="destructive"
+        onConfirm={() => {
+          resetBuild();
+          setIsResetDialogOpen(false);
+        }}
       />
 
     </div>

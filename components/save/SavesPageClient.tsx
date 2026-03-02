@@ -12,6 +12,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getWeaponPaths } from '@/lib/paths';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 type SortBy = 'date' | 'name' | 'cv';
 type SortDirection = 'asc' | 'desc';
@@ -41,6 +42,8 @@ export const SavesPageClient: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isSorting, setIsSorting] = useState(false);
   const [deleteAllArmed, setDeleteAllArmed] = useState(false);
+  const [pendingLoadBuild, setPendingLoadBuild] = useState<SavedBuild | null>(null);
+  const [pendingDeleteBuild, setPendingDeleteBuild] = useState<SavedBuild | null>(null);
   const itemsPerPage = 10;
 
   const refreshBuilds = useCallback(() => {
@@ -146,9 +149,7 @@ export const SavesPageClient: React.FC = () => {
     }
   }, [notifyError, success]);
 
-  const handleLoadBuild = useCallback((build: SavedBuild) => {
-    if (!window.confirm(`Load "${build.name}" and replace your current draft?`)) return;
-
+  const confirmLoadBuild = useCallback((build: SavedBuild) => {
     try {
       loadState(build.state);
       window.localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(build.state));
@@ -157,6 +158,10 @@ export const SavesPageClient: React.FC = () => {
       notifyError('Failed to load build.');
     }
   }, [loadState, notifyError, router]);
+
+  const handleLoadBuild = useCallback((build: SavedBuild) => {
+    setPendingLoadBuild(build);
+  }, []);
 
   const handleImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -200,8 +205,7 @@ export const SavesPageClient: React.FC = () => {
     }
   }, [notifyError, refreshBuilds, success]);
 
-  const handleDeleteBuild = useCallback((build: SavedBuild) => {
-    if (!window.confirm(`Delete "${build.name}"?`)) return;
+  const confirmDeleteBuild = useCallback((build: SavedBuild) => {
     try {
       const deleted = deleteBuild(build.id);
       if (!deleted) {
@@ -217,6 +221,10 @@ export const SavesPageClient: React.FC = () => {
       notifyError('Failed to delete build.');
     }
   }, [expandedBuildId, notifyError, refreshBuilds, success]);
+
+  const handleDeleteBuild = useCallback((build: SavedBuild) => {
+    setPendingDeleteBuild(build);
+  }, []);
 
   useEffect(() => {
     refreshBuilds();
@@ -514,6 +522,50 @@ export const SavesPageClient: React.FC = () => {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingLoadBuild)}
+        onClose={() => setPendingLoadBuild(null)}
+        title="Load saved build?"
+        description={
+          <>
+            Load{' '}
+            <span className="font-medium text-text-primary">
+              {pendingLoadBuild?.name ?? 'this build'}
+            </span>{' '}
+            and replace your current draft?
+          </>
+        }
+        confirmLabel="Load Build"
+        confirmTone="accent"
+        onConfirm={() => {
+          if (!pendingLoadBuild) return;
+          confirmLoadBuild(pendingLoadBuild);
+          setPendingLoadBuild(null);
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingDeleteBuild)}
+        onClose={() => setPendingDeleteBuild(null)}
+        title="Delete saved build?"
+        description={
+          <>
+            This will permanently delete{' '}
+            <span className="font-medium text-text-primary">
+              {pendingDeleteBuild?.name ?? 'this build'}
+            </span>
+            .
+          </>
+        }
+        confirmLabel="Delete Build"
+        confirmTone="destructive"
+        onConfirm={() => {
+          if (!pendingDeleteBuild) return;
+          confirmDeleteBuild(pendingDeleteBuild);
+          setPendingDeleteBuild(null);
+        }}
+      />
     </main>
   );
 };
