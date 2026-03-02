@@ -1,7 +1,6 @@
-import Fuse from 'fuse.js';
 import type { Character } from '@/lib/character';
 import type { Weapon, WeaponType } from '@/lib/weapon';
-import type { Echo, EchoPanelState, ElementType } from '@/lib/echo';
+import type { EchoPanelState } from '@/lib/echo';
 import type { SavedState, ForteState } from '@/lib/build';
 import type { AnalysisData } from './types';
 import { matchEchoData, GameDataArgs } from './echoMatching';
@@ -14,6 +13,14 @@ interface ConvertArgs extends GameDataArgs {
 
 const ELEMENTS = ['Aero', 'Spectro', 'Havoc', 'Glacio', 'Fusion', 'Electro'] as const;
 
+function findByName<T extends { name: string }>(name: string, list: T[]): T | null {
+  return (
+    list.find(x => x.name === name) ??
+    list.find(x => x.name.toLowerCase() === name.toLowerCase()) ??
+    null
+  );
+}
+
 function parseRoverInfo(rawName: string): {
   isRover: boolean;
   isMale: boolean;
@@ -24,27 +31,11 @@ function parseRoverInfo(rawName: string): {
   const isFemale = rawName.includes('(F)');
   const isRover  = isMale || isFemale;
   const roverElement = ELEMENTS.find(el => rawName.includes(el));
-  // Strip gender + element for base name lookup
   const baseName = rawName
     .replace(/\s*\([MF]\)\s*/g, '')
     .replace(new RegExp(`\\s*(${ELEMENTS.join('|')})\\s*`, 'g'), '')
     .trim();
   return { isRover, isMale, roverElement, baseName };
-}
-
-function getCharacterByNameFuzzy(name: string, characters: Character[]): Character | null {
-  // Exact match first
-  const exact = characters.find(c => c.name.toLowerCase() === name.toLowerCase());
-  if (exact) return exact;
-  const fuse = new Fuse(characters, { keys: ['name'], threshold: 0.4 });
-  const results = fuse.search(name);
-  return results.length > 0 ? results[0].item : null;
-}
-
-function getWeaponByNameFuzzy(name: string, weaponList: Weapon[]): Weapon | null {
-  const fuse = new Fuse(weaponList, { keys: ['name'], threshold: 0.4 });
-  const results = fuse.search(name);
-  return results.length > 0 ? results[0].item : null;
 }
 
 export function convertAnalysisToSavedState(
@@ -58,14 +49,13 @@ export function convertAnalysisToSavedState(
   const { isRover, isMale, roverElement, baseName } = parseRoverInfo(rawName);
 
   let characterId: string | null = null;
-  let roverElementState: string | undefined = undefined;
+  let roverElementState: string | undefined;
 
   if (isRover) {
     characterId = isMale ? '4' : '5';
     roverElementState = roverElement;
   } else if (baseName) {
-    const found = getCharacterByNameFuzzy(baseName, characters);
-    characterId = found?.id ?? null;
+    characterId = findByName(baseName, characters)?.id ?? null;
   }
 
   const characterLevel = data.character?.level ?? 90;
@@ -78,8 +68,7 @@ export function convertAnalysisToSavedState(
     const character = characters.find(c => c.id === characterId);
     if (character) {
       const weaponList = weapons.get(character.weaponType as WeaponType) ?? [];
-      const found = getWeaponByNameFuzzy(data.weapon.name, weaponList);
-      weaponId = found?.id ?? null;
+      weaponId = findByName(data.weapon.name, weaponList)?.id ?? null;
     }
   }
 
