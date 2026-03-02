@@ -3,6 +3,7 @@ Run all CDN sync scripts with default options.
 
 Fetches characters, weapons, echoes, fetters (element/sonata sets), and stat
 translations from Wuthery CDN and writes them to public/Data.
+Also generates backend OCR data and LB generated constants.
 Pass-through flags (e.g. --dry-run, --pretty) apply to all scripts.
 """
 
@@ -34,6 +35,7 @@ def main() -> int:
         ("Fetters",    [sys.executable, str(scripts_dir / "sync_fetters.py")]),
         ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py")]),
         ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py")]),
+        ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py")]),
     ]
     for name, cmd in scripts:
         cmd.extend(passthrough)

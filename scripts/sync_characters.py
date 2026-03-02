@@ -29,6 +29,7 @@ CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Character"
 
 # Output directory relative to this script
 OUTPUT_DIR = Path(__file__).parent.parent / "public/Data/Characters"
+LB_OUTPUT_FILE = Path(__file__).parent.parent / "public/Data/LB/Characters.compact.json"
 
 # Skip test/placeholder characters
 SKIP_IDS = {9990, 9991}
@@ -57,6 +58,22 @@ SCHEMA = {
 # Optional fields for --include-skills flag (full skill multiplier data)
 SKILLS_SCHEMA = {
     "skill": ["id", "params"],
+}
+
+# Mapping from forte node names to LB bonus keys.
+NODE_NAME_TO_BONUS = {
+    "Crit. Rate+": "Crit Rate",
+    "Crit. DMG+": "Crit DMG",
+    "ATK+": "ATK",
+    "HP+": "HP",
+    "DEF+": "DEF",
+    "Healing Bonus+": "Healing",
+    "Aero DMG Bonus+": "Aero",
+    "Glacio DMG Bonus+": "Glacio",
+    "Fusion DMG Bonus+": "Fusion",
+    "Electro DMG Bonus+": "Electro",
+    "Havoc DMG Bonus+": "Havoc",
+    "Spectro DMG Bonus+": "Spectro",
 }
 
 # Sub-filters applied after main schema extraction to trim nested icon dicts.
@@ -350,6 +367,159 @@ def transform_character(data: dict, schema: dict) -> dict | None:
     return result
 
 
+def _extract_lv90_stats(raw: dict) -> dict[str, float]:
+    """Extract ascension-6 level-90 HP/ATK/DEF from raw statsLevel."""
+    stats_level = raw.get("statsLevel")
+    if not isinstance(stats_level, dict):
+        return {"HP": 0.0, "ATK": 0.0, "DEF": 0.0}
+
+    asc6 = stats_level.get("6") or stats_level.get(6) or {}
+    if not isinstance(asc6, dict):
+        return {"HP": 0.0, "ATK": 0.0, "DEF": 0.0}
+
+    lv90 = asc6.get("90") or asc6.get(90) or {}
+    if not isinstance(lv90, dict):
+        return {"HP": 0.0, "ATK": 0.0, "DEF": 0.0}
+
+    def _get_val(key: str) -> float:
+        part = lv90.get(key, {})
+        if not isinstance(part, dict):
+            return 0.0
+        val = part.get("value", 0.0)
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            return 0.0
+
+    return {
+        "HP": _get_val("life"),
+        "ATK": _get_val("atk"),
+        "DEF": _get_val("def"),
+    }
+
+
+def _extract_moves_lv10(raw: dict) -> list[dict]:
+    """Extract compact move data with level-10 value (params[9]) per sub-entry."""
+    skill = raw.get("skill")
+    if not isinstance(skill, dict):
+        return []
+
+    entries = []
+    for entry in skill.values():
+        if not isinstance(entry, dict):
+            continue
+        params = entry.get("params", {})
+        if not isinstance(params, dict):
+            continue
+
+        name_i18n = params.get("name", {})
+        move_name = name_i18n.get("en", "") if isinstance(name_i18n, dict) else str(name_i18n)
+        level_data = params.get("level", {})
+        if not isinstance(level_data, dict):
+            continue
+
+        values = []
+        for level in level_data.values():
+            if not isinstance(level, dict):
+                continue
+            sub_name_i18n = level.get("name", {})
+            sub_name = sub_name_i18n.get("en", "") if isinstance(sub_name_i18n, dict) else str(sub_name_i18n)
+            raw_params = level.get("params", [])
+            lv10 = ""
+            if isinstance(raw_params, list) and raw_params:
+                # Level 10 is the 10th entry (0-based index 9). If missing, use the last known value.
+                lv10 = str(raw_params[9] if len(raw_params) > 9 else raw_params[-1])
+            values.append({
+                "id": level.get("id"),
+                "name": sub_name,
+                "valueLv10": lv10,
+            })
+
+        values.sort(key=lambda x: (x.get("id") is None, x.get("id", 0)))
+        entries.append({
+            "id": entry.get("id"),
+            "type": entry.get("type"),
+            "sort": entry.get("sort"),
+            "name": move_name,
+            "values": values,
+        })
+
+    entries.sort(key=lambda x: (x.get("sort") is None, x.get("sort", 0), x.get("id", 0)))
+    return entries
+
+
+def _derive_bonus_fields(raw: dict) -> tuple[str, str]:
+    """Derive bonus1/bonus2 from forte nodes (tree1/tree2 middle), with sensible fallbacks."""
+    trees = raw.get("skillTrees")
+    element = ((raw.get("element") or {}).get("name") or {}).get("en", "")
+    char_name = (raw.get("name") or {}).get("en", "")
+
+    bonus1 = "ATK" if char_name.startswith("Rover") else (element or "ATK")
+    bonus2 = "ATK"
+
+    if not isinstance(trees, dict):
+        return bonus1, bonus2
+
+    for node in trees.values():
+        if not isinstance(node, dict):
+            continue
+        if node.get("coordinate") != 1:
+            continue
+        parent = None
+        parents = node.get("parentNodes")
+        if isinstance(parents, list) and parents:
+            parent = parents[0]
+        params = node.get("params", {})
+        if not isinstance(params, dict):
+            continue
+        name_i18n = params.get("name", {})
+        node_name = name_i18n.get("en", "") if isinstance(name_i18n, dict) else str(name_i18n)
+        mapped = NODE_NAME_TO_BONUS.get(node_name)
+        if not mapped:
+            continue
+        if parent == 1:
+            bonus1 = mapped
+        elif parent == 2 and mapped in {"ATK", "HP", "DEF"}:
+            bonus2 = mapped
+
+    return bonus1, bonus2
+
+
+def transform_character_lb(raw: dict) -> dict | None:
+    """Transform raw CDN character to compact LB artifact."""
+    char_id = raw.get("id")
+    name = raw.get("name", {})
+    en_name = name.get("en", "") if isinstance(name, dict) else str(name)
+    if not en_name or char_id in SKIP_IDS:
+        return None
+
+    element_name = ((raw.get("element") or {}).get("name") or {}).get("en", "")
+    weapon_name = ((raw.get("weapon") or {}).get("name") or {}).get("en", "")
+    tags = raw.get("tags", [])
+    tag_names = []
+    if isinstance(tags, list):
+        for tag in tags:
+            if not isinstance(tag, dict):
+                continue
+            tag_i18n = tag.get("name", {})
+            tag_names.append(tag_i18n.get("en", "") if isinstance(tag_i18n, dict) else str(tag_i18n))
+
+    bonus1, bonus2 = _derive_bonus_fields(raw)
+
+    return {
+        "id": str(char_id),
+        "legacyId": extract_legacy_id(raw) or "",
+        "name": en_name,
+        "element": element_name,
+        "weaponType": weapon_name,
+        "tags": [t for t in tag_names if t],
+        "bonus1": bonus1,
+        "bonus2": bonus2,
+        "statsLv90": _extract_lv90_stats(raw),
+        "moves": _extract_moves_lv10(raw),
+    }
+
+
 # --- CDN fetch ---
 
 def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
@@ -467,12 +637,16 @@ def main():
 
     print(f"\nLoaded {len(raw_characters)} raw character files")
 
-    # Transform characters using schema
+    # Transform characters using schema + compact LB artifact
     characters = []
+    compact_lb = []
     for data in raw_characters:
         char = transform_character(data, schema)
         if char:
             characters.append(char)
+        compact = transform_character_lb(data)
+        if compact:
+            compact_lb.append(compact)
 
     print(f"Transformed {len(characters)} characters")
 
@@ -481,6 +655,7 @@ def main():
         return 1
 
     characters.sort(key=lambda c: c.get("name", {}).get("en", ""))
+    compact_lb.sort(key=lambda c: c.get("name", ""))
 
     json_kwargs = (
         {"indent": 2, "ensure_ascii": False}
@@ -498,6 +673,7 @@ def main():
             print(output_json[:5000])
             if len(output_json) > 5000:
                 print(f"\n... [{size_kb:.1f}KB total, truncated]")
+        print(f"\n[DRY RUN] Would write LB compact artifact: {LB_OUTPUT_FILE} ({len(compact_lb)} entries)")
     else:
         if args.individual:
             # Write per-character files
@@ -522,6 +698,13 @@ def main():
             size_kb = combined_path.stat().st_size / 1024
             print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(characters)} characters)")
             print(f"\nDone: {len(characters)} characters → {combined_path}")
+
+        # Always emit compact LB artifact when writing.
+        LB_OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(LB_OUTPUT_FILE, "w", encoding="utf-8") as f:
+            json.dump(compact_lb, f, **json_kwargs)
+        lb_size_kb = LB_OUTPUT_FILE.stat().st_size / 1024
+        print(f"  Saved LB compact characters [{lb_size_kb:.1f}KB] ({len(compact_lb)} entries) → {LB_OUTPUT_FILE}")
 
     return 0
 
