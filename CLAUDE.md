@@ -160,10 +160,6 @@ wuwabuilds/
 │   ├── Substats.json                 # Substat roll value arrays
 │   ├── CharacterCurve.json           # Character level scaling multipliers
 │   └── LevelCurve.json              # Weapon level ATK/stat scaling curves
-│
-└── public/fonts/
-    ├── Ropa.OTF
-    └── GowunDodum-Regular.ttf
 ```
 
 ## Architecture

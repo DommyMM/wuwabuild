@@ -92,16 +92,16 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
               element={selected.element}
             />
 
-            {/* Right content */}
-            <div className="relative flex flex-col flex-1 min-w-0 p-3 pb-40 gap-2 z-10">
-              {/* Header: name/level | weapon */}
-              <div className="flex items-start justify-between gap-3 shrink-0">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
+            {/* Right content: [name+weapon+forte column] | [stats] */}
+            <div className="relative flex font-plus-jakarta">
+              <div className="flex flex-col">
+                {/* 1. Name group */}
+                <div className="flex flex-col py-4">
+                  <div className="flex items-center">
                     {selected.character.elementIcon && (
-                      <img src={selected.character.elementIcon} alt={selected.element} className="h-4 w-4 object-contain" />
+                      <img src={selected.character.elementIcon} alt={selected.element} className="h-8 w-8 object-contain" />
                     )}
-                    <span className="text-white/95 text-sm font-bold leading-none tracking-wide">
+                    <span className="text-white text-4xl leading-none tracking-wide text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
                       {selected.displayName}
                     </span>
                   </div>
@@ -112,6 +112,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                   </div>
                 </div>
 
+                {/* 2. Weapon group */}
                 {weapon && weaponStats && (
                   <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm px-2 py-1.5">
                     <img
@@ -144,24 +145,21 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Forte and Stats */}
-              <div className="flex flex-1 gap-3 min-h-0 overflow-hidden">
-                {/* Forte */}
-                <div className="flex-2 flex flex-col min-w-0">
+                {/* 3. Forte group */}
+                <div className="flex flex-col min-w-0">
                   <div className="text-[8px] text-white/35 uppercase tracking-widest mb-1.5 text-center">Forte</div>
                   <ForteCardSection
                     character={selected.character}
                     forte={state.forte}
                     element={selected.element}
-                    className="flex-1"
                   />
                 </div>
-                {/* Stats */}
-                <div className="flex-3 flex flex-col justify-center min-w-0">
-                  <StatsTableSection />
-                </div>
+              </div>
+
+              {/* 4. Stats panel */}
+              <div className="flex-1 flex flex-col justify-center min-w-0">
+                <StatsTableSection />
               </div>
             </div>
           </div>

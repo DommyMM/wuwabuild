@@ -24,7 +24,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
         <div className={`absolute bottom-0 left-0 right-0 h-1/3 bg-linear-to-t ${tintClass} opacity-40 mix-blend-screen pointer-events-none`} />
       </div>
 
-      {/* Art source — bottom-left */}
+      {/* Art source at bottom-left */}
       <div className="absolute bottom-3 left-3 z-30">
         <input
           type="text"

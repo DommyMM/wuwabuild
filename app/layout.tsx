@@ -1,7 +1,28 @@
 import type { Metadata, Viewport } from "next";
+import { Gowun_Dodum, Plus_Jakarta_Sans, Ropa_Sans } from "next/font/google";
 import { Navigation } from "@/components/Navigation";
 import { AppProviders } from "@/contexts/index";
 import "./globals.css";
+
+const ropaSans = Ropa_Sans({
+    weight: "400",
+    subsets: ["latin"],
+    display: "swap",
+    variable: "--font-ropa-next",
+});
+
+const gowunDodum = Gowun_Dodum({
+    weight: "400",
+    subsets: ["latin"],
+    display: "swap",
+    variable: "--font-gowun-next",
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+    subsets: ["latin"],
+    display: "swap",
+    variable: "--font-plus-jakarta-next",
+});
 
 export const metadata: Metadata = {
     metadataBase: new URL('https://wuwabuilds.moe'),
@@ -50,7 +71,10 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html
+            lang="en"
+            className={`${ropaSans.variable} ${gowunDodum.variable} ${plusJakartaSans.variable}`}
+        >
             <body>
                 <AppProviders>
                     <Navigation />
