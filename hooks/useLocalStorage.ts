@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 /**
  * Hook for using localStorage with SSR safety and automatic JSON serialization.
@@ -14,25 +14,20 @@ export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T | ((prev: T) => T)) => void, () => void] {
-  // Track if we've mounted (for SSR safety)
-  const isMounted = useRef(false);
-
-  // Initialize with the initial value (SSR safe)
-  const [storedValue, setStoredValue] = useState<T>(initialValue);
-
-  // Read from localStorage after mount
-  useEffect(() => {
-    isMounted.current = true;
+  // Initialize from localStorage on the client; fall back to initial value.
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return initialValue;
+    }
 
     try {
       const item = window.localStorage.getItem(key);
-      if (item !== null) {
-        setStoredValue(JSON.parse(item));
-      }
+      return item !== null ? (JSON.parse(item) as T) : initialValue;
     } catch (error) {
       console.warn(`Error reading localStorage key "${key}":`, error);
+      return initialValue;
     }
-  }, [key]);
+  });
 
   // Memoized setter that updates both state and localStorage
   const setValue = useCallback(

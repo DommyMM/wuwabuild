@@ -148,7 +148,11 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
   const toggleSetFilter = useCallback((el: string) => {
     setSetFilter(prev => {
       const next = new Set(prev);
-      next.has(el) ? next.delete(el) : next.add(el);
+      if (next.has(el)) {
+        next.delete(el);
+      } else {
+        next.add(el);
+      }
       return next;
     });
   }, []);

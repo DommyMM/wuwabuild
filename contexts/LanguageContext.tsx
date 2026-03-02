@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import type { I18nString } from '@/lib/character';
 
 // Supported languages matching I18nString from character.ts
@@ -40,21 +40,24 @@ interface LanguageProviderProps {
   children: ReactNode;
 }
 
+const getInitialLanguage = (): LanguageCode => {
+  if (typeof window === 'undefined') return 'en';
+
+  const saved = localStorage.getItem('wuwabuilds-language') as LanguageCode | null;
+  if (saved && saved in SUPPORTED_LANGUAGES) {
+    return saved;
+  }
+
+  return 'en';
+};
+
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [language, setLanguageState] = useState<LanguageCode>('en');
+  const [language, setLanguageState] = useState<LanguageCode>(getInitialLanguage);
 
   const setLanguage = useCallback((lang: LanguageCode) => {
     setLanguageState(lang);
     if (typeof window !== 'undefined') {
       localStorage.setItem('wuwabuilds-language', lang);
-    }
-  }, []);
-
-  // Load saved language on mount (after hydration to avoid mismatch)
-  useEffect(() => {
-    const saved = localStorage.getItem('wuwabuilds-language') as LanguageCode | null;
-    if (saved && saved in SUPPORTED_LANGUAGES) {
-      setLanguageState(saved);
     }
   }, []);
 

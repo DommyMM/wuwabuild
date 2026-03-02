@@ -66,7 +66,6 @@ export const EchoCostBadge: React.FC<EchoCostBadgeProps> = ({ className = '' }) 
 
 export const EchoGrid: React.FC<EchoGridProps> = ({ className = '' }) => {
   const { state, reorderEchoPanels } = useBuild();
-  const { getEcho } = useGameData();
 
   // Replicate frontend sensor setup exactly
   // Added distance activation constraint so clicks on child elements don't trigger drag

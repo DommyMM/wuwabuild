@@ -17,10 +17,7 @@ export function Navigation() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Close sidebar on route change
-    useEffect(() => {
-        setIsOpen(false);
-    }, [pathname]);
+    const closeSidebar = () => setIsOpen(false);
 
     // Prevent body scroll when sidebar is open
     useEffect(() => {
@@ -53,6 +50,7 @@ export function Navigation() {
                 <div className="flex items-center gap-5 w-[calc(100%-36px)] ml-10 font-gowun max-md:ml-4 max-md:w-[calc(100%-32px)] max-md:justify-between">
                     <Link
                         href="/"
+                        onClick={closeSidebar}
                         className={`md:text-4xl text-2xl font-bold no-underline transition-all duration-200 ${
                             isActive('/')
                                 ? 'text-accent drop-shadow-[0_0_8px_rgba(166,150,98,0.3)]'
@@ -68,6 +66,7 @@ export function Navigation() {
                             <Link
                                 key={href}
                                 href={href}
+                                onClick={closeSidebar}
                                 className={`
                                     group relative text-2xl font-medium px-4 pt-2 pb-[calc(0.5rem+2px)] rounded text-center no-underline transition-colors duration-200
                                     ${isActive(href)
@@ -143,6 +142,7 @@ export function Navigation() {
                                     <Link
                                         key={href}
                                         href={href}
+                                        onClick={closeSidebar}
                                         className={`
                                             text-xl font-medium px-3 py-3 rounded no-underline transition-all duration-200
                                             ${isActive(href)

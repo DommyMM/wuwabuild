@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -12,27 +12,26 @@ const BUILD_CARDS = [
     { src: "/images/card4.png", alt: "Build Card 5" },
 ];
 
+const isMobileViewport = () => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 768;
+};
+
 export function Carousel() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
-
-    const checkMobile = useCallback(() => {
-        if (typeof window === 'undefined') return false;
-        return window.innerWidth <= 768;
-    }, []);
+    const [isMobile, setIsMobile] = useState(isMobileViewport);
 
     useEffect(() => {
-        setIsMobile(checkMobile());
         const handleResize = () => {
-            const newIsMobile = checkMobile();
-            if (newIsMobile !== isMobile) {
-                setIsMobile(newIsMobile);
-            }
+            setIsMobile((prev) => {
+                const next = isMobileViewport();
+                return prev === next ? prev : next;
+            });
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [checkMobile, isMobile]);
+    }, []);
 
     useEffect(() => {
         if (isPaused) return;

@@ -4,7 +4,7 @@ import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { useGameData } from './GameDataContext';
 import { useBuild } from './BuildContext';
 import { StatName, BaseStatName } from '@/lib/constants/statMappings';
-import { EchoPanelState, ELEMENT_SETS, ElementType } from '@/lib/echo';
+import { ELEMENT_SETS, ElementType } from '@/lib/echo';
 import { calculateCV } from '@/lib/calculations/cv';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
 import { calculateForteBonus } from '@/lib/calculations/stats';
@@ -100,7 +100,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
   } = gameData;
 
   const { state } = build;
-  const { characterId, characterLevel, roverElement, weaponId, weaponLevel, weaponRank, echoPanels, forte, sequence } = state;
+  const { characterId, characterLevel, roverElement, weaponId, weaponLevel, echoPanels, forte, sequence } = state;
 
   // Get current character and weapon
   const character = useMemo(() =>

@@ -140,7 +140,11 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   const toggleElement = useCallback((el: string) => {
     setElementFilter((prev) => {
       const next = new Set(prev);
-      next.has(el) ? next.delete(el) : next.add(el);
+      if (next.has(el)) {
+        next.delete(el);
+      } else {
+        next.add(el);
+      }
       return next;
     });
   }, []);
@@ -148,7 +152,11 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   const toggleRarity = useCallback((r: number) => {
     setRarityFilter((prev) => {
       const next = new Set(prev);
-      next.has(r) ? next.delete(r) : next.add(r);
+      if (next.has(r)) {
+        next.delete(r);
+      } else {
+        next.add(r);
+      }
       return next;
     });
   }, []);
@@ -160,7 +168,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
   const hasFilters = elementFilter.size > 0 || rarityFilter.size > 0;
 
-  const CharacterGrid = () => {
+  const renderCharacterGrid = () => {
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
@@ -290,9 +298,9 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
   if (inline) {
     return (
-      <div className={className}>
-        <CharacterGrid />
-      </div>
+        <div className={className}>
+          {renderCharacterGrid()}
+        </div>
     );
   }
 
@@ -321,7 +329,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         title="Select Resonator"
         contentClassName="w-full mx-8 lg:mx-32 max-h-[90vh]"
       >
-        <CharacterGrid />
+        {renderCharacterGrid()}
       </Modal>
     </>
   );

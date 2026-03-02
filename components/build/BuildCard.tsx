@@ -4,7 +4,6 @@ import { forwardRef, useMemo } from 'react';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
-import { useStats } from '@/contexts/StatsContext';
 import { calculateWeaponStats } from '@/lib/calculations/stats';
 import { CharacterPanel } from './CharacterPanel';
 import { SequenceStrip } from './SequenceStrip';
@@ -30,18 +29,12 @@ const ELEMENT_BLOOM: Record<string, string> = {
   Fusion: 'bg-[radial-gradient(120%_90%_at_50%_8%,rgba(240,116,78,0.28)_0%,rgba(240,116,78,0.09)_40%,transparent_78%)]',
 };
 
-const ELEMENT_COLOR: Record<string, string> = {
-  Aero: '#55FFB5', Havoc: '#E649A6', Spectro: '#F8E56C',
-  Glacio: '#41AEFB', Electro: '#B46BFF', Fusion: '#F0744E',
-};
-
 interface BuildCardProps { useAltSkin?: boolean; }
 
 export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false }, ref) => {
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
   const { getWeapon, levelCurves, statIcons } = useGameData();
-  const { stats } = useStats();
 
   const weapon = getWeapon(state.weaponId);
   const weaponStats = useMemo(
@@ -53,7 +46,6 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
     ? (ELEMENT_TINT[selected.element] ?? 'from-transparent via-transparent to-transparent')
     : 'from-transparent via-transparent to-transparent';
   const bloomClass = selected?.element ? (ELEMENT_BLOOM[selected.element] ?? '') : '';
-  const elementColor = selected?.element ? (ELEMENT_COLOR[selected.element] ?? '#ffffff80') : '#ffffff80';
 
   const weaponAtkIcon = statIcons?.['ATK'];
   const weaponMainIcon = weapon

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
@@ -30,31 +30,30 @@ const STEPS = [
     },
 ];
 
+const isMobileViewport = () => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 1200;
+};
+
 export function QuickStart() {
     const [currentStep, setCurrentStep] = useState(0);
-    const [isMobile, setIsMobile] = useState(false);
+    const [isMobile, setIsMobile] = useState(isMobileViewport);
     const [fullscreenImage, setFullscreenImage] = useState<{
         src: string;
         alt: string;
     } | null>(null);
     const touchStartRef = useRef<number>(0);
 
-    const checkMobile = useCallback(() => {
-        if (typeof window === 'undefined') return false;
-        return window.innerWidth <= 1200;
-    }, []);
-
     useEffect(() => {
-        setIsMobile(checkMobile());
         const handleResize = () => {
-            const newIsMobile = checkMobile();
-            if (newIsMobile !== isMobile) {
-                setIsMobile(newIsMobile);
-            }
+            setIsMobile((prev) => {
+                const next = isMobileViewport();
+                return prev === next ? prev : next;
+            });
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [checkMobile, isMobile]);
+    }, []);
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
