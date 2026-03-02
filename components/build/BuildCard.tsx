@@ -82,8 +82,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
     <div ref={ref} className="relative select-none">
       {selected && (
         <div
-          className={"relative overflow-hidden rounded-lg border border-white/10 bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]"}
-          style={{ aspectRatio: '2.4/1' }}
+          className={"relative overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')] aspect-[2.4/1]"}
         >
           {/* Background overlays inside card only */}
           <div className="pointer-events-none absolute inset-0 z-0">
@@ -94,7 +93,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
           </div>
 
           <div className="relative z-10 flex h-full flex-col">
-            <div className="relative flex h-full min-w-0">
+            <div className="relative flex h-full">
               {/* Character portrait stays full-height as the left anchor */}
               <CharacterPanel
                 selected={selected}
@@ -105,16 +104,16 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
               />
 
               {/* Right side: top info row + bottom echoes row */}
-              <div className="flex min-w-0 flex-1 flex-col">
+              <div className="flex w-full flex-col justify-between">
                 {/* Top row */}
-                <div className="relative flex">
+                <div className="flex">
                   <SequenceStrip
                     chains={selected.character.chains ?? []}
                     sequence={state.sequence}
                     element={selected.element}
                   />
-                  <div className="relative flex min-w-0 flex-1 gap-5 pb-4 pr-5 pt-2 font-plus-jakarta">
-                    <div className="flex w-[36%] min-w-0 flex-col">
+                  <div className="relative flex gap-5 pb-4 pr-5 pt-2 font-plus-jakarta">
+                    <div className="flex w-1/2 flex-col">
                       <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
                       {weapon && weaponStats && (
@@ -129,7 +128,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                       )}
                     </div>
 
-                    <div className="flex min-w-0 flex-1 flex-col pt-3">
+                    <div className="flex flex-col">
                       <ForteCardSection
                         character={selected.character}
                         forte={state.forte}

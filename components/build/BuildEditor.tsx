@@ -285,7 +285,7 @@ export const BuildEditor: React.FC = () => {
         </div>
         {isCardGenerated && (
           <>
-            <div className="rounded-lg rounded-tl-none border border-border relative overflow-hidden">
+            <div className="rounded-lg rounded-tl-none relative overflow-hidden">
               <BuildCard ref={cardRef} useAltSkin={cardOptions.useAltSkin} />
             </div>
             {/* Action bar — flipped version of BuildCardOptions */}

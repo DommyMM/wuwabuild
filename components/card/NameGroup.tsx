@@ -25,7 +25,7 @@ export const NameGroup: React.FC<NameGroupProps> = ({
         <span className="text-4xl text-white">{translatedName}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-2xl text-white">Lv.{characterLevel}/90</span>
+        <span className="text-3xl text-white">Lv.{characterLevel}/90</span>
         <div className="flex items-center">
           {selected.character.elementIcon && (
             <img

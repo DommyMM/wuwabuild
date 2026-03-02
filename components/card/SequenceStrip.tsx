@@ -24,7 +24,7 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
   const color = ELEMENT_COLOR[element] ?? '#ffffff';
 
   return (
-    <div className="flex w-1/20 translate-y-1/8 flex-col items-center self-start gap-2">
+    <div className="flex w-1/12 pt-12 flex-col items-center self-start gap-2">
       {[0, 1, 2, 3, 4, 5].map((i) => {
         const chain = chains[i];
         const active = i < sequence;
@@ -32,7 +32,7 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
         return (
           <div
             key={i}
-            className={`relative flex aspect-square w-3/5 items-center justify-center rounded-full border transition-all duration-300 ${
+            className={`relative flex aspect-square w-1/2 items-center justify-center rounded-full border transition-all duration-300 ${
               active ? 'opacity-100' : 'opacity-40 grayscale'
             }`}
             style={{
