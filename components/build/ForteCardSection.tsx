@@ -9,9 +9,10 @@ const BRANCHES: BranchDef[] = [
   { label: 'Normal', skillKey: 'normal-attack', treeKey: 'tree1' },
   { label: 'Skill',  skillKey: 'skill',          treeKey: 'tree2' },
   { label: 'Circuit',skillKey: 'circuit',        treeKey: 'tree3' },
-  { label: 'Libera', skillKey: 'liberation',     treeKey: 'tree4' },
+  { label: 'Liberation', skillKey: 'liberation',     treeKey: 'tree4' },
   { label: 'Intro',  skillKey: 'intro',          treeKey: 'tree5' },
 ];
+const BRANCH_OFFSETS = ['mb-0', 'mb-6', 'mb-10', 'mb-6', 'mb-0'] as const;
 
 interface ForteCardSectionProps {
   character: Character;
@@ -30,9 +31,9 @@ const NodeBadge: React.FC<NodeBadgeProps> = ({ icon, active, isCircuit, alt }) =
   if (!icon) return <div className="h-6 w-6 shrink-0" />;
 
   return (
-    <div className={`relative flex h-6 w-6 shrink-0 items-center justify-center border bg-[#222222] ${isCircuit ? '' : 'rounded-full'} ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'}`}>
+    <div className={`relative flex h-7 w-7 shrink-0 items-center justify-center border bg-background-secondary ${isCircuit ? '' : 'rounded-full'} ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'}`}>
       {isCircuit && (
-        <div className={`pointer-events-none absolute h-[70%] w-[70%] rotate-45 border ${active ? 'border-black/60 bg-white' : 'border-white/35 bg-[#2b2b2b]'}`} />
+        <div className={`pointer-events-none absolute h-[70%] w-[70%] rotate-45 border ${active ? 'border-black/60 bg-white' : 'border-white/35 bg-background-secondary'}`} />
       )}
       <img
         src={icon}
@@ -60,7 +61,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
           : (character.forteNodes?.[`${branch.treeKey}.middle`]?.icon ?? '');
 
         return (
-          <div key={branch.skillKey} className="flex flex-1 flex-col items-center justify-end gap-0.5">
+          <div key={branch.skillKey} className={`flex flex-1 flex-col items-center justify-end gap-0.5 ${BRANCH_OFFSETS[i]}`}>
             <NodeBadge
               icon={topNodeIcon}
               active={topActive}
@@ -83,11 +84,11 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
             <div className="relative mt-0 h-8 w-8 shrink-0">
               <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)]">
                 {skillIcon && (
-                  <img src={skillIcon} alt={branch.label} className="h-[18px] w-[18px] -rotate-45 object-contain brightness-0" />
+                  <img src={skillIcon} alt={branch.label} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
                 )}
               </div>
 
-              <span className="absolute -bottom-2 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-black/40 bg-[#a69662] text-[10px] font-bold leading-none text-white shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
+              <span className="absolute -bottom-3 left-1/2 flex h-4.5 w-4.5 -translate-x-1/2 items-center justify-center rounded-full border border-black/40 bg-accent text-[10px] font-bold leading-none text-white shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
                 {level}
               </span>
             </div>

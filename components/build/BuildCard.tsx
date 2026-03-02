@@ -106,7 +106,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
 
                 {/* 2. Weapon group */}
                 {weapon && weaponStats && (
-                  <div className="mt-1 flex w-[min(100%,22rem)] items-center gap-3.5 rounded-xl border border-white/18 bg-black/42 px-3.5 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.28)]">
+                  <div className="flex items-center gap-4 rounded-xl border border-white/18 bg-black/42 px-3.5 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.28)]">
                     <img
                       src={weapon.iconUrl}
                       alt={weapon.name}
@@ -139,7 +139,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                 )}
 
                 {/* 3. Forte group */}
-                <div className="mt-2 flex w-[min(100%,22rem)] min-w-0 flex-col">
+                <div className="mt-2 flex flex-col">
                   <ForteCardSection
                     character={selected.character}
                     forte={state.forte}
@@ -148,7 +148,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
               </div>
 
               {/* 4. Stats panel */}
-              <div className="flex-1 flex flex-col justify-center min-w-0">
+              <div className="flex-1 flex flex-col justify-center">
                 <StatsTableSection />
               </div>
             </div>
