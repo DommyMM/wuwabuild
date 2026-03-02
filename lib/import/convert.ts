@@ -46,12 +46,15 @@ export function convertAnalysisToSavedState(
 
   // ── Character ──────────────────────────────────────────────────────────────
   const rawName = data.character?.name ?? '';
+  const ocrCharacterId = data.character?.id ?? null;
   const { isRover, isMale, roverElement, baseName } = parseRoverInfo(rawName);
 
   let characterId: string | null = null;
   let roverElementState: string | undefined;
 
-  if (isRover) {
+  if (ocrCharacterId && characters.some(c => c.id === ocrCharacterId)) {
+    characterId = ocrCharacterId;
+  } else if (isRover) {
     characterId = isMale ? '4' : '5';
     roverElementState = roverElement;
   } else if (baseName) {
@@ -63,12 +66,17 @@ export function convertAnalysisToSavedState(
   // ── Weapon ─────────────────────────────────────────────────────────────────
   let weaponId: string | null = null;
   const weaponLevel = data.weapon?.level ?? 90;
+  const ocrWeaponId = data.weapon?.id ?? null;
 
   if (data.weapon?.name && characterId !== null) {
     const character = characters.find(c => c.id === characterId);
     if (character) {
       const weaponList = weapons.get(character.weaponType as WeaponType) ?? [];
-      weaponId = findByName(data.weapon.name, weaponList)?.id ?? null;
+      if (ocrWeaponId && weaponList.some(w => w.id === ocrWeaponId)) {
+        weaponId = ocrWeaponId;
+      } else {
+        weaponId = findByName(data.weapon.name, weaponList)?.id ?? null;
+      }
     }
   }
 

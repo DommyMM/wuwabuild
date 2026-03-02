@@ -54,16 +54,18 @@ function EchoCard({ echo }: { echo?: EchoOCRData }) {
 
       {/* Main stat */}
       {echo.main && (
-        <p className="truncate text-accent mb-1">
-          {echo.main.name}: {echo.main.value}
-        </p>
+        <div className="flex justify-between gap-1 mb-1">
+          <span className="truncate text-accent">{echo.main.name}</span>
+          <span className="shrink-0 text-accent">{echo.main.value}</span>
+        </div>
       )}
 
       {/* Substats */}
       {(echo.substats ?? []).slice(0, 5).map((sub, i) => (
-        <p key={i} className="truncate text-text-primary/60">
-          {sub?.name ?? ''}: {sub?.value ?? ''}
-        </p>
+        <div key={i} className="flex justify-between gap-1">
+          <span className="truncate text-text-primary/60">{sub?.name ?? ''}</span>
+          <span className="shrink-0 text-text-primary/60">{sub?.value ?? ''}</span>
+        </div>
       ))}
     </div>
   );
@@ -112,12 +114,11 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
             <p className="font-semibold text-text-primary truncate">{char?.name ?? '—'}</p>
             <p className="text-sm text-accent">Lv. {char?.level ?? '?'}</p>
           </div>
-          {charObj?.iconRound && (
-            // eslint-disable-next-line @next/next/no-img-element
+          {charObj?.head && (
             <img
-              src={charObj.iconRound}
+              src={charObj.head}
               alt={char?.name ?? ''}
-              className="w-12 h-12 rounded-full object-cover shrink-0 border border-border"
+              className="w-12 h-12 object-cover shrink-0 rounded"
               onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
             />
           )}
@@ -130,7 +131,6 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
             <p className="text-sm text-accent">Lv. {weapon?.level ?? '?'}</p>
           </div>
           {weaponObj && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={getWeaponPaths(weaponObj)}
               alt={weapon?.name ?? ''}
@@ -141,7 +141,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
         </div>
       </div>
 
-      {/* Sequence + Forte — two columns */}
+      {/* Sequence + Forte */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-background-secondary rounded-xl p-4 border border-border">
           <p className="text-xs text-text-primary/50 mb-3">Sequence</p>
@@ -179,9 +179,8 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
         </div>
       </div>
 
-      {/* Echoes — 5 equal columns */}
+      {/* Echoes with 5 equal columns */}
       <div>
-        <p className="text-xs text-text-primary/50 mb-2">Echoes</p>
         <div className="grid grid-cols-5 gap-2">
           {echoKeys.map(k => (
             <EchoCard key={k} echo={data[k]} />
@@ -191,7 +190,6 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
 
       {/* Player info */}
       <div className="bg-background-secondary rounded-xl p-4 border border-border">
-        <p className="text-xs text-text-primary/50 mb-3">Player info</p>
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
             <span className="text-xs text-text-primary/60">Username</span>

@@ -128,6 +128,7 @@ export interface Character {
   weaponI18n?: I18nString;
   cdnId?: number;
   iconRound?: string;
+  head?: string;       // Square head portrait (HeadCircle256 → Head256)
   banner?: string;
   rarity?: number;
   skins?: CDNCharacter['skins']; // Character skins
@@ -247,6 +248,7 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     ER: 100,
     cdnId: cdn.id,
     iconRound: cdn.icon.iconRound,
+    head: cdn.icon.iconRound?.replace(/HeadCircle256/g, 'Head256'),
     banner: cdn.icon.banner,
     rarity: cdn.rarity.id,
     skins: cdn.skins,

@@ -93,7 +93,7 @@ export function ImportPageClient() {
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-8">
+        <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-text-primary">Import Build</h1>
             <p className="text-sm text-text-primary/50">
@@ -110,7 +110,7 @@ export function ImportPageClient() {
           </div>
 
           {step === 'results' && (
-            <div className="flex items-center gap-3 shrink-0 mt-1">
+            <div className="flex items-center gap-3 shrink-0 self-end">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"

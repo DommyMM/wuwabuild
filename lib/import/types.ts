@@ -11,9 +11,9 @@ export interface EchoOCRData {
 }
 
 export interface AnalysisData {
-  character?: { name: string; level: number };
+  character?: { name: string; id?: string; level: number };
   watermark?: { username: string; uid: number };
-  weapon?: { name: string; level: number };
+  weapon?: { name: string; id?: string; level: number };
   forte?: { levels: number[] };      // length 5: [normal, skill, circuit, intro, lib] (card.py order)
   sequences?: { sequence: number };  // 0–6
   echo1?: EchoOCRData;

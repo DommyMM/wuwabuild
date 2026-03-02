@@ -44,10 +44,8 @@ export function useSelectedCharacter(): SelectedCharacter | null {
     };
 
     const iconRound = character.iconRound || FALLBACK_IMG;
-    const head = character.iconRound
-      ? character.iconRound.replace(/HeadCircle256/g, 'Head256')
-      : FALLBACK_IMG;
-    const banner = character.banner || FALLBACK_IMG;
+    const head      = character.head      || FALLBACK_IMG;
+    const banner    = character.banner    || FALLBACK_IMG;
 
     return {
       character,
