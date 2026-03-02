@@ -17,16 +17,23 @@ wuwabuilds/
 │   ├── sync_weapons.py       # Weapon sync (Python, CDN API)
 │   ├── sync_echoes.py        # Echo sync (Python, CDN Grouped/Phantom)
 │   ├── sync_fetters.py       # Sonata/element set sync (Python, CDN LocalizationIndex)
-│   ├── sync_all.py           # Run all three syncs with default options
+│   ├── sync_backend.py       # Transform public/Data -> ../backend/Data OCR schema
+│   ├── download_echo_icons.py # Download backend echo templates as {id}.png
+│   ├── sync_all.py           # Run full frontend + backend sync pipeline
 │   └── CDN_SYNC.md           # This file
 ├── public/Data/
 │   ├── Characters.json       # Combined character data
 │   ├── Characters/           # Individual character JSONs (--individual)
 │   ├── Weapons.json          # Combined weapon data
 │   ├── Weapons/              # Individual weapon JSONs (--individual)
-│   ├── Echoes.json           # Combined echo data (193 echoes)
+│   ├── Echoes.json           # Combined echo data (159 echoes)
 │   ├── Fetters.json          # Sonata/element set data (28 sets) — see below
 │   └── LevelCurve.json       # Static scaling data (manual)
+└── ../backend/Data/
+    ├── Characters.json       # Backend OCR character mapping data
+    ├── Weapons.json          # Backend OCR weapon mapping data
+    ├── Echoes.json           # Backend OCR echo mapping data
+    └── Echoes/*.png          # Backend echo icon templates keyed by CDN ID
 ```
 
 > **Terminology note:** The CDN calls these "PhantomFetters" / "PhantomFetterGroups" internally.
@@ -322,8 +329,9 @@ All paths are raw `/d/` paths — frontend prepends CDN base URL.
 python sync_echoes.py --fetch                     # Sync from CDN → public/Data/Echoes.json
 python sync_echoes.py --fetch --dry-run --pretty  # Preview
 python sync_echoes.py --fetch --id 60000425       # Single phantom from CDN
-python sync_all.py                                # Run characters + weapons + echoes (all from CDN)
-python sync_all.py --dry-run --pretty             # Preview all three
+python sync_all.py                                # Full pipeline: frontend data + backend transform
+python sync_all.py --dry-run --pretty             # Preview full pipeline
+python download_echo_icons.py --clean --force     # Refresh backend echo templates by CDN ID
 ```
 
 Skipped: `phantomType 2` (cosmetic unlock items), `rarity < 5`, `type`, `attributes` (generic equip text), `obtainedDescription`, redundant skill sub-fields (`id`, `cd`, `simplyDescription`).

@@ -35,7 +35,9 @@ python sync_characters.py --fetch    # Sync characters from CDN
 python sync_weapons.py --fetch       # Sync weapons from CDN
 python sync_echoes.py --fetch        # Sync echoes from CDN
 python sync_fetters.py               # Sync sonata sets from CDN
-python sync_all.py                   # Run all syncs
+python sync_all.py                   # Run full sync pipeline (frontend + backend transforms)
+python sync_backend.py               # Write backend/Data JSON from public/Data
+python download_echo_icons.py --clean --force  # Refresh backend echo template PNGs by CDN ID
 ```
 
 ## Environment Variables
@@ -46,6 +48,8 @@ API_URL=https://ocr.wuwabuilds.moe            # server-only, used by /api/ocr pr
 NEXT_PUBLIC_LB_URL=https://lb.wuwabuilds.moe
 NEXT_PUBLIC_POSTHOG_KEY=phc_...
 ```
+
+Import OCR requests use the `X-OCR-Region` header via the frontend `/api/ocr` proxy.
 
 ## Project Structure
 
@@ -148,7 +152,9 @@ wuwabuilds/
 │   ├── sync_weapons.py               # Weapon data sync
 │   ├── sync_echoes.py                # Echo data sync
 │   ├── sync_fetters.py               # Sonata set data sync
-│   ├── sync_all.py                   # Run all syncs
+│   ├── sync_backend.py               # Transform public/Data into backend/Data OCR schema
+│   ├── download_echo_icons.py        # Download backend echo templates as {id}.png
+│   ├── sync_all.py                   # Run full frontend+backend sync pipeline
 │   └── stat_translations.py          # Stat name translations
 │
 ├── public/Data/                      # Static game data (JSON)
