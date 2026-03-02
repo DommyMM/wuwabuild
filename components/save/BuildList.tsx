@@ -6,12 +6,10 @@ import { AnimatePresence, motion } from 'motion/react';
 import { SavedBuild } from '@/lib/build';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { BuildProvider } from '@/contexts/BuildContext';
-import { StatsProvider } from '@/contexts/StatsContext';
-import { BuildCard } from '@/components/build/BuildCard';
-import { calculateCV } from '@/lib/calculations/cv';
+import { calculateCV, calculateEchoCV } from '@/lib/calculations/cv';
 import { ELEMENT_SETS } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
+import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 
 interface BuildListProps {
   builds: SavedBuild[];
@@ -35,6 +33,14 @@ interface BuildItemProps {
   onDuplicate?: () => void;
   onExport?: () => void;
   onRename?: (name: string) => void;
+}
+
+const FORTE_LABELS = ['Normal', 'Skill', 'Circuit', 'Liberation', 'Intro'] as const;
+
+function formatStatValue(value: number | null): string {
+  if (value === null) return '';
+  if (Number.isInteger(value)) return String(value);
+  return value.toFixed(1).replace(/\.0$/, '');
 }
 
 const BuildItem: React.FC<BuildItemProps> = ({
@@ -108,6 +114,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
 
   const character = getCharacter(build.state.characterId);
   const weapon = getWeapon(build.state.weaponId);
+  const characterPortrait = character?.head ?? '';
   const characterName = character
     ? t(character.nameI18n ?? { en: character.name })
     : build.state.characterId || 'No Character';
@@ -115,7 +122,20 @@ const BuildItem: React.FC<BuildItemProps> = ({
   const weaponName = weapon
     ? t(weapon.nameI18n ?? { en: weapon.name })
     : build.state.weaponId;
+  const weaponIcon = getWeaponPaths(weapon);
   const buildCV = calculateCV(build.state.echoPanels);
+  const echoPreviewData = useMemo(() => (
+    build.state.echoPanels.map((panel) => {
+      const echo = panel.id ? getEcho(panel.id) : null;
+      return {
+        panel,
+        echo,
+        name: echo ? t(echo.nameI18n ?? { en: echo.name }) : 'Empty Slot',
+        icon: getEchoPaths(echo, panel.phantom),
+        cv: panel.id ? calculateEchoCV(panel) : 0,
+      };
+    })
+  ), [build.state.echoPanels, getEcho, t]);
   const setSummaries = useMemo(() => (
     getBuildSetCounts(build.state.echoPanels, getEcho).map(({ element, count }) => {
       const fetter = getFetterByElement(element);
@@ -316,14 +336,129 @@ const BuildItem: React.FC<BuildItemProps> = ({
             className="overflow-hidden"
           >
             <div className="mt-3 rounded-lg border border-border bg-background-secondary p-3">
-              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-text-primary/50">
+              <div className="mb-3 text-xs font-medium uppercase tracking-wide text-text-primary/50">
                 Build Preview
               </div>
-              <BuildProvider initialState={build.state} persistDraft={false}>
-                <StatsProvider>
-                  <BuildCard />
-                </StatsProvider>
-              </BuildProvider>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <div className="rounded-lg border border-border bg-background p-3">
+                  <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/50">Character</div>
+                  <div className="flex items-center gap-3">
+                    {characterPortrait ? (
+                      <img src={characterPortrait} alt={characterName || ''} className="h-12 w-12 rounded object-cover" />
+                    ) : (
+                      <div className="h-12 w-12 rounded bg-border" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-text-primary">{characterName}</div>
+                      <div className="text-xs text-text-primary/70">Lv.{characterLevel} • S{build.state.sequence}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border bg-background p-3">
+                  <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/50">Weapon</div>
+                  <div className="flex items-center gap-3">
+                    {weapon ? (
+                      <img src={weaponIcon} alt={weaponName ?? ''} className="h-12 w-12 object-contain" />
+                    ) : (
+                      <div className="h-12 w-12 rounded bg-border" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-text-primary">{weaponName ?? 'No Weapon'}</div>
+                      <div className="text-xs text-text-primary/70">
+                        Lv.{build.state.weaponLevel} • R{build.state.weaponRank}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-lg border border-border bg-background p-3">
+                <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/50">Forte</div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  {FORTE_LABELS.map((label, index) => {
+                    const [level, topActive, middleActive] = build.state.forte[index] ?? [1, false, false];
+                    return (
+                      <div key={label} className="rounded border border-border bg-background-secondary p-2 text-xs">
+                        <div className="text-text-primary/60">{label}</div>
+                        <div className="mt-1 font-semibold text-accent">Lv.{level}</div>
+                        <div className="mt-1 flex gap-1 text-[10px]">
+                          <span className={topActive ? 'rounded bg-green-500/20 px-1 text-green-400' : 'rounded bg-border px-1 text-text-primary/50'}>
+                            Top
+                          </span>
+                          <span className={middleActive ? 'rounded bg-green-500/20 px-1 text-green-400' : 'rounded bg-border px-1 text-text-primary/50'}>
+                            Mid
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-lg border border-border bg-background p-3">
+                <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/50">Echoes</div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                  {echoPreviewData.map(({ panel, echo, name, icon, cv }, index) => (
+                    <div
+                      key={`${panel.id ?? 'empty'}-${index}`}
+                      className="rounded border border-border bg-background-secondary p-2 text-xs"
+                    >
+                      {panel.id && echo ? (
+                        <>
+                          <div className="mb-1 flex items-center gap-2">
+                            <img src={icon} alt={name} className="h-8 w-8 rounded object-contain" />
+                            <div className="min-w-0">
+                              <div className="truncate font-semibold text-text-primary">{name}</div>
+                              <div className="text-[10px] text-text-primary/60">
+                                Lv.{panel.level} • CV {cv.toFixed(1)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mb-1 flex flex-wrap gap-1">
+                            {panel.selectedElement && (
+                              <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] text-accent">
+                                {ELEMENT_SETS[panel.selectedElement]}
+                              </span>
+                            )}
+                            {panel.phantom && (
+                              <span className="rounded bg-border px-1.5 py-0.5 text-[10px] text-text-primary/70">Phantom</span>
+                            )}
+                          </div>
+                          {panel.stats.mainStat.type && (
+                            <div className="mb-1 flex justify-between gap-2 text-[11px]">
+                              <span className="truncate text-accent">{panel.stats.mainStat.type}</span>
+                              <span className="shrink-0 text-accent">{formatStatValue(panel.stats.mainStat.value)}</span>
+                            </div>
+                          )}
+                          <div className="space-y-0.5">
+                            {panel.stats.subStats
+                              .filter((sub) => sub.type && sub.value !== null)
+                              .map((sub, subIndex) => (
+                                <div key={subIndex} className="flex justify-between gap-2 text-[10px] text-text-primary/65">
+                                  <span className="truncate">{sub.type}</span>
+                                  <span className="shrink-0">{formatStatValue(sub.value)}</span>
+                                </div>
+                              ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex min-h-24 items-center justify-center rounded border border-dashed border-border text-text-primary/35">
+                          Empty Slot
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-lg border border-border bg-background p-3 text-xs text-text-primary/75">
+                <div className="mb-1 text-[11px] uppercase tracking-wide text-text-primary/50">Watermark</div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <span>Username: {build.state.watermark.username || '—'}</span>
+                  <span>UID: {build.state.watermark.uid || '—'}</span>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
