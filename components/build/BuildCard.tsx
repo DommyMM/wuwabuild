@@ -4,6 +4,7 @@ import { forwardRef, useMemo } from 'react';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { calculateWeaponStats } from '@/lib/calculations/stats';
 import { CharacterPanel } from './CharacterPanel';
 import { SequenceStrip } from './SequenceStrip';
@@ -35,6 +36,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
   const { getWeapon, levelCurves, statIcons } = useGameData();
+  const { t } = useLanguage();
 
   const weapon = getWeapon(state.weaponId);
   const weaponStats = useMemo(
@@ -52,6 +54,12 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
     ? (statIcons?.[weapon.main_stat] ?? statIcons?.['Energy Regen'])
     : null;
   const roleIcon = selected ? `/images/Roles/${selected.character.Role}.png` : null;
+  const translatedName = selected
+    ? (selected.isRover
+      ? `${t(selected.character.nameI18n ?? { en: 'Rover' })} · ${selected.element}`
+      : t(selected.character.nameI18n ?? { en: selected.displayName }))
+    : '';
+  const translatedWeaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : '';
 
   return (
     <div ref={ref} className="relative flex flex-col select-none">
@@ -90,7 +98,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                 <div className="flex flex-col py-4 tracking-wide leading-none text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
                   <div className="flex items-center gap-2">
                     <span className="text-white text-4xl">
-                      {selected.displayName}
+                      {translatedName}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -121,28 +129,28 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                   <div className="flex items-center gap-4 rounded-xl border border-white/18 bg-black/42 px-3.5 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.28)]">
                     <img
                       src={weapon.iconUrl}
-                      alt={weapon.name}
+                      alt={translatedWeaponName || weapon.name}
                       className="h-16 w-16 object-contain shrink-0 drop-shadow-[0_4px_12px_rgba(0,0,0,0.65)]"
                     />
                     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                      <span className="truncate pr-1 text-[15px] font-semibold leading-tight text-white/95">
-                        {weapon.name}
+                      <span className="truncate pr-1 text-lg font-semibold leading-tight text-white/95">
+                        {translatedWeaponName || weapon.name}
                       </span>
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1">
                           {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-4 w-4 object-contain" />}
-                          <span className="text-[13px] font-medium text-white/88">{weaponStats.scaledAtk}</span>
+                          <span className="text-sm font-medium text-white/88">{weaponStats.scaledAtk}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-4 w-4 object-contain" />}
-                          <span className="text-[13px] font-medium text-white/88">{weaponStats.scaledMainStat}%</span>
+                          <span className="text-sm font-medium text-white/88">{weaponStats.scaledMainStat}%</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="rounded-md border border-white/20 bg-black/45 px-2.5 py-1 text-[11px] font-medium leading-none text-white/74">
+                        <span className="rounded-md border border-white/20 bg-black/45 px-2.5 py-1 text-xs font-medium leading-none text-white/74">
                           Lv.{state.weaponLevel}
                         </span>
-                        <span className="rounded-md border border-white/25 bg-black/45 px-2.5 py-1 text-[11px] font-semibold leading-none text-white/82">
+                        <span className="rounded-md border border-white/25 bg-black/45 px-2.5 py-1 text-xs font-semibold leading-none text-white/82">
                           R{state.weaponRank}
                         </span>
                       </div>

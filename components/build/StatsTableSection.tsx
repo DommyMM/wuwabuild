@@ -3,6 +3,7 @@
 import React from 'react';
 import { useStats } from '@/contexts/StatsContext';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const CORE_STATS = ['HP', 'ATK', 'DEF', 'Energy Regen', 'Crit Rate', 'Crit DMG'] as const;
 const BONUS_STATS = [
@@ -38,7 +39,8 @@ interface StatsTableSectionProps { className?: string; }
 
 export const StatsTableSection: React.FC<StatsTableSectionProps> = ({ className = '' }) => {
   const { stats } = useStats();
-  const { statIcons } = useGameData();
+  const { statIcons, statTranslations } = useGameData();
+  const { t } = useLanguage();
   const values = stats.values;
 
   const statRows = [
@@ -50,6 +52,8 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({ className 
 
   const formatValue = (key: string, value: number) =>
     FLAT_STATS.has(key) ? Math.round(value).toLocaleString() : `${value.toFixed(1)}%`;
+  const formatLabel = (key: string) =>
+    statTranslations?.[key] ? t(statTranslations[key]) : (LABEL[key] ?? key);
 
   const mid = Math.ceil(statRows.length / 2);
   const leftCol = statRows.slice(0, mid);
@@ -66,7 +70,7 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({ className 
                 <div className="flex items-center gap-1.5 min-w-0">
                   {icon && <img src={icon} alt={key} className="h-4 w-4 object-contain shrink-0" />}
                   <span className="text-white/60 text-[11px] leading-none truncate">
-                    {LABEL[key] ?? key}
+                    {formatLabel(key)}
                   </span>
                 </div>
                 <span className="text-white/95 text-[11px] font-semibold leading-none shrink-0 ml-1">

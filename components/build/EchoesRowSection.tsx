@@ -32,6 +32,7 @@ export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels }
 
         const elementType = echo.elements.length === 1 ? echo.elements[0] : panel.selectedElement;
         const fetter = elementType ? fettersByElement[elementType] : null;
+        const echoName = echo.nameI18n ? t(echo.nameI18n) : echo.name;
         const rawColor = fetter?.color ? fetter.color.substring(0, 6) : 'ffffff';
         const setColor = rawColor.startsWith('#') ? rawColor : `#${rawColor}`;
         const fetterIcon = fetter?.fetterIcon ?? null;
@@ -61,7 +62,7 @@ export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels }
             <div className="relative flex items-center justify-center pt-3 pb-1 shrink-0">
               <img
                 src={echo.iconUrl}
-                alt={echo.name}
+                alt={echoName}
                 className="w-16 h-16 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
               />
               {/* Level badge — bottom-right corner of icon */}
