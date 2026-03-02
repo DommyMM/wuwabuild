@@ -13,10 +13,11 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "flag-icons": "^7.5.0",
+    "fuse.js": "^7.1.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.562.0",
     "motion": "^12.23.26",
-    "next": "16.1.0",
+    "next": "^16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-fast-marquee": "^1.6.5"
