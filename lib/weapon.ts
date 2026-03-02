@@ -88,10 +88,13 @@ const RARITY_MAP: Record<number, WeaponRarity> = {
 /** CDN stats.second.attribute → display stat name used by StatsContext */
 const STAT_NAME_MAP: Record<string, string> = {
   Atk: "ATK",
+  Crit: "Crit Rate",
   CritRate: "Crit Rate",
   CritDamage: "Crit DMG",
+  LifeMax: "HP",
   Hp: "HP",
   Def: "DEF",
+  EnergyEfficiency: "ER",
   EnergyRecover: "ER",
 };
 

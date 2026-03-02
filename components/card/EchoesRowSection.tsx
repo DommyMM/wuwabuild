@@ -15,7 +15,7 @@ export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels }
   const { t } = useLanguage();
 
   return (
-    <div className="relative z-20 pl-[20%] -mt-40 flex gap-2">
+    <div className="mt-2 flex w-full gap-2">
       {echoPanels.map((panel, i) => {
         const echo = panel.id ? getEcho(panel.id) : null;
 

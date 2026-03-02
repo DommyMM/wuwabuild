@@ -33,6 +33,27 @@ const ELEMENT_BLOOM: Record<string, string> = {
 
 interface BuildCardProps { useAltSkin?: boolean; }
 
+const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | null => {
+  if (!stat) return null;
+
+  const normalized = stat.replace(/\./g, '').trim();
+  const alias: Record<string, string> = {
+    ER: 'Energy Regen',
+    EnergyEfficiency: 'Energy Regen',
+    EnergyRecover: 'Energy Regen',
+    'Energy Regen': 'Energy Regen',
+    'Energy Regeneration': 'Energy Regen',
+    Crit: 'Crit Rate',
+    'Crit Rate': 'Crit Rate',
+    'Crit DMG': 'Crit DMG',
+    'Crit Damage': 'Crit DMG',
+    LifeMax: 'HP',
+    Hp: 'HP',
+  };
+
+  return alias[normalized] ?? normalized;
+};
+
 export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false }, ref) => {
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
@@ -50,9 +71,12 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
   const bloomClass = selected?.element ? (ELEMENT_BLOOM[selected.element] ?? '') : '';
 
   const weaponAtkIcon = statIcons?.['ATK'];
-  const weaponMainIcon = weapon
-    ? (statIcons?.[weapon.main_stat] ?? statIcons?.['Energy Regen'])
+  const weaponMainIconKey = weapon
+    ? (normalizeWeaponStatIconKey(weapon.main_stat)
+      ?? normalizeWeaponStatIconKey(weapon.mainStatI18n?.en)
+      ?? 'Energy Regen')
     : null;
+  const weaponMainIcon = weaponMainIconKey ? statIcons?.[weaponMainIconKey] ?? statIcons?.['Energy Regen'] : null;
 
   return (
     <div ref={ref} className="relative flex flex-col select-none">
@@ -85,8 +109,8 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
               sequence={state.sequence}
               element={selected.element}
             />
-            <div className="relative flex font-plus-jakarta">
-              <div className="flex flex-col">
+            <div className="relative flex min-w-0 flex-1 gap-4 pr-4 font-plus-jakarta">
+              <div className="flex w-[34%] min-w-0 flex-col">
                 <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
                 {weapon && weaponStats && (
@@ -99,16 +123,18 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                     weaponMainIcon={weaponMainIcon}
                   />
                 )}
+              </div>
 
+              <div className="flex min-w-0 flex-1 flex-col pt-3">
                 <ForteCardSection
                   character={selected.character}
                   forte={state.forte}
                 />
-              </div>
 
-              {/* Stats panel */}
-              <div className="flex-1 flex flex-col justify-center">
-                <StatsTableSection />
+                {/* Stats panel */}
+                <div className="mt-3 flex min-h-0 flex-1">
+                  <StatsTableSection />
+                </div>
               </div>
             </div>
           </div>

@@ -5,20 +5,11 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { LevelSlider } from '@/components/ui/LevelSlider';
 import { WeaponSelector } from './WeaponSelector';
-import { WeaponRarity } from '@/lib/weapon';
+import { RARITY_ACCENTS } from './rarityStyles';
 
 interface WeaponInfoProps {
   className?: string;
 }
-
-// Rarity to border/accent color mapping
-const RARITY_ACCENTS: Record<WeaponRarity, { border: string; bg: string; text: string }> = {
-  '5-star': { border: 'border-amber-400', bg: 'bg-amber-400/20', text: 'text-amber-400' },
-  '4-star': { border: 'border-purple-400', bg: 'bg-purple-400/20', text: 'text-purple-400' },
-  '3-star': { border: 'border-blue-400', bg: 'bg-blue-400/20', text: 'text-blue-400' },
-  '2-star': { border: 'border-green-400', bg: 'bg-green-400/20', text: 'text-green-400' },
-  '1-star': { border: 'border-gray-400', bg: 'bg-gray-400/20', text: 'text-gray-400' }
-};
 
 export const WeaponInfo: React.FC<WeaponInfoProps> = ({
   className = ''

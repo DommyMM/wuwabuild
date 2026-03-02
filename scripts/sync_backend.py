@@ -35,7 +35,8 @@ def sync_characters(dry_run: bool) -> int:
     for char in data:
         out.append({
             "name": char["name"]["en"],
-            "id": str(char.get("legacyId", char["id"])),
+            # Canonical backend/runtime ID is CDN character id.
+            "id": str(char["id"]),
             "element": char["element"]["name"]["en"],
             "weaponType": char["weapon"]["name"]["en"],
         })
@@ -52,8 +53,8 @@ def sync_weapons(dry_run: bool) -> int:
     grouped: dict[str, list] = {}
     for weapon in data:
         type_en = weapon["type"]["name"]["en"]
-        # Normalize to backend plural key: "Rectifier" → "Rectifiers", "Gauntlets" stays
-        key = type_en if type_en.endswith("s") else type_en + "s"
+        # Keep raw CDN/frontend weapon type name (no legacy plural remapping).
+        key = type_en
         grouped.setdefault(key, []).append({
             "name": weapon["name"]["en"],
             "id": str(weapon["id"]),

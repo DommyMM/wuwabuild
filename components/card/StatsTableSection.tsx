@@ -53,25 +53,25 @@ export const StatsTableSection: React.FC = () => {
   const formatLabel = (key: string) =>
     statTranslations?.[key] ? t(statTranslations[key]) : (LABEL[key] ?? key);
 
-  const mid = Math.ceil(statRows.length / 2);
-  const leftCol = statRows.slice(0, mid);
-  const rightCol = statRows.slice(mid);
+  const splitIndex = Math.ceil(statRows.length / 2);
+  const leftColumn = statRows.slice(0, splitIndex);
+  const rightColumn = statRows.slice(splitIndex);
 
   return (
-    <div className="flex h-full gap-3">
-      {[leftCol, rightCol].map((col, ci) => (
-        <div key={ci} className="flex flex-col justify-around flex-1 min-w-0">
-          {col.map(({ key, value }) => {
+    <div className="flex h-full min-w-0 gap-4">
+      {[leftColumn, rightColumn].map((rows, columnIndex) => (
+        <div key={columnIndex} className="flex min-w-0 flex-1 flex-col justify-around">
+          {rows.map(({ key, value }) => {
             const icon = statIcons?.[key] ?? statIcons?.[key.replace('%', '')];
             return (
               <div key={key} className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {icon && <img src={icon} alt={key} className="h-4 w-4 object-contain shrink-0" />}
-                  <span className="text-white/60 text-[11px] leading-none truncate">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  {icon && <img src={icon} alt={key} className="h-4 w-4 shrink-0 object-contain" />}
+                  <span className="truncate text-[11px] leading-none text-white/60">
                     {formatLabel(key)}
                   </span>
                 </div>
-                <span className="text-white/95 text-[11px] font-semibold leading-none shrink-0 ml-1">
+                <span className="ml-1 shrink-0 text-[11px] font-semibold leading-none text-white/95">
                   {formatValue(key, value)}
                 </span>
               </div>
