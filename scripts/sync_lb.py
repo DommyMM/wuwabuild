@@ -9,6 +9,9 @@ Inputs:
 
 Outputs:
 - ../../lb/src/constants/{characterBases.ts,weaponBases.ts,echoBases.ts,idMaps.ts}
+
+By default, temporary compact artifacts in ../public/Data/LB/*.compact.json are
+deleted after a successful generation run. Use --keep-compact to retain them.
 """
 
 from __future__ import annotations
@@ -460,10 +463,38 @@ def _write_ts(path: Path, content: str, dry_run: bool) -> None:
     print(f"Wrote {path}")
 
 
+def _cleanup_compact_artifacts(dry_run: bool) -> None:
+    targets = [CHARACTERS_COMPACT, WEAPONS_COMPACT, ECHOES_COMPACT]
+    existing = [p for p in targets if p.exists()]
+
+    if not existing:
+        print("No compact LB artifacts to clean up.")
+        return
+
+    if dry_run:
+        for p in existing:
+            print(f"[DRY RUN] Would delete {p}")
+        if LB_DATA_DIR.exists():
+            print(f"[DRY RUN] Would remove {LB_DATA_DIR} if empty")
+        return
+
+    for p in existing:
+        p.unlink(missing_ok=True)
+        print(f"Deleted {p}")
+
+    try:
+        LB_DATA_DIR.rmdir()
+        print(f"Removed empty directory {LB_DATA_DIR}")
+    except OSError:
+        # Directory still has other files; leave it.
+        pass
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate LB constants + ID maps from local synced data")
     parser.add_argument("--dry-run", action="store_true", help="Preview outputs without writing files")
     parser.add_argument("--pretty", action="store_true", help="Accepted for passthrough compatibility")
+    parser.add_argument("--keep-compact", action="store_true", help="Keep temporary public/Data/LB/*.compact.json files")
     args = parser.parse_args()
 
     for required in [CHARACTERS_JSON, WEAPONS_JSON, ECHOES_JSON, CHARACTERS_COMPACT, WEAPONS_COMPACT, ECHOES_COMPACT]:
@@ -550,6 +581,13 @@ def main() -> int:
     print(f"  Char map:   {len(character_old_to_cdn)} old->cdn")
     print(f"  Weapon map: {len(weapon_old_to_cdn)} old->cdn")
     print(f"  Echo map:   {len(echo_old_to_cdn)} old->cdn")
+
+    if args.keep_compact:
+        print("\nKeeping compact LB artifacts (--keep-compact set).")
+    else:
+        print("\nCleaning up temporary LB compact artifacts...")
+        _cleanup_compact_artifacts(args.dry_run)
+
     return 0
 
 
