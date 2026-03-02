@@ -5,18 +5,18 @@ import { EchoPanelState } from '@/lib/echo';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { isPercentStat } from '@/lib/constants/statMappings';
-import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
+import { calculateEchoCV } from '@/lib/calculations/cv';
 
 interface EchoSectionProps {
   echoPanels: EchoPanelState[];
 }
 
 export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
-  const { getEcho, fettersByElement, statIcons, statTranslations } = useGameData();
+  const { getEcho, fettersByElement, statIcons } = useGameData();
   const { t } = useLanguage();
 
   return (
-    <div className="flex w-7/10 gap-3 px-4 pt-3">
+    <div className="flex w-full gap-2 px-3 pb-3">
       {echoPanels.map((panel, i) => {
         const echo = panel.id ? getEcho(panel.id) : null;
 
@@ -24,9 +24,9 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
           return (
             <div
               key={i}
-              className="flex-1 flex items-center justify-center min-h-[200px] rounded-lg bg-black/25 backdrop-blur-[3px] border border-white/8 shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+              className="flex h-[120px] min-w-0 flex-1 items-center justify-center rounded-lg border border-white/12 bg-black/35 backdrop-blur-[3px]"
             >
-              <div className="w-8 h-8 rounded-full border-2 border-white/15 border-dashed" />
+              <div className="h-7 w-7 rounded-full border-2 border-dashed border-white/20" />
             </div>
           );
         }
@@ -43,41 +43,50 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
           : null;
         const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
 
+        const rawEchoCV = calculateEchoCV(panel);
+        const critMainContribution =
+          echo.cost === 4 && mainStatType && mainStatValue != null
+            ? (mainStatType === 'Crit Rate'
+              ? mainStatValue * 2
+              : (mainStatType === 'Crit DMG' ? mainStatValue : 0))
+            : 0;
+        const echoCV = Math.max(0, rawEchoCV - critMainContribution);
+
+        const substats = panel.stats.subStats.filter(
+          (sub) => Boolean(sub.type?.trim()) && sub.value != null
+        );
+
         return (
           <div
             key={i}
-            className="flex-1 flex flex-col overflow-hidden min-w-0 rounded-lg bg-black/25 backdrop-blur-[3px] border border-white/8 shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+            className="relative h-[120px] min-w-0 flex-1 overflow-hidden rounded-lg border border-white/12 bg-black/42 shadow-[0_4px_12px_rgba(0,0,0,0.4)] backdrop-blur-[3px]"
           >
-            {/* Echo Image + Info Column */}
-            <div className="flex shrink-0 items-stretch">
-              {/* Echo image forced square, fades right into info column */}
-              <div className="relative aspect-square w-[62%] shrink-0 overflow-hidden">
+            <div className="absolute left-1.5 top-1.5 z-10 rounded-md border border-white/20 bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+              {echoCV.toFixed(1)} CV
+            </div>
+
+            {fetterIcon && (
+              <img
+                src={fetterIcon}
+                alt={elementType ?? ''}
+                className="absolute right-1.5 top-1.5 z-10 h-4.5 w-4.5 object-contain opacity-90"
+              />
+            )}
+
+            <div className="flex h-full gap-1.5 px-1.5 pb-1.5 pt-6">
+              <div className="relative w-[42%] shrink-0 overflow-hidden rounded-md border border-white/12 bg-black/30">
                 <img
                   src={echo.iconUrl}
                   alt={echoName}
-                  className="absolute inset-0 w-full h-full object-contain"
-                  style={{
-                    maskImage: 'linear-gradient(to right, black 65%, transparent 100%)',
-                    WebkitMaskImage: 'linear-gradient(to right, black 65%, transparent 100%)',
-                  }}
+                  className="absolute inset-0 h-full w-full object-contain"
                 />
-              </div>
 
-              {/* Info Column: Element Icon, Main Stat */}
-              <div className="flex flex-1 flex-col items-center justify-start gap-2.5 pb-1 pt-2">
-                {fetterIcon && (
-                  <img
-                    src={fetterIcon}
-                    alt={elementType ?? ''}
-                    className="w-7 h-7 object-contain drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]"
-                  />
-                )}
                 {mainStatType && mainStatValue != null && (
-                  <div className="flex flex-col items-center gap-1.5">
+                  <div className="absolute bottom-1 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-sm bg-black/65 px-1.5 py-0.5">
                     {mainStatIcon && (
-                      <img src={mainStatIcon} alt={mainStatType} className="h-5 w-5 object-contain" />
+                      <img src={mainStatIcon} alt={mainStatType} className="h-3.5 w-3.5 shrink-0 object-contain" />
                     )}
-                    <span className="text-center text-[12px] font-medium leading-none text-white/95">
+                    <span className="text-[10px] font-semibold leading-none text-white">
                       {isMainPercent
                         ? `${mainStatValue.toFixed(1)}%`
                         : Math.round(mainStatValue).toLocaleString()}
@@ -85,35 +94,30 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Substats */}
-            <div className="flex flex-1 flex-col gap-1.5 px-1.5 pb-2 pt-1">
-              {panel.stats.subStats.map((sub, si) => {
-                const subType = sub.type?.trim() || null;
-                if (!subType || sub.value == null) {
-                  return <div key={si} className="h-5" />;
-                }
-                const isSubPercent = isPercentStat(subType);
-                const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')];
-                const translated = statTranslations?.[subType] ? t(statTranslations[subType]) : subType;
-                const subLabel = getEchoSubstatShortLabel(translated);
-                return (
-                  <div key={si} className="flex items-center justify-between gap-1.5">
-                    <div className="flex min-w-0 items-center gap-1.5">
+              <div className="grid min-w-0 flex-1 grid-cols-2 content-center gap-x-1.5 gap-y-1">
+                {Array.from({ length: 5 }).map((_, si) => {
+                  const sub = substats[si];
+                  if (!sub?.type || sub.value == null) {
+                    return <div key={si} className="h-4" />;
+                  }
+
+                  const subType = sub.type.trim();
+                  const isSubPercent = isPercentStat(subType);
+                  const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')];
+
+                  return (
+                    <div key={si} className="flex h-4 items-center gap-1">
                       {subIcon && (
-                        <img src={subIcon} alt={subType} className="h-[18px] w-[18px] shrink-0 object-contain" />
+                        <img src={subIcon} alt={subType} className="h-3.5 w-3.5 shrink-0 object-contain" />
                       )}
-                      <span className="truncate text-[11px] font-normal leading-none text-white/65">
-                        {subLabel}
+                      <span className="truncate text-[11px] font-semibold leading-none text-white">
+                        {isSubPercent ? `${sub.value.toFixed(1)}%` : Math.round(sub.value)}
                       </span>
                     </div>
-                    <span className="shrink-0 text-[11px] font-medium leading-none text-white/90">
-                      {isSubPercent ? `${sub.value.toFixed(1)}%` : Math.round(sub.value)}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         );

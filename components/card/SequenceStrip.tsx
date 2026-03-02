@@ -16,10 +16,11 @@ interface SequenceStripProps {
   chains: CDNChainEntry[];
   sequence: number;
   element: string;
+  totalCV?: number;
 }
 
 export const SequenceStrip: React.FC<SequenceStripProps> = ({
-  chains, sequence, element,
+  chains, sequence, element, totalCV,
 }) => {
   const color = ELEMENT_COLOR[element] ?? '#ffffff';
 
@@ -53,6 +54,11 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
           </div>
         );
       })}
+      {typeof totalCV === 'number' && (
+        <div className="mt-2 rounded-md border border-white/25 bg-black/55 px-2 py-1 text-center text-[11px] font-semibold leading-none text-white shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
+          {totalCV.toFixed(1)} CV
+        </div>
+      )}
     </div>
   );
 };

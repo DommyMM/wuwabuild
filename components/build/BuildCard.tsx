@@ -12,6 +12,7 @@ import { ForteCardSection } from '@/components/card/ForteCardSection';
 import { EchoSection } from '@/components/card/EchoSection';
 import { NameGroup } from '@/components/card/NameGroup';
 import { WeaponGroup } from '@/components/card/WeaponGroup';
+import { calculateCV } from '@/lib/calculations/cv';
 
 const ELEMENT_TINT: Record<string, string> = {
   Aero: 'from-aero/24 via-aero/10 to-transparent',
@@ -66,6 +67,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
     () => weapon ? calculateWeaponStats(weapon, state.weaponLevel, levelCurves) : null,
     [weapon, state.weaponLevel, levelCurves]
   );
+  const totalCV = useMemo(() => calculateCV(state.echoPanels), [state.echoPanels]);
 
   const tintClass = selected?.element
     ? (ELEMENT_TINT[selected.element] ?? 'from-transparent via-transparent to-transparent')
@@ -103,13 +105,14 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                 useAltSkin={useAltSkin}
               />
 
-              {/* Right side: top info row only */}
-              <div className="flex w-full flex-col">
+              {/* Right side: top info row + compact echoes */}
+              <div className="flex w-full flex-col justify-between">
                 <div className="flex">
                   <SequenceStrip
                     chains={selected.character.chains ?? []}
                     sequence={state.sequence}
                     element={selected.element}
+                    totalCV={totalCV}
                   />
                   <div className="relative flex flex-1 gap-5 pb-4 pr-5 pt-2 font-plus-jakarta">
                     <div className="flex w-1/2 min-w-0 flex-col">
@@ -140,13 +143,10 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                     </div>
                   </div>
                 </div>
+
+                <EchoSection echoPanels={state.echoPanels} />
               </div>
             </div>
-          </div>
-
-          {/* Hanging echoes live outside the fixed-ratio frame so export includes them naturally */}
-          <div className="relative z-20 -mt-32 flex justify-end">
-            <EchoSection echoPanels={state.echoPanels} />
           </div>
         </div>
       )}
