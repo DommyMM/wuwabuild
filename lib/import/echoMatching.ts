@@ -7,14 +7,6 @@ export interface GameDataArgs {
   substats: Record<string, number[]>;                            // unused now but kept for API compat
 }
 
-function findEchoByName(name: string, echoes: Echo[]): Echo | null {
-  return (
-    echoes.find(e => e.name === name) ??
-    echoes.find(e => e.name.toLowerCase() === name.toLowerCase()) ??
-    null
-  );
-}
-
 function parseValue(raw: string): number | null {
   const n = parseFloat(raw.replace(/[%,\s]/g, ''));
   return isNaN(n) ? null : n;
@@ -26,23 +18,32 @@ export function matchEchoData(
 ): EchoPanelState | null {
   const { echoes } = gameData;
 
-  let rawName = ocrData.name.name.trim();
   let phantom = false;
 
-  // Phantom prefix → alternate skin, same underlying echo
-  if (rawName.startsWith('Phantom ')) {
-    phantom = true;
-    rawName = rawName.slice('Phantom '.length);
-  }
+  // ID lookup (primary — backend provides CDN id directly)
+  const echoId = ocrData.name.id;
+  let echo: Echo | null = echoId ? (echoes.find(e => String(e.id) === echoId) ?? null) : null;
 
-  // Try exact name first; if missing (e.g. "Nightmare X"), strip any leading word and retry
-  let echo = findEchoByName(rawName, echoes);
+  // Name-based fallback (handles Phantom prefix, Nightmare prefix, etc.)
   if (!echo) {
-    const spaceIdx = rawName.indexOf(' ');
-    if (spaceIdx !== -1) {
-      echo = findEchoByName(rawName.slice(spaceIdx + 1), echoes);
+    let rawName = ocrData.name.name.trim();
+    if (rawName.startsWith('Phantom ')) {
+      phantom = true;
+      rawName = rawName.slice('Phantom '.length);
+    }
+    echo =
+      echoes.find(e => e.name === rawName) ??
+      echoes.find(e => e.name.toLowerCase() === rawName.toLowerCase()) ??
+      null;
+    if (!echo) {
+      const spaceIdx = rawName.indexOf(' ');
+      if (spaceIdx !== -1) {
+        const stripped = rawName.slice(spaceIdx + 1);
+        echo = echoes.find(e => e.name === stripped) ?? null;
+      }
     }
   }
+
   if (!echo) return null;
 
   // Element — backend already validated; fall back to echo's first available element

@@ -4,7 +4,7 @@ export interface ImportRegion {
 }
 
 export interface EchoOCRData {
-  name: { name: string; confidence: number };
+  name: { name: string; id: string; confidence: number };
   main: { name: string; value: string };
   substats: Array<{ name: string; value: string }>;
   element: string;

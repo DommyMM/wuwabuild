@@ -33,6 +33,7 @@ def main() -> int:
         ("Echoes",     [sys.executable, str(scripts_dir / "sync_echoes.py"), "--fetch"]),
         ("Fetters",    [sys.executable, str(scripts_dir / "sync_fetters.py")]),
         ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py")]),
+        ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py")]),
     ]
     for name, cmd in scripts:
         cmd.extend(passthrough)

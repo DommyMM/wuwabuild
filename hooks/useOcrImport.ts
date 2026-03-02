@@ -58,8 +58,11 @@ export function useOcrImport(): UseOcrImportReturn {
           const base64 = await cropImageToRegion(img, region);
           const res = await fetch('/api/ocr', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: base64, type: `import-${key}` }),
+            headers: {
+              'Content-Type': 'application/json',
+              'X-OCR-Region': key,
+            },
+            body: JSON.stringify({ image: base64 }),
           });
 
           if (!res.ok) throw new Error(`OCR failed for ${key}: ${res.status}`);
