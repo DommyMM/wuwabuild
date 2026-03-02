@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
 import { loadImage, getImageDpi } from '@/lib/import/cropImage';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
+import { saveBuild } from '@/lib/storage';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
 import type { AnalysisData } from '@/lib/import/types';
@@ -18,6 +21,7 @@ export function ImportPageClient() {
   const router = useRouter();
   const { loadState, state: buildState } = useBuild();
   const gameData = useGameData();
+  const { success, error: notifyError } = useToast();
   const { isProcessing, progress, analysisData, error, processImage, reset } = useOcrImport();
 
   const [step, setStep]                       = useState<ImportStep>('upload');
@@ -57,7 +61,7 @@ export function ImportPageClient() {
     setDpiWarning(false);
   };
 
-  const doImport = (wm: { username: string; uid: string }) => {
+  const buildImportedState = (wm: { username: string; uid: string }) => {
     const mainStatsArg: Record<string, Record<string, [number, number]>> = {};
     if (gameData.mainStats) {
       for (const [cost, costData] of Object.entries(gameData.mainStats)) {
@@ -77,16 +81,42 @@ export function ImportPageClient() {
       watermark: { username: wm.username, uid: Number(wm.uid) || 0 },
     };
 
-    const state = convertAnalysisToSavedState(mergedData, {
+    return convertAnalysisToSavedState(mergedData, {
       characters: gameData.characters,
       weapons:    gameData.weapons,
       echoes:     gameData.echoes,
       mainStats:  mainStatsArg,
       substats:   subStatsArg,
     });
+  };
 
-    loadState(state);
+  const doImport = (wm: { username: string; uid: string }) => {
+    const importedState = buildImportedState(wm);
+    loadState(importedState);
     router.push('/edit');
+  };
+
+  const saveImportToSaves = (wm: { username: string; uid: string }) => {
+    try {
+      const importedState = buildImportedState(wm);
+      const characterName =
+        gameData.getCharacter(importedState.characterId)?.name ??
+        analysisData.character?.name ??
+        'Imported Build';
+
+      const now = new Date();
+      const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const saved = saveBuild({
+        name: `${characterName} Import ${stamp}`,
+        state: importedState,
+      });
+
+      success(`Saved "${saved.name}".`);
+      router.push('/saves');
+    } catch (err) {
+      notifyError(err instanceof Error ? err.message : 'Failed to save imported build.');
+    }
   };
 
   const handleImport = (wm: { username: string; uid: string }) => {
@@ -191,23 +221,38 @@ export function ImportPageClient() {
                   <span className="text-text-primary font-medium">
                     {gameData.getCharacter(buildState.characterId)?.name ?? 'a build'}
                   </span>{' '}
-                  loaded. Importing will overwrite it.
+                  loaded. You can overwrite it, or save this import as a build to the{' '}
+                  <Link
+                    href="/saves"
+                    className="text-accent hover:text-accent-hover underline underline-offset-2 transition-colors"
+                  >
+                    Saves page
+                  </Link>
+                  .
                 </p>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-2">
               <button
-                onClick={() => setPendingWm(null)}
-                className="flex-1 py-2 rounded-xl border border-border text-sm font-semibold text-text-primary/70 hover:text-text-primary hover:border-text-primary/30 transition-colors"
+                onClick={() => { saveImportToSaves(pendingWm); setPendingWm(null); }}
+                className="w-full py-2 rounded-xl bg-accent text-background text-sm font-semibold hover:bg-accent-hover transition-colors"
               >
-                Cancel
+                Save Build
               </button>
-              <button
-                onClick={() => { doImport(pendingWm); setPendingWm(null); }}
-                className="flex-1 py-2 rounded-xl bg-accent text-background text-sm font-semibold hover:bg-accent-hover transition-colors"
-              >
-                Import Anyway
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setPendingWm(null)}
+                  className="w-full py-2 rounded-xl border border-border text-sm font-semibold text-text-primary/70 hover:text-text-primary hover:border-text-primary/30 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => { doImport(pendingWm); setPendingWm(null); }}
+                  className="w-full py-2 rounded-xl bg-red-500/15 border border-red-500/45 text-red-300 text-sm font-semibold hover:bg-red-500/25 hover:border-red-500/70 transition-colors"
+                >
+                  Override Current
+                </button>
+              </div>
             </div>
           </div>
         </div>

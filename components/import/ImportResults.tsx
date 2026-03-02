@@ -19,6 +19,40 @@ function Sk({ className }: { className: string }) {
   return <div className={`animate-pulse rounded bg-text-primary/10 ${className}`} />;
 }
 
+function ImageWithSkeleton({
+  src,
+  alt,
+  imgClassName,
+  skeletonClassName,
+}: {
+  src?: string | null;
+  alt: string;
+  imgClassName: string;
+  skeletonClassName: string;
+}) {
+  const [isLoaded, setIsLoaded] = useState(() => !src);
+  const [hasError, setHasError] = useState(false);
+
+  if (!src || hasError) {
+    return <Sk className={skeletonClassName} />;
+  }
+
+  return (
+    <div className="relative">
+      {!isLoaded && (
+        <Sk className={`absolute inset-0 ${skeletonClassName}`} />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`${imgClassName} transition-opacity duration-200 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setHasError(true)}
+      />
+    </div>
+  );
+}
+
 function ProgressDot({ status }: { status: 'pending' | 'done' | 'error' }) {
   if (status === 'done')  return <CheckCircle className="w-4 h-4 text-green-400" />;
   if (status === 'error') return <XCircle className="w-4 h-4 text-red-400" />;
@@ -57,11 +91,12 @@ function EchoCard({ echo, pending }: { echo?: EchoOCRData; pending?: boolean }) 
   return (
     <div className="bg-background-secondary rounded-lg p-2 flex flex-col border border-border text-[11px] overflow-hidden">
       <div className="flex justify-center mb-1.5">
-        <img
+        <ImageWithSkeleton
+          key={iconSrc ?? 'echo-icon'}
           src={iconSrc}
           alt={echo.name?.name ?? 'echo'}
-          className="w-10 h-10 object-contain rounded"
-          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          imgClassName="w-10 h-10 object-contain rounded"
+          skeletonClassName="w-10 h-10 rounded"
         />
       </div>
       <p className="font-semibold text-text-primary truncate mb-1">
@@ -143,11 +178,12 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
                 <p className="text-sm text-accent">Lv. {char?.level ?? '?'}</p>
               </div>
               {charObj?.head && (
-                <img
+                <ImageWithSkeleton
+                  key={charObj.head}
                   src={charObj.head}
                   alt={char?.name ?? ''}
-                  className="w-12 h-12 object-cover shrink-0 rounded"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  imgClassName="w-12 h-12 object-cover shrink-0 rounded"
+                  skeletonClassName="w-12 h-12 shrink-0 rounded"
                 />
               )}
             </>
@@ -172,11 +208,12 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
                 <p className="text-sm text-accent">Lv. {weapon?.level ?? '?'}</p>
               </div>
               {weaponObj && (
-                <img
+                <ImageWithSkeleton
+                  key={weaponObj.name}
                   src={getWeaponPaths(weaponObj)}
                   alt={weapon?.name ?? ''}
-                  className="w-12 h-12 object-contain shrink-0"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  imgClassName="w-12 h-12 object-contain shrink-0"
+                  skeletonClassName="w-12 h-12 shrink-0 rounded"
                 />
               )}
             </>
