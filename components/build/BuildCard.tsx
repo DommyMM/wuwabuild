@@ -106,31 +106,31 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
 
                 {/* 2. Weapon group */}
                 {weapon && weaponStats && (
-                  <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm px-2 py-1.5">
+                  <div className="mt-1 flex w-[min(100%,22rem)] items-center gap-3 rounded-xl border border-white/15 bg-black/25 px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-sm">
                     <img
                       src={weapon.iconUrl}
                       alt={weapon.name}
-                      className="h-9 w-9 object-contain shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+                      className="h-14 w-14 object-contain shrink-0 drop-shadow-[0_4px_10px_rgba(0,0,0,0.65)]"
                     />
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <span className="text-white/90 text-[10px] font-semibold leading-tight truncate max-w-[120px]">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <span className="truncate pr-1 text-[14px] font-semibold leading-tight text-white/95">
                         {weapon.name}
                       </span>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-0.5">
-                          {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-3 w-3 object-contain" />}
-                          <span className="text-white/75 text-[9px]">{weaponStats.scaledAtk}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-4 w-4 object-contain" />}
+                          <span className="text-[12px] font-medium text-white/85">{weaponStats.scaledAtk}</span>
                         </div>
-                        <div className="flex items-center gap-0.5">
-                          {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-3 w-3 object-contain" />}
-                          <span className="text-white/75 text-[9px]">{weaponStats.scaledMainStat}%</span>
+                        <div className="flex items-center gap-1">
+                          {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-4 w-4 object-contain" />}
+                          <span className="text-[12px] font-medium text-white/85">{weaponStats.scaledMainStat}%</span>
                         </div>
                       </div>
-                      <div className="flex gap-1">
-                        <span className="px-1 py-px rounded text-[8px] bg-black/40 border border-white/15 text-white/55 leading-none">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-md border border-white/20 bg-black/40 px-2 py-0.5 text-[11px] font-medium leading-none text-white/70">
                           Lv.{state.weaponLevel}
                         </span>
-                        <span className="px-1 py-px rounded text-[8px] bg-black/40 border border-white/20 text-white/70 font-medium leading-none">
+                        <span className="rounded-md border border-white/25 bg-black/40 px-2 py-0.5 text-[11px] font-semibold leading-none text-white/80">
                           R{state.weaponRank}
                         </span>
                       </div>
