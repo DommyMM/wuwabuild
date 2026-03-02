@@ -14,15 +14,34 @@ interface ImportResultsProps {
   onImport: (watermarkOverride: { username: string; uid: string }) => void;
 }
 
+/** Single pulsing skeleton block. */
+function Sk({ className }: { className: string }) {
+  return <div className={`animate-pulse rounded bg-text-primary/10 ${className}`} />;
+}
+
 function ProgressDot({ status }: { status: 'pending' | 'done' | 'error' }) {
   if (status === 'done')  return <CheckCircle className="w-4 h-4 text-green-400" />;
   if (status === 'error') return <XCircle className="w-4 h-4 text-red-400" />;
   return <Loader2 className="w-4 h-4 text-text-primary/40 animate-spin" />;
 }
 
-
-function EchoCard({ echo }: { echo?: EchoOCRData }) {
+function EchoCard({ echo, pending }: { echo?: EchoOCRData; pending?: boolean }) {
   const { getEcho } = useGameData();
+
+  if (pending) {
+    return (
+      <div className="bg-background-secondary rounded-lg p-2 flex flex-col border border-border text-[11px] overflow-hidden">
+        <div className="flex justify-center mb-1.5">
+          <Sk className="w-10 h-10" />
+        </div>
+        <Sk className="h-3 w-full mb-1.5" />
+        <Sk className="h-2.5 w-3/4 mb-1" />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Sk key={i} className="h-2.5 w-full mb-0.5" />
+        ))}
+      </div>
+    );
+  }
 
   if (!echo) {
     return (
@@ -37,7 +56,6 @@ function EchoCard({ echo }: { echo?: EchoOCRData }) {
 
   return (
     <div className="bg-background-secondary rounded-lg p-2 flex flex-col border border-border text-[11px] overflow-hidden">
-      {/* Icon */}
       <div className="flex justify-center mb-1.5">
         <img
           src={iconSrc}
@@ -46,21 +64,15 @@ function EchoCard({ echo }: { echo?: EchoOCRData }) {
           onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
       </div>
-
-      {/* Echo name */}
       <p className="font-semibold text-text-primary truncate mb-1">
         {echo.name?.name ?? '—'}
       </p>
-
-      {/* Main stat */}
       {echo.main && (
         <div className="flex justify-between gap-1 mb-1">
           <span className="truncate text-accent">{echo.main.name}</span>
           <span className="shrink-0 text-accent">{echo.main.value}</span>
         </div>
       )}
-
-      {/* Substats */}
       {(echo.substats ?? []).slice(0, 5).map((sub, i) => (
         <div key={i} className="flex justify-between gap-1">
           <span className="truncate text-text-primary/60">{sub?.name ?? ''}</span>
@@ -87,6 +99,11 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
     progress.character === 'done' || progress.character === 'error'
   );
 
+  const charPending   = progress.character  === 'pending';
+  const weaponPending = progress.weapon     === 'pending';
+  const seqPending    = progress.sequences  === 'pending';
+  const fortePending  = progress.forte      === 'pending';
+
   const charObj   = char?.name   ? getCharacterByName(char.name) : null;
   const weaponObj = weapon?.name ? (weaponList.find(w => w.name === weapon.name) ?? null) : null;
 
@@ -109,34 +126,60 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
       {/* Character + Weapon */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-background-secondary rounded-xl p-4 border border-border flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs text-text-primary/50 mb-1">Character</p>
-            <p className="font-semibold text-text-primary truncate">{char?.name ?? '—'}</p>
-            <p className="text-sm text-accent">Lv. {char?.level ?? '?'}</p>
-          </div>
-          {charObj?.head && (
-            <img
-              src={charObj.head}
-              alt={char?.name ?? ''}
-              className="w-12 h-12 object-cover shrink-0 rounded"
-              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-            />
+          {charPending ? (
+            <>
+              <div className="min-w-0 flex-1 flex flex-col gap-2">
+                <Sk className="h-3 w-16" />
+                <Sk className="h-4 w-28" />
+                <Sk className="h-3 w-10" />
+              </div>
+              <Sk className="w-12 h-12 shrink-0" />
+            </>
+          ) : (
+            <>
+              <div className="min-w-0">
+                <p className="text-xs text-text-primary/50 mb-1">Character</p>
+                <p className="font-semibold text-text-primary truncate">{char?.name ?? '—'}</p>
+                <p className="text-sm text-accent">Lv. {char?.level ?? '?'}</p>
+              </div>
+              {charObj?.head && (
+                <img
+                  src={charObj.head}
+                  alt={char?.name ?? ''}
+                  className="w-12 h-12 object-cover shrink-0 rounded"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+            </>
           )}
         </div>
 
         <div className="bg-background-secondary rounded-xl p-4 border border-border flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs text-text-primary/50 mb-1">Weapon</p>
-            <p className="font-semibold text-text-primary truncate">{weapon?.name ?? '—'}</p>
-            <p className="text-sm text-accent">Lv. {weapon?.level ?? '?'}</p>
-          </div>
-          {weaponObj && (
-            <img
-              src={getWeaponPaths(weaponObj)}
-              alt={weapon?.name ?? ''}
-              className="w-12 h-12 object-contain shrink-0"
-              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-            />
+          {weaponPending ? (
+            <>
+              <div className="min-w-0 flex-1 flex flex-col gap-2">
+                <Sk className="h-3 w-16" />
+                <Sk className="h-4 w-32" />
+                <Sk className="h-3 w-10" />
+              </div>
+              <Sk className="w-12 h-12 shrink-0" />
+            </>
+          ) : (
+            <>
+              <div className="min-w-0">
+                <p className="text-xs text-text-primary/50 mb-1">Weapon</p>
+                <p className="font-semibold text-text-primary truncate">{weapon?.name ?? '—'}</p>
+                <p className="text-sm text-accent">Lv. {weapon?.level ?? '?'}</p>
+              </div>
+              {weaponObj && (
+                <img
+                  src={getWeaponPaths(weaponObj)}
+                  alt={weapon?.name ?? ''}
+                  className="w-12 h-12 object-contain shrink-0"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
@@ -145,26 +188,43 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-background-secondary rounded-xl p-4 border border-border">
           <p className="text-xs text-text-primary/50 mb-3">Sequence</p>
-          <div className="flex justify-between">
-            {Array.from({ length: 6 }, (_, i) => (
-              <div
-                key={i}
-                className={[
-                  'w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold',
-                  i < seq
-                    ? 'border-accent bg-accent/20 text-accent'
-                    : 'border-border text-text-primary/30',
-                ].join(' ')}
-              >
-                {i + 1}
-              </div>
-            ))}
-          </div>
+          {seqPending ? (
+            <div className="flex justify-between">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Sk key={i} className="w-7 h-7 rounded-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex justify-between">
+              {Array.from({ length: 6 }, (_, i) => (
+                <div
+                  key={i}
+                  className={[
+                    'w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold',
+                    i < seq
+                      ? 'border-accent bg-accent/20 text-accent'
+                      : 'border-border text-text-primary/30',
+                  ].join(' ')}
+                >
+                  {i + 1}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bg-background-secondary rounded-xl p-4 border border-border">
           <p className="text-xs text-text-primary/50 mb-3">Forte levels</p>
-          {forte ? (
+          {fortePending ? (
+            <div className="flex justify-between">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex flex-col items-center gap-1.5">
+                  <Sk className="h-4 w-5" />
+                  <Sk className="h-2.5 w-8" />
+                </div>
+              ))}
+            </div>
+          ) : forte ? (
             <div className="flex justify-between">
               {['Normal', 'Skill', 'Circuit', 'Intro', 'Liberation'].map((label, i) => (
                 <div key={label} className="flex flex-col items-center gap-1">
@@ -179,11 +239,15 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
         </div>
       </div>
 
-      {/* Echoes with 5 equal columns */}
+      {/* Echoes — 5 equal columns */}
       <div>
         <div className="grid grid-cols-5 gap-2">
           {echoKeys.map(k => (
-            <EchoCard key={k} echo={data[k]} />
+            <EchoCard
+              key={k}
+              echo={data[k]}
+              pending={progress[k] === 'pending'}
+            />
           ))}
         </div>
       </div>
