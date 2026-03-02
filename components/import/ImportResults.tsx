@@ -89,7 +89,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
   const weaponObj = weapon?.name ? (weaponList.find(w => w.name === weapon.name) ?? null) : null;
 
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="w-full mx-auto flex flex-col gap-6">
 
       {/* Scan progress */}
       <div className="bg-background-secondary rounded-xl p-4 border border-border">

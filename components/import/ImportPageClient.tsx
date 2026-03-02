@@ -10,9 +10,9 @@ import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
 import type { AnalysisData } from '@/lib/import/types';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RotateCcw } from 'lucide-react';
 
-type ImportStep = 'upload' | 'process' | 'results';
+type ImportStep = 'upload' | 'results';
 
 export function ImportPageClient() {
   const router = useRouter();
@@ -20,22 +20,13 @@ export function ImportPageClient() {
   const gameData = useGameData();
   const { isProcessing, progress, analysisData, error, processImage, reset } = useOcrImport();
 
-  const [file, setFile]                       = useState<File | null>(null);
   const [step, setStep]                       = useState<ImportStep>('upload');
-  const [previewUrl, setPreviewUrl]           = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [dpiWarning, setDpiWarning]           = useState(false);
+  const [uploadToLb, setUploadToLb]           = useState(true);
 
   // Silent wake-up ping so Railway auto-starts the server if sleeping
   useEffect(() => { fetch('/api/ocr').catch(() => {}); }, []);
-
-  // Generate preview thumbnail URL
-  useEffect(() => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
 
   const handleFile = async (f: File) => {
     setValidationError(null);
@@ -53,26 +44,16 @@ export function ImportPageClient() {
     const dpi = await getImageDpi(f);
     if (dpi !== null && dpi !== 96) setDpiWarning(true);
 
-    setFile(f);
-    setStep('process');
     reset();
+    setStep('results');
+    processImage(f); // fire-and-forget — streams progress into state
   };
 
-  const handleProcess = async () => {
-    if (!file) return;
-    setStep('results');       // Show results immediately so progress updates stream live
-    await processImage(file);
-  };
-
-  const handleBack = () => {
-    if (step === 'results') {
-      setStep('process');
-    } else if (step === 'process') {
-      setStep('upload');
-      setFile(null);
-      setDpiWarning(false);
-      reset();
-    }
+  const handleReset = () => {
+    reset();
+    setStep('upload');
+    setValidationError(null);
+    setDpiWarning(false);
   };
 
   const handleImport = (wm: { username: string; uid: string }) => {
@@ -109,18 +90,10 @@ export function ImportPageClient() {
 
   return (
     <main className="bg-background p-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          {step !== 'upload' && (
-            <button
-              onClick={handleBack}
-              className="p-1.5 rounded-lg text-text-primary/60 hover:text-text-primary hover:bg-background-secondary transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          )}
+        <div className="flex items-start justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-text-primary">Import Build</h1>
             <p className="text-sm text-text-primary/50">
@@ -135,6 +108,27 @@ export function ImportPageClient() {
               </a>
             </p>
           </div>
+
+          {step === 'results' && (
+            <div className="flex items-center gap-3 shrink-0 mt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={uploadToLb}
+                  onChange={e => setUploadToLb(e.target.checked)}
+                  className="w-4 h-4 accent-(--color-accent) cursor-pointer"
+                />
+                <span className="text-sm text-text-primary/70">Upload to Leaderboard</span>
+              </label>
+              <button
+                onClick={handleReset}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-text-primary/60 hover:text-text-primary hover:bg-background-secondary border border-border transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Validation error */}
@@ -162,36 +156,8 @@ export function ImportPageClient() {
           </div>
         )}
 
-        {/* Step: Upload */}
         {step === 'upload' && <ImportUploader onFile={handleFile} />}
 
-        {/* Step: Process — show screenshot preview + scan button */}
-        {step === 'process' && file && (
-          <div className="flex flex-col items-center gap-6">
-            {previewUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={previewUrl}
-                alt="Screenshot preview"
-                className="w-full max-w-xl rounded-xl border border-border"
-              />
-            )}
-            <button
-              onClick={handleProcess}
-              disabled={isProcessing}
-              className={[
-                'px-8 py-3 rounded-xl font-semibold text-sm transition-all',
-                isProcessing
-                  ? 'bg-border text-text-primary/30 cursor-not-allowed'
-                  : 'bg-accent text-background hover:bg-accent-hover cursor-pointer',
-              ].join(' ')}
-            >
-              {isProcessing ? 'Processing…' : 'Process Screenshot'}
-            </button>
-          </div>
-        )}
-
-        {/* Step: Results — shows live as regions complete */}
         {step === 'results' && (
           <ImportResults
             data={analysisData}
