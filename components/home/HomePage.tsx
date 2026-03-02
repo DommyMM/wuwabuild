@@ -3,7 +3,6 @@
 import { Typewriter } from './Typewriter';
 import { Carousel } from './Carousel';
 import { CTACards } from './CTACards';
-import { QuickStart } from './QuickStart';
 import { Disclaimer } from './Disclaimer';
 
 export function HomePage() {
@@ -21,9 +20,6 @@ export function HomePage() {
 
                 {/* CTA Cards */}
                 <CTACards />
-
-                {/* Quick Start Guide */}
-                <QuickStart />
 
                 {/* Disclaimer */}
                 <Disclaimer />
