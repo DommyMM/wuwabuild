@@ -33,7 +33,6 @@ const ELEMENT_BLOOM: Record<string, string> = {
 
 interface BuildCardProps {
   useAltSkin?: boolean;
-  className?: string;
 }
 
 const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | null => {
@@ -57,7 +56,7 @@ const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | n
   return alias[normalized] ?? normalized;
 };
 
-export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false, className = '' }, ref) => {
+export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false }, ref) => {
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
   const { getWeapon, levelCurves, statIcons } = useGameData();
@@ -82,7 +81,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
   const weaponMainIcon = weaponMainIconKey ? statIcons?.[weaponMainIconKey] ?? statIcons?.['Energy Regen'] : null;
 
   return (
-    <div ref={ref} className={`relative select-none overflow-visible ${className}`}>
+    <div ref={ref} className="relative select-none overflow-visible">
       {selected && (
         <div className="CardContainer">
           <div className="relative overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')] aspect-[2.4/1]">
@@ -146,7 +145,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
           </div>
 
           {/* Hanging echoes live outside the fixed-ratio frame so export includes them naturally */}
-          <div className="relative z-20 -mt-40">
+          <div className="relative z-20 -mt-32 flex justify-end">
             <EchoSection echoPanels={state.echoPanels} />
           </div>
         </div>

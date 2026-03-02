@@ -285,12 +285,8 @@ export const BuildEditor: React.FC = () => {
         </div>
         {isCardGenerated && (
           <>
-            <BuildCard
-              ref={cardRef}
-              useAltSkin={cardOptions.useAltSkin}
-              className="rounded-lg rounded-tl-none"
-            />
-            {/* Action bar — flipped version of BuildCardOptions */}
+            <BuildCard ref={cardRef} useAltSkin={cardOptions.useAltSkin} />
+            {/* Action bar, flipped version of BuildCardOptions */}
             <div className="flex justify-start pl-12">
               <div className="flex items-center gap-3 rounded-lg rounded-t-none border border-t-0 border-border bg-background p-3">
                 <button
