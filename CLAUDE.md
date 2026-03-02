@@ -42,7 +42,7 @@ python sync_all.py                   # Run all syncs
 
 ```
 NEXT_PUBLIC_GA_TRACKING_ID=G-SP375JKDPX
-NEXT_PUBLIC_API_URL=https://ocr.wuwabuilds.moe
+API_URL=https://ocr.wuwabuilds.moe            # server-only, used by /api/ocr proxy
 NEXT_PUBLIC_LB_URL=https://lb.wuwabuilds.moe
 NEXT_PUBLIC_POSTHOG_KEY=phc_...
 ```

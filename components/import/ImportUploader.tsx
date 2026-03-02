@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, Clipboard } from 'lucide-react';
-import Image from 'next/image';
 
 interface ImportUploaderProps {
   onFile: (file: File) => void;
@@ -50,7 +49,7 @@ export function ImportUploader({ onFile }: ImportUploaderProps) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto">
+    <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto">
       {/* Drop zone */}
       <button
         type="button"
@@ -86,21 +85,6 @@ export function ImportUploader({ onFile }: ImportUploaderProps) {
         onChange={onInputChange}
       />
 
-      {/* Tutorial hint images */}
-      <div className="flex gap-4 w-full">
-        {(['import-hint-1', 'import-hint-2'] as const).map(name => (
-          <div key={name} className="flex-1 rounded-lg overflow-hidden border border-border opacity-60">
-            <Image
-              src={`/images/${name}.webp`}
-              alt="Import tutorial"
-              width={400}
-              height={225}
-              className="w-full h-auto object-cover"
-              onError={() => {/* ignore missing hint images */}}
-            />
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBuild } from '@/contexts/BuildContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
@@ -22,14 +22,8 @@ export function ImportPageClient() {
   const [showPreview, setShowPreview]       = useState(false);
   const [watermarkOverride, setWatermark]   = useState<{ username: string; uid: string } | null>(null);
   const [previewUrl, setPreviewUrl]         = useState<string | null>(null);
-  const serverWokeUp                        = useRef(false);
-
-  // Wake up OCR server on mount
-  useEffect(() => {
-    if (serverWokeUp.current) return;
-    serverWokeUp.current = true;
-    fetch('/api/ocr').catch(() => {});
-  }, []);
+  // Silent wake-up ping, Railway will auto start server if sleeping
+  useEffect(() => { fetch('/api/ocr').catch(() => {}); }, []);
 
   // Generate preview thumbnail URL
   useEffect(() => {
@@ -89,7 +83,15 @@ export function ImportPageClient() {
           <div>
             <h1 className="text-2xl font-bold text-text-primary">Import Build</h1>
             <p className="text-sm text-text-primary/50">
-              Import a build from a wuwa-bot screenshot
+              Import a build from a wuwa-bot screenshot —{' '}
+              <a
+                href="https://discord.com/channels/963760374543450182/1323199091072569479"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent hover:text-accent-hover underline underline-offset-2 transition-colors"
+              >
+                get yours in the Discord
+              </a>
             </p>
           </div>
         </div>
