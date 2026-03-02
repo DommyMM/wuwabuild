@@ -112,8 +112,8 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                     sequence={state.sequence}
                     element={selected.element}
                   />
-                  <div className="relative flex gap-5 pb-4 pr-5 pt-2 font-plus-jakarta">
-                    <div className="flex w-1/2 flex-col">
+                  <div className="relative flex flex-1 gap-5 pb-4 pr-5 pt-2 font-plus-jakarta">
+                    <div className="flex w-1/2 min-w-0 flex-col">
                       <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
                       {weapon && weaponStats && (
@@ -126,18 +126,18 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                           weaponMainIcon={weaponMainIcon}
                         />
                       )}
+
+                      <div className="mt-3">
+                        <ForteCardSection
+                          character={selected.character}
+                          forte={state.forte}
+                        />
+                      </div>
                     </div>
 
-                    <div className="flex flex-col">
-                      <ForteCardSection
-                        character={selected.character}
-                        forte={state.forte}
-                      />
-
-                      {/* Stats panel */}
-                      <div className="mt-4 flex min-h-0 flex-1">
-                        <StatsTableSection />
-                      </div>
+                    {/* Stats panel */}
+                    <div className="flex min-w-0 flex-1 pt-4">
+                      <StatsTableSection layout="single" />
                     </div>
                   </div>
                 </div>
