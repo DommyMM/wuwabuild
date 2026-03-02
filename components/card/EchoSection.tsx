@@ -50,7 +50,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
           >
             {/* Echo Image + Info Column */}
             <div className="flex shrink-0 items-stretch">
-              {/* Echo image — forced square, fades right into info column */}
+              {/* Echo image forced square, fades right into info column */}
               <div className="relative aspect-square w-[62%] shrink-0 overflow-hidden">
                 <img
                   src={echo.iconUrl}

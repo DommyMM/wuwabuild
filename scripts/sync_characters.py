@@ -669,7 +669,7 @@ def main():
             en_name = char.get("name", {}).get("en", str(char_id))
             output_json = json.dumps(char, **json_kwargs)
             size_kb = len(output_json.encode("utf-8")) / 1024
-            print(f"\n=== {en_name} ({char_id}) — {size_kb:.1f}KB ===")
+            print(f"\n=== {en_name} ({char_id}), {size_kb:.1f}KB ===")
             print(output_json[:5000])
             if len(output_json) > 5000:
                 print(f"\n... [{size_kb:.1f}KB total, truncated]")

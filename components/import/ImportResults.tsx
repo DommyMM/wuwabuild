@@ -288,7 +288,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
         </div>
       </div>
 
-      {/* Echoes — 5 equal columns */}
+      {/* 5 equal Echoes columns */}
       <div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {echoKeys.map((k, index) => (

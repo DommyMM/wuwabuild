@@ -55,7 +55,7 @@ def normalise_prop(prop: dict) -> dict:
     """Normalise AddProp entry: camelCase keys, value as percentage if IsRatio."""
     raw_value = prop["Value"]
     is_ratio = prop["IsRatio"]
-    # CDN stores ratios as e.g. 0.1 (= 10%) — multiply to get human-readable %
+    # CDN stores ratios as e.g. 0.1 (= 10%), multiply to get human-readable %
     value = round(raw_value * 100, 4) if is_ratio else raw_value / 10
     return {
         "id":      prop["Id"],
@@ -102,7 +102,7 @@ def main():
             print(f"  WARNING: fetter id {fetter_id} not found for group {group_id}")
             continue
 
-        # Lore text is consistent across pieces — take from this entry
+        # Lore text is consistent across pieces, take from this entry
         lore = fetter.get("EffectDefineDescription", {})
 
         entry = {
@@ -130,7 +130,7 @@ def main():
 
     if args.dry_run:
         print(json.dumps(output[:3], indent=2, ensure_ascii=False))
-        print(f"\n(dry-run) {len(output)} groups — not written")
+        print(f"\n(dry-run) {len(output)} groups, not written")
         return
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
@@ -138,7 +138,7 @@ def main():
         json.dump(output, f, **json_kwargs)
 
     size_kb = OUTPUT.stat().st_size / 1024
-    print(f"\nWrote {OUTPUT} [{size_kb:.1f} KB] — {len(output)} fetter groups")
+    print(f"\nWrote {OUTPUT} [{size_kb:.1f} KB], {len(output)} fetter groups")
 
 
 if __name__ == "__main__":

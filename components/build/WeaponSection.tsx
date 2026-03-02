@@ -25,7 +25,7 @@ export const WeaponSection: React.FC<WeaponSectionProps> = ({
 
   return (
     <div className="flex flex-col rounded-xl border border-white/10 bg-white/4 backdrop-blur-[3px] overflow-hidden">
-      {/* Weapon image — hero element */}
+      {/* Weapon image, hero element */}
       <div className="relative w-full">
         <img
           src={weapon.iconUrl}

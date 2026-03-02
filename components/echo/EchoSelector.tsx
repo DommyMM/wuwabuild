@@ -167,7 +167,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
     (filteredEchoesByCost[3]?.length ?? 0) +
     (filteredEchoesByCost[1]?.length ?? 0);
 
-  // Render a single echo card — matches weapon/character card pattern
+  // Render a single echo card, matches weapon/character card pattern
   const renderEchoCard = (echo: Echo) => {
     const isSelected = selectedEchoId === echo.id;
 
@@ -183,7 +183,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
           }
         `}
       >
-        {/* Image — no padding, fills card width */}
+        {/* Image, no padding, fills card width */}
         <div className="relative aspect-square w-full overflow-hidden">
           <img
             src={getEchoPaths(echo)}
@@ -210,7 +210,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
 
     return (
       <div key={cost} className="flex min-h-0 min-w-0 flex-1 flex-col">
-        {/* Column header — stays visible */}
+        {/* Column header, stays visible */}
         <div className={`shrink-0 border-b-2 pb-1.5 ${COST_HEADER_BORDER[cost]}`}>
           <span className={`text-sm font-semibold ${COST_TEXT[cost]}`}>
             {COST_LABELS[cost]}
@@ -220,7 +220,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
           </span>
         </div>
 
-        {/* Scrollable echo list — thin scrollbar (Tailwind arbitrary variants) */}
+        {/* Scrollable echo list, thin scrollbar */}
         <div
           className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#444_var(--color-background-secondary)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-background-secondary [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#444]"
         >

@@ -136,7 +136,7 @@ export const FETTER_MAP: Record<number, ElementType> = {
   12: 'Midnight',
   13: 'Empyrean',
   14: 'Tidebreaking',
-  // 15: (gap — no fetter 15 exists)
+  // 15: (no fetter 15 exists)
   16: 'Gust',
   17: 'Windward',
   18: 'Flaming',

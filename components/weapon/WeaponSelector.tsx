@@ -134,7 +134,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
 
   return (
     <>
-      {/* Weapon trigger — centered card + rank slider */}
+      {/* Weapon trigger, centered card + rank slider */}
       <div className={`relative flex flex-col items-center gap-2 ${className}`}>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -147,7 +147,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
           />
         </button>
 
-        {/* Rank slider — vertical 1-5, right edge */}
+        {/* Rank slider, vertical 1-5, right edge */}
         {selectedWeapon && (
           <div className="absolute right-4 top-0 flex flex-col items-center">
             <span className="text-xs font-bold text-text-primary/40 mb-1">5</span>

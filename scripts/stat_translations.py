@@ -68,7 +68,7 @@ EN_TO_KEY: dict[str, str] = {
     "Spectro DMG Bonus":  "Spectro DMG",
 }
 
-# Percentage stats — derived from base, inserted into output right after base.
+# Percentage stats, derived from base, inserted into output right after base.
 # key = base stat output key, value = pct stat output key
 PCT_AFTER: dict[str, str] = {
     "HP":   "HP%",
@@ -85,7 +85,7 @@ def get_icon_url(entry: dict) -> str:
 
 def derive_percent(base_i18n: dict) -> dict:
     """Append '%' to each non-empty translation; leave empty strings empty.
-    Does NOT touch the 'icon' key — that is added separately."""
+    Does NOT touch the 'icon' key, that is added separately."""
     return {lang: (val + "%" if val else "") for lang, val in base_i18n.items()}
 
 
@@ -101,7 +101,7 @@ def main():
     props_raw: list[dict] = session.get(PROPERTY_INDEXS_URL, timeout=30).json()
     print(f"  {len(props_raw)} property entries")
 
-    # Index by Name.en — prefer IsShow=True entries when names collide (e.g. HP appears twice)
+    # Index by Name.en, prefer IsShow=True entries when names collide (e.g. HP appears twice)
     by_en: dict[str, dict] = {}
     for p in props_raw:
         en = p.get("Name", {}).get("en", "")
@@ -119,7 +119,7 @@ def main():
             print(f"  WARNING: '{en_name}' not found in PropertyIndexs")
             continue
 
-        # Translations only (no icon yet — keep derive_percent clean)
+        # Translations only (no icon yet, keep derive_percent clean)
         i18n = {lang: entry["Name"].get(lang, "") for lang in LANGS}
 
         # Icon URL from PropertyIndexs
@@ -127,7 +127,7 @@ def main():
 
         output[our_key] = {**i18n, **({"icon": icon_url} if icon_url else {})}
 
-        # Insert % variant immediately after if applicable — same icon as base
+        # Insert % variant immediately after if applicable, same icon as base
         pct_key = PCT_AFTER.get(our_key)
         if pct_key:
             pct_i18n = derive_percent(i18n)
@@ -141,7 +141,7 @@ def main():
 
     if args.dry_run:
         print(json.dumps(dict(list(output.items())[:3]), indent=2, ensure_ascii=False))
-        print(f"\n(dry-run) {len(output)} stats — not written")
+        print(f"\n(dry-run) {len(output)} stats, not written")
         return
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
@@ -149,7 +149,7 @@ def main():
         json.dump(output, f, **json_kwargs)
 
     size_kb = OUTPUT.stat().st_size / 1024
-    print(f"\nWrote {OUTPUT} [{size_kb:.1f} KB] — {len(output)} stat entries")
+    print(f"\nWrote {OUTPUT} [{size_kb:.1f} KB], {len(output)} stat entries")
 
 
 if __name__ == "__main__":

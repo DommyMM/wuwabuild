@@ -299,7 +299,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
 
           // TODO: weapon passive bonuses (effect + params) to be integrated.
           // Passive data is available in weapon.params[paramIndex][rank-1] for
-          // direct R1–R5 lookup — no scaling formula needed.
+          // direct R1–R5 lookup, no scaling formula needed.
         }
 
         // Add set bonuses

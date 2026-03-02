@@ -5,7 +5,7 @@ using the CDN id as the filename (e.g. 60000425.png).
 Why IDs, not English names:
   - No special-character issues (colons, etc.) on any OS
   - Works identically on Windows (local dev) and Linux (Railway)
-  - SIFT match returns the ID stem directly — backend returns it as echo id with no extra lookup
+  - SIFT match returns the ID stem directly, backend returns it as echo id with no extra lookup
   - IDs are stable; names can theoretically change
 
 First-time setup: clear the existing English-named templates before running.
@@ -60,7 +60,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if not ECHOES_JSON.exists():
-        print(f"ERROR: {ECHOES_JSON} not found — run sync_echoes.py --fetch first")
+        print(f"ERROR: {ECHOES_JSON} not found, run sync_echoes.py --fetch first")
         return 1
     if not ICONS_DIR.exists():
         print(f"ERROR: {ICONS_DIR} not found")

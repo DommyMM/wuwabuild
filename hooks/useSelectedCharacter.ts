@@ -14,15 +14,14 @@ export interface SelectedCharacter {
   element: string;
   displayName: string;              // Display name (English, e.g. "Rover", "Camellya")
   nameI18n: I18nString;            // Translated display name for t() usage
-  iconRound: string;               // CDN URL — circular face icon (HeadCircle256)
-  head: string;                    // CDN URL — square head icon (Head256)
-  banner: string;                  // CDN URL — full character portrait (RolePile)
+  iconRound: string;               // CDN URL, circular face icon (HeadCircle256)
+  head: string;                    // CDN URL, square head icon (Head256)
+  banner: string;                  // CDN URL, full character portrait (RolePile)
 }
 
 /**
  * Composes BuildContext + GameDataContext into a single memoized
  * selected-character object with pre-computed CDN image URLs.
- *
  * Returns `null` when no character is selected.
  */
 export function useSelectedCharacter(): SelectedCharacter | null {

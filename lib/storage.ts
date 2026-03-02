@@ -30,7 +30,7 @@ function migrateSavedState(raw: Record<string, unknown>): SavedState {
     return { ...defaults, ...raw, forte: migrateForte(raw) } as SavedState;
   }
 
-  // Legacy nested shape — flatten
+  // Legacy nested shape, flatten
   const cs = (raw.characterState as Record<string, unknown>) ?? {};
   const ws = (raw.weaponState as Record<string, unknown>) ?? {};
 

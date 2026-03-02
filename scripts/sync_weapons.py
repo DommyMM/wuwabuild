@@ -32,9 +32,9 @@ SCHEMA = {
     "rarity": ["id", "color"],
     "icon": True,
     # Passive: effect template ("{0}" placeholders) + effectName + params (R1-R5 per placeholder).
-    # Params are NOT uniformly scaled — ratios vary (1.5x, 2x, 3.2x etc.), so all 5 ranks are kept.
+    # Params are NOT uniformly scaled, ratios vary (1.5x, 2x, 3.2x etc.), so all 5 ranks are kept.
     # Weapons with multi-stat passives (e.g. Guardian series boosting Basic + Heavy ATK) use a
-    # single {0} param for both; there is no separate "passive2" — the effect text describes it.
+    # single {0} param for both; there is no separate "passive2", the effect text describes it.
     "effect": True,
     "effectName": True,
     "params": True,
@@ -377,7 +377,7 @@ def main():
             en_name = weapon.get("name", {}).get("en", str(wid))
             output_json = json.dumps(weapon, **json_kwargs)
             size_kb = len(output_json.encode("utf-8")) / 1024
-            print(f"\n=== {en_name} ({wid}) — {size_kb:.1f}KB ===")
+            print(f"\n=== {en_name} ({wid}), {size_kb:.1f}KB ===")
             print(output_json[:5000])
             if len(output_json) > 5000:
                 print(f"\n... [{size_kb:.1f}KB total, truncated]")

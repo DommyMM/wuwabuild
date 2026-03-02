@@ -22,7 +22,7 @@ function EchoName({ text, className }: { text: string; className?: string }) {
     const container = containerRef.current;
     const measure = measureRef.current;
     if (!container || !measure) return;
-    // 16px buffer — text that barely fits still gets a marquee for breathing room
+    // 16px buffer, text that barely fits still gets a marquee for breathing room
     const check = () => setScrolls(measure.scrollWidth + 16 > container.clientWidth);
     check();
     const ro = new ResizeObserver(check);
@@ -185,12 +185,12 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
       <div
         className={`flex flex-col rounded-lg border-2 transition-colors border-border  ${isDragging ? 'bg-[#3a3a3a] shadow-[0_0_20px_rgba(0,0,0,0.3)]' : 'bg-background-secondary'} ${className}`}
       >
-        {/* Header — drag handle bar with phantom toggle (left) and clear (right) */}
+        {/* Header: drag handle bar with phantom toggle (left) and clear (right) */}
         <div
           {...dragHandleProps}
           className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2 border-b border-border px-2 py-2 cursor-grab active:cursor-grabbing"
         >
-          {/* Left: Phantom checkbox (only for applicable echoes) */}
+          {/* Left: Phantom checkbox, only for applicable echoes */}
           <div className="flex items-center" onPointerDown={(e) => e.stopPropagation()}>
             {echo && canBePhantom && (
               <label
@@ -212,7 +212,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
             )}
           </div>
 
-          {/* Center: Echo name — scrolls when overflowing */}
+          {/* Center: Echo name scrolls when overflowing */}
           <EchoName
             text={echo ? (echo.nameI18n ? t(echo.nameI18n) : echo.name) : `Echo ${index + 1}`}
             className="text-lg text-text-primary pointer-events-none select-none px-1"
@@ -234,7 +234,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
         {/* Echo Selection Area */}
         <div className="p-3">
           <div className="flex items-start justify-center gap-2">
-            {/* Left: element tabs — flex-1 so image stays centered */}
+            {/* Left: element tabs */}
             <div className="flex flex-1 justify-end">
               {echo && echo.elements.length > 1 && (
                 <div className="grid grid-cols-2 gap-1" onPointerDown={(e) => e.stopPropagation()}>
@@ -256,7 +256,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
               )}
             </div>
 
-            {/* Center: echo image — shrink-0 so it never squishes */}
+            {/* Center: echo image */}
             <button
               onClick={() => setIsSelectorOpen(true)}
               className="shrink-0 overflow-hidden rounded-lg border border-border transition-colors hover:border-accent/50"
@@ -272,7 +272,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
             <div className="flex-1" />
           </div>
 
-          {/* Echo Controls — always visible */}
+          {/* Echo Controls, always visible */}
           <div className="mt-3">
 
             {/* Level Slider */}

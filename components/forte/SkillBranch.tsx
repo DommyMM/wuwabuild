@@ -99,7 +99,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
           <div className="h-8 w-[2px] bg-text-primary" />
         </>
       ) : (
-        /* tree3 — inherent skill nodes (D1 top, D2 middle) */
+        /* tree3, inherent skill nodes (D1 top, D2 middle) */
         <>
           {(['top', 'middle'] as const).map((pos, i) => {
             const inherentIcon = character.skillIcons?.[`inherent-${i + 1}`] ?? '';

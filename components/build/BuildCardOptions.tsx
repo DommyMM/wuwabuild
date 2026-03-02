@@ -42,7 +42,7 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
 
   return (
     <div className={`flex items-start gap-3 rounded-lg border border-border bg-background p-3 ${className}`}>
-      {/* Name — max 12 chars */}
+      {/* Name - max 12 chars */}
       <div className="flex flex-col gap-1.5">
         <label className={LABEL_BASE}>Name</label>
         <input
@@ -56,7 +56,7 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
         />
       </div>
 
-      {/* UID — max 9 chars */}
+      {/* UID - max 9 chars */}
       <div className="flex flex-col gap-1.5">
         <label className={LABEL_BASE}>UID</label>
         <input

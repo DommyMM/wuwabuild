@@ -75,7 +75,7 @@ def sync_echoes(dry_run: bool) -> int:
         elements = [FETTER_MAP[fid] for fid in echo.get("fetter", []) if fid in FETTER_MAP]
         out.append({
             "name": echo["name"]["en"],
-            "id": str(echo["id"]),  # Always CDN ID — matches what _load_from_cdn uses
+            "id": str(echo["id"]),  # Always CDN ID, match what _load_from_cdn uses
             "cost": echo["cost"],
             "elements": elements,
         })
@@ -113,7 +113,7 @@ def main() -> int:
     sync_echoes(args.dry_run)
     copy_unchanged("Mainstat.json", args.dry_run)
     copy_unchanged("Substats.json", args.dry_run)
-    print("Backend sync complete." if not args.dry_run else "Dry run complete — nothing written.")
+    print("Backend sync complete." if not args.dry_run else "Dry run complete, nothing written.")
     return 0
 
 

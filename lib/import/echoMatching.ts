@@ -24,7 +24,7 @@ export function matchEchoData(
 
   let phantom = false;
 
-  // ID lookup (primary — backend provides CDN id directly)
+  // ID lookup (primary, backend provides CDN id directly)
   const echoId = ocrData.name.id;
   let echo: Echo | null = echoId ? (echoes.find(e => String(e.id) === echoId) ?? null) : null;
 
@@ -50,7 +50,7 @@ export function matchEchoData(
 
   if (!echo) return null;
 
-  // Element — backend already validated; fall back to echo's first available element
+  // Element, backend already validated; fall back to echo's first available element
   let selectedElement: ElementType | null = null;
   const ocrElement = ocrData.element;
   if (ocrElement && ocrElement !== 'Unknown') {

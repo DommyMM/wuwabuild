@@ -351,7 +351,7 @@ export function BuildProvider({
       try {
         const saved = stripDirtyFromState(state);
         window.localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(saved));
-      } catch { /* quota exceeded — silently ignore */ }
+      } catch { /* quota exceeded, silently ignore */ }
     }, 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [persistDraft, state]);

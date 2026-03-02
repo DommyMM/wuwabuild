@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     try {
       await s3Client.send(new HeadObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: filename }));
       return Response.json({ success: true, filename, deduplicated: true });
-    } catch { /* not found — proceed with upload */ }
+    } catch { /* not found, proceed with upload */ }
 
     await s3Client.send(new PutObjectCommand({
       Bucket:      process.env.R2_BUCKET_NAME,

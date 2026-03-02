@@ -52,7 +52,7 @@ export function ImportPageClient() {
 
     reset();
     setStep('results');
-    processImage(f); // fire-and-forget — streams progress into state
+    processImage(f); // fire-and-forget, streams progress into state
   };
 
   const handleReset = () => {

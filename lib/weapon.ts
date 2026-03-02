@@ -20,7 +20,7 @@ export interface CDNWeapon {
   effectName: I18nString;
   /** Refinement params keyed by placeholder index ("0","1",...).
    *  Each value is an array of 5 strings (R1–R5), e.g. ["12%","15%","18%","21%","24%"].
-   *  Scaling is NOT uniform — ratios vary per weapon, so all 5 ranks are stored. */
+   *  Scaling is NOT uniform, ratios vary per weapon, so all 5 ranks are stored. */
   params: Record<string, string[]>;
   stats: {
     first: { attribute: string; value: number };
@@ -55,7 +55,7 @@ export interface Weapon {
   /** Passive ability name (multilingual) */
   effectName?: I18nString;
   /** Refinement values per placeholder: params["0"][rank-1] gives the R{rank} value.
-   *  Use directly — no scaling formula needed. */
+   *  Use directly, no scaling formula needed. */
   params?: Record<string, string[]>;
   /** Substat display name (multilingual), e.g. { en: "Crit. DMG", ja: "クリティカルダメージ" } */
   mainStatI18n?: I18nString;

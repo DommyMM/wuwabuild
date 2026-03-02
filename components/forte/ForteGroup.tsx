@@ -45,7 +45,7 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
   onMaxAll,
   className = '',
 }) => {
-  // ── Bonus stats ──
+  // Bonus stats
   const { bonus1Total, bonus2Total, bonus1Type } = useMemo(
     () => calculateForteBonus(character, forte),
     [character, forte],
@@ -55,13 +55,13 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
   const bonus1Icon = character.forteNodes?.['tree1.top']?.icon ?? '';
   const bonus2Icon = character.forteNodes?.['tree2.top']?.icon ?? '';
 
-  // Format bonus display — percentages get %, flat stats don't
+  // Format bonus display, percentages get %, flat stats don't
   const formatBonus = (type: string, value: number) => {
     if (value === 0) return `+0%`;
     return `+${value.toFixed(1)}%`;
   };
 
-  // ── Handlers ──
+  // Handlers
   const handleNodeClick = useCallback(
     (col: number, position: 'top' | 'middle') => {
       const current = forte[col];
@@ -81,7 +81,7 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
 
   return (
     <div className={`flex h-full flex-col ${className}`}>
-      {/* ── Bonus stat chips ── */}
+      {/* Bonus stat chips */}
       <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
         <span className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1">
           <img src={bonus1Icon} alt={bonus1Type} className="h-4 w-4 object-contain" />

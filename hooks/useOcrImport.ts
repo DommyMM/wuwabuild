@@ -68,7 +68,7 @@ export function useOcrImport(): UseOcrImportReturn {
           if (!res.ok) throw new Error(`OCR failed for ${key}: ${res.status}`);
 
           const data = await res.json();
-          // Backend wraps results in { success, analysis } — unwrap it
+          // Backend wraps results in { success, analysis }, unwrap it
           const analysis = data?.analysis ?? data;
           setProgress(prev => ({ ...prev, [key]: 'done' }));
           setAnalysisData(prev => ({ ...prev, [key]: analysis }));
