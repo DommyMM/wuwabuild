@@ -8,7 +8,6 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Element } from '@/lib/character';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useStats } from '@/contexts/StatsContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { SequenceSelector } from '@/components/character/SequenceSelector';
@@ -27,8 +26,6 @@ export const BuildEditor: React.FC = () => {
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
 
-  const { stats } = useStats();
-  const [showDebug, setShowDebug] = useState(false);
   const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
   const [isCardGenerated, setIsCardGenerated] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);

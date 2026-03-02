@@ -5,17 +5,18 @@ import { EchoPanelState } from '@/lib/echo';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { isPercentStat } from '@/lib/constants/statMappings';
+import { getEchoSubstatShortLabel, normalizeEchoStatName } from '@/lib/echoStatLabels';
 
-interface EchoesRowSectionProps {
+interface EchoSectionProps {
   echoPanels: EchoPanelState[];
 }
 
-export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels }) => {
+export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
   const { getEcho, fettersByElement, statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
 
   return (
-    <div className="mt-2 flex w-full gap-2">
+    <div className="flex w-full gap-2 pl-8">
       {echoPanels.map((panel, i) => {
         const echo = panel.id ? getEcho(panel.id) : null;
 
@@ -35,11 +36,10 @@ export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels }
         const echoName = echo.nameI18n ? t(echo.nameI18n) : echo.name;
         const rawColor = fetter?.color ? fetter.color.substring(0, 6) : 'ffffff';
         const setColor = rawColor.startsWith('#') ? rawColor : `#${rawColor}`;
-        const fetterIcon = fetter?.fetterIcon ?? null;
+        const fetterIcon = fetter?.icon ?? fetter?.fetterIcon ?? null;
 
-        const mainStatType = panel.stats.mainStat.type;
+        const mainStatType = normalizeEchoStatName(panel.stats.mainStat.type);
         const mainStatValue = panel.stats.mainStat.value;
-        // Look up icon; strip % for percent variants
         const mainStatIcon = mainStatType
           ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')])
           : null;
@@ -102,17 +102,19 @@ export const EchoesRowSection: React.FC<EchoesRowSectionProps> = ({ echoPanels }
             {/* Substats — full names, readable size */}
             <div className="flex flex-col gap-1 px-2 pt-2 pb-2 flex-1">
               {panel.stats.subStats.map((sub, si) => {
-                if (!sub.type || sub.value == null) {
+                const subType = normalizeEchoStatName(sub.type);
+                if (!subType || sub.value == null) {
                   return <div key={si} className="h-4" />;
                 }
-                const isSubPercent = isPercentStat(sub.type);
-                const subIcon = statIcons?.[sub.type] ?? statIcons?.[sub.type.replace('%', '')];
-                const subLabel = statTranslations?.[sub.type] ? t(statTranslations[sub.type]) : sub.type;
+                const isSubPercent = isPercentStat(subType);
+                const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')];
+                const translated = statTranslations?.[subType] ? t(statTranslations[subType]) : subType;
+                const subLabel = getEchoSubstatShortLabel(translated);
                 return (
                   <div key={si} className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1 min-w-0">
                       {subIcon && (
-                        <img src={subIcon} alt={sub.type} className="h-3.5 w-3.5 object-contain shrink-0" />
+                        <img src={subIcon} alt={subType} className="h-3.5 w-3.5 object-contain shrink-0" />
                       )}
                       <span className="text-white/55 text-[10px] leading-none truncate">
                         {subLabel}

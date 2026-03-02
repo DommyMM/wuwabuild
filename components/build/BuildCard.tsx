@@ -9,7 +9,7 @@ import { CharacterPanel } from '@/components/card/CharacterPanel';
 import { SequenceStrip } from '@/components/card/SequenceStrip';
 import { StatsTableSection } from '@/components/card/StatsTableSection';
 import { ForteCardSection } from '@/components/card/ForteCardSection';
-import { EchoesRowSection } from '@/components/card/EchoesRowSection';
+import { EchoSection } from '@/components/card/EchoSection';
 import { NameGroup } from '@/components/card/NameGroup';
 import { WeaponGroup } from '@/components/card/WeaponGroup';
 
@@ -79,69 +79,76 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
   const weaponMainIcon = weaponMainIconKey ? statIcons?.[weaponMainIconKey] ?? statIcons?.['Energy Regen'] : null;
 
   return (
-    <div ref={ref} className="relative flex flex-col select-none">
+    <div ref={ref} className="relative select-none">
       {selected && (
-        <>
-          {/* Main background */}
-          <div
-            className={"relative flex overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]"}
-            style={{ aspectRatio: '2.4/1' }}
-          >
-            {/* Background overlays inside card only */}
-            <div className="pointer-events-none absolute inset-0 z-0">
-              <div className="absolute inset-0 bg-black/10" />
-              <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
-              <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,transparent_35%,rgba(0,0,0,0.22)_100%)]" />
-            </div>
-            {/* Character portrait */}
-            <CharacterPanel
-              selected={selected}
-              tintClass={tintClass}
-              artSource={state.watermark.artSource}
-              onArtSourceChange={v => setWatermark({ artSource: v })}
-              useAltSkin={useAltSkin}
-            />
+        <div
+          className={"relative overflow-hidden rounded-lg border border-white/10 bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]"}
+          style={{ aspectRatio: '2.4/1' }}
+        >
+          {/* Background overlays inside card only */}
+          <div className="pointer-events-none absolute inset-0 z-0">
+            <div className="absolute inset-0 bg-black/10" />
+            <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
+            <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,transparent_35%,rgba(0,0,0,0.22)_100%)]" />
+          </div>
 
-            {/* Sequence strip */}
-            <SequenceStrip
-              chains={selected.character.chains ?? []}
-              sequence={state.sequence}
-              element={selected.element}
-            />
-            <div className="relative flex min-w-0 flex-1 gap-4 pr-4 font-plus-jakarta">
-              <div className="flex w-[34%] min-w-0 flex-col">
-                <NameGroup selected={selected} characterLevel={state.characterLevel} />
+          <div className="relative z-10 flex h-full flex-col">
+            <div className="relative flex h-full min-w-0">
+              {/* Character portrait stays full-height as the left anchor */}
+              <CharacterPanel
+                selected={selected}
+                tintClass={tintClass}
+                artSource={state.watermark.artSource}
+                onArtSourceChange={v => setWatermark({ artSource: v })}
+                useAltSkin={useAltSkin}
+              />
 
-                {weapon && weaponStats && (
-                  <WeaponGroup
-                    weapon={weapon}
-                    weaponStats={weaponStats}
-                    weaponLevel={state.weaponLevel}
-                    weaponRank={state.weaponRank}
-                    weaponAtkIcon={weaponAtkIcon}
-                    weaponMainIcon={weaponMainIcon}
+              {/* Right side: top info row + bottom echoes row */}
+              <div className="flex min-w-0 flex-1 flex-col">
+                {/* Top row */}
+                <div className="relative flex">
+                  <SequenceStrip
+                    chains={selected.character.chains ?? []}
+                    sequence={state.sequence}
+                    element={selected.element}
                   />
-                )}
-              </div>
+                  <div className="relative flex min-w-0 flex-1 gap-5 pb-4 pr-5 pt-2 font-plus-jakarta">
+                    <div className="flex w-[36%] min-w-0 flex-col">
+                      <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
-              <div className="flex min-w-0 flex-1 flex-col pt-3">
-                <ForteCardSection
-                  character={selected.character}
-                  forte={state.forte}
-                />
+                      {weapon && weaponStats && (
+                        <WeaponGroup
+                          weapon={weapon}
+                          weaponStats={weaponStats}
+                          weaponLevel={state.weaponLevel}
+                          weaponRank={state.weaponRank}
+                          weaponAtkIcon={weaponAtkIcon}
+                          weaponMainIcon={weaponMainIcon}
+                        />
+                      )}
+                    </div>
 
-                {/* Stats panel */}
-                <div className="mt-3 flex min-h-0 flex-1">
-                  <StatsTableSection />
+                    <div className="flex min-w-0 flex-1 flex-col pt-3">
+                      <ForteCardSection
+                        character={selected.character}
+                        forte={state.forte}
+                      />
+
+                      {/* Stats panel */}
+                      <div className="mt-4 flex min-h-0 flex-1">
+                        <StatsTableSection />
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Bottom row */}
+                <EchoSection echoPanels={state.echoPanels} />
               </div>
             </div>
           </div>
-
-          {/* Echoes */}
-          <EchoesRowSection echoPanels={state.echoPanels} />
-        </>
+        </div>
       )}
     </div>
   );
