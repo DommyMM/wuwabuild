@@ -8,9 +8,9 @@ export interface RarityAccentStyle {
 
 // Shared rarity accents for weapon surfaces and values.
 export const RARITY_ACCENTS: Record<WeaponRarity, RarityAccentStyle> = {
-  '5-star': { border: 'border-amber-400', bg: 'bg-amber-400/20', text: 'text-amber-300' },
-  '4-star': { border: 'border-purple-400', bg: 'bg-purple-400/20', text: 'text-purple-300' },
-  '3-star': { border: 'border-blue-400', bg: 'bg-blue-400/20', text: 'text-blue-300' },
-  '2-star': { border: 'border-green-400', bg: 'bg-green-400/20', text: 'text-green-300' },
-  '1-star': { border: 'border-gray-400', bg: 'bg-gray-400/20', text: 'text-gray-300' },
+  '5-star': { border: 'border-rarity-5/38', bg: 'bg-rarity-5/8', text: 'text-rarity-5/90' },
+  '4-star': { border: 'border-rarity-4/38', bg: 'bg-rarity-4/8', text: 'text-rarity-4/90' },
+  '3-star': { border: 'border-blue-300/30', bg: 'bg-blue-300/6', text: 'text-blue-200/85' },
+  '2-star': { border: 'border-green-300/28', bg: 'bg-green-300/6', text: 'text-green-200/85' },
+  '1-star': { border: 'border-gray-300/28', bg: 'bg-gray-300/6', text: 'text-gray-200/85' },
 };

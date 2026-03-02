@@ -49,7 +49,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
         return {
           name: echoName,
           mainStat,
-          cv: calculateEchoCV(panel),
+          cv: calculateEchoCV(panel, { echoCost: echo?.cost }),
         };
       })
   ), [getEcho, state.echoPanels, t]);

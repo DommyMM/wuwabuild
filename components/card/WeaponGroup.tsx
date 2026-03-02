@@ -28,35 +28,26 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
   const { t } = useLanguage();
   const translatedWeaponName = t(weapon.nameI18n ?? { en: weapon.name });
   const rarityStyle = RARITY_ACCENTS[weapon.rarity];
-  const starCount = Number.parseInt(weapon.rarity, 10) || 0;
 
   return (
-    <div className={`flex items-center gap-5 rounded-2xl px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)] ${rarityStyle.bg}`}>
-      <img
-        src={weapon.iconUrl}
-        alt={translatedWeaponName || weapon.name}
-        className="h-24 w-24 shrink-0 object-contain drop-shadow-[0_6px_16px_rgba(0,0,0,0.65)]"
-      />
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="flex items-center gap-0.5">
-          {Array.from({ length: starCount }).map((_, index) => (
-            <img
-              key={`${weapon.id}-star-${index}`}
-              src="/images/Star.png"
-              alt="star"
-              className="h-4 w-4 object-contain"
-            />
-          ))}
-        </div>
-        <span className="truncate pr-1 text-2xl font-semibold leading-tight text-white/95">
+    <div className="flex items-center gap-2">
+      <div className={`relative flex h-30 w-30 items-center justify-center overflow-hidden rounded-xl border shadow-[0_8px_18px_rgba(0,0,0,0.35)] ${rarityStyle?.border ?? 'border-white/28'} ${rarityStyle?.bg ?? 'bg-black/20'}`}>
+        <img
+          src={weapon.iconUrl}
+          alt={translatedWeaponName || weapon.name}
+          className="h-full w-full object-contain"
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <span className="truncate text-2xl font-semibold leading-tight text-white/95">
           {translatedWeaponName || weapon.name}
         </span>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-5 w-5 object-contain" />}
             <span className="text-lg font-semibold text-white/88">{weaponStats.scaledAtk}</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-5 w-5 object-contain" />}
             <span className="text-lg font-semibold text-white/88">{weaponStats.scaledMainStat}%</span>
           </div>

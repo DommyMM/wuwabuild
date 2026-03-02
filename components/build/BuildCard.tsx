@@ -106,15 +106,15 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
               />
 
               {/* Right side: top info row + compact echoes */}
-              <div className="flex w-full flex-col justify-between">
-                <div className="flex">
+              <div className="flex w-full flex-col flex-1">
+                <div className="flex TopRow">
                   <SequenceStrip
                     chains={selected.character.chains ?? []}
                     sequence={state.sequence}
                     element={selected.element}
                     totalCV={totalCV}
                   />
-                  <div className="relative flex flex-1 gap-5 pb-4 pr-5 pt-2 font-plus-jakarta">
+                  <div className="relative flex flex-1 gap-5 pb-4 pr-5 pt-2 font-plus-jakarta tracking-wide leading-none text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
                     <div className="flex w-1/2 min-w-0 flex-col">
                       <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
@@ -129,12 +129,10 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                         />
                       )}
 
-                      <div className="mt-3">
-                        <ForteCardSection
-                          character={selected.character}
-                          forte={state.forte}
-                        />
-                      </div>
+                      <ForteCardSection
+                        character={selected.character}
+                        forte={state.forte}
+                      />
                     </div>
 
                     {/* Stats panel */}

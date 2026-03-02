@@ -16,7 +16,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
   const { t } = useLanguage();
 
   return (
-    <div className="flex w-full gap-2 px-3 pb-3">
+    <div className="flex h-full gap-2 px-3 pb-3">
       {echoPanels.map((panel, i) => {
         const echo = panel.id ? getEcho(panel.id) : null;
 
@@ -42,15 +42,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
           ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')])
           : null;
         const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
-
-        const rawEchoCV = calculateEchoCV(panel);
-        const critMainContribution =
-          echo.cost === 4 && mainStatType && mainStatValue != null
-            ? (mainStatType === 'Crit Rate'
-              ? mainStatValue * 2
-              : (mainStatType === 'Crit DMG' ? mainStatValue : 0))
-            : 0;
-        const echoCV = Math.max(0, rawEchoCV - critMainContribution);
+        const echoCV = calculateEchoCV(panel, { echoCost: echo.cost });
 
         const substats = panel.stats.subStats.filter(
           (sub) => Boolean(sub.type?.trim()) && sub.value != null

@@ -134,7 +134,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
         name: echo ? t(echo.nameI18n ?? { en: echo.name }) : 'Empty Slot',
         icon: getEchoPaths(echo, panel.phantom),
         setIcon: echoElement ? (getFetterByElement(echoElement)?.icon ?? '') : '',
-        cv: panel.id ? calculateEchoCV(panel) : 0,
+        cv: panel.id ? calculateEchoCV(panel, { echoCost: echo?.cost }) : 0,
       };
     })
   ), [build.state.echoPanels, getEcho, getFetterByElement, t]);
