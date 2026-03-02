@@ -16,7 +16,7 @@ type ImportStep = 'upload' | 'results';
 
 export function ImportPageClient() {
   const router = useRouter();
-  const { loadState } = useBuild();
+  const { loadState, state: buildState } = useBuild();
   const gameData = useGameData();
   const { isProcessing, progress, analysisData, error, processImage, reset } = useOcrImport();
 
@@ -24,6 +24,7 @@ export function ImportPageClient() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [dpiWarning, setDpiWarning]           = useState(false);
   const [uploadToLb, setUploadToLb]           = useState(true);
+  const [pendingWm, setPendingWm]             = useState<{ username: string; uid: string } | null>(null);
 
   // Silent wake-up ping so Railway auto-starts the server if sleeping
   useEffect(() => { fetch('/api/ocr').catch(() => {}); }, []);
@@ -56,7 +57,7 @@ export function ImportPageClient() {
     setDpiWarning(false);
   };
 
-  const handleImport = (wm: { username: string; uid: string }) => {
+  const doImport = (wm: { username: string; uid: string }) => {
     const mainStatsArg: Record<string, Record<string, [number, number]>> = {};
     if (gameData.mainStats) {
       for (const [cost, costData] of Object.entries(gameData.mainStats)) {
@@ -86,6 +87,14 @@ export function ImportPageClient() {
 
     loadState(state);
     router.push('/edit');
+  };
+
+  const handleImport = (wm: { username: string; uid: string }) => {
+    if (buildState.characterId) {
+      setPendingWm(wm); // show confirmation modal
+    } else {
+      doImport(wm);
+    }
   };
 
   return (
@@ -168,6 +177,42 @@ export function ImportPageClient() {
         )}
 
       </div>
+
+      {/* Override confirmation modal */}
+      {pendingWm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-text-primary">Replace current build?</p>
+                <p className="text-sm text-text-primary/60 mt-1">
+                  You have{' '}
+                  <span className="text-text-primary font-medium">
+                    {gameData.getCharacter(buildState.characterId)?.name ?? 'a build'}
+                  </span>{' '}
+                  loaded. Importing will overwrite it.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingWm(null)}
+                className="flex-1 py-2 rounded-xl border border-border text-sm font-semibold text-text-primary/70 hover:text-text-primary hover:border-text-primary/30 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { doImport(pendingWm); setPendingWm(null); }}
+                className="flex-1 py-2 rounded-xl bg-accent text-background text-sm font-semibold hover:bg-accent-hover transition-colors"
+              >
+                Import Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
