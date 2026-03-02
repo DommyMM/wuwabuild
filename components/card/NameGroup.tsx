@@ -20,7 +20,7 @@ export const NameGroup: React.FC<NameGroupProps> = ({
     : t(selected.character.nameI18n ?? { en: selected.displayName });
 
   return (
-    <div className="flex flex-col py-4">
+    <div className="flex flex-col">
       <div className="flex items-center gap-2">
         <span className="text-4xl text-white">{translatedName}</span>
       </div>
