@@ -1,44 +1,60 @@
-export async function POST(req: Request) {
-  const { R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET } = process.env;
+import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { createHash } from 'crypto';
 
-  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET) {
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId:     process.env.R2_ACCESS_KEY_ID     || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  },
+});
+
+function getPngDimensions(buffer: Buffer): { width: number; height: number } | null {
+  if (buffer[0] !== 0x89 || buffer[1] !== 0x50 || buffer[2] !== 0x4e || buffer[3] !== 0x47) {
+    return null;
+  }
+  return {
+    width:  buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20),
+  };
+}
+
+export async function POST(req: Request) {
+  if (
+    !process.env.CLOUDFLARE_ACCOUNT_ID ||
+    !process.env.R2_ACCESS_KEY_ID ||
+    !process.env.R2_SECRET_ACCESS_KEY ||
+    !process.env.R2_BUCKET_NAME
+  ) {
     return Response.json({ success: false, reason: 'R2 not configured' }, { status: 200 });
   }
 
   try {
     const { image } = await req.json() as { image: string };
-    const bytes = Buffer.from(image, 'base64');
+    const imageBuffer = Buffer.from(image, 'base64');
 
-    // Validate PNG dimensions from header bytes (PNG: 8-byte sig, then IHDR chunk)
-    // PNG sig: 89 50 4E 47 0D 0A 1A 0A, then 4 bytes length, IHDR, 4 bytes W, 4 bytes H
-    if (bytes.length < 24 ||
-        bytes[0] !== 0x89 || bytes[1] !== 0x50 || bytes[2] !== 0x4E || bytes[3] !== 0x47) {
-      return Response.json({ success: false, reason: 'not a PNG' }, { status: 200 });
-    }
-    const width  = bytes.readUInt32BE(16);
-    const height = bytes.readUInt32BE(20);
-    if (width !== 1920 || height !== 1080) {
-      return Response.json({ success: false, reason: 'wrong dimensions' }, { status: 200 });
+    const dimensions = getPngDimensions(imageBuffer);
+    if (!dimensions || dimensions.width !== 1920 || dimensions.height !== 1080) {
+      return Response.json({ success: false, reason: 'invalid dimensions' }, { status: 200 });
     }
 
-    // SHA-256 hash-based key for deduplication
-    const hashBuf = await crypto.subtle.digest('SHA-256', bytes);
-    const hash = Buffer.from(hashBuf).toString('hex');
-    const key = `training/${hash}.png`;
+    const filename = createHash('sha256').update(imageBuffer).digest('hex').substring(0, 16) + '.png';
 
-    // PUT to Cloudflare R2 using S3-compatible API
-    const endpoint = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET}/${key}`;
-    await fetch(endpoint, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'image/png',
-        'Authorization': `AWS4-HMAC-SHA256 Credential=${R2_ACCESS_KEY_ID}`,
-      },
-      body: bytes,
-      signal: AbortSignal.timeout(30_000),
-    });
+    // Skip upload if already exists (deduplication)
+    try {
+      await s3Client.send(new HeadObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: filename }));
+      return Response.json({ success: true, filename, deduplicated: true });
+    } catch { /* not found — proceed with upload */ }
 
-    return Response.json({ success: true });
+    await s3Client.send(new PutObjectCommand({
+      Bucket:      process.env.R2_BUCKET_NAME,
+      Key:         filename,
+      Body:        imageBuffer,
+      ContentType: 'image/png',
+    }));
+
+    return Response.json({ success: true, filename, deduplicated: false });
   } catch {
     return Response.json({ success: false }, { status: 200 });
   }

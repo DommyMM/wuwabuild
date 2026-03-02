@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { Upload, Clipboard } from 'lucide-react';
 
 interface ImportUploaderProps {
@@ -85,6 +86,17 @@ export function ImportUploader({ onFile }: ImportUploaderProps) {
         onChange={onInputChange}
       />
 
+      {/* Sample image showing expected input */}
+      <div className="w-full">
+        <p className="text-xs text-text-primary/40 mb-2">Example Image</p>
+        <Image
+          src="/images/sample-import.jpeg"
+          alt="Example wuwa-bot screenshot"
+          width={1920}
+          height={1080}
+          className="w-full rounded-lg border border-border opacity-70"
+        />
+      </div>
     </div>
   );
 }

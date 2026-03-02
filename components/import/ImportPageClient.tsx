@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBuild } from '@/contexts/BuildContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
+import { loadImage, getImageDpi } from '@/lib/import/cropImage';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
 import { ImportPreview } from './ImportPreview';
 import type { SavedState } from '@/lib/build';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 
 type ImportStep = 'upload' | 'process' | 'results';
 
@@ -22,6 +23,9 @@ export function ImportPageClient() {
   const [showPreview, setShowPreview]       = useState(false);
   const [watermarkOverride, setWatermark]   = useState<{ username: string; uid: string } | null>(null);
   const [previewUrl, setPreviewUrl]         = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [dpiWarning, setDpiWarning]           = useState(false);
+
   // Silent wake-up ping, Railway will auto start server if sleeping
   useEffect(() => { fetch('/api/ocr').catch(() => {}); }, []);
 
@@ -33,7 +37,26 @@ export function ImportPageClient() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const handleFile = (f: File) => {
+  const handleFile = async (f: File) => {
+    setValidationError(null);
+    setDpiWarning(false);
+
+    // Validate dimensions
+    const img = await loadImage(f);
+    if (img.naturalWidth !== 1920 || img.naturalHeight !== 1080) {
+      setValidationError(
+        `Image should be 1920×1080, got ${img.naturalWidth}×${img.naturalHeight}. ` +
+        `For best results, download the image from Discord instead of screenshotting`
+      );
+      return;
+    }
+
+    // Advisory DPI check (PNG only; JPEG/unknown → skip)
+    const dpi = await getImageDpi(f);
+    if (dpi !== null && dpi !== 96) {
+      setDpiWarning(true);
+    }
+
     setFile(f);
     setStep('process');
     reset();
@@ -52,6 +75,7 @@ export function ImportPageClient() {
     } else if (step === 'process') {
       setStep('upload');
       setFile(null);
+      setDpiWarning(false);
       reset();
     }
   };
@@ -67,7 +91,7 @@ export function ImportPageClient() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8">
+    <main className="bg-background p-4">
       <div className="max-w-2xl mx-auto">
 
         {/* Header */}
@@ -96,7 +120,25 @@ export function ImportPageClient() {
           </div>
         </div>
 
-        {/* Error banner */}
+        {/* Validation error (blocks progress) */}
+        {validationError && (
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400">
+            {validationError}
+          </div>
+        )}
+
+        {/* DPI warning (advisory only) */}
+        {dpiWarning && (
+          <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-sm text-yellow-400 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>
+              This image doesn&apos;t appear to be the original 96 DPI file.
+              For best results, download the image directly from Discord rather than screenshotting it.
+            </span>
+          </div>
+        )}
+
+        {/* OCR error */}
         {error && (
           <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400">
             {error}

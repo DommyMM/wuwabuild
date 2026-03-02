@@ -29,15 +29,15 @@ function EchoCard({ echo }: { echo?: EchoOCRData }) {
   }
   return (
     <div className="bg-background-secondary rounded-lg p-3 flex-1 border border-border text-xs">
-      <p className="font-semibold text-text-primary truncate" title={echo.name.name}>
-        {echo.name.name}
+      <p className="font-semibold text-text-primary truncate" title={echo.name?.name}>
+        {echo.name?.name ?? '—'}
       </p>
       <p className="text-accent mt-1 truncate">
-        {echo.main.name}: {echo.main.value}
+        {echo.main?.name}: {echo.main?.value}
       </p>
-      {echo.substats.slice(0, 5).map((sub, i) => (
+      {(echo.substats ?? []).slice(0, 5).map((sub, i) => (
         <p key={i} className="text-text-primary/60 truncate">
-          {sub.name}: {sub.value}
+          {sub?.name}: {sub?.value}
         </p>
       ))}
     </div>
@@ -121,7 +121,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
           <div className="flex gap-3">
             {['Normal', 'Skill', 'Circuit', 'Intro', 'Lib'].map((label, i) => (
               <div key={label} className="flex flex-col items-center gap-1">
-                <span className="text-accent font-bold text-sm">{forte.levels[i] ?? 0}</span>
+                <span className="text-accent font-bold text-sm">{forte?.levels?.[i] ?? 0}</span>
                 <span className="text-[10px] text-text-primary/50">{label}</span>
               </div>
             ))}
