@@ -2,29 +2,46 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, ArrowDownAZ, ArrowUpAZ, ChevronDown, Download, Search, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Download, Search, Upload, X } from 'lucide-react';
 import { SavedBuild } from '@/lib/build';
-import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, exportAllBuilds, importBuild, loadBuilds, renameBuild } from '@/lib/storage';
+import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, deleteBuild, exportAllBuilds, importBuild, loadBuilds, renameBuild } from '@/lib/storage';
 import { calculateCV } from '@/lib/calculations/cv';
 import { BuildList } from './BuildList';
 import { useBuild } from '@/contexts/BuildContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useGameData } from '@/contexts/GameDataContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getWeaponPaths } from '@/lib/paths';
 
 type SortBy = 'date' | 'name' | 'cv';
 type SortDirection = 'asc' | 'desc';
+type FilterSuggestion = {
+  type: 'character' | 'weapon';
+  id: string;
+  name: string;
+  icon: string;
+};
 
 export const SavesPageClient: React.FC = () => {
   const router = useRouter();
   const { loadState } = useBuild();
   const { success, error: notifyError, warning } = useToast();
+  const { characters, weaponList } = useGameData();
+  const { t } = useLanguage();
   const [builds, setBuilds] = useState<SavedBuild[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [entityQuery, setEntityQuery] = useState('');
+  const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>([]);
+  const [selectedWeaponIds, setSelectedWeaponIds] = useState<string[]>([]);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [expandedBuildId, setExpandedBuildId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isSorting, setIsSorting] = useState(false);
   const [deleteAllArmed, setDeleteAllArmed] = useState(false);
+  const itemsPerPage = 10;
 
   const refreshBuilds = useCallback(() => {
     const data = loadBuilds();
@@ -35,15 +52,69 @@ export const SavesPageClient: React.FC = () => {
     new Map(builds.map((build) => [build.id, calculateCV(build.state.echoPanels)]))
   ), [builds]);
 
+  const selectedCharacters = useMemo(() => (
+    selectedCharacterIds.reduce<typeof characters>((acc, id) => {
+      const character = characters.find((entry) => entry.id === id);
+      if (character) acc.push(character);
+      return acc;
+    }, [])
+  ), [characters, selectedCharacterIds]);
+
+  const selectedWeapons = useMemo(() => (
+    selectedWeaponIds.reduce<typeof weaponList>((acc, id) => {
+      const weapon = weaponList.find((entry) => entry.id === id);
+      if (weapon) acc.push(weapon);
+      return acc;
+    }, [])
+  ), [selectedWeaponIds, weaponList]);
+
+  const filterSuggestions = useMemo<FilterSuggestion[]>(() => {
+    const query = entityQuery.trim().toLowerCase();
+    if (!query) return [];
+
+    const characterSuggestions = characters
+      .filter((character) => !selectedCharacterIds.includes(character.id))
+      .map((character) => ({
+        type: 'character' as const,
+        id: character.id,
+        name: t(character.nameI18n ?? { en: character.name }),
+        icon: character.head ?? '',
+      }))
+      .filter((entry) => entry.name.toLowerCase().includes(query));
+
+    const weaponSuggestions = weaponList
+      .filter((weapon) => !selectedWeaponIds.includes(weapon.id))
+      .map((weapon) => ({
+        type: 'weapon' as const,
+        id: weapon.id,
+        name: t(weapon.nameI18n ?? { en: weapon.name }),
+        icon: getWeaponPaths(weapon),
+      }))
+      .filter((entry) => entry.name.toLowerCase().includes(query));
+
+    const sortByPrefixMatch = (a: FilterSuggestion, b: FilterSuggestion) => {
+      const aStarts = a.name.toLowerCase().startsWith(query) ? 0 : 1;
+      const bStarts = b.name.toLowerCase().startsWith(query) ? 0 : 1;
+      if (aStarts !== bStarts) return aStarts - bStarts;
+      return a.name.localeCompare(b.name);
+    };
+
+    return [
+      ...characterSuggestions.sort(sortByPrefixMatch).slice(0, 6),
+      ...weaponSuggestions.sort(sortByPrefixMatch).slice(0, 6),
+    ];
+  }, [characters, entityQuery, selectedCharacterIds, selectedWeaponIds, t, weaponList]);
+
   const filteredAndSortedBuilds = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const filtered = !query
-      ? builds
-      : builds.filter((build) =>
-          build.name.toLowerCase().includes(query) ||
-          (build.state.characterId ?? '').toLowerCase().includes(query) ||
-          (build.state.weaponId ?? '').toLowerCase().includes(query)
-        );
+    const filtered = builds.filter((build) => {
+      const matchesName = !query || build.name.toLowerCase().includes(query);
+      const matchesCharacter = selectedCharacterIds.length === 0 ||
+        (build.state.characterId ? selectedCharacterIds.includes(build.state.characterId) : false);
+      const matchesWeapon = selectedWeaponIds.length === 0 ||
+        (build.state.weaponId ? selectedWeaponIds.includes(build.state.weaponId) : false);
+      return matchesName && matchesCharacter && matchesWeapon;
+    });
 
     const sorted = [...filtered].sort((a, b) => {
       let comparison = 0;
@@ -58,7 +129,13 @@ export const SavesPageClient: React.FC = () => {
     });
 
     return sorted;
-  }, [buildCVs, builds, searchQuery, sortBy, sortDirection]);
+  }, [buildCVs, builds, searchQuery, selectedCharacterIds, selectedWeaponIds, sortBy, sortDirection]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredAndSortedBuilds.length / itemsPerPage));
+  const paginatedBuilds = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedBuilds.slice(start, start + itemsPerPage);
+  }, [currentPage, filteredAndSortedBuilds]);
 
   const handleExportAll = useCallback(() => {
     try {
@@ -123,6 +200,24 @@ export const SavesPageClient: React.FC = () => {
     }
   }, [notifyError, refreshBuilds, success]);
 
+  const handleDeleteBuild = useCallback((build: SavedBuild) => {
+    if (!window.confirm(`Delete "${build.name}"?`)) return;
+    try {
+      const deleted = deleteBuild(build.id);
+      if (!deleted) {
+        notifyError('Build not found.');
+        return;
+      }
+      if (expandedBuildId === build.id) {
+        setExpandedBuildId(null);
+      }
+      refreshBuilds();
+      success(`Deleted "${build.name}".`);
+    } catch {
+      notifyError('Failed to delete build.');
+    }
+  }, [expandedBuildId, notifyError, refreshBuilds, success]);
+
   useEffect(() => {
     refreshBuilds();
     setIsLoaded(true);
@@ -140,89 +235,212 @@ export const SavesPageClient: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [sortBy, sortDirection]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCharacterIds, selectedWeaponIds]);
+
+  useEffect(() => {
+    if (currentPage > pageCount) {
+      setCurrentPage(pageCount);
+    }
+  }, [currentPage, pageCount]);
+
+  const addFilterSuggestion = useCallback((item: FilterSuggestion) => {
+    if (item.type === 'character') {
+      setSelectedCharacterIds((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
+    } else {
+      setSelectedWeaponIds((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
+    }
+    setEntityQuery('');
+  }, []);
+
+  const removeCharacterFilter = useCallback((id: string) => {
+    setSelectedCharacterIds((prev) => prev.filter((charId) => charId !== id));
+  }, []);
+
+  const removeWeaponFilter = useCallback((id: string) => {
+    setSelectedWeaponIds((prev) => prev.filter((weaponId) => weaponId !== id));
+  }, []);
+
+  const handleFilterInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !entityQuery) {
+      if (selectedWeaponIds.length > 0) {
+        setSelectedWeaponIds((prev) => prev.slice(0, -1));
+        return;
+      }
+      if (selectedCharacterIds.length > 0) {
+        setSelectedCharacterIds((prev) => prev.slice(0, -1));
+      }
+      return;
+    }
+    if (e.key === 'Enter' && filterSuggestions.length > 0) {
+      e.preventDefault();
+      addFilterSuggestion(filterSuggestions[0]);
+    }
+  }, [addFilterSuggestion, entityQuery, filterSuggestions, selectedCharacterIds.length, selectedWeaponIds.length]);
+
+  const hasActiveFilters = searchQuery.trim().length > 0 || selectedCharacterIds.length > 0 || selectedWeaponIds.length > 0;
+
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-5xl p-6 md:px-16">
-        <div className="mb-4 flex flex-col gap-3 rounded-lg border border-border bg-background-secondary p-3 md:flex-row md:items-center">
-          <div className="relative flex-1">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/50"
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, character, or weapon..."
-              className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortBy)}
-                className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-              >
-                <option value="date">Sort: Date</option>
-                <option value="name">Sort: Name</option>
-                <option value="cv">Sort: CV</option>
-              </select>
-              <ChevronDown
-                size={14}
-                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-primary/70"
+        <div className="mb-4 flex flex-col gap-3 rounded-lg border border-border bg-background-secondary p-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="relative flex-1">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/50"
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search build name..."
+                className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
               />
             </div>
 
-            <button
-              onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-text-primary/40"
-              title="Toggle sort direction"
-            >
-              <span className="flex items-center gap-1.5">
-                {sortDirection === 'asc' ? <ArrowUpAZ size={16} /> : <ArrowDownAZ size={16} />}
-                {sortDirection.toUpperCase()}
-              </span>
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortBy)}
+                  className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
+                >
+                  <option value="date">Sort: Date</option>
+                  <option value="name">Sort: Name</option>
+                  <option value="cv">Sort: CV</option>
+                </select>
+                <ChevronDown
+                  size={14}
+                  className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-primary/70"
+                />
+              </div>
+
+              <button
+                onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-text-primary/40"
+                title="Toggle sort direction"
+              >
+                <span className="flex items-center gap-1.5">
+                  {sortDirection === 'asc' ? <ArrowUpAZ size={16} /> : <ArrowDownAZ size={16} />}
+                  {sortDirection.toUpperCase()}
+                </span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-text-primary/40">
+                <span className="flex items-center gap-1.5">
+                  <Upload size={16} />
+                  Import
+                </span>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImport}
+                  className="hidden"
+                />
+              </label>
+
+              <button
+                onClick={handleExportAll}
+                disabled={!isLoaded || builds.length === 0}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Download size={16} />
+                  Export All
+                </span>
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={!isLoaded || builds.length === 0}
+                className={deleteAllArmed
+                  ? 'rounded-lg border border-red-500 bg-red-500/25 px-3 py-2 text-sm font-medium text-red-200 transition-colors hover:bg-red-500/35 disabled:cursor-not-allowed disabled:opacity-50'
+                  : 'rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50'}
+              >
+                <span className="flex items-center gap-1.5">
+                  <AlertTriangle size={16} />
+                  {deleteAllArmed ? 'Confirm Delete All' : 'Delete All'}
+                </span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-text-primary/40">
-              <span className="flex items-center gap-1.5">
-                <Upload size={16} />
-                Import
-              </span>
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImport}
-                className="hidden"
-              />
-            </label>
+          <div className="relative">
+            <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-border bg-background px-2 py-2">
+              {selectedCharacters.map((character) => (
+                <span
+                  key={`char-${character.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-text-primary"
+                >
+                  {character.head && (
+                    <img src={character.head} alt={character.name} className="h-4 w-4 rounded object-cover" />
+                  )}
+                  <span>{t(character.nameI18n ?? { en: character.name })}</span>
+                  <button
+                    onClick={() => removeCharacterFilter(character.id)}
+                    className="rounded p-0.5 text-text-primary/70 transition-colors hover:bg-background-secondary hover:text-text-primary"
+                    aria-label={`Remove ${character.name}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
 
-            <button
-              onClick={handleExportAll}
-              disabled={!isLoaded || builds.length === 0}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <span className="flex items-center gap-1.5">
-                <Download size={16} />
-                Export All
-              </span>
-            </button>
-            <button
-              onClick={handleDeleteAll}
-              disabled={!isLoaded || builds.length === 0}
-              className={deleteAllArmed
-                ? 'rounded-lg border border-red-500 bg-red-500/25 px-3 py-2 text-sm font-medium text-red-200 transition-colors hover:bg-red-500/35 disabled:cursor-not-allowed disabled:opacity-50'
-                : 'rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50'}
-            >
-              <span className="flex items-center gap-1.5">
-                <AlertTriangle size={16} />
-                {deleteAllArmed ? 'Confirm Delete All' : 'Delete All'}
-              </span>
-            </button>
+              {selectedWeapons.map((weapon) => (
+                <span
+                  key={`weapon-${weapon.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background-secondary px-2 py-1 text-xs text-text-primary"
+                >
+                  <img src={getWeaponPaths(weapon)} alt={weapon.name} className="h-4 w-4 object-contain" />
+                  <span>{t(weapon.nameI18n ?? { en: weapon.name })}</span>
+                  <button
+                    onClick={() => removeWeaponFilter(weapon.id)}
+                    className="rounded p-0.5 text-text-primary/70 transition-colors hover:bg-background hover:text-text-primary"
+                    aria-label={`Remove ${weapon.name}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+
+              <input
+                type="text"
+                value={entityQuery}
+                onChange={(e) => setEntityQuery(e.target.value)}
+                onFocus={() => setIsFilterDropdownOpen(true)}
+                onBlur={() => window.setTimeout(() => setIsFilterDropdownOpen(false), 120)}
+                onKeyDown={handleFilterInputKeyDown}
+                placeholder={selectedCharacters.length || selectedWeapons.length
+                  ? 'Add another character or weapon filter...'
+                  : 'Filter by character or weapon...'}
+                className="min-w-[220px] flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-primary/45 outline-none"
+              />
+            </div>
+
+            {isFilterDropdownOpen && filterSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
+                {filterSuggestions.map((item) => (
+                  <button
+                    key={`${item.type}-${item.id}`}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => addFilterSuggestion(item)}
+                    className="flex w-full items-center justify-between gap-2 border-b border-border/60 px-3 py-2 text-left text-sm text-text-primary transition-colors last:border-b-0 hover:bg-background-secondary"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <img src={item.icon} alt={item.name} className="h-5 w-5 shrink-0 rounded object-cover" />
+                      <span className="truncate">{item.name}</span>
+                    </span>
+                    <span className="rounded bg-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-text-primary/70">
+                      {item.type}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -244,14 +462,56 @@ export const SavesPageClient: React.FC = () => {
             ))}
           </div>
         ) : (
-          <BuildList
-            builds={filteredAndSortedBuilds}
-            onSelect={(build) => setExpandedBuildId((prev) => (prev === build.id ? null : build.id))}
-            onLoad={handleLoadBuild}
-            onRename={handleRenameBuild}
-            selectedBuildId={expandedBuildId}
-            emptyMessage={searchQuery ? 'No builds match your search.' : 'No saved builds yet.'}
-          />
+          <>
+            <BuildList
+              builds={paginatedBuilds}
+              onSelect={(build) => setExpandedBuildId((prev) => (prev === build.id ? null : build.id))}
+              onLoad={handleLoadBuild}
+              onDelete={handleDeleteBuild}
+              onRename={handleRenameBuild}
+              selectedBuildId={expandedBuildId}
+              emptyMessage={hasActiveFilters ? 'No builds match your filters.' : 'No saved builds yet.'}
+            />
+            {filteredAndSortedBuilds.length > 0 && pageCount > 1 && (
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="rounded-lg border border-border bg-background p-2 text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="First page"
+                >
+                  <ChevronFirst size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="rounded-lg border border-border bg-background p-2 text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="min-w-20 text-center text-sm text-text-primary/80">
+                  Page {currentPage} / {pageCount}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(pageCount, prev + 1))}
+                  disabled={currentPage === pageCount}
+                  className="rounded-lg border border-border bg-background p-2 text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(pageCount)}
+                  disabled={currentPage === pageCount}
+                  className="rounded-lg border border-border bg-background p-2 text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Last page"
+                >
+                  <ChevronLast size={16} />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>
