@@ -48,7 +48,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
   character, forte, className = '',
 }) => {
   return (
-    <div className={`flex items-end gap-2 ${className}`}>
+    <div className={`mt-2 flex items-end gap-2 ${className}`}>
       {BRANCHES.map((branch, i) => {
         const [level, topActive, midActive] = forte[i];
         const skillIcon = character.skillIcons?.[branch.skillKey] ?? character.elementIcon ?? '';

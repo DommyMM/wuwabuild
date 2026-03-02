@@ -48,7 +48,7 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
               <img
                 src={chain.icon}
                 alt={`Sequence ${i + 1}`}
-                className={"h-1/2 w-1/2 object-contain transition-all duration-300"}
+                className={"h-2/3 w-2/3 object-contain transition-all duration-300"}
               />
             )}
           </div>

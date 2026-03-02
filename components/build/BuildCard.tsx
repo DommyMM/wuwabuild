@@ -51,6 +51,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
   const weaponMainIcon = weapon
     ? (statIcons?.[weapon.main_stat] ?? statIcons?.['Energy Regen'])
     : null;
+  const roleIcon = selected ? `/images/Roles/${selected.character.Role}.png` : null;
 
   return (
     <div ref={ref} className="relative flex flex-col select-none">
@@ -83,28 +84,39 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
               sequence={state.sequence}
               element={selected.element}
             />
-
-            {/* Right content: [name+weapon+forte column] | [stats] */}
             <div className="relative flex font-plus-jakarta">
               <div className="flex flex-col">
-                {/* 1. Name group */}
-                <div className="flex flex-col py-4">
-                  <div className="flex items-center">
-                    {selected.character.elementIcon && (
-                      <img src={selected.character.elementIcon} alt={selected.element} className="h-8 w-8 object-contain" />
-                    )}
-                    <span className="text-white text-4xl leading-none tracking-wide text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
+                {/* Name group */}
+                <div className="flex flex-col py-4 tracking-wide leading-none text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-4xl">
                       {selected.displayName}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 pl-0.5">
-                    <span className="text-white/50 text-[10px] leading-none">
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-2xl">
                       Lv.{state.characterLevel}/90
                     </span>
+                    <div className="flex items-center">
+                      {selected.character.elementIcon && (
+                        <img
+                          src={selected.character.elementIcon}
+                          alt={selected.element}
+                          className="h-8 w-8 object-contain"
+                        />
+                      )}
+                      {roleIcon && (
+                        <img
+                          src={roleIcon}
+                          alt={`${selected.character.Role} role`}
+                          className="h-8 w-8 object-contain"
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* 2. Weapon group */}
+                {/* Weapon group */}
                 {weapon && weaponStats && (
                   <div className="flex items-center gap-4 rounded-xl border border-white/18 bg-black/42 px-3.5 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.28)]">
                     <img
@@ -138,16 +150,14 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                   </div>
                 )}
 
-                {/* 3. Forte group */}
-                <div className="mt-2 flex flex-col">
+                {/* Forte group */}
                   <ForteCardSection
                     character={selected.character}
                     forte={state.forte}
                   />
                 </div>
-              </div>
 
-              {/* 4. Stats panel */}
+              {/* Stats panel */}
               <div className="flex-1 flex flex-col justify-center">
                 <StatsTableSection />
               </div>
