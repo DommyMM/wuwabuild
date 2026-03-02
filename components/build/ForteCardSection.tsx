@@ -27,10 +27,10 @@ interface NodeBadgeProps {
 }
 
 const NodeBadge: React.FC<NodeBadgeProps> = ({ icon, active, isCircuit, alt }) => {
-  if (!icon) return <div className="h-6 w-6 shrink-0" />;
+  if (!icon) return <div className="h-5 w-5 shrink-0" />;
 
   return (
-    <div className={`relative flex h-6 w-6 shrink-0 items-center justify-center border bg-[#222222] ${isCircuit ? '' : 'rounded-full'} ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'}`}>
+    <div className={`relative flex h-5 w-5 shrink-0 items-center justify-center border bg-[#222222] ${isCircuit ? '' : 'rounded-full'} ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'}`}>
       {isCircuit && (
         <div className={`pointer-events-none absolute h-[70%] w-[70%] rotate-45 border ${active ? 'border-black/60 bg-white' : 'border-white/35 bg-[#2b2b2b]'}`} />
       )}
@@ -60,13 +60,15 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
           : (character.forteNodes?.[`${branch.treeKey}.middle`]?.icon ?? '');
 
         return (
-          <div key={branch.skillKey} className="flex flex-1 flex-col items-center justify-end gap-1.5">
+          <div key={branch.skillKey} className="flex flex-1 flex-col items-center justify-end gap-1">
             <NodeBadge
               icon={topNodeIcon}
               active={topActive}
               isCircuit={isCircuit}
               alt={`${branch.label} top node`}
             />
+
+            <div className="h-2.5 w-px shrink-0 bg-white/22" />
 
             <NodeBadge
               icon={midNodeIcon}
@@ -75,20 +77,20 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               alt={`${branch.label} middle node`}
             />
 
-            {/* Connector line */}
-            <div className="h-3 w-px shrink-0 bg-white/20" />
+            <div className="h-2.5 w-px shrink-0 bg-white/22" />
 
             {/* Skill icon frame */}
-            <div className="flex h-9 w-9 shrink-0 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)]">
-              {skillIcon && (
-                <img src={skillIcon} alt={branch.label} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
-              )}
-            </div>
+            <div className="relative mt-0.5 h-8 w-8 shrink-0">
+              <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)]">
+                {skillIcon && (
+                  <img src={skillIcon} alt={branch.label} className="h-[18px] w-[18px] -rotate-45 object-contain brightness-0" />
+                )}
+              </div>
 
-            {/* Level number */}
-            <span className="text-[12px] font-bold leading-none text-white/85">
-              {level}
-            </span>
+              <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-black/40 bg-[#a69662] px-1.5 py-[1px] text-[10px] font-bold leading-none text-white shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
+                {level}
+              </span>
+            </div>
           </div>
         );
       })}

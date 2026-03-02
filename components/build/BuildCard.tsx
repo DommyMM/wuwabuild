@@ -140,7 +140,6 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
 
                 {/* 3. Forte group */}
                 <div className="mt-2 flex w-[min(100%,22rem)] min-w-0 flex-col">
-                  <div className="text-[8px] text-white/35 uppercase tracking-widest mb-1.5 text-center">Forte</div>
                   <ForteCardSection
                     character={selected.character}
                     forte={state.forte}
