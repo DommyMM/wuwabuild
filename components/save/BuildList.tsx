@@ -127,15 +127,17 @@ const BuildItem: React.FC<BuildItemProps> = ({
   const echoPreviewData = useMemo(() => (
     build.state.echoPanels.map((panel) => {
       const echo = panel.id ? getEcho(panel.id) : null;
+      const echoElement = panel.selectedElement ?? echo?.elements?.[0];
       return {
         panel,
         echo,
         name: echo ? t(echo.nameI18n ?? { en: echo.name }) : 'Empty Slot',
         icon: getEchoPaths(echo, panel.phantom),
+        setIcon: echoElement ? (getFetterByElement(echoElement)?.icon ?? '') : '',
         cv: panel.id ? calculateEchoCV(panel) : 0,
       };
     })
-  ), [build.state.echoPanels, getEcho, t]);
+  ), [build.state.echoPanels, getEcho, getFetterByElement, t]);
   const setSummaries = useMemo(() => (
     getBuildSetCounts(build.state.echoPanels, getEcho).map(({ element, count }) => {
       const fetter = getFetterByElement(element);
@@ -380,8 +382,10 @@ const BuildItem: React.FC<BuildItemProps> = ({
                     const [level, topActive, middleActive] = build.state.forte[index] ?? [1, false, false];
                     return (
                       <div key={label} className="rounded border border-border bg-background-secondary p-2 text-xs">
-                        <div className="text-text-primary/60">{label}</div>
-                        <div className="mt-1 font-semibold text-accent">Lv.{level}</div>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-text-primary/60">{label}</div>
+                          <div className="font-semibold text-accent">Lv.{level}</div>
+                        </div>
                         <div className="mt-1 flex gap-1 text-[10px]">
                           <span className={topActive ? 'rounded bg-green-500/20 px-1 text-green-400' : 'rounded bg-border px-1 text-text-primary/50'}>
                             Top
@@ -399,13 +403,20 @@ const BuildItem: React.FC<BuildItemProps> = ({
               <div className="mt-3 rounded-lg border border-border bg-background p-3">
                 <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/50">Echoes</div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
-                  {echoPreviewData.map(({ panel, echo, name, icon, cv }, index) => (
+                  {echoPreviewData.map(({ panel, echo, name, icon, setIcon, cv }, index) => (
                     <div
                       key={`${panel.id ?? 'empty'}-${index}`}
-                      className="rounded border border-border bg-background-secondary p-2 text-xs"
+                      className="relative rounded border border-border bg-background-secondary p-2 pt-3 text-xs"
                     >
                       {panel.id && echo ? (
                         <>
+                          {setIcon && (
+                            <img
+                              src={setIcon}
+                              alt=""
+                              className="absolute left-1/2 top-0 h-5 w-5 -translate-x-1/2 -translate-y-1/2 object-contain"
+                            />
+                          )}
                           <div className="mb-1 flex items-center gap-2">
                             <img src={icon} alt={name} className="h-8 w-8 rounded object-contain" />
                             <div className="min-w-0">
@@ -416,11 +427,6 @@ const BuildItem: React.FC<BuildItemProps> = ({
                             </div>
                           </div>
                           <div className="mb-1 flex flex-wrap gap-1">
-                            {panel.selectedElement && (
-                              <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] text-accent">
-                                {ELEMENT_SETS[panel.selectedElement]}
-                              </span>
-                            )}
                             {panel.phantom && (
                               <span className="rounded bg-border px-1.5 py-0.5 text-[10px] text-text-primary/70">Phantom</span>
                             )}
