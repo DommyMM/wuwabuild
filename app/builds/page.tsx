@@ -1,7 +1,10 @@
+import { Suspense } from 'react';
+import { BuildsPageClient } from '@/components/builds/BuildsPageClient';
+
 export default function Builds() {
-    return (
-        <main className="min-h-screen bg-background">
-            {/* Builds page content will go here */}
-        </main>
-    );
+  return (
+    <Suspense fallback={<main className="mx-auto w-full max-w-[1440px] p-4 text-text-primary">Loading builds...</main>}>
+      <BuildsPageClient />
+    </Suspense>
+  );
 }
