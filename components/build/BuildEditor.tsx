@@ -337,34 +337,47 @@ export const BuildEditor: React.FC = () => {
   return (
     <div className="mx-auto flex max-w-[1440px] min-w-0 flex-col overflow-x-clip">
       {/* Action Bar */}
-      <BuildActionBar
-        containerRef={actionBarRef}
-        isDirty={state.isDirty}
-        onSave={handleOpenSaveModal}
-        onReset={handleResetBuild}
-      />
+      <div className="hidden md:flex md:justify-end">
+        <BuildActionBar
+          containerRef={actionBarRef}
+          isDirty={state.isDirty}
+          onSave={handleOpenSaveModal}
+          onReset={handleResetBuild}
+        />
+      </div>
 
       {/* Portal: compact nav toolbar */}
-      {portalTarget && !isPhoneViewport && createPortal(
-        <AnimatePresence>
-          {!isActionBarVisible && (
-            <motion.div
-              key="nav-toolbar"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center"
-            >
-              <BuildActionBar
-                compact
-                isDirty={state.isDirty}
-                onSave={handleOpenSaveModal}
-                onReset={handleResetBuild}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>,
+      {portalTarget && createPortal(
+        isPhoneViewport ? (
+          <div className="flex items-center">
+            <BuildActionBar
+              compact
+              isDirty={state.isDirty}
+              onSave={handleOpenSaveModal}
+              onReset={handleResetBuild}
+            />
+          </div>
+        ) : (
+          <AnimatePresence>
+            {!isActionBarVisible && (
+              <motion.div
+                key="nav-toolbar"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center"
+              >
+                <BuildActionBar
+                  compact
+                  isDirty={state.isDirty}
+                  onSave={handleOpenSaveModal}
+                  onReset={handleResetBuild}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        ),
         portalTarget
       )}
 
