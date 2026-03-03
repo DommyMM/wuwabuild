@@ -7,17 +7,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 
-type FlatStatKey = 'HP' | 'ATK' | 'DEF';
-const FLAT_STAT_KEYS: readonly FlatStatKey[] = ['HP', 'ATK', 'DEF'] as const;
-const ELEMENTAL_DMG_KEYS = new Set([
-  'Aero DMG',
-  'Glacio DMG',
-  'Fusion DMG',
-  'Electro DMG',
-  'Havoc DMG',
-  'Spectro DMG',
-]);
-const ELEMENT_TO_STAT_KEY: Record<string, string> = {
+const FLAT_STAT_KEYS = ['HP', 'ATK', 'DEF'] as const;
+type FlatStatKey = (typeof FLAT_STAT_KEYS)[number];
+
+const ELEMENT_TO_STAT_KEY: Readonly<Record<string, string>> = {
   Aero: 'Aero DMG',
   Glacio: 'Glacio DMG',
   Fusion: 'Fusion DMG',
@@ -25,6 +18,7 @@ const ELEMENT_TO_STAT_KEY: Record<string, string> = {
   Havoc: 'Havoc DMG',
   Spectro: 'Spectro DMG',
 };
+const ELEMENTAL_DMG_KEYS = new Set(Object.values(ELEMENT_TO_STAT_KEY));
 const ELEMENT_ICON_FILTERS: Record<string, string> = {
   'Aero DMG': 'brightness(0) saturate(100%) invert(81%) sepia(40%) saturate(904%) hue-rotate(93deg) brightness(104%) contrast(103%)',
   'Glacio DMG': 'brightness(0) saturate(100%) invert(68%) sepia(39%) saturate(2707%) hue-rotate(176deg) brightness(102%) contrast(97%)',
@@ -34,8 +28,7 @@ const ELEMENT_ICON_FILTERS: Record<string, string> = {
   'Spectro DMG': 'brightness(0) saturate(100%) invert(83%) sepia(34%) saturate(1178%) hue-rotate(359deg) brightness(102%) contrast(94%)',
 };
 
-const FLAT_STATS = new Set<FlatStatKey>(FLAT_STAT_KEYS);
-const isFlatStatKey = (key: string): key is FlatStatKey => FLAT_STATS.has(key as FlatStatKey);
+const isFlatStatKey = (key: string): key is FlatStatKey => FLAT_STAT_KEYS.some((flatStatKey) => flatStatKey === key);
 
 interface StatsTableSectionProps {
   activeHoverStat?: StatHoverKey | null;
