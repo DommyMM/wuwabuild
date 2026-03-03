@@ -90,6 +90,9 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
         const midNodeName = character.forteNodes?.[`${branch.treeKey}.middle`]?.name ?? '';
         const topNodeHoverKey = normalizeStatHoverKey(topNodeName);
         const midNodeHoverKey = normalizeStatHoverKey(midNodeName);
+        const bottomInteractionClass = !activeHoverStat
+          ? ''
+          : 'opacity-45 brightness-90';
 
         return (
           <div key={branch.skillKey} className="flex shrink-0 flex-col items-center justify-end gap-0.5">
@@ -118,14 +121,14 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
             <div className="-my-0.5 h-2.5 w-px shrink-0 bg-white/28" />
 
             {/* Skill icon frame + level bubble below */}
-            <div className="flex flex-col items-center">
-              <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)]">
+            <div className={`flex flex-col items-center rounded-sm transition-all duration-200 ${bottomInteractionClass}`}>
+              <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-all duration-200">
                 {skillIcon && (
                   <img src={skillIcon} alt={branch.label} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
                 )}
               </div>
               <span
-                className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 ${
+                className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 transition-all duration-200 ${
                   isMaxLevel
                     ? 'border-amber-300/55 bg-amber-300/92 text-[#4a3400]'
                     : 'border-black/35 bg-black/55 text-white/92'

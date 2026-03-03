@@ -3,12 +3,15 @@
 import React from 'react';
 import { EchoPanelState } from '@/lib/echo';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/cv';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { getEchoPaths } from '@/lib/paths';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
+import { isRover } from '@/lib/character';
 
 interface EchoSectionProps {
   echoPanels: EchoPanelState[];
@@ -27,6 +30,27 @@ const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
   WebkitMaskSize: '100% 100%',
 };
 
+const ROVER_ELEMENT_TOKENS = new Set(['Aero', 'Havoc', 'Spectro']);
+
+const matchesEchoBonusCondition = (
+  conditions: string[] | undefined,
+  characterName: string | undefined,
+  isRoverCharacter: boolean,
+  roverElement: string | undefined
+): boolean => {
+  if (!conditions || conditions.length === 0) return true;
+
+  return conditions.some((condition) => {
+    const token = condition.trim();
+    if (!token) return false;
+    if (characterName === token) return true;
+    if (isRoverCharacter && roverElement && ROVER_ELEMENT_TOKENS.has(token)) {
+      return roverElement === token;
+    }
+    return false;
+  });
+};
+
 export const EchoSection: React.FC<EchoSectionProps> = ({
   echoPanels,
   showCV = true,
@@ -35,8 +59,12 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
   onHoverStatChange,
 }) => {
   const { getEcho, fettersByElement, statIcons } = useGameData();
+  const { state } = useBuild();
   const { t } = useLanguage();
+  const selected = useSelectedCharacter();
   const hasActiveHover = Boolean(activeHoverStat);
+  const characterName = selected?.character.name;
+  const isRoverCharacter = selected ? isRover(selected.character) : false;
 
   const getPillInteractionClass = (hoverKey: StatHoverKey | null): string => {
     if (!hasActiveHover) return '';
@@ -93,6 +121,17 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
           const substats = panel.stats.subStats.filter(
             (sub) => Boolean(sub.type?.trim()) && sub.value != null
           );
+          const firstEchoBonusHoverMatch = i === 0 && Boolean(activeHoverStat) && (echo.bonuses?.some((bonus) => {
+            const bonusHoverKey = normalizeStatHoverKey(bonus.stat);
+            if (!bonusHoverKey || bonusHoverKey !== activeHoverStat) return false;
+
+            return matchesEchoBonusCondition(
+              bonus.characterCondition,
+              characterName,
+              isRoverCharacter,
+              state.roverElement
+            );
+          }) ?? false);
 
           const echoCV = calculateEchoSubstatCV(panel);
           const cvTier = echoCV > 0 ? getEchoCVTierStyle(echoCV) : null;
@@ -100,7 +139,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
           return (
             <div
               key={i}
-              className="relative flex flex-1 rounded-xl border overflow-hidden border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
+              className="relative flex flex-1 rounded-xl border overflow-hidden border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
             >
               {/* Top-left stack: CV badge */}
               <div className="absolute top-1 left-1 z-10 flex flex-col items-start gap-1">
@@ -119,12 +158,17 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
               </div>
               {/* Echo image and misc */}
               <div className="flex w-2/3 flex-col overflow-hidden">
-                <img
-                  src={getEchoPaths(echo, panel.phantom)}
-                  alt={echoName}
-                  className="w-full h-auto"
-                  style={ECHO_IMAGE_FADE_STYLE}
-                />
+                <div className="relative rounded-sm">
+                  <img
+                    src={getEchoPaths(echo, panel.phantom)}
+                    alt={echoName}
+                    className={`w-full h-auto transition-all duration-200 ${firstEchoBonusHoverMatch ? 'brightness-110 saturate-110' : ''}`}
+                    style={ECHO_IMAGE_FADE_STYLE}
+                  />
+                  {firstEchoBonusHoverMatch && (
+                    <div className="pointer-events-none absolute inset-0 border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.24),0_0_16px_rgba(110,255,255,0.45)]" />
+                  )}
+                </div>
                 <div className="relative mb-1 h-px w-1/2 bg-[linear-gradient(90deg,rgba(255,255,255,0.20)_0%,rgba(255,255,255,0.09)_55%,rgba(255,255,255,0)_100%)]">
                   {fetterIcon && (
                     <img
