@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
-import { SKIN_CHARACTERS } from '@/lib/character';
+import { hasAlternateSkin } from '@/lib/character';
 
 export interface CardOptions {
   source: string;
@@ -27,7 +27,7 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
   const [showCV, setShowCV] = useState(true);
   const [useAltSkin, setUseAltSkin] = useState(false);
 
-  const hasSkin = selected ? SKIN_CHARACTERS.includes(selected.character.name) : false;
+  const hasSkin = selected ? hasAlternateSkin(selected.character) : false;
 
   useEffect(() => {
     onChange({ source: state.watermark.artSource, showRollQuality, showCV, useAltSkin });

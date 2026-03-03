@@ -10,6 +10,7 @@ Usage:
     python sync_characters.py --fetch --id 1102 --dry-run --pretty
     python sync_characters.py --fetch --individual       # Write per-character files instead
     python sync_characters.py --fetch --include-skills   # Include full skill multiplier data
+    python sync_characters.py --fetch --emit-lb-compact  # Also write LB compact artifact
 """
 
 import json
@@ -140,6 +141,37 @@ def apply_sub_filters(data: dict, filters: dict) -> dict:
                             item[sub_field] = {k: v for k, v in item[sub_field].items() if k in keys_set}
 
     return data
+
+
+def _has_non_null_skin_color(color: Any) -> bool:
+    """Return True if a skin color object contains any non-null override value."""
+    if not isinstance(color, dict):
+        return False
+    return any(value is not None for value in color.values())
+
+
+def _is_redundant_default_skin(skin: Any, base_icon: Any) -> bool:
+    """Detect the duplicated default skin entry (same icons as icon + no color overrides)."""
+    if not isinstance(skin, dict) or not isinstance(base_icon, dict):
+        return False
+
+    skin_icon = skin.get("icon")
+    if not isinstance(skin_icon, dict):
+        return False
+
+    same_round = skin_icon.get("iconRound") == base_icon.get("iconRound")
+    same_banner = skin_icon.get("banner") == base_icon.get("banner")
+    return same_round and same_banner and not _has_non_null_skin_color(skin.get("color"))
+
+
+def prune_default_skins(skins: Any, base_icon: Any) -> list[dict]:
+    """Drop the redundant default skin entry and keep only real alternates."""
+    if not isinstance(skins, list):
+        return []
+    return [
+        skin for skin in skins
+        if isinstance(skin, dict) and not _is_redundant_default_skin(skin, base_icon)
+    ]
 
 
 def extract_stats(value: Any) -> Any:
@@ -337,6 +369,8 @@ def transform_character(data: dict, schema: dict) -> dict | None:
 
     result = extract_by_schema(data, schema)
     apply_sub_filters(result, SUB_FILTERS)
+    if "skins" in result:
+        result["skins"] = prune_default_skins(result["skins"], result.get("icon"))
 
     # Post-process skillTrees → flat English-only list
     if "skillTrees" in result:
@@ -391,10 +425,14 @@ def _extract_lv90_stats(raw: dict) -> dict[str, float]:
         except (TypeError, ValueError):
             return 0.0
 
+    def _round2(value: float) -> float:
+        # Normalize float noise from CDN values (e.g. 262.4999999999997 -> 262.5)
+        return round(value, 2)
+
     return {
-        "HP": _get_val("life"),
-        "ATK": _get_val("atk"),
-        "DEF": _get_val("def"),
+        "HP": _round2(_get_val("life")),
+        "ATK": _round2(_get_val("atk")),
+        "DEF": _round2(_get_val("def")),
     }
 
 
@@ -622,6 +660,8 @@ def main():
                        help="Preview output without writing files")
     parser.add_argument("--pretty", action="store_true",
                        help="Pretty print JSON (default: compact)")
+    parser.add_argument("--emit-lb-compact", action="store_true",
+                       help="Also write public/Data/LB/Characters.compact.json")
 
     args = parser.parse_args()
 
@@ -644,9 +684,10 @@ def main():
         char = transform_character(data, schema)
         if char:
             characters.append(char)
-        compact = transform_character_lb(data)
-        if compact:
-            compact_lb.append(compact)
+        if args.emit_lb_compact:
+            compact = transform_character_lb(data)
+            if compact:
+                compact_lb.append(compact)
 
     print(f"Transformed {len(characters)} characters")
 
@@ -655,7 +696,8 @@ def main():
         return 1
 
     characters.sort(key=lambda c: c.get("name", {}).get("en", ""))
-    compact_lb.sort(key=lambda c: c.get("name", ""))
+    if args.emit_lb_compact:
+        compact_lb.sort(key=lambda c: c.get("name", ""))
 
     json_kwargs = (
         {"indent": 2, "ensure_ascii": False}
@@ -673,7 +715,8 @@ def main():
             print(output_json[:5000])
             if len(output_json) > 5000:
                 print(f"\n... [{size_kb:.1f}KB total, truncated]")
-        print(f"\n[DRY RUN] Would write LB compact artifact: {LB_OUTPUT_FILE} ({len(compact_lb)} entries)")
+        if args.emit_lb_compact:
+            print(f"\n[DRY RUN] Would write LB compact artifact: {LB_OUTPUT_FILE} ({len(compact_lb)} entries)")
     else:
         if args.individual:
             # Write per-character files
@@ -699,12 +742,12 @@ def main():
             print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(characters)} characters)")
             print(f"\nDone: {len(characters)} characters → {combined_path}")
 
-        # Always emit compact LB artifact when writing.
-        LB_OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(LB_OUTPUT_FILE, "w", encoding="utf-8") as f:
-            json.dump(compact_lb, f, **json_kwargs)
-        lb_size_kb = LB_OUTPUT_FILE.stat().st_size / 1024
-        print(f"  Saved LB compact characters [{lb_size_kb:.1f}KB] ({len(compact_lb)} entries) → {LB_OUTPUT_FILE}")
+        if args.emit_lb_compact:
+            LB_OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with open(LB_OUTPUT_FILE, "w", encoding="utf-8") as f:
+                json.dump(compact_lb, f, **json_kwargs)
+            lb_size_kb = LB_OUTPUT_FILE.stat().st_size / 1024
+            print(f"  Saved LB compact characters [{lb_size_kb:.1f}KB] ({len(compact_lb)} entries) → {LB_OUTPUT_FILE}")
 
     return 0
 

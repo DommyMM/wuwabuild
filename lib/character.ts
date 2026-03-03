@@ -140,7 +140,27 @@ export interface Character {
   roverElementName?: Element; // For Rover's element selection (Aero | Spectro | Havoc)
 }
 
-export const SKIN_CHARACTERS = ['Jinhsi', 'Sanhua', 'Changli', 'Carlotta'] as readonly string[];
+export type CharacterSkin = CDNCharacter['skins'][number];
+
+const skinHasColorOverrides = (skin: CharacterSkin): boolean =>
+  Object.values(skin.color ?? {}).some((value) => value != null);
+
+const isAlternateSkinVariant = (
+  character: Pick<Character, 'iconRound' | 'banner'>,
+  skin: CharacterSkin
+): boolean => {
+  const hasDifferentRound = Boolean(character.iconRound && skin.icon.iconRound !== character.iconRound);
+  const hasDifferentBanner = Boolean(character.banner && skin.icon.banner !== character.banner);
+  return hasDifferentRound || hasDifferentBanner || skinHasColorOverrides(skin);
+};
+
+export const getAlternateSkin = (
+  character: Pick<Character, 'iconRound' | 'banner' | 'skins'>
+): CharacterSkin | undefined => character.skins?.find((skin) => isAlternateSkinVariant(character, skin));
+
+export const hasAlternateSkin = (
+  character: Pick<Character, 'iconRound' | 'banner' | 'skins'>
+): boolean => Boolean(getAlternateSkin(character));
 
 export const isRover = (character: Character): boolean =>
   character.name.startsWith("Rover");

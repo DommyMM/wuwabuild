@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
+import { getAlternateSkin } from '@/lib/character';
 
 interface CharacterPanelProps {
   selected: SelectedCharacter;
@@ -48,7 +49,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
   const frameRef = useRef<number | null>(null);
   const pendingPositionRef = useRef<{ x: number; y: number } | null>(null);
   const scaleRef = useRef(artTransform.scale);
-  const altBanner = selected.character.skins?.find(s => s.icon.banner !== selected.banner)?.icon.banner;
+  const altBanner = getAlternateSkin(selected.character)?.icon.banner;
   const baseBannerUrl = useAltSkin && altBanner ? altBanner : selected.banner;
   const bannerUrl = artSourceMode === 'custom' && customArtUrl ? customArtUrl : baseBannerUrl;
   const hasCustomArt = artSourceMode === 'custom' && Boolean(customArtUrl);
