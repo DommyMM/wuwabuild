@@ -13,6 +13,7 @@ Usage:
 
 import json
 import argparse
+import re
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -48,6 +49,100 @@ SCHEMA = {
     #     "Hp", "Def", "EnergyRecover". The name field has the display-ready label per language.
     "stats": True,
 }
+
+ELEMENTAL_DMG_STATS = [
+    "Aero DMG",
+    "Glacio DMG",
+    "Fusion DMG",
+    "Electro DMG",
+    "Havoc DMG",
+    "Spectro DMG",
+]
+
+CONDITIONAL_TRIGGER_PATTERN = re.compile(
+    r"\b(when|after|upon|while|every time|stack|trigger|casting|hitting|dealing|performing|providing|"
+    r"inflicting|obtaining|switching|at max|once every|can be triggered|restores?)\b",
+    re.IGNORECASE,
+)
+
+PASSIVE_PATTERNS: list[tuple[re.Pattern[str], list[str]]] = [
+    (re.compile(r"\b(all-attribute dmg bonus|attribute dmg bonus)\b", re.IGNORECASE), ELEMENTAL_DMG_STATS),
+    (re.compile(r"\benergy regen\b", re.IGNORECASE), ["Energy Regen"]),
+    (re.compile(r"\b(max hp is increased|increases? hp|hp is increased|increase hp)\b", re.IGNORECASE), ["HP%"]),
+    (re.compile(r"\b(increases? atk|atk is increased|atk increased by|increase atk)\b", re.IGNORECASE), ["ATK%"]),
+    (re.compile(r"\b(increases? def|def is increased|def increased by|increase def)\b", re.IGNORECASE), ["DEF%"]),
+    (re.compile(r"\b(increases?|increase)\s+crit\.?\s*rate\b", re.IGNORECASE), ["Crit Rate"]),
+    (re.compile(r"\b(increases?|increase)\s+crit\.?\s*(dmg|damage)\b", re.IGNORECASE), ["Crit DMG"]),
+    (re.compile(r"\bresonance skill dmg bonus\b", re.IGNORECASE), ["Resonance Skill DMG Bonus"]),
+    (re.compile(r"\bresonance liberation dmg bonus\b", re.IGNORECASE), ["Resonance Liberation DMG Bonus"]),
+    (re.compile(r"\bbasic attack and heavy attack dmg bonus\b", re.IGNORECASE), ["Basic Attack DMG Bonus", "Heavy Attack DMG Bonus"]),
+    (re.compile(r"\bbasic attack dmg bonus\b", re.IGNORECASE), ["Basic Attack DMG Bonus"]),
+    (re.compile(r"\bheavy attack dmg bonus\b", re.IGNORECASE), ["Heavy Attack DMG Bonus"]),
+]
+
+
+def _sanitize_text(value: str | None) -> str:
+    return re.sub(r"<[^>]*>", "", value or "").strip()
+
+
+def _parse_percent_value(value: Any) -> float:
+    if value is None:
+        return 0.0
+    try:
+        cleaned = str(value).replace("%", "").strip()
+        return float(cleaned)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _first_sentence(text: str) -> str:
+    normalized = (
+        text.replace("Crit. Rate", "Crit Rate")
+        .replace("Crit. DMG", "Crit DMG")
+        .replace("\n", " ")
+    )
+    parts = [part.strip() for part in re.split(r"\.\s+", normalized) if part.strip()]
+    return parts[0] if parts else ""
+
+
+def _detect_unconditional_passive_stats(sentence: str) -> list[str]:
+    stats: list[str] = []
+    for pattern, pattern_stats in PASSIVE_PATTERNS:
+        if not pattern.search(sentence):
+            continue
+        for stat in pattern_stats:
+            if stat not in stats:
+                stats.append(stat)
+    return stats
+
+
+def extract_unconditional_passive_bonuses(raw: dict) -> dict[str, list[float]]:
+    """Extract static passive bonuses from the first unconditional sentence (scaled R1–R5)."""
+    effect = raw.get("effect", {})
+    effect_en = effect.get("en") if isinstance(effect, dict) else None
+    first_sentence = _first_sentence(_sanitize_text(effect_en))
+
+    if not first_sentence:
+        return {}
+    if CONDITIONAL_TRIGGER_PATTERN.search(first_sentence):
+        return {}
+    if "{0}" not in first_sentence:
+        return {}
+
+    stats = _detect_unconditional_passive_stats(first_sentence)
+    if not stats:
+        return {}
+
+    params = raw.get("params", {})
+    rank_values_raw = params.get("0") if isinstance(params, dict) else None
+    if not isinstance(rank_values_raw, list) or len(rank_values_raw) == 0:
+        return {}
+
+    rank_values = [_parse_percent_value(v) for v in rank_values_raw[:5]]
+    if all(value == 0 for value in rank_values):
+        return {}
+
+    return {stat: rank_values for stat in stats}
 
 
 def _extract_lv90_weapon_stats(raw: dict) -> tuple[float, str, float]:
@@ -232,7 +327,11 @@ def transform_weapon(data: dict, schema: dict) -> dict | None:
     """Transform raw CDN weapon data using schema."""
     if should_skip(data):
         return None
-    return extract_by_schema(data, schema)
+    output = extract_by_schema(data, schema)
+    passive_bonuses = extract_unconditional_passive_bonuses(data)
+    if passive_bonuses:
+        output["unconditionalPassiveBonuses"] = passive_bonuses
+    return output
 
 
 # --- CDN fetch ---

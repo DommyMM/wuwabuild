@@ -8,6 +8,7 @@ import { ELEMENT_SETS, ElementType } from '@/lib/echo';
 import { calculateCV } from '@/lib/calculations/cv';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
 import { calculateForteBonus } from '@/lib/calculations/stats';
+import { getUnconditionalWeaponPassiveBonuses } from '@/lib/calculations/weaponPassives';
 import { SET_TO_STAT, SPECIAL_SET_BONUS_VALUES, DEFAULT_SET_BONUS_VALUE } from '@/lib/constants/setBonuses';
 import { getEchoBonus } from '@/lib/constants/echoBonuses';
 import { getPercentVariant } from '@/lib/constants/statMappings';
@@ -70,6 +71,30 @@ const matchesEchoBonusCondition = (
   });
 };
 
+const getWeaponPassivePercentBonus = (
+  stat: StatName,
+  bonuses: ReturnType<typeof getUnconditionalWeaponPassiveBonuses>
+): number => {
+  switch (stat) {
+    case 'Energy Regen':
+    case 'Crit Rate':
+    case 'Crit DMG':
+    case 'Basic Attack DMG Bonus':
+    case 'Heavy Attack DMG Bonus':
+    case 'Resonance Skill DMG Bonus':
+    case 'Resonance Liberation DMG Bonus':
+    case 'Aero DMG':
+    case 'Glacio DMG':
+    case 'Fusion DMG':
+    case 'Electro DMG':
+    case 'Havoc DMG':
+    case 'Spectro DMG':
+      return bonuses[stat] ?? 0;
+    default:
+      return 0;
+  }
+};
+
 const StatsContext = createContext<StatsContextType | null>(null);
 
 export const useStats = (): StatsContextType => {
@@ -100,7 +125,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
   } = gameData;
 
   const { state } = build;
-  const { characterId, characterLevel, roverElement, weaponId, weaponLevel, echoPanels, forte, sequence } = state;
+  const { characterId, characterLevel, roverElement, weaponId, weaponLevel, weaponRank, echoPanels, forte, sequence } = state;
 
   // Get current character and weapon
   const character = useMemo(() =>
@@ -113,10 +138,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     [getWeapon, weaponId]
   );
 
-  // Calculate weapon stats
-  // NOTE: Passive bonuses from weapon.params will be integrated in a future update.
-  // For now, ATK + substat scaling work via level curves; passive effect values are
-  // available in weapon.params[paramIndex][rank-1] for direct lookup when needed.
+  // Scale weapon ATK/substat and load precomputed unconditional passive bonuses.
   const weaponStats = useMemo(() => {
     if (!weapon) return null;
     return {
@@ -124,6 +146,11 @@ export function StatsProvider({ children }: StatsProviderProps) {
       scaledMainStat: scaleWeaponStat(weapon.base_main, weaponLevel),
     };
   }, [weapon, weaponLevel, scaleWeaponAtk, scaleWeaponStat]);
+
+  const weaponPassiveBonuses = useMemo(
+    () => getUnconditionalWeaponPassiveBonuses(weapon, weaponRank),
+    [weapon, weaponRank]
+  );
 
   // Calculate base stats
   const baseStats = useMemo(() => {
@@ -252,10 +279,17 @@ export function StatsProvider({ children }: StatsProviderProps) {
           if (weapon.main_stat === displayStat) {
             percent += weaponStats.scaledMainStat;
           }
-          // TODO: weapon passive bonuses (from weapon.params) to be integrated
           if (displayStat === 'ATK') {
             percent += atkPercentBonus;
           }
+        }
+
+        if (displayStat === 'HP') {
+          percent += weaponPassiveBonuses['HP%'] ?? 0;
+        } else if (displayStat === 'ATK') {
+          percent += weaponPassiveBonuses['ATK%'] ?? 0;
+        } else if (displayStat === 'DEF') {
+          percent += weaponPassiveBonuses['DEF%'] ?? 0;
         }
 
         if (character.Bonus2 === displayStat) {
@@ -296,11 +330,9 @@ export function StatsProvider({ children }: StatsProviderProps) {
           if (weaponStatName === weapon.main_stat) {
             result.update += weaponStats.scaledMainStat;
           }
-
-          // TODO: weapon passive bonuses (effect + params) to be integrated.
-          // Passive data is available in weapon.params[paramIndex][rank-1] for
-          // direct R1–R5 lookup, no scaling formula needed.
         }
+
+        result.update += getWeaponPassivePercentBonus(displayStat, weaponPassiveBonuses);
 
         // Add set bonuses
         Object.entries(elementCounts).forEach(([element, count]) => {
@@ -355,6 +387,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     baseStats,
     weapon,
     weaponStats,
+    weaponPassiveBonuses,
     echoPanels,
     elementCounts,
     atkPercentBonus,

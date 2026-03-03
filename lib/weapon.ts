@@ -1,4 +1,5 @@
 import { I18nString } from './character';
+import { BasePercentStatName, ElementalDmgStatName, StatName } from './constants/statMappings';
 
 export enum WeaponType {
   Pistol = "Pistol",
@@ -9,6 +10,21 @@ export enum WeaponType {
 }
 
 export type WeaponRarity = "1-star" | "2-star" | "3-star" | "4-star" | "5-star";
+
+export type WeaponPassiveStatName = Extract<
+  StatName,
+  | BasePercentStatName
+  | ElementalDmgStatName
+  | 'Crit Rate'
+  | 'Crit DMG'
+  | 'Energy Regen'
+  | 'Basic Attack DMG Bonus'
+  | 'Heavy Attack DMG Bonus'
+  | 'Resonance Skill DMG Bonus'
+  | 'Resonance Liberation DMG Bonus'
+>;
+
+export type WeaponPassiveBonusesByRank = Partial<Record<WeaponPassiveStatName, number[]>>;
 
 export interface CDNWeapon {
   id: number;
@@ -22,6 +38,9 @@ export interface CDNWeapon {
   //  Each value is an array of 5 strings (R1–R5), e.g. ["12%","15%","18%","21%","24%"].
   //  Scaling is NOT uniform, ratios vary per weapon, so all 5 ranks are stored.
   params: Record<string, string[]>;
+  // Precomputed static passive bonuses from the first unconditional sentence of effect.en.
+  // Keyed by stat name, each value is [R1,R2,R3,R4,R5].
+  unconditionalPassiveBonuses?: WeaponPassiveBonusesByRank;
   stats: {
     first: { attribute: string; value: number };
     // Substat value format (CDN quirk):
@@ -57,6 +76,8 @@ export interface Weapon {
   // Refinement values per placeholder: params["0"][rank-1] gives the R{rank} value.
   //  Use directly, no scaling formula needed.
   params?: Record<string, string[]>;
+  // Precomputed static passive bonuses (stat -> [R1..R5]) from sync script.
+  unconditionalPassiveBonuses?: WeaponPassiveBonusesByRank;
   // Substat display name (multilingual), e.g. { en: "Crit. DMG", ja: "クリティカルダメージ" }
   mainStatI18n?: I18nString;
 }
@@ -124,6 +145,7 @@ export const adaptCDNWeapon = (cdn: CDNWeapon): Weapon => ({
   effect: cdn.effect,
   effectName: cdn.effectName,
   params: cdn.params,
+  unconditionalPassiveBonuses: cdn.unconditionalPassiveBonuses,
   mainStatI18n: cdn.stats.second.name,
 });
 
