@@ -13,6 +13,7 @@ import { EchoSection } from '@/components/card/EchoSection';
 import { ActiveSetsSection } from '@/components/card/ActiveSetsSection';
 import { NameGroup } from '@/components/card/NameGroup';
 import { WeaponGroup } from '@/components/card/WeaponGroup';
+import { CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
 
 const ELEMENT_TINT: Record<string, string> = {
   Aero: 'from-aero/24 via-aero/10 to-transparent',
@@ -36,6 +37,9 @@ interface BuildCardProps {
   useAltSkin?: boolean;
   showCV?: boolean;
   showRollQuality?: boolean;
+  artTransform: CardArtTransform;
+  artSourceMode: CardArtSourceMode;
+  customArtUrl: string | null;
 }
 
 const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | null => {
@@ -59,7 +63,14 @@ const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | n
   return alias[normalized] ?? normalized;
 };
 
-export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false, showCV = true, showRollQuality = true }, ref) => {
+export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
+  useAltSkin = false,
+  showCV = true,
+  showRollQuality = true,
+  artTransform,
+  artSourceMode,
+  customArtUrl,
+}, ref) => {
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
   const { getWeapon, levelCurves, statIcons } = useGameData();
@@ -104,6 +115,9 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                 artSource={state.watermark.artSource}
                 onArtSourceChange={v => setWatermark({ artSource: v })}
                 useAltSkin={useAltSkin}
+                artTransform={artTransform}
+                artSourceMode={artSourceMode}
+                customArtUrl={customArtUrl}
               />
 
               {/* Right side: name/weapon/forte + stats + echoes */}

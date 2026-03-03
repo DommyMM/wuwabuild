@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { SelectedCharacter } from '@/hooks/useSelectedCharacter';
+import { CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
 
 interface CharacterPanelProps {
   selected: SelectedCharacter;
@@ -9,13 +10,24 @@ interface CharacterPanelProps {
   artSource: string;
   onArtSourceChange: (value: string) => void;
   useAltSkin?: boolean;
+  artTransform: CardArtTransform;
+  artSourceMode: CardArtSourceMode;
+  customArtUrl: string | null;
 }
 
 export const CharacterPanel: React.FC<CharacterPanelProps> = ({
-  selected, tintClass, artSource, onArtSourceChange, useAltSkin = false,
+  selected,
+  tintClass,
+  artSource,
+  onArtSourceChange,
+  useAltSkin = false,
+  artTransform,
+  artSourceMode,
+  customArtUrl,
 }) => {
   const altBanner = selected.character.skins?.find(s => s.icon.banner !== selected.banner)?.icon.banner;
-  const bannerUrl = useAltSkin && altBanner ? altBanner : selected.banner;
+  const baseBannerUrl = useAltSkin && altBanner ? altBanner : selected.banner;
+  const bannerUrl = artSourceMode === 'custom' && customArtUrl ? customArtUrl : baseBannerUrl;
 
   return (
     <div className="relative w-3/10 shrink-0 self-stretch z-10 overflow-hidden rounded-r-[48px] shadow-[4px_0_15px_rgba(0,0,0,0.15)]">
@@ -36,11 +48,16 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
       </div>
 
       {/* Character banner */}
-      <div className="absolute z-20 pointer-events-none flex items-end justify-center overflow-hidden">
+      <div className="absolute inset-0 z-20 pointer-events-none flex items-end justify-center overflow-hidden">
         <img
           src={bannerUrl}
           alt={selected.displayName}
-          className="h-full w-auto object-contain"
+          className="h-full w-auto max-w-none object-contain"
+          style={{
+            transform: `translate3d(${artTransform.x}px, ${artTransform.y}px, 0) scale(${artTransform.scale})`,
+            transformOrigin: 'center bottom',
+          }}
+          draggable={false}
         />
       </div>
     </div>

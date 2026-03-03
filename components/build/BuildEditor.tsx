@@ -3,12 +3,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { Download, Trophy } from 'lucide-react';
+import { Download, Pencil, Trophy } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Element } from '@/lib/character';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
+import { DEFAULT_CARD_ART_TRANSFORM, CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { SequenceSelector } from '@/components/character/SequenceSelector';
 import { WeaponSelector } from '@/components/weapon/WeaponSelector';
@@ -20,6 +22,7 @@ import { BuildCard } from './BuildCard';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { CardArtEditorModal } from './CardArtEditorModal';
 
 export const BuildEditor: React.FC = () => {
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
@@ -29,9 +32,20 @@ export const BuildEditor: React.FC = () => {
   const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
   const [isCardGenerated, setIsCardGenerated] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isArtEditorOpen, setIsArtEditorOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [artTransformCommitted, setArtTransformCommitted] = useState<CardArtTransform>(DEFAULT_CARD_ART_TRANSFORM);
+  const [artSourceModeCommitted, setArtSourceModeCommitted] = useState<CardArtSourceMode>('default');
+  const [customArtBlobCommitted, setCustomArtBlobCommitted] = useState<Blob | null>(null);
+  const [customArtUrlCommitted, setCustomArtUrlCommitted] = useState<string | null>(null);
+  const [artTransformDraft, setArtTransformDraft] = useState<CardArtTransform>(DEFAULT_CARD_ART_TRANSFORM);
+  const [artSourceModeDraft, setArtSourceModeDraft] = useState<CardArtSourceMode>('default');
+  const [customArtBlobDraft, setCustomArtBlobDraft] = useState<Blob | null>(null);
+  const [customArtUrlDraft, setCustomArtUrlDraft] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const committedUrlRef = useRef<string | null>(null);
+  const draftUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (isCardGenerated) {
@@ -51,13 +65,57 @@ export const BuildEditor: React.FC = () => {
   } = useBuild();
   const { getWeapon, characters } = useGameData();
   const { t } = useLanguage();
+  const { error: toastError } = useToast();
   const selected = useSelectedCharacter();
   const selectedWeapon = getWeapon(state.weaponId);
 
   const { scrollY } = useScroll();
 
+  const clearArtState = useCallback(() => {
+    const committed = committedUrlRef.current;
+    const draft = draftUrlRef.current;
+
+    if (draft && draft !== committed) {
+      URL.revokeObjectURL(draft);
+    }
+    if (committed) {
+      URL.revokeObjectURL(committed);
+    }
+
+    committedUrlRef.current = null;
+    draftUrlRef.current = null;
+
+    setArtTransformCommitted(DEFAULT_CARD_ART_TRANSFORM);
+    setArtSourceModeCommitted('default');
+    setCustomArtBlobCommitted(null);
+    setCustomArtUrlCommitted(null);
+    setArtTransformDraft(DEFAULT_CARD_ART_TRANSFORM);
+    setArtSourceModeDraft('default');
+    setCustomArtBlobDraft(null);
+    setCustomArtUrlDraft(null);
+  }, []);
+
   useEffect(() => {
     setPortalTarget(document.getElementById('nav-toolbar-portal'));
+  }, []);
+
+  useEffect(() => {
+    committedUrlRef.current = customArtUrlCommitted;
+  }, [customArtUrlCommitted]);
+
+  useEffect(() => {
+    draftUrlRef.current = customArtUrlDraft;
+  }, [customArtUrlDraft]);
+
+  useEffect(() => () => {
+    const committed = committedUrlRef.current;
+    const draft = draftUrlRef.current;
+    if (draft && draft !== committed) {
+      URL.revokeObjectURL(draft);
+    }
+    if (committed) {
+      URL.revokeObjectURL(committed);
+    }
   }, []);
 
   // Reset weapon when switching to a character with a different weapon type
@@ -70,6 +128,11 @@ export const BuildEditor: React.FC = () => {
     }
   }, [selected, selectedWeapon, setWeapon, setWeaponLevel, setWeaponRank]);
 
+  useEffect(() => {
+    clearArtState();
+    setIsArtEditorOpen(false);
+  }, [state.characterId, clearArtState]);
+
   useMotionValueEvent(scrollY, 'change', () => {
     const el = actionBarRef.current;
     if (!el) return;
@@ -79,7 +142,7 @@ export const BuildEditor: React.FC = () => {
   const handleDownload = useCallback(async () => {
     if (!cardRef.current || isDownloading) return;
     setIsDownloading(true);
-    const { toPng } = await import('html-to-image');
+    const { toBlob } = await import('html-to-image');
 
     // Scale up from current CSS size so all fixed values (border-radius, shadows etc.) scale proportionally
     const exportWidth = 3840;
@@ -88,10 +151,13 @@ export const BuildEditor: React.FC = () => {
     try {
       await new Promise(resolve => requestAnimationFrame(resolve));
 
-      const dataUrl = await toPng(cardRef.current, {
+      const exportBlob = await toBlob(cardRef.current, {
         cacheBust: true,
         pixelRatio,
       });
+      if (!exportBlob) {
+        throw new Error('Card export returned an empty blob.');
+      }
       const link = document.createElement('a');
       const charName = selected?.character.name?.replace(/\s+/g, '-') || 'build';
 
@@ -100,15 +166,18 @@ export const BuildEditor: React.FC = () => {
       const dateStr = now.toISOString().split('T')[0];
       const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
 
+      const url = URL.createObjectURL(exportBlob);
       link.download = `${charName}_${dateStr}_${timeStr}.png`;
-      link.href = dataUrl;
+      link.href = url;
       link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (e) {
+      toastError('Failed to download build card.');
       console.error('Download failed:', e);
     } finally {
       setIsDownloading(false);
     }
-  }, [isDownloading, selected?.character.name]);
+  }, [isDownloading, selected?.character.name, toastError]);
 
   const handleResetBuild = useCallback(() => {
     setIsResetDialogOpen(true);
@@ -116,6 +185,74 @@ export const BuildEditor: React.FC = () => {
 
   const handleOpenSaveModal = useCallback(() => {
     setIsSaveModalOpen(true);
+  }, []);
+
+  const handleOpenArtEditor = useCallback(() => {
+    setArtTransformDraft(artTransformCommitted);
+    setArtSourceModeDraft(artSourceModeCommitted);
+    setCustomArtBlobDraft(customArtBlobCommitted);
+    setCustomArtUrlDraft(customArtUrlCommitted);
+    setIsArtEditorOpen(true);
+  }, [artSourceModeCommitted, artTransformCommitted, customArtBlobCommitted, customArtUrlCommitted]);
+
+  const handleCloseArtEditor = useCallback(() => {
+    if (customArtUrlDraft && customArtUrlDraft !== customArtUrlCommitted) {
+      URL.revokeObjectURL(customArtUrlDraft);
+    }
+    setArtTransformDraft(artTransformCommitted);
+    setArtSourceModeDraft(artSourceModeCommitted);
+    setCustomArtBlobDraft(customArtBlobCommitted);
+    setCustomArtUrlDraft(customArtUrlCommitted);
+    setIsArtEditorOpen(false);
+  }, [
+    artSourceModeCommitted,
+    artTransformCommitted,
+    customArtBlobCommitted,
+    customArtUrlCommitted,
+    customArtUrlDraft,
+  ]);
+
+  const handleApplyArtEditor = useCallback(() => {
+    if (customArtUrlCommitted && customArtUrlCommitted !== customArtUrlDraft) {
+      URL.revokeObjectURL(customArtUrlCommitted);
+    }
+    setArtTransformCommitted(artTransformDraft);
+    setArtSourceModeCommitted(artSourceModeDraft);
+    setCustomArtBlobCommitted(customArtBlobDraft);
+    setCustomArtUrlCommitted(customArtUrlDraft);
+    setIsArtEditorOpen(false);
+  }, [
+    artSourceModeDraft,
+    artTransformDraft,
+    customArtBlobDraft,
+    customArtUrlCommitted,
+    customArtUrlDraft,
+  ]);
+
+  const handleDraftUpload = useCallback((file: File) => {
+    setCustomArtUrlDraft((prev) => {
+      if (prev && prev !== customArtUrlCommitted) {
+        URL.revokeObjectURL(prev);
+      }
+      return URL.createObjectURL(file);
+    });
+    setCustomArtBlobDraft(file);
+    setArtSourceModeDraft('custom');
+  }, [customArtUrlCommitted]);
+
+  const handleDraftRemoveCustom = useCallback(() => {
+    setCustomArtUrlDraft((prev) => {
+      if (prev && prev !== customArtUrlCommitted) {
+        URL.revokeObjectURL(prev);
+      }
+      return null;
+    });
+    setCustomArtBlobDraft(null);
+    setArtSourceModeDraft('default');
+  }, [customArtUrlCommitted]);
+
+  const handleDraftResetTransform = useCallback(() => {
+    setArtTransformDraft(DEFAULT_CARD_ART_TRANSFORM);
   }, []);
 
   return (
@@ -285,7 +422,15 @@ export const BuildEditor: React.FC = () => {
         </div>
         {isCardGenerated && (
           <>
-            <BuildCard ref={cardRef} useAltSkin={cardOptions.useAltSkin} showCV={cardOptions.showCV} showRollQuality={cardOptions.showRollQuality} />
+            <BuildCard
+              ref={cardRef}
+              useAltSkin={cardOptions.useAltSkin}
+              showCV={cardOptions.showCV}
+              showRollQuality={cardOptions.showRollQuality}
+              artTransform={artTransformCommitted}
+              artSourceMode={artSourceModeCommitted}
+              customArtUrl={customArtUrlCommitted}
+            />
             {/* Action bar, flipped version of BuildCardOptions */}
             <div className="flex justify-start pl-12">
               <div className="flex items-center gap-3 rounded-lg rounded-t-none border border-t-0 border-border bg-background p-3">
@@ -307,6 +452,13 @@ export const BuildEditor: React.FC = () => {
                     ) : 'Download'}
                   </span>
                 </button>
+                <button
+                  onClick={handleOpenArtEditor}
+                  className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary cursor-pointer transition-colors hover:border-accent/60"
+                >
+                  <Pencil size={14} />
+                  Edit
+                </button>
                 {/* TODO: Add leaderboard logic once LB is set up in the rewrite */}
                 <button
                   disabled
@@ -320,6 +472,19 @@ export const BuildEditor: React.FC = () => {
           </>
         )}
       </div>
+      <CardArtEditorModal
+        isOpen={isArtEditorOpen}
+        onClose={handleCloseArtEditor}
+        onApply={handleApplyArtEditor}
+        useAltSkin={cardOptions.useAltSkin}
+        artTransform={artTransformDraft}
+        onTransformChange={setArtTransformDraft}
+        artSourceMode={artSourceModeDraft}
+        customArtUrl={customArtUrlDraft}
+        onUpload={handleDraftUpload}
+        onRemoveCustom={handleDraftRemoveCustom}
+        onResetTransform={handleDraftResetTransform}
+      />
       <SaveBuildModal
         isOpen={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}
@@ -335,6 +500,8 @@ export const BuildEditor: React.FC = () => {
         confirmTone="destructive"
         onConfirm={() => {
           resetBuild();
+          clearArtState();
+          setIsArtEditorOpen(false);
           setIsResetDialogOpen(false);
         }}
       />
