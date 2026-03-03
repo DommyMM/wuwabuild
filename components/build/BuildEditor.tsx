@@ -46,6 +46,15 @@ const getImageNaturalHeight = async (file: File): Promise<number> => {
   }
 };
 
+const getImageNaturalHeightFromUrl = async (url: string): Promise<number> => (
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img.naturalHeight || img.height || 0);
+    img.onerror = () => reject(new Error('Failed to load image metadata.'));
+    img.src = url;
+  })
+);
+
 const readFileAsDataUrl = (file: File): Promise<string> => (
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -222,6 +231,32 @@ export const BuildEditor: React.FC = () => {
     setArtSourceMode('default');
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
   }, []);
+
+  const handleUseSplashArt = useCallback(async () => {
+    const characterId = selected?.character.id;
+    if (!characterId) return;
+
+    const splashUrl = `/images/splash/${characterId}.webp`;
+    let autoScale = MIN_ART_ZOOM;
+    try {
+      const naturalHeight = await getImageNaturalHeightFromUrl(splashUrl);
+      if (naturalHeight > 0 && naturalHeight < MIN_CUSTOM_IMAGE_HEIGHT) {
+        autoScale = Math.min(
+          MAX_ART_ZOOM,
+          Number((MIN_CUSTOM_IMAGE_HEIGHT / naturalHeight).toFixed(2))
+        );
+      }
+    } catch (error) {
+      toastError('Splash image not found for this character.');
+      console.error('Splash image load failed:', error);
+      return;
+    }
+
+    customArtBlobRef.current = null;
+    setCustomArtUrl(splashUrl);
+    setArtSourceMode('custom');
+    setArtTransform({ x: 0, y: 0, scale: autoScale });
+  }, [selected?.character.id, toastError]);
 
   const handleResetArtTransform = useCallback(() => {
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
@@ -482,6 +517,14 @@ export const BuildEditor: React.FC = () => {
                         className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         +
+                      </button>
+
+                      <button
+                        onClick={handleUseSplashArt}
+                        disabled={!selected}
+                        className="rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Use Splash Art
                       </button>
 
                       <button
