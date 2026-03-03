@@ -25,7 +25,7 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
   const color = ELEMENT_COLOR[element] ?? '#ffffff';
 
   return (
-    <div className="flex w-1/12 pt-12 flex-col items-center self-start gap-2">
+    <div className="flex w-1/11 pt-12 flex-col items-center self-start gap-2">
       {[0, 1, 2, 3, 4, 5].map((i) => {
         const chain = chains[i];
         const active = i < sequence;

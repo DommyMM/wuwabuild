@@ -20,7 +20,7 @@ const isFlatStatKey = (key: string): key is FlatStatKey => FLAT_STATS.has(key as
 
 export const StatsTableSection: React.FC = () => {
   const { stats } = useStats();
-  const { statIcons, statTranslations, fettersByElement } = useGameData();
+  const { statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
   const values = stats.values;
 
@@ -60,11 +60,6 @@ export const StatsTableSection: React.FC = () => {
   const formatLabel = (key: string) =>
     statTranslations?.[key] ? t(statTranslations[key]) : key;
 
-  const getPieceLabel = (count: number, threshold: number): string => {
-    if (threshold === 3) return '3';
-    return count >= 5 ? '5' : '2';
-  };
-
   const renderStatRow = (key: string, value: number) => {
     const icon = statIcons?.[key] ?? statIcons?.[key.replace('%', '')];
     const elementalIconFilter = ELEMENT_ICON_FILTERS[key];
@@ -73,7 +68,7 @@ export const StatsTableSection: React.FC = () => {
     const bonus = isFlatStat ? Math.max(0, Math.round(value) - base) : 0;
 
     return (
-      <div key={key} className="flex items-start justify-between gap-2 font-medium">
+      <div key={key} className={`flex items-center justify-between gap-2 font-medium ${isFlatStat ? 'h-10' : 'h-9'}`}>
         <div className="flex items-center gap-2">
           {icon && (
             <img
@@ -83,16 +78,16 @@ export const StatsTableSection: React.FC = () => {
               style={elementalIconFilter ? { filter: elementalIconFilter } : undefined}
             />
           )}
-          <span className="text-lg leading-tight">
+          <span className="text-lg">
             {formatLabel(key)}
           </span>
         </div>
         <div className="flex flex-col items-end">
-          <span className={`text-lg text-white/95 ${isFlatStat ? 'leading-tight' : ''}`}>
+          <span className="text-lg text-white/95 leading-tight">
             {formatValue(key, value)}
           </span>
           {isFlatStat && bonus > 0 && (
-            <span className="text-xs text-white/72 leading-none">
+            <span className="text-xs text-white/72">
               {formatFlat(base)}{' '}
               <span className="text-emerald-300">
                 +{formatFlat(bonus)}
@@ -105,41 +100,8 @@ export const StatsTableSection: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full w-full flex-col space-y-2 px-8">
+    <div className="flex h-full w-full flex-col px-8">
       {statRows.map(({ key, value }) => renderStatRow(key, value))}
-
-      {stats.activeSets.length > 0 && (
-        <div className="pb-2">
-          <div className="flex justify-between px-4">
-            {stats.activeSets.map(({ element, count, setName }) => {
-              const fetter = fettersByElement[element];
-              const threshold = fetter?.pieceCount ?? 2;
-              const pieceLabel = getPieceLabel(count, threshold);
-              const displayName = fetter ? t(fetter.name) : setName;
-              const setIcon = fetter?.icon ?? '';
-
-              return (
-                <div
-                  key={`${element}-${count}`}
-                  className="inline-flex items-center gap-2 rounded-xl bg-black/35 px-2 py-1.5"
-                >
-                  {setIcon && (
-                    <img src={setIcon} alt="" className="h-5.5 w-5.5 object-contain" />
-                  )}
-
-                  <span className="text-base font-medium">
-                    {displayName}
-                  </span>
-
-                  <span className="rounded-md border border-amber-300/55 bg-amber-300/18 px-1.5 text-sm">
-                    {pieceLabel}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
