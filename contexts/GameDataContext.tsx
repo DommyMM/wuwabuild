@@ -262,7 +262,7 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
 
   const getEcho = useCallback((id: string | null): Echo | null => {
     if (!id) return null;
-    return state.echoes.find(e => e.id === id) ?? null;
+    return state.echoes.find((echo) => echo.id === id) ?? null;
   }, [state.echoes]);
 
   const getEchoByName = useCallback((name: string): Echo | null => {

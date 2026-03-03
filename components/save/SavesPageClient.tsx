@@ -13,7 +13,9 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getWeaponPaths } from '@/lib/paths';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { clearLegacySavesFromStorage, convertLegacyBuilds, getLegacySavesSummaryFromStorage, LegacyIdMaps, readLegacySavesPayload } from '@/lib/legacyMigration';
+import { buildLegacyIdMaps, clearLegacySavesFromStorage, convertLegacyBuilds, getLegacySavesSummaryFromStorage, readLegacySavesPayload } from '@/lib/legacyMigration';
+import legacyEchoes from '@/lib/data/legacyEchoes.json';
+import legacyWeapons from '@/lib/data/legacyWeapons.json';
 
 type SortBy = 'date' | 'name' | 'cv';
 type SortDirection = 'asc' | 'desc';
@@ -63,26 +65,10 @@ export const SavesPageClient: React.FC = () => {
     setLegacySummary(getLegacySavesSummaryFromStorage());
   }, []);
 
-  const legacyIdMaps = useMemo<LegacyIdMaps>(() => {
-    const characterIds = new Map<string, string>();
-    characters.forEach((character) => {
-      characterIds.set(character.id, character.id);
-      if (character.legacyId) characterIds.set(character.legacyId, character.id);
-    });
-
-    const weaponIds = new Map<string, string>();
-    weaponList.forEach((weapon) => {
-      weaponIds.set(weapon.id, weapon.id);
-    });
-
-    const echoIds = new Map<string, string>();
-    echoes.forEach((echo) => {
-      echoIds.set(echo.id, echo.id);
-      if (echo.legacyId) echoIds.set(echo.legacyId, echo.id);
-    });
-
-    return { characterIds, weaponIds, echoIds };
-  }, [characters, echoes, weaponList]);
+  const legacyIdMaps = useMemo(
+    () => buildLegacyIdMaps(characters, weaponList, echoes, legacyEchoes, legacyWeapons),
+    [characters, echoes, weaponList],
+  );
 
   const buildCVs = useMemo(() => (
     new Map(builds.map((build) => [build.id, calculateCV(build.state.echoPanels)]))

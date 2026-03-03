@@ -21,6 +21,36 @@ export interface LegacySavesSummary {
   parseError: boolean;
 }
 
+interface LegacyCharacterRef {
+  id: string;
+  legacyId?: string;
+}
+
+interface LegacyWeaponRef {
+  id: string;
+  name?: string;
+  legacyId?: string;
+  iconUrl?: string;
+}
+
+interface LegacyEchoRef {
+  id: string;
+  name?: string;
+  legacyId?: string;
+  iconUrl?: string;
+  phantomIconUrl?: string;
+}
+
+interface LegacyEchoCatalogEntry {
+  id: string;
+  name: string;
+}
+
+interface LegacyWeaponCatalogEntry {
+  id: string;
+  name: string;
+}
+
 const LEGACY_ELEMENT_KEYS = Object.keys(ELEMENT_SETS) as ElementType[];
 const STAT_CODE_MAP: Record<string, string> = {
   H: 'HP',
@@ -50,6 +80,124 @@ const STAT_ALIAS_MAP: Record<string, string> = {
   Skill: 'Resonance Skill DMG Bonus',
   Liberation: 'Resonance Liberation DMG Bonus',
 };
+
+// Derive possible legacy echo IDs from CDN icon file names.
+// Supports patterns like:
+// - T_IconMonsterHead_34010_1_UI.png  -> "34010"
+// - T_IconMonsterHead_31083_UI.png    -> "31083"
+// - T_IconMonsterGoods_061_UI.png     -> "061" and "61"
+export function extractLegacyEchoIdsFromUrl(url: string | undefined): string[] {
+  if (!url) return [];
+  const filename = url.split('/').pop() ?? '';
+  const numericParts = filename.match(/\d+/g) ?? [];
+  if (numericParts.length === 0) return [];
+
+  const primaryParts = numericParts.filter((part) => part.length >= 3);
+  const firstNumeric = numericParts[0];
+  if (!firstNumeric) return [];
+  const seeds = primaryParts.length > 0 ? primaryParts : [firstNumeric];
+  const ids = new Set<string>();
+
+  for (const seed of seeds) {
+    ids.add(seed);
+    const normalized = String(Number.parseInt(seed, 10));
+    if (normalized && normalized !== 'NaN') {
+      ids.add(normalized);
+    }
+  }
+
+  return [...ids];
+}
+
+export function buildLegacyIdMaps(
+  characters: LegacyCharacterRef[],
+  weapons: LegacyWeaponRef[],
+  echoes: LegacyEchoRef[],
+  legacyEchoCatalog: LegacyEchoCatalogEntry[] = [],
+  legacyWeaponCatalog: LegacyWeaponCatalogEntry[] = [],
+): LegacyIdMaps {
+  const characterIds = new Map<string, string>();
+  for (const character of characters) {
+    characterIds.set(character.id, character.id);
+    if (character.legacyId) characterIds.set(character.legacyId, character.id);
+  }
+
+  const weaponIds = new Map<string, string>();
+  const weaponsByNormalizedName = new Map<string, string>();
+  for (const weapon of weapons) {
+    weaponIds.set(weapon.id, weapon.id);
+    if (weapon.legacyId) weaponIds.set(weapon.legacyId, weapon.id);
+    if (weapon.name) {
+      const normalizedName = normalizeCatalogName(weapon.name);
+      if (normalizedName && !weaponsByNormalizedName.has(normalizedName)) {
+        weaponsByNormalizedName.set(normalizedName, weapon.id);
+      }
+    }
+    for (const derived of extractLegacyWeaponIdsFromUrl(weapon.iconUrl)) {
+      if (!weaponIds.has(derived)) weaponIds.set(derived, weapon.id);
+    }
+  }
+
+  for (const legacyWeapon of legacyWeaponCatalog) {
+    const normalizedName = normalizeCatalogName(legacyWeapon.name);
+    if (!normalizedName) continue;
+    const mappedWeaponId = weaponsByNormalizedName.get(normalizedName);
+    if (!mappedWeaponId) continue;
+
+    if (!weaponIds.has(legacyWeapon.id)) {
+      weaponIds.set(legacyWeapon.id, mappedWeaponId);
+    }
+    const normalizedLegacyId = String(Number.parseInt(legacyWeapon.id, 10));
+    if (normalizedLegacyId && normalizedLegacyId !== 'NaN' && !weaponIds.has(normalizedLegacyId)) {
+      weaponIds.set(normalizedLegacyId, mappedWeaponId);
+    }
+  }
+
+  const echoIds = new Map<string, string>();
+  const echoesByNormalizedName = new Map<string, string>();
+  for (const echo of echoes) {
+    echoIds.set(echo.id, echo.id);
+    if (echo.legacyId) echoIds.set(echo.legacyId, echo.id);
+    if (echo.name) {
+      const normalizedName = normalizeCatalogName(echo.name);
+      if (normalizedName && !echoesByNormalizedName.has(normalizedName)) {
+        echoesByNormalizedName.set(normalizedName, echo.id);
+      }
+    }
+
+    for (const derived of extractLegacyEchoIdsFromUrl(echo.iconUrl)) {
+      if (!echoIds.has(derived)) echoIds.set(derived, echo.id);
+    }
+    for (const derived of extractLegacyEchoIdsFromUrl(echo.phantomIconUrl)) {
+      if (!echoIds.has(derived)) echoIds.set(derived, echo.id);
+    }
+  }
+
+  for (const legacyEcho of legacyEchoCatalog) {
+    const normalizedName = normalizeCatalogName(legacyEcho.name);
+    if (!normalizedName) continue;
+    const mappedEchoId = echoesByNormalizedName.get(normalizedName);
+    if (!mappedEchoId) continue;
+
+    if (!echoIds.has(legacyEcho.id)) {
+      echoIds.set(legacyEcho.id, mappedEchoId);
+    }
+    const normalizedLegacyId = String(Number.parseInt(legacyEcho.id, 10));
+    if (normalizedLegacyId && normalizedLegacyId !== 'NaN' && !echoIds.has(normalizedLegacyId)) {
+      echoIds.set(normalizedLegacyId, mappedEchoId);
+    }
+  }
+
+  return { characterIds, weaponIds, echoIds };
+}
+
+function normalizeCatalogName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function extractLegacyWeaponIdsFromUrl(url: string | undefined): string[] {
+  return extractLegacyEchoIdsFromUrl(url);
+}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' ? value as Record<string, unknown> : null;
@@ -111,13 +259,43 @@ function decodeLegacyElement(rawElement: unknown): ElementType | null {
 function resolveMappedId(rawId: unknown, map: Map<string, string>): string | null {
   const id = toNullableString(rawId);
   if (!id) return null;
-  if (map.has(id)) return map.get(id) ?? null;
-  if (id.includes('_')) {
-    const base = id.split('_')[0];
-    if (map.has(base)) return map.get(base) ?? null;
-    return base;
+
+  for (const candidate of buildIdCandidates(id)) {
+    if (map.has(candidate)) {
+      return map.get(candidate) ?? null;
+    }
   }
+
   return id;
+}
+
+function buildIdCandidates(rawId: string): string[] {
+  const candidates = new Set<string>();
+  const trimmed = rawId.trim();
+  if (!trimmed) return [];
+
+  const addCandidate = (value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    candidates.add(v);
+    const normalized = String(Number.parseInt(v, 10));
+    if (normalized && normalized !== 'NaN') candidates.add(normalized);
+  };
+
+  addCandidate(trimmed);
+
+  if (trimmed.includes('_')) {
+    const parts = trimmed.split('_').filter(Boolean);
+    for (let i = parts.length - 1; i >= 1; i -= 1) {
+      addCandidate(parts.slice(0, i).join('_'));
+    }
+    for (const part of parts) addCandidate(part);
+  }
+
+  const numericParts = trimmed.match(/\d+/g) ?? [];
+  for (const numericPart of numericParts) addCandidate(numericPart);
+
+  return [...candidates];
 }
 
 function toForteState(nodeStatesRaw: unknown, forteLevelsRaw: unknown): ForteState {
