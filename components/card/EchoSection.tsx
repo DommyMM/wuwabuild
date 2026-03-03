@@ -38,7 +38,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = t
             return (
               <div
                 key={i}
-                className="relative flex h-full flex-1 items-center justify-center overflow-hidden rounded-2xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,180,70,0.14)_0%,rgba(35,39,58,0.82)_28%,rgba(28,31,45,0.95)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_8px_16px_rgba(0,0,0,0.35)]"
+                className="relative flex h-full flex-1 items-center justify-center overflow-hidden rounded-2xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.03)_30%,rgba(0,0,0,0.42)_100%)] backdrop-blur-[3px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_8px_16px_rgba(0,0,0,0.35)]"
               >
                 <div className="h-7 w-7 rounded-full border-2 border-dashed border-white/20" />
               </div>
@@ -67,7 +67,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = t
           return (
             <div
               key={i}
-              className="relative flex flex-1 rounded-xl border overflow-hidden border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,180,70,0.14)_0%,rgba(58,42,86,0.82)_28%,rgba(45,49,67,0.94)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_8px_16px_rgba(0,0,0,0.38)]"
+              className="relative flex flex-1 rounded-xl border overflow-hidden border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.03)_30%,rgba(0,0,0,0.42)_100%)] backdrop-blur-[3px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_8px_16px_rgba(0,0,0,0.38)]"
             >
               {/* Top-left stack: CV badge */}
               <div className="absolute top-1 left-1 z-10 flex flex-col items-start gap-1">
@@ -92,7 +92,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = t
                   className="w-full h-auto"
                   style={ECHO_IMAGE_FADE_STYLE}
                 />
-                <div className="relative mb-1 h-px w-1/2 bg-black/45">
+                <div className="relative mb-1 h-px w-1/2 bg-[linear-gradient(90deg,rgba(255,255,255,0.20)_0%,rgba(255,255,255,0.09)_55%,rgba(255,255,255,0)_100%)]">
                   {fetterIcon && (
                     <img
                       src={fetterIcon}

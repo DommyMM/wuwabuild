@@ -109,8 +109,8 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
               {/* Right side: name/weapon/forte + stats + echoes */}
               <div className="flex flex-col w-full">
                 <div className="flex">
-                  <div className="flex w-120 shrink-0 flex-col pt-4">
-                    <div className="flex items-stretch">
+                  <div className="flex w-120 shrink-0 flex-col pt-4 gap-1">
+                    <div className="flex">
                       <SequenceStrip
                         chains={selected.character.chains ?? []}
                         sequence={state.sequence}

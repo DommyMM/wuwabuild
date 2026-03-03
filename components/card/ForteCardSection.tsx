@@ -46,7 +46,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
   character, forte,
 }) => {
   return (
-    <div className="flex items-end gap-2">
+    <div className="flex justify-center gap-8 ">
       {BRANCHES.map((branch, i) => {
         const [level, topActive, midActive] = forte[i];
         const isMaxLevel = level >= 10;
@@ -60,7 +60,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
           : (character.forteNodes?.[`${branch.treeKey}.middle`]?.icon ?? '');
 
         return (
-          <div key={branch.skillKey} className="flex flex-1 flex-col items-center justify-end gap-0.5">
+          <div key={branch.skillKey} className="flex shrink-0 flex-col items-center justify-end gap-0.5">
             <NodeBadge
               icon={topNodeIcon}
               active={topActive}
