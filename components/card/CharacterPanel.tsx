@@ -145,12 +145,12 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
   return (
     <div className="relative w-3/10 shrink-0 self-stretch z-10 overflow-hidden rounded-r-[48px] shadow-[4px_0_15px_rgba(0,0,0,0.15)]">
       {/* Glass pane background */}
-      <div className="absolute inset-0 bg-white/4 backdrop-blur-[3px] border-r border-white/10 rounded-r-[48px] overflow-hidden">
+      <div className="absolute inset-0 border-r border-white/12 rounded-r-[48px] overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_42%,rgba(0,0,0,0.34)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),inset_0_-18px_24px_rgba(0,0,0,0.16)]">
         <div className={`absolute bottom-0 left-0 right-0 h-1/3 bg-linear-to-t ${tintClass} opacity-40 mix-blend-screen pointer-events-none`} />
       </div>
 
       {showIdentityWatermark && (
-        <div className="absolute top-3 left-3 z-30 rounded-xl border border-white/12 bg-black/42 px-2.5 py-1.5 text-xs font-semibold text-white/85 backdrop-blur-[2px] shadow-[0_2px_10px_rgba(0,0,0,0.3)]">
+        <div className="absolute top-3 left-3 z-30 rounded-xl border border-white/16 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.6)_55%,rgba(0,0,0,0.82)_100%)] px-2.5 py-1.5 text-xs font-semibold text-white/88 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_3px_12px_rgba(0,0,0,0.42)]">
           {username?.trim() && (
             <div className="leading-none">{username.trim()}</div>
           )}
@@ -161,7 +161,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
       )}
 
       {showArtSource && (
-        <div className="absolute bottom-3 left-3 z-30 rounded-xl border border-white/12 bg-black/42 px-2.5 py-1.5 backdrop-blur-[2px] shadow-[0_2px_10px_rgba(0,0,0,0.3)]">
+        <div className="absolute bottom-3 left-3 z-30 rounded-xl border border-white/16 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.6)_55%,rgba(0,0,0,0.82)_100%)] px-2.5 py-1.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_3px_12px_rgba(0,0,0,0.42)]">
           <input
             type="text"
             value={artSource}

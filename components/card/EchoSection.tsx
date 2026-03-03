@@ -38,7 +38,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = t
             return (
               <div
                 key={i}
-                className="relative flex h-full flex-1 items-center justify-center overflow-hidden rounded-2xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.03)_30%,rgba(0,0,0,0.42)_100%)] backdrop-blur-[3px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_8px_16px_rgba(0,0,0,0.35)]"
+                className="relative flex h-full flex-1 items-center justify-center overflow-hidden rounded-2xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07),inset_0_-14px_24px_rgba(0,0,0,0.16),0_8px_16px_rgba(0,0,0,0.35)]"
               >
                 <div className="h-7 w-7 rounded-full border-2 border-dashed border-white/20" />
               </div>
@@ -67,7 +67,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = t
           return (
             <div
               key={i}
-              className="relative flex flex-1 rounded-xl border overflow-hidden border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.03)_30%,rgba(0,0,0,0.42)_100%)] backdrop-blur-[3px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_8px_16px_rgba(0,0,0,0.38)]"
+              className="relative flex flex-1 rounded-xl border overflow-hidden border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
             >
               {/* Top-left stack: CV badge */}
               <div className="absolute top-1 left-1 z-10 flex flex-col items-start gap-1">
