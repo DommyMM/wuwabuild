@@ -8,8 +8,10 @@ Recommended path: **Go LB primary, Node fallback**.
 
 ### Frontend rewrite (`/wuwabuilds`)
 
-- `/builds` and `/leaderboards` routes are placeholders only.
+- `/builds` route is live and wired to LB `GET /build` with filtering/sort/pagination UI.
   - `app/builds/page.tsx`
+  - `components/builds/BuildsPageClient.tsx`
+- `/leaderboards` route is still placeholder.
   - `app/leaderboards/page.tsx`
 - `/import` has an `Upload to Leaderboard` toggle in UI, but no submit wiring is connected.
   - `components/import/ImportPageClient.tsx`
@@ -24,6 +26,11 @@ Recommended path: **Go LB primary, Node fallback**.
   - `GET /build?uid=901955607&characterId=1603`
 - Response includes expected migrated fields (`buildState`, `stats`, `calculations`, `echoSummary`) with UUID `_id` values.
 - Legacy compressed rows were normalized with `make normalize` (`cmd/migrate --normalize-only`) and now report `Legacy builds to normalize: 0` on rerun.
+- Canonical echo-ID repair pass was added for already-`v2` rows and executed successfully:
+  - `Canonical ID repair complete. Scanned: 11302 | Updated: 4736 | Errors: 0`
+  - Legacy/icon-form echo IDs (`YZ_33018`, `315`, `305`, `145`) are now mapped to canonical CDN IDs.
+  - Known hard alias in migrator: `YZ_33018`/`33018` -> `60000905`.
+  - Migrator now supports deriving extra echo aliases from root `echoBases.ts` (`name + cost + elements` signature match) for remaining minor legacy IDs.
 - Database spot checks after normalization:
   - `build_state ? 'c'` legacy rows: `0`
   - `build_state.version = 'v2'` rows: `11302 / 11302`
@@ -36,6 +43,18 @@ Recommended path: **Go LB primary, Node fallback**.
   - `lb/internal/calc/data/weapon_bases.json` with `params_r1` and `params_r5`
   - `lb/internal/calc/data/echo_bases.json` with echo `fetter_ids` and English `effect_en`
   - `lb/internal/calc/data/fetter_bases.json` with set piece effects (2/5 or 3)
+- Railway deploy healthcheck is stabilized:
+  - `GET /health` added in `lb/internal/api/routes.go` (no DB dependency).
+  - `lb/railway.toml` now uses `healthcheckPath = "/health"`.
+  - App can stay healthy during schema/import windows while `GET /` remains DB-backed stats.
+- Frontend request behavior observed in local logs:
+  - username/uid filters currently trigger one request per keystroke.
+  - URL sync (`router.replace`) plus query-state effects cause repeated fetches in dev.
+  - Debounce + committed-search state is required before production rollout.
+- Redis decision (current scale):
+  - Redis was evaluated, but deferred.
+  - With ~12k builds and low data size, PostgreSQL-only path is currently acceptable.
+  - Revisit Redis/materialized caching only if traffic/latency profile requires it.
 
 ### Active Node API (`/mongo`)
 
@@ -83,6 +102,7 @@ Comparison baseline: `mongo/MIGRATION.md` target architecture vs current `lb` im
 | Payload compatibility | Preserve frontend-compatible shape while migration proceeds | Route shapes are close (`_id`, `buildState`, `stats`, `echoSummary`, ranking fields), but `SubmitBuild` expects compressed stat keys in `stats.v` (`CR`, `CD`, etc.) and does not normalize rewrite-native payloads. | Rewrite frontend cannot post directly without adapter/compression layer. | Frontend adapter required immediately; backend normalization optional improvement. |
 | Calculations on submit | `POST /build` validates and runs calc engine in backend | `SubmitBuild` stores provided `calculations` raw; no backend recalculation is executed in current path. Missing calculations default to `[]`. | Damage/rank can be zero or stale if client does not send computed calculations. | Backend decision: integrate calc engine in submit path or enforce precomputed client contract. |
 | Echo summary consistency | Canonical `echoSummary` with stable filtering behavior | If client omits `echoSummary`, fallback generation in `SubmitBuild` creates `mainStats` entries with `statType` only (no `cost`). | Echo main-stat filters may be incomplete/inaccurate in Go path unless client supplies full summary. | Backend fix needed for reliable filter parity. |
+| Echo filter contract parity | Frontend and backend use equivalent echo filter representations | Frontend currently sends echo set IDs/counts and short stat codes; backend normalized data/query behavior relies on element-keyed sets and full stat labels. | Filters can appear "working" syntactically but return partial/incorrect matches. | Add explicit frontend->backend transform for `echoSets`/`echoMains` or align backend parser to numeric/code inputs. |
 | Dedupe behavior | Upsert/dedupe by player+character+echo fingerprint (migration plan intent) | `UpsertBuild` conflict key is `mongo_id` partial unique index; normal frontend submissions use empty `mongo_id`, so dedupe is effectively not applied for those writes. | Duplicate build rows likely under regular traffic. | Backend fix required (new uniqueness strategy and upsert rule). |
 | Sequence / weapon-index handling | Support sequence-aware leaderboard semantics and migration-compatible query behavior | `parseSequence` accepts only `s0..s6` (no style suffix), `parseWeaponIndex` clamps `0..9`. Damage sort expression reads `calculations->idx->seq->damage`. | Style-specific sequence keys and extended sequence variants are currently unsupported. | Decide whether style suffix support is needed before rewrite rank UI ships. |
 
@@ -181,8 +201,9 @@ Use `/mongo` as serving backend if any of the following is true:
 2. Replace `mongo_id`-only conflict rule with runtime dedupe key strategy.
 3. Finalize `POST /build` calculation source of truth (server-side vs enforced client-side).
 4. Normalize/compute `echo_main_stats` with cost when missing.
-5. Confirm sequence parsing policy (`s0..s6` only vs style suffix support).
-6. Validate parity against Node endpoints for top rows and move/substat detail.
+5. Finalize echo-filter input contract (`echoSets`/`echoMains`) so frontend params map exactly to DB query semantics.
+6. Confirm sequence parsing policy (`s0..s6` only vs style suffix support).
+7. Validate parity against Node endpoints for top rows and move/substat detail.
 
 ### Frontend tasks (required regardless of backend choice)
 
@@ -192,7 +213,9 @@ Use `/mongo` as serving backend if any of the following is true:
 4. Wire `BuildEditor` `View Ranking` button to character/weapon/sequence rank route.
 5. Implement `/builds` page data flow (filters, sort, pagination).
 6. Implement `/leaderboards` overview + character detail page data flow.
-7. Add backend-mode flag/fallback strategy (`Go primary`, `Node fallback`) for rollout safety.
+7. Add debounce (250-400ms) and "committed search" behavior for username/uid before issuing LB fetches.
+8. Reduce duplicate fetches by separating URL sync from fetch trigger or skipping no-op `router.replace`.
+9. Add backend-mode flag/fallback strategy (`Go primary`, `Node fallback`) for rollout safety.
 
 ## Operational Commands
 
@@ -256,7 +279,8 @@ Required env:
 2. Default technical direction: **Go LB primary, Node fallback**.
 3. Gap reporting is explicit and mandatory before cutover.
 4. Snapshot is point-in-time and pinned to **March 3, 2026**.
-5. No repo-tracked code changes outside docs in this phase.
+5. Redis is intentionally deferred at current dataset/traffic scale.
+6. Echo ID canonicalization can be derived from legacy/icon identifiers and patched during migration normalization.
 
 ## Risks
 
@@ -266,6 +290,7 @@ Required env:
 4. Partial fallback echo summary can degrade echo main-stat filtering accuracy (current snapshot: `8418/11302` rows have empty `echo_main_stats`).
 5. Sequence-style mismatch can block or distort advanced leaderboard tabs/filters.
 6. Contract mismatch between rewrite state and LB payload can cause failed submissions or bad stored rows.
+7. Per-keystroke filter fetches (username/uid) can create avoidable load and noisy user experience without debounce.
 
 ## Change Log
 
@@ -273,3 +298,7 @@ Required env:
 - 2026-03-03: Added verified local import/runtime note (`/build` curl success), plus explicit two-track plan for Go migration policy and rewrite `/builds` + `/leaderboards` integration.
 - 2026-03-03: Added normalize-stage verification (`make normalize` idempotent, `11302` total rows, `0` legacy rows) and post-normalization filter caveat (CDN IDs required; many empty echo summary fields pending cleanup).
 - 2026-03-03: Added echo/fetter base-data sync status (`fetter_bases.json`, echo skill descriptions, and weapon R1/R5 params in generated LB data).
+- 2026-03-03: Added Railway healthcheck stabilization note (`/health` endpoint + `healthcheckPath=/health`) and deployment behavior rationale.
+- 2026-03-03: Added canonical echo-ID repair result (`11302` scanned, `4736` updated, `0` errors), including legacy/icon ID alias handling.
+- 2026-03-03: Added frontend request-churn finding (username/uid per-keystroke fetches) and explicit debounce/URL-sync backlog items.
+- 2026-03-03: Added Redis decision note: deferred for current ~12k-build scale, revisit only if traffic/latency demands.

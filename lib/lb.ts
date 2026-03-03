@@ -234,6 +234,12 @@ function resolveLBBaseUrl(): string {
   return base.replace(/\/+$/, '');
 }
 
+function shouldLogLBPayload(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (process.env.NEXT_PUBLIC_LB_DEBUG === '1') return true;
+  return process.env.NODE_ENV !== 'production';
+}
+
 export async function listBuilds(
   query: LBListBuildsQuery = {},
   signal?: AbortSignal,
@@ -272,7 +278,8 @@ export async function listBuilds(
     );
   }
 
-  const response = await fetch(`${resolveLBBaseUrl()}/build?${params.toString()}`, {
+  const requestUrl = `${resolveLBBaseUrl()}/build?${params.toString()}`;
+  const response = await fetch(requestUrl, {
     method: 'GET',
     signal,
   });
@@ -282,9 +289,21 @@ export async function listBuilds(
 
   const payload = await response.json() as LBListBuildsResponseRaw;
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
+  const normalizedBuilds = rawBuilds.map(normalizeBuildEntry);
+
+  if (shouldLogLBPayload()) {
+    // Debug visibility for backend/frontend shape mismatches during LB migration.
+    console.log('[LB] /build response', {
+      requestUrl,
+      query,
+      payload,
+      rawBuildCount: rawBuilds.length,
+      normalizedBuilds,
+    });
+  }
 
   return {
-    builds: rawBuilds.map(normalizeBuildEntry),
+    builds: normalizedBuilds,
     total: toFiniteNumber(payload.total, 0),
     page: toFiniteNumber(payload.page, query.page ?? 1),
     pageSize: toFiniteNumber(payload.pageSize, query.pageSize ?? 10),
