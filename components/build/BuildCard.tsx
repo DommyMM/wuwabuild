@@ -115,9 +115,9 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                     totalCV={totalCV}
                   />
                   <div className="relative flex flex-1 pt-4 font-plus-jakarta tracking-wide leading-none text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
-                    <div className="flex flex-col space-y-4">
+                    <div className="flex flex-col">
                       <NameGroup selected={selected} characterLevel={state.characterLevel} />
-
+                      
                       {weapon && weaponStats && (
                         <WeaponGroup
                           weapon={weapon}

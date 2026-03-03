@@ -4,10 +4,8 @@ import React from 'react';
 import { useStats } from '@/contexts/StatsContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-const PINNED_ORDER = ['HP', 'ATK', 'DEF', 'Energy Regen', 'Crit Rate', 'Crit DMG'] as const;
-const PINNED_SET = new Set<string>(PINNED_ORDER);
-const ALWAYS_VISIBLE = new Set<string>(PINNED_ORDER);
+type FlatStatKey = 'HP' | 'ATK' | 'DEF';
+const FLAT_STAT_KEYS: readonly FlatStatKey[] = ['HP', 'ATK', 'DEF'] as const;
 const ELEMENT_ICON_FILTERS: Record<string, string> = {
   'Aero DMG': 'brightness(0) saturate(100%) invert(81%) sepia(40%) saturate(904%) hue-rotate(93deg) brightness(104%) contrast(103%)',
   'Glacio DMG': 'brightness(0) saturate(100%) invert(68%) sepia(39%) saturate(2707%) hue-rotate(176deg) brightness(102%) contrast(97%)',
@@ -17,7 +15,8 @@ const ELEMENT_ICON_FILTERS: Record<string, string> = {
   'Spectro DMG': 'brightness(0) saturate(100%) invert(83%) sepia(34%) saturate(1178%) hue-rotate(359deg) brightness(102%) contrast(94%)',
 };
 
-const FLAT_STATS = new Set(['HP', 'ATK', 'DEF']);
+const FLAT_STATS = new Set<FlatStatKey>(FLAT_STAT_KEYS);
+const isFlatStatKey = (key: string): key is FlatStatKey => FLAT_STATS.has(key as FlatStatKey);
 
 export const StatsTableSection: React.FC = () => {
   const { stats } = useStats();
@@ -25,19 +24,38 @@ export const StatsTableSection: React.FC = () => {
   const { t } = useLanguage();
   const values = stats.values;
 
-  const pinnedRows = PINNED_ORDER
-    .filter(key => Object.prototype.hasOwnProperty.call(values, key))
-    .map(key => ({ key, value: values[key] ?? 0 }));
+  const orderedStatKeys = React.useMemo(() => {
+    const valuesByKey = values as Record<string, number>;
+    const sourceKeys = Object.keys(statTranslations ?? {});
+    const seen = new Set<string>();
+    const ordered: string[] = [];
 
-  const dynamicRows = Object.entries(values)
-    .filter(([key]) => !PINNED_SET.has(key))
-    .map(([key, value]) => ({ key, value: value ?? 0 }));
+    // Keep natural order but collapse percent variants (HP% -> HP)
+    for (const rawKey of sourceKeys) {
+      const normalizedKey = rawKey.endsWith('%') ? rawKey.slice(0, -1) : rawKey;
+      if (seen.has(normalizedKey)) continue;
+      if (!Object.prototype.hasOwnProperty.call(valuesByKey, normalizedKey)) continue;
+      seen.add(normalizedKey);
+      ordered.push(normalizedKey);
+    }
 
-  const statRows = [...pinnedRows, ...dynamicRows]
-    .filter(({ key, value }) => ALWAYS_VISIBLE.has(key) || value > 0);
+    // Append any context stats that are not in Stats.json as a safe fallback
+    for (const key of Object.keys(valuesByKey)) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      ordered.push(key);
+    }
+
+    return ordered;
+  }, [statTranslations, values]);
+
+  const statRows = orderedStatKeys
+    .map((key) => ({ key, value: (values as Record<string, number>)[key] ?? 0 }))
+    .filter(({ value }) => value !== 0);
 
   const formatValue = (key: string, value: number) =>
-    FLAT_STATS.has(key) ? Math.round(value).toLocaleString() : `${value.toFixed(1)}%`;
+    isFlatStatKey(key) ? Math.round(value).toLocaleString() : `${value.toFixed(1)}%`;
+  const formatFlat = (value: number) => Math.round(value).toLocaleString();
 
   const formatLabel = (key: string) =>
     statTranslations?.[key] ? t(statTranslations[key]) : key;
@@ -50,9 +68,12 @@ export const StatsTableSection: React.FC = () => {
   const renderStatRow = (key: string, value: number) => {
     const icon = statIcons?.[key] ?? statIcons?.[key.replace('%', '')];
     const elementalIconFilter = ELEMENT_ICON_FILTERS[key];
+    const isFlatStat = isFlatStatKey(key);
+    const base = isFlatStat ? Math.round(stats.baseValues[key] ?? 0) : 0;
+    const bonus = isFlatStat ? Math.max(0, Math.round(value) - base) : 0;
 
     return (
-      <div key={key} className="flex items-center justify-between gap-2 font-medium">
+      <div key={key} className="flex items-start justify-between gap-2 font-medium">
         <div className="flex items-center gap-2">
           {icon && (
             <img
@@ -62,13 +83,23 @@ export const StatsTableSection: React.FC = () => {
               style={elementalIconFilter ? { filter: elementalIconFilter } : undefined}
             />
           )}
-          <span className="text-lg">
+          <span className="text-lg leading-tight">
             {formatLabel(key)}
           </span>
         </div>
-        <span className="text-lg">
-          {formatValue(key, value)}
-        </span>
+        <div className="flex flex-col items-end">
+          <span className={`text-lg text-white/95 ${isFlatStat ? 'leading-tight' : ''}`}>
+            {formatValue(key, value)}
+          </span>
+          {isFlatStat && bonus > 0 && (
+            <span className="text-xs text-white/72 leading-none">
+              {formatFlat(base)}{' '}
+              <span className="text-emerald-300">
+                +{formatFlat(bonus)}
+              </span>
+            </span>
+          )}
+        </div>
       </div>
     );
   };
@@ -79,7 +110,7 @@ export const StatsTableSection: React.FC = () => {
 
       {stats.activeSets.length > 0 && (
         <div className="pb-2">
-          <div className="flex justify-between">
+          <div className="flex justify-between px-4">
             {stats.activeSets.map(({ element, count, setName }) => {
               const fetter = fettersByElement[element];
               const threshold = fetter?.pieceCount ?? 2;

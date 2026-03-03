@@ -10,7 +10,7 @@ import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculatio
 import { calculateForteBonus } from '@/lib/calculations/stats';
 import { SET_TO_STAT, SPECIAL_SET_BONUS_VALUES, DEFAULT_SET_BONUS_VALUE } from '@/lib/constants/setBonuses';
 import { getEchoBonus } from '@/lib/constants/echoBonuses';
-import { getDisplayName, getPercentVariant } from '@/lib/constants/statMappings';
+import { getPercentVariant } from '@/lib/constants/statMappings';
 import { isRover } from '@/lib/character';
 
 interface StatBreakdown {
@@ -226,7 +226,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     ];
 
     statsToCalculate.forEach(stat => {
-      const displayStat = getDisplayName(stat);
+      const displayStat = stat;
       const result: StatResult = {
         value: 0,
         update: 0,
