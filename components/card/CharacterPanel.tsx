@@ -7,6 +7,8 @@ import { CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
 interface CharacterPanelProps {
   selected: SelectedCharacter;
   tintClass: string;
+  username: string;
+  uid: string;
   artSource: string;
   onArtSourceChange: (value: string) => void;
   useAltSkin?: boolean;
@@ -21,6 +23,8 @@ interface CharacterPanelProps {
 export const CharacterPanel: React.FC<CharacterPanelProps> = ({
   selected,
   tintClass,
+  username,
+  uid,
   artSource,
   onArtSourceChange,
   useAltSkin = false,
@@ -135,6 +139,8 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
     transform: `translate3d(${artTransform.x}px, ${artTransform.y}px, 0) scale(${artTransform.scale})`,
     transformOrigin: 'center bottom',
   }), [artTransform.scale, artTransform.x, artTransform.y]);
+  const showIdentityWatermark = Boolean(username?.trim() || uid?.trim());
+  const showArtSource = Boolean(artSource?.trim());
 
   return (
     <div className="relative w-3/10 shrink-0 self-stretch z-10 overflow-hidden rounded-r-[48px] shadow-[4px_0_15px_rgba(0,0,0,0.15)]">
@@ -143,16 +149,28 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
         <div className={`absolute bottom-0 left-0 right-0 h-1/3 bg-linear-to-t ${tintClass} opacity-40 mix-blend-screen pointer-events-none`} />
       </div>
 
-      {/* Art source at bottom-left */}
-      <div className="absolute bottom-3 left-3 z-30">
-        <input
-          type="text"
-          value={artSource}
-          onChange={e => onArtSourceChange(e.target.value)}
-          placeholder=""
-          className="bg-transparent text-white/50 text-lg italic placeholder:text-white/15 focus:outline-none blur-[0.3px]"
-        />
-      </div>
+      {showIdentityWatermark && (
+        <div className="absolute top-3 left-3 z-30 rounded-xl border border-white/12 bg-black/42 px-2.5 py-1.5 text-xs font-semibold text-white/85 backdrop-blur-[2px] shadow-[0_2px_10px_rgba(0,0,0,0.3)]">
+          {username?.trim() && (
+            <div className="leading-none">{username.trim()}</div>
+          )}
+          {uid?.trim() && (
+            <div className="mt-1 leading-none text-white/70">UID {uid.trim()}</div>
+          )}
+        </div>
+      )}
+
+      {showArtSource && (
+        <div className="absolute bottom-3 left-3 z-30 rounded-xl border border-white/12 bg-black/42 px-2.5 py-1.5 backdrop-blur-[2px] shadow-[0_2px_10px_rgba(0,0,0,0.3)]">
+          <input
+            type="text"
+            value={artSource}
+            onChange={e => onArtSourceChange(e.target.value)}
+            size={Math.max(1, artSource.length)}
+            className="bg-transparent text-sm italic text-white/70 focus:outline-none"
+          />
+        </div>
+      )}
 
       {/* Character banner */}
       <div className="absolute inset-0 z-20 pointer-events-none flex items-end justify-center overflow-hidden">

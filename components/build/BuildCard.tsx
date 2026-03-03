@@ -118,6 +118,8 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
               <CharacterPanel
                 selected={selected}
                 tintClass={tintClass}
+                username={state.watermark.username}
+                uid={state.watermark.uid}
                 artSource={state.watermark.artSource}
                 onArtSourceChange={v => setWatermark({ artSource: v })}
                 useAltSkin={useAltSkin}
