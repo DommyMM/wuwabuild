@@ -27,6 +27,34 @@ export const calculateCV = (echoPanels: EchoPanelState[]): number => {
   return cv;
 };
 
+// Per-echo CV tier (substats only)
+// Combined range: 25.2 (both min) → 42.0 (both max), median ≈ 33.6
+// Passable floor = 25.2 (minimum double-crit: both substats at lowest roll).
+// Below means single or no crit
+//
+//   Perfect   ≥ 39.8  ~  5 %  of double-crit combinations
+//   Excellent ≥ 36.0  ~ 28 %
+//   High      ≥ 32.0  ~ 34 %
+//   Decent    ≥ 28.0  ~ 22 %
+//   Passable  ≥ 25.2   ~ 11 %  (minimum double-crit)
+//   Bad        < 25.2          (single-crit or no crit)
+export interface EchoCVTierStyle {
+  color: string;    // hex for badge text and border tint
+  bgColor?: string; // override background (e.g., inverted badge for MAX)
+  label: string;
+  isMax?: boolean;  // max CV of 42
+}
+
+export const getEchoCVTierStyle = (cv: number): EchoCVTierStyle => {
+  if (cv >= 42.0) return { color: '#CC0000', bgColor: 'rgba(255,255,255,0.95)', label: 'MAX', isMax: true }; // inverted red
+  if (cv >= 39.8) return { color: '#FF00FF', label: 'Perfect'  };              // hot pink
+  if (cv >= 36.0) return { color: '#00FFFF', label: 'Excellent' };             // cyan
+  if (cv >= 32.0) return { color: '#00FF00', label: 'High'     };              // green
+  if (cv >= 28.0) return { color: '#E6B800', label: 'Decent'   };              // gold
+  if (cv >= 25.2) return { color: '#FF8C00', label: 'Passable' };              // orange
+  return               { color: '#888888',  label: 'Bad'      };              // gray
+};
+
 // CV rating thresholds
 export const CV_RATINGS = {
   GODLIKE: 280,

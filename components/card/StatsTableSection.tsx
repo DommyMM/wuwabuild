@@ -18,9 +18,14 @@ const ELEMENT_ICON_FILTERS: Record<string, string> = {
 const FLAT_STATS = new Set<FlatStatKey>(FLAT_STAT_KEYS);
 const isFlatStatKey = (key: string): key is FlatStatKey => FLAT_STATS.has(key as FlatStatKey);
 
+const getPieceLabel = (count: number, threshold: number): string => {
+  if (threshold === 3) return '3';
+  return count >= 5 ? '5' : '2';
+};
+
 export const StatsTableSection: React.FC = () => {
   const { stats } = useStats();
-  const { statIcons, statTranslations } = useGameData();
+  const { statIcons, statTranslations, fettersByElement } = useGameData();
   const { t } = useLanguage();
   const values = stats.values;
 
@@ -68,7 +73,7 @@ export const StatsTableSection: React.FC = () => {
     const bonus = isFlatStat ? Math.max(0, Math.round(value) - base) : 0;
 
     return (
-      <div key={key} className="flex items-center justify-between gap-2 font-medium h-9">
+      <div key={key} className={`flex items-center justify-between gap-2 font-medium ${isFlatStat ? 'h-9' : 'h-8.5'}`}>
         <div className="flex items-center gap-2">
           {icon && (
             <img
@@ -100,8 +105,31 @@ export const StatsTableSection: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full w-full flex-col px-8 pt-2">
+    <div className="flex h-full w-full flex-col px-8 py-2">
       {statRows.map(({ key, value }) => renderStatRow(key, value))}
+      {stats.activeSets.length > 0 && (
+        <div className="mt-auto py-2 px-8">
+          <div className={`flex ${stats.activeSets.length === 1 ? 'justify-center' : 'justify-between'}`}>
+            {stats.activeSets.map(({ element, count, setName }) => {
+              const fetter = fettersByElement[element];
+              const threshold = fetter?.pieceCount ?? 2;
+              const pieceLabel = getPieceLabel(count, threshold);
+              const displayName = fetter ? t(fetter.name) : setName;
+              const setIcon = fetter?.icon ?? '';
+              return (
+                <div
+                  key={`${element}-${count}`}
+                  className="inline-flex items-center gap-2 rounded-xl bg-black/35 px-2 py-1.5"
+                >
+                  {setIcon && <img src={setIcon} alt="" className="h-5.5 w-5.5 object-contain" />}
+                  <span className="text-base font-medium">{displayName}</span>
+                  <span className="rounded-md border border-amber-300/55 bg-amber-300/18 px-1.5 text-sm">{pieceLabel}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

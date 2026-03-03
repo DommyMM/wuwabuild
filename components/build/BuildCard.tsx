@@ -103,44 +103,43 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                 useAltSkin={useAltSkin}
               />
 
-              {/* Right side: top info row + compact echoes */}
-              <div className="flex flex-1 min-w-0 w-full flex-col">
-                <div className="flex">
-                  <SequenceStrip
-                    chains={selected.character.chains ?? []}
-                    sequence={state.sequence}
-                    element={selected.element}
-                  />
-                  <div className="relative flex flex-1 min-w-0">
-                    <div className="flex w-2/5 shrink-0 min-w-0 flex-col pt-4">
-                      <NameGroup selected={selected} characterLevel={state.characterLevel} />
-                      
-                      {weapon && weaponStats && (
-                        <WeaponGroup
-                          weapon={weapon}
-                          weaponStats={weaponStats}
-                          weaponLevel={state.weaponLevel}
-                          weaponRank={state.weaponRank}
-                          weaponAtkIcon={weaponAtkIcon}
-                          weaponMainIcon={weaponMainIcon}
-                        />
-                      )}
+              {/* Right side: name/weapon/forte + stats */}
+              <div className="flex w-full">
+                <SequenceStrip
+                  chains={selected.character.chains ?? []}
+                  sequence={state.sequence}
+                  element={selected.element}
+                />
+                <div className="relative flex flex-1 self-start">
+                  <div className="flex w-2/5 shrink-0 flex-col pt-4">
+                    <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
-                      <ForteCardSection
-                        character={selected.character}
-                        forte={state.forte}
+                    {weapon && weaponStats && (
+                      <WeaponGroup
+                        weapon={weapon}
+                        weaponStats={weaponStats}
+                        weaponLevel={state.weaponLevel}
+                        weaponRank={state.weaponRank}
+                        weaponAtkIcon={weaponAtkIcon}
+                        weaponMainIcon={weaponMainIcon}
                       />
-                    </div>
+                    )}
 
-                    {/* Stats panel */}
-                    <StatsTableSection />
+                    <ForteCardSection
+                      character={selected.character}
+                      forte={state.forte}
+                    />
                   </div>
-                </div>
 
-                <EchoSection echoPanels={state.echoPanels} />
+                  {/* Stats panel */}
+                  <StatsTableSection />
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Echo cards hang below the fixed-ratio frame */}
+          <EchoSection echoPanels={state.echoPanels} />
         </div>
       )}
     </div>

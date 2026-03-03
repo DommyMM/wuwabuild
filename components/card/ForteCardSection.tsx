@@ -12,7 +12,7 @@ const BRANCHES: BranchDef[] = [
   { label: 'Liberation', skillKey: 'liberation',     treeKey: 'tree4' },
   { label: 'Intro',  skillKey: 'intro',          treeKey: 'tree5' },
 ];
-const BRANCH_OFFSETS = ['mb-0', 'mb-6', 'mb-10', 'mb-6', 'mb-0'] as const;
+const BRANCH_OFFSETS = ['mb-0', 'mb-4', 'mb-8', 'mb-4', 'mb-0'] as const;
 
 interface ForteCardSectionProps {
   character: Character;
