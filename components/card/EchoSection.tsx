@@ -5,18 +5,29 @@ import { EchoPanelState } from '@/lib/echo';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { isPercentStat } from '@/lib/constants/statMappings';
-import { calculateEchoCV } from '@/lib/calculations/cv';
+import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/cv';
 
 interface EchoSectionProps {
   echoPanels: EchoPanelState[];
 }
 
+const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
+  maskImage: 'linear-gradient(90deg, #000 30%, transparent 90%)',
+  WebkitMaskImage: 'linear-gradient(90deg, #000 30%, transparent 90%)',
+  maskRepeat: 'no-repeat',
+  WebkitMaskRepeat: 'no-repeat',
+  maskSize: '100% 100%',
+  WebkitMaskSize: '100% 100%',
+};
+
 export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
   const { getEcho, fettersByElement, statIcons } = useGameData();
   const { t } = useLanguage();
 
+  const _totalCV = calculateCV(echoPanels);
+
   return (
-    <div className="flex h-full gap-2 px-3 pb-3">
+    <div className="flex flex-1 gap-2 px-3 pb-3">
       {echoPanels.map((panel, i) => {
         const echo = panel.id ? getEcho(panel.id) : null;
 
@@ -24,7 +35,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
           return (
             <div
               key={i}
-              className="flex h-[120px] min-w-0 flex-1 items-center justify-center rounded-lg border border-white/12 bg-black/35 backdrop-blur-[3px]"
+              className="relative flex h-full flex-1 items-center justify-center overflow-hidden rounded-2xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,180,70,0.14)_0%,rgba(35,39,58,0.82)_28%,rgba(28,31,45,0.95)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_8px_16px_rgba(0,0,0,0.35)]"
             >
               <div className="h-7 w-7 rounded-full border-2 border-dashed border-white/20" />
             </div>
@@ -42,74 +53,77 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
           ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')])
           : null;
         const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
-        const echoCV = calculateEchoCV(panel, { echoCost: echo.cost });
 
         const substats = panel.stats.subStats.filter(
           (sub) => Boolean(sub.type?.trim()) && sub.value != null
         );
 
+        const echoCV = calculateEchoSubstatCV(panel);
+
         return (
           <div
             key={i}
-            className="relative h-[120px] min-w-0 flex-1 overflow-hidden rounded-lg border border-white/12 bg-black/42 shadow-[0_4px_12px_rgba(0,0,0,0.4)] backdrop-blur-[3px]"
+            className="relative flex flex-1 overflow-hidden rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,180,70,0.14)_0%,rgba(58,42,86,0.82)_28%,rgba(45,49,67,0.94)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_8px_16px_rgba(0,0,0,0.38)]"
           >
-            <div className="absolute left-1.5 top-1.5 z-10 rounded-md border border-white/20 bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
-              {echoCV.toFixed(1)} CV
-            </div>
-
-            {fetterIcon && (
+            {/* Left: image at natural aspect ratio, stats pushed to bottom */}
+            <div className="flex w-3/5 flex-col overflow-hidden">
               <img
-                src={fetterIcon}
-                alt={elementType ?? ''}
-                className="absolute right-1.5 top-1.5 z-10 h-4.5 w-4.5 object-contain opacity-90"
+                src={echo.iconUrl}
+                alt={echoName}
+                className="block w-full h-auto"
+                style={ECHO_IMAGE_FADE_STYLE}
               />
-            )}
-
-            <div className="flex h-full gap-1.5 px-1.5 pb-1.5 pt-6">
-              <div className="relative w-[42%] shrink-0 overflow-hidden rounded-md border border-white/12 bg-black/30">
-                <img
-                  src={echo.iconUrl}
-                  alt={echoName}
-                  className="absolute inset-0 h-full w-full object-contain"
-                />
-
+              <div className="mt-auto flex flex-col items-start pb-4">
+                {fetterIcon && (
+                  <img
+                    src={fetterIcon}
+                    alt={elementType ?? ''}
+                    className="h-5 w-5 object-contain"
+                  />
+                )}
                 {mainStatType && mainStatValue != null && (
-                  <div className="absolute bottom-1 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-sm bg-black/65 px-1.5 py-0.5">
+                  <div className="flex items-center gap-1 rounded-lg border border-white/15 bg-black/68 px-1.5 py-1">
                     {mainStatIcon && (
-                      <img src={mainStatIcon} alt={mainStatType} className="h-3.5 w-3.5 shrink-0 object-contain" />
+                      <img src={mainStatIcon} alt={mainStatType} className="h-3.5 w-3.5 object-contain" />
                     )}
-                    <span className="text-[10px] font-semibold leading-none text-white">
+                    <span className="text-xs font-semibold">
                       {isMainPercent
                         ? `${mainStatValue.toFixed(1)}%`
                         : Math.round(mainStatValue).toLocaleString()}
                     </span>
                   </div>
                 )}
+                {echoCV > 0 && (
+                  <span className="text-xs font-semibold leading-none text-white/70">
+                    {echoCV.toFixed(1)} CV
+                  </span>
+                )}
               </div>
+            </div>
 
-              <div className="grid min-w-0 flex-1 grid-cols-2 content-center gap-x-1.5 gap-y-1">
-                {Array.from({ length: 5 }).map((_, si) => {
-                  const sub = substats[si];
-                  if (!sub?.type || sub.value == null) {
-                    return <div key={si} className="h-4" />;
-                  }
+            {/* Right: substats */}
+            <div className="flex flex-col items-start justify-between py-4 -ml-1.5">
+              {Array.from({ length: 5 }).map((_, si) => {
+                const sub = substats[si];
+                if (!sub?.type || sub.value == null) {
+                  return <div key={si} className="h-5" />;
+                }
 
-                  const subType = sub.type.trim();
-                  const isSubPercent = isPercentStat(subType);
-                  const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')];
+                const subType = sub.type.trim();
+                const isSubPercent = isPercentStat(subType);
+                const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')];
 
-                  return (
-                    <div key={si} className="flex h-4 items-center gap-1">
-                      {subIcon && (
-                        <img src={subIcon} alt={subType} className="h-3.5 w-3.5 shrink-0 object-contain" />
-                      )}
-                      <span className="truncate text-[11px] font-semibold leading-none text-white">
-                        {isSubPercent ? `${sub.value.toFixed(1)}%` : Math.round(sub.value)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                return (
+                  <div key={si} className="flex items-center gap-1">
+                    {subIcon && (
+                      <img src={subIcon} alt={subType} className="h-4.5 w-4.5 object-contain" />
+                    )}
+                    <span className="text-base leading-none font-semibold">
+                      {isSubPercent ? `${sub.value.toFixed(1)}%` : Math.round(sub.value)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
