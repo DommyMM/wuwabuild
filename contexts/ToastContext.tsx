@@ -302,7 +302,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         aria-relevant="additions text"
         className="pointer-events-none fixed inset-x-0 bottom-3 z-95 flex flex-col items-center gap-2 px-3 sm:inset-x-auto sm:bottom-4 sm:right-4 sm:items-end sm:px-0"
       >
-        <ul className="flex w-full max-w-[380px] flex-col gap-2">
+        <ul className="flex w-full max-w-md flex-col gap-2">
           <AnimatePresence initial={false}>
             {state.visible.map((toast) => {
               const styles = getToastStyles(toast.type);
@@ -318,16 +318,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   onMouseLeave={() => resumeToastById(toast.id)}
                   className={`pointer-events-auto rounded-xl border backdrop-blur-md ${styles.container}`}
                 >
-                  <div className="flex items-start gap-3 px-3.5 py-3">
-                    <span className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${styles.icon}`}>
+                  <div className="flex items-center gap-3 px-3.5 py-3">
+                    <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${styles.icon}`}>
                       <ToastIcon type={toast.type} />
                     </span>
-                    <p className="min-w-0 flex-1 text-sm leading-snug">
+                    <p className="min-w-0 flex-1 text-base leading-snug">
                       {toast.message}
                     </p>
                     <button
                       onClick={() => dismissToast(toast.id)}
-                      className="rounded-md p-1 text-current/75 transition-colors hover:bg-black/20 hover:text-current"
+                      className="rounded-md p-1.5 text-current/75 transition-colors hover:bg-black/20 hover:text-current"
                       aria-label="Dismiss notification"
                     >
                       <X size={14} />
