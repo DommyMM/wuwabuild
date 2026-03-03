@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Maximize2, Minus, Pencil, RotateCcw, Trash2, Trophy } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Minus, Pencil, RotateCcw, Trash2, Trophy } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Element } from '@/lib/character';
@@ -19,11 +19,9 @@ import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
 import { BuildCardOptions, CardOptions } from './BuildCardOptions';
 import { BuildCard } from './BuildCard';
-import { MobileCardViewport } from './MobileCardViewport';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Modal } from '@/components/ui/Modal';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -32,8 +30,7 @@ const ART_NUDGE_STEP = 12;
 const ART_ZOOM_STEP = 0.05;
 const MIN_ART_ZOOM = 1;
 const MAX_ART_ZOOM = 4;
-const MOBILE_CARD_DESIGN_WIDTH = 1440;
-const MOBILE_CARD_FULLSCREEN_ZOOMS = [75, 100, 125] as const;
+const FIXED_CARD_PREVIEW_WIDTH = 1440;
 
 const getImageNaturalHeight = async (file: File): Promise<number> => {
   const objectUrl = URL.createObjectURL(file);
@@ -101,8 +98,6 @@ export const BuildEditor: React.FC = () => {
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const [isPhoneViewport, setIsPhoneViewport] = useState(false);
-  const [isCardFullscreenOpen, setIsCardFullscreenOpen] = useState(false);
-  const [mobileCardZoom, setMobileCardZoom] = useState<(typeof MOBILE_CARD_FULLSCREEN_ZOOMS)[number]>(75);
 
   const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
   const [isCardGenerated, setIsCardGenerated] = useState(false);
@@ -124,12 +119,6 @@ export const BuildEditor: React.FC = () => {
       }, 100);
     }
   }, [isCardGenerated]);
-
-  useEffect(() => {
-    if (!isPhoneViewport) {
-      setIsCardFullscreenOpen(false);
-    }
-  }, [isPhoneViewport]);
 
   const {
     state, resetBuild,
@@ -516,20 +505,22 @@ export const BuildEditor: React.FC = () => {
               <>
                 <div className="min-w-0 pt-4 md:pt-0">
                   {isPhoneViewport ? (
-                    <MobileCardViewport designWidth={MOBILE_CARD_DESIGN_WIDTH}>
-                      <BuildCard
-                        ref={cardRef}
-                        useAltSkin={cardOptions.useAltSkin}
-                        showCV={cardOptions.showCV}
-                        showRollQuality={cardOptions.showRollQuality}
-                        artTransform={artTransform}
-                        artSourceMode={artSourceMode}
-                        customArtUrl={customArtUrl}
-                        isArtEditMode={isArtEditMode}
-                        onCustomArtUpload={handleCustomArtUpload}
-                        onArtTransformChange={setArtTransform}
-                      />
-                    </MobileCardViewport>
+                    <div className="overflow-x-auto overflow-y-hidden pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
+                      <div style={{ width: FIXED_CARD_PREVIEW_WIDTH, minWidth: FIXED_CARD_PREVIEW_WIDTH }}>
+                        <BuildCard
+                          ref={cardRef}
+                          useAltSkin={cardOptions.useAltSkin}
+                          showCV={cardOptions.showCV}
+                          showRollQuality={cardOptions.showRollQuality}
+                          artTransform={artTransform}
+                          artSourceMode={artSourceMode}
+                          customArtUrl={customArtUrl}
+                          isArtEditMode={isArtEditMode}
+                          onCustomArtUpload={handleCustomArtUpload}
+                          onArtTransformChange={setArtTransform}
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <BuildCard
                       ref={cardRef}
@@ -558,17 +549,8 @@ export const BuildEditor: React.FC = () => {
                         }`}
                       >
                         <Pencil size={14} />
-                        {isArtEditMode ? 'Done Editing' : 'Edit'}
+                        {isArtEditMode ? 'Done' : 'Edit'}
                       </button>
-                      {isPhoneViewport && (
-                        <button
-                          onClick={() => setIsCardFullscreenOpen(true)}
-                          className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-accent/60"
-                        >
-                          <Maximize2 size={14} />
-                          Fullscreen
-                        </button>
-                      )}
                       <button
                         onClick={handleDownload}
                         disabled={isDownloading}
@@ -686,50 +668,6 @@ export const BuildEditor: React.FC = () => {
               </>
             )}
       </div>
-      <Modal
-        isOpen={isCardFullscreenOpen}
-        onClose={() => setIsCardFullscreenOpen(false)}
-        title="Build Card Preview"
-        contentClassName="h-[100dvh] max-h-[100dvh] w-screen max-w-[100vw] rounded-none border-0"
-      >
-        <div className="flex h-full min-h-0 flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {MOBILE_CARD_FULLSCREEN_ZOOMS.map((zoom) => (
-              <button
-                key={zoom}
-                onClick={() => setMobileCardZoom(zoom)}
-                className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  mobileCardZoom === zoom
-                    ? 'border-accent/70 bg-accent/15 text-accent'
-                    : 'border-border bg-background-secondary text-text-primary hover:border-accent/60'
-                }`}
-              >
-                {zoom}%
-              </button>
-            ))}
-          </div>
-          <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-background-secondary p-2">
-            <div
-              className="origin-top-left"
-              style={{ width: Math.round((MOBILE_CARD_DESIGN_WIDTH * mobileCardZoom) / 100) }}
-            >
-              {isCardGenerated && (
-                <BuildCard
-                  useAltSkin={cardOptions.useAltSkin}
-                  showCV={cardOptions.showCV}
-                  showRollQuality={cardOptions.showRollQuality}
-                  artTransform={artTransform}
-                  artSourceMode={artSourceMode}
-                  customArtUrl={customArtUrl}
-                  isArtEditMode={isArtEditMode}
-                  onCustomArtUpload={handleCustomArtUpload}
-                  onArtTransformChange={setArtTransform}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      </Modal>
       <SaveBuildModal
         isOpen={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}
