@@ -135,6 +135,33 @@ function migrateToForteArray(raw: Record<string, unknown>): ForteState {
   ] as ForteEntry) as ForteState;
 }
 
+function normalizeEchoPanels(rawPanels: unknown): EchoPanelState[] {
+  const defaults = Array(5).fill(null).map(() => createDefaultEchoPanelState());
+  if (!Array.isArray(rawPanels)) return defaults;
+
+  return defaults.map((defaultPanel, i) => {
+    const rawPanel = rawPanels[i];
+    if (!rawPanel || typeof rawPanel !== 'object') return defaultPanel;
+
+    const panel = rawPanel as Partial<EchoPanelState>;
+    const rawMainStat = panel.stats?.mainStat;
+    const rawSubStats = panel.stats?.subStats;
+    const subStats = Array.isArray(rawSubStats)
+      ? defaultPanel.stats.subStats.map((baseSub, si) => ({ ...baseSub, ...(rawSubStats[si] ?? {}) }))
+      : defaultPanel.stats.subStats;
+
+    return {
+      ...defaultPanel,
+      ...panel,
+      stats: {
+        mainStat: { ...defaultPanel.stats.mainStat, ...(rawMainStat ?? {}) },
+        subStats,
+      },
+      phantom: panel.phantom === true,
+    };
+  });
+}
+
 // Read draft from localStorage synchronously (avoids flicker).
 function loadDraftFromStorage(): BuildState | null {
   if (typeof window === 'undefined') return null;
@@ -157,7 +184,7 @@ function loadDraftFromStorage(): BuildState | null {
         weaponLevel: ws.level ?? 1,
         weaponRank: ws.rank ?? 1,
         forte: migrateToForteArray(saved),
-        echoPanels: saved.echoPanels ?? Array(5).fill(null).map(() => createDefaultEchoPanelState()),
+        echoPanels: normalizeEchoPanels(saved.echoPanels),
         watermark: saved.watermark ?? { ...DEFAULT_WATERMARK },
         isDirty: false,
       };
@@ -168,6 +195,7 @@ function loadDraftFromStorage(): BuildState | null {
       return {
         ...saved,
         forte: migrateToForteArray(saved),
+        echoPanels: normalizeEchoPanels(saved.echoPanels),
         isDirty: false,
       };
     }
@@ -221,7 +249,7 @@ function buildReducer(state: BuildState, action: BuildAction): BuildState {
     }
 
     case 'SET_ECHO_PANELS':
-      return { ...state, echoPanels: action.payload, isDirty: true };
+      return { ...state, echoPanels: normalizeEchoPanels(action.payload), isDirty: true };
 
     case 'REORDER_ECHO_PANELS': {
       const newPanels = [...state.echoPanels];
@@ -296,7 +324,7 @@ function buildReducer(state: BuildState, action: BuildAction): BuildState {
         weaponLevel: action.payload.weaponLevel,
         weaponRank: action.payload.weaponRank,
         forte: action.payload.forte,
-        echoPanels: action.payload.echoPanels,
+        echoPanels: normalizeEchoPanels(action.payload.echoPanels),
         watermark: action.payload.watermark,
         isDirty: false
       };
@@ -337,7 +365,13 @@ export function BuildProvider({
     buildReducer,
     undefined,
     () => {
-      if (providedInitialState) return { ...providedInitialState, isDirty: false };
+      if (providedInitialState) {
+        return {
+          ...providedInitialState,
+          echoPanels: normalizeEchoPanels(providedInitialState.echoPanels),
+          isDirty: false,
+        };
+      }
       return loadDraftFromStorage() ?? initialState;
     }
   );

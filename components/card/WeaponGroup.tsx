@@ -30,7 +30,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
   const rarityStyle = RARITY_ACCENTS[weapon.rarity];
 
   return (
-    <div className="flex items-center gap-2 pt-3">
+    <div className="flex items-center gap-2">
       <div className={`relative flex h-30 w-30 items-center justify-center overflow-hidden rounded-xl border shadow-[0_8px_18px_rgba(0,0,0,0.35)] ${rarityStyle?.border ?? 'border-white/28'} ${rarityStyle?.bg ?? 'bg-black/20'}`}>
         <img
           src={weapon.iconUrl}

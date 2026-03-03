@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/cv';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
+import { getEchoPaths } from '@/lib/paths';
 
 interface EchoSectionProps {
   echoPanels: EchoPanelState[];
@@ -86,7 +87,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = t
               {/* Echo image and misc */}
               <div className="flex w-2/3 flex-col overflow-hidden">
                 <img
-                  src={echo.iconUrl}
+                  src={getEchoPaths(echo, panel.phantom)}
                   alt={echoName}
                   className="w-full h-auto"
                   style={ECHO_IMAGE_FADE_STYLE}

@@ -109,14 +109,14 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
               {/* Right side: name/weapon/forte + stats + echoes */}
               <div className="flex flex-col w-full">
                 <div className="flex">
-                  <div className="flex w-9/20 shrink-0 flex-col pt-4">
+                  <div className="flex w-120 shrink-0 flex-col pt-4">
                     <div className="flex items-stretch">
                       <SequenceStrip
                         chains={selected.character.chains ?? []}
                         sequence={state.sequence}
                         element={selected.element}
                       />
-                      <div className="flex flex-1 flex-col">
+                      <div className="flex flex-1 flex-col space-y-2">
                         <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
                         {weapon && weaponStats && (
@@ -136,13 +136,10 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                         />
                       </div>
                     </div>
-                    <ActiveSetsSection />
+                    <ActiveSetsSection showCV={showCV} />
                   </div>
 
-                  <div className="relative flex-1 self-start">
-                    {/* Stats panel */}
-                    <StatsTableSection />
-                  </div>
+                  <StatsTableSection />
                 </div>
 
                 {/* Echo cards inside the frame */}

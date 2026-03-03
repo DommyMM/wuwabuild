@@ -46,7 +46,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
   character, forte,
 }) => {
   return (
-    <div className="flex items-end gap-2 pt-2">
+    <div className="flex items-end gap-2">
       {BRANCHES.map((branch, i) => {
         const [level, topActive, midActive] = forte[i];
         const isMaxLevel = level >= 10;
