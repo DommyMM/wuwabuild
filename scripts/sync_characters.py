@@ -28,6 +28,12 @@ CDN_BASE = "https://files.wuthery.com"
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Character"
 
+# Known CDN path typos that need deterministic normalization.
+CDN_PATH_FIXUPS = {
+    "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_zanni1_UI.png":
+        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_zanNi1_UI.png",
+}
+
 # Output directory relative to this script
 OUTPUT_DIR = Path(__file__).parent.parent / "public/Data/Characters"
 LB_OUTPUT_FILE = Path(__file__).parent.parent / "public/Data/LB/Characters.compact.json"
@@ -88,7 +94,10 @@ SUB_FILTERS = {
 def prepend_cdn(obj: Any) -> Any:
     """Prepend CDN base URL to paths starting with /d/"""
     if isinstance(obj, str):
-        return f"{CDN_BASE}{obj}" if obj.startswith("/d/") else obj
+        fixed = CDN_PATH_FIXUPS.get(obj, obj)
+        if fixed.startswith("/d/"):
+            return f"{CDN_BASE}{fixed}"
+        return fixed
     elif isinstance(obj, dict):
         return {k: prepend_cdn(v) for k, v in obj.items()}
     elif isinstance(obj, list):
