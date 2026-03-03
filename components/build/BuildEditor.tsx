@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Minus, Pencil, RotateCcw, Trash2, Trophy } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ChevronUp, Download, Maximize2, Minus, Pencil, RotateCcw, Trash2, Trophy } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Element } from '@/lib/character';
@@ -19,9 +19,11 @@ import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
 import { BuildCardOptions, CardOptions } from './BuildCardOptions';
 import { BuildCard } from './BuildCard';
+import { MobileCardViewport } from './MobileCardViewport';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -30,6 +32,8 @@ const ART_NUDGE_STEP = 12;
 const ART_ZOOM_STEP = 0.05;
 const MIN_ART_ZOOM = 1;
 const MAX_ART_ZOOM = 4;
+const MOBILE_CARD_DESIGN_WIDTH = 1440;
+const MOBILE_CARD_FULLSCREEN_ZOOMS = [75, 100, 125] as const;
 
 const getImageNaturalHeight = async (file: File): Promise<number> => {
   const objectUrl = URL.createObjectURL(file);
@@ -92,10 +96,20 @@ const readFileAsDataUrl = (file: File): Promise<string> => (
   })
 );
 
+type MobileSectionKey = 'resonator' | 'echoes' | 'card';
+
 export const BuildEditor: React.FC = () => {
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+  const [isPhoneViewport, setIsPhoneViewport] = useState(false);
+  const [mobileSectionsOpen, setMobileSectionsOpen] = useState<Record<MobileSectionKey, boolean>>({
+    resonator: true,
+    echoes: true,
+    card: false,
+  });
+  const [isCardFullscreenOpen, setIsCardFullscreenOpen] = useState(false);
+  const [mobileCardZoom, setMobileCardZoom] = useState<(typeof MOBILE_CARD_FULLSCREEN_ZOOMS)[number]>(75);
 
   const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
   const [isCardGenerated, setIsCardGenerated] = useState(false);
@@ -118,6 +132,18 @@ export const BuildEditor: React.FC = () => {
     }
   }, [isCardGenerated]);
 
+  useEffect(() => {
+    if (isPhoneViewport && isCardGenerated) {
+      setMobileSectionsOpen(prev => ({ ...prev, card: true }));
+    }
+  }, [isCardGenerated, isPhoneViewport]);
+
+  useEffect(() => {
+    if (!isPhoneViewport) {
+      setIsCardFullscreenOpen(false);
+    }
+  }, [isPhoneViewport]);
+
   const {
     state, resetBuild,
     setCharacterLevel, setSequence,
@@ -139,6 +165,15 @@ export const BuildEditor: React.FC = () => {
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
     setArtSourceMode('default');
     setCustomArtUrl(null);
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsPhoneViewport(media.matches);
+    onChange();
+
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
   }, []);
 
   useEffect(() => {
@@ -217,6 +252,17 @@ export const BuildEditor: React.FC = () => {
   const handleToggleArtEditMode = useCallback(() => {
     setIsArtEditMode(v => !v);
   }, []);
+
+  const toggleMobileSection = useCallback((section: MobileSectionKey) => {
+    setMobileSectionsOpen(prev => ({ ...prev, [section]: !prev[section] }));
+  }, []);
+
+  const handleGenerateCard = useCallback(() => {
+    setIsCardGenerated(true);
+    if (isPhoneViewport) {
+      setMobileSectionsOpen(prev => ({ ...prev, card: true }));
+    }
+  }, [isPhoneViewport]);
 
   const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
@@ -319,8 +365,18 @@ export const BuildEditor: React.FC = () => {
     });
   }, []);
 
+  const renderMobileSectionToggle = (section: MobileSectionKey, label: string) => (
+    <button
+      onClick={() => toggleMobileSection(section)}
+      className="mb-2 flex w-full items-center justify-between rounded-lg border border-border bg-background-secondary px-3 py-2 text-left text-sm font-semibold text-text-primary md:hidden"
+    >
+      <span>{label}</span>
+      {mobileSectionsOpen[section] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+    </button>
+  );
+
   return (
-    <div className="flex flex-col max-w-[1440px] mx-auto">
+    <div className="mx-auto flex max-w-[1440px] min-w-0 flex-col overflow-x-clip">
       {/* Action Bar */}
       <BuildActionBar
         containerRef={actionBarRef}
@@ -330,7 +386,7 @@ export const BuildEditor: React.FC = () => {
       />
 
       {/* Portal: compact nav toolbar */}
-      {portalTarget && createPortal(
+      {portalTarget && !isPhoneViewport && createPortal(
         <AnimatePresence>
           {!isActionBarVisible && (
             <motion.div
@@ -354,280 +410,369 @@ export const BuildEditor: React.FC = () => {
       )}
 
       {/* Resonator */}
-      <div className="flex flex-col">
-        <div className="flex justify-start">
-          <CharacterSelector className="rounded-b-none border-b-0" />
-        </div>
+      <div className="flex min-w-0 flex-col">
+        {renderMobileSectionToggle('resonator', 'Resonator')}
+        {(!isPhoneViewport || mobileSectionsOpen.resonator) && (
+          <>
+            <div className="flex justify-start">
+              <CharacterSelector className="rounded-b-none border-b-0" />
+            </div>
 
-        <div className="select-none rounded-lg rounded-tl-none border border-border bg-background-secondary p-4">
-          {selected ? (
-            <div className="grid grid-cols-[auto_auto_1fr] grid-rows-[28rem_auto] gap-x-6 gap-y-3">
-              {/* Row 1, Col 1: Portrait */}
-              <div className="relative col-start-1 row-start-1 h-full">
-                <img
-                  src={selected.banner}
-                  alt={t(selected.nameI18n)}
-                  className="pointer-events-none h-full w-auto rounded-lg object-contain"
-                />
-                {selected.isRover && (
-                  <div className="absolute right-2 top-2 flex flex-col gap-1.5">
-                    {(['Spectro', 'Aero', 'Havoc'] as const).map((el) => {
-                      const active = selected.element === el;
-                      return (
-                        <button
-                          key={el}
-                          onClick={() => {
-                            const variant = characters.find(
-                              c => c.element === Element.Rover &&
-                                c.legacyId === selected.character.legacyId &&
-                                c.roverElementName === el,
-                            );
-                            if (variant) setCharacter(variant.id, el);
-                            else setRoverElement(el);
-                          }}
-                          className={`rounded-md border px-2 py-0.5 text-xs font-semibold backdrop-blur transition-colors
-                            ${active
-                              ? `bg-${el.toLowerCase()}/30 border-${el.toLowerCase()}/70 text-${el.toLowerCase()}`
-                              : 'border-white/20 bg-black/40 text-white/60 hover:border-white/40 hover:text-white/90'
-                            }`}
-                        >
-                          {el}
-                        </button>
-                      );
-                    })}
+            <div className="select-none rounded-lg rounded-tl-none border border-border bg-background-secondary p-3 md:p-4">
+              {selected ? (
+                <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[auto_auto_1fr] md:grid-rows-[28rem_auto] md:gap-x-6 md:gap-y-3">
+                  {/* Row 1, Col 1: Portrait */}
+                  <div className="relative order-1 w-full md:col-start-1 md:row-start-1 md:h-full">
+                    <img
+                      src={selected.banner}
+                      alt={t(selected.nameI18n)}
+                      className="pointer-events-none mx-auto h-auto w-full max-w-[280px] rounded-lg object-contain md:h-full md:w-auto md:max-w-none"
+                    />
+                    {selected.isRover && (
+                      <div className="absolute right-2 top-2 flex flex-col gap-1.5">
+                        {(['Spectro', 'Aero', 'Havoc'] as const).map((el) => {
+                          const active = selected.element === el;
+                          return (
+                            <button
+                              key={el}
+                              onClick={() => {
+                                const variant = characters.find(
+                                  c => c.element === Element.Rover &&
+                                    c.legacyId === selected.character.legacyId &&
+                                    c.roverElementName === el,
+                                );
+                                if (variant) setCharacter(variant.id, el);
+                                else setRoverElement(el);
+                              }}
+                              className={`rounded-md border px-2 py-0.5 text-xs font-semibold backdrop-blur transition-colors
+                                ${active
+                                  ? `bg-${el.toLowerCase()}/30 border-${el.toLowerCase()}/70 text-${el.toLowerCase()}`
+                                  : 'border-white/20 bg-black/40 text-white/60 hover:border-white/40 hover:text-white/90'
+                                }`}
+                            >
+                              {el}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Row 1, Col 2: Sequences + Weapon + Rank slider */}
-              <div className="relative flex flex-col justify-between overflow-hidden">
-                {selected.character.cdnId && (
-                  <SequenceSelector
-                    cdnId={selected.character.cdnId}
-                    characterName={selected.character.name}
-                    roverElement={state.roverElement}
-                    current={state.sequence}
-                    onChange={setSequence}
-                  />
-                )}
+                  {/* Row 1, Col 2: Sequences + Weapon + Rank slider */}
+                  <div className="relative order-2 flex min-w-0 flex-col items-center gap-4 overflow-visible md:col-start-2 md:row-start-1 md:items-stretch md:justify-between md:overflow-hidden">
+                    {selected.character.cdnId && (
+                      <SequenceSelector
+                        compact={isPhoneViewport}
+                        cdnId={selected.character.cdnId}
+                        characterName={selected.character.name}
+                        roverElement={state.roverElement}
+                        current={state.sequence}
+                        onChange={setSequence}
+                      />
+                    )}
 
-                <WeaponSelector />
-              </div>
+                    <WeaponSelector compact={isPhoneViewport} />
+                  </div>
 
-              {/* Row 2, Col 1: Character Level */}
-              <div className="col-start-1 row-start-2">
-                <LevelSlider
-                  value={state.characterLevel}
-                  onLevelChange={setCharacterLevel}
-                  label="Level"
-                  showDiamonds={false}
-                  showBreakpoints={false}
-                />
-              </div>
+                  {/* Row 2, Col 1: Character Level */}
+                  <div className="order-3 min-w-0 md:col-start-1 md:row-start-2">
+                    <LevelSlider
+                      value={state.characterLevel}
+                      onLevelChange={setCharacterLevel}
+                      label="Level"
+                      showDiamonds={false}
+                      showBreakpoints={false}
+                    />
+                  </div>
 
-              {/* Row 2, Col 2: Weapon Level */}
-              {selectedWeapon && (
-                <div className="col-start-2 row-start-2">
-                  <LevelSlider
-                    value={state.weaponLevel}
-                    onLevelChange={setWeaponLevel}
-                    label="Weapon Level"
-                    showDiamonds={false}
-                    showBreakpoints={false}
-                  />
+                  {/* Row 2, Col 2: Weapon Level */}
+                  {selectedWeapon && (
+                    <div className="order-4 min-w-0 md:col-start-2 md:row-start-2">
+                      <LevelSlider
+                        value={state.weaponLevel}
+                        onLevelChange={setWeaponLevel}
+                        label="Weapon Level"
+                        showDiamonds={false}
+                        showBreakpoints={false}
+                      />
+                    </div>
+                  )}
+
+                  {/* Col 3: Forte */}
+                  <div className="order-5 min-w-0 overflow-hidden md:col-start-3 md:row-span-2">
+                    <ForteGroup
+                      compact={isPhoneViewport}
+                      key={selected.character.id}
+                      character={selected.character}
+                      elementValue={state.roverElement || selected.character.element}
+                      forte={state.forte}
+                      onNodeChange={setForteNode}
+                      onLevelChange={setForteLevel}
+                      onMaxAll={maxAllFortes}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-12 text-text-primary/40">
+                  Select a resonator to get started
                 </div>
               )}
-
-              {/* Col 3: Forte */}
-              <div className="col-start-3 row-span-2 overflow-hidden">
-                <ForteGroup
-                  key={selected.character.id}
-                  character={selected.character}
-                  elementValue={state.roverElement || selected.character.element}
-                  forte={state.forte}
-                  onNodeChange={setForteNode}
-                  onLevelChange={setForteLevel}
-                  onMaxAll={maxAllFortes}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-12 text-text-primary/40">
-              Select a resonator to get started
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Echoes */}
-      <div className="mt-4 flex flex-col">
-        <div className="flex justify-end">
-          <EchoCostBadge className="rounded-b-none border-b-0" />
-        </div>
-        <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-4">
-          <EchoGrid />
-        </div>
-      </div>
-
-
-      {/* Build Card */}
-      <div className="mt-8 flex flex-col">
-        <div className="relative flex items-start">
-          <BuildCardOptions
-            className={isCardGenerated ? 'rounded-b-none border-b-0' : ''}
-            onChange={setCardOptions}
-          />
-          <button
-            onClick={() => setIsCardGenerated(true)}
-            className="absolute left-1/2 -translate-x-1/2 rounded-lg bg-accent px-4 py-3 text-base font-semibold tracking-wide cursor-pointer text-background transition-all hover:brightness-110 hover:shadow-[0_0_16px_rgba(var(--color-accent),0.4)] active:scale-[0.97]"
-          >
-            Generate
-          </button>
-        </div>
-        {isCardGenerated && (
-          <>
-            <BuildCard
-              ref={cardRef}
-              useAltSkin={cardOptions.useAltSkin}
-              showCV={cardOptions.showCV}
-              showRollQuality={cardOptions.showRollQuality}
-              artTransform={artTransform}
-              artSourceMode={artSourceMode}
-              customArtUrl={customArtUrl}
-              isArtEditMode={isArtEditMode}
-              onCustomArtUpload={handleCustomArtUpload}
-              onArtTransformChange={setArtTransform}
-            />
-            {/* Action bar, flipped version of BuildCardOptions */}
-            <div className="flex justify-start pl-12">
-              <div className="flex flex-col rounded-lg rounded-t-none border border-t-0 border-border bg-background">
-                <div className="flex items-center gap-3 p-3">
-                  <button
-                    onClick={handleToggleArtEditMode}
-                    className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                      isArtEditMode
-                        ? 'border-accent/70 bg-accent/15 text-accent'
-                        : 'border-border bg-background-secondary text-text-primary hover:border-accent/60'
-                    }`}
-                  >
-                    <Pencil size={14} />
-                    {isArtEditMode ? 'Done Editing' : 'Edit'}
-                  </button>
-                <button
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                    className="group relative flex items-center gap-2 overflow-hidden rounded-lg border border-accent/65 bg-accent px-5 py-2 text-sm font-semibold text-background cursor-pointer transition-all duration-300 hover:brightness-110 disabled:opacity-50 disabled:cursor-wait"
-                >
-                  <Download size={14} className="relative z-10" />
-                  <span className="relative z-10">
-                    {isDownloading ? (
-                      <span className="flex items-center gap-0.5">
-                        <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '0ms' }} />
-                        <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '150ms' }} />
-                        <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '300ms' }} />
-                      </span>
-                    ) : 'Download'}
-                  </span>
-                </button>
-                {/* TODO: Add leaderboard logic once LB is set up in the rewrite */}
-                <button
-                  disabled
-                  className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary/40 cursor-not-allowed"
-                >
-                  <Trophy size={14} />
-                  View Ranking
-                </button>
-                </div>
-
-                {isArtEditMode && (
-                  <div className="flex flex-col gap-3 border-t border-border px-3 py-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium text-text-primary/80">Zoom</span>
-                      <button
-                        onClick={() => handleZoomArt(-ART_ZOOM_STEP)}
-                        disabled={artTransform.scale <= MIN_ART_ZOOM}
-                        className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        className="min-w-14 rounded-md border border-border bg-background px-2.5 py-1 text-center text-sm font-semibold text-accent transition-colors hover:border-accent"
-                      >
-                        {`${Math.round(artTransform.scale * 100)}%`}
-                      </button>
-                      <button
-                        onClick={() => handleZoomArt(ART_ZOOM_STEP)}
-                        disabled={artTransform.scale >= MAX_ART_ZOOM}
-                        className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        +
-                      </button>
-
-                      <button
-                        onClick={handleUseSplashArt}
-                        disabled={!selected}
-                        className="rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Use Splash Art
-                      </button>
-
-                      <button
-                        onClick={handleRemoveCustomArt}
-                        disabled={artSourceMode !== 'custom'}
-                        className="ml-auto inline-flex items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-red-400/60 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Trash2 size={12} />
-                        Remove Custom
-                      </button>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-4">
-                      <div className="grid grid-cols-3 grid-rows-3 gap-1.5">
-                        <span />
-                        <button
-                          onClick={() => handleNudgeArt(0, -ART_NUDGE_STEP)}
-                          className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                        >
-                          <ArrowUp size={14} />
-                        </button>
-                        <span />
-                        <button
-                          onClick={() => handleNudgeArt(-ART_NUDGE_STEP, 0)}
-                          className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                        >
-                          <ArrowLeft size={14} />
-                        </button>
-                        <button
-                          onClick={handleResetArtTransform}
-                          className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                          title="Reset position and zoom"
-                        >
-                          <RotateCcw size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleNudgeArt(ART_NUDGE_STEP, 0)}
-                          className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                        >
-                          <ArrowRight size={14} />
-                        </button>
-                        <span />
-                        <button
-                          onClick={() => handleNudgeArt(0, ART_NUDGE_STEP)}
-                          className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                        >
-                          <ArrowDown size={14} />
-                        </button>
-                        <span />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </>
         )}
       </div>
+
+      {/* Echoes */}
+      <div className="mt-4 flex min-w-0 flex-col">
+        {renderMobileSectionToggle('echoes', 'Echoes')}
+        {(!isPhoneViewport || mobileSectionsOpen.echoes) && (
+          <>
+            <div className="flex justify-end">
+              <EchoCostBadge className="rounded-b-none border-b-0" />
+            </div>
+            <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-3 md:p-4">
+              <EchoGrid />
+            </div>
+          </>
+        )}
+      </div>
+
+
+      {/* Build Card */}
+      <div className="mt-8 flex min-w-0 flex-col">
+        {renderMobileSectionToggle('card', 'Build Card')}
+        {(!isPhoneViewport || mobileSectionsOpen.card) && (
+          <>
+            <div className="relative flex min-w-0 flex-col items-stretch gap-3 md:flex-row md:items-start">
+              <BuildCardOptions
+                className={isCardGenerated ? 'md:rounded-b-none md:border-b-0' : ''}
+                onChange={setCardOptions}
+              />
+              <button
+                onClick={handleGenerateCard}
+                className="w-full rounded-lg bg-accent px-4 py-3 text-base font-semibold tracking-wide text-background transition-all hover:brightness-110 hover:shadow-[0_0_16px_rgba(var(--color-accent),0.4)] active:scale-[0.97] md:absolute md:left-1/2 md:w-auto md:-translate-x-1/2"
+              >
+                Generate
+              </button>
+            </div>
+            {isCardGenerated && (
+              <>
+                <div className="min-w-0">
+                  {isPhoneViewport ? (
+                    <MobileCardViewport designWidth={MOBILE_CARD_DESIGN_WIDTH}>
+                      <BuildCard
+                        ref={cardRef}
+                        useAltSkin={cardOptions.useAltSkin}
+                        showCV={cardOptions.showCV}
+                        showRollQuality={cardOptions.showRollQuality}
+                        artTransform={artTransform}
+                        artSourceMode={artSourceMode}
+                        customArtUrl={customArtUrl}
+                        isArtEditMode={isArtEditMode}
+                        onCustomArtUpload={handleCustomArtUpload}
+                        onArtTransformChange={setArtTransform}
+                      />
+                    </MobileCardViewport>
+                  ) : (
+                    <BuildCard
+                      ref={cardRef}
+                      useAltSkin={cardOptions.useAltSkin}
+                      showCV={cardOptions.showCV}
+                      showRollQuality={cardOptions.showRollQuality}
+                      artTransform={artTransform}
+                      artSourceMode={artSourceMode}
+                      customArtUrl={customArtUrl}
+                      isArtEditMode={isArtEditMode}
+                      onCustomArtUpload={handleCustomArtUpload}
+                      onArtTransformChange={setArtTransform}
+                    />
+                  )}
+                </div>
+                {/* Action bar, flipped version of BuildCardOptions */}
+                <div className="flex justify-start md:pl-12">
+                  <div className="flex w-full flex-col rounded-lg border border-border bg-background md:w-auto md:rounded-t-none md:border-t-0">
+                    <div className="flex flex-wrap items-center gap-2 p-3 md:gap-3">
+                      <button
+                        onClick={handleToggleArtEditMode}
+                        className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                          isArtEditMode
+                            ? 'border-accent/70 bg-accent/15 text-accent'
+                            : 'border-border bg-background-secondary text-text-primary hover:border-accent/60'
+                        }`}
+                      >
+                        <Pencil size={14} />
+                        {isArtEditMode ? 'Done Editing' : 'Edit'}
+                      </button>
+                      {isPhoneViewport && (
+                        <button
+                          onClick={() => setIsCardFullscreenOpen(true)}
+                          className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-accent/60"
+                        >
+                          <Maximize2 size={14} />
+                          Fullscreen
+                        </button>
+                      )}
+                      <button
+                        onClick={handleDownload}
+                        disabled={isDownloading}
+                        className="group relative flex items-center gap-2 overflow-hidden rounded-lg border border-accent/65 bg-accent px-5 py-2 text-sm font-semibold text-background transition-all duration-300 hover:brightness-110 disabled:cursor-wait disabled:opacity-50"
+                      >
+                        <Download size={14} className="relative z-10" />
+                        <span className="relative z-10">
+                          {isDownloading ? (
+                            <span className="flex items-center gap-0.5">
+                              <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '0ms' }} />
+                              <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '150ms' }} />
+                              <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '300ms' }} />
+                            </span>
+                          ) : 'Download'}
+                        </span>
+                      </button>
+                      {/* TODO: Add leaderboard logic once LB is set up in the rewrite */}
+                      <button
+                        disabled
+                        className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary/40 cursor-not-allowed"
+                      >
+                        <Trophy size={14} />
+                        View Ranking
+                      </button>
+                    </div>
+
+                    {isArtEditMode && (
+                      <div className="flex flex-col gap-3 border-t border-border px-3 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium text-text-primary/80">Zoom</span>
+                          <button
+                            onClick={() => handleZoomArt(-ART_ZOOM_STEP)}
+                            disabled={artTransform.scale <= MIN_ART_ZOOM}
+                            className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Minus size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            className="min-w-14 rounded-md border border-border bg-background px-2.5 py-1 text-center text-sm font-semibold text-accent transition-colors hover:border-accent"
+                          >
+                            {`${Math.round(artTransform.scale * 100)}%`}
+                          </button>
+                          <button
+                            onClick={() => handleZoomArt(ART_ZOOM_STEP)}
+                            disabled={artTransform.scale >= MAX_ART_ZOOM}
+                            className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            +
+                          </button>
+
+                          <button
+                            onClick={handleUseSplashArt}
+                            disabled={!selected}
+                            className="rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Use Splash Art
+                          </button>
+
+                          <button
+                            onClick={handleRemoveCustomArt}
+                            disabled={artSourceMode !== 'custom'}
+                            className="ml-auto inline-flex items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-red-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Trash2 size={12} />
+                            Remove Custom
+                          </button>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4">
+                          <div className="grid grid-cols-3 grid-rows-3 gap-1.5">
+                            <span />
+                            <button
+                              onClick={() => handleNudgeArt(0, -ART_NUDGE_STEP)}
+                              className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                            >
+                              <ArrowUp size={14} />
+                            </button>
+                            <span />
+                            <button
+                              onClick={() => handleNudgeArt(-ART_NUDGE_STEP, 0)}
+                              className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                            >
+                              <ArrowLeft size={14} />
+                            </button>
+                            <button
+                              onClick={handleResetArtTransform}
+                              className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                              title="Reset position and zoom"
+                            >
+                              <RotateCcw size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleNudgeArt(ART_NUDGE_STEP, 0)}
+                              className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                            >
+                              <ArrowRight size={14} />
+                            </button>
+                            <span />
+                            <button
+                              onClick={() => handleNudgeArt(0, ART_NUDGE_STEP)}
+                              className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                            >
+                              <ArrowDown size={14} />
+                            </button>
+                            <span />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+      <Modal
+        isOpen={isCardFullscreenOpen}
+        onClose={() => setIsCardFullscreenOpen(false)}
+        title="Build Card Preview"
+        contentClassName="h-[100dvh] max-h-[100dvh] w-screen max-w-[100vw] rounded-none border-0"
+      >
+        <div className="flex h-full min-h-0 flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {MOBILE_CARD_FULLSCREEN_ZOOMS.map((zoom) => (
+              <button
+                key={zoom}
+                onClick={() => setMobileCardZoom(zoom)}
+                className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  mobileCardZoom === zoom
+                    ? 'border-accent/70 bg-accent/15 text-accent'
+                    : 'border-border bg-background-secondary text-text-primary hover:border-accent/60'
+                }`}
+              >
+                {zoom}%
+              </button>
+            ))}
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-background-secondary p-2">
+            <div
+              className="origin-top-left"
+              style={{ width: Math.round((MOBILE_CARD_DESIGN_WIDTH * mobileCardZoom) / 100) }}
+            >
+              {isCardGenerated && (
+                <BuildCard
+                  useAltSkin={cardOptions.useAltSkin}
+                  showCV={cardOptions.showCV}
+                  showRollQuality={cardOptions.showRollQuality}
+                  artTransform={artTransform}
+                  artSourceMode={artSourceMode}
+                  customArtUrl={customArtUrl}
+                  isArtEditMode={isArtEditMode}
+                  onCustomArtUpload={handleCustomArtUpload}
+                  onArtTransformChange={setArtTransform}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </Modal>
       <SaveBuildModal
         isOpen={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}

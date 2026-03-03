@@ -67,7 +67,11 @@ export const Modal: React.FC<ModalProps> = ({
       aria-labelledby={title ? 'modal-title' : undefined}
     >
       <div
-        className={`relative flex ${fitContent ? 'max-h-[85vh]' : 'h-[85vh]'} max-w-[90vw] flex-col overflow-hidden rounded-lg bg-background-secondary border border-border shadow-xl ${contentClassName}`}
+        className={`relative flex ${
+          fitContent
+            ? 'max-h-[90dvh] md:max-h-[85vh]'
+            : 'h-[90dvh] md:h-[85vh]'
+        } w-[calc(100vw-1rem)] md:w-auto md:max-w-[90vw] flex-col overflow-hidden rounded-lg border border-border bg-background-secondary shadow-xl ${contentClassName}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with title and close button */}

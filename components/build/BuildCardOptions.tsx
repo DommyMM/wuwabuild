@@ -41,9 +41,9 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
     };
 
   return (
-    <div className={`flex items-start gap-3 rounded-lg border border-border bg-background p-3 ${className}`}>
+    <div className={`grid w-full min-w-0 grid-cols-1 items-start gap-3 rounded-lg border border-border bg-background p-3 sm:grid-cols-2 md:flex md:w-auto md:min-w-fit ${className}`}>
       {/* Name - max 12 chars */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <label className={LABEL_BASE}>Name</label>
         <input
           type="text"
@@ -52,12 +52,12 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
           onPaste={handlePaste('username', 12)}
           placeholder="Username"
           maxLength={12}
-          className={`${INPUT_BASE} w-[130px]`}
+          className={`${INPUT_BASE} w-full md:w-[130px]`}
         />
       </div>
 
       {/* UID - max 9 chars */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <label className={LABEL_BASE}>UID</label>
         <input
           type="text"
@@ -66,16 +66,16 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
           onPaste={handlePaste('uid', 9)}
           placeholder="123456789"
           maxLength={9}
-          className={`${INPUT_BASE} w-[110px]`}
+          className={`${INPUT_BASE} w-full md:w-[110px]`}
         />
       </div>
 
       {/* Art source OR Use Skin */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col gap-1.5">
         {hasSkin ? (
           <>
             <span className={LABEL_BASE}>Skin</span>
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-2">
+            <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-2">
               <input
                 type="checkbox"
                 checked={useAltSkin}
@@ -92,16 +92,16 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
               value={state.watermark.artSource}
               onChange={e => setWatermark({ artSource: e.target.value })}
               placeholder="art by @artist"
-              className={`${INPUT_BASE} w-[160px]`}
+              className={`${INPUT_BASE} w-full md:w-[160px]`}
             />
           </>
         )}
       </div>
 
       {/* Roll Quality */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <span className={LABEL_BASE}>Quality</span>
-        <label className="flex cursor-pointer items-center rounded-md border border-border bg-background-secondary px-3 py-2">
+        <label className="flex h-[38px] cursor-pointer items-center rounded-md border border-border bg-background-secondary px-3 py-2">
           <input
             type="checkbox"
             checked={showRollQuality}
@@ -112,9 +112,9 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
       </div>
 
       {/* CV */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <span className={LABEL_BASE}>CV</span>
-        <label className="flex cursor-pointer items-center rounded-md border border-border bg-background-secondary px-3 py-2">
+        <label className="flex h-[38px] cursor-pointer items-center rounded-md border border-border bg-background-secondary px-3 py-2">
           <input
             type="checkbox"
             checked={showCV}

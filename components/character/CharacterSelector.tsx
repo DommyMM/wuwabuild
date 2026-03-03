@@ -326,7 +326,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Select Resonator"
-        contentClassName="w-full mx-8 lg:mx-32 max-h-[90vh]"
+        contentClassName="w-full md:max-w-[90vw] lg:max-w-[1300px] max-h-[90dvh]"
       >
         {renderCharacterGrid()}
       </Modal>

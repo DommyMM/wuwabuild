@@ -75,10 +75,12 @@ const RARITY_CHIP_ACTIVE: Record<number, string> = {
 
 interface WeaponSelectorProps {
   className?: string;
+  compact?: boolean;
 }
 
 export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
   className = '',
+  compact = false,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rarityFilter, setRarityFilter] = useState<Set<number>>(new Set());
@@ -138,7 +140,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
       <div className={`relative flex flex-col items-center gap-2 ${className}`}>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="group h-32 w-32 cursor-pointer overflow-hidden rounded-xl border border-border bg-background-secondary transition-colors hover:border-[rgba(166,150,98,0.4)]"
+          className={`group ${compact ? 'h-24 w-24' : 'h-32 w-32'} cursor-pointer overflow-hidden rounded-xl border border-border bg-background-secondary transition-colors hover:border-[rgba(166,150,98,0.4)]`}
         >
           <img
             src={weaponPaths}
@@ -149,8 +151,8 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
 
         {/* Rank slider, vertical 1-5, right edge */}
         {selectedWeapon && (
-          <div className="absolute right-4 top-0 flex flex-col items-center">
-            <span className="text-xs font-bold text-text-primary/40 mb-1">5</span>
+          <div className={`absolute ${compact ? 'right-0.5 top-0.5' : 'right-4 top-0'} flex flex-col items-center`}>
+            <span className={`font-bold text-text-primary/40 ${compact ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'}`}>5</span>
             <div className="relative">
               <input
                 type="range"
@@ -159,17 +161,17 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
                 step={1}
                 value={state.weaponRank}
                 onChange={e => setWeaponRank(parseInt(e.target.value))}
-                className="rank-slider h-28"
+                className={`rank-slider ${compact ? 'h-[5.5rem]' : 'h-28'}`}
                 style={{ '--fill': `${((state.weaponRank - 1) / 4) * 100}%` } as React.CSSProperties}
               />
             </div>
-            <span className="text-xs font-bold text-text-primary/40">1</span>
+            <span className={`font-bold text-text-primary/40 ${compact ? 'text-[10px]' : 'text-xs'}`}>1</span>
           </div>
         )}
 
         {/* Weapon name */}
         <span
-          className="text-xl font-medium"
+          className={`${compact ? 'text-lg' : 'text-xl'} text-center font-medium leading-tight`}
           style={selectedWeapon ? {
             backgroundImage: RARITY_GRADIENT[selectedWeapon.rarity],
             backgroundSize: '200% auto',
@@ -188,7 +190,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={`Select ${character.weaponType}`}
-        contentClassName="w-full mx-8 lg:mx-32 max-h-[90vh]"
+        contentClassName="w-full md:max-w-[90vw] lg:max-w-[1300px] max-h-[90dvh]"
       >
         <div className="flex h-full flex-col gap-3">
           {/* Rarity filter chips */}

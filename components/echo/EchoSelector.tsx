@@ -243,7 +243,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
       isOpen={isOpen}
       onClose={handleClose}
       title="Select Echo"
-      contentClassName="w-full mx-4 lg:mx-16 max-h-[90vh]"
+      contentClassName="w-full md:max-w-[90vw] lg:max-w-[1400px] max-h-[90dvh]"
     >
       <div className="flex h-full flex-col gap-3">
         {/* Set filter chips */}
