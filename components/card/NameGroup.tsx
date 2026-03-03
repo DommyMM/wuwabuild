@@ -14,7 +14,6 @@ export const NameGroup: React.FC<NameGroupProps> = ({
   characterLevel,
 }) => {
   const { t } = useLanguage();
-  const roleIcon = `/images/Roles/${selected.character.Role}.png`;
   const translatedName = selected.isRover
     ? `${t(selected.character.nameI18n ?? { en: 'Rover' })} · ${selected.element}`
     : t(selected.character.nameI18n ?? { en: selected.displayName });
@@ -34,11 +33,13 @@ export const NameGroup: React.FC<NameGroupProps> = ({
               className="h-8 w-8 object-contain"
             />
           )}
-          <img
-            src={roleIcon}
-            alt={`${selected.character.Role} role`}
-            className="h-8 w-8 object-contain"
-          />
+          {selected.character.roleIcon && (
+            <img
+              src={selected.character.roleIcon}
+              alt={`${selected.character.Role} role`}
+              className="h-8 w-8 object-contain"
+            />
+          )}
         </div>
       </div>
     </div>

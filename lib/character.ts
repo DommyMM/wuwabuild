@@ -133,6 +133,7 @@ export interface Character {
   rarity?: number;
   skins?: CDNCharacter['skins']; // Character skins
   elementIcon?: string; // CDN element icon URL (element.icon["1"])
+  roleIcon?: string; // CDN role tag icon URL (from tags)
   skillIcons?: Record<string, string>; // CDN skill icon URLs keyed by type
   forteNodes?: Record<string, ForteNodeData>; // Keyed by "tree1.top", "tree1.middle", etc.
   chains?: CDNChainEntry[]; // Resonance chains (S1–S6) with icon URLs
@@ -210,12 +211,15 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
 
   // Determine role from tags (first matching tag)
   let role = Role.DPS;
+  let roleIcon: string | undefined;
   for (const tag of cdn.tags) {
     if (ROLE_TAG_MAP[tag.id]) {
       role = ROLE_TAG_MAP[tag.id];
+      roleIcon = tag.icon;
       break;
     }
   }
+  if (!roleIcon) roleIcon = cdn.tags[0]?.icon;
 
   // Process forte nodes from CDN skillTrees
   const forteNodes = processForteNodes(cdn.skillTrees);
@@ -253,6 +257,7 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     rarity: cdn.rarity.id,
     skins: cdn.skins,
     elementIcon: cdn.element.icon?.['1'],
+    roleIcon,
     skillIcons: cdn.skillIcons,
     forteNodes,
     chains: cdn.chains,
