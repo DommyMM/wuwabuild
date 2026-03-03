@@ -42,6 +42,7 @@ interface BuildCardProps {
   customArtUrl: string | null;
   isArtEditMode: boolean;
   onCustomArtUpload: (file: File) => void;
+  onArtTransformChange: (next: CardArtTransform) => void;
 }
 
 const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | null => {
@@ -74,6 +75,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   customArtUrl,
   isArtEditMode,
   onCustomArtUpload,
+  onArtTransformChange,
 }, ref) => {
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
@@ -124,6 +126,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                 customArtUrl={customArtUrl}
                 isArtEditMode={isArtEditMode}
                 onCustomArtUpload={onCustomArtUpload}
+                onArtTransformChange={onArtTransformChange}
               />
 
               {/* Right side: name/weapon/forte + stats + echoes */}

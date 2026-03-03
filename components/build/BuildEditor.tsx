@@ -25,10 +25,35 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MIN_CUSTOM_IMAGE_HEIGHT = 600;
 const ART_NUDGE_STEP = 12;
 const ART_ZOOM_STEP = 0.05;
 const MIN_ART_ZOOM = 1;
-const MAX_ART_ZOOM = 2;
+const MAX_ART_ZOOM = 4;
+
+const getImageNaturalHeight = async (file: File): Promise<number> => {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const naturalHeight = await new Promise<number>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img.naturalHeight || img.height || 0);
+      img.onerror = () => reject(new Error('Failed to load image metadata.'));
+      img.src = objectUrl;
+    });
+    return naturalHeight;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+};
+
+const readFileAsDataUrl = (file: File): Promise<string> => (
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(new Error('Failed to read image file.'));
+    reader.readAsDataURL(file);
+  })
+);
 
 export const BuildEditor: React.FC = () => {
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
@@ -46,7 +71,6 @@ export const BuildEditor: React.FC = () => {
   const [customArtUrl, setCustomArtUrl] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const customArtBlobRef = useRef<Blob | null>(null);
-  const committedUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (isCardGenerated) {
@@ -73,12 +97,6 @@ export const BuildEditor: React.FC = () => {
   const { scrollY } = useScroll();
 
   const clearArtState = useCallback(() => {
-    const committed = committedUrlRef.current;
-    if (committed) {
-      URL.revokeObjectURL(committed);
-    }
-
-    committedUrlRef.current = null;
     customArtBlobRef.current = null;
 
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
@@ -88,13 +106,6 @@ export const BuildEditor: React.FC = () => {
 
   useEffect(() => {
     setPortalTarget(document.getElementById('nav-toolbar-portal'));
-  }, []);
-
-  useEffect(() => () => {
-    const committed = committedUrlRef.current;
-    if (committed) {
-      URL.revokeObjectURL(committed);
-    }
   }, []);
 
   // Reset weapon when switching to a character with a different weapon type
@@ -170,7 +181,7 @@ export const BuildEditor: React.FC = () => {
     setIsArtEditMode(v => !v);
   }, []);
 
-  const handleCustomArtUpload = useCallback((file: File) => {
+  const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
       toastError('Unsupported file type. Use PNG, JPG, or WEBP.');
       return;
@@ -180,27 +191,36 @@ export const BuildEditor: React.FC = () => {
       return;
     }
 
-    const previousUrl = committedUrlRef.current;
-    if (previousUrl) {
-      URL.revokeObjectURL(previousUrl);
+    let autoScale = MIN_ART_ZOOM;
+    let dataUrl = '';
+    try {
+      const [naturalHeight, loadedDataUrl] = await Promise.all([
+        getImageNaturalHeight(file),
+        readFileAsDataUrl(file),
+      ]);
+      dataUrl = loadedDataUrl;
+      if (naturalHeight > 0 && naturalHeight < MIN_CUSTOM_IMAGE_HEIGHT) {
+        autoScale = Math.min(
+          MAX_ART_ZOOM,
+          Number((MIN_CUSTOM_IMAGE_HEIGHT / naturalHeight).toFixed(2))
+        );
+      }
+    } catch (error) {
+      toastError('Failed to process custom image.');
+      console.error('Custom image processing failed:', error);
+      return;
     }
-
-    const nextUrl = URL.createObjectURL(file);
-    committedUrlRef.current = nextUrl;
     customArtBlobRef.current = file;
-    setCustomArtUrl(nextUrl);
+    setCustomArtUrl(dataUrl);
     setArtSourceMode('custom');
+    setArtTransform({ x: 0, y: 0, scale: autoScale });
   }, [toastError]);
 
   const handleRemoveCustomArt = useCallback(() => {
-    const previousUrl = committedUrlRef.current;
-    if (previousUrl) {
-      URL.revokeObjectURL(previousUrl);
-    }
-    committedUrlRef.current = null;
     customArtBlobRef.current = null;
     setCustomArtUrl(null);
     setArtSourceMode('default');
+    setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
   }, []);
 
   const handleResetArtTransform = useCallback(() => {
@@ -396,6 +416,7 @@ export const BuildEditor: React.FC = () => {
               customArtUrl={customArtUrl}
               isArtEditMode={isArtEditMode}
               onCustomArtUpload={handleCustomArtUpload}
+              onArtTransformChange={setArtTransform}
             />
             {/* Action bar, flipped version of BuildCardOptions */}
             <div className="flex justify-start pl-12">
@@ -462,6 +483,15 @@ export const BuildEditor: React.FC = () => {
                       >
                         +
                       </button>
+
+                      <button
+                        onClick={handleRemoveCustomArt}
+                        disabled={artSourceMode !== 'custom'}
+                        className="ml-auto inline-flex items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-red-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Trash2 size={12} />
+                        Remove Custom
+                      </button>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-4">
@@ -502,15 +532,6 @@ export const BuildEditor: React.FC = () => {
                         </button>
                         <span />
                       </div>
-
-                      <button
-                        onClick={handleRemoveCustomArt}
-                        disabled={artSourceMode !== 'custom'}
-                        className="inline-flex items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-red-400/60 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Trash2 size={12} />
-                        Remove Custom
-                      </button>
                     </div>
                   </div>
                 )}
