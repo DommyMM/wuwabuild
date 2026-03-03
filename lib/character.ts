@@ -50,7 +50,7 @@ export interface CDNSkillTreeNode {
   valueText: string[];
 }
 
-/** Preprocessed forte node for easy lookup by tree + position. */
+// Preprocessed forte node for easy lookup by tree + position.
 export interface ForteNodeData {
   name: string;
   icon: string;
@@ -136,7 +136,7 @@ export interface Character {
   skillIcons?: Record<string, string>; // CDN skill icon URLs keyed by type
   forteNodes?: Record<string, ForteNodeData>; // Keyed by "tree1.top", "tree1.middle", etc.
   chains?: CDNChainEntry[]; // Resonance chains (S1–S6) with icon URLs
-  roverElementName?: Element; /** For Rover's element selection (Aero | Spectro | Havoc) */
+  roverElementName?: Element; // For Rover's element selection (Aero | Spectro | Havoc)
 }
 
 export const SKIN_CHARACTERS = ['Jinhsi', 'Sanhua', 'Changli', 'Carlotta'] as readonly string[];
@@ -166,7 +166,7 @@ const PARENT_TO_TREE: Record<number, string> = {
   9: 'tree1', 10: 'tree2', 11: 'tree4', 12: 'tree5', // coord 2 (top)
 };
 
-/** CDN node name → BonusType. Strips trailing "+" / "Bonus" and maps to our enum. */
+// CDN node name → BonusType. Strips trailing "+" / "Bonus" and maps to our enum.
 const NODE_NAME_TO_BONUS: Record<string, BonusType> = {
   'Crit. Rate+': 'Crit Rate',
   'Crit. DMG+': 'Crit DMG',
@@ -182,7 +182,7 @@ const NODE_NAME_TO_BONUS: Record<string, BonusType> = {
   'Spectro DMG Bonus+': Element.Spectro,
 };
 
-/** Process CDN skillTrees into a lookup map keyed by "tree1.top", "tree1.middle", etc. */
+// Process CDN skillTrees into a lookup map keyed by "tree1.top", "tree1.middle", etc.
 const processForteNodes = (trees?: CDNSkillTreeNode[]): Record<string, ForteNodeData> | undefined => {
   if (!trees?.length) return undefined;
   const result: Record<string, ForteNodeData> = {};

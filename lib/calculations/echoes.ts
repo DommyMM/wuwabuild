@@ -1,10 +1,8 @@
 import { EchoPanelState, Echo } from '@/lib/echo';
 import { StatName } from '@/lib/constants/statMappings';
 
-/**
- * Calculate the default stat value for an echo based on its cost and level.
- * 4-cost and 3-cost echoes provide ATK, 1-cost echoes provide HP.
- */
+// Calculate the default stat value for an echo based on its cost and level.
+// 4-cost and 3-cost echoes provide ATK, 1-cost echoes provide HP.
 export const calculateEchoDefaultStat = (cost: number, level: number): number => {
   const normalLevels = Math.floor(level - Math.floor(level / 5));
   const bonusLevels = Math.floor(level / 5);
@@ -22,10 +20,8 @@ export const calculateEchoDefaultStat = (cost: number, level: number): number =>
   }
 };
 
-/**
- * Sum up all default echo stats from equipped echo panels.
- * Returns separate totals for ATK (from 4-cost and 3-cost) and HP (from 1-cost).
- */
+// Sum up all default echo stats from equipped echo panels.
+// Returns separate totals for ATK (from 4-cost and 3-cost) and HP (from 1-cost).
 export const sumEchoDefaultStats = (
   echoPanels: EchoPanelState[],
   getEcho: (id: string | null) => Echo | null
@@ -49,9 +45,7 @@ export const sumEchoDefaultStats = (
   return { atk: totalATK, hp: totalHP };
 };
 
-/**
- * Sum main stats of a specific type from all echo panels.
- */
+// Sum main stats of a specific type from all echo panels.
 export const sumMainStats = (statType: StatName, panels: EchoPanelState[]): number => {
   return panels.reduce((total, panel) => {
     if (panel.stats.mainStat.type === statType && panel.stats.mainStat.value) {
@@ -61,9 +55,7 @@ export const sumMainStats = (statType: StatName, panels: EchoPanelState[]): numb
   }, 0);
 };
 
-/**
- * Sum substats of a specific type from all echo panels.
- */
+// Sum substats of a specific type from all echo panels.
 export const sumSubStats = (statType: StatName, panels: EchoPanelState[]): number => {
   return panels.reduce((total, panel) => (
     total + panel.stats.subStats.reduce((subTotal, stat) => {
@@ -75,16 +67,12 @@ export const sumSubStats = (statType: StatName, panels: EchoPanelState[]): numbe
   ), 0);
 };
 
-/**
- * Sum both main and substats of a specific type.
- */
+// Sum both main and substats of a specific type.
 export const sumAllStats = (statType: StatName, panels: EchoPanelState[]): number => {
   return sumMainStats(statType, panels) + sumSubStats(statType, panels);
 };
 
-/**
- * Get the total cost of all equipped echoes.
- */
+// Get the total cost of all equipped echoes.
 export const getTotalEchoCost = (
   echoPanels: EchoPanelState[],
   getEcho: (id: string | null) => Echo | null
@@ -96,9 +84,7 @@ export const getTotalEchoCost = (
   }, 0);
 };
 
-/**
- * Check if the total echo cost exceeds the limit (12).
- */
+// Check if the total echo cost exceeds the limit (12).
 export const isEchoCostOverLimit = (
   echoPanels: EchoPanelState[],
   getEcho: (id: string | null) => Echo | null,
@@ -107,17 +93,13 @@ export const isEchoCostOverLimit = (
   return getTotalEchoCost(echoPanels, getEcho) > limit;
 };
 
-/**
- * Create default echo stats structure.
- */
+// Create default echo stats structure.
 export const createDefaultEchoStats = () => ({
   mainStat: { type: null, value: null },
   subStats: Array(5).fill(null).map(() => ({ type: null, value: null }))
 });
 
-/**
- * Create a default echo panel state.
- */
+// Create a default echo panel state.
 export const createDefaultEchoPanelState = (): EchoPanelState => ({
   id: null,
   level: 0,

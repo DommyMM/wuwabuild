@@ -5,7 +5,7 @@ export const SAVED_BUILDS_STORAGE_KEY = 'wuwabuilds_saves';
 export const DRAFT_BUILD_STORAGE_KEY = 'wuwa_draft_build';
 const CURRENT_VERSION = '2.0.0';
 
-/** Convert old nodeStates+forteLevels into a ForteState array. */
+// Convert old nodeStates+forteLevels into a ForteState array.
 function migrateForte(raw: Record<string, unknown>): ForteState {
   if (Array.isArray(raw.forte) && raw.forte.length === 5) return raw.forte as ForteState;
 
@@ -21,7 +21,7 @@ function migrateForte(raw: Record<string, unknown>): ForteState {
   ] as ForteEntry) as ForteState;
 }
 
-/** Migrate a single SavedState from the old nested shape to the new flat shape. */
+// Migrate a single SavedState from the old nested shape to the new flat shape.
 function migrateSavedState(raw: Record<string, unknown>): SavedState {
   const defaults = createDefaultSavedState();
 
@@ -50,10 +50,9 @@ function migrateSavedState(raw: Record<string, unknown>): SavedState {
   };
 }
 
-/**
- * Simple compression using base64 encoding with run-length encoding.
- * For more advanced compression, consider using lz-string library.
- */
+
+ // Simple compression using base64 encoding with run-length encoding.
+ // For more advanced compression, consider using lz-string library.
 function compress(data: string): string {
   try {
     // Use built-in compression if available (modern browsers)
@@ -76,9 +75,7 @@ function decompress(data: string): string {
   }
 }
 
-/**
- * Load all saved builds from localStorage.
- */
+// Load all saved builds from localStorage.
 export function loadBuilds(): SavedBuilds {
   if (typeof window === 'undefined') {
     return { builds: [], version: CURRENT_VERSION };
@@ -110,9 +107,7 @@ export function loadBuilds(): SavedBuilds {
   }
 }
 
-/**
- * Save all builds to localStorage with compression.
- */
+// Save all builds to localStorage with compression.
 function saveBuilds(data: SavedBuilds): void {
   if (typeof window === 'undefined') return;
 
@@ -133,9 +128,7 @@ function saveBuilds(data: SavedBuilds): void {
   }
 }
 
-/**
- * Save a new build or update existing build.
- */
+// Save a new build or update existing build.
 export function saveBuild(build: Omit<SavedBuild, 'id' | 'date'> & { id?: string }): SavedBuild {
   const data = loadBuilds();
 
@@ -158,17 +151,13 @@ export function saveBuild(build: Omit<SavedBuild, 'id' | 'date'> & { id?: string
   return savedBuild;
 }
 
-/**
- * Load a specific build by ID.
- */
+// Load a specific build by ID.
 export function loadBuild(id: string): SavedBuild | null {
   const data = loadBuilds();
   return data.builds.find(b => b.id === id) || null;
 }
 
-/**
- * Delete a build by ID.
- */
+// Delete a build by ID.
 export function deleteBuild(id: string): boolean {
   const data = loadBuilds();
   const initialLength = data.builds.length;
@@ -181,9 +170,7 @@ export function deleteBuild(id: string): boolean {
   return false;
 }
 
-/**
- * Duplicate an existing build with a new name.
- */
+// Duplicate an existing build with a new name.
 export function duplicateBuild(id: string, newName?: string): SavedBuild | null {
   const original = loadBuild(id);
   if (!original) return null;
@@ -194,9 +181,7 @@ export function duplicateBuild(id: string, newName?: string): SavedBuild | null 
   });
 }
 
-/**
- * Rename an existing build without changing date/state.
- */
+// Rename an existing build without changing date/state.
 export function renameBuild(id: string, newName: string): SavedBuild | null {
   const trimmedName = newName.trim();
   if (!trimmedName) {
@@ -222,17 +207,13 @@ export function renameBuild(id: string, newName: string): SavedBuild | null {
   return updatedBuild;
 }
 
-/**
- * Clear all saved builds.
- */
+// Clear all saved builds.
 export function clearAllBuilds(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(SAVED_BUILDS_STORAGE_KEY);
 }
 
-/**
- * Export a single build to a downloadable JSON file.
- */
+// Export a single build to a downloadable JSON file.
 export function exportBuild(build: SavedBuild): void {
   const exportData = {
     version: CURRENT_VERSION,
@@ -253,9 +234,7 @@ export function exportBuild(build: SavedBuild): void {
   URL.revokeObjectURL(url);
 }
 
-/**
- * Export all builds to a downloadable JSON file.
- */
+// Export all builds to a downloadable JSON file.
 export function exportAllBuilds(): void {
   const data = loadBuilds();
   const exportData = {
@@ -277,10 +256,8 @@ export function exportAllBuilds(): void {
   URL.revokeObjectURL(url);
 }
 
-/**
- * Import builds from a JSON file.
- * Returns the imported builds.
- */
+// Import builds from a JSON file.
+// Returns the imported builds.
 export async function importBuild(file: File): Promise<SavedBuild[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -339,16 +316,12 @@ export async function importBuild(file: File): Promise<SavedBuild[]> {
   });
 }
 
-/**
- * Generate a unique ID for builds.
- */
+// Generate a unique ID for builds.
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
-/**
- * Sanitize a string for use in filenames.
- */
+// Sanitize a string for use in filenames.
 function sanitizeFilename(name: string): string {
   return name
     .toLowerCase()
@@ -357,9 +330,7 @@ function sanitizeFilename(name: string): string {
     .substring(0, 50);
 }
 
-/**
- * Validate that an object is a valid SavedBuild.
- */
+// Validate that an object is a valid SavedBuild.
 function validateBuild(build: unknown): build is SavedBuild {
   if (!build || typeof build !== 'object') return false;
 
@@ -374,9 +345,7 @@ function validateBuild(build: unknown): build is SavedBuild {
   );
 }
 
-/**
- * Migrate old data format to current version.
- */
+// Migrate old data format to current version.
 function migrateData(data: SavedBuilds): SavedBuilds {
   const migratedBuilds = data.builds.map(build => ({
     ...build,
@@ -391,9 +360,7 @@ function migrateData(data: SavedBuilds): SavedBuilds {
   };
 }
 
-/**
- * Get storage usage statistics.
- */
+// Get storage usage statistics.
 export function getStorageStats(): { used: number; total: number; percentage: number } {
   if (typeof window === 'undefined') {
     return { used: 0, total: 0, percentage: 0 };

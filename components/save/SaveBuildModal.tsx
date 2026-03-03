@@ -8,7 +8,7 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SavedBuild } from '@/lib/build';
-import { calculateCV, calculateEchoCV } from '@/lib/calculations/cv';
+import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/cv';
 import { ELEMENT_SETS } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 
@@ -49,7 +49,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
         return {
           name: echoName,
           mainStat,
-          cv: calculateEchoCV(panel, { echoCost: echo?.cost }),
+          cv: calculateEchoSubstatCV(panel),
         };
       })
   ), [getEcho, state.echoPanels, t]);

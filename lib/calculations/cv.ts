@@ -1,12 +1,30 @@
 import { EchoPanelState } from '@/lib/echo';
-import { sumMainStats, sumSubStats } from './echoes';
 
-// Calculate Critical Value (CV) from echo panels. 
+// Calculate individual echo CV from substats only (no main stat).
 // CV = 2 * Crit Rate + Crit DMG
-export const calculateCV = (echoPanels: EchoPanelState[]): number => {
-  const critRate = sumMainStats('Crit Rate', echoPanels) + sumSubStats('Crit Rate', echoPanels);
-  const critDmg = sumMainStats('Crit DMG', echoPanels) + sumSubStats('Crit DMG', echoPanels);
+export const calculateEchoSubstatCV = (panel: EchoPanelState): number => {
+  let critRate = 0;
+  let critDmg = 0;
+
+  panel.stats.subStats.forEach(stat => {
+    if (stat.type === 'Crit Rate' && stat.value) critRate += stat.value;
+    if (stat.type === 'Crit DMG' && stat.value) critDmg += stat.value;
+  });
+
   return 2 * critRate + critDmg;
+};
+
+// Calculate total CV across all echo panels (substats + main stats).
+export const calculateCV = (echoPanels: EchoPanelState[]): number => {
+  let cv = echoPanels.reduce((sum, panel) => sum + calculateEchoSubstatCV(panel), 0);
+
+  echoPanels.forEach(panel => {
+    const { type, value } = panel.stats.mainStat;
+    if (type === 'Crit Rate' && value) cv += 2 * value;
+    if (type === 'Crit DMG' && value) cv += value;
+  });
+
+  return cv;
 };
 
 // CV rating thresholds
@@ -41,61 +59,11 @@ export const getCVRating = (cv: number): CVRating => {
 
 // Get CV rating color for display.
 export const getCVRatingColor = (cv: number): string => {
-  if (cv >= CV_RATINGS.GODLIKE) return '#ff6b6b';      // Red/Orange for godlike
-  if (cv >= CV_RATINGS.EXCELLENT) return '#ffd93d';    // Gold for excellent
-  if (cv >= CV_RATINGS.GREAT) return '#6bcb77';        // Green for great
-  if (cv >= CV_RATINGS.GOOD) return '#4d96ff';         // Blue for good
-  if (cv >= CV_RATINGS.AVERAGE) return '#a8a8a8';      // Gray for average
-  if (cv >= CV_RATINGS.BELOW_AVERAGE) return '#888888'; // Darker gray
-  return '#666666';                                      // Dark gray for needs work
-};
-
-interface EchoCVOptions {
-  echoCost?: number;
-  excludeFourCostCritMain?: boolean;
-}
-
-// Calculate individual echo CV without any display adjustments.
-export const calculateRawEchoCV = (panel: EchoPanelState): number => {
-  let critRate = 0;
-  let critDmg = 0;
-
-  // Check main stat
-  if (panel.stats.mainStat.type === 'Crit Rate' && panel.stats.mainStat.value) {
-    critRate += panel.stats.mainStat.value;
-  }
-  if (panel.stats.mainStat.type === 'Crit DMG' && panel.stats.mainStat.value) {
-    critDmg += panel.stats.mainStat.value;
-  }
-
-  // Check substats
-  panel.stats.subStats.forEach(stat => {
-    if (stat.type === 'Crit Rate' && stat.value) {
-      critRate += stat.value;
-    }
-    if (stat.type === 'Crit DMG' && stat.value) {
-      critDmg += stat.value;
-    }
-  });
-
-  return 2 * critRate + critDmg;
-};
-
-
-// Calculate individual echo CV, removes crit-main contribution for 4-cost echoes when cost is provided.
-export const calculateEchoCV = (
-  panel: EchoPanelState,
-  { echoCost, excludeFourCostCritMain = true }: EchoCVOptions = {}
-): number => {
-  let cv = calculateRawEchoCV(panel);
-
-  if (excludeFourCostCritMain && echoCost === 4) {
-    const mainType = panel.stats.mainStat.type;
-    const mainValue = panel.stats.mainStat.value ?? 0;
-
-    if (mainType === 'Crit Rate') cv -= mainValue * 2;
-    if (mainType === 'Crit DMG') cv -= mainValue;
-  }
-
-  return Math.max(0, cv);
+  if (cv >= CV_RATINGS.GODLIKE) return '#ff6b6b';
+  if (cv >= CV_RATINGS.EXCELLENT) return '#ffd93d';
+  if (cv >= CV_RATINGS.GREAT) return '#6bcb77';
+  if (cv >= CV_RATINGS.GOOD) return '#4d96ff';
+  if (cv >= CV_RATINGS.AVERAGE) return '#a8a8a8';
+  if (cv >= CV_RATINGS.BELOW_AVERAGE) return '#888888';
+  return '#666666';
 };

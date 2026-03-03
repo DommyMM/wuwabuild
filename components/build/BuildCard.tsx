@@ -12,7 +12,6 @@ import { ForteCardSection } from '@/components/card/ForteCardSection';
 import { EchoSection } from '@/components/card/EchoSection';
 import { NameGroup } from '@/components/card/NameGroup';
 import { WeaponGroup } from '@/components/card/WeaponGroup';
-import { calculateCV } from '@/lib/calculations/cv';
 
 const ELEMENT_TINT: Record<string, string> = {
   Aero: 'from-aero/24 via-aero/10 to-transparent',
@@ -67,7 +66,6 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
     () => weapon ? calculateWeaponStats(weapon, state.weaponLevel, levelCurves) : null,
     [weapon, state.weaponLevel, levelCurves]
   );
-  const totalCV = useMemo(() => calculateCV(state.echoPanels), [state.echoPanels]);
 
   const tintClass = selected?.element
     ? (ELEMENT_TINT[selected.element] ?? 'from-transparent via-transparent to-transparent')
@@ -85,7 +83,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
   return (
     <div ref={ref} className="relative select-none overflow-visible">
       {selected && (
-        <div className="CardContainer">
+        <div className="font-plus-jakarta tracking-wide leading-none text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
           <div className="relative overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')] aspect-[2.4/1]">
             {/* Background overlays inside the fixed-ratio frame */}
             <div className="pointer-events-none absolute inset-0 z-0">
@@ -107,15 +105,14 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
 
               {/* Right side: top info row + compact echoes */}
               <div className="flex flex-1 min-w-0 w-full flex-col">
-                <div className="flex TopRow min-w-0">
+                <div className="flex">
                   <SequenceStrip
                     chains={selected.character.chains ?? []}
                     sequence={state.sequence}
                     element={selected.element}
-                    totalCV={totalCV}
                   />
-                  <div className="relative flex flex-1 min-w-0 pt-4 font-plus-jakarta tracking-wide leading-none text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
-                    <div className="flex w-2/5 shrink-0 min-w-0 flex-col">
+                  <div className="relative flex flex-1 min-w-0">
+                    <div className="flex w-2/5 shrink-0 min-w-0 flex-col pt-4">
                       <NameGroup selected={selected} characterLevel={state.characterLevel} />
                       
                       {weapon && weaponStats && (

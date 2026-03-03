@@ -120,7 +120,7 @@ export const getEchoPieceCounts = (element: ElementType, fettersByElement: Parti
 
 const CDN_BASE = 'https://files.wuthery.com';
 
-/** Fetter ID → ElementType mapping (from Phantom repo analysis) */
+// Fetter ID → ElementType mapping (from Phantom repo analysis)
 export const FETTER_MAP: Record<number, ElementType> = {
   1: 'Glacio',
   2: 'Fusion',
@@ -153,7 +153,7 @@ export const FETTER_MAP: Record<number, ElementType> = {
   29: 'Sound',
 };
 
-/** Prepend CDN base to a raw /d/ icon path */
+// Prepend CDN base to a raw /d/ icon path
 const toCdnUrl = (rawPath: string): string => `${CDN_BASE}${rawPath}`;
 
 export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({

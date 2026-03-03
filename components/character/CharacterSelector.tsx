@@ -10,10 +10,10 @@ import { Character, Element } from '@/lib/character';
 
 const FALLBACK_FACE = '/images/Resources/Resonator.png';
 
-/** All filterable elements */
+// All filterable elements
 const ELEMENTS = [ Element.Glacio, Element.Fusion, Element.Electro, Element.Aero, Element.Spectro, Element.Havoc ] as const;
 
-/** Element name -> Tailwind bg fill for card + hover gradient */
+// Element name -> Tailwind bg fill for card + hover gradient
 const ELEMENT_BG: Record<string, string> = {
   [Element.Glacio]:  'bg-glacio/15 hover:bg-gradient-to-b hover:from-glacio/30 hover:to-glacio/5',
   [Element.Fusion]:  'bg-fusion/15 hover:bg-gradient-to-b hover:from-fusion/30 hover:to-fusion/5',
@@ -24,7 +24,7 @@ const ELEMENT_BG: Record<string, string> = {
   [Element.Rover]:   'bg-rover/15 hover:bg-gradient-to-b hover:from-rover/30 hover:to-rover/5',
 };
 
-/** Element name -> active filter chip styling */
+// Element name -> active filter chip styling
 const ELEMENT_CHIP_ACTIVE: Record<string, string> = {
   [Element.Glacio]:  'bg-glacio/20 border-glacio/50 text-glacio',
   [Element.Fusion]:  'bg-fusion/20 border-fusion/50 text-fusion',
@@ -34,31 +34,31 @@ const ELEMENT_CHIP_ACTIVE: Record<string, string> = {
   [Element.Havoc]:   'bg-havoc/20 border-havoc/50 text-havoc',
 };
 
-/** Rarity id -> default border color */
+// Rarity id -> default border color
 const RARITY_CARD_BORDER: Record<number, string> = {
   4: 'border-rarity-4/50',
   5: 'border-rarity-5/60',
 };
 
-/** Rarity id -> hover: brighten border + soft glow */
+// Rarity id -> hover: brighten border + soft glow
 const RARITY_HOVER: Record<number, string> = {
   4: 'hover:border-rarity-4 hover:shadow-[0_0_10px_var(--color-rarity-4)]',
   5: 'hover:border-rarity-5 hover:shadow-[0_0_10px_var(--color-rarity-5)]',
 };
 
-/** Rarity id -> selected: solid bright border + glow */
+// Rarity id -> selected: solid bright border + glow
 const RARITY_SELECTED: Record<number, string> = {
   4: 'border-rarity-4 shadow-[0_0_10px_var(--color-rarity-4)]',
   5: 'border-rarity-5 shadow-[0_0_10px_var(--color-rarity-5)]',
 };
 
-/** Derive face1 (square head) CDN URL from iconRound URL */
+// Derive face1 (square head) CDN URL from iconRound URL
 const getHeadUrl = (character: Character | null): string => {
   if (!character?.iconRound) return FALLBACK_FACE;
   return character.iconRound.replace(/HeadCircle256/g, 'Head256');
 };
 
-/** Keep one Rover per gender (legacyId 4=male, 5=female) */
+// Keep one Rover per gender (legacyId 4=male, 5=female)
 const deduplicateRovers = (chars: Character[]): Character[] => {
   const seen = new Set<string>();
   return chars.filter((c) => {
@@ -87,7 +87,6 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
   const { characters, loading, error } = useGameData();
   const { setCharacter, setCharacterLevel } = useBuild();
-  // Note: setCharacterLevel now takes number directly
   const { t } = useLanguage();
   const selected = useSelectedCharacter();
 

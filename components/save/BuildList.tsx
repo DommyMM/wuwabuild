@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { SavedBuild } from '@/lib/build';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { calculateCV, calculateEchoCV } from '@/lib/calculations/cv';
+import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/cv';
 import { ELEMENT_SETS } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
@@ -134,7 +134,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
         name: echo ? t(echo.nameI18n ?? { en: echo.name }) : 'Empty Slot',
         icon: getEchoPaths(echo, panel.phantom),
         setIcon: echoElement ? (getFetterByElement(echoElement)?.icon ?? '') : '',
-        cv: panel.id ? calculateEchoCV(panel, { echoCost: echo?.cost }) : 0,
+        cv: panel.id ? calculateEchoSubstatCV(panel) : 0,
       };
     })
   ), [build.state.echoPanels, getEcho, getFetterByElement, t]);

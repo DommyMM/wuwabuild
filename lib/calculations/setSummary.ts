@@ -5,10 +5,8 @@ export interface BuildSetCount {
   count: number;
 }
 
-/**
- * Count set pieces from the current echo panel state.
- * Mirrors the same duplicate-echo handling used by stats calculations.
- */
+// Count set pieces from the current echo panel state.
+// Mirrors the same duplicate-echo handling used by stats calculations.
 export function getBuildSetCounts(
   echoPanels: EchoPanelState[],
   getEcho: (id: string | null) => Echo | null

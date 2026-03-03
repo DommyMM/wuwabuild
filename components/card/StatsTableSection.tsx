@@ -68,7 +68,7 @@ export const StatsTableSection: React.FC = () => {
     const bonus = isFlatStat ? Math.max(0, Math.round(value) - base) : 0;
 
     return (
-      <div key={key} className={`flex items-center justify-between gap-2 font-medium ${isFlatStat ? 'h-10' : 'h-9'}`}>
+      <div key={key} className="flex items-center justify-between gap-2 font-medium h-9">
         <div className="flex items-center gap-2">
           {icon && (
             <img
@@ -87,7 +87,7 @@ export const StatsTableSection: React.FC = () => {
             {formatValue(key, value)}
           </span>
           {isFlatStat && bonus > 0 && (
-            <span className="text-xs text-white/72">
+            <span className="text-[10px] text-white/72">
               {formatFlat(base)}{' '}
               <span className="text-emerald-300">
                 +{formatFlat(bonus)}
@@ -100,7 +100,7 @@ export const StatsTableSection: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full w-full flex-col px-8">
+    <div className="flex h-full w-full flex-col px-8 pt-2">
       {statRows.map(({ key, value }) => renderStatRow(key, value))}
     </div>
   );

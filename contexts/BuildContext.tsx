@@ -13,7 +13,7 @@ import {
 import { createDefaultEchoPanelState } from '@/lib/calculations/echoes';
 import { DRAFT_BUILD_STORAGE_KEY } from '@/lib/storage';
 
-/** Column index order: 0=normal-attack, 1=skill, 2=circuit, 3=liberation, 4=intro */
+// Column index order: 0=normal-attack, 1=skill, 2=circuit, 3=liberation, 4=intro
 const FORTE_KEY_TO_INDEX: Record<string, number> = {
   'normal-attack': 0, skill: 1, circuit: 2, liberation: 3, intro: 4,
 };
@@ -115,7 +115,7 @@ const initialState: BuildState = {
   isDirty: false
 };
 
-/** Migrate old nodeStates+forteLevels into a ForteState array. */
+// Migrate old nodeStates+forteLevels into a ForteState array.
 function migrateToForteArray(raw: Record<string, unknown>): ForteState {
   // Already new format
   if (Array.isArray(raw.forte) && raw.forte.length === 5) {
@@ -135,7 +135,7 @@ function migrateToForteArray(raw: Record<string, unknown>): ForteState {
   ] as ForteEntry) as ForteState;
 }
 
-/** Read draft from localStorage synchronously (avoids flicker). */
+// Read draft from localStorage synchronously (avoids flicker).
 function loadDraftFromStorage(): BuildState | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -184,7 +184,7 @@ function stripDirtyFromState(state: BuildState): SavedState {
   return rest;
 }
 
-/** Helper: clone forte and update a single column */
+// Helper: clone forte and update a single column
 function updateForteCol(forte: ForteState, col: number, updater: (entry: ForteEntry) => ForteEntry): ForteState {
   const next = forte.map(e => [...e]) as ForteState;
   next[col] = updater(next[col]);

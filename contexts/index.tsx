@@ -13,17 +13,12 @@ interface AppProvidersProps {
   initialBuildState?: SavedState;
 }
 
-/**
- * Combined app providers that set up the full context hierarchy.
- * Use this to wrap your app or pages that need access to game data, build state, and stats.
- *
- * Provider hierarchy:
- * 1. LanguageProvider - Manages i18n language selection
- * 2. GameDataProvider - Loads and caches all game data (characters, weapons, echoes, etc.)
- * 3. BuildProvider - Manages the current build state (character, weapon, echoes, etc.)
- * 4. StatsProvider - Calculates derived stats from game data + build state
- * 5. ToastProvider - Global transient feedback (success/error/warning/info)
- */
+// Combined app providers that set up the full context hierarchy.
+// 1. LanguageProvider for i18n language selection
+// 2. GameDataProvider for loading and caching all game data (characters, weapons, echoes, etc.)
+// 3. BuildProvider for managing the current build state (character, weapon, echoes, etc.)
+// 4. StatsProvider for calculating derived stats from game data + build state
+// 5. ToastProvider for global transient feedback (success/error/warning/info)
 export function AppProviders({ children, initialBuildState }: AppProvidersProps) {
   return (
     <LanguageProvider>
@@ -46,10 +41,8 @@ interface DataLoadingGateProps {
   errorComponent?: (error: string) => ReactNode;
 }
 
-/**
- * Component that gates its children behind game data loading.
- * Shows loading state while data is being fetched.
- */
+// Component that gates its children behind game data loading.
+// Shows loading state while data is being fetched.
 export function DataLoadingGate({
   children,
   loadingComponent = <DefaultLoadingComponent />,

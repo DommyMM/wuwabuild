@@ -33,7 +33,7 @@ const SKILL_BRANCHES: SkillBranchDef[] = [
   { skillName: 'Intro Skill', treeKey: 'tree5', hasNodes: true },
 ];
 
-/** Skill key by column index (for icon lookup) */
+// Skill key by column index (for icon lookup)
 const COL_SKILL_KEYS = ['normal-attack', 'skill', 'circuit', 'liberation', 'intro'] as const;
 
 export const ForteGroup: React.FC<ForteGroupProps> = ({

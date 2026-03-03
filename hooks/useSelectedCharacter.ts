@@ -10,7 +10,7 @@ const FALLBACK_IMG = '/images/Resources/Resonator.png';
 export interface SelectedCharacter {
   character: Character;
   isRover: boolean;
-  /** Effective element (resolves Rover to their chosen element) */
+  // Effective element (resolves Rover to their chosen element)
   element: string;
   displayName: string;              // Display name (English, e.g. "Rover", "Camellya")
   nameI18n: I18nString;            // Translated display name for t() usage
@@ -19,11 +19,7 @@ export interface SelectedCharacter {
   banner: string;                  // CDN URL, full character portrait (RolePile)
 }
 
-/**
- * Composes BuildContext + GameDataContext into a single memoized
- * selected-character object with pre-computed CDN image URLs.
- * Returns `null` when no character is selected.
- */
+// Composes BuildContext + GameDataContext into a single memoized selected-character object with pre-computed CDN image URLs
 export function useSelectedCharacter(): SelectedCharacter | null {
   const { state } = useBuild();
   const { getCharacter } = useGameData();

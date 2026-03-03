@@ -12,7 +12,7 @@ import { X } from 'lucide-react';
 import { getEchoPaths } from '@/lib/paths';
 import Marquee from 'react-fast-marquee';
 
-/** Scrolls text only when it overflows the available width. */
+// Scrolls text only when it overflows the available width.
 function EchoName({ text, className }: { text: string; className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLSpanElement>(null);
@@ -32,7 +32,6 @@ function EchoName({ text, className }: { text: string; className?: string }) {
 
   return (
     <div ref={containerRef} className={`min-w-0 overflow-hidden ${className ?? ''}`}>
-      {/* Hidden span used purely to measure natural text width */}
       <span ref={measureRef} className="invisible absolute whitespace-nowrap pointer-events-none" aria-hidden="true">
         {text}
       </span>

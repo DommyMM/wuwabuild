@@ -12,7 +12,7 @@ const ELEMENT_NAME_MAP: Record<string, string> = {
 
 const CDN_BASE = 'https://files.wuthery.com/p/GameData/UIResources/Common';
 
-/** Used by SequenceSelector for sequence icon URLs. */
+// Used by SequenceSelector for sequence icon URLs.
 export const PATHS = {
   cdn: {
     base: CDN_BASE,

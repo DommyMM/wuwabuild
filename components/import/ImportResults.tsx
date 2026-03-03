@@ -15,7 +15,7 @@ interface ImportResultsProps {
   onImport: (watermarkOverride: { username: string; uid: string }) => void;
 }
 
-/** Single pulsing skeleton block. */
+// Single pulsing skeleton block.
 function Sk({ className }: { className: string }) {
   return <div className={`animate-pulse rounded bg-text-primary/10 ${className}`} />;
 }

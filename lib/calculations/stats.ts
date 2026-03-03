@@ -2,35 +2,27 @@ import { Character } from '@/lib/character';
 import { Weapon } from '@/lib/weapon';
 import { ForteState } from '@/lib/build';
 
-/**
- * Character curve stats interface
- */
+// Character curve stats interface
 export interface CurveStats {
   HP: number;
   ATK: number;
   DEF: number;
 }
 
-/**
- * Character curve data structure
- */
+// Character curve data structure
 export interface CharacterCurve {
   CHARACTER_CURVE: {
     [level: string]: CurveStats;
   };
 }
 
-/**
- * Level curve data structure for weapons
- */
+// Level curve data structure for weapons
 export interface LevelCurves {
   ATK_CURVE: { [key: string]: number };
   STAT_CURVE: { [key: string]: number };
 }
 
-/**
- * Get the level key for curve lookup
- */
+// Get the level key for curve lookup
 export const getLevelKey = (level: number): string => {
   if (level <= 20) {
     if (level === 1) return "1/20";
@@ -53,9 +45,7 @@ export const getLevelKey = (level: number): string => {
   return "90/90";
 };
 
-/**
- * Scale a character stat based on level using character curves.
- */
+// Scale a character stat based on level using character curves.
 export const scaleCharacterStat = (
   baseStat: number,
   level: number,
@@ -74,9 +64,7 @@ export const scaleCharacterStat = (
   return Math.floor(baseStat * (curve[statType] / 10000));
 };
 
-/**
- * Scale weapon ATK based on level using weapon curves.
- */
+// Scale weapon ATK based on level using weapon curves.
 export const scaleWeaponAtk = (
   baseAtk: number,
   level: number,
@@ -87,9 +75,7 @@ export const scaleWeaponAtk = (
   return Math.floor(baseAtk * curves.ATK_CURVE[key]);
 };
 
-/**
- * Scale weapon stat based on level using weapon curves.
- */
+// Scale weapon stat based on level using weapon curves.
 export const scaleWeaponStat = (
   baseStat: number,
   level: number,
@@ -100,10 +86,8 @@ export const scaleWeaponStat = (
   return parseFloat((baseStat * curves.STAT_CURVE[key]).toFixed(1));
 };
 
-/**
- * Calculate scaled weapon stats (ATK + substat) at a given level.
- * Passive effect values are available directly via weapon.params[paramIndex][rank-1].
- */
+// Calculate scaled weapon stats (ATK + substat) at a given level.
+// Passive effect values are available directly via weapon.params[paramIndex][rank-1].
 export const calculateWeaponStats = (
   weapon: Weapon,
   level: number,
@@ -113,10 +97,8 @@ export const calculateWeaponStats = (
   scaledMainStat: scaleWeaponStat(weapon.base_main, level, curves),
 });
 
-/**
- * Calculate forte bonus from tree nodes using CDN values.
- * forte: [[level, top, middle], ...] indexed 0–4 for tree1–tree5.
- */
+// Calculate forte bonus from tree nodes using CDN values.
+// forte: [[level, top, middle], ...] indexed 0–4 for tree1–tree5.
 export const calculateForteBonus = (
   character: Character,
   forte: ForteState
@@ -148,9 +130,7 @@ export const calculateForteBonus = (
   return { bonus1Total, bonus2Total, bonus1Type: character.Bonus1 };
 };
 
-/**
- * Calculate base stats with weapon contribution.
- */
+// Calculate base stats with weapon contribution.
 export const calculateBaseStats = (
   character: Character,
   level: number,
@@ -166,9 +146,7 @@ export const calculateBaseStats = (
   };
 };
 
-/**
- * Calculate the final value of a flat stat (HP, ATK, DEF).
- */
+// Calculate the final value of a flat stat (HP, ATK, DEF).
 export const calculateFlatStat = (
   baseValue: number,
   percentBonus: number,
@@ -178,9 +156,7 @@ export const calculateFlatStat = (
   return Math.round(baseValue * (1 + percentBonus / 100)) + flatBonus + echoDefault;
 };
 
-/**
- * Calculate the final value of a percent stat.
- */
+// Calculate the final value of a percent stat.
 export const calculatePercentStat = (
   baseValue: number,
   bonus: number

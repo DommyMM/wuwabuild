@@ -12,16 +12,15 @@ export interface WatermarkState {
   artSource: string;
 }
 
-/**
- * Per-column forte data: [level, topNode, middleNode]
- * Column order: normal-attack, skill, circuit, liberation, intro (tree1–5)
- */
+
+ // Per-column forte data: [level, topNode, middleNode]
+ // Column order: normal-attack, skill, circuit, liberation, intro (tree1–5)
 export type ForteEntry = [number, boolean, boolean];
 
-/** 5-column forte state matching tree1–5 */
+// 5-column forte state matching tree1–5
 export type ForteState = [ForteEntry, ForteEntry, ForteEntry, ForteEntry, ForteEntry];
 
-/** @deprecated Use ForteState, kept for migration only */
+// @deprecated: Use ForteState, kept for migration only
 export interface ForteLevels {
   'normal-attack': number;
   skill: number;

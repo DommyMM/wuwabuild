@@ -2,14 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-/**
- * Hook for using localStorage with SSR safety and automatic JSON serialization.
- * Handles hydration mismatches by only reading from localStorage after mount.
- *
- * @param key - The localStorage key
- * @param initialValue - Default value if key doesn't exist
- * @returns [storedValue, setValue, removeValue] tuple
- */
+// Hook for using localStorage with SSR safety and automatic JSON serialization.
+// Handles hydration mismatches by only reading from localStorage after mount.
+// Returns [storedValue, setValue, removeValue] tuple
 export function useLocalStorage<T>(
   key: string,
   initialValue: T
@@ -88,10 +83,9 @@ export function useLocalStorage<T>(
   return [storedValue, setValue, removeValue];
 }
 
-/**
- * Simple version of useLocalStorage that doesn't handle functions as values.
- * Useful for simple string/number storage.
- */
+
+// Simple version of useLocalStorage that doesn't handle functions as values.
+// Useful for simple string/number storage.
 export function useLocalStorageSimple<T extends string | number | boolean>(
   key: string,
   initialValue: T

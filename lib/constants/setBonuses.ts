@@ -1,8 +1,6 @@
 import { StatName } from '@/lib/constants/statMappings';
 
-/**
- * Maps set names to their 2-piece bonus stat
- */
+// Maps set names to their 2-piece bonus stat 
 export const SET_TO_STAT: Record<string, StatName> = {
   'Sierra Gale': 'Aero DMG',
   'Moonlit Clouds': 'Energy Regen',
@@ -29,21 +27,15 @@ export const SET_TO_STAT: Record<string, StatName> = {
   'Sound of True Name': 'Aero DMG'
 } as const;
 
-/**
- * Default set bonus value (10% for most stats)
- */
+// Default set bonus value (10% for most stats)
 export const DEFAULT_SET_BONUS_VALUE = 10;
 
-/**
- * Special set bonus values that differ from the default
- */
+// Special set bonus values that differ from the default
 export const SPECIAL_SET_BONUS_VALUES: Record<string, number> = {
   'Frosty Resolve': 12 // Frosty Resolve gives 12% Resonance Skill DMG Bonus instead of 10%
 };
 
-/**
- * Get the stat bonus for a set at a given piece count
- */
+// Get the stat bonus for a set at a given piece count
 export const getSetBonus = (setName: string, pieceCount: number): { stat: StatName; value: number } | null => {
   const stat = SET_TO_STAT[setName];
   if (!stat) return null;

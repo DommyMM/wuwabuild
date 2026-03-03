@@ -2,14 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
-/**
- * Hook that debounces a value by the specified delay.
- * Returns the debounced value that only updates after the delay.
- *
- * @param value - The value to debounce
- * @param delay - Delay in milliseconds
- * @returns The debounced value
- */
+// Hook that debounces a value by the specified delay.
+// Returns the debounced value that only updates after the delay.
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -26,14 +20,8 @@ export function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-/**
- * Hook that returns a debounced callback function.
- * The callback will only execute after the specified delay since the last call.
- *
- * @param callback - The function to debounce
- * @param delay - Delay in milliseconds
- * @returns The debounced function
- */
+// Hook that returns a debounced callback function.
+// The callback will only execute after the specified delay since the last call.
 export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
@@ -71,13 +59,8 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   return debouncedCallback;
 }
 
-/**
- * Hook that returns a debounced callback with cancel and flush capabilities.
- *
- * @param callback - The function to debounce
- * @param delay - Delay in milliseconds
- * @returns Object with debounced function, cancel, and flush methods
- */
+// Hook that returns a debounced callback with cancel and flush capabilities.
+// Returns Object with debounced function, cancel, and flush methods
 export function useDebouncedCallbackWithControls<T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number

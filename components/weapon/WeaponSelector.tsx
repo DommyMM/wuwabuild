@@ -12,7 +12,7 @@ const FALLBACK_WEAPON = '/images/Resources/Weapon.png';
 
 const RARITIES = [5, 4, 3] as const;
 
-/** Rarity → default card border */
+// Rarity → default card border
 const RARITY_BORDER: Record<WeaponRarity, string> = {
   '5-star': 'border-rarity-5/50',
   '4-star': 'border-rarity-4/50',
@@ -21,7 +21,7 @@ const RARITY_BORDER: Record<WeaponRarity, string> = {
   '1-star': 'border-gray-400/40',
 };
 
-/** Rarity → hover glow */
+// Rarity → hover glow
 const RARITY_HOVER: Record<WeaponRarity, string> = {
   '5-star': 'hover:border-rarity-5 hover:shadow-[0_0_10px_var(--color-rarity-5)]',
   '4-star': 'hover:border-rarity-4 hover:shadow-[0_0_10px_var(--color-rarity-4)]',
@@ -30,7 +30,7 @@ const RARITY_HOVER: Record<WeaponRarity, string> = {
   '1-star': 'hover:border-gray-400',
 };
 
-/** Rarity → selected highlight */
+// Rarity → selected highlight
 const RARITY_SELECTED: Record<WeaponRarity, string> = {
   '5-star': 'border-rarity-5 shadow-[0_0_12px_var(--color-rarity-5)]',
   '4-star': 'border-rarity-4 shadow-[0_0_12px_var(--color-rarity-4)]',
@@ -39,7 +39,7 @@ const RARITY_SELECTED: Record<WeaponRarity, string> = {
   '1-star': 'border-gray-400',
 };
 
-/** Rarity → subtle card background tint */
+// Rarity → subtle card background tint
 const RARITY_BG: Record<WeaponRarity, string> = {
   '5-star': 'bg-rarity-5/10',
   '4-star': 'bg-rarity-4/10',
@@ -48,7 +48,7 @@ const RARITY_BG: Record<WeaponRarity, string> = {
   '1-star': 'bg-gray-400/8',
 };
 
-/** Rarity → divider strip */
+// Rarity → divider strip
 const RARITY_DIVIDER: Record<WeaponRarity, string> = {
   '5-star': 'bg-rarity-5/40',
   '4-star': 'bg-rarity-4/40',
@@ -57,7 +57,7 @@ const RARITY_DIVIDER: Record<WeaponRarity, string> = {
   '1-star': 'bg-gray-400/30',
 };
 
-/** Rarity → shimmering gradient for weapon name text */
+// Rarity → shimmering gradient for weapon name text
 const RARITY_GRADIENT: Record<WeaponRarity, string> = {
   '5-star': 'linear-gradient(to right, #ffd700, #fff7b5, #ffd700)',
   '4-star': 'linear-gradient(to right, #c468e9, #e1bef3, #c468e9)',
@@ -66,7 +66,7 @@ const RARITY_GRADIENT: Record<WeaponRarity, string> = {
   '1-star': 'linear-gradient(to right, #595959, #868686, #595959)',
 };
 
-/** Numeric rarity → active filter chip styling */
+// Numeric rarity → active filter chip styling
 const RARITY_CHIP_ACTIVE: Record<number, string> = {
   5: 'bg-rarity-5/20 border-rarity-5/50 text-rarity-5',
   4: 'bg-rarity-4/20 border-rarity-4/50 text-rarity-4',

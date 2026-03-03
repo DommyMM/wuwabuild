@@ -1,9 +1,7 @@
 import type { ImportRegion } from './types';
 
-/**
- * Read DPI from a PNG file's pHYs chunk (client-side, first 512 bytes only).
- * Returns the DPI value if the chunk specifies meters as the unit, otherwise null.
- */
+// Read DPI from a PNG file's pHYs chunk (client-side, first 512 bytes only).
+// Returns the DPI value if the chunk specifies meters as the unit, otherwise null.
 export async function getImageDpi(file: File): Promise<number | null> {
   const buf = await file.slice(0, 512).arrayBuffer();
   const view = new DataView(buf);
@@ -28,7 +26,7 @@ export async function getImageDpi(file: File): Promise<number | null> {
   return null;
 }
 
-/** Load a File into an HTMLImageElement */
+// Load a File into an HTMLImageElement
 export function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -45,7 +43,7 @@ export function loadImage(file: File): Promise<HTMLImageElement> {
   });
 }
 
-/** Crop a region (normalized 0–1 coords) → base64 PNG string */
+// Crop a region (normalized 0–1 coords) → base64 PNG string
 export function cropImageToRegion(
   img: HTMLImageElement,
   region: ImportRegion
