@@ -12,7 +12,6 @@ const BRANCHES: BranchDef[] = [
   { label: 'Liberation', skillKey: 'liberation',     treeKey: 'tree4' },
   { label: 'Intro',  skillKey: 'intro',          treeKey: 'tree5' },
 ];
-const BRANCH_OFFSETS = ['mb-0', 'mb-4', 'mb-8', 'mb-4', 'mb-0'] as const;
 
 interface ForteCardSectionProps {
   character: Character;
@@ -47,7 +46,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
   character, forte,
 }) => {
   return (
-    <div className="flex items-end gap-2 pt-1">
+    <div className="flex items-end gap-2 pt-2">
       {BRANCHES.map((branch, i) => {
         const [level, topActive, midActive] = forte[i];
         const isMaxLevel = level >= 10;
@@ -61,7 +60,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
           : (character.forteNodes?.[`${branch.treeKey}.middle`]?.icon ?? '');
 
         return (
-          <div key={branch.skillKey} className={`flex flex-1 flex-col items-center justify-end gap-0.5 ${BRANCH_OFFSETS[i]}`}>
+          <div key={branch.skillKey} className="flex flex-1 flex-col items-center justify-end gap-0.5">
             <NodeBadge
               icon={topNodeIcon}
               active={topActive}
@@ -69,7 +68,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               alt={`${branch.label} top node`}
             />
 
-            <div className="-my-0.5 h-2.5 w-px shrink-0 bg-white/28" />
+            <div className="-my-0.5 h-1.5 w-px shrink-0 bg-white/28" />
 
             <NodeBadge
               icon={midNodeIcon}

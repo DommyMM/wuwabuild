@@ -10,6 +10,7 @@ import { SequenceStrip } from '@/components/card/SequenceStrip';
 import { StatsTableSection } from '@/components/card/StatsTableSection';
 import { ForteCardSection } from '@/components/card/ForteCardSection';
 import { EchoSection } from '@/components/card/EchoSection';
+import { ActiveSetsSection } from '@/components/card/ActiveSetsSection';
 import { NameGroup } from '@/components/card/NameGroup';
 import { WeaponGroup } from '@/components/card/WeaponGroup';
 
@@ -33,6 +34,8 @@ const ELEMENT_BLOOM: Record<string, string> = {
 
 interface BuildCardProps {
   useAltSkin?: boolean;
+  showCV?: boolean;
+  showRollQuality?: boolean;
 }
 
 const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | null => {
@@ -56,7 +59,7 @@ const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | n
   return alias[normalized] ?? normalized;
 };
 
-export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false }, ref) => {
+export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSkin = false, showCV = true, showRollQuality = true }, ref) => {
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
   const { getWeapon, levelCurves, statIcons } = useGameData();
@@ -103,43 +106,46 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
                 useAltSkin={useAltSkin}
               />
 
-              {/* Right side: name/weapon/forte + stats */}
-              <div className="flex w-full">
-                <SequenceStrip
-                  chains={selected.character.chains ?? []}
-                  sequence={state.sequence}
-                  element={selected.element}
-                />
-                <div className="relative flex flex-1 self-start">
-                  <div className="flex w-2/5 shrink-0 flex-col pt-4">
-                    <NameGroup selected={selected} characterLevel={state.characterLevel} />
+              {/* Right side: name/weapon/forte + stats + echoes */}
+              <div className="flex flex-col w-full">
+                <div className="flex">
+                  <SequenceStrip
+                    chains={selected.character.chains ?? []}
+                    sequence={state.sequence}
+                    element={selected.element}
+                  />
+                  <div className="relative flex flex-1 self-start">
+                    <div className="flex w-2/5 shrink-0 flex-col pt-4">
+                      <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
-                    {weapon && weaponStats && (
-                      <WeaponGroup
-                        weapon={weapon}
-                        weaponStats={weaponStats}
-                        weaponLevel={state.weaponLevel}
-                        weaponRank={state.weaponRank}
-                        weaponAtkIcon={weaponAtkIcon}
-                        weaponMainIcon={weaponMainIcon}
+                      {weapon && weaponStats && (
+                        <WeaponGroup
+                          weapon={weapon}
+                          weaponStats={weaponStats}
+                          weaponLevel={state.weaponLevel}
+                          weaponRank={state.weaponRank}
+                          weaponAtkIcon={weaponAtkIcon}
+                          weaponMainIcon={weaponMainIcon}
+                        />
+                      )}
+
+                      <ForteCardSection
+                        character={selected.character}
+                        forte={state.forte}
                       />
-                    )}
+                      <ActiveSetsSection />
+                    </div>
 
-                    <ForteCardSection
-                      character={selected.character}
-                      forte={state.forte}
-                    />
+                    {/* Stats panel */}
+                    <StatsTableSection />
                   </div>
-
-                  {/* Stats panel */}
-                  <StatsTableSection />
                 </div>
+
+                {/* Echo cards inside the frame */}
+                <EchoSection echoPanels={state.echoPanels} showCV={showCV} showRollQuality={showRollQuality} />
               </div>
             </div>
           </div>
-
-          {/* Echo cards hang below the fixed-ratio frame */}
-          <EchoSection echoPanels={state.echoPanels} />
         </div>
       )}
     </div>

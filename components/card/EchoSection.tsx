@@ -10,6 +10,8 @@ import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 
 interface EchoSectionProps {
   echoPanels: EchoPanelState[];
+  showCV?: boolean;
+  showRollQuality?: boolean;
 }
 
 const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
@@ -21,15 +23,14 @@ const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
   WebkitMaskSize: '100% 100%',
 };
 
-export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
+export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = true, showRollQuality = true }) => {
   const { getEcho, fettersByElement, statIcons } = useGameData();
   const { t } = useLanguage();
 
   return (
-    <div className="flex flex-col gap-2 px-4 relative z-10 -mt-38 ml-auto w-7/10">
+    <div className="flex gap-2 h-full p-4">
       {/* Echo cards row */}
-      <div className="flex gap-2 flex-1">
-        {echoPanels.map((panel, i) => {
+      {echoPanels.map((panel, i) => {
           const echo = panel.id ? getEcho(panel.id) : null;
 
           if (!echo) {
@@ -67,32 +68,42 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
               key={i}
               className="relative flex flex-1 rounded-xl border overflow-hidden border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,180,70,0.14)_0%,rgba(58,42,86,0.82)_28%,rgba(45,49,67,0.94)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_8px_16px_rgba(0,0,0,0.38)]"
             >
-              {cvTier && (
-                <div
-                  className="absolute top-1 left-1 z-10 flex items-center rounded-md border px-2 py-1"
-                  style={{
-                    borderColor: `${cvTier.color}66`,
-                    color: cvTier.color,
-                    backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
-                  }}
-                >
-                  <span className="text-xs font-bold leading-none">{echoCV.toFixed(1)} CV</span>
-                </div>
-              )}
+              {/* Top-left stack: CV badge */}
+              <div className="absolute top-1 left-1 z-10 flex flex-col items-start gap-1">
+                {showCV && cvTier && (
+                  <div
+                    className="flex items-center rounded-md border px-2 py-1"
+                    style={{
+                      borderColor: `${cvTier.color}66`,
+                      color: cvTier.color,
+                      backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
+                    }}
+                  >
+                    <span className="text-xs font-bold leading-none">{echoCV.toFixed(1)} CV</span>
+                  </div>
+                )}
+              </div>
               {/* Echo image and misc */}
-              <div className="flex w-3/5 flex-col overflow-hidden">
+              <div className="flex w-2/3 flex-col overflow-hidden">
                 <img
                   src={echo.iconUrl}
                   alt={echoName}
                   className="w-full h-auto"
-                style={ECHO_IMAGE_FADE_STYLE}
+                  style={ECHO_IMAGE_FADE_STYLE}
                 />
-                <div className="flex flex-col items-start p-2 gap-1">
+                <div className="relative mb-1 h-px w-1/2 bg-black/45">
                   {fetterIcon && (
-                    <img src={fetterIcon} alt={elementType ?? ''} className="h-5.5 w-5.5 object-contain" />
+                    <img
+                      src={fetterIcon}
+                      alt={elementType ?? ''}
+                      className="absolute left-full top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
+                    />
                   )}
+                </div>
+                {/* Main Stat */}
+                <div className="flex p-2">
                   {mainStatType && mainStatValue != null && (
-                    <div className="flex items-center gap-1 rounded-lg border border-white/15 bg-black/68 p-1">
+                    <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-black/55 px-1.5 py-0.5">
                       {mainStatIcon && (
                         <img src={mainStatIcon} alt={mainStatType} className="h-4 w-4 object-contain" />
                       )}
@@ -107,7 +118,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
               </div>
 
               {/* Echo substats */}
-              <div className="flex flex-col items-start justify-between py-4 -ml-2">
+              <div className="flex flex-col items-start justify-between py-3 -ml-5">
                 {Array.from({ length: 5 }).map((_, si) => {
                   const sub = substats[si];
                   if (!sub?.type || sub.value == null) {
@@ -117,7 +128,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
                   const subType = sub.type.trim();
                   const isSubPercent = isPercentStat(subType);
                   const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')];
-                  const tierColor = getSubstatTierColor(subType, sub.value);
+                  const tierColor = showRollQuality ? getSubstatTierColor(subType, sub.value) : null;
 
                   return (
                     <div
@@ -141,7 +152,6 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels }) => {
             </div>
           );
         })}
-      </div>
     </div>
   );
 };
