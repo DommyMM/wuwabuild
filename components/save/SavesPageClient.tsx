@@ -196,20 +196,66 @@ export const SavesPageClient: React.FC = () => {
     setPendingLoadBuild(build);
   }, []);
 
+  const isV2StateShape = useCallback((state: unknown): boolean => {
+    if (!state || typeof state !== 'object') return false;
+    const record = state as Record<string, unknown>;
+    return (
+      'characterId' in record &&
+      'characterLevel' in record &&
+      'weaponId' in record &&
+      'weaponLevel' in record &&
+      'weaponRank' in record &&
+      Array.isArray(record.echoPanels)
+    );
+  }, []);
+
+  const isV2ImportPayload = useCallback((payload: unknown): boolean => {
+    if (!payload || typeof payload !== 'object') return false;
+    const record = payload as Record<string, unknown>;
+    if (record.build && typeof record.build === 'object') {
+      return isV2StateShape((record.build as Record<string, unknown>).state);
+    }
+    if (Array.isArray(record.builds)) {
+      return record.builds.every((entry) => {
+        if (!entry || typeof entry !== 'object') return false;
+        return isV2StateShape((entry as Record<string, unknown>).state);
+      });
+    }
+    return false;
+  }, [isV2StateShape]);
+
   const handleImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
-      const imported = await importBuild(file);
+      const content = await file.text();
+      const parsed = JSON.parse(content);
+
+      if (isV2ImportPayload(parsed)) {
+        const imported = await importBuild(file);
+        refreshBuilds();
+        success(`Imported ${imported.length} build(s).`);
+        return;
+      }
+
+      const converted = convertLegacyBuilds(parsed, legacyIdMaps);
+      if (converted.builds.length === 0) {
+        throw new Error('No valid builds found in file.');
+      }
+
+      const merged = mergeBuilds(converted.builds);
       refreshBuilds();
-      success(`Imported ${imported.length} build(s).`);
+      success(`Migrated and imported ${merged.length} legacy build(s).`);
+      if (converted.skippedCount > 0) {
+        warning(`Skipped ${converted.skippedCount} invalid legacy build(s).`);
+      }
     } catch (error) {
       notifyError(error instanceof Error ? error.message : 'Failed to import file.');
     } finally {
       event.target.value = '';
     }
-  }, [notifyError, refreshBuilds, success]);
+  }, [isV2ImportPayload, legacyIdMaps, notifyError, refreshBuilds, success, warning]);
 
   const handleDeleteAll = useCallback(() => {
     if (!deleteAllArmed) {
