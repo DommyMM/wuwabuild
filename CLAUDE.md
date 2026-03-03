@@ -51,6 +51,17 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 Import OCR requests use the `X-OCR-Region` header via the frontend `/api/ocr` proxy.
 
+## LB + Builds Current Status (2026-03-03)
+
+- `/builds` and `/leaderboards` routes in the rewrite are currently placeholders (no data fetch/render yet).
+- `/import` has an `Upload to Leaderboard` toggle in UI, but no leaderboard submission wiring is connected yet.
+- `BuildEditor` still has a disabled `View Ranking` button with a TODO note for leaderboard logic.
+- Go LB local runtime is validated with migrated legacy data (successful `/build?uid=...&characterId=...` query on `localhost:8080`).
+- Backend direction for this phase is:
+  - **Go LB primary** (`/lb`, Chi + pgx + PostgreSQL).
+  - **Node fallback** (`/mongo`, Express + MongoDB) until Go parity gates are met.
+- See `docs/LB_MIGRATION_STATUS.md` for implementation parity, risks, and decision gates.
+
 ## Project Structure
 
 ```
@@ -431,7 +442,8 @@ See `MIGRATION_PLAN.md` for full details.
 | Service | Location | Tech | URL |
 |---------|----------|------|-----|
 | OCR Backend | `/backend/` | FastAPI + RapidOCR | https://ocr.wuwabuilds.moe |
-| Leaderboard API | `/lb/` | Express + MongoDB + Redis | https://lb.wuwabuilds.moe |
+| Leaderboard API (Current / fallback) | `/mongo/` | Express + MongoDB | https://lb.wuwabuilds.moe |
+| Leaderboard API (In progress) | `/lb/` | Go (Chi + pgx + PostgreSQL) | https://lb.wuwabuilds.moe (cutover target) |
 | Legacy Frontend | `/frontend/` | Next.js 15 (deprecated) | — |
 
 Each has its own CLAUDE.md / README with documentation.
