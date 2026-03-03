@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Modal } from '@/components/ui/Modal';
 import { Echo, ElementType, ELEMENT_SETS, COST_SECTIONS } from '@/lib/echo';
 import { getEchoPaths } from '@/lib/paths';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface EchoSelectorProps {
   isOpen: boolean;
@@ -112,8 +113,19 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
   selectedEchoId
 }) => {
   const [setFilter, setSetFilter] = useState<Set<string>>(new Set());
+  const [isPhoneViewport, setIsPhoneViewport] = useState(false);
+  const [mobileActiveCost, setMobileActiveCost] = useState<number>(COST_SECTIONS[0]);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const { echoesByCost, loading, error, getFetterByElement } = useGameData();
   const { t } = useLanguage();
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsPhoneViewport(media.matches);
+    onChange();
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
 
   // Filter echoes by set filter
   const filteredEchoesByCost = useMemo(() => {
@@ -138,11 +150,13 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
     onSelect(echo);
     onClose();
     setSetFilter(new Set());
+    setIsMobileFilterOpen(false);
   }, [onSelect, onClose]);
 
   const handleClose = useCallback(() => {
     onClose();
     setSetFilter(new Set());
+    setIsMobileFilterOpen(false);
   }, [onClose]);
 
   const toggleSetFilter = useCallback((el: string) => {
@@ -205,11 +219,11 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
   };
 
   // Render a cost column (header pinned, list scrolls independently)
-  const renderCostColumn = (cost: number) => {
+  const renderCostColumn = (cost: number, singleView = false) => {
     const echoes = filteredEchoesByCost[cost] || [];
 
     return (
-      <div key={cost} className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div key={cost} className={`flex min-h-0 min-w-0 ${singleView ? 'w-full' : 'flex-1'} flex-col`}>
         {/* Column header, stays visible */}
         <div className={`shrink-0 border-b-2 pb-1.5 ${COST_HEADER_BORDER[cost]}`}>
           <span className={`text-sm font-semibold ${COST_TEXT[cost]}`}>
@@ -225,7 +239,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
           className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#444_var(--color-background-secondary)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-background-secondary [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#444]"
         >
           {echoes.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2 py-2 sm:grid-cols-4">
+            <div className={`grid gap-2 py-2 ${singleView ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-4'}`}>
               {echoes.map(renderEchoCard)}
             </div>
           ) : (
@@ -247,41 +261,87 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
     >
       <div className="flex h-full flex-col gap-3">
         {/* Set filter chips */}
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          {SET_FILTER_ORDER.map(el => {
-            const fetter = getFetterByElement(el);
-            return (
-              <button
-                key={el}
-                onClick={() => toggleSetFilter(el)}
-                className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
-                  setFilter.has(el)
-                    ? SET_CHIP_ACTIVE[el]
-                    : 'border-border text-text-primary/50 hover:border-text-primary/30'
-                }`}
-              >
-                <img
-                  src={fetter?.icon ?? ''}
-                  alt=""
-                  className="h-4 w-4 object-contain"
-                />
-                {fetter ? t(fetter.name) : ELEMENT_SETS[el]}
-              </button>
-            );
-          })}
+        {isPhoneViewport ? (
+          <div className="shrink-0 rounded-lg border border-border bg-background/40 p-2">
+            <button
+              onClick={() => setIsMobileFilterOpen(v => !v)}
+              className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-text-primary/70"
+            >
+              <span>{`Set Filters${hasFilters ? ` (${setFilter.size})` : ''}`}</span>
+              {isMobileFilterOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+            {isMobileFilterOpen && (
+              <div className="mt-2 flex max-h-48 flex-wrap items-start gap-1.5 overflow-y-auto pr-1">
+                {SET_FILTER_ORDER.map(el => {
+                  const fetter = getFetterByElement(el);
+                  return (
+                    <button
+                      key={el}
+                      onClick={() => toggleSetFilter(el)}
+                      className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
+                        setFilter.has(el)
+                          ? SET_CHIP_ACTIVE[el]
+                          : 'border-border text-text-primary/50 hover:border-text-primary/30'
+                      }`}
+                    >
+                      <img
+                        src={fetter?.icon ?? ''}
+                        alt=""
+                        className="h-4 w-4 object-contain"
+                      />
+                      {fetter ? t(fetter.name) : ELEMENT_SETS[el]}
+                    </button>
+                  );
+                })}
 
-          {hasFilters && (
-            <>
-              <span className="mx-1 h-4 w-px bg-border" />
-              <button
-                onClick={clearFilters}
-                className="rounded-md px-2 py-0.5 text-xs text-text-primary/40 hover:text-text-primary"
-              >
-                Clear
-              </button>
-            </>
-          )}
-        </div>
+                {hasFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="rounded-md border border-border px-2 py-1 text-xs text-text-primary/60 hover:border-text-primary/30 hover:text-text-primary"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            {SET_FILTER_ORDER.map(el => {
+              const fetter = getFetterByElement(el);
+              return (
+                <button
+                  key={el}
+                  onClick={() => toggleSetFilter(el)}
+                  className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
+                    setFilter.has(el)
+                      ? SET_CHIP_ACTIVE[el]
+                      : 'border-border text-text-primary/50 hover:border-text-primary/30'
+                  }`}
+                >
+                  <img
+                    src={fetter?.icon ?? ''}
+                    alt=""
+                    className="h-4 w-4 object-contain"
+                  />
+                  {fetter ? t(fetter.name) : ELEMENT_SETS[el]}
+                </button>
+              );
+            })}
+
+            {hasFilters && (
+              <>
+                <span className="mx-1 h-4 w-px bg-border" />
+                <button
+                  onClick={clearFilters}
+                  className="rounded-md px-2 py-0.5 text-xs text-text-primary/40 hover:text-text-primary"
+                >
+                  Clear
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Content */}
         {loading && (
@@ -303,9 +363,38 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
                 <span className="text-text-primary/60">No echoes found</span>
               </div>
             ) : (
-              <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-3">
-                {COST_SECTIONS.map(renderCostColumn)}
-              </div>
+              <>
+                {isPhoneViewport ? (
+                  <>
+                    <div className="flex shrink-0 items-center gap-2 overflow-x-auto pb-1">
+                      {COST_SECTIONS.map((cost) => {
+                        const count = filteredEchoesByCost[cost]?.length ?? 0;
+                        const active = mobileActiveCost === cost;
+                        return (
+                          <button
+                            key={cost}
+                            onClick={() => setMobileActiveCost(cost)}
+                            className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              active
+                                ? `${COST_HEADER_BORDER[cost]} ${COST_TEXT[cost]} bg-background`
+                                : 'border-border bg-background-secondary text-text-primary/60 hover:border-text-primary/30'
+                            }`}
+                          >
+                            {`${COST_LABELS[cost]} (${count})`}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="min-h-0 flex-1">
+                      {renderCostColumn(mobileActiveCost, true)}
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-3">
+                    {COST_SECTIONS.map((cost) => renderCostColumn(cost))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ChevronUp, Download, Maximize2, Minus, Pencil, RotateCcw, Trash2, Trophy } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Maximize2, Minus, Pencil, RotateCcw, Trash2, Trophy } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Element } from '@/lib/character';
@@ -96,18 +96,11 @@ const readFileAsDataUrl = (file: File): Promise<string> => (
   })
 );
 
-type MobileSectionKey = 'resonator' | 'echoes' | 'card';
-
 export const BuildEditor: React.FC = () => {
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const [isPhoneViewport, setIsPhoneViewport] = useState(false);
-  const [mobileSectionsOpen, setMobileSectionsOpen] = useState<Record<MobileSectionKey, boolean>>({
-    resonator: true,
-    echoes: true,
-    card: false,
-  });
   const [isCardFullscreenOpen, setIsCardFullscreenOpen] = useState(false);
   const [mobileCardZoom, setMobileCardZoom] = useState<(typeof MOBILE_CARD_FULLSCREEN_ZOOMS)[number]>(75);
 
@@ -131,12 +124,6 @@ export const BuildEditor: React.FC = () => {
       }, 100);
     }
   }, [isCardGenerated]);
-
-  useEffect(() => {
-    if (isPhoneViewport && isCardGenerated) {
-      setMobileSectionsOpen(prev => ({ ...prev, card: true }));
-    }
-  }, [isCardGenerated, isPhoneViewport]);
 
   useEffect(() => {
     if (!isPhoneViewport) {
@@ -253,16 +240,9 @@ export const BuildEditor: React.FC = () => {
     setIsArtEditMode(v => !v);
   }, []);
 
-  const toggleMobileSection = useCallback((section: MobileSectionKey) => {
-    setMobileSectionsOpen(prev => ({ ...prev, [section]: !prev[section] }));
-  }, []);
-
   const handleGenerateCard = useCallback(() => {
     setIsCardGenerated(true);
-    if (isPhoneViewport) {
-      setMobileSectionsOpen(prev => ({ ...prev, card: true }));
-    }
-  }, [isPhoneViewport]);
+  }, []);
 
   const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
@@ -365,16 +345,6 @@ export const BuildEditor: React.FC = () => {
     });
   }, []);
 
-  const renderMobileSectionToggle = (section: MobileSectionKey, label: string) => (
-    <button
-      onClick={() => toggleMobileSection(section)}
-      className="mb-2 flex w-full items-center justify-between rounded-lg border border-border bg-background-secondary px-3 py-2 text-left text-sm font-semibold text-text-primary md:hidden"
-    >
-      <span>{label}</span>
-      {mobileSectionsOpen[section] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-    </button>
-  );
-
   return (
     <div className="mx-auto flex max-w-[1440px] min-w-0 flex-col overflow-x-clip">
       {/* Action Bar */}
@@ -411,16 +381,13 @@ export const BuildEditor: React.FC = () => {
 
       {/* Resonator */}
       <div className="flex min-w-0 flex-col">
-        {renderMobileSectionToggle('resonator', 'Resonator')}
-        {(!isPhoneViewport || mobileSectionsOpen.resonator) && (
-          <>
-            <div className="flex justify-start">
-              <CharacterSelector className="rounded-b-none border-b-0" />
-            </div>
+        <div className="flex justify-start">
+          <CharacterSelector className="rounded-b-none border-b-0" />
+        </div>
 
-            <div className="select-none rounded-lg rounded-tl-none border border-border bg-background-secondary p-3 md:p-4">
-              {selected ? (
-                <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[auto_auto_1fr] md:grid-rows-[28rem_auto] md:gap-x-6 md:gap-y-3">
+        <div className="select-none rounded-lg rounded-tl-none border border-border bg-background-secondary p-3 md:p-4">
+          {selected ? (
+            <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[auto_auto_1fr] md:grid-rows-[28rem_auto] md:gap-x-6 md:gap-y-3">
                   {/* Row 1, Col 1: Portrait */}
                   <div className="relative order-1 w-full md:col-start-1 md:row-start-1 md:h-full">
                     <img
@@ -459,7 +426,7 @@ export const BuildEditor: React.FC = () => {
                   </div>
 
                   {/* Row 1, Col 2: Sequences + Weapon + Rank slider */}
-                  <div className="relative order-2 flex min-w-0 flex-col items-center gap-4 overflow-visible md:col-start-2 md:row-start-1 md:items-stretch md:justify-between md:overflow-hidden">
+                  <div className="relative order-3 flex min-w-0 flex-col items-center gap-4 overflow-visible md:col-start-2 md:row-start-1 md:items-stretch md:justify-between md:overflow-hidden">
                     {selected.character.cdnId && (
                       <SequenceSelector
                         compact={isPhoneViewport}
@@ -475,7 +442,7 @@ export const BuildEditor: React.FC = () => {
                   </div>
 
                   {/* Row 2, Col 1: Character Level */}
-                  <div className="order-3 min-w-0 md:col-start-1 md:row-start-2">
+                  <div className="order-2 min-w-0 md:col-start-1 md:row-start-2">
                     <LevelSlider
                       value={state.characterLevel}
                       onLevelChange={setCharacterLevel}
@@ -511,53 +478,43 @@ export const BuildEditor: React.FC = () => {
                       onMaxAll={maxAllFortes}
                     />
                   </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-12 text-text-primary/40">
-                  Select a resonator to get started
-                </div>
-              )}
             </div>
-          </>
-        )}
+          ) : (
+            <div className="flex items-center justify-center py-12 text-text-primary/40">
+              Select a resonator to get started
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Echoes */}
       <div className="mt-4 flex min-w-0 flex-col">
-        {renderMobileSectionToggle('echoes', 'Echoes')}
-        {(!isPhoneViewport || mobileSectionsOpen.echoes) && (
-          <>
-            <div className="flex justify-end">
-              <EchoCostBadge className="rounded-b-none border-b-0" />
-            </div>
-            <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-3 md:p-4">
-              <EchoGrid />
-            </div>
-          </>
-        )}
+        <div className="flex justify-end">
+          <EchoCostBadge className="rounded-b-none border-b-0" />
+        </div>
+        <div className="rounded-lg rounded-tr-none border border-border bg-background-secondary p-3 md:p-4">
+          <EchoGrid />
+        </div>
       </div>
 
 
       {/* Build Card */}
       <div className="mt-8 flex min-w-0 flex-col">
-        {renderMobileSectionToggle('card', 'Build Card')}
-        {(!isPhoneViewport || mobileSectionsOpen.card) && (
-          <>
-            <div className="relative flex min-w-0 flex-col items-stretch gap-3 md:flex-row md:items-start">
-              <BuildCardOptions
-                className={isCardGenerated ? 'md:rounded-b-none md:border-b-0' : ''}
-                onChange={setCardOptions}
-              />
-              <button
-                onClick={handleGenerateCard}
-                className="w-full rounded-lg bg-accent px-4 py-3 text-base font-semibold tracking-wide text-background transition-all hover:brightness-110 hover:shadow-[0_0_16px_rgba(var(--color-accent),0.4)] active:scale-[0.97] md:absolute md:left-1/2 md:w-auto md:-translate-x-1/2"
-              >
-                Generate
-              </button>
-            </div>
+        <div className="relative flex min-w-0 flex-col items-stretch gap-3 md:flex-row md:items-start">
+          <BuildCardOptions
+            className={isCardGenerated ? 'md:rounded-b-none md:border-b-0' : ''}
+            onChange={setCardOptions}
+          />
+          <button
+            onClick={handleGenerateCard}
+            className="w-full rounded-lg bg-accent px-4 py-3 text-base font-semibold tracking-wide text-background transition-all hover:brightness-110 hover:shadow-[0_0_16px_rgba(var(--color-accent),0.4)] active:scale-[0.97] lg:absolute lg:left-1/2 lg:w-auto lg:-translate-x-1/2"
+          >
+            Generate
+          </button>
+        </div>
             {isCardGenerated && (
               <>
-                <div className="min-w-0">
+                <div className="min-w-0 pt-4 md:pt-0">
                   {isPhoneViewport ? (
                     <MobileCardViewport designWidth={MOBILE_CARD_DESIGN_WIDTH}>
                       <BuildCard
@@ -639,85 +596,87 @@ export const BuildEditor: React.FC = () => {
                     </div>
 
                     {isArtEditMode && (
-                      <div className="flex flex-col gap-3 border-t border-border px-3 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium text-text-primary/80">Zoom</span>
-                          <button
-                            onClick={() => handleZoomArt(-ART_ZOOM_STEP)}
-                            disabled={artTransform.scale <= MIN_ART_ZOOM}
-                            className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <Minus size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            className="min-w-14 rounded-md border border-border bg-background px-2.5 py-1 text-center text-sm font-semibold text-accent transition-colors hover:border-accent"
-                          >
-                            {`${Math.round(artTransform.scale * 100)}%`}
-                          </button>
-                          <button
-                            onClick={() => handleZoomArt(ART_ZOOM_STEP)}
-                            disabled={artTransform.scale >= MAX_ART_ZOOM}
-                            className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            +
-                          </button>
+                      <div className="border-t border-border px-3 py-3">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex flex-wrap items-center gap-1 md:gap-2">
+                            <span className="text-sm font-medium text-text-primary/80">Zoom</span>
+                            <button
+                              onClick={() => handleZoomArt(-ART_ZOOM_STEP)}
+                              disabled={artTransform.scale <= MIN_ART_ZOOM}
+                              className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Minus size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              className="min-w-14 rounded-md border border-border bg-background px-2.5 py-1 text-center text-sm font-semibold text-accent transition-colors hover:border-accent"
+                            >
+                              {`${Math.round(artTransform.scale * 100)}%`}
+                            </button>
+                            <button
+                              onClick={() => handleZoomArt(ART_ZOOM_STEP)}
+                              disabled={artTransform.scale >= MAX_ART_ZOOM}
+                              className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              +
+                            </button>
 
-                          <button
-                            onClick={handleUseSplashArt}
-                            disabled={!selected}
-                            className="rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            Use Splash Art
-                          </button>
+                            <button
+                              onClick={handleUseSplashArt}
+                              disabled={!selected}
+                              className="rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Use Splash Art
+                            </button>
 
-                          <button
-                            onClick={handleRemoveCustomArt}
-                            disabled={artSourceMode !== 'custom'}
-                            className="ml-auto inline-flex items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-red-400/60 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <Trash2 size={12} />
-                            Remove Custom
-                          </button>
-                        </div>
+                            <button
+                              onClick={handleRemoveCustomArt}
+                              disabled={artSourceMode !== 'custom'}
+                              className="flex items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-red-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Trash2 size={12} />
+                              Remove Custom
+                            </button>
+                          </div>
 
-                        <div className="flex flex-wrap items-center gap-4">
-                          <div className="grid grid-cols-3 grid-rows-3 gap-1.5">
-                            <span />
-                            <button
-                              onClick={() => handleNudgeArt(0, -ART_NUDGE_STEP)}
-                              className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                            >
-                              <ArrowUp size={14} />
-                            </button>
-                            <span />
-                            <button
-                              onClick={() => handleNudgeArt(-ART_NUDGE_STEP, 0)}
-                              className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                            >
-                              <ArrowLeft size={14} />
-                            </button>
-                            <button
-                              onClick={handleResetArtTransform}
-                              className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                              title="Reset position and zoom"
-                            >
-                              <RotateCcw size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleNudgeArt(ART_NUDGE_STEP, 0)}
-                              className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                            >
-                              <ArrowRight size={14} />
-                            </button>
-                            <span />
-                            <button
-                              onClick={() => handleNudgeArt(0, ART_NUDGE_STEP)}
-                              className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                            >
-                              <ArrowDown size={14} />
-                            </button>
-                            <span />
+                          <div className="flex flex-wrap items-center gap-4">
+                            <div className="grid grid-cols-3 grid-rows-3 gap-1.5">
+                              <span />
+                              <button
+                                onClick={() => handleNudgeArt(0, -ART_NUDGE_STEP)}
+                                className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                              >
+                                <ArrowUp size={14} />
+                              </button>
+                              <span />
+                              <button
+                                onClick={() => handleNudgeArt(-ART_NUDGE_STEP, 0)}
+                                className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                              >
+                                <ArrowLeft size={14} />
+                              </button>
+                              <button
+                                onClick={handleResetArtTransform}
+                                className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                                title="Reset position and zoom"
+                              >
+                                <RotateCcw size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleNudgeArt(ART_NUDGE_STEP, 0)}
+                                className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                              >
+                                <ArrowRight size={14} />
+                              </button>
+                              <span />
+                              <button
+                                onClick={() => handleNudgeArt(0, ART_NUDGE_STEP)}
+                                className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                              >
+                                <ArrowDown size={14} />
+                              </button>
+                              <span />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -726,8 +685,6 @@ export const BuildEditor: React.FC = () => {
                 </div>
               </>
             )}
-          </>
-        )}
       </div>
       <Modal
         isOpen={isCardFullscreenOpen}

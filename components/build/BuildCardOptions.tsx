@@ -41,9 +41,9 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
     };
 
   return (
-    <div className={`grid w-full min-w-0 grid-cols-1 items-start gap-3 rounded-lg border border-border bg-background p-3 sm:grid-cols-2 md:flex md:w-auto md:min-w-fit ${className}`}>
+    <div className={`grid w-full min-w-0 grid-cols-6 items-start gap-3 rounded-lg border border-border bg-background p-3 md:flex md:w-auto md:min-w-fit ${className}`}>
       {/* Name - max 12 chars */}
-      <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="col-span-3 flex min-w-0 flex-col gap-1.5 md:col-auto">
         <label className={LABEL_BASE}>Name</label>
         <input
           type="text"
@@ -57,7 +57,7 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
       </div>
 
       {/* UID - max 9 chars */}
-      <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="col-span-3 flex min-w-0 flex-col gap-1.5 md:col-auto">
         <label className={LABEL_BASE}>UID</label>
         <input
           type="text"
@@ -71,7 +71,7 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
       </div>
 
       {/* Art source OR Use Skin */}
-      <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="col-span-4 flex min-w-0 flex-col gap-1.5 md:col-auto">
         {hasSkin ? (
           <>
             <span className={LABEL_BASE}>Skin</span>
@@ -87,19 +87,19 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
         ) : (
           <>
             <label className={LABEL_BASE}>Art Source</label>
-            <input
-              type="text"
-              value={state.watermark.artSource}
-              onChange={e => setWatermark({ artSource: e.target.value })}
-              placeholder="art by @artist"
-              className={`${INPUT_BASE} w-full md:w-[160px]`}
-            />
+              <input
+                type="text"
+                value={state.watermark.artSource}
+                onChange={e => setWatermark({ artSource: e.target.value })}
+                placeholder="art by @artist"
+                className={`${INPUT_BASE} w-full md:w-[160px]`}
+              />
           </>
         )}
       </div>
 
       {/* Roll Quality */}
-      <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="col-span-1 flex min-w-0 flex-col gap-1.5 md:col-auto">
         <span className={LABEL_BASE}>Quality</span>
         <label className="flex h-[38px] cursor-pointer items-center rounded-md border border-border bg-background-secondary px-3 py-2">
           <input
@@ -112,7 +112,7 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
       </div>
 
       {/* CV */}
-      <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="col-span-1 flex min-w-0 flex-col gap-1.5 md:col-auto">
         <span className={LABEL_BASE}>CV</span>
         <label className="flex h-[38px] cursor-pointer items-center rounded-md border border-border bg-background-secondary px-3 py-2">
           <input

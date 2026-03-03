@@ -34,7 +34,7 @@ export const BuildActionBar: React.FC<BuildActionBarProps> = ({
   return (
     <div className={compact
       ? 'flex items-center gap-1 md:gap-1.5'
-      : 'flex flex-wrap items-center gap-2 self-end rounded-lg border border-border bg-background-secondary p-3'}
+      : 'flex w-full min-w-0 flex-wrap items-center justify-end gap-2 self-stretch rounded-lg border border-border bg-background-secondary p-3 md:w-auto md:self-end'}
       ref={containerRef}
     >
       {isDirty && (
@@ -46,7 +46,7 @@ export const BuildActionBar: React.FC<BuildActionBarProps> = ({
         </span>
       )}
 
-      <div className={compact ? 'flex items-center gap-1.5' : 'flex items-center gap-1.5 md:gap-2'}>
+      <div className={compact ? 'flex items-center gap-1.5' : 'flex flex-wrap items-center justify-end gap-1.5 md:gap-2'}>
         {actions.map(({ key, label, icon: Icon, onClick, variant }) => (
           <button
             key={key}

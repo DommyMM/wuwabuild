@@ -8,7 +8,7 @@ import { MainStatSelector, SubstatsList } from './StatSelector';
 import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/lib/echo';
 import { hasPhantomVariant } from '@/lib/constants/echoBonuses';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { GripVertical, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { getEchoPaths } from '@/lib/paths';
 import Marquee from 'react-fast-marquee';
 
@@ -187,7 +187,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
         {/* Header: drag handle bar with phantom toggle (left) and clear (right) */}
         <div
           {...dragHandleProps}
-          className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2 border-b border-border px-2 py-2.5 cursor-grab active:cursor-grabbing touch-none"
+          className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2 border-b border-border px-2 py-2 cursor-grab active:cursor-grabbing"
         >
           {/* Left: Phantom checkbox, only for applicable echoes */}
           <div className="flex items-center" onPointerDown={(e) => e.stopPropagation()}>
@@ -212,16 +212,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
           </div>
 
           {/* Center: Echo name scrolls when overflowing */}
-          <div className="flex min-w-0 items-center justify-center gap-1.5 px-1">
-            <GripVertical size={14} className="shrink-0 text-text-primary/45" aria-hidden="true" />
-            <EchoName
-              text={echo ? (echo.nameI18n ? t(echo.nameI18n) : echo.name) : `Echo ${index + 1}`}
-              className="min-w-0 text-lg text-text-primary pointer-events-none select-none"
-            />
-            <span className="shrink-0 text-[10px] uppercase tracking-wide text-text-primary/35 sm:hidden">
-              Drag
-            </span>
-          </div>
+          <EchoName
+            text={echo ? (echo.nameI18n ? t(echo.nameI18n) : echo.name) : `Echo ${index + 1}`}
+            className="text-lg text-text-primary pointer-events-none select-none px-1"
+          />
 
           {/* Right: Clear button */}
           <div className="flex items-center justify-end">

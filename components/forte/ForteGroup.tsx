@@ -99,7 +99,7 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
         </span>
       </div>
 
-      <div className={`relative flex min-w-0 flex-1 ${compact ? 'items-end overflow-x-auto pb-2' : 'items-end'}`}>
+      <div className={`relative flex min-w-0 flex-1 ${compact ? 'items-end pb-2' : 'items-end'}`}>
         {SKILL_BRANCHES.map((branch, i) => (
           <SkillBranch
             key={branch.treeKey}

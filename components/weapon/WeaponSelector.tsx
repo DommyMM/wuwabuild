@@ -151,7 +151,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
 
         {/* Rank slider, vertical 1-5, right edge */}
         {selectedWeapon && (
-          <div className={`absolute ${compact ? 'right-0.5 top-0.5' : 'right-4 top-0'} flex flex-col items-center`}>
+          <div className={`absolute ${compact ? '-right-4 -top-4' : 'right-4 top-0'} flex flex-col items-center`}>
             <span className={`font-bold text-text-primary/40 ${compact ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'}`}>5</span>
             <div className="relative">
               <input
@@ -161,7 +161,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
                 step={1}
                 value={state.weaponRank}
                 onChange={e => setWeaponRank(parseInt(e.target.value))}
-                className={`rank-slider ${compact ? 'h-[5.5rem]' : 'h-28'}`}
+                className={`rank-slider ${compact ? 'h-22' : 'h-28'}`}
                 style={{ '--fill': `${((state.weaponRank - 1) / 4) * 100}%` } as React.CSSProperties}
               />
             </div>
