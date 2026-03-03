@@ -23,7 +23,7 @@ Recommended path: **Go LB primary, Node fallback**.
   - `GET /` -> `totalBuilds: 11302`
   - `GET /build?uid=901955607&characterId=1603`
 - Response includes expected migrated fields (`buildState`, `stats`, `calculations`, `echoSummary`) with UUID `_id` values.
-- Legacy compressed rows were normalized with `make normalize` (`cmd/normalize`) and now report `Legacy builds to normalize: 0` on rerun.
+- Legacy compressed rows were normalized with `make normalize` (`cmd/migrate --normalize-only`) and now report `Legacy builds to normalize: 0` on rerun.
 - Database spot checks after normalization:
   - `build_state ? 'c'` legacy rows: `0`
   - `build_state.version = 'v2'` rows: `11302 / 11302`
@@ -32,6 +32,10 @@ Recommended path: **Go LB primary, Node fallback**.
 - Query behavior after normalization:
   - legacy numeric character IDs (example `29`) no longer match
   - CDN IDs (example `1603`) should be used for API filters
+- LB calc base-data sync now emits:
+  - `lb/internal/calc/data/weapon_bases.json` with `params_r1` and `params_r5`
+  - `lb/internal/calc/data/echo_bases.json` with echo `fetter_ids` and English `effect_en`
+  - `lb/internal/calc/data/fetter_bases.json` with set piece effects (2/5 or 3)
 
 ### Active Node API (`/mongo`)
 
@@ -268,3 +272,4 @@ Required env:
 - 2026-03-03: Initial snapshot created. Captures rewrite frontend gaps, active Node API contract, current Go LB implementation, migration gap matrix, and rollout gates.
 - 2026-03-03: Added verified local import/runtime note (`/build` curl success), plus explicit two-track plan for Go migration policy and rewrite `/builds` + `/leaderboards` integration.
 - 2026-03-03: Added normalize-stage verification (`make normalize` idempotent, `11302` total rows, `0` legacy rows) and post-normalization filter caveat (CDN IDs required; many empty echo summary fields pending cleanup).
+- 2026-03-03: Added echo/fetter base-data sync status (`fetter_bases.json`, echo skill descriptions, and weapon R1/R5 params in generated LB data).

@@ -3,14 +3,15 @@ Generate LB base-data from local synced game data.
 
 Inputs (all from frontend public/Data/):
 - Characters.json, Weapons.json, Echoes.json
+- Fetters.json
 - LevelCurve.json      (ATK_CURVE / STAT_CURVE for scaling weapons to lv90)
 - LB/Characters.compact.json
-- LB/Echoes.compact.json
 
 Outputs:
 - lb/internal/calc/data/character_bases.json
-- lb/internal/calc/data/weapon_bases.json    (lv90 ATK + secondary, effect_en, params_r5)
+- lb/internal/calc/data/weapon_bases.json    (lv90 ATK + secondary, effect_en, params_r1/params_r5)
 - lb/internal/calc/data/echo_bases.json
+- lb/internal/calc/data/fetter_bases.json
 - lb/internal/calc/data/id_maps.json
 - lb/internal/calc/weapon_buffs_gen.go       (always-active bonuses as Go source)
 
@@ -41,14 +42,15 @@ DATA_OUTPUT_DIR = LB_REPO_DIR / "internal" / "calc" / "data"
 CHARACTERS_JSON = DATA_DIR / "Characters.json"
 WEAPONS_JSON = DATA_DIR / "Weapons.json"
 ECHOES_JSON = DATA_DIR / "Echoes.json"
+FETTERS_JSON = DATA_DIR / "Fetters.json"
 LEVEL_CURVE_JSON = DATA_DIR / "LevelCurve.json"
 
 CHARACTERS_COMPACT = LB_DATA_DIR / "Characters.compact.json"
-ECHOES_COMPACT = LB_DATA_DIR / "Echoes.compact.json"
 
 CHARACTER_BASES_JSON = DATA_OUTPUT_DIR / "character_bases.json"
 WEAPON_BASES_JSON = DATA_OUTPUT_DIR / "weapon_bases.json"
 ECHO_BASES_JSON = DATA_OUTPUT_DIR / "echo_bases.json"
+FETTER_BASES_JSON = DATA_OUTPUT_DIR / "fetter_bases.json"
 ID_MAPS_JSON = DATA_OUTPUT_DIR / "id_maps.json"
 
 WEAPON_BUFFS_GEN_GO = LB_REPO_DIR / "internal" / "calc" / "weapon_buffs_gen.go"
@@ -88,6 +90,14 @@ MAIN_STAT_NORMALIZE = {
 
 WEAPON_RARITY_MAP = {1: "1-star", 2: "2-star", 3: "3-star", 4: "4-star", 5: "5-star"}
 
+FETTER_ID_TO_SET_KEY = {
+    1: "Glacio", 2: "Fusion", 3: "Electro", 4: "Aero", 5: "Spectro", 6: "Havoc",
+    7: "Healing", 8: "ER", 9: "Attack", 10: "Frosty", 11: "Radiance", 12: "Midnight",
+    13: "Empyrean", 14: "Tidebreaking", 16: "Gust", 17: "Windward", 18: "Flaming",
+    19: "Dream", 20: "Crown", 21: "Law", 22: "Flamewing", 23: "Thread", 24: "Pact",
+    25: "Halo", 26: "Rite", 27: "Trailblazing", 28: "Chromatic", 29: "Sound",
+}
+
 # Maps unconditionalPassiveBonuses keys to (GoField, elementCode, moveTypeCode).
 # Only keys relevant for DPS calculations are listed; HP%, DEF%, ER etc. are skipped.
 UNCONDITIONAL_TO_GO: dict[str, tuple[str, str, str]] = {
@@ -122,12 +132,16 @@ def _fmt_float(v: float) -> str:
     return str(int(v)) if v == int(v) else str(v)
 
 
-def _write_json(path: Path, data: Any, dry_run: bool) -> None:
+def _write_json(path: Path, data: Any, dry_run: bool, pretty: bool = False) -> None:
     if dry_run:
         print(f"[DRY RUN] Would write {path}")
         return
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+    if pretty:
+        payload = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True)
+    else:
+        payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    path.write_text(payload, encoding="utf-8")
     print(f"Wrote {path}")
 
 
@@ -147,6 +161,24 @@ def _load_previous_id_maps(path: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {}
+
+
+def _fmt_effect_value(value: float) -> str:
+    if value == int(value):
+        return str(int(value))
+    return f"{value:.4f}".rstrip("0").rstrip(".")
+
+
+def _resolve_effect_placeholders(effect_en: str, add_prop: list[dict]) -> str:
+    if not effect_en:
+        return ""
+    values = [_fmt_effect_value(float(p.get("value", 0))) for p in add_prop]
+
+    def repl(match: re.Match[str]) -> str:
+        idx = int(match.group(1))
+        return values[idx] if idx < len(values) else match.group(0)
+
+    return re.sub(r"\{(\d+)\}", repl, effect_en)
 
 
 # ---------------------------------------------------------------------------
@@ -287,15 +319,24 @@ def _weapon_secondary_stat(second: dict) -> tuple[str, float]:
     return name_en if name_en else attribute, base_main
 
 
-def _params_r5(weapon: dict) -> list[str]:
-    """Return weapon effect parameters at R5 (last index per slot)."""
+def _params_for_rank(weapon: dict, rank: int) -> list[str]:
+    """Return weapon effect parameters for rank R1..R5 (clamped per slot)."""
+    idx = max(rank - 1, 0)
     params = weapon.get("params") or {}
     result = []
     for i in sorted(params.keys(), key=lambda x: int(x)):
         values = params[i]
         if isinstance(values, list) and values:
-            result.append(str(values[-1]))
+            result.append(str(values[min(idx, len(values) - 1)]))
     return result
+
+
+def _params_r1(weapon: dict) -> list[str]:
+    return _params_for_rank(weapon, 1)
+
+
+def _params_r5(weapon: dict) -> list[str]:
+    return _params_for_rank(weapon, 5)
 
 
 def _unconditional_r5(weapon: dict) -> dict[str, float]:
@@ -340,7 +381,8 @@ def _build_weapon_bases(
         base_main_lv90 = round(base_main * stat_curve_lv90, 1)
 
         effect_en = (w.get("effect") or {}).get("en", "")
-        params = _params_r5(w)
+        params_r1 = _params_r1(w)
+        params_r5 = _params_r5(w)
         bonuses = _unconditional_r5(w)
 
         out[wid] = {
@@ -351,7 +393,8 @@ def _build_weapon_bases(
             "main_stat": main_stat,
             "base_main": base_main_lv90,
             "effect_en": effect_en,
-            "params_r5": params,
+            "params_r1": params_r1,
+            "params_r5": params_r5,
         }
         unconditional_list.append((wid, name, bonuses))
 
@@ -374,21 +417,30 @@ def _build_weapon_bases(
 
 def _build_echo_bases(
     echoes: list[dict],
-    compact_echoes: list[dict],
     previous_old_to_cdn: dict[str, str],
 ) -> tuple[dict[str, dict], dict[str, str], dict[str, str]]:
-    compact_by_id = {str(e.get("id")): e for e in compact_echoes if e.get("id")}
     out: dict[str, dict] = {}
 
     for echo in echoes:
         eid = str(echo.get("id"))
         if not eid:
             continue
-        compact = compact_by_id.get(eid, {})
-        name = compact.get("name") or ((echo.get("name") or {}).get("en", ""))
-        cost = int(compact.get("cost", echo.get("cost", 0)))
-        sets = compact.get("sets", []) if isinstance(compact, dict) else []
-        out[eid] = {"name": name, "cost": cost, "elements": sets}
+        name = (echo.get("name") or {}).get("en", "")
+        cost = int(echo.get("cost", 0))
+        raw_fetters = echo.get("fetter", []) if isinstance(echo.get("fetter"), list) else []
+        set_keys = [
+            FETTER_ID_TO_SET_KEY[f]
+            for f in raw_fetters
+            if isinstance(f, int) and f in FETTER_ID_TO_SET_KEY
+        ]
+        effect_en = ((echo.get("skill") or {}).get("description") or "").strip()
+        out[eid] = {
+            "name": name,
+            "cost": cost,
+            "elements": set_keys,
+            "fetter_ids": [f for f in raw_fetters if isinstance(f, int)],
+            "effect_en": effect_en,
+        }
 
     out = {k: out[k] for k in sorted(out, key=lambda x: int(x))}
 
@@ -408,6 +460,58 @@ def _build_echo_bases(
         cdn_to_old.setdefault(old_to_cdn[old_id], old_id)
 
     return out, old_to_cdn, cdn_to_old
+
+
+def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    for fetter in fetters:
+        group_id = fetter.get("id")
+        if not isinstance(group_id, int):
+            continue
+        set_key = FETTER_ID_TO_SET_KEY.get(group_id)
+        if not set_key:
+            continue
+
+        name_en = ((fetter.get("name") or {}).get("en") or "").strip()
+        piece_effects_raw = fetter.get("pieceEffects")
+        normalized_piece_effects: dict[str, dict] = {}
+
+        if isinstance(piece_effects_raw, dict) and piece_effects_raw:
+            items = sorted(piece_effects_raw.items(), key=lambda kv: int(kv[0]))
+        else:
+            # Backward-compatible fallback for older Fetters.json that only has one tier.
+            fallback_piece = str(int(fetter.get("pieceCount", 2) or 2))
+            items = [(fallback_piece, {
+                "pieceCount": int(fetter.get("pieceCount", 2) or 2),
+                "fetterId": fetter.get("fetterId"),
+                "addProp": fetter.get("addProp", []),
+                "buffIds": fetter.get("buffIds", []),
+                "effectDescription": fetter.get("effectDescription", {}),
+            })]
+
+        for piece_key, piece_data in items:
+            if not isinstance(piece_data, dict):
+                continue
+            add_prop = piece_data.get("addProp", [])
+            if not isinstance(add_prop, list):
+                add_prop = []
+            effect_obj = piece_data.get("effectDescription", {})
+            effect_en_raw = (effect_obj.get("en", "") if isinstance(effect_obj, dict) else "").strip()
+            normalized_piece_effects[piece_key] = {
+                "fetter_id": piece_data.get("fetterId"),
+                "effect_en_raw": effect_en_raw,
+                "effect_en": _resolve_effect_placeholders(effect_en_raw, add_prop),
+                "add_prop": add_prop,
+                "buff_ids": piece_data.get("buffIds", []),
+            }
+
+        out[set_key] = {
+            "group_id": group_id,
+            "name": name_en,
+            "piece_effects": normalized_piece_effects,
+        }
+
+    return {k: out[k] for k in sorted(out)}
 
 
 # ---------------------------------------------------------------------------
@@ -486,7 +590,7 @@ def _generate_weapon_buffs_go(unconditional_list: list[tuple[str, str, dict]]) -
 # ---------------------------------------------------------------------------
 
 def _cleanup_compact_artifacts(dry_run: bool) -> None:
-    targets = [CHARACTERS_COMPACT, ECHOES_COMPACT]
+    targets = [CHARACTERS_COMPACT]
     existing = [p for p in targets if p.exists()]
 
     if not existing:
@@ -509,6 +613,46 @@ def _cleanup_compact_artifacts(dry_run: bool) -> None:
         pass
 
 
+def _sync_weapons_only(dry_run: bool, pretty: bool) -> int:
+    required = [WEAPONS_JSON, LEVEL_CURVE_JSON]
+    for path in required:
+        if not path.exists():
+            print(f"ERROR: Missing required input: {path}")
+            return 1
+
+    full_weapons = _load_json(WEAPONS_JSON)
+    level_curves = _load_json(LEVEL_CURVE_JSON)
+
+    atk_curve_lv90 = float(level_curves["ATK_CURVE"]["90/90"])
+    stat_curve_lv90 = float(level_curves["STAT_CURVE"]["90/90"])
+    print(f"Level curves: ATK×{atk_curve_lv90}, STAT×{stat_curve_lv90} at lv90")
+
+    previous_maps = _load_previous_id_maps(ID_MAPS_JSON)
+    previous_weapon_old_to_cdn = previous_maps.get("weaponOldToCdn", {})
+
+    weapon_bases, weapon_old_to_cdn, weapon_cdn_to_old, unconditional_list = _build_weapon_bases(
+        full_weapons, atk_curve_lv90, stat_curve_lv90, previous_weapon_old_to_cdn
+    )
+
+    id_maps = {
+        "characterOldToCdn": previous_maps.get("characterOldToCdn", {}),
+        "characterCdnToOld": previous_maps.get("characterCdnToOld", {}),
+        "weaponOldToCdn": weapon_old_to_cdn,
+        "weaponCdnToOld": weapon_cdn_to_old,
+        "echoOldToCdn": previous_maps.get("echoOldToCdn", {}),
+        "echoCdnToOld": previous_maps.get("echoCdnToOld", {}),
+    }
+
+    _write_json(WEAPON_BASES_JSON, weapon_bases, dry_run, pretty=pretty)
+    _write_json(ID_MAPS_JSON, id_maps, dry_run, pretty=pretty)
+    _write_go(WEAPON_BUFFS_GEN_GO, _generate_weapon_buffs_go(unconditional_list), dry_run)
+
+    print("\nGenerated summary (weapons-only):")
+    print(f"  Weapons:    {len(weapon_bases)}")
+    print(f"  Weapon map: {len(weapon_old_to_cdn)} old->cdn")
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -516,11 +660,19 @@ def _cleanup_compact_artifacts(dry_run: bool) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate LB base-data from local synced game data")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON outputs")
     parser.add_argument("--keep-compact", action="store_true", help="Keep compact LB artifacts")
+    parser.add_argument(
+        "--weapons-only",
+        action="store_true",
+        help="Regenerate weapon base data + weapon ID maps only",
+    )
     args = parser.parse_args()
 
-    required = [CHARACTERS_JSON, WEAPONS_JSON, ECHOES_JSON, LEVEL_CURVE_JSON,
-                CHARACTERS_COMPACT, ECHOES_COMPACT]
+    if args.weapons_only:
+        return _sync_weapons_only(args.dry_run, args.pretty)
+
+    required = [CHARACTERS_JSON, WEAPONS_JSON, ECHOES_JSON, FETTERS_JSON, LEVEL_CURVE_JSON, CHARACTERS_COMPACT]
     for path in required:
         if not path.exists():
             print(f"ERROR: Missing required input: {path}")
@@ -529,9 +681,9 @@ def main() -> int:
     full_chars = _load_json(CHARACTERS_JSON)
     full_weapons = _load_json(WEAPONS_JSON)
     full_echoes = _load_json(ECHOES_JSON)
+    full_fetters = _load_json(FETTERS_JSON)
     level_curves = _load_json(LEVEL_CURVE_JSON)
     compact_chars = _load_json(CHARACTERS_COMPACT)
-    compact_echoes = _load_json(ECHOES_COMPACT)
 
     atk_curve_lv90 = float(level_curves["ATK_CURVE"]["90/90"])
     stat_curve_lv90 = float(level_curves["STAT_CURVE"]["90/90"])
@@ -548,8 +700,9 @@ def main() -> int:
         full_weapons, atk_curve_lv90, stat_curve_lv90, previous_weapon_old_to_cdn
     )
     echo_bases, echo_old_to_cdn, echo_cdn_to_old = _build_echo_bases(
-        full_echoes, compact_echoes, previous_echo_old_to_cdn
+        full_echoes, previous_echo_old_to_cdn
     )
+    fetter_bases = _build_fetter_bases(full_fetters)
 
     id_maps = {
         "characterOldToCdn": character_old_to_cdn,
@@ -560,16 +713,18 @@ def main() -> int:
         "echoCdnToOld": echo_cdn_to_old,
     }
 
-    _write_json(CHARACTER_BASES_JSON, character_bases, args.dry_run)
-    _write_json(WEAPON_BASES_JSON, weapon_bases, args.dry_run)
-    _write_json(ECHO_BASES_JSON, echo_bases, args.dry_run)
-    _write_json(ID_MAPS_JSON, id_maps, args.dry_run)
+    _write_json(CHARACTER_BASES_JSON, character_bases, args.dry_run, pretty=args.pretty)
+    _write_json(WEAPON_BASES_JSON, weapon_bases, args.dry_run, pretty=args.pretty)
+    _write_json(ECHO_BASES_JSON, echo_bases, args.dry_run, pretty=args.pretty)
+    _write_json(FETTER_BASES_JSON, fetter_bases, args.dry_run, pretty=args.pretty)
+    _write_json(ID_MAPS_JSON, id_maps, args.dry_run, pretty=args.pretty)
     _write_go(WEAPON_BUFFS_GEN_GO, _generate_weapon_buffs_go(unconditional_list), args.dry_run)
 
     print("\nGenerated summary:")
     print(f"  Characters: {len(character_bases)}")
     print(f"  Weapons:    {len(weapon_bases)}")
     print(f"  Echoes:     {len(echo_bases)}")
+    print(f"  Fetters:    {len(fetter_bases)}")
     print(f"  Char map:   {len(character_old_to_cdn)} old->cdn")
     print(f"  Weapon map: {len(weapon_old_to_cdn)} old->cdn")
     print(f"  Echo map:   {len(echo_old_to_cdn)} old->cdn")

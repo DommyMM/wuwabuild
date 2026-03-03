@@ -4,9 +4,9 @@ Sync fetter data to public/Data/Fetters.json.
 Fetches PhantomFetters.json and PhantomFetterGroups.json, merges them into one
 file keyed by FetterGroup ID (the same IDs used in Echo.fetter arrays).
 
-Only the smallest piece-count tier is kept (2-piece for most sets, 3-piece for
-3-piece-only sets). The 5-piece entry is omitted — its effects are all conditional
-and not needed for the frontend stat display.
+The smallest piece-count tier is still exposed in top-level fields for backward
+compatibility (2-piece for most sets, 3-piece for 3-piece-only sets), and all
+available tiers are also exposed under `pieceEffects` (e.g. both 2 and 5).
 
 Output shape per entry:
   {
@@ -19,6 +19,10 @@ Output shape per entry:
     "addProp":   [{ "id": 22, "value": 10, "isRatio": false }],
     "buffIds":   [],
     "effectDescription": { "en": ..., ... },
+    "pieceEffects": {
+      "2": { "pieceCount": 2, "fetterId": ..., "addProp": [...], "buffIds": [...], "effectDescription": {...} },
+      "5": { "pieceCount": 5, "fetterId": ..., "addProp": [...], "buffIds": [...], "effectDescription": {...} }
+    },
     "fetterIcon": "https://...",
     "effectDefineDescription": { "en": ..., ... }  -- lore text
   }
@@ -64,6 +68,17 @@ def normalise_prop(prop: dict) -> dict:
     }
 
 
+def build_piece_effect(piece_count: int, fetter: dict) -> dict:
+    """Build one piece-tier payload (2/3/5) from a PhantomFetter row."""
+    return {
+        "pieceCount": piece_count,
+        "fetterId": fetter["Id"],
+        "addProp": [normalise_prop(p) for p in fetter.get("AddProp", [])],
+        "buffIds": fetter.get("BuffIds", []),
+        "effectDescription": fetter.get("EffectDescription", {}),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Sync fetter data from Wuthery CDN")
     parser.add_argument("--dry-run", action="store_true", help="Print output without writing")
@@ -102,8 +117,19 @@ def main():
             print(f"  WARNING: fetter id {fetter_id} not found for group {group_id}")
             continue
 
-        # Lore text is consistent across pieces, take from this entry
+        # Build all available piece tiers (e.g. 2+5, or 3-only).
+        piece_effects: dict[str, dict] = {}
+        for key in sorted_keys:
+            fid = fetter_map[key]
+            tier_fetter = fetters_by_id.get(fid)
+            if not tier_fetter:
+                print(f"  WARNING: piece {key} fetter id {fid} missing for group {group_id}")
+                continue
+            piece_effects[key] = build_piece_effect(int(key), tier_fetter)
+
+        # Lore text is consistent across pieces, take from primary entry.
         lore = fetter.get("EffectDefineDescription", {})
+        primary_effect = piece_effects.get(piece_count_str, build_piece_effect(int(piece_count_str), fetter))
 
         entry = {
             "id":         group_id,
@@ -111,10 +137,11 @@ def main():
             "icon":       icon,
             "color":      color,
             "pieceCount": int(piece_count_str),
-            "fetterId":   fetter_id,
-            "addProp":    [normalise_prop(p) for p in fetter.get("AddProp", [])],
-            "buffIds":    fetter.get("BuffIds", []),
-            "effectDescription":     fetter.get("EffectDescription", {}),
+            "fetterId":   primary_effect["fetterId"],
+            "addProp":    primary_effect["addProp"],
+            "buffIds":    primary_effect["buffIds"],
+            "effectDescription": primary_effect["effectDescription"],
+            "pieceEffects": piece_effects,
             "fetterIcon": prepend_cdn(fetter.get("FetterIcon", "")),
             "effectDefineDescription": lore,
         }
