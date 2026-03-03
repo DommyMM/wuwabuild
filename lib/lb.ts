@@ -1,13 +1,6 @@
-import { SavedState, createDefaultSavedState } from '@/lib/build';
-import { convertLegacyBuilds, LegacyIdMaps } from '@/lib/legacyMigration';
+import { SavedState } from '@/lib/build';
 
 const DEFAULT_LB_URL = 'http://localhost:8080';
-
-const EMPTY_LEGACY_ID_MAPS: LegacyIdMaps = {
-  characterIds: new Map(),
-  weaponIds: new Map(),
-  echoIds: new Map(),
-};
 
 export const LB_STAT_CODES = [
   'H', 'H%',
@@ -152,6 +145,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function isCanonicalSavedState(value: unknown): value is SavedState {
+  if (!isRecord(value)) return false;
+  if (!('characterId' in value)) return false;
+  if (!('weaponId' in value)) return false;
+  if (!Array.isArray(value.echoPanels)) return false;
+  if (!Array.isArray(value.forte)) return false;
+  if (!isRecord(value.watermark)) return false;
+  return true;
+}
+
 function toFiniteNumber(value: unknown, fallback = 0): number {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -197,23 +200,10 @@ function normalizeStats(rawStats: unknown): Record<LBStatCode, number> {
 
 function normalizeBuildState(rawBuildState: unknown): SavedState {
   const candidate = parseMaybeJSON(rawBuildState);
-  if (!isRecord(candidate)) return createDefaultSavedState();
-
-  const conversion = convertLegacyBuilds(
-    {
-      builds: [
-        {
-          id: 'lb-state',
-          name: 'lb-state',
-          date: new Date().toISOString(),
-          state: candidate,
-        },
-      ],
-    },
-    EMPTY_LEGACY_ID_MAPS,
-  );
-
-  return conversion.builds[0]?.state ?? createDefaultSavedState();
+  if (!isCanonicalSavedState(candidate)) {
+    throw new Error('LB buildState is not in canonical SavedState format.');
+  }
+  return candidate;
 }
 
 function normalizeBuildEntry(raw: LBBuildEntryRaw): LBBuildEntry {
@@ -289,7 +279,20 @@ export async function listBuilds(
 
   const payload = await response.json() as LBListBuildsResponseRaw;
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
-  const normalizedBuilds = rawBuilds.map(normalizeBuildEntry);
+  const normalizedBuilds: LBBuildEntry[] = [];
+  for (const raw of rawBuilds) {
+    try {
+      normalizedBuilds.push(normalizeBuildEntry(raw));
+    } catch (error) {
+      if (shouldLogLBPayload()) {
+        console.warn('[LB] dropped malformed build row', {
+          buildId: raw?._id,
+          error: error instanceof Error ? error.message : String(error),
+          raw,
+        });
+      }
+    }
+  }
 
   if (shouldLogLBPayload()) {
     // Debug visibility for backend/frontend shape mismatches during LB migration.

@@ -51,6 +51,13 @@ Recommended path: **Go LB primary, Node fallback**.
   - username/uid filters currently trigger one request per keystroke.
   - URL sync (`router.replace`) plus query-state effects cause repeated fetches in dev.
   - Debounce + committed-search state is required before production rollout.
+- Frontend LB client fallback removal:
+  - `frontend/lib/lb.ts` no longer runs legacy `convertLegacyBuilds` for `/build` rows.
+  - `/build` rows are now expected to already contain canonical `SavedState` (`buildState.characterId`, `weaponId`, `echoPanels`, `watermark`, `forte`).
+- Backend `POST /build` contract is now strict:
+  - `buildState` must be canonical (not compressed legacy shape).
+  - `echoSummary` is required (`sets` object + `mainStats` array).
+  - Server-side fallback synthesis of `echoSummary` from legacy panel fields is removed.
 - Redis decision (current scale):
   - Redis was evaluated, but deferred.
   - With ~12k builds and low data size, PostgreSQL-only path is currently acceptable.
