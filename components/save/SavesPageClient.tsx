@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Download, Search, Upload, X } from 'lucide-react';
 import { SavedBuild } from '@/lib/build';
-import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, deleteBuild, exportAllBuilds, importBuild, loadBuilds, renameBuild } from '@/lib/storage';
+import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, deleteBuild, exportAllBuilds, importBuild, loadBuilds, mergeBuilds, renameBuild } from '@/lib/storage';
 import { calculateCV } from '@/lib/calculations/cv';
 import { BuildList } from './BuildList';
 import { useBuild } from '@/contexts/BuildContext';
@@ -13,6 +13,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getWeaponPaths } from '@/lib/paths';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { clearLegacySavesFromStorage, convertLegacyBuilds, getLegacySavesSummaryFromStorage, LegacyIdMaps, readLegacySavesPayload } from '@/lib/legacyMigration';
 
 type SortBy = 'date' | 'name' | 'cv';
 type SortDirection = 'asc' | 'desc';
@@ -27,10 +28,17 @@ export const SavesPageClient: React.FC = () => {
   const router = useRouter();
   const { loadState } = useBuild();
   const { success, error: notifyError, warning } = useToast();
-  const { characters, weaponList } = useGameData();
+  const { characters, echoes, weaponList } = useGameData();
   const { t } = useLanguage();
   const [builds, setBuilds] = useState<SavedBuild[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [legacySummary, setLegacySummary] = useState({
+    found: false,
+    buildCount: 0,
+    parseError: false,
+  });
+  const [isLegacyMigrating, setIsLegacyMigrating] = useState(false);
+  const [showLegacyDeleteConfirm, setShowLegacyDeleteConfirm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [entityQuery, setEntityQuery] = useState('');
   const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>([]);
@@ -50,6 +58,31 @@ export const SavesPageClient: React.FC = () => {
     const data = loadBuilds();
     setBuilds(data.builds);
   }, []);
+
+  const refreshLegacySummary = useCallback(() => {
+    setLegacySummary(getLegacySavesSummaryFromStorage());
+  }, []);
+
+  const legacyIdMaps = useMemo<LegacyIdMaps>(() => {
+    const characterIds = new Map<string, string>();
+    characters.forEach((character) => {
+      characterIds.set(character.id, character.id);
+      if (character.legacyId) characterIds.set(character.legacyId, character.id);
+    });
+
+    const weaponIds = new Map<string, string>();
+    weaponList.forEach((weapon) => {
+      weaponIds.set(weapon.id, weapon.id);
+    });
+
+    const echoIds = new Map<string, string>();
+    echoes.forEach((echo) => {
+      echoIds.set(echo.id, echo.id);
+      if (echo.legacyId) echoIds.set(echo.legacyId, echo.id);
+    });
+
+    return { characterIds, weaponIds, echoIds };
+  }, [characters, echoes, weaponList]);
 
   const buildCVs = useMemo(() => (
     new Map(builds.map((build) => [build.id, calculateCV(build.state.echoPanels)]))
@@ -226,10 +259,53 @@ export const SavesPageClient: React.FC = () => {
     setPendingDeleteBuild(build);
   }, []);
 
+  const handleMigrateLegacy = useCallback(() => {
+    if (isLegacyMigrating) return;
+
+    setIsLegacyMigrating(true);
+    try {
+      const payload = readLegacySavesPayload();
+      if (!payload) {
+        warning('No legacy saves found.');
+        refreshLegacySummary();
+        return;
+      }
+
+      const converted = convertLegacyBuilds(payload, legacyIdMaps);
+      if (converted.builds.length === 0) {
+        warning('No valid legacy builds to migrate.');
+        refreshLegacySummary();
+        return;
+      }
+
+      const merged = mergeBuilds(converted.builds);
+      clearLegacySavesFromStorage();
+      refreshBuilds();
+      refreshLegacySummary();
+
+      success(`Migrated ${merged.length} legacy build(s).`);
+      if (converted.skippedCount > 0) {
+        warning(`Skipped ${converted.skippedCount} invalid legacy build(s).`);
+      }
+    } catch (error) {
+      notifyError(error instanceof Error ? error.message : 'Failed to migrate legacy saves.');
+    } finally {
+      setIsLegacyMigrating(false);
+    }
+  }, [isLegacyMigrating, legacyIdMaps, notifyError, refreshBuilds, refreshLegacySummary, success, warning]);
+
+  const confirmDeleteLegacy = useCallback(() => {
+    clearLegacySavesFromStorage();
+    setShowLegacyDeleteConfirm(false);
+    refreshLegacySummary();
+    success('Deleted legacy saves.');
+  }, [refreshLegacySummary, success]);
+
   useEffect(() => {
     refreshBuilds();
+    refreshLegacySummary();
     setIsLoaded(true);
-  }, [refreshBuilds]);
+  }, [refreshBuilds, refreshLegacySummary]);
 
   useEffect(() => {
     if (!deleteAllArmed) return;
@@ -452,6 +528,56 @@ export const SavesPageClient: React.FC = () => {
           </div>
         </div>
 
+        {legacySummary.parseError && (
+          <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-red-300">Legacy saves found but unreadable</p>
+                <p className="mt-1 text-xs text-red-200/85">
+                  Found old save data in <code className="rounded bg-background px-1 py-0.5">saved_builds</code>, but JSON parsing failed.
+                  You can safely delete the legacy key.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowLegacyDeleteConfirm(true)}
+                className="shrink-0 rounded-lg border border-red-500/50 bg-red-500/15 px-3 py-2 text-sm font-medium text-red-200 transition-colors hover:bg-red-500/25"
+              >
+                Delete Legacy Key
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!legacySummary.parseError && legacySummary.found && legacySummary.buildCount > 0 && (
+          <div className="mb-4 rounded-lg border border-accent/45 bg-accent/10 p-3">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-medium text-accent">Legacy saves detected</p>
+                <p className="mt-1 text-xs text-text-primary/75">
+                  Found {legacySummary.buildCount} build(s) in the previous storage key{' '}
+                  <code className="rounded bg-background px-1 py-0.5">saved_builds</code>.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleMigrateLegacy}
+                  disabled={isLegacyMigrating}
+                  className="rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLegacyMigrating ? 'Migrating...' : 'Migrate All'}
+                </button>
+                <button
+                  onClick={() => setShowLegacyDeleteConfirm(true)}
+                  disabled={isLegacyMigrating}
+                  className="rounded-lg border border-red-500/50 bg-red-500/12 px-3 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Delete Legacy
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {!isLoaded || isSorting ? (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, idx) => (
@@ -565,6 +691,21 @@ export const SavesPageClient: React.FC = () => {
           confirmDeleteBuild(pendingDeleteBuild);
           setPendingDeleteBuild(null);
         }}
+      />
+
+      <ConfirmDialog
+        isOpen={showLegacyDeleteConfirm}
+        onClose={() => setShowLegacyDeleteConfirm(false)}
+        title="Delete legacy saves?"
+        description={
+          <>
+            This removes old data in{' '}
+            <span className="font-medium text-text-primary">saved_builds</span>. It does not touch builds already in the new storage.
+          </>
+        }
+        confirmLabel="Delete Legacy"
+        confirmTone="destructive"
+        onConfirm={confirmDeleteLegacy}
       />
     </main>
   );

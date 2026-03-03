@@ -1,9 +1,15 @@
 import { SavedBuild, SavedBuilds, SavedState, ForteState, ForteEntry, createDefaultSavedState } from '@/lib/build';
+import { convertLegacyBuilds, LegacyIdMaps } from '@/lib/legacyMigration';
 
 // Storage keys
 export const SAVED_BUILDS_STORAGE_KEY = 'wuwabuilds_saves';
 export const DRAFT_BUILD_STORAGE_KEY = 'wuwa_draft_build';
 const CURRENT_VERSION = '2.0.0';
+const IDENTITY_LEGACY_MAPS: LegacyIdMaps = {
+  characterIds: new Map(),
+  weaponIds: new Map(),
+  echoIds: new Map(),
+};
 
 // Convert old nodeStates+forteLevels into a ForteState array.
 function migrateForte(raw: Record<string, unknown>): ForteState {
@@ -24,6 +30,14 @@ function migrateForte(raw: Record<string, unknown>): ForteState {
 // Migrate a single SavedState from the old nested shape to the new flat shape.
 function migrateSavedState(raw: Record<string, unknown>): SavedState {
   const defaults = createDefaultSavedState();
+
+  // Legacy compressed backup shape (state.c/w/e/q/n/f/m)
+  if ('c' in raw && 'w' in raw && 'e' in raw) {
+    const converted = convertLegacyBuilds({
+      builds: [{ id: 'legacy-state', name: 'legacy-state', date: new Date().toISOString(), state: raw }]
+    }, IDENTITY_LEGACY_MAPS);
+    return converted.builds[0]?.state ?? defaults;
+  }
 
   // Already new flat shape
   if ('characterId' in raw) {
@@ -136,7 +150,7 @@ export function saveBuild(build: Omit<SavedBuild, 'id' | 'date'> & { id?: string
     id: build.id || generateId(),
     name: build.name,
     date: new Date().toISOString(),
-    state: build.state
+    state: migrateSavedState(build.state as unknown as Record<string, unknown>)
   };
 
   // Check if updating existing build
@@ -149,6 +163,40 @@ export function saveBuild(build: Omit<SavedBuild, 'id' | 'date'> & { id?: string
 
   saveBuilds(data);
   return savedBuild;
+}
+
+// Merge externally prepared builds into storage while preserving date/name/state.
+export function mergeBuilds(builds: SavedBuild[]): SavedBuild[] {
+  if (!builds.length) return [];
+
+  const data = loadBuilds();
+  const existingIds = new Set(data.builds.map((build) => build.id));
+  const merged: SavedBuild[] = [];
+
+  for (const build of builds) {
+    let nextId = typeof build.id === 'string' && build.id.trim() ? build.id.trim() : generateId();
+    while (existingIds.has(nextId)) {
+      nextId = generateId();
+    }
+    existingIds.add(nextId);
+
+    const nextBuild: SavedBuild = {
+      ...build,
+      id: nextId,
+      date: typeof build.date === 'string' && !Number.isNaN(Date.parse(build.date))
+        ? build.date
+        : new Date().toISOString(),
+      state: migrateSavedState(build.state as unknown as Record<string, unknown>)
+    };
+    data.builds.push(nextBuild);
+    merged.push(nextBuild);
+  }
+
+  if (merged.length > 0) {
+    saveBuilds(data);
+  }
+
+  return merged;
 }
 
 // Load a specific build by ID.
@@ -291,21 +339,15 @@ export async function importBuild(file: File): Promise<SavedBuild[]> {
           throw new Error('No valid builds found in file');
         }
 
-        // Add imported builds to storage
-        const data = loadBuilds();
-        for (const build of builds) {
-          // Generate new IDs to avoid conflicts
-          const newBuild: SavedBuild = {
-            ...build,
-            id: generateId(),
-            date: new Date().toISOString()
-          };
-          data.builds.push(newBuild);
-          builds[builds.indexOf(build)] = newBuild;
-        }
-        saveBuilds(data);
+        const preparedBuilds = builds.map((build) => ({
+          ...build,
+          id: generateId(),
+          date: new Date().toISOString(),
+          state: migrateSavedState(build.state as unknown as Record<string, unknown>)
+        }));
 
-        resolve(builds);
+        const mergedBuilds = mergeBuilds(preparedBuilds);
+        resolve(mergedBuilds);
       } catch (error) {
         reject(error instanceof Error ? error : new Error('Failed to import file'));
       }

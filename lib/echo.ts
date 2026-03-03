@@ -17,6 +17,7 @@ export interface CDNFetter {
 
 export interface CDNEcho {
   id: number;
+  legacyId?: string;
   name: I18nString;
   cost: number;
   fetter: number[];
@@ -34,6 +35,7 @@ export interface Echo {
   // Legacy fields (used by EchoSelector, EchoPanel, StatsContext, BuildCard, etc.)
   name: string;
   id: string;
+  legacyId?: string;
   cost: number;
   elements: ElementType[];
 
@@ -160,6 +162,7 @@ export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
   // Legacy fields
   name: cdn.name.en,
   id: String(cdn.id),
+  legacyId: cdn.legacyId,
   cost: cdn.cost,
   elements: cdn.fetter
     .map(id => FETTER_MAP[id])

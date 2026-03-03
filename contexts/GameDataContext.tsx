@@ -39,9 +39,11 @@ interface GameDataState {
 
 interface GameDataContextType extends GameDataState {
   getCharacter: (id: string | null) => Character | null;
+  getCharacterByLegacyId: (legacyId: string | null) => Character | null;
   getCharacterByName: (name: string) => Character | null;
 
   getEcho: (id: string | null) => Echo | null;
+  getEchoByLegacyId: (legacyId: string | null) => Echo | null;
   getEchoByName: (name: string) => Echo | null;
 
   getFetterByElement: (element: ElementType) => CDNFetter | undefined;
@@ -253,6 +255,11 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     return state.characters.find(c => c.name === name) ?? null;
   }, [state.characters]);
 
+  const getCharacterByLegacyId = useCallback((legacyId: string | null): Character | null => {
+    if (!legacyId) return null;
+    return state.characters.find((character) => character.legacyId === legacyId) ?? null;
+  }, [state.characters]);
+
   const getEcho = useCallback((id: string | null): Echo | null => {
     if (!id) return null;
     return state.echoes.find(e => e.id === id) ?? null;
@@ -260,6 +267,11 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
 
   const getEchoByName = useCallback((name: string): Echo | null => {
     return state.echoes.find(e => e.name === name) ?? null;
+  }, [state.echoes]);
+
+  const getEchoByLegacyId = useCallback((legacyId: string | null): Echo | null => {
+    if (!legacyId) return null;
+    return state.echoes.find((echo) => echo.legacyId === legacyId) ?? null;
   }, [state.echoes]);
 
   const getFetterByElement = useCallback((element: ElementType): CDNFetter | undefined => {
@@ -344,8 +356,10 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
   const value = useMemo<GameDataContextType>(() => ({
     ...state,
     getCharacter,
+    getCharacterByLegacyId,
     getCharacterByName,
     getEcho,
+    getEchoByLegacyId,
     getEchoByName,
     getFetterByElement,
     getWeapon,
@@ -361,8 +375,10 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
   }), [
     state,
     getCharacter,
+    getCharacterByLegacyId,
     getCharacterByName,
     getEcho,
+    getEchoByLegacyId,
     getEchoByName,
     getFetterByElement,
     getWeapon,
