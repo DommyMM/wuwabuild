@@ -20,8 +20,18 @@ Recommended path: **Go LB primary, Node fallback**.
 
 - Legacy data import into Go/PostgreSQL completed successfully.
 - Local API validation confirmed with:
-  - `GET /build?uid=901955607&characterId=29`
+  - `GET /` -> `totalBuilds: 11302`
+  - `GET /build?uid=901955607&characterId=1603`
 - Response includes expected migrated fields (`buildState`, `stats`, `calculations`, `echoSummary`) with UUID `_id` values.
+- Legacy compressed rows were normalized with `make normalize` (`cmd/normalize`) and now report `Legacy builds to normalize: 0` on rerun.
+- Database spot checks after normalization:
+  - `build_state ? 'c'` legacy rows: `0`
+  - `build_state.version = 'v2'` rows: `11302 / 11302`
+  - `echo_main_stats` empty rows: `8418`
+  - `echo_sets = {}` rows: `8413`
+- Query behavior after normalization:
+  - legacy numeric character IDs (example `29`) no longer match
+  - CDN IDs (example `1603`) should be used for API filters
 
 ### Active Node API (`/mongo`)
 
@@ -249,7 +259,7 @@ Required env:
 1. Incorrect `globalRank` semantics can mislead users and invalidate ranking trust.
 2. Missing/empty `calculations` on submit can silently produce zero/invalid damage ordering.
 3. Current dedupe path can accumulate duplicates under normal frontend usage.
-4. Partial fallback echo summary can degrade echo main-stat filtering accuracy.
+4. Partial fallback echo summary can degrade echo main-stat filtering accuracy (current snapshot: `8418/11302` rows have empty `echo_main_stats`).
 5. Sequence-style mismatch can block or distort advanced leaderboard tabs/filters.
 6. Contract mismatch between rewrite state and LB payload can cause failed submissions or bad stored rows.
 
@@ -257,3 +267,4 @@ Required env:
 
 - 2026-03-03: Initial snapshot created. Captures rewrite frontend gaps, active Node API contract, current Go LB implementation, migration gap matrix, and rollout gates.
 - 2026-03-03: Added verified local import/runtime note (`/build` curl success), plus explicit two-track plan for Go migration policy and rewrite `/builds` + `/leaderboards` integration.
+- 2026-03-03: Added normalize-stage verification (`make normalize` idempotent, `11302` total rows, `0` legacy rows) and post-normalization filter caveat (CDN IDs required; many empty echo summary fields pending cleanup).

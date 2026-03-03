@@ -57,6 +57,7 @@ Import OCR requests use the `X-OCR-Region` header via the frontend `/api/ocr` pr
 - `/import` has an `Upload to Leaderboard` toggle in UI, but no leaderboard submission wiring is connected yet.
 - `BuildEditor` still has a disabled `View Ranking` button with a TODO note for leaderboard logic.
 - Go LB local runtime is validated with migrated legacy data (successful `/build?uid=...&characterId=...` query on `localhost:8080`).
+- Go LB legacy compressed rows have been normalized to SavedState v2 + CDN IDs (`make normalize` in `/lb`), so API filtering should use CDN character IDs.
 - Backend direction for this phase is:
   - **Go LB primary** (`/lb`, Chi + pgx + PostgreSQL).
   - **Node fallback** (`/mongo`, Express + MongoDB) until Go parity gates are met.

@@ -11,6 +11,7 @@ For full technical context, see:
 - `/edit`, `/import`, and `/saves` are active in the rewrite.
 - `/builds` and `/leaderboards` are still placeholder routes in the rewrite.
 - Go leaderboard backend (`/lb`) is up locally with migrated legacy data verified via `curl`.
+- Go LB normalization pass is complete (`make normalize`), and backend filters now expect CDN IDs.
 - Node backend (`/mongo`) remains the fallback path until remaining Go parity items are closed.
 
 ## Next Two Workstreams
