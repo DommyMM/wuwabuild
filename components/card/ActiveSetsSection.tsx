@@ -18,7 +18,7 @@ export const ActiveSetsSection: React.FC = () => {
   if (stats.activeSets.length === 0) return null;
 
   return (
-    <div className={`flex gap-2 pt-2 ${stats.activeSets.length === 1 ? 'justify-center' : 'justify-between'}`}>
+    <div className="flex flex-wrap justify-start gap-2 pt-2 px-4">
       {stats.activeSets.map(({ element, count, setName }) => {
         const fetter = fettersByElement[element];
         const threshold = fetter?.pieceCount ?? 2;
@@ -29,7 +29,7 @@ export const ActiveSetsSection: React.FC = () => {
         return (
           <div
             key={`${element}-${count}`}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-black/35 p-1.5 max-w-45"
+            className="inline-flex items-center rounded-xl bg-black/35 p-1.5 w-47.5 justify-between"
           >
             {setIcon && <img src={setIcon} alt="" className="h-5 w-5 object-contain" />}
             <span className="text-sm font-medium">{displayName}</span>

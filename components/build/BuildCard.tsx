@@ -109,33 +109,37 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({ useAltSki
               {/* Right side: name/weapon/forte + stats + echoes */}
               <div className="flex flex-col w-full">
                 <div className="flex">
-                  <SequenceStrip
-                    chains={selected.character.chains ?? []}
-                    sequence={state.sequence}
-                    element={selected.element}
-                  />
-                  <div className="relative flex flex-1 self-start">
-                    <div className="flex w-2/5 shrink-0 flex-col pt-4">
-                      <NameGroup selected={selected} characterLevel={state.characterLevel} />
-
-                      {weapon && weaponStats && (
-                        <WeaponGroup
-                          weapon={weapon}
-                          weaponStats={weaponStats}
-                          weaponLevel={state.weaponLevel}
-                          weaponRank={state.weaponRank}
-                          weaponAtkIcon={weaponAtkIcon}
-                          weaponMainIcon={weaponMainIcon}
-                        />
-                      )}
-
-                      <ForteCardSection
-                        character={selected.character}
-                        forte={state.forte}
+                  <div className="flex w-9/20 shrink-0 flex-col pt-4">
+                    <div className="flex items-stretch">
+                      <SequenceStrip
+                        chains={selected.character.chains ?? []}
+                        sequence={state.sequence}
+                        element={selected.element}
                       />
-                      <ActiveSetsSection />
-                    </div>
+                      <div className="flex flex-1 flex-col">
+                        <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
+                        {weapon && weaponStats && (
+                          <WeaponGroup
+                            weapon={weapon}
+                            weaponStats={weaponStats}
+                            weaponLevel={state.weaponLevel}
+                            weaponRank={state.weaponRank}
+                            weaponAtkIcon={weaponAtkIcon}
+                            weaponMainIcon={weaponMainIcon}
+                          />
+                        )}
+
+                        <ForteCardSection
+                          character={selected.character}
+                          forte={state.forte}
+                        />
+                      </div>
+                    </div>
+                    <ActiveSetsSection />
+                  </div>
+
+                  <div className="relative flex-1 self-start">
                     {/* Stats panel */}
                     <StatsTableSection />
                   </div>
