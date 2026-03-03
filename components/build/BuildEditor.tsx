@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { Download, Pencil, Trophy } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Minus, Pencil, RotateCcw, Trash2, Trophy } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Element } from '@/lib/character';
@@ -22,7 +22,13 @@ import { BuildCard } from './BuildCard';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { CardArtEditorModal } from './CardArtEditorModal';
+
+const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ART_NUDGE_STEP = 12;
+const ART_ZOOM_STEP = 0.05;
+const MIN_ART_ZOOM = 1;
+const MAX_ART_ZOOM = 2;
 
 export const BuildEditor: React.FC = () => {
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
@@ -32,20 +38,15 @@ export const BuildEditor: React.FC = () => {
   const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
   const [isCardGenerated, setIsCardGenerated] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isArtEditorOpen, setIsArtEditorOpen] = useState(false);
+  const [isArtEditMode, setIsArtEditMode] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-  const [artTransformCommitted, setArtTransformCommitted] = useState<CardArtTransform>(DEFAULT_CARD_ART_TRANSFORM);
-  const [artSourceModeCommitted, setArtSourceModeCommitted] = useState<CardArtSourceMode>('default');
-  const [customArtBlobCommitted, setCustomArtBlobCommitted] = useState<Blob | null>(null);
-  const [customArtUrlCommitted, setCustomArtUrlCommitted] = useState<string | null>(null);
-  const [artTransformDraft, setArtTransformDraft] = useState<CardArtTransform>(DEFAULT_CARD_ART_TRANSFORM);
-  const [artSourceModeDraft, setArtSourceModeDraft] = useState<CardArtSourceMode>('default');
-  const [customArtBlobDraft, setCustomArtBlobDraft] = useState<Blob | null>(null);
-  const [customArtUrlDraft, setCustomArtUrlDraft] = useState<string | null>(null);
+  const [artTransform, setArtTransform] = useState<CardArtTransform>(DEFAULT_CARD_ART_TRANSFORM);
+  const [artSourceMode, setArtSourceMode] = useState<CardArtSourceMode>('default');
+  const [customArtUrl, setCustomArtUrl] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const customArtBlobRef = useRef<Blob | null>(null);
   const committedUrlRef = useRef<string | null>(null);
-  const draftUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (isCardGenerated) {
@@ -73,46 +74,24 @@ export const BuildEditor: React.FC = () => {
 
   const clearArtState = useCallback(() => {
     const committed = committedUrlRef.current;
-    const draft = draftUrlRef.current;
-
-    if (draft && draft !== committed) {
-      URL.revokeObjectURL(draft);
-    }
     if (committed) {
       URL.revokeObjectURL(committed);
     }
 
     committedUrlRef.current = null;
-    draftUrlRef.current = null;
+    customArtBlobRef.current = null;
 
-    setArtTransformCommitted(DEFAULT_CARD_ART_TRANSFORM);
-    setArtSourceModeCommitted('default');
-    setCustomArtBlobCommitted(null);
-    setCustomArtUrlCommitted(null);
-    setArtTransformDraft(DEFAULT_CARD_ART_TRANSFORM);
-    setArtSourceModeDraft('default');
-    setCustomArtBlobDraft(null);
-    setCustomArtUrlDraft(null);
+    setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
+    setArtSourceMode('default');
+    setCustomArtUrl(null);
   }, []);
 
   useEffect(() => {
     setPortalTarget(document.getElementById('nav-toolbar-portal'));
   }, []);
 
-  useEffect(() => {
-    committedUrlRef.current = customArtUrlCommitted;
-  }, [customArtUrlCommitted]);
-
-  useEffect(() => {
-    draftUrlRef.current = customArtUrlDraft;
-  }, [customArtUrlDraft]);
-
   useEffect(() => () => {
     const committed = committedUrlRef.current;
-    const draft = draftUrlRef.current;
-    if (draft && draft !== committed) {
-      URL.revokeObjectURL(draft);
-    }
     if (committed) {
       URL.revokeObjectURL(committed);
     }
@@ -130,7 +109,7 @@ export const BuildEditor: React.FC = () => {
 
   useEffect(() => {
     clearArtState();
-    setIsArtEditorOpen(false);
+    setIsArtEditMode(false);
   }, [state.characterId, clearArtState]);
 
   useMotionValueEvent(scrollY, 'change', () => {
@@ -187,72 +166,57 @@ export const BuildEditor: React.FC = () => {
     setIsSaveModalOpen(true);
   }, []);
 
-  const handleOpenArtEditor = useCallback(() => {
-    setArtTransformDraft(artTransformCommitted);
-    setArtSourceModeDraft(artSourceModeCommitted);
-    setCustomArtBlobDraft(customArtBlobCommitted);
-    setCustomArtUrlDraft(customArtUrlCommitted);
-    setIsArtEditorOpen(true);
-  }, [artSourceModeCommitted, artTransformCommitted, customArtBlobCommitted, customArtUrlCommitted]);
+  const handleToggleArtEditMode = useCallback(() => {
+    setIsArtEditMode(v => !v);
+  }, []);
 
-  const handleCloseArtEditor = useCallback(() => {
-    if (customArtUrlDraft && customArtUrlDraft !== customArtUrlCommitted) {
-      URL.revokeObjectURL(customArtUrlDraft);
+  const handleCustomArtUpload = useCallback((file: File) => {
+    if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
+      toastError('Unsupported file type. Use PNG, JPG, or WEBP.');
+      return;
     }
-    setArtTransformDraft(artTransformCommitted);
-    setArtSourceModeDraft(artSourceModeCommitted);
-    setCustomArtBlobDraft(customArtBlobCommitted);
-    setCustomArtUrlDraft(customArtUrlCommitted);
-    setIsArtEditorOpen(false);
-  }, [
-    artSourceModeCommitted,
-    artTransformCommitted,
-    customArtBlobCommitted,
-    customArtUrlCommitted,
-    customArtUrlDraft,
-  ]);
-
-  const handleApplyArtEditor = useCallback(() => {
-    if (customArtUrlCommitted && customArtUrlCommitted !== customArtUrlDraft) {
-      URL.revokeObjectURL(customArtUrlCommitted);
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toastError('Image is too large. Maximum file size is 10MB.');
+      return;
     }
-    setArtTransformCommitted(artTransformDraft);
-    setArtSourceModeCommitted(artSourceModeDraft);
-    setCustomArtBlobCommitted(customArtBlobDraft);
-    setCustomArtUrlCommitted(customArtUrlDraft);
-    setIsArtEditorOpen(false);
-  }, [
-    artSourceModeDraft,
-    artTransformDraft,
-    customArtBlobDraft,
-    customArtUrlCommitted,
-    customArtUrlDraft,
-  ]);
 
-  const handleDraftUpload = useCallback((file: File) => {
-    setCustomArtUrlDraft((prev) => {
-      if (prev && prev !== customArtUrlCommitted) {
-        URL.revokeObjectURL(prev);
-      }
-      return URL.createObjectURL(file);
+    const previousUrl = committedUrlRef.current;
+    if (previousUrl) {
+      URL.revokeObjectURL(previousUrl);
+    }
+
+    const nextUrl = URL.createObjectURL(file);
+    committedUrlRef.current = nextUrl;
+    customArtBlobRef.current = file;
+    setCustomArtUrl(nextUrl);
+    setArtSourceMode('custom');
+  }, [toastError]);
+
+  const handleRemoveCustomArt = useCallback(() => {
+    const previousUrl = committedUrlRef.current;
+    if (previousUrl) {
+      URL.revokeObjectURL(previousUrl);
+    }
+    committedUrlRef.current = null;
+    customArtBlobRef.current = null;
+    setCustomArtUrl(null);
+    setArtSourceMode('default');
+  }, []);
+
+  const handleResetArtTransform = useCallback(() => {
+    setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
+  }, []);
+
+  const handleNudgeArt = useCallback((dx: number, dy: number) => {
+    setArtTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+  }, []);
+
+  const handleZoomArt = useCallback((delta: number) => {
+    setArtTransform(prev => {
+      const next = Number((prev.scale + delta).toFixed(2));
+      const clamped = Math.max(MIN_ART_ZOOM, Math.min(MAX_ART_ZOOM, next));
+      return { ...prev, scale: clamped };
     });
-    setCustomArtBlobDraft(file);
-    setArtSourceModeDraft('custom');
-  }, [customArtUrlCommitted]);
-
-  const handleDraftRemoveCustom = useCallback(() => {
-    setCustomArtUrlDraft((prev) => {
-      if (prev && prev !== customArtUrlCommitted) {
-        URL.revokeObjectURL(prev);
-      }
-      return null;
-    });
-    setCustomArtBlobDraft(null);
-    setArtSourceModeDraft('default');
-  }, [customArtUrlCommitted]);
-
-  const handleDraftResetTransform = useCallback(() => {
-    setArtTransformDraft(DEFAULT_CARD_ART_TRANSFORM);
   }, []);
 
   return (
@@ -427,20 +391,32 @@ export const BuildEditor: React.FC = () => {
               useAltSkin={cardOptions.useAltSkin}
               showCV={cardOptions.showCV}
               showRollQuality={cardOptions.showRollQuality}
-              artTransform={artTransformCommitted}
-              artSourceMode={artSourceModeCommitted}
-              customArtUrl={customArtUrlCommitted}
+              artTransform={artTransform}
+              artSourceMode={artSourceMode}
+              customArtUrl={customArtUrl}
+              isArtEditMode={isArtEditMode}
+              onCustomArtUpload={handleCustomArtUpload}
             />
             {/* Action bar, flipped version of BuildCardOptions */}
             <div className="flex justify-start pl-12">
-              <div className="flex items-center gap-3 rounded-lg rounded-t-none border border-t-0 border-border bg-background p-3">
+              <div className="flex flex-col rounded-lg rounded-t-none border border-t-0 border-border bg-background">
+                <div className="flex items-center gap-3 p-3">
+                  <button
+                    onClick={handleToggleArtEditMode}
+                    className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                      isArtEditMode
+                        ? 'border-accent/70 bg-accent/15 text-accent'
+                        : 'border-border bg-background-secondary text-text-primary hover:border-accent/60'
+                    }`}
+                  >
+                    <Pencil size={14} />
+                    {isArtEditMode ? 'Done Editing' : 'Edit'}
+                  </button>
                 <button
                   onClick={handleDownload}
                   disabled={isDownloading}
-                  className="group relative flex items-center gap-2 overflow-hidden rounded-lg border border-accent/40 bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary cursor-pointer transition-all duration-300 hover:border-accent hover:text-background disabled:opacity-50 disabled:cursor-wait"
+                    className="group relative flex items-center gap-2 overflow-hidden rounded-lg border border-accent/65 bg-accent px-5 py-2 text-sm font-semibold text-background cursor-pointer transition-all duration-300 hover:brightness-110 disabled:opacity-50 disabled:cursor-wait"
                 >
-                  {/* Gold fill animation on hover */}
-                  <span className="absolute inset-0 origin-left scale-x-0 bg-accent transition-transform duration-300 ease-out group-hover:scale-x-100" />
                   <Download size={14} className="relative z-10" />
                   <span className="relative z-10">
                     {isDownloading ? (
@@ -452,13 +428,6 @@ export const BuildEditor: React.FC = () => {
                     ) : 'Download'}
                   </span>
                 </button>
-                <button
-                  onClick={handleOpenArtEditor}
-                  className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary cursor-pointer transition-colors hover:border-accent/60"
-                >
-                  <Pencil size={14} />
-                  Edit
-                </button>
                 {/* TODO: Add leaderboard logic once LB is set up in the rewrite */}
                 <button
                   disabled
@@ -467,24 +436,89 @@ export const BuildEditor: React.FC = () => {
                   <Trophy size={14} />
                   View Ranking
                 </button>
+                </div>
+
+                {isArtEditMode && (
+                  <div className="flex flex-col gap-3 border-t border-border px-3 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium text-text-primary/80">Zoom</span>
+                      <button
+                        onClick={() => handleZoomArt(-ART_ZOOM_STEP)}
+                        disabled={artTransform.scale <= MIN_ART_ZOOM}
+                        className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className="min-w-14 rounded-md border border-border bg-background px-2.5 py-1 text-center text-sm font-semibold text-accent transition-colors hover:border-accent"
+                      >
+                        {`${Math.round(artTransform.scale * 100)}%`}
+                      </button>
+                      <button
+                        onClick={() => handleZoomArt(ART_ZOOM_STEP)}
+                        disabled={artTransform.scale >= MAX_ART_ZOOM}
+                        className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="grid grid-cols-3 grid-rows-3 gap-1.5">
+                        <span />
+                        <button
+                          onClick={() => handleNudgeArt(0, -ART_NUDGE_STEP)}
+                          className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                        >
+                          <ArrowUp size={14} />
+                        </button>
+                        <span />
+                        <button
+                          onClick={() => handleNudgeArt(-ART_NUDGE_STEP, 0)}
+                          className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                        >
+                          <ArrowLeft size={14} />
+                        </button>
+                        <button
+                          onClick={handleResetArtTransform}
+                          className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                          title="Reset position and zoom"
+                        >
+                          <RotateCcw size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleNudgeArt(ART_NUDGE_STEP, 0)}
+                          className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                        >
+                          <ArrowRight size={14} />
+                        </button>
+                        <span />
+                        <button
+                          onClick={() => handleNudgeArt(0, ART_NUDGE_STEP)}
+                          className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+                        <span />
+                      </div>
+
+                      <button
+                        onClick={handleRemoveCustomArt}
+                        disabled={artSourceMode !== 'custom'}
+                        className="inline-flex items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-red-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Trash2 size={12} />
+                        Remove Custom
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </>
         )}
       </div>
-      <CardArtEditorModal
-        isOpen={isArtEditorOpen}
-        onClose={handleCloseArtEditor}
-        onApply={handleApplyArtEditor}
-        useAltSkin={cardOptions.useAltSkin}
-        artTransform={artTransformDraft}
-        onTransformChange={setArtTransformDraft}
-        artSourceMode={artSourceModeDraft}
-        customArtUrl={customArtUrlDraft}
-        onUpload={handleDraftUpload}
-        onRemoveCustom={handleDraftRemoveCustom}
-        onResetTransform={handleDraftResetTransform}
-      />
       <SaveBuildModal
         isOpen={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}
@@ -501,7 +535,7 @@ export const BuildEditor: React.FC = () => {
         onConfirm={() => {
           resetBuild();
           clearArtState();
-          setIsArtEditorOpen(false);
+          setIsArtEditMode(false);
           setIsResetDialogOpen(false);
         }}
       />
