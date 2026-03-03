@@ -5,6 +5,8 @@ import { useStats } from '@/contexts/StatsContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
+import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
+
 type FlatStatKey = 'HP' | 'ATK' | 'DEF';
 const FLAT_STAT_KEYS: readonly FlatStatKey[] = ['HP', 'ATK', 'DEF'] as const;
 const ELEMENTAL_DMG_KEYS = new Set([
@@ -35,7 +37,15 @@ const ELEMENT_ICON_FILTERS: Record<string, string> = {
 const FLAT_STATS = new Set<FlatStatKey>(FLAT_STAT_KEYS);
 const isFlatStatKey = (key: string): key is FlatStatKey => FLAT_STATS.has(key as FlatStatKey);
 
-export const StatsTableSection: React.FC = () => {
+interface StatsTableSectionProps {
+  activeHoverStat?: StatHoverKey | null;
+  onHoverStatChange?: (next: StatHoverKey | null) => void;
+}
+
+export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
+  activeHoverStat = null,
+  onHoverStatChange,
+}) => {
   const { stats } = useStats();
   const { statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
@@ -90,9 +100,22 @@ export const StatsTableSection: React.FC = () => {
     const isFlatStat = isFlatStatKey(key);
     const base = isFlatStat ? Math.round(stats.baseValues[key] ?? 0) : 0;
     const bonus = isFlatStat ? Math.max(0, Math.round(value) - base) : 0;
+    const hoverKey = normalizeStatHoverKey(key);
+    const hasActiveHover = Boolean(activeHoverStat);
+    const isMatch = Boolean(activeHoverStat && hoverKey && activeHoverStat === hoverKey);
+    const interactionClass = !hasActiveHover
+      ? ''
+      : isMatch
+        ? 'opacity-100 bg-white/12 shadow-[0_0_10px_rgba(255,255,255,0.24)]'
+        : 'opacity-45 brightness-90';
 
     return (
-      <div key={key} className={`flex items-center justify-between gap-2 font-medium ${isFlatStat ? 'h-9' : 'h-8.5'}`}>
+      <div
+        key={key}
+        className={`flex items-center justify-between gap-2 rounded-md font-medium transition-all duration-200 ${isFlatStat ? 'h-9' : 'h-8.5'} ${interactionClass}`}
+        onMouseEnter={hoverKey ? () => onHoverStatChange?.(hoverKey) : undefined}
+        onMouseLeave={hoverKey ? () => onHoverStatChange?.(null) : undefined}
+      >
         <div className="flex items-center gap-2">
           {icon && (
             <img

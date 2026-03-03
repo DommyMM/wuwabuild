@@ -55,6 +55,34 @@ const getImageNaturalHeightFromUrl = async (url: string): Promise<number> => (
   })
 );
 
+const SPLASH_EXTENSIONS = ['webp', 'jpg', 'png'] as const;
+
+const getSplashUrlCandidates = (characterId: string, legacyId: string | null, isRover: boolean): string[] => {
+  const candidates: string[] = [];
+
+  if (isRover) {
+    if (legacyId) {
+      candidates.push(`/images/splash/rover-${legacyId}.webp`);
+      candidates.push(`/images/splash/Rover-${legacyId}.webp`);
+      if (legacyId === '4') {
+        candidates.push('/images/splash/RoverMale.webp');
+        candidates.push('/images/splash/RoverM.webp');
+      }
+      if (legacyId === '5') {
+        candidates.push('/images/splash/RoverFemale.webp');
+        candidates.push('/images/splash/RoverF.webp');
+      }
+    }
+    candidates.push('/images/splash/Rover.webp');
+  }
+
+  SPLASH_EXTENSIONS.forEach(ext => {
+    candidates.push(`/images/splash/${characterId}.${ext}`);
+  });
+
+  return Array.from(new Set(candidates));
+};
+
 const readFileAsDataUrl = (file: File): Promise<string> => (
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -236,27 +264,44 @@ export const BuildEditor: React.FC = () => {
     const characterId = selected?.character.id;
     if (!characterId) return;
 
-    const splashUrl = `/images/splash/${characterId}.webp`;
+    const splashCandidates = getSplashUrlCandidates(
+      String(characterId),
+      selected.character.legacyId ?? null,
+      selected.isRover
+    );
+
+    let splashUrl: string | null = null;
+    let naturalHeight = 0;
     let autoScale = MIN_ART_ZOOM;
-    try {
-      const naturalHeight = await getImageNaturalHeightFromUrl(splashUrl);
-      if (naturalHeight > 0 && naturalHeight < MIN_CUSTOM_IMAGE_HEIGHT) {
-        autoScale = Math.min(
-          MAX_ART_ZOOM,
-          Number((MIN_CUSTOM_IMAGE_HEIGHT / naturalHeight).toFixed(2))
-        );
+
+    for (const candidate of splashCandidates) {
+      try {
+        naturalHeight = await getImageNaturalHeightFromUrl(candidate);
+        splashUrl = candidate;
+        break;
+      } catch {
+        // Try next fallback candidate.
       }
-    } catch (error) {
+    }
+
+    if (!splashUrl) {
       toastError('Splash image not found for this character.');
-      console.error('Splash image load failed:', error);
+      console.error('Splash image load failed. Tried:', splashCandidates);
       return;
+    }
+
+    if (naturalHeight > 0 && naturalHeight < MIN_CUSTOM_IMAGE_HEIGHT) {
+      autoScale = Math.min(
+        MAX_ART_ZOOM,
+        Number((MIN_CUSTOM_IMAGE_HEIGHT / naturalHeight).toFixed(2))
+      );
     }
 
     customArtBlobRef.current = null;
     setCustomArtUrl(splashUrl);
     setArtSourceMode('custom');
     setArtTransform({ x: 0, y: 0, scale: autoScale });
-  }, [selected?.character.id, toastError]);
+  }, [selected, toastError]);
 
   const handleResetArtTransform = useCallback(() => {
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);

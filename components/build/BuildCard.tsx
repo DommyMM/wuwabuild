@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useMemo } from 'react';
+import { forwardRef, useMemo, useState } from 'react';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -14,6 +14,7 @@ import { ActiveSetsSection } from '@/components/card/ActiveSetsSection';
 import { NameGroup } from '@/components/card/NameGroup';
 import { WeaponGroup } from '@/components/card/WeaponGroup';
 import { CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
+import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 
 const ELEMENT_TINT: Record<string, string> = {
   Aero: 'from-aero/24 via-aero/10 to-transparent',
@@ -80,6 +81,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
   const { getWeapon, levelCurves, statIcons } = useGameData();
+  const [activeHoverStat, setActiveHoverStat] = useState<StatHoverKey | null>(null);
 
   const weapon = getWeapon(state.weaponId);
   const weaponStats = useMemo(
@@ -99,6 +101,10 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
       ?? 'Energy Regen')
     : null;
   const weaponMainIcon = weaponMainIconKey ? statIcons?.[weaponMainIconKey] ?? statIcons?.['Energy Regen'] : null;
+  const weaponAtkHoverKey = normalizeStatHoverKey('ATK');
+  const weaponMainHoverKey = weapon
+    ? (normalizeStatHoverKey(weapon.main_stat) ?? normalizeStatHoverKey(weapon.mainStatI18n?.en))
+    : null;
 
   return (
     <div ref={ref} className="relative select-none overflow-visible">
@@ -152,23 +158,38 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                             weaponRank={state.weaponRank}
                             weaponAtkIcon={weaponAtkIcon}
                             weaponMainIcon={weaponMainIcon}
+                            activeHoverStat={activeHoverStat}
+                            onHoverStatChange={setActiveHoverStat}
+                            weaponAtkHoverKey={weaponAtkHoverKey}
+                            weaponMainHoverKey={weaponMainHoverKey}
                           />
                         )}
 
                         <ForteCardSection
                           character={selected.character}
                           forte={state.forte}
+                          activeHoverStat={activeHoverStat}
+                          onHoverStatChange={setActiveHoverStat}
                         />
                       </div>
                     </div>
                     <ActiveSetsSection showCV={showCV} />
                   </div>
 
-                  <StatsTableSection />
+                  <StatsTableSection
+                    activeHoverStat={activeHoverStat}
+                    onHoverStatChange={setActiveHoverStat}
+                  />
                 </div>
 
                 {/* Echo cards inside the frame */}
-                <EchoSection echoPanels={state.echoPanels} showCV={showCV} showRollQuality={showRollQuality} />
+                <EchoSection
+                  echoPanels={state.echoPanels}
+                  showCV={showCV}
+                  showRollQuality={showRollQuality}
+                  activeHoverStat={activeHoverStat}
+                  onHoverStatChange={setActiveHoverStat}
+                />
               </div>
             </div>
           </div>

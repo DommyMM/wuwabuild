@@ -4,6 +4,7 @@ import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Weapon } from '@/lib/weapon';
 import { RARITY_ACCENTS } from '@/components/weapon/rarityStyles';
+import { StatHoverKey } from '@/lib/constants/statHover';
 
 interface WeaponGroupProps {
   weapon: Weapon;
@@ -15,6 +16,10 @@ interface WeaponGroupProps {
   weaponRank: number;
   weaponAtkIcon?: string | null;
   weaponMainIcon?: string | null;
+  activeHoverStat?: StatHoverKey | null;
+  onHoverStatChange?: (next: StatHoverKey | null) => void;
+  weaponAtkHoverKey?: StatHoverKey | null;
+  weaponMainHoverKey?: StatHoverKey | null;
 }
 
 export const WeaponGroup: React.FC<WeaponGroupProps> = ({
@@ -24,10 +29,23 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
   weaponRank,
   weaponAtkIcon,
   weaponMainIcon,
+  activeHoverStat = null,
+  onHoverStatChange,
+  weaponAtkHoverKey = null,
+  weaponMainHoverKey = null,
 }) => {
   const { t } = useLanguage();
   const translatedWeaponName = t(weapon.nameI18n ?? { en: weapon.name });
   const rarityStyle = RARITY_ACCENTS[weapon.rarity];
+  const hasActiveHover = Boolean(activeHoverStat);
+
+  const getChipClass = (hoverKey: StatHoverKey | null): string => {
+    if (!hasActiveHover) return '';
+    if (hoverKey && activeHoverStat === hoverKey) {
+      return 'opacity-100 bg-white/14 ring-1 ring-white/32 shadow-[0_0_10px_rgba(255,255,255,0.24)]';
+    }
+    return 'opacity-45 brightness-90';
+  };
 
   return (
     <div className="flex items-center gap-2">
@@ -43,11 +61,19 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
           {translatedWeaponName || weapon.name}
         </span>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
+          <div
+            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-200 ${getChipClass(weaponAtkHoverKey)}`}
+            onMouseEnter={weaponAtkHoverKey ? () => onHoverStatChange?.(weaponAtkHoverKey) : undefined}
+            onMouseLeave={weaponAtkHoverKey ? () => onHoverStatChange?.(null) : undefined}
+          >
             {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-5 w-5 object-contain" />}
             <span className="text-lg font-semibold text-white/88">{weaponStats.scaledAtk}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div
+            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-200 ${getChipClass(weaponMainHoverKey)}`}
+            onMouseEnter={weaponMainHoverKey ? () => onHoverStatChange?.(weaponMainHoverKey) : undefined}
+            onMouseLeave={weaponMainHoverKey ? () => onHoverStatChange?.(null) : undefined}
+          >
             {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-5 w-5 object-contain" />}
             <span className="text-lg font-semibold text-white/88">{weaponStats.scaledMainStat}%</span>
           </div>

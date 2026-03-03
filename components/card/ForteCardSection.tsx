@@ -3,6 +3,7 @@
 import React from 'react';
 import { Character } from '@/lib/character';
 import { ForteState } from '@/lib/build';
+import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 
 interface BranchDef { label: string; skillKey: string; treeKey: string; }
 const BRANCHES: BranchDef[] = [
@@ -16,6 +17,8 @@ const BRANCHES: BranchDef[] = [
 interface ForteCardSectionProps {
   character: Character;
   forte: ForteState;
+  activeHoverStat?: StatHoverKey | null;
+  onHoverStatChange?: (next: StatHoverKey | null) => void;
 }
 
 interface NodeBadgeProps {
@@ -23,13 +26,35 @@ interface NodeBadgeProps {
   active: boolean;
   isCircuit: boolean;
   alt: string;
+  hoverKey: StatHoverKey | null;
+  activeHoverStat: StatHoverKey | null;
+  onHoverStatChange?: (next: StatHoverKey | null) => void;
 }
 
-const NodeBadge: React.FC<NodeBadgeProps> = ({ icon, active, isCircuit, alt }) => {
+const NodeBadge: React.FC<NodeBadgeProps> = ({
+  icon,
+  active,
+  isCircuit,
+  alt,
+  hoverKey,
+  activeHoverStat,
+  onHoverStatChange,
+}) => {
   if (!icon) return <div className="h-6 w-6 shrink-0" />;
+  const hasActiveHover = Boolean(activeHoverStat);
+  const isMatch = Boolean(activeHoverStat && hoverKey && activeHoverStat === hoverKey);
+  const interactionClass = !hasActiveHover
+    ? ''
+    : isMatch
+      ? 'opacity-100 ring-1 ring-white/34 shadow-[0_0_10px_rgba(255,255,255,0.22)]'
+      : 'opacity-45 brightness-90';
 
   return (
-    <div className={`relative flex h-7 w-7 shrink-0 items-center justify-center border bg-background-secondary ${isCircuit ? '' : 'rounded-full'} ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'}`}>
+    <div
+      className={`relative flex h-7 w-7 shrink-0 items-center justify-center border bg-background-secondary transition-all duration-200 ${isCircuit ? '' : 'rounded-full'} ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'} ${interactionClass} ${hoverKey ? 'cursor-pointer' : ''}`}
+      onMouseEnter={hoverKey ? () => onHoverStatChange?.(hoverKey) : undefined}
+      onMouseLeave={hoverKey ? () => onHoverStatChange?.(null) : undefined}
+    >
       {isCircuit && (
         <div className={`pointer-events-none absolute h-[70%] w-[70%] rotate-45 border ${active ? 'border-black/60 bg-white' : 'border-white/35 bg-background-secondary'}`} />
       )}
@@ -43,7 +68,10 @@ const NodeBadge: React.FC<NodeBadgeProps> = ({ icon, active, isCircuit, alt }) =
 };
 
 export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
-  character, forte,
+  character,
+  forte,
+  activeHoverStat = null,
+  onHoverStatChange,
 }) => {
   return (
     <div className="flex justify-center gap-8 ">
@@ -58,6 +86,10 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
         const midNodeIcon = isCircuit
           ? (character.skillIcons?.['inherent-2'] ?? character.forteNodes?.['tree3.middle']?.icon ?? '')
           : (character.forteNodes?.[`${branch.treeKey}.middle`]?.icon ?? '');
+        const topNodeName = character.forteNodes?.[`${branch.treeKey}.top`]?.name ?? '';
+        const midNodeName = character.forteNodes?.[`${branch.treeKey}.middle`]?.name ?? '';
+        const topNodeHoverKey = normalizeStatHoverKey(topNodeName);
+        const midNodeHoverKey = normalizeStatHoverKey(midNodeName);
 
         return (
           <div key={branch.skillKey} className="flex shrink-0 flex-col items-center justify-end gap-0.5">
@@ -66,6 +98,9 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               active={topActive}
               isCircuit={isCircuit}
               alt={`${branch.label} top node`}
+              hoverKey={topNodeHoverKey}
+              activeHoverStat={activeHoverStat}
+              onHoverStatChange={onHoverStatChange}
             />
 
             <div className="-my-0.5 h-1.5 w-px shrink-0 bg-white/28" />
@@ -75,6 +110,9 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               active={midActive}
               isCircuit={isCircuit}
               alt={`${branch.label} middle node`}
+              hoverKey={midNodeHoverKey}
+              activeHoverStat={activeHoverStat}
+              onHoverStatChange={onHoverStatChange}
             />
 
             <div className="-my-0.5 h-2.5 w-px shrink-0 bg-white/28" />

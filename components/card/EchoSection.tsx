@@ -8,11 +8,14 @@ import { isPercentStat } from '@/lib/constants/statMappings';
 import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/cv';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { getEchoPaths } from '@/lib/paths';
+import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 
 interface EchoSectionProps {
   echoPanels: EchoPanelState[];
   showCV?: boolean;
   showRollQuality?: boolean;
+  activeHoverStat?: StatHoverKey | null;
+  onHoverStatChange?: (next: StatHoverKey | null) => void;
 }
 
 const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
@@ -24,9 +27,38 @@ const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
   WebkitMaskSize: '100% 100%',
 };
 
-export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = true, showRollQuality = true }) => {
+export const EchoSection: React.FC<EchoSectionProps> = ({
+  echoPanels,
+  showCV = true,
+  showRollQuality = true,
+  activeHoverStat = null,
+  onHoverStatChange,
+}) => {
   const { getEcho, fettersByElement, statIcons } = useGameData();
   const { t } = useLanguage();
+  const hasActiveHover = Boolean(activeHoverStat);
+
+  const getPillInteractionClass = (hoverKey: StatHoverKey | null): string => {
+    if (!hasActiveHover) return '';
+    if (hoverKey && activeHoverStat === hoverKey) {
+      return 'opacity-100 ring-1 ring-white/34 shadow-[0_0_10px_rgba(255,255,255,0.22)]';
+    }
+    return 'opacity-45';
+  };
+
+  const getPillInteractionStyle = (
+    hoverKey: StatHoverKey | null,
+    baseStyle?: React.CSSProperties
+  ): React.CSSProperties | undefined => {
+    if (!hasActiveHover) return baseStyle;
+    if (hoverKey && activeHoverStat === hoverKey) return baseStyle;
+
+    return {
+      ...baseStyle,
+      boxShadow: 'inset 0 0 0 999px rgba(0,0,0,0.18)',
+      filter: 'blur(0.2px) saturate(0.8) brightness(0.86)',
+    };
+  };
 
   return (
     <div className="flex gap-2 h-full p-4">
@@ -56,6 +88,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = t
             ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')])
             : null;
           const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
+          const mainHoverKey = normalizeStatHoverKey(mainStatType);
 
           const substats = panel.stats.subStats.filter(
             (sub) => Boolean(sub.type?.trim()) && sub.value != null
@@ -104,7 +137,12 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = t
                 {/* Main Stat */}
                 <div className="flex p-2">
                   {mainStatType && mainStatValue != null && (
-                    <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-black/55 px-1.5 py-0.5">
+                    <div
+                      className={`flex items-center gap-1 rounded-lg border border-white/10 bg-black/55 px-1.5 py-0.5 transition-all duration-200 ${getPillInteractionClass(mainHoverKey)}`}
+                      style={getPillInteractionStyle(mainHoverKey)}
+                      onMouseEnter={mainHoverKey ? () => onHoverStatChange?.(mainHoverKey) : undefined}
+                      onMouseLeave={mainHoverKey ? () => onHoverStatChange?.(null) : undefined}
+                    >
                       {mainStatIcon && (
                         <img src={mainStatIcon} alt={mainStatType} className="h-4 w-4 object-contain" />
                       )}
@@ -130,15 +168,19 @@ export const EchoSection: React.FC<EchoSectionProps> = ({ echoPanels, showCV = t
                   const isSubPercent = isPercentStat(subType);
                   const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')];
                   const tierColor = showRollQuality ? getSubstatTierColor(subType, sub.value) : null;
+                  const subHoverKey = normalizeStatHoverKey(subType);
+                  const baseStyle = tierColor ? {
+                    backgroundColor: `${tierColor}18`,
+                    borderBottom: `1px solid ${tierColor}80`,
+                  } : undefined;
 
                   return (
                     <div
                       key={si}
-                      className="flex items-center gap-1 rounded-sm px-1 py-0.5"
-                      style={tierColor ? {
-                        backgroundColor: `${tierColor}18`,
-                        borderBottom: `1px solid ${tierColor}80`,
-                      } : undefined}
+                      className={`flex items-center gap-1 rounded-sm px-1 py-0.5 transition-all duration-200 ${getPillInteractionClass(subHoverKey)}`}
+                      style={getPillInteractionStyle(subHoverKey, baseStyle)}
+                      onMouseEnter={subHoverKey ? () => onHoverStatChange?.(subHoverKey) : undefined}
+                      onMouseLeave={subHoverKey ? () => onHoverStatChange?.(null) : undefined}
                     >
                       {subIcon && (
                         <img src={subIcon} alt={subType} className="h-4.5 w-4.5 object-contain" />
