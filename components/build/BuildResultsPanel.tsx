@@ -241,6 +241,9 @@ const SortHeaderMenu: React.FC<{
   contentOpacityClass?: string;
   fillWidth?: boolean;
   naturalMenuWidth?: boolean;
+  textSizeClass?: string;
+  iconSizeClass?: string;
+  showHeaderPlaceholderIcon?: boolean;
 }> = ({
   menuId,
   label,
@@ -257,6 +260,9 @@ const SortHeaderMenu: React.FC<{
   contentOpacityClass = '',
   fillWidth = true,
   naturalMenuWidth = false,
+  textSizeClass = 'text-base',
+  iconSizeClass = 'h-4 w-4',
+  showHeaderPlaceholderIcon = true,
 }) => {
   const showLineOnly = showPlaceholderLine && !active;
 
@@ -268,7 +274,7 @@ const SortHeaderMenu: React.FC<{
           onHeaderSort();
           blurFocusedMenuControl();
         }}
-        className={`flex h-full ${fillWidth ? 'w-full' : 'w-auto'} items-center justify-between gap-2 p-2 text-base transition-colors ${contentOpacityClass} ${
+        className={`flex h-full ${fillWidth ? 'w-full' : 'w-auto'} items-center justify-between gap-2 p-2 ${textSizeClass} transition-colors ${contentOpacityClass} ${
           active
             ? 'border-accent/85 bg-black/35 text-accent'
             : 'border-transparent text-text-primary/85 hover:border-border hover:bg-background/60 hover:text-text-primary'
@@ -280,17 +286,17 @@ const SortHeaderMenu: React.FC<{
           <>
             <span className="flex min-w-0 items-center gap-2">
               {icon ? (
-                <img
-                  src={icon}
-                  alt=""
-                  className="h-4 w-4 shrink-0 object-contain"
-                  style={iconFilter ? { filter: iconFilter } : undefined}
-                />
-              ) : (
-                <span className="inline-block h-4 w-4 shrink-0 opacity-0" />
-              )}
-              <span className="truncate">{label}</span>
-            </span>
+                  <img
+                    src={icon}
+                    alt=""
+                    className={`${iconSizeClass} shrink-0 object-contain`}
+                    style={iconFilter ? { filter: iconFilter } : undefined}
+                  />
+                ) : showHeaderPlaceholderIcon ? (
+                  <span className={`inline-block ${iconSizeClass} shrink-0 opacity-0`} />
+                ) : null}
+                <span>{label}</span>
+              </span>
             <ChevronDown
               className={`h-3.5 w-3.5 shrink-0 transition-transform ${
                 active && direction === 'asc' ? 'rotate-180' : ''
@@ -429,7 +435,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
 
       <div className="overflow-x-auto md:overflow-x-visible pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
         <div className="rounded-lg border border-border bg-background/70">
-          <div className={`grid ${TABLE_GRID} items-center gap-4 border-b border-border bg-background-secondary/95 text-base text-text-primary`}>
+          <div className={`grid ${TABLE_GRID} items-center gap-4 border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
             <div className="py-2 text-center text-text-primary/70">#</div>
             <div className="py-2">Owner</div>
             <div className="py-2">Name</div>
@@ -448,6 +454,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                 onHeaderSort={() => handleSortRequest(cvSort)}
                 onSelectOption={handleSortRequest}
                 icon={activeCvOption?.icon}
+                showHeaderPlaceholderIcon={false}
               />
             </div>
               {isStatSortActive ? (
@@ -474,6 +481,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                     iconFilter={activePinnedStatOption?.iconFilter}
                     fillWidth
                     naturalMenuWidth
+                    textSizeClass="text-lg"
+                    iconSizeClass="h-5 w-5"
                   />
                 </div>
               ) : (
@@ -590,7 +599,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                             {regionBadge.label}
                           </span>
                         )}
-                        <span className="text-base text-text-primary">
+                        <span className="text-lg text-text-primary">
                           {entry.state.watermark.username || 'Anonymous'}
                         </span>
                       </div>
@@ -648,8 +657,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                     </div>
 
                     <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
-                      <div className={`self-stretch py-2 ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
-                        <div className="flex items-center justify-between px-2.5 text-lg">
+                      <div className={`self-stretch ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
+                        <div className="flex h-full items-center justify-between px-2.5 text-lg">
                           <span className="text-text-primary">
                             {Number(entry.stats.CR ?? 0).toFixed(1)} : {Number(entry.stats.CD ?? 0).toFixed(1)}
                           </span>
@@ -671,24 +680,24 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                         return (
                           <div
                             key={`${entry.id}-${columnKey}-${statIndex}`}
-                            className={`self-stretch py-2 ${
+                            className={`self-stretch ${
                               isStatSortActive
                                 ? ACTIVE_SORT_COLUMN_CLASS
                                 : (sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : '')
                             }`}
                           >
-                            <div className={`flex items-center gap-2 px-2 text-base text-text-primary ${shouldDimRowStat ? 'opacity-75' : ''}`}>
+                            <div className={`flex h-full items-center gap-2 p-2 text-lg text-text-primary ${shouldDimRowStat ? 'opacity-50' : ''}`}>
                               {icon ? (
                                 <img
                                   src={icon}
                                   alt=""
-                                  className="h-4 w-4 shrink-0 object-contain"
+                                  className="h-5 w-5 shrink-0 object-contain"
                                   style={iconFilter ? { filter: iconFilter } : undefined}
                                 />
                               ) : (
-                                <span className="inline-block h-4 w-4 shrink-0 rounded bg-border" />
+                                <span className="inline-block h-5 w-5 shrink-0 rounded bg-border" />
                               )}
-                              <span className="truncate">{formatStatByKey(columnKey, value)}</span>
+                              <span>{formatStatByKey(columnKey, value)}</span>
                             </div>
                           </div>
                         );
