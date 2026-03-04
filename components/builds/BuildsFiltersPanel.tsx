@@ -342,7 +342,7 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
       for (const statLabel of statEntries) {
         const key = `${cost}~${toMainStatLabel(statLabel)}`;
         if (selectedMainKeys.has(key)) continue;
-        const label = `${cost}c ${toMainStatLabel(statLabel)}`;
+        const label = toMainStatLabel(statLabel);
         if (normalizedQuery && !label.toLowerCase().includes(normalizedQuery)) continue;
         mainItems.push({
           key: `main-${key}`,
@@ -454,7 +454,7 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
               key={`char-${entry.id}`}
               className="inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-text-primary"
             >
-              {entry.head ? <img src={entry.head} alt="" className="h-4 w-4 rounded-full object-cover" /> : null}
+              {entry.head ? <img src={entry.head} alt="" className="h-5 w-5 rounded-sm object-cover" /> : null}
               <span>{t(entry.nameI18n ?? { en: entry.name })}</span>
               <button
                 type="button"
@@ -471,7 +471,7 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
               key={`weapon-${entry.id}`}
               className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background-secondary px-2 py-1 text-xs text-text-primary"
             >
-              <img src={getWeaponPaths(entry)} alt="" className="h-4 w-4 object-contain" />
+              <img src={getWeaponPaths(entry)} alt="" className="h-5 w-5 object-contain" />
               <span>{t(entry.nameI18n ?? { en: entry.name })}</span>
               <button
                 type="button"
@@ -512,7 +512,7 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
                     style={ELEMENT_ICON_FILTERS[mainLabel] ? { filter: ELEMENT_ICON_FILTERS[mainLabel] } : undefined}
                   />
                 ) : null}
-                {entry.cost}c {mainLabel}
+                {mainLabel}
                 <button type="button" onClick={() => onRemoveMainEntry(index)}>
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -594,9 +594,9 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
                     {item.type === 'character' && (
                       <span className="flex min-w-0 items-center gap-2">
                         {item.character.head ? (
-                          <img src={item.character.head} alt="" className="h-5 w-5 rounded-full object-cover" />
+                          <img src={item.character.head} alt="" className="h-6 w-6 rounded-sm object-cover" />
                         ) : (
-                          <div className="h-5 w-5 rounded bg-border" />
+                          <div className="h-6 w-6 rounded-sm bg-border" />
                         )}
                         <span className="truncate">{item.label}</span>
                       </span>
@@ -604,7 +604,7 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
 
                     {item.type === 'weapon' && (
                       <span className="flex min-w-0 items-center gap-2">
-                        <img src={getWeaponPaths(item.weapon)} alt="" className="h-5 w-5 object-contain" />
+                        <img src={getWeaponPaths(item.weapon)} alt="" className="h-6 w-6 object-contain" />
                         <span className="truncate">{item.label}</span>
                       </span>
                     )}
