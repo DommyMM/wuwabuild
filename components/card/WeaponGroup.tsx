@@ -20,6 +20,7 @@ interface WeaponGroupProps {
   onHoverStatChange?: (next: StatHoverKey | null) => void;
   weaponAtkHoverKey?: StatHoverKey | null;
   weaponMainHoverKey?: StatHoverKey | null;
+  weaponPassiveHoverMatch?: boolean;
 }
 
 export const WeaponGroup: React.FC<WeaponGroupProps> = ({
@@ -33,6 +34,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
   onHoverStatChange,
   weaponAtkHoverKey = null,
   weaponMainHoverKey = null,
+  weaponPassiveHoverMatch = false,
 }) => {
   const { t } = useLanguage();
   const translatedWeaponName = t(weapon.nameI18n ?? { en: weapon.name });
@@ -46,18 +48,26 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
     }
     return 'opacity-45 brightness-90';
   };
+  const nameInteractionClass = !hasActiveHover
+    ? ''
+    : weaponPassiveHoverMatch
+      ? 'opacity-100'
+      : 'opacity-45 brightness-90';
 
   return (
     <div className="flex items-center gap-2">
-      <div className={`relative flex h-30 w-30 items-center justify-center overflow-hidden rounded-xl border shadow-[0_8px_18px_rgba(0,0,0,0.35)] ${rarityStyle?.border ?? 'border-white/28'} ${rarityStyle?.bg ?? 'bg-black/20'}`}>
+      <div className={`relative flex h-30 w-30 items-center justify-center overflow-hidden rounded-xl border shadow-[0_8px_18px_rgba(0,0,0,0.35)] transition-all duration-200 ${weaponPassiveHoverMatch ? 'brightness-110 saturate-110' : ''} ${rarityStyle?.border ?? 'border-white/28'} ${rarityStyle?.bg ?? 'bg-black/20'}`}>
         <img
           src={weapon.iconUrl}
           alt={translatedWeaponName || weapon.name}
           className="h-full w-full object-contain"
         />
+        {weaponPassiveHoverMatch && (
+          <div className="pointer-events-none absolute inset-0 rounded-xl border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.22),0_0_14px_rgba(110,255,255,0.45)]" />
+        )}
       </div>
       <div className="flex flex-col gap-1.5">
-        <span className="truncate text-2xl font-semibold leading-tight text-white/95">
+        <span className={`truncate text-2xl font-semibold leading-tight text-white/95 transition-all duration-200 ${nameInteractionClass}`}>
           {translatedWeaponName || weapon.name}
         </span>
         <div className="flex items-center gap-4">

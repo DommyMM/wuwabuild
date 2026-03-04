@@ -5,6 +5,7 @@ import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { calculateWeaponStats } from '@/lib/calculations/stats';
+import { getUnconditionalWeaponPassiveBonuses } from '@/lib/calculations/weaponPassives';
 import { CharacterPanel } from '@/components/card/CharacterPanel';
 import { SequenceStrip } from '@/components/card/SequenceStrip';
 import { StatsTableSection } from '@/components/card/StatsTableSection';
@@ -88,6 +89,19 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   const weaponMainHoverKey = weapon
     ? (normalizeStatHoverKey(weapon.main_stat) ?? normalizeStatHoverKey(weapon.mainStatI18n?.en))
     : null;
+  const weaponPassiveHoverKeys = useMemo(() => {
+    if (!weapon) return new Set<StatHoverKey>();
+
+    const passiveBonuses = getUnconditionalWeaponPassiveBonuses(weapon, state.weaponRank);
+    const hoverKeys = Object.keys(passiveBonuses)
+      .map((statName) => normalizeStatHoverKey(statName))
+      .filter((hoverKey): hoverKey is StatHoverKey => hoverKey !== null);
+
+    return new Set<StatHoverKey>(hoverKeys);
+  }, [weapon, state.weaponRank]);
+  const weaponPassiveHoverMatch = Boolean(
+    activeHoverStat && weaponPassiveHoverKeys.has(activeHoverStat)
+  );
 
   return (
     <div ref={ref} className="relative select-none overflow-visible">
@@ -145,6 +159,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                             onHoverStatChange={setActiveHoverStat}
                             weaponAtkHoverKey={weaponAtkHoverKey}
                             weaponMainHoverKey={weaponMainHoverKey}
+                            weaponPassiveHoverMatch={weaponPassiveHoverMatch}
                           />
                         )}
 
@@ -156,7 +171,11 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                         />
                       </div>
                     </div>
-                    <ActiveSetsSection showCV={showCV} />
+                    <ActiveSetsSection
+                      showCV={showCV}
+                      activeHoverStat={activeHoverStat}
+                      onHoverStatChange={setActiveHoverStat}
+                    />
                   </div>
 
                   <StatsTableSection

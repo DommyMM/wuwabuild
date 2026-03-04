@@ -11,6 +11,13 @@ export interface CDNFetter {
   addProp: Array<{ id: number; value: number; isRatio: boolean }>;
   buffIds: number[];
   effectDescription: I18nString;
+  pieceEffects?: Record<string, {
+    pieceCount: number;
+    fetterId: number;
+    addProp: Array<{ id: number; value: number; isRatio: boolean }>;
+    buffIds: number[];
+    effectDescription: I18nString;
+  }>;
   fetterIcon: string;
   effectDefineDescription: I18nString;
 }

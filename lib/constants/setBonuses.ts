@@ -1,49 +1,62 @@
+import type { CDNFetter } from '@/lib/echo';
 import { StatName } from '@/lib/constants/statMappings';
 
-// Maps set names to their 2-piece bonus stat 
-export const SET_TO_STAT: Record<string, StatName> = {
-  'Sierra Gale': 'Aero DMG',
-  'Moonlit Clouds': 'Energy Regen',
-  'Void Thunder': 'Electro DMG',
-  'Celestial Light': 'Spectro DMG',
-  'Freezing Frost': 'Glacio DMG',
-  'Lingering Tunes': 'ATK%',
-  'Molten Rift': 'Fusion DMG',
-  'Sun-sinking Eclipse': 'Havoc DMG',
-  'Rejuvenating Glow': 'Healing Bonus',
-  'Midnight Veil': 'Havoc DMG',
-  'Empyrean Anthem': 'Energy Regen',
-  'Tidebreaking Courage': 'Energy Regen',
-  'Frosty Resolve': 'Resonance Skill DMG Bonus',
-  'Eternal Radiance': 'Spectro DMG',
-  'Gusts of Welkin': 'Aero DMG',
-  'Windward Pilgrimage': 'Aero DMG',
-  'Flaming Clawprint': 'Fusion DMG',
-  'Pact of Neonlight Leap': 'Spectro DMG',
-  'Halo of Starry Radiance': 'Healing Bonus',
-  'Rite of Gilded Revelation': 'Spectro DMG',
-  'Trailblazing Star': 'Fusion DMG',
-  'Chromatic Foam': 'Fusion DMG',
-  'Sound of True Name': 'Aero DMG'
-} as const;
+export interface SetBonusEntry {
+  stat: StatName;
+  value: number;
+}
 
-// Default set bonus value (10% for most stats)
-export const DEFAULT_SET_BONUS_VALUE = 10;
-
-// Special set bonus values that differ from the default
-export const SPECIAL_SET_BONUS_VALUES: Record<string, number> = {
-  'Frosty Resolve': 12 // Frosty Resolve gives 12% Resonance Skill DMG Bonus instead of 10%
+// These IDs come from PhantomFetter AddProp and are stable across localized names.
+const PROP_ID_TO_STAT: Record<number, StatName> = {
+  11: 'Energy Regen',
+  14: 'Resonance Skill DMG Bonus',
+  22: 'Glacio DMG',
+  23: 'Fusion DMG',
+  24: 'Electro DMG',
+  25: 'Aero DMG',
+  26: 'Spectro DMG',
+  27: 'Havoc DMG',
+  35: 'Healing Bonus',
+  10007: 'ATK%',
 };
 
-// Get the stat bonus for a set at a given piece count
-export const getSetBonus = (setName: string, pieceCount: number): { stat: StatName; value: number } | null => {
-  const stat = SET_TO_STAT[setName];
-  if (!stat) return null;
+const normalizeSetPropValue = (prop: { value: number; isRatio: boolean }): number => (
+  // sync_fetters keeps non-ratio AddProp in x10 units (100 => 10.0%).
+  prop.isRatio ? prop.value : prop.value / 10
+);
 
-  // Only 2-piece bonuses are tracked for stat calculation
-  if (pieceCount < 2) return null;
+const getActivationTierProps = (
+  fetter: CDNFetter,
+  pieceCount: number
+): Array<{ id: number; value: number; isRatio: boolean }> => {
+  const activationTier = fetter.pieceCount;
+  if (pieceCount < activationTier) return [];
 
-  const value = SPECIAL_SET_BONUS_VALUES[setName] ?? DEFAULT_SET_BONUS_VALUE;
-  return { stat, value };
+  const tierProps = fetter.pieceEffects?.[String(activationTier)]?.addProp;
+  if (Array.isArray(tierProps)) return tierProps;
+
+  return Array.isArray(fetter.addProp) ? fetter.addProp : [];
 };
 
+export const getSetBonusesFromFetter = (
+  fetter: CDNFetter | null | undefined,
+  pieceCount: number
+): SetBonusEntry[] => {
+  if (!fetter) return [];
+
+  return getActivationTierProps(fetter, pieceCount)
+    .map((prop) => {
+      const stat = PROP_ID_TO_STAT[prop.id];
+      if (!stat) return null;
+      return { stat, value: normalizeSetPropValue(prop) };
+    })
+    .filter((entry): entry is SetBonusEntry => entry !== null);
+};
+
+export const getPrimarySetBonusFromFetter = (
+  fetter: CDNFetter | null | undefined,
+  pieceCount: number
+): SetBonusEntry | null => {
+  const bonuses = getSetBonusesFromFetter(fetter, pieceCount);
+  return bonuses[0] ?? null;
+};

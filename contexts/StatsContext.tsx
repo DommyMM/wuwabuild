@@ -9,7 +9,7 @@ import { calculateCV } from '@/lib/calculations/cv';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
 import { calculateForteBonus } from '@/lib/calculations/stats';
 import { getUnconditionalWeaponPassiveBonuses } from '@/lib/calculations/weaponPassives';
-import { SET_TO_STAT, SPECIAL_SET_BONUS_VALUES, DEFAULT_SET_BONUS_VALUE } from '@/lib/constants/setBonuses';
+import { getSetBonusesFromFetter } from '@/lib/constants/setBonuses';
 import { getEchoBonus } from '@/lib/constants/echoBonuses';
 import { getPercentVariant } from '@/lib/constants/statMappings';
 import { isRover } from '@/lib/character';
@@ -165,11 +165,10 @@ export function StatsProvider({ children }: StatsProviderProps) {
     };
   }, [character, characterLevel, weaponStats?.scaledAtk, scaleCharacterStat]);
 
-  // Calculate element counts and ATK bonus from sets
-  const { elementCounts, atkPercentBonus, activeSets } = useMemo(() => {
+  // Calculate element counts and active sets from equipped echoes.
+  const { elementCounts, activeSets } = useMemo(() => {
     const counts: Record<ElementType, number> = {} as Record<ElementType, number>;
     const usedEchoes = new Set();
-    let bonus = 0;
     const sets: { element: ElementType; count: number; setName: string }[] = [];
 
     echoPanels.forEach(panel => {
@@ -183,12 +182,6 @@ export function StatsProvider({ children }: StatsProviderProps) {
       if (element) {
         counts[element] = (counts[element] || 0) + 1;
         usedEchoes.add(echo.name);
-
-        if (element === 'Tidebreaking' && counts[element] === 5) {
-          bonus = 15;
-        } else if (element === 'Attack' && counts[element] >= 2) {
-          bonus = 10;
-        }
       }
     });
 
@@ -201,7 +194,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
       }
     });
 
-    return { elementCounts: counts, atkPercentBonus: bonus, activeSets: sets };
+    return { elementCounts: counts, activeSets: sets };
   }, [echoPanels, getEcho, fettersByElement]);
 
   // Calculate forte bonus
@@ -242,6 +235,13 @@ export function StatsProvider({ children }: StatsProviderProps) {
       };
     }
 
+    const activeSetBonuses = Object.entries(elementCounts).flatMap(([element, count]) => {
+      const fetter = fettersByElement[element as ElementType];
+      const threshold = fetter?.pieceCount ?? 2;
+      if (count < threshold) return [];
+      return getSetBonusesFromFetter(fetter, count);
+    });
+
     // List of stats to calculate
     const statsToCalculate: StatName[] = [
       'HP', 'ATK', 'DEF',
@@ -279,9 +279,6 @@ export function StatsProvider({ children }: StatsProviderProps) {
           if (weapon.main_stat === displayStat) {
             percent += weaponStats.scaledMainStat;
           }
-          if (displayStat === 'ATK') {
-            percent += atkPercentBonus;
-          }
         }
 
         if (displayStat === 'HP') {
@@ -291,6 +288,12 @@ export function StatsProvider({ children }: StatsProviderProps) {
         } else if (displayStat === 'DEF') {
           percent += weaponPassiveBonuses['DEF%'] ?? 0;
         }
+
+        const basePercentStat = getPercentVariant(baseStat);
+        const setBasePercentBonus = activeSetBonuses.reduce((sum, bonus) => (
+          bonus.stat === basePercentStat ? sum + bonus.value : sum
+        ), 0);
+        percent += setBasePercentBonus;
 
         if (character.Bonus2 === displayStat) {
           percent += forteBonus.bonus2Total;
@@ -334,16 +337,10 @@ export function StatsProvider({ children }: StatsProviderProps) {
 
         result.update += getWeaponPassivePercentBonus(displayStat, weaponPassiveBonuses);
 
-        // Add set bonuses
-        Object.entries(elementCounts).forEach(([element, count]) => {
-          const threshold = fettersByElement[element as ElementType]?.pieceCount ?? 2;
-          if (count >= threshold) {
-            const setName = ELEMENT_SETS[element as ElementType];
-            const statToUpdate = SET_TO_STAT[setName];
-            if (statToUpdate === displayStat) {
-              const bonusValue = SPECIAL_SET_BONUS_VALUES[setName] ?? DEFAULT_SET_BONUS_VALUE;
-              result.update += bonusValue;
-            }
+        // Add unconditional set bonuses (activation tier only).
+        activeSetBonuses.forEach((bonus) => {
+          if (bonus.stat === displayStat) {
+            result.update += bonus.value;
           }
         });
 
@@ -390,7 +387,6 @@ export function StatsProvider({ children }: StatsProviderProps) {
     weaponPassiveBonuses,
     echoPanels,
     elementCounts,
-    atkPercentBonus,
     forteBonus,
     echoStats,
     firstPanelBonus,
