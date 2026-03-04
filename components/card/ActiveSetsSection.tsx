@@ -5,7 +5,7 @@ import { useStats } from '@/contexts/StatsContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CDNFetter } from '@/lib/echo';
-import { getSetBonusesFromFetter } from '@/lib/constants/setBonuses';
+import { getSetBonusesFromFetter, getSetBonusesFromPieceEffect } from '@/lib/constants/setBonuses';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { HoverTooltip } from '@/components/ui/HoverTooltip';
 import { FetterPieceEffect, resolveFetterPieceDescription } from '@/lib/text/gameText';
@@ -25,6 +25,12 @@ const getPieceLabel = (count: number, threshold: number): string => {
   if (threshold === 3) return '3';
   return count >= 5 ? '5' : '2';
 };
+
+const formatSetBonusValue = (value: number): string => (
+  Number.isInteger(value)
+    ? String(Math.trunc(value))
+    : value.toFixed(1).replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0+$/u, '')
+);
 
 const getFetterPieceTooltipModels = (fetter: CDNFetter | undefined): PieceTooltipModel[] => {
   if (!fetter) return [];
@@ -65,7 +71,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   activeHoverStat = null,
 }) => {
   const { stats } = useStats();
-  const { fettersByElement } = useGameData();
+  const { fettersByElement, statTranslations } = useGameData();
   const { t } = useLanguage();
   const hasActiveSets = stats.activeSets.length > 0;
   const hasActiveHover = Boolean(activeHoverStat);
@@ -107,6 +113,8 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
             </div>
             <div className="mt-2 space-y-2">
               {pieceModels.map((pieceModel) => {
+                const pieceBonuses = getSetBonusesFromPieceEffect(pieceModel.effect);
+                const shouldRenderNormalizedBonuses = pieceBonuses.length > 0 && (pieceModel.effect.buffIds?.length ?? 0) === 0;
                 const localizedDescription = t(pieceModel.effect.effectDescription);
                 const { renderedParts } = resolveFetterPieceDescription(pieceModel.effect, {
                   descriptionTemplate: localizedDescription,
@@ -116,9 +124,25 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
                     <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
                       {pieceModel.pieceCount}-Piece
                     </p>
-                    <p className="mt-1 whitespace-pre-line text-[0.92rem] leading-relaxed text-white/86">
-                      {renderedParts}
-                    </p>
+                    {shouldRenderNormalizedBonuses ? (
+                      <div className="mt-1 space-y-1">
+                        {pieceBonuses.map((bonus, bonusIndex) => {
+                          const localizedStatName = statTranslations?.[bonus.stat]
+                            ? t(statTranslations[bonus.stat])
+                            : bonus.stat;
+                          return (
+                            <p key={`${fetter.id}-${pieceModel.pieceCount}-${bonus.stat}-${bonusIndex}`} className="text-[0.92rem] leading-relaxed text-white/86">
+                              <span>{localizedStatName}</span>{' '}
+                              <span className="text-cyan-200 font-semibold">+{formatSetBonusValue(bonus.value)}</span>
+                            </p>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="mt-1 whitespace-pre-line text-[0.92rem] leading-relaxed text-white/86">
+                        {renderedParts}
+                      </p>
+                    )}
                   </div>
                 );
               })}

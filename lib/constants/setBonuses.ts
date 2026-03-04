@@ -25,6 +25,26 @@ const normalizeSetPropValue = (prop: { value: number; isRatio: boolean }): numbe
   prop.isRatio ? prop.value : prop.value / 10
 );
 
+type SetAddProp = { id: number; value: number; isRatio: boolean };
+
+export const getSetBonusesFromProps = (
+  props: SetAddProp[] | null | undefined
+): SetBonusEntry[] => {
+  if (!Array.isArray(props)) return [];
+
+  return props
+    .map((prop) => {
+      const stat = PROP_ID_TO_STAT[prop.id];
+      if (!stat) return null;
+      return { stat, value: normalizeSetPropValue(prop) };
+    })
+    .filter((entry): entry is SetBonusEntry => entry !== null);
+};
+
+export const getSetBonusesFromPieceEffect = (
+  pieceEffect: { addProp?: SetAddProp[] } | null | undefined
+): SetBonusEntry[] => getSetBonusesFromProps(pieceEffect?.addProp);
+
 const getActivationTierProps = (
   fetter: CDNFetter,
   pieceCount: number
@@ -44,13 +64,7 @@ export const getSetBonusesFromFetter = (
 ): SetBonusEntry[] => {
   if (!fetter) return [];
 
-  return getActivationTierProps(fetter, pieceCount)
-    .map((prop) => {
-      const stat = PROP_ID_TO_STAT[prop.id];
-      if (!stat) return null;
-      return { stat, value: normalizeSetPropValue(prop) };
-    })
-    .filter((entry): entry is SetBonusEntry => entry !== null);
+  return getSetBonusesFromProps(getActivationTierProps(fetter, pieceCount));
 };
 
 export const getPrimarySetBonusFromFetter = (
