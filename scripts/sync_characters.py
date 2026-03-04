@@ -19,12 +19,12 @@ import re
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from cdn_config import CDN_BASE
 
 # Regex to extract legacy ID from iconRound URL
 # e.g. "T_IconRoleHeadCircle256_26_UI.png" -> 26
 LEGACY_ID_PATTERN = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI\.png")
 
-CDN_BASE = "https://files.wuthery.com"
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Character"
 

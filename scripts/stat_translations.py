@@ -19,6 +19,7 @@ Usage:
 import json
 import argparse
 from pathlib import Path
+from cdn_config import CDN_BASE
 
 try:
     import requests
@@ -26,7 +27,6 @@ except ImportError:
     print("pip install requests")
     raise SystemExit(1)
 
-CDN_BASE = "https://files.wuthery.com"
 PROPERTY_INDEXS_URL = f"{CDN_BASE}/d/GameData/Grouped/LocalizationIndex/PropertyIndexs.json"
 
 OUTPUT = Path(__file__).parent.parent / "public/Data/Stats.json"

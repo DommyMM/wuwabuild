@@ -36,6 +36,7 @@ Usage:
 import json
 import argparse
 from pathlib import Path
+from cdn_config import CDN_BASE
 
 try:
     import requests
@@ -43,7 +44,6 @@ except ImportError:
     print("pip install requests")
     raise SystemExit(1)
 
-CDN_BASE = "https://files.wuthery.com"
 FETTERS_URL  = f"{CDN_BASE}/d/GameData/Grouped/LocalizationIndex/PhantomFetters.json"
 GROUPS_URL   = f"{CDN_BASE}/d/GameData/Grouped/LocalizationIndex/PhantomFetterGroups.json"
 

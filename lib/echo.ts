@@ -1,5 +1,6 @@
 import { I18nString } from './character';
 import { StatName } from './constants/statMappings';
+import { CDN_BASE } from './constants/cdn';
 
 export interface CDNFetter {
   id: number;
@@ -126,8 +127,6 @@ export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
 export const getEchoPieceCounts = (element: ElementType, fettersByElement: Partial<Record<ElementType, CDNFetter>>): number[] => {
   return fettersByElement[element]?.pieceCount === 3 ? [3] : [2, 5];
 };
-
-const CDN_BASE = 'https://files.wuthery.com';
 
 // Fetter ID → ElementType mapping (from Phantom repo analysis)
 export const FETTER_MAP: Record<number, ElementType> = {

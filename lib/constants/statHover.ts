@@ -31,27 +31,32 @@ const normalizeToken = (value: string): string =>
 const STAT_HOVER_ALIAS_MAP: Record<string, StatHoverKey> = {
   hp: 'HP',
   'hp%': 'HP',
+  'hp up': 'HP',
   lifemax: 'HP',
   'life max': 'HP',
 
   atk: 'ATK',
   'atk%': 'ATK',
+  'atk up': 'ATK',
   attack: 'ATK',
   'attack%': 'ATK',
 
   def: 'DEF',
   'def%': 'DEF',
+  'def up': 'DEF',
   defense: 'DEF',
   'defense%': 'DEF',
 
   crit: 'Crit Rate',
   critrate: 'Crit Rate',
   'crit rate': 'Crit Rate',
+  'crit rate up': 'Crit Rate',
   'critical rate': 'Crit Rate',
 
   critdmg: 'Crit DMG',
   critdamage: 'Crit DMG',
   'crit dmg': 'Crit DMG',
+  'crit dmg up': 'Crit DMG',
   'crit damage': 'Crit DMG',
   'critical damage': 'Crit DMG',
 
@@ -92,6 +97,7 @@ const STAT_HOVER_ALIAS_MAP: Record<string, StatHoverKey> = {
 
   healing: 'Healing Bonus',
   'healing bonus': 'Healing Bonus',
+  'healing bonus up': 'Healing Bonus',
 };
 
 export const normalizeStatHoverKey = (value: string | null | undefined): StatHoverKey | null => {

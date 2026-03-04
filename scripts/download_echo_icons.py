@@ -24,11 +24,11 @@ import argparse
 import urllib.request
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from cdn_config import CDN_BASE
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 ECHOES_JSON = SCRIPTS_DIR.parent / "public" / "Data" / "Echoes.json"
 ICONS_DIR   = SCRIPTS_DIR.parent.parent / "backend" / "Data" / "Echoes"
-CDN_BASE    = "https://files.wuthery.com"
 MAX_WORKERS = 16
 
 _ID_RE = re.compile(r"^\d+$")  # pure numeric filename → already an ID-named file
