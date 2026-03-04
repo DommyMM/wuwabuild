@@ -197,8 +197,8 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
                   <span
                     key={setSummary.key}
                     className={setSummary.isActive
-                      ? 'inline-flex items-center gap-1 rounded-md border border-accent/45 bg-accent/10 px-2 py-0.5 text-[11px] text-accent'
-                      : 'inline-flex items-center gap-1 rounded-md border border-border bg-background-secondary px-2 py-0.5 text-[11px] text-text-primary/70'}
+                      ? 'inline-flex items-center gap-1 rounded-md border border-accent/45 bg-accent/10 px-2 py-0.5 text-xs text-accent'
+                      : 'inline-flex items-center gap-1 rounded-md border border-border bg-background-secondary px-2 py-0.5 text-xs text-text-primary/70'}
                   >
                     {setSummary.icon && (
                       <img
@@ -211,7 +211,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
                   </span>
                 ))}
                 {hiddenSetCount > 0 && (
-                  <span className="text-[11px] text-text-primary/50">+{hiddenSetCount} more</span>
+                  <span className="text-xs text-text-primary/50">+{hiddenSetCount} more</span>
                 )}
               </div>
             )}

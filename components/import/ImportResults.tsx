@@ -62,7 +62,7 @@ function ProgressDot({ status }: { status: 'pending' | 'done' | 'error' }) {
 
 function EchoCard({ echo, pending, className }: { echo?: EchoOCRData; pending?: boolean; className?: string }) {
   const { getEcho } = useGameData();
-  const rootClass = `bg-background-secondary rounded-lg p-2 flex flex-col border border-border text-[11px] overflow-hidden ${className ?? ''}`;
+  const rootClass = `bg-background-secondary rounded-lg p-2 flex flex-col border border-border text-xs overflow-hidden ${className ?? ''}`;
 
   if (pending) {
     return (

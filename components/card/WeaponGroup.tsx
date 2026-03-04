@@ -77,7 +77,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
         maxWidthClassName="max-w-[28rem]"
         content={(
           <div className="font-plus-jakarta text-white/90">
-            <p className="text-[1.04rem] font-semibold leading-tight text-white/96">
+            <p className="text-base font-semibold leading-tight text-white/96">
               {translatedWeaponName || weapon.name}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm font-semibold">
@@ -90,7 +90,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
               </span>
               <span className="inline-flex items-center gap-1 rounded-md border border-white/18 bg-black/45 px-2 py-0.5 text-white/88">
                 {weaponMainIcon && <img src={weaponMainIcon} alt={translatedMainStatName} className="h-4 w-4 object-contain" />}
-                {translatedMainStatName} {weaponStats.scaledMainStat}%
+                {weaponStats.scaledMainStat}%
               </span>
             </div>
             {(translatedPassiveName || passiveTemplate) && (
@@ -99,7 +99,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
               </p>
             )}
             {passiveTemplate && (
-              <p className="mt-1 whitespace-pre-line text-[0.92rem] leading-relaxed text-white/86">
+              <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-white/86">
                 {renderedPassiveText}
               </p>
             )}

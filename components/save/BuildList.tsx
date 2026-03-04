@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Trash2, Copy, Download, Calendar, User, Pencil, Check, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import Marquee from 'react-fast-marquee';
 import { SavedBuild } from '@/lib/build';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -42,6 +43,80 @@ function formatStatValue(value: number | null): string {
   if (Number.isInteger(value)) return String(value);
   return value.toFixed(1).replace(/\.0$/, '');
 }
+
+interface OverflowMarqueeProps {
+  text: string;
+  textClassName?: string;
+  speed?: number;
+  startOverflowPx?: number;
+  stopOverflowPx?: number;
+}
+
+// Scroll text only when it overflows the available width.
+const OverflowMarquee: React.FC<OverflowMarqueeProps> = ({
+  text,
+  textClassName = '',
+  speed = 20,
+  startOverflowPx = 8,
+  stopOverflowPx = 3,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [scrolls, setScrolls] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const measure = measureRef.current;
+    if (!container || !measure) return;
+
+    let rafId: number | null = null;
+
+    const check = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+
+      rafId = requestAnimationFrame(() => {
+        const overflowPx = measure.scrollWidth - container.clientWidth;
+        setScrolls((prev) => (
+          prev
+            ? overflowPx > stopOverflowPx
+            : overflowPx > startOverflowPx
+        ));
+      });
+    };
+
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(container);
+    ro.observe(measure);
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      ro.disconnect();
+    };
+  }, [startOverflowPx, stopOverflowPx, text]);
+
+  return (
+    <div ref={containerRef} className="relative min-w-0 overflow-hidden">
+      <span
+        ref={measureRef}
+        className={`pointer-events-none invisible absolute left-0 top-0 whitespace-nowrap ${textClassName}`}
+        aria-hidden="true"
+      >
+        {text}
+      </span>
+      {scrolls ? (
+        <Marquee speed={speed} gradient={false} pauseOnHover>
+          <span className={`whitespace-nowrap pr-8 ${textClassName}`}>{text}</span>
+        </Marquee>
+      ) : (
+        <span className={`block truncate whitespace-nowrap ${textClassName}`}>{text}</span>
+      )}
+    </div>
+  );
+};
 
 const BuildItem: React.FC<BuildItemProps> = ({
   build,
@@ -343,7 +418,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
               </div>
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <div className="rounded-lg border border-border bg-background p-3">
-                  <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/50">Character</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-text-primary/50">Character</div>
                   <div className="flex items-center gap-3">
                     {characterPortrait ? (
                       <img src={characterPortrait} alt={characterName || ''} className="h-12 w-12 rounded object-cover" />
@@ -358,7 +433,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
                 </div>
 
                 <div className="rounded-lg border border-border bg-background p-3">
-                  <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/50">Weapon</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-text-primary/50">Weapon</div>
                   <div className="flex items-center gap-3">
                     {weapon ? (
                       <img src={weaponIcon} alt={weaponName ?? ''} className="h-12 w-12 object-contain" />
@@ -376,7 +451,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
               </div>
 
               <div className="mt-3 rounded-lg border border-border bg-background p-3">
-                <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/50">Forte</div>
+                <div className="mb-2 text-xs uppercase tracking-wide text-text-primary/50">Forte</div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                   {FORTE_LABELS.map((label, index) => {
                     const [level, topActive, middleActive] = build.state.forte[index] ?? [1, false, false];
@@ -386,7 +461,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
                           <div className="text-text-primary/60">{label}</div>
                           <div className="font-semibold text-accent">Lv.{level}</div>
                         </div>
-                        <div className="mt-1 flex gap-1 text-[10px]">
+                        <div className="mt-1 flex gap-1 text-xs">
                           <span className={topActive ? 'rounded bg-green-500/20 px-1 text-green-400' : 'rounded bg-border px-1 text-text-primary/50'}>
                             Top
                           </span>
@@ -401,7 +476,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
               </div>
 
               <div className="mt-3 rounded-lg border border-border bg-background p-3">
-                <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/50">Echoes</div>
+                <div className="mb-2 text-xs uppercase tracking-wide text-text-primary/50">Echoes</div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
                   {echoPreviewData.map(({ panel, echo, name, icon, setIcon, cv }, index) => (
                     <div
@@ -420,19 +495,19 @@ const BuildItem: React.FC<BuildItemProps> = ({
                           <div className="mb-1 flex items-center gap-2">
                             <img src={icon} alt={name} className="h-8 w-8 rounded object-contain" />
                             <div className="min-w-0">
-                              <div className="truncate font-semibold text-text-primary">{name}</div>
-                              <div className="text-[10px] text-text-primary/60">
+                              <OverflowMarquee
+                                text={name}
+                                textClassName="font-semibold text-text-primary"
+                                startOverflowPx={10}
+                                stopOverflowPx={5}
+                              />
+                              <div className="text-xs text-text-primary/60">
                                 Lv.{panel.level} • CV {cv.toFixed(1)}
                               </div>
                             </div>
                           </div>
-                          <div className="mb-1 flex flex-wrap gap-1">
-                            {panel.phantom && (
-                              <span className="rounded bg-border px-1.5 py-0.5 text-[10px] text-text-primary/70">Phantom</span>
-                            )}
-                          </div>
                           {panel.stats.mainStat.type && (
-                            <div className="mb-1 flex justify-between gap-2 text-[11px]">
+                            <div className="mb-1 flex justify-between gap-2 text-xs">
                               <span className="truncate text-accent">{panel.stats.mainStat.type}</span>
                               <span className="shrink-0 text-accent">{formatStatValue(panel.stats.mainStat.value)}</span>
                             </div>
@@ -441,8 +516,15 @@ const BuildItem: React.FC<BuildItemProps> = ({
                             {panel.stats.subStats
                               .filter((sub) => sub.type && sub.value !== null)
                               .map((sub, subIndex) => (
-                                <div key={subIndex} className="flex justify-between gap-2 text-[10px] text-text-primary/65">
-                                  <span className="truncate">{sub.type}</span>
+                                <div key={subIndex} className="flex items-center justify-between gap-2 text-xs text-text-primary/65">
+                                  <div className="min-w-0 flex-1">
+                                    <OverflowMarquee
+                                      text={sub.type ?? ''}
+                                      textClassName="text-xs"
+                                      startOverflowPx={14}
+                                      stopOverflowPx={8}
+                                    />
+                                  </div>
                                   <span className="shrink-0">{formatStatValue(sub.value)}</span>
                                 </div>
                               ))}
@@ -459,7 +541,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
               </div>
 
               <div className="mt-3 rounded-lg border border-border bg-background p-3 text-xs text-text-primary/75">
-                <div className="mb-1 text-[11px] uppercase tracking-wide text-text-primary/50">Watermark</div>
+                <div className="mb-1 text-xs uppercase tracking-wide text-text-primary/50">Watermark</div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
                   <span>Username: {build.state.watermark.username || '—'}</span>
                   <span>UID: {build.state.watermark.uid || '—'}</span>

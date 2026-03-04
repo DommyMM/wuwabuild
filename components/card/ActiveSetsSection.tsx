@@ -107,7 +107,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
           <div className="font-plus-jakarta text-white/90">
             <div className="flex items-center gap-2">
               {setIcon && <img src={setIcon} alt="" className="h-6 w-6 object-contain" />}
-              <p className="text-[1rem] font-semibold text-white/96">
+              <p className="text-base font-semibold text-white/96">
                 {displayName}
               </p>
             </div>
@@ -131,7 +131,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
                             ? t(statTranslations[bonus.stat])
                             : bonus.stat;
                           return (
-                            <p key={`${fetter.id}-${pieceModel.pieceCount}-${bonus.stat}-${bonusIndex}`} className="text-[0.92rem] leading-relaxed text-white/86">
+                            <p key={`${fetter.id}-${pieceModel.pieceCount}-${bonus.stat}-${bonusIndex}`} className="text-sm leading-relaxed text-white/86">
                               <span>{localizedStatName}</span>{' '}
                               <span className="text-cyan-200 font-semibold">+{formatSetBonusValue(bonus.value)}</span>
                             </p>
@@ -139,7 +139,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
                         })}
                       </div>
                     ) : (
-                      <p className="mt-1 whitespace-pre-line text-[0.92rem] leading-relaxed text-white/86">
+                      <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-white/86">
                         {renderedParts}
                       </p>
                     )}

@@ -122,16 +122,16 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
           </div>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="rounded bg-accent/15 px-2 py-0.5 text-[11px] text-accent">
+          <span className="rounded bg-accent/15 px-2 py-0.5 text-xs text-accent">
             CR {formatPercentStat(entry.stats.CR)} / CD {formatPercentStat(entry.stats.CD)}
           </span>
-          <span className="rounded bg-border px-2 py-0.5 text-[11px] text-text-primary/75">
+          <span className="rounded bg-border px-2 py-0.5 text-xs text-text-primary/75">
             S{entry.state.sequence}
           </span>
-          <span className="rounded bg-border px-2 py-0.5 text-[11px] text-text-primary/75">
+          <span className="rounded bg-border px-2 py-0.5 text-xs text-text-primary/75">
             R{entry.state.weaponRank}
           </span>
-          <span className="rounded bg-border px-2 py-0.5 text-[11px] text-text-primary/75">
+          <span className="rounded bg-border px-2 py-0.5 text-xs text-text-primary/75">
             {entry.state.echoPanels.filter((panel) => panel.id).length}/5 Echoes
           </span>
         </div>
@@ -185,7 +185,7 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
             <div className="mt-3 rounded-lg border border-border bg-background-secondary p-3">
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <div className="rounded border border-border bg-background p-2">
-                  <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/55">Character</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-text-primary/55">Character</div>
                   <div className="flex items-center gap-2">
                     {character?.head ? (
                       <img src={character.head} alt={characterName} className="h-11 w-11 rounded object-cover" />
@@ -199,7 +199,7 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
                   </div>
                 </div>
                 <div className="rounded border border-border bg-background p-2">
-                  <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/55">Weapon</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-text-primary/55">Weapon</div>
                   <div className="flex items-center gap-2">
                     {weapon ? (
                       <img src={getWeaponPaths(weapon)} alt={weaponName} className="h-11 w-11 object-contain" />
@@ -215,7 +215,7 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
               </div>
 
               <div className="mt-3 rounded border border-border bg-background p-2">
-                <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/55">Echoes</div>
+                <div className="mb-2 text-xs uppercase tracking-wide text-text-primary/55">Echoes</div>
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
                   {entry.state.echoPanels.map((panel, index) => {
                     const echo = panel.id ? getEcho(panel.id) : null;
