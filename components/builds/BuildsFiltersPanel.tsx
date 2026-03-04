@@ -51,7 +51,7 @@ type VisibleFilterItem =
       key: string;
       type: 'set';
       section: 'Echo Sets';
-      subSection: '2pc Sets' | '3pc Sets' | '5pc Sets';
+      subSection: '2p Sets' | '3p Sets' | '5p Sets';
       setId: number;
       count: number;
       label: string;
@@ -120,10 +120,19 @@ const getRegionLabel = (value: string): string => (
   REGION_OPTIONS.find((entry) => entry.value === value)?.label ?? value
 );
 
-const getSetSubSection = (count: number): '2pc Sets' | '3pc Sets' | '5pc Sets' => {
-  if (count === 3) return '3pc Sets';
-  if (count === 5) return '5pc Sets';
-  return '2pc Sets';
+const ELEMENT_ICON_FILTERS: Record<string, string> = {
+  'Aero DMG': 'brightness(0) saturate(100%) invert(81%) sepia(40%) saturate(904%) hue-rotate(93deg) brightness(104%) contrast(103%)',
+  'Glacio DMG': 'brightness(0) saturate(100%) invert(68%) sepia(39%) saturate(2707%) hue-rotate(176deg) brightness(102%) contrast(97%)',
+  'Fusion DMG': 'brightness(0) saturate(100%) invert(62%) sepia(74%) saturate(2505%) hue-rotate(328deg) brightness(98%) contrast(93%)',
+  'Electro DMG': 'brightness(0) saturate(100%) invert(63%) sepia(39%) saturate(1470%) hue-rotate(227deg) brightness(103%) contrast(101%)',
+  'Havoc DMG': 'brightness(0) saturate(100%) invert(53%) sepia(40%) saturate(1418%) hue-rotate(296deg) brightness(98%) contrast(96%)',
+  'Spectro DMG': 'brightness(0) saturate(100%) invert(83%) sepia(34%) saturate(1178%) hue-rotate(359deg) brightness(102%) contrast(94%)',
+};
+
+const getSetSubSection = (count: number): '2p Sets' | '3p Sets' | '5p Sets' => {
+  if (count === 3) return '3p Sets';
+  if (count === 5) return '5p Sets';
+  return '2p Sets';
 };
 
 const getMainSubSection = (cost: number): '4 Cost' | '3 Cost' | '1 Cost' => {
@@ -138,9 +147,9 @@ const getCostOrder = (label: '4 Cost' | '3 Cost' | '1 Cost'): number => {
   return 2;
 };
 
-const getPieceOrder = (label: '2pc Sets' | '3pc Sets' | '5pc Sets'): number => {
-  if (label === '2pc Sets') return 0;
-  if (label === '3pc Sets') return 1;
+const getPieceOrder = (label: '2p Sets' | '3p Sets' | '5p Sets'): number => {
+  if (label === '2p Sets') return 0;
+  if (label === '3p Sets') return 1;
   return 2;
 };
 
@@ -306,7 +315,7 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
       for (const count of counts) {
         const key = `${count}~${setOption.id}`;
         if (selectedSetKeys.has(key)) continue;
-        const label = `${setOption.name} ${count}pc`;
+        const label = `${setOption.name} ${count}p`;
         if (normalizedQuery && !label.toLowerCase().includes(normalizedQuery)) continue;
         setItems.push({
           key: `set-${key}`,
@@ -385,6 +394,7 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
   };
 
   const activeSortIcon = statIcons?.[activeSortLabel] ?? '';
+  const activeSortIconFilter = ELEMENT_ICON_FILTERS[activeSortLabel];
 
   return (
     <section className="rounded-xl border border-border bg-background-secondary p-4">
@@ -479,7 +489,7 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
               className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent"
             >
               {entry.icon ? <img src={entry.icon} alt="" className="h-3.5 w-3.5 object-contain" /> : null}
-              {entry.name} {entry.count}pc
+              {entry.name} {entry.count}p
               <button type="button" onClick={() => onRemoveSetEntry(index)}>
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -494,7 +504,14 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
                 key={`${entry.cost}-${entry.statType}-${index}`}
                 className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent"
               >
-                {mainIcon ? <img src={mainIcon} alt="" className="h-3.5 w-3.5 object-contain" /> : null}
+                {mainIcon ? (
+                  <img
+                    src={mainIcon}
+                    alt=""
+                    className="h-3.5 w-3.5 object-contain"
+                    style={ELEMENT_ICON_FILTERS[mainLabel] ? { filter: ELEMENT_ICON_FILTERS[mainLabel] } : undefined}
+                  />
+                ) : null}
                 {entry.cost}c {mainLabel}
                 <button type="button" onClick={() => onRemoveMainEntry(index)}>
                   <X className="h-3.5 w-3.5" />
@@ -601,7 +618,14 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
 
                     {item.type === 'main' && (
                       <span className="flex min-w-0 items-center gap-2">
-                        {item.icon ? <img src={item.icon} alt="" className="h-5 w-5 object-contain" /> : <div className="h-5 w-5 rounded bg-border" />}
+                        {item.icon ? (
+                          <img
+                            src={item.icon}
+                            alt=""
+                            className="h-5 w-5 object-contain"
+                            style={ELEMENT_ICON_FILTERS[item.statType] ? { filter: ELEMENT_ICON_FILTERS[item.statType] } : undefined}
+                          />
+                        ) : <div className="h-5 w-5 rounded bg-border" />}
                         <span className="truncate">{item.label}</span>
                       </span>
                     )}
@@ -622,7 +646,14 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
       </div>
 
       <div className="mt-2 flex items-center gap-2 text-xs text-text-primary/60">
-        {activeSortIcon ? <img src={activeSortIcon} alt="" className="h-3.5 w-3.5 object-contain" /> : null}
+        {activeSortIcon ? (
+          <img
+            src={activeSortIcon}
+            alt=""
+            className="h-3.5 w-3.5 object-contain"
+            style={activeSortIconFilter ? { filter: activeSortIconFilter } : undefined}
+          />
+        ) : null}
         Active sort: <span className="font-medium text-text-primary">{activeSortLabel}</span> ({direction})
       </div>
     </section>

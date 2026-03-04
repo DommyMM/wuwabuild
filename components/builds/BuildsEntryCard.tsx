@@ -170,7 +170,7 @@ export const BuildsEntryCard: React.FC<BuildsEntryCardProps> = ({ entry, rank, e
               {summary.icon && (
                 <img src={summary.icon} alt="" className="h-3.5 w-3.5 object-contain" />
               )}
-              {summary.label} {summary.count}pc
+              {summary.label} {summary.count}p
             </span>
           ))}
           {activeSetSummaries.length === 0 && (
