@@ -231,8 +231,7 @@ function resolveLBBaseUrl(): string {
 
 function shouldLogLBPayload(): boolean {
   if (typeof window === 'undefined') return false;
-  if (process.env.NEXT_PUBLIC_LB_DEBUG === '1') return true;
-  return process.env.NODE_ENV !== 'production';
+  return true;
 }
 
 export async function listBuilds(

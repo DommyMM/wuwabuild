@@ -229,7 +229,7 @@ export const BuildPageClient: React.FC = () => {
   })();
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
       <div className="mx-auto w-full max-w-[1440px] space-y-4 p-3 md:p-5">
         <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary px-4 py-2">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />

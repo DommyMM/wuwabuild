@@ -433,8 +433,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
         </div>
       )}
 
-      <div className="overflow-x-auto md:overflow-x-visible pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
-        <div className="rounded-lg border border-border bg-background/70">
+      <div className="overflow-x-auto md:overflow-x-visible pb-1">
+        <div className="overflow-hidden rounded-lg border border-border bg-background/70">
           <div className={`grid ${TABLE_GRID} items-center gap-4 border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
             <div className="py-2 text-center text-text-primary/70">#</div>
             <div className="py-2">Owner</div>

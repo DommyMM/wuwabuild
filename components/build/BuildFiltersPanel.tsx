@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowDownAZ, ArrowUpAZ, Search, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -190,6 +190,8 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const { t } = useLanguage();
   const { statIcons, getMainStatsByCost, getAvailableSubstats } = useGameData();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isFilterMode, setIsFilterMode] = useState(false);
+  const [activeItemIndex, setActiveItemIndex] = useState(-1);
 
   const selectedCharacterIds = useMemo(
     () => new Set(selectedCharacters.map((entry) => entry.id)),
@@ -393,6 +395,18 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     onFilterQueryChange('');
   };
 
+  const normalizedActiveItemIndex = useMemo(() => {
+    if (!isDropdownOpen || visibleItems.length === 0) return -1;
+    if (activeItemIndex < 0 || activeItemIndex >= visibleItems.length) return 0;
+    return activeItemIndex;
+  }, [activeItemIndex, isDropdownOpen, visibleItems.length]);
+
+  useEffect(() => {
+    if (!isDropdownOpen || normalizedActiveItemIndex < 0) return;
+    const activeRow = document.querySelector<HTMLButtonElement>(`button[data-filter-index="${normalizedActiveItemIndex}"]`);
+    activeRow?.scrollIntoView({ block: 'nearest' });
+  }, [isDropdownOpen, normalizedActiveItemIndex]);
+
   const activeSortIcon = statIcons?.[activeSortLabel] ?? '';
   const activeSortIconFilter = ELEMENT_ICON_FILTERS[activeSortLabel];
 
@@ -550,15 +564,51 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
             <input
               value={filterQuery}
               onChange={(event) => onFilterQueryChange(event.target.value)}
-              onFocus={() => setIsDropdownOpen(true)}
-              onBlur={() => window.setTimeout(() => setIsDropdownOpen(false), 120)}
+              onFocus={() => {
+                setIsDropdownOpen(true);
+                setIsFilterMode(true);
+                if (visibleItems.length > 0) {
+                  setActiveItemIndex((prev) => (prev >= 0 ? prev : 0));
+                }
+              }}
+              onClick={() => {
+                setIsDropdownOpen(true);
+                setIsFilterMode(true);
+                if (visibleItems.length > 0) {
+                  setActiveItemIndex((prev) => (prev >= 0 ? prev : 0));
+                }
+              }}
+              onBlur={() => window.setTimeout(() => {
+                setIsDropdownOpen(false);
+                setIsFilterMode(false);
+              }, 120)}
               onKeyDown={(event) => {
                 if (event.key === 'Backspace' && !filterQuery.trim()) {
                   onBackspaceRemove();
                 }
+                if (event.key === 'ArrowDown' && visibleItems.length > 0) {
+                  event.preventDefault();
+                  setIsFilterMode(true);
+                  setIsDropdownOpen(true);
+                  setActiveItemIndex((normalizedActiveItemIndex + 1 + visibleItems.length) % visibleItems.length);
+                }
+                if (event.key === 'ArrowUp' && visibleItems.length > 0) {
+                  event.preventDefault();
+                  setIsFilterMode(true);
+                  setIsDropdownOpen(true);
+                  setActiveItemIndex((normalizedActiveItemIndex - 1 + visibleItems.length) % visibleItems.length);
+                }
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  setIsDropdownOpen(false);
+                  setIsFilterMode(false);
+                  setActiveItemIndex(-1);
+                }
                 if (event.key === 'Enter' && visibleItems.length > 0) {
                   event.preventDefault();
-                  handleSelectItem(visibleItems[0]);
+                  const selectedIndex = normalizedActiveItemIndex >= 0 ? normalizedActiveItemIndex : 0;
+                  handleSelectItem(visibleItems[selectedIndex]);
+                  setActiveItemIndex(0);
                 }
               }}
               placeholder="Search filters (e.g. region, character, weapon, username, UID)"
@@ -568,7 +618,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
         </div>
 
         {isDropdownOpen && visibleItems.length > 0 && (
-          <div className="absolute left-0 right-0 z-20 mt-1 max-h-[520px] overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
+          <div className="absolute left-0 right-0 z-20 max-h-132 overflow-y-auto rounded-lg border border-border bg-background shadow-xl [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
             {visibleItems.map((item, index) => {
               const previous = index > 0 ? visibleItems[index - 1] : null;
               const showSection = index === 0 || previous?.section !== item.section;
@@ -580,6 +630,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                   previous.subSection !== item.subSection
                 )
               );
+              const isActiveRow = isFilterMode && index === normalizedActiveItemIndex;
 
               return (
                 <React.Fragment key={item.key}>
@@ -594,10 +645,19 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                     </div>
                   )}
                   <button
+                    data-filter-index={index}
                     type="button"
                     onMouseDown={(event) => event.preventDefault()}
+                    onMouseEnter={() => {
+                      setActiveItemIndex(index);
+                      setIsFilterMode(true);
+                    }}
                     onClick={() => handleSelectItem(item)}
-                    className="flex w-full items-center justify-between gap-2 border-b border-border/60 px-3 py-2 text-left text-sm text-text-primary transition-colors last:border-b-0 hover:bg-background-secondary"
+                    className={`flex w-full items-center justify-between gap-2 border-b border-border/60 px-3 py-2 text-left text-sm transition-colors last:border-b-0 ${
+                      isActiveRow
+                        ? 'bg-cyan-500/18 text-cyan-100'
+                        : 'text-text-primary hover:bg-amber-400/16 hover:text-amber-100'
+                    }`}
                   >
                     {item.type === 'character' && (
                       <span className="flex min-w-0 items-center gap-2">
@@ -642,7 +702,11 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                       <span className="truncate">{item.label}</span>
                     )}
 
-                    <span className="rounded bg-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-text-primary/70">
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
+                      isActiveRow
+                        ? 'bg-cyan-500/20 text-cyan-100'
+                        : 'bg-border text-text-primary/70'
+                    }`}>
                       {getTypeTagLabel(item.type)}
                     </span>
                   </button>
