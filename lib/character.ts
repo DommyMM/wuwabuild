@@ -59,8 +59,8 @@ export interface ForteNodeData {
 
 export interface CDNChainEntry {
   id: number;
-  name: string;
-  description?: string;
+  name: I18nString | string;
+  description?: I18nString | string;
   icon: string;
   param?: string[];
 }

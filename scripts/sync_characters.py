@@ -46,8 +46,9 @@ SKIP_IDS = {9990, 9991}
 #   ["k1", "k2"]   = keep only these keys (auto-recurses into dicts-of-dicts and lists-of-dicts)
 #   "value"        = extract just the 'value' from each stat entry
 #
-# skillTrees and chains are included by default but post-processed
-# to English-only trimmed format (see simplify_skill_trees / simplify_chains).
+# skillTrees and chains are included by default but post-processed.
+# skillTrees are trimmed to a compact English-facing format for forte nodes.
+# chains keep localized name/description objects for frontend tooltips.
 SCHEMA = {
     "id": True,
     "name": True,
@@ -308,12 +309,12 @@ def extract_skill_icons(data: dict) -> dict[str, str] | None:
 
 
 def simplify_chains(chains: Any) -> list[dict] | None:
-    """Simplify chains to a flat English-only list.
+    """Simplify chains to a flat list while preserving localization.
 
     Raw CDN shape (dict of dicts keyed by chain ID):
         { "271": { id, name: {i18n}, description: {i18n}, icon, param } }
 
-    Output (flat list, English-only):
+    Output (flat list):
         [ { id, name, description, icon, param } ]
     """
     if not isinstance(chains, dict):
@@ -325,10 +326,10 @@ def simplify_chains(chains: Any) -> list[dict] | None:
             continue
 
         name_field = chain.get("name", {})
-        name = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field)
+        name = name_field if isinstance(name_field, dict) else str(name_field)
 
         desc_field = chain.get("description", {})
-        desc = desc_field.get("en", "") if isinstance(desc_field, dict) else str(desc_field)
+        desc = desc_field if isinstance(desc_field, dict) else str(desc_field)
 
         icon = chain.get("icon", "")
         if isinstance(icon, str) and icon.startswith("/d/"):
@@ -389,7 +390,7 @@ def transform_character(data: dict, schema: dict) -> dict | None:
         else:
             del result["skillTrees"]
 
-    # Post-process chains → flat English-only list
+    # Post-process chains → flat localized list
     if "chains" in result:
         simplified = simplify_chains(result["chains"])
         if simplified:

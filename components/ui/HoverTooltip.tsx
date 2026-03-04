@@ -18,10 +18,11 @@ interface HoverTooltipProps {
   disabled?: boolean;
   maxWidthClassName?: string;
   tooltipClassName?: string;
+  maxRisePx?: number;
 }
 
 const VIEWPORT_PADDING = 8;
-const DEFAULT_MAX_WIDTH_CLASS = 'max-w-[24rem]';
+const DEFAULT_MAX_WIDTH_CLASS = 'max-w-96';
 
 const clamp = (value: number, min: number, max: number): number => (
   Math.min(max, Math.max(min, value))
@@ -84,6 +85,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   disabled = false,
   maxWidthClassName = DEFAULT_MAX_WIDTH_CLASS,
   tooltipClassName = '',
+  maxRisePx,
 }) => {
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
@@ -120,11 +122,18 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
     const maxLeft = Math.max(VIEWPORT_PADDING, window.innerWidth - tooltipRect.width - VIEWPORT_PADDING);
     const maxTop = Math.max(VIEWPORT_PADDING, window.innerHeight - tooltipRect.height - VIEWPORT_PADDING);
 
+    let nextTop = clamp(resolved.top, VIEWPORT_PADDING, maxTop);
+    if (typeof maxRisePx === 'number' && Number.isFinite(maxRisePx) && maxRisePx >= 0) {
+      const minTopFromTrigger = triggerRect.top - maxRisePx;
+      nextTop = Math.max(nextTop, minTopFromTrigger);
+      nextTop = clamp(nextTop, VIEWPORT_PADDING, maxTop);
+    }
+
     setPosition({
       left: clamp(resolved.left, VIEWPORT_PADDING, maxLeft),
-      top: clamp(resolved.top, VIEWPORT_PADDING, maxTop),
+      top: nextTop,
     });
-  }, [offset, placement]);
+  }, [maxRisePx, offset, placement]);
 
   useLayoutEffect(() => {
     if (!isOpen) return;

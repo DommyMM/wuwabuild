@@ -156,7 +156,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
             content={tooltipContent}
             disabled={!fetter}
             placement="top"
-            maxWidthClassName="max-w-[30rem]"
+            maxWidthClassName="max-w-120"
           >
             <div
               className={`flex w-44 items-center justify-between rounded-xl bg-black/35 p-1.5 transition-all duration-200 ${interactionClass}`}

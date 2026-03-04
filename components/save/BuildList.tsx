@@ -77,7 +77,7 @@ const OverflowMarquee: React.FC<OverflowMarqueeProps> = ({
       }
 
       rafId = requestAnimationFrame(() => {
-        const overflowPx = measure.scrollWidth - container.clientWidth;
+        const overflowPx = measure.getBoundingClientRect().width - container.getBoundingClientRect().width;
         setScrolls((prev) => (
           prev
             ? overflowPx > stopOverflowPx
@@ -109,10 +109,10 @@ const OverflowMarquee: React.FC<OverflowMarqueeProps> = ({
       </span>
       {scrolls ? (
         <Marquee speed={speed} gradient={false} pauseOnHover>
-          <span className={`whitespace-nowrap pr-8 ${textClassName}`}>{text}</span>
+          <span className={`whitespace-nowrap pr-6 ${textClassName}`}>{text}</span>
         </Marquee>
       ) : (
-        <span className={`block truncate whitespace-nowrap ${textClassName}`}>{text}</span>
+        <span className={`block whitespace-nowrap ${textClassName}`}>{text}</span>
       )}
     </div>
   );
@@ -252,7 +252,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
                 className="h-7 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-sm font-medium text-text-primary focus:border-accent/60 focus:outline-none"
               />
             ) : (
-              <h3 className="truncate font-medium text-text-primary">
+              <h3 className="font-medium text-text-primary">
                 {build.name}
               </h3>
             )}
@@ -426,7 +426,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
                       <div className="h-12 w-12 rounded bg-border" />
                     )}
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-text-primary">{characterName}</div>
+                      <div className="text-sm font-semibold text-text-primary">{characterName}</div>
                       <div className="text-xs text-text-primary/70">Lv.{characterLevel} • S{build.state.sequence}</div>
                     </div>
                   </div>
@@ -441,7 +441,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
                       <div className="h-12 w-12 rounded bg-border" />
                     )}
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-text-primary">{weaponName ?? 'No Weapon'}</div>
+                      <div className="text-sm font-semibold text-text-primary">{weaponName ?? 'No Weapon'}</div>
                       <div className="text-xs text-text-primary/70">
                         Lv.{build.state.weaponLevel} • R{build.state.weaponRank}
                       </div>
@@ -498,8 +498,8 @@ const BuildItem: React.FC<BuildItemProps> = ({
                               <OverflowMarquee
                                 text={name}
                                 textClassName="font-semibold text-text-primary"
-                                startOverflowPx={10}
-                                stopOverflowPx={5}
+                                startOverflowPx={16}
+                                stopOverflowPx={10}
                               />
                               <div className="text-xs text-text-primary/60">
                                 Lv.{panel.level} • CV {cv.toFixed(1)}
@@ -508,7 +508,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
                           </div>
                           {panel.stats.mainStat.type && (
                             <div className="mb-1 flex justify-between gap-2 text-xs">
-                              <span className="truncate text-accent">{panel.stats.mainStat.type}</span>
+                              <span className="text-accent">{panel.stats.mainStat.type}</span>
                               <span className="shrink-0 text-accent">{formatStatValue(panel.stats.mainStat.value)}</span>
                             </div>
                           )}
@@ -521,8 +521,8 @@ const BuildItem: React.FC<BuildItemProps> = ({
                                     <OverflowMarquee
                                       text={sub.type ?? ''}
                                       textClassName="text-xs"
-                                      startOverflowPx={14}
-                                      stopOverflowPx={8}
+                                      startOverflowPx={1.35}
+                                      stopOverflowPx={0.45}
                                     />
                                   </div>
                                   <span className="shrink-0">{formatStatValue(sub.value)}</span>

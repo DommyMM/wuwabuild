@@ -399,7 +399,7 @@ export const SavesPageClient: React.FC = () => {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-5xl p-6 md:px-16">
+      <div className="mx-auto max-w-5xl p-6 md:px-0">
         <div className="mb-4 flex flex-col gap-3 rounded-lg border border-border bg-background-secondary p-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="relative flex-1">
