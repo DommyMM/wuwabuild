@@ -17,10 +17,12 @@ export type SetOption = {
   id: number;
   name: string;
   pieceCount: number;
+  icon: string;
 };
 
 export type SelectedSetEntry = LBEchoSetFilter & {
   name: string;
+  icon: string;
 };
 
 export type SelectedMainEntry = LBEchoMainFilter & {

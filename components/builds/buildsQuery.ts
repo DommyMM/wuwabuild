@@ -3,6 +3,7 @@ import {
   DEFAULT_DIRECTION,
   DEFAULT_PAGE,
   DEFAULT_SORT,
+  MAIN_STAT_OPTIONS,
   SORT_OPTIONS,
 } from './buildsConstants';
 import { QuerySnapshot } from './types';
@@ -33,13 +34,16 @@ function parseEchoSetCSV(value: string | null): LBEchoSetFilter[] {
 
 function parseEchoMainCSV(value: string | null): LBEchoMainFilter[] {
   if (!value) return [];
+  const labelByCode: Map<string, string> = new Map(
+    MAIN_STAT_OPTIONS.map((entry) => [entry.code, entry.label]),
+  );
   return value
     .split('.')
     .map((entry) => {
       const [costRaw, statType] = entry.split('~');
       const cost = Number.parseInt(costRaw ?? '', 10);
       if (!Number.isFinite(cost) || !statType) return null;
-      return { cost, statType };
+      return { cost, statType: labelByCode.get(statType) ?? statType };
     })
     .filter((entry): entry is LBEchoMainFilter => entry !== null);
 }

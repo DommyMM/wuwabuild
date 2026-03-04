@@ -81,6 +81,7 @@ export const BuildsPageClient: React.FC = () => {
         id: entry.id,
         name: t(entry.name),
         pieceCount: entry.pieceCount,
+        icon: entry.icon ?? '',
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
   ), [fetters, t]);
@@ -91,6 +92,7 @@ export const BuildsPageClient: React.FC = () => {
       return {
         ...entry,
         name: setOption?.name ?? `Set ${entry.setId}`,
+        icon: setOption?.icon ?? '',
       };
     })
   ), [echoSets, setOptions]);
@@ -234,7 +236,7 @@ export const BuildsPageClient: React.FC = () => {
     setEchoMains([]);
     setFilterQuery('');
     setPage(DEFAULT_PAGE);
-  }, []);
+}, []);
 
   const rankStart = (page - 1) * ITEMS_PER_PAGE + 1;
 
