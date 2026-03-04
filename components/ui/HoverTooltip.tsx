@@ -179,16 +179,15 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
         className="inline-flex"
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
-        onFocusCapture={() => setIsOpen(true)}
-        onBlurCapture={() => setIsOpen(false)}
       >
         {children}
       </div>
       {isOpen && typeof document !== 'undefined' && createPortal(
         <div
           ref={tooltipRef}
-          style={{ top: position.top, left: position.left }}
+          style={{ top: position.top, left: position.left, pointerEvents: 'none' }}
           className={`pointer-events-none fixed z-45 max-h-[min(90vh,900px)] overflow-y-auto rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${maxWidthClassName} ${tooltipClassName}`}
+          aria-hidden="true"
         >
           {content}
         </div>,
