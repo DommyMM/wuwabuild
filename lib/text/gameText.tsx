@@ -17,6 +17,9 @@ export interface FetterPieceDescriptionResult {
 }
 
 export type FetterPieceEffect = NonNullable<CDNFetter['pieceEffects']>[string];
+interface ResolveFetterPieceOptions {
+  descriptionTemplate?: string;
+}
 
 const formatNumber = (value: number): string => {
   const rounded = Math.round(value * 10000) / 10000;
@@ -85,9 +88,10 @@ export const renderTemplateWithHighlights = ({
 };
 
 export const resolveFetterPieceDescription = (
-  pieceEffect: FetterPieceEffect | null | undefined
+  pieceEffect: FetterPieceEffect | null | undefined,
+  options: ResolveFetterPieceOptions = {}
 ): FetterPieceDescriptionResult => {
-  const description = stripGameMarkup(pieceEffect?.effectDescription?.en ?? '');
+  const description = stripGameMarkup(options.descriptionTemplate ?? pieceEffect?.effectDescription?.en ?? '');
   const addProps = Array.isArray(pieceEffect?.addProp) ? pieceEffect.addProp : [];
 
   const getParamValue = (index: number): string | null => {
