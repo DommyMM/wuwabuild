@@ -138,7 +138,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
               <div className="flex flex-col w-full">
                 <div className="flex">
                   <div className="flex w-120 shrink-0 flex-col pt-4 gap-1">
-                    <div className="flex">
+                    <div className="flex gap-4">
                       <SequenceStrip
                         chains={selected.character.chains ?? []}
                         sequence={state.sequence}

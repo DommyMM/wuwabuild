@@ -93,8 +93,14 @@ export const resolveFetterPieceDescription = (
 ): FetterPieceDescriptionResult => {
   const description = stripGameMarkup(options.descriptionTemplate ?? pieceEffect?.effectDescription?.en ?? '');
   const addProps = Array.isArray(pieceEffect?.addProp) ? pieceEffect.addProp : [];
+  const effectParams = Array.isArray(pieceEffect?.effectDescriptionParam)
+    ? pieceEffect.effectDescriptionParam.map((param) => String(param))
+    : [];
 
   const getParamValue = (index: number): string | null => {
+    if (index >= 0 && index < effectParams.length) {
+      return effectParams[index];
+    }
     const prop = addProps[index];
     if (!prop) return null;
     const normalizedValue = prop.isRatio ? prop.value : prop.value / 10;

@@ -169,14 +169,20 @@ def _fmt_effect_value(value: float) -> str:
     return f"{value:.4f}".rstrip("0").rstrip(".")
 
 
-def _resolve_effect_placeholders(effect_en: str, add_prop: list[dict]) -> str:
+def _resolve_effect_placeholders(effect_en: str, add_prop: list[dict], effect_params: list[str] | None = None) -> str:
     if not effect_en:
         return ""
-    values = [_fmt_effect_value(float(p.get("value", 0))) for p in add_prop]
+    values_from_params: list[str] = []
+    if isinstance(effect_params, list):
+        values_from_params = [str(v) for v in effect_params]
+
+    values_from_add_prop = [_fmt_effect_value(float(p.get("value", 0))) for p in add_prop]
 
     def repl(match: re.Match[str]) -> str:
         idx = int(match.group(1))
-        return values[idx] if idx < len(values) else match.group(0)
+        if idx < len(values_from_params):
+            return values_from_params[idx]
+        return values_from_add_prop[idx] if idx < len(values_from_add_prop) else match.group(0)
 
     return re.sub(r"\{(\d+)\}", repl, effect_en)
 
@@ -487,6 +493,7 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
                 "addProp": fetter.get("addProp", []),
                 "buffIds": fetter.get("buffIds", []),
                 "effectDescription": fetter.get("effectDescription", {}),
+                "effectDescriptionParam": fetter.get("effectDescriptionParam", []),
             })]
 
         for piece_key, piece_data in items:
@@ -495,13 +502,17 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
             add_prop = piece_data.get("addProp", [])
             if not isinstance(add_prop, list):
                 add_prop = []
+            effect_params = piece_data.get("effectDescriptionParam", [])
+            if not isinstance(effect_params, list):
+                effect_params = []
             effect_obj = piece_data.get("effectDescription", {})
             effect_en_raw = (effect_obj.get("en", "") if isinstance(effect_obj, dict) else "").strip()
             normalized_piece_effects[piece_key] = {
                 "fetter_id": piece_data.get("fetterId"),
                 "effect_en_raw": effect_en_raw,
-                "effect_en": _resolve_effect_placeholders(effect_en_raw, add_prop),
+                "effect_en": _resolve_effect_placeholders(effect_en_raw, add_prop, effect_params),
                 "add_prop": add_prop,
+                "effect_params": effect_params,
                 "buff_ids": piece_data.get("buffIds", []),
             }
 

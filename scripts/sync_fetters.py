@@ -1,8 +1,8 @@
 """
 Sync fetter data to public/Data/Fetters.json.
 
-Fetches PhantomFetters.json and PhantomFetterGroups.json, merges them into one
-file keyed by FetterGroup ID (the same IDs used in Echo.fetter arrays).
+Fetches PhantomFetters.json, PhantomFetterGroups.json, and ConfigDBParsed/PhantomFetter.json,
+then merges them into one file keyed by FetterGroup ID (the same IDs used in Echo.fetter arrays).
 
 The smallest piece-count tier is still exposed in top-level fields for backward
 compatibility (2-piece for most sets, 3-piece for 3-piece-only sets), and all
@@ -19,9 +19,10 @@ Output shape per entry:
     "addProp":   [{ "id": 22, "value": 10, "isRatio": false }],
     "buffIds":   [],
     "effectDescription": { "en": ..., ... },
+    "effectDescriptionParam": ["10%"],
     "pieceEffects": {
-      "2": { "pieceCount": 2, "fetterId": ..., "addProp": [...], "buffIds": [...], "effectDescription": {...} },
-      "5": { "pieceCount": 5, "fetterId": ..., "addProp": [...], "buffIds": [...], "effectDescription": {...} }
+      "2": { "pieceCount": 2, "fetterId": ..., "addProp": [...], "buffIds": [...], "effectDescription": {...}, "effectDescriptionParam": [...] },
+      "5": { "pieceCount": 5, "fetterId": ..., "addProp": [...], "buffIds": [...], "effectDescription": {...}, "effectDescriptionParam": [...] }
     },
     "fetterIcon": "https://...",
     "effectDefineDescription": { "en": ..., ... }  -- lore text
@@ -46,6 +47,7 @@ except ImportError:
 
 FETTERS_URL  = f"{CDN_BASE}/d/GameData/Grouped/LocalizationIndex/PhantomFetters.json"
 GROUPS_URL   = f"{CDN_BASE}/d/GameData/Grouped/LocalizationIndex/PhantomFetterGroups.json"
+FETTERS_CONFIG_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/PhantomFetter.json"
 
 OUTPUT = Path(__file__).parent.parent / "public/Data/Fetters.json"
 
@@ -68,14 +70,19 @@ def normalise_prop(prop: dict) -> dict:
     }
 
 
-def build_piece_effect(piece_count: int, fetter: dict) -> dict:
+def build_piece_effect(piece_count: int, fetter: dict, config_fetter: dict | None) -> dict:
     """Build one piece-tier payload (2/3/5) from a PhantomFetter row."""
+    effect_description_param = config_fetter.get("EffectDescriptionParam", []) if isinstance(config_fetter, dict) else []
+    if not isinstance(effect_description_param, list):
+        effect_description_param = []
+
     return {
         "pieceCount": piece_count,
         "fetterId": fetter["Id"],
         "addProp": [normalise_prop(p) for p in fetter.get("AddProp", [])],
         "buffIds": fetter.get("BuffIds", []),
         "effectDescription": fetter.get("EffectDescription", {}),
+        "effectDescriptionParam": [str(v) for v in effect_description_param],
     }
 
 
@@ -95,8 +102,16 @@ def main():
     groups_raw: list[dict] = session.get(GROUPS_URL, timeout=30).json()
     print(f"  {len(groups_raw)} fetter groups")
 
+    print("Fetching ConfigDBParsed/PhantomFetter.json ...")
+    fetters_config_raw: list[dict] = session.get(FETTERS_CONFIG_URL, timeout=30).json()
+    print(f"  {len(fetters_config_raw)} config fetter entries")
+
     # Index individual fetter entries by their Id
     fetters_by_id: dict[int, dict] = {f["Id"]: f for f in fetters_raw}
+    config_fetters_by_id: dict[int, dict] = {
+        int(f["Id"]): f for f in fetters_config_raw
+        if isinstance(f, dict) and "Id" in f
+    }
 
     output: list[dict] = []
 
@@ -125,11 +140,13 @@ def main():
             if not tier_fetter:
                 print(f"  WARNING: piece {key} fetter id {fid} missing for group {group_id}")
                 continue
-            piece_effects[key] = build_piece_effect(int(key), tier_fetter)
+            tier_config_fetter = config_fetters_by_id.get(int(fid))
+            piece_effects[key] = build_piece_effect(int(key), tier_fetter, tier_config_fetter)
 
         # Lore text is consistent across pieces, take from primary entry.
         lore = fetter.get("EffectDefineDescription", {})
-        primary_effect = piece_effects.get(piece_count_str, build_piece_effect(int(piece_count_str), fetter))
+        primary_config_fetter = config_fetters_by_id.get(int(fetter_id))
+        primary_effect = piece_effects.get(piece_count_str, build_piece_effect(int(piece_count_str), fetter, primary_config_fetter))
 
         entry = {
             "id":         group_id,
@@ -141,6 +158,7 @@ def main():
             "addProp":    primary_effect["addProp"],
             "buffIds":    primary_effect["buffIds"],
             "effectDescription": primary_effect["effectDescription"],
+            "effectDescriptionParam": primary_effect["effectDescriptionParam"],
             "pieceEffects": piece_effects,
             "fetterIcon": prepend_cdn(fetter.get("FetterIcon", "")),
             "effectDefineDescription": lore,
