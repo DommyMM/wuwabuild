@@ -205,7 +205,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
             <HoverTooltip
               content={tooltipContent}
               disabled={!move}
-              placement="top"
+              placement="right"
               maxWidthClassName="max-w-96"
               pinViewportBottom
             >

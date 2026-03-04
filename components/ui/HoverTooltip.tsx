@@ -91,6 +91,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
 }) => {
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0 });
 
@@ -168,6 +169,31 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
     };
   }, [isOpen, updatePosition]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      const triggerEl = triggerRef.current;
+      const scrollEl = scrollRef.current;
+      if (!triggerEl || !scrollEl) return;
+
+      const target = event.target as Node | null;
+      if (!target || !triggerEl.contains(target)) return;
+
+      const maxScrollTop = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
+      if (maxScrollTop <= 0) return;
+
+      event.preventDefault();
+      const next = clamp(scrollEl.scrollTop + event.deltaY, 0, maxScrollTop);
+      scrollEl.scrollTop = next;
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      window.removeEventListener('wheel', handleWheel as EventListener);
+    };
+  }, [isOpen]);
+
   if (!shouldShow) {
     return <>{children}</>;
   }
@@ -186,10 +212,15 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
         <div
           ref={tooltipRef}
           style={{ top: position.top, left: position.left, pointerEvents: 'none' }}
-          className={`pointer-events-none fixed z-45 max-h-[min(90vh,900px)] overflow-y-auto rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${maxWidthClassName} ${tooltipClassName}`}
+          className={`pointer-events-none fixed z-45 max-h-[min(90vh,900px)] overflow-hidden rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${maxWidthClassName} ${tooltipClassName}`}
           aria-hidden="true"
         >
-          {content}
+          <div
+            ref={scrollRef}
+            className="max-h-[min(90vh,900px)] overflow-y-auto p-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0"
+          >
+            {content}
+          </div>
         </div>,
         document.body
       )}
