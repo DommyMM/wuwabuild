@@ -5,6 +5,7 @@ import { useStats } from '@/contexts/StatsContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
+import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 
 const FLAT_STAT_KEYS = ['HP', 'ATK', 'DEF'] as const;
@@ -19,14 +20,6 @@ const ELEMENT_TO_STAT_KEY: Readonly<Record<string, string>> = {
   Spectro: 'Spectro DMG',
 };
 const ELEMENTAL_DMG_KEYS = new Set(Object.values(ELEMENT_TO_STAT_KEY));
-const ELEMENT_ICON_FILTERS: Record<string, string> = {
-  'Aero DMG': 'brightness(0) saturate(100%) invert(81%) sepia(40%) saturate(904%) hue-rotate(93deg) brightness(104%) contrast(103%)',
-  'Glacio DMG': 'brightness(0) saturate(100%) invert(68%) sepia(39%) saturate(2707%) hue-rotate(176deg) brightness(102%) contrast(97%)',
-  'Fusion DMG': 'brightness(0) saturate(100%) invert(62%) sepia(74%) saturate(2505%) hue-rotate(328deg) brightness(98%) contrast(93%)',
-  'Electro DMG': 'brightness(0) saturate(100%) invert(63%) sepia(39%) saturate(1470%) hue-rotate(227deg) brightness(103%) contrast(101%)',
-  'Havoc DMG': 'brightness(0) saturate(100%) invert(53%) sepia(40%) saturate(1418%) hue-rotate(296deg) brightness(98%) contrast(96%)',
-  'Spectro DMG': 'brightness(0) saturate(100%) invert(83%) sepia(34%) saturate(1178%) hue-rotate(359deg) brightness(102%) contrast(94%)',
-};
 
 const isFlatStatKey = (key: string): key is FlatStatKey => FLAT_STAT_KEYS.some((flatStatKey) => flatStatKey === key);
 

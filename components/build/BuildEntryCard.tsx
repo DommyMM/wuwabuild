@@ -9,21 +9,8 @@ import { formatCharacterDisplayName } from '@/lib/character';
 import { ElementType } from '@/lib/echo';
 import { LBBuildEntry } from '@/lib/lb';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
-import {
-  formatFlatStat,
-  formatPercentStat,
-  formatTimestamp,
-  getElementDMGLabel,
-} from './buildFormatters';
-
-const ELEMENT_TINT_CLASS: Record<string, string> = {
-  Aero: 'bg-[radial-gradient(100%_70%_at_5%_0%,rgba(85,255,181,0.11)_0%,transparent_62%)]',
-  Havoc: 'bg-[radial-gradient(100%_70%_at_5%_0%,rgba(230,73,166,0.12)_0%,transparent_62%)]',
-  Spectro: 'bg-[radial-gradient(100%_70%_at_5%_0%,rgba(248,229,108,0.11)_0%,transparent_62%)]',
-  Glacio: 'bg-[radial-gradient(100%_70%_at_5%_0%,rgba(65,174,251,0.12)_0%,transparent_62%)]',
-  Electro: 'bg-[radial-gradient(100%_70%_at_5%_0%,rgba(180,107,255,0.12)_0%,transparent_62%)]',
-  Fusion: 'bg-[radial-gradient(100%_70%_at_5%_0%,rgba(240,116,78,0.12)_0%,transparent_62%)]',
-};
+import { ELEMENT_TINT_CLASS } from '@/lib/elementVisuals';
+import { formatFlatStat, formatPercentStat, formatTimestamp, getElementDMGLabel } from './buildFormatters';
 
 interface BuildEntryCardProps {
   entry: LBBuildEntry;

@@ -2,15 +2,7 @@
 
 import React from 'react';
 import { CDNChainEntry } from '@/lib/character';
-
-const ELEMENT_COLOR: Record<string, string> = {
-  Aero:    '#55FFB5',
-  Havoc:   '#E649A6',
-  Spectro: '#F8E56C',
-  Glacio:  '#41AEFB',
-  Electro: '#B46BFF',
-  Fusion:  '#F0744E',
-};
+import { ELEMENT_COLOR } from '@/lib/elementVisuals';
 
 interface SequenceStripProps {
   chains: CDNChainEntry[];

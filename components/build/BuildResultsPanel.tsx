@@ -1,29 +1,16 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronDown,
-  ChevronFirst,
-  ChevronLast,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  ChevronsUpDown,
-} from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { ElementType } from '@/lib/echo';
+import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
+import { getCVRatingColor } from '@/lib/calculations/cv';
 import { LBBuildEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
-import {
-  formatFlatStat,
-  formatPercentStat,
-  getSortLabel,
-} from './buildFormatters';
+import { formatFlatStat, formatPercentStat, getSortLabel } from './buildFormatters';
 
 type CVSortKey = 'finalCV' | 'CR' | 'CD';
 type StatSortKey = Exclude<LBSortKey, 'finalCV' | 'timestamp' | 'characterId' | 'CR' | 'CD'>;
@@ -100,15 +87,6 @@ const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set<LBSortKey>([
   'RL',
 ]);
 
-const ELEMENT_ICON_FILTERS: Record<string, string> = {
-  'Aero DMG': 'brightness(0) saturate(100%) invert(81%) sepia(40%) saturate(904%) hue-rotate(93deg) brightness(104%) contrast(103%)',
-  'Glacio DMG': 'brightness(0) saturate(100%) invert(68%) sepia(39%) saturate(2707%) hue-rotate(176deg) brightness(102%) contrast(97%)',
-  'Fusion DMG': 'brightness(0) saturate(100%) invert(62%) sepia(74%) saturate(2505%) hue-rotate(328deg) brightness(98%) contrast(93%)',
-  'Electro DMG': 'brightness(0) saturate(100%) invert(63%) sepia(39%) saturate(1470%) hue-rotate(227deg) brightness(103%) contrast(101%)',
-  'Havoc DMG': 'brightness(0) saturate(100%) invert(53%) sepia(40%) saturate(1418%) hue-rotate(296deg) brightness(98%) contrast(96%)',
-  'Spectro DMG': 'brightness(0) saturate(100%) invert(83%) sepia(34%) saturate(1178%) hue-rotate(359deg) brightness(102%) contrast(94%)',
-};
-
 const REGION_BADGES: Record<string, RegionBadge> = {
   '1': { label: 'HMT', className: 'bg-red-500/85 text-white' },
   '5': { label: 'NA', className: 'bg-amber-400/90 text-black' },
@@ -117,7 +95,7 @@ const REGION_BADGES: Record<string, RegionBadge> = {
   '9': { label: 'SEA', className: 'bg-cyan-300/90 text-black' },
 };
 
-const TABLE_GRID = 'grid-cols-[48px_220px_220px_130px_170px_repeat(4,minmax(120px,1fr))]';
+const TABLE_GRID = 'grid-cols-[52px_120px_120px_120px_90px_120px_160px_repeat(4,minmax(110px,1fr))]';
 const PAGE_SKIP = 10;
 const PAGINATION_BUTTON_CLASS = 'inline-flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded border border-border bg-background p-0 transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40';
 const PAGE_INDICATOR_CLASS = 'inline-flex h-7.5 w-7.5 items-center justify-center rounded border border-border bg-background text-xs text-text-primary';
@@ -126,12 +104,6 @@ function resolveRegionBadge(uid: string | undefined): RegionBadge | null {
   if (!uid) return null;
   const prefix = uid.trim()[0];
   return REGION_BADGES[prefix] ?? null;
-}
-
-function getCvTone(finalCV: number): string {
-  if (finalCV >= 300) return 'text-red-400';
-  if (finalCV >= 280) return 'text-amber-300';
-  return 'text-accent';
 }
 
 function formatStatByKey(key: LBSortKey, value: number): string {
@@ -168,35 +140,22 @@ const SortHeaderMenu: React.FC<{
       onMouseEnter={() => onOpenMenu(menuId)}
       onMouseLeave={() => onOpenMenu(null)}
     >
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={onHeaderSort}
-          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
-            active
-              ? 'border-accent/60 bg-accent/15 text-accent'
-              : 'border-border bg-background text-text-primary/85 hover:border-accent/45'
-          }`}
-        >
-          <span className="truncate">{label}</span>
-          {active ? (
-            direction === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronsUpDown className="h-3.5 w-3.5 text-text-primary/50" />
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpenMenu(isOpen ? null : menuId);
-          }}
-          className="rounded border border-border bg-background p-1 text-text-primary/60 transition-colors hover:border-accent/45 hover:text-text-primary"
-          aria-label="Open sort menu"
-        >
-          <ChevronDown className="h-3.5 w-3.5" />
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onHeaderSort}
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
+          active
+            ? 'border-accent/60 bg-accent/15 text-accent'
+            : 'border-border bg-background text-text-primary/85 hover:border-accent/45'
+        }`}
+      >
+        <span className="truncate">{label}</span>
+        {active ? (
+          direction === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronsUpDown className="h-3.5 w-3.5 text-text-primary/50" />
+        )}
+      </button>
 
       {isOpen && (
         <div className="absolute left-0 top-full z-20 mt-1 min-w-[190px] rounded-md border border-border bg-background shadow-xl">
@@ -295,11 +254,13 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
       )}
 
       <div className="overflow-x-auto pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
-        <div className="min-w-[1210px] rounded-lg border border-border bg-background/70">
+        <div className="rounded-lg border border-border bg-background/70">
           <div className={`grid ${TABLE_GRID} items-center gap-2 border-b border-border bg-background-secondary/95 px-2 py-2 text-xs font-semibold text-text-primary`}>
             <div className="text-center text-text-primary/70">#</div>
             <div>Owner</div>
             <div>Name</div>
+            <div aria-hidden="true" />
+            <div aria-hidden="true" />
             <div>Sets</div>
             <SortHeaderMenu
               menuId="sort-cv"
@@ -364,6 +325,9 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                     roverElement: entry.state.roverElement,
                   })
                   : entry.state.characterId || 'Unknown Character';
+                const weaponName = weapon
+                  ? t(weapon.nameI18n ?? { en: weapon.name })
+                  : entry.state.weaponId || 'Unknown Weapon';
 
                 const setCounts = new Map<ElementType, number>();
                 for (const panel of entry.state.echoPanels) {
@@ -421,16 +385,22 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                         ) : (
                           <div className="h-8 w-8 rounded bg-border" />
                         )}
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-text-primary">{characterName}</div>
-                          <div className="flex items-center gap-1.5 text-xs text-text-primary/60">
-                            {weapon && (
-                              <img src={getWeaponPaths(weapon)} alt="" className="h-4 w-4 object-contain" />
-                            )}
-                            <span>S{entry.state.sequence} · R{entry.state.weaponRank}</span>
-                          </div>
-                        </div>
+                        <span className="truncate text-sm font-semibold text-text-primary">{characterName}</span>
                       </div>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs text-text-primary/75">
+                        {weapon && (
+                          <img src={getWeaponPaths(weapon)} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                        )}
+                        <span className="truncate">{weaponName}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex min-w-0 items-center gap-1 text-xs text-text-primary/75">
+                      <span className="rounded border border-border bg-background px-1.5 py-0.5">S{entry.state.sequence}</span>
+                      <span className="rounded border border-border bg-background px-1.5 py-0.5">R{entry.state.weaponRank}</span>
                     </div>
 
                     <div className="flex min-w-0 items-center gap-1.5">
@@ -455,7 +425,10 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                       <div className="text-xs text-text-primary/70">
                         {formatPercentStat(entry.stats.CR)} : {formatPercentStat(entry.stats.CD)}
                       </div>
-                      <div className={`text-sm font-semibold ${getCvTone(entry.finalCV)}`}>
+                      <div
+                        className="text-sm font-semibold"
+                        style={{ color: getCVRatingColor(entry.finalCV) }}
+                      >
                         {entry.finalCV.toFixed(1)} cv
                       </div>
                     </div>

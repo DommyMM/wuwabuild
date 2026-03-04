@@ -4,30 +4,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import {
-  LBBuildEntry,
-  LBEchoMainFilter,
-  LBEchoSetFilter,
-  LBSortDirection,
-  LBSortKey,
-  listBuilds,
-} from '@/lib/lb';
-import {
-  DEFAULT_PAGE,
-  ITEMS_PER_PAGE,
-  MAIN_STAT_OPTIONS,
-} from './buildConstants';
+import { LBBuildEntry, LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
+import { DEFAULT_PAGE, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
 import { parseInitialQuery, serializeQuery } from './buildQuery';
 import { BuildFiltersPanel } from './BuildFiltersPanel';
 import { BuildHeader } from './BuildHeader';
 import { BuildResultsPanel } from './BuildResultsPanel';
-import {
-  QuerySnapshot,
-  SelectedMainEntry,
-  SelectedSetEntry,
-  SetOption,
-} from './types';
+import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from './types';
 
 export const BuildPageClient: React.FC = () => {
   const router = useRouter();
@@ -236,12 +220,18 @@ export const BuildPageClient: React.FC = () => {
     setPage(DEFAULT_PAGE);
   }, []);
 
-  const rankStart = (page - 1) * ITEMS_PER_PAGE + 1;
+  const rankStart = (() => {
+    if (total <= 0) return 1;
+    if (page === pageCount) {
+      return Math.max(1, total - builds.length + 1);
+    }
+    return (page - 1) * ITEMS_PER_PAGE + 1;
+  })();
 
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto w-full max-w-[1440px] space-y-4 p-3 md:p-5">
-        <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary p-4 md:p-5">
+        <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary px-4 py-2">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
           <div className="relative">
             <BuildHeader />

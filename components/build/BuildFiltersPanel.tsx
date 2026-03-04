@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Character, formatCharacterDisplayName } from '@/lib/character';
 import { LBSortDirection, LBSortKey } from '@/lib/lb';
+import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { getWeaponPaths } from '@/lib/paths';
 import { Weapon } from '@/lib/weapon';
 import { MAIN_STAT_OPTIONS, REGION_OPTIONS, SORT_OPTIONS } from './buildConstants';
@@ -120,15 +121,6 @@ function toMainStatLabel(raw: string): string {
 const getRegionLabel = (value: string): string => (
   REGION_OPTIONS.find((entry) => entry.value === value)?.label ?? value
 );
-
-const ELEMENT_ICON_FILTERS: Record<string, string> = {
-  'Aero DMG': 'brightness(0) saturate(100%) invert(81%) sepia(40%) saturate(904%) hue-rotate(93deg) brightness(104%) contrast(103%)',
-  'Glacio DMG': 'brightness(0) saturate(100%) invert(68%) sepia(39%) saturate(2707%) hue-rotate(176deg) brightness(102%) contrast(97%)',
-  'Fusion DMG': 'brightness(0) saturate(100%) invert(62%) sepia(74%) saturate(2505%) hue-rotate(328deg) brightness(98%) contrast(93%)',
-  'Electro DMG': 'brightness(0) saturate(100%) invert(63%) sepia(39%) saturate(1470%) hue-rotate(227deg) brightness(103%) contrast(101%)',
-  'Havoc DMG': 'brightness(0) saturate(100%) invert(53%) sepia(40%) saturate(1418%) hue-rotate(296deg) brightness(98%) contrast(96%)',
-  'Spectro DMG': 'brightness(0) saturate(100%) invert(83%) sepia(34%) saturate(1178%) hue-rotate(359deg) brightness(102%) contrast(94%)',
-};
 
 const getSetSubSection = (count: number): '2p Sets' | '3p Sets' | '5p Sets' => {
   if (count === 3) return '3p Sets';

@@ -7,32 +7,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { Modal } from '@/components/ui/Modal';
 import { Character, Element } from '@/lib/character';
+import { ELEMENT_CHIP_ACTIVE, ELEMENT_BG } from '@/lib/elementVisuals';
 
 const FALLBACK_FACE = '/images/Resources/Resonator.png';
 
 // All filterable elements
 const ELEMENTS = [ Element.Glacio, Element.Fusion, Element.Electro, Element.Aero, Element.Spectro, Element.Havoc ] as const;
-
-// Element name -> Tailwind bg fill for card + hover gradient
-const ELEMENT_BG: Record<string, string> = {
-  [Element.Glacio]:  'bg-glacio/15 hover:bg-gradient-to-b hover:from-glacio/30 hover:to-glacio/5',
-  [Element.Fusion]:  'bg-fusion/15 hover:bg-gradient-to-b hover:from-fusion/30 hover:to-fusion/5',
-  [Element.Electro]: 'bg-electro/15 hover:bg-gradient-to-b hover:from-electro/30 hover:to-electro/5',
-  [Element.Aero]:    'bg-aero/15 hover:bg-gradient-to-b hover:from-aero/30 hover:to-aero/5',
-  [Element.Spectro]: 'bg-spectro/15 hover:bg-gradient-to-b hover:from-spectro/30 hover:to-spectro/5',
-  [Element.Havoc]:   'bg-havoc/15 hover:bg-gradient-to-b hover:from-havoc/30 hover:to-havoc/5',
-  [Element.Rover]:   'bg-rover/15 hover:bg-gradient-to-b hover:from-rover/30 hover:to-rover/5',
-};
-
-// Element name -> active filter chip styling
-const ELEMENT_CHIP_ACTIVE: Record<string, string> = {
-  [Element.Glacio]:  'bg-glacio/20 border-glacio/50 text-glacio',
-  [Element.Fusion]:  'bg-fusion/20 border-fusion/50 text-fusion',
-  [Element.Electro]: 'bg-electro/20 border-electro/50 text-electro',
-  [Element.Aero]:    'bg-aero/20 border-aero/50 text-aero',
-  [Element.Spectro]: 'bg-spectro/20 border-spectro/50 text-spectro',
-  [Element.Havoc]:   'bg-havoc/20 border-havoc/50 text-havoc',
-};
 
 // Rarity id -> default border color
 const RARITY_CARD_BORDER: Record<number, string> = {

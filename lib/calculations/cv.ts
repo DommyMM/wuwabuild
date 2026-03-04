@@ -55,18 +55,19 @@ export const getEchoCVTierStyle = (cv: number): EchoCVTierStyle => {
   return               { color: '#888888',  label: 'Bad'      };              // gray
 };
 
-// CV rating thresholds
 export const CV_RATINGS = {
-  GODLIKE: 280,
-  EXCELLENT: 240,
-  GREAT: 200,
-  GOOD: 160,
-  AVERAGE: 120,
-  BELOW_AVERAGE: 80
+  IMPOSSIBLE: 254,      // theoretical max: 5 * 42 + 44
+  PERFECT: 240,         // 5 * 39.8 + 44 ≈ 243
+  EXCELLENT: 224,        // 5 * 36.0 + 44
+  GREAT: 204,            // 5 * 32.0 + 44
+  GOOD: 184,             // 5 * 28.0 + 44 
+  AVERAGE: 170,          // 5 * 25.2 + 44 (min double-crit)
+  BELOW_AVERAGE: 140,    // below min double-crit
 } as const;
 
 export type CVRating =
-  | 'Godlike'
+  | 'Impossible'
+  | 'Perfect'
   | 'Excellent'
   | 'Great'
   | 'Good'
@@ -76,7 +77,8 @@ export type CVRating =
 
 // Get a CV rating string based on the CV value.
 export const getCVRating = (cv: number): CVRating => {
-  if (cv >= CV_RATINGS.GODLIKE) return 'Godlike';
+  if (cv >= CV_RATINGS.IMPOSSIBLE) return 'Impossible';
+  if (cv >= CV_RATINGS.PERFECT) return 'Perfect';
   if (cv >= CV_RATINGS.EXCELLENT) return 'Excellent';
   if (cv >= CV_RATINGS.GREAT) return 'Great';
   if (cv >= CV_RATINGS.GOOD) return 'Good';
@@ -87,11 +89,12 @@ export const getCVRating = (cv: number): CVRating => {
 
 // Get CV rating color for display.
 export const getCVRatingColor = (cv: number): string => {
-  if (cv >= CV_RATINGS.GODLIKE) return '#ff6b6b';
-  if (cv >= CV_RATINGS.EXCELLENT) return '#ffd93d';
-  if (cv >= CV_RATINGS.GREAT) return '#6bcb77';
-  if (cv >= CV_RATINGS.GOOD) return '#4d96ff';
-  if (cv >= CV_RATINGS.AVERAGE) return '#a8a8a8';
-  if (cv >= CV_RATINGS.BELOW_AVERAGE) return '#888888';
-  return '#666666';
+  if (cv >= CV_RATINGS.IMPOSSIBLE) return '#CC0000';     // Impossible → deep red (theoretical max)
+  if (cv >= CV_RATINGS.PERFECT) return '#FF00FF';        // Perfect → hot pink (echo "Perfect")
+  if (cv >= CV_RATINGS.EXCELLENT) return '#00FFFF';      // Excellent → cyan (echo "Excellent")
+  if (cv >= CV_RATINGS.GREAT) return '#00FF00';          // Great → green (echo "High")
+  if (cv >= CV_RATINGS.GOOD) return '#00FF00';           // Good → green (echo "High")
+  if (cv >= CV_RATINGS.AVERAGE) return '#E6B800';        // Average → gold (echo "Decent")
+  if (cv >= CV_RATINGS.BELOW_AVERAGE) return '#FF8C00';  // Below Average → orange (echo "Passable")
+  return '#666666';                                      // Needs Work → darker gray
 };

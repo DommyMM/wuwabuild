@@ -1,11 +1,5 @@
 import { LBEchoMainFilter, LBEchoSetFilter, LBSortKey } from '@/lib/lb';
-import {
-  DEFAULT_DIRECTION,
-  DEFAULT_PAGE,
-  DEFAULT_SORT,
-  MAIN_STAT_OPTIONS,
-  SORT_OPTIONS,
-} from './buildConstants';
+import { DEFAULT_DIRECTION, DEFAULT_PAGE, DEFAULT_SORT, MAIN_STAT_OPTIONS, SORT_OPTIONS } from './buildConstants';
 import { QuerySnapshot } from './types';
 
 function parsePositiveInt(value: string | null, fallback: number): number {

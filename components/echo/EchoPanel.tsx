@@ -11,6 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { X } from 'lucide-react';
 import { getEchoPaths } from '@/lib/paths';
 import Marquee from 'react-fast-marquee';
+import { ELEMENT_BADGE_COLORS } from '@/lib/elementVisuals';
 
 // Scrolls text only when it overflows the available width.
 function EchoName({ text, className }: { text: string; className?: string }) {
@@ -60,39 +61,6 @@ interface EchoPanelProps {
   isDragging?: boolean;
   className?: string;
 }
-
-// Element badge colors, co-occurring sets kept visually distinct
-const ELEMENT_BADGE_COLORS: Record<string, string> = {
-  'Aero':       'bg-aero/80 text-white border-aero',
-  'Glacio':     'bg-blue-400/80 text-white border-blue-400',
-  'Electro':    'bg-purple-500/80 text-white border-purple-500',
-  'Fusion':     'bg-orange-400/80 text-white border-orange-400',
-  'Havoc':      'bg-pink-500/80 text-white border-pink-500',
-  'Spectro':    'bg-spectro/80 text-black border-spectro',
-  'ER':         'bg-zinc-500/80 text-white border-zinc-500',
-  'Attack':     'bg-red-700/80 text-white border-red-700',
-  'Healing':    'bg-green-500/80 text-white border-green-500',
-  'Empyrean':   'bg-slate-400/80 text-white border-slate-400',
-  'Frosty':     'bg-sky-400/80 text-white border-sky-400',
-  'Midnight':   'bg-purple-400/80 text-white border-purple-400',
-  'Radiance':   'bg-yellow-400/80 text-black border-yellow-400',
-  'Tidebreaking': 'bg-zinc-600/80 text-white border-zinc-600',
-  'Gust':       'bg-cyan-300/80 text-black border-cyan-300',
-  'Windward':   'bg-teal-500/80 text-white border-teal-500',
-  'Flaming':    'bg-red-900/80 text-white border-red-900',
-  'Dream':      'bg-pink-300/80 text-black border-pink-300',
-  'Crown':      'bg-amber-600/80 text-white border-amber-600',
-  'Law':        'bg-slate-600/80 text-white border-slate-600',
-  'Flamewing':  'bg-orange-500/80 text-white border-orange-500',
-  'Thread':     'bg-fuchsia-400/80 text-white border-fuchsia-400',
-  'Pact':       'bg-yellow-500/80 text-black border-yellow-500',
-  'Halo':       'bg-lime-400/80 text-black border-lime-400',
-  'Rite':       'bg-amber-500/80 text-white border-amber-500',
-  'Trailblazing': 'bg-red-500/80 text-white border-red-500',
-  'Chromatic':  'bg-rose-400/80 text-white border-rose-400',
-  'Sound':      'bg-emerald-600/80 text-white border-emerald-600',
-};
-
 
 export const EchoPanel: React.FC<EchoPanelProps> = ({
   index,
