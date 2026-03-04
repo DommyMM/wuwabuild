@@ -95,10 +95,19 @@ const REGION_BADGES: Record<string, RegionBadge> = {
   '9': { label: 'SEA', className: 'bg-cyan-300/90 text-black' },
 };
 
-const TABLE_GRID = 'grid-cols-[52px_120px_120px_120px_90px_120px_160px_repeat(4,minmax(110px,1fr))]';
+const TABLE_GRID = 'grid-cols-[48px_140px_160px_72px_72px_100px_160px_repeat(4,minmax(110px,1fr))]';
 const PAGE_SKIP = 10;
 const PAGINATION_BUTTON_CLASS = 'inline-flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded border border-border bg-background p-0 transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40';
 const PAGE_INDICATOR_CLASS = 'inline-flex h-7.5 w-7.5 items-center justify-center rounded border border-border bg-background text-xs text-text-primary';
+const SEQUENCE_BADGE_STYLES = [
+  'pr-2 border-border bg-background text-text-primary/75',
+  'pr-3 border-cyan-400/45 bg-cyan-500/15 text-cyan-200',
+  'pr-4 border-blue-400/45 bg-blue-500/15 text-blue-200',
+  'pr-5 border-violet-400/45 bg-violet-500/15 text-violet-200',
+  'pr-6 border-fuchsia-400/45 bg-fuchsia-500/15 text-fuchsia-200',
+  'pr-7 border-amber-400/55 bg-amber-500/20 text-amber-200',
+  'pr-8 border-spectro/60 bg-spectro/20 text-spectro',
+] as const;
 
 function resolveRegionBadge(uid: string | undefined): RegionBadge | null {
   if (!uid) return null;
@@ -255,7 +264,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
 
       <div className="overflow-x-auto pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
         <div className="rounded-lg border border-border bg-background/70">
-          <div className={`grid ${TABLE_GRID} items-center gap-2 border-b border-border bg-background-secondary/95 px-2 py-2 text-xs font-semibold text-text-primary`}>
+          <div className={`grid ${TABLE_GRID} items-center gap-4 border-b border-border bg-background-secondary/95 p-2 text-xs font-semibold text-text-primary`}>
             <div className="text-center text-text-primary/70">#</div>
             <div>Owner</div>
             <div>Name</div>
@@ -327,7 +336,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                   : entry.state.characterId || 'Unknown Character';
                 const weaponName = weapon
                   ? t(weapon.nameI18n ?? { en: weapon.name })
-                  : entry.state.weaponId || 'Unknown Weapon';
+                  : 'Unknown Weapon';
+                const sequenceLevel = Math.max(0, Math.min(6, Math.trunc(Number(entry.state.sequence) || 0)));
 
                 const setCounts = new Map<ElementType, number>();
                 for (const panel of entry.state.echoPanels) {
@@ -356,80 +366,87 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                 return (
                   <div
                     key={entry.id}
-                    className={`grid ${TABLE_GRID} items-center gap-2 px-2 py-1.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10`}
+                    className={`grid ${TABLE_GRID} items-center gap-4 p-2 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10`}
                   >
                     <div className="text-center text-text-primary/75">
                       {rank}
                     </div>
 
-                    <div className="min-w-0">
-                      <div className="mb-0.5 flex items-center gap-1.5">
+                    <div>
+                      <div className="flex items-center gap-2">
                         {regionBadge && (
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${regionBadge.className}`}>
+                          <span className={`rounded px-2 py-1 text-xs font-semibold tracking-wide ${regionBadge.className}`}>
                             {regionBadge.label}
                           </span>
                         )}
-                        <span className="truncate font-semibold text-text-primary">
+                        <span className="text-base text-text-primary">
                           {entry.state.watermark.username || 'Anonymous'}
                         </span>
                       </div>
-                      <div className="truncate text-xs text-text-primary/55">
-                        UID: {entry.state.watermark.uid || '—'}
-                      </div>
                     </div>
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        {character?.head ? (
-                          <img src={character.head} alt="" className="h-8 w-8 rounded object-cover" />
-                        ) : (
-                          <div className="h-8 w-8 rounded bg-border" />
-                        )}
-                        <span className="truncate text-sm font-semibold text-text-primary">{characterName}</span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      {character?.head ? (
+                        <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" />
+                      ) : (
+                        <div className="h-9 w-9 bg-border" />
+                      )}
+                      <span className="text-lg font-semibold text-text-primary">{characterName}</span>
                     </div>
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 text-xs text-text-primary/75">
-                        {weapon && (
-                          <img src={getWeaponPaths(weapon)} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                        )}
-                        <span className="truncate">{weaponName}</span>
-                      </div>
+                    <div className="flex items-end text-text-primary/75">
+                      {weapon ? (
+                        <img
+                          src={getWeaponPaths(weapon)}
+                          alt={weaponName}
+                          className="h-9 w-9"
+                        />
+                      ) : (
+                        <div className="h-9 w-9" />
+                      )}
+                      <span className="-ml-1.5 rounded border border-black/55 bg-black/85 px-1 py-0 text-xs leading-tight text-white">
+                        R{entry.state.weaponRank}
+                      </span>
                     </div>
 
-                    <div className="flex min-w-0 items-center gap-1 text-xs text-text-primary/75">
-                      <span className="rounded border border-border bg-background px-1.5 py-0.5">S{entry.state.sequence}</span>
-                      <span className="rounded border border-border bg-background px-1.5 py-0.5">R{entry.state.weaponRank}</span>
+                    <div className="flex items-center text-text-primary/75">
+                      <span
+                        className={`inline-flex h-6 items-center justify-start rounded border pl-2 text-left text-xs font-semibold leading-none tracking-wide ${SEQUENCE_BADGE_STYLES[sequenceLevel]}`}
+                      >
+                        S{sequenceLevel}
+                      </span>
                     </div>
 
-                    <div className="flex min-w-0 items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       {activeSets.length === 0 ? (
                         <span className="text-xs text-text-primary/50">No set</span>
                       ) : (
                         activeSets.map((setEntry) => (
-                          <span
-                            key={setEntry.element}
-                            className="inline-flex items-center gap-1 rounded border border-accent/35 bg-accent/10 px-1.5 py-0.5 text-[10px] text-accent"
-                          >
+                          <div key={setEntry.element} className="flex items-end gap-0.5">
                             {setEntry.icon ? (
-                              <img src={setEntry.icon} alt="" className="h-3.5 w-3.5 object-contain" />
-                            ) : null}
-                            {setEntry.count}
-                          </span>
+                              <img src={setEntry.icon} alt="" className="h-7 w-7" />
+                            ) : (
+                              <div className="h-8 w-8" />
+                            )}
+                            <span className="text-xs -mb-1 -ml-0.25 font-semibold leading-none text-primary">
+                              {setEntry.count}
+                            </span>
+                          </div>
                         ))
                       )}
                     </div>
 
-                    <div className="rounded border border-accent/35 bg-accent/10 px-2 py-1">
-                      <div className="text-xs text-text-primary/70">
-                        {formatPercentStat(entry.stats.CR)} : {formatPercentStat(entry.stats.CD)}
-                      </div>
-                      <div
-                        className="text-sm font-semibold"
-                        style={{ color: getCVRatingColor(entry.finalCV) }}
-                      >
-                        {entry.finalCV.toFixed(1)} cv
+                    <div className="rounded border border-border bg-background px-2 py-1">
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="whitespace-nowrap text-text-primary/70">
+                          {Number(entry.stats.CR ?? 0).toFixed(1)} : {Number(entry.stats.CD ?? 0).toFixed(1)}
+                        </span>
+                        <span
+                          className="whitespace-nowrap text-sm font-semibold tracking-wide"
+                          style={{ color: getCVRatingColor(entry.finalCV) }}
+                        >
+                          {entry.finalCV.toFixed(1)} cv
+                        </span>
                       </div>
                     </div>
 

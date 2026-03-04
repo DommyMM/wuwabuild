@@ -11,9 +11,6 @@ import { ELEMENT_CHIP_ACTIVE, ELEMENT_BG } from '@/lib/elementVisuals';
 
 const FALLBACK_FACE = '/images/Resources/Resonator.png';
 
-// All filterable elements
-const ELEMENTS = [ Element.Glacio, Element.Fusion, Element.Electro, Element.Aero, Element.Spectro, Element.Havoc ] as const;
-
 // Rarity id -> default border color
 const RARITY_CARD_BORDER: Record<number, string> = {
   4: 'border-rarity-4/50',
@@ -189,7 +186,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           <span className="mx-1 h-5 w-px bg-border" />
 
           {/* Elements */}
-          {ELEMENTS.map((el) => (
+          {Object.values(Element).map((el) => (
             <button
               key={el}
               onClick={() => toggleElement(el)}

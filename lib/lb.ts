@@ -241,7 +241,7 @@ export async function listBuilds(
 ): Promise<LBListBuildsResponse> {
   const params = new URLSearchParams();
   params.set('page', String(query.page ?? 1));
-  params.set('pageSize', String(query.pageSize ?? 10));
+  params.set('pageSize', String(query.pageSize ?? 12));
   params.set('sort', query.sort ?? 'finalCV');
   params.set('direction', query.direction ?? 'desc');
 
@@ -313,6 +313,6 @@ export async function listBuilds(
     builds: normalizedBuilds,
     total: toFiniteNumber(payload.total, 0),
     page: toFiniteNumber(payload.page, query.page ?? 1),
-    pageSize: toFiniteNumber(payload.pageSize, query.pageSize ?? 10),
+    pageSize: toFiniteNumber(payload.pageSize, query.pageSize ?? 12),
   };
 }

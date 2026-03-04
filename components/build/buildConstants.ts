@@ -1,6 +1,6 @@
 import { LBSortKey, LBSortDirection } from '@/lib/lb';
 
-export const ITEMS_PER_PAGE = 10;
+export const ITEMS_PER_PAGE = 12;
 export const IDENTITY_DEBOUNCE_MS = 350;
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_SORT: LBSortKey = 'finalCV';
