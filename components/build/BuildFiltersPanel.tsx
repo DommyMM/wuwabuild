@@ -8,7 +8,7 @@ import { Character, formatCharacterDisplayName } from '@/lib/character';
 import { LBSortDirection, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 import { Weapon } from '@/lib/weapon';
-import { MAIN_STAT_OPTIONS, REGION_OPTIONS, SORT_OPTIONS } from './buildsConstants';
+import { MAIN_STAT_OPTIONS, REGION_OPTIONS, SORT_OPTIONS } from './buildConstants';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from './types';
 
 type VisibleFilterItem =

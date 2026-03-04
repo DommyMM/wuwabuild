@@ -5,7 +5,7 @@ import {
   DEFAULT_SORT,
   MAIN_STAT_OPTIONS,
   SORT_OPTIONS,
-} from './buildsConstants';
+} from './buildConstants';
 import { QuerySnapshot } from './types';
 
 function parsePositiveInt(value: string | null, fallback: number): number {

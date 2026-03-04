@@ -1,7 +1,7 @@
 'use client';
 
 import { DataLoadingGate } from '@/contexts/index';
-import { BuildEditor } from '@/components/build/BuildEditor';
+import { BuildEditor } from '@/components/edit/BuildEditor';
 
 export default function EditPage() {
   return (

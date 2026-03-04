@@ -1,5 +1,5 @@
 import { LB_STAT_ENTRIES, LBSortKey } from '@/lib/lb';
-import { SORT_OPTIONS } from './buildsConstants';
+import { SORT_OPTIONS } from './buildConstants';
 
 export function formatTimestamp(value: string): string {
   const parsed = new Date(value);

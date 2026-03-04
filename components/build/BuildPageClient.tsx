@@ -16,10 +16,10 @@ import {
   DEFAULT_PAGE,
   ITEMS_PER_PAGE,
   MAIN_STAT_OPTIONS,
-} from './buildsConstants';
-import { getSortLabel } from './buildsFormatters';
+} from './buildConstants';
+import { getSortLabel } from './buildFormatters';
 import { parseInitialQuery, serializeQuery } from './buildsQuery';
-import { BuildsFiltersPanel } from './BuildsFiltersPanel';
+import { BuildsFiltersPanel } from './BuildFiltersPanel';
 import { BuildsHeader } from './BuildsHeader';
 import { BuildsResultsPanel } from './BuildsResultsPanel';
 import {

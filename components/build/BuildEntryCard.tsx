@@ -14,7 +14,7 @@ import {
   formatPercentStat,
   formatTimestamp,
   getElementDMGLabel,
-} from './buildsFormatters';
+} from './buildFormatters';
 
 const ELEMENT_TINT_CLASS: Record<string, string> = {
   Aero: 'bg-[radial-gradient(100%_70%_at_5%_0%,rgba(85,255,181,0.11)_0%,transparent_62%)]',
