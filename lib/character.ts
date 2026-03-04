@@ -77,6 +77,7 @@ export interface CDNMoveEntry {
   sort: number;
   name: I18nString | string;
   description?: I18nString | string;
+  descriptionParams?: string[];
   maxLevel?: number;
   values: CDNMoveValueEntry[];
 }

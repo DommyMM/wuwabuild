@@ -38,6 +38,7 @@ export const stripGameMarkup = (input: string): string => {
   if (!input) return '';
 
   return input
+    .replace(/\{(?!\d+\})[^{}]+\}/gu, '')
     .replace(/<br\s*\/?>/giu, '\n')
     .replace(/<\/?[^>]+>/gu, '')
     .replace(/\r\n/gu, '\n')

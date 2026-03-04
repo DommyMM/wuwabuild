@@ -25,9 +25,11 @@ from cdn_config import CDN_BASE
 # e.g. "T_IconRoleHeadCircle256_26_UI.png" -> 26
 LEGACY_ID_PATTERN = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI\.png")
 NUMBER_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
+NON_PARAM_BRACE_TOKEN_PATTERN = re.compile(r"\{(?!\d+\})[^{}]+\}")
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Character"
+CDN_SKILL_CONFIG_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/Skill.json"
 
 # Known CDN path typos that need deterministic normalization.
 CDN_PATH_FIXUPS = {
@@ -327,10 +329,10 @@ def simplify_chains(chains: Any) -> list[dict] | None:
             continue
 
         name_field = chain.get("name", {})
-        name = name_field if isinstance(name_field, dict) else str(name_field)
+        name = _sanitize_i18n_value(name_field if isinstance(name_field, dict) else str(name_field))
 
         desc_field = chain.get("description", {})
-        desc = desc_field if isinstance(desc_field, dict) else str(desc_field)
+        desc = _sanitize_i18n_value(desc_field if isinstance(desc_field, dict) else str(desc_field))
 
         icon = chain.get("icon", "")
         if isinstance(icon, str) and icon.startswith("/d/"):
@@ -369,7 +371,11 @@ def extract_by_schema(data: dict, schema: dict) -> dict:
     return output
 
 
-def transform_character(data: dict, schema: dict) -> dict | None:
+def transform_character(
+    data: dict,
+    schema: dict,
+    description_param_map: dict[int, list[str]] | None = None,
+) -> dict | None:
     """Transform raw CDN character data using schema."""
     char_id = data.get("id")
     name = data.get("name", {})
@@ -405,7 +411,7 @@ def transform_character(data: dict, schema: dict) -> dict | None:
         result["skillIcons"] = skill_icons
 
     # Extract compact move payload for frontend (localized text + level 1-10 params)
-    moves = _extract_moves_frontend(data)
+    moves = _extract_moves_frontend(data, description_param_map or {})
     if moves:
         result["moves"] = moves
 
@@ -510,8 +516,29 @@ def _format_rounded_number(value: float) -> str:
     return f"{rounded:.2f}".rstrip("0").rstrip(".")
 
 
+def _sanitize_game_text(value: str) -> str:
+    """Remove control tokens like {Cus:Ipt,...} while keeping numeric placeholders."""
+    if not value:
+        return ""
+    cleaned = NON_PARAM_BRACE_TOKEN_PATTERN.sub("", value)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
+    return cleaned
+
+
+def _sanitize_i18n_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _sanitize_game_text(text) if isinstance(text, str) else text
+            for key, text in value.items()
+        }
+    if isinstance(value, str):
+        return _sanitize_game_text(value)
+    return value
+
+
 def _normalize_param_value(value: Any) -> str:
-    text = str(value)
+    text = _sanitize_game_text(str(value))
 
     def repl(match: re.Match[str]) -> str:
         raw = match.group(0)
@@ -523,7 +550,7 @@ def _normalize_param_value(value: Any) -> str:
     return NUMBER_TOKEN_PATTERN.sub(repl, text)
 
 
-def _extract_moves_frontend(raw: dict) -> list[dict]:
+def _extract_moves_frontend(raw: dict, description_param_map: dict[int, list[str]]) -> list[dict]:
     """Extract localized move payload with level 1-10 params for frontend tooltips."""
     skill = raw.get("skill")
     if not isinstance(skill, dict):
@@ -541,9 +568,9 @@ def _extract_moves_frontend(raw: dict) -> list[dict]:
             continue
 
         name_i18n = params.get("name", {})
-        move_name = name_i18n if isinstance(name_i18n, dict) else str(name_i18n)
+        move_name = _sanitize_i18n_value(name_i18n if isinstance(name_i18n, dict) else str(name_i18n))
         desc_i18n = params.get("description", {})
-        move_description = desc_i18n if isinstance(desc_i18n, dict) else str(desc_i18n)
+        move_description = _sanitize_i18n_value(desc_i18n if isinstance(desc_i18n, dict) else str(desc_i18n))
         level_data = params.get("level", {})
 
         values: list[dict] = []
@@ -553,7 +580,7 @@ def _extract_moves_frontend(raw: dict) -> list[dict]:
                     continue
 
                 sub_name_i18n = level.get("name", {})
-                sub_name = sub_name_i18n if isinstance(sub_name_i18n, dict) else str(sub_name_i18n)
+                sub_name = _sanitize_i18n_value(sub_name_i18n if isinstance(sub_name_i18n, dict) else str(sub_name_i18n))
                 raw_params = level.get("params", [])
                 level_values: list[str] = []
                 if isinstance(raw_params, list) and raw_params:
@@ -568,6 +595,7 @@ def _extract_moves_frontend(raw: dict) -> list[dict]:
                 })
 
         values.sort(key=lambda x: (x.get("id") is None, x.get("id", 0)))
+        detail_params = description_param_map.get(int(entry.get("id", 0) or 0), [])
 
         entries.append({
             "id": entry.get("id"),
@@ -575,6 +603,7 @@ def _extract_moves_frontend(raw: dict) -> list[dict]:
             "sort": entry.get("sort"),
             "name": move_name,
             "description": move_description,
+            "descriptionParams": detail_params,
             "maxLevel": params.get("maxLevel"),
             "values": values,
         })
@@ -653,6 +682,44 @@ def transform_character_lb(raw: dict) -> dict | None:
         "statsLv90": _extract_lv90_stats(raw),
         "moves": _extract_moves_lv10(raw),
     }
+
+
+def fetch_skill_description_params() -> dict[int, list[str]]:
+    """Load SkillDetailNum map from ConfigDB Skill.json keyed by skill id."""
+    try:
+        import requests
+    except ImportError:
+        print("Install requests library: pip install requests")
+        return {}
+
+    try:
+        response = requests.get(CDN_SKILL_CONFIG_URL, timeout=45)
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as error:
+        print(f"Warning: failed to fetch skill config ({error}); move descriptions may keep placeholders.")
+        return {}
+
+    if not isinstance(payload, list):
+        print("Warning: unexpected Skill.json payload shape; move descriptions may keep placeholders.")
+        return {}
+
+    result: dict[int, list[str]] = {}
+    for row in payload:
+        if not isinstance(row, dict):
+            continue
+        skill_id = row.get("Id")
+        if not isinstance(skill_id, int):
+            continue
+        raw_values = row.get("SkillDetailNum")
+        if not isinstance(raw_values, list) or not raw_values:
+            raw_values = row.get("MultiSkillDetailNum")
+        if not isinstance(raw_values, list):
+            continue
+        result[skill_id] = [_sanitize_game_text(str(value)) for value in raw_values]
+
+    print(f"Loaded SkillDetailNum for {len(result)} skills")
+    return result
 
 
 # --- CDN fetch ---
@@ -771,6 +838,7 @@ def main():
         parser.error("Specify --fetch to sync from CDN")
         return 1
     raw_characters = fetch_cdn_characters(single_id=args.id, workers=args.workers)
+    description_param_map = fetch_skill_description_params()
 
     print(f"\nLoaded {len(raw_characters)} raw character files")
 
@@ -778,7 +846,7 @@ def main():
     characters = []
     compact_lb = []
     for data in raw_characters:
-        char = transform_character(data, schema)
+        char = transform_character(data, schema, description_param_map)
         if char:
             characters.append(char)
         if args.emit_lb_compact:

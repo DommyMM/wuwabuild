@@ -128,7 +128,8 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
             value: getLevelValue(valueEntry.values, selectedLevel),
           }))
           .filter((entry) => entry.name || entry.value);
-        const flattenedParams = selectedMoveValues.map((entry) => entry.value);
+        const descriptionParams = (move?.descriptionParams ?? []).map((value) => String(value));
+        const fallbackParams = selectedMoveValues.map((entry) => entry.value);
         const tooltipContent = move ? (
           <div className="font-plus-jakarta text-white/90">
             <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{characterName}</p>
@@ -141,7 +142,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/86">
                 {resolveTemplateFromValues({
                   template: moveDescription,
-                  values: flattenedParams,
+                  values: descriptionParams.length > 0 ? descriptionParams : fallbackParams,
                   keepUnknownPlaceholders: true,
                   highlightClassName: 'text-cyan-200 font-semibold',
                 })}
