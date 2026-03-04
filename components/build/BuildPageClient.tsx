@@ -18,10 +18,10 @@ import {
   MAIN_STAT_OPTIONS,
 } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
-import { parseInitialQuery, serializeQuery } from './buildsQuery';
-import { BuildsFiltersPanel } from './BuildFiltersPanel';
-import { BuildsHeader } from './BuildsHeader';
-import { BuildsResultsPanel } from './BuildsResultsPanel';
+import { parseInitialQuery, serializeQuery } from './buildQuery';
+import { BuildFiltersPanel } from './BuildFiltersPanel';
+import { BuildHeader } from './BuildHeader';
+import { BuildResultsPanel } from './BuildResultsPanel';
 import {
   QuerySnapshot,
   SelectedMainEntry,
@@ -29,7 +29,7 @@ import {
   SetOption,
 } from './types';
 
-export const BuildsPageClient: React.FC = () => {
+export const BuildPageClient: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters, loading: gameDataLoading } = useGameData();
@@ -57,7 +57,6 @@ export const BuildsPageClient: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedBuildIds, setExpandedBuildIds] = useState<Set<string>>(new Set());
 
   const selectedCharacters = useMemo(() => (
     characterIds.reduce<typeof characters>((acc, id) => {
@@ -169,7 +168,6 @@ export const BuildsPageClient: React.FC = () => {
         }
         setBuilds(response.builds);
         setTotal(response.total);
-        setExpandedBuildIds(new Set());
       })
       .catch((fetchError) => {
         if (!active || controller.signal.aborted) return;
@@ -242,17 +240,17 @@ export const BuildsPageClient: React.FC = () => {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-[1280px] space-y-4 p-3 md:p-5">
+      <div className="mx-auto w-full max-w-[1440px] space-y-4 p-3 md:p-5">
         <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary p-4 md:p-5">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
           <div className="relative">
-            <BuildsHeader embedded />
-            <div className="mt-4 border-t border-border/65 pt-4">
-              <BuildsFiltersPanel
-                embedded
+            <BuildHeader />
+            <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
+              <BuildFiltersPanel
                 sort={sort}
                 direction={direction}
                 activeSortLabel={getSortLabel(sort)}
+                showSortControls={false}
                 hasActiveFilters={hasActiveFilters}
                 filterQuery={filterQuery}
                 characters={characters}
@@ -353,30 +351,31 @@ export const BuildsPageClient: React.FC = () => {
                 }}
                 onClearAllFilters={clearAllFilters}
               />
+
+              <BuildResultsPanel
+                builds={builds}
+                total={total}
+                page={page}
+                pageCount={pageCount}
+                rankStart={rankStart}
+                isLoading={isLoading}
+                isRefreshing={isRefreshing}
+                error={error}
+                sort={sort}
+                direction={direction}
+                onSortChange={(nextSort) => {
+                  setSort(nextSort);
+                  setPage(1);
+                }}
+                onToggleDirection={() => {
+                  setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                  setPage(1);
+                }}
+                onPageChange={setPage}
+              />
             </div>
           </div>
         </section>
-
-        <BuildsResultsPanel
-          builds={builds}
-          total={total}
-          page={page}
-          pageCount={pageCount}
-          rankStart={rankStart}
-          isLoading={isLoading}
-          isRefreshing={isRefreshing}
-          error={error}
-          expandedBuildIds={expandedBuildIds}
-          onToggleExpanded={(buildId) => {
-            setExpandedBuildIds((prev) => {
-              const next = new Set(prev);
-              if (next.has(buildId)) next.delete(buildId);
-              else next.add(buildId);
-              return next;
-            });
-          }}
-          onPageChange={setPage}
-        />
 
         {gameDataLoading && (
           <div className="rounded-lg border border-border bg-background p-3 text-sm text-text-primary/70">

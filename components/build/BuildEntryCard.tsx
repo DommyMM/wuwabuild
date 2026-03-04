@@ -25,14 +25,14 @@ const ELEMENT_TINT_CLASS: Record<string, string> = {
   Fusion: 'bg-[radial-gradient(100%_70%_at_5%_0%,rgba(240,116,78,0.12)_0%,transparent_62%)]',
 };
 
-interface BuildsEntryCardProps {
+interface BuildEntryCardProps {
   entry: LBBuildEntry;
   rank: number;
   expanded: boolean;
   onToggle: () => void;
 }
 
-export const BuildsEntryCard: React.FC<BuildsEntryCardProps> = ({ entry, rank, expanded, onToggle }) => {
+export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, expanded, onToggle }) => {
   const { getCharacter, getWeapon, getEcho, getFetterByElement } = useGameData();
   const { t } = useLanguage();
 

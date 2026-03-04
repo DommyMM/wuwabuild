@@ -71,11 +71,11 @@ type VisibleFilterItem =
 type VisibleSetItem = Extract<VisibleFilterItem, { type: 'set' }>;
 type VisibleMainItem = Extract<VisibleFilterItem, { type: 'main' }>;
 
-interface BuildsFiltersPanelProps {
+interface BuildFiltersPanelProps {
   sort: LBSortKey;
   direction: LBSortDirection;
   activeSortLabel: string;
-  embedded?: boolean;
+  showSortControls?: boolean;
   hasActiveFilters: boolean;
   filterQuery: string;
   characters: Character[];
@@ -158,11 +158,11 @@ const getTypeTagLabel = (type: VisibleFilterItem['type']): string => (
   type === 'main' ? 'stats' : type
 );
 
-export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
+export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   sort,
   direction,
   activeSortLabel,
-  embedded = false,
+  showSortControls = true,
   hasActiveFilters,
   filterQuery,
   characters,
@@ -405,29 +405,33 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
   const activeSortIconFilter = ELEMENT_ICON_FILTERS[activeSortLabel];
 
   return (
-    <section className={embedded ? '' : 'rounded-xl border border-border bg-background-secondary p-4'}>
+    <section>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold uppercase tracking-wide text-accent">
           Filters
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={sort}
-            onChange={(event) => onSortChange(event.target.value as LBSortKey)}
-            className="appearance-none rounded-lg border border-border bg-background py-1.5 pl-3 pr-8 text-xs text-text-primary focus:border-accent/60 focus:outline-none"
-          >
-            {validSortOptions.map((option) => (
-              <option key={option.key} value={option.key}>{option.label}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={onToggleDirection}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-text-primary transition-colors hover:border-accent/60"
-          >
-            {direction === 'asc' ? <ArrowDownAZ className="h-3.5 w-3.5" /> : <ArrowUpAZ className="h-3.5 w-3.5" />}
-            {direction.toUpperCase()}
-          </button>
+          {showSortControls && (
+            <>
+              <select
+                value={sort}
+                onChange={(event) => onSortChange(event.target.value as LBSortKey)}
+                className="appearance-none rounded-lg border border-border bg-background py-1.5 pl-3 pr-8 text-xs text-text-primary focus:border-accent/60 focus:outline-none"
+              >
+                {validSortOptions.map((option) => (
+                  <option key={option.key} value={option.key}>{option.label}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={onToggleDirection}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-text-primary transition-colors hover:border-accent/60"
+              >
+                {direction === 'asc' ? <ArrowDownAZ className="h-3.5 w-3.5" /> : <ArrowUpAZ className="h-3.5 w-3.5" />}
+                {direction.toUpperCase()}
+              </button>
+            </>
+          )}
           <button
             type="button"
             onClick={onClearAllFilters}
@@ -657,17 +661,19 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
         )}
       </div>
 
-      <div className="mt-2 flex items-center gap-2 text-xs text-text-primary/60">
-        {activeSortIcon ? (
-          <img
-            src={activeSortIcon}
-            alt=""
-            className="h-3.5 w-3.5 object-contain"
-            style={activeSortIconFilter ? { filter: activeSortIconFilter } : undefined}
-          />
-        ) : null}
-        Active sort: <span className="font-medium text-text-primary">{activeSortLabel}</span> ({direction})
-      </div>
+      {showSortControls && (
+        <div className="mt-2 flex items-center gap-2 text-xs text-text-primary/60">
+          {activeSortIcon ? (
+            <img
+              src={activeSortIcon}
+              alt=""
+              className="h-3.5 w-3.5 object-contain"
+              style={activeSortIconFilter ? { filter: activeSortIconFilter } : undefined}
+            />
+          ) : null}
+          Active sort: <span className="font-medium text-text-primary">{activeSortLabel}</span> ({direction})
+        </div>
+      )}
     </section>
   );
 };

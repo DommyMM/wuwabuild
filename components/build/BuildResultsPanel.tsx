@@ -1,11 +1,34 @@
 'use client';
 
-import React from 'react';
-import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
-import { LBBuildEntry } from '@/lib/lb';
-import { BuildsEntryCard } from './BuildsEntryCard';
+import React, { useMemo, useState } from 'react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronFirst,
+  ChevronLast,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ChevronsUpDown,
+} from 'lucide-react';
+import { useGameData } from '@/contexts/GameDataContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatCharacterDisplayName } from '@/lib/character';
+import { ElementType } from '@/lib/echo';
+import { LBBuildEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
+import { getWeaponPaths } from '@/lib/paths';
+import {
+  formatFlatStat,
+  formatPercentStat,
+  getSortLabel,
+} from './buildFormatters';
 
-interface BuildsResultsPanelProps {
+type CVSortKey = 'finalCV' | 'CR' | 'CD';
+type StatSortKey = Exclude<LBSortKey, 'finalCV' | 'timestamp' | 'characterId' | 'CR' | 'CD'>;
+
+interface BuildResultsPanelProps {
   builds: LBBuildEntry[];
   total: number;
   page: number;
@@ -14,12 +37,200 @@ interface BuildsResultsPanelProps {
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
-  expandedBuildIds: Set<string>;
-  onToggleExpanded: (buildId: string) => void;
+  sort: LBSortKey;
+  direction: LBSortDirection;
+  onSortChange: (sort: LBSortKey) => void;
+  onToggleDirection: () => void;
   onPageChange: (page: number) => void;
 }
 
-export const BuildsResultsPanel: React.FC<BuildsResultsPanelProps> = ({
+interface SortMenuOption {
+  key: LBSortKey;
+  label: string;
+  icon?: string;
+  iconFilter?: string;
+}
+
+interface RegionBadge {
+  label: string;
+  className: string;
+}
+
+const CV_OPTIONS: ReadonlyArray<{ key: CVSortKey; label: string }> = [
+  { key: 'finalCV', label: 'Crit Value' },
+  { key: 'CR', label: 'Crit Rate' },
+  { key: 'CD', label: 'Crit DMG' },
+];
+
+const STAT_OPTION_KEYS: readonly StatSortKey[] = [
+  'A',
+  'H',
+  'D',
+  'ER',
+  'AD',
+  'GD',
+  'FD',
+  'ED',
+  'HD',
+  'SD',
+  'BA',
+  'HA',
+  'RS',
+  'RL',
+];
+
+const DEFAULT_STAT_COLUMNS: StatSortKey[] = ['A', 'ER', 'D', 'AD'];
+
+const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set<LBSortKey>([
+  'CR',
+  'CD',
+  'A%',
+  'H%',
+  'D%',
+  'ER',
+  'AD',
+  'GD',
+  'FD',
+  'ED',
+  'HD',
+  'SD',
+  'BA',
+  'HA',
+  'RS',
+  'RL',
+]);
+
+const ELEMENT_ICON_FILTERS: Record<string, string> = {
+  'Aero DMG': 'brightness(0) saturate(100%) invert(81%) sepia(40%) saturate(904%) hue-rotate(93deg) brightness(104%) contrast(103%)',
+  'Glacio DMG': 'brightness(0) saturate(100%) invert(68%) sepia(39%) saturate(2707%) hue-rotate(176deg) brightness(102%) contrast(97%)',
+  'Fusion DMG': 'brightness(0) saturate(100%) invert(62%) sepia(74%) saturate(2505%) hue-rotate(328deg) brightness(98%) contrast(93%)',
+  'Electro DMG': 'brightness(0) saturate(100%) invert(63%) sepia(39%) saturate(1470%) hue-rotate(227deg) brightness(103%) contrast(101%)',
+  'Havoc DMG': 'brightness(0) saturate(100%) invert(53%) sepia(40%) saturate(1418%) hue-rotate(296deg) brightness(98%) contrast(96%)',
+  'Spectro DMG': 'brightness(0) saturate(100%) invert(83%) sepia(34%) saturate(1178%) hue-rotate(359deg) brightness(102%) contrast(94%)',
+};
+
+const REGION_BADGES: Record<string, RegionBadge> = {
+  '1': { label: 'HMT', className: 'bg-red-500/85 text-white' },
+  '5': { label: 'NA', className: 'bg-amber-400/90 text-black' },
+  '6': { label: 'EU', className: 'bg-indigo-400/90 text-black' },
+  '7': { label: 'ASIA', className: 'bg-lime-300/90 text-black' },
+  '9': { label: 'SEA', className: 'bg-cyan-300/90 text-black' },
+};
+
+const TABLE_GRID = 'grid-cols-[48px_220px_220px_130px_170px_repeat(4,minmax(120px,1fr))]';
+const PAGE_SKIP = 10;
+const PAGINATION_BUTTON_CLASS = 'inline-flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded border border-border bg-background p-0 transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40';
+const PAGE_INDICATOR_CLASS = 'inline-flex h-7.5 w-7.5 items-center justify-center rounded border border-border bg-background text-xs text-text-primary';
+
+function resolveRegionBadge(uid: string | undefined): RegionBadge | null {
+  if (!uid) return null;
+  const prefix = uid.trim()[0];
+  return REGION_BADGES[prefix] ?? null;
+}
+
+function getCvTone(finalCV: number): string {
+  if (finalCV >= 300) return 'text-red-400';
+  if (finalCV >= 280) return 'text-amber-300';
+  return 'text-accent';
+}
+
+function formatStatByKey(key: LBSortKey, value: number): string {
+  if (PERCENT_STAT_KEYS.has(key)) return formatPercentStat(value);
+  return formatFlatStat(value);
+}
+
+const SortHeaderMenu: React.FC<{
+  menuId: string;
+  label: string;
+  active: boolean;
+  direction: LBSortDirection;
+  openMenu: string | null;
+  options: SortMenuOption[];
+  onOpenMenu: (menuId: string | null) => void;
+  onHeaderSort: () => void;
+  onSelectOption: (key: LBSortKey) => void;
+}> = ({
+  menuId,
+  label,
+  active,
+  direction,
+  openMenu,
+  options,
+  onOpenMenu,
+  onHeaderSort,
+  onSelectOption,
+}) => {
+  const isOpen = openMenu === menuId;
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => onOpenMenu(menuId)}
+      onMouseLeave={() => onOpenMenu(null)}
+    >
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onHeaderSort}
+          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
+            active
+              ? 'border-accent/60 bg-accent/15 text-accent'
+              : 'border-border bg-background text-text-primary/85 hover:border-accent/45'
+          }`}
+        >
+          <span className="truncate">{label}</span>
+          {active ? (
+            direction === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronsUpDown className="h-3.5 w-3.5 text-text-primary/50" />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenMenu(isOpen ? null : menuId);
+          }}
+          className="rounded border border-border bg-background p-1 text-text-primary/60 transition-colors hover:border-accent/45 hover:text-text-primary"
+          aria-label="Open sort menu"
+        >
+          <ChevronDown className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="absolute left-0 top-full z-20 mt-1 min-w-[190px] rounded-md border border-border bg-background shadow-xl">
+          {options.map((option) => (
+            <button
+              key={`${menuId}-${option.key}`}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelectOption(option.key);
+                onOpenMenu(null);
+              }}
+              className="flex w-full items-center gap-2 border-b border-border px-2 py-1.5 text-left text-xs text-text-primary transition-colors last:border-b-0 hover:bg-background-secondary"
+            >
+              {option.icon ? (
+                <img
+                  src={option.icon}
+                  alt=""
+                  className="h-3.5 w-3.5 object-contain"
+                  style={option.iconFilter ? { filter: option.iconFilter } : undefined}
+                />
+              ) : (
+                <span className="inline-block h-3.5 w-3.5 rounded bg-border" />
+              )}
+              <span className="truncate">{option.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   builds,
   total,
   page,
@@ -28,102 +239,343 @@ export const BuildsResultsPanel: React.FC<BuildsResultsPanelProps> = ({
   isLoading,
   isRefreshing,
   error,
-  expandedBuildIds,
-  onToggleExpanded,
+  sort,
+  direction,
+  onSortChange,
+  onToggleDirection,
   onPageChange,
 }) => {
+  const { getCharacter, getWeapon, getEcho, getFetterByElement, statIcons } = useGameData();
+  const { t } = useLanguage();
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [statColumns, setStatColumns] = useState<StatSortKey[]>(DEFAULT_STAT_COLUMNS);
+
+  const cvSort = (sort === 'finalCV' || sort === 'CR' || sort === 'CD') ? sort : 'finalCV';
+
+  const statOptions = useMemo<SortMenuOption[]>(() => (
+    STAT_OPTION_KEYS.map((key) => {
+      const label = getSortLabel(key);
+      return {
+        key,
+        label,
+        icon: statIcons?.[label] ?? '',
+        iconFilter: ELEMENT_ICON_FILTERS[label],
+      };
+    })
+  ), [statIcons]);
+
+  const cvOptions = useMemo<SortMenuOption[]>(() => (
+    CV_OPTIONS.map((option) => {
+      const iconLabel = option.key === 'finalCV' ? 'Crit Rate' : getSortLabel(option.key);
+      return {
+        key: option.key,
+        label: option.label,
+        icon: statIcons?.[iconLabel] ?? '',
+      };
+    })
+  ), [statIcons]);
+
   const firstShown = total === 0 ? 0 : Math.min(total, rankStart);
   const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(builds.length - 1, 0));
 
-  return (
-    <section className="rounded-xl border border-border bg-background-secondary p-3">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm font-medium text-text-primary">
-          {isLoading ? 'Loading builds...' : `${total.toLocaleString()} build${total === 1 ? '' : 's'} found`}
-        </div>
-        <div className="text-xs text-text-primary/60">
-          Page {page} / {pageCount} {isRefreshing ? '· refreshing...' : ''}
-        </div>
-      </div>
+  const handleSortRequest = (nextSort: LBSortKey) => {
+    if (sort === nextSort) {
+      onToggleDirection();
+      return;
+    }
+    onSortChange(nextSort);
+  };
 
+  return (
+    <section>
       {error && (
-        <div className="mb-3 rounded-lg border border-accent/45 bg-accent/10 p-3 text-sm text-text-primary">
+        <div className="mb-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-300">
           Failed to load leaderboard data: {error}
         </div>
       )}
 
-      {isLoading && (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="h-28 animate-pulse rounded-lg border border-border bg-background" />
-          ))}
-        </div>
-      )}
-
-      {!isLoading && !error && builds.length === 0 && (
-        <div className="rounded-lg border border-border bg-background p-6 text-center text-sm text-text-primary/65">
-          No builds match the current filters.
-        </div>
-      )}
-
-      {!isLoading && !error && builds.length > 0 && (
-        <div className="space-y-2">
-          {builds.map((entry, index) => {
-            const rank = rankStart + index;
-            const expanded = expandedBuildIds.has(entry.id);
-            return (
-              <BuildsEntryCard
-                key={entry.id}
-                entry={entry}
-                rank={rank}
-                expanded={expanded}
-                onToggle={() => onToggleExpanded(entry.id)}
+      <div className="overflow-x-auto pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
+        <div className="min-w-[1210px] rounded-lg border border-border bg-background/70">
+          <div className={`grid ${TABLE_GRID} items-center gap-2 border-b border-border bg-background-secondary/95 px-2 py-2 text-xs font-semibold text-text-primary`}>
+            <div className="text-center text-text-primary/70">#</div>
+            <div>Owner</div>
+            <div>Name</div>
+            <div>Sets</div>
+            <SortHeaderMenu
+              menuId="sort-cv"
+              label={CV_OPTIONS.find((entry) => entry.key === cvSort)?.label ?? 'Crit Value'}
+              active={sort === 'finalCV' || sort === 'CR' || sort === 'CD'}
+              direction={direction}
+              openMenu={openMenu}
+              options={cvOptions}
+              onOpenMenu={setOpenMenu}
+              onHeaderSort={() => handleSortRequest(cvSort)}
+              onSelectOption={onSortChange}
+            />
+            {statColumns.map((columnKey, index) => (
+              <SortHeaderMenu
+                key={`${columnKey}-${index}`}
+                menuId={`sort-stat-${index}`}
+                label={getSortLabel(columnKey)}
+                active={sort === columnKey}
+                direction={direction}
+                openMenu={openMenu}
+                options={statOptions}
+                onOpenMenu={setOpenMenu}
+                onHeaderSort={() => handleSortRequest(columnKey)}
+                onSelectOption={(nextSort) => {
+                  if (!STAT_OPTION_KEYS.includes(nextSort as StatSortKey)) return;
+                  setStatColumns((prev) => {
+                    const next = [...prev];
+                    next[index] = nextSort as StatSortKey;
+                    return next;
+                  });
+                  onSortChange(nextSort);
+                }}
               />
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="text-xs text-text-primary/60">
-          Showing {firstShown}-{lastShown} of {total.toLocaleString()}
+          {isLoading && (
+            <div className="space-y-1.5 p-2">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className={`grid ${TABLE_GRID} h-14 animate-pulse rounded-md bg-background-secondary/60`} />
+              ))}
+            </div>
+          )}
+
+          {!isLoading && !error && builds.length === 0 && (
+            <div className="p-6 text-center text-sm text-text-primary/65">
+              No builds match the current filters.
+            </div>
+          )}
+
+          {!isLoading && !error && builds.length > 0 && (
+            <div className="divide-y divide-border/60">
+              {builds.map((entry, index) => {
+                const rank = rankStart + index;
+                const character = getCharacter(entry.state.characterId);
+                const weapon = getWeapon(entry.state.weaponId);
+                const regionBadge = resolveRegionBadge(entry.state.watermark.uid);
+
+                const characterName = character
+                  ? formatCharacterDisplayName(character, {
+                    baseName: t(character.nameI18n ?? { en: character.name }),
+                    roverElement: entry.state.roverElement,
+                  })
+                  : entry.state.characterId || 'Unknown Character';
+
+                const setCounts = new Map<ElementType, number>();
+                for (const panel of entry.state.echoPanels) {
+                  if (!panel.id) continue;
+                  const echo = getEcho(panel.id);
+                  const element = panel.selectedElement ?? echo?.elements?.[0];
+                  if (!element) continue;
+                  setCounts.set(element, (setCounts.get(element) ?? 0) + 1);
+                }
+                const activeSets = [...setCounts.entries()]
+                  .map(([element, count]) => {
+                    const fetter = getFetterByElement(element);
+                    const threshold = fetter?.pieceCount ?? 2;
+                    return {
+                      element,
+                      count,
+                      active: count >= threshold,
+                      icon: fetter?.icon ?? '',
+                      name: fetter ? t(fetter.name) : element,
+                    };
+                  })
+                  .filter((entrySet) => entrySet.active)
+                  .sort((a, b) => b.count - a.count)
+                  .slice(0, 2);
+
+                return (
+                  <div
+                    key={entry.id}
+                    className={`grid ${TABLE_GRID} items-center gap-2 px-2 py-1.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10`}
+                  >
+                    <div className="text-center text-text-primary/75">
+                      {rank}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="mb-0.5 flex items-center gap-1.5">
+                        {regionBadge && (
+                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${regionBadge.className}`}>
+                            {regionBadge.label}
+                          </span>
+                        )}
+                        <span className="truncate font-semibold text-text-primary">
+                          {entry.state.watermark.username || 'Anonymous'}
+                        </span>
+                      </div>
+                      <div className="truncate text-xs text-text-primary/55">
+                        UID: {entry.state.watermark.uid || '—'}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        {character?.head ? (
+                          <img src={character.head} alt="" className="h-8 w-8 rounded object-cover" />
+                        ) : (
+                          <div className="h-8 w-8 rounded bg-border" />
+                        )}
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-text-primary">{characterName}</div>
+                          <div className="flex items-center gap-1.5 text-xs text-text-primary/60">
+                            {weapon && (
+                              <img src={getWeaponPaths(weapon)} alt="" className="h-4 w-4 object-contain" />
+                            )}
+                            <span>S{entry.state.sequence} · R{entry.state.weaponRank}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      {activeSets.length === 0 ? (
+                        <span className="text-xs text-text-primary/50">No set</span>
+                      ) : (
+                        activeSets.map((setEntry) => (
+                          <span
+                            key={setEntry.element}
+                            className="inline-flex items-center gap-1 rounded border border-accent/35 bg-accent/10 px-1.5 py-0.5 text-[10px] text-accent"
+                          >
+                            {setEntry.icon ? (
+                              <img src={setEntry.icon} alt="" className="h-3.5 w-3.5 object-contain" />
+                            ) : null}
+                            {setEntry.count}
+                          </span>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="rounded border border-accent/35 bg-accent/10 px-2 py-1">
+                      <div className="text-xs text-text-primary/70">
+                        {formatPercentStat(entry.stats.CR)} : {formatPercentStat(entry.stats.CD)}
+                      </div>
+                      <div className={`text-sm font-semibold ${getCvTone(entry.finalCV)}`}>
+                        {entry.finalCV.toFixed(1)} cv
+                      </div>
+                    </div>
+
+                    {statColumns.map((columnKey, statIndex) => {
+                      const label = getSortLabel(columnKey);
+                      const value = entry.stats[columnKey] ?? 0;
+                      const icon = statIcons?.[label] ?? '';
+                      const iconFilter = ELEMENT_ICON_FILTERS[label];
+                      return (
+                        <div key={`${entry.id}-${columnKey}-${statIndex}`} className="flex items-center gap-1.5 rounded border border-border bg-background px-2 py-1 text-xs text-text-primary">
+                          {icon ? (
+                            <img
+                              src={icon}
+                              alt=""
+                              className="h-3.5 w-3.5 shrink-0 object-contain"
+                              style={iconFilter ? { filter: iconFilter } : undefined}
+                            />
+                          ) : (
+                            <span className="inline-block h-3.5 w-3.5 shrink-0 rounded bg-border" />
+                          )}
+                          <span className="truncate">{formatStatByKey(columnKey, value)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => onPageChange(1)}
-            disabled={page <= 1}
-            className="rounded border border-border bg-background p-1.5 text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronFirst className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onPageChange(Math.max(1, page - 1))}
-            disabled={page <= 1}
-            className="rounded border border-border bg-background p-1.5 text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="mx-1 rounded border border-border bg-background px-2 py-1 text-xs text-text-primary">
-            {page}
-          </span>
-          <button
-            type="button"
-            onClick={() => onPageChange(Math.min(pageCount, page + 1))}
-            disabled={page >= pageCount}
-            className="rounded border border-border bg-background p-1.5 text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onPageChange(pageCount)}
-            disabled={page >= pageCount}
-            className="rounded border border-border bg-background p-1.5 text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLast className="h-4 w-4" />
-          </button>
+      </div>
+
+      <div className="grid grid-cols-[1fr_auto_1fr] items-start">
+        <div />
+        <div className="justify-self-center flex items-start gap-2 text-text-primary/75 mt-4">
+          <div className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onPageChange(1)}
+              disabled={page <= 1}
+              className={PAGINATION_BUTTON_CLASS}
+            >
+              <ChevronFirst className="h-4 w-4" />
+            </button>
+            <span className="text-xs leading-none">first</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onPageChange(Math.max(1, page - PAGE_SKIP))}
+              disabled={page <= 1}
+              className={PAGINATION_BUTTON_CLASS}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs leading-none">skip</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page <= 1}
+              className={PAGINATION_BUTTON_CLASS}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs leading-none">back</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <span className={PAGE_INDICATOR_CLASS}>
+              {page}
+            </span>
+            <span className="text-xs leading-none">page</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onPageChange(Math.min(pageCount, page + 1))}
+              disabled={page >= pageCount}
+              className={PAGINATION_BUTTON_CLASS}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <span className="text-xs leading-none">next</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onPageChange(Math.min(pageCount, page + PAGE_SKIP))}
+              disabled={page >= pageCount}
+              className={PAGINATION_BUTTON_CLASS}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </button>
+            <span className="text-xs leading-none">skip</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onPageChange(pageCount)}
+              disabled={page >= pageCount}
+              className={PAGINATION_BUTTON_CLASS}
+            >
+              <ChevronLast className="h-4 w-4" />
+            </button>
+            <span className="text-xs leading-none">last</span>
+          </div>
+        </div>
+
+        <div className="justify-self-end self-start text-xs text-text-primary/60">
+          {isRefreshing
+            ? 'Updating...'
+            : `${firstShown}-${lastShown} of ${total.toLocaleString()}`}
         </div>
       </div>
     </section>
