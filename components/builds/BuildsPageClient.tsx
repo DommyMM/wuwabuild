@@ -2,18 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  AlertTriangle,
-  ArrowDownAZ,
-  ArrowUpAZ,
-  ChevronDown,
-  ChevronFirst,
-  ChevronLast,
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  X,
-} from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -22,482 +10,27 @@ import {
   LBEchoSetFilter,
   LBSortDirection,
   LBSortKey,
-  LB_STAT_ENTRIES,
   listBuilds,
 } from '@/lib/lb';
-import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
-import { ElementType } from '@/lib/echo';
-
-const ITEMS_PER_PAGE = 10;
-const IDENTITY_DEBOUNCE_MS = 350;
-const DEFAULT_PAGE = 1;
-const DEFAULT_SORT: LBSortKey = 'finalCV';
-const DEFAULT_DIRECTION: LBSortDirection = 'desc';
-const USERNAME_MAX_LENGTH = 12;
-const UID_MAX_LENGTH = 9;
-
-const REGION_OPTIONS = [
-  { label: 'America', value: '5' },
-  { label: 'Europe', value: '6' },
-  { label: 'Asia', value: '7' },
-  { label: 'SEA', value: '9' },
-  { label: 'HMT', value: '1' },
-] as const;
-
-const MAIN_STAT_OPTIONS = [
-  { code: 'CR', label: 'Crit Rate' },
-  { code: 'CD', label: 'Crit DMG' },
-  { code: 'A%', label: 'ATK%' },
-  { code: 'H%', label: 'HP%' },
-  { code: 'D%', label: 'DEF%' },
-  { code: 'ER', label: 'Energy Regen' },
-  { code: 'AD', label: 'Aero DMG' },
-  { code: 'GD', label: 'Glacio DMG' },
-  { code: 'FD', label: 'Fusion DMG' },
-  { code: 'ED', label: 'Electro DMG' },
-  { code: 'HD', label: 'Havoc DMG' },
-  { code: 'SD', label: 'Spectro DMG' },
-  { code: 'HB', label: 'Healing Bonus' },
-] as const;
-
-const SORT_OPTIONS: Array<{ key: LBSortKey; label: string }> = [
-  { key: 'finalCV', label: 'Crit Value' },
-  { key: 'timestamp', label: 'Date' },
-  { key: 'CR', label: 'Crit Rate' },
-  { key: 'CD', label: 'Crit DMG' },
-  { key: 'A', label: 'ATK' },
-  { key: 'H', label: 'HP' },
-  { key: 'D', label: 'DEF' },
-  { key: 'ER', label: 'Energy Regen' },
-  { key: 'BA', label: 'Basic Attack DMG Bonus' },
-  { key: 'HA', label: 'Heavy Attack DMG Bonus' },
-  { key: 'RS', label: 'Resonance Skill DMG Bonus' },
-  { key: 'RL', label: 'Resonance Liberation DMG Bonus' },
-  { key: 'AD', label: 'Aero DMG' },
-  { key: 'GD', label: 'Glacio DMG' },
-  { key: 'FD', label: 'Fusion DMG' },
-  { key: 'ED', label: 'Electro DMG' },
-  { key: 'HD', label: 'Havoc DMG' },
-  { key: 'SD', label: 'Spectro DMG' },
-];
-
-type FilterSuggestion = {
-  type: 'character' | 'weapon';
-  id: string;
-  name: string;
-  icon: string;
-};
-
-type QuerySnapshot = {
-  page: number;
-  sort: LBSortKey;
-  direction: LBSortDirection;
-  characterIds: string[];
-  weaponIds: string[];
-  regionPrefixes: string[];
-  username: string;
-  uid: string;
-  echoSets: LBEchoSetFilter[];
-  echoMains: LBEchoMainFilter[];
-};
-
-function parsePositiveInt(value: string | null, fallback: number): number {
-  const parsed = Number.parseInt(value ?? '', 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function parseCSV(value: string | null): string[] {
-  if (!value) return [];
-  return value.split(',').map((entry) => entry.trim()).filter(Boolean);
-}
-
-function normalizeUsernameInput(value: string): string {
-  return value.slice(0, USERNAME_MAX_LENGTH);
-}
-
-function normalizeUsernameCommitted(value: string): string {
-  return normalizeUsernameInput(value).trim();
-}
-
-function normalizeUIDInput(value: string): string {
-  return value.replace(/\D+/g, '').slice(0, UID_MAX_LENGTH);
-}
-
-function normalizeUIDCommitted(value: string): string {
-  const normalized = normalizeUIDInput(value);
-  return normalized.length === UID_MAX_LENGTH ? normalized : '';
-}
-
-function canonicalizeStringArray(values: string[]): string[] {
-  return [...new Set(values.map((entry) => entry.trim()).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b));
-}
-
-function canonicalizeEchoSets(values: LBEchoSetFilter[]): LBEchoSetFilter[] {
-  const seen = new Set<string>();
-  const canonical: LBEchoSetFilter[] = [];
-  for (const entry of values) {
-    if (!Number.isFinite(entry.count) || !Number.isFinite(entry.setId)) continue;
-    const key = `${entry.setId}:${entry.count}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    canonical.push({ count: entry.count, setId: entry.setId });
-  }
-  return canonical.sort((a, b) => {
-    if (a.setId !== b.setId) return a.setId - b.setId;
-    return a.count - b.count;
-  });
-}
-
-function canonicalizeEchoMains(values: LBEchoMainFilter[]): LBEchoMainFilter[] {
-  const seen = new Set<string>();
-  const canonical: LBEchoMainFilter[] = [];
-  for (const entry of values) {
-    if (!Number.isFinite(entry.cost) || !entry.statType) continue;
-    const key = `${entry.cost}:${entry.statType}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    canonical.push({ cost: entry.cost, statType: entry.statType });
-  }
-  return canonical.sort((a, b) => {
-    if (a.cost !== b.cost) return a.cost - b.cost;
-    return a.statType.localeCompare(b.statType);
-  });
-}
-
-function parseEchoSetCSV(value: string | null): LBEchoSetFilter[] {
-  if (!value) return [];
-  return value
-    .split('.')
-    .map((entry) => {
-      const [countRaw, idRaw] = entry.split('~');
-      const count = Number.parseInt(countRaw ?? '', 10);
-      const setId = Number.parseInt(idRaw ?? '', 10);
-      if (!Number.isFinite(count) || !Number.isFinite(setId)) return null;
-      return { count, setId };
-    })
-    .filter((entry): entry is LBEchoSetFilter => entry !== null);
-}
-
-function parseEchoMainCSV(value: string | null): LBEchoMainFilter[] {
-  if (!value) return [];
-  return value
-    .split('.')
-    .map((entry) => {
-      const [costRaw, statType] = entry.split('~');
-      const cost = Number.parseInt(costRaw ?? '', 10);
-      if (!Number.isFinite(cost) || !statType) return null;
-      return { cost, statType };
-    })
-    .filter((entry): entry is LBEchoMainFilter => entry !== null);
-}
-
-function formatTimestamp(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return 'Unknown date';
-  return parsed.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatFlatStat(value: number): string {
-  return Number(value).toFixed(0);
-}
-
-function formatPercentStat(value: number): string {
-  return `${Number(value).toFixed(1).replace(/\.0$/, '')}%`;
-}
-
-function getElementDMGLabel(code: string): string {
-  const stat = LB_STAT_ENTRIES.find((entry) => entry.code === code);
-  return stat?.label ?? code;
-}
-
-function getSortLabel(key: LBSortKey): string {
-  return SORT_OPTIONS.find((option) => option.key === key)?.label ?? key;
-}
-
-function parseInitialQuery(searchParams: URLSearchParams): QuerySnapshot {
-  const page = parsePositiveInt(searchParams.get('page'), DEFAULT_PAGE);
-  const sortParam = searchParams.get('sort');
-  const directionParam = searchParams.get('direction');
-  const sort = SORT_OPTIONS.some((option) => option.key === sortParam)
-    ? (sortParam as LBSortKey)
-    : DEFAULT_SORT;
-  const direction = directionParam === 'asc' || directionParam === 'desc'
-    ? directionParam
-    : DEFAULT_DIRECTION;
-
-  return {
-    page,
-    sort,
-    direction: direction === 'asc' ? 'asc' : 'desc',
-    characterIds: canonicalizeStringArray(parseCSV(searchParams.get('characters'))),
-    weaponIds: canonicalizeStringArray(parseCSV(searchParams.get('weapons'))),
-    regionPrefixes: canonicalizeStringArray(parseCSV(searchParams.get('regions'))),
-    username: normalizeUsernameCommitted(searchParams.get('username') ?? ''),
-    uid: normalizeUIDCommitted(searchParams.get('uid') ?? ''),
-    echoSets: canonicalizeEchoSets(parseEchoSetCSV(searchParams.get('sets'))),
-    echoMains: canonicalizeEchoMains(parseEchoMainCSV(searchParams.get('mains'))),
-  };
-}
-
-function serializeQuery(snapshot: QuerySnapshot): string {
-  const characterIds = canonicalizeStringArray(snapshot.characterIds);
-  const weaponIds = canonicalizeStringArray(snapshot.weaponIds);
-  const regionPrefixes = canonicalizeStringArray(snapshot.regionPrefixes);
-  const echoSets = canonicalizeEchoSets(snapshot.echoSets);
-  const echoMains = canonicalizeEchoMains(snapshot.echoMains);
-  const username = normalizeUsernameCommitted(snapshot.username);
-  const uid = normalizeUIDCommitted(snapshot.uid);
-
-  const params = new URLSearchParams();
-  if (snapshot.page > DEFAULT_PAGE) params.set('page', String(snapshot.page));
-  if (snapshot.sort !== DEFAULT_SORT) params.set('sort', snapshot.sort);
-  if (snapshot.direction !== DEFAULT_DIRECTION) params.set('direction', snapshot.direction);
-  if (characterIds.length) params.set('characters', characterIds.join(','));
-  if (weaponIds.length) params.set('weapons', weaponIds.join(','));
-  if (regionPrefixes.length) params.set('regions', regionPrefixes.join(','));
-  if (username) params.set('username', username);
-  if (uid) params.set('uid', uid);
-  if (echoSets.length) {
-    params.set('sets', echoSets.map((entry) => `${entry.count}~${entry.setId}`).join('.'));
-  }
-  if (echoMains.length) {
-    params.set('mains', echoMains.map((entry) => `${entry.cost}~${entry.statType}`).join('.'));
-  }
-  return params.toString();
-}
-
-const BuildsEntryCard: React.FC<{
-  entry: LBBuildEntry;
-  rank: number;
-  expanded: boolean;
-  onToggle: () => void;
-}> = ({ entry, rank, expanded, onToggle }) => {
-  const { getCharacter, getWeapon, getEcho, getFetterByElement } = useGameData();
-  const { t } = useLanguage();
-
-  const character = getCharacter(entry.state.characterId);
-  const weapon = getWeapon(entry.state.weaponId);
-  const characterName = character
-    ? t(character.nameI18n ?? { en: character.name })
-    : entry.state.characterId || 'Unknown Character';
-  const weaponName = weapon
-    ? t(weapon.nameI18n ?? { en: weapon.name })
-    : entry.state.weaponId || 'Unknown Weapon';
-
-  const setSummaries = useMemo(() => {
-    const counts = new Map<ElementType, number>();
-    for (const panel of entry.state.echoPanels) {
-      if (!panel.id) continue;
-      const echo = getEcho(panel.id);
-      const element = panel.selectedElement ?? echo?.elements?.[0];
-      if (!element) continue;
-      counts.set(element, (counts.get(element) ?? 0) + 1);
-    }
-
-    return [...counts.entries()]
-      .map(([element, count]) => {
-        const fetter = getFetterByElement(element);
-        const threshold = fetter?.pieceCount ?? 2;
-        return {
-          element,
-          count,
-          threshold,
-          icon: fetter?.icon ?? '',
-          label: fetter ? t(fetter.name) : element,
-          active: count >= threshold,
-        };
-      })
-      .sort((a, b) => b.count - a.count);
-  }, [entry.state.echoPanels, getEcho, getFetterByElement, t]);
-
-  const critRate = entry.stats.CR;
-  const critDmg = entry.stats.CD;
-  const elementStats: Array<{ code: string; value: number }> = [
-    { code: 'AD', value: entry.stats.AD },
-    { code: 'GD', value: entry.stats.GD },
-    { code: 'FD', value: entry.stats.FD },
-    { code: 'ED', value: entry.stats.ED },
-    { code: 'HD', value: entry.stats.HD },
-    { code: 'SD', value: entry.stats.SD },
-  ];
-  const highestElement = elementStats.reduce(
-    (best, curr) => (curr.value > best.value ? curr : best),
-    { code: 'AD', value: 0 },
-  );
-  const moveBonusStats: Array<{ code: string; value: number }> = [
-    { code: 'BA', value: entry.stats.BA },
-    { code: 'HA', value: entry.stats.HA },
-    { code: 'RS', value: entry.stats.RS },
-    { code: 'RL', value: entry.stats.RL },
-  ];
-  const highestMoveBonus = moveBonusStats.reduce(
-    (best, curr) => (curr.value > best.value ? curr : best),
-    { code: 'BA', value: 0 },
-  );
-
-  return (
-    <div className="rounded-lg border border-border bg-background-secondary p-3">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full text-left"
-      >
-        <div className="grid grid-cols-[auto_1fr] items-start gap-3 sm:grid-cols-[auto_1fr_auto]">
-          <div className="rounded-md border border-border bg-background px-2 py-1 text-xs font-semibold text-text-primary">
-            #{rank}
-          </div>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-text-primary">
-              {characterName}
-            </div>
-            <div className="mt-0.5 text-xs text-text-primary/70">
-              {weaponName} · S{entry.state.sequence} · R{entry.state.weaponRank}
-            </div>
-            <div className="mt-0.5 text-xs text-text-primary/55">
-              {entry.state.watermark.username || 'Anonymous'} · UID {entry.state.watermark.uid || '—'}
-            </div>
-          </div>
-          <div className="mt-2 flex items-center gap-2 sm:mt-0">
-            <span className="rounded-md bg-accent/15 px-2 py-1 text-xs font-semibold text-accent">
-              {entry.cv.toFixed(1)} CV
-            </span>
-            <span className="rounded-md border border-border bg-background px-2 py-1 text-xs text-text-primary/75">
-              {formatTimestamp(entry.timestamp)}
-            </span>
-            <ChevronDown
-              className={`h-4 w-4 text-text-primary/60 transition-transform ${expanded ? 'rotate-180' : ''}`}
-            />
-          </div>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-text-primary sm:grid-cols-5">
-          <div className="rounded border border-border bg-background px-2 py-1">
-            CR/CD: {formatPercentStat(critRate)} / {formatPercentStat(critDmg)}
-          </div>
-          <div className="rounded border border-border bg-background px-2 py-1">
-            ATK: {formatFlatStat(entry.stats.A)}
-          </div>
-          <div className="rounded border border-border bg-background px-2 py-1">
-            HP: {formatFlatStat(entry.stats.H)}
-          </div>
-          <div className="rounded border border-border bg-background px-2 py-1">
-            ER: {formatPercentStat(entry.stats.ER)}
-          </div>
-          <div className="rounded border border-border bg-background px-2 py-1">
-            {getElementDMGLabel(highestElement.code)}: {formatPercentStat(highestElement.value)}
-          </div>
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {setSummaries.filter((summary) => summary.active).map((summary) => (
-            <span
-              key={summary.element}
-              className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent"
-            >
-              {summary.icon && (
-                <img src={summary.icon} alt="" className="h-3.5 w-3.5 object-contain" />
-              )}
-              {summary.label} {summary.count}pc
-            </span>
-          ))}
-          {setSummaries.filter((summary) => summary.active).length === 0 && (
-            <span className="text-xs text-text-primary/50">No active set bonus</span>
-          )}
-          <span className="ml-auto text-xs text-text-primary/55">
-            Top move bonus: {getElementDMGLabel(highestMoveBonus.code)} {formatPercentStat(highestMoveBonus.value)}
-          </span>
-        </div>
-      </button>
-
-      {expanded && (
-        <div className="mt-3 rounded-lg border border-border bg-background p-3">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <div className="rounded border border-border bg-background-secondary p-2">
-              <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/55">Character</div>
-              <div className="flex items-center gap-2">
-                {character?.head ? (
-                  <img src={character.head} alt={characterName} className="h-11 w-11 rounded object-cover" />
-                ) : (
-                  <div className="h-11 w-11 rounded bg-border" />
-                )}
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-text-primary">{characterName}</div>
-                  <div className="text-xs text-text-primary/70">Lv.{entry.state.characterLevel}</div>
-                </div>
-              </div>
-            </div>
-            <div className="rounded border border-border bg-background-secondary p-2">
-              <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/55">Weapon</div>
-              <div className="flex items-center gap-2">
-                {weapon ? (
-                  <img src={getWeaponPaths(weapon)} alt={weaponName} className="h-11 w-11 object-contain" />
-                ) : (
-                  <div className="h-11 w-11 rounded bg-border" />
-                )}
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-text-primary">{weaponName}</div>
-                  <div className="text-xs text-text-primary/70">Lv.{entry.state.weaponLevel} · R{entry.state.weaponRank}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-3 rounded border border-border bg-background-secondary p-2">
-            <div className="mb-2 text-[11px] uppercase tracking-wide text-text-primary/55">Echoes</div>
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
-              {entry.state.echoPanels.map((panel, index) => {
-                const echo = panel.id ? getEcho(panel.id) : null;
-                const echoName = echo ? t(echo.nameI18n ?? { en: echo.name }) : 'Empty Slot';
-                const selectedSet = panel.selectedElement ?? echo?.elements?.[0];
-                const setIcon = selectedSet ? getFetterByElement(selectedSet)?.icon ?? '' : '';
-                return (
-                  <div key={`${panel.id ?? 'empty'}-${index}`} className="rounded border border-border bg-background p-2 text-xs">
-                    {echo ? (
-                      <>
-                        <div className="mb-1 flex items-center gap-2">
-                          <img src={getEchoPaths(echo, panel.phantom)} alt={echoName} className="h-7 w-7 rounded object-contain" />
-                          <div className="min-w-0">
-                            <div className="truncate font-semibold text-text-primary">{echoName}</div>
-                            <div className="text-[10px] text-text-primary/60">Lv.{panel.level}</div>
-                          </div>
-                        </div>
-                        <div className="mb-1 flex items-center justify-between gap-2">
-                          {setIcon ? <img src={setIcon} alt="" className="h-3.5 w-3.5 object-contain" /> : <span />}
-                          {panel.stats.mainStat.type && (
-                            <span className="truncate text-accent">
-                              {panel.stats.mainStat.type} {panel.stats.mainStat.value}
-                            </span>
-                          )}
-                        </div>
-                        <div className="space-y-0.5">
-                          {panel.stats.subStats
-                            .filter((sub) => sub.type && sub.value !== null)
-                            .map((sub, subIndex) => (
-                              <div key={subIndex} className="flex justify-between gap-1 text-[10px] text-text-primary/70">
-                                <span className="truncate">{sub.type}</span>
-                                <span>{sub.value}</span>
-                              </div>
-                            ))}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex min-h-20 items-center justify-center text-text-primary/40">Empty Slot</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+import { getWeaponPaths } from '@/lib/paths';
+import {
+  DEFAULT_PAGE,
+  IDENTITY_DEBOUNCE_MS,
+  ITEMS_PER_PAGE,
+  MAIN_STAT_OPTIONS,
+} from './buildsConstants';
+import { getSortLabel } from './buildsFormatters';
+import { parseInitialQuery, serializeQuery } from './buildsQuery';
+import { BuildsFiltersPanel } from './BuildsFiltersPanel';
+import { BuildsHeader } from './BuildsHeader';
+import { BuildsResultsPanel } from './BuildsResultsPanel';
+import {
+  FilterSuggestion,
+  QuerySnapshot,
+  SelectedMainEntry,
+  SelectedSetEntry,
+  SetOption,
+} from './types';
 
 export const BuildsPageClient: React.FC = () => {
   const router = useRouter();
@@ -589,7 +122,7 @@ export const BuildsPageClient: React.FC = () => {
     ];
   }, [characterIds, characters, entityQuery, t, weaponIds, weaponList]);
 
-  const setOptions = useMemo(() => (
+  const setOptions = useMemo<SetOption[]>(() => (
     fetters
       .map((entry) => ({
         id: entry.id,
@@ -612,7 +145,7 @@ export const BuildsPageClient: React.FC = () => {
     ? pendingSetCount
     : (pendingSetPieceCounts[0] ?? 2);
 
-  const selectedSetEntries = useMemo(() => (
+  const selectedSetEntries = useMemo<SelectedSetEntry[]>(() => (
     echoSets.map((entry) => {
       const setOption = setOptions.find((setItem) => setItem.id === entry.setId);
       return {
@@ -622,7 +155,7 @@ export const BuildsPageClient: React.FC = () => {
     })
   ), [echoSets, setOptions]);
 
-  const selectedMainEntries = useMemo(() => (
+  const selectedMainEntries = useMemo<SelectedMainEntry[]>(() => (
     echoMains.map((entry) => {
       const statLabel = MAIN_STAT_OPTIONS.find((opt) => opt.code === entry.statType)?.label ?? entry.statType;
       return {
@@ -643,7 +176,7 @@ export const BuildsPageClient: React.FC = () => {
   );
 
   useEffect(() => {
-    const nextUsername = normalizeUsernameCommitted(usernameInput);
+    const nextUsername = usernameInput.trim();
     if (nextUsername === username) return;
     const timeout = setTimeout(() => {
       setUsername(nextUsername);
@@ -653,7 +186,7 @@ export const BuildsPageClient: React.FC = () => {
   }, [usernameInput, username]);
 
   useEffect(() => {
-    const nextUid = normalizeUIDCommitted(uidInput);
+    const nextUid = uidInput.trim();
     if (nextUid === uid) return;
     const timeout = setTimeout(() => {
       setUid(nextUid);
@@ -794,402 +327,88 @@ export const BuildsPageClient: React.FC = () => {
   const rankStart = (page - 1) * ITEMS_PER_PAGE + 1;
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] p-3 md:p-4">
-      <div className="space-y-4">
-        <section className="rounded-lg border border-border bg-background-secondary p-4">
-          <h1 className="text-xl font-semibold text-text-primary md:text-2xl">Global Builds</h1>
-          <p className="mt-1 text-sm text-text-primary/70">
-            Browse uploaded builds from the leaderboard service. Filters map directly to backend query params for
-            `/build`, and entries are normalized to rewrite SavedState before rendering.
-          </p>
-          <div className="mt-2 inline-flex items-center gap-2 rounded-md border border-accent/35 bg-accent/10 px-2 py-1 text-xs text-text-primary/80">
-            <AlertTriangle className="h-3.5 w-3.5 text-accent" />
-            Results are point-in-time and depend on the active LB backend dataset.
-          </div>
-        </section>
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto w-full max-w-[1280px] space-y-4 p-3 md:p-5">
+        <BuildsHeader />
 
-        <section className="rounded-lg border border-border bg-background-secondary p-4">
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            <div className="rounded-lg border border-border bg-background p-3">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">
-                Character / Weapon
-              </div>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-primary/45" />
-                <input
-                  value={entityQuery}
-                  onChange={(event) => setEntityQuery(event.target.value)}
-                  placeholder="Filter by character or weapon name"
-                  className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
-                />
-                {entityQuery.trim().length > 0 && filterSuggestions.length > 0 && (
-                  <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-border bg-background p-1 shadow-lg">
-                    {filterSuggestions.map((entry) => (
-                      <button
-                        key={`${entry.type}-${entry.id}`}
-                        type="button"
-                        onClick={() => handleAddSuggestion(entry)}
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-text-primary hover:bg-background-secondary"
-                      >
-                        {entry.icon ? (
-                          <img src={entry.icon} alt="" className="h-5 w-5 rounded object-contain" />
-                        ) : (
-                          <div className="h-5 w-5 rounded bg-border" />
-                        )}
-                        <span className="truncate">{entry.name}</span>
-                        <span className="ml-auto text-[10px] uppercase tracking-wide text-text-primary/45">{entry.type}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+        <BuildsFiltersPanel
+          entityQuery={entityQuery}
+          filterSuggestions={filterSuggestions}
+          selectedCharacters={selectedCharacters}
+          selectedWeapons={selectedWeapons}
+          sort={sort}
+          direction={direction}
+          usernameInput={usernameInput}
+          uidInput={uidInput}
+          regionPrefixes={regionPrefixes}
+          setOptions={setOptions}
+          effectivePendingSetId={effectivePendingSetId}
+          effectivePendingSetCount={effectivePendingSetCount}
+          pendingSetPieceCounts={pendingSetPieceCounts}
+          selectedSetEntries={selectedSetEntries}
+          pendingMainCost={pendingMainCost}
+          pendingMainStat={pendingMainStat}
+          selectedMainEntries={selectedMainEntries}
+          hasActiveFilters={hasActiveFilters}
+          activeSortLabel={getSortLabel(sort)}
+          onEntityQueryChange={setEntityQuery}
+          onAddSuggestion={handleAddSuggestion}
+          onRemoveCharacter={(id) => {
+            setCharacterIds((prev) => prev.filter((entry) => entry !== id));
+            setPage(1);
+          }}
+          onRemoveWeapon={(id) => {
+            setWeaponIds((prev) => prev.filter((entry) => entry !== id));
+            setPage(1);
+          }}
+          onSortChange={(nextSort) => {
+            setSort(nextSort);
+            setPage(1);
+          }}
+          onToggleDirection={() => {
+            setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+            setPage(1);
+          }}
+          onUsernameInputChange={setUsernameInput}
+          onUidInputChange={setUidInput}
+          onToggleRegion={toggleRegion}
+          onPendingSetIdChange={setPendingSetId}
+          onPendingSetCountChange={setPendingSetCount}
+          onAddSetFilter={handleAddSetFilter}
+          onRemoveSetEntry={(index) => {
+            setEchoSets((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+            setPage(1);
+          }}
+          onPendingMainCostChange={setPendingMainCost}
+          onPendingMainStatChange={setPendingMainStat}
+          onAddMainFilter={handleAddMainFilter}
+          onRemoveMainEntry={(index) => {
+            setEchoMains((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+            setPage(1);
+          }}
+          onClearAllFilters={clearAllFilters}
+        />
 
-              {(selectedCharacters.length > 0 || selectedWeapons.length > 0) && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {selectedCharacters.map((entry) => (
-                    <span
-                      key={`char-${entry.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-text-primary"
-                    >
-                      {entry.head ? <img src={entry.head} alt="" className="h-4 w-4 rounded-full object-cover" /> : null}
-                      <span>{t(entry.nameI18n ?? { en: entry.name })}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCharacterIds((prev) => prev.filter((id) => id !== entry.id));
-                          setPage(1);
-                        }}
-                        className="text-text-primary/60 hover:text-text-primary"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </span>
-                  ))}
-                  {selectedWeapons.map((entry) => (
-                    <span
-                      key={`weapon-${entry.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background-secondary px-2 py-1 text-xs text-text-primary"
-                    >
-                      <img src={getWeaponPaths(entry)} alt="" className="h-4 w-4 object-contain" />
-                      <span>{t(entry.nameI18n ?? { en: entry.name })}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setWeaponIds((prev) => prev.filter((id) => id !== entry.id));
-                          setPage(1);
-                        }}
-                        className="text-text-primary/60 hover:text-text-primary"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-lg border border-border bg-background p-3">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">
-                Sort / Identity
-              </div>
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto]">
-                <select
-                  value={sort}
-                  onChange={(event) => {
-                    setSort(event.target.value as LBSortKey);
-                    setPage(1);
-                  }}
-                  className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-                >
-                  {SORT_OPTIONS.map((option) => (
-                    <option key={option.key} value={option.key}>{option.label}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-                    setPage(1);
-                  }}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-accent/60"
-                >
-                  {direction === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpAZ className="h-4 w-4" />}
-                  {direction.toUpperCase()}
-                </button>
-              </div>
-              <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
-                <input
-                  value={usernameInput}
-                  onChange={(event) => {
-                    setUsernameInput(normalizeUsernameInput(event.target.value));
-                  }}
-                  maxLength={USERNAME_MAX_LENGTH}
-                  placeholder="Username"
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
-                />
-                <input
-                  value={uidInput}
-                  onChange={(event) => {
-                    setUidInput(normalizeUIDInput(event.target.value));
-                  }}
-                  maxLength={UID_MAX_LENGTH}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="UID"
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-border bg-background p-3">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">Region</div>
-              <div className="flex flex-wrap gap-2">
-                {REGION_OPTIONS.map((entry) => {
-                  const checked = regionPrefixes.includes(entry.value);
-                  return (
-                    <label
-                      key={entry.value}
-                      className={`inline-flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1 text-xs transition-colors ${
-                        checked
-                          ? 'border-accent/55 bg-accent/15 text-text-primary'
-                          : 'border-border bg-background-secondary text-text-primary/75 hover:border-accent/45'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleRegion(entry.value)}
-                        className="accent-[rgb(var(--color-accent))]"
-                      />
-                      {entry.label}
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-border bg-background p-3">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">
-                Echo Set Filters
-              </div>
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_7rem_auto]">
-                <select
-                  value={effectivePendingSetId === null ? '' : String(effectivePendingSetId)}
-                  onChange={(event) => setPendingSetId(event.target.value ? Number(event.target.value) : null)}
-                  className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-                >
-                  {setOptions.map((entry) => (
-                    <option key={entry.id} value={entry.id}>{entry.name}</option>
-                  ))}
-                </select>
-                <select
-                  value={effectivePendingSetCount}
-                  onChange={(event) => setPendingSetCount(Number(event.target.value))}
-                  className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-                >
-                  {pendingSetPieceCounts.map((count) => (
-                    <option key={count} value={count}>{count}pc</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleAddSetFilter}
-                  className="rounded-lg border border-accent/45 bg-accent/10 px-3 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
-                >
-                  Add
-                </button>
-              </div>
-              {selectedSetEntries.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {selectedSetEntries.map((entry, index) => (
-                    <span
-                      key={`${entry.count}-${entry.setId}-${index}`}
-                      className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent"
-                    >
-                      {entry.name} {entry.count}pc
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEchoSets((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
-                          setPage(1);
-                        }}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-lg border border-border bg-background p-3">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">
-                Echo Main Stat Filters
-              </div>
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-[7rem_1fr_auto]">
-                <select
-                  value={pendingMainCost}
-                  onChange={(event) => setPendingMainCost(Number(event.target.value))}
-                  className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-                >
-                  <option value={4}>4 Cost</option>
-                  <option value={3}>3 Cost</option>
-                  <option value={1}>1 Cost</option>
-                </select>
-                <select
-                  value={pendingMainStat}
-                  onChange={(event) => setPendingMainStat(event.target.value)}
-                  className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-                >
-                  {MAIN_STAT_OPTIONS.map((entry) => (
-                    <option key={entry.code} value={entry.code}>{entry.label}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleAddMainFilter}
-                  className="rounded-lg border border-accent/45 bg-accent/10 px-3 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
-                >
-                  Add
-                </button>
-              </div>
-              {selectedMainEntries.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {selectedMainEntries.map((entry, index) => (
-                    <span
-                      key={`${entry.cost}-${entry.statType}-${index}`}
-                      className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent"
-                    >
-                      {entry.cost}c {entry.label}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEchoMains((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
-                          setPage(1);
-                        }}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-xs text-text-primary/60">
-              Active sort: <span className="font-medium text-text-primary">{getSortLabel(sort)}</span> ({direction})
-            </div>
-            <button
-              type="button"
-              onClick={clearAllFilters}
-              disabled={!hasActiveFilters}
-              className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              Clear All Filters
-            </button>
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-border bg-background-secondary p-3">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-sm font-medium text-text-primary">
-              {isLoading ? 'Loading builds...' : `${total.toLocaleString()} build${total === 1 ? '' : 's'} found`}
-            </div>
-            <div className="text-xs text-text-primary/60">
-              Page {page} / {pageCount} {isRefreshing ? '· refreshing…' : ''}
-            </div>
-          </div>
-
-          {error && (
-            <div className="mb-3 rounded-lg border border-accent/45 bg-accent/10 p-3 text-sm text-text-primary">
-              Failed to load leaderboard data: {error}
-            </div>
-          )}
-
-          {isLoading && (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="h-28 animate-pulse rounded-lg border border-border bg-background" />
-              ))}
-            </div>
-          )}
-
-          {!isLoading && !error && builds.length === 0 && (
-            <div className="rounded-lg border border-border bg-background p-6 text-center text-sm text-text-primary/65">
-              No builds match the current filters.
-            </div>
-          )}
-
-          {!isLoading && !error && builds.length > 0 && (
-            <div className="space-y-2">
-              {builds.map((entry, index) => {
-                const rank = rankStart + index;
-                const expanded = expandedBuildIds.has(entry.id);
-                return (
-                  <BuildsEntryCard
-                    key={entry.id}
-                    entry={entry}
-                    rank={rank}
-                    expanded={expanded}
-                    onToggle={() => {
-                      setExpandedBuildIds((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(entry.id)) next.delete(entry.id);
-                        else next.add(entry.id);
-                        return next;
-                      });
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
-
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-xs text-text-primary/60">
-              Showing {Math.min(total, rankStart)}-{Math.min(total, rankStart + Math.max(builds.length - 1, 0))} of {total.toLocaleString()}
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setPage(1)}
-                disabled={page <= 1}
-                className="rounded border border-border bg-background p-1.5 text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronFirst className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                disabled={page <= 1}
-                className="rounded border border-border bg-background p-1.5 text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="mx-1 rounded border border-border bg-background px-2 py-1 text-xs text-text-primary">
-                {page}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
-                disabled={page >= pageCount}
-                className="rounded border border-border bg-background p-1.5 text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setPage(pageCount)}
-                disabled={page >= pageCount}
-                className="rounded border border-border bg-background p-1.5 text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronLast className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </section>
+        <BuildsResultsPanel
+          builds={builds}
+          total={total}
+          page={page}
+          pageCount={pageCount}
+          rankStart={rankStart}
+          isLoading={isLoading}
+          isRefreshing={isRefreshing}
+          error={error}
+          expandedBuildIds={expandedBuildIds}
+          onToggleExpanded={(buildId) => {
+            setExpandedBuildIds((prev) => {
+              const next = new Set(prev);
+              if (next.has(buildId)) next.delete(buildId);
+              else next.add(buildId);
+              return next;
+            });
+          }}
+          onPageChange={setPage}
+        />
 
         {gameDataLoading && (
           <div className="rounded-lg border border-border bg-background p-3 text-sm text-text-primary/70">
