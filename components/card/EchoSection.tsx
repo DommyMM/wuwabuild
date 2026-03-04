@@ -58,7 +58,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
   activeHoverStat = null,
   onHoverStatChange,
 }) => {
-  const { getEcho, fettersByElement, statIcons } = useGameData();
+  const { getEcho, fettersByElement, statIcons, getSubstatValues } = useGameData();
   const { state } = useBuild();
   const { t } = useLanguage();
   const selected = useSelectedCharacter();
@@ -211,7 +211,9 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                   const subType = sub.type.trim();
                   const isSubPercent = isPercentStat(subType);
                   const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')];
-                  const tierColor = showRollQuality ? getSubstatTierColor(subType, sub.value) : null;
+                  const tierColor = showRollQuality
+                    ? getSubstatTierColor(subType, sub.value, getSubstatValues(subType))
+                    : null;
                   const subHoverKey = normalizeStatHoverKey(subType);
                   const baseStyle = tierColor ? {
                     backgroundColor: `${tierColor}18`,
