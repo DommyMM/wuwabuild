@@ -1,4 +1,4 @@
-import { SavedState } from '@/lib/build';
+import { DEFAULT_FORTE, SavedState } from '@/lib/build';
 
 const DEFAULT_LB_URL = 'http://localhost:8080';
 
@@ -150,7 +150,6 @@ function isCanonicalSavedState(value: unknown): value is SavedState {
   if (!('characterId' in value)) return false;
   if (!('weaponId' in value)) return false;
   if (!Array.isArray(value.echoPanels)) return false;
-  if (!Array.isArray(value.forte)) return false;
   if (!isRecord(value.watermark)) return false;
   return true;
 }
@@ -203,7 +202,13 @@ function normalizeBuildState(rawBuildState: unknown): SavedState {
   if (!isCanonicalSavedState(candidate)) {
     throw new Error('LB buildState is not in canonical SavedState format.');
   }
-  return candidate;
+  const forte = Array.isArray(candidate.forte)
+    ? candidate.forte
+    : (DEFAULT_FORTE.map((entry) => [...entry]) as SavedState['forte']);
+  return {
+    ...candidate,
+    forte,
+  };
 }
 
 function normalizeBuildEntry(raw: LBBuildEntryRaw): LBBuildEntry {
@@ -300,8 +305,7 @@ export async function listBuilds(
       requestUrl,
       query,
       payload,
-      rawBuildCount: rawBuilds.length,
-      normalizedBuilds,
+      rawBuildCount: rawBuilds.length
     });
   }
 

@@ -53,11 +53,16 @@ Import OCR requests use the `X-OCR-Region` header via the frontend `/api/ocr` pr
 
 ## LB + Builds Current Status (2026-03-03)
 
-- `/builds` and `/leaderboards` routes in the rewrite are currently placeholders (no data fetch/render yet).
+- `/builds` route is live and wired to LB `GET /build` filters/sort/pagination.
+- `/leaderboards` route is still placeholder.
 - `/import` has an `Upload to Leaderboard` toggle in UI, but no leaderboard submission wiring is connected yet.
 - `BuildEditor` still has a disabled `View Ranking` button with a TODO note for leaderboard logic.
 - Go LB local runtime is validated with migrated legacy data (successful `/build?uid=...&characterId=...` query on `localhost:8080`).
 - Go LB legacy compressed rows have been normalized to SavedState v2 + CDN IDs (`make normalize` in `/lb`), so API filtering should use CDN character IDs.
+- Latest migration verification includes:
+  - full reimport + normalize succeeded (`11302` converted, `0` errors),
+  - canonical repair succeeded (`11302` scanned, updates applied, `0` errors),
+  - sample weapon mapping verified (`uid=901955607`, Camellya -> `weaponId 21020026`, rendered as Red Spring).
 - Backend direction for this phase is:
   - **Go LB primary** (`/lb`, Chi + pgx + PostgreSQL).
   - **Node fallback** (`/mongo`, Express + MongoDB) until Go parity gates are met.

@@ -29,6 +29,10 @@ import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { ElementType } from '@/lib/echo';
 
 const ITEMS_PER_PAGE = 10;
+const IDENTITY_DEBOUNCE_MS = 350;
+const DEFAULT_PAGE = 1;
+const DEFAULT_SORT: LBSortKey = 'finalCV';
+const DEFAULT_DIRECTION: LBSortDirection = 'desc';
 
 const REGION_OPTIONS = [
   { label: 'America', value: '5' },
@@ -162,9 +166,15 @@ function getSortLabel(key: LBSortKey): string {
 }
 
 function parseInitialQuery(searchParams: URLSearchParams): QuerySnapshot {
-  const page = parsePositiveInt(searchParams.get('page'), 1);
-  const sort = (searchParams.get('sort') ?? 'finalCV') as LBSortKey;
-  const direction = (searchParams.get('direction') ?? 'desc') as LBSortDirection;
+  const page = parsePositiveInt(searchParams.get('page'), DEFAULT_PAGE);
+  const sortParam = searchParams.get('sort');
+  const directionParam = searchParams.get('direction');
+  const sort = SORT_OPTIONS.some((option) => option.key === sortParam)
+    ? (sortParam as LBSortKey)
+    : DEFAULT_SORT;
+  const direction = directionParam === 'asc' || directionParam === 'desc'
+    ? directionParam
+    : DEFAULT_DIRECTION;
 
   return {
     page,
@@ -182,9 +192,9 @@ function parseInitialQuery(searchParams: URLSearchParams): QuerySnapshot {
 
 function serializeQuery(snapshot: QuerySnapshot): string {
   const params = new URLSearchParams();
-  params.set('page', String(snapshot.page));
-  params.set('sort', snapshot.sort);
-  params.set('direction', snapshot.direction);
+  if (snapshot.page > DEFAULT_PAGE) params.set('page', String(snapshot.page));
+  if (snapshot.sort !== DEFAULT_SORT) params.set('sort', snapshot.sort);
+  if (snapshot.direction !== DEFAULT_DIRECTION) params.set('direction', snapshot.direction);
   if (snapshot.characterIds.length) params.set('characters', snapshot.characterIds.join(','));
   if (snapshot.weaponIds.length) params.set('weapons', snapshot.weaponIds.join(','));
   if (snapshot.regionPrefixes.length) params.set('regions', snapshot.regionPrefixes.join(','));
@@ -442,8 +452,10 @@ export const BuildsPageClient: React.FC = () => {
   const [characterIds, setCharacterIds] = useState<string[]>(() => initialQuery.characterIds);
   const [weaponIds, setWeaponIds] = useState<string[]>(() => initialQuery.weaponIds);
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => initialQuery.regionPrefixes);
-  const [username, setUsername] = useState<string>(() => initialQuery.username);
-  const [uid, setUid] = useState<string>(() => initialQuery.uid);
+  const [username, setUsername] = useState<string>(() => initialQuery.username.trim());
+  const [uid, setUid] = useState<string>(() => initialQuery.uid.trim());
+  const [usernameInput, setUsernameInput] = useState<string>(() => initialQuery.username);
+  const [uidInput, setUidInput] = useState<string>(() => initialQuery.uid);
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialQuery.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialQuery.echoMains);
 
@@ -566,6 +578,26 @@ export const BuildsPageClient: React.FC = () => {
     echoMains.length > 0
   );
 
+  useEffect(() => {
+    const nextUsername = usernameInput.trim();
+    if (nextUsername === username) return;
+    const timeout = setTimeout(() => {
+      setUsername(nextUsername);
+      setPage(DEFAULT_PAGE);
+    }, IDENTITY_DEBOUNCE_MS);
+    return () => clearTimeout(timeout);
+  }, [usernameInput, username]);
+
+  useEffect(() => {
+    const nextUid = uidInput.trim();
+    if (nextUid === uid) return;
+    const timeout = setTimeout(() => {
+      setUid(nextUid);
+      setPage(DEFAULT_PAGE);
+    }, IDENTITY_DEBOUNCE_MS);
+    return () => clearTimeout(timeout);
+  }, [uidInput, uid]);
+
   const querySnapshot = useMemo<QuerySnapshot>(() => ({
     page,
     sort,
@@ -573,8 +605,8 @@ export const BuildsPageClient: React.FC = () => {
     characterIds,
     weaponIds,
     regionPrefixes,
-    username: username.trim(),
-    uid: uid.trim(),
+    username,
+    uid,
     echoSets,
     echoMains,
   }), [characterIds, direction, echoMains, echoSets, page, regionPrefixes, sort, uid, username, weaponIds]);
@@ -583,7 +615,7 @@ export const BuildsPageClient: React.FC = () => {
     const current = searchParams.toString();
     const next = serializeQuery(querySnapshot);
     if (current !== next) {
-      router.replace(`/builds?${next}`, { scroll: false });
+      router.replace(next ? `/builds?${next}` : '/builds', { scroll: false });
     }
   }, [querySnapshot, router, searchParams]);
 
@@ -687,10 +719,12 @@ export const BuildsPageClient: React.FC = () => {
     setRegionPrefixes([]);
     setUsername('');
     setUid('');
+    setUsernameInput('');
+    setUidInput('');
     setEchoSets([]);
     setEchoMains([]);
     setEntityQuery('');
-    setPage(1);
+    setPage(DEFAULT_PAGE);
   }, []);
 
   const rankStart = (page - 1) * ITEMS_PER_PAGE + 1;
@@ -821,19 +855,17 @@ export const BuildsPageClient: React.FC = () => {
               </div>
               <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
                 <input
-                  value={username}
+                  value={usernameInput}
                   onChange={(event) => {
-                    setUsername(event.target.value);
-                    setPage(1);
+                    setUsernameInput(event.target.value);
                   }}
                   placeholder="Username"
                   className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
                 />
                 <input
-                  value={uid}
+                  value={uidInput}
                   onChange={(event) => {
-                    setUid(event.target.value);
-                    setPage(1);
+                    setUidInput(event.target.value);
                   }}
                   placeholder="UID"
                   className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"

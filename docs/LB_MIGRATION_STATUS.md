@@ -24,18 +24,28 @@ Recommended path: **Go LB primary, Node fallback**.
 - Local API validation confirmed with:
   - `GET /` -> `totalBuilds: 11302`
   - `GET /build?uid=901955607&characterId=1603`
-- Response includes expected migrated fields (`buildState`, `stats`, `calculations`, `echoSummary`) with UUID `_id` values.
+- Response includes expected migrated fields (`buildState`, `stats`, `calculations`) with UUID `_id` values.
 - Legacy compressed rows were normalized with `make normalize` (`cmd/migrate --normalize-only`) and now report `Legacy builds to normalize: 0` on rerun.
-- Canonical echo-ID repair pass was added for already-`v2` rows and executed successfully:
-  - `Canonical ID repair complete. Scanned: 11302 | Updated: 4736 | Errors: 0`
-  - Legacy/icon-form echo IDs (`YZ_33018`, `315`, `305`, `145`) are now mapped to canonical CDN IDs.
-  - Known hard alias in migrator: `YZ_33018`/`33018` -> `60000905`.
-  - Migrator now supports deriving extra echo aliases from root `echoBases.ts` (`name + cost + elements` signature match) for remaining minor legacy IDs.
+- Canonical ID repair pass (already-`v2` rows) executed successfully after alias derivation:
+  - `Derived 158 echo ID aliases from ../echoBases.ts`
+  - `Derived 109 weapon ID aliases from ../frontend/public/Data/Weapons.json`
+  - `Canonical ID repair complete. Scanned: 11302 | Updated: 10646 | Errors: 0`
+  - Legacy/icon-form echo IDs (`YZ_33018`, numeric legacy IDs) are mapped to canonical CDN IDs.
+  - Legacy weapon IDs are remapped by legacy name -> canonical `weapon_bases.json` ID matching.
+- Migration implementation was hardened for repeat runs:
+  - Canonical-repair weapon map no longer re-remaps already-canonical overlapping IDs.
+  - This prevents second normalize passes from drifting correct weapon IDs.
+- Parallel migration is enabled by default:
+  - Import workers/batch: `15` / `1000`
+  - Normalize+repair workers/batch: `15` / `1000`
+  - Env override remains available (`IMPORT_*`, `NORMALIZE_*`).
+- Path defaults now prioritize root helper files for one-shot migration:
+  - Echo aliases: `../echoBases.ts` (or `LEGACY_ECHO_BASES_PATH`)
+  - Weapon aliases: `../Weapons.json` (or `LEGACY_WEAPONS_PATH`)
 - Database spot checks after normalization:
   - `build_state ? 'c'` legacy rows: `0`
   - `build_state.version = 'v2'` rows: `11302 / 11302`
-  - `echo_main_stats` empty rows: `8418`
-  - `echo_sets = {}` rows: `8413`
+  - known sample (`uid=901955607`, Camellya) resolved to canonical weapon ID `21020026` end-to-end (`weapon_id`, `build_state.weaponId`, `calculations[0].weaponId`)
 - Query behavior after normalization:
   - legacy numeric character IDs (example `29`) no longer match
   - CDN IDs (example `1603`) should be used for API filters
@@ -47,17 +57,19 @@ Recommended path: **Go LB primary, Node fallback**.
   - `GET /health` added in `lb/internal/api/routes.go` (no DB dependency).
   - `lb/railway.toml` now uses `healthcheckPath = "/health"`.
   - App can stay healthy during schema/import windows while `GET /` remains DB-backed stats.
-- Frontend request behavior observed in local logs:
-  - username/uid filters currently trigger one request per keystroke.
-  - URL sync (`router.replace`) plus query-state effects cause repeated fetches in dev.
-  - Debounce + committed-search state is required before production rollout.
+- Frontend request behavior (`/builds`) updated:
+  - username/uid filters now use committed debounced state (`350ms`) before issuing LB fetches.
+  - URL sync is now canonicalized: defaults are omitted (`page=1`, `sort=finalCV`, `direction=desc`).
+  - no-op `router.replace` is skipped by comparing serialized query snapshots.
 - Frontend LB client fallback removal:
   - `frontend/lib/lb.ts` no longer runs legacy `convertLegacyBuilds` for `/build` rows.
   - `/build` rows are now expected to already contain canonical `SavedState` (`buildState.characterId`, `weaponId`, `echoPanels`, `watermark`, `forte`).
-- Backend `POST /build` contract is now strict:
-  - `buildState` must be canonical (not compressed legacy shape).
-  - `echoSummary` is required (`sets` object + `mainStats` array).
-  - Server-side fallback synthesis of `echoSummary` from legacy panel fields is removed.
+- Backend `POST /build` contract (current):
+  - `buildState` must be canonical `SavedState`-compatible shape.
+  - `echoSummary` is optional.
+  - If `echoSummary` is omitted, server derives `echo_sets` + `echo_main_stats` from `echoPanels`.
+- Build-list/leaderboard response contract (current):
+  - `echoSummary` is no longer returned in Go LB row responses (internal filter data remains persisted in DB).
 - Redis decision (current scale):
   - Redis was evaluated, but deferred.
   - With ~12k builds and low data size, PostgreSQL-only path is currently acceptable.
@@ -106,9 +118,9 @@ Comparison baseline: `mongo/MIGRATION.md` target architecture vs current `lb` im
 | Area | `mongo/MIGRATION.md` target | Current `lb` code (verified) | Impact | Status / Next action |
 |---|---|---|---|---|
 | Ranking semantics | Global + filtered rank from SQL window functions (`RANK()`) over per-player best rows (`DISTINCT ON uid`) | `GetLeaderboard` computes `filteredRank` after `DISTINCT ON uid`, but `globalRank` uses `CountDamageAbove` over all builds (approximate, not per-player best and not tie-aware). Also only filled for `sort=damage` when damage > 0. | Rank numbers can diverge from intended semantics and from MIGRATION expectations. | Backend fix required before Go LB is canonical rank source. |
-| Payload compatibility | Preserve frontend-compatible shape while migration proceeds | Route shapes are close (`_id`, `buildState`, `stats`, `echoSummary`, ranking fields), but `SubmitBuild` expects compressed stat keys in `stats.v` (`CR`, `CD`, etc.) and does not normalize rewrite-native payloads. | Rewrite frontend cannot post directly without adapter/compression layer. | Frontend adapter required immediately; backend normalization optional improvement. |
+| Payload compatibility | Preserve frontend-compatible shape while migration proceeds | Route shapes are close (`_id`, `buildState`, `stats`, ranking fields). `SubmitBuild` accepts canonical `SavedState`-style `buildState` and `stats.v` stat map. | Rewrite frontend can post with adapter for current `stats.v` + calculations payload. | Mostly aligned; keep adapter typed and explicit. |
 | Calculations on submit | `POST /build` validates and runs calc engine in backend | `SubmitBuild` stores provided `calculations` raw; no backend recalculation is executed in current path. Missing calculations default to `[]`. | Damage/rank can be zero or stale if client does not send computed calculations. | Backend decision: integrate calc engine in submit path or enforce precomputed client contract. |
-| Echo summary consistency | Canonical `echoSummary` with stable filtering behavior | If client omits `echoSummary`, fallback generation in `SubmitBuild` creates `mainStats` entries with `statType` only (no `cost`). | Echo main-stat filters may be incomplete/inaccurate in Go path unless client supplies full summary. | Backend fix needed for reliable filter parity. |
+| Echo summary consistency | Canonical summary with stable filtering behavior | If client omits `echoSummary`, Go derives `echo_sets` and `echo_main_stats` from `echoPanels` with canonical echo costs. Summary is DB-internal and no longer returned in row response. | Filtering remains server-capable without client-provided summary. | Improved; continue parity checks on edge rows. |
 | Echo filter contract parity | Frontend and backend use equivalent echo filter representations | Frontend currently sends echo set IDs/counts and short stat codes; backend normalized data/query behavior relies on element-keyed sets and full stat labels. | Filters can appear "working" syntactically but return partial/incorrect matches. | Add explicit frontend->backend transform for `echoSets`/`echoMains` or align backend parser to numeric/code inputs. |
 | Dedupe behavior | Upsert/dedupe by player+character+echo fingerprint (migration plan intent) | `UpsertBuild` conflict key is `mongo_id` partial unique index; normal frontend submissions use empty `mongo_id`, so dedupe is effectively not applied for those writes. | Duplicate build rows likely under regular traffic. | Backend fix required (new uniqueness strategy and upsert rule). |
 | Sequence / weapon-index handling | Support sequence-aware leaderboard semantics and migration-compatible query behavior | `parseSequence` accepts only `s0..s6` (no style suffix), `parseWeaponIndex` clamps `0..9`. Damage sort expression reads `calculations->idx->seq->damage`. | Style-specific sequence keys and extended sequence variants are currently unsupported. | Decide whether style suffix support is needed before rewrite rank UI ships. |
@@ -135,7 +147,6 @@ Canonical frontend needs for rewrite `/builds` and `/rank`:
   - `stats` (selected row stats map)
   - `cv`, `cvPenalty`, `finalCV`
   - `timestamp`
-  - `echoSummary`
 - Leaderboard row additionally needs:
   - `damage`
   - `filteredRank`
@@ -143,12 +154,13 @@ Canonical frontend needs for rewrite `/builds` and `/rank`:
 
 ### `POST /build` compatibility expectation
 
-- Current Go path expects a payload compatible with legacy compressed structure:
-  - `buildState` compressed shape
-  - `stats.v` compressed stat keys (`CR`, `CD`, `A`, etc.)
+- Current Go path expects canonical build payload:
+  - `buildState` SavedState-compatible shape
+  - `stats.v` stat keys (`CR`, `CD`, `A`, etc.)
   - `cv`, `cvPenalty`, `finalCV`
   - `calculations` strongly recommended (otherwise damage-based ranking is not meaningful)
-- Rewrite frontend currently stores a flat `SavedState`; adapter layer is required to serialize into LB payload format.
+- `echoSummary` is optional (server derives it if omitted).
+- Rewrite frontend adapter is still recommended to keep submit payload explicit/typed.
 
 ## Public APIs / Interfaces / Types (Documentation Changes)
 
@@ -220,8 +232,8 @@ Use `/mongo` as serving backend if any of the following is true:
 4. Wire `BuildEditor` `View Ranking` button to character/weapon/sequence rank route.
 5. Implement `/builds` page data flow (filters, sort, pagination).
 6. Implement `/leaderboards` overview + character detail page data flow.
-7. Add debounce (250-400ms) and "committed search" behavior for username/uid before issuing LB fetches.
-8. Reduce duplicate fetches by separating URL sync from fetch trigger or skipping no-op `router.replace`.
+7. Keep identity-search debounce/commit behavior tuned (currently `350ms`) and re-evaluate if UX/data freshness needs differ.
+8. Monitor dev/prod fetch cadence after URL-canonicalization to confirm no excess request churn.
 9. Add backend-mode flag/fallback strategy (`Go primary`, `Node fallback`) for rollout safety.
 
 ## Operational Commands
@@ -240,6 +252,15 @@ psql "$DATABASE_URL" -f lb/internal/db/schema.sql
 cd lb
 DATABASE_URL="postgres://..." go run ./cmd/migrate ../../mongo/WuwaBuilds.builds.json
 ```
+
+### Wipe + Reimport (one-shot reset)
+
+```bash
+cd lb
+make reimport DUMP=../mongo/WuwaBuilds.builds.json
+```
+
+- `wipe-db` prefers local `psql`; if unavailable, it falls back to Dockerized `postgres:16-alpine` client.
 
 Or with built binary:
 
@@ -309,3 +330,4 @@ Required env:
 - 2026-03-03: Added canonical echo-ID repair result (`11302` scanned, `4736` updated, `0` errors), including legacy/icon ID alias handling.
 - 2026-03-03: Added frontend request-churn finding (username/uid per-keystroke fetches) and explicit debounce/URL-sync backlog items.
 - 2026-03-03: Added Redis decision note: deferred for current ~12k-build scale, revisit only if traffic/latency demands.
+- 2026-03-03: Updated snapshot after full reimport + parallel normalize/canonical passes: echo + weapon alias derivation validated, canonical sample weapon mapping validated (`21020026` Red Spring), import/normalize defaults set to `15` workers / `1000` batch with env override, and idempotent canonical weapon-map safety added.
