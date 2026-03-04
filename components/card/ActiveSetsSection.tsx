@@ -5,7 +5,8 @@ import { useStats } from '@/contexts/StatsContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CDNFetter } from '@/lib/echo';
-import { StatHoverKey } from '@/lib/constants/statHover';
+import { getSetBonusesFromFetter } from '@/lib/constants/setBonuses';
+import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { HoverTooltip } from '@/components/ui/HoverTooltip';
 import { FetterPieceEffect, resolveFetterPieceDescription } from '@/lib/text/gameText';
 
@@ -61,11 +62,13 @@ const getFetterPieceTooltipModels = (fetter: CDNFetter | undefined): PieceToolti
 
 export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   showCV = true,
+  activeHoverStat = null,
 }) => {
   const { stats } = useStats();
   const { fettersByElement } = useGameData();
   const { t } = useLanguage();
   const hasActiveSets = stats.activeSets.length > 0;
+  const hasActiveHover = Boolean(activeHoverStat);
 
   if (!hasActiveSets && !showCV) return null;
 
@@ -84,6 +87,15 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
         const pieceLabel = getPieceLabel(count, threshold);
         const displayName = fetter ? t(fetter.name) : setName;
         const setIcon = fetter?.icon ?? '';
+        const setBonuses = getSetBonusesFromFetter(fetter, count);
+        const setHoverMatch = Boolean(
+          activeHoverStat && setBonuses.some((bonus) => normalizeStatHoverKey(bonus.stat) === activeHoverStat)
+        );
+        const interactionClass = !hasActiveHover
+          ? ''
+          : setHoverMatch
+            ? 'opacity-100 ring-1 ring-white/34 bg-white/12 shadow-[0_0_10px_rgba(255,255,255,0.22)]'
+            : 'opacity-45 brightness-90';
         const pieceModels = getFetterPieceTooltipModels(fetter);
         const tooltipContent = fetter ? (
           <div className="font-plus-jakarta text-white/90">
@@ -123,7 +135,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
             maxWidthClassName="max-w-[30rem]"
           >
             <div
-              className="flex w-44 items-center justify-between rounded-xl bg-black/35 p-1.5 transition-all duration-200"
+              className={`flex w-44 items-center justify-between rounded-xl bg-black/35 p-1.5 transition-all duration-200 ${interactionClass}`}
             >
               {setIcon && <img src={setIcon} alt="" className="h-5 w-5 object-contain" />}
               <span>{displayName}</span>
