@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
 
 export const BuildsHeader: React.FC = () => (
   <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary p-5 md:p-6">
@@ -24,11 +23,6 @@ export const BuildsHeader: React.FC = () => (
       <p className="mx-auto mt-2 max-w-3xl text-center text-xs italic text-text-primary/60 md:text-sm">
         CV is calculated from echo Crit Rate and Crit DMG rolls. Extra 4-cost penalties are applied by the dataset.
       </p>
-
-      <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-accent/35 bg-accent/10 px-2 py-1 text-xs text-text-primary/80">
-        <AlertTriangle className="h-3.5 w-3.5 text-accent" />
-        Results are point-in-time and depend on the active LB backend dataset.
-      </div>
     </div>
   </section>
 );

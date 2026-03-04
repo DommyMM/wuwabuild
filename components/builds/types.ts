@@ -1,12 +1,5 @@
 import { LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey } from '@/lib/lb';
 
-export type FilterSuggestion = {
-  type: 'character' | 'weapon';
-  id: string;
-  name: string;
-  icon: string;
-};
-
 export type QuerySnapshot = {
   page: number;
   sort: LBSortKey;

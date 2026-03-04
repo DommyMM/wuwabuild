@@ -12,10 +12,8 @@ import {
   LBSortKey,
   listBuilds,
 } from '@/lib/lb';
-import { getWeaponPaths } from '@/lib/paths';
 import {
   DEFAULT_PAGE,
-  IDENTITY_DEBOUNCE_MS,
   ITEMS_PER_PAGE,
   MAIN_STAT_OPTIONS,
 } from './buildsConstants';
@@ -25,7 +23,6 @@ import { BuildsFiltersPanel } from './BuildsFiltersPanel';
 import { BuildsHeader } from './BuildsHeader';
 import { BuildsResultsPanel } from './BuildsResultsPanel';
 import {
-  FilterSuggestion,
   QuerySnapshot,
   SelectedMainEntry,
   SelectedSetEntry,
@@ -51,16 +48,9 @@ export const BuildsPageClient: React.FC = () => {
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => initialQuery.regionPrefixes);
   const [username, setUsername] = useState<string>(() => initialQuery.username.trim());
   const [uid, setUid] = useState<string>(() => initialQuery.uid.trim());
-  const [usernameInput, setUsernameInput] = useState<string>(() => initialQuery.username);
-  const [uidInput, setUidInput] = useState<string>(() => initialQuery.uid);
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialQuery.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialQuery.echoMains);
-
-  const [entityQuery, setEntityQuery] = useState('');
-  const [pendingSetId, setPendingSetId] = useState<number | null>(null);
-  const [pendingSetCount, setPendingSetCount] = useState(2);
-  const [pendingMainCost, setPendingMainCost] = useState(4);
-  const [pendingMainStat, setPendingMainStat] = useState<string>('CR');
+  const [filterQuery, setFilterQuery] = useState('');
 
   const [builds, setBuilds] = useState<LBBuildEntry[]>([]);
   const [total, setTotal] = useState(0);
@@ -85,43 +75,6 @@ export const BuildsPageClient: React.FC = () => {
     }, [])
   ), [weaponIds, weaponList]);
 
-  const filterSuggestions = useMemo<FilterSuggestion[]>(() => {
-    const query = entityQuery.trim().toLowerCase();
-    if (!query) return [];
-
-    const characterSuggestions = characters
-      .filter((character) => !characterIds.includes(character.id))
-      .map((character) => ({
-        type: 'character' as const,
-        id: character.id,
-        name: t(character.nameI18n ?? { en: character.name }),
-        icon: character.head ?? '',
-      }))
-      .filter((entry) => entry.name.toLowerCase().includes(query));
-
-    const weaponSuggestions = weaponList
-      .filter((weapon) => !weaponIds.includes(weapon.id))
-      .map((weapon) => ({
-        type: 'weapon' as const,
-        id: weapon.id,
-        name: t(weapon.nameI18n ?? { en: weapon.name }),
-        icon: getWeaponPaths(weapon),
-      }))
-      .filter((entry) => entry.name.toLowerCase().includes(query));
-
-    const byPrefixAndName = (a: FilterSuggestion, b: FilterSuggestion) => {
-      const aStarts = a.name.toLowerCase().startsWith(query) ? 0 : 1;
-      const bStarts = b.name.toLowerCase().startsWith(query) ? 0 : 1;
-      if (aStarts !== bStarts) return aStarts - bStarts;
-      return a.name.localeCompare(b.name);
-    };
-
-    return [
-      ...characterSuggestions.sort(byPrefixAndName).slice(0, 6),
-      ...weaponSuggestions.sort(byPrefixAndName).slice(0, 6),
-    ];
-  }, [characterIds, characters, entityQuery, t, weaponIds, weaponList]);
-
   const setOptions = useMemo<SetOption[]>(() => (
     fetters
       .map((entry) => ({
@@ -131,19 +84,6 @@ export const BuildsPageClient: React.FC = () => {
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
   ), [fetters, t]);
-
-  const effectivePendingSetId = pendingSetId ?? setOptions[0]?.id ?? null;
-
-  const pendingSetPieceCounts = useMemo<number[]>(() => {
-    if (effectivePendingSetId === null) return [2, 5];
-    const setOption = setOptions.find((entry) => entry.id === effectivePendingSetId);
-    if (!setOption) return [2, 5];
-    return setOption.pieceCount === 3 ? [3] : [2, 5];
-  }, [effectivePendingSetId, setOptions]);
-
-  const effectivePendingSetCount = pendingSetPieceCounts.includes(pendingSetCount)
-    ? pendingSetCount
-    : (pendingSetPieceCounts[0] ?? 2);
 
   const selectedSetEntries = useMemo<SelectedSetEntry[]>(() => (
     echoSets.map((entry) => {
@@ -174,26 +114,6 @@ export const BuildsPageClient: React.FC = () => {
     echoSets.length > 0 ||
     echoMains.length > 0
   );
-
-  useEffect(() => {
-    const nextUsername = usernameInput.trim();
-    if (nextUsername === username) return;
-    const timeout = setTimeout(() => {
-      setUsername(nextUsername);
-      setPage(DEFAULT_PAGE);
-    }, IDENTITY_DEBOUNCE_MS);
-    return () => clearTimeout(timeout);
-  }, [usernameInput, username]);
-
-  useEffect(() => {
-    const nextUid = uidInput.trim();
-    if (nextUid === uid) return;
-    const timeout = setTimeout(() => {
-      setUid(nextUid);
-      setPage(DEFAULT_PAGE);
-    }, IDENTITY_DEBOUNCE_MS);
-    return () => clearTimeout(timeout);
-  }, [uidInput, uid]);
 
   const querySnapshot = useMemo<QuerySnapshot>(() => ({
     page,
@@ -269,46 +189,40 @@ export const BuildsPageClient: React.FC = () => {
 
   const pageCount = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
 
-  const handleAddSuggestion = useCallback((entry: FilterSuggestion) => {
-    if (entry.type === 'character') {
-      setCharacterIds((prev) => (prev.includes(entry.id) ? prev : [...prev, entry.id]));
-    } else {
-      setWeaponIds((prev) => (prev.includes(entry.id) ? prev : [...prev, entry.id]));
-    }
-    setEntityQuery('');
+  const addCharacter = useCallback((characterId: string) => {
+    setCharacterIds((prev) => (prev.includes(characterId) ? prev : [...prev, characterId]));
     setPage(1);
   }, []);
 
-  const toggleRegion = useCallback((regionPrefix: string) => {
-    setRegionPrefixes((prev) => (
-      prev.includes(regionPrefix)
-        ? prev.filter((entry) => entry !== regionPrefix)
-        : [...prev, regionPrefix]
-    ));
+  const addWeapon = useCallback((weaponId: string) => {
+    setWeaponIds((prev) => (prev.includes(weaponId) ? prev : [...prev, weaponId]));
     setPage(1);
   }, []);
 
-  const handleAddSetFilter = useCallback(() => {
-    if (effectivePendingSetId === null) return;
+  const addRegion = useCallback((regionPrefix: string) => {
+    setRegionPrefixes((prev) => (prev.includes(regionPrefix) ? prev : [...prev, regionPrefix]));
+    setPage(1);
+  }, []);
+
+  const addSetFilter = useCallback((setId: number, count: number) => {
     setEchoSets((prev) => {
-      if (prev.some((entry) => entry.setId === effectivePendingSetId && entry.count === effectivePendingSetCount)) {
+      if (prev.some((entry) => entry.setId === setId && entry.count === count)) {
         return prev;
       }
-      return [...prev, { count: effectivePendingSetCount, setId: effectivePendingSetId }];
+      return [...prev, { setId, count }];
     });
     setPage(1);
-  }, [effectivePendingSetCount, effectivePendingSetId]);
+  }, []);
 
-  const handleAddMainFilter = useCallback(() => {
-    const next: LBEchoMainFilter = { cost: pendingMainCost, statType: pendingMainStat };
+  const addMainFilter = useCallback((cost: number, statType: string) => {
     setEchoMains((prev) => {
-      if (prev.some((entry) => entry.cost === next.cost && entry.statType === next.statType)) {
+      if (prev.some((entry) => entry.cost === cost && entry.statType === statType)) {
         return prev;
       }
-      return [...prev, next];
+      return [...prev, { cost, statType }];
     });
     setPage(1);
-  }, [pendingMainCost, pendingMainStat]);
+  }, []);
 
   const clearAllFilters = useCallback(() => {
     setCharacterIds([]);
@@ -316,11 +230,9 @@ export const BuildsPageClient: React.FC = () => {
     setRegionPrefixes([]);
     setUsername('');
     setUid('');
-    setUsernameInput('');
-    setUidInput('');
     setEchoSets([]);
     setEchoMains([]);
-    setEntityQuery('');
+    setFilterQuery('');
     setPage(DEFAULT_PAGE);
   }, []);
 
@@ -332,35 +244,22 @@ export const BuildsPageClient: React.FC = () => {
         <BuildsHeader />
 
         <BuildsFiltersPanel
-          entityQuery={entityQuery}
-          filterSuggestions={filterSuggestions}
-          selectedCharacters={selectedCharacters}
-          selectedWeapons={selectedWeapons}
           sort={sort}
           direction={direction}
-          usernameInput={usernameInput}
-          uidInput={uidInput}
-          regionPrefixes={regionPrefixes}
-          setOptions={setOptions}
-          effectivePendingSetId={effectivePendingSetId}
-          effectivePendingSetCount={effectivePendingSetCount}
-          pendingSetPieceCounts={pendingSetPieceCounts}
-          selectedSetEntries={selectedSetEntries}
-          pendingMainCost={pendingMainCost}
-          pendingMainStat={pendingMainStat}
-          selectedMainEntries={selectedMainEntries}
-          hasActiveFilters={hasActiveFilters}
           activeSortLabel={getSortLabel(sort)}
-          onEntityQueryChange={setEntityQuery}
-          onAddSuggestion={handleAddSuggestion}
-          onRemoveCharacter={(id) => {
-            setCharacterIds((prev) => prev.filter((entry) => entry !== id));
-            setPage(1);
-          }}
-          onRemoveWeapon={(id) => {
-            setWeaponIds((prev) => prev.filter((entry) => entry !== id));
-            setPage(1);
-          }}
+          hasActiveFilters={hasActiveFilters}
+          filterQuery={filterQuery}
+          characters={characters}
+          weaponList={weaponList}
+          selectedCharacters={selectedCharacters}
+          selectedWeapons={selectedWeapons}
+          regionPrefixes={regionPrefixes}
+          selectedSetEntries={selectedSetEntries}
+          selectedMainEntries={selectedMainEntries}
+          username={username}
+          uid={uid}
+          setOptions={setOptions}
+          onFilterQueryChange={setFilterQuery}
           onSortChange={(nextSort) => {
             setSort(nextSort);
             setPage(1);
@@ -369,22 +268,82 @@ export const BuildsPageClient: React.FC = () => {
             setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
             setPage(1);
           }}
-          onUsernameInputChange={setUsernameInput}
-          onUidInputChange={setUidInput}
-          onToggleRegion={toggleRegion}
-          onPendingSetIdChange={setPendingSetId}
-          onPendingSetCountChange={setPendingSetCount}
-          onAddSetFilter={handleAddSetFilter}
+          onAddCharacter={addCharacter}
+          onAddWeapon={addWeapon}
+          onAddRegion={addRegion}
+          onAddSet={addSetFilter}
+          onAddMain={addMainFilter}
+          onSetUsername={(value) => {
+            setUsername(value.trim());
+            setPage(1);
+          }}
+          onSetUid={(value) => {
+            setUid(value.trim());
+            setPage(1);
+          }}
+          onRemoveCharacter={(id) => {
+            setCharacterIds((prev) => prev.filter((entry) => entry !== id));
+            setPage(1);
+          }}
+          onRemoveWeapon={(id) => {
+            setWeaponIds((prev) => prev.filter((entry) => entry !== id));
+            setPage(1);
+          }}
+          onRemoveRegion={(value) => {
+            setRegionPrefixes((prev) => prev.filter((entry) => entry !== value));
+            setPage(1);
+          }}
           onRemoveSetEntry={(index) => {
             setEchoSets((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
             setPage(1);
           }}
-          onPendingMainCostChange={setPendingMainCost}
-          onPendingMainStatChange={setPendingMainStat}
-          onAddMainFilter={handleAddMainFilter}
           onRemoveMainEntry={(index) => {
             setEchoMains((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
             setPage(1);
+          }}
+          onClearUsername={() => {
+            setUsername('');
+            setPage(1);
+          }}
+          onClearUid={() => {
+            setUid('');
+            setPage(1);
+          }}
+          onBackspaceRemove={() => {
+            if (uid) {
+              setUid('');
+              setPage(1);
+              return;
+            }
+            if (username) {
+              setUsername('');
+              setPage(1);
+              return;
+            }
+            if (echoMains.length > 0) {
+              setEchoMains((prev) => prev.slice(0, -1));
+              setPage(1);
+              return;
+            }
+            if (echoSets.length > 0) {
+              setEchoSets((prev) => prev.slice(0, -1));
+              setPage(1);
+              return;
+            }
+            if (weaponIds.length > 0) {
+              setWeaponIds((prev) => prev.slice(0, -1));
+              setPage(1);
+              return;
+            }
+            if (characterIds.length > 0) {
+              setCharacterIds((prev) => prev.slice(0, -1));
+              setPage(1);
+              return;
+            }
+            if (regionPrefixes.length > 0) {
+              setRegionPrefixes((prev) => prev.slice(0, -1));
+              setPage(1);
+            }
           }}
           onClearAllFilters={clearAllFilters}
         />

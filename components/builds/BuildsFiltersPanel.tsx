@@ -1,107 +1,308 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { ArrowDownAZ, ArrowUpAZ, Search, X } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Character } from '@/lib/character';
-import { Weapon } from '@/lib/weapon';
 import { LBSortDirection, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { Weapon } from '@/lib/weapon';
 import { MAIN_STAT_OPTIONS, REGION_OPTIONS, SORT_OPTIONS } from './buildsConstants';
-import { FilterSuggestion, SelectedMainEntry, SelectedSetEntry, SetOption } from './types';
+import { SelectedMainEntry, SelectedSetEntry, SetOption } from './types';
+
+type VisibleFilterItem =
+  | {
+      key: string;
+      type: 'username';
+      section: 'Search By';
+      value: string;
+      label: string;
+    }
+  | {
+      key: string;
+      type: 'uid';
+      section: 'Search By';
+      value: string;
+      label: string;
+    }
+  | {
+      key: string;
+      type: 'region';
+      section: 'Regions';
+      value: string;
+      label: string;
+    }
+  | {
+      key: string;
+      type: 'character';
+      section: 'Characters';
+      character: Character;
+      label: string;
+    }
+  | {
+      key: string;
+      type: 'weapon';
+      section: 'Weapons';
+      weapon: Weapon;
+      label: string;
+    }
+  | {
+      key: string;
+      type: 'set';
+      section: 'Echo Sets';
+      setId: number;
+      count: number;
+      label: string;
+    }
+  | {
+      key: string;
+      type: 'main';
+      section: 'Main Stats';
+      cost: number;
+      statType: string;
+      label: string;
+    };
 
 interface BuildsFiltersPanelProps {
-  entityQuery: string;
-  filterSuggestions: FilterSuggestion[];
-  selectedCharacters: Character[];
-  selectedWeapons: Weapon[];
   sort: LBSortKey;
   direction: LBSortDirection;
-  usernameInput: string;
-  uidInput: string;
-  regionPrefixes: string[];
-  setOptions: SetOption[];
-  effectivePendingSetId: number | null;
-  effectivePendingSetCount: number;
-  pendingSetPieceCounts: number[];
-  selectedSetEntries: SelectedSetEntry[];
-  pendingMainCost: number;
-  pendingMainStat: string;
-  selectedMainEntries: SelectedMainEntry[];
-  hasActiveFilters: boolean;
   activeSortLabel: string;
-  onEntityQueryChange: (value: string) => void;
-  onAddSuggestion: (entry: FilterSuggestion) => void;
-  onRemoveCharacter: (id: string) => void;
-  onRemoveWeapon: (id: string) => void;
+  hasActiveFilters: boolean;
+  filterQuery: string;
+  characters: Character[];
+  weaponList: Weapon[];
+  selectedCharacters: Character[];
+  selectedWeapons: Weapon[];
+  regionPrefixes: string[];
+  selectedSetEntries: SelectedSetEntry[];
+  selectedMainEntries: SelectedMainEntry[];
+  username: string;
+  uid: string;
+  setOptions: SetOption[];
+  onFilterQueryChange: (value: string) => void;
   onSortChange: (sort: LBSortKey) => void;
   onToggleDirection: () => void;
-  onUsernameInputChange: (value: string) => void;
-  onUidInputChange: (value: string) => void;
-  onToggleRegion: (regionPrefix: string) => void;
-  onPendingSetIdChange: (setId: number | null) => void;
-  onPendingSetCountChange: (count: number) => void;
-  onAddSetFilter: () => void;
+  onAddCharacter: (id: string) => void;
+  onAddWeapon: (id: string) => void;
+  onAddRegion: (value: string) => void;
+  onAddSet: (setId: number, count: number) => void;
+  onAddMain: (cost: number, statType: string) => void;
+  onSetUsername: (value: string) => void;
+  onSetUid: (value: string) => void;
+  onRemoveCharacter: (id: string) => void;
+  onRemoveWeapon: (id: string) => void;
+  onRemoveRegion: (value: string) => void;
   onRemoveSetEntry: (index: number) => void;
-  onPendingMainCostChange: (cost: number) => void;
-  onPendingMainStatChange: (statCode: string) => void;
-  onAddMainFilter: () => void;
   onRemoveMainEntry: (index: number) => void;
+  onClearUsername: () => void;
+  onClearUid: () => void;
+  onBackspaceRemove: () => void;
   onClearAllFilters: () => void;
 }
 
-const FilterCard: React.FC<{
-  title: string;
-  children: React.ReactNode;
-}> = ({ title, children }) => (
-  <div className="rounded-lg border border-border bg-background/90 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
-    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/60">
-      {title}
-    </div>
-    {children}
-  </div>
+const getRegionLabel = (value: string): string => (
+  REGION_OPTIONS.find((entry) => entry.value === value)?.label ?? value
 );
 
 export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
-  entityQuery,
-  filterSuggestions,
-  selectedCharacters,
-  selectedWeapons,
   sort,
   direction,
-  usernameInput,
-  uidInput,
-  regionPrefixes,
-  setOptions,
-  effectivePendingSetId,
-  effectivePendingSetCount,
-  pendingSetPieceCounts,
-  selectedSetEntries,
-  pendingMainCost,
-  pendingMainStat,
-  selectedMainEntries,
-  hasActiveFilters,
   activeSortLabel,
-  onEntityQueryChange,
-  onAddSuggestion,
-  onRemoveCharacter,
-  onRemoveWeapon,
+  hasActiveFilters,
+  filterQuery,
+  characters,
+  weaponList,
+  selectedCharacters,
+  selectedWeapons,
+  regionPrefixes,
+  selectedSetEntries,
+  selectedMainEntries,
+  username,
+  uid,
+  setOptions,
+  onFilterQueryChange,
   onSortChange,
   onToggleDirection,
-  onUsernameInputChange,
-  onUidInputChange,
-  onToggleRegion,
-  onPendingSetIdChange,
-  onPendingSetCountChange,
-  onAddSetFilter,
+  onAddCharacter,
+  onAddWeapon,
+  onAddRegion,
+  onAddSet,
+  onAddMain,
+  onSetUsername,
+  onSetUid,
+  onRemoveCharacter,
+  onRemoveWeapon,
+  onRemoveRegion,
   onRemoveSetEntry,
-  onPendingMainCostChange,
-  onPendingMainStatChange,
-  onAddMainFilter,
   onRemoveMainEntry,
+  onClearUsername,
+  onClearUid,
+  onBackspaceRemove,
   onClearAllFilters,
 }) => {
   const { t } = useLanguage();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const selectedCharacterIds = useMemo(
+    () => new Set(selectedCharacters.map((entry) => entry.id)),
+    [selectedCharacters],
+  );
+  const selectedWeaponIds = useMemo(
+    () => new Set(selectedWeapons.map((entry) => entry.id)),
+    [selectedWeapons],
+  );
+  const selectedSetKeys = useMemo(
+    () => new Set(selectedSetEntries.map((entry) => `${entry.count}~${entry.setId}`)),
+    [selectedSetEntries],
+  );
+  const selectedMainKeys = useMemo(
+    () => new Set(selectedMainEntries.map((entry) => `${entry.cost}~${entry.statType}`)),
+    [selectedMainEntries],
+  );
+
+  const normalizedQuery = filterQuery.trim().toLowerCase();
+
+  const visibleItems = useMemo<VisibleFilterItem[]>(() => {
+    const items: VisibleFilterItem[] = [];
+
+    if (normalizedQuery.length >= 2 && !username) {
+      items.push({
+        key: `username-${filterQuery.trim()}`,
+        type: 'username',
+        section: 'Search By',
+        value: filterQuery.trim(),
+        label: `Username: ${filterQuery.trim()}`,
+      });
+    }
+    if (
+      normalizedQuery.length >= 2 &&
+      !uid &&
+      /^\d+$/.test(filterQuery.trim()) &&
+      filterQuery.trim().length <= 12
+    ) {
+      items.push({
+        key: `uid-${filterQuery.trim()}`,
+        type: 'uid',
+        section: 'Search By',
+        value: filterQuery.trim(),
+        label: `UID: ${filterQuery.trim()}`,
+      });
+    }
+
+    const regionItems = REGION_OPTIONS
+      .filter((region) => !regionPrefixes.includes(region.value))
+      .filter((region) => !normalizedQuery || region.label.toLowerCase().includes(normalizedQuery))
+      .map<VisibleFilterItem>((region) => ({
+        key: `region-${region.value}`,
+        type: 'region',
+        section: 'Regions',
+        value: region.value,
+        label: region.label,
+      }));
+    items.push(...regionItems);
+
+    const characterItems = characters
+      .filter((character) => !selectedCharacterIds.has(character.id))
+      .map((character) => ({
+        character,
+        label: t(character.nameI18n ?? { en: character.name }),
+      }))
+      .filter((entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery))
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .slice(0, 40)
+      .map<VisibleFilterItem>((entry) => ({
+        key: `character-${entry.character.id}`,
+        type: 'character',
+        section: 'Characters',
+        character: entry.character,
+        label: entry.label,
+      }));
+    items.push(...characterItems);
+
+    const weaponItems = weaponList
+      .filter((weapon) => !selectedWeaponIds.has(weapon.id))
+      .map((weapon) => ({
+        weapon,
+        label: t(weapon.nameI18n ?? { en: weapon.name }),
+      }))
+      .filter((entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery))
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .slice(0, 40)
+      .map<VisibleFilterItem>((entry) => ({
+        key: `weapon-${entry.weapon.id}`,
+        type: 'weapon',
+        section: 'Weapons',
+        weapon: entry.weapon,
+        label: entry.label,
+      }));
+    items.push(...weaponItems);
+
+    const setItems: VisibleFilterItem[] = [];
+    for (const setOption of setOptions) {
+      const counts = setOption.pieceCount === 3 ? [3] : [2, 5];
+      for (const count of counts) {
+        const key = `${count}~${setOption.id}`;
+        if (selectedSetKeys.has(key)) continue;
+        const label = `${setOption.name} ${count}pc`;
+        if (normalizedQuery && !label.toLowerCase().includes(normalizedQuery)) continue;
+        setItems.push({
+          key: `set-${key}`,
+          type: 'set',
+          section: 'Echo Sets',
+          setId: setOption.id,
+          count,
+          label,
+        });
+      }
+    }
+    items.push(...setItems.slice(0, 60));
+
+    const mainItems: VisibleFilterItem[] = [];
+    for (const cost of [4, 3, 1]) {
+      for (const option of MAIN_STAT_OPTIONS) {
+        const key = `${cost}~${option.code}`;
+        if (selectedMainKeys.has(key)) continue;
+        const label = `${cost}c ${option.label}`;
+        if (normalizedQuery && !label.toLowerCase().includes(normalizedQuery)) continue;
+        mainItems.push({
+          key: `main-${key}`,
+          type: 'main',
+          section: 'Main Stats',
+          cost,
+          statType: option.code,
+          label,
+        });
+      }
+    }
+    items.push(...mainItems.slice(0, 60));
+
+    return items;
+  }, [
+    characters,
+    filterQuery,
+    normalizedQuery,
+    regionPrefixes,
+    selectedCharacterIds,
+    selectedMainKeys,
+    selectedSetKeys,
+    selectedWeaponIds,
+    setOptions,
+    t,
+    uid,
+    username,
+    weaponList,
+  ]);
+
+  const handleSelectItem = (item: VisibleFilterItem) => {
+    if (item.type === 'username') onSetUsername(item.value);
+    if (item.type === 'uid') onSetUid(item.value);
+    if (item.type === 'region') onAddRegion(item.value);
+    if (item.type === 'character') onAddCharacter(item.character.id);
+    if (item.type === 'weapon') onAddWeapon(item.weapon.id);
+    if (item.type === 'set') onAddSet(item.setId, item.count);
+    if (item.type === 'main') onAddMain(item.cost, item.statType);
+    onFilterQueryChange('');
+  };
 
   return (
     <section className="rounded-xl border border-border bg-background-secondary p-4">
@@ -109,246 +310,201 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
         <div className="text-sm font-semibold uppercase tracking-wide text-accent">
           Filters
         </div>
-        <button
-          type="button"
-          onClick={onClearAllFilters}
-          disabled={!hasActiveFilters}
-          className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          Clear All Filters
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={sort}
+            onChange={(event) => onSortChange(event.target.value as LBSortKey)}
+            className="appearance-none rounded-lg border border-border bg-background py-1.5 pl-3 pr-8 text-xs text-text-primary focus:border-accent/60 focus:outline-none"
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.key} value={option.key}>{option.label}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={onToggleDirection}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-text-primary transition-colors hover:border-accent/60"
+          >
+            {direction === 'asc' ? <ArrowDownAZ className="h-3.5 w-3.5" /> : <ArrowUpAZ className="h-3.5 w-3.5" />}
+            {direction.toUpperCase()}
+          </button>
+          <button
+            type="button"
+            onClick={onClearAllFilters}
+            disabled={!hasActiveFilters}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            Clear All
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <FilterCard title="Character / Weapon">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-primary/45" />
-            <input
-              value={entityQuery}
-              onChange={(event) => onEntityQueryChange(event.target.value)}
-              placeholder="Filter by character or weapon name"
-              className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
-            />
-            {entityQuery.trim().length > 0 && filterSuggestions.length > 0 && (
-              <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-border bg-background p-1 shadow-lg">
-                {filterSuggestions.map((entry) => (
-                  <button
-                    key={`${entry.type}-${entry.id}`}
-                    type="button"
-                    onClick={() => onAddSuggestion(entry)}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-text-primary hover:bg-background-secondary"
-                  >
-                    {entry.icon ? (
-                      <img src={entry.icon} alt="" className="h-5 w-5 rounded object-contain" />
-                    ) : (
-                      <div className="h-5 w-5 rounded bg-border" />
-                    )}
-                    <span className="truncate">{entry.name}</span>
-                    <span className="ml-auto text-[10px] uppercase tracking-wide text-text-primary/45">{entry.type}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+      <div className="relative">
+        <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-border bg-background px-2 py-2">
+          {regionPrefixes.map((value) => (
+            <span
+              key={`region-${value}`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-text-primary"
+            >
+              {getRegionLabel(value)}
+              <button
+                type="button"
+                onClick={() => onRemoveRegion(value)}
+                className="text-text-primary/60 hover:text-text-primary"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
 
-          {(selectedCharacters.length > 0 || selectedWeapons.length > 0) && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {selectedCharacters.map((entry) => (
-                <span
-                  key={`char-${entry.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-text-primary"
-                >
-                  {entry.head ? <img src={entry.head} alt="" className="h-4 w-4 rounded-full object-cover" /> : null}
-                  <span>{t(entry.nameI18n ?? { en: entry.name })}</span>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveCharacter(entry.id)}
-                    className="text-text-primary/60 hover:text-text-primary"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              ))}
-              {selectedWeapons.map((entry) => (
-                <span
-                  key={`weapon-${entry.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background-secondary px-2 py-1 text-xs text-text-primary"
-                >
-                  <img src={getWeaponPaths(entry)} alt="" className="h-4 w-4 object-contain" />
-                  <span>{t(entry.nameI18n ?? { en: entry.name })}</span>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveWeapon(entry.id)}
-                    className="text-text-primary/60 hover:text-text-primary"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
+          {selectedCharacters.map((entry) => (
+            <span
+              key={`char-${entry.id}`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-text-primary"
+            >
+              {entry.head ? <img src={entry.head} alt="" className="h-4 w-4 rounded-full object-cover" /> : null}
+              <span>{t(entry.nameI18n ?? { en: entry.name })}</span>
+              <button
+                type="button"
+                onClick={() => onRemoveCharacter(entry.id)}
+                className="text-text-primary/60 hover:text-text-primary"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+
+          {selectedWeapons.map((entry) => (
+            <span
+              key={`weapon-${entry.id}`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background-secondary px-2 py-1 text-xs text-text-primary"
+            >
+              <img src={getWeaponPaths(entry)} alt="" className="h-4 w-4 object-contain" />
+              <span>{t(entry.nameI18n ?? { en: entry.name })}</span>
+              <button
+                type="button"
+                onClick={() => onRemoveWeapon(entry.id)}
+                className="text-text-primary/60 hover:text-text-primary"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+
+          {selectedSetEntries.map((entry, index) => (
+            <span
+              key={`${entry.count}-${entry.setId}-${index}`}
+              className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent"
+            >
+              {entry.name} {entry.count}pc
+              <button type="button" onClick={() => onRemoveSetEntry(index)}>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+
+          {selectedMainEntries.map((entry, index) => (
+            <span
+              key={`${entry.cost}-${entry.statType}-${index}`}
+              className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent"
+            >
+              {entry.cost}c {entry.label}
+              <button type="button" onClick={() => onRemoveMainEntry(index)}>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+
+          {username && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent">
+              Username: {username}
+              <button type="button" onClick={onClearUsername}>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
           )}
-        </FilterCard>
+          {uid && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent">
+              UID: {uid}
+              <button type="button" onClick={onClearUid}>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          )}
 
-        <FilterCard title="Sort / Identity">
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto]">
-            <select
-              value={sort}
-              onChange={(event) => onSortChange(event.target.value as LBSortKey)}
-              className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.key} value={option.key}>{option.label}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={onToggleDirection}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-accent/60"
-            >
-              {direction === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpAZ className="h-4 w-4" />}
-              {direction.toUpperCase()}
-            </button>
-          </div>
-          <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="pointer-events-none absolute left-1 top-1/2 h-4 w-4 -translate-y-1/2 text-text-primary/45" />
             <input
-              value={usernameInput}
-              onChange={(event) => onUsernameInputChange(event.target.value)}
-              placeholder="Username"
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
-            />
-            <input
-              value={uidInput}
-              onChange={(event) => onUidInputChange(event.target.value)}
-              placeholder="UID"
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
+              value={filterQuery}
+              onChange={(event) => onFilterQueryChange(event.target.value)}
+              onFocus={() => setIsDropdownOpen(true)}
+              onBlur={() => window.setTimeout(() => setIsDropdownOpen(false), 120)}
+              onKeyDown={(event) => {
+                if (event.key === 'Backspace' && !filterQuery.trim()) {
+                  onBackspaceRemove();
+                }
+                if (event.key === 'Enter' && visibleItems.length > 0) {
+                  event.preventDefault();
+                  handleSelectItem(visibleItems[0]);
+                }
+              }}
+              placeholder="Search filters (e.g. region, character, weapon, username, UID)"
+              className="w-full bg-transparent py-1 pl-7 pr-2 text-sm text-text-primary placeholder:text-text-primary/45 focus:outline-none"
             />
           </div>
-        </FilterCard>
+        </div>
 
-        <FilterCard title="Region">
-          <div className="flex flex-wrap gap-2">
-            {REGION_OPTIONS.map((entry) => {
-              const checked = regionPrefixes.includes(entry.value);
+        {isDropdownOpen && visibleItems.length > 0 && (
+          <div className="absolute left-0 right-0 z-20 mt-1 max-h-[520px] overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
+            {visibleItems.map((item, index) => {
+              const showHeader = index === 0 || visibleItems[index - 1].section !== item.section;
               return (
-                <label
-                  key={entry.value}
-                  className={`inline-flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1 text-xs transition-colors ${
-                    checked
-                      ? 'border-accent/55 bg-accent/15 text-text-primary'
-                      : 'border-border bg-background-secondary text-text-primary/75 hover:border-accent/45'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => onToggleRegion(entry.value)}
-                    className="accent-[rgb(var(--color-accent))]"
-                  />
-                  {entry.label}
-                </label>
+                <React.Fragment key={item.key}>
+                  {showHeader && (
+                    <div className="border-b border-border/60 bg-background-secondary px-3 py-2 text-xs font-semibold uppercase tracking-wide text-accent">
+                      {item.section}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSelectItem(item)}
+                    className="flex w-full items-center justify-between gap-2 border-b border-border/60 px-3 py-2 text-left text-sm text-text-primary transition-colors last:border-b-0 hover:bg-background-secondary"
+                  >
+                    {item.type === 'character' && (
+                      <span className="flex min-w-0 items-center gap-2">
+                        {item.character.head ? (
+                          <img src={item.character.head} alt="" className="h-5 w-5 rounded-full object-cover" />
+                        ) : (
+                          <div className="h-5 w-5 rounded bg-border" />
+                        )}
+                        <span className="truncate">{item.label}</span>
+                      </span>
+                    )}
+
+                    {item.type === 'weapon' && (
+                      <span className="flex min-w-0 items-center gap-2">
+                        <img src={getWeaponPaths(item.weapon)} alt="" className="h-5 w-5 object-contain" />
+                        <span className="truncate">{item.label}</span>
+                      </span>
+                    )}
+
+                    {(item.type === 'region' || item.type === 'set' || item.type === 'main' || item.type === 'username' || item.type === 'uid') && (
+                      <span className="truncate">{item.label}</span>
+                    )}
+
+                    <span className="rounded bg-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-text-primary/70">
+                      {item.type}
+                    </span>
+                  </button>
+                </React.Fragment>
               );
             })}
           </div>
-        </FilterCard>
-
-        <FilterCard title="Echo Set Filters">
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_7rem_auto]">
-            <select
-              value={effectivePendingSetId === null ? '' : String(effectivePendingSetId)}
-              onChange={(event) => onPendingSetIdChange(event.target.value ? Number(event.target.value) : null)}
-              className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-            >
-              {setOptions.map((entry) => (
-                <option key={entry.id} value={entry.id}>{entry.name}</option>
-              ))}
-            </select>
-            <select
-              value={effectivePendingSetCount}
-              onChange={(event) => onPendingSetCountChange(Number(event.target.value))}
-              className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-            >
-              {pendingSetPieceCounts.map((count) => (
-                <option key={count} value={count}>{count}pc</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={onAddSetFilter}
-              className="rounded-lg border border-accent/45 bg-accent/10 px-3 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
-            >
-              Add
-            </button>
-          </div>
-          {selectedSetEntries.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {selectedSetEntries.map((entry, index) => (
-                <span
-                  key={`${entry.count}-${entry.setId}-${index}`}
-                  className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent"
-                >
-                  {entry.name} {entry.count}pc
-                  <button
-                    type="button"
-                    onClick={() => onRemoveSetEntry(index)}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </FilterCard>
-
-        <FilterCard title="Echo Main Stat Filters">
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-[7rem_1fr_auto]">
-            <select
-              value={pendingMainCost}
-              onChange={(event) => onPendingMainCostChange(Number(event.target.value))}
-              className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-            >
-              <option value={4}>4 Cost</option>
-              <option value={3}>3 Cost</option>
-              <option value={1}>1 Cost</option>
-            </select>
-            <select
-              value={pendingMainStat}
-              onChange={(event) => onPendingMainStatChange(event.target.value)}
-              className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
-            >
-              {MAIN_STAT_OPTIONS.map((entry) => (
-                <option key={entry.code} value={entry.code}>{entry.label}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={onAddMainFilter}
-              className="rounded-lg border border-accent/45 bg-accent/10 px-3 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
-            >
-              Add
-            </button>
-          </div>
-          {selectedMainEntries.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {selectedMainEntries.map((entry, index) => (
-                <span
-                  key={`${entry.cost}-${entry.statType}-${index}`}
-                  className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent"
-                >
-                  {entry.cost}c {entry.label}
-                  <button
-                    type="button"
-                    onClick={() => onRemoveMainEntry(index)}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </FilterCard>
+        )}
       </div>
 
-      <div className="mt-3 text-xs text-text-primary/60">
+      <div className="mt-2 text-xs text-text-primary/60">
         Active sort: <span className="font-medium text-text-primary">{activeSortLabel}</span> ({direction})
       </div>
     </section>
