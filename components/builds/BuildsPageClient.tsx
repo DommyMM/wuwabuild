@@ -236,119 +236,126 @@ export const BuildsPageClient: React.FC = () => {
     setEchoMains([]);
     setFilterQuery('');
     setPage(DEFAULT_PAGE);
-}, []);
+  }, []);
 
   const rankStart = (page - 1) * ITEMS_PER_PAGE + 1;
 
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto w-full max-w-[1280px] space-y-4 p-3 md:p-5">
-        <BuildsHeader />
-
-        <BuildsFiltersPanel
-          sort={sort}
-          direction={direction}
-          activeSortLabel={getSortLabel(sort)}
-          hasActiveFilters={hasActiveFilters}
-          filterQuery={filterQuery}
-          characters={characters}
-          weaponList={weaponList}
-          selectedCharacters={selectedCharacters}
-          selectedWeapons={selectedWeapons}
-          regionPrefixes={regionPrefixes}
-          selectedSetEntries={selectedSetEntries}
-          selectedMainEntries={selectedMainEntries}
-          username={username}
-          uid={uid}
-          setOptions={setOptions}
-          onFilterQueryChange={setFilterQuery}
-          onSortChange={(nextSort) => {
-            setSort(nextSort);
-            setPage(1);
-          }}
-          onToggleDirection={() => {
-            setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-            setPage(1);
-          }}
-          onAddCharacter={addCharacter}
-          onAddWeapon={addWeapon}
-          onAddRegion={addRegion}
-          onAddSet={addSetFilter}
-          onAddMain={addMainFilter}
-          onSetUsername={(value) => {
-            setUsername(value.trim());
-            setPage(1);
-          }}
-          onSetUid={(value) => {
-            setUid(value.trim());
-            setPage(1);
-          }}
-          onRemoveCharacter={(id) => {
-            setCharacterIds((prev) => prev.filter((entry) => entry !== id));
-            setPage(1);
-          }}
-          onRemoveWeapon={(id) => {
-            setWeaponIds((prev) => prev.filter((entry) => entry !== id));
-            setPage(1);
-          }}
-          onRemoveRegion={(value) => {
-            setRegionPrefixes((prev) => prev.filter((entry) => entry !== value));
-            setPage(1);
-          }}
-          onRemoveSetEntry={(index) => {
-            setEchoSets((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
-            setPage(1);
-          }}
-          onRemoveMainEntry={(index) => {
-            setEchoMains((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
-            setPage(1);
-          }}
-          onClearUsername={() => {
-            setUsername('');
-            setPage(1);
-          }}
-          onClearUid={() => {
-            setUid('');
-            setPage(1);
-          }}
-          onBackspaceRemove={() => {
-            if (uid) {
-              setUid('');
-              setPage(1);
-              return;
-            }
-            if (username) {
-              setUsername('');
-              setPage(1);
-              return;
-            }
-            if (echoMains.length > 0) {
-              setEchoMains((prev) => prev.slice(0, -1));
-              setPage(1);
-              return;
-            }
-            if (echoSets.length > 0) {
-              setEchoSets((prev) => prev.slice(0, -1));
-              setPage(1);
-              return;
-            }
-            if (weaponIds.length > 0) {
-              setWeaponIds((prev) => prev.slice(0, -1));
-              setPage(1);
-              return;
-            }
-            if (characterIds.length > 0) {
-              setCharacterIds((prev) => prev.slice(0, -1));
-              setPage(1);
-              return;
-            }
-            if (regionPrefixes.length > 0) {
-              setRegionPrefixes((prev) => prev.slice(0, -1));
-              setPage(1);
-            }
-          }}
-          onClearAllFilters={clearAllFilters}
-        />
+        <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary p-4 md:p-5">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
+          <div className="relative">
+            <BuildsHeader embedded />
+            <div className="mt-4 border-t border-border/65 pt-4">
+              <BuildsFiltersPanel
+                embedded
+                sort={sort}
+                direction={direction}
+                activeSortLabel={getSortLabel(sort)}
+                hasActiveFilters={hasActiveFilters}
+                filterQuery={filterQuery}
+                characters={characters}
+                weaponList={weaponList}
+                selectedCharacters={selectedCharacters}
+                selectedWeapons={selectedWeapons}
+                regionPrefixes={regionPrefixes}
+                selectedSetEntries={selectedSetEntries}
+                selectedMainEntries={selectedMainEntries}
+                username={username}
+                uid={uid}
+                setOptions={setOptions}
+                onFilterQueryChange={setFilterQuery}
+                onSortChange={(nextSort) => {
+                  setSort(nextSort);
+                  setPage(1);
+                }}
+                onToggleDirection={() => {
+                  setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                  setPage(1);
+                }}
+                onAddCharacter={addCharacter}
+                onAddWeapon={addWeapon}
+                onAddRegion={addRegion}
+                onAddSet={addSetFilter}
+                onAddMain={addMainFilter}
+                onSetUsername={(value) => {
+                  setUsername(value.trim());
+                  setPage(1);
+                }}
+                onSetUid={(value) => {
+                  setUid(value.trim());
+                  setPage(1);
+                }}
+                onRemoveCharacter={(id) => {
+                  setCharacterIds((prev) => prev.filter((entry) => entry !== id));
+                  setPage(1);
+                }}
+                onRemoveWeapon={(id) => {
+                  setWeaponIds((prev) => prev.filter((entry) => entry !== id));
+                  setPage(1);
+                }}
+                onRemoveRegion={(value) => {
+                  setRegionPrefixes((prev) => prev.filter((entry) => entry !== value));
+                  setPage(1);
+                }}
+                onRemoveSetEntry={(index) => {
+                  setEchoSets((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+                  setPage(1);
+                }}
+                onRemoveMainEntry={(index) => {
+                  setEchoMains((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+                  setPage(1);
+                }}
+                onClearUsername={() => {
+                  setUsername('');
+                  setPage(1);
+                }}
+                onClearUid={() => {
+                  setUid('');
+                  setPage(1);
+                }}
+                onBackspaceRemove={() => {
+                  if (uid) {
+                    setUid('');
+                    setPage(1);
+                    return;
+                  }
+                  if (username) {
+                    setUsername('');
+                    setPage(1);
+                    return;
+                  }
+                  if (echoMains.length > 0) {
+                    setEchoMains((prev) => prev.slice(0, -1));
+                    setPage(1);
+                    return;
+                  }
+                  if (echoSets.length > 0) {
+                    setEchoSets((prev) => prev.slice(0, -1));
+                    setPage(1);
+                    return;
+                  }
+                  if (weaponIds.length > 0) {
+                    setWeaponIds((prev) => prev.slice(0, -1));
+                    setPage(1);
+                    return;
+                  }
+                  if (characterIds.length > 0) {
+                    setCharacterIds((prev) => prev.slice(0, -1));
+                    setPage(1);
+                    return;
+                  }
+                  if (regionPrefixes.length > 0) {
+                    setRegionPrefixes((prev) => prev.slice(0, -1));
+                    setPage(1);
+                  }
+                }}
+                onClearAllFilters={clearAllFilters}
+              />
+            </div>
+          </div>
+        </section>
 
         <BuildsResultsPanel
           builds={builds}

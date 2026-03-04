@@ -2,10 +2,16 @@
 
 import React from 'react';
 
-export const BuildsHeader: React.FC = () => (
-  <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary p-5 md:p-6">
-    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_55%)]" />
-    <div className="relative">
+interface BuildsHeaderProps {
+  embedded?: boolean;
+}
+
+export const BuildsHeader: React.FC<BuildsHeaderProps> = ({ embedded = false }) => (
+  <section className={embedded ? '' : 'relative overflow-hidden rounded-xl border border-border bg-background-secondary p-5 md:p-6'}>
+    {!embedded && (
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_55%)]" />
+    )}
+    <div className={embedded ? '' : 'relative'}>
       <h1 className="text-center text-2xl font-semibold tracking-wide text-accent md:text-3xl">
         Global Board
       </h1>

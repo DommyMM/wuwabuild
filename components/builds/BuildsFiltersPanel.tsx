@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { ArrowDownAZ, ArrowUpAZ, Search, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
-import { Character } from '@/lib/character';
+import { Character, formatCharacterDisplayName } from '@/lib/character';
 import { LBSortDirection, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 import { Weapon } from '@/lib/weapon';
@@ -75,6 +75,7 @@ interface BuildsFiltersPanelProps {
   sort: LBSortKey;
   direction: LBSortDirection;
   activeSortLabel: string;
+  embedded?: boolean;
   hasActiveFilters: boolean;
   filterQuery: string;
   characters: Character[];
@@ -153,10 +154,15 @@ const getPieceOrder = (label: '2p Sets' | '3p Sets' | '5p Sets'): number => {
   return 2;
 };
 
+const getTypeTagLabel = (type: VisibleFilterItem['type']): string => (
+  type === 'main' ? 'stats' : type
+);
+
 export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
   sort,
   direction,
   activeSortLabel,
+  embedded = false,
   hasActiveFilters,
   filterQuery,
   characters,
@@ -277,7 +283,9 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
       .filter((character) => !selectedCharacterIds.has(character.id))
       .map((character) => ({
         character,
-        label: t(character.nameI18n ?? { en: character.name }),
+        label: formatCharacterDisplayName(character, {
+          baseName: t(character.nameI18n ?? { en: character.name }),
+        }),
       }))
       .filter((entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery))
       .sort((a, b) => a.label.localeCompare(b.label))
@@ -397,7 +405,7 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
   const activeSortIconFilter = ELEMENT_ICON_FILTERS[activeSortLabel];
 
   return (
-    <section className="rounded-xl border border-border bg-background-secondary p-4">
+    <section className={embedded ? '' : 'rounded-xl border border-border bg-background-secondary p-4'}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold uppercase tracking-wide text-accent">
           Filters
@@ -455,7 +463,11 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
               className="inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-text-primary"
             >
               {entry.head ? <img src={entry.head} alt="" className="h-5 w-5 rounded-sm object-cover" /> : null}
-              <span>{t(entry.nameI18n ?? { en: entry.name })}</span>
+              <span>
+                {formatCharacterDisplayName(entry, {
+                  baseName: t(entry.nameI18n ?? { en: entry.name }),
+                })}
+              </span>
               <button
                 type="button"
                 onClick={() => onRemoveCharacter(entry.id)}
@@ -635,7 +647,7 @@ export const BuildsFiltersPanel: React.FC<BuildsFiltersPanelProps> = ({
                     )}
 
                     <span className="rounded bg-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-text-primary/70">
-                      {item.type}
+                      {getTypeTagLabel(item.type)}
                     </span>
                   </button>
                 </React.Fragment>

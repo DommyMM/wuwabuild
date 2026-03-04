@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { formatCharacterDisplayName } from '@/lib/character';
 import { ElementType } from '@/lib/echo';
 import { LBBuildEntry } from '@/lib/lb';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
@@ -38,7 +39,10 @@ export const BuildsEntryCard: React.FC<BuildsEntryCardProps> = ({ entry, rank, e
   const character = getCharacter(entry.state.characterId);
   const weapon = getWeapon(entry.state.weaponId);
   const characterName = character
-    ? t(character.nameI18n ?? { en: character.name })
+    ? formatCharacterDisplayName(character, {
+      baseName: t(character.nameI18n ?? { en: character.name }),
+      roverElement: entry.state.roverElement,
+    })
     : entry.state.characterId || 'Unknown Character';
   const weaponName = weapon
     ? t(weapon.nameI18n ?? { en: weapon.name })

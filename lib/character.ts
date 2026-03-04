@@ -165,6 +165,43 @@ export const hasAlternateSkin = (
 export const isRover = (character: Character): boolean =>
   character.name.startsWith("Rover");
 
+const ROVER_GENDER_BY_LEGACY_ID: Record<string, 'M' | 'F'> = {
+  '4': 'M',
+  '5': 'F',
+};
+
+export const getRoverGenderTag = (legacyId?: string): 'M' | 'F' | undefined => (
+  legacyId ? ROVER_GENDER_BY_LEGACY_ID[legacyId] : undefined
+);
+
+type CharacterDisplayInput = Pick<Character, 'name' | 'element' | 'legacyId' | 'roverElementName'>;
+
+interface CharacterDisplayOptions {
+  baseName?: string;
+  roverElement?: string | null;
+}
+
+const isRoverCharacter = (character: CharacterDisplayInput): boolean =>
+  character.element === Element.Rover || character.name.startsWith('Rover');
+
+export const formatCharacterDisplayName = (
+  character: CharacterDisplayInput,
+  options: CharacterDisplayOptions = {},
+): string => {
+  const baseName = options.baseName ?? character.name;
+  if (!isRoverCharacter(character)) return baseName;
+
+  const gender = getRoverGenderTag(character.legacyId);
+  const roverElement = options.roverElement ?? character.roverElementName;
+  const normalizedElement = (
+    typeof roverElement === 'string' &&
+    roverElement.trim().length > 0 &&
+    roverElement !== Element.Rover
+  ) ? roverElement.trim() : null;
+
+  return [baseName, gender ? `(${gender})` : null, normalizedElement].filter(Boolean).join(' ');
+};
+
 export type CharacterCreate = Omit<Character, "ER"> & { ER?: number };
 
 export const createCharacter = (char: CharacterCreate): Character => ({
