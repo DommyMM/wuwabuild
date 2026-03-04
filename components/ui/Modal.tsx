@@ -69,8 +69,8 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         className={`relative flex ${
           fitContent
-            ? 'max-h-[90dvh] md:max-h-[85vh]'
-            : 'h-[90dvh] md:h-[85vh]'
+            ? 'max-h-9/10 md:max-h-17/20'
+            : 'h-9/10 md:h-17/20'
         } w-[calc(100vw-1rem)] md:w-auto md:max-w-[90vw] flex-col overflow-hidden rounded-lg border border-border bg-background-secondary shadow-xl ${contentClassName}`}
         onClick={(e) => e.stopPropagation()}
       >

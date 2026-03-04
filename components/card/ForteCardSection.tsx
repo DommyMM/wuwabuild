@@ -206,7 +206,6 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               content={tooltipContent}
               disabled={!move}
               placement="right"
-              maxWidthClassName="max-w-96"
               pinViewportBottom
             >
               <div className={`flex flex-col items-center rounded-sm transition-all duration-200 ${bottomInteractionClass}`}>

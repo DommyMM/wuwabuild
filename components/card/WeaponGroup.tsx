@@ -74,7 +74,6 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
     <div className="flex items-center gap-2">
       <HoverTooltip
         placement="right"
-        maxWidthClassName="max-w-96"
         content={(
           <div className="font-plus-jakarta text-white/90">
             <p className="text-base font-semibold leading-tight text-white/96">

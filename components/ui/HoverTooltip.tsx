@@ -16,14 +16,12 @@ interface HoverTooltipProps {
   placement?: TooltipPlacement;
   offset?: number;
   disabled?: boolean;
-  maxWidthClassName?: string;
   tooltipClassName?: string;
   maxRisePx?: number;
   pinViewportBottom?: boolean;
 }
 
 const VIEWPORT_PADDING = 8;
-const DEFAULT_MAX_WIDTH_CLASS = 'max-w-96';
 
 const clamp = (value: number, min: number, max: number): number => (
   Math.min(max, Math.max(min, value))
@@ -84,7 +82,6 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   placement = 'right',
   offset = 10,
   disabled = false,
-  maxWidthClassName = DEFAULT_MAX_WIDTH_CLASS,
   tooltipClassName = '',
   maxRisePx,
   pinViewportBottom = false,
@@ -94,6 +91,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0 });
+  const [showBottomArrow, setShowBottomArrow] = useState(false);
 
   const hasContent = useMemo(() => {
     if (content === null || content === undefined) return false;
@@ -102,6 +100,20 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   }, [content]);
 
   const shouldShow = !disabled && hasContent;
+
+  const updateScrollHint = useCallback(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) {
+      setShowBottomArrow(false);
+      return;
+    }
+
+    const maxScrollTop = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
+    const isOverflowing = maxScrollTop > 1;
+    const canScrollDown = scrollEl.scrollTop < maxScrollTop - 1;
+
+    setShowBottomArrow(isOverflowing && canScrollDown);
+  }, []);
 
   const updatePosition = useCallback(() => {
     const triggerEl = triggerRef.current;
@@ -172,6 +184,34 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+
+    const handleScroll = () => {
+      updateScrollHint();
+    };
+
+    scrollEl.addEventListener('scroll', handleScroll, { passive: true });
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateScrollHint();
+    });
+    resizeObserver.observe(scrollEl);
+
+    const frame = window.requestAnimationFrame(() => {
+      updateScrollHint();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      scrollEl.removeEventListener('scroll', handleScroll);
+      resizeObserver.disconnect();
+    };
+  }, [isOpen, updateScrollHint, content]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     const handleWheel = (event: WheelEvent) => {
       const triggerEl = triggerRef.current;
       const scrollEl = scrollRef.current;
@@ -186,13 +226,14 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
       event.preventDefault();
       const next = clamp(scrollEl.scrollTop + event.deltaY, 0, maxScrollTop);
       scrollEl.scrollTop = next;
+      updateScrollHint();
     };
 
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
       window.removeEventListener('wheel', handleWheel as EventListener);
     };
-  }, [isOpen]);
+  }, [isOpen, updateScrollHint]);
 
   if (!shouldShow) {
     return <>{children}</>;
@@ -212,15 +253,23 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
         <div
           ref={tooltipRef}
           style={{ top: position.top, left: position.left, pointerEvents: 'none' }}
-          className={`pointer-events-none fixed z-45 max-h-[min(90vh,900px)] overflow-hidden rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${maxWidthClassName} ${tooltipClassName}`}
+          className={`pointer-events-none fixed z-45 max-h-9/10 max-w-lg overflow-hidden rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${tooltipClassName}`}
           aria-hidden="true"
         >
           <div
             ref={scrollRef}
-            className="max-h-[min(90vh,900px)] overflow-y-auto p-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0"
+            className="overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0 max-h-[calc(90vh-48px)]"
           >
             {content}
           </div>
+          {showBottomArrow && (
+            <>
+              <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-10 bg-linear-to-t from-black/58 to-transparent" />
+              <span className="pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 text-sm leading-none font-semibold text-white/74">
+                ⌄
+              </span>
+            </>
+          )}
         </div>,
         document.body
       )}

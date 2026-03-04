@@ -236,7 +236,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
 
         {/* Scrollable echo list, thin scrollbar */}
         <div
-          className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#444_var(--color-background-secondary)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-background-secondary [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#444]"
+          className="scrollbar-thin min-h-0 flex-1 overflow-y-auto [--scrollbar-thumb:#444] [--scrollbar-track:var(--color-background-secondary)]"
         >
           {echoes.length > 0 ? (
             <div className={`grid gap-2 py-2 ${singleView ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-4'}`}>

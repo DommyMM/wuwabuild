@@ -58,7 +58,6 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
             disabled={!chain}
             placement="right"
             maxRisePx={180}
-            maxWidthClassName="max-w-96"
           >
             <div
               className={`relative flex h-11.5 w-11.5 items-center justify-center rounded-full border transition-all duration-300 ${

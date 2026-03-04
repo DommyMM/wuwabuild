@@ -518,7 +518,7 @@ export const BuildEditor: React.FC = () => {
               <>
                 <div className="min-w-0 pt-4 md:pt-0">
                   {isPhoneViewport ? (
-                    <div className="overflow-x-auto overflow-y-hidden pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
+                    <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
                       <div style={{ width: FIXED_CARD_PREVIEW_WIDTH, minWidth: FIXED_CARD_PREVIEW_WIDTH }}>
                         <BuildCard
                           ref={cardRef}

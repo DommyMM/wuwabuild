@@ -51,6 +51,49 @@ body {
   border-radius: 100px;
 }
 
+.scrollbar-thin {
+  --scrollbar-width: 6px;
+  --scrollbar-height: 6px;
+  --scrollbar-thumb: rgba(191, 173, 125, 0.6);
+  --scrollbar-track: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-height);
+  background: var(--scrollbar-track);
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: var(--scrollbar-thumb);
+}
+
+/* Backward-compatible alias */
+.scroll-thin {
+  --scrollbar-width: 6px;
+  --scrollbar-height: 6px;
+  --scrollbar-thumb: rgba(191, 173, 125, 0.6);
+  --scrollbar-track: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+.scroll-thin::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-height);
+  background: var(--scrollbar-track);
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: var(--scrollbar-thumb);
+}
+
 /* Element gradient text shine */
 @keyframes shine {
   0% { background-position: 0% 50%; }

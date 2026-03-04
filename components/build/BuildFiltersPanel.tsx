@@ -618,7 +618,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
         </div>
 
         {isDropdownOpen && visibleItems.length > 0 && (
-          <div className="absolute left-0 right-0 z-20 max-h-132 overflow-y-auto rounded-lg border border-border bg-background shadow-xl [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
+          <div className="scrollbar-thin absolute left-0 right-0 z-20 max-h-132 overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
             {visibleItems.map((item, index) => {
               const previous = index > 0 ? visibleItems[index - 1] : null;
               const showSection = index === 0 || previous?.section !== item.section;
