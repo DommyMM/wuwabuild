@@ -33,6 +33,8 @@ const IDENTITY_DEBOUNCE_MS = 350;
 const DEFAULT_PAGE = 1;
 const DEFAULT_SORT: LBSortKey = 'finalCV';
 const DEFAULT_DIRECTION: LBSortDirection = 'desc';
+const USERNAME_MAX_LENGTH = 12;
+const UID_MAX_LENGTH = 9;
 
 const REGION_OPTIONS = [
   { label: 'America', value: '5' },
@@ -109,6 +111,60 @@ function parseCSV(value: string | null): string[] {
   return value.split(',').map((entry) => entry.trim()).filter(Boolean);
 }
 
+function normalizeUsernameInput(value: string): string {
+  return value.slice(0, USERNAME_MAX_LENGTH);
+}
+
+function normalizeUsernameCommitted(value: string): string {
+  return normalizeUsernameInput(value).trim();
+}
+
+function normalizeUIDInput(value: string): string {
+  return value.replace(/\D+/g, '').slice(0, UID_MAX_LENGTH);
+}
+
+function normalizeUIDCommitted(value: string): string {
+  const normalized = normalizeUIDInput(value);
+  return normalized.length === UID_MAX_LENGTH ? normalized : '';
+}
+
+function canonicalizeStringArray(values: string[]): string[] {
+  return [...new Set(values.map((entry) => entry.trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function canonicalizeEchoSets(values: LBEchoSetFilter[]): LBEchoSetFilter[] {
+  const seen = new Set<string>();
+  const canonical: LBEchoSetFilter[] = [];
+  for (const entry of values) {
+    if (!Number.isFinite(entry.count) || !Number.isFinite(entry.setId)) continue;
+    const key = `${entry.setId}:${entry.count}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    canonical.push({ count: entry.count, setId: entry.setId });
+  }
+  return canonical.sort((a, b) => {
+    if (a.setId !== b.setId) return a.setId - b.setId;
+    return a.count - b.count;
+  });
+}
+
+function canonicalizeEchoMains(values: LBEchoMainFilter[]): LBEchoMainFilter[] {
+  const seen = new Set<string>();
+  const canonical: LBEchoMainFilter[] = [];
+  for (const entry of values) {
+    if (!Number.isFinite(entry.cost) || !entry.statType) continue;
+    const key = `${entry.cost}:${entry.statType}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    canonical.push({ cost: entry.cost, statType: entry.statType });
+  }
+  return canonical.sort((a, b) => {
+    if (a.cost !== b.cost) return a.cost - b.cost;
+    return a.statType.localeCompare(b.statType);
+  });
+}
+
 function parseEchoSetCSV(value: string | null): LBEchoSetFilter[] {
   if (!value) return [];
   return value
@@ -180,31 +236,39 @@ function parseInitialQuery(searchParams: URLSearchParams): QuerySnapshot {
     page,
     sort,
     direction: direction === 'asc' ? 'asc' : 'desc',
-    characterIds: parseCSV(searchParams.get('characters')),
-    weaponIds: parseCSV(searchParams.get('weapons')),
-    regionPrefixes: parseCSV(searchParams.get('regions')),
-    username: searchParams.get('username') ?? '',
-    uid: searchParams.get('uid') ?? '',
-    echoSets: parseEchoSetCSV(searchParams.get('sets')),
-    echoMains: parseEchoMainCSV(searchParams.get('mains')),
+    characterIds: canonicalizeStringArray(parseCSV(searchParams.get('characters'))),
+    weaponIds: canonicalizeStringArray(parseCSV(searchParams.get('weapons'))),
+    regionPrefixes: canonicalizeStringArray(parseCSV(searchParams.get('regions'))),
+    username: normalizeUsernameCommitted(searchParams.get('username') ?? ''),
+    uid: normalizeUIDCommitted(searchParams.get('uid') ?? ''),
+    echoSets: canonicalizeEchoSets(parseEchoSetCSV(searchParams.get('sets'))),
+    echoMains: canonicalizeEchoMains(parseEchoMainCSV(searchParams.get('mains'))),
   };
 }
 
 function serializeQuery(snapshot: QuerySnapshot): string {
+  const characterIds = canonicalizeStringArray(snapshot.characterIds);
+  const weaponIds = canonicalizeStringArray(snapshot.weaponIds);
+  const regionPrefixes = canonicalizeStringArray(snapshot.regionPrefixes);
+  const echoSets = canonicalizeEchoSets(snapshot.echoSets);
+  const echoMains = canonicalizeEchoMains(snapshot.echoMains);
+  const username = normalizeUsernameCommitted(snapshot.username);
+  const uid = normalizeUIDCommitted(snapshot.uid);
+
   const params = new URLSearchParams();
   if (snapshot.page > DEFAULT_PAGE) params.set('page', String(snapshot.page));
   if (snapshot.sort !== DEFAULT_SORT) params.set('sort', snapshot.sort);
   if (snapshot.direction !== DEFAULT_DIRECTION) params.set('direction', snapshot.direction);
-  if (snapshot.characterIds.length) params.set('characters', snapshot.characterIds.join(','));
-  if (snapshot.weaponIds.length) params.set('weapons', snapshot.weaponIds.join(','));
-  if (snapshot.regionPrefixes.length) params.set('regions', snapshot.regionPrefixes.join(','));
-  if (snapshot.username) params.set('username', snapshot.username);
-  if (snapshot.uid) params.set('uid', snapshot.uid);
-  if (snapshot.echoSets.length) {
-    params.set('sets', snapshot.echoSets.map((entry) => `${entry.count}~${entry.setId}`).join('.'));
+  if (characterIds.length) params.set('characters', characterIds.join(','));
+  if (weaponIds.length) params.set('weapons', weaponIds.join(','));
+  if (regionPrefixes.length) params.set('regions', regionPrefixes.join(','));
+  if (username) params.set('username', username);
+  if (uid) params.set('uid', uid);
+  if (echoSets.length) {
+    params.set('sets', echoSets.map((entry) => `${entry.count}~${entry.setId}`).join('.'));
   }
-  if (snapshot.echoMains.length) {
-    params.set('mains', snapshot.echoMains.map((entry) => `${entry.cost}~${entry.statType}`).join('.'));
+  if (echoMains.length) {
+    params.set('mains', echoMains.map((entry) => `${entry.cost}~${entry.statType}`).join('.'));
   }
   return params.toString();
 }
@@ -579,7 +643,7 @@ export const BuildsPageClient: React.FC = () => {
   );
 
   useEffect(() => {
-    const nextUsername = usernameInput.trim();
+    const nextUsername = normalizeUsernameCommitted(usernameInput);
     if (nextUsername === username) return;
     const timeout = setTimeout(() => {
       setUsername(nextUsername);
@@ -589,7 +653,7 @@ export const BuildsPageClient: React.FC = () => {
   }, [usernameInput, username]);
 
   useEffect(() => {
-    const nextUid = uidInput.trim();
+    const nextUid = normalizeUIDCommitted(uidInput);
     if (nextUid === uid) return;
     const timeout = setTimeout(() => {
       setUid(nextUid);
@@ -857,16 +921,20 @@ export const BuildsPageClient: React.FC = () => {
                 <input
                   value={usernameInput}
                   onChange={(event) => {
-                    setUsernameInput(event.target.value);
+                    setUsernameInput(normalizeUsernameInput(event.target.value));
                   }}
+                  maxLength={USERNAME_MAX_LENGTH}
                   placeholder="Username"
                   className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
                 />
                 <input
                   value={uidInput}
                   onChange={(event) => {
-                    setUidInput(event.target.value);
+                    setUidInput(normalizeUIDInput(event.target.value));
                   }}
+                  maxLength={UID_MAX_LENGTH}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="UID"
                   className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
                 />
