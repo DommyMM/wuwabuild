@@ -4,11 +4,12 @@ import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Character } from '@/lib/character';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { ElementType } from '@/lib/echo';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { getCVRatingColor } from '@/lib/calculations/cv';
-import { LBBuildEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
+import { LBBuildEntry, LBStatCode, LBSortDirection, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 import { formatFlatStat, formatPercentStat, getSortLabel } from './buildFormatters';
 
@@ -67,6 +68,9 @@ const STAT_OPTION_KEYS: readonly StatSortKey[] = [
 ];
 
 const DEFAULT_STAT_COLUMNS: StatSortKey[] = ['A', 'ER', 'D', 'AD'];
+const BASE_STAT_FALLBACK_ORDER: readonly StatSortKey[] = ['A', 'H', 'D', 'ER'];
+const ELEMENT_STAT_KEYS: readonly StatSortKey[] = ['AD', 'GD', 'FD', 'ED', 'HD', 'SD'];
+const OFFENSIVE_BONUS_KEYS: readonly StatSortKey[] = ['BA', 'HA', 'RS', 'RL'];
 
 const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set<LBSortKey>([
   'CR',
@@ -95,7 +99,8 @@ const REGION_BADGES: Record<string, RegionBadge> = {
   '9': { label: 'SEA', className: 'bg-cyan-300/90 text-black' },
 };
 
-const TABLE_GRID = 'grid-cols-[48px_140px_160px_72px_72px_88px_164px_repeat(4,1fr)]';
+const TABLE_GRID = 'grid-cols-[48px_140px_160px_72px_72px_88px_minmax(0,1fr)]';
+const SORTABLE_GROUP_GRID = 'grid-cols-[164px_repeat(4,minmax(0,1fr))]';
 const PAGE_SKIP = 10;
 const PAGINATION_BUTTON_CLASS = 'inline-flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded border border-border bg-background p-0 transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40';
 const PAGE_INDICATOR_CLASS = 'inline-flex h-7.5 w-7.5 items-center justify-center rounded border border-border bg-background text-xs text-text-primary';
@@ -122,6 +127,104 @@ function formatStatByKey(key: LBSortKey, value: number): string {
   return formatFlatStat(value);
 }
 
+function blurFocusedMenuControl(): void {
+  if (typeof document === 'undefined') return;
+  const activeElement = document.activeElement;
+  if (activeElement instanceof HTMLElement) {
+    activeElement.blur();
+  }
+}
+
+function resolvePrimaryScalingStatKey(baseScaling: string | undefined): StatSortKey {
+  if (baseScaling === 'HP') return 'H';
+  if (baseScaling === 'DEF') return 'D';
+  return 'A';
+}
+
+function resolveCharacterBaseScaling(character: Character | null): 'ATK' | 'HP' | 'DEF' {
+  if (character?.Bonus2 === 'ATK' || character?.Bonus2 === 'HP' || character?.Bonus2 === 'DEF') {
+    return character.Bonus2;
+  }
+  const forteName = character?.forteNodes?.['tree2.middle']?.name ?? '';
+  if (/HP/i.test(forteName)) return 'HP';
+  if (/DEF/i.test(forteName)) return 'DEF';
+  if (/ATK/i.test(forteName)) return 'ATK';
+  return 'ATK';
+}
+
+function resolveElementStatKey(characterElement: string | undefined): StatSortKey | null {
+  if (characterElement === 'Aero') return 'AD';
+  if (characterElement === 'Glacio') return 'GD';
+  if (characterElement === 'Fusion') return 'FD';
+  if (characterElement === 'Electro') return 'ED';
+  if (characterElement === 'Havoc') return 'HD';
+  if (characterElement === 'Spectro') return 'SD';
+  return null;
+}
+
+function pickHighestStatKey(
+  candidateKeys: readonly StatSortKey[],
+  stats: Record<LBStatCode, number>,
+  excluded: ReadonlySet<StatSortKey>,
+): StatSortKey | null {
+  let selected: StatSortKey | null = null;
+  let selectedValue = Number.NEGATIVE_INFINITY;
+  for (const key of candidateKeys) {
+    if (excluded.has(key)) continue;
+    const value = Number(stats[key] ?? 0);
+    if (value > selectedValue) {
+      selected = key;
+      selectedValue = value;
+    }
+  }
+  return selected;
+}
+
+function resolveBuildRowStatKeys(
+  baseScaling: string | undefined,
+  characterElement: string | undefined,
+  sort: LBSortKey,
+  stats: Record<LBStatCode, number>,
+): StatSortKey[] {
+  // Builds view: row-specific stat slots based on each character's base scaling stat.
+  // If leaderboard needs fully fixed columns later, split this policy by page context.
+  const keys: StatSortKey[] = [];
+  const pushUnique = (key: StatSortKey) => {
+    if (keys.includes(key)) return;
+    keys.push(key);
+  };
+
+  if (STAT_OPTION_KEYS.includes(sort as StatSortKey)) {
+    pushUnique(sort as StatSortKey);
+  }
+  pushUnique(resolvePrimaryScalingStatKey(baseScaling));
+
+  const preferredElement = resolveElementStatKey(characterElement);
+  const preferredElementValue = preferredElement ? Number(stats[preferredElement] ?? 0) : 0;
+  if (preferredElement && preferredElementValue > 0) {
+    pushUnique(preferredElement);
+  } else {
+    const highestElement = pickHighestStatKey(ELEMENT_STAT_KEYS, stats, new Set(keys));
+    if (highestElement) pushUnique(highestElement);
+  }
+
+  pushUnique('ER');
+
+  const bestOffensiveBonus = pickHighestStatKey(OFFENSIVE_BONUS_KEYS, stats, new Set(keys));
+  if (bestOffensiveBonus) pushUnique(bestOffensiveBonus);
+
+  if (keys.length < 4) {
+    const highestElement = pickHighestStatKey(ELEMENT_STAT_KEYS, stats, new Set(keys));
+    if (highestElement) pushUnique(highestElement);
+  }
+
+  BASE_STAT_FALLBACK_ORDER.forEach(pushUnique);
+  OFFENSIVE_BONUS_KEYS.forEach(pushUnique);
+  ELEMENT_STAT_KEYS.forEach(pushUnique);
+
+  return keys.slice(0, 4);
+}
+
 const SortHeaderMenu: React.FC<{
   menuId: string;
   label: string;
@@ -132,6 +235,12 @@ const SortHeaderMenu: React.FC<{
   onHeaderSort: () => void;
   onSelectOption: (key: LBSortKey) => void;
   alignMenuRight?: boolean;
+  icon?: string;
+  iconFilter?: string;
+  showPlaceholderLine?: boolean;
+  contentOpacityClass?: string;
+  fillWidth?: boolean;
+  naturalMenuWidth?: boolean;
 }> = ({
   menuId,
   label,
@@ -142,28 +251,57 @@ const SortHeaderMenu: React.FC<{
   onHeaderSort,
   onSelectOption,
   alignMenuRight = false,
+  icon = '',
+  iconFilter,
+  showPlaceholderLine = false,
+  contentOpacityClass = '',
+  fillWidth = true,
+  naturalMenuWidth = false,
 }) => {
+  const showLineOnly = showPlaceholderLine && !active;
+
   return (
-    <div className="group/sort relative flex h-full items-stretch">
+    <div className={`group/sort relative h-full items-stretch ${fillWidth ? 'flex w-full' : 'inline-flex'}`}>
       <button
         type="button"
-        onClick={onHeaderSort}
-        className={`flex h-full w-full items-center justify-between gap-2 p-2 text-base transition-colors ${
+        onClick={() => {
+          onHeaderSort();
+          blurFocusedMenuControl();
+        }}
+        className={`flex h-full ${fillWidth ? 'w-full' : 'w-auto'} items-center justify-between gap-2 p-2 text-base transition-colors ${contentOpacityClass} ${
           active
             ? 'border-accent/85 bg-black/35 text-accent'
             : 'border-transparent text-text-primary/85 hover:border-border hover:bg-background/60 hover:text-text-primary'
         }`}
       >
-        <span className="truncate">{label}</span>
-        <ChevronDown
-          className={`h-3.5 w-3.5 shrink-0 transition-transform ${
-            active && direction === 'asc' ? 'rotate-180' : ''
-          } ${active ? '' : 'text-text-primary/50'}`}
-        />
+        {showLineOnly ? (
+          <span className="mx-2.5 h-px w-full bg-border/85" />
+        ) : (
+          <>
+            <span className="flex min-w-0 items-center gap-2">
+              {icon ? (
+                <img
+                  src={icon}
+                  alt=""
+                  className="h-4 w-4 shrink-0 object-contain"
+                  style={iconFilter ? { filter: iconFilter } : undefined}
+                />
+              ) : (
+                <span className="inline-block h-4 w-4 shrink-0 opacity-0" />
+              )}
+              <span className="truncate">{label}</span>
+            </span>
+            <ChevronDown
+              className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                active && direction === 'asc' ? 'rotate-180' : ''
+              } ${active ? '' : 'text-text-primary/50'}`}
+            />
+          </>
+        )}
       </button>
 
       <div
-        className={`absolute top-full z-20 hidden w-max min-w-full overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary/98 group-hover/sort:block group-focus-within/sort:block ${
+        className={`absolute top-full z-20 hidden w-max ${naturalMenuWidth ? 'min-w-[164px]' : 'min-w-full'} overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary group-hover/sort:block group-focus-within/sort:block ${
           alignMenuRight ? 'right-0 left-auto' : 'left-0'
         }`}
       >
@@ -176,14 +314,15 @@ const SortHeaderMenu: React.FC<{
               onClick={(event) => {
                 event.stopPropagation();
                 onSelectOption(option.key);
+                blurFocusedMenuControl();
               }}
-              className={`flex w-full items-center justify-between gap-2 border-b border-border px-2 py-1.5 text-left text-base transition-colors last:border-b-0 ${
+              className={`flex w-full items-center justify-between gap-2 border-b border-border ${menuId === 'sort-cv' ? 'px-2' : 'px-2 pr-6'} py-1.5 text-left text-base transition-colors last:border-b-0 ${
                 isSelected
                   ? 'border-l-2 border-l-accent bg-black/35 text-accent'
                   : 'border-l-2 border-l-transparent text-text-primary hover:border-l-border hover:bg-background hover:text-text-primary/95'
               }`}
             >
-              <span className="flex min-w-0 items-center gap-2">
+              <span className="flex items-center gap-2">
                 {option.icon ? (
                   <img
                     src={option.icon}
@@ -194,7 +333,7 @@ const SortHeaderMenu: React.FC<{
                 ) : (
                   <span className="inline-block h-4 w-4 opacity-0" />
                 )}
-                <span className="truncate">{option.label}</span>
+                <span className="whitespace-nowrap">{option.label}</span>
               </span>
               {isSelected && (
                 <ChevronDown
@@ -258,6 +397,19 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   const firstShown = total === 0 ? 0 : Math.min(total, rankStart);
   const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(builds.length - 1, 0));
   const isCvColumnActive = sort === 'finalCV' || sort === 'CR' || sort === 'CD';
+  const isStatSortActive = STAT_OPTION_KEYS.includes(sort as StatSortKey);
+  const displayStatColumns = useMemo<StatSortKey[]>(() => {
+    if (!STAT_OPTION_KEYS.includes(sort as StatSortKey)) {
+      return statColumns;
+    }
+    const sortKey = sort as StatSortKey;
+    const reordered = [sortKey, ...statColumns.filter((key) => key !== sortKey)];
+    return reordered.slice(0, 4);
+  }, [sort, statColumns]);
+  const activeCvOption = cvOptions.find((entry) => entry.key === cvSort) ?? cvOptions[0];
+  const activePinnedStatKey = (isStatSortActive ? sort : displayStatColumns[0]) as StatSortKey;
+  const activePinnedStatLabel = getSortLabel(activePinnedStatKey);
+  const activePinnedStatOption = statOptions.find((entry) => entry.key === activePinnedStatKey);
 
   const handleSortRequest = (nextSort: LBSortKey) => {
     if (sort === nextSort) {
@@ -275,7 +427,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
         </div>
       )}
 
-      <div className="overflow-x-auto pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
+      <div className="overflow-x-auto md:overflow-x-visible pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
         <div className="rounded-lg border border-border bg-background/70">
           <div className={`grid ${TABLE_GRID} items-center gap-4 border-b border-border bg-background-secondary/95 text-base text-text-primary`}>
             <div className="py-2 text-center text-text-primary/70">#</div>
@@ -284,7 +436,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
             <div className="py-2" aria-hidden="true" />
             <div className="py-2" aria-hidden="true" />
             <div className="py-2">Sets</div>
-            <div className={`self-stretch border-t-2 ${isCvColumnActive ? ACTIVE_HEADER_TOP_BORDER_CLASS : 'border-transparent'}`}>
+            <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
+              <div className={`self-stretch border-t-2 ${isCvColumnActive ? ACTIVE_HEADER_TOP_BORDER_CLASS : 'border-transparent'}`}>
               <SortHeaderMenu
                 menuId="sort-cv"
                 label={CV_OPTIONS.find((entry) => entry.key === cvSort)?.label ?? 'Crit Value'}
@@ -294,31 +447,72 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                 selectedKey={sort}
                 onHeaderSort={() => handleSortRequest(cvSort)}
                 onSelectOption={handleSortRequest}
+                icon={activeCvOption?.icon}
               />
             </div>
-            {statColumns.map((columnKey, index) => (
-              <div key={`${columnKey}-${index}`} className={`self-stretch ${sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
-                <SortHeaderMenu
-                  menuId={`sort-stat-${index}`}
-                  label={getSortLabel(columnKey)}
-                  active={sort === columnKey}
-                  direction={direction}
-                  options={statOptions}
-                  selectedKey={sort}
-                  alignMenuRight={index === statColumns.length - 1}
-                  onHeaderSort={() => handleSortRequest(columnKey)}
-                  onSelectOption={(nextSort) => {
-                    if (!STAT_OPTION_KEYS.includes(nextSort as StatSortKey)) return;
-                    setStatColumns((prev) => {
-                      const next = [...prev];
-                      next[index] = nextSort as StatSortKey;
-                      return next;
-                    });
-                    handleSortRequest(nextSort);
-                  }}
-                />
-              </div>
-            ))}
+              {isStatSortActive ? (
+                <div className="col-span-4 self-stretch flex items-stretch">
+                  <SortHeaderMenu
+                    menuId="sort-stat-merged"
+                    label={activePinnedStatLabel}
+                    active
+                    direction={direction}
+                    options={statOptions}
+                    selectedKey={sort}
+                    alignMenuRight={false}
+                    onHeaderSort={() => handleSortRequest(activePinnedStatKey)}
+                    onSelectOption={(nextSort) => {
+                      if (!STAT_OPTION_KEYS.includes(nextSort as StatSortKey)) return;
+                      setStatColumns((prev) => {
+                        const base = [nextSort as StatSortKey, ...displayStatColumns.filter((key) => key !== nextSort)];
+                        const normalized = [...base, ...prev].filter((key, idx, arr) => arr.indexOf(key) === idx);
+                        return normalized.slice(0, 4) as StatSortKey[];
+                      });
+                      handleSortRequest(nextSort);
+                    }}
+                    icon={activePinnedStatOption?.icon}
+                    iconFilter={activePinnedStatOption?.iconFilter}
+                    fillWidth
+                    naturalMenuWidth
+                  />
+                </div>
+              ) : (
+                displayStatColumns.map((columnKey, index) => {
+                  const label = getSortLabel(columnKey);
+                  const option = statOptions.find((entry) => entry.key === columnKey);
+                  return (
+                    <div
+                      key={`header-${columnKey}-${index}`}
+                      className={`self-stretch ${sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : ''}`}
+                    >
+                      <SortHeaderMenu
+                        menuId={`sort-stat-${index}`}
+                        label={label}
+                        active={sort === columnKey}
+                        direction={direction}
+                        options={statOptions}
+                        selectedKey={sort}
+                        alignMenuRight={index === displayStatColumns.length - 1}
+                        onHeaderSort={() => handleSortRequest(columnKey)}
+                        onSelectOption={(nextSort) => {
+                          if (!STAT_OPTION_KEYS.includes(nextSort as StatSortKey)) return;
+                          setStatColumns((prev) => {
+                            const base = [...displayStatColumns];
+                            base[index] = nextSort as StatSortKey;
+                            const normalized = [...base, ...prev].filter((key, idx, arr) => arr.indexOf(key) === idx);
+                            return normalized.slice(0, 4) as StatSortKey[];
+                          });
+                          handleSortRequest(nextSort);
+                        }}
+                        icon={option?.icon}
+                        iconFilter={option?.iconFilter}
+                        showPlaceholderLine={isCvColumnActive}
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           {isLoading && (
@@ -342,6 +536,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                 const character = getCharacter(entry.state.characterId);
                 const weapon = getWeapon(entry.state.weaponId);
                 const regionBadge = resolveRegionBadge(entry.state.watermark.uid);
+                const rowBaseScaling = resolveCharacterBaseScaling(character);
+                const rowStatColumns = resolveBuildRowStatKeys(rowBaseScaling, character?.element, sort, entry.stats);
 
                 const characterName = character
                   ? formatCharacterDisplayName(character, {
@@ -451,46 +647,53 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                       )}
                     </div>
 
-                    <div className={`self-stretch py-2 ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
-                      <div className="flex items-center justify-between px-2.5 text-lg">
-                        <span className="text-text-primary">
-                          {Number(entry.stats.CR ?? 0).toFixed(1)} : {Number(entry.stats.CD ?? 0).toFixed(1)}
-                        </span>
-                        <span
-                          className="tracking-wide"
-                          style={{ color: getCVRatingColor(entry.finalCV) }}
-                        >
-                          {entry.finalCV.toFixed(1)} cv
-                        </span>
-                      </div>
-                    </div>
-
-                    {statColumns.map((columnKey, statIndex) => {
-                      const label = getSortLabel(columnKey);
-                      const value = entry.stats[columnKey] ?? 0;
-                      const icon = statIcons?.[label] ?? '';
-                      const iconFilter = ELEMENT_ICON_FILTERS[label];
-                      return (
-                        <div
-                          key={`${entry.id}-${columnKey}-${statIndex}`}
-                          className={`self-stretch py-2 ${sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : ''}`}
-                        >
-                          <div className="flex items-center gap-1.5 px-2 text-xs text-text-primary">
-                            {icon ? (
-                              <img
-                                src={icon}
-                                alt=""
-                                className="h-3.5 w-3.5 shrink-0 object-contain"
-                                style={iconFilter ? { filter: iconFilter } : undefined}
-                              />
-                            ) : (
-                              <span className="inline-block h-3.5 w-3.5 shrink-0 rounded bg-border" />
-                            )}
-                            <span className="truncate">{formatStatByKey(columnKey, value)}</span>
-                          </div>
+                    <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
+                      <div className={`self-stretch py-2 ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
+                        <div className="flex items-center justify-between px-2.5 text-lg">
+                          <span className="text-text-primary">
+                            {Number(entry.stats.CR ?? 0).toFixed(1)} : {Number(entry.stats.CD ?? 0).toFixed(1)}
+                          </span>
+                          <span
+                            className="tracking-wide"
+                            style={{ color: getCVRatingColor(entry.finalCV) }}
+                          >
+                            {entry.finalCV.toFixed(1)} cv
+                          </span>
                         </div>
-                      );
-                    })}
+                      </div>
+
+                      {rowStatColumns.map((columnKey, statIndex) => {
+                        const label = getSortLabel(columnKey);
+                        const value = entry.stats[columnKey] ?? 0;
+                        const icon = statIcons?.[label] ?? '';
+                        const iconFilter = ELEMENT_ICON_FILTERS[label];
+                        const shouldDimRowStat = isStatSortActive && statIndex > 0;
+                        return (
+                          <div
+                            key={`${entry.id}-${columnKey}-${statIndex}`}
+                            className={`self-stretch py-2 ${
+                              isStatSortActive
+                                ? ACTIVE_SORT_COLUMN_CLASS
+                                : (sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : '')
+                            }`}
+                          >
+                            <div className={`flex items-center gap-2 px-2 text-base text-text-primary ${shouldDimRowStat ? 'opacity-75' : ''}`}>
+                              {icon ? (
+                                <img
+                                  src={icon}
+                                  alt=""
+                                  className="h-4 w-4 shrink-0 object-contain"
+                                  style={iconFilter ? { filter: iconFilter } : undefined}
+                                />
+                              ) : (
+                                <span className="inline-block h-4 w-4 shrink-0 rounded bg-border" />
+                              )}
+                              <span className="truncate">{formatStatByKey(columnKey, value)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}

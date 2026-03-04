@@ -227,17 +227,29 @@ const PARENT_TO_TREE: Record<number, string> = {
 // CDN node name → BonusType. Strips trailing "+" / "Bonus" and maps to our enum.
 const NODE_NAME_TO_BONUS: Record<string, BonusType> = {
   'Crit. Rate+': 'Crit Rate',
+  'Crit. Rate Up': 'Crit Rate',
   'Crit. DMG+': 'Crit DMG',
+  'Crit. DMG Up': 'Crit DMG',
   'ATK+': 'ATK',
+  'ATK Up': 'ATK',
   'HP+': 'HP',
+  'HP Up': 'HP',
   'DEF+': 'DEF',
+  'DEF Up': 'DEF',
   'Healing Bonus+': 'Healing',
+  'Healing Bonus Up': 'Healing',
   'Aero DMG Bonus+': Element.Aero,
+  'Aero DMG Bonus Up': Element.Aero,
   'Glacio DMG Bonus+': Element.Glacio,
+  'Glacio DMG Bonus Up': Element.Glacio,
   'Electro DMG Bonus+': Element.Electro,
+  'Electro DMG Bonus Up': Element.Electro,
   'Havoc DMG Bonus+': Element.Havoc,
+  'Havoc DMG Bonus Up': Element.Havoc,
   'Fusion DMG Bonus+': Element.Fusion,
+  'Fusion DMG Bonus Up': Element.Fusion,
   'Spectro DMG Bonus+': Element.Spectro,
+  'Spectro DMG Bonus Up': Element.Spectro,
 };
 
 // Process CDN skillTrees into a lookup map keyed by "tree1.top", "tree1.middle", etc.
