@@ -20,6 +20,13 @@ export type FetterPieceEffect = NonNullable<CDNFetter['pieceEffects']>[string];
 interface ResolveFetterPieceOptions {
   descriptionTemplate?: string;
 }
+interface ResolveTemplateFromValuesOptions {
+  template: string;
+  values: Array<string | null | undefined>;
+  keepUnknownPlaceholders?: boolean;
+  highlightClassName?: string;
+  unknownPlaceholderClassName?: string;
+}
 
 const formatNumber = (value: number): string => {
   const rounded = Math.round(value * 10000) / 10000;
@@ -123,3 +130,23 @@ export const resolveFetterPieceDescription = (
     unresolvedCount,
   };
 };
+
+export const resolveTemplateFromValues = ({
+  template,
+  values,
+  keepUnknownPlaceholders = true,
+  highlightClassName = 'text-cyan-200 font-semibold',
+  unknownPlaceholderClassName = 'text-amber-200/90 font-semibold',
+}: ResolveTemplateFromValuesOptions): ReactNode => renderTemplateWithHighlights({
+  template,
+  getParamValue: (index) => {
+    if (index < 0 || index >= values.length) return null;
+    const value = values[index];
+    if (value == null) return null;
+    const normalized = String(value).trim();
+    return normalized.length > 0 ? normalized : null;
+  },
+  keepUnknownPlaceholders,
+  highlightClassName,
+  unknownPlaceholderClassName,
+});

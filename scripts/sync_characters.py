@@ -24,6 +24,7 @@ from cdn_config import CDN_BASE
 # Regex to extract legacy ID from iconRound URL
 # e.g. "T_IconRoleHeadCircle256_26_UI.png" -> 26
 LEGACY_ID_PATTERN = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI\.png")
+NUMBER_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Character"
@@ -403,6 +404,11 @@ def transform_character(data: dict, schema: dict) -> dict | None:
     if skill_icons:
         result["skillIcons"] = skill_icons
 
+    # Extract compact move payload for frontend (localized text + level 1-10 params)
+    moves = _extract_moves_frontend(data)
+    if moves:
+        result["moves"] = moves
+
     # Add legacyId extracted from iconRound URL for backwards compatibility
     legacy_id = extract_legacy_id(data)
     if legacy_id:
@@ -434,10 +440,6 @@ def _extract_lv90_stats(raw: dict) -> dict[str, float]:
             return float(val)
         except (TypeError, ValueError):
             return 0.0
-
-    def _round2(value: float) -> float:
-        # Normalize float noise from CDN values (e.g. 262.4999999999997 -> 262.5)
-        return round(value, 2)
 
     return {
         "HP": _round2(_get_val("life")),
@@ -489,6 +491,91 @@ def _extract_moves_lv10(raw: dict) -> list[dict]:
             "type": entry.get("type"),
             "sort": entry.get("sort"),
             "name": move_name,
+            "values": values,
+        })
+
+    entries.sort(key=lambda x: (x.get("sort") is None, x.get("sort", 0), x.get("id", 0)))
+    return entries
+
+
+def _round2(value: float) -> float:
+    # Normalize float noise from CDN values (e.g. 262.4999999999997 -> 262.5)
+    return round(value, 2)
+
+
+def _format_rounded_number(value: float) -> str:
+    rounded = _round2(value)
+    if float(rounded).is_integer():
+        return str(int(rounded))
+    return f"{rounded:.2f}".rstrip("0").rstrip(".")
+
+
+def _normalize_param_value(value: Any) -> str:
+    text = str(value)
+
+    def repl(match: re.Match[str]) -> str:
+        raw = match.group(0)
+        try:
+            return _format_rounded_number(float(raw))
+        except (TypeError, ValueError):
+            return raw
+
+    return NUMBER_TOKEN_PATTERN.sub(repl, text)
+
+
+def _extract_moves_frontend(raw: dict) -> list[dict]:
+    """Extract localized move payload with level 1-10 params for frontend tooltips."""
+    skill = raw.get("skill")
+    if not isinstance(skill, dict):
+        return []
+
+    entries: list[dict] = []
+    for entry in skill.values():
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("tree", False):
+            continue
+
+        params = entry.get("params", {})
+        if not isinstance(params, dict):
+            continue
+
+        name_i18n = params.get("name", {})
+        move_name = name_i18n if isinstance(name_i18n, dict) else str(name_i18n)
+        desc_i18n = params.get("description", {})
+        move_description = desc_i18n if isinstance(desc_i18n, dict) else str(desc_i18n)
+        level_data = params.get("level", {})
+
+        values: list[dict] = []
+        if isinstance(level_data, dict):
+            for level in level_data.values():
+                if not isinstance(level, dict):
+                    continue
+
+                sub_name_i18n = level.get("name", {})
+                sub_name = sub_name_i18n if isinstance(sub_name_i18n, dict) else str(sub_name_i18n)
+                raw_params = level.get("params", [])
+                level_values: list[str] = []
+                if isinstance(raw_params, list) and raw_params:
+                    upper = min(10, len(raw_params))
+                    for index in range(upper):
+                        level_values.append(_normalize_param_value(raw_params[index]))
+
+                values.append({
+                    "id": level.get("id"),
+                    "name": sub_name,
+                    "values": level_values,
+                })
+
+        values.sort(key=lambda x: (x.get("id") is None, x.get("id", 0)))
+
+        entries.append({
+            "id": entry.get("id"),
+            "type": entry.get("type"),
+            "sort": entry.get("sort"),
+            "name": move_name,
+            "description": move_description,
+            "maxLevel": params.get("maxLevel"),
             "values": values,
         })
 

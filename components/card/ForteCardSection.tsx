@@ -1,9 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Character } from '@/lib/character';
+import { HoverTooltip } from '@/components/ui/HoverTooltip';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Character, I18nString } from '@/lib/character';
 import { ForteState } from '@/lib/build';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
+import { resolveTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
 
 interface BranchDef { label: string; skillKey: string; treeKey: string; }
 const BRANCHES: BranchDef[] = [
@@ -13,6 +16,14 @@ const BRANCHES: BranchDef[] = [
   { label: 'Liberation', skillKey: 'liberation',     treeKey: 'tree4' },
   { label: 'Intro',  skillKey: 'intro',          treeKey: 'tree5' },
 ];
+
+const BRANCH_MOVE_TYPE: Record<string, number> = {
+  'normal-attack': 1,
+  skill: 2,
+  liberation: 3,
+  intro: 5,
+  circuit: 6,
+};
 
 interface ForteCardSectionProps {
   character: Character;
@@ -73,6 +84,18 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
   activeHoverStat = null,
   onHoverStatChange,
 }) => {
+  const { t } = useLanguage();
+  const characterName = t(character.nameI18n ?? { en: character.name });
+  const resolveLocalizedText = (value: I18nString | string | undefined): string => {
+    if (!value) return '';
+    return typeof value === 'string' ? value : t(value);
+  };
+  const getLevelValue = (values: string[] | undefined, level: number): string | null => {
+    if (!Array.isArray(values) || values.length === 0) return null;
+    const index = Math.max(0, Math.min(9, level - 1));
+    return values[index] ?? values[values.length - 1] ?? null;
+  };
+
   return (
     <div className="flex justify-center gap-8 ">
       {BRANCHES.map((branch, i) => {
@@ -93,6 +116,51 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
         const bottomInteractionClass = !activeHoverStat
           ? ''
           : 'opacity-45 brightness-90';
+        const branchMoveType = BRANCH_MOVE_TYPE[branch.skillKey];
+        const move = character.moves?.find((entry) => entry.type === branchMoveType);
+        const selectedLevel = Math.max(1, Math.min(10, level));
+        const moveName = stripGameMarkup(resolveLocalizedText(move?.name));
+        const moveDescription = stripGameMarkup(resolveLocalizedText(move?.description));
+        const selectedMoveValues = (move?.values ?? [])
+          .map((valueEntry) => ({
+            id: valueEntry.id,
+            name: stripGameMarkup(resolveLocalizedText(valueEntry.name)),
+            value: getLevelValue(valueEntry.values, selectedLevel),
+          }))
+          .filter((entry) => entry.name || entry.value);
+        const flattenedParams = selectedMoveValues.map((entry) => entry.value);
+        const tooltipContent = move ? (
+          <div className="font-plus-jakarta text-white/90">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{characterName}</p>
+            <p className="mt-1 text-base font-semibold text-white/96">{moveName || branch.label}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+              <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">{branch.label}</span>
+              <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">Lv.{selectedLevel}</span>
+            </div>
+            {moveDescription && (
+              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/86">
+                {resolveTemplateFromValues({
+                  template: moveDescription,
+                  values: flattenedParams,
+                  keepUnknownPlaceholders: true,
+                  highlightClassName: 'text-cyan-200 font-semibold',
+                })}
+              </p>
+            )}
+            {selectedMoveValues.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {selectedMoveValues.map((entry) => (
+                  <div key={`${move.id}-${entry.id}`} className="rounded-md border border-white/12 bg-black/25 px-2 py-1.5">
+                    <p className="text-xs font-semibold text-amber-100/90">{entry.name || branch.label}</p>
+                    {entry.value && (
+                      <p className="mt-0.5 text-sm font-semibold text-cyan-200">{entry.value}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null;
 
         return (
           <div key={branch.skillKey} className="flex shrink-0 flex-col items-center justify-end gap-0.5">
@@ -121,22 +189,29 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
             <div className="-my-0.5 h-2.5 w-px shrink-0 bg-white/28" />
 
             {/* Skill icon frame + level bubble below */}
-            <div className={`flex flex-col items-center rounded-sm transition-all duration-200 ${bottomInteractionClass}`}>
-              <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-all duration-200">
-                {skillIcon && (
-                  <img src={skillIcon} alt={branch.label} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
-                )}
+            <HoverTooltip
+              content={tooltipContent}
+              disabled={!move}
+              placement="top"
+              maxWidthClassName="max-w-[30rem]"
+            >
+              <div className={`flex flex-col items-center rounded-sm transition-all duration-200 ${bottomInteractionClass}`}>
+                <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-all duration-200">
+                  {skillIcon && (
+                    <img src={skillIcon} alt={branch.label} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
+                  )}
+                </div>
+                <span
+                  className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 transition-all duration-200 ${
+                    isMaxLevel
+                      ? 'border-amber-300/55 bg-amber-300/92 text-[#4a3400]'
+                      : 'border-black/35 bg-black/55 text-white/92'
+                  }`}
+                >
+                  {level}
+                </span>
               </div>
-              <span
-                className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 transition-all duration-200 ${
-                  isMaxLevel
-                    ? 'border-amber-300/55 bg-amber-300/92 text-[#4a3400]'
-                    : 'border-black/35 bg-black/55 text-white/92'
-                }`}
-              >
-                {level}
-              </span>
-            </div>
+            </HoverTooltip>
           </div>
         );
       })}

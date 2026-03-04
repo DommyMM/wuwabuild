@@ -65,6 +65,22 @@ export interface CDNChainEntry {
   param?: string[];
 }
 
+export interface CDNMoveValueEntry {
+  id: number;
+  name: I18nString | string;
+  values: string[];
+}
+
+export interface CDNMoveEntry {
+  id: number;
+  type: number;
+  sort: number;
+  name: I18nString | string;
+  description?: I18nString | string;
+  maxLevel?: number;
+  values: CDNMoveValueEntry[];
+}
+
 export interface CDNCharacter {
   id: number;
   legacyId: string;
@@ -79,6 +95,7 @@ export interface CDNCharacter {
   skillIcons?: Record<string, string>;
   skillTrees?: CDNSkillTreeNode[];
   chains?: CDNChainEntry[];
+  moves?: CDNMoveEntry[];
 }
 
 // CDN weapon ID -> WeaponType mapping
@@ -137,6 +154,7 @@ export interface Character {
   skillIcons?: Record<string, string>; // CDN skill icon URLs keyed by type
   forteNodes?: Record<string, ForteNodeData>; // Keyed by "tree1.top", "tree1.middle", etc.
   chains?: CDNChainEntry[]; // Resonance chains (S1–S6) with icon URLs
+  moves?: CDNMoveEntry[]; // Compact skill payload for tooltip rendering
   roverElementName?: Element; // For Rover's element selection (Aero | Spectro | Havoc)
 }
 
@@ -330,6 +348,7 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     skillIcons: cdn.skillIcons,
     forteNodes,
     chains: cdn.chains,
+    moves: cdn.moves,
     roverElementName: isRoverChar ? (ELEMENT_ID_MAP[cdn.element.id] ?? Element.Spectro) : undefined,
   };
 };
