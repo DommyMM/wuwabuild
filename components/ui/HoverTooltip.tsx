@@ -19,6 +19,7 @@ interface HoverTooltipProps {
   maxWidthClassName?: string;
   tooltipClassName?: string;
   maxRisePx?: number;
+  pinViewportBottom?: boolean;
 }
 
 const VIEWPORT_PADDING = 8;
@@ -86,6 +87,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   maxWidthClassName = DEFAULT_MAX_WIDTH_CLASS,
   tooltipClassName = '',
   maxRisePx,
+  pinViewportBottom = false,
 }) => {
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
@@ -123,6 +125,10 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
     const maxTop = Math.max(VIEWPORT_PADDING, window.innerHeight - tooltipRect.height - VIEWPORT_PADDING);
 
     let nextTop = clamp(resolved.top, VIEWPORT_PADDING, maxTop);
+    if (pinViewportBottom) {
+      nextTop = window.innerHeight - VIEWPORT_PADDING - tooltipRect.height;
+      nextTop = clamp(nextTop, VIEWPORT_PADDING, maxTop);
+    }
     if (typeof maxRisePx === 'number' && Number.isFinite(maxRisePx) && maxRisePx >= 0) {
       const minTopFromTrigger = triggerRect.top - maxRisePx;
       nextTop = Math.max(nextTop, minTopFromTrigger);
@@ -133,7 +139,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
       left: clamp(resolved.left, VIEWPORT_PADDING, maxLeft),
       top: nextTop,
     });
-  }, [maxRisePx, offset, placement]);
+  }, [maxRisePx, offset, pinViewportBottom, placement]);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -182,7 +188,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
         <div
           ref={tooltipRef}
           style={{ top: position.top, left: position.left }}
-          className={`pointer-events-none fixed z-45 rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${maxWidthClassName} ${tooltipClassName}`}
+          className={`pointer-events-none fixed z-45 max-h-[min(90vh,900px)] overflow-y-auto rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${maxWidthClassName} ${tooltipClassName}`}
         >
           {content}
         </div>,

@@ -5,6 +5,7 @@ import { SkillBranch } from './SkillBranch';
 import { Character } from '@/lib/character';
 import { ForteState } from '@/lib/build';
 import { calculateForteBonus } from '@/lib/calculations/stats';
+import { SKILL_BRANCHES } from '@/lib/constants/skillBranches';
 
 interface ForteGroupProps {
   character: Character;
@@ -17,25 +18,8 @@ interface ForteGroupProps {
   className?: string;
 }
 
-interface SkillBranchDef {
-  skillName: string;
-  treeKey: string;
-  hasNodes: boolean;
-}
-
 // Ascending pyramid offsets: outer cols lowest, center highest
 const BRANCH_OFFSETS = ['', 'mb-8', 'mb-12', 'mb-8', ''];
-
-const SKILL_BRANCHES: SkillBranchDef[] = [
-  { skillName: 'Normal Attack', treeKey: 'tree1', hasNodes: true },
-  { skillName: 'Resonance Skill', treeKey: 'tree2', hasNodes: true },
-  { skillName: 'Forte Circuit', treeKey: 'tree3', hasNodes: false },
-  { skillName: 'Res. Liberation', treeKey: 'tree4', hasNodes: true },
-  { skillName: 'Intro Skill', treeKey: 'tree5', hasNodes: true },
-];
-
-// Skill key by column index (for icon lookup)
-const COL_SKILL_KEYS = ['normal-attack', 'skill', 'circuit', 'liberation', 'intro'] as const;
 
 export const ForteGroup: React.FC<ForteGroupProps> = ({
   character,
@@ -104,7 +88,7 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
           <SkillBranch
             key={branch.treeKey}
             skillName={branch.skillName}
-            skillKey={COL_SKILL_KEYS[i]}
+            skillKey={branch.skillKey}
             treeKey={branch.treeKey}
             character={character}
             elementValue={elementValue}

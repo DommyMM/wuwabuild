@@ -6,16 +6,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Character, I18nString } from '@/lib/character';
 import { ForteState } from '@/lib/build';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
+import { SKILL_BRANCHES } from '@/lib/constants/skillBranches';
 import { resolveTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
-
-interface BranchDef { label: string; skillKey: string; treeKey: string; }
-const BRANCHES: BranchDef[] = [
-  { label: 'Normal', skillKey: 'normal-attack', treeKey: 'tree1' },
-  { label: 'Skill',  skillKey: 'skill',          treeKey: 'tree2' },
-  { label: 'Circuit',skillKey: 'circuit',        treeKey: 'tree3' },
-  { label: 'Liberation', skillKey: 'liberation',     treeKey: 'tree4' },
-  { label: 'Intro',  skillKey: 'intro',          treeKey: 'tree5' },
-];
 
 const BRANCH_MOVE_TYPE: Record<string, number> = {
   'normal-attack': 1,
@@ -98,7 +90,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
 
   return (
     <div className="flex justify-center gap-8 ">
-      {BRANCHES.map((branch, i) => {
+      {SKILL_BRANCHES.map((branch, i) => {
         const [level, topActive, midActive] = forte[i];
         const isMaxLevel = level >= 10;
         const skillIcon = character.skillIcons?.[branch.skillKey] ?? character.elementIcon ?? '';
@@ -132,12 +124,32 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
         const fallbackParams = selectedMoveValues.map((entry) => entry.value);
         const tooltipContent = move ? (
           <div className="font-plus-jakarta text-white/90">
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{characterName}</p>
-            <p className="mt-1 text-base font-semibold text-white/96">{moveName || branch.label}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
-              <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">{branch.label}</span>
-              <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">Lv.{selectedLevel}</span>
-            </div>
+            {skillIcon ? (
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-stretch gap-x-3 gap-y-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{characterName}</p>
+                  <p className="mt-1 text-base font-semibold text-white/96">{moveName || branch.skillName}</p>
+                </div>
+                <div className="row-span-2 flex min-h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-white/18 bg-black/35 shadow-[0_8px_18px_rgba(0,0,0,0.25)]">
+                  <img src={skillIcon} alt={branch.skillName} className="h-full w-full object-contain" />
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                  <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">{branch.skillName}</span>
+                  <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">Lv.{selectedLevel}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{characterName}</p>
+                  <p className="mt-1 text-base font-semibold text-white/96">{moveName || branch.skillName}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                  <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">{branch.skillName}</span>
+                  <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">Lv.{selectedLevel}</span>
+                </div>
+              </div>
+            )}
             {moveDescription && (
               <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/86">
                 {resolveTemplateFromValues({
@@ -152,7 +164,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               <div className="mt-2 space-y-1.5">
                 {selectedMoveValues.map((entry) => (
                   <div key={`${move.id}-${entry.id}`} className="rounded-md border border-white/12 bg-black/25 px-2 py-1.5">
-                    <p className="text-xs font-semibold text-amber-100/90">{entry.name || branch.label}</p>
+                    <p className="text-xs font-semibold text-amber-100/90">{entry.name || branch.skillName}</p>
                     {entry.value && (
                       <p className="mt-0.5 text-sm font-semibold text-cyan-200">{entry.value}</p>
                     )}
@@ -169,7 +181,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               icon={topNodeIcon}
               active={topActive}
               isCircuit={isCircuit}
-              alt={`${branch.label} top node`}
+              alt={`${branch.skillName} top node`}
               hoverKey={topNodeHoverKey}
               activeHoverStat={activeHoverStat}
               onHoverStatChange={onHoverStatChange}
@@ -181,7 +193,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               icon={midNodeIcon}
               active={midActive}
               isCircuit={isCircuit}
-              alt={`${branch.label} middle node`}
+              alt={`${branch.skillName} middle node`}
               hoverKey={midNodeHoverKey}
               activeHoverStat={activeHoverStat}
               onHoverStatChange={onHoverStatChange}
@@ -194,12 +206,13 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               content={tooltipContent}
               disabled={!move}
               placement="top"
-              maxWidthClassName="max-w-[30rem]"
+              maxWidthClassName="max-w-96"
+              pinViewportBottom
             >
               <div className={`flex flex-col items-center rounded-sm transition-all duration-200 ${bottomInteractionClass}`}>
                 <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-all duration-200">
                   {skillIcon && (
-                    <img src={skillIcon} alt={branch.label} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
+                    <img src={skillIcon} alt={branch.skillName} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
                   )}
                 </div>
                 <span
