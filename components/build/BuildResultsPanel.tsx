@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown } from 'lucide-react';
+import { ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
@@ -95,10 +95,12 @@ const REGION_BADGES: Record<string, RegionBadge> = {
   '9': { label: 'SEA', className: 'bg-cyan-300/90 text-black' },
 };
 
-const TABLE_GRID = 'grid-cols-[48px_140px_160px_72px_72px_100px_160px_repeat(4,minmax(110px,1fr))]';
+const TABLE_GRID = 'grid-cols-[48px_140px_160px_72px_72px_88px_164px_repeat(4,1fr)]';
 const PAGE_SKIP = 10;
 const PAGINATION_BUTTON_CLASS = 'inline-flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded border border-border bg-background p-0 transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40';
 const PAGE_INDICATOR_CLASS = 'inline-flex h-7.5 w-7.5 items-center justify-center rounded border border-border bg-background text-xs text-text-primary';
+const ACTIVE_SORT_COLUMN_CLASS = 'bg-black/28';
+const ACTIVE_HEADER_TOP_BORDER_CLASS = 'border-accent/85';
 const SEQUENCE_BADGE_STYLES = [
   'pr-2 border-border bg-background text-text-primary/75',
   'pr-3 border-cyan-400/45 bg-cyan-500/15 text-cyan-200',
@@ -125,75 +127,86 @@ const SortHeaderMenu: React.FC<{
   label: string;
   active: boolean;
   direction: LBSortDirection;
-  openMenu: string | null;
   options: SortMenuOption[];
-  onOpenMenu: (menuId: string | null) => void;
+  selectedKey: LBSortKey;
   onHeaderSort: () => void;
   onSelectOption: (key: LBSortKey) => void;
+  alignMenuRight?: boolean;
 }> = ({
   menuId,
   label,
   active,
   direction,
-  openMenu,
   options,
-  onOpenMenu,
+  selectedKey,
   onHeaderSort,
   onSelectOption,
+  alignMenuRight = false,
 }) => {
-  const isOpen = openMenu === menuId;
-
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => onOpenMenu(menuId)}
-      onMouseLeave={() => onOpenMenu(null)}
-    >
+    <div className="group/sort relative flex h-full items-stretch">
       <button
         type="button"
         onClick={onHeaderSort}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
+        className={`flex h-full w-full items-center justify-between gap-2 p-2 text-base transition-colors ${
           active
-            ? 'border-accent/60 bg-accent/15 text-accent'
-            : 'border-border bg-background text-text-primary/85 hover:border-accent/45'
+            ? 'border-accent/85 bg-black/35 text-accent'
+            : 'border-transparent text-text-primary/85 hover:border-border hover:bg-background/60 hover:text-text-primary'
         }`}
       >
         <span className="truncate">{label}</span>
-        {active ? (
-          direction === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronsUpDown className="h-3.5 w-3.5 text-text-primary/50" />
-        )}
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+            active && direction === 'asc' ? 'rotate-180' : ''
+          } ${active ? '' : 'text-text-primary/50'}`}
+        />
       </button>
 
-      {isOpen && (
-        <div className="absolute left-0 top-full z-20 mt-1 min-w-[190px] rounded-md border border-border bg-background shadow-xl">
-          {options.map((option) => (
+      <div
+        className={`absolute top-full z-20 hidden w-max min-w-full overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary/98 group-hover/sort:block group-focus-within/sort:block ${
+          alignMenuRight ? 'right-0 left-auto' : 'left-0'
+        }`}
+      >
+        {options.map((option) => {
+          const isSelected = selectedKey === option.key;
+          return (
             <button
               key={`${menuId}-${option.key}`}
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
                 onSelectOption(option.key);
-                onOpenMenu(null);
               }}
-              className="flex w-full items-center gap-2 border-b border-border px-2 py-1.5 text-left text-xs text-text-primary transition-colors last:border-b-0 hover:bg-background-secondary"
+              className={`flex w-full items-center justify-between gap-2 border-b border-border px-2 py-1.5 text-left text-base transition-colors last:border-b-0 ${
+                isSelected
+                  ? 'border-l-2 border-l-accent bg-black/35 text-accent'
+                  : 'border-l-2 border-l-transparent text-text-primary hover:border-l-border hover:bg-background hover:text-text-primary/95'
+              }`}
             >
-              {option.icon ? (
-                <img
-                  src={option.icon}
-                  alt=""
-                  className="h-3.5 w-3.5 object-contain"
-                  style={option.iconFilter ? { filter: option.iconFilter } : undefined}
+              <span className="flex min-w-0 items-center gap-2">
+                {option.icon ? (
+                  <img
+                    src={option.icon}
+                    alt=""
+                    className="h-4 w-4 object-contain"
+                    style={option.iconFilter ? { filter: option.iconFilter } : undefined}
+                  />
+                ) : (
+                  <span className="inline-block h-4 w-4 opacity-0" />
+                )}
+                <span className="truncate">{option.label}</span>
+              </span>
+              {isSelected && (
+                <ChevronDown
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                    direction === 'asc' ? 'rotate-180' : ''
+                  }`}
                 />
-              ) : (
-                <span className="inline-block h-3.5 w-3.5 rounded bg-border" />
               )}
-              <span className="truncate">{option.label}</span>
             </button>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -215,7 +228,6 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
 }) => {
   const { getCharacter, getWeapon, getEcho, getFetterByElement, statIcons } = useGameData();
   const { t } = useLanguage();
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [statColumns, setStatColumns] = useState<StatSortKey[]>(DEFAULT_STAT_COLUMNS);
 
   const cvSort = (sort === 'finalCV' || sort === 'CR' || sort === 'CD') ? sort : 'finalCV';
@@ -234,7 +246,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
 
   const cvOptions = useMemo<SortMenuOption[]>(() => (
     CV_OPTIONS.map((option) => {
-      const iconLabel = option.key === 'finalCV' ? 'Crit Rate' : getSortLabel(option.key);
+      const iconLabel = option.label; // 'Crit Value' | 'Crit Rate' | 'Crit DMG'
       return {
         key: option.key,
         label: option.label,
@@ -245,6 +257,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
 
   const firstShown = total === 0 ? 0 : Math.min(total, rankStart);
   const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(builds.length - 1, 0));
+  const isCvColumnActive = sort === 'finalCV' || sort === 'CR' || sort === 'CD';
 
   const handleSortRequest = (nextSort: LBSortKey) => {
     if (sort === nextSort) {
@@ -264,45 +277,47 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
 
       <div className="overflow-x-auto pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar]:h-[2px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]">
         <div className="rounded-lg border border-border bg-background/70">
-          <div className={`grid ${TABLE_GRID} items-center gap-4 border-b border-border bg-background-secondary/95 p-2 text-xs font-semibold text-text-primary`}>
-            <div className="text-center text-text-primary/70">#</div>
-            <div>Owner</div>
-            <div>Name</div>
-            <div aria-hidden="true" />
-            <div aria-hidden="true" />
-            <div>Sets</div>
-            <SortHeaderMenu
-              menuId="sort-cv"
-              label={CV_OPTIONS.find((entry) => entry.key === cvSort)?.label ?? 'Crit Value'}
-              active={sort === 'finalCV' || sort === 'CR' || sort === 'CD'}
-              direction={direction}
-              openMenu={openMenu}
-              options={cvOptions}
-              onOpenMenu={setOpenMenu}
-              onHeaderSort={() => handleSortRequest(cvSort)}
-              onSelectOption={onSortChange}
-            />
-            {statColumns.map((columnKey, index) => (
+          <div className={`grid ${TABLE_GRID} items-center gap-4 border-b border-border bg-background-secondary/95 text-base text-text-primary`}>
+            <div className="py-2 text-center text-text-primary/70">#</div>
+            <div className="py-2">Owner</div>
+            <div className="py-2">Name</div>
+            <div className="py-2" aria-hidden="true" />
+            <div className="py-2" aria-hidden="true" />
+            <div className="py-2">Sets</div>
+            <div className={`self-stretch border-t-2 ${isCvColumnActive ? ACTIVE_HEADER_TOP_BORDER_CLASS : 'border-transparent'}`}>
               <SortHeaderMenu
-                key={`${columnKey}-${index}`}
-                menuId={`sort-stat-${index}`}
-                label={getSortLabel(columnKey)}
-                active={sort === columnKey}
+                menuId="sort-cv"
+                label={CV_OPTIONS.find((entry) => entry.key === cvSort)?.label ?? 'Crit Value'}
+                active={sort === 'finalCV' || sort === 'CR' || sort === 'CD'}
                 direction={direction}
-                openMenu={openMenu}
-                options={statOptions}
-                onOpenMenu={setOpenMenu}
-                onHeaderSort={() => handleSortRequest(columnKey)}
-                onSelectOption={(nextSort) => {
-                  if (!STAT_OPTION_KEYS.includes(nextSort as StatSortKey)) return;
-                  setStatColumns((prev) => {
-                    const next = [...prev];
-                    next[index] = nextSort as StatSortKey;
-                    return next;
-                  });
-                  onSortChange(nextSort);
-                }}
+                options={cvOptions}
+                selectedKey={sort}
+                onHeaderSort={() => handleSortRequest(cvSort)}
+                onSelectOption={handleSortRequest}
               />
+            </div>
+            {statColumns.map((columnKey, index) => (
+              <div key={`${columnKey}-${index}`} className={`self-stretch ${sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
+                <SortHeaderMenu
+                  menuId={`sort-stat-${index}`}
+                  label={getSortLabel(columnKey)}
+                  active={sort === columnKey}
+                  direction={direction}
+                  options={statOptions}
+                  selectedKey={sort}
+                  alignMenuRight={index === statColumns.length - 1}
+                  onHeaderSort={() => handleSortRequest(columnKey)}
+                  onSelectOption={(nextSort) => {
+                    if (!STAT_OPTION_KEYS.includes(nextSort as StatSortKey)) return;
+                    setStatColumns((prev) => {
+                      const next = [...prev];
+                      next[index] = nextSort as StatSortKey;
+                      return next;
+                    });
+                    handleSortRequest(nextSort);
+                  }}
+                />
+              </div>
             ))}
           </div>
 
@@ -366,13 +381,13 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                 return (
                   <div
                     key={entry.id}
-                    className={`grid ${TABLE_GRID} items-center gap-4 p-2 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10`}
+                    className={`grid ${TABLE_GRID} items-center gap-4 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10`}
                   >
-                    <div className="text-center text-text-primary/75">
+                    <div className="py-2 text-center text-text-primary/75">
                       {rank}
                     </div>
 
-                    <div>
+                    <div className="py-2">
                       <div className="flex items-center gap-2">
                         {regionBadge && (
                           <span className={`rounded px-2 py-1 text-xs font-semibold tracking-wide ${regionBadge.className}`}>
@@ -385,7 +400,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 py-2">
                       {character?.head ? (
                         <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" />
                       ) : (
@@ -394,7 +409,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                       <span className="text-lg font-semibold text-text-primary">{characterName}</span>
                     </div>
 
-                    <div className="flex items-end text-text-primary/75">
+                    <div className="flex items-end py-2 text-text-primary/75">
                       {weapon ? (
                         <img
                           src={getWeaponPaths(weapon)}
@@ -409,7 +424,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center text-text-primary/75">
+                    <div className="flex items-center py-2 text-text-primary/75">
                       <span
                         className={`inline-flex h-6 items-center justify-start rounded border pl-2 text-left text-xs font-semibold leading-none tracking-wide ${SEQUENCE_BADGE_STYLES[sequenceLevel]}`}
                       >
@@ -417,7 +432,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 py-2">
                       {activeSets.length === 0 ? (
                         <span className="text-xs text-text-primary/50">No set</span>
                       ) : (
@@ -436,13 +451,13 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                       )}
                     </div>
 
-                    <div className="rounded border border-border bg-background px-2 py-1">
-                      <div className="flex items-center justify-between gap-2 text-xs">
-                        <span className="whitespace-nowrap text-text-primary/70">
+                    <div className={`self-stretch py-2 ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
+                      <div className="flex items-center justify-between px-2.5 text-lg">
+                        <span className="text-text-primary">
                           {Number(entry.stats.CR ?? 0).toFixed(1)} : {Number(entry.stats.CD ?? 0).toFixed(1)}
                         </span>
                         <span
-                          className="whitespace-nowrap text-sm font-semibold tracking-wide"
+                          className="tracking-wide"
                           style={{ color: getCVRatingColor(entry.finalCV) }}
                         >
                           {entry.finalCV.toFixed(1)} cv
@@ -456,18 +471,23 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                       const icon = statIcons?.[label] ?? '';
                       const iconFilter = ELEMENT_ICON_FILTERS[label];
                       return (
-                        <div key={`${entry.id}-${columnKey}-${statIndex}`} className="flex items-center gap-1.5 rounded border border-border bg-background px-2 py-1 text-xs text-text-primary">
-                          {icon ? (
-                            <img
-                              src={icon}
-                              alt=""
-                              className="h-3.5 w-3.5 shrink-0 object-contain"
-                              style={iconFilter ? { filter: iconFilter } : undefined}
-                            />
-                          ) : (
-                            <span className="inline-block h-3.5 w-3.5 shrink-0 rounded bg-border" />
-                          )}
-                          <span className="truncate">{formatStatByKey(columnKey, value)}</span>
+                        <div
+                          key={`${entry.id}-${columnKey}-${statIndex}`}
+                          className={`self-stretch py-2 ${sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : ''}`}
+                        >
+                          <div className="flex items-center gap-1.5 px-2 text-xs text-text-primary">
+                            {icon ? (
+                              <img
+                                src={icon}
+                                alt=""
+                                className="h-3.5 w-3.5 shrink-0 object-contain"
+                                style={iconFilter ? { filter: iconFilter } : undefined}
+                              />
+                            ) : (
+                              <span className="inline-block h-3.5 w-3.5 shrink-0 rounded bg-border" />
+                            )}
+                            <span className="truncate">{formatStatByKey(columnKey, value)}</span>
+                          </div>
                         </div>
                       );
                     })}
@@ -481,7 +501,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-start">
         <div />
-        <div className="justify-self-center flex items-start gap-2 text-text-primary/75 mt-4">
+        <div className="justify-self-center flex items-start gap-2 text-text-primary/75 my-2">
           <div className="flex flex-col items-center gap-1">
             <button
               type="button"
