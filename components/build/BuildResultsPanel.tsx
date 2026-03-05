@@ -99,7 +99,7 @@ const REGION_BADGES: Record<string, RegionBadge> = {
   '9': { label: 'SEA', className: 'bg-cyan-300/90 text-black' },
 };
 
-const TABLE_GRID = 'grid-cols-[48px_140px_160px_72px_72px_88px_minmax(0,1fr)]';
+const TABLE_GRID = 'grid-cols-[48px_160px_160px_72px_72px_88px_minmax(0,1fr)]';
 const SORTABLE_GROUP_GRID = 'grid-cols-[164px_repeat(4,minmax(0,1fr))]';
 const PAGE_SKIP = 10;
 const PAGINATION_BUTTON_CLASS = 'inline-flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded border border-border bg-background p-0 transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40';
@@ -274,7 +274,7 @@ const SortHeaderMenu: React.FC<{
           onHeaderSort();
           blurFocusedMenuControl();
         }}
-        className={`flex h-full ${fillWidth ? 'w-full' : 'w-auto'} items-center justify-between gap-2 p-2 ${textSizeClass} transition-colors ${contentOpacityClass} ${
+        className={`flex h-full ${fillWidth ? 'w-full' : 'w-auto'} items-center justify-between gap-2 py-2 px-4 ${textSizeClass} transition-colors ${contentOpacityClass} ${
           active
             ? 'border-accent/85 bg-black/35 text-accent'
             : 'border-transparent text-text-primary/85 hover:border-border hover:bg-background/60 hover:text-text-primary'
@@ -666,7 +666,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                             className="tracking-wide"
                             style={{ color: getCVRatingColor(entry.finalCV) }}
                           >
-                            {entry.finalCV.toFixed(1)} cv
+                            {entry.finalCV.toFixed(1)} CV
                           </span>
                         </div>
                       </div>
@@ -686,12 +686,12 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                                 : (sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : '')
                             }`}
                           >
-                            <div className={`flex h-full items-center gap-2 p-2 text-lg text-text-primary ${shouldDimRowStat ? 'opacity-50' : ''}`}>
+                            <div className={`flex h-full items-center gap-2 py-2 px-4 text-lg text-text-primary ${shouldDimRowStat ? 'opacity-50' : ''}`}>
                               {icon ? (
                                 <img
                                   src={icon}
                                   alt=""
-                                  className="h-5 w-5 shrink-0 object-contain"
+                                  className="w-5 h-5 shrink-0 object-contain"
                                   style={iconFilter ? { filter: iconFilter } : undefined}
                                 />
                               ) : (

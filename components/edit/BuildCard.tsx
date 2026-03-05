@@ -148,7 +148,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                       <div className="flex flex-1 flex-col space-y-2">
                         <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
-                        {weapon && weaponStats && (
+                        {weapon && weaponStats ? (
                           <WeaponGroup
                             weapon={weapon}
                             weaponStats={weaponStats}
@@ -162,6 +162,25 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                             weaponMainHoverKey={weaponMainHoverKey}
                             weaponPassiveHoverMatch={weaponPassiveHoverMatch}
                           />
+                        ) : (
+                          <div className="flex items-center gap-2 opacity-85">
+                            <div className="relative flex h-30 w-30 items-center justify-center overflow-hidden rounded-xl border border-white/24 bg-black/22 shadow-[0_8px_18px_rgba(0,0,0,0.35)]">
+                              <span className="text-4xl font-semibold leading-none text-white/32">?</span>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-2xl font-semibold leading-tight text-white/55">
+                                No Weapon Selected
+                              </span>
+                              <div className="flex items-center gap-2.5 text-sm font-medium leading-none text-white/55">
+                                <span className="rounded-md border border-white/16 bg-black/35 px-3 py-1.5">
+                                  Lv.1
+                                </span>
+                                <span className="rounded-md border border-white/20 bg-black/35 px-3 py-1.5">
+                                  R1
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         )}
 
                         <ForteCardSection
