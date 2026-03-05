@@ -2,15 +2,16 @@
 
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Character } from '@/lib/character';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { ElementType } from '@/lib/echo';
+import { isPercentStat } from '@/lib/constants/statMappings';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { getCVRatingColor } from '@/lib/calculations/cv';
-import { LBBuildEntry, LBStatCode, LBSortDirection, LBSortKey } from '@/lib/lb';
-import { getWeaponPaths } from '@/lib/paths';
+import { LBBuildDetailEntry, LBBuildRowEntry, LBStatCode, LBSortDirection, LBSortKey } from '@/lib/lb';
+import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { ITEMS_PER_PAGE } from './buildConstants';
 import { formatFlatStat, formatPercentStat, getSortLabel } from './buildFormatters';
 
@@ -18,7 +19,11 @@ type CVSortKey = 'finalCV' | 'CR' | 'CD';
 type StatSortKey = Exclude<LBSortKey, 'finalCV' | 'timestamp' | 'characterId' | 'CR' | 'CD'>;
 
 interface BuildResultsPanelProps {
-  builds: LBBuildEntry[];
+  builds: LBBuildRowEntry[];
+  expandedBuildId: string | null;
+  detailById: Record<string, LBBuildDetailEntry>;
+  detailLoadingById: Record<string, boolean>;
+  detailErrorById: Record<string, string | null>;
   total: number;
   page: number;
   pageCount: number;
@@ -31,6 +36,8 @@ interface BuildResultsPanelProps {
   onSortChange: (sort: LBSortKey) => void;
   onToggleDirection: () => void;
   onPageChange: (page: number) => void;
+  onToggleExpand: (buildId: string) => void;
+  onRetryDetail: (buildId: string) => void;
 }
 
 interface SortMenuOption {
@@ -118,6 +125,15 @@ const SEQUENCE_BADGE_STYLES = [
   'pr-7 border-amber-400/55 bg-amber-500/20 text-amber-200',
   'pr-8 border-spectro/60 bg-spectro/20 text-spectro',
 ] as const;
+const FORTE_SHORT_LABELS = ['N', 'S', 'C', 'L', 'I'] as const;
+
+type SubstatSummaryEntry = {
+  type: string;
+  total: number;
+  count: number;
+  icon: string;
+  isPercent: boolean;
+};
 
 function resolveRegionBadge(uid: string | undefined): RegionBadge | null {
   if (!uid) return null;
@@ -128,6 +144,22 @@ function resolveRegionBadge(uid: string | undefined): RegionBadge | null {
 function formatStatByKey(key: LBSortKey, value: number): string {
   if (PERCENT_STAT_KEYS.has(key)) return formatPercentStat(value);
   return formatFlatStat(value);
+}
+
+function formatSubstatTotal(type: string, value: number): string {
+  if (isPercentStat(type)) return formatPercentStat(value);
+  return formatFlatStat(value);
+}
+
+function substatPriority(type: string): number {
+  if (type === 'Crit Rate') return 0;
+  if (type === 'Crit DMG') return 1;
+  if (type === 'ATK%') return 2;
+  if (type === 'ATK') return 3;
+  if (type === 'Energy Regen') return 4;
+  if (type === 'Resonance Skill DMG Bonus') return 5;
+  if (type === 'Resonance Liberation DMG Bonus') return 6;
+  return 99;
 }
 
 function blurFocusedMenuControl(): void {
@@ -361,6 +393,10 @@ const SortHeaderMenu: React.FC<{
 
 export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   builds,
+  expandedBuildId,
+  detailById,
+  detailLoadingById,
+  detailErrorById,
   total,
   page,
   pageCount,
@@ -373,8 +409,10 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   onSortChange,
   onToggleDirection,
   onPageChange,
+  onToggleExpand,
+  onRetryDetail,
 }) => {
-  const { getCharacter, getWeapon, getEcho, getFetterByElement, statIcons } = useGameData();
+  const { fetters, getCharacter, getEcho, getWeapon, statIcons } = useGameData();
   const { t } = useLanguage();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>(DEFAULT_STAT_COLUMNS);
 
@@ -568,167 +606,351 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
             <div className="divide-y divide-border/60">
               {builds.map((entry, index) => {
                 const rank = rankStart + index;
-                const character = getCharacter(entry.state.characterId);
-                const weapon = getWeapon(entry.state.weaponId);
-                const regionBadge = resolveRegionBadge(entry.state.watermark.uid);
+                const character = getCharacter(entry.character.id);
+                const weapon = getWeapon(entry.weapon.id);
+                const regionBadge = resolveRegionBadge(entry.owner.uid);
                 const rowBaseScaling = resolveCharacterBaseScaling(character);
                 const rowStatColumns = resolveBuildRowStatKeys(rowBaseScaling, character?.element, sort, entry.stats);
+                const isExpanded = expandedBuildId === entry.id;
+                const detail = detailById[entry.id];
+                const isDetailLoading = detailLoadingById[entry.id] ?? false;
+                const detailError = detailErrorById[entry.id];
 
                 const characterName = character
                   ? formatCharacterDisplayName(character, {
                     baseName: t(character.nameI18n ?? { en: character.name }),
-                    roverElement: entry.state.roverElement,
+                    roverElement: entry.character.roverElement,
                   })
-                  : entry.state.characterId || 'Unknown Character';
+                  : entry.character.id || 'Unknown Character';
                 const weaponName = weapon
                   ? t(weapon.nameI18n ?? { en: weapon.name })
                   : 'Unknown Weapon';
-                const sequenceLevel = Math.max(0, Math.min(6, Math.trunc(Number(entry.state.sequence) || 0)));
+                const sequenceLevel = Math.max(0, Math.min(6, Math.trunc(Number(entry.sequence) || 0)));
 
-                const setCounts = new Map<ElementType, number>();
-                for (const panel of entry.state.echoPanels) {
-                  if (!panel.id) continue;
-                  const echo = getEcho(panel.id);
-                  const element = panel.selectedElement ?? echo?.elements?.[0];
-                  if (!element) continue;
-                  setCounts.set(element, (setCounts.get(element) ?? 0) + 1);
-                }
-                const activeSets = [...setCounts.entries()]
-                  .map(([element, count]) => {
-                    const fetter = getFetterByElement(element);
+                const activeSets = Object.entries(entry.echoSummary.sets)
+                  .map(([setId, count]) => {
+                    const fetter = fetters.find((entryFetter) => String(entryFetter.id) === setId);
                     const threshold = fetter?.pieceCount ?? 2;
                     return {
-                      element,
+                      setId,
                       count,
                       active: count >= threshold,
                       icon: fetter?.icon ?? '',
-                      name: fetter ? t(fetter.name) : element,
+                      name: fetter ? t(fetter.name) : `Set ${setId}`,
                     };
                   })
                   .filter((entrySet) => entrySet.active)
                   .sort((a, b) => b.count - a.count)
                   .slice(0, 2);
 
+                const detailSubstatSummary: SubstatSummaryEntry[] = (() => {
+                  if (!detail) return [];
+                  const summaryMap = new Map<string, SubstatSummaryEntry>();
+                  for (const panel of detail.buildState.echoPanels) {
+                    for (const sub of panel.stats.subStats) {
+                      if (!sub.type || sub.value === null) continue;
+                      const key = sub.type.trim();
+                      if (!key) continue;
+                      const current = summaryMap.get(key);
+                      if (current) {
+                        current.count += 1;
+                        current.total += Number(sub.value);
+                        continue;
+                      }
+                      summaryMap.set(key, {
+                        type: key,
+                        total: Number(sub.value),
+                        count: 1,
+                        icon: statIcons?.[key] ?? statIcons?.[key.replace('%', '')] ?? '',
+                        isPercent: isPercentStat(key),
+                      });
+                    }
+                  }
+                  return [...summaryMap.values()].sort((a, b) => {
+                    const priority = substatPriority(a.type) - substatPriority(b.type);
+                    if (priority !== 0) return priority;
+                    return b.total - a.total;
+                  });
+                })();
+
                 return (
-                  <div
-                    key={entry.id}
-                    className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10`}
-                  >
-                    <div className="py-2 text-center text-text-primary/75">
-                      {rank}
-                    </div>
-
-                    <div className="py-2">
-                      <div className="flex items-center gap-2">
-                        {regionBadge && (
-                          <span className={`rounded px-2 py-1 text-xs font-semibold tracking-wide ${regionBadge.className}`}>
-                            {regionBadge.label}
-                          </span>
-                        )}
-                        <span className="text-lg text-text-primary">
-                          {entry.state.watermark.username || 'Anonymous'}
-                        </span>
+                  <div key={entry.id}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isExpanded}
+                      className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
+                      onClick={() => onToggleExpand(entry.id)}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        onToggleExpand(entry.id);
+                      }}
+                    >
+                      <div className="py-2 text-center text-text-primary/75">
+                        {rank}
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 py-2">
-                      {character?.head ? (
-                        <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" />
-                      ) : (
-                        <div className="h-9 w-9 bg-border" />
-                      )}
-                      <span className="text-lg font-semibold text-text-primary">{characterName}</span>
-                    </div>
-
-                    <div className="flex items-end py-2 text-text-primary/75">
-                      {weapon ? (
-                        <img
-                          src={getWeaponPaths(weapon)}
-                          alt={weaponName}
-                          className="h-9 w-9"
-                        />
-                      ) : (
-                        <div className="h-9 w-9" />
-                      )}
-                      <span className="-ml-1.5 rounded border border-black/55 bg-black/85 px-1 py-0 text-xs leading-tight text-white">
-                        R{entry.state.weaponRank}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center py-2 text-text-primary/75">
-                      <span
-                        className={`inline-flex h-6 items-center justify-start rounded border pl-2 text-left text-xs font-semibold leading-none tracking-wide ${SEQUENCE_BADGE_STYLES[sequenceLevel]}`}
-                      >
-                        S{sequenceLevel}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 py-2">
-                      {activeSets.length === 0 ? (
-                        <span className="text-xs text-text-primary/50">No set</span>
-                      ) : (
-                        activeSets.map((setEntry) => (
-                          <div key={setEntry.element} className="flex items-end gap-0.5">
-                            {setEntry.icon ? (
-                              <img src={setEntry.icon} alt="" className="h-7 w-7" />
-                            ) : (
-                              <div className="h-8 w-8" />
-                            )}
-                            <span className="text-xs -mb-1 -ml-0.25 font-semibold leading-none text-primary">
-                              {setEntry.count}
+                      <div className="py-2">
+                        <div className="flex items-center gap-2">
+                          {regionBadge && (
+                            <span className={`rounded px-2 py-1 text-xs font-semibold tracking-wide ${regionBadge.className}`}>
+                              {regionBadge.label}
                             </span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
-                      <div className={`self-stretch ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
-                        <div className="flex h-full items-center justify-between px-2.5 text-lg">
-                          <span className="text-text-primary">
-                            {Number(entry.stats.CR ?? 0).toFixed(1)} : {Number(entry.stats.CD ?? 0).toFixed(1)}
-                          </span>
-                          <span
-                            className="tracking-wide"
-                            style={{ color: getCVRatingColor(entry.finalCV) }}
-                          >
-                            {entry.finalCV.toFixed(1)} CV
+                          )}
+                          <span className="text-lg text-text-primary">
+                            {entry.owner.username || 'Anonymous'}
                           </span>
                         </div>
                       </div>
 
-                      {rowStatColumns.map((columnKey, statIndex) => {
-                        const label = getSortLabel(columnKey);
-                        const value = entry.stats[columnKey] ?? 0;
-                        const icon = statIcons?.[label] ?? '';
-                        const iconFilter = ELEMENT_ICON_FILTERS[label];
-                        const shouldDimRowStat = isStatSortActive && statIndex > 0;
-                        return (
-                          <div
-                            key={`${entry.id}-${columnKey}-${statIndex}`}
-                            className={`self-stretch ${
-                              isStatSortActive
-                                ? ACTIVE_SORT_COLUMN_CLASS
-                                : (sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : '')
-                            }`}
-                          >
-                            <div className={`flex h-full items-center gap-2 py-2 px-4 text-lg text-text-primary ${shouldDimRowStat ? 'opacity-50' : ''}`}>
-                              {icon ? (
-                                <img
-                                  src={icon}
-                                  alt=""
-                                  className="w-5 h-5 shrink-0 object-contain"
-                                  style={iconFilter ? { filter: iconFilter } : undefined}
-                                />
+                      <div className="flex items-center gap-2 py-2">
+                        {character?.head ? (
+                          <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" />
+                        ) : (
+                          <div className="h-9 w-9 bg-border" />
+                        )}
+                        <span className="text-lg font-semibold text-text-primary">{characterName}</span>
+                      </div>
+
+                      <div className="flex items-end py-2 text-text-primary/75">
+                        {weapon ? (
+                          <img
+                            src={getWeaponPaths(weapon)}
+                            alt={weaponName}
+                            className="h-9 w-9"
+                          />
+                        ) : (
+                          <div className="h-9 w-9" />
+                        )}
+                        <span className="-ml-1.5 rounded border border-black/55 bg-black/85 px-1 py-0 text-xs leading-tight text-white">
+                          R{entry.weapon.rank}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center py-2 text-text-primary/75">
+                        <span
+                          className={`inline-flex h-6 items-center justify-start rounded border pl-2 text-left text-xs font-semibold leading-none tracking-wide ${SEQUENCE_BADGE_STYLES[sequenceLevel]}`}
+                        >
+                          S{sequenceLevel}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 py-2">
+                        {activeSets.length === 0 ? (
+                          <span className="text-xs text-text-primary/50">No set</span>
+                        ) : (
+                          activeSets.map((setEntry) => (
+                            <div key={setEntry.setId} className="flex items-end gap-0.5">
+                              {setEntry.icon ? (
+                                <img src={setEntry.icon} alt="" className="h-7 w-7" />
                               ) : (
-                                <span className="inline-block h-5 w-5 shrink-0 rounded bg-border" />
+                                <div className="h-8 w-8" />
                               )}
-                              <span>{formatStatByKey(columnKey, value)}</span>
+                              <span className="text-xs -mb-1 -ml-0.25 font-semibold leading-none text-primary">
+                                {setEntry.count}
+                              </span>
                             </div>
+                          ))
+                        )}
+                      </div>
+
+                      <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
+                        <div className={`self-stretch ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
+                          <div className="flex h-full items-center justify-between px-2.5 text-lg">
+                            <span className="text-text-primary">
+                              {Number(entry.stats.CR ?? 0).toFixed(1)} : {Number(entry.stats.CD ?? 0).toFixed(1)}
+                            </span>
+                            <span
+                              className="tracking-wide"
+                              style={{ color: getCVRatingColor(entry.finalCV) }}
+                            >
+                              {entry.finalCV.toFixed(1)} CV
+                            </span>
                           </div>
-                        );
-                      })}
+                        </div>
+
+                        {rowStatColumns.map((columnKey, statIndex) => {
+                          const label = getSortLabel(columnKey);
+                          const value = entry.stats[columnKey] ?? 0;
+                          const icon = statIcons?.[label] ?? '';
+                          const iconFilter = ELEMENT_ICON_FILTERS[label];
+                          const shouldDimRowStat = isStatSortActive && statIndex > 0;
+                          return (
+                            <div
+                              key={`${entry.id}-${columnKey}-${statIndex}`}
+                              className={`self-stretch ${
+                                isStatSortActive
+                                  ? ACTIVE_SORT_COLUMN_CLASS
+                                  : (sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : '')
+                              }`}
+                            >
+                              <div className={`flex h-full items-center gap-2 py-2 px-4 text-lg text-text-primary ${shouldDimRowStat ? 'opacity-50' : ''}`}>
+                                {icon ? (
+                                  <img
+                                    src={icon}
+                                    alt=""
+                                    className="w-5 h-5 shrink-0 object-contain"
+                                    style={iconFilter ? { filter: iconFilter } : undefined}
+                                  />
+                                ) : (
+                                  <span className="inline-block h-5 w-5 shrink-0 rounded bg-border" />
+                                )}
+                                <span>{formatStatByKey(columnKey, value)}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
+
+                    <AnimatePresence initial={false}>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.22, ease: 'easeInOut' }}
+                          className="overflow-hidden border-t border-border/50 bg-black/15"
+                        >
+                          <div className="space-y-3 p-3">
+                            {isDetailLoading && (
+                              <div className="flex items-center gap-3 rounded-lg border border-border bg-background/70 p-3 text-sm text-text-primary/80">
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
+                                Loading build details...
+                              </div>
+                            )}
+
+                            {!isDetailLoading && detailError && (
+                              <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 p-3 text-sm text-red-200">
+                                <span>{detailError}</span>
+                                <button
+                                  type="button"
+                                  className="rounded border border-red-300/60 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-400/15"
+                                  onClick={() => onRetryDetail(entry.id)}
+                                >
+                                  Retry
+                                </button>
+                              </div>
+                            )}
+
+                            {!isDetailLoading && !detailError && detail && (
+                              <>
+                                <div className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background/80 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+                                  <div className="min-w-0">
+                                    <div className="text-sm text-text-primary/70">
+                                      {characterName} Lv.{detail.buildState.characterLevel}
+                                    </div>
+                                    <div className="mt-1 text-xs text-text-primary/60">
+                                      {detail.owner.username || 'Anonymous'} · UID {detail.owner.uid || '—'} {regionBadge ? `· ${regionBadge.label}` : ''}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    {FORTE_SHORT_LABELS.map((label, forteIndex) => {
+                                      const entryForte = detail.buildState.forte?.[forteIndex];
+                                      const level = Number(entryForte?.[0] ?? 1);
+                                      return (
+                                        <span
+                                          key={`${detail.id}-forte-${label}`}
+                                          className="rounded border border-border bg-background-secondary px-2 py-1 text-[11px] font-semibold text-text-primary/85"
+                                        >
+                                          {label} {level}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+
+                                  <div className="text-right text-xs text-text-primary/60">
+                                    {detail.timestamp ? new Date(detail.timestamp).toLocaleString() : 'Unknown date'}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-lg border border-border bg-background/80 p-3">
+                                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">
+                                    Echoes
+                                  </div>
+                                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
+                                    {detail.buildState.echoPanels.map((panel, panelIndex) => {
+                                      const echo = panel.id ? getEcho(panel.id) : null;
+                                      const echoName = echo ? t(echo.nameI18n ?? { en: echo.name }) : 'Empty Slot';
+                                      return (
+                                        <div
+                                          key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
+                                          className="rounded border border-border bg-background-secondary p-2 text-xs"
+                                        >
+                                          {echo ? (
+                                            <>
+                                              <div className="mb-1 flex items-center gap-2">
+                                                <img src={getEchoPaths(echo, panel.phantom)} alt={echoName} className="h-8 w-8 rounded object-contain" />
+                                                <div className="min-w-0">
+                                                  <div className="truncate font-semibold text-text-primary">{echoName}</div>
+                                                  <div className="text-[10px] text-text-primary/60">Lv.{panel.level}</div>
+                                                </div>
+                                              </div>
+                                              {panel.stats.mainStat.type && (
+                                                <div className="mb-1 flex justify-between gap-2 text-[11px] text-accent">
+                                                  <span className="truncate">{panel.stats.mainStat.type}</span>
+                                                  <span className="shrink-0">{formatSubstatTotal(panel.stats.mainStat.type, Number(panel.stats.mainStat.value ?? 0))}</span>
+                                                </div>
+                                              )}
+                                              <div className="space-y-0.5">
+                                                {panel.stats.subStats
+                                                  .filter((sub) => sub.type && sub.value !== null)
+                                                  .map((sub, subIndex) => (
+                                                    <div key={`${detail.id}-sub-${panelIndex}-${subIndex}`} className="flex items-center justify-between gap-2 text-[10px] text-text-primary/70">
+                                                      <span className="truncate">{sub.type}</span>
+                                                      <span className="shrink-0">{formatSubstatTotal(sub.type ?? '', Number(sub.value ?? 0))}</span>
+                                                    </div>
+                                                  ))}
+                                              </div>
+                                            </>
+                                          ) : (
+                                            <div className="flex min-h-20 items-center justify-center rounded border border-dashed border-border text-text-primary/35">
+                                              Empty Slot
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-lg border border-border bg-background/80 p-3">
+                                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">
+                                    Substat Summary
+                                  </div>
+                                  {detailSubstatSummary.length === 0 ? (
+                                    <div className="text-sm text-text-primary/55">No substats found.</div>
+                                  ) : (
+                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                      {detailSubstatSummary.map((summary) => (
+                                        <div key={`${detail.id}-summary-${summary.type}`} className="rounded border border-border bg-background-secondary px-2.5 py-2">
+                                          <div className="flex items-center justify-between gap-2">
+                                            <div className="flex min-w-0 items-center gap-1.5">
+                                              {summary.icon ? (
+                                                <img src={summary.icon} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                                              ) : (
+                                                <span className="h-4 w-4 shrink-0 rounded bg-border" />
+                                              )}
+                                              <span className="truncate text-xs font-semibold text-text-primary">{summary.type}</span>
+                                            </div>
+                                            <span className="text-[10px] text-text-primary/65">{summary.count}x</span>
+                                          </div>
+                                          <div className="mt-1 text-sm font-semibold text-accent">
+                                            {summary.isPercent ? formatPercentStat(summary.total) : formatFlatStat(summary.total)}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 );
               })}

@@ -1,10 +1,19 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LBBuildEntry, LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
+import {
+  getBuildById,
+  LBBuildDetailEntry,
+  LBBuildRowEntry,
+  LBEchoMainFilter,
+  LBEchoSetFilter,
+  LBSortDirection,
+  LBSortKey,
+  listBuilds
+} from '@/lib/lb';
 import { DEFAULT_PAGE, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
 import { parseInitialQuery, serializeQuery } from './buildQuery';
@@ -37,11 +46,17 @@ export const BuildPageClient: React.FC = () => {
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialQuery.echoMains);
   const [filterQuery, setFilterQuery] = useState('');
 
-  const [builds, setBuilds] = useState<LBBuildEntry[]>([]);
+  const [builds, setBuilds] = useState<LBBuildRowEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedBuildId, setExpandedBuildId] = useState<string | null>(null);
+  const [expandedQueryKey, setExpandedQueryKey] = useState<string>(() => serializeQuery(initialQuery));
+  const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
+  const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
+  const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
+  const detailControllersRef = useRef<Record<string, AbortController>>({});
 
   const selectedCharacters = useMemo(() => (
     characterIds.reduce<typeof characters>((acc, id) => {
@@ -113,6 +128,14 @@ export const BuildPageClient: React.FC = () => {
     echoSets,
     echoMains,
   }), [characterIds, direction, echoMains, echoSets, page, regionPrefixes, sort, uid, username, weaponIds]);
+  const currentQueryKey = useMemo(() => serializeQuery(querySnapshot), [querySnapshot]);
+  const activeExpandedBuildId = useMemo(() => (
+    expandedBuildId && expandedQueryKey === currentQueryKey ? expandedBuildId : null
+  ), [currentQueryKey, expandedBuildId, expandedQueryKey]);
+  const abortAllDetailRequests = useCallback(() => {
+    Object.values(detailControllersRef.current).forEach((controller) => controller.abort());
+    detailControllersRef.current = {};
+  }, []);
 
   useEffect(() => {
     const current = searchParams.toString();
@@ -125,11 +148,14 @@ export const BuildPageClient: React.FC = () => {
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
-    const cacheKey = serializeQuery(querySnapshot);
+    const cacheKey = currentQueryKey;
     const cachedResponse = readCachedBuildList(cacheKey);
 
     queueMicrotask(() => {
       if (!active) return;
+      abortAllDetailRequests();
+      setDetailLoadingById({});
+      setDetailErrorById({});
       if (cachedResponse) {
         setBuilds(cachedResponse.builds);
         setTotal(cachedResponse.total);
@@ -176,7 +202,64 @@ export const BuildPageClient: React.FC = () => {
       active = false;
       controller.abort();
     };
-  }, [querySnapshot]);
+  }, [abortAllDetailRequests, currentQueryKey, querySnapshot]);
+
+  const loadBuildDetail = useCallback((buildId: string, force = false) => {
+    const normalizedBuildId = buildId.trim();
+    if (!normalizedBuildId) return;
+    if (!force && (detailById[normalizedBuildId] || detailLoadingById[normalizedBuildId])) {
+      return;
+    }
+
+    detailControllersRef.current[normalizedBuildId]?.abort();
+    const controller = new AbortController();
+    detailControllersRef.current[normalizedBuildId] = controller;
+
+    setDetailLoadingById((prev) => ({ ...prev, [normalizedBuildId]: true }));
+    setDetailErrorById((prev) => ({ ...prev, [normalizedBuildId]: null }));
+
+    void getBuildById(normalizedBuildId, controller.signal)
+      .then((detail) => {
+        setDetailById((prev) => ({ ...prev, [normalizedBuildId]: detail }));
+      })
+      .catch((fetchError) => {
+        if (controller.signal.aborted) return;
+        setDetailErrorById((prev) => ({
+          ...prev,
+          [normalizedBuildId]: fetchError instanceof Error ? fetchError.message : 'Failed to load build details.',
+        }));
+      })
+      .finally(() => {
+        if (controller.signal.aborted) return;
+        setDetailLoadingById((prev) => ({ ...prev, [normalizedBuildId]: false }));
+        delete detailControllersRef.current[normalizedBuildId];
+      });
+  }, [detailById, detailLoadingById]);
+
+  const handleToggleExpand = useCallback((buildId: string) => {
+    const normalizedBuildId = buildId.trim();
+    if (!normalizedBuildId) return;
+
+    if (activeExpandedBuildId === normalizedBuildId) {
+      setExpandedBuildId(null);
+      setExpandedQueryKey(currentQueryKey);
+      return;
+    }
+
+    setExpandedBuildId(normalizedBuildId);
+    setExpandedQueryKey(currentQueryKey);
+    if (!detailById[normalizedBuildId] && !detailLoadingById[normalizedBuildId]) {
+      loadBuildDetail(normalizedBuildId);
+    }
+  }, [activeExpandedBuildId, currentQueryKey, detailById, detailLoadingById, loadBuildDetail]);
+
+  const handleRetryDetail = useCallback((buildId: string) => {
+    loadBuildDetail(buildId, true);
+  }, [loadBuildDetail]);
+
+  useEffect(() => (() => {
+    abortAllDetailRequests();
+  }), [abortAllDetailRequests]);
 
   const pageCount = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
 
@@ -351,6 +434,10 @@ export const BuildPageClient: React.FC = () => {
 
               <BuildResultsPanel
                 builds={builds}
+                expandedBuildId={activeExpandedBuildId}
+                detailById={detailById}
+                detailLoadingById={detailLoadingById}
+                detailErrorById={detailErrorById}
                 total={total}
                 page={page}
                 pageCount={pageCount}
@@ -369,6 +456,8 @@ export const BuildPageClient: React.FC = () => {
                   setPage(1);
                 }}
                 onPageChange={setPage}
+                onToggleExpand={handleToggleExpand}
+                onRetryDetail={handleRetryDetail}
               />
             </div>
           </div>

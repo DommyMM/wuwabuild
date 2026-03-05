@@ -7,13 +7,13 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { ElementType } from '@/lib/echo';
-import { LBBuildEntry } from '@/lib/lb';
+import { LBBuildDetailEntry } from '@/lib/lb';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { ELEMENT_TINT_CLASS } from '@/lib/elementVisuals';
 import { formatFlatStat, formatPercentStat, formatTimestamp, getElementDMGLabel } from './buildFormatters';
 
 interface BuildEntryCardProps {
-  entry: LBBuildEntry;
+  entry: LBBuildDetailEntry;
   rank: number;
   expanded: boolean;
   onToggle: () => void;
@@ -23,21 +23,21 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
   const { getCharacter, getWeapon, getEcho, getFetterByElement } = useGameData();
   const { t } = useLanguage();
 
-  const character = getCharacter(entry.state.characterId);
-  const weapon = getWeapon(entry.state.weaponId);
+  const character = getCharacter(entry.buildState.characterId);
+  const weapon = getWeapon(entry.buildState.weaponId);
   const characterName = character
     ? formatCharacterDisplayName(character, {
       baseName: t(character.nameI18n ?? { en: character.name }),
-      roverElement: entry.state.roverElement,
+      roverElement: entry.buildState.roverElement,
     })
-    : entry.state.characterId || 'Unknown Character';
+    : entry.buildState.characterId || 'Unknown Character';
   const weaponName = weapon
     ? t(weapon.nameI18n ?? { en: weapon.name })
-    : entry.state.weaponId || 'Unknown Weapon';
+    : entry.buildState.weaponId || 'Unknown Weapon';
 
   const setSummaries = useMemo(() => {
     const counts = new Map<ElementType, number>();
-    for (const panel of entry.state.echoPanels) {
+    for (const panel of entry.buildState.echoPanels) {
       if (!panel.id) continue;
       const echo = getEcho(panel.id);
       const element = panel.selectedElement ?? echo?.elements?.[0];
@@ -59,7 +59,7 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
         };
       })
       .sort((a, b) => b.count - a.count);
-  }, [entry.state.echoPanels, getEcho, getFetterByElement, t]);
+  }, [entry.buildState.echoPanels, getEcho, getFetterByElement, t]);
 
   const highestElement = useMemo(() => (
     [
@@ -103,10 +103,10 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
               {characterName}
             </div>
             <div className="mt-0.5 text-xs text-text-primary/70">
-              {weaponName} · S{entry.state.sequence} · R{entry.state.weaponRank}
+              {weaponName} · S{entry.buildState.sequence} · R{entry.buildState.weaponRank}
             </div>
             <div className="mt-0.5 text-xs text-text-primary/55">
-              {entry.state.watermark.username || 'Anonymous'} · UID {entry.state.watermark.uid || '—'}
+              {entry.buildState.watermark.username || 'Anonymous'} · UID {entry.buildState.watermark.uid || '—'}
             </div>
           </div>
           <div className="mt-2 flex items-center gap-2 sm:mt-0">
@@ -126,13 +126,13 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
             CR {formatPercentStat(entry.stats.CR)} / CD {formatPercentStat(entry.stats.CD)}
           </span>
           <span className="rounded bg-border px-2 py-0.5 text-xs text-text-primary/75">
-            S{entry.state.sequence}
+            S{entry.buildState.sequence}
           </span>
           <span className="rounded bg-border px-2 py-0.5 text-xs text-text-primary/75">
-            R{entry.state.weaponRank}
+            R{entry.buildState.weaponRank}
           </span>
           <span className="rounded bg-border px-2 py-0.5 text-xs text-text-primary/75">
-            {entry.state.echoPanels.filter((panel) => panel.id).length}/5 Echoes
+            {entry.buildState.echoPanels.filter((panel) => panel.id).length}/5 Echoes
           </span>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-text-primary sm:grid-cols-5">
@@ -194,7 +194,7 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
                     )}
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-text-primary">{characterName}</div>
-                      <div className="text-xs text-text-primary/70">Lv.{entry.state.characterLevel}</div>
+                      <div className="text-xs text-text-primary/70">Lv.{entry.buildState.characterLevel}</div>
                     </div>
                   </div>
                 </div>
@@ -208,7 +208,7 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
                     )}
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-text-primary">{weaponName}</div>
-                      <div className="text-xs text-text-primary/70">Lv.{entry.state.weaponLevel} · R{entry.state.weaponRank}</div>
+                      <div className="text-xs text-text-primary/70">Lv.{entry.buildState.weaponLevel} · R{entry.buildState.weaponRank}</div>
                     </div>
                   </div>
                 </div>
@@ -217,7 +217,7 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
               <div className="mt-3 rounded border border-border bg-background p-2">
                 <div className="mb-2 text-xs uppercase tracking-wide text-text-primary/55">Echoes</div>
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
-                  {entry.state.echoPanels.map((panel, index) => {
+                  {entry.buildState.echoPanels.map((panel, index) => {
                     const echo = panel.id ? getEcho(panel.id) : null;
                     const echoName = echo ? t(echo.nameI18n ?? { en: echo.name }) : 'Empty Slot';
                     const selectedSet = panel.selectedElement ?? echo?.elements?.[0];
@@ -267,3 +267,4 @@ export const BuildEntryCard: React.FC<BuildEntryCardProps> = ({ entry, rank, exp
     </div>
   );
 };
+
