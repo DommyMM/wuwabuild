@@ -399,23 +399,18 @@ export async function listBuilds(
 
   if (shouldLogLBPayload()) {
     const emptySetRows = normalizedBuilds.filter((entry) => Object.keys(entry.echoSummary.sets).length === 0).length;
-    const firstRow = normalizedBuilds[0];
-    console.log('[LB] /build compact rows', {
+    console.log('[LB] /build compact rows payload', {
       requestUrl,
       query,
       total: toFiniteNumber(payload.total, 0),
       page: toFiniteNumber(payload.page, query.page ?? 1),
       pageSize: toFiniteNumber(payload.pageSize, query.pageSize ?? 12),
-      returnedRows: normalizedBuilds.length,
+      rawRows: rawBuilds,
+      normalizedRows: normalizedBuilds,
+      rawRowCount: rawBuilds.length,
+      normalizedRowCount: normalizedBuilds.length,
+      droppedRowCount: Math.max(0, rawBuilds.length - normalizedBuilds.length),
       rowsWithEmptySets: emptySetRows,
-      firstRowSample: firstRow ? {
-        id: firstRow.id,
-        owner: firstRow.owner,
-        character: firstRow.character,
-        weapon: firstRow.weapon,
-        sequence: firstRow.sequence,
-        setIds: Object.keys(firstRow.echoSummary.sets),
-      } : null,
     });
   }
 
@@ -443,5 +438,18 @@ export async function getBuildById(buildId: string, signal?: AbortSignal): Promi
   }
 
   const payload = await response.json();
-  return normalizeBuildDetailEntry(payload);
+  const normalized = normalizeBuildDetailEntry(payload);
+
+  if (shouldLogLBPayload()) {
+    console.log('[LB] /build/{id} detail payload', {
+      requestUrl,
+      buildId: trimmedBuildId,
+      rawPayload: payload,
+      normalizedPayload: normalized,
+      echoPanelCount: normalized.buildState.echoPanels.length,
+      setIds: Object.keys(normalized.echoSummary.sets),
+    });
+  }
+
+  return normalized;
 }
