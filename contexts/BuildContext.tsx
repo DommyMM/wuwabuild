@@ -12,6 +12,7 @@ import {
 } from '@/lib/build';
 import { createDefaultEchoPanelState } from '@/lib/calculations/echoes';
 import { DRAFT_BUILD_STORAGE_KEY } from '@/lib/storage';
+import { getLocalStorageItem, removeLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
 
 // Column index order: 0=normal-attack, 1=skill, 2=circuit, 3=liberation, 4=intro
 const FORTE_KEY_TO_INDEX: Record<string, number> = {
@@ -166,7 +167,7 @@ function normalizeEchoPanels(rawPanels: unknown): EchoPanelState[] {
 function loadDraftFromStorage(): BuildState | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage.getItem(DRAFT_BUILD_STORAGE_KEY);
+    const raw = getLocalStorageItem(DRAFT_BUILD_STORAGE_KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw);
     if (!saved) return null;
@@ -384,7 +385,7 @@ export function BuildProvider({
     debounceRef.current = setTimeout(() => {
       try {
         const saved = stripDirtyFromState(state);
-        window.localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(saved));
+        void setLocalStorageItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(saved));
       } catch { /* quota exceeded, silently ignore */ }
     }, 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
@@ -505,7 +506,7 @@ export function BuildProvider({
   const resetBuild = useCallback(() => {
     dispatch({ type: 'RESET_BUILD' });
     if (!persistDraft) return;
-    try { window.localStorage.removeItem(DRAFT_BUILD_STORAGE_KEY); } catch { /* ignore */ }
+    void removeLocalStorageItem(DRAFT_BUILD_STORAGE_KEY);
   }, [persistDraft]);
 
   const getSavedState = useCallback((): SavedState => {

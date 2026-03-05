@@ -8,6 +8,7 @@ import { LBBuildEntry, LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSor
 import { DEFAULT_PAGE, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
 import { parseInitialQuery, serializeQuery } from './buildQuery';
+import { readCachedBuildList, writeCachedBuildList } from './buildCache';
 import { BuildFiltersPanel } from './BuildFiltersPanel';
 import { BuildHeader } from './BuildHeader';
 import { BuildResultsPanel } from './BuildResultsPanel';
@@ -124,8 +125,15 @@ export const BuildPageClient: React.FC = () => {
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
+    const cacheKey = serializeQuery(querySnapshot);
+    const cachedResponse = readCachedBuildList(cacheKey);
+
     queueMicrotask(() => {
       if (!active) return;
+      if (cachedResponse) {
+        setBuilds(cachedResponse.builds);
+        setTotal(cachedResponse.total);
+      }
       setIsLoading(true);
       setIsRefreshing(true);
       setError(null);
@@ -152,12 +160,11 @@ export const BuildPageClient: React.FC = () => {
         }
         setBuilds(response.builds);
         setTotal(response.total);
+        writeCachedBuildList(cacheKey, response);
       })
       .catch((fetchError) => {
         if (!active || controller.signal.aborted) return;
         setError(fetchError instanceof Error ? fetchError.message : 'Failed to load builds.');
-        setBuilds([]);
-        setTotal(0);
       })
       .finally(() => {
         if (!active) return;

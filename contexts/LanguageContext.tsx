@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import type { I18nString } from '@/lib/character';
+import { getLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
 
 // Supported languages matching I18nString from character.ts
 // countryCode is used with flag-icons library (lowercase ISO 3166-1 alpha-2)
@@ -43,7 +44,7 @@ interface LanguageProviderProps {
 const getInitialLanguage = (): LanguageCode => {
   if (typeof window === 'undefined') return 'en';
 
-  const saved = localStorage.getItem('wuwabuilds-language') as LanguageCode | null;
+  const saved = getLocalStorageItem('wuwabuilds-language') as LanguageCode | null;
   if (saved && saved in SUPPORTED_LANGUAGES) {
     return saved;
   }
@@ -56,9 +57,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   const setLanguage = useCallback((lang: LanguageCode) => {
     setLanguageState(lang);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('wuwabuilds-language', lang);
-    }
+    void setLocalStorageItem('wuwabuilds-language', lang);
   }, []);
 
   // Translation helper - returns text in current language, falls back to English

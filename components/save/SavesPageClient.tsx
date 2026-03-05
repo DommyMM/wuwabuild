@@ -14,6 +14,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getWeaponPaths } from '@/lib/paths';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { buildLegacyIdMaps, clearLegacySavesFromStorage, convertLegacyBuilds, getLegacySavesSummaryFromStorage, readLegacySavesPayload } from '@/lib/legacyMigration';
+import { setLocalStorageItem } from '@/lib/clientStorage';
 import legacyEchoes from '@/lib/data/legacyEchoes.json';
 import legacyWeapons from '@/lib/data/legacyWeapons.json';
 
@@ -171,7 +172,7 @@ export const SavesPageClient: React.FC = () => {
   const confirmLoadBuild = useCallback((build: SavedBuild) => {
     try {
       loadState(build.state);
-      window.localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(build.state));
+      void setLocalStorageItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(build.state));
       router.push('/edit');
     } catch {
       notifyError('Failed to load build.');
