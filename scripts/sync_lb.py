@@ -61,17 +61,29 @@ HARDCODED_WEAPON_ID_OVERRIDES = {
 
 BONUS_NAME_MAP = {
     "Crit. Rate+": "Crit Rate",
+    "Crit. Rate Up": "Crit Rate",
     "Crit. DMG+": "Crit DMG",
+    "Crit. DMG Up": "Crit DMG",
     "ATK+": "ATK",
+    "ATK Up": "ATK",
     "HP+": "HP",
+    "HP Up": "HP",
     "DEF+": "DEF",
+    "DEF Up": "DEF",
     "Healing Bonus+": "Healing",
+    "Healing Bonus Up": "Healing",
     "Aero DMG Bonus+": "Aero",
+    "Aero DMG Bonus Up": "Aero",
     "Glacio DMG Bonus+": "Glacio",
+    "Glacio DMG Bonus Up": "Glacio",
     "Fusion DMG Bonus+": "Fusion",
+    "Fusion DMG Bonus Up": "Fusion",
     "Electro DMG Bonus+": "Electro",
+    "Electro DMG Bonus Up": "Electro",
     "Havoc DMG Bonus+": "Havoc",
+    "Havoc DMG Bonus Up": "Havoc",
     "Spectro DMG Bonus+": "Spectro",
+    "Spectro DMG Bonus Up": "Spectro",
 }
 
 FORTE_PARENT_TO_TREE = {
@@ -87,6 +99,18 @@ MAIN_STAT_NORMALIZE = {
     "Energy Regen": "ER",
     "Energy Regen.": "ER",
     "Energy Regeneration": "ER",
+}
+
+WEAPON_ATTR_TO_MAIN_STAT = {
+    "Atk": "ATK",
+    "Crit": "Crit Rate",
+    "CritRate": "Crit Rate",
+    "CritDamage": "Crit DMG",
+    "LifeMax": "HP",
+    "Hp": "HP",
+    "Def": "DEF",
+    "EnergyEfficiency": "ER",
+    "EnergyRecover": "ER",
 }
 
 WEAPON_RARITY_MAP = {1: "1-star", 2: "2-star", 3: "3-star", 4: "4-star", 5: "5-star"}
@@ -343,19 +367,15 @@ def _weapon_secondary_stat(second: dict) -> tuple[str, float]:
     base_main = (value * 100) if is_ratio else (value / 100)
 
     # Derive stat name
+    mapped_attr = WEAPON_ATTR_TO_MAIN_STAT.get(attribute)
+    if mapped_attr:
+        return mapped_attr, base_main
+
     name_en = (second.get("name") or {}).get("en", "")
     # First try the display name normalization table
     normalized = MAIN_STAT_NORMALIZE.get(name_en, "")
     if normalized:
         return normalized, base_main
-
-    # For ATK/HP/DEF distinguish flat vs percentage
-    if attribute == "Atk":
-        return ("ATK%" if is_ratio else "ATK"), base_main
-    if attribute == "Hp":
-        return ("HP%" if is_ratio else "HP"), base_main
-    if attribute == "Def":
-        return ("DEF%" if is_ratio else "DEF"), base_main
 
     # Fall back to display name (may still need normalization)
     return name_en if name_en else attribute, base_main
