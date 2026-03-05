@@ -26,20 +26,58 @@ wuwabuilds/
 │   ├── Characters/           # Individual character JSONs (--individual)
 │   ├── Weapons.json          # Combined weapon data
 │   ├── Weapons/              # Individual weapon JSONs (--individual)
-│   ├── Echoes.json           # Combined echo data (159 echoes)
-│   ├── Fetters.json          # Sonata/element set data (28 sets) — see below
-│   └── LevelCurve.json       # Static scaling data (manual)
-└── ../backend/Data/
+│   ├── Echoes.json           # Combined echo data
+│   ├── Fetters.json          # Sonata/element set data — see below
+│   ├── Stats.json            # Localized stat labels + icon URLs
+│   ├── CharacterCurve.json   # Static character scaling curve (copied to lb)
+│   ├── LevelCurve.json       # Static scaling data (copied to lb)
+│   └── LB/
+│       ├── Characters.compact.json   # Temp compact artifact for lb generation
+│       ├── Weapons.compact.json      # Compact artifact consumed by lb tooling
+│       └── Echoes.compact.json       # Compact artifact consumed by lb tooling
+├── ../backend/Data/
     ├── Characters.json       # Backend OCR character mapping data
     ├── Weapons.json          # Backend OCR weapon mapping data
     ├── Echoes.json           # Backend OCR echo mapping data
     └── Echoes/*.png          # Backend echo icon templates keyed by CDN ID
+└── ../lb/internal/calc/
+    ├── data/
+    │   ├── character_bases.json
+    │   ├── weapon_bases.json
+    │   ├── echo_bases.json
+    │   ├── fetter_bases.json
+    │   ├── id_maps.json
+    │   ├── character_curve.json
+    │   └── level_curve.json
+    └── weapon_buffs_gen.go
 ```
 
 > **Terminology note:** The CDN calls these "PhantomFetters" / "PhantomFetterGroups" internally.
 > In the game UI and in this codebase they are referred to as **sonata sets** or **element sets**.
 > The `fetter` field in each Echo entry is an array of FetterGroup IDs that map to sonata sets
-> via the `FETTER_MAP` in `types/echo.ts`.
+> via the `FETTER_MAP` in `lib/echo.ts`.
+
+## Full Pipeline (`sync_all.py`)
+
+`sync_all.py` runs the full frontend + backend + LB data pipeline in this order:
+
+1. `sync_characters.py --fetch --emit-lb-compact`
+2. `sync_weapons.py --fetch`
+3. `sync_echoes.py --fetch`
+4. `sync_fetters.py`
+5. `stat_translations.py`
+6. `sync_backend.py`
+7. `sync_lb.py`
+
+Pass-through flags: `--dry-run`, `--pretty` (plus unknown extra args are forwarded to each script).
+
+### LB compact artifact behavior
+
+- `sync_characters.py --emit-lb-compact` writes `public/Data/LB/Characters.compact.json`.
+- `sync_weapons.py` always writes `public/Data/LB/Weapons.compact.json`.
+- `sync_echoes.py` always writes `public/Data/LB/Echoes.compact.json`.
+- `sync_lb.py` consumes canonical JSON inputs (`public/Data/{Characters,Weapons,Echoes,Fetters,CharacterCurve,LevelCurve}.json`) and writes lb calc outputs under `../lb/internal/calc`.
+- By default, `sync_lb.py` cleans up temporary compact artifacts it owns (currently `Characters.compact.json`). Use `--keep-compact` to retain them.
 
 ## What Gets Synced — Characters
 
@@ -156,8 +194,10 @@ const statIcon = character.skillTrees[0].icon; // Forte node stat icon
 python sync_characters.py --fetch                     # Sync all → Characters.json (default)
 python sync_characters.py --fetch --individual        # Write per-character files instead
 python sync_characters.py --fetch --id 1205           # Sync single character
+python sync_characters.py --fetch --workers 20        # Explicit fetch parallelism
 python sync_characters.py --fetch --dry-run --pretty  # Preview
 python sync_characters.py --fetch --include-skills    # Include full skill multiplier data
+python sync_characters.py --fetch --emit-lb-compact   # Emit Characters.compact.json
 ```
 
 ### Weapons
@@ -166,7 +206,54 @@ python sync_characters.py --fetch --include-skills    # Include full skill multi
 python sync_weapons.py --fetch                        # Sync all → Weapons.json (default)
 python sync_weapons.py --fetch --individual           # Write per-weapon files instead
 python sync_weapons.py --fetch --id 21010015          # Sync single weapon
+python sync_weapons.py --fetch --workers 20           # Explicit fetch parallelism
 python sync_weapons.py --fetch --dry-run --pretty     # Preview
+```
+
+### Echoes
+
+```bash
+python sync_echoes.py --fetch                        # Sync all → Echoes.json (+ LB/Echoes.compact.json)
+python sync_echoes.py --fetch --id 60000425         # Sync single echo ID
+python sync_echoes.py --fetch --workers 20          # Explicit fetch parallelism
+python sync_echoes.py --fetch --dry-run --pretty    # Preview
+```
+
+### Fetters + Stats
+
+```bash
+python sync_fetters.py            # Sync sonata set data → Fetters.json
+python sync_fetters.py --dry-run  # Preview
+python sync_fetters.py --pretty   # Pretty-print output
+
+python stat_translations.py            # Sync stat i18n + icon URLs → Stats.json
+python stat_translations.py --dry-run  # Preview
+python stat_translations.py --pretty   # Pretty-print output
+```
+
+### Backend + LB Generation
+
+```bash
+python sync_backend.py                     # Transform public/Data → ../backend/Data
+python sync_backend.py --dry-run           # Preview backend transform
+
+python sync_lb.py                          # Generate ../lb/internal/calc/data + weapon_buffs_gen.go
+python sync_lb.py --pretty                 # Pretty JSON outputs
+python sync_lb.py --keep-compact           # Keep temp LB compact artifact(s)
+python sync_lb.py --weapons-only           # Regenerate weapon base data + weapon maps only
+python sync_lb.py --weapons-only --pretty
+
+python sync_all.py                         # Run end-to-end pipeline
+python sync_all.py --dry-run --pretty      # Preview end-to-end pipeline
+```
+
+### Echo Icon Templates (Backend OCR)
+
+```bash
+python download_echo_icons.py                      # Download missing ID-named PNG templates
+python download_echo_icons.py --clean              # Remove legacy non-ID files, then download missing
+python download_echo_icons.py --clean --force      # Full refresh
+python download_echo_icons.py --dry-run            # Preview cleanup + missing downloads
 ```
 
 ## Stat Scaling
@@ -241,7 +328,7 @@ Each echo JSON includes:
 | `phantomIcon` | Phantom skin full-size icon path, if skin exists |
 | `bonuses` | First-panel (main slot) stat bonuses, if any |
 
-Optional with `--include-skills`:
+Skill payload (always included):
 
 | Field | Description |
 |-------|-------------|
@@ -314,7 +401,7 @@ The `element` array uses numeric IDs for the monster's innate element. Kept as r
 "The Resonator with this Echo equipped in their main slot gains {1} Fusion DMG Bonus and {2} Resonance Skill DMG Bonus."
 ```
 
-The `{N}` placeholders are resolved from `skill.levelDescriptionStrArray[0].ArrayString`. These bonuses replace the hardcoded `ECHO_BONUSES` in `frontend/src/types/echo.ts`.
+The `{N}` placeholders are resolved from `skill.levelDescriptionStrArray[0].ArrayString`. These bonuses replaced legacy hardcoded echo bonus tables and now flow directly from CDN data.
 
 ### Echo Icon URLs
 
@@ -329,7 +416,7 @@ All paths are raw `/d/` paths — frontend prepends CDN base URL.
 python sync_echoes.py --fetch                     # Sync from CDN → public/Data/Echoes.json
 python sync_echoes.py --fetch --dry-run --pretty  # Preview
 python sync_echoes.py --fetch --id 60000425       # Single phantom from CDN
-python sync_all.py                                # Full pipeline: frontend data + backend transform
+python sync_all.py                                # Full pipeline: frontend data + backend + lb generation
 python sync_all.py --dry-run --pretty             # Preview full pipeline
 python download_echo_icons.py --clean --force     # Refresh backend echo templates by CDN ID
 ```
@@ -342,7 +429,7 @@ Skipped: `phantomType 2` (cosmetic unlock items), `rarity < 5`, `type`, `attribu
 **Output:** `public/Data/Fetters.json` (one entry per sonata set, 28 total)
 
 Each entry in Fetters.json represents one complete sonata/element set (e.g., Freezing Frost, Molten Rift).
-The `id` matches what the echo's `fetter[]` array contains and what `FETTER_MAP` in `types/echo.ts` keys on.
+The `id` matches what the echo's `fetter[]` array contains and what `FETTER_MAP` in `lib/echo.ts` keys on.
 
 | Field | Description |
 |-------|-------------|
@@ -358,8 +445,9 @@ The `id` matches what the echo's `fetter[]` array contains and what `FETTER_MAP`
 | `fetterIcon` | Element icon URL (CDN direct) |
 | `effectDefineDescription` | Lore/flavour text in all languages |
 
-**Only the 2-piece (or 3-piece) entry is kept.** The 5-piece entries are omitted — their effects are
-all conditional on specific attack types and are not needed for base stat display.
+Top-level fields (`pieceCount`, `fetterId`, `addProp`, `effectDescription`, etc.) mirror the smallest activation tier
+(usually 2-piece, or 3-piece for 3-piece-only sets) for backward compatibility.  
+All available tiers are also included under `pieceEffects` (for example both 2-piece and 5-piece entries).
 
 ### CDN Source URLs
 
