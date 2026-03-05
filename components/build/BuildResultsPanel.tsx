@@ -2,18 +2,17 @@
 
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Character } from '@/lib/character';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { isPercentStat } from '@/lib/constants/statMappings';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { getCVRatingColor } from '@/lib/calculations/cv';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBStatCode, LBSortDirection, LBSortKey } from '@/lib/lb';
-import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
+import { getWeaponPaths } from '@/lib/paths';
 import { ITEMS_PER_PAGE } from './buildConstants';
 import { formatFlatStat, formatPercentStat, getSortLabel } from './buildFormatters';
+import { BuildExpanded } from './BuildExpanded';
 
 type CVSortKey = 'finalCV' | 'CR' | 'CD';
 type StatSortKey = Exclude<LBSortKey, 'finalCV' | 'timestamp' | 'characterId' | 'CR' | 'CD'>;
@@ -125,15 +124,6 @@ const SEQUENCE_BADGE_STYLES = [
   'pr-7 border-amber-400/55 bg-amber-500/20 text-amber-200',
   'pr-8 border-spectro/60 bg-spectro/20 text-spectro',
 ] as const;
-const FORTE_SHORT_LABELS = ['N', 'S', 'C', 'L', 'I'] as const;
-
-type SubstatSummaryEntry = {
-  type: string;
-  total: number;
-  count: number;
-  icon: string;
-  isPercent: boolean;
-};
 
 function resolveRegionBadge(uid: string | undefined): RegionBadge | null {
   if (!uid) return null;
@@ -144,22 +134,6 @@ function resolveRegionBadge(uid: string | undefined): RegionBadge | null {
 function formatStatByKey(key: LBSortKey, value: number): string {
   if (PERCENT_STAT_KEYS.has(key)) return formatPercentStat(value);
   return formatFlatStat(value);
-}
-
-function formatSubstatTotal(type: string, value: number): string {
-  if (isPercentStat(type)) return formatPercentStat(value);
-  return formatFlatStat(value);
-}
-
-function substatPriority(type: string): number {
-  if (type === 'Crit Rate') return 0;
-  if (type === 'Crit DMG') return 1;
-  if (type === 'ATK%') return 2;
-  if (type === 'ATK') return 3;
-  if (type === 'Energy Regen') return 4;
-  if (type === 'Resonance Skill DMG Bonus') return 5;
-  if (type === 'Resonance Liberation DMG Bonus') return 6;
-  return 99;
 }
 
 function blurFocusedMenuControl(): void {
@@ -643,36 +617,6 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                   .sort((a, b) => b.count - a.count)
                   .slice(0, 2);
 
-                const detailSubstatSummary: SubstatSummaryEntry[] = (() => {
-                  if (!detail) return [];
-                  const summaryMap = new Map<string, SubstatSummaryEntry>();
-                  for (const panel of detail.buildState.echoPanels) {
-                    for (const sub of panel.stats.subStats) {
-                      if (!sub.type || sub.value === null) continue;
-                      const key = sub.type.trim();
-                      if (!key) continue;
-                      const current = summaryMap.get(key);
-                      if (current) {
-                        current.count += 1;
-                        current.total += Number(sub.value);
-                        continue;
-                      }
-                      summaryMap.set(key, {
-                        type: key,
-                        total: Number(sub.value),
-                        count: 1,
-                        icon: statIcons?.[key] ?? statIcons?.[key.replace('%', '')] ?? '',
-                        isPercent: isPercentStat(key),
-                      });
-                    }
-                  }
-                  return [...summaryMap.values()].sort((a, b) => {
-                    const priority = substatPriority(a.type) - substatPriority(b.type);
-                    if (priority !== 0) return priority;
-                    return b.total - a.total;
-                  });
-                })();
-
                 return (
                   <div key={entry.id}>
                     <div
@@ -804,153 +748,20 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                       </div>
                     </div>
 
-                    <AnimatePresence initial={false}>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.22, ease: 'easeInOut' }}
-                          className="overflow-hidden border-t border-border/50 bg-black/15"
-                        >
-                          <div className="space-y-3 p-3">
-                            {isDetailLoading && (
-                              <div className="flex items-center gap-3 rounded-lg border border-border bg-background/70 p-3 text-sm text-text-primary/80">
-                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
-                                Loading build details...
-                              </div>
-                            )}
-
-                            {!isDetailLoading && detailError && (
-                              <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 p-3 text-sm text-red-200">
-                                <span>{detailError}</span>
-                                <button
-                                  type="button"
-                                  className="rounded border border-red-300/60 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-400/15"
-                                  onClick={() => onRetryDetail(entry.id)}
-                                >
-                                  Retry
-                                </button>
-                              </div>
-                            )}
-
-                            {!isDetailLoading && !detailError && detail && (
-                              <>
-                                <div className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background/80 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
-                                  <div className="min-w-0">
-                                    <div className="text-sm text-text-primary/70">
-                                      {characterName} Lv.{detail.buildState.characterLevel}
-                                    </div>
-                                    <div className="mt-1 text-xs text-text-primary/60">
-                                      {detail.owner.username || 'Anonymous'} · UID {detail.owner.uid || '—'} {regionBadge ? `· ${regionBadge.label}` : ''}
-                                    </div>
-                                  </div>
-
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    {FORTE_SHORT_LABELS.map((label, forteIndex) => {
-                                      const entryForte = detail.buildState.forte?.[forteIndex];
-                                      const level = Number(entryForte?.[0] ?? 1);
-                                      return (
-                                        <span
-                                          key={`${detail.id}-forte-${label}`}
-                                          className="rounded border border-border bg-background-secondary px-2 py-1 text-[11px] font-semibold text-text-primary/85"
-                                        >
-                                          {label} {level}
-                                        </span>
-                                      );
-                                    })}
-                                  </div>
-
-                                  <div className="text-right text-xs text-text-primary/60">
-                                    {detail.timestamp ? new Date(detail.timestamp).toLocaleString() : 'Unknown date'}
-                                  </div>
-                                </div>
-
-                                <div className="rounded-lg border border-border bg-background/80 p-3">
-                                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">
-                                    Echoes
-                                  </div>
-                                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
-                                    {detail.buildState.echoPanels.map((panel, panelIndex) => {
-                                      const echo = panel.id ? getEcho(panel.id) : null;
-                                      const echoName = echo ? t(echo.nameI18n ?? { en: echo.name }) : 'Empty Slot';
-                                      return (
-                                        <div
-                                          key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
-                                          className="rounded border border-border bg-background-secondary p-2 text-xs"
-                                        >
-                                          {echo ? (
-                                            <>
-                                              <div className="mb-1 flex items-center gap-2">
-                                                <img src={getEchoPaths(echo, panel.phantom)} alt={echoName} className="h-8 w-8 rounded object-contain" />
-                                                <div className="min-w-0">
-                                                  <div className="truncate font-semibold text-text-primary">{echoName}</div>
-                                                  <div className="text-[10px] text-text-primary/60">Lv.{panel.level}</div>
-                                                </div>
-                                              </div>
-                                              {panel.stats.mainStat.type && (
-                                                <div className="mb-1 flex justify-between gap-2 text-[11px] text-accent">
-                                                  <span className="truncate">{panel.stats.mainStat.type}</span>
-                                                  <span className="shrink-0">{formatSubstatTotal(panel.stats.mainStat.type, Number(panel.stats.mainStat.value ?? 0))}</span>
-                                                </div>
-                                              )}
-                                              <div className="space-y-0.5">
-                                                {panel.stats.subStats
-                                                  .filter((sub) => sub.type && sub.value !== null)
-                                                  .map((sub, subIndex) => (
-                                                    <div key={`${detail.id}-sub-${panelIndex}-${subIndex}`} className="flex items-center justify-between gap-2 text-[10px] text-text-primary/70">
-                                                      <span className="truncate">{sub.type}</span>
-                                                      <span className="shrink-0">{formatSubstatTotal(sub.type ?? '', Number(sub.value ?? 0))}</span>
-                                                    </div>
-                                                  ))}
-                                              </div>
-                                            </>
-                                          ) : (
-                                            <div className="flex min-h-20 items-center justify-center rounded border border-dashed border-border text-text-primary/35">
-                                              Empty Slot
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-
-                                <div className="rounded-lg border border-border bg-background/80 p-3">
-                                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">
-                                    Substat Summary
-                                  </div>
-                                  {detailSubstatSummary.length === 0 ? (
-                                    <div className="text-sm text-text-primary/55">No substats found.</div>
-                                  ) : (
-                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                      {detailSubstatSummary.map((summary) => (
-                                        <div key={`${detail.id}-summary-${summary.type}`} className="rounded border border-border bg-background-secondary px-2.5 py-2">
-                                          <div className="flex items-center justify-between gap-2">
-                                            <div className="flex min-w-0 items-center gap-1.5">
-                                              {summary.icon ? (
-                                                <img src={summary.icon} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                                              ) : (
-                                                <span className="h-4 w-4 shrink-0 rounded bg-border" />
-                                              )}
-                                              <span className="truncate text-xs font-semibold text-text-primary">{summary.type}</span>
-                                            </div>
-                                            <span className="text-[10px] text-text-primary/65">{summary.count}x</span>
-                                          </div>
-                                          <div className="mt-1 text-sm font-semibold text-accent">
-                                            {summary.isPercent ? formatPercentStat(summary.total) : formatFlatStat(summary.total)}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    <BuildExpanded
+                      key={`${entry.id}-${isExpanded ? 'open' : 'closed'}-${detail?.id ?? 'no-detail'}`}
+                      entry={entry}
+                      detail={detail}
+                      isExpanded={isExpanded}
+                      isDetailLoading={isDetailLoading}
+                      detailError={detailError}
+                      characterName={characterName}
+                      regionBadge={regionBadge}
+                      statIcons={statIcons}
+                      getEcho={getEcho}
+                      translateText={(i18n, fallback) => t(i18n ?? { en: fallback })}
+                      onRetryDetail={onRetryDetail}
+                    />
                   </div>
                 );
               })}
