@@ -1,8 +1,8 @@
 import { getLocalStorageJSON, setLocalStorageJSON } from '@/lib/clientStorage';
 import { LBListBuildsResponse } from '@/lib/lb';
 
-const BUILDS_CACHE_STORAGE_KEY = 'wuwabuilds_lb_build_list_cache_v1';
-const BUILDS_CACHE_VERSION = 1;
+const BUILDS_CACHE_STORAGE_KEY = 'wuwabuilds_lb_build_list_cache_v2';
+const BUILDS_CACHE_VERSION = 2;
 const BUILDS_CACHE_DEFAULT_TTL_MS = 2 * 60 * 1000;
 const BUILDS_CACHE_MAX_ENTRIES = 30;
 const DEFAULT_QUERY_KEY = 'default';

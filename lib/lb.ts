@@ -1,4 +1,5 @@
 import { DEFAULT_FORTE, SavedState } from '@/lib/build';
+import { ElementType, FETTER_MAP } from '@/lib/echo';
 
 const DEFAULT_LB_URL = 'http://localhost:8080';
 
@@ -107,35 +108,64 @@ export interface LBListBuildsQuery {
   echoMains?: LBEchoMainFilter[];
 }
 
+export interface LBBuildOwner {
+  username: string;
+  uid: string;
+}
+
+export interface LBBuildCharacter {
+  id: string;
+  level: number;
+  roverElement?: string;
+}
+
+export interface LBBuildWeapon {
+  id: string;
+  level: number;
+  rank: number;
+}
+
+export interface LBBuildEchoSummary {
+  sets: Record<string, number>;
+}
+
+export interface LBBuildRowEntry {
+  id: string;
+  owner: LBBuildOwner;
+  character: LBBuildCharacter;
+  weapon: LBBuildWeapon;
+  sequence: number;
+  stats: Record<LBStatCode, number>;
+  echoSummary: LBBuildEchoSummary;
+  cv: number;
+  cvPenalty: number;
+  finalCV: number;
+  timestamp: string;
+}
+
+export interface LBBuildDetailEntry extends LBBuildRowEntry {
+  buildState: SavedState;
+  statsFull?: unknown;
+  calculations?: unknown;
+}
+
 interface LBListBuildsResponseRaw {
-  builds?: LBBuildEntryRaw[];
+  builds?: unknown[];
   total?: number;
   page?: number;
   pageSize?: number;
 }
 
-interface LBBuildEntryRaw {
-  _id: string;
-  buildState: unknown;
-  stats: unknown;
-  cv: number;
-  cvPenalty: number;
-  finalCV: number;
-  timestamp: string;
-}
-
-export interface LBBuildEntry {
-  id: string;
-  state: SavedState;
-  stats: Record<LBStatCode, number>;
-  cv: number;
-  cvPenalty: number;
-  finalCV: number;
-  timestamp: string;
-}
+const ELEMENT_TO_SET_ID: Partial<Record<ElementType, string>> = Object.entries(FETTER_MAP).reduce(
+  (acc, [setId, element]) => {
+    acc[element] = setId;
+    return acc;
+  },
+  {} as Partial<Record<ElementType, string>>,
+);
 
 export interface LBListBuildsResponse {
-  builds: LBBuildEntry[];
+  builds: LBBuildRowEntry[];
   total: number;
   page: number;
   pageSize: number;
@@ -211,15 +241,81 @@ function normalizeBuildState(rawBuildState: unknown): SavedState {
   };
 }
 
-function normalizeBuildEntry(raw: LBBuildEntryRaw): LBBuildEntry {
+function normalizeEchoSets(raw: unknown): Record<string, number> {
+  const parsed = parseMaybeJSON(raw);
+  if (!isRecord(parsed)) return {};
+  const sets: Record<string, number> = {};
+  for (const [rawKey, count] of Object.entries(parsed)) {
+    const normalizedSetId = (() => {
+      if (/^\d+$/.test(rawKey) && FETTER_MAP[Number(rawKey)]) return rawKey;
+      if ((ELEMENT_TO_SET_ID as Record<string, string | undefined>)[rawKey]) {
+        return (ELEMENT_TO_SET_ID as Record<string, string | undefined>)[rawKey]!;
+      }
+      return null;
+    })();
+    if (!normalizedSetId) continue;
+    const numericCount = toFiniteNumber(count, 0);
+    if (numericCount <= 0) continue;
+    sets[normalizedSetId] = Math.trunc(numericCount);
+  }
+  return sets;
+}
+
+function normalizeBuildRowEntry(raw: unknown): LBBuildRowEntry {
+  if (!isRecord(raw)) {
+    throw new Error('LB row payload is malformed.');
+  }
+
+  const owner = isRecord(raw.owner) ? raw.owner : {};
+  const character = isRecord(raw.character) ? raw.character : {};
+  const weapon = isRecord(raw.weapon) ? raw.weapon : {};
+  const echoSummary = isRecord(raw.echoSummary) ? raw.echoSummary : {};
+
+  if (!('_id' in raw) || !('owner' in raw) || !('character' in raw) || !('weapon' in raw) || !('echoSummary' in raw)) {
+    throw new Error('LB row payload missing compact fields. Expected compact /build contract.');
+  }
+
   return {
-    id: raw._id,
-    state: normalizeBuildState(raw.buildState),
+    id: typeof raw._id === 'string' ? raw._id : '',
+    owner: {
+      username: typeof owner.username === 'string' ? owner.username : '',
+      uid: typeof owner.uid === 'string' ? owner.uid : '',
+    },
+    character: {
+      id: typeof character.id === 'string' ? character.id : '',
+      level: toFiniteNumber(character.level, 1),
+      roverElement: typeof character.roverElement === 'string' ? character.roverElement : undefined,
+    },
+    weapon: {
+      id: typeof weapon.id === 'string' ? weapon.id : '',
+      level: toFiniteNumber(weapon.level, 1),
+      rank: toFiniteNumber(weapon.rank, 1),
+    },
+    sequence: toFiniteNumber(raw.sequence, 0),
     stats: normalizeStats(raw.stats),
+    echoSummary: {
+      sets: normalizeEchoSets((echoSummary as { sets?: unknown }).sets),
+    },
     cv: toFiniteNumber(raw.cv),
     cvPenalty: toFiniteNumber(raw.cvPenalty),
     finalCV: toFiniteNumber(raw.finalCV),
     timestamp: typeof raw.timestamp === 'string' ? raw.timestamp : '',
+  };
+}
+
+function normalizeBuildDetailEntry(raw: unknown): LBBuildDetailEntry {
+  if (!isRecord(raw)) {
+    throw new Error('LB detail payload is malformed.');
+  }
+
+  const row = normalizeBuildRowEntry(raw);
+  const buildState = normalizeBuildState(raw.buildState);
+
+  return {
+    ...row,
+    buildState,
+    statsFull: parseMaybeJSON(raw.statsFull),
+    calculations: parseMaybeJSON(raw.calculations),
   };
 }
 
@@ -231,7 +327,10 @@ function resolveLBBaseUrl(): string {
 
 function shouldLogLBPayload(): boolean {
   if (typeof window === 'undefined') return false;
-  return true;
+  const override = process.env.NEXT_PUBLIC_LB_DEBUG?.trim();
+  if (override === '0') return false;
+  if (override === '1') return true;
+  return process.env.NODE_ENV !== 'production';
 }
 
 export async function listBuilds(
@@ -283,14 +382,14 @@ export async function listBuilds(
 
   const payload = await response.json() as LBListBuildsResponseRaw;
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
-  const normalizedBuilds: LBBuildEntry[] = [];
+  const normalizedBuilds: LBBuildRowEntry[] = [];
   for (const raw of rawBuilds) {
     try {
-      normalizedBuilds.push(normalizeBuildEntry(raw));
+      normalizedBuilds.push(normalizeBuildRowEntry(raw));
     } catch (error) {
       if (shouldLogLBPayload()) {
         console.warn('[LB] dropped malformed build row', {
-          buildId: raw?._id,
+          buildId: isRecord(raw) ? raw._id : undefined,
           error: error instanceof Error ? error.message : String(error),
           raw,
         });
@@ -299,12 +398,24 @@ export async function listBuilds(
   }
 
   if (shouldLogLBPayload()) {
-    // Debug visibility for backend/frontend shape mismatches during LB migration.
-    console.log('[LB] /build response', {
+    const emptySetRows = normalizedBuilds.filter((entry) => Object.keys(entry.echoSummary.sets).length === 0).length;
+    const firstRow = normalizedBuilds[0];
+    console.log('[LB] /build compact rows', {
       requestUrl,
       query,
-      payload,
-      rawBuildCount: rawBuilds.length
+      total: toFiniteNumber(payload.total, 0),
+      page: toFiniteNumber(payload.page, query.page ?? 1),
+      pageSize: toFiniteNumber(payload.pageSize, query.pageSize ?? 12),
+      returnedRows: normalizedBuilds.length,
+      rowsWithEmptySets: emptySetRows,
+      firstRowSample: firstRow ? {
+        id: firstRow.id,
+        owner: firstRow.owner,
+        character: firstRow.character,
+        weapon: firstRow.weapon,
+        sequence: firstRow.sequence,
+        setIds: Object.keys(firstRow.echoSummary.sets),
+      } : null,
     });
   }
 
@@ -314,4 +425,23 @@ export async function listBuilds(
     page: toFiniteNumber(payload.page, query.page ?? 1),
     pageSize: toFiniteNumber(payload.pageSize, query.pageSize ?? 12),
   };
+}
+
+export async function getBuildById(buildId: string, signal?: AbortSignal): Promise<LBBuildDetailEntry> {
+  const trimmedBuildId = buildId.trim();
+  if (!trimmedBuildId) {
+    throw new Error('Build id is required.');
+  }
+
+  const requestUrl = `${resolveLBBaseUrl()}/build/${encodeURIComponent(trimmedBuildId)}`;
+  const response = await fetch(requestUrl, {
+    method: 'GET',
+    signal,
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch build detail (${response.status})`);
+  }
+
+  const payload = await response.json();
+  return normalizeBuildDetailEntry(payload);
 }
