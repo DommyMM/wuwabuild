@@ -4,31 +4,23 @@ Generate LB base-data from local synced game data.
 Inputs (all from frontend public/Data/):
 - Characters.json, Weapons.json, Echoes.json
 - Fetters.json
-- LevelCurve.json      (ATK_CURVE / STAT_CURVE for scaling weapons to lv90)
-- LB/Characters.compact.json
+- CharacterCurve.json, LevelCurve.json
 
 Outputs:
 - lb/internal/calc/data/character_bases.json
-- lb/internal/calc/data/weapon_bases.json    (lv90 ATK + secondary, effect_en, params_r1/params_r5)
+- lb/internal/calc/data/weapon_bases.json    (lv1 ATK + secondary, effect_en, params_r1/params_r5)
 - lb/internal/calc/data/echo_bases.json
 - lb/internal/calc/data/fetter_bases.json
 - lb/internal/calc/data/id_maps.json
+- lb/internal/calc/data/character_curve.json
+- lb/internal/calc/data/level_curve.json
 - lb/internal/calc/weapon_buffs_gen.go       (always-active bonuses as Go source)
-
-Weapons.compact.json is not needed — stats are derived from Weapons.json + LevelCurve.json
-using the same scaling the frontend uses:
-  ATK_lv90  = floor(stats.first.value  * ATK_CURVE["90/90"])
-  Stat_lv90 = round(base_main          * STAT_CURVE["90/90"], 1)
-  where base_main:
-    isRatio=true  → value * 100   (raw decimal ratio, e.g. 0.081 → 8.1%)
-    isRatio=false → value / 100   (raw internal units, e.g. 1080 → 10.8%)
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import math
 import re
 from pathlib import Path
 from typing import Any
@@ -43,8 +35,8 @@ CHARACTERS_JSON = DATA_DIR / "Characters.json"
 WEAPONS_JSON = DATA_DIR / "Weapons.json"
 ECHOES_JSON = DATA_DIR / "Echoes.json"
 FETTERS_JSON = DATA_DIR / "Fetters.json"
+CHARACTER_CURVE_JSON = DATA_DIR / "CharacterCurve.json"
 LEVEL_CURVE_JSON = DATA_DIR / "LevelCurve.json"
-
 CHARACTERS_COMPACT = LB_DATA_DIR / "Characters.compact.json"
 
 CHARACTER_BASES_JSON = DATA_OUTPUT_DIR / "character_bases.json"
@@ -52,6 +44,8 @@ WEAPON_BASES_JSON = DATA_OUTPUT_DIR / "weapon_bases.json"
 ECHO_BASES_JSON = DATA_OUTPUT_DIR / "echo_bases.json"
 FETTER_BASES_JSON = DATA_OUTPUT_DIR / "fetter_bases.json"
 ID_MAPS_JSON = DATA_OUTPUT_DIR / "id_maps.json"
+CHARACTER_CURVE_OUT_JSON = DATA_OUTPUT_DIR / "character_curve.json"
+LEVEL_CURVE_OUT_JSON = DATA_OUTPUT_DIR / "level_curve.json"
 
 WEAPON_BUFFS_GEN_GO = LB_REPO_DIR / "internal" / "calc" / "weapon_buffs_gen.go"
 
@@ -79,6 +73,13 @@ BONUS_NAME_MAP = {
     "Havoc DMG Bonus+": "Havoc",
     "Spectro DMG Bonus+": "Spectro",
 }
+
+FORTE_PARENT_TO_TREE = {
+    1: "tree1", 2: "tree2", 3: "tree4", 6: "tree5",
+    9: "tree1", 10: "tree2", 11: "tree4", 12: "tree5",
+}
+
+FORTE_COORD_TO_POS = {1: "middle", 2: "top"}
 
 MAIN_STAT_NORMALIZE = {
     "Crit. Rate": "Crit Rate",
@@ -191,6 +192,51 @@ def _resolve_effect_placeholders(effect_en: str, add_prop: list[dict], effect_pa
 # Character bases
 # ---------------------------------------------------------------------------
 
+def _parse_forte_node_value(node: dict) -> float:
+    value_text = node.get("valueText")
+    if isinstance(value_text, list) and value_text:
+        raw = str(value_text[0]).replace("%", "").strip()
+        try:
+            return round(float(raw), 4)
+        except ValueError:
+            pass
+
+    value_arr = node.get("value")
+    if isinstance(value_arr, list) and value_arr:
+        first = value_arr[0]
+        if isinstance(first, dict):
+            raw_val = float(first.get("Value", 0) or 0)
+            is_ratio = bool(first.get("IsRatio", False))
+            return round((raw_val * 100) if is_ratio else (raw_val / 100), 4)
+    return 0.0
+
+
+def _extract_forte_nodes(char: dict) -> dict[str, dict]:
+    nodes = char.get("skillTrees")
+    if not isinstance(nodes, list):
+        return {}
+
+    forte_nodes: dict[str, dict] = {}
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        parents = node.get("parentNodes")
+        parent = parents[0] if isinstance(parents, list) and parents else None
+        tree = FORTE_PARENT_TO_TREE.get(parent)
+        pos = FORTE_COORD_TO_POS.get(node.get("coordinate"))
+        if not tree or not pos:
+            continue
+
+        value = _parse_forte_node_value(node)
+        if value <= 0:
+            continue
+        key = f"{tree}.{pos}"
+        forte_nodes[key] = {
+            "name": str(node.get("name", "") or ""),
+            "value": value,
+        }
+    return forte_nodes
+
 def _choose_bonus(char: dict) -> tuple[str, str]:
     name = (char.get("name") or {}).get("en", "")
     element = ((char.get("element") or {}).get("name") or {}).get("en", "")
@@ -218,35 +264,24 @@ def _choose_bonus(char: dict) -> tuple[str, str]:
 
 
 def _build_character_bases(
-    full_chars: list[dict], compact_chars: list[dict]
+    full_chars: list[dict]
 ) -> tuple[dict[str, dict], dict[str, str], dict[str, str]]:
-    compact_by_id = {str(c.get("id")): c for c in compact_chars if c.get("id")}
     out: dict[str, dict] = {}
     character_legacy_to_cdn: dict[str, str] = {}
 
     for char in full_chars:
         cdn_id = str(char.get("id"))
-        compact = compact_by_id.get(cdn_id, {})
+        name = (char.get("name") or {}).get("en", "")
+        element = ((char.get("element") or {}).get("name") or {}).get("en", "") or "Spectro"
+        weapon_type = ((char.get("weapon") or {}).get("name") or {}).get("en", "Sword")
 
-        name = compact.get("name") or ((char.get("name") or {}).get("en", ""))
-        element = compact.get("element") or (
-            ((char.get("element") or {}).get("name") or {}).get("en", "") or "Spectro"
-        )
-        weapon_type = compact.get("weaponType") or (
-            ((char.get("weapon") or {}).get("name") or {}).get("en", "Sword")
-        )
+        stats = char.get("stats", {})
+        hp = int(round(float(stats.get("Life", 0) or 0)))
+        atk = int(round(float(stats.get("Atk", 0) or 0)))
+        defense = int(round(float(stats.get("Def", 0) or 0)))
 
-        stats90 = compact.get("statsLv90", {}) if isinstance(compact, dict) else {}
-        hp = int(round(float(stats90.get("HP", 0) or 0)))
-        atk = int(round(float(stats90.get("ATK", 0) or 0)))
-        defense = int(round(float(stats90.get("DEF", 0) or 0)))
-
-        bonus1 = compact.get("bonus1") if isinstance(compact, dict) else None
-        bonus2 = compact.get("bonus2") if isinstance(compact, dict) else None
-        if not bonus1 or not bonus2:
-            b1, b2 = _choose_bonus(char)
-            bonus1 = bonus1 or b1
-            bonus2 = bonus2 or b2
+        bonus1, bonus2 = _choose_bonus(char)
+        forte_nodes = _extract_forte_nodes(char)
 
         out[cdn_id] = {
             "name": name,
@@ -254,6 +289,7 @@ def _build_character_bases(
             "weaponType": weapon_type,
             "bonus1": bonus1,
             "bonus2": bonus2,
+            "forte_nodes": forte_nodes,
             "stats": {
                 "HP": hp, "ATK": atk, "DEF": defense,
                 "Crit Rate": 5, "Crit DMG": 150, "Energy Regen": 100,
@@ -287,7 +323,7 @@ def _build_character_bases(
 
 
 # ---------------------------------------------------------------------------
-# Weapon bases (reads Weapons.json + LevelCurve.json)
+# Weapon bases
 # ---------------------------------------------------------------------------
 
 def _weapon_secondary_stat(second: dict) -> tuple[str, float]:
@@ -345,20 +381,36 @@ def _params_r5(weapon: dict) -> list[str]:
     return _params_for_rank(weapon, 5)
 
 
-def _unconditional_r5(weapon: dict) -> dict[str, float]:
-    """Return always-active bonuses at R5 from unconditionalPassiveBonuses."""
+def _unconditional_for_rank(weapon: dict, rank: int) -> dict[str, float]:
+    """Return always-active bonuses at a given rank from unconditionalPassiveBonuses."""
+    idx = max(0, min(4, rank - 1))
     bonuses = weapon.get("unconditionalPassiveBonuses") or {}
     result: dict[str, float] = {}
     for key, values in bonuses.items():
         if isinstance(values, list) and values:
-            result[key] = float(values[-1])
+            result[key] = float(values[min(idx, len(values) - 1)])
+    return result
+
+
+def _passive_bonus_matrix(weapon: dict) -> dict[str, list[float]]:
+    bonuses = weapon.get("unconditionalPassiveBonuses") or {}
+    result: dict[str, list[float]] = {}
+    for key, values in bonuses.items():
+        if not isinstance(values, list) or not values:
+            continue
+        parsed = []
+        for v in values[:5]:
+            try:
+                parsed.append(float(v))
+            except (TypeError, ValueError):
+                parsed.append(0.0)
+        if parsed:
+            result[key] = parsed
     return result
 
 
 def _build_weapon_bases(
     full_weapons: list[dict],
-    atk_curve_lv90: float,
-    stat_curve_lv90: float,
     previous_old_to_cdn: dict[str, str],
 ) -> tuple[dict[str, dict], dict[str, str], dict[str, str], list[tuple[str, str, dict]]]:
     """Build weapon_bases dict and unconditional bonus list for Go generation."""
@@ -378,26 +430,28 @@ def _build_weapon_bases(
         # Base ATK (level 1) from stats.first
         first = (w.get("stats") or {}).get("first", {})
         base_atk = float(first.get("value", 0))
-        atk_lv90 = int(math.floor(base_atk * atk_curve_lv90))
+        atk_lv1 = int(round(base_atk))
 
-        # Secondary stat from stats.second
+        # Secondary stat from stats.second (level 1 display units)
         second = (w.get("stats") or {}).get("second", {})
         main_stat, base_main = _weapon_secondary_stat(second)
         main_stat = MAIN_STAT_NORMALIZE.get(main_stat, main_stat)
-        base_main_lv90 = round(base_main * stat_curve_lv90, 1)
+        base_main_lv1 = round(base_main, 1)
 
         effect_en = (w.get("effect") or {}).get("en", "")
         params_r1 = _params_r1(w)
         params_r5 = _params_r5(w)
-        bonuses = _unconditional_r5(w)
+        bonuses = _unconditional_for_rank(w, 1)
+        passive_bonuses = _passive_bonus_matrix(w)
 
         out[wid] = {
             "name": name,
             "type": type_name,
             "rarity": rarity_str,
-            "ATK": atk_lv90,
+            "ATK": atk_lv1,
             "main_stat": main_stat,
-            "base_main": base_main_lv90,
+            "base_main": base_main_lv1,
+            "passive_bonuses": passive_bonuses,
             "effect_en": effect_en,
             "params_r1": params_r1,
             "params_r5": params_r5,
@@ -440,12 +494,29 @@ def _build_echo_bases(
             if isinstance(f, int) and f in FETTER_ID_TO_SET_KEY
         ]
         effect_en = ((echo.get("skill") or {}).get("description") or "").strip()
+        raw_bonuses = echo.get("bonuses") if isinstance(echo.get("bonuses"), list) else []
+        bonuses = []
+        for bonus in raw_bonuses:
+            if not isinstance(bonus, dict):
+                continue
+            stat = str(bonus.get("stat", "") or "").strip()
+            if stat == "":
+                continue
+            value = float(bonus.get("value", 0) or 0)
+            entry = {"stat": stat, "value": value}
+            cond = bonus.get("characterCondition")
+            if isinstance(cond, list):
+                cleaned = [str(c).strip() for c in cond if str(c).strip()]
+                if cleaned:
+                    entry["characterCondition"] = cleaned
+            bonuses.append(entry)
         out[eid] = {
             "name": name,
             "cost": cost,
             "elements": set_keys,
             "fetter_ids": [f for f in raw_fetters if isinstance(f, int)],
             "effect_en": effect_en,
+            "bonuses": bonuses,
         }
 
     out = {k: out[k] for k in sorted(out, key=lambda x: int(x))}
@@ -519,6 +590,7 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
         out[set_key] = {
             "group_id": group_id,
             "name": name_en,
+            "piece_count": int(fetter.get("pieceCount", 2) or 2),
             "piece_effects": normalized_piece_effects,
         }
 
@@ -576,7 +648,7 @@ def _generate_weapon_buffs_go(unconditional_list: list[tuple[str, str, dict]]) -
         "// Regenerate: python wuwabuilds/scripts/sync_lb.py",
         "//",
         "// WeaponBuffs holds always-active bonuses extracted from",
-        "// unconditionalPassiveBonuses at R5. Trigger-based conditional effects",
+        "// unconditionalPassiveBonuses at R1. Trigger-based conditional effects",
         "// are layered on top by weapon_effects.go via init().",
         "package calc",
         "",
@@ -625,24 +697,19 @@ def _cleanup_compact_artifacts(dry_run: bool) -> None:
 
 
 def _sync_weapons_only(dry_run: bool, pretty: bool) -> int:
-    required = [WEAPONS_JSON, LEVEL_CURVE_JSON]
+    required = [WEAPONS_JSON]
     for path in required:
         if not path.exists():
             print(f"ERROR: Missing required input: {path}")
             return 1
 
     full_weapons = _load_json(WEAPONS_JSON)
-    level_curves = _load_json(LEVEL_CURVE_JSON)
-
-    atk_curve_lv90 = float(level_curves["ATK_CURVE"]["90/90"])
-    stat_curve_lv90 = float(level_curves["STAT_CURVE"]["90/90"])
-    print(f"Level curves: ATK×{atk_curve_lv90}, STAT×{stat_curve_lv90} at lv90")
 
     previous_maps = _load_previous_id_maps(ID_MAPS_JSON)
     previous_weapon_old_to_cdn = previous_maps.get("weaponOldToCdn", {})
 
     weapon_bases, weapon_old_to_cdn, weapon_cdn_to_old, unconditional_list = _build_weapon_bases(
-        full_weapons, atk_curve_lv90, stat_curve_lv90, previous_weapon_old_to_cdn
+        full_weapons, previous_weapon_old_to_cdn
     )
 
     id_maps = {
@@ -683,7 +750,7 @@ def main() -> int:
     if args.weapons_only:
         return _sync_weapons_only(args.dry_run, args.pretty)
 
-    required = [CHARACTERS_JSON, WEAPONS_JSON, ECHOES_JSON, FETTERS_JSON, LEVEL_CURVE_JSON, CHARACTERS_COMPACT]
+    required = [CHARACTERS_JSON, WEAPONS_JSON, ECHOES_JSON, FETTERS_JSON, CHARACTER_CURVE_JSON, LEVEL_CURVE_JSON]
     for path in required:
         if not path.exists():
             print(f"ERROR: Missing required input: {path}")
@@ -693,22 +760,16 @@ def main() -> int:
     full_weapons = _load_json(WEAPONS_JSON)
     full_echoes = _load_json(ECHOES_JSON)
     full_fetters = _load_json(FETTERS_JSON)
+    character_curve = _load_json(CHARACTER_CURVE_JSON)
     level_curves = _load_json(LEVEL_CURVE_JSON)
-    compact_chars = _load_json(CHARACTERS_COMPACT)
-
-    atk_curve_lv90 = float(level_curves["ATK_CURVE"]["90/90"])
-    stat_curve_lv90 = float(level_curves["STAT_CURVE"]["90/90"])
-    print(f"Level curves: ATK×{atk_curve_lv90}, STAT×{stat_curve_lv90} at lv90")
 
     previous_maps = _load_previous_id_maps(ID_MAPS_JSON)
     previous_weapon_old_to_cdn = previous_maps.get("weaponOldToCdn", {})
     previous_echo_old_to_cdn = previous_maps.get("echoOldToCdn", {})
 
-    character_bases, character_old_to_cdn, character_cdn_to_old = _build_character_bases(
-        full_chars, compact_chars
-    )
+    character_bases, character_old_to_cdn, character_cdn_to_old = _build_character_bases(full_chars)
     weapon_bases, weapon_old_to_cdn, weapon_cdn_to_old, unconditional_list = _build_weapon_bases(
-        full_weapons, atk_curve_lv90, stat_curve_lv90, previous_weapon_old_to_cdn
+        full_weapons, previous_weapon_old_to_cdn
     )
     echo_bases, echo_old_to_cdn, echo_cdn_to_old = _build_echo_bases(
         full_echoes, previous_echo_old_to_cdn
@@ -729,6 +790,8 @@ def main() -> int:
     _write_json(ECHO_BASES_JSON, echo_bases, args.dry_run, pretty=args.pretty)
     _write_json(FETTER_BASES_JSON, fetter_bases, args.dry_run, pretty=args.pretty)
     _write_json(ID_MAPS_JSON, id_maps, args.dry_run, pretty=args.pretty)
+    _write_json(CHARACTER_CURVE_OUT_JSON, character_curve, args.dry_run, pretty=args.pretty)
+    _write_json(LEVEL_CURVE_OUT_JSON, level_curves, args.dry_run, pretty=args.pretty)
     _write_go(WEAPON_BUFFS_GEN_GO, _generate_weapon_buffs_go(unconditional_list), args.dry_run)
 
     print("\nGenerated summary:")
