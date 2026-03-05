@@ -11,6 +11,7 @@ import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { getCVRatingColor } from '@/lib/calculations/cv';
 import { LBBuildEntry, LBStatCode, LBSortDirection, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
+import { ITEMS_PER_PAGE } from './buildConstants';
 import { formatFlatStat, formatPercentStat, getSortLabel } from './buildFormatters';
 
 type CVSortKey = 'finalCV' | 'CR' | 'CD';
@@ -101,7 +102,9 @@ const REGION_BADGES: Record<string, RegionBadge> = {
 
 const TABLE_GRID = 'grid-cols-[48px_160px_160px_72px_72px_88px_minmax(0,1fr)]';
 const SORTABLE_GROUP_GRID = 'grid-cols-[164px_repeat(4,minmax(0,1fr))]';
+const TABLE_ROW_HEIGHT_CLASS = 'min-h-[53px]';
 const PAGE_SKIP = 10;
+const INITIAL_SKELETON_ROW_COUNT = ITEMS_PER_PAGE;
 const PAGINATION_BUTTON_CLASS = 'inline-flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded border border-border bg-background p-0 transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-40';
 const PAGE_INDICATOR_CLASS = 'inline-flex h-7.5 w-7.5 items-center justify-center rounded border border-border bg-background text-xs text-text-primary';
 const ACTIVE_SORT_COLUMN_CLASS = 'bg-black/28';
@@ -416,6 +419,12 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   const activePinnedStatKey = (isStatSortActive ? sort : displayStatColumns[0]) as StatSortKey;
   const activePinnedStatLabel = getSortLabel(activePinnedStatKey);
   const activePinnedStatOption = statOptions.find((entry) => entry.key === activePinnedStatKey);
+  const hasBuildRows = builds.length > 0;
+  const showInitialSkeleton = isLoading && !hasBuildRows;
+  const showRefreshingOverlay = isRefreshing && hasBuildRows;
+  const footerStatusText = showInitialSkeleton
+    ? 'Loading builds...'
+    : (isRefreshing ? 'Updating...' : `${firstShown}-${lastShown} of ${total.toLocaleString()}`);
 
   const handleSortRequest = (nextSort: LBSortKey) => {
     if (sort === nextSort) {
@@ -433,7 +442,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
         </div>
       )}
 
-      <div className="overflow-x-auto md:overflow-x-visible pb-1">
+      <div className="relative overflow-x-auto md:overflow-x-visible pb-1">
         <div className="overflow-hidden rounded-lg border border-border bg-background/70">
           <div className={`grid ${TABLE_GRID} items-center gap-4 border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
             <div className="py-2 text-center text-text-primary/70">#</div>
@@ -524,21 +533,38 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
             </div>
           </div>
 
-          {isLoading && (
-            <div className="space-y-1.5 p-2">
-              {Array.from({ length: 8 }).map((_, index) => (
-                <div key={index} className={`grid ${TABLE_GRID} h-14 animate-pulse rounded-md bg-background-secondary/60`} />
+          {showInitialSkeleton && (
+            <div className="divide-y divide-border/60">
+              {Array.from({ length: INITIAL_SKELETON_ROW_COUNT }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
+                >
+                  <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
+                  <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
+                  <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
+                  <div className="h-8 w-8 animate-pulse rounded bg-background-secondary/80" />
+                  <div className="h-5 w-9 animate-pulse rounded bg-background-secondary/80" />
+                  <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
+                  <div className={`grid ${SORTABLE_GROUP_GRID} gap-0`}>
+                    <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
+                    <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                    <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                    <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                    <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                  </div>
+                </div>
               ))}
             </div>
           )}
 
-          {!isLoading && !error && builds.length === 0 && (
+          {!showInitialSkeleton && !error && builds.length === 0 && (
             <div className="p-6 text-center text-sm text-text-primary/65">
               No builds match the current filters.
             </div>
           )}
 
-          {!isLoading && !error && builds.length > 0 && (
+          {!error && builds.length > 0 && (
             <div className="divide-y divide-border/60">
               {builds.map((entry, index) => {
                 const rank = rankStart + index;
@@ -586,7 +612,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                 return (
                   <div
                     key={entry.id}
-                    className={`grid ${TABLE_GRID} items-center gap-4 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10`}
+                    className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10`}
                   >
                     <div className="py-2 text-center text-text-primary/75">
                       {rank}
@@ -709,6 +735,14 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
             </div>
           )}
         </div>
+        {showRefreshingOverlay && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-black/55 backdrop-blur-[1.5px]">
+            <div className="flex items-center gap-3 rounded-md border border-accent/35 bg-background/80 px-4 py-2 text-sm text-text-primary">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
+              Updating builds...
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-start">
@@ -794,10 +828,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
           </div>
         </div>
 
-        <div className="justify-self-end self-start text-xs text-text-primary/60">
-          {isRefreshing
-            ? 'Updating...'
-            : `${firstShown}-${lastShown} of ${total.toLocaleString()}`}
+        <div className="min-w-[140px] justify-self-end self-start text-right text-xs text-text-primary/60">
+          {footerStatusText}
         </div>
       </div>
     </section>
