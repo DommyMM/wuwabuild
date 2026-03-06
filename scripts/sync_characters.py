@@ -26,6 +26,89 @@ LEGACY_ID_PATTERN = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI\.png")
 NUMBER_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 NON_PARAM_BRACE_TOKEN_PATTERN = re.compile(r"\{(?!\d+\})[^{}]+\}")
 
+# ---------------------------------------------------------------------------
+# Sequence bonus parsing — embedded into each chain entry at sync time.
+# Maps game description text patterns to our StatName values.
+# More-specific patterns must appear before shorter overlapping ones.
+# ---------------------------------------------------------------------------
+_CHAIN_STAT_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"Resonance\s+Skill\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Resonance Skill DMG Bonus'),
+    (re.compile(r"Resonance\s+Liberation\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), 'Resonance Liberation DMG Bonus'),
+    (re.compile(r"Basic\s+Attack\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),       'Basic Attack DMG Bonus'),
+    (re.compile(r"Heavy\s+Attack\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),       'Heavy Attack DMG Bonus'),
+    (re.compile(r"Aero\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),     'Aero DMG'),
+    (re.compile(r"Glacio\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Glacio DMG'),
+    (re.compile(r"Fusion\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Fusion DMG'),
+    (re.compile(r"Electro\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),  'Electro DMG'),
+    (re.compile(r"Havoc\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),    'Havoc DMG'),
+    (re.compile(r"Spectro\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),  'Spectro DMG'),
+    (re.compile(r"Crit[.]\s+Rate\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),  'Crit Rate'),
+    (re.compile(r"Crit[.]\s+DMG\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Crit DMG'),
+    (re.compile(r"Energy\s+Regen\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Energy Regen'),
+    (re.compile(r"Healing\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),  'Healing Bonus'),
+    (re.compile(r"\bATK\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), 'ATK%'),
+    (re.compile(r"\bHP\s+is\s+increased\s+by\s+\{(\d+)\}",  re.I), 'HP%'),
+    (re.compile(r"\bDEF\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), 'DEF%'),
+]
+
+_CHAIN_CONDITIONAL_RE = re.compile(
+    r'\b(?:when|after|upon|if|while|during|casting|triggers?|stacks?'
+    r'|consumes?|consuming|cooldown|entering|teammates?|team\s+members?'
+    r'|nearby|allies?|below|above|state)\b'
+    r'|for\s+\d+s?\b|for\s+\{\d+\}s?\b|\{\d+\}s\b',
+    re.IGNORECASE,
+)
+
+_MARKUP_RE = re.compile(r'<[^>]+>')
+# Stat names with internal periods that would be split by a naive sentence splitter.
+_PROTECT_PAIRS = [('Crit. Rate', 'CRIT_RATE_PH'), ('Crit. DMG', 'CRIT_DMG_PH')]
+
+
+def _chain_strip_markup(text: str) -> str:
+    return _MARKUP_RE.sub('', text)
+
+
+def _chain_split_sentences(text: str) -> list[str]:
+    protected = text
+    for original, ph in _PROTECT_PAIRS:
+        protected = protected.replace(original, ph)
+    sentences: list[str] = []
+    for line in protected.split('\n'):
+        for part in re.split(r'\.(?=\s|$)', line):
+            s = part.strip()
+            if s:
+                for original, ph in _PROTECT_PAIRS:
+                    s = s.replace(ph, original)
+                sentences.append(s)
+    return sentences
+
+
+def _parse_param_value(param_str: str) -> float | None:
+    m = re.match(r'^\s*(\d+(?:\.\d+)?)%?\s*$', param_str)
+    return float(m.group(1)) if m else None
+
+
+def parse_chain_bonus(desc_en: str, params: list[str]) -> dict | None:
+    """Return {stat, value} for an unconditional passive stat bonus, or None."""
+    clean = _chain_strip_markup(desc_en)
+    for sentence in _chain_split_sentences(clean):
+        for pattern, stat_name in _CHAIN_STAT_PATTERNS:
+            m = pattern.search(sentence)
+            if not m:
+                continue
+            before = sentence[:m.start()]
+            after  = sentence[m.end():]
+            if _CHAIN_CONDITIONAL_RE.search(before) or _CHAIN_CONDITIONAL_RE.search(after):
+                break  # sentence is conditional — skip
+            param_idx = int(m.group(1))
+            if param_idx >= len(params):
+                break
+            value = _parse_param_value(params[param_idx])
+            if value is None:
+                break
+            return {'stat': stat_name, 'value': int(value) if value == int(value) else value}
+    return None
+
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Character"
 CDN_SKILL_CONFIG_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/Skill.json"
@@ -320,13 +403,20 @@ def simplify_chains(chains: Any) -> list[dict] | None:
         if isinstance(icon, str) and icon.startswith("/d/"):
             icon = f"{CDN_BASE}{icon}"
 
-        result.append({
+        params = chain.get("param") or []
+        en_desc = desc.get("en", "") if isinstance(desc, dict) else str(desc)
+        bonus = parse_chain_bonus(en_desc, params)
+
+        entry: dict = {
             "id": chain.get("id"),
             "name": name,
             "description": desc,
             "icon": icon,
-            "param": chain.get("param"),
-        })
+            "param": params if params else None,
+        }
+        if bonus:
+            entry["bonus"] = bonus
+        result.append(entry)
 
     return result if result else None
 
@@ -662,8 +752,33 @@ def main():
         schema.update(SKILLS_SCHEMA)
 
     if not args.fetch:
-        parser.error("Specify --fetch to sync from CDN")
-        return 1
+        # No CDN fetch — re-parse bonus fields on existing Characters.json and exit.
+        combined_path = args.output.parent / "Characters.json"
+        if not combined_path.exists():
+            parser.error(f"No Characters.json found at {combined_path}. Use --fetch to sync from CDN.")
+            return 1
+        print(f"Re-parsing sequence bonuses in {combined_path} ...")
+        with open(combined_path, encoding="utf-8") as f:
+            characters = json.load(f)
+        total = 0
+        for char in characters:
+            for chain in char.get("chains") or []:
+                desc = chain.get("description")
+                en_desc = desc.get("en", "") if isinstance(desc, dict) else str(desc or "")
+                params = chain.get("param") or []
+                chain.pop("bonus", None)
+                bonus = parse_chain_bonus(en_desc, params)
+                if bonus:
+                    chain["bonus"] = bonus
+                    total += 1
+        if not args.dry_run:
+            with open(combined_path, "w", encoding="utf-8") as f:
+                json.dump(characters, f, separators=(",", ":"), ensure_ascii=False)
+            print(f"Embedded {total} sequence bonuses → {combined_path}")
+        else:
+            print(f"[dry-run] Would embed {total} sequence bonuses")
+        return 0
+
     raw_characters = fetch_cdn_characters(single_id=args.id, workers=args.workers)
     description_param_map = fetch_skill_description_params()
 

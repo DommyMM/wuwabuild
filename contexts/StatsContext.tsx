@@ -10,7 +10,7 @@ import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculatio
 import { calculateForteBonus } from '@/lib/calculations/stats';
 import { getUnconditionalWeaponPassiveBonuses } from '@/lib/calculations/weaponPassives';
 import { getSetBonusesFromFetter } from '@/lib/constants/setBonuses';
-import { getEchoBonus } from '@/lib/constants/echoBonuses';
+import { getEchoBonus, getSequenceBonuses } from '@/lib/constants/statBonuses';
 import { getPercentVariant } from '@/lib/constants/statMappings';
 import { isRover } from '@/lib/character';
 
@@ -290,6 +290,13 @@ export function StatsProvider({ children }: StatsProviderProps) {
         }
 
         const basePercentStat = getPercentVariant(baseStat);
+
+        // Unconditional sequence bonuses for percent variants (HP%/ATK%/DEF%)
+        getSequenceBonuses(character).forEach(bonus => {
+          if (bonus.stat === basePercentStat && sequence >= bonus.minSequence) {
+            percent += bonus.value;
+          }
+        });
         const setBasePercentBonus = activeSetBonuses.reduce((sum, bonus) => (
           bonus.stat === basePercentStat ? sum + bonus.value : sum
         ), 0);
@@ -353,10 +360,12 @@ export function StatsProvider({ children }: StatsProviderProps) {
           result.update += forteBonus.bonus1Total;
         }
 
-        // Zani's S2 passive
-        if (displayStat === 'Crit Rate' && character.id === '38' && sequence >= 2) {
-          result.update += 20;
-        }
+        // Unconditional sequence bonuses for percent stats
+        getSequenceBonuses(character).forEach(bonus => {
+          if (bonus.stat === displayStat && sequence >= bonus.minSequence) {
+            result.update += bonus.value;
+          }
+        });
 
         result.value = Number((result.baseValue + result.update).toFixed(1));
         result.update = Number(result.update.toFixed(1));

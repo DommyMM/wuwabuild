@@ -63,6 +63,7 @@ export interface CDNChainEntry {
   description?: I18nString | string;
   icon: string;
   param?: string[];
+  bonus?: { stat: string; value: number }; // unconditional passive stat bonus (parsed at sync time)
 }
 
 export interface CDNMoveValueEntry {
