@@ -49,16 +49,6 @@ LEVEL_CURVE_OUT_JSON = DATA_OUTPUT_DIR / "level_curve.json"
 
 WEAPON_BUFFS_GEN_GO = LB_REPO_DIR / "internal" / "calc" / "weapon_buffs_gen.go"
 
-HARDCODED_WEAPON_ID_OVERRIDES = {
-    "21020019": "21020017",  # Somnoire Anchor
-    "21020025": "21020036",  # Unflickering Valor
-    "21030017": "21030016",  # The Last Dance
-    "21040018": "21040026",  # Tragicomedy
-    "21040019": "21040036",  # Blazing Justice
-    "21050029": "21050046",  # Luminous Hymn
-    "21050030": "21050056",  # Whispers of Sirens
-}
-
 BONUS_NAME_MAP = {
     "Crit. Rate+": "Crit Rate",
     "Crit. Rate Up": "Crit Rate",
@@ -149,7 +139,14 @@ def _load_json(path: Path) -> Any:
 
 
 def _normalize_name(name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", name.lower())
+    tokens = re.findall(r"[a-z]+|\d+", name.lower())
+    normalized_tokens: list[str] = []
+    for token in tokens:
+        # Smooth common singular/plural diffs across legacy catalogs.
+        if token.isalpha() and len(token) > 3 and token.endswith("s"):
+            token = token[:-1]
+        normalized_tokens.append(token)
+    return "".join(normalized_tokens)
 
 
 def _load_optional_legacy_catalog(path: Path) -> list[dict]:
@@ -176,39 +173,6 @@ def _build_legacy_name_index(catalog: list[dict]) -> dict[str, list[str]]:
         if legacy_id not in bucket:
             bucket.append(legacy_id)
     return name_to_ids
-
-
-def _extract_legacy_ids_from_url(url: str | None) -> list[str]:
-    if not url:
-        return []
-    filename = str(url).split("/")[-1]
-    numeric_parts = re.findall(r"\d+", filename)
-    if not numeric_parts:
-        return []
-
-    primary_parts = [part for part in numeric_parts if len(part) >= 3]
-    seeds = primary_parts if primary_parts else [numeric_parts[0]]
-    ids: list[str] = []
-    seen: set[str] = set()
-    for seed in seeds:
-        for candidate in (seed, str(int(seed)) if seed.isdigit() else ""):
-            if not candidate or candidate in seen:
-                continue
-            seen.add(candidate)
-            ids.append(candidate)
-    return ids
-
-
-def _extract_legacy_ids_from_urls(urls: list[str | None]) -> list[str]:
-    out: list[str] = []
-    seen: set[str] = set()
-    for url in urls:
-        for candidate in _extract_legacy_ids_from_url(url):
-            if candidate in seen:
-                continue
-            seen.add(candidate)
-            out.append(candidate)
-    return out
 
 
 def _resolve_legacy_id_from_name(name: str, legacy_name_index: dict[str, list[str]]) -> str:
@@ -262,55 +226,6 @@ def _write_go(path: Path, content: str, dry_run: bool) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     print(f"Wrote {path}")
-
-
-def _load_existing_base_aliases(path: Path) -> dict[str, list[str]]:
-    """Load legacy aliases from an existing base JSON file keyed by CDN id."""
-    if not path.exists():
-        return {}
-
-    try:
-        payload = _load_json(path)
-    except Exception:
-        return {}
-
-    if not isinstance(payload, dict):
-        return {}
-
-    aliases: dict[str, list[str]] = {}
-    for cdn_id, raw in payload.items():
-        if not isinstance(raw, dict):
-            continue
-
-        values: list[str] = []
-        legacy_id = str(raw.get("legacyId", "") or "").strip()
-        if legacy_id:
-            values.append(legacy_id)
-
-        raw_legacy_ids = raw.get("legacyIds")
-        if isinstance(raw_legacy_ids, list):
-            for value in raw_legacy_ids:
-                v = str(value or "").strip()
-                if v:
-                    values.append(v)
-
-        deduped = _dedupe_aliases(values)
-        if deduped:
-            aliases[str(cdn_id)] = deduped
-
-    return aliases
-
-
-def _dedupe_aliases(values: list[str]) -> list[str]:
-    out: list[str] = []
-    seen: set[str] = set()
-    for raw in values:
-        value = str(raw or "").strip()
-        if not value or value in seen:
-            continue
-        seen.add(value)
-        out.append(value)
-    return out
 
 
 def _fmt_effect_value(value: float) -> str:
@@ -540,50 +455,20 @@ def _passive_bonus_matrix(weapon: dict) -> dict[str, list[float]]:
 
 def _build_weapon_bases(
     full_weapons: list[dict],
-    existing_aliases: dict[str, list[str]] | None = None,
     legacy_weapon_catalog: list[dict] | None = None,
 ) -> tuple[dict[str, dict], list[tuple[str, str, dict]]]:
     """Build weapon_bases dict and unconditional bonus list for Go generation."""
     out: dict[str, dict] = {}
     unconditional_list: list[tuple[str, str, dict]] = []
     catalog = legacy_weapon_catalog or []
-    legacy_weapon_ids = {
-        str(entry.get("id", "")).strip()
-        for entry in catalog
-        if str(entry.get("id", "")).strip()
-    }
     legacy_weapon_name_index = _build_legacy_name_index(catalog)
-
-    previous_aliases = existing_aliases or {}
 
     for w in full_weapons:
         wid = str(w.get("id", ""))
         if not wid:
             continue
         name = (w.get("name") or {}).get("en", "")
-        legacy_id = str(w.get("legacyId", "") or "").strip()
-        if not legacy_id:
-            raw_icon = w.get("icon")
-            icon_urls: list[str | None]
-            if isinstance(raw_icon, dict):
-                icon_urls = [raw_icon.get("icon"), raw_icon.get("iconMiddle"), raw_icon.get("iconSmall")]
-            else:
-                icon_urls = [raw_icon if isinstance(raw_icon, str) else None]
-            for candidate in _extract_legacy_ids_from_urls(icon_urls):
-                if candidate in legacy_weapon_ids:
-                    legacy_id = candidate
-                    break
-        if not legacy_id and name:
-            legacy_id = _resolve_legacy_id_from_name(name, legacy_weapon_name_index)
-
-        legacy_ids: list[str] = []
-        if legacy_id:
-            legacy_ids.append(legacy_id)
-        legacy_ids.extend(previous_aliases.get(wid, []))
-        for old_id, mapped_id in HARDCODED_WEAPON_ID_OVERRIDES.items():
-            if mapped_id == wid:
-                legacy_ids.append(old_id)
-        legacy_ids = _dedupe_aliases(legacy_ids)
+        legacy_id = _resolve_legacy_id_from_name(name, legacy_weapon_name_index) if name else ""
 
         type_name = ((w.get("type") or {}).get("name") or {}).get("en", "")
         rarity_id = (w.get("rarity") or {}).get("id", 0)
@@ -608,7 +493,7 @@ def _build_weapon_bases(
 
         out[wid] = {
             "name": name,
-            "legacyIds": legacy_ids,
+            "legacyId": legacy_id,
             "type": type_name,
             "rarity": rarity_str,
             "ATK": atk_lv1,
@@ -632,19 +517,11 @@ def _build_weapon_bases(
 
 def _build_echo_bases(
     echoes: list[dict],
-    existing_aliases: dict[str, list[str]] | None = None,
     legacy_echo_catalog: list[dict] | None = None,
 ) -> dict[str, dict]:
     out: dict[str, dict] = {}
     catalog = legacy_echo_catalog or []
-    legacy_echo_ids = {
-        str(entry.get("id", "")).strip()
-        for entry in catalog
-        if str(entry.get("id", "")).strip()
-    }
     legacy_echo_name_index = _build_legacy_name_index(catalog)
-
-    previous_aliases = existing_aliases or {}
 
     for echo in echoes:
         eid = str(echo.get("id"))
@@ -652,34 +529,25 @@ def _build_echo_bases(
             continue
         name = (echo.get("name") or {}).get("en", "")
         legacy_id = str(echo.get("legacyId", "") or "").strip()
-        if not legacy_id:
-            raw_icon = echo.get("icon")
-            raw_phantom_icon = echo.get("phantomIcon")
-            icon_urls = [
-                raw_icon if isinstance(raw_icon, str) else None,
-                raw_phantom_icon if isinstance(raw_phantom_icon, str) else None,
-            ]
-            for candidate in _extract_legacy_ids_from_urls(icon_urls):
-                if candidate in legacy_echo_ids:
-                    legacy_id = candidate
-                    break
         if not legacy_id and name:
             legacy_id = _resolve_legacy_id_from_name(name, legacy_echo_name_index)
 
-        legacy_ids: list[str] = []
-        if legacy_id:
-            legacy_ids.append(legacy_id)
-        legacy_ids.extend(previous_aliases.get(eid, []))
-        legacy_ids = _dedupe_aliases(legacy_ids)
-
         cost = int(echo.get("cost", 0))
         raw_fetters = echo.get("fetter", []) if isinstance(echo.get("fetter"), list) else []
-        set_keys = [
-            FETTER_ID_TO_SET_KEY[f]
-            for f in raw_fetters
-            if isinstance(f, int) and f in FETTER_ID_TO_SET_KEY
-        ]
-        effect_en = ((echo.get("skill") or {}).get("description") or "").strip()
+        raw_skill = echo.get("skill") if isinstance(echo.get("skill"), dict) else {}
+        effect_en = (raw_skill.get("description") or "").strip()
+        raw_skill_params = raw_skill.get("params") if isinstance(raw_skill, dict) else []
+        effect_params: list[list[str]] = []
+        if isinstance(raw_skill_params, list):
+            for row in raw_skill_params:
+                if isinstance(row, dict):
+                    arr = row.get("ArrayString", [])
+                elif isinstance(row, list):
+                    arr = row
+                else:
+                    arr = []
+                if isinstance(arr, list):
+                    effect_params.append([str(v) for v in arr])
         raw_bonuses = echo.get("bonuses") if isinstance(echo.get("bonuses"), list) else []
         bonuses = []
         for bonus in raw_bonuses:
@@ -699,11 +567,10 @@ def _build_echo_bases(
         out[eid] = {
             "name": name,
             "legacyId": legacy_id,
-            "legacyIds": legacy_ids,
             "cost": cost,
-            "elements": set_keys,
             "fetter_ids": [f for f in raw_fetters if isinstance(f, int)],
             "effect_en": effect_en,
+            "params": effect_params,
             "bonuses": bonuses,
         }
 
@@ -878,10 +745,7 @@ def _sync_weapons_only(dry_run: bool, pretty: bool) -> int:
 
     full_weapons = _load_json(WEAPONS_JSON)
     legacy_weapons = _load_optional_legacy_catalog(LEGACY_WEAPONS_JSON)
-    existing_weapon_aliases = _load_existing_base_aliases(WEAPON_BASES_JSON)
-    weapon_bases, unconditional_list = _build_weapon_bases(
-        full_weapons, existing_weapon_aliases, legacy_weapons
-    )
+    weapon_bases, unconditional_list = _build_weapon_bases(full_weapons, legacy_weapons)
 
     _write_json(WEAPON_BASES_JSON, weapon_bases, dry_run, pretty=pretty)
     _write_go(WEAPON_BUFFS_GEN_GO, _generate_weapon_buffs_go(unconditional_list), dry_run)
@@ -924,16 +788,10 @@ def main() -> int:
     level_curves = _load_json(LEVEL_CURVE_JSON)
     legacy_weapons = _load_optional_legacy_catalog(LEGACY_WEAPONS_JSON)
     legacy_echoes = _load_optional_legacy_catalog(LEGACY_ECHOES_JSON)
-    existing_weapon_aliases = _load_existing_base_aliases(WEAPON_BASES_JSON)
-    existing_echo_aliases = _load_existing_base_aliases(ECHO_BASES_JSON)
 
     character_bases = _build_character_bases(full_chars)
-    weapon_bases, unconditional_list = _build_weapon_bases(
-        full_weapons, existing_weapon_aliases, legacy_weapons
-    )
-    echo_bases = _build_echo_bases(
-        full_echoes, existing_echo_aliases, legacy_echoes
-    )
+    weapon_bases, unconditional_list = _build_weapon_bases(full_weapons, legacy_weapons)
+    echo_bases = _build_echo_bases(full_echoes, legacy_echoes)
     fetter_bases = _build_fetter_bases(full_fetters)
 
     _write_json(CHARACTER_BASES_JSON, character_bases, args.dry_run, pretty=args.pretty)
