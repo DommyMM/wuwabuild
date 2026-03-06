@@ -7,6 +7,8 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { EchoStatPreview } from '@/components/echo/EchoStatPreview';
+import { ElementType } from '@/lib/echo';
 
 interface ImportResultsProps {
   data: AnalysisData;
@@ -55,13 +57,13 @@ function ImageWithSkeleton({
 }
 
 function ProgressDot({ status }: { status: 'pending' | 'done' | 'error' }) {
-  if (status === 'done')  return <CheckCircle className="w-4 h-4 text-green-400" />;
+  if (status === 'done') return <CheckCircle className="w-4 h-4 text-green-400" />;
   if (status === 'error') return <XCircle className="w-4 h-4 text-red-400" />;
   return <Loader2 className="w-4 h-4 text-text-primary/40 animate-spin" />;
 }
 
 function EchoCard({ echo, pending, className }: { echo?: EchoOCRData; pending?: boolean; className?: string }) {
-  const { getEcho } = useGameData();
+  const { getEcho, getFetterByElement } = useGameData();
   const rootClass = `bg-background-secondary rounded-lg p-2 flex flex-col border border-border text-xs overflow-hidden ${className ?? ''}`;
 
   if (pending) {
@@ -80,45 +82,29 @@ function EchoCard({ echo, pending, className }: { echo?: EchoOCRData; pending?: 
   }
 
   if (!echo) {
-    return (
-      <div className={`${rootClass} items-center justify-center opacity-40 min-h-[160px]`}>
-        <span className="text-xs text-text-primary/40">—</span>
-      </div>
-    );
+    return <EchoStatPreview isEmpty className={className} />;
   }
 
   const echoObj = echo.name?.id ? getEcho(echo.name.id) : null;
   const iconSrc = getEchoPaths(echoObj);
+  const setIcon = echo.element ? getFetterByElement(echo.element as ElementType)?.icon : null;
 
   return (
-    <div className={rootClass}>
-      <div className="flex justify-center mb-1.5">
-        <ImageWithSkeleton
-          key={iconSrc ?? 'echo-icon'}
-          src={iconSrc}
-          alt={echo.name?.name ?? 'echo'}
-          imgClassName="w-10 h-10 object-contain rounded"
-          skeletonClassName="w-10 h-10 rounded"
-        />
-      </div>
-      <p className="font-semibold text-text-primary truncate mb-1">
-        {echo.name?.name ?? '—'}
-      </p>
-      {echo.main && (
-        <div className="flex justify-between gap-1 mb-1">
-          <span className="truncate text-accent">{echo.main.name}</span>
-          <span className="shrink-0 text-accent">{echo.main.value}</span>
-        </div>
-      )}
-      {(echo.substats ?? []).slice(0, 5).map((sub, i) => (
-        <div key={i} className="flex justify-between gap-1">
-          <span className="truncate text-text-primary/60">
-            {getEchoSubstatShortLabel(sub?.name ?? '')}
-          </span>
-          <span className="shrink-0 text-text-primary/60">{sub?.value ?? ''}</span>
-        </div>
-      ))}
-    </div>
+    <EchoStatPreview
+      className={className}
+      isEmpty={false}
+      icon={iconSrc ?? null}
+      setIcon={setIcon ?? null}
+      name={echo.name?.name}
+      mainStat={echo.main ? {
+        type: echo.main.name,
+        value: echo.main.value
+      } : undefined}
+      subStats={(echo.substats ?? []).map(sub => ({
+        type: sub?.name ? getEchoSubstatShortLabel(sub.name) : undefined,
+        value: sub?.value
+      }))}
+    />
   );
 }
 
@@ -129,10 +115,10 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
   const username = watermarkOverride.username ?? data.watermark?.username ?? '';
   const uid = watermarkOverride.uid ?? String(data.watermark?.uid ?? '');
 
-  const char   = data.character;
+  const char = data.character;
   const weapon = data.weapon;
-  const forte  = data.forte;
-  const seq    = data.sequences?.sequence ?? 0;
+  const forte = data.forte;
+  const seq = data.sequences?.sequence ?? 0;
   const echoKeys = ['echo1', 'echo2', 'echo3', 'echo4', 'echo5'] as const;
   const progressEntries = Object.entries(progress) as [RegionKey, 'pending' | 'done' | 'error'][];
 
@@ -140,12 +126,12 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
     progress.character === 'done' || progress.character === 'error'
   );
 
-  const charPending   = progress.character  === 'pending';
-  const weaponPending = progress.weapon     === 'pending';
-  const seqPending    = progress.sequences  === 'pending';
-  const fortePending  = progress.forte      === 'pending';
+  const charPending = progress.character === 'pending';
+  const weaponPending = progress.weapon === 'pending';
+  const seqPending = progress.sequences === 'pending';
+  const fortePending = progress.forte === 'pending';
 
-  const charObj   = char?.name   ? getCharacterByName(char.name) : null;
+  const charObj = char?.name ? getCharacterByName(char.name) : null;
   const weaponObj = weapon?.name ? (weaponList.find(w => w.name === weapon.name) ?? null) : null;
 
   return (

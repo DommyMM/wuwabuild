@@ -11,6 +11,7 @@ import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/cv';
 import { ELEMENT_SETS } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
+import { EchoStatPreview } from '@/components/echo/EchoStatPreview';
 
 interface BuildListProps {
   builds: SavedBuild[];
@@ -36,87 +37,9 @@ interface BuildItemProps {
   onRename?: (name: string) => void;
 }
 
+
+
 const FORTE_LABELS = ['Normal', 'Skill', 'Circuit', 'Liberation', 'Intro'] as const;
-
-function formatStatValue(value: number | null): string {
-  if (value === null) return '';
-  if (Number.isInteger(value)) return String(value);
-  return value.toFixed(1).replace(/\.0$/, '');
-}
-
-interface OverflowMarqueeProps {
-  text: string;
-  textClassName?: string;
-  speed?: number;
-  startOverflowPx?: number;
-  stopOverflowPx?: number;
-}
-
-// Scroll text only when it overflows the available width.
-const OverflowMarquee: React.FC<OverflowMarqueeProps> = ({
-  text,
-  textClassName = '',
-  speed = 20,
-  startOverflowPx = 8,
-  stopOverflowPx = 3,
-}) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const measureRef = useRef<HTMLSpanElement>(null);
-  const [scrolls, setScrolls] = useState(false);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const measure = measureRef.current;
-    if (!container || !measure) return;
-
-    let rafId: number | null = null;
-
-    const check = () => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-      }
-
-      rafId = requestAnimationFrame(() => {
-        const overflowPx = measure.getBoundingClientRect().width - container.getBoundingClientRect().width;
-        setScrolls((prev) => (
-          prev
-            ? overflowPx > stopOverflowPx
-            : overflowPx > startOverflowPx
-        ));
-      });
-    };
-
-    check();
-    const ro = new ResizeObserver(check);
-    ro.observe(container);
-    ro.observe(measure);
-    return () => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-      }
-      ro.disconnect();
-    };
-  }, [startOverflowPx, stopOverflowPx, text]);
-
-  return (
-    <div ref={containerRef} className="relative min-w-0 overflow-hidden">
-      <span
-        ref={measureRef}
-        className={`pointer-events-none invisible absolute left-0 top-0 whitespace-nowrap ${textClassName}`}
-        aria-hidden="true"
-      >
-        {text}
-      </span>
-      {scrolls ? (
-        <Marquee speed={speed} gradient={false} pauseOnHover>
-          <span className={`whitespace-nowrap pr-6 ${textClassName}`}>{text}</span>
-        </Marquee>
-      ) : (
-        <span className={`block whitespace-nowrap ${textClassName}`}>{text}</span>
-      )}
-    </div>
-  );
-};
 
 const BuildItem: React.FC<BuildItemProps> = ({
   build,
@@ -229,13 +152,12 @@ const BuildItem: React.FC<BuildItemProps> = ({
 
   return (
     <div
-      className={`group relative rounded-lg border p-3 transition-all ${
-        onSelect
-          ? isSelected
-            ? 'cursor-pointer border-accent bg-accent/10'
-            : 'cursor-pointer border-border bg-background hover:border-accent/50 hover:bg-background-secondary'
-          : 'border-border bg-background hover:border-accent/50 hover:bg-background-secondary'
-      }`}
+      className={`group relative rounded-lg border p-3 transition-all ${onSelect
+        ? isSelected
+          ? 'cursor-pointer border-accent bg-accent/10'
+          : 'cursor-pointer border-border bg-background hover:border-accent/50 hover:bg-background-secondary'
+        : 'border-border bg-background hover:border-accent/50 hover:bg-background-secondary'
+        }`}
       onClick={onSelect}
     >
       <div className="flex items-start justify-between">
@@ -479,63 +401,20 @@ const BuildItem: React.FC<BuildItemProps> = ({
                 <div className="mb-2 text-xs uppercase tracking-wide text-text-primary/50">Echoes</div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
                   {echoPreviewData.map(({ panel, echo, name, icon, setIcon, cv }, index) => (
-                    <div
+                    <EchoStatPreview
                       key={`${panel.id ?? 'empty'}-${index}`}
-                      className="relative rounded border border-border bg-background-secondary p-2 pt-3 text-xs"
-                    >
-                      {panel.id && echo ? (
-                        <>
-                          {setIcon && (
-                            <img
-                              src={setIcon}
-                              alt=""
-                              className="absolute left-1/2 top-0 h-5 w-5 -translate-x-1/2 -translate-y-1/2 object-contain"
-                            />
-                          )}
-                          <div className="mb-1 flex items-center gap-2">
-                            <img src={icon} alt={name} className="h-8 w-8 rounded object-contain" />
-                            <div className="min-w-0">
-                              <OverflowMarquee
-                                text={name}
-                                textClassName="font-semibold text-text-primary"
-                                startOverflowPx={16}
-                                stopOverflowPx={10}
-                              />
-                              <div className="text-xs text-text-primary/60">
-                                Lv.{panel.level} • CV {cv.toFixed(1)}
-                              </div>
-                            </div>
-                          </div>
-                          {panel.stats.mainStat.type && (
-                            <div className="mb-1 flex justify-between gap-2 text-xs">
-                              <span className="text-accent">{panel.stats.mainStat.type}</span>
-                              <span className="shrink-0 text-accent">{formatStatValue(panel.stats.mainStat.value)}</span>
-                            </div>
-                          )}
-                          <div className="space-y-0.5">
-                            {panel.stats.subStats
-                              .filter((sub) => sub.type && sub.value !== null)
-                              .map((sub, subIndex) => (
-                                <div key={subIndex} className="flex items-center justify-between gap-2 text-xs text-text-primary/65">
-                                  <div className="min-w-0 flex-1">
-                                    <OverflowMarquee
-                                      text={sub.type ?? ''}
-                                      textClassName="text-xs"
-                                      startOverflowPx={1.35}
-                                      stopOverflowPx={0.45}
-                                    />
-                                  </div>
-                                  <span className="shrink-0">{formatStatValue(sub.value)}</span>
-                                </div>
-                              ))}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex min-h-24 items-center justify-center rounded border border-dashed border-border text-text-primary/35">
-                          Empty Slot
-                        </div>
-                      )}
-                    </div>
+                      isEmpty={!panel.id || !echo}
+                      icon={icon ?? null}
+                      name={name}
+                      level={panel.level}
+                      cv={cv}
+                      setIcon={setIcon}
+                      mainStat={{
+                        type: panel.stats.mainStat.type,
+                        value: panel.stats.mainStat.value,
+                      }}
+                      subStats={panel.stats.subStats}
+                    />
                   ))}
                 </div>
               </div>
