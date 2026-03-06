@@ -7,7 +7,7 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
-import { loadImage, getImageDpi } from '@/lib/import/cropImage';
+import { loadImage } from '@/lib/import/cropImage';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { saveBuild } from '@/lib/storage';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -27,7 +27,6 @@ export function ImportPageClient() {
 
   const [step, setStep]                       = useState<ImportStep>('upload');
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [dpiWarning, setDpiWarning]           = useState(false);
   const [uploadToLb, setUploadToLb]           = useState(true);
   const [pendingWm, setPendingWm]             = useState<{ username: string; uid: string } | null>(null);
 
@@ -36,7 +35,6 @@ export function ImportPageClient() {
 
   const handleFile = async (f: File) => {
     setValidationError(null);
-    setDpiWarning(false);
 
     const img = await loadImage(f);
     if (img.naturalWidth !== 1920 || img.naturalHeight !== 1080) {
@@ -47,19 +45,15 @@ export function ImportPageClient() {
       return;
     }
 
-    const dpi = await getImageDpi(f);
-    if (dpi !== null && dpi !== 96) setDpiWarning(true);
-
     reset();
     setStep('results');
-    processImage(f); // fire-and-forget, streams progress into state
+    processImage(f);
   };
 
   const handleReset = () => {
     reset();
     setStep('upload');
     setValidationError(null);
-    setDpiWarning(false);
   };
 
   const buildImportedState = (wm: { username: string; uid: string }) => {
@@ -159,17 +153,6 @@ export function ImportPageClient() {
         {validationError && (
           <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400">
             {validationError}
-          </div>
-        )}
-
-        {/* DPI warning */}
-        {dpiWarning && (
-          <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-sm text-yellow-400 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>
-              This image doesn&apos;t appear to be the original 96 DPI file.
-              For best results, download the image directly from Discord rather than screenshotting it.
-            </span>
           </div>
         )}
 
