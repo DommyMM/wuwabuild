@@ -271,7 +271,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                                   )}
                                   <span>{formatSubstatTotal(subType, Number(sub.value))}</span>
                                   {isMatchedSelection && (
-                                    <span className="pointer-events-none absolute right-1 top-1/2 h-0 w-0 -translate-y-1/2 border-y-[4px] border-y-transparent border-r-[6px] border-r-amber-300/95" />
+                                    <span className="pointer-events-none absolute right-1 top-1/2 h-0 w-0 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-amber-300/95" />
                                   )}
                                 </div>
                               );
