@@ -32,10 +32,11 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
   className = '',
 }) => {
   // Bonus stats
-  const { bonus1Total, bonus2Total, bonus1Type } = useMemo(
+  const { bonus1Total, bonus2Total } = useMemo(
     () => calculateForteBonus(character, forte),
     [character, forte],
   );
+  const bonus1Type = character.Bonus1;
 
   // Use CDN node icons directly (tree1 for bonus1, tree2 for bonus2)
   const bonus1Icon = character.forteNodes?.['tree1.top']?.icon ?? '';

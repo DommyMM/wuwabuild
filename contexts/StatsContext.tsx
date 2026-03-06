@@ -7,7 +7,7 @@ import { StatName, BaseStatName, BASE_STATS, CALCULABLE_STATS, getPercentVariant
 import { ELEMENT_SETS, ElementType } from '@/lib/echo';
 import { calculateCV } from '@/lib/calculations/cv';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
-import { calculateForteBonus, resolveBonus1Stat } from '@/lib/calculations/stats';
+import { calculateForteBonus } from '@/lib/calculations/stats';
 import { getUnconditionalWeaponPassiveBonuses } from '@/lib/calculations/weaponPassives';
 import { getSetBonusesFromFetter } from '@/lib/constants/setBonuses';
 import { getEchoBonus, getSequenceBonuses, matchesEchoBonusCondition } from '@/lib/constants/statBonuses';
@@ -158,8 +158,11 @@ export function StatsProvider({ children }: StatsProviderProps) {
     });
 
     const seqBonuses = getSequenceBonuses(character);
-    const bonus1Stat = resolveBonus1Stat(forteBonus.bonus1Type, isRover(character), roverElement);
+    // For Rover, override element DMG bonus with the user's selected element
     const isRoverChar = isRover(character);
+    const bonus1Stat = isRoverChar && roverElement && character.Bonus1.endsWith(' DMG')
+      ? `${roverElement} DMG`
+      : character.Bonus1;
 
     // Maps hoisted outside the per-stat loop
     const baseStatValues: Record<BaseStatName, number> = {
@@ -206,8 +209,8 @@ export function StatsProvider({ children }: StatsProviderProps) {
       } else {
         result.baseValue =
           stat === 'Crit Rate' ? 5.0 :
-          stat === 'Crit DMG' ? 150.0 :
-          stat === 'Energy Regen' ? character.ER : 0;
+            stat === 'Crit DMG' ? 150.0 :
+              stat === 'Energy Regen' ? character.ER : 0;
 
         result.update = sumMainStats(stat, echoPanels) + sumSubStats(stat, echoPanels);
 

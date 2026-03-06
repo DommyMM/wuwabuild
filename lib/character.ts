@@ -22,7 +22,7 @@ export enum Role {
   DPS = "DPS"
 }
 
-export type BonusType = Element | "Crit Rate" | "Crit DMG" | "Healing" | "ATK" | "HP" | "DEF";
+
 export interface I18nString {
   en: string;
   ja?: string;
@@ -136,8 +136,8 @@ export interface Character {
   weaponType: WeaponType;
   element: Element;
   Role: Role;
-  Bonus1: BonusType;
-  Bonus2: "ATK" | "HP" | "DEF";
+  Bonus1: string; // Final StatName (e.g. 'Aero DMG', 'Crit Rate', 'Healing Bonus')
+  Bonus2: string; // Final StatName (e.g. 'ATK', 'HP', 'DEF')
   HP: number;
   ATK: number;
   DEF: number;
@@ -244,8 +244,8 @@ const PARENT_TO_TREE: Record<number, string> = {
   9: 'tree1', 10: 'tree2', 11: 'tree4', 12: 'tree5', // coord 2 (top)
 };
 
-// CDN node name → BonusType. Strips trailing "+" / "Bonus" and maps to our enum.
-const NODE_NAME_TO_BONUS: Record<string, BonusType> = {
+// CDN node name → final StatName used in calculations and display.
+const NODE_NAME_TO_BONUS: Record<string, string> = {
   'Crit. Rate+': 'Crit Rate',
   'Crit. Rate Up': 'Crit Rate',
   'Crit. DMG+': 'Crit DMG',
@@ -256,20 +256,20 @@ const NODE_NAME_TO_BONUS: Record<string, BonusType> = {
   'HP Up': 'HP',
   'DEF+': 'DEF',
   'DEF Up': 'DEF',
-  'Healing Bonus+': 'Healing',
-  'Healing Bonus Up': 'Healing',
-  'Aero DMG Bonus+': Element.Aero,
-  'Aero DMG Bonus Up': Element.Aero,
-  'Glacio DMG Bonus+': Element.Glacio,
-  'Glacio DMG Bonus Up': Element.Glacio,
-  'Electro DMG Bonus+': Element.Electro,
-  'Electro DMG Bonus Up': Element.Electro,
-  'Havoc DMG Bonus+': Element.Havoc,
-  'Havoc DMG Bonus Up': Element.Havoc,
-  'Fusion DMG Bonus+': Element.Fusion,
-  'Fusion DMG Bonus Up': Element.Fusion,
-  'Spectro DMG Bonus+': Element.Spectro,
-  'Spectro DMG Bonus Up': Element.Spectro,
+  'Healing Bonus+': 'Healing Bonus',
+  'Healing Bonus Up': 'Healing Bonus',
+  'Aero DMG Bonus+': 'Aero DMG',
+  'Aero DMG Bonus Up': 'Aero DMG',
+  'Glacio DMG Bonus+': 'Glacio DMG',
+  'Glacio DMG Bonus Up': 'Glacio DMG',
+  'Electro DMG Bonus+': 'Electro DMG',
+  'Electro DMG Bonus Up': 'Electro DMG',
+  'Havoc DMG Bonus+': 'Havoc DMG',
+  'Havoc DMG Bonus Up': 'Havoc DMG',
+  'Fusion DMG Bonus+': 'Fusion DMG',
+  'Fusion DMG Bonus Up': 'Fusion DMG',
+  'Spectro DMG Bonus+': 'Spectro DMG',
+  'Spectro DMG Bonus Up': 'Spectro DMG',
 };
 
 // Process CDN skillTrees into a lookup map keyed by "tree1.top", "tree1.middle", etc.
@@ -313,14 +313,11 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
   // Process forte nodes from CDN skillTrees
   const forteNodes = processForteNodes(cdn.skillTrees);
 
-  // Derive Bonus1/Bonus2 from actual skillTrees data (not heuristic)
+  // Derive Bonus1/Bonus2 from actual skillTrees data
   const tree1Middle = forteNodes?.['tree1.middle'];
   const tree2Middle = forteNodes?.['tree2.middle'];
-  const bonus1: BonusType = (tree1Middle ? NODE_NAME_TO_BONUS[tree1Middle.name] : undefined)
-    ?? (element === Element.Rover ? 'ATK' : element);
-  const bonus2Name = tree2Middle ? NODE_NAME_TO_BONUS[tree2Middle.name] : undefined;
-  const bonus2: 'ATK' | 'HP' | 'DEF' =
-    (bonus2Name === 'ATK' || bonus2Name === 'HP' || bonus2Name === 'DEF') ? bonus2Name : 'ATK';
+  const bonus1 = (tree1Middle ? NODE_NAME_TO_BONUS[tree1Middle.name] : undefined) ?? 'ATK';
+  const bonus2 = (tree2Middle ? NODE_NAME_TO_BONUS[tree2Middle.name] : undefined) ?? 'ATK';
 
   return {
     name: isRoverChar ? 'Rover' : cdn.name.en,

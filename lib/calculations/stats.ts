@@ -102,7 +102,7 @@ export const calculateWeaponStats = (
 export const calculateForteBonus = (
   character: Character,
   forte: ForteState
-): { bonus1Total: number; bonus2Total: number; bonus1Type: string } => {
+): { bonus1Total: number; bonus2Total: number } => {
   const fn = character.forteNodes;
   let bonus1Total = 0;
   let bonus2Total = 0;
@@ -127,19 +127,5 @@ export const calculateForteBonus = (
     }
   }
 
-  return { bonus1Total, bonus2Total, bonus1Type: character.Bonus1 };
-};
-
-// Resolve the StatName that forte Bonus1 contributes to.
-// bonus1Type is 'Crit Rate' | 'Crit DMG' | 'Healing' | element name (e.g. 'Spectro').
-// For Rover, the active roverElement overrides bonus1Type for element DMG.
-export const resolveBonus1Stat = (
-  bonus1Type: string,
-  isRoverChar: boolean,
-  roverElement?: string
-): string => {
-  if (bonus1Type === 'Healing') return 'Healing Bonus';
-  if (bonus1Type === 'Crit Rate' || bonus1Type === 'Crit DMG') return bonus1Type;
-  const element = isRoverChar && roverElement ? roverElement : bonus1Type;
-  return `${element} DMG`;
+  return { bonus1Total, bonus2Total };
 };
