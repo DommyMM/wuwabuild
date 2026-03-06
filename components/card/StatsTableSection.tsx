@@ -133,7 +133,7 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
   };
 
   return (
-    <div className="flex h-full w-full flex-col justify-center px-8 pl-2 py-4">
+    <div className="flex h-full w-full flex-col justify-center px-8 pl-2 pt-4">
       {statRows.map(({ key, value }) => renderStatRow(key, value))}
     </div>
   );

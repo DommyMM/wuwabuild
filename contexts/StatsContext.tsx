@@ -7,7 +7,7 @@ import { StatName, BaseStatName } from '@/lib/constants/statMappings';
 import { ELEMENT_SETS, ElementType } from '@/lib/echo';
 import { calculateCV } from '@/lib/calculations/cv';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
-import { calculateForteBonus } from '@/lib/calculations/stats';
+import { calculateForteBonus, resolveBonus1Stat } from '@/lib/calculations/stats';
 import { getUnconditionalWeaponPassiveBonuses } from '@/lib/calculations/weaponPassives';
 import { getSetBonusesFromFetter } from '@/lib/constants/setBonuses';
 import { getEchoBonus, getSequenceBonuses } from '@/lib/constants/statBonuses';
@@ -242,6 +242,10 @@ export function StatsProvider({ children }: StatsProviderProps) {
       return getSetBonusesFromFetter(fetter, count);
     });
 
+    // Pre-compute values that are constant across all stats in this calculation pass
+    const seqBonuses = getSequenceBonuses(character);
+    const bonus1Stat = resolveBonus1Stat(forteBonus.bonus1Type, isRover(character), roverElement);
+
     // List of stats to calculate
     const statsToCalculate: StatName[] = [
       'HP', 'ATK', 'DEF',
@@ -292,7 +296,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
         const basePercentStat = getPercentVariant(baseStat);
 
         // Unconditional sequence bonuses for percent variants (HP%/ATK%/DEF%)
-        getSequenceBonuses(character).forEach(bonus => {
+        seqBonuses.forEach(bonus => {
           if (bonus.stat === basePercentStat && sequence >= bonus.minSequence) {
             percent += bonus.value;
           }
@@ -352,16 +356,12 @@ export function StatsProvider({ children }: StatsProviderProps) {
         });
 
         // Add forte bonuses
-        const isDirectStat = (bonus: string) => ['Crit Rate', 'Crit DMG', 'Healing'].includes(bonus);
-        if (
-          (isDirectStat(forteBonus.bonus1Type) && displayStat === (forteBonus.bonus1Type === 'Healing' ? 'Healing Bonus' : forteBonus.bonus1Type)) ||
-          (!isDirectStat(forteBonus.bonus1Type) && displayStat === `${character.name.startsWith('Rover') ? roverElement : forteBonus.bonus1Type} DMG`)
-        ) {
+        if (displayStat === bonus1Stat) {
           result.update += forteBonus.bonus1Total;
         }
 
         // Unconditional sequence bonuses for percent stats
-        getSequenceBonuses(character).forEach(bonus => {
+        seqBonuses.forEach(bonus => {
           if (bonus.stat === displayStat && sequence >= bonus.minSequence) {
             result.update += bonus.value;
           }

@@ -130,36 +130,16 @@ export const calculateForteBonus = (
   return { bonus1Total, bonus2Total, bonus1Type: character.Bonus1 };
 };
 
-// Calculate base stats with weapon contribution.
-export const calculateBaseStats = (
-  character: Character,
-  level: number,
-  weaponAtk: number,
-  scaleStat: (baseStat: number, level: number, statType: keyof CurveStats) => number
-): { baseHP: number; baseATK: number; baseDEF: number } => {
-  const characterAtk = scaleStat(character.ATK, level, 'ATK');
-
-  return {
-    baseHP: scaleStat(character.HP, level, 'HP'),
-    baseATK: characterAtk + weaponAtk,
-    baseDEF: scaleStat(character.DEF, level, 'DEF')
-  };
-};
-
-// Calculate the final value of a flat stat (HP, ATK, DEF).
-export const calculateFlatStat = (
-  baseValue: number,
-  percentBonus: number,
-  flatBonus: number,
-  echoDefault: number
-): number => {
-  return Math.round(baseValue * (1 + percentBonus / 100)) + flatBonus + echoDefault;
-};
-
-// Calculate the final value of a percent stat.
-export const calculatePercentStat = (
-  baseValue: number,
-  bonus: number
-): number => {
-  return Number((baseValue + bonus).toFixed(1));
+// Resolve the StatName that forte Bonus1 contributes to.
+// bonus1Type is 'Crit Rate' | 'Crit DMG' | 'Healing' | element name (e.g. 'Spectro').
+// For Rover, the active roverElement overrides bonus1Type for element DMG.
+export const resolveBonus1Stat = (
+  bonus1Type: string,
+  isRoverChar: boolean,
+  roverElement?: string
+): string => {
+  if (bonus1Type === 'Healing') return 'Healing Bonus';
+  if (bonus1Type === 'Crit Rate' || bonus1Type === 'Crit DMG') return bonus1Type;
+  const element = isRoverChar && roverElement ? roverElement : bonus1Type;
+  return `${element} DMG`;
 };
