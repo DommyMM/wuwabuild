@@ -26,11 +26,9 @@ LEGACY_ID_PATTERN = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI\.png")
 NUMBER_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 NON_PARAM_BRACE_TOKEN_PATTERN = re.compile(r"\{(?!\d+\})[^{}]+\}")
 
-# ---------------------------------------------------------------------------
-# Sequence bonus parsing — embedded into each chain entry at sync time.
+# Sequence bonus parsing, embedded into each chain entry at sync time.
 # Maps game description text patterns to our StatName values.
 # More-specific patterns must appear before shorter overlapping ones.
-# ---------------------------------------------------------------------------
 _CHAIN_STAT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"Resonance\s+Skill\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Resonance Skill DMG Bonus'),
     (re.compile(r"Resonance\s+Liberation\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), 'Resonance Liberation DMG Bonus'),
@@ -99,7 +97,7 @@ def parse_chain_bonus(desc_en: str, params: list[str]) -> dict | None:
             before = sentence[:m.start()]
             after  = sentence[m.end():]
             if _CHAIN_CONDITIONAL_RE.search(before) or _CHAIN_CONDITIONAL_RE.search(after):
-                break  # sentence is conditional — skip
+                break  # sentence is conditional and we skip it
             param_idx = int(m.group(1))
             if param_idx >= len(params):
                 break
@@ -752,7 +750,7 @@ def main():
         schema.update(SKILLS_SCHEMA)
 
     if not args.fetch:
-        # No CDN fetch — re-parse bonus fields on existing Characters.json and exit.
+        # No CDN fetch, re-parse bonus fields on existing Characters.json and exit.
         combined_path = args.output.parent / "Characters.json"
         if not combined_path.exists():
             parser.error(f"No Characters.json found at {combined_path}. Use --fetch to sync from CDN.")

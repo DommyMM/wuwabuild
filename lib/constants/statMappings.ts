@@ -19,12 +19,22 @@ export type StatName =
   | BasePercentStatName
   | 'Crit Rate' | 'Crit DMG'
   | 'Energy Regen'
-  | 'Basic Attack' | 'Basic Attack DMG Bonus'
-  | 'Heavy Attack' | 'Heavy Attack DMG Bonus'
-  | 'Skill' | 'Resonance Skill DMG Bonus'
-  | 'Liberation' | 'Resonance Liberation DMG Bonus'
+  | 'Basic Attack DMG Bonus'
+  | 'Heavy Attack DMG Bonus'
+  | 'Resonance Skill DMG Bonus'
+  | 'Resonance Liberation DMG Bonus'
   | ElementalDmgStatName
   | 'Healing Bonus';
+
+// All stats the calculation engine computes display values for.
+export const CALCULABLE_STATS = [
+  'HP', 'ATK', 'DEF',
+  'Crit Rate', 'Crit DMG', 'Energy Regen',
+  'Aero DMG', 'Glacio DMG', 'Fusion DMG', 'Electro DMG', 'Havoc DMG', 'Spectro DMG',
+  'Basic Attack DMG Bonus', 'Heavy Attack DMG Bonus',
+  'Resonance Skill DMG Bonus', 'Resonance Liberation DMG Bonus',
+  'Healing Bonus',
+] as const satisfies readonly StatName[];
 
 // Get percent variant of a base stat
 export const getPercentVariant = (stat: BaseStatName): StatName =>

@@ -236,7 +236,7 @@ def _print_error_report(title: str, errors: list[str], max_rows: int = 200) -> N
 
 
 def _fmt_float(v: float) -> str:
-    """Format a float as a Go literal — whole numbers without decimal point."""
+    """Format a float as a Go literal, whole numbers without decimal point."""
     return str(int(v)) if v == int(v) else str(v)
 
 
@@ -361,6 +361,24 @@ def _choose_bonus(char: dict) -> tuple[str, str]:
     return bonus1, bonus2
 
 
+def _extract_sequence_bonuses(char: dict) -> list[dict]:
+    chains = char.get("chains")
+    if not isinstance(chains, list):
+        return []
+
+    bonuses: list[dict] = []
+    for i, chain in enumerate(chains):
+        if not isinstance(chain, dict):
+            continue
+        bonus = chain.get("bonus")
+        if isinstance(bonus, dict) and bonus.get("stat") and bonus.get("value") is not None:
+            bonuses.append({
+                "minSequence": i + 1,
+                "stat": bonus["stat"],
+                "value": float(bonus["value"])
+            })
+    return bonuses
+
 def _build_character_bases(
     full_chars: list[dict]
 ) -> dict[str, dict]:
@@ -380,6 +398,7 @@ def _build_character_bases(
 
         bonus1, bonus2 = _choose_bonus(char)
         forte_nodes = _extract_forte_nodes(char)
+        sequence_bonuses = _extract_sequence_bonuses(char)
 
         out[cdn_id] = {
             "name": name,
@@ -389,6 +408,7 @@ def _build_character_bases(
             "bonus1": bonus1,
             "bonus2": bonus2,
             "forte_nodes": forte_nodes,
+            "sequence_bonuses": sequence_bonuses,
             "stats": {
                 "HP": hp, "ATK": atk, "DEF": defense,
                 "Crit Rate": 5, "Crit DMG": 150, "Energy Regen": 100,

@@ -1,6 +1,29 @@
 import { Echo } from '@/lib/echo';
-import { Character } from '@/lib/character';
+import { Character, isRover } from '@/lib/character';
 import { StatName } from '@/lib/constants/statMappings';
+
+const ROVER_ELEMENTS = new Set(['Aero', 'Havoc', 'Spectro']);
+
+// Checks whether an echo's characterCondition list matches the current character.
+// Empty/absent conditions match everyone. Named tokens match by character name;
+// element tokens (Aero/Havoc/Spectro) match Rover by active element.
+export const matchesEchoBonusCondition = (
+  conditions: string[] | undefined,
+  characterName: string | undefined,
+  isRoverCharacter: boolean,
+  roverElement: string | undefined
+): boolean => {
+  if (!conditions || conditions.length === 0) return true;
+  return conditions.some(condition => {
+    const token = condition.trim();
+    if (!token) return false;
+    if (characterName === token) return true;
+    if (isRoverCharacter && roverElement && ROVER_ELEMENTS.has(token)) {
+      return roverElement === token;
+    }
+    return false;
+  });
+};
 
 // First-panel conditional/unconditional stat bonuses per echo
 

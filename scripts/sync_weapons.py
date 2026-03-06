@@ -180,7 +180,7 @@ def extract_stats(stats: dict) -> dict:
               second: {attribute, name, value, isRatio} }
 
     first is always flat ATK (value=47 means 47 ATK).
-    second is the substat — see SCHEMA comments for value format notes.
+    second is the substat, see SCHEMA comments for value format notes.
     We keep second.name (multilingual display label) so consumers don't need
     to map internal attribute names like "CritDamage" → "Crit. DMG".
     """

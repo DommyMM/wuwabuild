@@ -6,8 +6,7 @@ Fetches PropertyIndexs.json and picks out the stats used in Mainstat.json and Su
 HP%, ATK%, DEF% are not separate entries so they're derived by
 appending "%" to each translation of their base stat (HP / ATK / DEF).
 
-Each stat entry also includes an "icon" field — the direct CDN icon URL from
-PropertyIndexs — so the frontend can display stat icons without any hardcoded
+Each stat entry also includes an "icon" field, the direct CDN icon URL from PropertyIndexs, so the frontend can display stat icons without any hardcoded
 name→filename mapping.
 
 Usage:

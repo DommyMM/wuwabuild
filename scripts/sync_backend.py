@@ -5,7 +5,7 @@ Reads already-synced data from ../public/Data/ and writes to ../../backend/Data/
 Run this after sync_all.py (or just use sync_all.py which calls this automatically).
 
 The backend only needs English names + minimal metadata for OCR name matching.
-The frontend holds the full rich dataset — we just extract what the backend needs.
+The frontend holds the full rich dataset and we just extract what the backend needs.
 """
 
 from pathlib import Path
