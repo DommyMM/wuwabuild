@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -127,6 +128,11 @@ UNCONDITIONAL_TO_GO: dict[str, tuple[str, str, str]] = {
     "Spectro DMG Bonus": ("ElementalDMG", "SD", ""),
 }
 
+NAME_TOKEN_ALIASES = {
+    "baby": "young",      # Baby Roseshroom (current) vs Young Roseshroom (legacy)
+    "reminiscence": "",   # Reminiscence prefixes are absent in some legacy labels
+}
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -137,9 +143,19 @@ def _load_json(path: Path) -> Any:
 
 
 def _normalize_name(name: str) -> str:
-    tokens = re.findall(r"[a-z]+|\d+", name.lower())
+    # Normalize diacritics ("Jué" -> "Jue"), punctuation, and known wording drift.
+    folded = unicodedata.normalize("NFKD", name)
+    ascii_name = "".join(ch for ch in folded if not unicodedata.combining(ch))
+    tokens = re.findall(r"[a-z]+|\d+", ascii_name.lower())
     normalized_tokens: list[str] = []
     for token in tokens:
+        # Treat possessive "'s" punctuation splits as noise.
+        if token == "s":
+            continue
+        if token in NAME_TOKEN_ALIASES:
+            token = NAME_TOKEN_ALIASES[token]
+        if token == "":
+            continue
         # Smooth common singular/plural diffs across legacy catalogs.
         if token.isalpha() and len(token) > 3 and token.endswith("s"):
             token = token[:-1]
@@ -147,16 +163,22 @@ def _normalize_name(name: str) -> str:
     return "".join(normalized_tokens)
 
 
-def _load_optional_legacy_catalog(path: Path) -> list[dict]:
+def _load_legacy_catalog(path: Path, label: str) -> list[dict]:
     if not path.exists():
-        return []
+        raise ValueError(f"Missing required {label} catalog: {path}")
     try:
         payload = _load_json(path)
-    except Exception:
-        return []
+    except Exception as exc:
+        raise ValueError(f"Failed to load {label} catalog {path}: {exc}") from exc
     if not isinstance(payload, list):
-        return []
-    return [entry for entry in payload if isinstance(entry, dict)]
+        raise ValueError(f"{label} catalog must be a JSON array: {path}")
+
+    catalog: list[dict] = []
+    for i, entry in enumerate(payload):
+        if not isinstance(entry, dict):
+            raise ValueError(f"{label} catalog entry at index {i} is not an object: {path}")
+        catalog.append(entry)
+    return catalog
 
 
 def _build_legacy_name_index(catalog: list[dict]) -> dict[str, list[str]]:
@@ -173,30 +195,44 @@ def _build_legacy_name_index(catalog: list[dict]) -> dict[str, list[str]]:
     return name_to_ids
 
 
-def _resolve_legacy_id_from_name(name: str, legacy_name_index: dict[str, list[str]]) -> str:
-    key = _normalize_name(name)
-    if not key:
+def _resolve_required_legacy_id(
+    *,
+    entity: str,
+    entity_id: str,
+    name: str,
+    legacy_name_index: dict[str, list[str]],
+    errors: list[str],
+) -> str:
+    if not name:
+        errors.append(f"{entity} id={entity_id}: missing english name")
         return ""
 
-    direct = legacy_name_index.get(key, [])
-    if len(direct) == 1:
-        return direct[0]
+    key = _normalize_name(name)
+    if not key:
+        errors.append(f"{entity} id={entity_id} name={name!r}: normalized name is empty")
+        return ""
 
-    fuzzy_matches: set[str] = set()
-    for legacy_key, legacy_ids in legacy_name_index.items():
-        if (
-            key.startswith(legacy_key)
-            or key.endswith(legacy_key)
-            or legacy_key.startswith(key)
-            or legacy_key.endswith(key)
-            or key in legacy_key
-            or legacy_key in key
-        ):
-            fuzzy_matches.update(legacy_ids)
+    candidate_legacy_ids = legacy_name_index.get(key, [])
+    if len(candidate_legacy_ids) == 1:
+        return candidate_legacy_ids[0]
+    if not candidate_legacy_ids:
+        errors.append(f"{entity} id={entity_id} name={name!r}: no exact legacy name match")
+        return ""
 
-    if len(fuzzy_matches) == 1:
-        return next(iter(fuzzy_matches))
+    joined = ", ".join(candidate_legacy_ids)
+    errors.append(f"{entity} id={entity_id} name={name!r}: ambiguous legacy name match [{joined}]")
     return ""
+
+
+def _print_error_report(title: str, errors: list[str], max_rows: int = 200) -> None:
+    if not errors:
+        return
+    print(f"ERROR: {title} ({len(errors)})")
+    for err in errors[:max_rows]:
+        print(f"  - {err}")
+    remaining = len(errors) - max_rows
+    if remaining > 0:
+        print(f"  ... and {remaining} more")
 
 
 def _fmt_float(v: float) -> str:
@@ -453,20 +489,26 @@ def _passive_bonus_matrix(weapon: dict) -> dict[str, list[float]]:
 
 def _build_weapon_bases(
     full_weapons: list[dict],
-    legacy_weapon_catalog: list[dict] | None = None,
-) -> tuple[dict[str, dict], list[tuple[str, str, dict]]]:
+    legacy_weapon_catalog: list[dict],
+) -> tuple[dict[str, dict], list[tuple[str, str, dict]], list[str]]:
     """Build weapon_bases dict and unconditional bonus list for Go generation."""
     out: dict[str, dict] = {}
     unconditional_list: list[tuple[str, str, dict]] = []
-    catalog = legacy_weapon_catalog or []
-    legacy_weapon_name_index = _build_legacy_name_index(catalog)
+    errors: list[str] = []
+    legacy_weapon_name_index = _build_legacy_name_index(legacy_weapon_catalog)
 
     for w in full_weapons:
         wid = str(w.get("id", ""))
         if not wid:
             continue
         name = (w.get("name") or {}).get("en", "")
-        legacy_id = _resolve_legacy_id_from_name(name, legacy_weapon_name_index) if name else ""
+        legacy_id = _resolve_required_legacy_id(
+            entity="weapon",
+            entity_id=wid,
+            name=name,
+            legacy_name_index=legacy_weapon_name_index,
+            errors=errors,
+        )
 
         type_name = ((w.get("type") or {}).get("name") or {}).get("en", "")
         rarity_id = (w.get("rarity") or {}).get("id", 0)
@@ -506,7 +548,7 @@ def _build_weapon_bases(
 
     out = {k: out[k] for k in sorted(out, key=lambda x: int(x))}
 
-    return out, unconditional_list
+    return out, unconditional_list, errors
 
 
 # ---------------------------------------------------------------------------
@@ -515,20 +557,24 @@ def _build_weapon_bases(
 
 def _build_echo_bases(
     echoes: list[dict],
-    legacy_echo_catalog: list[dict] | None = None,
-) -> dict[str, dict]:
+    legacy_echo_catalog: list[dict],
+) -> tuple[dict[str, dict], list[str]]:
     out: dict[str, dict] = {}
-    catalog = legacy_echo_catalog or []
-    legacy_echo_name_index = _build_legacy_name_index(catalog)
+    errors: list[str] = []
+    legacy_echo_name_index = _build_legacy_name_index(legacy_echo_catalog)
 
     for echo in echoes:
         eid = str(echo.get("id"))
         if not eid:
             continue
         name = (echo.get("name") or {}).get("en", "")
-        legacy_id = str(echo.get("legacyId", "") or "").strip()
-        if not legacy_id and name:
-            legacy_id = _resolve_legacy_id_from_name(name, legacy_echo_name_index)
+        legacy_id = _resolve_required_legacy_id(
+            entity="echo",
+            entity_id=eid,
+            name=name,
+            legacy_name_index=legacy_echo_name_index,
+            errors=errors,
+        )
 
         cost = int(echo.get("cost", 0))
         raw_fetters = echo.get("fetter", []) if isinstance(echo.get("fetter"), list) else []
@@ -574,7 +620,7 @@ def _build_echo_bases(
 
     out = {k: out[k] for k in sorted(out, key=lambda x: int(x))}
 
-    return out
+    return out, errors
 
 
 def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
@@ -714,8 +760,15 @@ def _sync_weapons_only(dry_run: bool, pretty: bool) -> int:
             return 1
 
     full_weapons = _load_json(WEAPONS_JSON)
-    legacy_weapons = _load_optional_legacy_catalog(LEGACY_WEAPONS_JSON)
-    weapon_bases, unconditional_list = _build_weapon_bases(full_weapons, legacy_weapons)
+    try:
+        legacy_weapons = _load_legacy_catalog(LEGACY_WEAPONS_JSON, "legacy weapon")
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
+        return 1
+    weapon_bases, unconditional_list, weapon_errors = _build_weapon_bases(full_weapons, legacy_weapons)
+    if weapon_errors:
+        _print_error_report("Unable to resolve legacy weapon IDs", weapon_errors)
+        return 1
 
     _write_json(WEAPON_BASES_JSON, weapon_bases, dry_run, pretty=pretty)
     _write_go(WEAPON_BUFFS_GEN_GO, _generate_weapon_buffs_go(unconditional_list), dry_run)
@@ -755,13 +808,21 @@ def main() -> int:
     full_fetters = _load_json(FETTERS_JSON)
     character_curve = _load_json(CHARACTER_CURVE_JSON)
     level_curves = _load_json(LEVEL_CURVE_JSON)
-    legacy_weapons = _load_optional_legacy_catalog(LEGACY_WEAPONS_JSON)
-    legacy_echoes = _load_optional_legacy_catalog(LEGACY_ECHOES_JSON)
+    try:
+        legacy_weapons = _load_legacy_catalog(LEGACY_WEAPONS_JSON, "legacy weapon")
+        legacy_echoes = _load_legacy_catalog(LEGACY_ECHOES_JSON, "legacy echo")
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
+        return 1
 
     character_bases = _build_character_bases(full_chars)
-    weapon_bases, unconditional_list = _build_weapon_bases(full_weapons, legacy_weapons)
-    echo_bases = _build_echo_bases(full_echoes, legacy_echoes)
+    weapon_bases, unconditional_list, weapon_errors = _build_weapon_bases(full_weapons, legacy_weapons)
+    echo_bases, echo_errors = _build_echo_bases(full_echoes, legacy_echoes)
     fetter_bases = _build_fetter_bases(full_fetters)
+    if weapon_errors or echo_errors:
+        _print_error_report("Unable to resolve legacy weapon IDs", weapon_errors)
+        _print_error_report("Unable to resolve legacy echo IDs", echo_errors)
+        return 1
 
     _write_json(CHARACTER_BASES_JSON, character_bases, args.dry_run, pretty=args.pretty)
     _write_json(WEAPON_BASES_JSON, weapon_bases, args.dry_run, pretty=args.pretty)
