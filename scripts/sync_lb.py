@@ -26,7 +26,6 @@ from typing import Any
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPTS_DIR.parent / "public" / "Data"
-LB_DATA_DIR = DATA_DIR / "LB"
 LB_REPO_DIR = SCRIPTS_DIR.parent.parent / "lb"
 DATA_OUTPUT_DIR = LB_REPO_DIR / "internal" / "calc" / "data"
 
@@ -38,7 +37,6 @@ CHARACTER_CURVE_JSON = DATA_DIR / "CharacterCurve.json"
 LEVEL_CURVE_JSON = DATA_DIR / "LevelCurve.json"
 LEGACY_ECHOES_JSON = SCRIPTS_DIR.parent / "lib" / "data" / "legacyEchoes.json"
 LEGACY_WEAPONS_JSON = SCRIPTS_DIR.parent / "lib" / "data" / "legacyWeapons.json"
-CHARACTERS_COMPACT = LB_DATA_DIR / "Characters.compact.json"
 
 CHARACTER_BASES_JSON = DATA_OUTPUT_DIR / "character_bases.json"
 WEAPON_BASES_JSON = DATA_OUTPUT_DIR / "weapon_bases.json"
@@ -708,34 +706,6 @@ def _generate_weapon_buffs_go(unconditional_list: list[tuple[str, str, dict]]) -
     return "\n".join(lines) + "\n"
 
 
-# ---------------------------------------------------------------------------
-# Cleanup
-# ---------------------------------------------------------------------------
-
-def _cleanup_compact_artifacts(dry_run: bool) -> None:
-    targets = [CHARACTERS_COMPACT]
-    existing = [p for p in targets if p.exists()]
-
-    if not existing:
-        print("No compact LB artifacts to clean up.")
-        return
-
-    if dry_run:
-        for p in existing:
-            print(f"[DRY RUN] Would delete {p}")
-        return
-
-    for p in existing:
-        p.unlink(missing_ok=True)
-        print(f"Deleted {p}")
-
-    try:
-        LB_DATA_DIR.rmdir()
-        print(f"Removed empty directory {LB_DATA_DIR}")
-    except OSError:
-        pass
-
-
 def _sync_weapons_only(dry_run: bool, pretty: bool) -> int:
     required = [WEAPONS_JSON]
     for path in required:
@@ -763,7 +733,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate LB base-data from local synced game data")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON outputs")
-    parser.add_argument("--keep-compact", action="store_true", help="Keep compact LB artifacts")
     parser.add_argument(
         "--weapons-only",
         action="store_true",
@@ -807,12 +776,6 @@ def main() -> int:
     print(f"  Weapons:    {len(weapon_bases)}")
     print(f"  Echoes:     {len(echo_bases)}")
     print(f"  Fetters:    {len(fetter_bases)}")
-
-    if args.keep_compact:
-        print("\nKeeping compact LB artifacts (--keep-compact set).")
-    else:
-        print("\nCleaning up temporary LB compact artifacts...")
-        _cleanup_compact_artifacts(args.dry_run)
 
     return 0
 

@@ -22,15 +22,6 @@ CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Phantom"
 # Scripts in /scripts; output in /public/Data
 OUTPUT_FILE = Path(__file__).parent.parent / "public/Data/Echoes.json"
-LB_OUTPUT_FILE = Path(__file__).parent.parent / "public/Data/LB/Echoes.compact.json"
-
-FETTER_MAP = {
-    1: "Glacio", 2: "Fusion", 3: "Electro", 4: "Aero", 5: "Spectro", 6: "Havoc",
-    7: "Healing", 8: "ER", 9: "Attack", 10: "Frosty", 11: "Radiance", 12: "Midnight",
-    13: "Empyrean", 14: "Tidebreaking", 16: "Gust", 17: "Windward", 18: "Flaming",
-    19: "Dream", 20: "Crown", 21: "Law", 22: "Flamewing", 23: "Thread", 24: "Pact",
-    25: "Halo", 26: "Rite", 27: "Trailblazing", 28: "Chromatic", 29: "Sound",
-}
 
 STAT_PATTERNS = [
     (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Glacio DMG Bonus", re.I), "Glacio DMG"),
@@ -133,25 +124,6 @@ def transform_echo(raw: dict) -> dict:
     if bonuses:
         echo["bonuses"] = bonuses
     return echo
-
-
-def to_lb_compact(echoes: list[dict]) -> list[dict]:
-    """Create compact LB artifact from transformed echo list."""
-    compact = []
-    for echo in echoes:
-        fetter = echo.get("fetter", [])
-        sets = []
-        if isinstance(fetter, list):
-            sets = [FETTER_MAP[f] for f in fetter if isinstance(f, int) and f in FETTER_MAP]
-        compact.append({
-            "id": str(echo.get("id", "")),
-            "legacyId": str(echo.get("legacyId", "")),
-            "name": (echo.get("name", {}) or {}).get("en", ""),
-            "cost": int(echo.get("cost", 0)),
-            "sets": sets,
-        })
-    compact.sort(key=lambda e: e.get("name", ""))
-    return compact
 
 
 def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
@@ -318,11 +290,8 @@ def main() -> int:
     print(f"  Skipped: {s['skipped_cosmetic']} cosmetic, {s['skipped_rarity']} non-5-star, {s['duplicates']} duplicates")
     if s["orphaned"]:
         print(f"  Orphaned phantom skins: {s['orphaned']}")
-    compact_lb = to_lb_compact(echoes)
-
     if args.dry_run:
         print("\n[DRY RUN] Would write to:", OUTPUT_FILE)
-        print("[DRY RUN] Would write LB compact to:", LB_OUTPUT_FILE)
         if args.pretty:
             print("\nSample output (first 3):")
             print(json.dumps(echoes[:3], indent=2, ensure_ascii=False))
@@ -335,11 +304,7 @@ def main() -> int:
         kwargs = {"indent": 2, "ensure_ascii": False} if args.pretty else {"separators": (",", ":"), "ensure_ascii": False}
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             json.dump(echoes, f, **kwargs)
-        LB_OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(LB_OUTPUT_FILE, "w", encoding="utf-8") as f:
-            json.dump(compact_lb, f, **kwargs)
         print(f"\nWrote {len(echoes)} echoes to {OUTPUT_FILE}")
-        print(f"Wrote {len(compact_lb)} compact LB echoes to {LB_OUTPUT_FILE}")
     return 0
 
 

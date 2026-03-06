@@ -23,7 +23,6 @@ CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Weapon"
 
 OUTPUT_DIR = Path(__file__).parent.parent / "public/Data/Weapons"
-LB_OUTPUT_FILE = Path(__file__).parent.parent / "public/Data/LB/Weapons.compact.json"
 
 # Schema: True = keep as-is, ["k1","k2"] = keep only these keys
 SCHEMA = {
@@ -143,93 +142,6 @@ def extract_unconditional_passive_bonuses(raw: dict) -> dict[str, list[float]]:
         return {}
 
     return {stat: rank_values for stat in stats}
-
-
-def _extract_lv90_weapon_stats(raw: dict) -> tuple[float, str, float]:
-    """Extract final level-90 ATK and secondary stat from raw statsLevel."""
-    stats_level = raw.get("statsLevel")
-    if not isinstance(stats_level, dict):
-        return 0.0, "ATK", 0.0
-
-    asc6 = stats_level.get("6") or stats_level.get(6) or {}
-    if not isinstance(asc6, dict):
-        return 0.0, "ATK", 0.0
-
-    lv90 = asc6.get("90") or asc6.get(90)
-    if lv90 is None:
-        # Fallback to highest level available in ascension 6.
-        level_keys = [k for k in asc6.keys() if str(k).isdigit()]
-        if not level_keys:
-            return 0.0, "ATK", 0.0
-        highest = str(max(int(k) for k in level_keys))
-        lv90 = asc6.get(highest)
-
-    if not isinstance(lv90, list):
-        return 0.0, "ATK", 0.0
-
-    atk_entry = None
-    second_entry = None
-    for stat in lv90:
-        if not isinstance(stat, dict):
-            continue
-        sid = stat.get("id")
-        if sid == 7 and atk_entry is None:
-            atk_entry = stat
-            continue
-        if second_entry is None:
-            second_entry = stat
-
-    if atk_entry is None and lv90:
-        atk_entry = lv90[0] if isinstance(lv90[0], dict) else None
-    if second_entry is None and len(lv90) > 1:
-        second_entry = lv90[1] if isinstance(lv90[1], dict) else None
-
-    atk = 0.0
-    if isinstance(atk_entry, dict):
-        try:
-            atk = float(atk_entry.get("value", 0.0))
-        except (TypeError, ValueError):
-            atk = 0.0
-
-    main_name = "ATK"
-    main_val = 0.0
-    if isinstance(second_entry, dict):
-        name_i18n = second_entry.get("name", {})
-        main_name = name_i18n.get("en", "ATK") if isinstance(name_i18n, dict) else str(name_i18n or "ATK")
-        raw_val = second_entry.get("value", 0.0)
-        try:
-            raw_float = float(raw_val)
-        except (TypeError, ValueError):
-            raw_float = 0.0
-        # statsLevel secondary can be decimal ratio (0.30375), x100 ratio (4860), or direct value.
-        if abs(raw_float) <= 1.5:
-            main_val = raw_float * 100.0
-        elif abs(raw_float) > 100.0:
-            main_val = raw_float / 100.0
-        else:
-            main_val = raw_float
-
-    return atk, main_name, main_val
-
-
-def transform_weapon_lb(raw: dict) -> dict | None:
-    """Transform raw CDN weapon to compact LB artifact."""
-    if should_skip(raw):
-        return None
-    name_i18n = raw.get("name", {})
-    type_i18n = raw.get("type", {})
-    rarity = raw.get("rarity", {})
-    atk90, main_stat, main_value = _extract_lv90_weapon_stats(raw)
-    weapon_type = (type_i18n.get("name", {}) or {}).get("en", "") if isinstance(type_i18n, dict) else ""
-    return {
-        "id": str(raw.get("id", "")),
-        "name": name_i18n.get("en", "") if isinstance(name_i18n, dict) else str(name_i18n),
-        "type": weapon_type,
-        "rarity": f"{rarity.get('id', 0)}-star" if isinstance(rarity, dict) else "0-star",
-        "ATK": round(atk90, 1),
-        "main_stat": (main_stat or "ATK").replace("Crit. ", "Crit "),
-        "base_main": round(main_value, 1),
-    }
 
 
 def prepend_cdn(obj: Any) -> Any:
@@ -441,15 +353,11 @@ def main():
 
     # Transform
     weapons = []
-    compact_lb = []
     skipped = 0
     for data in raw_weapons:
         weapon = transform_weapon(data, SCHEMA)
         if weapon:
             weapons.append(weapon)
-        compact = transform_weapon_lb(data)
-        if compact:
-            compact_lb.append(compact)
         else:
             wid = data.get("id", "?")
             name = data.get("name", {}).get("en", "?") if isinstance(data.get("name"), dict) else "?"
@@ -457,7 +365,6 @@ def main():
             skipped += 1
 
     weapons.sort(key=lambda w: w.get("name", {}).get("en", ""))
-    compact_lb.sort(key=lambda w: w.get("name", ""))
     print(f"Transformed {len(weapons)} weapons ({skipped} skipped)")
 
     if not weapons:
@@ -480,7 +387,6 @@ def main():
             print(output_json[:5000])
             if len(output_json) > 5000:
                 print(f"\n... [{size_kb:.1f}KB total, truncated]")
-        print(f"\n[DRY RUN] Would write LB compact artifact: {LB_OUTPUT_FILE} ({len(compact_lb)} entries)")
 
     elif args.individual:
         # Write per-weapon files
@@ -494,11 +400,6 @@ def main():
             size_kb = output_path.stat().st_size / 1024
             print(f"  Saved {output_path.name} ({en_name}) [{size_kb:.1f}KB]")
         print(f"\nDone: {len(weapons)} weapons → {args.output}")
-        LB_OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(LB_OUTPUT_FILE, "w", encoding="utf-8") as f:
-            json.dump(compact_lb, f, **json_kwargs)
-        lb_size_kb = LB_OUTPUT_FILE.stat().st_size / 1024
-        print(f"  Saved LB compact weapons [{lb_size_kb:.1f}KB] ({len(compact_lb)} entries) → {LB_OUTPUT_FILE}")
 
     else:
         # Default: combined Weapons.json
@@ -509,11 +410,6 @@ def main():
         size_kb = combined_path.stat().st_size / 1024
         print(f"  Saved Weapons.json [{size_kb:.1f}KB] ({len(weapons)} weapons)")
         print(f"\nDone: {len(weapons)} weapons → {combined_path}")
-        LB_OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(LB_OUTPUT_FILE, "w", encoding="utf-8") as f:
-            json.dump(compact_lb, f, **json_kwargs)
-        lb_size_kb = LB_OUTPUT_FILE.stat().st_size / 1024
-        print(f"  Saved LB compact weapons [{lb_size_kb:.1f}KB] ({len(compact_lb)} entries) → {LB_OUTPUT_FILE}")
 
     return 0
 

@@ -68,6 +68,6 @@ python sync_lb.py --weapons-only                 # Regenerate LB weapon bases + 
 python download_echo_icons.py --clean --force    # Refresh backend echo template PNGs by CDN ID
 ```
 
-`sync_all.py` runs `sync_characters` (with `--emit-lb-compact`), `sync_weapons`, `sync_echoes`, `sync_fetters`,
+`sync_all.py` runs `sync_characters`, `sync_weapons`, `sync_echoes`, `sync_fetters`,
 `stat_translations`, `sync_backend`, and `sync_lb` in sequence.  
-See [`scripts/CDN_SYNC.md`](./scripts/CDN_SYNC.md) for per-script flags, outputs, and LB compact artifact behavior.
+See [`scripts/CDN_SYNC.md`](./scripts/CDN_SYNC.md) for per-script flags and outputs.

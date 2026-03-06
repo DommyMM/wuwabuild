@@ -29,7 +29,7 @@ def main() -> int:
     passthrough.extend(rest)
 
     scripts = [
-        ("Characters", [sys.executable, str(scripts_dir / "sync_characters.py"), "--fetch", "--emit-lb-compact"]),
+        ("Characters", [sys.executable, str(scripts_dir / "sync_characters.py"), "--fetch"]),
         ("Weapons",    [sys.executable, str(scripts_dir / "sync_weapons.py"), "--fetch"]),
         ("Echoes",     [sys.executable, str(scripts_dir / "sync_echoes.py"), "--fetch"]),
         ("Fetters",    [sys.executable, str(scripts_dir / "sync_fetters.py")]),
