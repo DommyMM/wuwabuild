@@ -6,14 +6,10 @@ import { Echo } from '@/lib/echo';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
+import { RegionBadge } from './buildConstants';
 import { formatFlatStat, formatPercentStat } from './buildFormatters';
 
 const FORTE_SHORT_LABELS = ['N', 'S', 'C', 'L', 'I'] as const;
-
-type RegionBadge = {
-  label: string;
-  className: string;
-};
 
 type SubstatSummaryEntry = {
   type: string;
