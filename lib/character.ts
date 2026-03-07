@@ -158,6 +158,7 @@ export interface Character {
   chains?: CDNChainEntry[]; // Resonance chains (S1–S6) with icon URLs
   moves?: CDNMoveEntry[]; // Compact skill payload for tooltip rendering
   roverElementName?: Element; // For Rover's element selection (Aero | Spectro | Havoc)
+  preferredStats?: string[]; // Ordered list of preferred substats for RV calculation
 }
 
 export type CharacterSkin = CDNCharacter['skins'][number];

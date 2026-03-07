@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Search, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, Search, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Character, formatCharacterDisplayName } from '@/lib/character';
@@ -9,7 +9,7 @@ import { LBSortDirection, LBSortKey } from '@/lib/lb';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { getWeaponPaths } from '@/lib/paths';
 import { Weapon } from '@/lib/weapon';
-import { clampItemsPerPage, MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE, REGION_OPTIONS, SORT_OPTIONS } from './buildConstants';
+import { MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE, REGION_OPTIONS, SORT_OPTIONS } from './buildConstants';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from './types';
 
 type VisibleFilterItem =
@@ -203,30 +203,6 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isFilterMode, setIsFilterMode] = useState(false);
   const [activeItemIndex, setActiveItemIndex] = useState(-1);
-  const [isCustomPageSize, setIsCustomPageSize] = useState(() => !pageSizePresets.includes(pageSize));
-  const [customPageSizeInput, setCustomPageSizeInput] = useState(() => String(pageSize));
-
-  const applyCustomPageSize = () => {
-    const parsed = Number.parseInt(customPageSizeInput, 10);
-    if (!Number.isFinite(parsed)) {
-      setCustomPageSizeInput(String(pageSize));
-      return;
-    }
-    const clamped = Math.min(maxPageSize, clampItemsPerPage(parsed));
-    setCustomPageSizeInput(String(clamped));
-    onPageSizeChange(clamped);
-  };
-
-  useEffect(() => {
-    if (!pageSizePresets.includes(pageSize)) {
-      setIsCustomPageSize(true);
-    }
-  }, [pageSize, pageSizePresets]);
-
-  useEffect(() => {
-    if (!isCustomPageSize) return;
-    setCustomPageSizeInput(String(pageSize));
-  }, [isCustomPageSize, pageSize]);
 
   const selectedCharacterIds = useMemo(
     () => new Set(selectedCharacters.map((entry) => entry.id)),
@@ -451,7 +427,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
         <div className="text-sm font-semibold uppercase tracking-wide text-accent">
           Filters
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="relative z-30 flex flex-wrap items-center gap-2">
           {showSortControls && (
             <>
               <select
@@ -473,54 +449,16 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
               </button>
             </>
           )}
-          <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-2 py-1 text-xs text-text-primary">
-            <span className="text-text-primary/75">Max items</span>
-            <div className="relative">
-              <select
-                value={isCustomPageSize ? 'custom' : String(pageSize)}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  if (next === 'custom') {
-                    setIsCustomPageSize(true);
-                    setCustomPageSizeInput(String(pageSize));
-                    return;
-                  }
-                  setIsCustomPageSize(false);
-                  onPageSizeChange(Number.parseInt(next, 10));
-                }}
-                className="h-7 appearance-none rounded-md border border-border bg-background-secondary pl-2 pr-6 text-xs text-text-primary focus:border-accent/60 focus:outline-none"
-              >
-                {pageSizePresets.map((value) => (
-                  <option key={`page-size-${value}`} value={String(value)}>{value}</option>
-                ))}
-                <option value="custom">Custom...</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-primary/70" />
-            </div>
-            {isCustomPageSize && (
-              <input
-                type="number"
-                min={1}
-                max={maxPageSize}
-                value={customPageSizeInput}
-                onChange={(event) => setCustomPageSizeInput(event.target.value)}
-                onBlur={applyCustomPageSize}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    applyCustomPageSize();
-                    return;
-                  }
-                  if (event.key === 'Escape') {
-                    event.preventDefault();
-                    setCustomPageSizeInput(String(pageSize));
-                  }
-                }}
-                className="h-7 w-16 rounded-md border border-border bg-background-secondary px-2 text-right text-xs text-text-primary focus:border-accent/60 focus:outline-none"
-                aria-label="Custom max items"
-              />
-            )}
-          </div>
+          <select
+            value={String(pageSize)}
+            onChange={(event) => onPageSizeChange(Number.parseInt(event.target.value, 10))}
+            className="appearance-none rounded-lg border border-border bg-background py-1.5 px-3 text-xs text-text-primary transition-colors hover:border-accent/50 focus:border-accent/60 focus:outline-none"
+            aria-label="Max items per page"
+          >
+            {pageSizePresets.map((value) => (
+              <option key={`page-size-${value}`} value={String(value)}>Max Rows: {value}</option>
+            ))}
+          </select>
           <button
             type="button"
             onClick={onClearAllFilters}
