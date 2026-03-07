@@ -20,7 +20,8 @@ export async function generateStaticParams() {
     return routes;
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+    const { id } = await params;
     const dataDir = path.join(process.cwd(), 'public', 'Data');
     const wepPath = path.join(dataDir, 'Weapons.json');
     let title = 'Weapon Build - WuWaBuilds';
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
         let weaponInfo: { id: string | number; name?: { en: string } } | null = null;
         for (const typeKey in wepsData) {
             const weps = Object.values(wepsData[typeKey]);
-            const found = weps.find((w: unknown) => (w as { id: string | number }).id.toString() === params.id) as { id: string | number; name?: { en: string } } | undefined;
+            const found = weps.find((w: unknown) => (w as { id: string | number }).id.toString() === id) as { id: string | number; name?: { en: string } } | undefined;
             if (found) {
                 weaponInfo = found;
                 break;
@@ -54,7 +55,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     };
 }
 
-export default function WeaponPage({ params }: { params: { id: string } }) {
+export default async function WeaponPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const dataDir = path.join(process.cwd(), 'public', 'Data');
     const wepPath = path.join(dataDir, 'Weapons.json');
     let wepName = '';
@@ -64,7 +66,7 @@ export default function WeaponPage({ params }: { params: { id: string } }) {
         const wepsData = JSON.parse(fs.readFileSync(wepPath, 'utf8'));
         for (const typeKey in wepsData) {
             const weps = Object.values(wepsData[typeKey]);
-            const found = weps.find((w: unknown) => (w as { id: string | number }).id.toString() === params.id) as { id: string | number; name?: { en: string } } | undefined;
+            const found = weps.find((w: unknown) => (w as { id: string | number }).id.toString() === id) as { id: string | number; name?: { en: string } } | undefined;
             if (found) {
                 wepName = found.name?.en || '';
                 typeName = typeKey;
@@ -84,7 +86,7 @@ export default function WeaponPage({ params }: { params: { id: string } }) {
             </div>
             <div className="px-3 py-4 md:px-16 md:py-6">
                 <DataLoadingGate>
-                    <WeaponClient weaponId={params.id} />
+                    <WeaponClient weaponId={id} />
                 </DataLoadingGate>
             </div>
         </main>

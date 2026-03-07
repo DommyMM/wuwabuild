@@ -18,7 +18,8 @@ export async function generateStaticParams() {
     return [];
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+    const { id } = await params;
     const dataDir = path.join(process.cwd(), 'public', 'Data');
     const charPath = path.join(dataDir, 'Characters.json');
     let title = 'Character Build - WuWaBuilds';
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
     if (fs.existsSync(charPath)) {
         const charsData = JSON.parse(fs.readFileSync(charPath, 'utf8'));
-        const char = Object.values(charsData).find((c: unknown) => (c as { id: string | number }).id.toString() === params.id) as { id: string | number; name?: { en: string } } | undefined;
+        const char = Object.values(charsData).find((c: unknown) => (c as { id: string | number }).id.toString() === id) as { id: string | number; name?: { en: string } } | undefined;
         if (char && char.name && char.name.en) {
             title = `${char.name.en} Build & Guide - Wuthering Waves`;
             description = `The best build for ${char.name.en} in Wuthering Waves. See optimal weapons, echoes, skill priorities, and stats on WuWaBuilds.`;
@@ -43,7 +44,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     };
 }
 
-export default function CharacterPage({ params }: { params: { id: string } }) {
+export default async function CharacterPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const dataDir = path.join(process.cwd(), 'public', 'Data');
     const charPath = path.join(dataDir, 'Characters.json');
     let charName = '';
@@ -52,7 +54,7 @@ export default function CharacterPage({ params }: { params: { id: string } }) {
 
     if (fs.existsSync(charPath)) {
         const charsData = JSON.parse(fs.readFileSync(charPath, 'utf8'));
-        const char = Object.values(charsData).find((c: unknown) => (c as { id: string | number }).id.toString() === params.id) as { id: string | number; name?: { en: string }; weaponType?: string; element?: string } | undefined;
+        const char = Object.values(charsData).find((c: unknown) => (c as { id: string | number }).id.toString() === id) as { id: string | number; name?: { en: string }; weaponType?: string; element?: string } | undefined;
         if (char) {
             charName = char.name?.en || '';
             weaponType = char.weaponType || '';
@@ -73,7 +75,7 @@ export default function CharacterPage({ params }: { params: { id: string } }) {
             </div>
             <div className="px-3 py-4 md:px-16 md:py-6">
                 <DataLoadingGate>
-                    <CharacterClient characterId={params.id} />
+                    <CharacterClient characterId={id} />
                 </DataLoadingGate>
             </div>
         </main>
