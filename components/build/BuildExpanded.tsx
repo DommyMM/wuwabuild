@@ -2,10 +2,14 @@
 
 import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Echo } from '@/lib/echo';
+import { useGameData } from '@/contexts/GameDataContext';
+import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/cv';
+import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { isPercentStat } from '@/lib/constants/statMappings';
+import { Echo } from '@/lib/echo';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
+import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
 import { RegionBadge } from './buildConstants';
 import { formatFlatStat, formatPercentStat } from './buildFormatters';
 
@@ -68,6 +72,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   translateText,
   onRetryDetail,
 }) => {
+  const { fettersByElement, getSubstatValues } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
 
   const detailSubstatSummary = useMemo<SubstatSummaryEntry[]>(() => {
@@ -123,9 +128,9 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.22, ease: 'easeInOut' }}
-          className="overflow-hidden border-t border-border/50 bg-black/15"
+          className="overflow-hidden border-t border-border/50 bg-black/15 tracking-wide"
         >
-          <div className="space-y-3 p-3">
+          <div className="space-y-4 py-3 px-12">
             {isDetailLoading && (
               <div className="flex items-center gap-3 rounded-lg border border-border bg-background/70 p-3 text-sm text-text-primary/80">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
@@ -148,16 +153,13 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
 
             {!isDetailLoading && !detailError && detail && (
               <>
-                <div className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background/80 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
-                  <div className="min-w-0">
-                    <div className="text-sm text-text-primary/70">
-                      {characterName} Lv.{detail.buildState.characterLevel}
-                    </div>
-                    <div className="mt-1 text-xs text-text-primary/60">
-                      {detail.owner.username || 'Anonymous'} - UID {detail.owner.uid || '-'} {regionBadge ? `- ${regionBadge.label}` : ''}
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-sm text-text-primary/70">
+                    {characterName} Lv.{detail.buildState.characterLevel}
                   </div>
-
+                  <div className="text-xs text-text-primary/60">
+                    {detail.owner.username || 'Anonymous'} - UID {detail.owner.uid || '-'} {regionBadge ? `- ${regionBadge.label}` : ''}
+                  </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {FORTE_SHORT_LABELS.map((label, forteIndex) => {
                       const entryForte = detail.buildState.forte?.[forteIndex];
@@ -172,17 +174,9 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                       );
                     })}
                   </div>
-
-                  <div className="text-right text-xs text-text-primary/60">
-                    {detail.timestamp ? new Date(detail.timestamp).toLocaleString() : 'Unknown date'}
-                  </div>
                 </div>
 
-                <div className="rounded-lg border border-border bg-background/80 p-3">
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">
-                    Echoes
-                  </div>
-                  <div className="flex flex-col gap-2 xl:flex-row">
+                <div className="flex gap-4 px-4">
                     {detail.buildState.echoPanels.map((panel, panelIndex) => {
                       const echo = panel.id ? getEcho(panel.id) : null;
                       const echoName = echo
@@ -193,17 +187,25 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                       const mainStatIcon = mainStatType
                         ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')] ?? '')
                         : '';
+                      const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
 
                       const panelSubstats = panel.stats.subStats.filter((sub) => {
                         const key = normalizeSubstatKey(sub.type);
                         return Boolean(key && sub.value !== null);
                       });
 
+                      const elementType = echo ? (echo.elements.length === 1 ? echo.elements[0] : panel.selectedElement) : null;
+                      const fetter = elementType ? fettersByElement[elementType] : null;
+                      const fetterIcon = fetter?.icon ?? fetter?.fetterIcon ?? null;
+
+                      const echoCV = calculateEchoSubstatCV(panel);
+                      const cvTier = echoCV > 0 ? getEchoCVTierStyle(echoCV) : null;
+
                       if (!echo) {
                         return (
                           <div
                             key={`${detail.id}-panel-empty-${panelIndex}`}
-                            className="relative flex min-h-[198px] flex-1 items-center justify-center overflow-hidden rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
+                            className="relative flex flex-1 items-center justify-center aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
                           >
                             <div className="h-7 w-7 rounded-full border-2 border-dashed border-white/20" />
                           </div>
@@ -213,119 +215,162 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                       return (
                         <div
                           key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
-                          className="relative flex min-h-[198px] flex-1 overflow-hidden rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
+                          className="relative flex-1 aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
                         >
-                          <div className="flex w-2/3 flex-col justify-between overflow-hidden">
-                            <img
-                              src={getEchoPaths(echo, panel.phantom)}
-                              alt={echoName}
-                              className="h-auto w-full object-cover"
-                              style={{
-                                maskImage: 'linear-gradient(90deg, #000 35%, transparent 92%)',
-                                WebkitMaskImage: 'linear-gradient(90deg, #000 35%, transparent 92%)',
-                                maskRepeat: 'no-repeat',
-                                WebkitMaskRepeat: 'no-repeat',
-                                maskSize: '100% 100%',
-                                WebkitMaskSize: '100% 100%',
-                              }}
-                            />
-                            <div className="p-2 pt-0">
+                          {/* Fetter icon top center */}
+                          {fetterIcon && (
+                            <div className="absolute top-0 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
+                              <img
+                                src={fetterIcon}
+                                alt={elementType ?? ''}
+                                className="h-6 w-6 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
+                              />
+                            </div>
+                          )}
+
+                          {/* Echo image rounded so it doesn't clip container */}
+                          <img
+                            src={getEchoPaths(echo, panel.phantom)}
+                            alt={echoName}
+                            className="absolute h-full object-cover transition-all duration-200 rounded-xl"
+                            style={ECHO_IMAGE_FADE_STYLE}
+                          />
+
+                          {/* Two column layout */}
+                          <div className="relative z-10 flex h-full">
+                            {/* Left column: CV badge (top) + main stat (bottom) */}
+                            <div className="flex w-1/2 flex-col items-start justify-between p-2">
+                              {/* CV badge */}
+                              <div className="flex flex-col items-start gap-1">
+                                {cvTier && (
+                                  <div
+                                    className="flex items-center rounded-md border px-2 py-1"
+                                    style={{
+                                      borderColor: `${cvTier.color}66`,
+                                      color: cvTier.color,
+                                      backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
+                                    }}
+                                  >
+                                    <span className="text-xs font-bold leading-tight">{echoCV.toFixed(1)} CV</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Main stat */}
                               {mainStatType && mainStatValue != null && (
-                                <div className="inline-flex items-center gap-1 rounded-md border border-white/18 bg-black/65 px-1.5 py-0.5 text-sm font-semibold text-white/95">
+                                <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/75 px-2 py-1">
                                   {mainStatIcon ? (
-                                    <img src={mainStatIcon} alt="" className="h-4 w-4 object-contain" />
+                                    <img src={mainStatIcon} alt="" className="h-5 w-5 object-contain" />
                                   ) : (
-                                    <span className="h-4 w-4 rounded bg-white/18" />
+                                    <span className="h-5 w-5 rounded bg-white/18" />
                                   )}
-                                  <span>{formatSubstatTotal(mainStatType, Number(mainStatValue))}</span>
+                                  <span className="text-base font-semibold">
+                                    {isMainPercent
+                                      ? `${Number(mainStatValue).toFixed(1)}%`
+                                      : Math.round(Number(mainStatValue)).toLocaleString()}
+                                  </span>
                                 </div>
                               )}
                             </div>
-                          </div>
 
-                          <div className="-ml-5 flex flex-1 flex-col justify-between py-3 pr-1">
-                            {Array.from({ length: 5 }).map((_, subIndex) => {
-                              const sub = panelSubstats[subIndex];
-                              if (!sub?.type || sub.value === null) {
-                                return <div key={`${detail.id}-empty-sub-${panelIndex}-${subIndex}`} className="h-5" />;
-                              }
+                            {/* Right column: substats */}
+                            <div className="flex w-1/2 flex-col items-start justify-between py-3 pl-8">
+                              {Array.from({ length: 5 }).map((_, subIndex) => {
+                                const sub = panelSubstats[subIndex];
+                                if (!sub?.type || sub.value === null) {
+                                  return <div key={`${detail.id}-empty-sub-${panelIndex}-${subIndex}`} className="h-5" />;
+                                }
 
-                              const subType = normalizeSubstatKey(sub.type) ?? '';
-                              const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')] ?? '';
-                              const isMatchedSelection = hasSelectedSubstats && selectedSubstats.has(subType);
-                              const isDimmed = hasSelectedSubstats && !isMatchedSelection;
+                                const subType = normalizeSubstatKey(sub.type) ?? '';
+                                const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')] ?? '';
+                                const isSubPercent = isPercentStat(subType);
+                                const tierColor = getSubstatTierColor(subType, Number(sub.value), getSubstatValues(subType));
+                                const isMatchedSelection = hasSelectedSubstats && selectedSubstats.has(subType);
+                                const isDimmed = hasSelectedSubstats && !isMatchedSelection;
 
-                              return (
-                                <div
-                                  key={`${detail.id}-sub-${panelIndex}-${subIndex}`}
-                                  className={`relative flex items-center gap-1 rounded-sm px-1 py-0.5 text-sm font-semibold leading-none transition-all duration-200 ${
-                                    isMatchedSelection
-                                      ? 'border-b border-amber-300/70 bg-amber-300/20 pr-3 text-white'
-                                      : (isDimmed ? 'opacity-35' : 'text-white/90')
-                                  }`}
-                                >
-                                  {subIcon ? (
-                                    <img src={subIcon} alt="" className="h-4.5 w-4.5 object-contain" />
-                                  ) : (
-                                    <span className="h-4 w-4 rounded bg-white/18" />
-                                  )}
-                                  <span>{formatSubstatTotal(subType, Number(sub.value))}</span>
-                                  {isMatchedSelection && (
-                                    <span className="pointer-events-none absolute right-1 top-1/2 h-0 w-0 -translate-y-1/2 border-y-4 border-y-transparent border-r-[6px] border-r-amber-300/95" />
-                                  )}
-                                </div>
-                              );
-                            })}
+                                const tierStyle: React.CSSProperties | undefined = tierColor ? {
+                                  backgroundColor: `${tierColor}18`,
+                                  borderBottom: `1px solid ${tierColor}80`,
+                                } : undefined;
+
+                                return (
+                                  <div
+                                    key={`${detail.id}-sub-${panelIndex}-${subIndex}`}
+                                    className={`flex items-center gap-1 rounded-sm px-1.5 py-1 transition-all duration-200 ${
+                                      isMatchedSelection
+                                        ? 'ring-1 ring-amber-300/70 bg-amber-300/20 text-white'
+                                        : (isDimmed ? 'opacity-35' : 'text-white/90')
+                                    }`}
+                                    style={!isMatchedSelection ? tierStyle : undefined}
+                                  >
+                                    {subIcon ? (
+                                      <img src={subIcon} alt="" className="h-4.5 w-4.5 object-contain" />
+                                    ) : (
+                                      <span className="h-4 w-4 rounded bg-white/18" />
+                                    )}
+                                    <span className="text-base font-semibold leading-none">
+                                      {isSubPercent ? `${Number(sub.value).toFixed(1)}%` : Math.round(Number(sub.value))}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                </div>
 
-                <div className="rounded-lg border border-border bg-background/80 p-3">
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-primary/55">
-                    Substat Summary
-                  </div>
-                  {detailSubstatSummary.length === 0 ? (
-                    <div className="text-sm text-text-primary/55">No substats found.</div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {detailSubstatSummary.map((summary) => {
-                        const isSelected = selectedSubstats.has(summary.type);
-                        const isDimmed = hasSelectedSubstats && !isSelected;
-                        const totalText = summary.isPercent
-                          ? formatPercentStat(summary.total)
-                          : formatFlatStat(summary.total);
+                {detailSubstatSummary.length > 0 && (
+                  <div className="flex justify-center gap-2">
+                    {detailSubstatSummary.map((summary) => {
+                      const isSelected = selectedSubstats.has(summary.type);
+                      const isDimmed = hasSelectedSubstats && !isSelected;
+                      const totalText = summary.isPercent
+                        ? formatPercentStat(summary.total)
+                        : formatFlatStat(summary.total);
 
-                        return (
-                          <button
-                            key={`${detail.id}-summary-${summary.type}`}
-                            type="button"
-                            aria-pressed={isSelected}
-                            onClick={() => toggleSubstatSelection(summary.type)}
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm font-semibold transition-all duration-200 ${
-                              isSelected
-                                ? 'border-amber-300/75 bg-amber-300/22 text-amber-100 shadow-[0_0_12px_rgba(250,204,21,0.24)]'
-                                : (isDimmed
-                                  ? 'border-white/15 bg-black/45 text-white/70 opacity-40'
-                                  : 'border-amber-300/45 bg-black/45 text-white/92 hover:border-amber-200/65')
-                            }`}
-                            title={summary.type}
-                          >
-                            <span className="text-amber-300">x{summary.count}</span>
-                            {summary.icon ? (
-                              <img src={summary.icon} alt="" className="h-4 w-4 object-contain" />
-                            ) : (
-                              <span className="h-4 w-4 rounded bg-white/18" />
-                            )}
-                            <span>{totalText}</span>
-                          </button>
-                        );
-                      })}
+                      return (
+                        <button
+                          key={`${detail.id}-summary-${summary.type}`}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => toggleSubstatSelection(summary.type)}
+                          className={`inline-flex items-center gap-1.25 rounded-full border px-2.5 py-1 text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                            isSelected
+                              ? 'border-amber-300/75 bg-amber-300/22 text-amber-100 shadow-[0_0_12px_rgba(250,204,21,0.24)]'
+                              : (isDimmed
+                                ? 'border-white/15 bg-black/45 text-white/70 opacity-40'
+                                : 'border-amber-300/45 bg-black/45 text-white/92 hover:border-amber-200/65')
+                          }`}
+                          title={summary.type}
+                        >
+                          <span className="text-amber-300">x{summary.count}</span>
+                          {summary.icon ? (
+                            <img src={summary.icon} alt="" className="h-4 w-4 object-contain" />
+                          ) : (
+                            <span className="h-4 w-4 rounded bg-white/18" />
+                          )}
+                          <span className="text-base">{totalText}</span>
+                        </button>
+                      );
+                    })}
+
+                    {/* RV block */}
+                    <div
+                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-sm font-semibold transition-all duration-200 select-none ${
+                        hasSelectedSubstats
+                          ? 'border-amber-300/75 bg-amber-300/22 text-amber-100'
+                          : 'border-amber-300/45 bg-black/45 text-white/92'
+                      }`}
+                    >
+                      <span className="text-amber-300">x{selectedSubstats.size}</span>
+                      <span>• </span>
+                      <span className="text-amber-300"> RV</span>
+                      <span className="text-base">{selectedSubstats.size}%</span>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </>
             )}
           </div>

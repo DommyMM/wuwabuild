@@ -12,6 +12,7 @@ import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { getEchoPaths } from '@/lib/paths';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { isRover } from '@/lib/character';
+import { matchesEchoBonusCondition } from '@/lib/constants/statBonuses';
 
 interface EchoSectionProps {
   echoPanels: EchoPanelState[];
@@ -21,34 +22,13 @@ interface EchoSectionProps {
   onHoverStatChange?: (next: StatHoverKey | null) => void;
 }
 
-const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
+export const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
   maskImage: 'linear-gradient(90deg, #000 30%, transparent 90%)',
   WebkitMaskImage: 'linear-gradient(90deg, #000 30%, transparent 90%)',
   maskRepeat: 'no-repeat',
   WebkitMaskRepeat: 'no-repeat',
   maskSize: '100% 100%',
   WebkitMaskSize: '100% 100%',
-};
-
-const ROVER_ELEMENT_TOKENS = new Set(['Aero', 'Havoc', 'Spectro']);
-
-const matchesEchoBonusCondition = (
-  conditions: string[] | undefined,
-  characterName: string | undefined,
-  isRoverCharacter: boolean,
-  roverElement: string | undefined
-): boolean => {
-  if (!conditions || conditions.length === 0) return true;
-
-  return conditions.some((condition) => {
-    const token = condition.trim();
-    if (!token) return false;
-    if (characterName === token) return true;
-    if (isRoverCharacter && roverElement && ROVER_ELEMENT_TOKENS.has(token)) {
-      return roverElement === token;
-    }
-    return false;
-  });
 };
 
 export const EchoSection: React.FC<EchoSectionProps> = ({

@@ -140,7 +140,7 @@ export const BuildRow: React.FC<BuildRowProps> = ({
                 ) : (
                   <div className="h-8 w-8" />
                 )}
-                <span className="text-xs -mb-1 -ml-0.25 font-semibold leading-none text-primary">
+                <span className="text-xs -mb-1 -ml-px font-semibold leading-none text-primary">
                   {setEntry.count}
                 </span>
               </div>
