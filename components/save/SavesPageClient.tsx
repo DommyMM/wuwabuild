@@ -533,7 +533,7 @@ export const SavesPageClient: React.FC = () => {
                 placeholder={selectedCharacters.length || selectedWeapons.length
                   ? 'Add another character or weapon filter...'
                   : 'Filter by character or weapon...'}
-                className="min-w-[220px] flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-primary/45 outline-none"
+                className="min-w-55 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-primary/45 outline-none"
               />
             </div>
 

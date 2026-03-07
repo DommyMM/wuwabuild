@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/cv';
@@ -23,6 +23,8 @@ type SubstatSummaryEntry = {
   icon: string;
   isPercent: boolean;
 };
+
+const BASE_STATS_SET = new Set<string>(BASE_STATS);
 
 interface BuildExpandedProps {
   entry: LBBuildRowEntry;
@@ -63,17 +65,13 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
 
-  // Auto-select character's preferred substats on detail load
-  useEffect(() => {
-    if (!detail || hasManuallyInteracted) return;
+  // Derive character default substat selections without effect-driven state updates.
+  const autoSelectedSubstats = useMemo(() => {
+    if (!detail) return new Set<string>();
 
     const preferredStats = character?.preferredStats ?? DEFAULT_PREFERRED_STATS;
-    
-    console.log('[RV Auto-select] Character:', character?.name ?? 'Unknown');
-    console.log('[RV Auto-select] Preferred stats:', preferredStats);
-    console.log('[RV Auto-select] Source:', character?.preferredStats ? 'character.preferredStats' : 'DEFAULT_PREFERRED_STATS');
-    
-    // Find which of the preferred stats are actually present in this build
+
+    // Find which of the preferred stats are actually present in this build.
     const availableStats = new Set<string>();
     for (const panel of detail.buildState.echoPanels) {
       for (const sub of panel.stats.subStats) {
@@ -84,9 +82,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
       }
     }
 
-    console.log('[RV Auto-select] Available stats in build:', Array.from(availableStats));
-
-    // Select the preferred stats that are present
+    // Select preferred stats that are present.
     const toSelect = new Set<string>();
     for (const stat of preferredStats) {
       if (availableStats.has(stat)) {
@@ -94,11 +90,15 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
       }
     }
 
+    console.log('[RV Auto-select] Character:', character?.name ?? 'Unknown');
+    console.log('[RV Auto-select] Preferred stats:', preferredStats);
+    console.log('[RV Auto-select] Source:', character?.preferredStats ? 'character.preferredStats' : 'DEFAULT_PREFERRED_STATS');
+    console.log('[RV Auto-select] Available stats in build:', Array.from(availableStats));
     console.log('[RV Auto-select] Stats selected:', Array.from(toSelect));
     console.log('[RV Auto-select] Stats matched:', toSelect.size, '/', preferredStats.length);
 
-    setSelectedSubstats(toSelect);
-  }, [detail, character, hasManuallyInteracted]);
+    return toSelect;
+  }, [detail, character]);
 
   const detailSubstatSummary = useMemo<SubstatSummaryEntry[]>(() => {
     if (!detail) return [];
@@ -146,7 +146,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     for (const key of statOrder) {
       if (key === 'Crit Rate' || key === 'Crit DMG') {
         crits.push(key);
-      } else if (BASE_STATS.includes(key as any)) {
+      } else if (BASE_STATS_SET.has(key)) {
         flats.push(key);
       } else {
         rest.push(key);
@@ -156,14 +156,16 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     return [...crits, ...rest, ...flats].map((key) => summaryMap.get(key)!);
   }, [detail, statIcons, statTranslations]);
 
-  const hasSelectedSubstats = selectedSubstats.size > 0;
+  const activeSelectedSubstats = hasManuallyInteracted ? selectedSubstats : autoSelectedSubstats;
+  const hasSelectedSubstats = activeSelectedSubstats.size > 0;
 
   const toggleSubstatSelection = (type: string) => {
     const normalizedType = normalizeSubstatKey(type);
     if (!normalizedType) return;
     setHasManuallyInteracted(true);
     setSelectedSubstats((prev) => {
-      const next = new Set(prev);
+      const base = hasManuallyInteracted ? prev : autoSelectedSubstats;
+      const next = new Set(base);
       if (next.has(normalizedType)) {
         next.delete(normalizedType);
       } else {
@@ -176,13 +178,13 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   // Calculate total roll count for selected substats
   const totalSelectedRolls = useMemo(() => {
     return detailSubstatSummary
-      .filter((summary) => selectedSubstats.has(summary.type))
+      .filter((summary) => activeSelectedSubstats.has(summary.type))
       .reduce((sum, summary) => sum + summary.count, 0);
-  }, [detailSubstatSummary, selectedSubstats]);
+  }, [activeSelectedSubstats, detailSubstatSummary]);
 
   // Calculate overall RV for selected substats
   const overallRV = useMemo(() => {
-    if (!detail || selectedSubstats.size === 0) return 0;
+    if (!detail || activeSelectedSubstats.size === 0) return 0;
 
     // Build a map of selected substat types to their total values
     const selectedTotals = new Map<string, number>();
@@ -190,7 +192,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     for (const panel of detail.buildState.echoPanels) {
       for (const sub of panel.stats.subStats) {
         const normalizedType = normalizeSubstatKey(sub.type);
-        if (!normalizedType || sub.value === null || !selectedSubstats.has(normalizedType)) {
+        if (!normalizedType || sub.value === null || !activeSelectedSubstats.has(normalizedType)) {
           continue;
         }
         
@@ -200,7 +202,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     }
 
     return calculateOverallRV(selectedTotals, getSubstatValues);
-  }, [detail, selectedSubstats, getSubstatValues]);
+  }, [activeSelectedSubstats, detail, getSubstatValues]);
 
   return (
     <AnimatePresence initial={false}>
@@ -389,7 +391,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                                 const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')] ?? '';
                                 const isSubPercent = isPercentStat(subType);
                                 const tierColor = getSubstatTierColor(subType, Number(sub.value), getSubstatValues(subType));
-                                const isMatchedSelection = hasSelectedSubstats && selectedSubstats.has(subType);
+                                const isMatchedSelection = hasSelectedSubstats && activeSelectedSubstats.has(subType);
                                 const isDimmed = hasSelectedSubstats && !isMatchedSelection;
 
                                 const tierStyle: React.CSSProperties | undefined = tierColor ? {
@@ -428,7 +430,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                 {detailSubstatSummary.length > 0 && (
                   <div className="flex justify-center gap-2">
                     {detailSubstatSummary.map((summary) => {
-                      const isSelected = selectedSubstats.has(summary.type);
+                      const isSelected = activeSelectedSubstats.has(summary.type);
                       const isDimmed = hasSelectedSubstats && !isSelected;
                       const totalText = summary.isPercent
                         ? formatPercentStat(summary.total)

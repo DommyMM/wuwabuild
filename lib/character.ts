@@ -98,6 +98,7 @@ export interface CDNCharacter {
   skillTrees?: CDNSkillTreeNode[];
   chains?: CDNChainEntry[];
   moves?: CDNMoveEntry[];
+  preferredStats?: string[];
 }
 
 // CDN weapon ID -> WeaponType mapping
@@ -349,6 +350,9 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     forteNodes,
     chains: cdn.chains,
     moves: cdn.moves,
+    preferredStats: Array.isArray(cdn.preferredStats)
+      ? cdn.preferredStats.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+      : undefined,
     roverElementName: isRoverChar ? (ELEMENT_ID_MAP[cdn.element.id] ?? Element.Spectro) : undefined,
   };
 };
