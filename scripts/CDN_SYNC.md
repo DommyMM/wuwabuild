@@ -90,6 +90,7 @@ Each character JSON includes by default:
 | `skillTrees` | Forte stat nodes (English-only, see below) |
 | `skillIcons` | Skill icon URLs keyed by type (see below) |
 | `chains` | Resonance chains / sequences (English-only, see below) |
+| `preferredStats` | Recommended echo substats for this character (see below) |
 | `legacyId` | Old sequential ID extracted from iconRound URL |
 
 Optional with `--include-skills`:
@@ -159,6 +160,36 @@ The `chains` field is a flat array of 6 resonance chain entries (S1–S6), Engli
 
 - `description`: Contains markup tags like `<color=Highlight>` and `<te href=...>` (game text formatting)
 - `param`: Array of string values that fill `{0}`, `{1}`, etc. placeholders in the description
+
+### preferredStats (Recommended Echo Substats)
+
+The `preferredStats` field is derived automatically from character tags and skillTree data to recommend which echo substats players should prioritize for optimal builds. This eliminates manual curation and provides data-driven echo building recommendations.
+
+```json
+["Crit Rate", "Crit DMG", "ATK", "Resonance Skill DMG Bonus", "Energy Regen"]
+```
+
+**Derivation Logic:**
+
+1. **Default:** All characters get `Crit Rate` and `Crit DMG`
+2. **Healers:** Characters with tag ID 1 ("Support and Healer") OR "Healing Bonus" nodes in their skill tree have crits removed (since Healing Bonus is a main stat only)
+3. **Scaling Stats:** Automatically extracted from skill tree nodes:
+   - Looks for "HP+", "ATK+", "DEF+" node names to identify scaling stat
+   - Returns flat stat name (e.g., "ATK", "HP", "DEF")
+4. **Damage Type Bonus:** Added from priority 2 tag if present:
+   - Tag ID 4 → "Basic Attack DMG Bonus"
+   - Tag ID 5 → "Heavy Attack DMG Bonus"
+   - Tag ID 6 → "Resonance Skill DMG Bonus"
+   - Tag ID 7 → "Resonance Liberation DMG Bonus"
+5. **Energy Regen:** Always included for all characters
+
+**Examples:**
+
+- **DPS (Changli):** `["Crit Rate", "Crit DMG", "ATK", "Resonance Skill DMG Bonus", "Energy Regen"]`
+- **HP Healer (Shorekeeper):** `["HP", "Energy Regen"]` (no crits, HP scaling from skill tree)
+- **ATK Healer (Verina):** `["ATK", "Energy Regen"]` (no crits, ATK scaling from skill tree)
+
+**Note:** Only substats are included. Main-stat-only stats (Elemental DMG, Healing Bonus) are automatically filtered out.
 
 ## Why CDN URLs?
 

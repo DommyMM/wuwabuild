@@ -139,7 +139,7 @@ SCHEMA = {
     "element": ["id", "name", "color", "icon"],
     "icon": ["iconRound", "banner"],
     "skins": ["id", "icon", "color"],
-    "tags": ["id", "name", "icon"],
+    "tags": ["id", "priority", "name", "icon"],
     "stats": "value",
     "skillTrees": True,
     "chains": True,
@@ -490,7 +490,153 @@ def transform_character(
     if legacy_id:
         result["legacyId"] = legacy_id
 
+    # Derive preferred substats from character tags and skillTrees
+    # Only includes substat-eligible stats (no Elemental DMG or Healing Bonus)
+    if "tags" in result:
+        # Pass raw skillTrees data before it gets simplified
+        raw_skill_trees = data.get("skillTrees")
+        preferred = get_preferred_substats(result["tags"], raw_skill_trees)
+        if preferred:
+            result["preferredStats"] = preferred
+
     return result
+
+
+def get_preferred_substats(tags: list[dict], skill_trees: dict | None = None) -> list[str]:
+    """
+    Derive preferred substats from character tags and skillTree nodes.
+    
+    Logic:
+    1. By default, assign Crit Rate + Crit DMG to all characters
+    2. BUT if healer (tag ID 1) OR has "Healing Bonus" in skill tree: remove crits
+    3. Extract scaling stats from skill tree (HP/ATK/DEF from "HP+", "ATK+", "DEF+" nodes)
+    4. Add damage type bonus from priority 2 tags when present
+    5. Always include Energy Regen
+    
+    Args:
+        tags: List of tag dicts with id, priority, name fields
+        skill_trees: Raw skillTrees dict from CDN (before simplification)
+        
+    Returns:
+        List of preferred substat names (only stats that can appear as substats)
+    """
+    if not tags:
+        return []
+    
+    # Tag ID to damage bonus stat mapping
+    DAMAGE_TYPE_MAP = {
+        4: "Basic Attack DMG Bonus",
+        5: "Heavy Attack DMG Bonus",  
+        6: "Resonance Skill DMG Bonus",
+        7: "Resonance Liberation DMG Bonus",
+    }
+    
+    stats = []
+    damage_type_stat = None
+    is_healer = False
+    
+    # Check tags for damage type and healer tag
+    for tag in tags:
+        tag_id = tag.get("id")
+        priority = tag.get("priority", 999)
+        
+        # Tag ID 1 = Support and Healer
+        if tag_id == 1:
+            is_healer = True
+        
+        # Priority 2 = Main damage type
+        if priority == 2 and tag_id in DAMAGE_TYPE_MAP:
+            damage_type_stat = DAMAGE_TYPE_MAP[tag_id]
+    
+    # Step 1: Add crits by default
+    stats.extend(["Crit Rate", "Crit DMG"])
+    
+    # Step 2: Remove crits if healer OR has Healing Bonus in skill tree
+    has_healing_bonus = _has_healing_bonus_in_skill_tree(skill_trees)
+    if is_healer or has_healing_bonus:
+        stats.remove("Crit Rate")
+        stats.remove("Crit DMG")
+    
+    # Step 3: Extract scaling stats from skill tree (HP/ATK/DEF)
+    skill_tree_stats = _extract_skill_tree_substats(skill_trees)
+    for stat in skill_tree_stats:
+        if stat not in stats:
+            stats.append(stat)
+    
+    # Step 4: Add damage type bonus from tags if present
+    if damage_type_stat and damage_type_stat not in stats:
+        stats.append(damage_type_stat)
+    
+    # Step 5: Always include Energy Regen
+    if "Energy Regen" not in stats:
+        stats.append("Energy Regen")
+    
+    return stats
+
+# Does what its name says it does
+def _has_healing_bonus_in_skill_tree(skill_trees: dict | None) -> bool:
+    if not skill_trees or not isinstance(skill_trees, dict):
+        return False
+    
+    for node in skill_trees.values():
+        if not isinstance(node, dict):
+            continue
+        
+        params = node.get("params", {})
+        if not isinstance(params, dict):
+            continue
+        
+        # Get English name
+        name_field = params.get("name", {})
+        if isinstance(name_field, dict):
+            en_name = name_field.get("en", "")
+        else:
+            en_name = str(name_field)
+        
+        # Check for "Healing Bonus"
+        if "Healing Bonus" in en_name:
+            return True
+    
+    return False
+
+
+def _extract_skill_tree_substats(skill_trees: dict | None) -> list[str]:
+    # Extract scaling stats from skill tree nodes by parsing English names.
+    if not skill_trees or not isinstance(skill_trees, dict):
+        return []
+    
+    # Map English name prefixes to substat names
+    NAME_TO_STAT = {
+        "HP+": "HP",
+        "ATK+": "ATK",
+        "DEF+": "DEF",
+    }
+    
+    found_stats = set()
+    
+    # Scan all skill tree nodes
+    for node in skill_trees.values():
+        if not isinstance(node, dict) or not node.get("tree"):
+            continue
+        
+        params = node.get("params", {})
+        if not isinstance(params, dict):
+            continue
+        
+        # Get English name
+        name_field = params.get("name", {})
+        if isinstance(name_field, dict):
+            en_name = name_field.get("en", "")
+        else:
+            en_name = str(name_field)
+        
+        # Check if this is a scaling stat we care about
+        for prefix, stat_name in NAME_TO_STAT.items():
+            if en_name.startswith(prefix):
+                found_stats.add(stat_name)
+                break
+    
+    return list(found_stats)
 
 
 def _round2(value: float) -> float:
@@ -656,7 +802,7 @@ def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
         return (filename, None)
 
 
-def fetch_cdn_characters(single_id: str = None, workers: int | None = None) -> list[dict]:
+def fetch_cdn_characters(single_id: str | None = None, workers: int | None = None) -> list[dict]:
     """Fetch character data from CDN, parallelized with threads.
 
     Args:
