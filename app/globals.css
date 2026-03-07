@@ -256,3 +256,32 @@ body {
   67% { border-color: #F8E56C; }
   83% { border-color: #E649A6; }
 }
+
+@keyframes cv-glow {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.cv-glow {
+  font-weight: 600;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, 
+    rgb(255, 0, 255) 0%, 
+    rgb(255, 120, 255) 25%, 
+    rgb(255, 200, 255) 50%, 
+    rgb(255, 120, 255) 75%, 
+    rgb(255, 0, 255) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: cv-glow 3s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-glow {
+    animation: none;
+    background: rgb(255, 0, 255);
+  }
+}

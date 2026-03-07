@@ -31,7 +31,7 @@ export function getSortLabel(key: LBSortKey): string {
 }
 
 export function formatStatByKey(key: LBSortKey, value: number): string {
-  if (PERCENT_STAT_KEYS.has(key)) return formatPercentStat(value);
+  if (PERCENT_STAT_KEYS.has(key)) return `${Number(value).toFixed(1)}%`;
   return formatFlatStat(value);
 }
 

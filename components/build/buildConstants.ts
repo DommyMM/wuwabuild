@@ -97,7 +97,7 @@ export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set<LBSortKey>([ 'C
 // Table Layout
 
 export const TABLE_GRID = 'grid-cols-[48px_160px_160px_72px_72px_88px_minmax(0,1fr)]';
-export const SORTABLE_GROUP_GRID = 'grid-cols-[164px_repeat(4,minmax(0,1fr))]';
+export const SORTABLE_GROUP_GRID = 'grid-cols-[172px_repeat(4,minmax(0,1fr))]';
 export const TABLE_ROW_HEIGHT_CLASS = 'min-h-[53px]';
 export const PAGE_SKIP = 10;
 

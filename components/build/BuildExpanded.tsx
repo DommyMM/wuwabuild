@@ -214,7 +214,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           transition={{ duration: 0.22, ease: 'easeInOut' }}
           className="overflow-hidden border-t border-border/50 bg-black/15 tracking-wide"
         >
-          <div className="space-y-4 py-3 px-8">
+          <div className="space-y-4 py-3 px-12">
             {isDetailLoading && (
               <div className="flex items-center gap-3 rounded-lg border border-border bg-background/70 p-3 text-sm text-text-primary/80">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
@@ -282,7 +282,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   </div>
                 </div>
 
-                <div className="flex gap-4 px-4">
+                <div className="flex gap-4">
                     {detail.buildState.echoPanels.map((panel, panelIndex) => {
                       const echo = panel.id ? getEcho(panel.id) : null;
                       const echoName = echo
@@ -380,11 +380,11 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                             </div>
 
                             {/* Right column: substats */}
-                            <div className="flex w-1/2 flex-col items-start justify-between py-3 pl-8">
+                            <div className="flex w-1/2 flex-col items-stretch justify-center gap-1 py-2.5 pl-8 pr-2">
                               {Array.from({ length: 5 }).map((_, subIndex) => {
                                 const sub = panelSubstats[subIndex];
                                 if (!sub?.type || sub.value === null) {
-                                  return <div key={`${detail.id}-empty-sub-${panelIndex}-${subIndex}`} className="h-5" />;
+                                  return <div key={`${detail.id}-empty-sub-${panelIndex}-${subIndex}`} className="h-8 w-full" />;
                                 }
 
                                 const subType = normalizeSubstatKey(sub.type) ?? '';
@@ -395,26 +395,33 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                                 const isDimmed = hasSelectedSubstats && !isMatchedSelection;
 
                                 const tierStyle: React.CSSProperties | undefined = tierColor ? {
-                                  backgroundColor: `${tierColor}18`,
-                                  borderBottom: `1px solid ${tierColor}80`,
+                                  color: tierColor,
                                 } : undefined;
+
+                                const selectedStyle: React.CSSProperties | undefined = isMatchedSelection ? {
+                                  backgroundColor: 'rgba(255, 215, 0, 0.15)',
+                                  boxShadow: '0 0 2px rgba(255, 215, 0, 0.30)',
+                                } : undefined;
+
+                                const combinedStyle: React.CSSProperties = {
+                                  ...(tierStyle ?? {}),
+                                  ...(selectedStyle ?? {}),
+                                };
 
                                 return (
                                   <div
                                     key={`${detail.id}-sub-${panelIndex}-${subIndex}`}
-                                    className={`flex items-center gap-1 rounded-sm px-1.5 py-1 transition-all duration-200 ${
-                                      isMatchedSelection
-                                        ? 'ring-1 ring-amber-300/70 bg-amber-300/20 text-white'
-                                        : (isDimmed ? 'opacity-35' : 'text-white/90')
+                                    className={`flex w-full items-center gap-1 rounded-sm bg-black/40 px-1.5 py-1.5 text-base font-semibold leading-none shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] transition-opacity duration-200 ${
+                                      isDimmed ? 'opacity-35' : 'opacity-100'
                                     }`}
-                                    style={!isMatchedSelection ? tierStyle : undefined}
+                                    style={combinedStyle}
                                   >
                                     {subIcon ? (
-                                      <img src={subIcon} alt="" className="h-4.5 w-4.5 object-contain" />
+                                      <img src={subIcon} alt="" className={`h-4.5 w-4.5 object-contain ${isMatchedSelection ? 'brightness-125' : ''}`} />
                                     ) : (
                                       <span className="h-4 w-4 rounded bg-white/18" />
                                     )}
-                                    <span className="text-base font-semibold leading-none">
+                                    <span>
                                       {isSubPercent ? `${Number(sub.value).toFixed(1)}%` : Math.round(Number(sub.value))}
                                     </span>
                                   </div>
@@ -442,12 +449,12 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                           type="button"
                           aria-pressed={isSelected}
                           onClick={() => toggleSubstatSelection(summary.type)}
-                          className={`inline-flex items-center gap-1.25 rounded-full border px-2.5 py-1 text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                          className={`inline-flex items-center gap-1.25 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 cursor-pointer hover:border-amber-200/65 ${
                             isSelected
-                              ? 'border-amber-300/75 bg-amber-300/22 text-amber-100 shadow-[0_0_12px_rgba(250,204,21,0.24)]'
-                              : (isDimmed
-                                ? 'border-white/15 bg-black/45 text-white/70 opacity-40'
-                                : 'border-amber-300/45 bg-black/45 text-white/92 hover:border-amber-200/65')
+                              ? 'border-amber-300/75 opacity-100'
+                              : isDimmed
+                                ? 'border-amber-300/45 opacity-40'
+                                : 'border-amber-300/45 opacity-100'
                           }`}
                           title={summary.type}
                         >
@@ -464,10 +471,10 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
 
                     {/* RV block */}
                     <div
-                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-sm font-semibold transition-all duration-200 select-none ${
+                      className={`inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 select-none ${
                         hasSelectedSubstats
-                          ? 'border-amber-300/75 bg-amber-300/22 text-amber-100'
-                          : 'border-amber-300/45 bg-black/45 text-white/92'
+                          ? 'border border-amber-300/75 opacity-100'
+                          : 'border border-amber-300/45 opacity-70'
                       }`}
                     >
                       <span className="text-amber-300">x{totalSelectedRolls}</span>

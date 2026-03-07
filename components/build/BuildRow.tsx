@@ -57,6 +57,8 @@ export const BuildRow: React.FC<BuildRowProps> = ({
     : entry.character.id || 'Unknown Character';
   const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : 'Unknown Weapon';
   const sequenceLevel = Math.max(0, Math.min(6, Math.trunc(Number(entry.sequence) || 0)));
+  const finalCvColor = getCVRatingColor(entry.finalCV);
+  const isHighestCV = finalCvColor.toLowerCase() === '#ff00ff';
 
   const activeSets = Object.entries(entry.echoSummary.sets)
     .map(([setId, count]) => {
@@ -148,7 +150,7 @@ export const BuildRow: React.FC<BuildRowProps> = ({
               <span className="text-text-primary">
                 {Number(entry.stats.CR ?? 0).toFixed(1)} : {Number(entry.stats.CD ?? 0).toFixed(1)}
               </span>
-              <span className="tracking-wide" style={{ color: getCVRatingColor(entry.finalCV) }}>
+              <span className={`tracking-wide ${isHighestCV ? 'cv-glow' : ''}`} style={isHighestCV ? undefined : { color: finalCvColor }}>
                 {entry.finalCV.toFixed(1)} CV
               </span>
             </div>
