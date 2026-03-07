@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Gowun_Dodum, Plus_Jakarta_Sans, Ropa_Sans } from "next/font/google";
+import { GoogleAnalytics } from '@next/third-parties/google';
 import { Navigation } from "@/components/Navigation";
 import { AppProviders } from "@/contexts/index";
 import "./globals.css";
@@ -81,6 +82,7 @@ export default function RootLayout({
                     {children}
                 </AppProviders>
             </body>
+            <GoogleAnalytics gaId="G-SP375JKDPX" />
         </html>
     );
 }

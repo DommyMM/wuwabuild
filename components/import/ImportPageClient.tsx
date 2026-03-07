@@ -15,6 +15,7 @@ import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
 import type { AnalysisData } from '@/lib/import/types';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
+import posthog from 'posthog-js';
 
 type ImportStep = 'upload' | 'results';
 
@@ -38,10 +39,9 @@ export function ImportPageClient() {
 
     const img = await loadImage(f);
     if (img.naturalWidth !== 1920 || img.naturalHeight !== 1080) {
-      setValidationError(
-        `Image should be 1920×1080, got ${img.naturalWidth}×${img.naturalHeight}. ` +
-        `For best results, download the image from Discord instead of screenshotting`
-      );
+      const errorMsg = `Image should be 1920×1080, got ${img.naturalWidth}×${img.naturalHeight}. ` +
+        `For best results, download the image from Discord instead of screenshotting`;
+      setValidationError(errorMsg);
       return;
     }
 
@@ -72,6 +72,10 @@ export function ImportPageClient() {
   const doImport = (wm: { username: string; uid: string }) => {
     const importedState = buildImportedState(wm);
     loadState(importedState);
+    posthog.capture('import_completed', {
+      action: 'load_to_editor',
+      character_id: importedState.characterId,
+    });
     router.push('/edit');
   };
 
@@ -91,9 +95,14 @@ export function ImportPageClient() {
         state: importedState,
       });
 
+      posthog.capture('import_completed', {
+        action: 'save_to_saves',
+        character_id: importedState.characterId,
+      });
       success(`Saved "${saved.name}".`);
       router.push('/saves');
     } catch (err) {
+      posthog.captureException(err);
       notifyError(err instanceof Error ? err.message : 'Failed to save imported build.');
     }
   };

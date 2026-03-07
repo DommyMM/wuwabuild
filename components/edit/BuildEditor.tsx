@@ -23,6 +23,7 @@ import { BuildCard } from './BuildCard';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import posthog from 'posthog-js';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -217,13 +218,20 @@ export const BuildEditor: React.FC = () => {
       link.href = url;
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      posthog.capture('build_card_downloaded', {
+        character_id: state.characterId,
+        character_name: selected?.character.name ?? null,
+        weapon_id: state.weaponId,
+        sequence: state.sequence,
+      });
     } catch (e) {
+      posthog.captureException(e);
       toastError('Failed to download build card.');
       console.error('Download failed:', e);
     } finally {
       setIsDownloading(false);
     }
-  }, [isDownloading, selected?.character.name, toastError]);
+  }, [isDownloading, selected?.character.name, state.characterId, state.weaponId, state.sequence, toastError]);
 
   const handleResetBuild = useCallback(() => {
     setIsResetDialogOpen(true);

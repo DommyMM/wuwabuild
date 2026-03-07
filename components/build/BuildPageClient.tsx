@@ -13,12 +13,14 @@ import { BuildFiltersPanel } from './BuildFiltersPanel';
 import { BuildHeader } from './BuildHeader';
 import { BuildResultsPanel } from './BuildResultsPanel';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from './types';
+import posthog from 'posthog-js';
 
 export const BuildPageClient: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters, loading: gameDataLoading } = useGameData();
   const { t } = useLanguage();
+  const expansionCountRef = useRef(0);
 
   const initialQuery = useMemo(
     () => parseInitialQuery(new URLSearchParams(searchParams.toString())),
@@ -134,6 +136,17 @@ export const BuildPageClient: React.FC = () => {
     }
   }, [querySnapshot, router, searchParams]);
 
+  // Track session aggregated expansion count on unmount
+  useEffect(() => {
+    return () => {
+      if (expansionCountRef.current > 0) {
+        posthog.capture('builds_session_summary', {
+          expansions_count: expansionCountRef.current,
+        });
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
@@ -241,6 +254,7 @@ export const BuildPageClient: React.FC = () => {
 
     if (!detailById[normalizedBuildId] && !detailLoadingById[normalizedBuildId]) {
       loadBuildDetail(normalizedBuildId);
+      expansionCountRef.current += 1;
     }
   }, [detailById, detailLoadingById, loadBuildDetail]);
 

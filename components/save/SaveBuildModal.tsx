@@ -13,6 +13,7 @@ import { ELEMENT_SETS } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths } from '@/lib/paths';
 import { ELEMENT_TINT_CLASS } from '@/lib/elementVisuals';
+import posthog from 'posthog-js';
 
 interface SaveBuildModalProps {
   isOpen: boolean;
@@ -116,14 +117,23 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
       });
 
       markClean();
+      posthog.capture('build_saved', {
+        is_update: Boolean(existingBuild),
+        character_id: state.characterId,
+        weapon_id: state.weaponId,
+        sequence: state.sequence,
+        cv: totalCV,
+        echo_count: filledEchoCount,
+      });
       onSave?.(savedBuild);
       onClose();
     } catch (err) {
+      posthog.captureException(err);
       setError(err instanceof Error ? err.message : 'Failed to save build');
     } finally {
       setIsSaving(false);
     }
-  }, [name, existingBuild, getSavedState, markClean, onSave, onClose]);
+  }, [name, existingBuild, getSavedState, markClean, onSave, onClose, state.characterId, state.weaponId, state.sequence, totalCV, filledEchoCount]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
