@@ -33,6 +33,29 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 Import OCR requests use the `X-OCR-Region` header via the frontend `/api/ocr` proxy.
 Leaderboard requests from browser code go through the generic `/api/lb/*` proxy, which adds `X-Internal-Key` server-side.
 
+## Analytics
+
+### Google Analytics
+- **Package**: `@next/third-parties`
+- **Implementation**: `GoogleAnalytics` component in `app/layout.tsx`
+- **Tracking**: Automatic pageviews across all routes
+
+### PostHog
+- **Implementation**: Client-side initialization via `instrumentation-client.ts` (Next.js 15.3+ pattern) with reverse proxy configured in `next.config.ts`
+
+### Tracked Events (6 total)
+
+High-value conversion events optimized for PostHog free tier (1M events/month):
+
+| Event | Description | File |
+|-------|-------------|------|
+| `build_card_downloaded` | User downloads build card PNG | `components/edit/BuildEditor.tsx` |
+| `build_saved` | User saves build via Save modal | `components/save/SaveBuildModal.tsx` |
+| `import_completed` | User completes OCR import flow | `components/import/ImportPageClient.tsx` |
+| `builds_exported_all` | User exports all builds to JSON | `components/save/SavesPageClient.tsx` |
+| `builds_imported` | User imports builds from JSON | `components/save/SavesPageClient.tsx` |
+| `builds_session_summary` | Session aggregation (expansion count on /builds unmount) | `components/build/BuildPageClient.tsx` |
+
 ## LB + Builds Current Status (2026-03-07)
 
 - `/builds` route is live and wired to LB `GET /build` filters/sort/pagination plus detail expansion via `GET /build/{id}`.
