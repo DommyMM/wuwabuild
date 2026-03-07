@@ -31,14 +31,15 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 Import OCR requests use the `X-OCR-Region` header via the frontend `/api/ocr` proxy.
 
-## LB + Builds Current Status (2026-03-05)
+## LB + Builds Current Status (2026-03-07)
 
-- `/builds` route is live and wired to LB `GET /build` filters/sort/pagination.
+- `/builds` route is live and wired to LB `GET /build` filters/sort/pagination plus detail expansion via `GET /build/{id}`.
 - `/leaderboards` route is still placeholder.
 - `/import` has an `Upload to Leaderboard` toggle in UI, but no leaderboard submission wiring is connected yet.
 - `BuildEditor` still has a disabled `View Ranking` button with a TODO note for leaderboard logic.
-- Go LB local runtime is validated with migrated legacy data (successful `/build?uid=...&characterId=...` query on `localhost:8080`).
-- Go LB legacy compressed rows have been normalized to SavedState v2 + CDN IDs (`make normalize` in `/lb`), so API filtering should use CDN character IDs.
+- Go LB runtime is validated with migrated legacy data and single-pass canonical ingest (`make import DUMP=...`).
+- API filtering should use canonical CDN IDs.
+- Go LB currently has 8 registered server-side character calculation configs (carlotta, jinhsi, changli, camellya, zani, phoebe, cartethyia, jiyan).
 - Latest migration verification includes:
   - full reimport + normalize succeeded (`11302` converted, `0` errors),
   - canonical repair succeeded (`11302` scanned, updates applied, `0` errors),
@@ -48,7 +49,7 @@ Import OCR requests use the `X-OCR-Region` header via the frontend `/api/ocr` pr
   - **Node fallback** (`/mongo`, Express + MongoDB) until Go parity gates are met.
 - See `docs/LB_MIGRATION_STATUS.md` for implementation parity, risks, and decision gates.
 
-## Frontend Routes (Canonical, 2026-03-05)
+## Frontend Routes (Canonical, 2026-03-07)
 
 | Route | Status | Entry | Primary Client Tree |
 |-------|--------|-------|---------------------|
