@@ -1,4 +1,13 @@
 const OCR_API = process.env.API_URL ?? 'http://localhost:5000';
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY;
+
+function getClientIp(req: Request): string | undefined {
+  const forwardedFor = req.headers.get('x-forwarded-for')?.split(',', 1)[0]?.trim();
+  if (forwardedFor) return forwardedFor;
+
+  const realIp = req.headers.get('x-real-ip')?.trim();
+  return realIp || undefined;
+}
 
 export async function GET() {
   try {
@@ -13,25 +22,36 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const headerRegion = req.headers.get('x-ocr-region')?.trim();
-  const bodyRegion = typeof body?.region === 'string' ? body.region.trim() : '';
-  const legacyType = typeof body?.type === 'string' ? body.type.trim() : '';
-  const legacyRegion = legacyType.startsWith('import-') ? legacyType.slice('import-'.length).trim() : '';
-  const region = headerRegion || bodyRegion || legacyRegion;
+  const region = req.headers.get('x-ocr-region')?.trim();
+
+  if (!region) {
+    return Response.json(
+      { success: false, error: 'Missing OCR region. Send X-OCR-Region.' },
+      { status: 400 },
+    );
+  }
 
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
-  if (region) headers['X-OCR-Region'] = region;
+  headers['X-OCR-Region'] = region;
+
+  if (INTERNAL_API_KEY) {
+    headers['X-Internal-Key'] = INTERNAL_API_KEY;
+  }
+
+  const clientIp = getClientIp(req);
+  if (clientIp) {
+    headers['X-OCR-Client-IP'] = clientIp;
+  }
 
   const payload = {
     image: body?.image,
-    region: region || undefined,
   };
 
   const res = await fetch(`${OCR_API}/api/ocr`, {
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(9_000),
   });
   const data = await res.json();
   return Response.json(data, { status: res.status });

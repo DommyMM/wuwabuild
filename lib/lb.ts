@@ -1,6 +1,6 @@
 import { DEFAULT_FORTE, SavedState } from '@/lib/build';
 
-const DEFAULT_LB_URL = 'http://localhost:8080';
+const LB_PROXY_BASE = '/api/lb';
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 100;
 
@@ -237,9 +237,7 @@ function parseBuildDetailEntry(raw: unknown): LBBuildDetailEntry {
 }
 
 function resolveLBBaseUrl(): string {
-  const configured = process.env.NEXT_PUBLIC_LB_URL?.trim();
-  const base = configured && configured.length > 0 ? configured : DEFAULT_LB_URL;
-  return base.replace(/\/+$/, '');
+  return LB_PROXY_BASE;
 }
 
 export async function listBuilds(

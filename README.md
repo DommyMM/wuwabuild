@@ -55,8 +55,8 @@ AppProviders
 
 ### API Integration
 
-- **Leaderboard**: `/builds` queries `GET https://lb.wuwabuilds.moe/build` with filters. Response normalization in `lib/lb.ts`.
-- **OCR**: `/api/ocr` proxies to `https://ocr.wuwabuilds.moe/api/ocr` with `X-OCR-Region` header.
+- **Leaderboard**: client code calls the generic Next `/api/lb/*` proxy, which forwards any LB child path to the Go LB with `X-Internal-Key`.
+- **OCR**: `/api/ocr` proxies to `https://ocr.wuwabuilds.moe/api/ocr` with `X-OCR-Region`, plus `X-Internal-Key` and forwarded client IP when configured.
 - **Build submission**: `POST /build` wiring pending.
 
 ---
@@ -99,9 +99,9 @@ npm run lint
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `NEXT_PUBLIC_LB_URL` | Yes | Go leaderboard backend URL |
-| `NEXT_PUBLIC_API_URL` | Yes | OCR backend URL |
+| `LB_URL` | Yes | Server-side Go leaderboard backend URL used by the `/api/lb/*` proxy |
 | `API_URL` | Yes | Server-side OCR proxy URL |
+| `INTERNAL_API_KEY` | Yes | Shared secret used by the `/api/ocr` and `/api/lb/*` proxies |
 | `NEXT_PUBLIC_GA_TRACKING_ID` | No | Google Analytics tracking ID |
 | `NEXT_PUBLIC_POSTHOG_KEY` | No | PostHog analytics key |
 | `CLOUDFLARE_ACCOUNT_ID` | No | R2 config for training image upload |
@@ -116,9 +116,17 @@ npm run lint
 1. Frontend receives a 1920×1080 screenshot from the user.
 2. Crops into independent regions (character, weapon, echoes, forte, watermark) using fixed coordinates.
 3. Posts each region in parallel to `/api/ocr` with `X-OCR-Region` header.
-4. Backend returns ID-enriched OCR payloads.
-5. Frontend converts analysis to `SavedState` and loads into the editor.
-6. Optional: fire-and-forget full screenshot upload to R2 for training data (hash-deduped).
+4. The Next proxy forwards the request to the OCR backend and, when `INTERNAL_API_KEY` is set, includes the shared key plus the original client IP for backend rate limiting.
+5. Backend returns ID-enriched OCR payloads.
+6. Frontend converts analysis to `SavedState` and loads into the editor.
+7. Optional: fire-and-forget full screenshot upload to R2 for training data (hash-deduped).
+
+## Leaderboard Fetch Flow
+
+1. Client components request LB data through `/api/lb/*`.
+2. The catch-all Next proxy forwards the remaining child path to the Go LB service.
+3. When `INTERNAL_API_KEY` is set, the proxy includes `X-Internal-Key` so the LB service can stay private.
+4. Browser code never sees the shared key or calls the LB origin directly.
 
 ---
 

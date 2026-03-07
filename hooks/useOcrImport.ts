@@ -54,8 +54,8 @@ export function useOcrImport(): UseOcrImportReturn {
 
       // Crop all regions and fire OCR in parallel
       const tasks = regions.map(async ([key, region]) => {
-        try {
-          const base64 = await cropImageToRegion(img, region);
+        const base64 = await cropImageToRegion(img, region);
+        const attempt = async () => {
           const res = await fetch('/api/ocr', {
             method: 'POST',
             headers: {
@@ -64,12 +64,19 @@ export function useOcrImport(): UseOcrImportReturn {
             },
             body: JSON.stringify({ image: base64 }),
           });
-
           if (!res.ok) throw new Error(`OCR failed for ${key}: ${res.status}`);
+          return res.json();
+        };
 
-          const data = await res.json();
+        try {
+          let data: unknown;
+          try {
+            data = await attempt();
+          } catch {
+            data = await attempt(); // one automatic retry
+          }
           // Backend wraps results in { success, analysis }, unwrap it
-          const analysis = data?.analysis ?? data;
+          const analysis = (data as Record<string, unknown>)?.analysis ?? data;
           setProgress(prev => ({ ...prev, [key]: 'done' }));
           setAnalysisData(prev => ({ ...prev, [key]: analysis }));
         } catch {

@@ -25,11 +25,13 @@ python download_echo_icons.py --clean --force  # Refresh backend echo template P
 ```
 NEXT_PUBLIC_GA_TRACKING_ID=G-SP375JKDPX
 API_URL=https://ocr.wuwabuilds.moe            # server-only, used by /api/ocr proxy
-NEXT_PUBLIC_LB_URL=https://lb.wuwabuilds.moe
+LB_URL=https://lb.wuwabuilds.moe              # server-only, used by generic /api/lb/[...path] proxy
+INTERNAL_API_KEY=shared_secret_here           # shared by /api/ocr, /api/lb/*, backend, lb
 NEXT_PUBLIC_POSTHOG_KEY=phc_...
 ```
 
 Import OCR requests use the `X-OCR-Region` header via the frontend `/api/ocr` proxy.
+Leaderboard requests from browser code go through the generic `/api/lb/*` proxy, which adds `X-Internal-Key` server-side.
 
 ## LB + Builds Current Status (2026-03-07)
 
