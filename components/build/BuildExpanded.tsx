@@ -8,6 +8,7 @@ import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
 import { FORTE_LABELS } from '@/lib/constants/skillBranches';
 import { Echo } from '@/lib/echo';
+import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
 import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
@@ -28,6 +29,7 @@ interface BuildExpandedProps {
   isExpanded: boolean;
   isDetailLoading: boolean;
   detailError: string | null | undefined;
+  character: Character | null;
   characterName: string;
   regionBadge: RegionBadge | null;
   statIcons: Record<string, string> | null;
@@ -48,6 +50,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   isExpanded,
   isDetailLoading,
   detailError,
+  character,
   characterName,
   regionBadge,
   statIcons,
@@ -140,7 +143,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           transition={{ duration: 0.22, ease: 'easeInOut' }}
           className="overflow-hidden border-t border-border/50 bg-black/15 tracking-wide"
         >
-          <div className="space-y-4 py-3 px-12">
+          <div className="space-y-4 py-3 px-8">
             {isDetailLoading && (
               <div className="flex items-center gap-3 rounded-lg border border-border bg-background/70 p-3 text-sm text-text-primary/80">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
@@ -163,14 +166,21 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
 
             {!isDetailLoading && !detailError && detail && (
               <>
-                <div className="flex items-center gap-3">
-                  <div className="text-sm text-text-primary/70">
-                    {characterName} Lv.{detail.buildState.characterLevel}
+                <div className="flex items-center justify-between gap-4">
+                  {/* Left: Character icon + name + level */}
+                  <div className="flex items-center gap-2">
+                    {character?.head ? (
+                      <img src={character.head} alt={characterName} className="h-9 w- object-cover" />
+                    ) : (
+                      <div className="h-9 w-9 rounded bg-border" />
+                    )}
+                    <div className="text-base font-medium text-text-primary">
+                      {characterName} Lv.{detail.buildState.characterLevel}
+                    </div>
                   </div>
-                  <div className="text-xs text-text-primary/60">
-                    {detail.owner.username || 'Anonymous'} - UID {detail.owner.uid || '-'} {regionBadge ? `- ${regionBadge.label}` : ''}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
+
+                  {/* Center: Forte labels */}
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
                     {FORTE_LABELS.map((label, forteIndex) => {
                       const entryForte = detail.buildState.forte?.[forteIndex];
                       const level = Number(entryForte?.[0] ?? 1);
@@ -183,6 +193,21 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                         </span>
                       );
                     })}
+                  </div>
+
+                  {/* Right: Owner info */}
+                  <div className="flex items-center gap-1 text-sm text-text-primary/70">
+                    <span>{detail.owner.username || 'Anonymous'}</span>
+                    <span>-</span>
+                    <span>{detail.owner.uid || '-'}</span>
+                    {regionBadge && (
+                      <>
+                        <span>-</span>
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold tracking-wide ${regionBadge.className}`}>
+                          {regionBadge.label}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -229,7 +254,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                         >
                           {/* Fetter icon top center */}
                           {fetterIcon && (
-                            <div className="absolute top-0 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
+                            <div className="absolute top-0 left-1/2 z-3 -translate-x-1/2 -translate-y-1/2">
                               <img
                                 src={fetterIcon}
                                 alt={elementType ?? ''}
@@ -247,7 +272,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                           />
 
                           {/* Two column layout */}
-                          <div className="relative z-10 flex h-full">
+                          <div className="relative z-2 flex h-full">
                             {/* Left column: CV badge (top) + main stat (bottom) */}
                             <div className="flex w-1/2 flex-col items-start justify-between p-2">
                               {/* CV badge */}

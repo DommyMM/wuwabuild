@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
-import { DEFAULT_PAGE, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS } from './buildConstants';
+import { clampItemsPerPage, DEFAULT_PAGE, MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
 import { parseInitialQuery, serializeQuery } from './buildQuery';
 import { readCachedBuildList, writeCachedBuildList } from './buildCache';
@@ -26,6 +26,7 @@ export const BuildPageClient: React.FC = () => {
   );
 
   const [page, setPage] = useState<number>(() => initialQuery.page);
+  const [pageSize, setPageSize] = useState<number>(() => clampItemsPerPage(initialQuery.pageSize));
   const [sort, setSort] = useState<LBSortKey>(() => initialQuery.sort);
   const [direction, setDirection] = useState<LBSortDirection>(() => initialQuery.direction);
   const [characterIds, setCharacterIds] = useState<string[]>(() => initialQuery.characterIds);
@@ -108,6 +109,7 @@ export const BuildPageClient: React.FC = () => {
 
   const querySnapshot = useMemo<QuerySnapshot>(() => ({
     page,
+    pageSize,
     sort,
     direction,
     characterIds,
@@ -117,7 +119,7 @@ export const BuildPageClient: React.FC = () => {
     uid,
     echoSets,
     echoMains,
-  }), [characterIds, direction, echoMains, echoSets, page, regionPrefixes, sort, uid, username, weaponIds]);
+  }), [characterIds, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, uid, username, weaponIds]);
   const currentQueryKey = useMemo(() => serializeQuery(querySnapshot), [querySnapshot]);
   const abortAllDetailRequests = useCallback(() => {
     Object.values(detailControllersRef.current).forEach((controller) => controller.abort());
@@ -154,7 +156,7 @@ export const BuildPageClient: React.FC = () => {
 
     listBuilds({
       page: querySnapshot.page,
-      pageSize: ITEMS_PER_PAGE,
+      pageSize: querySnapshot.pageSize,
       sort: querySnapshot.sort,
       direction: querySnapshot.direction,
       characterIds: querySnapshot.characterIds,
@@ -167,7 +169,7 @@ export const BuildPageClient: React.FC = () => {
     }, controller.signal)
       .then((response) => {
         if (!active) return;
-        const nextPageCount = Math.max(1, Math.ceil(response.total / ITEMS_PER_PAGE));
+        const nextPageCount = Math.max(1, Math.ceil(response.total / querySnapshot.pageSize));
         if (querySnapshot.page > nextPageCount) {
           setPage(nextPageCount);
         }
@@ -250,7 +252,7 @@ export const BuildPageClient: React.FC = () => {
     abortAllDetailRequests();
   }), [abortAllDetailRequests]);
 
-  const pageCount = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
+  const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
 
   const addCharacter = useCallback((characterId: string) => {
     setCharacterIds((prev) => (prev.includes(characterId) ? prev : [...prev, characterId]));
@@ -301,10 +303,10 @@ export const BuildPageClient: React.FC = () => {
 
   const rankStart = (() => {
     if (total <= 0) return 1;
-    if (page === pageCount) {
+    if (page === normalizedPageCount) {
       return Math.max(1, total - builds.length + 1);
     }
-    return (page - 1) * ITEMS_PER_PAGE + 1;
+    return (page - 1) * pageSize + 1;
   })();
 
   return (
@@ -318,6 +320,8 @@ export const BuildPageClient: React.FC = () => {
               <BuildFiltersPanel
                 sort={sort}
                 direction={direction}
+                pageSize={pageSize}
+                maxPageSize={MAX_ITEMS_PER_PAGE}
                 activeSortLabel={getSortLabel(sort)}
                 showSortControls={false}
                 hasActiveFilters={hasActiveFilters}
@@ -419,6 +423,10 @@ export const BuildPageClient: React.FC = () => {
                   }
                 }}
                 onClearAllFilters={clearAllFilters}
+                onPageSizeChange={(value) => {
+                  setPageSize(clampItemsPerPage(value));
+                  setPage(1);
+                }}
               />
 
               <BuildResultsPanel
@@ -429,7 +437,8 @@ export const BuildPageClient: React.FC = () => {
                 detailErrorById={detailErrorById}
                 total={total}
                 page={page}
-                pageCount={pageCount}
+                pageCount={normalizedPageCount}
+                pageSize={pageSize}
                 rankStart={rankStart}
                 isLoading={isLoading}
                 isRefreshing={isRefreshing}

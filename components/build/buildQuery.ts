@@ -1,5 +1,5 @@
 import { LBEchoMainFilter, LBEchoSetFilter, LBSortKey } from '@/lib/lb';
-import { DEFAULT_DIRECTION, DEFAULT_PAGE, DEFAULT_SORT, MAIN_STAT_OPTIONS, SORT_OPTIONS } from './buildConstants';
+import { clampItemsPerPage, DEFAULT_DIRECTION, DEFAULT_PAGE, DEFAULT_SORT, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS, SORT_OPTIONS } from './buildConstants';
 import { QuerySnapshot } from './types';
 
 function parsePositiveInt(value: string | null, fallback: number): number {
@@ -44,6 +44,8 @@ function parseEchoMainCSV(value: string | null): LBEchoMainFilter[] {
 
 export function parseInitialQuery(searchParams: URLSearchParams): QuerySnapshot {
   const page = parsePositiveInt(searchParams.get('page'), DEFAULT_PAGE);
+  const rawPageSize = searchParams.get('size') ?? searchParams.get('pageSize');
+  const pageSize = clampItemsPerPage(parsePositiveInt(rawPageSize, ITEMS_PER_PAGE));
   const sortParam = searchParams.get('sort');
   const directionParam = searchParams.get('direction');
   const sort = SORT_OPTIONS.some((option) => option.key === sortParam)
@@ -55,6 +57,7 @@ export function parseInitialQuery(searchParams: URLSearchParams): QuerySnapshot 
 
   return {
     page,
+    pageSize,
     sort,
     direction: direction === 'asc' ? 'asc' : 'desc',
     characterIds: parseCSV(searchParams.get('characters')),
@@ -70,6 +73,7 @@ export function parseInitialQuery(searchParams: URLSearchParams): QuerySnapshot 
 export function serializeQuery(snapshot: QuerySnapshot): string {
   const params = new URLSearchParams();
   if (snapshot.page > DEFAULT_PAGE) params.set('page', String(snapshot.page));
+  if (snapshot.pageSize !== ITEMS_PER_PAGE) params.set('size', String(clampItemsPerPage(snapshot.pageSize)));
   if (snapshot.sort !== DEFAULT_SORT) params.set('sort', snapshot.sort);
   if (snapshot.direction !== DEFAULT_DIRECTION) params.set('direction', snapshot.direction);
   if (snapshot.characterIds.length) params.set('characters', snapshot.characterIds.join(','));

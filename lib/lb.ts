@@ -1,7 +1,8 @@
 import { DEFAULT_FORTE, SavedState } from '@/lib/build';
-import { ElementType, FETTER_MAP } from '@/lib/echo';
 
 const DEFAULT_LB_URL = 'http://localhost:8080';
+const DEFAULT_PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 100;
 
 export const LB_STAT_CODES = [
   'H', 'H%',
@@ -57,32 +58,11 @@ export const LB_STAT_ENTRIES: LBStatEntry[] = [
   { code: 'HB', label: 'Healing Bonus' },
 ];
 
-const DISPLAY_STAT_TO_CODE: Record<string, LBStatCode> = {
-  HP: 'H',
-  'HP%': 'H%',
-  ATK: 'A',
-  'ATK%': 'A%',
-  DEF: 'D',
-  'DEF%': 'D%',
-  'Crit Rate': 'CR',
-  'Crit DMG': 'CD',
-  'Aero DMG': 'AD',
-  'Glacio DMG': 'GD',
-  'Fusion DMG': 'FD',
-  'Electro DMG': 'ED',
-  'Havoc DMG': 'HD',
-  'Spectro DMG': 'SD',
-  'Basic Attack': 'BA',
-  'Basic Attack DMG Bonus': 'BA',
-  'Heavy Attack': 'HA',
-  'Heavy Attack DMG Bonus': 'HA',
-  Skill: 'RS',
-  'Resonance Skill DMG Bonus': 'RS',
-  Liberation: 'RL',
-  'Resonance Liberation DMG Bonus': 'RL',
-  'Energy Regen': 'ER',
-  'Healing Bonus': 'HB',
-};
+function clampPageSize(value: number | undefined): number {
+  if (!Number.isFinite(value)) return DEFAULT_PAGE_SIZE;
+  const parsed = Math.trunc(Number(value));
+  return Math.min(MAX_PAGE_SIZE, Math.max(1, parsed));
+}
 
 export interface LBEchoSetFilter {
   count: number;
@@ -156,14 +136,6 @@ interface LBListBuildsResponseRaw {
   pageSize?: number;
 }
 
-const ELEMENT_TO_SET_ID: Partial<Record<ElementType, string>> = Object.entries(FETTER_MAP).reduce(
-  (acc, [setId, element]) => {
-    acc[element] = setId;
-    return acc;
-  },
-  {} as Partial<Record<ElementType, string>>,
-);
-
 export interface LBListBuildsResponse {
   builds: LBBuildRowEntry[];
   total: number;
@@ -198,70 +170,7 @@ function parseMaybeJSON(value: unknown): unknown {
   }
 }
 
-function emptyStats(): Record<LBStatCode, number> {
-  return LB_STAT_CODES.reduce((acc, code) => {
-    acc[code] = 0;
-    return acc;
-  }, {} as Record<LBStatCode, number>);
-}
-
-function toStatCode(rawKey: string): LBStatCode | null {
-  if ((LB_STAT_CODES as readonly string[]).includes(rawKey)) {
-    return rawKey as LBStatCode;
-  }
-  return DISPLAY_STAT_TO_CODE[rawKey] ?? null;
-}
-
-function normalizeStats(rawStats: unknown): Record<LBStatCode, number> {
-  const stats = emptyStats();
-  const parsed = parseMaybeJSON(rawStats);
-  if (!isRecord(parsed)) return stats;
-
-  const source = isRecord(parsed.v) ? parsed.v : parsed;
-  for (const [rawKey, rawValue] of Object.entries(source)) {
-    const code = toStatCode(rawKey);
-    if (!code) continue;
-    stats[code] = toFiniteNumber(rawValue, 0);
-  }
-
-  return stats;
-}
-
-function normalizeBuildState(rawBuildState: unknown): SavedState {
-  const candidate = parseMaybeJSON(rawBuildState);
-  if (!isCanonicalSavedState(candidate)) {
-    throw new Error('LB buildState is not in canonical SavedState format.');
-  }
-  const forte = Array.isArray(candidate.forte)
-    ? candidate.forte
-    : (DEFAULT_FORTE.map((entry) => [...entry]) as SavedState['forte']);
-  return {
-    ...candidate,
-    forte,
-  };
-}
-
-function normalizeEchoSets(raw: unknown): Record<string, number> {
-  const parsed = parseMaybeJSON(raw);
-  if (!isRecord(parsed)) return {};
-  const sets: Record<string, number> = {};
-  for (const [rawKey, count] of Object.entries(parsed)) {
-    const normalizedSetId = (() => {
-      if (/^\d+$/.test(rawKey) && FETTER_MAP[Number(rawKey)]) return rawKey;
-      if ((ELEMENT_TO_SET_ID as Record<string, string | undefined>)[rawKey]) {
-        return (ELEMENT_TO_SET_ID as Record<string, string | undefined>)[rawKey]!;
-      }
-      return null;
-    })();
-    if (!normalizedSetId) continue;
-    const numericCount = toFiniteNumber(count, 0);
-    if (numericCount <= 0) continue;
-    sets[normalizedSetId] = Math.trunc(numericCount);
-  }
-  return sets;
-}
-
-function normalizeBuildRowEntry(raw: unknown): LBBuildRowEntry {
+function parseBuildRowEntry(raw: unknown): LBBuildRowEntry {
   if (!isRecord(raw)) {
     throw new Error('LB row payload is malformed.');
   }
@@ -292,9 +201,9 @@ function normalizeBuildRowEntry(raw: unknown): LBBuildRowEntry {
       rank: toFiniteNumber(weapon.rank, 1),
     },
     sequence: toFiniteNumber(raw.sequence, 0),
-    stats: normalizeStats(raw.stats),
+    stats: (isRecord(raw.stats) ? raw.stats : {}) as Record<LBStatCode, number>,
     echoSummary: {
-      sets: normalizeEchoSets((echoSummary as { sets?: unknown }).sets),
+      sets: (isRecord(echoSummary.sets) ? echoSummary.sets : {}) as Record<string, number>,
     },
     cv: toFiniteNumber(raw.cv),
     cvPenalty: toFiniteNumber(raw.cvPenalty),
@@ -303,17 +212,25 @@ function normalizeBuildRowEntry(raw: unknown): LBBuildRowEntry {
   };
 }
 
-function normalizeBuildDetailEntry(raw: unknown): LBBuildDetailEntry {
+function parseBuildDetailEntry(raw: unknown): LBBuildDetailEntry {
   if (!isRecord(raw)) {
     throw new Error('LB detail payload is malformed.');
   }
 
-  const row = normalizeBuildRowEntry(raw);
-  const buildState = normalizeBuildState(raw.buildState);
+  const row = parseBuildRowEntry(raw);
+  const buildState = parseMaybeJSON(raw.buildState);
+
+  if (!isCanonicalSavedState(buildState)) {
+    throw new Error('LB buildState is not in canonical SavedState format.');
+  }
+
+  const forte = Array.isArray(buildState.forte)
+    ? buildState.forte
+    : (DEFAULT_FORTE.map((entry) => [...entry]) as SavedState['forte']);
 
   return {
     ...row,
-    buildState,
+    buildState: { ...buildState, forte },
     statsFull: parseMaybeJSON(raw.statsFull),
     calculations: parseMaybeJSON(raw.calculations),
   };
@@ -325,21 +242,15 @@ function resolveLBBaseUrl(): string {
   return base.replace(/\/+$/, '');
 }
 
-function shouldLogLBPayload(): boolean {
-  if (typeof window === 'undefined') return false;
-  const override = process.env.NEXT_PUBLIC_LB_DEBUG?.trim();
-  if (override === '0') return false;
-  if (override === '1') return true;
-  return process.env.NODE_ENV !== 'production';
-}
-
 export async function listBuilds(
   query: LBListBuildsQuery = {},
   signal?: AbortSignal,
 ): Promise<LBListBuildsResponse> {
   const params = new URLSearchParams();
+  const pageSize = clampPageSize(query.pageSize);
   params.set('page', String(query.page ?? 1));
-  params.set('pageSize', String(query.pageSize ?? 12));
+  params.set('size', String(pageSize));
+  params.set('pageSize', String(pageSize));
   params.set('sort', query.sort ?? 'finalCV');
   params.set('direction', query.direction ?? 'desc');
 
@@ -382,43 +293,40 @@ export async function listBuilds(
 
   const payload = await response.json() as LBListBuildsResponseRaw;
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
-  const normalizedBuilds: LBBuildRowEntry[] = [];
+  const builds: LBBuildRowEntry[] = [];
+  
   for (const raw of rawBuilds) {
     try {
-      normalizedBuilds.push(normalizeBuildRowEntry(raw));
+      builds.push(parseBuildRowEntry(raw));
     } catch (error) {
-      if (shouldLogLBPayload()) {
-        console.warn('[LB] dropped malformed build row', {
-          buildId: isRecord(raw) ? raw._id : undefined,
-          error: error instanceof Error ? error.message : String(error),
-          raw,
-        });
-      }
+      console.warn('[LB] dropped malformed build row', {
+        buildId: isRecord(raw) ? raw._id : undefined,
+        error: error instanceof Error ? error.message : String(error),
+        raw,
+      });
     }
   }
 
-  if (shouldLogLBPayload()) {
-    const emptySetRows = normalizedBuilds.filter((entry) => Object.keys(entry.echoSummary.sets).length === 0).length;
-    console.log('[LB] /build compact rows payload', {
-      requestUrl,
-      query,
-      total: toFiniteNumber(payload.total, 0),
-      page: toFiniteNumber(payload.page, query.page ?? 1),
-      pageSize: toFiniteNumber(payload.pageSize, query.pageSize ?? 12),
-      rawRows: rawBuilds,
-      normalizedRows: normalizedBuilds,
-      rawRowCount: rawBuilds.length,
-      normalizedRowCount: normalizedBuilds.length,
-      droppedRowCount: Math.max(0, rawBuilds.length - normalizedBuilds.length),
-      rowsWithEmptySets: emptySetRows,
-    });
-  }
-
-  return {
-    builds: normalizedBuilds,
+  const emptySetRows = builds.filter((entry) => Object.keys(entry.echoSummary.sets).length === 0).length;
+  console.log('[LB] /build compact rows payload', {
+    requestUrl,
+    query,
     total: toFiniteNumber(payload.total, 0),
     page: toFiniteNumber(payload.page, query.page ?? 1),
-    pageSize: toFiniteNumber(payload.pageSize, query.pageSize ?? 12),
+    pageSize: toFiniteNumber(payload.pageSize, pageSize),
+    rawRows: rawBuilds,
+    parsedRows: builds,
+    rawRowCount: rawBuilds.length,
+    parsedRowCount: builds.length,
+    droppedRowCount: Math.max(0, rawBuilds.length - builds.length),
+    rowsWithEmptySets: emptySetRows,
+  });
+
+  return {
+    builds,
+    total: toFiniteNumber(payload.total, 0),
+    page: toFiniteNumber(payload.page, query.page ?? 1),
+    pageSize: toFiniteNumber(payload.pageSize, pageSize),
   };
 }
 
@@ -438,18 +346,16 @@ export async function getBuildById(buildId: string, signal?: AbortSignal): Promi
   }
 
   const payload = await response.json();
-  const normalized = normalizeBuildDetailEntry(payload);
+  const parsed = parseBuildDetailEntry(payload);
 
-  if (shouldLogLBPayload()) {
-    console.log('[LB] /build/{id} detail payload', {
-      requestUrl,
-      buildId: trimmedBuildId,
-      rawPayload: payload,
-      normalizedPayload: normalized,
-      echoPanelCount: normalized.buildState.echoPanels.length,
-      setIds: Object.keys(normalized.echoSummary.sets),
-    });
-  }
+  console.log('[LB] /build/{id} detail payload', {
+    requestUrl,
+    buildId: trimmedBuildId,
+    rawPayload: payload,
+    parsedPayload: parsed,
+    echoPanelCount: parsed.buildState.echoPanels.length,
+    setIds: Object.keys(parsed.echoSummary.sets),
+  });
 
-  return normalized;
+  return parsed;
 }

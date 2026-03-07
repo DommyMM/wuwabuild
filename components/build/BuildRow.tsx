@@ -193,6 +193,7 @@ export const BuildRow: React.FC<BuildRowProps> = ({
         isExpanded={isExpanded}
         isDetailLoading={isDetailLoading}
         detailError={detailError}
+        character={character}
         characterName={characterName}
         regionBadge={regionBadge}
         statIcons={statIcons}

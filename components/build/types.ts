@@ -6,6 +6,7 @@ export type StatSortKey = (typeof STAT_OPTION_KEYS)[number];
 
 export type QuerySnapshot = {
   page: number;
+  pageSize: number;
   sort: LBSortKey;
   direction: LBSortDirection;
   characterIds: string[];

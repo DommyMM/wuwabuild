@@ -1,6 +1,15 @@
 import { LBSortKey, LBSortDirection } from '@/lib/lb';
 
 export const ITEMS_PER_PAGE = 12;
+export const MAX_ITEMS_PER_PAGE = 100;
+export const MIN_ITEMS_PER_PAGE = 1;
+
+export function clampItemsPerPage(value: number): number {
+  if (!Number.isFinite(value)) return ITEMS_PER_PAGE;
+  const parsed = Math.trunc(value);
+  return Math.min(MAX_ITEMS_PER_PAGE, Math.max(MIN_ITEMS_PER_PAGE, parsed));
+}
+
 export const IDENTITY_DEBOUNCE_MS = 350;
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_SORT: LBSortKey = 'finalCV';

@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
-import { ACTIVE_HEADER_TOP_BORDER_CLASS, ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, ITEMS_PER_PAGE, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from './buildConstants';
+import { ACTIVE_HEADER_TOP_BORDER_CLASS, ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
 import { BuildPagination } from './BuildPagination';
 import { BuildRow } from './BuildRow';
@@ -20,6 +20,7 @@ interface BuildResultsPanelProps {
   total: number;
   page: number;
   pageCount: number;
+  pageSize: number;
   rankStart: number;
   isLoading: boolean;
   isRefreshing: boolean;
@@ -42,6 +43,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   total,
   page,
   pageCount,
+  pageSize,
   rankStart,
   isLoading,
   isRefreshing,
@@ -197,7 +199,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
           {/* Skeleton rows */}
           {showInitialSkeleton && (
             <div className="divide-y divide-border/60">
-              {Array.from({ length: ITEMS_PER_PAGE }).map((_, index) => (
+              {Array.from({ length: pageSize }).map((_, index) => (
                 <div
                   key={index}
                   className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
