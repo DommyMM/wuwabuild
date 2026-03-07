@@ -1,5 +1,5 @@
 import { Echo } from '@/lib/echo';
-import { Character, isRover } from '@/lib/character';
+import { Character } from '@/lib/character';
 import { StatName } from '@/lib/constants/statMappings';
 
 export const ROVER_ELEMENTS = ['Spectro', 'Aero', 'Havoc'] as const;

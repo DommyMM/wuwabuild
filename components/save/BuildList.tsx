@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Trash2, Copy, Download, Calendar, User, Pencil, Check, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Marquee from 'react-fast-marquee';
 import { SavedBuild } from '@/lib/build';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -12,6 +11,7 @@ import { ELEMENT_SETS } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { EchoStatPreview } from '@/components/echo/EchoStatPreview';
+import { FORTE_LABELS } from '@/lib/constants/skillBranches';
 
 interface BuildListProps {
   builds: SavedBuild[];
@@ -36,10 +36,6 @@ interface BuildItemProps {
   onExport?: () => void;
   onRename?: (name: string) => void;
 }
-
-
-
-const FORTE_LABELS = ['Normal', 'Skill', 'Circuit', 'Liberation', 'Intro'] as const;
 
 const BuildItem: React.FC<BuildItemProps> = ({
   build,

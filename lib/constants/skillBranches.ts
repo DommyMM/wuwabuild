@@ -1,4 +1,5 @@
 export type SkillKey = 'normal-attack' | 'skill' | 'circuit' | 'liberation' | 'intro';
+export const FORTE_LABELS = ['Normal', 'Skill', 'Circuit', 'Liberation', 'Intro'] as const;
 
 export interface SkillBranchDefinition {
   skillName: string;
@@ -14,4 +15,3 @@ export const SKILL_BRANCHES: SkillBranchDefinition[] = [
   { skillName: 'Resonance Liberation', skillKey: 'liberation', treeKey: 'tree4', hasNodes: true },
   { skillName: 'Intro Skill', skillKey: 'intro', treeKey: 'tree5', hasNodes: true },
 ];
-

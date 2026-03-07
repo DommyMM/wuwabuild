@@ -187,7 +187,7 @@ export const BuildRow: React.FC<BuildRowProps> = ({
       </div>
 
       <BuildExpanded
-        key={`${entry.id}-${isExpanded ? 'open' : 'closed'}-${detail?.id ?? 'no-detail'}`}
+        key={entry.id}
         entry={entry}
         detail={detail}
         isExpanded={isExpanded}

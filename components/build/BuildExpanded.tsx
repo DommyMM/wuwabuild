@@ -5,15 +5,14 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/cv';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
-import { isPercentStat } from '@/lib/constants/statMappings';
+import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
+import { FORTE_LABELS } from '@/lib/constants/skillBranches';
 import { Echo } from '@/lib/echo';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
 import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
 import { RegionBadge } from './buildConstants';
 import { formatFlatStat, formatPercentStat } from './buildFormatters';
-
-const FORTE_SHORT_LABELS = ['N', 'S', 'C', 'L', 'I'] as const;
 
 type SubstatSummaryEntry = {
   type: string;
@@ -37,22 +36,6 @@ interface BuildExpandedProps {
   onRetryDetail: (buildId: string) => void;
 }
 
-function formatSubstatTotal(type: string, value: number): string {
-  if (isPercentStat(type)) return formatPercentStat(value);
-  return formatFlatStat(value);
-}
-
-function substatPriority(type: string): number {
-  if (type === 'Crit Rate') return 0;
-  if (type === 'Crit DMG') return 1;
-  if (type === 'ATK%') return 2;
-  if (type === 'ATK') return 3;
-  if (type === 'Energy Regen') return 4;
-  if (type === 'Resonance Skill DMG Bonus') return 5;
-  if (type === 'Resonance Liberation DMG Bonus') return 6;
-  return 99;
-}
-
 function normalizeSubstatKey(type: string | null | undefined): string | null {
   if (!type) return null;
   const trimmed = type.trim();
@@ -72,7 +55,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   translateText,
   onRetryDetail,
 }) => {
-  const { fettersByElement, getSubstatValues } = useGameData();
+  const { fettersByElement, getSubstatValues, statTranslations } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
 
   const detailSubstatSummary = useMemo<SubstatSummaryEntry[]>(() => {
@@ -97,12 +80,39 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
         });
       }
     }
-    return [...summaryMap.values()].sort((a, b) => {
-      const priority = substatPriority(a.type) - substatPriority(b.type);
-      if (priority !== 0) return priority;
-      return b.total - a.total;
-    });
-  }, [detail, statIcons]);
+
+    // Use natural order from statTranslations, with crits first and flat stats last
+    const statOrder: string[] = [];
+    if (statTranslations) {
+      const seen = new Set<string>();
+      for (const rawKey of Object.keys(statTranslations)) {
+        if (seen.has(rawKey)) continue;
+        if (summaryMap.has(rawKey)) {
+          statOrder.push(rawKey);
+          seen.add(rawKey);
+        }
+      }
+    } else {
+      statOrder.push(...summaryMap.keys()); // Else just use map order
+    }
+
+    // Crit first and flats last, rest is natural
+    const crits: string[] = [];
+    const flats: string[] = [];
+    const rest: string[] = [];
+    
+    for (const key of statOrder) {
+      if (key === 'Crit Rate' || key === 'Crit DMG') {
+        crits.push(key);
+      } else if (BASE_STATS.includes(key as any)) {
+        flats.push(key);
+      } else {
+        rest.push(key);
+      }
+    }
+
+    return [...crits, ...rest, ...flats].map((key) => summaryMap.get(key)!);
+  }, [detail, statIcons, statTranslations]);
 
   const hasSelectedSubstats = selectedSubstats.size > 0;
 
@@ -161,7 +171,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                     {detail.owner.username || 'Anonymous'} - UID {detail.owner.uid || '-'} {regionBadge ? `- ${regionBadge.label}` : ''}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    {FORTE_SHORT_LABELS.map((label, forteIndex) => {
+                    {FORTE_LABELS.map((label, forteIndex) => {
                       const entryForte = detail.buildState.forte?.[forteIndex];
                       const level = Number(entryForte?.[0] ?? 1);
                       return (
