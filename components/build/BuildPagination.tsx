@@ -56,7 +56,7 @@ export const BuildPagination: React.FC<BuildPaginationProps> = ({ page, pageCoun
         <span className="text-xs leading-none">last</span>
       </div>
     </div>
-    <div className="min-w-[140px] justify-self-end self-start text-right text-xs text-text-primary/60">
+    <div className="min-w-35 justify-self-end self-start text-right text-xs text-text-primary/60">
       {statusText}
     </div>
   </div>

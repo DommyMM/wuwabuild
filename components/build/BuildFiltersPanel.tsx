@@ -559,7 +559,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
             </span>
           )}
 
-          <div className="relative min-w-[220px] flex-1">
+          <div className="relative min-w-55 flex-1">
             <Search className="pointer-events-none absolute left-1 top-1/2 h-4 w-4 -translate-y-1/2 text-text-primary/45" />
             <input
               value={filterQuery}

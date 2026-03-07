@@ -2,7 +2,8 @@ import { Echo } from '@/lib/echo';
 import { Character, isRover } from '@/lib/character';
 import { StatName } from '@/lib/constants/statMappings';
 
-const ROVER_ELEMENTS = new Set(['Aero', 'Havoc', 'Spectro']);
+export const ROVER_ELEMENTS = ['Spectro', 'Aero', 'Havoc'] as const;
+const ROVER_ELEMENT_SET = new Set<string>(ROVER_ELEMENTS);
 
 // Checks whether an echo's characterCondition list matches the current character.
 // Empty/absent conditions match everyone. Named tokens match by character name;
@@ -18,7 +19,7 @@ export const matchesEchoBonusCondition = (
     const token = condition.trim();
     if (!token) return false;
     if (characterName === token) return true;
-    if (isRoverCharacter && roverElement && ROVER_ELEMENTS.has(token)) {
+    if (isRoverCharacter && roverElement && ROVER_ELEMENT_SET.has(token)) {
       return roverElement === token;
     }
     return false;

@@ -4,18 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
-import {
-  ACTIVE_HEADER_TOP_BORDER_CLASS,
-  ACTIVE_SORT_COLUMN_CLASS,
-  CV_OPTIONS,
-  CVSortKey,
-  DEFAULT_STAT_COLUMNS,
-  INITIAL_SKELETON_ROW_COUNT,
-  SORTABLE_GROUP_GRID,
-  STAT_OPTION_KEYS,
-  TABLE_GRID,
-  TABLE_ROW_HEIGHT_CLASS,
-} from './buildConstants';
+import { ACTIVE_HEADER_TOP_BORDER_CLASS, ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, ITEMS_PER_PAGE, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
 import { BuildPagination } from './BuildPagination';
 import { BuildRow } from './BuildRow';
@@ -24,7 +13,7 @@ import { StatSortKey } from './types';
 
 interface BuildResultsPanelProps {
   builds: LBBuildRowEntry[];
-  expandedBuildId: string | null;
+  expandedBuildIds: Set<string>;
   detailById: Record<string, LBBuildDetailEntry>;
   detailLoadingById: Record<string, boolean>;
   detailErrorById: Record<string, string | null>;
@@ -46,7 +35,7 @@ interface BuildResultsPanelProps {
 
 export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   builds,
-  expandedBuildId,
+  expandedBuildIds,
   detailById,
   detailLoadingById,
   detailErrorById,
@@ -208,7 +197,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
           {/* Skeleton rows */}
           {showInitialSkeleton && (
             <div className="divide-y divide-border/60">
-              {Array.from({ length: INITIAL_SKELETON_ROW_COUNT }).map((_, index) => (
+              {Array.from({ length: ITEMS_PER_PAGE }).map((_, index) => (
                 <div
                   key={index}
                   className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
@@ -244,7 +233,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                   key={entry.id}
                   entry={entry}
                   rank={rankStart + index}
-                  isExpanded={expandedBuildId === entry.id}
+                  isExpanded={expandedBuildIds.has(entry.id)}
                   detail={detailById[entry.id]}
                   isDetailLoading={detailLoadingById[entry.id] ?? false}
                   detailError={detailErrorById[entry.id]}

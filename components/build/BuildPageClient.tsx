@@ -4,16 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import {
-  getBuildById,
-  LBBuildDetailEntry,
-  LBBuildRowEntry,
-  LBEchoMainFilter,
-  LBEchoSetFilter,
-  LBSortDirection,
-  LBSortKey,
-  listBuilds
-} from '@/lib/lb';
+import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
 import { DEFAULT_PAGE, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
 import { parseInitialQuery, serializeQuery } from './buildQuery';
@@ -51,8 +42,7 @@ export const BuildPageClient: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedBuildId, setExpandedBuildId] = useState<string | null>(null);
-  const [expandedQueryKey, setExpandedQueryKey] = useState<string>(() => serializeQuery(initialQuery));
+  const [expandedBuildIds, setExpandedBuildIds] = useState<Set<string>>(new Set());
   const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
   const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
   const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
@@ -129,9 +119,6 @@ export const BuildPageClient: React.FC = () => {
     echoMains,
   }), [characterIds, direction, echoMains, echoSets, page, regionPrefixes, sort, uid, username, weaponIds]);
   const currentQueryKey = useMemo(() => serializeQuery(querySnapshot), [querySnapshot]);
-  const activeExpandedBuildId = useMemo(() => (
-    expandedBuildId && expandedQueryKey === currentQueryKey ? expandedBuildId : null
-  ), [currentQueryKey, expandedBuildId, expandedQueryKey]);
   const abortAllDetailRequests = useCallback(() => {
     Object.values(detailControllersRef.current).forEach((controller) => controller.abort());
     detailControllersRef.current = {};
@@ -240,18 +227,20 @@ export const BuildPageClient: React.FC = () => {
     const normalizedBuildId = buildId.trim();
     if (!normalizedBuildId) return;
 
-    if (activeExpandedBuildId === normalizedBuildId) {
-      setExpandedBuildId(null);
-      setExpandedQueryKey(currentQueryKey);
-      return;
-    }
+    setExpandedBuildIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(normalizedBuildId)) {
+        next.delete(normalizedBuildId);
+      } else {
+        next.add(normalizedBuildId);
+      }
+      return next;
+    });
 
-    setExpandedBuildId(normalizedBuildId);
-    setExpandedQueryKey(currentQueryKey);
     if (!detailById[normalizedBuildId] && !detailLoadingById[normalizedBuildId]) {
       loadBuildDetail(normalizedBuildId);
     }
-  }, [activeExpandedBuildId, currentQueryKey, detailById, detailLoadingById, loadBuildDetail]);
+  }, [detailById, detailLoadingById, loadBuildDetail]);
 
   const handleRetryDetail = useCallback((buildId: string) => {
     loadBuildDetail(buildId, true);
@@ -320,7 +309,7 @@ export const BuildPageClient: React.FC = () => {
 
   return (
     <main className="scrollbar-thin min-h-screen bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
-      <div className="mx-auto w-full max-w-[1440px] space-y-4 p-3 md:p-5">
+      <div className="mx-auto w-full max-w-360 space-y-4 p-3 md:p-5">
         <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary px-4 py-2">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
           <div className="relative">
@@ -434,7 +423,7 @@ export const BuildPageClient: React.FC = () => {
 
               <BuildResultsPanel
                 builds={builds}
-                expandedBuildId={activeExpandedBuildId}
+                expandedBuildIds={expandedBuildIds}
                 detailById={detailById}
                 detailLoadingById={detailLoadingById}
                 detailErrorById={detailErrorById}

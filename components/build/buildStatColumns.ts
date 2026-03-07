@@ -1,11 +1,6 @@
 import { Character } from '@/lib/character';
 import { LBStatCode, LBSortKey } from '@/lib/lb';
-import {
-  BASE_STAT_FALLBACK_ORDER,
-  ELEMENT_STAT_KEYS,
-  OFFENSIVE_BONUS_KEYS,
-  STAT_OPTION_KEYS,
-} from './buildConstants';
+import { BASE_STAT_FALLBACK_ORDER, ELEMENT_STAT_KEYS, OFFENSIVE_BONUS_KEYS, STAT_OPTION_KEYS } from './buildConstants';
 import { StatSortKey } from './types';
 
 export function resolvePrimaryScalingStatKey(baseScaling: string | undefined): StatSortKey {

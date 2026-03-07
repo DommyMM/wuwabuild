@@ -7,6 +7,7 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Minus, Pencil, Rot
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Element } from '@/lib/character';
+import { ROVER_ELEMENTS } from '@/lib/constants/statBonuses';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
@@ -31,6 +32,13 @@ const ART_ZOOM_STEP = 0.05;
 const MIN_ART_ZOOM = 1;
 const MAX_ART_ZOOM = 4;
 const FIXED_CARD_PREVIEW_WIDTH = 1440;
+type RoverElement = (typeof ROVER_ELEMENTS)[number];
+
+const ROVER_ELEMENT_ACTIVE_CLASS: Record<RoverElement, string> = {
+  Spectro: 'bg-spectro/30 border-spectro/70 text-spectro',
+  Aero: 'bg-aero/30 border-aero/70 text-aero',
+  Havoc: 'bg-havoc/30 border-havoc/70 text-havoc',
+};
 
 const getImageNaturalHeight = async (file: File): Promise<number> => {
   const objectUrl = URL.createObjectURL(file);
@@ -335,7 +343,7 @@ export const BuildEditor: React.FC = () => {
   }, []);
 
   return (
-    <div className="mx-auto flex max-w-[1440px] min-w-0 flex-col overflow-x-clip">
+    <div className="mx-auto flex max-w-360 min-w-0 flex-col overflow-x-clip">
       {/* Action Bar */}
       <div className="hidden md:flex md:justify-end">
         <BuildActionBar
@@ -395,11 +403,11 @@ export const BuildEditor: React.FC = () => {
                     <img
                       src={selected.banner}
                       alt={t(selected.nameI18n)}
-                      className="pointer-events-none mx-auto h-auto w-full max-w-[280px] rounded-lg object-contain md:h-full md:w-auto md:max-w-none"
+                      className="pointer-events-none mx-auto h-auto w-full max-w-70 rounded-lg object-contain md:h-full md:w-auto md:max-w-none"
                     />
                     {selected.isRover && (
                       <div className="absolute right-2 top-2 flex flex-col gap-1.5">
-                        {(['Spectro', 'Aero', 'Havoc'] as const).map((el) => {
+                        {ROVER_ELEMENTS.map((el) => {
                           const active = selected.element === el;
                           return (
                             <button
@@ -415,7 +423,7 @@ export const BuildEditor: React.FC = () => {
                               }}
                               className={`rounded-md border px-2 py-0.5 text-xs font-semibold backdrop-blur transition-colors
                                 ${active
-                                  ? `bg-${el.toLowerCase()}/30 border-${el.toLowerCase()}/70 text-${el.toLowerCase()}`
+                                  ? ROVER_ELEMENT_ACTIVE_CLASS[el]
                                   : 'border-white/20 bg-black/40 text-white/60 hover:border-white/40 hover:text-white/90'
                                 }`}
                             >

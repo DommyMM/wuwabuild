@@ -8,13 +8,7 @@ import { getCVRatingColor } from '@/lib/calculations/cv';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
-import {
-  ACTIVE_SORT_COLUMN_CLASS,
-  SEQUENCE_BADGE_STYLES,
-  SORTABLE_GROUP_GRID,
-  TABLE_GRID,
-  TABLE_ROW_HEIGHT_CLASS,
-} from './buildConstants';
+import { ACTIVE_SORT_COLUMN_CLASS, SEQUENCE_BADGE_STYLES, SORTABLE_GROUP_GRID, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from './buildConstants';
 import { formatStatByKey, getSortLabel, resolveRegionBadge } from './buildFormatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from './buildStatColumns';
 import { BuildExpanded } from './BuildExpanded';

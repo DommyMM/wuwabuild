@@ -103,7 +103,7 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
       </button>
 
       <div
-        className={`absolute top-full z-20 hidden w-max ${naturalMenuWidth ? 'min-w-[164px]' : 'min-w-full'} overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary group-hover/sort:block group-focus-within/sort:block ${
+        className={`absolute top-full z-20 hidden w-max ${naturalMenuWidth ? 'min-w-41' : 'min-w-full'} overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary group-hover/sort:block group-focus-within/sort:block ${
           alignMenuRight ? 'right-0 left-auto' : 'left-0'
         }`}
       >
