@@ -46,7 +46,6 @@ FETTER_BASES_JSON = DATA_OUTPUT_DIR / "fetter_bases.json"
 CHARACTER_CURVE_OUT_JSON = DATA_OUTPUT_DIR / "character_curve.json"
 LEVEL_CURVE_OUT_JSON = DATA_OUTPUT_DIR / "level_curve.json"
 
-WEAPON_BUFFS_GEN_GO = LB_REPO_DIR / "internal" / "calc" / "weapon_buffs_gen.go"
 
 BONUS_NAME_MAP = {
     "Crit. Rate+": "Crit Rate",
@@ -112,21 +111,6 @@ FETTER_ID_TO_SET_KEY = {
     25: "Halo", 26: "Rite", 27: "Trailblazing", 28: "Chromatic", 29: "Sound",
 }
 
-# Maps unconditionalPassiveBonuses keys to (GoField, elementCode, moveTypeCode).
-# Only keys relevant for DPS calculations are listed; HP%, DEF%, ER etc. are skipped.
-UNCONDITIONAL_TO_GO: dict[str, tuple[str, str, str]] = {
-    "ATK%":              ("AtkPercentage", "", ""),
-    "Crit Rate":         ("CritRate", "", ""),
-    "Crit Rate%":        ("CritRate", "", ""),
-    "Crit DMG":          ("CritDMG", "", ""),
-    "Crit DMG%":         ("CritDMG", "", ""),
-    "Aero DMG Bonus":    ("ElementalDMG", "AD", ""),
-    "Glacio DMG Bonus":  ("ElementalDMG", "GD", ""),
-    "Fusion DMG Bonus":  ("ElementalDMG", "FD", ""),
-    "Electro DMG Bonus": ("ElementalDMG", "ED", ""),
-    "Havoc DMG Bonus":   ("ElementalDMG", "HD", ""),
-    "Spectro DMG Bonus": ("ElementalDMG", "SD", ""),
-}
 
 NAME_TOKEN_ALIASES = {
     "baby": "young",      # Baby Roseshroom (current) vs Young Roseshroom (legacy)
@@ -235,11 +219,6 @@ def _print_error_report(title: str, errors: list[str], max_rows: int = 200) -> N
         print(f"  ... and {remaining} more")
 
 
-def _fmt_float(v: float) -> str:
-    """Format a float as a Go literal, whole numbers without decimal point."""
-    return str(int(v)) if v == int(v) else str(v)
-
-
 def _write_json(path: Path, data: Any, dry_run: bool, pretty: bool = False) -> None:
     if dry_run:
         print(f"[DRY RUN] Would write {path}")
@@ -250,15 +229,6 @@ def _write_json(path: Path, data: Any, dry_run: bool, pretty: bool = False) -> N
     else:
         payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     path.write_text(payload, encoding="utf-8")
-    print(f"Wrote {path}")
-
-
-def _write_go(path: Path, content: str, dry_run: bool) -> None:
-    if dry_run:
-        print(f"[DRY RUN] Would write {path}")
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
     print(f"Wrote {path}")
 
 
@@ -479,16 +449,6 @@ def _params_r5(weapon: dict) -> list[str]:
     return _params_for_rank(weapon, 5)
 
 
-def _unconditional_for_rank(weapon: dict, rank: int) -> dict[str, float]:
-    """Return always-active bonuses at a given rank from unconditionalPassiveBonuses."""
-    idx = max(0, min(4, rank - 1))
-    bonuses = weapon.get("unconditionalPassiveBonuses") or {}
-    result: dict[str, float] = {}
-    for key, values in bonuses.items():
-        if isinstance(values, list) and values:
-            result[key] = float(values[min(idx, len(values) - 1)])
-    return result
-
 
 def _passive_bonus_matrix(weapon: dict) -> dict[str, list[float]]:
     bonuses = weapon.get("unconditionalPassiveBonuses") or {}
@@ -510,10 +470,9 @@ def _passive_bonus_matrix(weapon: dict) -> dict[str, list[float]]:
 def _build_weapon_bases(
     full_weapons: list[dict],
     legacy_weapon_catalog: list[dict],
-) -> tuple[dict[str, dict], list[tuple[str, str, dict]], list[str]]:
-    """Build weapon_bases dict and unconditional bonus list for Go generation."""
+) -> tuple[dict[str, dict], list[str]]:
+    """Build weapon_bases dict."""
     out: dict[str, dict] = {}
-    unconditional_list: list[tuple[str, str, dict]] = []
     errors: list[str] = []
     legacy_weapon_name_index = _build_legacy_name_index(legacy_weapon_catalog)
 
@@ -548,7 +507,6 @@ def _build_weapon_bases(
         effect_en = (w.get("effect") or {}).get("en", "")
         params_r1 = _params_r1(w)
         params_r5 = _params_r5(w)
-        bonuses = _unconditional_for_rank(w, 1)
         passive_bonuses = _passive_bonus_matrix(w)
 
         out[wid] = {
@@ -564,11 +522,10 @@ def _build_weapon_bases(
             "params_r1": params_r1,
             "params_r5": params_r5,
         }
-        unconditional_list.append((wid, name, bonuses))
 
     out = {k: out[k] for k in sorted(out, key=lambda x: int(x))}
 
-    return out, unconditional_list, errors
+    return out, errors
 
 
 # ---------------------------------------------------------------------------
@@ -677,18 +634,16 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
             add_prop = piece_data.get("addProp", [])
             if not isinstance(add_prop, list):
                 add_prop = []
+            # effect_params used only for placeholder resolution; not written to output.
             effect_params = piece_data.get("effectDescriptionParam", [])
             if not isinstance(effect_params, list):
                 effect_params = []
             effect_obj = piece_data.get("effectDescription", {})
             effect_en_raw = (effect_obj.get("en", "") if isinstance(effect_obj, dict) else "").strip()
+            effect_en = _resolve_effect_placeholders(effect_en_raw, add_prop, effect_params)
             normalized_piece_effects[piece_key] = {
-                "fetter_id": piece_data.get("fetterId"),
-                "effect_en_raw": effect_en_raw,
-                "effect_en": _resolve_effect_placeholders(effect_en_raw, add_prop, effect_params),
+                "effect_en": effect_en,
                 "add_prop": add_prop,
-                "effect_params": effect_params,
-                "buff_ids": piece_data.get("buffIds", []),
             }
 
         out[set_key] = {
@@ -705,73 +660,6 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
 # Go code generation for weapon_buffs_gen.go
 # ---------------------------------------------------------------------------
 
-def _format_weapon_buff_go(wid: str, name: str, bonuses: dict[str, float]) -> str | None:
-    """Format one WeaponBuffEntry Go struct literal from unconditional bonuses.
-
-    Returns None if there are no DPS-relevant bonuses for this weapon.
-    """
-    atk_pct = 0.0
-    crit_rate = 0.0
-    crit_dmg = 0.0
-    elemental: list[tuple[str, float]] = []
-
-    for key, val in bonuses.items():
-        mapping = UNCONDITIONAL_TO_GO.get(key)
-        if not mapping:
-            continue
-        field, elem, _ = mapping
-        if field == "AtkPercentage":
-            atk_pct = val
-        elif field == "CritRate":
-            crit_rate = val
-        elif field == "CritDMG":
-            crit_dmg = val
-        elif field == "ElementalDMG" and elem:
-            elemental.append((elem, val))
-
-    fields: list[str] = []
-    if atk_pct:
-        fields.append(f"AtkPercentage: {_fmt_float(atk_pct)}")
-    if crit_rate:
-        fields.append(f"CritRate: {_fmt_float(crit_rate)}")
-    if crit_dmg:
-        fields.append(f"CritDMG: {_fmt_float(crit_dmg)}")
-    if elemental:
-        items = ", ".join(f'{{Element: "{e}", Value: {_fmt_float(v)}}}' for e, v in elemental)
-        fields.append(f"ElementalDMG: []ElementalDMGBuff{{{items}}}")
-
-    if not fields:
-        return None
-
-    return f'\t"{wid}": {{{", ".join(fields)}}}, // {name}'
-
-
-def _generate_weapon_buffs_go(unconditional_list: list[tuple[str, str, dict]]) -> str:
-    lines = [
-        "// Code generated by wuwabuilds/scripts/sync_lb.py. DO NOT EDIT.",
-        "// Regenerate: python wuwabuilds/scripts/sync_lb.py",
-        "//",
-        "// WeaponBuffs holds always-active bonuses extracted from",
-        "// unconditionalPassiveBonuses at R1. Trigger-based conditional effects",
-        "// are layered on top by weapon_effects.go via init().",
-        "package calc",
-        "",
-        "// WeaponBuffs maps weapon IDs to their passive buff entries.",
-        "var WeaponBuffs = map[string]WeaponBuffEntry{",
-    ]
-
-    added = 0
-    for wid, name, bonuses in sorted(unconditional_list, key=lambda x: int(x[0])):
-        line = _format_weapon_buff_go(wid, name, bonuses)
-        if line:
-            lines.append(line)
-            added += 1
-
-    lines.append("}")
-    print(f"  Weapon buff entries generated: {added}")
-    return "\n".join(lines) + "\n"
-
-
 def _sync_weapons_only(dry_run: bool, pretty: bool) -> int:
     required = [WEAPONS_JSON]
     for path in required:
@@ -785,13 +673,12 @@ def _sync_weapons_only(dry_run: bool, pretty: bool) -> int:
     except ValueError as exc:
         print(f"ERROR: {exc}")
         return 1
-    weapon_bases, unconditional_list, weapon_errors = _build_weapon_bases(full_weapons, legacy_weapons)
+    weapon_bases, weapon_errors = _build_weapon_bases(full_weapons, legacy_weapons)
     if weapon_errors:
         _print_error_report("Unable to resolve legacy weapon IDs", weapon_errors)
         return 1
 
     _write_json(WEAPON_BASES_JSON, weapon_bases, dry_run, pretty=pretty)
-    _write_go(WEAPON_BUFFS_GEN_GO, _generate_weapon_buffs_go(unconditional_list), dry_run)
 
     print("\nGenerated summary (weapons-only):")
     print(f"  Weapons:    {len(weapon_bases)}")
@@ -836,7 +723,7 @@ def main() -> int:
         return 1
 
     character_bases = _build_character_bases(full_chars)
-    weapon_bases, unconditional_list, weapon_errors = _build_weapon_bases(full_weapons, legacy_weapons)
+    weapon_bases, weapon_errors = _build_weapon_bases(full_weapons, legacy_weapons)
     echo_bases, echo_errors = _build_echo_bases(full_echoes, legacy_echoes)
     fetter_bases = _build_fetter_bases(full_fetters)
     if weapon_errors or echo_errors:
@@ -850,7 +737,6 @@ def main() -> int:
     _write_json(FETTER_BASES_JSON, fetter_bases, args.dry_run, pretty=args.pretty)
     _write_json(CHARACTER_CURVE_OUT_JSON, character_curve, args.dry_run, pretty=args.pretty)
     _write_json(LEVEL_CURVE_OUT_JSON, level_curves, args.dry_run, pretty=args.pretty)
-    _write_go(WEAPON_BUFFS_GEN_GO, _generate_weapon_buffs_go(unconditional_list), args.dry_run)
 
     print("\nGenerated summary:")
     print(f"  Characters: {len(character_bases)}")
