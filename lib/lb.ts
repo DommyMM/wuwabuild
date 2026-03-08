@@ -166,32 +166,6 @@ function parseMaybeJSON(value: unknown): unknown {
 }
 
 function parseStatsRecord(raw: Record<string, unknown>): Record<LBStatCode, number> {
-  const grouped = isRecord(raw.stats) ? raw.stats : null;
-  if (grouped) {
-    return {
-      H: toFiniteNumber(grouped.H),
-      'H%': toFiniteNumber(grouped['H%']),
-      A: toFiniteNumber(grouped.A),
-      'A%': toFiniteNumber(grouped['A%']),
-      D: toFiniteNumber(grouped.D),
-      'D%': toFiniteNumber(grouped['D%']),
-      CR: toFiniteNumber(grouped.CR),
-      CD: toFiniteNumber(grouped.CD),
-      AD: toFiniteNumber(grouped.AD),
-      GD: toFiniteNumber(grouped.GD),
-      FD: toFiniteNumber(grouped.FD),
-      ED: toFiniteNumber(grouped.ED),
-      HD: toFiniteNumber(grouped.HD),
-      SD: toFiniteNumber(grouped.SD),
-      BA: toFiniteNumber(grouped.BA),
-      HA: toFiniteNumber(grouped.HA),
-      RS: toFiniteNumber(grouped.RS),
-      RL: toFiniteNumber(grouped.RL),
-      ER: toFiniteNumber(grouped.ER),
-      HB: toFiniteNumber(grouped.HB),
-    };
-  }
-
   return {
     H: toFiniteNumber(raw.statHP),
     'H%': toFiniteNumber(raw.statHPPct),
