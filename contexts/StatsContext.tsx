@@ -5,7 +5,7 @@ import { useGameData } from './GameDataContext';
 import { useBuild } from './BuildContext';
 import { StatName, BaseStatName, BASE_STATS, CALCULABLE_STATS, getPercentVariant } from '@/lib/constants/statMappings';
 import { ELEMENT_SETS, ElementType } from '@/lib/echo';
-import { calculateCV } from '@/lib/calculations/cv';
+import { calculateCV } from '@/lib/calculations/rollValues';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
 import { calculateForteBonus } from '@/lib/calculations/stats';
 import { getUnconditionalWeaponPassiveBonuses } from '@/lib/calculations/weaponPassives';

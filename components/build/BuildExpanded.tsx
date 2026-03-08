@@ -3,8 +3,8 @@
 import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/cv';
-import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rv';
+import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
+import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
 import { FORTE_LABELS } from '@/lib/constants/skillBranches';
@@ -25,6 +25,13 @@ type SubstatSummaryEntry = {
 };
 
 const BASE_STATS_SET = new Set<string>(BASE_STATS);
+
+// Returns the paired variant: "ATK" <-> "ATK%", "HP" <-> "HP%", "DEF" <-> "DEF%", else null
+function getBasePercentVariant(stat: string): string | null {
+  if (BASE_STATS_SET.has(stat)) return `${stat}%`;
+  if (stat.endsWith('%') && BASE_STATS_SET.has(stat.slice(0, -1))) return stat.slice(0, -1);
+  return null;
+}
 
 interface BuildExpandedProps {
   entry: LBBuildRowEntry;
@@ -82,11 +89,15 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
       }
     }
 
-    // Select preferred stats that are present.
+    // Select preferred stats that are present, including their base/percent variant.
     const toSelect = new Set<string>();
     for (const stat of preferredStats) {
       if (availableStats.has(stat)) {
         toSelect.add(stat);
+      }
+      const variant = getBasePercentVariant(stat);
+      if (variant && availableStats.has(variant)) {
+        toSelect.add(variant);
       }
     }
 

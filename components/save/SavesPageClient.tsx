@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AlertTriangle, ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Download, Search, Upload, X } from 'lucide-react';
 import { SavedBuild } from '@/lib/build';
 import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, deleteBuild, exportAllBuilds, importBuild, loadBuilds, mergeBuilds, renameBuild } from '@/lib/storage';
-import { calculateCV } from '@/lib/calculations/cv';
+import { calculateCV } from '@/lib/calculations/rollValues';
 import { BuildList } from './BuildList';
 import { useBuild } from '@/contexts/BuildContext';
 import { useToast } from '@/contexts/ToastContext';

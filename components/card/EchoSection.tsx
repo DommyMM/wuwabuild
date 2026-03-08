@@ -7,7 +7,7 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { isPercentStat } from '@/lib/constants/statMappings';
-import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/cv';
+import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { getEchoPaths } from '@/lib/paths';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';

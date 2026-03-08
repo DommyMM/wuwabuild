@@ -4,7 +4,7 @@ import React from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { getCVRatingColor } from '@/lib/calculations/cv';
+import { getCVRatingColor } from '@/lib/calculations/rollValues';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';

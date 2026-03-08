@@ -8,7 +8,7 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SavedBuild } from '@/lib/build';
-import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/cv';
+import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/rollValues';
 import { ELEMENT_SETS } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths } from '@/lib/paths';

@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { SavedBuild } from '@/lib/build';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/cv';
+import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/rollValues';
 import { ELEMENT_SETS } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
