@@ -327,17 +327,14 @@ export async function listBuilds(
     }
   }
 
-  const emptySetRows = builds.filter((entry) => Object.keys(entry.echoSummary.sets).length === 0).length;
   console.log('[LB] /build compact rows payload', {
     requestUrl,
     query,
     total: toFiniteNumber(payload.total, 0),
     page: toFiniteNumber(payload.page, query.page ?? 1),
     pageSize: toFiniteNumber(payload.pageSize, pageSize),
-    rawRowCount: rawBuilds.length,
-    parsedRowCount: builds.length,
-    droppedRowCount: Math.max(0, rawBuilds.length - builds.length),
-    rowsWithEmptySets: emptySetRows,
+    droppedRows: Math.max(0, rawBuilds.length - builds.length),
+    builds: builds
   });
 
   return {
@@ -569,9 +566,6 @@ export async function getBuildById(buildId: string, signal?: AbortSignal): Promi
 
   console.log('[LB] /build/{id} detail payload', {
     requestUrl,
-    buildId: trimmedBuildId,
-    echoPanelCount: detail.buildState.echoPanels.length,
-    setIds: Object.keys(detail.echoSummary.sets),
     payload: payload
   });
 
