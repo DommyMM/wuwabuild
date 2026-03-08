@@ -123,12 +123,6 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
         </div>
       )}
 
-      {isDamageSort && (
-        <div className="mb-2 rounded-lg border border-accent/25 bg-accent/8 px-3 py-1.5 text-xs text-text-primary/60">
-          Sorted by damage — global ranks are preserved even when filters are applied.
-        </div>
-      )}
-
       <div className="relative overflow-x-auto pb-1 md:overflow-x-hidden">
         <div className="overflow-hidden rounded-lg border border-border bg-background/70">
           {/* Table header */}

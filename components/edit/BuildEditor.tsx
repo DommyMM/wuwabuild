@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Minus, Pencil, RotateCcw, Trash2, Trophy } from 'lucide-react';
@@ -103,6 +104,7 @@ const readFileAsDataUrl = (file: File): Promise<string> => (
 );
 
 export const BuildEditor: React.FC = () => {
+  const router = useRouter();
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -248,6 +250,13 @@ export const BuildEditor: React.FC = () => {
   const handleGenerateCard = useCallback(() => {
     setIsCardGenerated(true);
   }, []);
+
+  const handleViewRanking = useCallback(() => {
+    const characterId = selected?.character.id ?? state.characterId;
+    if (!characterId) return;
+
+    router.push(`/leaderboards/${characterId}`);
+  }, [router, selected?.character.id, state.characterId]);
 
   const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
@@ -596,10 +605,10 @@ export const BuildEditor: React.FC = () => {
                           ) : 'Download'}
                         </span>
                       </button>
-                      {/* TODO: Add leaderboard logic once LB is set up in the rewrite */}
                       <button
-                        disabled
-                        className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary/40 cursor-not-allowed"
+                        onClick={handleViewRanking}
+                        disabled={!selected?.character.id && !state.characterId}
+                        className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-accent/60 cursor-pointer disabled:cursor-not-allowed disabled:text-text-primary/40"
                       >
                         <Trophy size={14} />
                         View Ranking
