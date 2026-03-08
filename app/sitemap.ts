@@ -2,6 +2,37 @@ import type { MetadataRoute } from 'next';
 import fs from 'fs';
 import path from 'path';
 
+type WeaponSitemapEntry = {
+    id?: string | number;
+};
+
+function loadWeaponsForSitemap(): WeaponSitemapEntry[] {
+    const dataDir = path.join(process.cwd(), 'public', 'Data');
+    const wepPath = path.join(dataDir, 'Weapons.json');
+
+    if (!fs.existsSync(wepPath)) {
+        return [];
+    }
+
+    const rawData = JSON.parse(fs.readFileSync(wepPath, 'utf8')) as unknown;
+    if (Array.isArray(rawData)) {
+        return rawData as WeaponSitemapEntry[];
+    }
+    if (!rawData || typeof rawData !== 'object') {
+        return [];
+    }
+
+    return Object.values(rawData as Record<string, unknown>).flatMap((group) => {
+        if (Array.isArray(group)) {
+            return group as WeaponSitemapEntry[];
+        }
+        if (group && typeof group === 'object') {
+            return Object.values(group as Record<string, unknown>) as WeaponSitemapEntry[];
+        }
+        return [];
+    });
+}
+
 export default function sitemap(): MetadataRoute.Sitemap {
     const baseUrl = 'https://wuwabuilds.moe';
 
@@ -41,19 +72,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
         // Weapons
         const wepPath = path.join(dataDir, 'Weapons.json');
         if (fs.existsSync(wepPath)) {
-            const wepsData = JSON.parse(fs.readFileSync(wepPath, 'utf8'));
-            // Weapons is organized by type, e.g. {"Broadblade": {"21010016": {id: "..."}}}
-            const wepRoutes: MetadataRoute.Sitemap = [];
-            for (const typeKey in wepsData) {
-                Object.values(wepsData[typeKey]).forEach((wep: unknown) => {
-                    wepRoutes.push({
-                        url: `${baseUrl}/weapons/${(wep as { id: string | number }).id}`,
-                        lastModified: new Date(),
-                        changeFrequency: 'weekly' as const,
-                        priority: 0.6,
-                    });
-                });
-            }
+            const wepRoutes = loadWeaponsForSitemap()
+                .filter((weapon): weapon is WeaponSitemapEntry & { id: string | number } => weapon.id != null)
+                .map((weapon) => ({
+                    url: `${baseUrl}/weapons/${weapon.id}`,
+                    lastModified: new Date(),
+                    changeFrequency: 'weekly' as const,
+                    priority: 0.6,
+                }));
             dynamicRoutes = [...dynamicRoutes, ...wepRoutes];
         }
     } catch (err) {

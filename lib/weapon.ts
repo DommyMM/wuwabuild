@@ -28,6 +28,7 @@ export type WeaponPassiveBonusesByRank = Partial<Record<WeaponPassiveStatName, n
 
 export interface CDNWeapon {
   id: number;
+  legacyId?: string;
   name: I18nString;
   type: { id: number; name: I18nString; icon: string };
   rarity: { id: number; color: string };
@@ -54,6 +55,7 @@ export interface Weapon {
   // Legacy fields (used by StatsContext, WeaponInfo, WeaponSelector, paths.ts)
   name: string;
   id: string;
+  legacyId?: string;
   type: WeaponType;
   rarity: WeaponRarity;
   ATK: number;
@@ -131,6 +133,7 @@ export const adaptCDNWeapon = (cdn: CDNWeapon): Weapon => ({
   // Legacy fields
   name: cdn.name.en,
   id: String(cdn.id),
+  legacyId: cdn.legacyId,
   type: WEAPON_TYPE_MAP[cdn.type.id] ?? WeaponType.Sword,
   rarity: RARITY_MAP[cdn.rarity.id] ?? "3-star",
   ATK: cdn.stats.first.value,

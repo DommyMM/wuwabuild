@@ -4,45 +4,63 @@ import path from 'path';
 import { WeaponClient } from './WeaponClient';
 import { DataLoadingGate } from '@/contexts/index';
 
-export async function generateStaticParams() {
+type WeaponRecord = {
+    id?: string | number;
+    name?: { en?: string };
+    type?: { name?: { en?: string } };
+};
+
+function normalizeWeaponsData(data: unknown): WeaponRecord[] {
+    if (Array.isArray(data)) {
+        return data as WeaponRecord[];
+    }
+
+    if (!data || typeof data !== 'object') {
+        return [];
+    }
+
+    return Object.values(data as Record<string, unknown>).flatMap((group) => {
+        if (Array.isArray(group)) {
+            return group as WeaponRecord[];
+        }
+        if (group && typeof group === 'object') {
+            return Object.values(group as Record<string, unknown>) as WeaponRecord[];
+        }
+        return [];
+    });
+}
+
+function loadWeapons(): WeaponRecord[] {
     const dataDir = path.join(process.cwd(), 'public', 'Data');
     const wepPath = path.join(dataDir, 'Weapons.json');
 
-    const routes: { id: string }[] = [];
-    if (fs.existsSync(wepPath)) {
-        const wepsData = JSON.parse(fs.readFileSync(wepPath, 'utf8'));
-        for (const typeKey in wepsData) {
-            Object.values(wepsData[typeKey]).forEach((wep: unknown) => {
-                routes.push({ id: (wep as { id: string | number }).id.toString() });
-            });
-        }
+    if (!fs.existsSync(wepPath)) {
+        return [];
     }
-    return routes;
+
+    const rawData = JSON.parse(fs.readFileSync(wepPath, 'utf8')) as unknown;
+    return normalizeWeaponsData(rawData);
+}
+
+function findWeaponById(id: string): WeaponRecord | undefined {
+    return loadWeapons().find((weapon) => weapon.id != null && weapon.id.toString() === id);
+}
+
+export async function generateStaticParams() {
+    return loadWeapons()
+        .filter((weapon): weapon is WeaponRecord & { id: string | number } => weapon.id != null)
+        .map((weapon) => ({ id: weapon.id.toString() }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params;
-    const dataDir = path.join(process.cwd(), 'public', 'Data');
-    const wepPath = path.join(dataDir, 'Weapons.json');
     let title = 'Weapon Build - WuWaBuilds';
     let description = 'View the best resonators for this weapon on WuwaBuilds.';
 
-    if (fs.existsSync(wepPath)) {
-        const wepsData = JSON.parse(fs.readFileSync(wepPath, 'utf8'));
-        let weaponInfo: { id: string | number; name?: { en: string } } | null = null;
-        for (const typeKey in wepsData) {
-            const weps = Object.values(wepsData[typeKey]);
-            const found = weps.find((w: unknown) => (w as { id: string | number }).id.toString() === id) as { id: string | number; name?: { en: string } } | undefined;
-            if (found) {
-                weaponInfo = found;
-                break;
-            }
-        }
-
-        if (weaponInfo && weaponInfo.name && weaponInfo.name.en) {
-            title = `${weaponInfo.name.en} Build & Stats - Wuthering Waves`;
-            description = `Detailed stats and the best characters for ${weaponInfo.name.en} in Wuthering Waves. See optimal builds and echoes on WuWaBuilds.`;
-        }
+    const weaponInfo = findWeaponById(id);
+    if (weaponInfo?.name?.en) {
+        title = `${weaponInfo.name.en} Build & Stats - Wuthering Waves`;
+        description = `Detailed stats and the best characters for ${weaponInfo.name.en} in Wuthering Waves. See optimal builds and echoes on WuWaBuilds.`;
     }
 
     return {
@@ -57,22 +75,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function WeaponPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const dataDir = path.join(process.cwd(), 'public', 'Data');
-    const wepPath = path.join(dataDir, 'Weapons.json');
     let wepName = '';
     let typeName = '';
 
-    if (fs.existsSync(wepPath)) {
-        const wepsData = JSON.parse(fs.readFileSync(wepPath, 'utf8'));
-        for (const typeKey in wepsData) {
-            const weps = Object.values(wepsData[typeKey]);
-            const found = weps.find((w: unknown) => (w as { id: string | number }).id.toString() === id) as { id: string | number; name?: { en: string } } | undefined;
-            if (found) {
-                wepName = found.name?.en || '';
-                typeName = typeKey;
-                break;
-            }
-        }
+    const weaponInfo = findWeaponById(id);
+    if (weaponInfo) {
+        wepName = weaponInfo.name?.en || '';
+        typeName = weaponInfo.type?.name?.en || '';
     }
 
     return (

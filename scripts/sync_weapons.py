@@ -14,6 +14,7 @@ Usage:
 import json
 import argparse
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -22,6 +23,8 @@ from cdn_config import CDN_BASE
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Weapon"
 
+SCRIPTS_DIR = Path(__file__).resolve().parent
+LEGACY_WEAPONS_JSON = SCRIPTS_DIR.parent / "lib" / "data" / "legacyWeapons.json"
 OUTPUT_DIR = Path(__file__).parent.parent / "public/Data/Weapons"
 
 # Schema: True = keep as-is, ["k1","k2"] = keep only these keys
@@ -78,6 +81,53 @@ PASSIVE_PATTERNS: list[tuple[re.Pattern[str], list[str]]] = [
     (re.compile(r"\bbasic attack dmg bonus\b", re.IGNORECASE), ["Basic Attack DMG Bonus"]),
     (re.compile(r"\bheavy attack dmg bonus\b", re.IGNORECASE), ["Heavy Attack DMG Bonus"]),
 ]
+
+
+def _normalize_name(name: str) -> str:
+    folded = unicodedata.normalize("NFKD", name)
+    ascii_name = "".join(ch for ch in folded if not unicodedata.combining(ch))
+    tokens = re.findall(r"[a-z]+|\d+", ascii_name.lower())
+    normalized_tokens: list[str] = []
+    for token in tokens:
+        if token == "s":
+            continue
+        if token.isalpha() and len(token) > 3 and token.endswith("s"):
+            token = token[:-1]
+        normalized_tokens.append(token)
+    return "".join(normalized_tokens)
+
+
+def _load_legacy_weapon_name_index() -> dict[str, list[str]]:
+    if not LEGACY_WEAPONS_JSON.exists():
+        raise FileNotFoundError(f"Missing legacy weapon catalog: {LEGACY_WEAPONS_JSON}")
+
+    payload = json.loads(LEGACY_WEAPONS_JSON.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise ValueError(f"Legacy weapon catalog must be a JSON array: {LEGACY_WEAPONS_JSON}")
+
+    name_index: dict[str, list[str]] = {}
+    for entry in payload:
+        if not isinstance(entry, dict):
+            continue
+        legacy_id = str(entry.get("id", "") or "").strip()
+        name = str(entry.get("name", "") or "").strip()
+        key = _normalize_name(name)
+        if not legacy_id or not key:
+            continue
+        bucket = name_index.setdefault(key, [])
+        if legacy_id not in bucket:
+            bucket.append(legacy_id)
+    return name_index
+
+
+def _resolve_legacy_weapon_id(data: dict, legacy_name_index: dict[str, list[str]]) -> str | None:
+    name = data.get("name", {})
+    weapon_name = name.get("en", "") if isinstance(name, dict) else str(name)
+    key = _normalize_name(weapon_name)
+    if not key:
+        return None
+    matches = legacy_name_index.get(key, [])
+    return matches[0] if len(matches) == 1 else None
 
 
 def _sanitize_text(value: str | None) -> str:
@@ -235,11 +285,14 @@ def extract_by_schema(data: dict, schema: dict) -> dict:
     return output
 
 
-def transform_weapon(data: dict, schema: dict) -> dict | None:
+def transform_weapon(data: dict, schema: dict, legacy_name_index: dict[str, list[str]]) -> dict | None:
     """Transform raw CDN weapon data using schema."""
     if should_skip(data):
         return None
     output = extract_by_schema(data, schema)
+    legacy_id = _resolve_legacy_weapon_id(data, legacy_name_index)
+    if legacy_id:
+        output["legacyId"] = legacy_id
     passive_bonuses = extract_unconditional_passive_bonuses(data)
     if passive_bonuses:
         output["unconditionalPassiveBonuses"] = passive_bonuses
@@ -347,6 +400,11 @@ def main():
     if not args.fetch:
         parser.error("Specify --fetch to sync from CDN")
         return 1
+    try:
+        legacy_name_index = _load_legacy_weapon_name_index()
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"ERROR: {exc}")
+        return 1
     raw_weapons = fetch_cdn_weapons(single_id=args.id, workers=args.workers)
 
     print(f"\nLoaded {len(raw_weapons)} raw weapon files")
@@ -354,10 +412,15 @@ def main():
     # Transform
     weapons = []
     skipped = 0
+    missing_legacy_ids: list[str] = []
     for data in raw_weapons:
-        weapon = transform_weapon(data, SCHEMA)
+        weapon = transform_weapon(data, SCHEMA, legacy_name_index)
         if weapon:
             weapons.append(weapon)
+            if not weapon.get("legacyId"):
+                wid = weapon.get("id", "?")
+                name = weapon.get("name", {}).get("en", "?") if isinstance(weapon.get("name"), dict) else "?"
+                missing_legacy_ids.append(f"{wid} ({name})")
         else:
             wid = data.get("id", "?")
             name = data.get("name", {}).get("en", "?") if isinstance(data.get("name"), dict) else "?"
@@ -366,6 +429,11 @@ def main():
 
     weapons.sort(key=lambda w: w.get("name", {}).get("en", ""))
     print(f"Transformed {len(weapons)} weapons ({skipped} skipped)")
+    if missing_legacy_ids:
+        print("ERROR: Failed to resolve legacyId for:")
+        for entry in missing_legacy_ids:
+            print(f"  - {entry}")
+        return 1
 
     if not weapons:
         print("No weapons to save")
