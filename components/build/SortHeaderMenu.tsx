@@ -138,9 +138,7 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
               </span>
               {isSelected && (
                 <ChevronDown
-                  className={`h-3.5 w-3.5 shrink-0 transition-transform ${
-                    direction === 'asc' ? 'rotate-180' : ''
-                  }`}
+                  className={`h-3.5 w-3.5 shrink-0 transition duration-300 ease-out ${direction === 'asc' ? 'rotate-180' : ''}`}
                 />
               )}
             </button>
