@@ -6,10 +6,10 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { LBCharacterOverview, listLeaderboardOverview } from '@/lib/lb';
-import { LEADERBOARD_CHAR_CONFIGS } from './leaderboardConstants';
+import { getWeaponPaths } from '@/lib/paths';
 
 export const LeaderboardOverviewClient: React.FC = () => {
-  const { getCharacter, loading: gameDataLoading } = useGameData();
+  const { getCharacter, getWeapon, loading: gameDataLoading } = useGameData();
   const { t } = useLanguage();
   const [overview, setOverview] = useState<LBCharacterOverview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,9 +32,6 @@ export const LeaderboardOverviewClient: React.FC = () => {
     return () => controller.abort();
   }, []);
 
-  const configuredCharIds = Object.keys(LEADERBOARD_CHAR_CONFIGS);
-  const overviewById = new Map(overview.map((entry) => [entry.id, entry]));
-
   const showSkeleton = isLoading || gameDataLoading;
 
   return (
@@ -43,9 +40,10 @@ export const LeaderboardOverviewClient: React.FC = () => {
       <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary px-5 py-4">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
         <div className="relative">
-          <h1 className="text-3xl font-bold text-text-primary">Global Leaderboards</h1>
+          <h1 className="text-3xl font-bold text-text-primary">Damage Leaderboards</h1>
           <p className="mt-1.5 text-sm text-text-primary/60">
-            Damage rankings for top Wuthering Waves characters. Global rank is preserved — rank #1 is always #1, even when filters are applied.
+            Characters are standardized to the same conditions. The only variables between build calculations are the five echoes.
+            Click on a character to view more details.
           </p>
         </div>
       </section>
@@ -56,93 +54,144 @@ export const LeaderboardOverviewClient: React.FC = () => {
         </div>
       )}
 
-      {/* Character grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {showSkeleton
-          ? Array.from({ length: 8 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-44 animate-pulse rounded-xl border border-border bg-background-secondary"
-              />
-            ))
-          : configuredCharIds.map((charId) => {
-              const character = getCharacter(charId);
-              const entry = overviewById.get(charId);
-              const characterName = character
-                ? formatCharacterDisplayName(character, {
-                    baseName: t(character.nameI18n ?? { en: character.name }),
-                    roverElement: undefined,
-                  })
-                : `Character ${charId}`;
+      {/* Table */}
+      <div className="overflow-hidden rounded-lg border border-border bg-background/70">
+        {/* Header */}
+        <div className="grid grid-cols-[200px_80px_88px_minmax(0,1fr)] items-center border-b border-border bg-background-secondary/95 px-4 py-2 text-sm font-semibold text-text-primary/60">
+          <div>Character</div>
+          <div className="text-center">Team</div>
+          <div className="text-center">Entries</div>
+          <div className="text-center">Weapon Rankings</div>
+        </div>
 
-              const bestWeapon = entry?.weapons?.[0];
-              const bestDamage = bestWeapon?.damage ?? 0;
-              const topOwner = bestWeapon?.owner.username ?? null;
-              const totalEntries = entry?.totalEntries ?? 0;
+        {/* Rows */}
+        <div className="divide-y divide-border/60">
+          {showSkeleton
+            ? Array.from({ length: 8 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-[200px_80px_88px_minmax(0,1fr)] items-center gap-4 px-4 py-3 odd:bg-background/30 even:bg-background-secondary/20"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 animate-pulse rounded-full bg-background-secondary/80" />
+                    <div className="h-4 w-24 animate-pulse rounded bg-background-secondary/80" />
+                  </div>
+                  <div className="flex justify-center gap-1">
+                    <div className="h-7 w-7 animate-pulse rounded-full bg-background-secondary/80" />
+                    <div className="h-7 w-7 animate-pulse rounded-full bg-background-secondary/80" />
+                  </div>
+                  <div className="mx-auto h-4 w-12 animate-pulse rounded bg-background-secondary/80" />
+                  <div className="flex gap-2">
+                    {Array.from({ length: 4 }).map((__, wi) => (
+                      <div key={wi} className="h-14 flex-1 animate-pulse rounded bg-background-secondary/80" />
+                    ))}
+                  </div>
+                </div>
+              ))
+            : overview.map((entry) => {
+                const character = getCharacter(entry.id);
+                const characterName = character
+                  ? formatCharacterDisplayName(character, {
+                      baseName: t(character.nameI18n ?? { en: character.name }),
+                      roverElement: undefined,
+                    })
+                  : `Character ${entry.id}`;
 
-              return (
-                <Link key={charId} href={`/leaderboards/${charId}`}>
-                  <div className="group relative overflow-hidden rounded-xl border border-border bg-background-secondary transition-all hover:border-accent/60 hover:bg-accent/5">
-                    {/* Character banner image */}
-                    <div className="relative h-28 overflow-hidden">
-                      {character?.banner ? (
-                        <img
-                          src={character.banner}
-                          alt={characterName}
-                          className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
-                        />
-                      ) : character?.head ? (
-                        <img
-                          src={character.head}
-                          alt={characterName}
-                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-border/30" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-background-secondary via-background-secondary/40 to-transparent" />
+                const element = character?.element?.toLowerCase() ?? '';
+                const totalEntries = entry.totalEntries;
 
-                      {/* Element badge */}
-                      {character?.elementIcon && (
-                        <div className="absolute right-2 top-2">
+                // Map weapon slots to overview weapon entries
+                const weaponTopByWeaponId = new Map(
+                  entry.weapons.map((w) => [w.weaponId, w]),
+                );
+
+                return (
+                  <Link key={entry.id} href={`/leaderboards/${entry.id}`}>
+                    <div className="grid grid-cols-[200px_80px_88px_minmax(0,1fr)] items-center gap-4 px-4 py-3 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/8">
+                      {/* Character column */}
+                      <div className="flex items-center gap-3">
+                        {character?.head ? (
                           <img
-                            src={character.elementIcon}
-                            alt={character.element ?? ''}
-                            className="h-6 w-6 object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]"
+                            src={character.head}
+                            alt={characterName}
+                            className="h-10 w-10 shrink-0 object-cover object-top"
                           />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Card body */}
-                    <div className="px-3 pb-3 pt-1">
-                      <h3 className="truncate text-base font-semibold text-text-primary">{characterName}</h3>
-                      <div className="mt-1.5 space-y-0.5 text-xs text-text-primary/60">
-                        <div>
-                          <span className="text-text-primary/40">Players: </span>
-                          <span className="font-medium text-text-primary/80">{totalEntries.toLocaleString()}</span>
-                        </div>
-                        {bestDamage > 0 ? (
-                          <div>
-                            <span className="text-text-primary/40">Top: </span>
-                            <span className="font-semibold text-accent">{Math.round(bestDamage).toLocaleString()}</span>
-                            <span className="text-text-primary/40"> DMG</span>
-                          </div>
                         ) : (
-                          <div className="text-text-primary/35">No entries yet</div>
+                          <div className="h-10 w-10 shrink-0 rounded-full bg-border/30" />
                         )}
-                        {topOwner && (
-                          <div className="truncate">
-                            <span className="text-text-primary/40">by </span>
-                            <span className="font-medium text-text-primary/70">{topOwner}</span>
-                          </div>
+                        <span className={`truncate text-base font-semibold ${element ? `char-sig ${element}` : 'text-text-primary'}`}>
+                          {characterName}
+                        </span>
+                      </div>
+
+                      {/* Team column */}
+                      <div className="flex items-center justify-center gap-1">
+                        {entry.teamCharacterIds.length === 0 ? (
+                          <span className="text-xs text-text-primary/30">—</span>
+                        ) : (
+                          entry.teamCharacterIds.map((teamId) => {
+                            const teamChar = getCharacter(teamId);
+                            return teamChar?.head ? (
+                              <img
+                                key={teamId}
+                                src={teamChar.head}
+                                alt={teamId}
+                                className="h-7 w-7 object-cover"
+                              />
+                            ) : (
+                              <div key={teamId} className="h-7 w-7 rounded-full bg-border/30 ring-1 ring-border" />
+                            );
+                          })
                         )}
                       </div>
+
+                      {/* Total entries */}
+                      <div className="text-center text-lg font-semibold text-text-primary">
+                        {totalEntries > 0 ? totalEntries.toLocaleString() : <span className="text-text-primary/35 text-sm">—</span>}
+                      </div>
+
+                      {/* Weapon rankings */}
+                      <div className="grid grid-cols-4 gap-2">
+                        {entry.weaponIds.map((weaponId) => {
+                          const weapon = getWeapon(weaponId);
+                          const top = weaponTopByWeaponId.get(weaponId);
+                          const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
+
+                          return (
+                            <div
+                              key={weaponId}
+                              className="flex items-center gap-2 rounded border border-border/50 bg-background-secondary/40 px-2 py-1.5"
+                            >
+                              {weapon ? (
+                                <img
+                                  src={getWeaponPaths(weapon)}
+                                  alt={weaponName}
+                                  className="h-8 w-8 shrink-0 object-contain"
+                                />
+                              ) : (
+                                <div className="h-8 w-8 shrink-0 rounded bg-border/30" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                {top && top.damage > 0 ? (
+                                  <>
+                                    <div className="truncate text-xs text-text-primary/60">{top.owner.username || 'Anonymous'}</div>
+                                    <div className="text-sm font-semibold text-accent">
+                                      {Math.round(top.damage).toLocaleString()}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="text-xs text-text-primary/35">No entries</div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              );
-            })}
+                  </Link>
+                );
+              })}
+        </div>
       </div>
     </div>
   );

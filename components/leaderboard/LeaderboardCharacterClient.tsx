@@ -17,7 +17,7 @@ import {
 import { clampItemsPerPage, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE } from '@/components/build/buildConstants';
 import { BuildFiltersPanel } from '@/components/build/BuildFiltersPanel';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/build/types';
-import { DEFAULT_LB_SEQUENCE, DEFAULT_LB_SORT, LEADERBOARD_CHAR_CONFIGS } from './leaderboardConstants';
+import { DEFAULT_LB_SEQUENCE, DEFAULT_LB_SORT } from './leaderboardConstants';
 import { LeaderboardResultsPanel } from './LeaderboardResultsPanel';
 
 interface LeaderboardCharacterClientProps {
@@ -64,7 +64,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const { characters, fetters, loading: gameDataLoading } = useGameData();
   const { t } = useLanguage();
 
-  const config = LEADERBOARD_CHAR_CONFIGS[characterId];
+  const [configWeaponIds, setConfigWeaponIds] = useState<string[]>([]);
+  const [configSequences, setConfigSequences] = useState<string[]>(['s0']);
 
   // --- State (initialized from URL) ---
   const [page, setPage] = useState(() => parsePositiveInt(searchParams.get('page'), 1));
@@ -124,10 +125,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
 
   // --- Weapon IDs derived from selected tab ---
   const weaponIds = useMemo<string[]>(() => {
-    if (!config) return [];
-    const weaponId = config.weapons[weaponIndex];
+    const weaponId = configWeaponIds[weaponIndex];
     return weaponId ? [weaponId] : [];
-  }, [config, weaponIndex]);
+  }, [configWeaponIds, weaponIndex]);
 
   // --- Query key for effect dependency ---
   const queryKey = useMemo(() => JSON.stringify({
@@ -167,6 +167,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         if (page > nextPageCount) setPage(nextPageCount);
         setEntries(response.builds);
         setTotal(response.total);
+        if (response.weaponIds.length > 0) setConfigWeaponIds(response.weaponIds);
+        if (response.sequences.length > 0) setConfigSequences(response.sequences);
       })
       .catch((fetchError) => {
         if (!active || controller.signal.aborted) return;
@@ -285,21 +287,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     return (page - 1) * pageSize + 1;
   })();
 
-  if (!config) {
-    return (
-      <div className="mx-auto w-full max-w-360 p-3 md:p-5">
-        <div className="rounded-xl border border-border bg-background-secondary p-6 text-center text-text-primary/60">
-          No leaderboard configuration found for character {characterId}.
-          <div className="mt-3">
-            <Link href="/leaderboards" className="text-accent hover:underline">
-              Back to Leaderboards
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="scrollbar-thin min-h-screen bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
       <div className="mx-auto w-full max-w-360 space-y-4 p-3 md:p-5">
@@ -338,7 +325,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
             {/* Weapon tabs */}
             <WeaponTabs
               characterId={characterId}
-              config={config}
+              weaponIds={configWeaponIds}
               weaponIndex={weaponIndex}
               onSelect={(idx) => {
                 setWeaponIndex(idx);
@@ -347,9 +334,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
             />
 
             {/* Sequence tabs */}
-            {config.sequences.length > 1 && (
+            {configSequences.length > 1 && (
               <SequenceTabs
-                sequences={config.sequences}
+                sequences={configSequences}
                 activeSequence={sequence}
                 onSelect={(seq) => {
                   setSequence(seq);
@@ -483,18 +470,18 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
 
 interface WeaponTabsProps {
   characterId: string;
-  config: { weapons: string[]; sequences: string[] };
+  weaponIds: string[];
   weaponIndex: number;
   onSelect: (index: number) => void;
 }
 
-const WeaponTabs: React.FC<WeaponTabsProps> = ({ config, weaponIndex, onSelect }) => {
+const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelect }) => {
   const { getWeapon } = useGameData();
   const { t } = useLanguage();
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {config.weapons.map((weaponId, index) => {
+      {weaponIds.map((weaponId, index) => {
         const weapon = getWeapon(weaponId);
         const label = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
         const isActive = index === weaponIndex;

@@ -56,10 +56,10 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 | `builds_imported` | User imports builds from JSON | `components/save/SavesPageClient.tsx` |
 | `builds_session_summary` | Session aggregation (expansion count on /builds unmount) | `components/build/BuildPageClient.tsx` |
 
-## LB + Builds Current Status (2026-03-07)
+## LB + Builds Current Status (2026-03-08)
 
 - `/builds` route is live and wired to LB `GET /build` filters/sort/pagination plus detail expansion via `GET /build/{id}`.
-- `/leaderboards` route is still placeholder.
+- `/leaderboards` route is **implemented** — overview page + per-character pages are live.
 - `/import` has an `Upload to Leaderboard` toggle in UI, but no leaderboard submission wiring is connected yet.
 - `BuildEditor` still has a disabled `View Ranking` button with a TODO note for leaderboard logic.
 - Go LB runtime is validated with migrated legacy data and single-pass canonical ingest (`make import DUMP=...`).
@@ -83,7 +83,8 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 | `/edit` | Implemented | `app/edit/page.tsx` | `components/edit/*`, `components/card/*`, `components/echo/*`, `components/forte/*`, selectors |
 | `/import` | Implemented | `app/import/page.tsx` | `components/import/*`, `hooks/useOcrImport.ts`, `lib/import/*` |
 | `/saves` | Implemented | `app/saves/page.tsx` | `components/save/*`, `lib/storage.ts`, `lib/legacyMigration.ts` |
-| `/leaderboards` | Placeholder | `app/leaderboards/page.tsx` | Empty `<main>` shell only |
+| `/leaderboards` | Implemented | `app/leaderboards/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
+| `/leaderboards/[characterId]` | Implemented | `app/leaderboards/[characterId]/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
 
 All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and all page state is context-driven.
 
@@ -253,9 +254,35 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
 
 ### `/leaderboards`
 
-- Current implementation is intentionally minimal:
-  - `app/leaderboards/page.tsx` returns an empty `<main className="min-h-screen bg-background">`.
-  - No client component tree or data wiring yet.
+- Entry: `app/leaderboards/page.tsx` → `LeaderboardOverviewClient`.
+- `LeaderboardOverviewClient()`:
+  - Fetches `GET /api/lb/leaderboard` via `listLeaderboardOverview(signal)`.
+  - Renders a table: Character (portrait + element-colored name) | Team (partner portraits) | Entries | Weapon Rankings (4 slots).
+  - Character rows, team portraits, and weapon rankings all come from the API — no hardcoded config.
+  - Rows link to `/leaderboards/{characterId}`.
+
+### `/leaderboards/[characterId]`
+
+- Entry: `app/leaderboards/[characterId]/page.tsx` → `LeaderboardCharacterClient`.
+- `LeaderboardCharacterClient()`:
+  - Fetches `GET /api/lb/leaderboard/{characterId}?weaponIndex=&sequence=&sort=&...` via `listLeaderboard(id, query, signal)`.
+  - `weaponIds` and `sequences` are returned by the API (from the Go calc registry) — no hardcoded `LEADERBOARD_CHAR_CONFIGS`.
+  - State: `page`, `pageSize`, `sort` (default `damage`), `direction`, `weaponIndex`, `sequence`, plus echo/region/uid/username filters.
+  - `configWeaponIds` / `configSequences` state is populated from the first successful API response.
+  - URL sync: `weaponIndex`, `sequence`, `sort`, `direction`, `page`, filter params all persisted to query string.
+  - Reuses `BuildFiltersPanel` (with empty `characters`/`weaponList` to hide those sections) and `LeaderboardResultsPanel`.
+- `LeaderboardResultsPanel()`:
+  - Table header: `# | Owner | Weapon | Seq | Sets | Damage | CV+Stats`.
+  - Damage column is primary sort; CV+Stats group reuses `SortHeaderMenu`.
+  - Shows "global ranks are preserved" banner when `sort === 'damage'`.
+  - Reuses `BuildPagination`.
+- `LeaderboardRow()`:
+  - Rank: uses `globalRank` when `isDamageSort`, else `filteredRank`.
+  - Gold/silver/bronze styling for top 3.
+  - Echo sets computed from `buildState.echoPanels` via `fettersByElement`.
+  - Reuses `BuildExpanded` directly (no secondary detail fetch — `buildState` is in every leaderboard entry).
+- `WeaponTabs` / `SequenceTabs`: inline sub-components inside `LeaderboardCharacterClient`.
+- `leaderboardConstants.ts`: exports only `LB_TABLE_GRID`, `DEFAULT_LB_SORT`, `DEFAULT_LB_SEQUENCE`.
 
 ## Architecture
 
@@ -506,20 +533,19 @@ Where `base` = character scaled + weapon scaled, `percent` = sum of all % source
 
 ## Migration Status
 
-Current status (March 5, 2026): core frontend migration is complete for main user flows.
+Current status (March 8, 2026): core frontend migration is complete for main user flows.
 
 | Track | Scope | Status |
 |-------|-------|--------|
 | Frontend rewrite | App Router + providers + `/`, `/edit`, `/import`, `/saves` | Done |
 | Builds surface | `/builds` list, filters, sort, pagination, LB fetch wiring | Live (fine-tuning in progress) |
-| Leaderboard integration | `/leaderboards` page, `/import` leaderboard upload wiring, `/edit` View Ranking wiring | In Progress |
+| Leaderboard integration | `/leaderboards` overview + per-character pages live; `/import` upload + `/edit` View Ranking pending | Mostly Done |
 | LB backend cutover | Go `/lb` parity, migrations, submit normalization/backfill, Node fallback retirement | In Progress |
 
 Primary remaining workstreams:
 1. Fine-tune `/builds` behavior and UX polish.
-2. Implement `/leaderboards` and wire it to LB endpoints.
-3. Connect `/import` leaderboard submission toggle and `/edit` View Ranking action.
-4. Close Go LB parity gates and remove Node fallback dependency.
+2. Connect `/import` leaderboard submission toggle and `/edit` View Ranking action.
+3. Close Go LB parity gates (dedupe constraint, globalRank CTE, echo backfill) and remove Node fallback dependency.
 
 ## Related Services
 

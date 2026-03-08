@@ -340,6 +340,9 @@ export interface LBCharacterOverview {
   id: string;
   totalEntries: number;
   weapons: LBWeaponTop[];
+  weaponIds: string[];
+  sequences: string[];
+  teamCharacterIds: string[];
 }
 
 export interface LBLeaderboardEntry {
@@ -378,6 +381,8 @@ export interface LBLeaderboardResponse {
   total: number;
   page: number;
   pageSize: number;
+  weaponIds: string[];
+  sequences: string[];
 }
 
 function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
@@ -457,6 +462,9 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
       id: typeof raw._id === 'string' ? raw._id : '',
       totalEntries: toFiniteNumber(raw.totalEntries),
       weapons,
+      weaponIds: Array.isArray(raw.weaponIds) ? raw.weaponIds.filter((v): v is string => typeof v === 'string') : [],
+      sequences: Array.isArray(raw.sequences) ? raw.sequences.filter((v): v is string => typeof v === 'string') : [],
+      teamCharacterIds: Array.isArray(raw.teamCharacterIds) ? raw.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
     });
   }
 
@@ -493,7 +501,7 @@ export async function listLeaderboard(
     throw new Error(`Failed to fetch leaderboard (${response.status})`);
   }
 
-  const payload = await response.json() as { builds?: unknown[]; total?: number; page?: number; pageSize?: number };
+  const payload = await response.json() as { builds?: unknown[]; total?: number; page?: number; pageSize?: number; weaponIds?: unknown[]; sequences?: unknown[] };
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
   const builds: LBLeaderboardEntry[] = [];
 
@@ -514,6 +522,8 @@ export async function listLeaderboard(
     total: toFiniteNumber(payload.total, 0),
     page: toFiniteNumber(payload.page, query.page ?? 1),
     pageSize: toFiniteNumber(payload.pageSize, pageSize),
+    weaponIds: Array.isArray(payload.weaponIds) ? (payload.weaponIds as unknown[]).filter((v): v is string => typeof v === 'string') : [],
+    sequences: Array.isArray(payload.sequences) ? (payload.sequences as unknown[]).filter((v): v is string => typeof v === 'string') : [],
   };
 }
 
