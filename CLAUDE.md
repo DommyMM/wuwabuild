@@ -340,7 +340,7 @@ The `skillIcons` field provides direct CDN URLs keyed by type: `normal-attack`, 
 
 ### Weapons.json
 
-Organized by weapon type. Each weapon includes: `id`, `name` (all languages), `type`, `rarity`, `icon` URLs, `effect` (passive description with `{0}` placeholders), `params` (refinement values per rank), `stats` (base ATK + substat).
+Flat JSON array of weapon objects. Each weapon includes: `id`, `legacyId`, `name` (all languages), `type`, `rarity`, `icon` URLs, `effect` (passive description with `{0}` placeholders), `effectName`, `params` (refinement values per rank), `stats` (base ATK + substat), and optional `unconditionalPassiveBonuses`.
 
 ### Echoes.json
 

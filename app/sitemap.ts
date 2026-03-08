@@ -39,9 +39,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     const staticRoutes = [
         '',
         '/builds',
-        '/edit',
-        '/import',
-        '/saves',
         '/leaderboards',
     ].map((route) => ({
         url: `${baseUrl}${route}`,
@@ -59,7 +56,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
         const charPath = path.join(dataDir, 'Characters.json');
         if (fs.existsSync(charPath)) {
             const charsData = JSON.parse(fs.readFileSync(charPath, 'utf8'));
-            // Characters is a dictionary: {"1105": { id: "1105", ... }, ...}
             const charRoutes = Object.values(charsData).map((char: unknown) => ({
                 url: `${baseUrl}/characters/${(char as { id: string | number }).id}`,
                 lastModified: new Date(),
