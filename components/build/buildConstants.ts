@@ -16,11 +16,11 @@ export const DEFAULT_SORT: LBSortKey = 'finalCV';
 export const DEFAULT_DIRECTION: LBSortDirection = 'desc';
 
 export const REGION_OPTIONS = [
-  { label: 'America', value: '5' },
+  { label: 'NA', value: '5' },
   { label: 'Europe', value: '6' },
   { label: 'Asia', value: '7' },
   { label: 'SEA', value: '9' },
-  { label: 'HMT', value: '1' },
+  { label: 'CN', value: '1' },
 ] as const;
 
 export const MAIN_STAT_OPTIONS = [
@@ -68,10 +68,10 @@ export type RegionBadge = {
 };
 
 export const REGION_BADGES: Record<string, RegionBadge> = {
-  '1': { label: 'HMT', className: 'bg-red-500/85 text-white' },
+  '1': { label: 'CN', className: 'bg-red-500/85 text-white' },
   '5': { label: 'NA', className: 'bg-amber-400/90 text-black' },
   '6': { label: 'EU', className: 'bg-indigo-400/90 text-black' },
-  '7': { label: 'ASIA', className: 'bg-lime-300/90 text-black' },
+  '7': { label: 'Asia', className: 'bg-lime-300/90 text-black' },
   '9': { label: 'SEA', className: 'bg-cyan-300/90 text-black' },
 };
 

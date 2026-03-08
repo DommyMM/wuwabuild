@@ -466,7 +466,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   );
 };
 
-// ─── Weapon tabs sub-component ────────────────────────────────────────────────
+// Weapon tabs sub-component
 
 interface WeaponTabsProps {
   characterId: string;
@@ -507,7 +507,7 @@ const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelec
   );
 };
 
-// ─── Sequence tabs sub-component ──────────────────────────────────────────────
+// Sequence tabs sub-component
 
 interface SequenceTabsProps {
   sequences: string[];

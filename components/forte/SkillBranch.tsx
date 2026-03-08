@@ -78,7 +78,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
 
   return (
     <div className={`flex flex-col items-center ${className}`}>
-      {/* ── Nodes above the skill icon ── */}
+      {/* Nodes above the skill icon */}
       {hasNodes ? (
         <>
           {/* Top node */}
@@ -149,7 +149,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
         </>
       )}
 
-      {/* ── Skill icon ── */}
+      {/* Skill icon */}
       <div
         className={`relative ${skillFrameClass} flex items-center justify-center bg-[url('https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillANor.png')] bg-contain bg-center bg-no-repeat transition-all duration-300`}
       >
@@ -164,7 +164,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
         />
       </div>
 
-      {/* ── Level display ── */}
+      {/* Level display */}
       <div className={`relative z-10 flex flex-col items-center ${compact ? 'gap-1.5' : 'gap-2'}`}>
         <div className={`flex items-center gap-1 ${compact ? 'text-xs' : 'text-sm'} text-text-primary/70`}>
           <span>Lv.</span>
@@ -206,7 +206,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
         />
       </div>
 
-      {/* ── Skill name ── */}
+      {/* Skill name */}
       <span className={`mt-2 text-center ${compact ? 'text-xs' : 'text-base'} leading-tight text-text-primary/60`}>
         {skillName}
       </span>

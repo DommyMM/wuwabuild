@@ -44,7 +44,7 @@ export function convertAnalysisToSavedState(
 ): SavedState {
   const { characters, weapons } = args;
 
-  // ── Character ──────────────────────────────────────────────────────────────
+  // Character
   const rawName = data.character?.name ?? '';
   const ocrCharacterId = data.character?.id ?? null;
   const { isRover, isMale, roverElement, baseName } = parseRoverInfo(rawName);
@@ -63,7 +63,7 @@ export function convertAnalysisToSavedState(
 
   const characterLevel = data.character?.level ?? 90;
 
-  // ── Weapon ─────────────────────────────────────────────────────────────────
+  // Weapon
   let weaponId: string | null = null;
   const weaponLevel = data.weapon?.level ?? 90;
   const ocrWeaponId = data.weapon?.id ?? null;
@@ -80,7 +80,7 @@ export function convertAnalysisToSavedState(
     }
   }
 
-  // ── Forte ──────────────────────────────────────────────────────────────────
+  // Forte
   // card.py order: levels[0]=normal, levels[1]=skill, levels[2]=circuit, levels[3]=intro, levels[4]=lib
   // Rewrite column order: col0=normal, col1=skill, col2=circuit, col3=liberation, col4=intro
   const levels = data.forte?.levels ?? [];
@@ -92,10 +92,10 @@ export function convertAnalysisToSavedState(
     [levels[3] || 10, true, true],  // col4 intro         = levels[3] ← swap
   ];
 
-  // ── Sequence ───────────────────────────────────────────────────────────────
+  // Sequence
   const sequence = data.sequences?.sequence ?? 0;
 
-  // ── Echoes ─────────────────────────────────────────────────────────────────
+  // Echoes
   const echoKeys = ['echo1', 'echo2', 'echo3', 'echo4', 'echo5'] as const;
   const echoPanels: EchoPanelState[] = echoKeys.map(k => {
     const echoData = data[k];
@@ -103,7 +103,7 @@ export function convertAnalysisToSavedState(
     return matchEchoData(echoData, args) ?? createDefaultEchoPanelState();
   });
 
-  // ── Watermark ──────────────────────────────────────────────────────────────
+  // Watermark
   const watermark = {
     username: data.watermark?.username ?? '',
     uid: String(data.watermark?.uid ?? ''),

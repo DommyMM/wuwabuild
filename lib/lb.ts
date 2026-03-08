@@ -122,7 +122,6 @@ export interface LBBuildRowEntry {
 
 export interface LBBuildDetailEntry extends LBBuildRowEntry {
   buildState: SavedState;
-  calculations?: unknown;
 }
 
 interface LBListBuildsResponseRaw {
@@ -231,7 +230,6 @@ function parseBuildDetailEntry(raw: unknown): LBBuildDetailEntry {
   return {
     ...row,
     buildState: { ...buildState, forte },
-    calculations: parseMaybeJSON(raw.calculations),
   };
 }
 
@@ -325,7 +323,7 @@ export async function listBuilds(
   };
 }
 
-// ─── Leaderboard types ────────────────────────────────────────────────────────
+// Leaderboard types
 
 export interface LBWeaponTop {
   weaponId: string;
@@ -524,7 +522,7 @@ export async function listLeaderboard(
   };
 }
 
-// ─── Build by ID ──────────────────────────────────────────────────────────────
+// Build by ID
 
 export async function getBuildById(buildId: string, signal?: AbortSignal): Promise<LBBuildDetailEntry> {
   const trimmedBuildId = buildId.trim();
