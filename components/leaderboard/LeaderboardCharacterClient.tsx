@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -97,8 +97,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
-  const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
+  const [detailById] = useState<Record<string, LBBuildDetailEntry>>({});
+  const [detailLoadingById] = useState<Record<string, boolean>>({});
   const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
 
   // --- URL sync ---

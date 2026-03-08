@@ -129,10 +129,10 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
         </div>
       )}
 
-      <div className="relative overflow-x-auto md:overflow-x-visible pb-1">
+      <div className="relative overflow-x-auto pb-1 md:overflow-x-hidden">
         <div className="overflow-hidden rounded-lg border border-border bg-background/70">
           {/* Table header */}
-          <div className={`grid ${LB_TABLE_GRID} items-center gap-4.5 border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
+          <div className={`grid ${LB_TABLE_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
             <div className="py-2 text-center text-text-primary/70">#</div>
             <div className="py-2">Owner</div>
             <div className="py-2" aria-hidden="true" />

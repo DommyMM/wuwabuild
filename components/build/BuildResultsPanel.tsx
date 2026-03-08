@@ -106,8 +106,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
         </div>
       )}
 
-      <div className="relative overflow-x-auto md:overflow-x-visible pb-1">
-        <div className="overflow-hidden rounded-lg border border-border bg-background/70">
+      <div className="relative overflow-x-auto overflow-y-visible pb-1 md:overflow-x-visible">
+        <div className="overflow-visible rounded-lg border border-border bg-background/70">
           {/* Table header */}
           <div className={`grid ${TABLE_GRID} items-center gap-4.5 border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
             <div className="py-2 text-center text-text-primary/70">#</div>

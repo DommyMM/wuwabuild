@@ -12,27 +12,32 @@ export const LeaderboardOverviewClient: React.FC = () => {
   const { getCharacter, getWeapon, loading: gameDataLoading } = useGameData();
   const { t } = useLanguage();
   const [overview, setOverview] = useState<LBCharacterOverview[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [fetchState, setFetchState] = useState<{ isLoading: boolean; error: string | null }>({
+    isLoading: true,
+    error: null,
+  });
 
   useEffect(() => {
     const controller = new AbortController();
-    setIsLoading(true);
-    setError(null);
 
     listLeaderboardOverview(controller.signal)
-      .then(setOverview)
-      .catch((err) => {
-        if (!controller.signal.aborted) setError(String(err));
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setOverview(data);
+        setFetchState({ isLoading: false, error: null });
       })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoading(false);
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        setFetchState({
+          isLoading: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
       });
 
     return () => controller.abort();
   }, []);
 
-  const showSkeleton = isLoading || gameDataLoading;
+  const showSkeleton = fetchState.isLoading || gameDataLoading;
 
   return (
     <div className="mx-auto w-full max-w-360 space-y-6 p-3 md:p-5">
@@ -48,9 +53,9 @@ export const LeaderboardOverviewClient: React.FC = () => {
         </div>
       </section>
 
-      {error && (
+      {fetchState.error && (
         <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-300">
-          Failed to load leaderboard data: {error}
+          Failed to load leaderboard data: {fetchState.error}
         </div>
       )}
 

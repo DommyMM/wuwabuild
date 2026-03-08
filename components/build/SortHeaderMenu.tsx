@@ -117,7 +117,7 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
                 event.stopPropagation();
                 onSelectOption(option.key);
               }}
-              className={`flex w-full items-center justify-between gap-2 border-b border-border px-2 pr-4 py-1.5 text-left text-base transition-colors last:border-b-0 ${
+              className={`flex w-full items-center justify-between gap-2 border-b border-border px-3 py-1.5 text-left text-[15px] transition-colors last:border-b-0 ${
                 isSelected
                   ? 'border-l-2 border-l-accent bg-black/35 text-accent'
                   : 'border-l-2 border-l-transparent text-text-primary hover:border-l-border hover:bg-background hover:text-text-primary/95'
