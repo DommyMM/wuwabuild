@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useBuild } from '@/contexts/BuildContext';
 import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
@@ -13,6 +15,8 @@ import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
 import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
+import { setLocalStorageItem } from '@/lib/clientStorage';
+import { DRAFT_BUILD_STORAGE_KEY } from '@/lib/storage';
 import { RegionBadge } from './buildConstants';
 import { formatFlatStat, formatPercentStat } from './buildFormatters';
 
@@ -68,9 +72,18 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   translateText,
   onRetryDetail,
 }) => {
+  const router = useRouter();
+  const { loadState } = useBuild();
   const { fettersByElement, getSubstatValues, statTranslations } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
+
+  const handleViewBuild = () => {
+    if (!detail) return;
+    loadState(detail.buildState);
+    setLocalStorageItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(detail.buildState));
+    router.push('/edit');
+  };
 
   // Derive character default substat selections without effect-driven state updates.
   const autoSelectedSubstats = useMemo(() => {
@@ -193,27 +206,20 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
       .reduce((sum, summary) => sum + summary.count, 0);
   }, [activeSelectedSubstats, detailSubstatSummary]);
 
-  // Calculate overall RV for selected substats
+  // Calculate overall RV for selected substats.
+  // Uses detailSubstatSummary (already has total + count per stat) — no need to re-iterate panels.
   const overallRV = useMemo(() => {
-    if (!detail || activeSelectedSubstats.size === 0) return 0;
+    if (activeSelectedSubstats.size === 0 || detailSubstatSummary.length === 0) return 0;
 
-    // Build a map of selected substat types to their total values
-    const selectedTotals = new Map<string, number>();
-    
-    for (const panel of detail.buildState.echoPanels) {
-      for (const sub of panel.stats.subStats) {
-        const normalizedType = normalizeSubstatKey(sub.type);
-        if (!normalizedType || sub.value === null || !activeSelectedSubstats.has(normalizedType)) {
-          continue;
-        }
-        
-        const current = selectedTotals.get(normalizedType) ?? 0;
-        selectedTotals.set(normalizedType, current + Number(sub.value));
+    const selectedMap = new Map<string, { total: number; count: number }>();
+    for (const entry of detailSubstatSummary) {
+      if (activeSelectedSubstats.has(entry.type)) {
+        selectedMap.set(entry.type, { total: entry.total, count: entry.count });
       }
     }
 
-    return calculateOverallRV(selectedTotals, getSubstatValues);
-  }, [activeSelectedSubstats, detail, getSubstatValues]);
+    return calculateOverallRV(selectedMap, getSubstatValues);
+  }, [activeSelectedSubstats, detailSubstatSummary, getSubstatValues]);
 
   return (
     <AnimatePresence initial={false}>
@@ -489,12 +495,22 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                       }`}
                     >
                       <span className="text-amber-300">x{totalSelectedRolls}</span>
-                      <span>• </span>
+                      <span>•</span>
                       <span className="text-amber-300">RV</span>
-                      <span className="text-base">{overallRV.toFixed(1)}%</span>
+                      <span className="text-base">{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
                     </div>
                   </div>
                 )}
+                
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={handleViewBuild}
+                    className="rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer"
+                  >
+                    View in Editor
+                  </button>
+                </div>
               </>
             )}
           </div>

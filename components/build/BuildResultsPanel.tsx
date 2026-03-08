@@ -109,7 +109,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
       <div className="relative overflow-x-auto md:overflow-x-visible pb-1">
         <div className="overflow-hidden rounded-lg border border-border bg-background/70">
           {/* Table header */}
-          <div className={`grid ${TABLE_GRID} items-center gap-4 border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
+          <div className={`grid ${TABLE_GRID} items-center gap-4.5 border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
             <div className="py-2 text-center text-text-primary/70">#</div>
             <div className="py-2">Owner</div>
             <div className="py-2">Name</div>
@@ -196,68 +196,70 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
             </div>
           </div>
 
-          {/* Skeleton rows */}
-          {showInitialSkeleton && (
-            <div className="divide-y divide-border/60">
-              {Array.from({ length: pageSize }).map((_, index) => (
-                <div
-                  key={index}
-                  className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
-                >
-                  <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
-                  <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
-                  <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
-                  <div className="h-8 w-8 animate-pulse rounded bg-background-secondary/80" />
-                  <div className="h-5 w-9 animate-pulse rounded bg-background-secondary/80" />
-                  <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
-                  <div className={`grid ${SORTABLE_GROUP_GRID} gap-0`}>
-                    <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+          {/* Rows area — overlay is scoped here so the header stays visible */}
+          <div className="relative">
+            {/* Skeleton rows */}
+            {showInitialSkeleton && (
+              <div className="divide-y divide-border/60">
+                {Array.from({ length: pageSize }).map((_, index) => (
+                  <div
+                    key={index}
+                    className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
+                  >
+                    <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
+                    <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
+                    <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
+                    <div className="h-8 w-8 animate-pulse rounded bg-background-secondary/80" />
+                    <div className="h-5 w-9 animate-pulse rounded bg-background-secondary/80" />
+                    <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
+                    <div className={`grid ${SORTABLE_GROUP_GRID} gap-0`}>
+                      <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
+                      <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                      <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                      <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                      <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {!showInitialSkeleton && !error && builds.length === 0 && (
-            <div className="p-6 text-center text-sm text-text-primary/65">
-              No builds match the current filters.
-            </div>
-          )}
+            {!showInitialSkeleton && !error && builds.length === 0 && (
+              <div className="p-6 text-center text-sm text-text-primary/65">
+                No builds match the current filters.
+              </div>
+            )}
 
-          {!error && builds.length > 0 && (
-            <div className="divide-y divide-border/60">
-              {builds.map((entry, index) => (
-                <BuildRow
-                  key={entry.id}
-                  entry={entry}
-                  rank={rankStart + index}
-                  isExpanded={expandedBuildIds.has(entry.id)}
-                  detail={detailById[entry.id]}
-                  isDetailLoading={detailLoadingById[entry.id] ?? false}
-                  detailError={detailErrorById[entry.id]}
-                  sort={sort}
-                  isCvColumnActive={isCvColumnActive}
-                  isStatSortActive={isStatSortActive}
-                  onToggleExpand={onToggleExpand}
-                  onRetryDetail={onRetryDetail}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {showRefreshingOverlay && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-black/55 backdrop-blur-[1.5px]">
-            <div className="flex items-center gap-3 rounded-md border border-accent/35 bg-background/80 px-4 py-2 text-sm text-text-primary">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
-              Updating builds...
-            </div>
+            {!error && builds.length > 0 && (
+              <div className="relative divide-y divide-border/60">
+                {builds.map((entry, index) => (
+                  <BuildRow
+                    key={entry.id}
+                    entry={entry}
+                    rank={rankStart + index}
+                    isExpanded={expandedBuildIds.has(entry.id)}
+                    detail={detailById[entry.id]}
+                    isDetailLoading={detailLoadingById[entry.id] ?? false}
+                    detailError={detailErrorById[entry.id]}
+                    sort={sort}
+                    isCvColumnActive={isCvColumnActive}
+                    isStatSortActive={isStatSortActive}
+                    onToggleExpand={onToggleExpand}
+                    onRetryDetail={onRetryDetail}
+                  />
+                ))}
+                {showRefreshingOverlay && (
+                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 backdrop-blur-[1.5px]">
+                    <div className="flex items-center gap-3 rounded-md border border-accent/35 bg-background/80 px-4 py-2 text-sm text-text-primary">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
+                      Updating builds...
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       <BuildPagination page={page} pageCount={pageCount} statusText={statusText} onPageChange={onPageChange} />

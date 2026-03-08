@@ -18,25 +18,35 @@ export function calculateSubstatRollPercentage(
   return (value / maxRoll) * 100;
 }
 
-// Calculate overall RV for selected substats
+// Calculate overall RV for selected substats.
+//
+// Formula: average over stat types of (avgRollValue / maxRollValue).
+// Each selected stat type is weighted equally — 3x Crit Rate rolls don't
+// outweigh 1x Crit DMG roll just because you have more of them. Both stats
+// contribute one equal "slot" to the average.
+//
+// Result: 0–100% where 100% = every stat's average roll was the max-tier value.
 export function calculateOverallRV(
-  selectedSubstats: Map<string, number>,
+  selectedSubstats: Map<string, { total: number; count: number }>,
   getSubstatValues: (stat: string) => number[] | null
 ): number {
-  if (selectedSubstats.size === 0) {
-    return 0;
-  }
+  if (selectedSubstats.size === 0) return 0;
 
-  let totalPercentage = 0;
+  let sumStatQuality = 0;
+  let validStatCount = 0;
 
-  for (const [statType, totalValue] of selectedSubstats.entries()) {
+  for (const [statType, { total, count }] of selectedSubstats.entries()) {
     const substatValues = getSubstatValues(statType);
-    const percentage = calculateSubstatRollPercentage(statType, totalValue, substatValues);
-    totalPercentage += percentage;
+    if (!substatValues || substatValues.length === 0) continue;
+    const maxRoll = Math.max(...substatValues);
+    if (maxRoll === 0 || count === 0) continue;
+    const avgRoll = total / count;
+    sumStatQuality += avgRoll / maxRoll;
+    validStatCount += 1;
   }
 
-  // Average the percentages across all selected substats
-  return totalPercentage / selectedSubstats.size;
+  if (validStatCount === 0) return 0;
+  return (sumStatQuality / validStatCount) * 100;
 }
 
 // Default preferred substats for RV calculation

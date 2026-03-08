@@ -94,7 +94,7 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
               <span>{label}</span>
             </span>
             <ChevronDown
-              className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+              className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
                 active && direction === 'asc' ? 'rotate-180' : ''
               } ${active ? '' : 'text-text-primary/50'}`}
             />
@@ -103,7 +103,7 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
       </button>
 
       <div
-        className={`absolute top-full z-20 hidden w-max ${naturalMenuWidth ? 'min-w-41' : 'min-w-full'} overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary group-hover/sort:block group-focus-within/sort:block ${
+        className={`absolute top-full z-30 hidden w-max ${naturalMenuWidth ? 'min-w-41' : 'min-w-full'} overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary group-hover/sort:block group-focus-within/sort:block ${
           alignMenuRight ? 'right-0 left-auto' : 'left-0'
         }`}
       >
@@ -116,9 +116,8 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
               onClick={(event) => {
                 event.stopPropagation();
                 onSelectOption(option.key);
-                blurFocusedMenuControl();
               }}
-              className={`flex w-full items-center justify-between gap-2 border-b border-border ${menuId === 'sort-cv' ? 'px-2' : 'px-2 pr-6'} py-1.5 text-left text-base transition-colors last:border-b-0 ${
+              className={`flex w-full items-center justify-between gap-2 border-b border-border px-2 pr-4 py-1.5 text-left text-base transition-colors last:border-b-0 ${
                 isSelected
                   ? 'border-l-2 border-l-accent bg-black/35 text-accent'
                   : 'border-l-2 border-l-transparent text-text-primary hover:border-l-border hover:bg-background hover:text-text-primary/95'

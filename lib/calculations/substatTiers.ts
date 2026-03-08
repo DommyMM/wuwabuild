@@ -27,10 +27,7 @@ const deriveThresholds = (sortedValues: number[]): [number, number, number] | nu
   return [boundaries[0], boundaries[1], boundaries[2]];
 };
 
-/**
- * Returns the hex color for a substat roll's quality tier, or null if the
- * roll bucket data is missing.
- */
+// Returns the hex color for a substat roll's quality tier
 export const getSubstatTierColor = (
   _statType: string,
   value: number,

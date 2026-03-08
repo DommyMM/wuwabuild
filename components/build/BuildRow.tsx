@@ -76,7 +76,7 @@ export const BuildRow: React.FC<BuildRowProps> = ({
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
-        className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
+        className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
         onClick={() => onToggleExpand(entry.id)}
         onKeyDown={(event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
