@@ -95,8 +95,6 @@ export interface LBBuildOwner {
 
 export interface LBBuildCharacter {
   id: string;
-  level: number;
-  roverElement?: string;
 }
 
 export interface LBBuildWeapon {
@@ -107,6 +105,7 @@ export interface LBBuildWeapon {
 
 export interface LBBuildEchoSummary {
   sets: Record<string, number>;
+  mainStats: Array<{ cost: number; statType: string }>;
 }
 
 export interface LBBuildRowEntry {
@@ -118,14 +117,11 @@ export interface LBBuildRowEntry {
   stats: Record<LBStatCode, number>;
   echoSummary: LBBuildEchoSummary;
   cv: number;
-  cvPenalty: number;
-  finalCV: number;
   timestamp: string;
 }
 
 export interface LBBuildDetailEntry extends LBBuildRowEntry {
   buildState: SavedState;
-  statsFull?: unknown;
   calculations?: unknown;
 }
 
@@ -180,20 +176,18 @@ function parseBuildRowEntry(raw: unknown): LBBuildRowEntry {
   const weapon = isRecord(raw.weapon) ? raw.weapon : {};
   const echoSummary = isRecord(raw.echoSummary) ? raw.echoSummary : {};
 
-  if (!('_id' in raw) || !('owner' in raw) || !('character' in raw) || !('weapon' in raw) || !('echoSummary' in raw)) {
+  if (!('id' in raw) || !('owner' in raw) || !('character' in raw) || !('weapon' in raw) || !('echoSummary' in raw)) {
     throw new Error('LB row payload missing compact fields. Expected compact /build contract.');
   }
 
   return {
-    id: typeof raw._id === 'string' ? raw._id : '',
+    id: typeof raw.id === 'string' ? raw.id : '',
     owner: {
       username: typeof owner.username === 'string' ? owner.username : '',
       uid: typeof owner.uid === 'string' ? owner.uid : '',
     },
     character: {
       id: typeof character.id === 'string' ? character.id : '',
-      level: toFiniteNumber(character.level, 1),
-      roverElement: typeof character.roverElement === 'string' ? character.roverElement : undefined,
     },
     weapon: {
       id: typeof weapon.id === 'string' ? weapon.id : '',
@@ -204,10 +198,16 @@ function parseBuildRowEntry(raw: unknown): LBBuildRowEntry {
     stats: (isRecord(raw.stats) ? raw.stats : {}) as Record<LBStatCode, number>,
     echoSummary: {
       sets: (isRecord(echoSummary.sets) ? echoSummary.sets : {}) as Record<string, number>,
+      mainStats: Array.isArray(echoSummary.mainStats)
+        ? echoSummary.mainStats
+          .filter(isRecord)
+          .map((entry) => ({
+            cost: toFiniteNumber(entry.cost, 0),
+            statType: typeof entry.statType === 'string' ? entry.statType : '',
+          }))
+        : [],
     },
     cv: toFiniteNumber(raw.cv),
-    cvPenalty: toFiniteNumber(raw.cvPenalty),
-    finalCV: toFiniteNumber(raw.finalCV),
     timestamp: typeof raw.timestamp === 'string' ? raw.timestamp : '',
   };
 }
@@ -231,7 +231,6 @@ function parseBuildDetailEntry(raw: unknown): LBBuildDetailEntry {
   return {
     ...row,
     buildState: { ...buildState, forte },
-    statsFull: parseMaybeJSON(raw.statsFull),
     calculations: parseMaybeJSON(raw.calculations),
   };
 }
@@ -298,7 +297,7 @@ export async function listBuilds(
       builds.push(parseBuildRowEntry(raw));
     } catch (error) {
       console.warn('[LB] dropped malformed build row', {
-        buildId: isRecord(raw) ? raw._id : undefined,
+        buildId: isRecord(raw) ? raw.id : undefined,
         error: error instanceof Error ? error.message : String(error),
         raw,
       });
@@ -312,8 +311,6 @@ export async function listBuilds(
     total: toFiniteNumber(payload.total, 0),
     page: toFiniteNumber(payload.page, query.page ?? 1),
     pageSize: toFiniteNumber(payload.pageSize, pageSize),
-    rawRows: rawBuilds,
-    parsedRows: builds,
     rawRowCount: rawBuilds.length,
     parsedRowCount: builds.length,
     droppedRowCount: Math.max(0, rawBuilds.length - builds.length),
@@ -545,16 +542,14 @@ export async function getBuildById(buildId: string, signal?: AbortSignal): Promi
   }
 
   const payload = await response.json();
-  const parsed = parseBuildDetailEntry(payload);
+  const detail = parseBuildDetailEntry(payload);
 
   console.log('[LB] /build/{id} detail payload', {
     requestUrl,
     buildId: trimmedBuildId,
-    rawPayload: payload,
-    parsedPayload: parsed,
-    echoPanelCount: parsed.buildState.echoPanels.length,
-    setIds: Object.keys(parsed.echoSummary.sets),
+    echoPanelCount: detail.buildState.echoPanels.length,
+    setIds: Object.keys(detail.echoSummary.sets),
   });
 
-  return parsed;
+  return detail;
 }

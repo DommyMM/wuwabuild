@@ -110,18 +110,16 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
           : 'text-text-primary/75';
 
   // Build a minimal LBBuildRowEntry for BuildExpanded compatibility
-  const echoSummaryForExpanded: LBBuildEchoSummary = { sets: echoSetCounts };
+  const echoSummaryForExpanded: LBBuildEchoSummary = { sets: echoSetCounts, mainStats: [] };
   const rowEntry: LBBuildRowEntry = {
     id: entry.id,
     owner: entry.owner,
-    character: entry.character,
+    character: { id: entry.character.id },
     weapon: entry.weapon,
     sequence: entry.sequence,
     stats: {} as Record<LBStatCode, number>,
     echoSummary: echoSummaryForExpanded,
-    cv: entry.cv,
-    cvPenalty: entry.cvPenalty,
-    finalCV: entry.finalCV,
+    cv: entry.finalCV,
     timestamp: entry.timestamp,
   };
 
@@ -270,7 +268,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         entry={rowEntry}
         detail={detailEntry}
         isExpanded={isExpanded}
-        isDetailLoading={false}
+        isDetailLoading={isDetailLoading}
         detailError={detailError ?? null}
         character={character}
         characterName={characterName}

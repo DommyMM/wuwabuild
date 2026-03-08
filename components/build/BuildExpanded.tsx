@@ -114,13 +114,6 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
       }
     }
 
-    console.log('[RV Auto-select] Character:', character?.name ?? 'Unknown');
-    console.log('[RV Auto-select] Preferred stats:', preferredStats);
-    console.log('[RV Auto-select] Source:', character?.preferredStats ? 'character.preferredStats' : 'DEFAULT_PREFERRED_STATS');
-    console.log('[RV Auto-select] Available stats in build:', Array.from(availableStats));
-    console.log('[RV Auto-select] Stats selected:', Array.from(toSelect));
-    console.log('[RV Auto-select] Stats matched:', toSelect.size, '/', preferredStats.length);
-
     return toSelect;
   }, [detail, character]);
 
