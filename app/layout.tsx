@@ -82,7 +82,9 @@ export default function RootLayout({
                     {children}
                 </AppProviders>
             </body>
-            <GoogleAnalytics gaId="G-SP375JKDPX" />
+            {process.env.NODE_ENV === "production" && (
+                <GoogleAnalytics gaId="G-SP375JKDPX" />
+            )}
         </html>
     );
 }
