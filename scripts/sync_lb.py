@@ -22,6 +22,8 @@ import argparse
 import json
 import re
 import unicodedata
+
+_MARKUP_RE = re.compile(r"<[^>]+>")
 from pathlib import Path
 from typing import Any
 
@@ -331,6 +333,71 @@ def _choose_bonus(char: dict) -> tuple[str, str]:
     return bonus1, bonus2
 
 
+def _extract_chains_lb(char: dict) -> list[dict]:
+    """Extract chain (sequence) data for lb JSON: id, English name, English description, params, bonus."""
+    chains = char.get("chains")
+    if not isinstance(chains, list):
+        return []
+
+    result = []
+    for chain in chains:
+        if not isinstance(chain, dict):
+            continue
+        name_field = chain.get("name", {})
+        name_en = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field)
+        desc_field = chain.get("description", {})
+        desc_en = desc_field.get("en", "") if isinstance(desc_field, dict) else str(desc_field)
+        desc_en = _MARKUP_RE.sub("", desc_en).strip()
+        entry: dict = {
+            "id": chain.get("id"),
+            "name": name_en,
+            "description": desc_en,
+            "param": chain.get("param") or [],
+        }
+        bonus = chain.get("bonus")
+        if isinstance(bonus, dict):
+            entry["bonus"] = bonus
+        result.append(entry)
+
+    return result
+
+
+def _extract_moves_lb(char: dict) -> list[dict]:
+    """Extract move (skill) data for lb JSON: id, type, sort, English name, level values."""
+    moves = char.get("moves")
+    if not isinstance(moves, list):
+        return []
+
+    result = []
+    for move in moves:
+        if not isinstance(move, dict):
+            continue
+        name_field = move.get("name", {})
+        name_en = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field)
+
+        values = []
+        for v in move.get("values") or []:
+            if not isinstance(v, dict):
+                continue
+            sub_name_field = v.get("name", {})
+            sub_name_en = sub_name_field.get("en", "") if isinstance(sub_name_field, dict) else str(sub_name_field)
+            values.append({
+                "id": v.get("id"),
+                "name": sub_name_en,
+                "values": v.get("values") or [],
+            })
+
+        result.append({
+            "id": move.get("id"),
+            "type": move.get("type"),
+            "sort": move.get("sort"),
+            "name": name_en,
+            "values": values,
+        })
+
+    return result
+
+
 def _extract_sequence_bonuses(char: dict) -> list[dict]:
     chains = char.get("chains")
     if not isinstance(chains, list):
@@ -369,6 +436,8 @@ def _build_character_bases(
         bonus1, bonus2 = _choose_bonus(char)
         forte_nodes = _extract_forte_nodes(char)
         sequence_bonuses = _extract_sequence_bonuses(char)
+        chains = _extract_chains_lb(char)
+        moves = _extract_moves_lb(char)
 
         out[cdn_id] = {
             "name": name,
@@ -379,6 +448,8 @@ def _build_character_bases(
             "bonus2": bonus2,
             "forte_nodes": forte_nodes,
             "sequence_bonuses": sequence_bonuses,
+            "chains": chains,
+            "moves": moves,
             "stats": {
                 "HP": hp, "ATK": atk, "DEF": defense,
                 "Crit Rate": 5, "Crit DMG": 150, "Energy Regen": 100,
