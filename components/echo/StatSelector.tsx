@@ -5,13 +5,18 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ChevronDown } from 'lucide-react';
 import { isPercentStat } from '@/lib/constants/statMappings';
+import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
 
 interface StatOption {
   name: string;
   displayName: string;
+  fullDisplayName?: string;
   values?: number[];
   minMax?: [number, number];
 }
+
+const ECHO_STAT_ROW_CLASS = 'grid grid-cols-[minmax(0,1fr)_4.75rem] items-center gap-2';
+const ECHO_STAT_SELECT_CLASS = 'w-full min-w-0 appearance-none rounded border border-border bg-background focus:border-accent focus:outline-none disabled:opacity-50';
 
 interface MainStatSelectorProps {
   cost: number | null;
@@ -41,12 +46,21 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
 
   // Build options with calculated values
   const options = useMemo((): StatOption[] => {
-    return Object.entries(mainStats).map(([statName, [min, max]]) => ({
-      name: statName,
-      displayName: statTranslations?.[statName] ? t(statTranslations[statName]) : statName,
-      minMax: [min, max] as [number, number]
-    }));
+    return Object.entries(mainStats).map(([statName, [min, max]]) => {
+      const fullDisplayName = statTranslations?.[statName] ? t(statTranslations[statName]) : statName;
+      return {
+        name: statName,
+        displayName: fullDisplayName,
+        fullDisplayName,
+        minMax: [min, max] as [number, number]
+      };
+    });
   }, [mainStats, statTranslations, t]);
+
+  const selectedStatTitle = useMemo(() => {
+    if (!selectedStat) return 'Main Stat';
+    return options.find(option => option.name === selectedStat)?.fullDisplayName ?? selectedStat;
+  }, [options, selectedStat]);
 
   // Calculate value based on level
   const getValueForStat = useCallback((statName: string): number | null => {
@@ -77,18 +91,19 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
   const isDisabled = disabled || !cost;
 
   return (
-    <div className="flex items-center gap-2 mt-4">
+    <div className={`mt-4 ${ECHO_STAT_ROW_CLASS}`}>
       {/* Stat Type Dropdown */}
-      <div className="relative w-3/4">
+      <div className="relative min-w-0">
         <select
           value={selectedStat || ''}
           onChange={handleStatChange}
           disabled={isDisabled}
-          className="w-full appearance-none rounded border border-border bg-background px-3 py-1.5 pr-8 text-sm text-text-primary focus:border-accent focus:outline-none disabled:opacity-50"
+          title={selectedStatTitle}
+          className={`${ECHO_STAT_SELECT_CLASS} px-3 py-1.5 pr-8 text-sm text-text-primary`}
         >
           <option value="" disabled>Main Stat</option>
           {options.map((option) => (
-            <option key={option.name} value={option.name}>
+            <option key={option.name} value={option.name} title={option.fullDisplayName}>
               {option.displayName}
             </option>
           ))}
@@ -97,7 +112,7 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
       </div>
 
       {/* Value Badge */}
-      <span className="w-1/4 rounded border border-accent/50 bg-accent/10 px-2 py-1.5 text-center text-sm font-medium text-accent">
+      <span className="w-full min-w-0 rounded border border-accent/50 bg-accent/10 px-2 py-1.5 text-center text-sm font-medium text-accent">
         {formatValue(selectedValue, selectedStat)}
       </span>
     </div>
@@ -130,11 +145,15 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
 
     return Object.keys(substats)
       .filter(stat => !usedStats.has(stat) || stat === selectedStat)
-      .map(statName => ({
-        name: statName,
-        displayName: statTranslations?.[statName] ? t(statTranslations[statName]) : statName,
-        values: getSubstatValues(statName) || []
-      }));
+      .map(statName => {
+        const fullDisplayName = statTranslations?.[statName] ? t(statTranslations[statName]) : statName;
+        return {
+          name: statName,
+          displayName: getEchoSubstatShortLabel(fullDisplayName),
+          fullDisplayName,
+          values: getSubstatValues(statName) || []
+        };
+      });
   }, [substats, usedStats, selectedStat, getSubstatValues, statTranslations, t]);
 
   // Get values for selected stat
@@ -142,6 +161,11 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
     if (!selectedStat) return [];
     return getSubstatValues(selectedStat) || [];
   }, [selectedStat, getSubstatValues]);
+
+  const selectedStatTitle = useMemo(() => {
+    if (!selectedStat) return `Substat ${index + 1}`;
+    return availableStats.find(option => option.name === selectedStat)?.fullDisplayName ?? selectedStat;
+  }, [availableStats, index, selectedStat]);
 
   // Handle stat type change
   const handleStatChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -169,18 +193,19 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className={ECHO_STAT_ROW_CLASS}>
       {/* Stat Type Dropdown */}
-      <div className="relative flex-1">
+      <div className="relative min-w-0">
         <select
           value={selectedStat || ''}
           onChange={handleStatChange}
           disabled={disabled}
-          className="w-full appearance-none rounded border border-border bg-background p-2 pr-6 text-xs text-text-primary focus:border-accent focus:outline-none disabled:opacity-50"
+          title={selectedStatTitle}
+          className={`${ECHO_STAT_SELECT_CLASS} p-2 pr-6 text-xs text-text-primary`}
         >
           <option value="" disabled>Substat {index + 1}</option>
           {availableStats.map((option) => (
-            <option key={option.name} value={option.name}>
+            <option key={option.name} value={option.name} title={option.fullDisplayName}>
               {option.displayName}
             </option>
           ))}
@@ -190,12 +215,12 @@ export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
 
       {/* Value Dropdown */}
       {selectedStat && statValues.length > 0 && (
-        <div className="relative w-20">
+        <div className="relative min-w-0">
           <select
             value={selectedValue?.toString() || ''}
             onChange={handleValueChange}
             disabled={disabled}
-            className="w-full appearance-none rounded border border-border bg-background p-2 pr-6 text-xs text-accent font-medium focus:border-accent focus:outline-none disabled:opacity-50"
+            className={`${ECHO_STAT_SELECT_CLASS} p-2 pr-6 text-xs font-medium text-accent`}
           >
             {statValues.map((value) => (
               <option key={value} value={value}>

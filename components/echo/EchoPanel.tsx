@@ -11,7 +11,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { X } from 'lucide-react';
 import { getEchoPaths } from '@/lib/paths';
 import Marquee from 'react-fast-marquee';
-import { ELEMENT_BADGE_COLORS } from '@/lib/elementVisuals';
 
 // Scrolls text only when it overflows the available width.
 function EchoName({ text, className }: { text: string; className?: string }) {
@@ -91,6 +90,8 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   const canBePhantom = useMemo(() => {
     return echo ? hasPhantomVariant(echo) : false;
   }, [echo]);
+
+  const activeElement = panelState.selectedElement ?? echo?.elements[0] ?? null;
 
 
   // Handle echo selection
@@ -200,30 +201,42 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
 
         {/* Echo Selection Area */}
         <div className="p-3">
-          <div className="flex items-start justify-center gap-2">
-            {/* Left: element tabs */}
-            <div className="flex flex-1 justify-end">
-              {echo && echo.elements.length > 1 && (
-                <div className="grid grid-cols-2 gap-1" onPointerDown={(e) => e.stopPropagation()}>
-                  {echo.elements.map((el, i) => (
-                    <button
-                      key={el}
-                      onClick={() => setEchoElement(index, el)}
-                      title={t(getFetterByElement(el)?.name ?? {}) || ELEMENT_SETS[el]}
-                      className={`h-6 w-6 rounded border text-xs font-bold transition-colors ${
-                        panelState.selectedElement === el
-                          ? (ELEMENT_BADGE_COLORS[el] ?? 'bg-accent text-white border-accent')
-                          : 'border-border bg-background/60 text-text-primary/30 hover:border-accent/40 hover:text-text-primary/60'
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="relative flex min-h-24 items-center justify-center">
+            {echo && echo.elements.length > 1 && (
+              <div
+                className="absolute left-0 top-1/2 -translate-y-1/2"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <div className={`grid gap-1 ${echo.elements.length > 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {echo.elements.map((el) => {
+                    const fetter = getFetterByElement(el);
+                    const label = fetter ? t(fetter.name) : ELEMENT_SETS[el];
+                    const isActive = activeElement === el;
 
-            {/* Center: echo image */}
+                    return (
+                      <button
+                        key={el}
+                        onClick={() => setEchoElement(index, el)}
+                        title={label}
+                        aria-label={`Select ${label}`}
+                        className={`flex h-8 w-8 items-center justify-center rounded-md border transition-all ${
+                          isActive
+                            ? 'border-accent/70 bg-background shadow-[0_0_0_1px_rgba(191,173,125,0.35)]'
+                            : 'border-border bg-background/60 opacity-75 hover:border-accent/40 hover:bg-background hover:opacity-100'
+                        }`}
+                      >
+                        <img
+                          src={fetter?.icon ?? ''}
+                          alt=""
+                          className="h-5 w-5 object-contain"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <button
               onClick={() => setIsSelectorOpen(true)}
               className="shrink-0 overflow-hidden rounded-lg border border-border transition-colors hover:border-accent/50"
@@ -234,9 +247,6 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                 className="h-24 w-24 object-cover"
               />
             </button>
-
-            {/* Right: balancing flex-1 */}
-            <div className="flex-1" />
           </div>
 
           {/* Echo Controls, always visible */}
