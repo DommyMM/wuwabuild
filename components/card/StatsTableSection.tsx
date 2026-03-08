@@ -10,6 +10,7 @@ import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 
 const FLAT_STAT_KEYS = ['HP', 'ATK', 'DEF'] as const;
 type FlatStatKey = (typeof FLAT_STAT_KEYS)[number];
+const DENSE_FLAT_ROW_EXTRA_PX = 5;
 
 const ELEMENT_TO_STAT_KEY: Readonly<Record<string, string>> = {
   Aero: 'Aero DMG',
@@ -72,6 +73,7 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
       if (!selectedElementStatKey) return true;
       return key === selectedElementStatKey;
     });
+  const isDense = statRows.length >= 12;
 
   const formatValue = (key: string, value: number) =>
     isFlatStatKey(key) ? Math.round(value).toLocaleString() : `${value.toFixed(1)}%`;
@@ -89,20 +91,17 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
     const hoverKey = normalizeStatHoverKey(key);
     const hasActiveHover = Boolean(activeHoverStat);
     const isMatch = Boolean(activeHoverStat && hoverKey && activeHoverStat === hoverKey);
-    const interactionClass = !hasActiveHover
-      ? ''
-      : isMatch
-        ? 'opacity-100 bg-white/12 shadow-[0_0_10px_rgba(255,255,255,0.24)]'
-        : 'opacity-45 brightness-90';
+    const interactionClass = !hasActiveHover ? '' : isMatch ? 'opacity-100 bg-white/12 shadow-[0_0_10px_rgba(255,255,255,0.24)]' : 'opacity-45 brightness-90';
 
     return (
       <div
         key={key}
-        className={`flex items-center justify-between gap-2 rounded-md font-medium transition-all duration-200 ${isFlatStat ? 'h-9' : 'h-8.5'} ${interactionClass}`}
+        className={`flex items-center justify-between rounded-md font-medium transition-all duration-200 ${isDense ? 'min-h-0 flex-1 gap-1.5' : `gap-2 ${isFlatStat ? 'h-9' : 'h-8.5'}`} ${interactionClass}`}
+        style={isDense ? { flexGrow: 1, flexShrink: 1, flexBasis: isFlatStat ? `${DENSE_FLAT_ROW_EXTRA_PX}px` : '0px' } : undefined}
         onMouseEnter={hoverKey ? () => onHoverStatChange?.(hoverKey) : undefined}
         onMouseLeave={hoverKey ? () => onHoverStatChange?.(null) : undefined}
       >
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center min-w-0 ${isDense ? 'gap-1.5' : 'gap-2'}`}>
           {icon && (
             <img
               src={icon}
@@ -111,7 +110,7 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
               style={elementalIconFilter ? { filter: elementalIconFilter } : undefined}
             />
           )}
-          <span className="text-lg">
+          <span className="min-w-0 text-lg leading-tight">
             {formatLabel(key)}
           </span>
         </div>
@@ -133,7 +132,7 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
   };
 
   return (
-    <div className="flex h-full w-full flex-col justify-center px-8 pl-2 pt-4">
+    <div className={`flex h-full w-full flex-col px-8 pl-2 ${isDense ? 'justify-start pt-2' : 'justify-center pt-4'}`}>
       {statRows.map(({ key, value }) => renderStatRow(key, value))}
     </div>
   );
