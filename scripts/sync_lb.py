@@ -48,34 +48,6 @@ FETTER_BASES_JSON = DATA_OUTPUT_DIR / "fetter_bases.json"
 CHARACTER_CURVE_OUT_JSON = DATA_OUTPUT_DIR / "character_curve.json"
 LEVEL_CURVE_OUT_JSON = DATA_OUTPUT_DIR / "level_curve.json"
 
-
-BONUS_NAME_MAP = {
-    "Crit. Rate+": "Crit Rate",
-    "Crit. Rate Up": "Crit Rate",
-    "Crit. DMG+": "Crit DMG",
-    "Crit. DMG Up": "Crit DMG",
-    "ATK+": "ATK",
-    "ATK Up": "ATK",
-    "HP+": "HP",
-    "HP Up": "HP",
-    "DEF+": "DEF",
-    "DEF Up": "DEF",
-    "Healing Bonus+": "Healing",
-    "Healing Bonus Up": "Healing",
-    "Aero DMG Bonus+": "Aero",
-    "Aero DMG Bonus Up": "Aero",
-    "Glacio DMG Bonus+": "Glacio",
-    "Glacio DMG Bonus Up": "Glacio",
-    "Fusion DMG Bonus+": "Fusion",
-    "Fusion DMG Bonus Up": "Fusion",
-    "Electro DMG Bonus+": "Electro",
-    "Electro DMG Bonus Up": "Electro",
-    "Havoc DMG Bonus+": "Havoc",
-    "Havoc DMG Bonus Up": "Havoc",
-    "Spectro DMG Bonus+": "Spectro",
-    "Spectro DMG Bonus Up": "Spectro",
-}
-
 FORTE_PARENT_TO_TREE = {
     1: "tree1", 2: "tree2", 3: "tree4", 6: "tree5",
     9: "tree1", 10: "tree2", 11: "tree4", 12: "tree5",
@@ -307,32 +279,6 @@ def _extract_forte_nodes(char: dict) -> dict[str, dict]:
         }
     return forte_nodes
 
-def _choose_bonus(char: dict) -> tuple[str, str]:
-    name = (char.get("name") or {}).get("en", "")
-    element = ((char.get("element") or {}).get("name") or {}).get("en", "")
-    bonus1 = "ATK" if name.startswith("Rover") else (element or "ATK")
-    bonus2 = "ATK"
-
-    nodes = char.get("skillTrees")
-    if not isinstance(nodes, list):
-        return bonus1, bonus2
-
-    for node in nodes:
-        if not isinstance(node, dict) or node.get("coordinate") != 1:
-            continue
-        parents = node.get("parentNodes")
-        parent = parents[0] if isinstance(parents, list) and parents else None
-        mapped = BONUS_NAME_MAP.get(node.get("name", ""))
-        if not mapped:
-            continue
-        if parent == 1:
-            bonus1 = mapped
-        elif parent == 2 and mapped in {"ATK", "HP", "DEF"}:
-            bonus2 = mapped
-
-    return bonus1, bonus2
-
-
 def _extract_chains_lb(char: dict) -> list[dict]:
     """Extract chain (sequence) data for lb JSON: id, English name, English description, params, bonus."""
     chains = char.get("chains")
@@ -363,7 +309,7 @@ def _extract_chains_lb(char: dict) -> list[dict]:
 
 
 def _extract_moves_lb(char: dict) -> list[dict]:
-    """Extract move (skill) data for lb JSON: id, type, sort, English name, level values."""
+    """Extract move data for lb JSON with English description and typed level values."""
     moves = char.get("moves")
     if not isinstance(moves, list):
         return []
@@ -374,6 +320,10 @@ def _extract_moves_lb(char: dict) -> list[dict]:
             continue
         name_field = move.get("name", {})
         name_en = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field)
+        desc_field = move.get("description", {})
+        desc_en = desc_field.get("en", "") if isinstance(desc_field, dict) else str(desc_field)
+        desc_en = _MARKUP_RE.sub("", desc_en).strip()
+        desc_params = [str(v) for v in (move.get("descriptionParams") or [])]
 
         values = []
         for v in move.get("values") or []:
@@ -392,6 +342,9 @@ def _extract_moves_lb(char: dict) -> list[dict]:
             "type": move.get("type"),
             "sort": move.get("sort"),
             "name": name_en,
+            "description": desc_en,
+            "description_params": desc_params,
+            "max_level": move.get("maxLevel") or 0,
             "values": values,
         })
 
@@ -433,7 +386,6 @@ def _build_character_bases(
         atk = int(round(float(stats.get("Atk", 0) or 0)))
         defense = int(round(float(stats.get("Def", 0) or 0)))
 
-        bonus1, bonus2 = _choose_bonus(char)
         forte_nodes = _extract_forte_nodes(char)
         sequence_bonuses = _extract_sequence_bonuses(char)
         chains = _extract_chains_lb(char)
@@ -444,8 +396,6 @@ def _build_character_bases(
             "element": element,
             "weaponType": weapon_type,
             "legacyId": legacy_id,
-            "bonus1": bonus1,
-            "bonus2": bonus2,
             "forte_nodes": forte_nodes,
             "sequence_bonuses": sequence_bonuses,
             "chains": chains,

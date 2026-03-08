@@ -40,7 +40,7 @@ const formatSetBonusValue = (value: number): string => (
 const getSetNameLayout = (name: string): SetNameLayout => {
   const words = name.trim().split(/\s+/u).filter(Boolean);
   // 3+ word names read best after the second word; among 2-word names, only split the extra-long ones.
-  const shouldSplit = words.length >= 3 || (words.length === 2 && name.length >= 18);
+  const shouldSplit = words.length >= 3 || (words.length === 2 && name.length >= 16);
   const content = shouldSplit ? [words.slice(0, Math.min(2, words.length - 1)).join(' '), <br key="set-name-break" />, words.slice(Math.min(2, words.length - 1)).join(' ')] : name;
   return {
     content,
