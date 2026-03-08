@@ -68,12 +68,8 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
   const fillPct = ((level - 1) / 9) * 100;
   const connectorClass = compact ? 'h-4' : 'h-8';
   const inheritedConnectorClass = compact ? 'h-3' : 'h-6';
-  const skillFrameClass = compact
-    ? '-mx-2 -my-4 h-24 w-24'
-    : '-mx-6 -my-10 h-44 w-44';
-  const inherentFrameClass = compact
-    ? '-mx-8 h-20 w-20'
-    : '-mx-16 h-32 w-32';
+  const skillFrameClass = compact ? '-mx-2 -my-4 h-24 w-24' : '-mx-6 -my-10 h-44 w-44';
+  const inherentFrameClass = compact ? '-mx-8 h-20 w-20' : '-mx-16 h-32 w-32';
   const sliderWidthClass = compact ? 'w-16' : 'w-24';
 
   return (

@@ -48,6 +48,7 @@ export const SORT_OPTIONS: Array<{ key: LBSortKey; label: string }> = [
   { key: 'H', label: 'HP' },
   { key: 'D', label: 'DEF' },
   { key: 'ER', label: 'Energy Regen' },
+  { key: 'HB', label: 'Healing Bonus' },
   { key: 'BA', label: 'Basic Attack DMG Bonus' },
   { key: 'HA', label: 'Heavy Attack DMG Bonus' },
   { key: 'RS', label: 'Resonance Skill DMG Bonus' },
@@ -85,14 +86,14 @@ export const CV_OPTIONS: ReadonlyArray<{ key: CVSortKey; label: string }> = [
   { key: 'CD', label: 'Crit DMG' },
 ];
 
-export const STAT_OPTION_KEYS = [ 'A', 'H', 'D', 'ER', 'AD', 'GD', 'FD', 'ED', 'HD', 'SD', 'BA', 'HA', 'RS', 'RL' ] as const;
+export const STAT_OPTION_KEYS = [ 'A', 'H', 'D', 'ER', 'HB', 'AD', 'GD', 'FD', 'ED', 'HD', 'SD', 'BA', 'HA', 'RS', 'RL' ] as const;
 
 export const DEFAULT_STAT_COLUMNS = ['A', 'ER', 'D', 'AD'] as const;
 export const BASE_STAT_FALLBACK_ORDER = ['A', 'H', 'D', 'ER'] as const;
 export const ELEMENT_STAT_KEYS = ['AD', 'GD', 'FD', 'ED', 'HD', 'SD'] as const;
 export const OFFENSIVE_BONUS_KEYS = ['BA', 'HA', 'RS', 'RL'] as const;
 
-export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set<LBSortKey>([ 'CR', 'CD', 'A%', 'H%', 'D%', 'ER', 'AD', 'GD', 'FD', 'ED', 'HD', 'SD', 'BA', 'HA', 'RS', 'RL' ]);
+export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set<LBSortKey>([ 'CR', 'CD', 'A%', 'H%', 'D%', 'ER', 'HB', 'AD', 'GD', 'FD', 'ED', 'HD', 'SD', 'BA', 'HA', 'RS', 'RL' ]);
 
 // Table Layout
 

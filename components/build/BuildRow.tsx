@@ -47,7 +47,14 @@ export const BuildRow: React.FC<BuildRowProps> = ({
   const weapon = getWeapon(entry.weapon.id);
   const regionBadge = resolveRegionBadge(entry.owner.uid);
   const rowBaseScaling = resolveCharacterBaseScaling(character);
-  const rowStatColumns = resolveBuildRowStatKeys(rowBaseScaling, character?.element, sort, entry.stats);
+  const rowStatColumns = resolveBuildRowStatKeys(
+    rowBaseScaling,
+    character?.element,
+    character?.Bonus1,
+    sort,
+    entry.stats,
+    character?.preferredStats,
+  );
 
   const characterName = character
     ? formatCharacterDisplayName(character, {

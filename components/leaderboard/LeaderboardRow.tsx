@@ -63,8 +63,10 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   const rowStatColumns = resolveBuildRowStatKeys(
     rowBaseScaling,
     character?.element,
+    character?.Bonus1,
     sort as LBSortKey,
     {} as Record<LBStatCode, number>,
+    character?.preferredStats,
   );
 
   const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : 'Unknown Weapon';

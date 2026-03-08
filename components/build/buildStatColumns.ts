@@ -3,6 +3,26 @@ import { LBStatCode, LBSortKey } from '@/lib/lb';
 import { BASE_STAT_FALLBACK_ORDER, ELEMENT_STAT_KEYS, OFFENSIVE_BONUS_KEYS, STAT_OPTION_KEYS } from './buildConstants';
 import { StatSortKey } from './types';
 
+const ELEMENT_STAT_KEY_SET = new Set<StatSortKey>(ELEMENT_STAT_KEYS);
+
+const DISPLAY_STAT_CODE_MAP: Record<string, StatSortKey> = {
+  ATK: 'A',
+  HP: 'H',
+  DEF: 'D',
+  'Energy Regen': 'ER',
+  'Healing Bonus': 'HB',
+  'Basic Attack DMG Bonus': 'BA',
+  'Heavy Attack DMG Bonus': 'HA',
+  'Resonance Skill DMG Bonus': 'RS',
+  'Resonance Liberation DMG Bonus': 'RL',
+  'Aero DMG': 'AD',
+  'Glacio DMG': 'GD',
+  'Fusion DMG': 'FD',
+  'Electro DMG': 'ED',
+  'Havoc DMG': 'HD',
+  'Spectro DMG': 'SD',
+};
+
 export function resolvePrimaryScalingStatKey(baseScaling: string | undefined): StatSortKey {
   if (baseScaling === 'HP') return 'H';
   if (baseScaling === 'DEF') return 'D';
@@ -48,45 +68,98 @@ export function pickHighestStatKey(
   return selected;
 }
 
+function pushUnique(keys: StatSortKey[], key: StatSortKey | null): void {
+  if (!key || keys.includes(key)) return;
+  keys.push(key);
+}
+
+function resolveMappedDisplayStatKey(stat: string | undefined): StatSortKey | null {
+  if (!stat || stat === 'Crit Rate' || stat === 'Crit DMG') return null;
+  return DISPLAY_STAT_CODE_MAP[stat] ?? null;
+}
+
+function resolveSecondaryDisplayStatKey(
+  bonusStat: string | undefined,
+  characterElement: string | undefined,
+  stats: Record<LBStatCode, number>,
+): StatSortKey | null {
+  const mappedBonusKey = resolveMappedDisplayStatKey(bonusStat);
+  if (mappedBonusKey === 'HB') {
+    return 'HB';
+  }
+
+  const preferredElement = resolveElementStatKey(characterElement);
+  if (preferredElement && Number(stats[preferredElement] ?? 0) > 0) {
+    return preferredElement;
+  }
+
+  if (mappedBonusKey && ELEMENT_STAT_KEY_SET.has(mappedBonusKey)) {
+    return mappedBonusKey;
+  }
+
+  return pickHighestStatKey(ELEMENT_STAT_KEYS, stats, new Set<StatSortKey>());
+}
+
+function resolvePreferredTertiaryStatKey(
+  preferredStats: string[] | undefined,
+  excluded: ReadonlySet<StatSortKey>,
+): StatSortKey | null {
+  if (!preferredStats?.length) return null;
+
+  for (const stat of preferredStats) {
+    if (stat === 'Crit Rate' || stat === 'Crit DMG' || stat === 'Energy Regen') continue;
+
+    const mapped = resolveMappedDisplayStatKey(stat);
+    if (!mapped || excluded.has(mapped)) continue;
+    return mapped;
+  }
+
+  return null;
+}
+
+function appendFallbackStatKeys(
+  keys: StatSortKey[],
+  baseScaling: string | undefined,
+  characterElement: string | undefined,
+  bonusStat: string | undefined,
+  stats: Record<LBStatCode, number>,
+): void {
+  pushUnique(keys, resolvePrimaryScalingStatKey(baseScaling));
+  pushUnique(keys, resolveSecondaryDisplayStatKey(bonusStat, characterElement, stats));
+  pushUnique(keys, pickHighestStatKey(OFFENSIVE_BONUS_KEYS, stats, new Set(keys)));
+  pushUnique(keys, 'ER');
+  pushUnique(keys, 'HB');
+  pushUnique(keys, pickHighestStatKey(ELEMENT_STAT_KEYS, stats, new Set(keys)));
+
+  BASE_STAT_FALLBACK_ORDER.forEach((key) => pushUnique(keys, key));
+  OFFENSIVE_BONUS_KEYS.forEach((key) => pushUnique(keys, key));
+  ELEMENT_STAT_KEYS.forEach((key) => pushUnique(keys, key));
+}
+
 export function resolveBuildRowStatKeys(
   baseScaling: string | undefined,
   characterElement: string | undefined,
+  bonusStat: string | undefined,
   sort: LBSortKey,
   stats: Record<LBStatCode, number>,
+  preferredStats?: string[],
 ): StatSortKey[] {
-  const keys: StatSortKey[] = [];
-  const pushUnique = (key: StatSortKey) => {
-    if (keys.includes(key)) return;
-    keys.push(key);
-  };
+  const orderedKeys: StatSortKey[] = [];
+  pushUnique(orderedKeys, resolvePrimaryScalingStatKey(baseScaling));
+  pushUnique(orderedKeys, resolveSecondaryDisplayStatKey(bonusStat, characterElement, stats));
+  pushUnique(
+    orderedKeys,
+    resolvePreferredTertiaryStatKey(preferredStats, new Set(orderedKeys))
+      ?? pickHighestStatKey(OFFENSIVE_BONUS_KEYS, stats, new Set(orderedKeys)),
+  );
+  pushUnique(orderedKeys, 'ER');
+
+  appendFallbackStatKeys(orderedKeys, baseScaling, characterElement, bonusStat, stats);
 
   if (STAT_OPTION_KEYS.includes(sort as StatSortKey)) {
-    pushUnique(sort as StatSortKey);
-  }
-  pushUnique(resolvePrimaryScalingStatKey(baseScaling));
-
-  const preferredElement = resolveElementStatKey(characterElement);
-  const preferredElementValue = preferredElement ? Number(stats[preferredElement] ?? 0) : 0;
-  if (preferredElement && preferredElementValue > 0) {
-    pushUnique(preferredElement);
-  } else {
-    const highestElement = pickHighestStatKey(ELEMENT_STAT_KEYS, stats, new Set(keys));
-    if (highestElement) pushUnique(highestElement);
+    const sortKey = sort as StatSortKey;
+    return [sortKey, ...orderedKeys.filter((key) => key !== sortKey)].slice(0, 4);
   }
 
-  pushUnique('ER');
-
-  const bestOffensiveBonus = pickHighestStatKey(OFFENSIVE_BONUS_KEYS, stats, new Set(keys));
-  if (bestOffensiveBonus) pushUnique(bestOffensiveBonus);
-
-  if (keys.length < 4) {
-    const highestElement = pickHighestStatKey(ELEMENT_STAT_KEYS, stats, new Set(keys));
-    if (highestElement) pushUnique(highestElement);
-  }
-
-  BASE_STAT_FALLBACK_ORDER.forEach(pushUnique);
-  OFFENSIVE_BONUS_KEYS.forEach(pushUnique);
-  ELEMENT_STAT_KEYS.forEach(pushUnique);
-
-  return keys.slice(0, 4);
+  return orderedKeys.slice(0, 4);
 }

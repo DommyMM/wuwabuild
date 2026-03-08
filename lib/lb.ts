@@ -26,7 +26,7 @@ export type LBSortKey =
   | 'CR' | 'CD'
   | 'AD' | 'GD' | 'FD' | 'ED' | 'HD' | 'SD'
   | 'BA' | 'HA' | 'RS' | 'RL'
-  | 'ER';
+  | 'ER' | 'HB';
 
 export type LBSortDirection = 'asc' | 'desc';
 
@@ -598,6 +598,7 @@ export async function getBuildById(buildId: string, signal?: AbortSignal): Promi
     buildId: trimmedBuildId,
     echoPanelCount: detail.buildState.echoPanels.length,
     setIds: Object.keys(detail.echoSummary.sets),
+    payload: payload
   });
 
   return detail;

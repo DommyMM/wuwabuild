@@ -21,6 +21,11 @@ type PieceTooltipModel = {
   effect: FetterPieceEffect;
 };
 
+type SetNameLayout = {
+  content: React.ReactNode;
+  compact: boolean;
+};
+
 const getPieceLabel = (count: number, threshold: number): string => {
   if (threshold === 3) return '3';
   return count >= 5 ? '5' : '2';
@@ -31,6 +36,23 @@ const formatSetBonusValue = (value: number): string => (
     ? String(Math.trunc(value))
     : value.toFixed(1).replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0+$/u, '')
 );
+
+const getSetNameLayout = (name: string): SetNameLayout => {
+  const words = name.trim().split(/\s+/u).filter(Boolean);
+  const shouldSplit = words.length >= 3;
+  const content = shouldSplit
+    ? [
+        words.slice(0, 2).join(' '),
+        <br key="set-name-break" />,
+        words.slice(2).join(' '),
+      ]
+    : name;
+
+  return {
+    content,
+    compact: shouldSplit || name.length >= 15,
+  };
+};
 
 const getFetterPieceTooltipModels = (fetter: CDNFetter | undefined): PieceTooltipModel[] => {
   if (!fetter) return [];
@@ -79,7 +101,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   if (!hasActiveSets && !showCV) return null;
 
   return (
-    <div className="flex gap-2 pt-2 px-4 text-sm font-semibold leading-none">
+    <div className="flex gap-2 pt-2 pl-4 text-sm font-semibold leading-none">
       {showCV && (
         <div className="flex items-center rounded-xl bg-black/35 p-1.5">
           <span className="rounded-md">
@@ -92,6 +114,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
         const threshold = fetter?.pieceCount ?? 2;
         const pieceLabel = getPieceLabel(count, threshold);
         const displayName = fetter ? t(fetter.name) : setName;
+        const { compact: useCompactName, content: setNameContent } = getSetNameLayout(displayName);
         const setIcon = fetter?.icon ?? '';
         const setBonuses = getSetBonusesFromFetter(fetter, count);
         const setHoverMatch = Boolean(
@@ -158,10 +181,12 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
             placement="top"
           >
             <div
-              className={`flex w-44 items-center justify-between rounded-xl bg-black/35 p-1.5 transition-all duration-200 ${interactionClass}`}
+              className={`flex h-8 max-w-45 items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
             >
-              {setIcon && <img src={setIcon} alt="" className="h-5 w-5 object-contain" />}
-              <span>{displayName}</span>
+              {setIcon && <img src={setIcon} alt={setIcon} className="h-5 w-5 object-contain" />}
+              <span className={`text-center ${useCompactName ? 'text-xs leading-none' : ''}`}>
+                {setNameContent}
+              </span>
               <span className="rounded-md border border-amber-300/55 bg-amber-300/18 px-1 text-xs">
                 {pieceLabel}
               </span>
