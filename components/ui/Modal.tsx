@@ -11,7 +11,6 @@ interface ModalProps {
   showCloseButton?: boolean;
   closeOnEscape?: boolean;
   closeOnOutsideClick?: boolean;
-  fitContent?: boolean;
   className?: string;
   contentClassName?: string;
 }
@@ -24,7 +23,6 @@ export const Modal: React.FC<ModalProps> = ({
   showCloseButton = true,
   closeOnEscape = true,
   closeOnOutsideClick = true,
-  fitContent = false,
   className = '',
   contentClassName = ''
 }) => {
@@ -60,18 +58,14 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm ${className}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm scrollbar-thin ${className}`}
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
     >
       <div
-        className={`relative flex ${
-          fitContent
-            ? 'max-h-9/10 md:max-h-17/20'
-            : 'h-9/10 md:h-17/20'
-        } w-[calc(100vw-1rem)] md:w-auto md:max-w-[90vw] flex-col overflow-hidden rounded-lg border border-border bg-background-secondary shadow-xl ${contentClassName}`}
+        className={`relative flex max-h-9/10 w-[calc(100vw-1rem)] md:w-auto md:max-w-[90vw] flex-col overflow-hidden rounded-lg border border-border bg-background-secondary shadow-xl ${contentClassName}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with title and close button */}
@@ -95,7 +89,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Modal content, scrolls internally */}
-        <div className={fitContent ? 'overflow-y-auto p-4' : 'flex-1 overflow-y-auto p-4'}>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {children}
         </div>
       </div>

@@ -148,7 +148,6 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
       onClose={onClose}
       title={existingBuild ? 'Update Build' : 'Save Build'}
       showCloseButton={false}
-      fitContent
       contentClassName="w-full max-w-2xl"
     >
       <div className="space-y-4">

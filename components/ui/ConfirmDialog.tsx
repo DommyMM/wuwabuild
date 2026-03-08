@@ -46,7 +46,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       showCloseButton={false}
-      fitContent
       contentClassName="w-full max-w-sm"
     >
       <div className="flex flex-col gap-4">
@@ -84,4 +83,3 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     </Modal>
   );
 };
-
