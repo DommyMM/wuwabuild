@@ -328,6 +328,197 @@ export async function listBuilds(
   };
 }
 
+// ─── Leaderboard types ────────────────────────────────────────────────────────
+
+export interface LBWeaponTop {
+  weaponId: string;
+  damage: number;
+  owner: { username: string; uid: string };
+}
+
+export interface LBCharacterOverview {
+  id: string;
+  totalEntries: number;
+  weapons: LBWeaponTop[];
+}
+
+export interface LBLeaderboardEntry {
+  id: string;
+  buildState: SavedState;
+  cv: number;
+  cvPenalty: number;
+  finalCV: number;
+  timestamp: string;
+  damage: number;
+  filteredRank: number;
+  globalRank: number;
+  owner: { username: string; uid: string };
+  character: { id: string; level: number; roverElement?: string };
+  weapon: { id: string; level: number; rank: number };
+  sequence: number;
+}
+
+export interface LBLeaderboardQuery {
+  page?: number;
+  pageSize?: number;
+  sort?: string;
+  direction?: LBSortDirection;
+  weaponIds?: string[];
+  uid?: string;
+  username?: string;
+  regionPrefixes?: string[];
+  echoSets?: LBEchoSetFilter[];
+  echoMains?: LBEchoMainFilter[];
+  weaponIndex?: number;
+  sequence?: string;
+}
+
+export interface LBLeaderboardResponse {
+  builds: LBLeaderboardEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
+  if (!isRecord(raw)) {
+    throw new Error('LB leaderboard row payload is malformed.');
+  }
+
+  const buildStateRaw = parseMaybeJSON(raw.buildState);
+  if (!isCanonicalSavedState(buildStateRaw)) {
+    throw new Error('LB leaderboard buildState is not in canonical SavedState format.');
+  }
+
+  const forte = Array.isArray(buildStateRaw.forte)
+    ? buildStateRaw.forte
+    : (DEFAULT_FORTE.map((entry) => [...entry]) as SavedState['forte']);
+
+  const buildState: SavedState = { ...buildStateRaw, forte };
+  const watermark = isRecord(buildStateRaw.watermark) ? buildStateRaw.watermark : null;
+
+  return {
+    id: typeof raw._id === 'string' ? raw._id : '',
+    buildState,
+    cv: toFiniteNumber(raw.cv),
+    cvPenalty: toFiniteNumber(raw.cvPenalty),
+    finalCV: toFiniteNumber(raw.finalCV),
+    timestamp: typeof raw.timestamp === 'string' ? raw.timestamp : '',
+    damage: toFiniteNumber(raw.damage),
+    filteredRank: toFiniteNumber(raw.filteredRank, 0),
+    globalRank: toFiniteNumber(raw.globalRank, 0),
+    owner: {
+      username: watermark && typeof watermark.username === 'string' ? watermark.username : '',
+      uid: watermark && typeof watermark.uid === 'string' ? watermark.uid : '',
+    },
+    character: {
+      id: typeof buildState.characterId === 'string' ? buildState.characterId : '',
+      level: toFiniteNumber(buildState.characterLevel, 1),
+      roverElement: typeof buildState.roverElement === 'string' ? buildState.roverElement : undefined,
+    },
+    weapon: {
+      id: typeof buildState.weaponId === 'string' ? buildState.weaponId : '',
+      level: toFiniteNumber(buildState.weaponLevel, 1),
+      rank: toFiniteNumber(buildState.weaponRank, 1),
+    },
+    sequence: toFiniteNumber(buildState.sequence, 0),
+  };
+}
+
+export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBCharacterOverview[]> {
+  const requestUrl = `${resolveLBBaseUrl()}/leaderboard`;
+  const response = await fetch(requestUrl, { method: 'GET', signal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch leaderboard overview (${response.status})`);
+  }
+
+  const payload = await response.json() as { characters?: unknown[] };
+  const rawChars = Array.isArray(payload.characters) ? payload.characters : [];
+  const result: LBCharacterOverview[] = [];
+
+  for (const raw of rawChars) {
+    if (!isRecord(raw)) continue;
+    const rawWeapons = Array.isArray(raw.weapons) ? raw.weapons : [];
+    const weapons: LBWeaponTop[] = rawWeapons
+      .filter(isRecord)
+      .map((w) => {
+        const owner = isRecord(w.owner) ? w.owner : {};
+        return {
+          weaponId: typeof w.weaponId === 'string' ? w.weaponId : '',
+          damage: toFiniteNumber(w.damage),
+          owner: {
+            username: typeof owner.username === 'string' ? owner.username : '',
+            uid: typeof owner.uid === 'string' ? owner.uid : '',
+          },
+        };
+      });
+
+    result.push({
+      id: typeof raw._id === 'string' ? raw._id : '',
+      totalEntries: toFiniteNumber(raw.totalEntries),
+      weapons,
+    });
+  }
+
+  return result;
+}
+
+export async function listLeaderboard(
+  characterId: string,
+  query: LBLeaderboardQuery,
+  signal?: AbortSignal,
+): Promise<LBLeaderboardResponse> {
+  const params = new URLSearchParams();
+  const pageSize = clampPageSize(query.pageSize);
+  params.set('page', String(query.page ?? 1));
+  params.set('pageSize', String(pageSize));
+  if (query.sort) params.set('sort', query.sort);
+  if (query.direction) params.set('direction', query.direction);
+  if (query.weaponIndex !== undefined) params.set('weaponIndex', String(query.weaponIndex));
+  if (query.sequence) params.set('sequence', query.sequence);
+  if (query.weaponIds?.length) params.set('weaponId', JSON.stringify(query.weaponIds));
+  if (query.uid) params.set('uid', query.uid);
+  if (query.username) params.set('username', query.username);
+  if (query.regionPrefixes?.length) params.set('region', JSON.stringify(query.regionPrefixes));
+  if (query.echoSets?.length) {
+    params.set('echoSets', JSON.stringify(query.echoSets.map((entry) => [entry.count, entry.setId])));
+  }
+  if (query.echoMains?.length) {
+    params.set('echoMains', JSON.stringify(query.echoMains.map((entry) => [entry.cost, entry.statType])));
+  }
+
+  const requestUrl = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}?${params.toString()}`;
+  const response = await fetch(requestUrl, { method: 'GET', signal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch leaderboard (${response.status})`);
+  }
+
+  const payload = await response.json() as { builds?: unknown[]; total?: number; page?: number; pageSize?: number };
+  const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
+  const builds: LBLeaderboardEntry[] = [];
+
+  for (const raw of rawBuilds) {
+    try {
+      builds.push(parseLeaderboardEntry(raw));
+    } catch (error) {
+      console.warn('[LB] dropped malformed leaderboard row', {
+        buildId: isRecord(raw) ? raw._id : undefined,
+        error: error instanceof Error ? error.message : String(error),
+        raw,
+      });
+    }
+  }
+
+  return {
+    builds,
+    total: toFiniteNumber(payload.total, 0),
+    page: toFiniteNumber(payload.page, query.page ?? 1),
+    pageSize: toFiniteNumber(payload.pageSize, pageSize),
+  };
+}
+
+// ─── Build by ID ──────────────────────────────────────────────────────────────
+
 export async function getBuildById(buildId: string, signal?: AbortSignal): Promise<LBBuildDetailEntry> {
   const trimmedBuildId = buildId.trim();
   if (!trimmedBuildId) {

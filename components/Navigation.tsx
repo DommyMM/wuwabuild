@@ -39,7 +39,7 @@ export function Navigation() {
     const navLinks = [
         { href: '/import', label: 'Import' },
         { href: '/builds', label: 'Builds' },
-        { href: '/leaderboards', label: 'Rank' },
+        { href: '/leaderboards', label: 'Leaderboards' },
         { href: '/edit', label: 'Edit' },
         { href: '/saves', label: 'Saves' },
     ];
