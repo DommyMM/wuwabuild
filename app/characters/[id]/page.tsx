@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import Link from 'next/link';
 import { CharacterClient } from './CharacterClient';
-import { DataLoadingGate } from '@/contexts/index';
 import { adaptCDNCharacter, CDNCharacter } from '@/lib/character';
 
 // We use 'unknown' instead of 'any' to satisfy the strict ESLint rules
@@ -140,9 +139,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
                 </div>
             )}
             <div className="px-3 py-4 md:px-16 md:py-6">
-                <DataLoadingGate>
-                    <CharacterClient characterId={id} />
-                </DataLoadingGate>
+                <CharacterClient characterId={id} />
             </div>
         </main>
     );

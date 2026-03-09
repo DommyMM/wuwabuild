@@ -18,7 +18,7 @@ import posthog from 'posthog-js';
 export const BuildPageClient: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { characters, weaponList, fetters, loading: gameDataLoading } = useGameData();
+  const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
   const expansionCountRef = useRef(0);
 
@@ -457,7 +457,6 @@ export const BuildPageClient: React.FC = () => {
                 pageSize={pageSize}
                 rankStart={rankStart}
                 isLoading={isLoading}
-                isMetadataLoading={gameDataLoading}
                 isRefreshing={isRefreshing}
                 error={error}
                 sort={sort}
@@ -478,11 +477,6 @@ export const BuildPageClient: React.FC = () => {
           </div>
         </section>
 
-        {gameDataLoading && (
-          <div className="rounded-lg border border-border bg-background p-3 text-sm text-text-primary/70">
-            Loading character/weapon metadata...
-          </div>
-        )}
       </div>
     </main>
   );

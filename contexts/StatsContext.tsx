@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useMemo, ReactNode } from 'react';
 import { useGameData } from './GameDataContext';
 import { useBuild } from './BuildContext';
 import { StatName, BaseStatName, BASE_STATS, CALCULABLE_STATS, getPercentVariant } from '@/lib/constants/statMappings';
@@ -39,7 +39,6 @@ interface CalculatedStats {
 
 interface StatsContextType {
   stats: CalculatedStats;
-  loading: boolean;
   getStatValue: (stat: StatName) => number;
   getStatUpdate: (stat: StatName) => number;
   getStatBaseValue: (stat: StatName) => number;
@@ -72,7 +71,6 @@ export function StatsProvider({ children }: StatsProviderProps) {
     scaleWeaponAtk,
     scaleWeaponStat,
     fettersByElement,
-    loading: gameDataLoading
   } = gameData;
 
   const { state } = build;
@@ -282,12 +280,11 @@ export function StatsProvider({ children }: StatsProviderProps) {
 
   const value = useMemo<StatsContextType>(() => ({
     stats,
-    loading: gameDataLoading,
     getStatValue,
     getStatUpdate,
     getStatBaseValue,
     getStatBreakdown,
-  }), [stats, gameDataLoading, getStatValue, getStatUpdate, getStatBaseValue, getStatBreakdown]);
+  }), [stats, getStatValue, getStatUpdate, getStatBaseValue, getStatBreakdown]);
 
   return (
     <StatsContext.Provider value={value}>

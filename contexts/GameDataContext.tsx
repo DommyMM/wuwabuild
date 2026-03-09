@@ -19,6 +19,19 @@ interface SubstatData {
   [statName: string]: number[];
 }
 
+// Raw JSON shape as loaded from files/fetch — exported for use in layout.tsx
+export interface RawGameData {
+  characters: unknown;
+  echoes: unknown;
+  weapons: unknown;
+  mainStats: unknown;
+  substats: unknown;
+  stats: unknown;
+  fetters: unknown;
+  characterCurves: unknown;
+  levelCurves: unknown;
+}
+
 interface GameDataState {
   characters: Character[];
   echoes: Echo[];
@@ -33,8 +46,6 @@ interface GameDataState {
   fettersByElement: Partial<Record<ElementType, CDNFetter>>;
   characterCurves: CharacterCurve | null;
   levelCurves: LevelCurves | null;
-  loading: boolean;
-  error: string | null;
 }
 
 interface GameDataContextType extends GameDataState {
@@ -63,6 +74,92 @@ interface GameDataContextType extends GameDataState {
   scaleWeaponStat: (baseStat: number, level: number) => number;
 }
 
+const emptyState: GameDataState = {
+  characters: [],
+  echoes: [],
+  echoesByCost: {},
+  weapons: new Map(),
+  weaponList: [],
+  mainStats: null,
+  substats: null,
+  statTranslations: null,
+  statIcons: null,
+  fetters: [],
+  fettersByElement: {},
+  characterCurves: null,
+  levelCurves: null,
+};
+
+function processRawGameData(raw: RawGameData): GameDataState {
+  // Process characters
+  const charactersData = raw.characters;
+  const validCharacters: Character[] = Array.isArray(charactersData)
+    ? charactersData.filter(validateCDNCharacter).map(adaptCDNCharacter)
+    : [];
+
+  // Process echoes
+  const cdnEchoes: CDNEcho[] = Array.isArray(raw.echoes) ? raw.echoes : [];
+  const echoes: Echo[] = cdnEchoes.filter(validateCDNEcho).map(adaptCDNEcho);
+  const echoesByCost: Record<number, Echo[]> = {};
+  COST_SECTIONS.forEach(cost => {
+    echoesByCost[cost] = echoes
+      .filter(echo => echo.cost === cost)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  // Process weapons
+  const weaponMap = new Map<WeaponType, Weapon[]>();
+  const weaponList: Weapon[] = [];
+  const cdnWeapons: CDNWeapon[] = Array.isArray(raw.weapons) ? raw.weapons : [];
+  for (const w of cdnWeapons) {
+    if (!validateCDNWeapon(w)) continue;
+    const weapon = adaptCDNWeapon(w);
+    weaponList.push(weapon);
+    const existing = weaponMap.get(weapon.type) ?? [];
+    existing.push(weapon);
+    weaponMap.set(weapon.type, existing);
+  }
+
+  // Split Stats.json into translations and icons
+  const rawStatsData: Record<string, Record<string, string>> = (raw.stats as Record<string, Record<string, string>>) ?? {};
+  const statTranslations: Record<string, Record<string, string>> = {};
+  const statIcons: Record<string, string> = {};
+  for (const [stat, entry] of Object.entries(rawStatsData)) {
+    const { icon, ...langs } = entry as Record<string, string>;
+    statTranslations[stat] = langs;
+    if (icon) statIcons[stat] = icon;
+  }
+
+  // Index fetters by element
+  const fetters: CDNFetter[] = Array.isArray(raw.fetters) ? raw.fetters : [];
+  const fettersByElement: Partial<Record<ElementType, CDNFetter>> = {};
+  for (const [groupIdStr, elementType] of Object.entries(FETTER_MAP)) {
+    const groupId = Number(groupIdStr);
+    const fetter = fetters.find(f => f.id === groupId);
+    if (fetter) fettersByElement[elementType as ElementType] = fetter;
+  }
+
+  const substatsRaw = raw.substats as { subStats?: SubstatData } | SubstatData | null;
+
+  return {
+    characters: validCharacters,
+    echoes,
+    echoesByCost,
+    weapons: weaponMap,
+    weaponList,
+    mainStats: (raw.mainStats as MainStatData) ?? null,
+    substats: substatsRaw
+      ? ((substatsRaw as { subStats?: SubstatData }).subStats ?? (substatsRaw as SubstatData))
+      : null,
+    statTranslations,
+    statIcons,
+    fetters,
+    fettersByElement,
+    characterCurves: (raw.characterCurves as CharacterCurve) ?? null,
+    levelCurves: (raw.levelCurves as LevelCurves) ?? null,
+  };
+}
+
 const GameDataContext = createContext<GameDataContextType | null>(null);
 
 export const useGameData = (): GameDataContextType => {
@@ -75,29 +172,21 @@ export const useGameData = (): GameDataContextType => {
 
 interface GameDataProviderProps {
   children: ReactNode;
+  initialData?: RawGameData | null;
 }
 
-export function GameDataProvider({ children }: GameDataProviderProps) {
-  const [state, setState] = useState<GameDataState>({
-    characters: [],
-    echoes: [],
-    echoesByCost: {},
-    weapons: new Map(),
-    weaponList: [],
-    mainStats: null,
-    substats: null,
-    statTranslations: null,
-    statIcons: null,
-    fetters: [],
-    fettersByElement: {},
-    characterCurves: null,
-    levelCurves: null,
-    loading: true,
-    error: null
+export function GameDataProvider({ children, initialData }: GameDataProviderProps) {
+  const [state, setState] = useState<GameDataState>(() => {
+    if (initialData) {
+      return processRawGameData(initialData);
+    }
+    return emptyState;
   });
 
-  // Load all game data on mount
+  // Only fetch client-side if no server-provided data
   useEffect(() => {
+    if (initialData) return;
+
     const loadGameData = async () => {
       try {
         const [
@@ -122,7 +211,6 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           fetch('/Data/LevelCurve.json')
         ]);
 
-        // Check for any failed requests
         const responses = [
           { res: charactersRes, name: 'Characters' },
           { res: echoesRes, name: 'Echoes' },
@@ -141,17 +229,16 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           }
         }
 
-        // Parse JSON data
         const [
-          charactersData,
-          echoesData,
-          weaponsData,
-          mainStatsData,
-          substatsData,
-          statTranslationsData,
-          fettersData,
-          characterCurvesData,
-          levelCurvesData
+          characters,
+          echoes,
+          weapons,
+          mainStats,
+          substats,
+          stats,
+          fetters,
+          characterCurves,
+          levelCurves,
         ] = await Promise.all([
           charactersRes.json(),
           echoesRes.json(),
@@ -161,90 +248,17 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
           statTranslationsRes.json(),
           fettersRes.json(),
           characterCurvesRes.json(),
-          levelCurvesRes.json()
+          levelCurvesRes.json(),
         ]);
 
-        // Process characters (CDN format -> legacy Character format)
-        const validCharacters: Character[] = Array.isArray(charactersData)
-          ? charactersData
-            .filter(validateCDNCharacter)
-            .map(adaptCDNCharacter)
-          : [];
-
-        // Process echoes (CDN format → legacy Echo format via adapter)
-        const cdnEchoes: CDNEcho[] = Array.isArray(echoesData) ? echoesData : [];
-        const echoes: Echo[] = cdnEchoes
-          .filter(validateCDNEcho)
-          .map(adaptCDNEcho);
-        const echoesByCost: Record<number, Echo[]> = {};
-        COST_SECTIONS.forEach(cost => {
-          echoesByCost[cost] = echoes
-            .filter(echo => echo.cost === cost)
-            .sort((a, b) => a.name.localeCompare(b.name));
-        });
-
-        // Process weapons (CDN format → app Weapon via adapter, grouped by type)
-        const weaponMap = new Map<WeaponType, Weapon[]>();
-        const weaponList: Weapon[] = [];
-        const cdnWeapons: CDNWeapon[] = Array.isArray(weaponsData) ? weaponsData : [];
-        for (const raw of cdnWeapons) {
-          if (!validateCDNWeapon(raw)) continue;
-          const weapon = adaptCDNWeapon(raw);
-          weaponList.push(weapon);
-          const existing = weaponMap.get(weapon.type) ?? [];
-          existing.push(weapon);
-          weaponMap.set(weapon.type, existing);
-        }
-
-        // Split Stats.json into translations (lang keys) and icons
-        const rawStatsData: Record<string, Record<string, string>> = statTranslationsData;
-        const statTranslations: Record<string, Record<string, string>> = {};
-        const statIcons: Record<string, string> = {};
-        for (const [stat, entry] of Object.entries(rawStatsData)) {
-          const { icon, ...langs } = entry as Record<string, string>;
-          statTranslations[stat] = langs;
-          if (icon) statIcons[stat] = icon;
-        }
-
-        // Index fetters by element type using the same FETTER_MAP used by adaptCDNEcho
-        const fetters: CDNFetter[] = Array.isArray(fettersData) ? fettersData : [];
-        const fettersByElement: Partial<Record<ElementType, CDNFetter>> = {};
-        for (const [groupIdStr, elementType] of Object.entries(FETTER_MAP)) {
-          const groupId = Number(groupIdStr);
-          const fetter = fetters.find(f => f.id === groupId);
-          if (fetter) fettersByElement[elementType as ElementType] = fetter;
-        }
-
-        setState({
-          characters: validCharacters,
-          echoes,
-          echoesByCost,
-          weapons: weaponMap,
-          weaponList,
-          mainStats: mainStatsData,
-          substats: substatsData.subStats || substatsData,
-          statTranslations,
-          statIcons,
-          fetters,
-          fettersByElement,
-          characterCurves: characterCurvesData,
-          levelCurves: levelCurvesData,
-          loading: false,
-          error: null
-        });
+        setState(processRawGameData({ characters, echoes, weapons, mainStats, substats, stats, fetters, characterCurves, levelCurves }));
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Failed to load game data';
         console.error('Error loading game data:', err);
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: errorMsg
-        }));
       }
     };
 
     loadGameData();
-  }, []);
+  }, [initialData]);
 
   const getCharacter = useCallback((id: string | null): Character | null => {
     if (!id) return null;

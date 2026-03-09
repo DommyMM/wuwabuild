@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import Link from 'next/link';
 import { WeaponClient } from './WeaponClient';
-import { DataLoadingGate } from '@/contexts/index';
 import { CDNCharacter } from '@/lib/character';
 
 type WeaponRecord = {
@@ -146,9 +145,7 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
                 </div>
             )}
             <div className="px-3 py-4 md:px-16 md:py-6">
-                <DataLoadingGate>
-                    <WeaponClient weaponId={id} />
-                </DataLoadingGate>
+                <WeaponClient weaponId={id} />
             </div>
         </main>
     );

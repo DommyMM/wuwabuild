@@ -24,7 +24,6 @@ interface BuildResultsPanelProps {
   pageSize: number;
   rankStart: number;
   isLoading: boolean;
-  isMetadataLoading?: boolean;
   isRefreshing: boolean;
   error: string | null;
   sort: LBSortKey;
@@ -79,7 +78,6 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   pageSize,
   rankStart,
   isLoading,
-  isMetadataLoading = false,
   isRefreshing,
   error,
   sort,
@@ -129,7 +127,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   }), [characters, fetters, weaponList]);
 
   const hasBuildRows = builds.length > 0;
-  const showInitialSkeleton = (isLoading && !hasBuildRows) || isMetadataLoading;
+  const showInitialSkeleton = isLoading && !hasBuildRows;
   const showRefreshingOverlay = isRefreshing && hasBuildRows;
   const firstShown = total === 0 ? 0 : Math.min(total, rankStart);
   const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(builds.length - 1, 0));

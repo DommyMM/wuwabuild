@@ -62,7 +62,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   const [elementFilter, setElementFilter] = useState<Set<string>>(new Set());
   const [rarityFilter, setRarityFilter] = useState<Set<number>>(new Set());
 
-  const { characters, loading, error } = useGameData();
+  const { characters } = useGameData();
   const { setCharacter, setCharacterLevel } = useBuild();
   const { t } = useLanguage();
   const selected = useSelectedCharacter();
@@ -145,21 +145,6 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   const hasFilters = elementFilter.size > 0 || rarityFilter.size > 0;
 
   const renderCharacterGrid = () => {
-    if (loading) {
-      return (
-        <div className="flex items-center justify-center py-12">
-          <span className="text-text-primary/60">Loading resonators...</span>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="flex items-center justify-center py-12">
-          <span className="text-red-400">{error}</span>
-        </div>
-      );
-    }
 
     return (
       <div className="flex h-full flex-col gap-3">

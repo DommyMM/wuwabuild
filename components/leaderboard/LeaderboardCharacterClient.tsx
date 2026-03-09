@@ -22,7 +22,7 @@ interface LeaderboardCharacterClientProps {
 export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProps> = ({ characterId }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { characters, fetters, loading: gameDataLoading } = useGameData();
+  const { characters, fetters } = useGameData();
   const { t } = useLanguage();
 
   const [configWeaponIds, setConfigWeaponIds] = useState<string[]>([]);
@@ -340,11 +340,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
           </div>
         </section>
 
-        {gameDataLoading && (
-          <div className="rounded-lg border border-border bg-background p-3 text-sm text-text-primary/70">
-            Loading character/weapon metadata...
-          </div>
-        )}
       </div>
     </main>
   );

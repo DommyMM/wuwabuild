@@ -12,7 +12,7 @@ import { getWeaponPaths } from '@/lib/paths';
 const OVERVIEW_GRID = 'grid-cols-[40px_200px_minmax(320px,1fr)_96px_72px]';
 
 export const LeaderboardOverviewClient: React.FC = () => {
-  const { getCharacter, getWeapon, loading: gameDataLoading } = useGameData();
+  const { getCharacter, getWeapon } = useGameData();
   const { t } = useLanguage();
   const [overview, setOverview] = useState<LBCharacterOverview[]>([]);
   const [fetchState, setFetchState] = useState<{ isLoading: boolean; error: string | null }>({
@@ -40,7 +40,7 @@ export const LeaderboardOverviewClient: React.FC = () => {
     return () => controller.abort();
   }, []);
 
-  const showSkeleton = fetchState.isLoading || gameDataLoading;
+  const showSkeleton = fetchState.isLoading;
 
   return (
     <div className="mx-auto w-full max-w-360 space-y-4 p-3 md:p-5">

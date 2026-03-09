@@ -116,7 +116,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
   const [isPhoneViewport, setIsPhoneViewport] = useState(false);
   const [mobileActiveCost, setMobileActiveCost] = useState<number>(COST_SECTIONS[0]);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const { echoesByCost, loading, error, getFetterByElement } = useGameData();
+  const { echoesByCost, getFetterByElement } = useGameData();
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -344,20 +344,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
         )}
 
         {/* Content */}
-        {loading && (
-          <div className="flex items-center justify-center py-8">
-            <span className="text-text-primary/60">Loading echoes...</span>
-          </div>
-        )}
-
-        {error && (
-          <div className="flex items-center justify-center py-8">
-            <span className="text-red-400">{error}</span>
-          </div>
-        )}
-
-        {!loading && !error && (
-          <div className="min-h-0 flex-1 flex flex-col">
+        <div className="min-h-0 flex-1 flex flex-col">
             {totalFiltered === 0 ? (
               <div className="flex items-center justify-center py-8">
                 <span className="text-text-primary/60">No echoes found</span>
@@ -397,7 +384,6 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
               </>
             )}
           </div>
-        )}
       </div>
     </Modal>
   );
