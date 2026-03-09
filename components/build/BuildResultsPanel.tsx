@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
@@ -23,6 +24,7 @@ interface BuildResultsPanelProps {
   pageSize: number;
   rankStart: number;
   isLoading: boolean;
+  isMetadataLoading?: boolean;
   isRefreshing: boolean;
   error: string | null;
   sort: LBSortKey;
@@ -33,6 +35,37 @@ interface BuildResultsPanelProps {
   onToggleExpand: (buildId: string) => void;
   onRetryDetail: (buildId: string) => void;
 }
+
+interface BuildTableGateExampleProps {
+  segments: Array<
+    | { type: 'text'; value: string }
+    | { type: 'icon'; src?: string; className?: string }
+  >;
+}
+
+const BuildTableGateExample: React.FC<BuildTableGateExampleProps> = ({
+  segments,
+}) => (
+  <div className="flex items-center gap-1 text-left text-sm text-text-primary/88 md:text-base">
+    <div className="flex min-w-0 flex-wrap items-center gap-1">
+      {segments.map((segment, index) => (
+        segment.type === 'text' ? (
+          <span key={`text-${index}`}>{segment.value}</span>
+        ) : (
+          <BuildTableGateInlineIcon
+            key={`icon-${index}`}
+            src={segment.src}
+            className={segment.className}
+          />
+        )
+      ))}
+    </div>
+  </div>
+);
+
+const BuildTableGateInlineIcon: React.FC<{ src?: string; className?: string }> = ({ src, className = 'h-5 w-5 shrink-0 object-contain' }) => (
+  src ? <img src={src} alt="" className={className} /> : null
+);
 
 export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   builds,
@@ -46,6 +79,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   pageSize,
   rankStart,
   isLoading,
+  isMetadataLoading = false,
   isRefreshing,
   error,
   sort,
@@ -56,8 +90,9 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   onToggleExpand,
   onRetryDetail,
 }) => {
-  const { statIcons } = useGameData();
+  const { characters, fetters, statIcons, weaponList } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
+  const [isTableGateDismissed, setIsTableGateDismissed] = useState(false);
 
   const cvSort: CVSortKey = (sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg') ? sort : 'finalCV';
   const isCvColumnActive = sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg';
@@ -83,23 +118,63 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   const activeCvOption = cvOptions.find((entry) => entry.key === cvSort) ?? cvOptions[0];
   const activePinnedStatKey = (isStatSortActive ? sort : displayStatColumns[0]) as StatSortKey;
   const activePinnedStatOption = statOptions.find((entry) => entry.key === activePinnedStatKey);
+  const critDamageGateIcon = statIcons?.['Crit DMG'] ?? statIcons?.['Crit Damage'] ?? '';
+  const gateExampleIcons = useMemo(() => ({
+    changliIcon: characters.find((entry) => entry.name === 'Changli')?.head ?? '',
+    aemeathIcon: characters.find((entry) => entry.name === 'Aemeath')?.head ?? '',
+    zaniIcon: characters.find((entry) => entry.name === 'Zani')?.head ?? '',
+    trailblazingStarIcon: fetters.find((entry) => entry.name?.en === 'Trailblazing Star')?.icon ?? '',
+    pulsationBracerIcon: weaponList.find((entry) => entry.name === 'Pulsation Bracer')?.iconUrl ?? '',
+    blazingJusticeIcon: weaponList.find((entry) => entry.name === 'Blazing Justice')?.iconUrl ?? '',
+  }), [characters, fetters, weaponList]);
 
   const hasBuildRows = builds.length > 0;
-  const showInitialSkeleton = isLoading && !hasBuildRows;
+  const showInitialSkeleton = (isLoading && !hasBuildRows) || isMetadataLoading;
   const showRefreshingOverlay = isRefreshing && hasBuildRows;
   const firstShown = total === 0 ? 0 : Math.min(total, rankStart);
   const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(builds.length - 1, 0));
   const statusText = showInitialSkeleton
     ? 'Loading builds...'
     : isRefreshing ? 'Updating...' : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;
+  const showBuildTableGate = !error && isTableGateDismissed === false;
 
   const handleSortRequest = (nextSort: LBSortKey) => {
     if (sort === nextSort) { onToggleDirection(); return; }
     onSortChange(nextSort);
   };
 
+  const gateExamples = [
+    [
+      { type: 'text', value: 'Find the' },
+      { type: 'icon', src: gateExampleIcons.changliIcon },
+      { type: 'text', value: 'Changli with the highest Crit Value' },
+    ],
+    [
+      { type: 'text', value: 'Find the' },
+      { type: 'icon', src: gateExampleIcons.aemeathIcon },
+      { type: 'text', value: 'Aemeath on' },
+      { type: 'icon', src: gateExampleIcons.trailblazingStarIcon },
+      { type: 'text', value: 'Trailblazing Star with the highest' },
+      { type: 'icon', src: critDamageGateIcon },
+      { type: 'text', value: 'Crit Damage' },
+    ],
+    [
+      { type: 'text', value: 'See how many' },
+      { type: 'icon', src: gateExampleIcons.zaniIcon },
+      { type: 'text', value: 'Zanis have' },
+      { type: 'icon', src: gateExampleIcons.pulsationBracerIcon },
+      { type: 'text', value: 'Pulsation Bracer because they didn\'t pull' },
+      { type: 'icon', src: gateExampleIcons.blazingJusticeIcon, className: 'h-5 w-5 shrink-0 object-contain opacity-90' },
+      { type: 'text', value: 'Blazing Justice' },
+    ],
+  ] as const;
+
+  const dismissTableGate = () => {
+    setIsTableGateDismissed(true);
+  };
+
   return (
-    <section>
+    <section className="relative">
       {error && (
         <div className="mb-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-300">
           Failed to load leaderboard data: {error}
@@ -202,75 +277,140 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                   )}
                 </div>
               </div>
-              {/* Rows area — overlay is scoped here so the header stays visible */}
+              {/* Rows with overlay */}
               <div className="relative overflow-hidden rounded-b-lg">
-                {/* Skeleton rows */}
-                {showInitialSkeleton && (
-                  <div className="divide-y divide-border/60">
-                    {Array.from({ length: pageSize }).map((_, index) => (
-                      <div
-                        key={index}
-                        className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
-                      >
-                        <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
-                        <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
-                        <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
-                        <div className="h-8 w-8 animate-pulse rounded bg-background-secondary/80" />
-                        <div className="h-5 w-9 animate-pulse rounded bg-background-secondary/80" />
-                        <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
-                        <div className={`grid ${SORTABLE_GROUP_GRID} min-w-[652px] gap-0`}>
-                          <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
-                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                <div className={showBuildTableGate ? 'select-none blur-[5px] saturate-[0.82]' : ''}>
+                  {/* Skeleton rows */}
+                  {showInitialSkeleton && (
+                    <div className="divide-y divide-border/60">
+                      {Array.from({ length: pageSize }).map((_, index) => (
+                        <div
+                          key={index}
+                          className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20`}
+                        >
+                          <div className="py-2 text-center">
+                            <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
+                          </div>
+                          <div className="py-2">
+                            <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
+                          </div>
+                          <div className="py-2">
+                            <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
+                          </div>
+                          <div className="flex items-end py-2">
+                            <div className="h-9 w-9 animate-pulse rounded bg-background-secondary/80" />
+                          </div>
+                          <div className="flex items-center py-2">
+                            <div className="h-5 w-9 animate-pulse rounded bg-background-secondary/80" />
+                          </div>
+                          <div className="flex items-center py-2">
+                            <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
+                          </div>
+                          <div className={`grid ${SORTABLE_GROUP_GRID} min-w-[652px] self-stretch gap-0`}>
+                            <div className="flex h-full items-center px-2.5">
+                              <div className="h-3.5 w-24 animate-pulse rounded bg-background-secondary/80" />
+                            </div>
+                            <div className="flex h-full items-center px-4">
+                              <div className="h-3.5 w-16 animate-pulse rounded bg-background-secondary/80" />
+                            </div>
+                            <div className="flex h-full items-center px-4">
+                              <div className="h-3.5 w-16 animate-pulse rounded bg-background-secondary/80" />
+                            </div>
+                            <div className="flex h-full items-center px-4">
+                              <div className="h-3.5 w-16 animate-pulse rounded bg-background-secondary/80" />
+                            </div>
+                            <div className="flex h-full items-center px-4">
+                              <div className="h-3.5 w-16 animate-pulse rounded bg-background-secondary/80" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!showInitialSkeleton && !error && builds.length === 0 && (
+                    <div className="p-6 text-center text-sm text-text-primary/65">
+                      No builds match the current filters.
+                    </div>
+                  )}
+
+                  {!error && builds.length > 0 && (
+                    <div className="relative divide-y divide-border/60">
+                      {builds.map((entry, index) => (
+                        <BuildRow
+                          key={entry.id}
+                          entry={entry}
+                          rank={rankStart + index}
+                          isExpanded={expandedBuildIds.has(entry.id)}
+                          detail={detailById[entry.id]}
+                          isDetailLoading={detailLoadingById[entry.id] ?? false}
+                          detailError={detailErrorById[entry.id]}
+                          sort={sort}
+                          isCvColumnActive={isCvColumnActive}
+                          isStatSortActive={isStatSortActive}
+                          onToggleExpand={onToggleExpand}
+                          onRetryDetail={onRetryDetail}
+                        />
+                      ))}
+                      {showRefreshingOverlay && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 backdrop-blur-[1.5px]">
+                          <div className="flex items-center gap-3 rounded-md border border-accent/35 bg-background/80 px-4 py-2 text-sm text-text-primary">
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
+                            Updating builds...
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {showBuildTableGate && (
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={dismissTableGate}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return;
+                      event.preventDefault();
+                      dismissTableGate();
+                    }}
+                    className="group absolute inset-0 z-30 flex cursor-pointer items-center justify-center bg-background/15 px-4 text-left transition-colors duration-200 hover:bg-background/22 focus-visible:outline-none focus-visible:bg-background/22"
+                  >
+                    <div className="max-w-3xl space-y-4 rounded-xl border border-border/70 bg-background/72 p-5 text-center shadow-[0_18px_48px_rgba(0,0,0,0.28)] backdrop-blur-xs transition-[border-color,background-color,box-shadow,transform] duration-200 group-hover:border-accent/40 group-hover:bg-background/80 group-hover:shadow-[0_22px_56px_rgba(0,0,0,0.34)] group-hover:-translate-y-0.5 group-focus-visible:border-accent/40 group-focus-visible:bg-background/80 group-focus-visible:shadow-[0_22px_56px_rgba(0,0,0,0.34)] group-focus-visible:-translate-y-0.5">
+                      <p className="text-sm tracking-wide text-text-primary md:text-lg">
+                        Builds do not show leaderboards or rankings. Character rankings are{' '}
+                        <Link
+                          href="/leaderboards"
+                          onClick={(event) => event.stopPropagation()}
+                          className="pointer-events-auto text-accent underline decoration-accent/65 underline-offset-3 transition-colors hover:text-accent-hover"
+                        >
+                          here
+                        </Link>
+                        .
+                      </p>
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-text-primary/55 md:text-sm">
+                          Example use cases
+                        </p>
+                        <div className="space-y-2.5">
+                          {gateExamples.map((segments, index) => (
+                            <BuildTableGateExample key={index} segments={[...segments]} />
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {!showInitialSkeleton && !error && builds.length === 0 && (
-                  <div className="p-6 text-center text-sm text-text-primary/65">
-                    No builds match the current filters.
-                  </div>
-                )}
-
-                {!error && builds.length > 0 && (
-                  <div className="relative divide-y divide-border/60">
-                    {builds.map((entry, index) => (
-                      <BuildRow
-                        key={entry.id}
-                        entry={entry}
-                        rank={rankStart + index}
-                        isExpanded={expandedBuildIds.has(entry.id)}
-                        detail={detailById[entry.id]}
-                        isDetailLoading={detailLoadingById[entry.id] ?? false}
-                        detailError={detailErrorById[entry.id]}
-                        sort={sort}
-                        isCvColumnActive={isCvColumnActive}
-                        isStatSortActive={isStatSortActive}
-                        onToggleExpand={onToggleExpand}
-                        onRetryDetail={onRetryDetail}
-                      />
-                    ))}
-                    {showRefreshingOverlay && (
-                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 backdrop-blur-[1.5px]">
-                        <div className="flex items-center gap-3 rounded-md border border-accent/35 bg-background/80 px-4 py-2 text-sm text-text-primary">
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
-                          Updating builds...
-                        </div>
-                      </div>
-                    )}
+                      <p className="text-xs text-text-primary/55 md:text-sm">
+                        Click anywhere around this message to reveal the builds table.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <BuildPagination page={page} pageCount={pageCount} statusText={statusText} onPageChange={onPageChange} />
+        <BuildPagination page={page} pageCount={pageCount} statusText={statusText} onPageChange={onPageChange} />
+      </div>
     </section>
   );
 };

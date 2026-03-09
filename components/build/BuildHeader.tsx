@@ -9,7 +9,7 @@ export const BuildHeader: React.FC = () => (
     </h1>
     <div className="my-2 h-px w-96 bg-linear-to-r from-transparent via-accent/70 to-transparent" />
       <p className="text-center text-xs md:text-base text-text-primary/75">
-      Every build is standardized to Lv 90 and assumed R1 since kurobot doesn't provide ranks <br/>
+      Every build is standardized to Lv 90 and assumed R1 since kurobot doesn&apos;t provide ranks <br/>
       I believe that crit is the best stat scaling there is, so Crit Value is the default sort <br/>
       You can sort by whatever other stats or filters you want down below <br/>
       CV is calculated from the sum of equipped echoes exclusively <br/>

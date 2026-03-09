@@ -457,6 +457,7 @@ export const BuildPageClient: React.FC = () => {
                 pageSize={pageSize}
                 rankStart={rankStart}
                 isLoading={isLoading}
+                isMetadataLoading={gameDataLoading}
                 isRefreshing={isRefreshing}
                 error={error}
                 sort={sort}
