@@ -202,7 +202,7 @@ In each revalidation `useEffect`, compare `signature(newData) === signature(curr
 | SSR fetch to LB_URL fails or times out | Every `prefetch*` returns `null` on error → client components fall back to existing skeleton + client fetch. Zero UX regression. |
 | SSR adds latency to TTFB | TTL cache means most SSR requests are served from cache, not hitting Go backend. Worst case first-request-after-deploy adds ~50-100ms. |
 | Stale data shown on initial render | 30-60s TTL is acceptable. Silent revalidation swaps in fresh data within seconds of mount. |
-| `LB_URL` not set in dev | Already handled — env var defaults to `http://localhost:8080`. `prefetch*` catches errors and returns `null`. |
+| `LB_URL` or `INTERNAL_API_KEY` missing in dev | `prefetch*` catches the config error and returns `null`; `/api/lb/*` returns a 500 config error instead of guessing a backend. |
 | Hydration mismatch | Not a risk — server passes data as props, client initializes from props. No conditional rendering differences. |
 
 ---

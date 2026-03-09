@@ -1,5 +1,5 @@
-const LB_API = process.env.LB_URL ?? 'https://db.wuwabuilds.moe';
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY;
+const LB_API = process.env.LB_URL?.trim();
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY?.trim();
 
 function buildHeaders(contentType?: string): HeadersInit {
   const headers: HeadersInit = {};
@@ -8,9 +8,7 @@ function buildHeaders(contentType?: string): HeadersInit {
     headers['Content-Type'] = contentType;
   }
 
-  if (INTERNAL_API_KEY) {
-    headers['X-Internal-Key'] = INTERNAL_API_KEY;
-  }
+  headers['X-Internal-Key'] = INTERNAL_API_KEY!;
 
   return headers;
 }
@@ -20,6 +18,13 @@ async function proxyRequest(
   context: { params: Promise<{ path: string[] }> },
   method: 'GET' | 'POST',
 ) {
+  if (!LB_API) {
+    return Response.json({ error: 'LB_URL is not configured.' }, { status: 500 });
+  }
+  if (!INTERNAL_API_KEY) {
+    return Response.json({ error: 'INTERNAL_API_KEY is not configured.' }, { status: 500 });
+  }
+
   const { path } = await context.params;
   const normalizedPath = Array.isArray(path) ? path.join('/') : '';
   const search = new URL(req.url).search;

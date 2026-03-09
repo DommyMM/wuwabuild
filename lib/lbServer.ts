@@ -17,12 +17,19 @@ function parseTracks(raw: unknown): LBTrack[] {
 }
 
 function getLBUrl(): string {
-  return (process.env.LB_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+  const url = process.env.LB_URL?.trim();
+  if (!url) {
+    throw new Error('LB_URL is not configured.');
+  }
+  return url.replace(/\/$/, '');
 }
 
 function getInternalHeaders(): Record<string, string> {
-  const key = process.env.INTERNAL_API_KEY;
-  return key ? { 'X-Internal-Key': key } : {};
+  const key = process.env.INTERNAL_API_KEY?.trim();
+  if (!key) {
+    throw new Error('INTERNAL_API_KEY is not configured.');
+  }
+  return { 'X-Internal-Key': key };
 }
 
 export async function prefetchBuilds(): Promise<LBListBuildsResponse | null> {
@@ -39,7 +46,14 @@ export async function prefetchBuilds(): Promise<LBListBuildsResponse | null> {
       headers: getInternalHeaders(),
       next: { revalidate: PREFETCH_TTL_S },
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error('[lbServer] prefetchBuilds non-OK response', {
+        url,
+        status: response.status,
+        body: await response.text(),
+      });
+      return null;
+    }
 
     const payload = await response.json() as { builds?: unknown[]; total?: number; page?: number; pageSize?: number };
     const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
@@ -51,6 +65,14 @@ export async function prefetchBuilds(): Promise<LBListBuildsResponse | null> {
         // skip malformed rows
       }
     }
+    console.log('[lbServer] prefetchBuilds payload', {
+      url,
+      total: toFiniteNumber(payload.total, 0),
+      page: toFiniteNumber(payload.page, 1),
+      pageSize: toFiniteNumber(payload.pageSize, 12),
+      droppedRows: Math.max(0, rawBuilds.length - builds.length),
+      payload,
+    });
     return {
       builds,
       total: toFiniteNumber(payload.total, 0),
@@ -71,7 +93,14 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
       headers: getInternalHeaders(),
       next: { revalidate: PREFETCH_TTL_S },
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error('[lbServer] prefetchLeaderboardOverview non-OK response', {
+        url,
+        status: response.status,
+        body: await response.text(),
+      });
+      return null;
+    }
 
     const payload = await response.json() as { characters?: unknown[] };
     const rawChars = Array.isArray(payload.characters) ? payload.characters : [];
@@ -107,6 +136,11 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
           : [],
       });
     }
+    console.log('[lbServer] prefetchLeaderboardOverview payload', {
+      url,
+      characters: result.length,
+      payload,
+    });
     return result;
   } catch (err) {
     console.error('[lbServer] prefetchLeaderboardOverview failed', err);
@@ -129,7 +163,15 @@ export async function prefetchLeaderboard(characterId: string): Promise<LBLeader
       headers: getInternalHeaders(),
       next: { revalidate: PREFETCH_TTL_S },
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error('[lbServer] prefetchLeaderboard non-OK response', {
+        url,
+        characterId,
+        status: response.status,
+        body: await response.text(),
+      });
+      return null;
+    }
 
     const payload = await response.json() as {
       builds?: unknown[];
@@ -151,6 +193,15 @@ export async function prefetchLeaderboard(characterId: string): Promise<LBLeader
         // skip malformed rows
       }
     }
+    console.log('[lbServer] prefetchLeaderboard payload', {
+      url,
+      characterId,
+      total: toFiniteNumber(payload.total, 0),
+      page: toFiniteNumber(payload.page, 1),
+      pageSize: toFiniteNumber(payload.pageSize, 12),
+      droppedRows: Math.max(0, rawBuilds.length - builds.length),
+      payload,
+    });
     return {
       builds,
       total: toFiniteNumber(payload.total, 0),
