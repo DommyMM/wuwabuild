@@ -563,6 +563,60 @@ export const SavesPageClient: React.FC = () => {
           </div>
         </div>
 
+        {typeof window !== 'undefined' && window.location.hostname === 'www.wuwabuilds.moe' ? (
+          <div className="mb-4 rounded-lg border border-accent/45 bg-accent/10 p-3">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-medium text-accent">We&apos;ve moved to wuwa.build!</p>
+                <p className="mt-1 text-xs text-text-primary/75">
+                  Export your builds below, then import them at{' '}
+                  <a
+                    href="https://wuwa.build/saves"
+                    className="underline hover:text-text-primary"
+                  >
+                    wuwa.build/saves
+                  </a>
+                  .
+                </p>
+              </div>
+              <a
+                href="https://wuwa.build/saves"
+                className="shrink-0 rounded-lg bg-accent px-3 py-2 text-center text-sm font-semibold text-background transition-colors hover:bg-accent-hover"
+              >
+                Go to wuwa.build
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-4 rounded-lg border border-accent/45 bg-accent/10 p-3">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-medium text-accent">Moving from wuwabuilds.moe?</p>
+                <p className="mt-1 text-xs text-text-primary/75">
+                  Saved builds are stored locally on that domain. Visit{' '}
+                  <a
+                    href="https://www.wuwabuilds.moe/saves"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-text-primary"
+                  >
+                    wuwabuilds.moe/saves
+                  </a>{' '}
+                  to export them, then import here.
+                </p>
+              </div>
+              <a
+                href="https://www.wuwabuilds.moe/saves"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-lg bg-accent px-3 py-2 text-center text-sm font-semibold text-background transition-colors hover:bg-accent-hover"
+              >
+                Go to Old Site
+              </a>
+            </div>
+          </div>
+        )}
+
         {legacySummary.parseError && (
           <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3">
             <div className="flex items-start justify-between gap-3">

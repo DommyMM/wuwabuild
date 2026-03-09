@@ -2,6 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  async redirects() {
+    return [
+      {
+        source: '/:path((?!saves).*)',
+        has: [{ type: 'host', value: 'www.wuwabuilds.moe' }],
+        destination: 'https://wuwa.build/:path*',
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

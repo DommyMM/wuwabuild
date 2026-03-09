@@ -553,6 +553,20 @@ Primary remaining workstreams:
 1. Close Go LB parity gates (dedupe constraint, globalRank CTE, echo backfill) and remove Node fallback dependency.
 2. UX polish and fine-tuning.
 
+## Domain Migration (wuwabuilds.moe → wuwa.build)
+
+**Status**: Implemented in code, dormant until `wuwa.build` is added to Vercel.
+
+Single Vercel deployment serves both domains once `wuwa.build` is wired. `www.wuwabuilds.moe` localStorage holds existing user saves (same origin as legacy); `wuwa.build` starts empty.
+
+**`next.config.ts`**: redirects `www.wuwabuilds.moe/*` → `wuwa.build/*` except `/saves` (`permanent: false` during transition).
+
+**`components/save/SavesPageClient.tsx`**: hostname-conditional banner between the search panel and legacy notices:
+- On `www.wuwabuilds.moe`: "We've moved to wuwa.build — export here, import there"
+- On `wuwa.build` (or any other host): "Coming from wuwabuilds.moe? Go export there first"
+
+Cleanup: when `wuwabuilds.moe/saves` traffic drops to near zero, add `/saves` to the redirect list and remove banners.
+
 ## Related Services
 
 | Service | Location | Tech | URL |
