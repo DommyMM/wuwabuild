@@ -88,14 +88,14 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 | Route | Status | Entry | Primary Client Tree |
 |-------|--------|-------|---------------------|
 | `/` | Implemented | `app/page.tsx` | `components/home/*` + shared `Navigation` |
-| `/builds` | Implemented | `app/(tools)/builds/page.tsx` | `components/build/*` + `lib/lb.ts` |
-| `/edit` | Implemented | `app/(tools)/edit/page.tsx` | `components/edit/*`, `components/card/*`, `components/echo/*`, `components/forte/*`, selectors |
-| `/import` | Implemented | `app/(tools)/import/page.tsx` | `components/import/*`, `hooks/useOcrImport.ts`, `lib/import/*` |
-| `/saves` | Implemented | `app/(tools)/saves/page.tsx` | `components/save/*`, `lib/storage.ts`, `lib/legacyMigration.ts` |
-| `/leaderboards` | Implemented | `app/(tools)/leaderboards/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
-| `/leaderboards/[characterId]` | Implemented | `app/(tools)/leaderboards/[characterId]/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
+| `/builds` | Implemented | `app/(game)/builds/page.tsx` | `components/build/*` + `lib/lb.ts` |
+| `/edit` | Implemented | `app/(game)/edit/page.tsx` | `components/edit/*`, `components/card/*`, `components/echo/*`, `components/forte/*`, selectors |
+| `/import` | Implemented | `app/(game)/import/page.tsx` | `components/import/*`, `hooks/useOcrImport.ts`, `lib/import/*` |
+| `/saves` | Implemented | `app/(game)/saves/page.tsx` | `components/save/*`, `lib/storage.ts`, `lib/legacyMigration.ts` |
+| `/leaderboards` | Implemented | `app/(game)/leaderboards/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
+| `/leaderboards/[characterId]` | Implemented | `app/(game)/leaderboards/[characterId]/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
 
-`app/layout.tsx` now stays lightweight (`RootProviders` + `Navigation`) while tool routes render under `app/(tools)/layout.tsx`, which mounts `ToolProviders` and the game-data loading gate only for pages that need the data bundle.
+`app/layout.tsx` now stays lightweight (`RootProviders` + `Navigation`) while game-data routes render under `app/(game)/layout.tsx`, which mounts `ToolProviders` and the game-data loading gate only for pages that need the data bundle.
 
 ## Page-By-Page Function Inventory
 
@@ -118,7 +118,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 
 ### `/builds`
 
-- Entry: `app/(tools)/builds/page.tsx` wraps `BuildPageClient` in `Suspense`.
+- Entry: `app/(game)/builds/page.tsx` seeds `BuildPageClient` with SSR-prefetched data and lets the shared game-data gate own first-load loading behavior.
 - `BuildPageClient()`:
   - Query/state bootstrap: `parseInitialQuery(...)`.
   - URL sync effect: `serializeQuery(querySnapshot)` + `router.replace(...)`.
@@ -152,7 +152,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 
 ### `/edit`
 
-- Entry: `app/(tools)/edit/page.tsx` -> `BuildEditor()` inside `GameDataLoadingGate` from the shared tools layout.
+- Entry: `app/(game)/edit/page.tsx` -> `BuildEditor()` inside `GameDataLoadingGate` from the shared game layout.
 - `BuildEditor()` orchestration:
   - Card/art helpers:
     - `clearArtState`, `handleToggleArtEditMode`, `handleGenerateCard`, `handleDownload`,
@@ -212,7 +212,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 
 ### `/import`
 
-- Entry: `app/(tools)/import/page.tsx` -> `ImportPageClient()`.
+- Entry: `app/(game)/import/page.tsx` -> `ImportPageClient()`.
 - `ImportPageClient()`:
   - `handleFile(file)` validates size format (1920x1080) and DPI, then starts OCR.
   - `handleReset()`, `buildImportedState(wm)`, `uploadImportedState(buildState)`, `doImport(wm)`, `saveImportToSaves(wm)`, `handleImport(wm)`.
@@ -237,7 +237,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 
 ### `/saves`
 
-- Entry: `app/(tools)/saves/page.tsx` -> `SavesPageClient()`.
+- Entry: `app/(game)/saves/page.tsx` -> `SavesPageClient()`.
 - `SavesPageClient()`:
   - load/refresh: `refreshBuilds`, `refreshLegacySummary`.
   - actions:
@@ -263,7 +263,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 
 ### `/leaderboards`
 
-- Entry: `app/(tools)/leaderboards/page.tsx` → `LeaderboardOverviewClient`.
+- Entry: `app/(game)/leaderboards/page.tsx` → `LeaderboardOverviewClient`.
 - `LeaderboardOverviewClient()`:
   - Fetches `GET /api/lb/leaderboard` via `listLeaderboardOverview(signal)`.
   - Renders a table: Character (portrait + element-colored name) | Team (partner portraits) | Entries | Weapon Rankings (4 slots).
@@ -273,7 +273,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 
 ### `/leaderboards/[characterId]`
 
-- Entry: `app/(tools)/leaderboards/[characterId]/page.tsx` → `LeaderboardCharacterClient`.
+- Entry: `app/(game)/leaderboards/[characterId]/page.tsx` → `LeaderboardCharacterClient`.
 - `LeaderboardCharacterClient()`:
   - Fetches `GET /api/lb/leaderboard/{characterId}?weaponIndex=&weaponId=&track=&sort=&...` via `listLeaderboard(id, query, signal)`.
   - Uses backend-returned `tracks`, `activeTrack`, `activeWeaponId`, and `teamCharacterIds` directly.
@@ -303,7 +303,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 RootProviders (app/layout.tsx)
 └─ LanguageProvider       → i18n language state used by Navigation and app UI
 
-ToolProviders (app/(tools)/layout.tsx)
+ToolProviders (app/(game)/layout.tsx)
 └─ GameDataProvider       → Client-cached JSON bundle for tool routes only
    └─ ToastProvider       → Transient feedback notifications
       └─ GameDataLoadingGate → Blocks tool pages until game data is ready

@@ -37,13 +37,13 @@ For full technical context, see:
 
 ### State Management
 
-Context-based with a lightweight root layout plus a shared tools layout:
+Context-based with a lightweight root layout plus a shared game-data layout:
 
 ```
 RootProviders (`app/layout.tsx`)
 └── LanguageProvider
 
-ToolProviders (`app/(tools)/layout.tsx`)
+ToolProviders (`app/(game)/layout.tsx`)
 └── GameDataProvider       ← fetches and caches 9 JSON files client-side for tool routes only
     └── ToastProvider
 

@@ -95,7 +95,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   const firstShown = total === 0 ? 0 : Math.min(total, rankStart);
   const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(entries.length - 1, 0));
   const statusText = showInitialSkeleton
-    ? 'Loading...'
+    ? ''
     : isRefreshing
       ? 'Updating...'
       : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;

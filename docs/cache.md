@@ -23,7 +23,7 @@ Replace skeleton-first loading on `/builds`, `/leaderboards`, and `/leaderboards
 
 ### What the game-data pattern does (for reference)
 
-`GameDataProvider` (mounted only in the `(tools)` route-group layout) fetches 9 JSON files client-side via `fetchRawGameData()`, processes them through `processRawGameData()`, and caches the result in a module-level singleton (`cachedGameDataState`). A `GameDataLoadingGate` prevents tool pages from rendering until the data is ready. The root layout (`app/layout.tsx`) has no game-data involvement — only `LanguageProvider` wraps the entire app.
+`GameDataProvider` (mounted only in the `(game)` route-group layout) fetches 9 JSON files client-side via `fetchRawGameData()`, processes them through `processRawGameData()`, and caches the result in a module-level singleton (`cachedGameDataState`). A `GameDataLoadingGate` prevents game-data routes from rendering until the data is ready. The root layout (`app/layout.tsx`) has no game-data involvement — only `LanguageProvider` wraps the entire app.
 
 ---
 
