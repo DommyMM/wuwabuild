@@ -53,15 +53,36 @@ const NodeBadge: React.FC<NodeBadgeProps> = ({
       ? 'opacity-100 ring-1 ring-white/34 shadow-[0_0_10px_rgba(255,255,255,0.22)]'
       : 'opacity-45 brightness-90';
 
+  if (isCircuit) {
+    return (
+      <div
+        className={`relative flex h-7 w-7 shrink-0 items-center justify-center transition-all duration-200 ${interactionClass} ${hoverKey ? 'cursor-pointer' : ''}`}
+        onMouseEnter={hoverKey ? () => onHoverStatChange?.(hoverKey) : undefined}
+        onMouseLeave={hoverKey ? () => onHoverStatChange?.(null) : undefined}
+      >
+        <div
+          className={`flex h-6 w-6 rotate-45 items-center justify-center rounded-sm border transition-all duration-200 ${
+            active
+              ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]'
+              : 'border-white/30 bg-background-secondary'
+          }`}
+        >
+          <img
+            src={icon}
+            alt={alt}
+            className={`h-4.5 w-4.5 -rotate-45 object-contain brightness-0 ${active ? '' : 'opacity-45'}`}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`relative flex h-7 w-7 shrink-0 items-center justify-center border bg-background-secondary transition-all duration-200 ${isCircuit ? '' : 'rounded-full'} ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'} ${interactionClass} ${hoverKey ? 'cursor-pointer' : ''}`}
+      className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-background-secondary transition-all duration-200 ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'} ${interactionClass} ${hoverKey ? 'cursor-pointer' : ''}`}
       onMouseEnter={hoverKey ? () => onHoverStatChange?.(hoverKey) : undefined}
       onMouseLeave={hoverKey ? () => onHoverStatChange?.(null) : undefined}
     >
-      {isCircuit && (
-        <div className={`pointer-events-none absolute h-[70%] w-[70%] rotate-45 border ${active ? 'border-black/60 bg-white' : 'border-white/35 bg-background-secondary'}`} />
-      )}
       <img
         src={icon}
         alt={alt}
