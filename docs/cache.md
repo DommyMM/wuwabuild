@@ -21,9 +21,9 @@ Replace skeleton-first loading on `/builds`, `/leaderboards`, and `/leaderboards
 - **`/api/lb/[...path]/route.ts`**: hard `cache: 'no-store'` on all proxy requests. No server-side caching whatsoever.
 - **Go LB backend**: no response caching layer. Every request runs a Postgres query.
 
-### What the game-data SSR pattern already does (for reference)
+### What the game-data pattern does (for reference)
 
-`app/layout.tsx` reads 9 JSON files via `fs.promises` during SSR → passes `initialGameData` to `AppProviders` → `GameDataContext` processes it synchronously in a lazy `useState` initializer → `loading: false` from frame 1 → `useEffect` skips the fetch entirely.
+`GameDataProvider` (mounted only in the `(tools)` route-group layout) fetches 9 JSON files client-side via `fetchRawGameData()`, processes them through `processRawGameData()`, and caches the result in a module-level singleton (`cachedGameDataState`). A `GameDataLoadingGate` prevents tool pages from rendering until the data is ready. The root layout (`app/layout.tsx`) has no game-data involvement — only `LanguageProvider` wraps the entire app.
 
 ---
 

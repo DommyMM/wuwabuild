@@ -2,9 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Gowun_Dodum, Plus_Jakarta_Sans, Ropa_Sans } from "next/font/google";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { Navigation } from "@/components/Navigation";
-import { AppProviders } from "@/contexts/index";
-import { promises as fs } from 'fs';
-import path from 'path';
+import { RootProviders } from "@/contexts/index";
 import "./globals.css";
 
 const ropaSans = Ropa_Sans({
@@ -68,54 +66,21 @@ export const viewport: Viewport = {
     maximumScale: 5,
 };
 
-async function loadInitialGameData() {
-    const dataDir = path.join(process.cwd(), 'public', 'Data');
-    try {
-        const [
-            characters,
-            echoes,
-            weapons,
-            mainStats,
-            substats,
-            stats,
-            fetters,
-            characterCurves,
-            levelCurves,
-        ] = await Promise.all([
-            fs.readFile(path.join(dataDir, 'Characters.json'), 'utf-8').then(JSON.parse),
-            fs.readFile(path.join(dataDir, 'Echoes.json'), 'utf-8').then(JSON.parse),
-            fs.readFile(path.join(dataDir, 'Weapons.json'), 'utf-8').then(JSON.parse),
-            fs.readFile(path.join(dataDir, 'Mainstat.json'), 'utf-8').then(JSON.parse),
-            fs.readFile(path.join(dataDir, 'Substats.json'), 'utf-8').then(JSON.parse),
-            fs.readFile(path.join(dataDir, 'Stats.json'), 'utf-8').then(JSON.parse),
-            fs.readFile(path.join(dataDir, 'Fetters.json'), 'utf-8').then(JSON.parse),
-            fs.readFile(path.join(dataDir, 'CharacterCurve.json'), 'utf-8').then(JSON.parse),
-            fs.readFile(path.join(dataDir, 'LevelCurve.json'), 'utf-8').then(JSON.parse),
-        ]);
-        return { characters, echoes, weapons, mainStats, substats, stats, fetters, characterCurves, levelCurves };
-    } catch (e) {
-        console.error('[layout] Failed to preload game data:', e);
-        return null;
-    }
-}
-
 export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    const initialGameData = await loadInitialGameData();
-
     return (
         <html
             lang="en"
             className={`${ropaSans.variable} ${gowunDodum.variable} ${plusJakartaSans.variable}`}
         >
             <body>
-                <AppProviders initialGameData={initialGameData}>
+                <RootProviders>
                     <Navigation />
                     {children}
-                </AppProviders>
+                </RootProviders>
             </body>
             {process.env.NODE_ENV === "production" && (
                 <GoogleAnalytics gaId="G-SP375JKDPX" />

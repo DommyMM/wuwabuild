@@ -49,6 +49,8 @@ interface GameDataState {
 }
 
 interface GameDataContextType extends GameDataState {
+  isLoading: boolean;
+  loadError: string | null;
   getCharacter: (id: string | null) => Character | null;
   getCharacterByLegacyId: (legacyId: string | null) => Character | null;
   getCharacterByName: (name: string) => Character | null;
@@ -89,6 +91,9 @@ const emptyState: GameDataState = {
   characterCurves: null,
   levelCurves: null,
 };
+
+let cachedGameDataState: GameDataState | null = null;
+let gameDataLoadPromise: Promise<GameDataState> | null = null;
 
 function processRawGameData(raw: RawGameData): GameDataState {
   // Process characters
@@ -160,6 +165,93 @@ function processRawGameData(raw: RawGameData): GameDataState {
   };
 }
 
+async function fetchRawGameData(): Promise<RawGameData> {
+  const [
+    charactersRes,
+    echoesRes,
+    weaponsRes,
+    mainStatsRes,
+    substatsRes,
+    statsRes,
+    fettersRes,
+    characterCurvesRes,
+    levelCurvesRes,
+  ] = await Promise.all([
+    fetch('/Data/Characters.json'),
+    fetch('/Data/Echoes.json'),
+    fetch('/Data/Weapons.json'),
+    fetch('/Data/Mainstat.json'),
+    fetch('/Data/Substats.json'),
+    fetch('/Data/Stats.json'),
+    fetch('/Data/Fetters.json'),
+    fetch('/Data/CharacterCurve.json'),
+    fetch('/Data/LevelCurve.json'),
+  ]);
+
+  const responses = [
+    { res: charactersRes, name: 'Characters' },
+    { res: echoesRes, name: 'Echoes' },
+    { res: weaponsRes, name: 'Weapons' },
+    { res: mainStatsRes, name: 'Main Stats' },
+    { res: substatsRes, name: 'Substats' },
+    { res: statsRes, name: 'Stat Translations' },
+    { res: fettersRes, name: 'Fetters' },
+    { res: characterCurvesRes, name: 'Character Curves' },
+    { res: levelCurvesRes, name: 'Level Curves' },
+  ];
+
+  for (const { res, name } of responses) {
+    if (!res.ok) {
+      throw new Error(`Failed to load ${name}: ${res.status}`);
+    }
+  }
+
+  const [
+    characters,
+    echoes,
+    weapons,
+    mainStats,
+    substats,
+    stats,
+    fetters,
+    characterCurves,
+    levelCurves,
+  ] = await Promise.all([
+    charactersRes.json(),
+    echoesRes.json(),
+    weaponsRes.json(),
+    mainStatsRes.json(),
+    substatsRes.json(),
+    statsRes.json(),
+    fettersRes.json(),
+    characterCurvesRes.json(),
+    levelCurvesRes.json(),
+  ]);
+
+  return { characters, echoes, weapons, mainStats, substats, stats, fetters, characterCurves, levelCurves };
+}
+
+async function loadGameDataState(): Promise<GameDataState> {
+  if (cachedGameDataState) {
+    return cachedGameDataState;
+  }
+
+  if (!gameDataLoadPromise) {
+    gameDataLoadPromise = fetchRawGameData()
+      .then((raw) => {
+        const processed = processRawGameData(raw);
+        cachedGameDataState = processed;
+        return processed;
+      })
+      .catch((error) => {
+        gameDataLoadPromise = null;
+        throw error;
+      });
+  }
+
+  return gameDataLoadPromise;
+}
+
 const GameDataContext = createContext<GameDataContextType | null>(null);
 
 export const useGameData = (): GameDataContextType => {
@@ -172,93 +264,38 @@ export const useGameData = (): GameDataContextType => {
 
 interface GameDataProviderProps {
   children: ReactNode;
-  initialData?: RawGameData | null;
 }
 
-export function GameDataProvider({ children, initialData }: GameDataProviderProps) {
-  const [state, setState] = useState<GameDataState>(() => {
-    if (initialData) {
-      return processRawGameData(initialData);
-    }
-    return emptyState;
-  });
+export function GameDataProvider({ children }: GameDataProviderProps) {
+  const [state, setState] = useState<GameDataState>(() => cachedGameDataState ?? emptyState);
+  const [isLoading, setIsLoading] = useState<boolean>(() => cachedGameDataState === null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Only fetch client-side if no server-provided data
   useEffect(() => {
-    if (initialData) return;
+    if (cachedGameDataState) {
+      return;
+    }
 
-    const loadGameData = async () => {
-      try {
-        const [
-          charactersRes,
-          echoesRes,
-          weaponsRes,
-          mainStatsRes,
-          substatsRes,
-          statTranslationsRes,
-          fettersRes,
-          characterCurvesRes,
-          levelCurvesRes
-        ] = await Promise.all([
-          fetch('/Data/Characters.json'),
-          fetch('/Data/Echoes.json'),
-          fetch('/Data/Weapons.json'),
-          fetch('/Data/Mainstat.json'),
-          fetch('/Data/Substats.json'),
-          fetch('/Data/Stats.json'),
-          fetch('/Data/Fetters.json'),
-          fetch('/Data/CharacterCurve.json'),
-          fetch('/Data/LevelCurve.json')
-        ]);
+    let cancelled = false;
 
-        const responses = [
-          { res: charactersRes, name: 'Characters' },
-          { res: echoesRes, name: 'Echoes' },
-          { res: weaponsRes, name: 'Weapons' },
-          { res: mainStatsRes, name: 'Main Stats' },
-          { res: substatsRes, name: 'Substats' },
-          { res: statTranslationsRes, name: 'Stat Translations' },
-          { res: fettersRes, name: 'Fetters' },
-          { res: characterCurvesRes, name: 'Character Curves' },
-          { res: levelCurvesRes, name: 'Level Curves' }
-        ];
-
-        for (const { res, name } of responses) {
-          if (!res.ok) {
-            throw new Error(`Failed to load ${name}: ${res.status}`);
-          }
-        }
-
-        const [
-          characters,
-          echoes,
-          weapons,
-          mainStats,
-          substats,
-          stats,
-          fetters,
-          characterCurves,
-          levelCurves,
-        ] = await Promise.all([
-          charactersRes.json(),
-          echoesRes.json(),
-          weaponsRes.json(),
-          mainStatsRes.json(),
-          substatsRes.json(),
-          statTranslationsRes.json(),
-          fettersRes.json(),
-          characterCurvesRes.json(),
-          levelCurvesRes.json(),
-        ]);
-
-        setState(processRawGameData({ characters, echoes, weapons, mainStats, substats, stats, fetters, characterCurves, levelCurves }));
-      } catch (err) {
+    loadGameDataState()
+      .then((loadedState) => {
+        if (cancelled) return;
+        setState(loadedState);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'Unknown error';
         console.error('Error loading game data:', err);
-      }
-    };
+        setLoadError(message);
+        setIsLoading(false);
+      });
 
-    loadGameData();
-  }, [initialData]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getCharacter = useCallback((id: string | null): Character | null => {
     if (!id) return null;
@@ -369,6 +406,8 @@ export function GameDataProvider({ children, initialData }: GameDataProviderProp
 
   const value = useMemo<GameDataContextType>(() => ({
     ...state,
+    isLoading,
+    loadError,
     getCharacter,
     getCharacterByLegacyId,
     getCharacterByName,
@@ -388,6 +427,8 @@ export function GameDataProvider({ children, initialData }: GameDataProviderProp
     scaleWeaponStat
   }), [
     state,
+    isLoading,
+    loadError,
     getCharacter,
     getCharacterByLegacyId,
     getCharacterByName,
@@ -412,4 +453,26 @@ export function GameDataProvider({ children, initialData }: GameDataProviderProp
       {children}
     </GameDataContext.Provider>
   );
+}
+
+export function GameDataLoadingGate({ children }: { children: ReactNode }) {
+  const { isLoading, loadError } = useGameData();
+
+  if (loadError) {
+    return (
+      <div className="mx-auto flex min-h-[50vh] w-full max-w-360 items-center justify-center px-4 py-10 text-center text-text-primary">
+        Failed to load game data. Please refresh and try again.
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex min-h-[50vh] w-full max-w-360 items-center justify-center px-4 py-10 text-center text-text-primary/80">
+        Loading game data...
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }

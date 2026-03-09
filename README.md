@@ -17,7 +17,7 @@ For full technical context, see:
 - `/leaderboards` overview and `/leaderboards/[characterId]` per-character pages are live, also SSR-prefetched.
 - `/import` OCR flow is live; `Upload to Leaderboard` toggle submits canonical `buildState` via `POST /api/lb/build`.
 - `/edit` `View Ranking` button routes to the selected character leaderboard page.
-- Go leaderboard backend (`/lb`) runs single-pass canonical ingest with 8 registered character damage configs.
+- Go leaderboard backend (`/lb`) runs single-pass canonical ingest with 9 registered character damage configs.
 - Node backend (`/mongo`) remains the fallback path until remaining Go parity items are closed.
 - DB index suite fixed: sort indexes now use `NULLS LAST`; dead GIN indexes removed; stat sort indexes added.
 
@@ -37,18 +37,22 @@ For full technical context, see:
 
 ### State Management
 
-Context-based with provider hierarchy in `app/layout.tsx`:
+Context-based with a lightweight root layout plus a shared tools layout:
 
 ```
-AppProviders
+RootProviders (`app/layout.tsx`)
 └── LanguageProvider
-    └── GameDataProvider       ← loads 9 JSON files from /Data/ at startup
-        └── BuildProvider      ← current build state (character, weapon, echoes, forte, watermark)
-            └── StatsProvider  ← derived stats + CV (memoized from build + game data)
-                └── ToastProvider
+
+ToolProviders (`app/(tools)/layout.tsx`)
+└── GameDataProvider       ← fetches and caches 9 JSON files client-side for tool routes only
+    └── ToastProvider
+
+EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
+└── BuildProvider          ← current build state (character, weapon, echoes, forte, watermark)
+    └── StatsProvider      ← derived stats + CV (memoized from build + game data)
 ```
 
-- `GameDataContext` — Fetches and caches Characters, Weapons, Echoes, Stats, Fetters, Curves on mount.
+- `GameDataContext` — Fetches and caches Characters, Weapons, Echoes, Stats, Fetters, Curves on first tool-route mount, then reuses a module-level cache across the session.
 - `BuildContext` — Reducer-based state for the active build. Auto-saves draft to localStorage.
 - `StatsContext` — Derives all calculated stats (HP, ATK, DEF, DMG boosts, CV) from build + game data.
 - `LanguageContext` — i18n language selection persisted to localStorage.

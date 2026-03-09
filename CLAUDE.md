@@ -65,7 +65,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 - `BuildEditor` has a `View Ranking` button that routes to the selected character leaderboard.
 - Go LB runtime is validated with migrated legacy data and single-pass canonical ingest (`make import DUMP=...`).
 - API filtering should use canonical CDN IDs.
-- Frontend LB clients serialize multi-value query filters as repeated query params (`?characterId=1505&characterId=1603`); the Go API expects that canonical form.
+- Frontend LB clients now serialize simple multi-value filters as CSV/plain values (`?characterId=1505,1603`), with frontend-only normalization for main-stat filter keys before the LB request is sent.
 - Go LB currently has 9 registered character configs (`carlotta`, `jinhsi`, `changli`, `camellya`, `zani`, `phoebe`, `cartethyia`, `jiyan`, `lupa`), but `lupa` is still a placeholder with no tracks/team config.
 - Frontend leaderboard track migration is live: `lib/lb.ts`, `lib/lbServer.ts`, and `components/leaderboard/*` now model `track`/`tracks` only.
 - DB index suite updated via migration 002: sort indexes corrected to `NULLS LAST`, dead GIN indexes removed, stat sort indexes added.
@@ -88,14 +88,14 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 | Route | Status | Entry | Primary Client Tree |
 |-------|--------|-------|---------------------|
 | `/` | Implemented | `app/page.tsx` | `components/home/*` + shared `Navigation` |
-| `/builds` | Implemented | `app/builds/page.tsx` | `components/build/*` + `lib/lb.ts` |
-| `/edit` | Implemented | `app/edit/page.tsx` | `components/edit/*`, `components/card/*`, `components/echo/*`, `components/forte/*`, selectors |
-| `/import` | Implemented | `app/import/page.tsx` | `components/import/*`, `hooks/useOcrImport.ts`, `lib/import/*` |
-| `/saves` | Implemented | `app/saves/page.tsx` | `components/save/*`, `lib/storage.ts`, `lib/legacyMigration.ts` |
-| `/leaderboards` | Implemented | `app/leaderboards/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
-| `/leaderboards/[characterId]` | Implemented | `app/leaderboards/[characterId]/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
+| `/builds` | Implemented | `app/(tools)/builds/page.tsx` | `components/build/*` + `lib/lb.ts` |
+| `/edit` | Implemented | `app/(tools)/edit/page.tsx` | `components/edit/*`, `components/card/*`, `components/echo/*`, `components/forte/*`, selectors |
+| `/import` | Implemented | `app/(tools)/import/page.tsx` | `components/import/*`, `hooks/useOcrImport.ts`, `lib/import/*` |
+| `/saves` | Implemented | `app/(tools)/saves/page.tsx` | `components/save/*`, `lib/storage.ts`, `lib/legacyMigration.ts` |
+| `/leaderboards` | Implemented | `app/(tools)/leaderboards/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
+| `/leaderboards/[characterId]` | Implemented | `app/(tools)/leaderboards/[characterId]/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
 
-All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and all page state is context-driven.
+`app/layout.tsx` now stays lightweight (`RootProviders` + `Navigation`) while tool routes render under `app/(tools)/layout.tsx`, which mounts `ToolProviders` and the game-data loading gate only for pages that need the data bundle.
 
 ## Page-By-Page Function Inventory
 
@@ -118,7 +118,7 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
 
 ### `/builds`
 
-- Entry: `app/builds/page.tsx` wraps `BuildPageClient` in `Suspense`.
+- Entry: `app/(tools)/builds/page.tsx` wraps `BuildPageClient` in `Suspense`.
 - `BuildPageClient()`:
   - Query/state bootstrap: `parseInitialQuery(...)`.
   - URL sync effect: `serializeQuery(querySnapshot)` + `router.replace(...)`.
@@ -152,7 +152,7 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
 
 ### `/edit`
 
-- Entry: `app/edit/page.tsx` -> `DataLoadingGate` -> `BuildEditor()`.
+- Entry: `app/(tools)/edit/page.tsx` -> `BuildEditor()` inside `GameDataLoadingGate` from the shared tools layout.
 - `BuildEditor()` orchestration:
   - Card/art helpers:
     - `clearArtState`, `handleToggleArtEditMode`, `handleGenerateCard`, `handleDownload`,
@@ -212,7 +212,7 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
 
 ### `/import`
 
-- Entry: `app/import/page.tsx` -> `ImportPageClient()`.
+- Entry: `app/(tools)/import/page.tsx` -> `ImportPageClient()`.
 - `ImportPageClient()`:
   - `handleFile(file)` validates size format (1920x1080) and DPI, then starts OCR.
   - `handleReset()`, `buildImportedState(wm)`, `uploadImportedState(buildState)`, `doImport(wm)`, `saveImportToSaves(wm)`, `handleImport(wm)`.
@@ -237,7 +237,7 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
 
 ### `/saves`
 
-- Entry: `app/saves/page.tsx` -> `SavesPageClient()`.
+- Entry: `app/(tools)/saves/page.tsx` -> `SavesPageClient()`.
 - `SavesPageClient()`:
   - load/refresh: `refreshBuilds`, `refreshLegacySummary`.
   - actions:
@@ -263,7 +263,7 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
 
 ### `/leaderboards`
 
-- Entry: `app/leaderboards/page.tsx` → `LeaderboardOverviewClient`.
+- Entry: `app/(tools)/leaderboards/page.tsx` → `LeaderboardOverviewClient`.
 - `LeaderboardOverviewClient()`:
   - Fetches `GET /api/lb/leaderboard` via `listLeaderboardOverview(signal)`.
   - Renders a table: Character (portrait + element-colored name) | Team (partner portraits) | Entries | Weapon Rankings (4 slots).
@@ -273,7 +273,7 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
 
 ### `/leaderboards/[characterId]`
 
-- Entry: `app/leaderboards/[characterId]/page.tsx` → `LeaderboardCharacterClient`.
+- Entry: `app/(tools)/leaderboards/[characterId]/page.tsx` → `LeaderboardCharacterClient`.
 - `LeaderboardCharacterClient()`:
   - Fetches `GET /api/lb/leaderboard/{characterId}?weaponIndex=&weaponId=&track=&sort=&...` via `listLeaderboard(id, query, signal)`.
   - Uses backend-returned `tracks`, `activeTrack`, `activeWeaponId`, and `teamCharacterIds` directly.
@@ -300,18 +300,22 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
 ### Context Provider Hierarchy
 
 ```
-LanguageProvider          → i18n language state
-  └─ GameDataProvider     → Loads all JSON data once, provides lookup helpers
-      └─ BuildProvider    → Current build state via useReducer + localStorage
-          └─ StatsProvider → Derived calculations from GameData + BuildState
-              └─ ToastProvider → Transient feedback notifications
-```
+RootProviders (app/layout.tsx)
+└─ LanguageProvider       → i18n language state used by Navigation and app UI
 
-Wrapped by `AppProviders` in `contexts/index.tsx`. The `DataLoadingGate` component gates children behind game data loading.
+ToolProviders (app/(tools)/layout.tsx)
+└─ GameDataProvider       → Client-cached JSON bundle for tool routes only
+   └─ ToastProvider       → Transient feedback notifications
+      └─ GameDataLoadingGate → Blocks tool pages until game data is ready
+
+EditorProviders (nested on /edit, /characters/[id], /weapons/[id])
+└─ BuildProvider          → Current build state via useReducer + localStorage
+   └─ StatsProvider       → Derived calculations from GameData + BuildState
+```
 
 ### State Management
 
-- **GameDataContext**: Loads all `/Data/*.json` files once at startup. Provides `useGameData()` hook with character/weapon/echo lookups and stat calculation helpers.
+- **GameDataContext**: Loads all `/Data/*.json` files client-side for tool routes, memoizes the processed result in a module-level singleton cache, and provides `useGameData()` lookup/calculation helpers.
 - **BuildContext**: `useReducer`-based state with debounced localStorage persistence. Provides `useBuild()` hook with action dispatchers for all build modifications.
 - **StatsContext**: Purely derived — recalculates whenever GameData or BuildState changes. Provides final stats, CV, set bonuses, stat breakdowns.
 
