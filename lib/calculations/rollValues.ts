@@ -109,6 +109,13 @@ export const getEchoCVTierStyle = (cv: number): EchoCVTierStyle => {
   return               { color: '#888888',  label: 'Bad'      };              // gray
 };
 
+// Use CV-tier tint for the card frame, but keep weak echoes on the default amber
+// so they still read as normal items instead of disabled states.
+export const getEchoCVFrameColor = (cv: number): string => {
+  const tier = getEchoCVTierStyle(cv);
+  return tier.label === 'Bad' ? '#fbbf24' : tier.color;
+};
+
 export const CV_RATINGS = {
   IMPOSSIBLE: 254,      // theoretical max: 5 * 42 + 44
   PERFECT: 240,         // 5 * 39.8 + 44 ≈ 243

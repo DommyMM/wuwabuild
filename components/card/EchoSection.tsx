@@ -7,7 +7,7 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { isPercentStat } from '@/lib/constants/statMappings';
-import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
+import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { getEchoPaths } from '@/lib/paths';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
@@ -115,11 +115,13 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
 
           const echoCV = calculateEchoSubstatCV(panel);
           const cvTier = echoCV > 0 ? getEchoCVTierStyle(echoCV) : null;
+          const frameBorderColor = getEchoCVFrameColor(echoCV);
 
           return (
             <div
               key={i}
               className="relative flex flex-1 rounded-xl border overflow-hidden border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
+              style={{ borderColor: `${frameBorderColor}b3` }}
             >
               {/* Top-left stack: CV badge */}
               <div className="absolute top-1 left-1 z-10 flex flex-col items-start gap-1">

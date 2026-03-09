@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
+import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
@@ -312,6 +312,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
 
                       const echoCV = calculateEchoSubstatCV(panel);
                       const cvTier = echoCV > 0 ? getEchoCVTierStyle(echoCV) : null;
+                      const frameBorderColor = getEchoCVFrameColor(echoCV);
 
                       if (!echo) {
                         return (
@@ -328,6 +329,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                         <div
                           key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
                           className="relative flex-1 aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
+                          style={{ borderColor: `${frameBorderColor}b3` }}
                         >
                           {/* Fetter icon top center */}
                           {fetterIcon && (
