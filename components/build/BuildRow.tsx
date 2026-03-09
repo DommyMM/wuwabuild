@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { getCVRatingColor } from '@/lib/calculations/rollValues';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
-import { LBBuildDetailEntry, LBBuildRowEntry, LBSortKey } from '@/lib/lb';
+import { getLBStatCode, LBBuildDetailEntry, LBBuildRowEntry, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 import { ACTIVE_SORT_COLUMN_CLASS, SEQUENCE_BADGE_STYLES, SORTABLE_GROUP_GRID, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from './buildConstants';
 import { formatStatByKey, getSortLabel, resolveRegionBadge } from './buildFormatters';
@@ -165,7 +165,7 @@ export const BuildRow: React.FC<BuildRowProps> = ({
 
           {rowStatColumns.map((columnKey, statIndex) => {
             const label = getSortLabel(columnKey);
-            const value = entry.stats[columnKey] ?? 0;
+            const value = entry.stats[getLBStatCode(columnKey)] ?? 0;
             const icon = statIcons?.[label] ?? '';
             const iconFilter = ELEMENT_ICON_FILTERS[label];
             const shouldDimRowStat = isStatSortActive && statIndex > 0;

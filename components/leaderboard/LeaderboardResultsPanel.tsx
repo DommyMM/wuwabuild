@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
-import { LBBuildDetailEntry, LBLeaderboardEntry, LBSortDirection } from '@/lib/lb';
+import { LBBuildDetailEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortDirection } from '@/lib/lb';
 import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, STAT_OPTION_KEYS, TABLE_ROW_HEIGHT_CLASS } from '@/components/build/buildConstants';
 import { getSortLabel } from '@/components/build/buildFormatters';
 import { BuildPagination } from '@/components/build/BuildPagination';
@@ -13,9 +13,7 @@ import { StatSortKey } from '@/components/build/types';
 import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from './leaderboardConstants';
 import { LeaderboardRow } from './LeaderboardRow';
 
-const DAMAGE_SORT_KEY = 'damage';
-
-export type LBLeaderboardSortKey = 'damage' | 'finalCV' | 'CR' | 'CD' | 'timestamp' | StatSortKey;
+const DAMAGE_SORT_KEY: LBLeaderboardSortKey = 'damage';
 
 interface LeaderboardResultsPanelProps {
   entries: LBLeaderboardEntry[];
@@ -31,9 +29,9 @@ interface LeaderboardResultsPanelProps {
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
-  sort: string;
+  sort: LBLeaderboardSortKey;
   direction: LBSortDirection;
-  onSortChange: (sort: string) => void;
+  onSortChange: (sort: LBLeaderboardSortKey) => void;
   onToggleDirection: () => void;
   onPageChange: (page: number) => void;
   onToggleExpand: (id: string) => void;
@@ -66,8 +64,8 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
 
   const isDamageSort = sort === DAMAGE_SORT_KEY;
-  const cvSort: CVSortKey = (sort === 'finalCV' || sort === 'CR' || sort === 'CD') ? sort : 'finalCV';
-  const isCvColumnActive = sort === 'finalCV' || sort === 'CR' || sort === 'CD';
+  const cvSort: CVSortKey = (sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg') ? sort : 'finalCV';
+  const isCvColumnActive = sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg';
   const isStatSortActive = STAT_OPTION_KEYS.includes(sort as StatSortKey);
 
   const statOptions = useMemo<SortMenuOption[]>(() => (
@@ -102,7 +100,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
       ? 'Updating...'
       : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;
 
-  const handleSortRequest = (nextSort: string) => {
+  const handleSortRequest = (nextSort: LBLeaderboardSortKey) => {
     if (sort === nextSort) { onToggleDirection(); return; }
     onSortChange(nextSort);
   };
@@ -134,7 +132,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                   options={cvOptions}
                   selectedKey={cvSort}
                   onHeaderSort={() => handleSortRequest(cvSort)}
-                  onSelectOption={(key) => handleSortRequest(key)}
+                  onSelectOption={(key) => handleSortRequest(key as LBLeaderboardSortKey)}
                   icon={activeCvOption?.icon}
                   showHeaderPlaceholderIcon={false}
                   showPlaceholderLine
@@ -159,7 +157,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         const normalized = [...base, ...prev].filter((key, idx, arr) => arr.indexOf(key) === idx);
                         return normalized.slice(0, 4) as StatSortKey[];
                       });
-                      handleSortRequest(nextSort);
+                      handleSortRequest(nextSort as LBLeaderboardSortKey);
                     }}
                     icon={activePinnedStatOption?.icon}
                     iconFilter={activePinnedStatOption?.iconFilter}
@@ -193,7 +191,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                             const normalized = [...base, ...prev].filter((key, idx, arr) => arr.indexOf(key) === idx);
                             return normalized.slice(0, 4) as StatSortKey[];
                           });
-                          handleSortRequest(nextSort);
+                          handleSortRequest(nextSort as LBLeaderboardSortKey);
                         }}
                         icon={option?.icon}
                         iconFilter={option?.iconFilter}

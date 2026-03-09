@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getWeaponPaths } from '@/lib/paths';
 import { SEQUENCE_BADGE_STYLES } from '@/components/build/buildConstants';
 
-// ─── Weapon selector cards ────────────────────────────────────────────────────
+// Weapon selector cards
 
 interface WeaponCardsProps {
   weaponIds: string[];
@@ -14,7 +14,7 @@ interface WeaponCardsProps {
   onSelect: (index: number) => void;
 }
 
-export const WeaponCards: React.FC<WeaponCardsProps> = ({ weaponIds, weaponIndex, onSelect }) => {
+const WeaponCards: React.FC<WeaponCardsProps> = ({ weaponIds, weaponIndex, onSelect }) => {
   const { getWeapon } = useGameData();
   const { t } = useLanguage();
 
@@ -57,7 +57,7 @@ export const WeaponCards: React.FC<WeaponCardsProps> = ({ weaponIds, weaponIndex
   );
 };
 
-// ─── Sequence tabs ────────────────────────────────────────────────────────────
+// Sequence tabs
 
 interface SequenceTabsProps {
   sequences: string[];
@@ -65,7 +65,7 @@ interface SequenceTabsProps {
   onSelect: (seq: string) => void;
 }
 
-export const SequenceTabs: React.FC<SequenceTabsProps> = ({ sequences, activeSequence, onSelect }) => {
+const SequenceTabs: React.FC<SequenceTabsProps> = ({ sequences, activeSequence, onSelect }) => {
   if (sequences.length <= 1) return null;
 
   return (
@@ -92,7 +92,7 @@ export const SequenceTabs: React.FC<SequenceTabsProps> = ({ sequences, activeSeq
   );
 };
 
-// ─── Combined export ──────────────────────────────────────────────────────────
+// Combined export
 
 interface LeaderboardTabsProps {
   weaponIds: string[];

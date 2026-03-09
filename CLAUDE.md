@@ -281,7 +281,7 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
   - Gold/silver/bronze styling for top 3.
   - Echo sets computed from `buildState.echoPanels` via `fettersByElement`.
   - Reuses `BuildExpanded` directly (no secondary detail fetch — `buildState` is in every leaderboard entry).
-- `WeaponTabs` / `SequenceTabs`: inline sub-components inside `LeaderboardCharacterClient`.
+- `WeaponCards` / `SequenceTabs`: private sub-components inside `LeaderboardTabs.tsx`.
 - `leaderboardConstants.ts`: exports only `LB_TABLE_GRID`, `DEFAULT_LB_SORT`, `DEFAULT_LB_SEQUENCE`.
 
 ## Architecture

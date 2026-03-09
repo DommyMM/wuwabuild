@@ -1,4 +1,4 @@
-import { LBSortKey, LBSortDirection } from '@/lib/lb';
+import { LBSortDirection, LBSortKey, LBStatSortKey } from '@/lib/lb';
 
 export const ITEMS_PER_PAGE = 12;
 export const MAX_ITEMS_PER_PAGE = 100;
@@ -16,11 +16,11 @@ export const DEFAULT_SORT: LBSortKey = 'finalCV';
 export const DEFAULT_DIRECTION: LBSortDirection = 'desc';
 
 export const REGION_OPTIONS = [
-  { label: 'NA', value: '5' },
-  { label: 'Europe', value: '6' },
-  { label: 'Asia', value: '7' },
-  { label: 'SEA', value: '9' },
   { label: 'CN', value: '1' },
+  { label: 'NA', value: '5' },
+  { label: 'EU', value: '6' },
+  { label: 'Asia', value: '7' },
+  { label: 'SEA', value: '9' }
 ] as const;
 
 export const MAIN_STAT_OPTIONS = [
@@ -42,23 +42,23 @@ export const MAIN_STAT_OPTIONS = [
 export const SORT_OPTIONS: Array<{ key: LBSortKey; label: string }> = [
   { key: 'finalCV', label: 'Crit Value' },
   { key: 'timestamp', label: 'Date' },
-  { key: 'CR', label: 'Crit Rate' },
-  { key: 'CD', label: 'Crit DMG' },
-  { key: 'A', label: 'ATK' },
-  { key: 'H', label: 'HP' },
-  { key: 'D', label: 'DEF' },
-  { key: 'ER', label: 'Energy Regen' },
-  { key: 'HB', label: 'Healing Bonus' },
-  { key: 'BA', label: 'Basic Attack DMG Bonus' },
-  { key: 'HA', label: 'Heavy Attack DMG Bonus' },
-  { key: 'RS', label: 'Resonance Skill DMG Bonus' },
-  { key: 'RL', label: 'Resonance Liberation DMG Bonus' },
-  { key: 'AD', label: 'Aero DMG' },
-  { key: 'GD', label: 'Glacio DMG' },
-  { key: 'FD', label: 'Fusion DMG' },
-  { key: 'ED', label: 'Electro DMG' },
-  { key: 'HD', label: 'Havoc DMG' },
-  { key: 'SD', label: 'Spectro DMG' },
+  { key: 'crit_rate', label: 'Crit Rate' },
+  { key: 'crit_dmg', label: 'Crit DMG' },
+  { key: 'atk', label: 'ATK' },
+  { key: 'hp', label: 'HP' },
+  { key: 'def', label: 'DEF' },
+  { key: 'energy_regen', label: 'Energy Regen' },
+  { key: 'healing_bonus', label: 'Healing Bonus' },
+  { key: 'basic_attack_dmg', label: 'Basic Attack DMG Bonus' },
+  { key: 'heavy_attack_dmg', label: 'Heavy Attack DMG Bonus' },
+  { key: 'resonance_skill_dmg', label: 'Resonance Skill DMG Bonus' },
+  { key: 'resonance_liberation_dmg', label: 'Resonance Liberation DMG Bonus' },
+  { key: 'aero_dmg', label: 'Aero DMG' },
+  { key: 'glacio_dmg', label: 'Glacio DMG' },
+  { key: 'fusion_dmg', label: 'Fusion DMG' },
+  { key: 'electro_dmg', label: 'Electro DMG' },
+  { key: 'havoc_dmg', label: 'Havoc DMG' },
+  { key: 'spectro_dmg', label: 'Spectro DMG' },
 ];
 
 // Regions
@@ -78,22 +78,53 @@ export const REGION_BADGES: Record<string, RegionBadge> = {
 
 // Stat Columns
 
-export type CVSortKey = 'finalCV' | 'CR' | 'CD';
+export type CVSortKey = 'finalCV' | 'crit_rate' | 'crit_dmg';
 
 export const CV_OPTIONS: ReadonlyArray<{ key: CVSortKey; label: string }> = [
   { key: 'finalCV', label: 'Crit Value' },
-  { key: 'CR', label: 'Crit Rate' },
-  { key: 'CD', label: 'Crit DMG' },
+  { key: 'crit_rate', label: 'Crit Rate' },
+  { key: 'crit_dmg', label: 'Crit DMG' },
 ];
 
-export const STAT_OPTION_KEYS = [ 'A', 'H', 'D', 'ER', 'HB', 'AD', 'GD', 'FD', 'ED', 'HD', 'SD', 'BA', 'HA', 'RS', 'RL' ] as const;
+export const STAT_OPTION_KEYS: readonly LBStatSortKey[] = [
+  'atk',
+  'hp',
+  'def',
+  'energy_regen',
+  'healing_bonus',
+  'aero_dmg',
+  'glacio_dmg',
+  'fusion_dmg',
+  'electro_dmg',
+  'havoc_dmg',
+  'spectro_dmg',
+  'basic_attack_dmg',
+  'heavy_attack_dmg',
+  'resonance_skill_dmg',
+  'resonance_liberation_dmg',
+];
 
-export const DEFAULT_STAT_COLUMNS = ['A', 'ER', 'D', 'AD'] as const;
-export const BASE_STAT_FALLBACK_ORDER = ['A', 'H', 'D', 'ER'] as const;
-export const ELEMENT_STAT_KEYS = ['AD', 'GD', 'FD', 'ED', 'HD', 'SD'] as const;
-export const OFFENSIVE_BONUS_KEYS = ['BA', 'HA', 'RS', 'RL'] as const;
+export const DEFAULT_STAT_COLUMNS: readonly LBStatSortKey[] = ['atk', 'energy_regen', 'def', 'aero_dmg'];
+export const BASE_STAT_FALLBACK_ORDER: readonly LBStatSortKey[] = ['atk', 'hp', 'def', 'energy_regen'];
+export const ELEMENT_STAT_KEYS: readonly LBStatSortKey[] = ['aero_dmg', 'glacio_dmg', 'fusion_dmg', 'electro_dmg', 'havoc_dmg', 'spectro_dmg'];
+export const OFFENSIVE_BONUS_KEYS: readonly LBStatSortKey[] = ['basic_attack_dmg', 'heavy_attack_dmg', 'resonance_skill_dmg', 'resonance_liberation_dmg'];
 
-export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set<LBSortKey>([ 'CR', 'CD', 'A%', 'H%', 'D%', 'ER', 'HB', 'AD', 'GD', 'FD', 'ED', 'HD', 'SD', 'BA', 'HA', 'RS', 'RL' ]);
+export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set<LBSortKey>([
+  'crit_rate',
+  'crit_dmg',
+  'energy_regen',
+  'healing_bonus',
+  'aero_dmg',
+  'glacio_dmg',
+  'fusion_dmg',
+  'electro_dmg',
+  'havoc_dmg',
+  'spectro_dmg',
+  'basic_attack_dmg',
+  'heavy_attack_dmg',
+  'resonance_skill_dmg',
+  'resonance_liberation_dmg',
+]);
 
 // Table Layout
 

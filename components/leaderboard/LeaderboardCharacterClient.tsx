@@ -5,14 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import {
-  LBBuildDetailEntry,
-  LBEchoMainFilter,
-  LBEchoSetFilter,
-  LBLeaderboardEntry,
-  LBSortDirection,
-  listLeaderboard,
-} from '@/lib/lb';
+import { LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortDirection, listLeaderboard, normalizeLBLeaderboardSortKey, toLBApiSortKey } from '@/lib/lb';
 import { clampItemsPerPage, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE } from '@/components/build/buildConstants';
 import { BuildFiltersPanel } from '@/components/build/BuildFiltersPanel';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/build/types';
@@ -35,10 +28,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [configWeaponIds, setConfigWeaponIds] = useState<string[]>([]);
   const [configSequences, setConfigSequences] = useState<string[]>(['s0']);
 
-  // --- State (initialized from URL) ---
+  // State initialized from URL
   const [page, setPage] = useState(() => parsePositiveInt(searchParams.get('page'), 1));
   const [pageSize, setPageSize] = useState(() => clampItemsPerPage(parsePositiveInt(searchParams.get('size') ?? searchParams.get('pageSize'), ITEMS_PER_PAGE)));
-  const [sort, setSort] = useState(() => searchParams.get('sort') ?? DEFAULT_LB_SORT);
+  const [sort, setSort] = useState<LBLeaderboardSortKey>(() => normalizeLBLeaderboardSortKey(searchParams.get('sort'), DEFAULT_LB_SORT));
   const [direction, setDirection] = useState<LBSortDirection>(() => {
     const d = searchParams.get('direction');
     return d === 'asc' ? 'asc' : 'desc';
@@ -58,7 +51,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => parseEchoMainCSV(searchParams.get('mains')));
   const [filterQuery, setFilterQuery] = useState('');
 
-  // --- Data state ---
+  // Data state
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,12 +62,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [detailLoadingById] = useState<Record<string, boolean>>({});
   const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
 
-  // --- URL sync ---
+  // URL sync
   useEffect(() => {
     const params = new URLSearchParams();
     if (page > 1) params.set('page', String(page));
     if (pageSize !== ITEMS_PER_PAGE) params.set('size', String(pageSize));
-    if (sort !== DEFAULT_LB_SORT) params.set('sort', sort);
+    if (sort !== DEFAULT_LB_SORT) params.set('sort', toLBApiSortKey(sort));
     if (direction !== 'desc') params.set('direction', direction);
     if (weaponIndex !== 0) params.set('weaponIndex', String(weaponIndex));
     if (sequence !== DEFAULT_LB_SEQUENCE) params.set('sequence', sequence);
@@ -91,18 +84,18 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     }
   }, [characterId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, router, searchParams, sequence, sort, uid, username, weaponIndex]);
 
-  // --- Weapon IDs derived from selected tab ---
+  // Weapon IDs derived from selected tab
   const weaponIds = useMemo<string[]>(() => {
     const weaponId = configWeaponIds[weaponIndex];
     return weaponId ? [weaponId] : [];
   }, [configWeaponIds, weaponIndex]);
 
-  // --- Query key for effect dependency ---
+  // Query key for effect dependency
   const queryKey = useMemo(() => JSON.stringify({
     characterId, page, pageSize, sort, direction, weaponIndex, sequence, uid, username, regionPrefixes, echoSets, echoMains,
   }), [characterId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sequence, sort, uid, username, weaponIndex]);
 
-  // --- Fetch leaderboard data ---
+  // Fetch leaderboard data
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
@@ -152,10 +145,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       active = false;
       controller.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryKey]);
 
-  // --- Expand / detail ---
+  // Expand / detail
   const handleToggleExpand = useCallback((id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -168,7 +160,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     setDetailErrorById((prev) => ({ ...prev, [id]: null }));
   }, []);
 
-  // --- Filter helpers ---
+  // Filter helpers
   const addRegion = useCallback((value: string) => {
     setRegionPrefixes((prev) => (prev.includes(value) ? prev : [...prev, value]));
     setPage(1);
@@ -200,7 +192,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     setPage(1);
   }, []);
 
-  // --- Computed ---
+  // Computed
   const character = characters.find((c) => c.id === characterId) ?? null;
   const characterName = character
     ? formatCharacterDisplayName(character, {

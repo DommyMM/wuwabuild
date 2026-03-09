@@ -59,8 +59,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   const { statIcons } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
 
-  const cvSort: CVSortKey = (sort === 'finalCV' || sort === 'CR' || sort === 'CD') ? sort : 'finalCV';
-  const isCvColumnActive = sort === 'finalCV' || sort === 'CR' || sort === 'CD';
+  const cvSort: CVSortKey = (sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg') ? sort : 'finalCV';
+  const isCvColumnActive = sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg';
   const isStatSortActive = STAT_OPTION_KEYS.includes(sort as StatSortKey);
 
   const statOptions = useMemo<SortMenuOption[]>(() => (

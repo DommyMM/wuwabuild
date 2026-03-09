@@ -1,32 +1,32 @@
 import { Character } from '@/lib/character';
-import { LBStatCode, LBSortKey } from '@/lib/lb';
+import { getLBStatCode, LBStatCode, LBStatSortKey, LBSortKey } from '@/lib/lb';
 import { BASE_STAT_FALLBACK_ORDER, ELEMENT_STAT_KEYS, OFFENSIVE_BONUS_KEYS, STAT_OPTION_KEYS } from './buildConstants';
 import { StatSortKey } from './types';
 
 const ELEMENT_STAT_KEY_SET = new Set<StatSortKey>(ELEMENT_STAT_KEYS);
 
 const DISPLAY_STAT_CODE_MAP: Record<string, StatSortKey> = {
-  ATK: 'A',
-  HP: 'H',
-  DEF: 'D',
-  'Energy Regen': 'ER',
-  'Healing Bonus': 'HB',
-  'Basic Attack DMG Bonus': 'BA',
-  'Heavy Attack DMG Bonus': 'HA',
-  'Resonance Skill DMG Bonus': 'RS',
-  'Resonance Liberation DMG Bonus': 'RL',
-  'Aero DMG': 'AD',
-  'Glacio DMG': 'GD',
-  'Fusion DMG': 'FD',
-  'Electro DMG': 'ED',
-  'Havoc DMG': 'HD',
-  'Spectro DMG': 'SD',
+  ATK: 'atk',
+  HP: 'hp',
+  DEF: 'def',
+  'Energy Regen': 'energy_regen',
+  'Healing Bonus': 'healing_bonus',
+  'Basic Attack DMG Bonus': 'basic_attack_dmg',
+  'Heavy Attack DMG Bonus': 'heavy_attack_dmg',
+  'Resonance Skill DMG Bonus': 'resonance_skill_dmg',
+  'Resonance Liberation DMG Bonus': 'resonance_liberation_dmg',
+  'Aero DMG': 'aero_dmg',
+  'Glacio DMG': 'glacio_dmg',
+  'Fusion DMG': 'fusion_dmg',
+  'Electro DMG': 'electro_dmg',
+  'Havoc DMG': 'havoc_dmg',
+  'Spectro DMG': 'spectro_dmg',
 };
 
 export function resolvePrimaryScalingStatKey(baseScaling: string | undefined): StatSortKey {
-  if (baseScaling === 'HP') return 'H';
-  if (baseScaling === 'DEF') return 'D';
-  return 'A';
+  if (baseScaling === 'HP') return 'hp';
+  if (baseScaling === 'DEF') return 'def';
+  return 'atk';
 }
 
 export function resolveCharacterBaseScaling(character: Character | null): 'ATK' | 'HP' | 'DEF' {
@@ -41,12 +41,12 @@ export function resolveCharacterBaseScaling(character: Character | null): 'ATK' 
 }
 
 export function resolveElementStatKey(characterElement: string | undefined): StatSortKey | null {
-  if (characterElement === 'Aero') return 'AD';
-  if (characterElement === 'Glacio') return 'GD';
-  if (characterElement === 'Fusion') return 'FD';
-  if (characterElement === 'Electro') return 'ED';
-  if (characterElement === 'Havoc') return 'HD';
-  if (characterElement === 'Spectro') return 'SD';
+  if (characterElement === 'Aero') return 'aero_dmg';
+  if (characterElement === 'Glacio') return 'glacio_dmg';
+  if (characterElement === 'Fusion') return 'fusion_dmg';
+  if (characterElement === 'Electro') return 'electro_dmg';
+  if (characterElement === 'Havoc') return 'havoc_dmg';
+  if (characterElement === 'Spectro') return 'spectro_dmg';
   return null;
 }
 
@@ -59,7 +59,7 @@ export function pickHighestStatKey(
   let selectedValue = Number.NEGATIVE_INFINITY;
   for (const key of candidateKeys) {
     if (excluded.has(key)) continue;
-    const value = Number(stats[key] ?? 0);
+    const value = Number(stats[getLBStatCode(key)] ?? 0);
     if (value > selectedValue) {
       selected = key;
       selectedValue = value;
@@ -84,12 +84,12 @@ function resolveSecondaryDisplayStatKey(
   stats: Record<LBStatCode, number>,
 ): StatSortKey | null {
   const mappedBonusKey = resolveMappedDisplayStatKey(bonusStat);
-  if (mappedBonusKey === 'HB') {
-    return 'HB';
+  if (mappedBonusKey === 'healing_bonus') {
+    return 'healing_bonus';
   }
 
   const preferredElement = resolveElementStatKey(characterElement);
-  if (preferredElement && Number(stats[preferredElement] ?? 0) > 0) {
+  if (preferredElement && Number(stats[getLBStatCode(preferredElement)] ?? 0) > 0) {
     return preferredElement;
   }
 
@@ -127,8 +127,8 @@ function appendFallbackStatKeys(
   pushUnique(keys, resolvePrimaryScalingStatKey(baseScaling));
   pushUnique(keys, resolveSecondaryDisplayStatKey(bonusStat, characterElement, stats));
   pushUnique(keys, pickHighestStatKey(OFFENSIVE_BONUS_KEYS, stats, new Set(keys)));
-  pushUnique(keys, 'ER');
-  pushUnique(keys, 'HB');
+  pushUnique(keys, 'energy_regen');
+  pushUnique(keys, 'healing_bonus');
   pushUnique(keys, pickHighestStatKey(ELEMENT_STAT_KEYS, stats, new Set(keys)));
 
   BASE_STAT_FALLBACK_ORDER.forEach((key) => pushUnique(keys, key));
@@ -152,11 +152,11 @@ export function resolveBuildRowStatKeys(
     resolvePreferredTertiaryStatKey(preferredStats, new Set(orderedKeys))
       ?? pickHighestStatKey(OFFENSIVE_BONUS_KEYS, stats, new Set(orderedKeys)),
   );
-  pushUnique(orderedKeys, 'ER');
+  pushUnique(orderedKeys, 'energy_regen');
 
   appendFallbackStatKeys(orderedKeys, baseScaling, characterElement, bonusStat, stats);
 
-  if (STAT_OPTION_KEYS.includes(sort as StatSortKey)) {
+  if (STAT_OPTION_KEYS.includes(sort as LBStatSortKey)) {
     const sortKey = sort as StatSortKey;
     return [sortKey, ...orderedKeys.filter((key) => key !== sortKey)].slice(0, 4);
   }

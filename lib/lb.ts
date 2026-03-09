@@ -16,47 +16,95 @@ export const LB_STAT_CODES = [
 
 export type LBStatCode = (typeof LB_STAT_CODES)[number];
 
-export type LBSortKey =
-  | 'finalCV'
-  | 'timestamp'
-  | 'characterId'
-  | 'H' | 'H%'
-  | 'A' | 'A%'
-  | 'D' | 'D%'
-  | 'CR' | 'CD'
-  | 'AD' | 'GD' | 'FD' | 'ED' | 'HD' | 'SD'
-  | 'BA' | 'HA' | 'RS' | 'RL'
-  | 'ER' | 'HB';
+export type LBStatSortKey =
+  | 'hp' | 'hp_pct'
+  | 'atk' | 'atk_pct'
+  | 'def' | 'def_pct'
+  | 'crit_rate' | 'crit_dmg'
+  | 'aero_dmg' | 'glacio_dmg' | 'fusion_dmg' | 'electro_dmg' | 'havoc_dmg' | 'spectro_dmg'
+  | 'basic_attack_dmg' | 'heavy_attack_dmg' | 'resonance_skill_dmg' | 'resonance_liberation_dmg'
+  | 'energy_regen' | 'healing_bonus';
+
+export type LBSortKey = 'finalCV' | 'timestamp' | 'characterId' | LBStatSortKey;
+export type LBLeaderboardSortKey = Exclude<LBSortKey, 'characterId'> | 'damage';
 
 export type LBSortDirection = 'asc' | 'desc';
 
 export interface LBStatEntry {
   code: LBStatCode;
+  sortKey: LBStatSortKey;
   label: string;
 }
 
 export const LB_STAT_ENTRIES: LBStatEntry[] = [
-  { code: 'A', label: 'ATK' },
-  { code: 'H', label: 'HP' },
-  { code: 'D', label: 'DEF' },
-  { code: 'A%', label: 'ATK%' },
-  { code: 'H%', label: 'HP%' },
-  { code: 'D%', label: 'DEF%' },
-  { code: 'ER', label: 'Energy Regen' },
-  { code: 'CR', label: 'Crit Rate' },
-  { code: 'CD', label: 'Crit DMG' },
-  { code: 'AD', label: 'Aero DMG' },
-  { code: 'GD', label: 'Glacio DMG' },
-  { code: 'FD', label: 'Fusion DMG' },
-  { code: 'ED', label: 'Electro DMG' },
-  { code: 'HD', label: 'Havoc DMG' },
-  { code: 'SD', label: 'Spectro DMG' },
-  { code: 'BA', label: 'Basic Attack DMG Bonus' },
-  { code: 'HA', label: 'Heavy Attack DMG Bonus' },
-  { code: 'RS', label: 'Resonance Skill DMG Bonus' },
-  { code: 'RL', label: 'Resonance Liberation DMG Bonus' },
-  { code: 'HB', label: 'Healing Bonus' },
+  { code: 'A', sortKey: 'atk', label: 'ATK' },
+  { code: 'H', sortKey: 'hp', label: 'HP' },
+  { code: 'D', sortKey: 'def', label: 'DEF' },
+  { code: 'A%', sortKey: 'atk_pct', label: 'ATK%' },
+  { code: 'H%', sortKey: 'hp_pct', label: 'HP%' },
+  { code: 'D%', sortKey: 'def_pct', label: 'DEF%' },
+  { code: 'ER', sortKey: 'energy_regen', label: 'Energy Regen' },
+  { code: 'CR', sortKey: 'crit_rate', label: 'Crit Rate' },
+  { code: 'CD', sortKey: 'crit_dmg', label: 'Crit DMG' },
+  { code: 'AD', sortKey: 'aero_dmg', label: 'Aero DMG' },
+  { code: 'GD', sortKey: 'glacio_dmg', label: 'Glacio DMG' },
+  { code: 'FD', sortKey: 'fusion_dmg', label: 'Fusion DMG' },
+  { code: 'ED', sortKey: 'electro_dmg', label: 'Electro DMG' },
+  { code: 'HD', sortKey: 'havoc_dmg', label: 'Havoc DMG' },
+  { code: 'SD', sortKey: 'spectro_dmg', label: 'Spectro DMG' },
+  { code: 'BA', sortKey: 'basic_attack_dmg', label: 'Basic Attack DMG Bonus' },
+  { code: 'HA', sortKey: 'heavy_attack_dmg', label: 'Heavy Attack DMG Bonus' },
+  { code: 'RS', sortKey: 'resonance_skill_dmg', label: 'Resonance Skill DMG Bonus' },
+  { code: 'RL', sortKey: 'resonance_liberation_dmg', label: 'Resonance Liberation DMG Bonus' },
+  { code: 'HB', sortKey: 'healing_bonus', label: 'Healing Bonus' },
 ];
+
+const LB_SORT_KEY_SET: ReadonlySet<LBSortKey> = new Set([
+  'finalCV', 'timestamp', 'characterId',
+  ...LB_STAT_ENTRIES.map((entry) => entry.sortKey),
+]);
+
+const LB_STAT_CODE_BY_SORT_KEY: Record<LBStatSortKey, LBStatCode> = Object.fromEntries(
+  LB_STAT_ENTRIES.map((entry) => [entry.sortKey, entry.code]),
+ ) as Record<LBStatSortKey, LBStatCode>;
+
+const LB_LEADERBOARD_SORT_KEY_SET: ReadonlySet<LBLeaderboardSortKey> = new Set([
+  'finalCV',
+  'timestamp',
+  ...LB_STAT_ENTRIES.map((entry) => entry.sortKey),
+  'damage',
+]);
+
+export function getLBStatCode(sortKey: LBStatSortKey): LBStatCode {
+  return LB_STAT_CODE_BY_SORT_KEY[sortKey];
+}
+
+export function toLBApiSortKey(sort: string | undefined): string {
+  if (!sort) return 'finalCV';
+  return sort;
+}
+
+export function normalizeLBSortKey(
+  value: string | null | undefined,
+  fallback: LBSortKey = 'finalCV',
+): LBSortKey {
+  if (!value) return fallback;
+  if (LB_SORT_KEY_SET.has(value as LBSortKey)) {
+    return value as LBSortKey;
+  }
+  return fallback;
+}
+
+export function normalizeLBLeaderboardSortKey(
+  value: string | null | undefined,
+  fallback: LBLeaderboardSortKey = 'damage',
+): LBLeaderboardSortKey {
+  if (!value) return fallback;
+  if (LB_LEADERBOARD_SORT_KEY_SET.has(value as LBLeaderboardSortKey)) {
+    return value as LBLeaderboardSortKey;
+  }
+  return fallback;
+}
 
 function clampPageSize(value: number | undefined): number {
   if (!Number.isFinite(value)) return DEFAULT_PAGE_SIZE;
@@ -271,7 +319,7 @@ export async function listBuilds(
   params.set('page', String(query.page ?? 1));
   params.set('size', String(pageSize));
   params.set('pageSize', String(pageSize));
-  params.set('sort', query.sort ?? 'finalCV');
+  params.set('sort', toLBApiSortKey(query.sort ?? 'finalCV'));
   params.set('direction', query.direction ?? 'desc');
 
   if (query.characterIds?.length) {
@@ -499,7 +547,7 @@ export async function listLeaderboard(
   const pageSize = clampPageSize(query.pageSize);
   params.set('page', String(query.page ?? 1));
   params.set('pageSize', String(pageSize));
-  if (query.sort) params.set('sort', query.sort);
+  if (query.sort) params.set('sort', toLBApiSortKey(query.sort));
   if (query.direction) params.set('direction', query.direction);
   if (query.weaponIndex !== undefined) params.set('weaponIndex', String(query.weaponIndex));
   if (query.sequence) params.set('sequence', query.sequence);

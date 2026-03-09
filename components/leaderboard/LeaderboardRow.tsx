@@ -5,18 +5,9 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { getCVRatingColor } from '@/lib/calculations/rollValues';
-import {
-  LBBuildDetailEntry,
-  LBBuildEchoSummary,
-  LBBuildRowEntry,
-  LBLeaderboardEntry,
-  LBSortKey,
-} from '@/lib/lb';
+import { getLBStatCode, LBBuildDetailEntry, LBBuildEchoSummary, LBBuildRowEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortKey } from '@/lib/lb';
 import { ElementType } from '@/lib/echo';
-import {
-  ACTIVE_SORT_COLUMN_CLASS,
-  TABLE_ROW_HEIGHT_CLASS,
-} from '@/components/build/buildConstants';
+import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '@/components/build/buildConstants';
 import { formatStatByKey, getSortLabel, resolveRegionBadge } from '@/components/build/buildFormatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '@/components/build/buildStatColumns';
 import { BuildExpanded } from '@/components/build/BuildExpanded';
@@ -25,7 +16,7 @@ import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from './leaderboardConstants';
 
 interface LeaderboardRowProps {
   entry: LBLeaderboardEntry;
-  sort: string;
+  sort: LBLeaderboardSortKey;
   isCvColumnActive: boolean;
   isStatSortActive: boolean;
   isDamageSort: boolean;
@@ -50,11 +41,10 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   onToggleExpand,
   onRetryDetail,
 }) => {
-  const { fetters, fettersByElement, getCharacter, getEcho, getWeapon, statIcons } = useGameData();
+  const { fetters, fettersByElement, getCharacter, getEcho, statIcons } = useGameData();
   const { t } = useLanguage();
 
   const character = getCharacter(entry.character.id);
-  const weapon = getWeapon(entry.weapon.id);
   const regionBadge = resolveRegionBadge(entry.owner.uid);
   const rowBaseScaling = resolveCharacterBaseScaling(character);
   const rowStatColumns = resolveBuildRowStatKeys(
@@ -209,7 +199,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
 
           {rowStatColumns.map((columnKey, statIndex) => {
             const label = getSortLabel(columnKey);
-            const value = entry.stats[columnKey] ?? 0;
+            const value = entry.stats[getLBStatCode(columnKey)] ?? 0;
             const icon = statIcons?.[label] ?? '';
             const iconFilter = ELEMENT_ICON_FILTERS[label];
             const shouldDimRowStat = isStatSortActive && statIndex > 0;
