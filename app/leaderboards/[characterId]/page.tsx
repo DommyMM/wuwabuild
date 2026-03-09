@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { LeaderboardCharacterClient } from '@/components/leaderboard/LeaderboardCharacterClient';
+import { prefetchLeaderboard } from '@/lib/lbServer';
 
 interface Props {
   params: Promise<{ characterId: string }>;
@@ -16,10 +17,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CharacterLeaderboardPage({ params }: Props) {
   const { characterId } = await params;
+  const initialData = await prefetchLeaderboard(characterId);
   return (
     <main className="min-h-screen bg-background">
       <Suspense>
-        <LeaderboardCharacterClient characterId={characterId} />
+        <LeaderboardCharacterClient characterId={characterId} initialData={initialData} />
       </Suspense>
     </main>
   );

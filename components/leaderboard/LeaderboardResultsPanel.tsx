@@ -124,7 +124,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                 <div className="py-2">Name</div>
                 <div className="py-2">Sets</div>
                 {/* CV + Stats + Damage group */}
-                <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-[796px] self-stretch gap-0`}>
+                <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-200 self-stretch gap-0`}>
                   <div className="self-stretch">
                     <SortHeaderMenu
                       menuId="lb-sort-cv"
@@ -243,7 +243,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
                         <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
                         <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
-                        <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-[796px] gap-0`}>
+                        <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-200 gap-0`}>
                           <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
                           <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
                           <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />

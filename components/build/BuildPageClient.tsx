@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
+import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBListBuildsResponse, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
 import { clampItemsPerPage, DEFAULT_PAGE, MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
 import { parseInitialQuery, serializeQuery } from './buildQuery';
@@ -15,12 +15,21 @@ import { BuildResultsPanel } from './BuildResultsPanel';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from './types';
 import posthog from 'posthog-js';
 
-export const BuildPageClient: React.FC = () => {
+function buildListSignature(builds: LBBuildRowEntry[], total: number): string {
+  return `${total}:${builds.map((b) => `${b.id}:${b.cv}:${b.timestamp}`).join(',')}`;
+}
+
+interface BuildPageClientProps {
+  initialData?: LBListBuildsResponse | null;
+}
+
+export const BuildPageClient: React.FC<BuildPageClientProps> = ({ initialData }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
   const expansionCountRef = useRef(0);
+  const buildListSigRef = useRef(buildListSignature(initialData?.builds ?? [], initialData?.total ?? 0));
 
   const initialQuery = useMemo(
     () => parseInitialQuery(new URLSearchParams(searchParams.toString())),
@@ -40,9 +49,13 @@ export const BuildPageClient: React.FC = () => {
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialQuery.echoMains);
   const [filterQuery, setFilterQuery] = useState('');
 
-  const [builds, setBuilds] = useState<LBBuildRowEntry[]>([]);
-  const [total, setTotal] = useState(0);
-  const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
+  const [builds, setBuilds] = useState<LBBuildRowEntry[]>(() => initialData?.builds ?? []);
+  const [total, setTotal] = useState(() => initialData?.total ?? 0);
+  const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
+    if (!initialData) return null;
+    // Pre-settle on the default query (no URL params) so the skeleton is never shown.
+    return searchParams.toString() === '' ? '' : null;
+  });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const [expandedBuildIds, setExpandedBuildIds] = useState<Set<string>>(new Set());
   const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
@@ -161,7 +174,9 @@ export const BuildPageClient: React.FC = () => {
       abortAllDetailRequests();
       setDetailLoadingById({});
       setDetailErrorById({});
-      if (cachedResponse) {
+      // Skip localStorage cache if we already have SSR-prefetched data for this query.
+      if (cachedResponse && !initialData) {
+        buildListSigRef.current = buildListSignature(cachedResponse.builds, cachedResponse.total);
         setBuilds(cachedResponse.builds);
         setTotal(cachedResponse.total);
       }
@@ -186,8 +201,13 @@ export const BuildPageClient: React.FC = () => {
         if (querySnapshot.page > nextPageCount) {
           setPage(nextPageCount);
         }
-        setBuilds(response.builds);
-        setTotal(response.total);
+        // Diff check: skip setState if data hasn't changed (avoids re-render on silent revalidation).
+        const nextSig = buildListSignature(response.builds, response.total);
+        if (nextSig !== buildListSigRef.current) {
+          buildListSigRef.current = nextSig;
+          setBuilds(response.builds);
+          setTotal(response.total);
+        }
         writeCachedBuildList(cacheKey, response);
       })
       .catch((fetchError) => {
@@ -206,7 +226,7 @@ export const BuildPageClient: React.FC = () => {
       active = false;
       controller.abort();
     };
-  }, [abortAllDetailRequests, currentQueryKey, querySnapshot]);
+  }, [abortAllDetailRequests, currentQueryKey, initialData, querySnapshot]);
 
   const loadBuildDetail = useCallback((buildId: string, force = false) => {
     const normalizedBuildId = buildId.trim();

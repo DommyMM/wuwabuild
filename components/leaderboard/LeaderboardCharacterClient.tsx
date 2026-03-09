@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortDirection, listLeaderboard, normalizeLBLeaderboardSortKey, toLBApiSortKey } from '@/lib/lb';
+import { LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, listLeaderboard, normalizeLBLeaderboardSortKey, toLBApiSortKey } from '@/lib/lb';
 import { clampItemsPerPage, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE } from '@/components/build/buildConstants';
 import { BuildFiltersPanel } from '@/components/build/BuildFiltersPanel';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/build/types';
@@ -15,18 +15,24 @@ import { LeaderboardHeader } from './LeaderboardHeader';
 import { LeaderboardTabs } from './LeaderboardTabs';
 import { LeaderboardResultsPanel } from './LeaderboardResultsPanel';
 
-interface LeaderboardCharacterClientProps {
-  characterId: string;
+function leaderboardSignature(entries: LBLeaderboardEntry[], total: number): string {
+  return `${total}:${entries.map((e) => `${e.id}:${e.damage}:${e.globalRank}:${e.timestamp}`).join(',')}`;
 }
 
-export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProps> = ({ characterId }) => {
+interface LeaderboardCharacterClientProps {
+  characterId: string;
+  initialData?: LBLeaderboardResponse | null;
+}
+
+export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProps> = ({ characterId, initialData }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { characters, fetters } = useGameData();
   const { t } = useLanguage();
+  const leaderboardSigRef = useRef(leaderboardSignature(initialData?.builds ?? [], initialData?.total ?? 0));
 
-  const [configWeaponIds, setConfigWeaponIds] = useState<string[]>([]);
-  const [configSequences, setConfigSequences] = useState<string[]>(['s0']);
+  const [configWeaponIds, setConfigWeaponIds] = useState<string[]>(() => initialData?.weaponIds ?? []);
+  const [configSequences, setConfigSequences] = useState<string[]>(() => initialData?.sequences.length ? initialData.sequences : ['s0']);
 
   // State initialized from URL
   const [page, setPage] = useState(() => parsePositiveInt(searchParams.get('page'), 1));
@@ -52,9 +58,26 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [filterQuery, setFilterQuery] = useState('');
 
   // Data state
-  const [entries, setEntries] = useState<LBLeaderboardEntry[]>([]);
-  const [total, setTotal] = useState(0);
-  const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
+  const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialData?.builds ?? []);
+  const [total, setTotal] = useState(() => initialData?.total ?? 0);
+  const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
+    if (!initialData) return null;
+    // Pre-settle on the default query so the skeleton is never shown on first load.
+    // Must match the JSON.stringify of { characterId, ...leaderboardQuery } computed by the useMemo below.
+    if (searchParams.toString() !== '') return null;
+    const firstWeaponId = initialData.weaponIds[0];
+    const weaponIds = firstWeaponId ? [firstWeaponId] : [];
+    return JSON.stringify({
+      characterId,
+      page: 1,
+      pageSize: ITEMS_PER_PAGE,
+      sort: DEFAULT_LB_SORT,
+      direction: 'desc',
+      weaponIndex: 0,
+      sequence: DEFAULT_LB_SEQUENCE,
+      weaponIds,
+    });
+  });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [detailById] = useState<Record<string, LBBuildDetailEntry>>({});
@@ -128,8 +151,13 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         if (!active) return;
         const nextPageCount = Math.max(1, Math.ceil(response.total / pageSize));
         if (page > nextPageCount) setPage(nextPageCount);
-        setEntries(response.builds);
-        setTotal(response.total);
+        // Diff check: skip setState if data hasn't changed (avoids re-render on silent revalidation).
+        const nextSig = leaderboardSignature(response.builds, response.total);
+        if (nextSig !== leaderboardSigRef.current) {
+          leaderboardSigRef.current = nextSig;
+          setEntries(response.builds);
+          setTotal(response.total);
+        }
         if (response.weaponIds.length > 0) setConfigWeaponIds(response.weaponIds);
         if (response.sequences.length > 0) setConfigSequences(response.sequences);
       })

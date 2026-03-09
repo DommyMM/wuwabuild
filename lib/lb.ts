@@ -186,7 +186,7 @@ export interface LBListBuildsResponse {
   pageSize: number;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
@@ -199,7 +199,7 @@ function isCanonicalSavedState(value: unknown): value is SavedState {
   return true;
 }
 
-function toFiniteNumber(value: unknown, fallback = 0): number {
+export function toFiniteNumber(value: unknown, fallback = 0): number {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -238,7 +238,7 @@ function parseStatsRecord(raw: Record<string, unknown>): Record<LBStatCode, numb
   };
 }
 
-function parseBuildRowEntry(raw: unknown): LBBuildRowEntry {
+export function parseBuildRowEntry(raw: unknown): LBBuildRowEntry {
   if (!isRecord(raw)) {
     throw new Error('LB row payload is malformed.');
   }
@@ -459,7 +459,7 @@ export interface LBSubmitBuildResult {
   warnings: string[];
 }
 
-function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
+export function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
   if (!isRecord(raw)) {
     throw new Error('LB leaderboard row payload is malformed.');
   }

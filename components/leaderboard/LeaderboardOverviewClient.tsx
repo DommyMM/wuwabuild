@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -11,14 +11,24 @@ import { getWeaponPaths } from '@/lib/paths';
 // Overview table grid: # | Character | Weapons | Team | Entries
 const OVERVIEW_GRID = 'grid-cols-[40px_200px_minmax(320px,1fr)_96px_72px]';
 
-export const LeaderboardOverviewClient: React.FC = () => {
+function overviewSignature(entries: LBCharacterOverview[]): string {
+  return entries.map((e) => `${e.id}:${e.totalEntries}`).join(',');
+}
+
+interface LeaderboardOverviewClientProps {
+  initialData?: LBCharacterOverview[] | null;
+}
+
+export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps> = ({ initialData }) => {
   const { getCharacter, getWeapon } = useGameData();
   const { t } = useLanguage();
-  const [overview, setOverview] = useState<LBCharacterOverview[]>([]);
-  const [fetchState, setFetchState] = useState<{ isLoading: boolean; error: string | null }>({
-    isLoading: true,
+  const [overview, setOverview] = useState<LBCharacterOverview[]>(() => initialData ?? []);
+  const [fetchState, setFetchState] = useState<{ isLoading: boolean; error: string | null }>(() => ({
+    isLoading: !initialData,
     error: null,
-  });
+  }));
+  // Ref tracks the current signature to diff-check without adding overview to effect deps.
+  const overviewSigRef = useRef(overviewSignature(initialData ?? []));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -26,7 +36,12 @@ export const LeaderboardOverviewClient: React.FC = () => {
     listLeaderboardOverview(controller.signal)
       .then((data) => {
         if (controller.signal.aborted) return;
-        setOverview(data);
+        // Diff check: skip setState if data hasn't changed.
+        const newSig = overviewSignature(data);
+        if (newSig !== overviewSigRef.current) {
+          overviewSigRef.current = newSig;
+          setOverview(data);
+        }
         setFetchState({ isLoading: false, error: null });
       })
       .catch((err) => {
