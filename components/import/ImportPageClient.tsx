@@ -30,6 +30,7 @@ export function ImportPageClient() {
 
   const [step, setStep]                       = useState<ImportStep>('upload');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [lbUploadError, setLbUploadError]     = useState<string | null>(null);
   const [uploadToLb, setUploadToLb]           = useState(true);
   const [isSubmitting, setIsSubmitting]       = useState(false);
   const [pendingWm, setPendingWm]             = useState<{ username: string; uid: string } | null>(null);
@@ -57,6 +58,7 @@ export function ImportPageClient() {
     reset();
     setStep('upload');
     setValidationError(null);
+    setLbUploadError(null);
   };
 
   const buildImportedState = (wm: { username: string; uid: string }) => {
@@ -106,7 +108,15 @@ export function ImportPageClient() {
       }
     } catch (err) {
       posthog.captureException(err);
-      notifyError(err instanceof Error ? `Leaderboard upload failed: ${err.message}` : 'Leaderboard upload failed.');
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('illegal echo')) {
+        setLbUploadError(
+          'OCR may have misread one or more echo stats (e.g. a duplicate substat or wrong set assignment). ' +
+          'The build was loaded to the editor for manual correction but was not submitted to the leaderboard.'
+        );
+      } else {
+        notifyError(`Leaderboard upload failed: ${msg}`);
+      }
     }
   };
 
@@ -226,6 +236,19 @@ export function ImportPageClient() {
         {error && (
           <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400">
             {error}
+          </div>
+        )}
+
+        {/* LB upload error — illegal echo data from OCR misread */}
+        {lbUploadError && (
+          <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-sm text-yellow-400">
+            <span className="font-medium">Leaderboard upload skipped.</span>{' '}
+            {lbUploadError}{' '}
+            Try re-scanning with a cleaner screenshot, or{' '}
+            <Link href="/help" className="underline underline-offset-2 hover:text-yellow-300 transition-colors">
+              report the issue
+            </Link>
+            .
           </div>
         )}
 
