@@ -96,6 +96,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 | `/leaderboards/[characterId]` | Implemented | `app/(game)/leaderboards/[characterId]/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
 
 `app/layout.tsx` now stays lightweight (`RootProviders` + `Navigation`) while game-data routes render under `app/(game)/layout.tsx`, which mounts `ToolProviders` and the game-data loading gate only for pages that need the data bundle.
+This matches the Next.js App Router route-group convention for opting only a subset of segments into a shared layout. Route-local implementation files remain safely colocated under `app` because only `page.tsx` and `route.ts` create public routes.
 
 ## Page-By-Page Function Inventory
 

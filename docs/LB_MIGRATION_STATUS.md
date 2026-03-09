@@ -1,6 +1,6 @@
 # LB Migration Status
 
-Snapshot date: 2026-03-03  
+Snapshot date: 2026-03-09  
 Purpose: Persistent cross-session source of truth for `/builds` + `/rank` integration and backend migration state.  
 Recommended path: **Go LB primary, Node fallback**.
 
@@ -8,15 +8,17 @@ Recommended path: **Go LB primary, Node fallback**.
 
 ### Frontend rewrite (`/wuwabuilds`)
 
-- `/builds` route is live and wired to LB `GET /build` with filtering/sort/pagination UI.
-  - `app/builds/page.tsx`
-  - `components/builds/BuildsPageClient.tsx`
-- `/leaderboards` route is still placeholder.
-  - `app/leaderboards/page.tsx`
-- `/import` has an `Upload to Leaderboard` toggle in UI, but no submit wiring is connected.
+- `/builds` route is live and wired to LB `GET /build` with filtering, sort, pagination, local cache, SSR prefetch, and expanded detail fetches.
+  - `app/(game)/builds/page.tsx`
+  - `components/build/BuildPageClient.tsx`
+- `/leaderboards` overview and `/leaderboards/[characterId]` are both live.
+  - `app/(game)/leaderboards/page.tsx`
+  - `app/(game)/leaderboards/[characterId]/page.tsx`
+- `/import` has a live `Upload to Leaderboard` toggle and submits canonical `buildState` to `POST /api/lb/build`.
   - `components/import/ImportPageClient.tsx`
-- `BuildEditor` has disabled `View Ranking` button with TODO.
-  - `components/build/BuildEditor.tsx`
+- `BuildEditor` has a live `View Ranking` button that routes to the selected character leaderboard.
+  - `components/edit/BuildEditor.tsx`
+- Frontend game data is no longer preloaded in the root layout. Routes that need it render under `app/(game)/layout.tsx`, which mounts the shared `GameDataProvider` / `GameDataLoadingGate` boundary without affecting public URLs.
 
 ### Latest verification run (March 3, 2026)
 

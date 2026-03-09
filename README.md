@@ -58,6 +58,13 @@ EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
 - `LanguageContext` — i18n language selection persisted to localStorage.
 - `ToastContext` — Queue-based transient feedback (success/error/warning/info).
 
+### Next.js Structure Notes
+
+- `app/(game)` is a route group, so it does not affect public URLs. It only exists to opt game-data routes into a shared layout/provider boundary.
+- This matches the App Router recommendation for applying a layout to only a subset of routes.
+- Route-local implementation files are safe to colocate inside `app` because only `page.tsx` and `route.ts` create public routes.
+- Private folders like `_components` or `_lib` are optional. They would only be useful if we want stricter visual separation between route files and route-local helpers later.
+
 ### API Integration
 
 - **Leaderboard**: client code calls the generic Next `/api/lb/*` proxy, which forwards any LB child path to the Go LB with `X-Internal-Key`.
@@ -136,14 +143,19 @@ npm run lint
 
 ```
 wuwabuilds/
-├── app/                     # Next.js App Router pages
+├── app/                     # Next.js App Router entrypoints and layouts
 │   ├── page.tsx             # Home (/)
-│   ├── builds/              # Build browser (/builds)
-│   ├── edit/                # Build editor (/edit)
-│   ├── import/              # OCR import (/import)
-│   ├── saves/               # Local saves (/saves)
-│   ├── leaderboards/        # Leaderboard overview + per-character pages (/leaderboards, /leaderboards/[characterId])
-│   └── api/                 # API routes (ocr proxy, upload-bucket)
+│   ├── layout.tsx           # Root layout (Navigation + RootProviders)
+│   ├── (game)/              # Route group for pages that need game-data providers
+│   │   ├── layout.tsx       # Shared GameDataProvider/ToastProvider boundary
+│   │   ├── builds/          # Build browser (/builds)
+│   │   ├── edit/            # Build editor (/edit)
+│   │   ├── import/          # OCR import (/import)
+│   │   ├── saves/           # Local saves (/saves)
+│   │   ├── leaderboards/    # Leaderboards (/leaderboards, /leaderboards/[characterId])
+│   │   ├── characters/      # Character-seeded editor routes (/characters/[id])
+│   │   └── weapons/         # Weapon-seeded editor routes (/weapons/[id])
+│   └── api/                 # API routes (lb proxy, ocr proxy, upload-bucket)
 ├── contexts/                # React Context providers
 ├── components/              # Components by feature area
 │   ├── build/               # /builds page (filters, results, rows)

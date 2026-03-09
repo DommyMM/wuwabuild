@@ -92,7 +92,7 @@ Non-default queries (filtered, paginated, etc.) are **not** SSR-prefetched. Thos
 
 ### Phase 2: `/builds` SSR prefetch
 
-**File: `app/builds/page.tsx`**
+**File: `app/(game)/builds/page.tsx`**
 
 - Make the default export `async`
 - Call `prefetchBuilds()` to get initial data
@@ -111,7 +111,7 @@ Non-default queries (filtered, paginated, etc.) are **not** SSR-prefetched. Thos
 
 ### Phase 3: `/leaderboards` SSR prefetch
 
-**File: `app/leaderboards/page.tsx`**
+**File: `app/(game)/leaderboards/page.tsx`**
 
 - Make default export `async`
 - Call `prefetchLeaderboardOverview()`
@@ -126,7 +126,7 @@ Non-default queries (filtered, paginated, etc.) are **not** SSR-prefetched. Thos
 
 ### Phase 4: `/leaderboards/[characterId]` SSR prefetch
 
-**File: `app/leaderboards/[characterId]/page.tsx`**
+**File: `app/(game)/leaderboards/[characterId]/page.tsx`**
 
 - Already `async` (reads `params`)
 - Call `prefetchLeaderboard(characterId)`
@@ -174,7 +174,7 @@ In each revalidation `useEffect`, compare `signature(newData) === signature(curr
 - **`buildCache.ts`** — untouched. localStorage cache still helps repeat client-side queries.
 - **Detail expansion** (`getBuildById`) — stays client-only. Not worth SSR-prefetching individual build details.
 - **Filtered/paginated queries** — client-only. Only the default landing query is SSR-prefetched.
-- **`GameDataContext`** SSR pattern — untouched, already working.
+- **`GameDataContext`** client-cached route-group pattern — untouched in this phase.
 - **Go LB backend** — no changes in this phase.
 
 ---
@@ -184,11 +184,11 @@ In each revalidation `useEffect`, compare `signature(newData) === signature(curr
 | File | Change |
 |------|--------|
 | `lib/lbServer.ts` | **NEW** — server-only LB fetch helpers with TTL caching |
-| `app/builds/page.tsx` | `async`, call `prefetchBuilds()`, pass `initialData` |
+| `app/(game)/builds/page.tsx` | `async`, call `prefetchBuilds()`, pass `initialData` |
 | `components/build/BuildPageClient.tsx` | Accept `initialData` prop, initialize state from it, diff-skip on revalidation |
-| `app/leaderboards/page.tsx` | `async`, call `prefetchLeaderboardOverview()`, pass `initialData` |
+| `app/(game)/leaderboards/page.tsx` | `async`, call `prefetchLeaderboardOverview()`, pass `initialData` |
 | `components/leaderboard/LeaderboardOverviewClient.tsx` | Accept `initialData` prop, initialize state, diff-skip on revalidation |
-| `app/leaderboards/[characterId]/page.tsx` | Call `prefetchLeaderboard(characterId)`, pass `initialData` |
+| `app/(game)/leaderboards/[characterId]/page.tsx` | Call `prefetchLeaderboard(characterId)`, pass `initialData` |
 | `components/leaderboard/LeaderboardCharacterClient.tsx` | Accept `initialData` prop, initialize state + config, diff-skip on revalidation |
 
 7 files total. 1 new, 6 modified.
