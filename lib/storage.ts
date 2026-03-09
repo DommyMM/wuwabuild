@@ -142,6 +142,33 @@ function saveBuilds(data: SavedBuilds): void {
   }
 }
 
+export function loadDraftBuild(): SavedState | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = localStorage.getItem(DRAFT_BUILD_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return migrateSavedState(parsed as Record<string, unknown>);
+  } catch {
+    return null;
+  }
+}
+
+export function saveDraftBuild(state: SavedState): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  localStorage.setItem(
+    DRAFT_BUILD_STORAGE_KEY,
+    JSON.stringify(migrateSavedState(state as unknown as Record<string, unknown>))
+  );
+}
+
 // Save a new build or update existing build.
 export function saveBuild(build: Omit<SavedBuild, 'id' | 'date'> & { id?: string }): SavedBuild {
   const data = loadBuilds();

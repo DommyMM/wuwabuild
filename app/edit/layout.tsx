@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EditorProviders } from '@/contexts';
 
 export const metadata: Metadata = {
     title: 'Create Build',
@@ -6,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function EditLayout({ children }: { children: React.ReactNode }) {
-    return <>{children}</>;
+    return <EditorProviders>{children}</EditorProviders>;
 }

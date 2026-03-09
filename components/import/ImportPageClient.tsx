@@ -3,14 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
 import { loadImage } from '@/lib/import/cropImage';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { submitBuild } from '@/lib/lb';
-import { saveBuild } from '@/lib/storage';
+import { loadDraftBuild, saveBuild, saveDraftBuild } from '@/lib/storage';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
@@ -23,7 +22,6 @@ type ImportStep = 'upload' | 'results';
 
 export function ImportPageClient() {
   const router = useRouter();
-  const { loadState, state: buildState } = useBuild();
   const gameData = useGameData();
   const { success, error: notifyError, warning, info } = useToast();
   const { isProcessing, progress, analysisData, error, processImage, reset } = useOcrImport();
@@ -34,6 +32,7 @@ export function ImportPageClient() {
   const [uploadToLb, setUploadToLb]           = useState(true);
   const [isSubmitting, setIsSubmitting]       = useState(false);
   const [pendingWm, setPendingWm]             = useState<{ username: string; uid: string } | null>(null);
+  const [draftBuildState, setDraftBuildState] = useState<SavedState | null>(() => loadDraftBuild());
 
   // Silent wake-up ping so Railway auto-starts the server if sleeping
   useEffect(() => { fetch('/api/ocr').catch(() => {}); }, []);
@@ -127,7 +126,8 @@ export function ImportPageClient() {
     try {
       if (shouldUpload) setIsSubmitting(true);
       await uploadImportedState(importedState);
-      loadState(importedState);
+      saveDraftBuild(importedState);
+      setDraftBuildState(importedState);
       posthog.capture('import_completed', {
         action: 'load_to_editor',
         character_id: importedState.characterId,
@@ -173,7 +173,7 @@ export function ImportPageClient() {
   };
 
   const handleImport = (wm: { username: string; uid: string }) => {
-    if (buildState.characterId) {
+    if (draftBuildState?.characterId) {
       setPendingWm(wm); // show confirmation modal
     } else {
       void doImport(wm);
@@ -276,7 +276,7 @@ export function ImportPageClient() {
           <>
             You have{' '}
             <span className="font-medium text-text-primary">
-              {gameData.getCharacter(buildState.characterId)?.name ?? 'a build'}
+              {gameData.getCharacter(draftBuildState?.characterId ?? null)?.name ?? 'a build'}
             </span>{' '}
             loaded. You can overwrite it, or save this import as a build to the{' '}
             <Link

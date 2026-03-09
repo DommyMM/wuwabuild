@@ -16,18 +16,29 @@ interface AppProvidersProps {
   initialGameData?: RawGameData | null;
 }
 
-export function AppProviders({ children, initialBuildState, initialGameData }: AppProvidersProps) {
+export function AppProviders({ children, initialGameData }: AppProvidersProps) {
   return (
     <LanguageProvider>
       <GameDataProvider initialData={initialGameData}>
-        <BuildProvider initialState={initialBuildState}>
-          <StatsProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </StatsProvider>
-        </BuildProvider>
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </GameDataProvider>
     </LanguageProvider>
+  );
+}
+
+interface EditorProvidersProps {
+  children: ReactNode;
+  initialBuildState?: SavedState;
+}
+
+export function EditorProviders({ children, initialBuildState }: EditorProvidersProps) {
+  return (
+    <BuildProvider initialState={initialBuildState}>
+      <StatsProvider>
+        {children}
+      </StatsProvider>
+    </BuildProvider>
   );
 }

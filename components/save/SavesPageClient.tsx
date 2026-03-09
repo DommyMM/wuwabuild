@@ -4,17 +4,15 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Download, Search, Upload, X } from 'lucide-react';
 import { SavedBuild } from '@/lib/build';
-import { DRAFT_BUILD_STORAGE_KEY, clearAllBuilds, deleteBuild, exportAllBuilds, importBuild, loadBuilds, mergeBuilds, renameBuild } from '@/lib/storage';
+import { clearAllBuilds, deleteBuild, exportAllBuilds, importBuild, loadBuilds, mergeBuilds, renameBuild, saveDraftBuild } from '@/lib/storage';
 import { calculateCV } from '@/lib/calculations/rollValues';
 import { BuildList } from './BuildList';
-import { useBuild } from '@/contexts/BuildContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getWeaponPaths } from '@/lib/paths';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { buildLegacyIdMaps, clearLegacySavesFromStorage, convertLegacyBuilds, getLegacySavesSummaryFromStorage, readLegacySavesPayload } from '@/lib/legacyMigration';
-import { setLocalStorageItem } from '@/lib/clientStorage';
 import legacyEchoes from '@/lib/data/legacyEchoes.json';
 import legacyWeapons from '@/lib/data/legacyWeapons.json';
 import posthog from 'posthog-js';
@@ -30,7 +28,6 @@ type FilterSuggestion = {
 
 export const SavesPageClient: React.FC = () => {
   const router = useRouter();
-  const { loadState } = useBuild();
   const { success, error: notifyError, warning } = useToast();
   const { characters, echoes, weaponList } = useGameData();
   const { t } = useLanguage();
@@ -173,13 +170,12 @@ export const SavesPageClient: React.FC = () => {
 
   const confirmLoadBuild = useCallback((build: SavedBuild) => {
     try {
-      loadState(build.state);
-      void setLocalStorageItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(build.state));
+      saveDraftBuild(build.state);
       router.push('/edit');
     } catch {
       notifyError('Failed to load build.');
     }
-  }, [loadState, notifyError, router]);
+  }, [notifyError, router]);
 
   const handleLoadBuild = useCallback((build: SavedBuild) => {
     setPendingLoadBuild(build);

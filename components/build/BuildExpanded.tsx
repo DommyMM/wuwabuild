@@ -4,7 +4,6 @@ import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { useBuild } from '@/contexts/BuildContext';
 import { calculateEchoSubstatCV, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
@@ -15,8 +14,7 @@ import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
 import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
-import { setLocalStorageItem } from '@/lib/clientStorage';
-import { DRAFT_BUILD_STORAGE_KEY } from '@/lib/storage';
+import { saveDraftBuild } from '@/lib/storage';
 import { RegionBadge } from './buildConstants';
 import { formatFlatStat, formatPercentStat } from './buildFormatters';
 
@@ -73,15 +71,13 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   onRetryDetail,
 }) => {
   const router = useRouter();
-  const { loadState } = useBuild();
   const { fettersByElement, getSubstatValues, statTranslations } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
 
   const handleViewBuild = () => {
     if (!detail) return;
-    loadState(detail.buildState);
-    setLocalStorageItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(detail.buildState));
+    saveDraftBuild(detail.buildState);
     router.push('/edit');
   };
 
