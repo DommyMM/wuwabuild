@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
-import { ACTIVE_HEADER_TOP_BORDER_CLASS, ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from './buildConstants';
+import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
 import { BuildPagination } from './BuildPagination';
 import { BuildRow } from './BuildRow';
@@ -109,7 +109,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
       <div className="relative overflow-x-auto overflow-y-visible pb-1 md:overflow-x-visible">
         <div className="overflow-visible rounded-lg border border-border bg-background/70">
           {/* Table header */}
-          <div className={`grid ${TABLE_GRID} items-center gap-4.5 border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
+          <div className={`grid ${TABLE_GRID} items-center gap-4.5 border-b border-border bg-background-secondary/95 text-lg text-text-primary rounded-t-lg`}>
             <div className="py-2 text-center text-text-primary/70">#</div>
             <div className="py-2">Owner</div>
             <div className="py-2">Name</div>
@@ -117,7 +117,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
             <div className="py-2" aria-hidden="true" />
             <div className="py-2">Sets</div>
             <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
-              <div className={`self-stretch border-t-2 ${isCvColumnActive ? ACTIVE_HEADER_TOP_BORDER_CLASS : 'border-transparent'}`}>
+              <div className="self-stretch">
                 <SortHeaderMenu
                   menuId="sort-cv"
                   label={CV_OPTIONS.find((entry) => entry.key === cvSort)?.label ?? 'Crit Value'}
@@ -130,6 +130,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                   icon={activeCvOption?.icon}
                   showHeaderPlaceholderIcon={false}
                   showPlaceholderLine
+                  showActive
                 />
               </div>
               {isStatSortActive ? (
@@ -157,6 +158,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                     naturalMenuWidth
                     textSizeClass="text-lg"
                     iconSizeClass="h-5 w-5"
+                    showActive
+                    triggerWrapperClassName="rounded-tr-lg"
                   />
                 </div>
               ) : (
@@ -189,6 +192,8 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                         icon={option?.icon}
                         iconFilter={option?.iconFilter}
                         showPlaceholderLine
+                        showActive
+                        triggerWrapperClassName={index === displayStatColumns.length - 1 ? 'rounded-tr-lg' : ''}
                       />
                     </div>
                   );
@@ -198,7 +203,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
           </div>
 
           {/* Rows area — overlay is scoped here so the header stays visible */}
-          <div className="relative">
+          <div className="relative overflow-hidden rounded-b-lg">
             {/* Skeleton rows */}
             {showInitialSkeleton && (
               <div className="divide-y divide-border/60">

@@ -38,6 +38,8 @@ interface SortHeaderMenuProps {
   textSizeClass?: string;
   iconSizeClass?: string;
   showHeaderPlaceholderIcon?: boolean;
+  showActive?: boolean;
+  triggerWrapperClassName?: string;
 }
 
 export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
@@ -59,48 +61,56 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
   textSizeClass = 'text-base',
   iconSizeClass = 'h-4 w-4',
   showHeaderPlaceholderIcon = true,
+  showActive = false,
+  triggerWrapperClassName = '',
 }) => {
   const showLineOnly = showPlaceholderLine && !active;
 
   return (
     <div className={`group/sort relative h-full items-stretch ${fillWidth ? 'flex w-full' : 'inline-flex'}`}>
-      <button
-        type="button"
-        onClick={() => {
-          onHeaderSort();
-          blurFocusedMenuControl();
-        }}
-        className={`flex h-full ${fillWidth ? 'w-full' : 'w-auto'} items-center justify-between gap-2 py-2 px-4 ${textSizeClass} transition-colors ${contentOpacityClass} ${
-          active
-            ? 'border-accent/85 bg-black/35 text-accent'
-            : 'border-transparent text-text-primary/85 hover:border-border hover:bg-background/60 hover:text-text-primary'
-        }`}
+      <div
+        className={`flex h-full ${fillWidth ? 'w-full' : 'w-auto'} overflow-hidden ${
+          showActive ? active ? 'border-t-2 border-accent/85' : 'border-t-2 border-transparent' : ''
+        } ${triggerWrapperClassName}`}
       >
-        {showLineOnly ? (
-          <span className="mx-2.5 h-px w-full bg-border/85" />
-        ) : (
-          <>
-            <span className="flex min-w-0 items-center gap-2">
-              {icon ? (
-                <img
-                  src={icon}
-                  alt=""
-                  className={`${iconSizeClass} shrink-0 object-contain`}
-                  style={iconFilter ? { filter: iconFilter } : undefined}
-                />
-              ) : showHeaderPlaceholderIcon ? (
-                <span className={`inline-block ${iconSizeClass} shrink-0 opacity-0`} />
-              ) : null}
-              <span>{label}</span>
-            </span>
-            <ChevronDown
-              className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
-                active && direction === 'asc' ? 'rotate-180' : ''
-              } ${active ? '' : 'text-text-primary/50'}`}
-            />
-          </>
-        )}
-      </button>
+        <button
+          type="button"
+          onClick={() => {
+            onHeaderSort();
+            blurFocusedMenuControl();
+          }}
+          className={`flex h-full ${fillWidth ? 'w-full' : 'w-auto'} items-center justify-between gap-2 py-2 px-4 ${textSizeClass} transition-colors ${contentOpacityClass} ${
+            active
+              ? 'border-accent/85 bg-black/35 text-accent'
+              : 'border-transparent text-text-primary/85 hover:border-border hover:bg-background/60 hover:text-text-primary'
+          }`}
+        >
+          {showLineOnly ? (
+            <span className="mx-2.5 h-px w-full bg-border/85" />
+          ) : (
+            <>
+              <span className="flex min-w-0 items-center gap-2">
+                {icon ? (
+                  <img
+                    src={icon}
+                    alt=""
+                    className={`${iconSizeClass} shrink-0 object-contain`}
+                    style={iconFilter ? { filter: iconFilter } : undefined}
+                  />
+                ) : showHeaderPlaceholderIcon ? (
+                  <span className={`inline-block ${iconSizeClass} shrink-0 opacity-0`} />
+                ) : null}
+                <span>{label}</span>
+              </span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
+                  active && direction === 'asc' ? 'rotate-180' : ''
+                } ${active ? '' : 'text-text-primary/50'}`}
+              />
+            </>
+          )}
+        </button>
+      </div>
 
       <div
         className={`absolute top-full z-30 hidden w-max ${naturalMenuWidth ? 'min-w-41' : 'min-w-full'} overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary group-hover/sort:block group-focus-within/sort:block ${

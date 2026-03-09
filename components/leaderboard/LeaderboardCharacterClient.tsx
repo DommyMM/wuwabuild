@@ -250,31 +250,28 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   })();
 
   return (
-    <div className="scrollbar-thin min-h-screen bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
+    <main className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
       <div className="mx-auto w-full max-w-360 space-y-4 p-3 md:p-5">
-        {/* Character header */}
-        <LeaderboardHeader
-          characterName={characterName}
-          characterHead={character?.head}
-          characterElementIcon={character?.elementIcon}
-          characterElement={character?.element ?? undefined}
-          total={total}
-          teamCharacterIds={undefined}
-        />
-
-        {/* Weapon/sequence tabs + filters */}
-        <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary px-4 py-3">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
-          <div className="relative space-y-3">
-            <LeaderboardTabs
-              weaponIds={configWeaponIds}
-              weaponIndex={weaponIndex}
-              onSelectWeapon={(idx) => { setWeaponIndex(idx); setPage(1); }}
-              sequences={configSequences}
-              activeSequence={sequence}
-              onSelectSequence={(seq) => { setSequence(seq); setPage(1); }}
+        <section className="relative overflow-visible rounded-xl border border-border bg-background-secondary px-4 py-2">
+          <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
+          <div className="relative">
+            <LeaderboardHeader
+              characterName={characterName}
+              characterHead={character?.head}
+              characterElementIcon={character?.elementIcon}
+              characterElement={character?.element ?? undefined}
+              total={total}
+              teamCharacterIds={undefined}
             />
-            <div className="border-t border-border/65 pt-3">
+            <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
+              <LeaderboardTabs
+                weaponIds={configWeaponIds}
+                weaponIndex={weaponIndex}
+                onSelectWeapon={(idx) => { setWeaponIndex(idx); setPage(1); }}
+                sequences={configSequences}
+                activeSequence={sequence}
+                onSelectSequence={(seq) => { setSequence(seq); setPage(1); }}
+              />
               <BuildFiltersPanel
                 sort={sort === 'damage' ? 'finalCV' : (sort as Parameters<typeof BuildFiltersPanel>[0]['sort'])}
                 direction={direction}
@@ -321,34 +318,30 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 onClearAllFilters={clearAllFilters}
                 onPageSizeChange={(value) => { setPageSize(clampItemsPerPage(value)); setPage(1); }}
               />
+              <LeaderboardResultsPanel
+                entries={entries}
+                expandedIds={expandedIds}
+                detailById={detailById}
+                detailLoadingById={detailLoadingById}
+                detailErrorById={detailErrorById}
+                total={total}
+                page={page}
+                pageCount={normalizedPageCount}
+                pageSize={pageSize}
+                rankStart={rankStart}
+                isLoading={isLoading}
+                isRefreshing={isRefreshing}
+                error={error}
+                sort={sort}
+                direction={direction}
+                onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
+                onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
+                onPageChange={setPage}
+                onToggleExpand={handleToggleExpand}
+                onRetryDetail={handleRetryDetail}
+              />
             </div>
           </div>
-        </section>
-
-        {/* Results */}
-        <section>
-          <LeaderboardResultsPanel
-            entries={entries}
-            expandedIds={expandedIds}
-            detailById={detailById}
-            detailLoadingById={detailLoadingById}
-            detailErrorById={detailErrorById}
-            total={total}
-            page={page}
-            pageCount={normalizedPageCount}
-            pageSize={pageSize}
-            rankStart={rankStart}
-            isLoading={isLoading}
-            isRefreshing={isRefreshing}
-            error={error}
-            sort={sort}
-            direction={direction}
-            onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
-            onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
-            onPageChange={setPage}
-            onToggleExpand={handleToggleExpand}
-            onRetryDetail={handleRetryDetail}
-          />
         </section>
 
         {gameDataLoading && (
@@ -357,6 +350,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 };

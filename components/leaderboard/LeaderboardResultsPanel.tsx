@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBLeaderboardEntry, LBSortDirection } from '@/lib/lb';
-import { ACTIVE_HEADER_TOP_BORDER_CLASS, ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, STAT_OPTION_KEYS, TABLE_ROW_HEIGHT_CLASS } from '@/components/build/buildConstants';
+import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, STAT_OPTION_KEYS, TABLE_ROW_HEIGHT_CLASS } from '@/components/build/buildConstants';
 import { getSortLabel } from '@/components/build/buildFormatters';
 import { BuildPagination } from '@/components/build/BuildPagination';
 import { SortHeaderMenu, SortMenuOption } from '@/components/build/SortHeaderMenu';
@@ -114,16 +115,9 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
         </div>
       )}
 
-      {isDamageSort && (
-        <div className="mb-2 flex items-center gap-2 rounded-md border border-border/40 bg-background-secondary/50 px-3 py-1.5 text-xs text-text-primary/60">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent/70" />
-          Global ranks are preserved — rank reflects position across all players regardless of filters.
-        </div>
-      )}
-
       <div className="relative overflow-x-auto pb-1 md:overflow-x-hidden">
         <div className="overflow-hidden rounded-lg border border-border bg-background/70">
-          {/* Table header — # | Owner | Character | Sets | CV+Stats | Damage */}
+          {/* Table header: Rank | Owner | Character | Sets | [CV+Stats+Damage] */}
           <div className={`grid ${LB_TABLE_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
             <div className="py-2 text-center text-text-primary/70">#</div>
             <div className="py-2">Owner</div>
@@ -131,7 +125,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
             <div className="py-2">Sets</div>
             {/* CV + Stats + Damage group */}
             <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
-              <div className={`self-stretch border-t-2 ${isCvColumnActive ? ACTIVE_HEADER_TOP_BORDER_CLASS : 'border-transparent'}`}>
+              <div className="self-stretch">
                 <SortHeaderMenu
                   menuId="lb-sort-cv"
                   label={CV_OPTIONS.find((entry) => entry.key === cvSort)?.label ?? 'Crit Value'}
@@ -144,6 +138,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                   icon={activeCvOption?.icon}
                   showHeaderPlaceholderIcon={false}
                   showPlaceholderLine
+                  showActive
                 />
               </div>
 
@@ -170,6 +165,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                     iconFilter={activePinnedStatOption?.iconFilter}
                     fillWidth
                     naturalMenuWidth
+                    showActive
                   />
                 </div>
               ) : (
@@ -202,6 +198,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         icon={option?.icon}
                         iconFilter={option?.iconFilter}
                         showPlaceholderLine
+                        showActive
                       />
                     </div>
                   );
@@ -209,24 +206,31 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
               )}
 
               {/* Damage — inside group, no gap */}
-              <div className={`self-stretch border-t-2 ${isDamageSort ? ACTIVE_HEADER_TOP_BORDER_CLASS : 'border-transparent'}`}>
-                <button
-                  type="button"
-                  onClick={() => handleSortRequest(DAMAGE_SORT_KEY)}
-                  className={`flex h-full w-full items-center gap-2 py-2 px-4 text-lg transition-colors ${
-                    isDamageSort
-                      ? 'border-accent/85 bg-black/35 text-accent'
-                      : 'text-text-primary/85 hover:bg-background/60 hover:text-text-primary'
-                  }`}
-                >
-                  <span>Damage</span>
-                </button>
+              <div className="self-stretch">
+                <div className={`flex h-full overflow-hidden rounded-tr-lg ${isDamageSort ? 'border-t-2 border-accent/85' : 'border-t-2 border-transparent'}`}>
+                  <button
+                    type="button"
+                    onClick={() => handleSortRequest(DAMAGE_SORT_KEY)}
+                    className={`flex h-full w-full items-center justify-between gap-2 py-2 px-4 text-lg transition-colors ${
+                      isDamageSort
+                        ? 'border-accent/85 bg-black/35 text-accent'
+                        : 'text-text-primary/85 hover:bg-background/60 hover:text-text-primary'
+                    }`}
+                  >
+                    <span>Damage</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
+                        isDamageSort && direction === 'asc' ? 'rotate-180' : ''
+                      } ${isDamageSort ? '' : 'text-text-primary/50'}`}
+                    />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Rows area */}
-          <div className="relative">
+          <div className="relative overflow-hidden rounded-b-lg">
             {showInitialSkeleton && (
               <div className="divide-y divide-border/60">
                 {Array.from({ length: pageSize }).map((_, index) => (
