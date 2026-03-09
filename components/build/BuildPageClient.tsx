@@ -42,9 +42,8 @@ export const BuildPageClient: React.FC = () => {
 
   const [builds, setBuilds] = useState<LBBuildRowEntry[]>([]);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const [expandedBuildIds, setExpandedBuildIds] = useState<Set<string>>(new Set());
   const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
   const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
@@ -123,6 +122,10 @@ export const BuildPageClient: React.FC = () => {
     echoMains,
   }), [characterIds, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, uid, username, weaponIds]);
   const currentQueryKey = useMemo(() => serializeQuery(querySnapshot), [querySnapshot]);
+  const isPendingQuery = settledQueryKey !== currentQueryKey;
+  const isLoading = isPendingQuery && builds.length === 0;
+  const isRefreshing = isPendingQuery && builds.length > 0;
+  const error = fetchError?.queryKey === currentQueryKey ? fetchError.message : null;
   const abortAllDetailRequests = useCallback(() => {
     Object.values(detailControllersRef.current).forEach((controller) => controller.abort());
     detailControllersRef.current = {};
@@ -162,9 +165,6 @@ export const BuildPageClient: React.FC = () => {
         setBuilds(cachedResponse.builds);
         setTotal(cachedResponse.total);
       }
-      setIsLoading(true);
-      setIsRefreshing(true);
-      setError(null);
     });
 
     listBuilds({
@@ -192,12 +192,14 @@ export const BuildPageClient: React.FC = () => {
       })
       .catch((fetchError) => {
         if (!active || controller.signal.aborted) return;
-        setError(fetchError instanceof Error ? fetchError.message : 'Failed to load builds.');
+        setFetchError({
+          queryKey: currentQueryKey,
+          message: fetchError instanceof Error ? fetchError.message : 'Failed to load builds.',
+        });
       })
       .finally(() => {
         if (!active) return;
-        setIsRefreshing(false);
-        setIsLoading(false);
+        setSettledQueryKey(currentQueryKey);
       });
 
     return () => {

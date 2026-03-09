@@ -102,11 +102,13 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
                 ) : null}
                 <span>{label}</span>
               </span>
-              <ChevronDown
-                className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
-                  active && direction === 'asc' ? 'rotate-180' : ''
-                } ${active ? '' : 'text-text-primary/50'}`}
-              />
+              {active ? (
+                <ChevronDown
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
+                    direction === 'asc' ? 'rotate-180' : ''
+                  }`}
+                />
+              ) : null}
             </>
           )}
         </button>
@@ -126,6 +128,7 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
               onClick={(event) => {
                 event.stopPropagation();
                 onSelectOption(option.key);
+                blurFocusedMenuControl();
               }}
               className={`flex w-full items-center justify-between gap-2 border-b border-border px-3 py-1.5 text-left text-[15px] transition-colors last:border-b-0 ${
                 isSelected

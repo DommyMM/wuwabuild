@@ -54,9 +54,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   // Data state
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>([]);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [detailById] = useState<Record<string, LBBuildDetailEntry>>({});
   const [detailLoadingById] = useState<Record<string, boolean>>({});
@@ -90,36 +89,39 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     return weaponId ? [weaponId] : [];
   }, [configWeaponIds, weaponIndex]);
 
+  const leaderboardQuery = useMemo(() => ({
+    page,
+    pageSize,
+    sort,
+    direction,
+    weaponIndex,
+    sequence,
+    weaponIds,
+    uid: uid || undefined,
+    username: username || undefined,
+    regionPrefixes: regionPrefixes.length ? regionPrefixes : undefined,
+    echoSets: echoSets.length ? echoSets : undefined,
+    echoMains: echoMains.length ? echoMains : undefined,
+  }), [direction, echoMains, echoSets, page, pageSize, regionPrefixes, sequence, sort, uid, username, weaponIds, weaponIndex]);
+
   // Query key for effect dependency
   const queryKey = useMemo(() => JSON.stringify({
-    characterId, page, pageSize, sort, direction, weaponIndex, sequence, uid, username, regionPrefixes, echoSets, echoMains,
-  }), [characterId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sequence, sort, uid, username, weaponIndex]);
+    characterId,
+    ...leaderboardQuery,
+  }), [characterId, leaderboardQuery]);
+  const isPendingQuery = settledQueryKey !== queryKey;
+  const isLoading = isPendingQuery && entries.length === 0;
+  const isRefreshing = isPendingQuery && entries.length > 0;
+  const error = fetchError?.queryKey === queryKey ? fetchError.message : null;
 
   // Fetch leaderboard data
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
 
-    setIsLoading(true);
-    setIsRefreshing(entries.length > 0);
-    setError(null);
-
     listLeaderboard(
       characterId,
-      {
-        page,
-        pageSize,
-        sort,
-        direction,
-        weaponIndex,
-        sequence,
-        weaponIds,
-        uid: uid || undefined,
-        username: username || undefined,
-        regionPrefixes: regionPrefixes.length ? regionPrefixes : undefined,
-        echoSets: echoSets.length ? echoSets : undefined,
-        echoMains: echoMains.length ? echoMains : undefined,
-      },
+      leaderboardQuery,
       controller.signal,
     )
       .then((response) => {
@@ -133,19 +135,21 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       })
       .catch((fetchError) => {
         if (!active || controller.signal.aborted) return;
-        setError(fetchError instanceof Error ? fetchError.message : 'Failed to load leaderboard.');
+        setFetchError({
+          queryKey,
+          message: fetchError instanceof Error ? fetchError.message : 'Failed to load leaderboard.',
+        });
       })
       .finally(() => {
         if (!active) return;
-        setIsLoading(false);
-        setIsRefreshing(false);
+        setSettledQueryKey(queryKey);
       });
 
     return () => {
       active = false;
       controller.abort();
     };
-  }, [queryKey]);
+  }, [characterId, leaderboardQuery, page, pageSize, queryKey]);
 
   // Expand / detail
   const handleToggleExpand = useCallback((id: string) => {

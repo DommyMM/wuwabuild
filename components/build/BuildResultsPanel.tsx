@@ -129,7 +129,6 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                   onSelectOption={handleSortRequest}
                   icon={activeCvOption?.icon}
                   showHeaderPlaceholderIcon={false}
-                  showPlaceholderLine
                   showActive
                 />
               </div>

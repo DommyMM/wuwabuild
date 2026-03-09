@@ -135,7 +135,6 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                   onSelectOption={(key) => handleSortRequest(key as LBLeaderboardSortKey)}
                   icon={activeCvOption?.icon}
                   showHeaderPlaceholderIcon={false}
-                  showPlaceholderLine
                   showActive
                 />
               </div>
@@ -216,11 +215,13 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                     }`}
                   >
                     <span>Damage</span>
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
-                        isDamageSort && direction === 'asc' ? 'rotate-180' : ''
-                      } ${isDamageSort ? '' : 'text-text-primary/50'}`}
-                    />
+                    {isDamageSort ? (
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${
+                          direction === 'asc' ? 'rotate-180' : ''
+                        }`}
+                      />
+                    ) : null}
                   </button>
                 </div>
               </div>
