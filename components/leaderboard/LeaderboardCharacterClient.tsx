@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -18,44 +17,13 @@ import { clampItemsPerPage, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAG
 import { BuildFiltersPanel } from '@/components/build/BuildFiltersPanel';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/build/types';
 import { DEFAULT_LB_SEQUENCE, DEFAULT_LB_SORT } from './leaderboardConstants';
+import { parseEchoMainCSV, parseEchoSetCSV, parsePositiveInt } from './leaderboardQuery';
+import { LeaderboardHeader } from './LeaderboardHeader';
+import { LeaderboardTabs } from './LeaderboardTabs';
 import { LeaderboardResultsPanel } from './LeaderboardResultsPanel';
 
 interface LeaderboardCharacterClientProps {
   characterId: string;
-}
-
-function parsePositiveInt(value: string | null, fallback: number): number {
-  const parsed = Number.parseInt(value ?? '', 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function parseEchoSetCSV(value: string | null): LBEchoSetFilter[] {
-  if (!value) return [];
-  return value
-    .split('.')
-    .map((entry) => {
-      const [countRaw, idRaw] = entry.split('~');
-      const count = Number.parseInt(countRaw ?? '', 10);
-      const setId = Number.parseInt(idRaw ?? '', 10);
-      if (!Number.isFinite(count) || !Number.isFinite(setId)) return null;
-      return { count, setId };
-    })
-    .filter((entry): entry is LBEchoSetFilter => entry !== null);
-}
-
-const MAIN_STAT_LABEL_BY_CODE = new Map<string, string>(MAIN_STAT_OPTIONS.map((entry) => [entry.code, entry.label]));
-
-function parseEchoMainCSV(value: string | null): LBEchoMainFilter[] {
-  if (!value) return [];
-  return value
-    .split('.')
-    .map((entry) => {
-      const [costRaw, statType] = entry.split('~');
-      const cost = Number.parseInt(costRaw ?? '', 10);
-      if (!Number.isFinite(cost) || !statType) return null;
-      return { cost, statType: MAIN_STAT_LABEL_BY_CODE.get(statType) ?? statType };
-    })
-    .filter((entry): entry is LBEchoMainFilter => entry !== null);
 }
 
 export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProps> = ({ characterId }) => {
@@ -191,18 +159,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const handleToggleExpand = useCallback((id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   }, []);
 
   const handleRetryDetail = useCallback((id: string) => {
-    // Leaderboard entries carry buildState directly — no separate detail fetch needed.
-    // Clear any error so the expanded view re-renders cleanly.
     setDetailErrorById((prev) => ({ ...prev, [id]: null }));
   }, []);
 
@@ -291,61 +253,27 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     <div className="scrollbar-thin min-h-screen bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
       <div className="mx-auto w-full max-w-360 space-y-4 p-3 md:p-5">
         {/* Character header */}
-        <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary px-4 py-3">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
-          <div className="relative flex items-center gap-4">
-            {character?.head && (
-              <img src={character.head} alt={characterName} className="h-14 w-14 rounded-full object-cover" />
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <Link href="/leaderboards" className="text-xs text-text-primary/50 hover:text-accent transition-colors">
-                  Leaderboards
-                </Link>
-                <span className="text-text-primary/30">/</span>
-                <span className="text-xs text-text-primary/70">{characterName}</span>
-              </div>
-              <div className="flex items-center gap-3 mt-0.5">
-                <h1 className="text-2xl font-bold text-text-primary">{characterName}</h1>
-                {character?.elementIcon && (
-                  <img src={character.elementIcon} alt={character.element ?? ''} className="h-6 w-6 object-contain" />
-                )}
-              </div>
-              <div className="text-xs text-text-primary/50 mt-0.5">
-                {total > 0 ? `${total.toLocaleString()} ranked builds` : 'No ranked builds yet'}
-              </div>
-            </div>
-          </div>
-        </section>
+        <LeaderboardHeader
+          characterName={characterName}
+          characterHead={character?.head}
+          characterElementIcon={character?.elementIcon}
+          characterElement={character?.element ?? undefined}
+          total={total}
+          teamCharacterIds={undefined}
+        />
 
-        {/* Tabs + Filters */}
+        {/* Weapon/sequence tabs + filters */}
         <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary px-4 py-3">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
           <div className="relative space-y-3">
-            {/* Weapon tabs */}
-            <WeaponTabs
-              characterId={characterId}
+            <LeaderboardTabs
               weaponIds={configWeaponIds}
               weaponIndex={weaponIndex}
-              onSelect={(idx) => {
-                setWeaponIndex(idx);
-                setPage(1);
-              }}
+              onSelectWeapon={(idx) => { setWeaponIndex(idx); setPage(1); }}
+              sequences={configSequences}
+              activeSequence={sequence}
+              onSelectSequence={(seq) => { setSequence(seq); setPage(1); }}
             />
-
-            {/* Sequence tabs */}
-            {configSequences.length > 1 && (
-              <SequenceTabs
-                sequences={configSequences}
-                activeSequence={sequence}
-                onSelect={(seq) => {
-                  setSequence(seq);
-                  setPage(1);
-                }}
-              />
-            )}
-
-            {/* Filters */}
             <div className="border-t border-border/65 pt-3">
               <BuildFiltersPanel
                 sort={sort === 'damage' ? 'finalCV' : (sort as Parameters<typeof BuildFiltersPanel>[0]['sort'])}
@@ -368,45 +296,21 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 setOptions={setOptions}
                 onFilterQueryChange={setFilterQuery}
                 onSortChange={() => {}}
-                onToggleDirection={() => {
-                  setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-                  setPage(1);
-                }}
+                onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
                 onAddCharacter={() => {}}
                 onAddWeapon={() => {}}
                 onAddRegion={addRegion}
                 onAddSet={addSetFilter}
                 onAddMain={addMainFilter}
-                onSetUsername={(value) => {
-                  setUsername(value.trim());
-                  setPage(1);
-                }}
-                onSetUid={(value) => {
-                  setUid(value.trim());
-                  setPage(1);
-                }}
+                onSetUsername={(value) => { setUsername(value.trim()); setPage(1); }}
+                onSetUid={(value) => { setUid(value.trim()); setPage(1); }}
                 onRemoveCharacter={() => {}}
                 onRemoveWeapon={() => {}}
-                onRemoveRegion={(value) => {
-                  setRegionPrefixes((prev) => prev.filter((r) => r !== value));
-                  setPage(1);
-                }}
-                onRemoveSetEntry={(index) => {
-                  setEchoSets((prev) => prev.filter((_, i) => i !== index));
-                  setPage(1);
-                }}
-                onRemoveMainEntry={(index) => {
-                  setEchoMains((prev) => prev.filter((_, i) => i !== index));
-                  setPage(1);
-                }}
-                onClearUsername={() => {
-                  setUsername('');
-                  setPage(1);
-                }}
-                onClearUid={() => {
-                  setUid('');
-                  setPage(1);
-                }}
+                onRemoveRegion={(value) => { setRegionPrefixes((prev) => prev.filter((r) => r !== value)); setPage(1); }}
+                onRemoveSetEntry={(index) => { setEchoSets((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
+                onRemoveMainEntry={(index) => { setEchoMains((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
+                onClearUsername={() => { setUsername(''); setPage(1); }}
+                onClearUid={() => { setUid(''); setPage(1); }}
                 onBackspaceRemove={() => {
                   if (uid) { setUid(''); setPage(1); return; }
                   if (username) { setUsername(''); setPage(1); return; }
@@ -415,10 +319,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                   if (regionPrefixes.length > 0) { setRegionPrefixes((prev) => prev.slice(0, -1)); setPage(1); }
                 }}
                 onClearAllFilters={clearAllFilters}
-                onPageSizeChange={(value) => {
-                  setPageSize(clampItemsPerPage(value));
-                  setPage(1);
-                }}
+                onPageSizeChange={(value) => { setPageSize(clampItemsPerPage(value)); setPage(1); }}
               />
             </div>
           </div>
@@ -442,14 +343,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
             error={error}
             sort={sort}
             direction={direction}
-            onSortChange={(nextSort) => {
-              setSort(nextSort);
-              setPage(1);
-            }}
-            onToggleDirection={() => {
-              setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-              setPage(1);
-            }}
+            onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
+            onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
             onPageChange={setPage}
             onToggleExpand={handleToggleExpand}
             onRetryDetail={handleRetryDetail}
@@ -465,74 +360,3 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     </div>
   );
 };
-
-// Weapon tabs sub-component
-
-interface WeaponTabsProps {
-  characterId: string;
-  weaponIds: string[];
-  weaponIndex: number;
-  onSelect: (index: number) => void;
-}
-
-const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelect }) => {
-  const { getWeapon } = useGameData();
-  const { t } = useLanguage();
-
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {weaponIds.map((weaponId, index) => {
-        const weapon = getWeapon(weaponId);
-        const label = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
-        const isActive = index === weaponIndex;
-        return (
-          <button
-            key={weaponId}
-            type="button"
-            onClick={() => onSelect(index)}
-            className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all cursor-pointer ${
-              isActive
-                ? 'border-accent/70 bg-accent/15 text-accent'
-                : 'border-border bg-background text-text-primary/70 hover:border-accent/40 hover:text-text-primary'
-            }`}
-          >
-            {weapon?.iconUrl?.trim() && (
-              <img src={weapon.iconUrl} alt="" className="h-5 w-5 object-contain" />
-            )}
-            <span>{label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-};
-
-// Sequence tabs sub-component
-
-interface SequenceTabsProps {
-  sequences: string[];
-  activeSequence: string;
-  onSelect: (seq: string) => void;
-}
-
-const SequenceTabs: React.FC<SequenceTabsProps> = ({ sequences, activeSequence, onSelect }) => (
-  <div className="flex gap-1.5">
-    {sequences.map((seq) => {
-      const isActive = seq === activeSequence;
-      return (
-        <button
-          key={seq}
-          type="button"
-          onClick={() => onSelect(seq)}
-          className={`rounded-lg border px-3 py-1 text-xs font-semibold transition-all cursor-pointer uppercase tracking-wide ${
-            isActive
-              ? 'border-accent/70 bg-accent/15 text-accent'
-              : 'border-border bg-background text-text-primary/60 hover:border-accent/40 hover:text-text-primary'
-          }`}
-        >
-          {seq}
-        </button>
-      );
-    })}
-  </div>
-);

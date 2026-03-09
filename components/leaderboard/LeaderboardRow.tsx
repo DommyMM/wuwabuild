@@ -15,14 +15,13 @@ import {
 import { ElementType } from '@/lib/echo';
 import {
   ACTIVE_SORT_COLUMN_CLASS,
-  SORTABLE_GROUP_GRID,
   TABLE_ROW_HEIGHT_CLASS,
 } from '@/components/build/buildConstants';
 import { formatStatByKey, getSortLabel, resolveRegionBadge } from '@/components/build/buildFormatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '@/components/build/buildStatColumns';
 import { BuildExpanded } from '@/components/build/BuildExpanded';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
-import { LB_TABLE_GRID } from './leaderboardConstants';
+import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from './leaderboardConstants';
 
 interface LeaderboardRowProps {
   entry: LBLeaderboardEntry;
@@ -192,8 +191,8 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
           )}
         </div>
 
-        {/* CV + Stats — identical to BuildRow */}
-        <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
+        {/* CV + Stats + Damage */}
+        <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
           <div className={`self-stretch ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
             <div className="flex h-full items-center justify-between px-2.5 text-lg">
               <span className="text-text-primary">
@@ -237,17 +236,15 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
               </div>
             );
           })}
-        </div>
 
-        {/* Damage — last column, right-aligned */}
-        <div
-          className={`flex h-full items-center justify-end pr-4 text-lg font-semibold ${isDamageSort ? ACTIVE_SORT_COLUMN_CLASS : ''}`}
-        >
-          {entry.damage > 0 ? (
-            <span className="text-accent">{Math.round(entry.damage).toLocaleString()}</span>
-          ) : (
-            <span className="text-text-primary/30">—</span>
-          )}
+          {/* Damage — inside group, no gap */}
+          <div className={`flex h-full items-center justify-end pr-4 text-lg font-semibold ${isDamageSort ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
+            {entry.damage > 0 ? (
+              <span className="text-accent">{Math.round(entry.damage).toLocaleString()}</span>
+            ) : (
+              <span className="text-text-primary/30">—</span>
+            )}
+          </div>
         </div>
       </div>
 
