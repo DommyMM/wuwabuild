@@ -560,12 +560,15 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
           },
         };
       });
+    const weaponIds = Array.isArray(raw.weaponIds)
+      ? raw.weaponIds.filter((v): v is string => typeof v === 'string')
+      : weapons.map((weapon) => weapon.weaponId).filter(Boolean);
 
     result.push({
       id: typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : ''),
       totalEntries: toFiniteNumber(raw.totalEntries),
       weapons,
-      weaponIds: Array.isArray(raw.weaponIds) ? raw.weaponIds.filter((v): v is string => typeof v === 'string') : [],
+      weaponIds,
       tracks: parseTracks(raw.tracks),
       teamCharacterIds: Array.isArray(raw.teamCharacterIds) ? raw.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
     });
