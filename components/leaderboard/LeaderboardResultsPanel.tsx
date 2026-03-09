@@ -123,31 +123,21 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
         </div>
       )}
 
+      {isDamageSort && (
+        <div className="mb-2 flex items-center gap-2 rounded-md border border-border/40 bg-background-secondary/50 px-3 py-1.5 text-xs text-text-primary/60">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent/70" />
+          Global ranks are preserved — rank reflects position across all players regardless of filters.
+        </div>
+      )}
+
       <div className="relative overflow-x-auto pb-1 md:overflow-x-hidden">
         <div className="overflow-hidden rounded-lg border border-border bg-background/70">
-          {/* Table header */}
+          {/* Table header — # | Owner | Character | Sets | CV+Stats | Damage */}
           <div className={`grid ${LB_TABLE_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
             <div className="py-2 text-center text-text-primary/70">#</div>
             <div className="py-2">Owner</div>
-            <div className="py-2" aria-hidden="true" />
-            <div className="py-2" aria-hidden="true" />
+            <div className="py-2">Name</div>
             <div className="py-2">Sets</div>
-            {/* Damage sort header */}
-            <div
-              className={`self-stretch border-t-2 ${isDamageSort ? ACTIVE_HEADER_TOP_BORDER_CLASS : 'border-transparent'}`}
-            >
-              <button
-                type="button"
-                onClick={() => handleSortRequest(DAMAGE_SORT_KEY)}
-                className={`flex h-full w-full items-center justify-between gap-2 py-2 px-3 text-lg transition-colors ${
-                  isDamageSort
-                    ? 'border-accent/85 bg-black/35 text-accent'
-                    : 'text-text-primary/85 hover:bg-background/60 hover:text-text-primary'
-                }`}
-              >
-                <span>Damage</span>
-              </button>
-            </div>
             {/* CV + Stats group */}
             <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
               <div className={`self-stretch border-t-2 ${isCvColumnActive ? ACTIVE_HEADER_TOP_BORDER_CLASS : 'border-transparent'}`}>
@@ -188,8 +178,6 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                     iconFilter={activePinnedStatOption?.iconFilter}
                     fillWidth
                     naturalMenuWidth
-                    textSizeClass="text-lg"
-                    iconSizeClass="h-5 w-5"
                   />
                 </div>
               ) : (
@@ -228,6 +216,22 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                 })
               )}
             </div>
+            {/* Damage — last column */}
+            <div
+              className={`self-stretch border-t-2 ${isDamageSort ? ACTIVE_HEADER_TOP_BORDER_CLASS : 'border-transparent'}`}
+            >
+              <button
+                type="button"
+                onClick={() => handleSortRequest(DAMAGE_SORT_KEY)}
+                className={`flex h-full w-full items-center justify-end gap-2 py-2 pr-4 text-lg transition-colors ${
+                  isDamageSort
+                    ? 'border-accent/85 bg-black/35 text-accent'
+                    : 'text-text-primary/85 hover:bg-background/60 hover:text-text-primary'
+                }`}
+              >
+                <span>Damage</span>
+              </button>
+            </div>
           </div>
 
           {/* Rows area */}
@@ -241,10 +245,8 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                   >
                     <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
                     <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-8 w-8 animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-5 w-9 animate-pulse rounded bg-background-secondary/80" />
+                    <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
                     <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-3.5 w-24 animate-pulse rounded bg-background-secondary/80" />
                     <div className={`grid ${SORTABLE_GROUP_GRID} gap-0`}>
                       <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
                       <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
@@ -252,6 +254,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                       <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
                       <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
                     </div>
+                    <div className="ml-auto h-3.5 w-20 animate-pulse rounded bg-background-secondary/80 mr-4" />
                   </div>
                 ))}
               </div>

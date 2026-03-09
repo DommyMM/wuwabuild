@@ -3,20 +3,18 @@
 import React from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { formatCharacterDisplayName } from '@/lib/character';
 import { getCVRatingColor } from '@/lib/calculations/rollValues';
 import {
   LBBuildDetailEntry,
   LBBuildEchoSummary,
   LBBuildRowEntry,
   LBLeaderboardEntry,
-  LBStatCode,
   LBSortKey,
 } from '@/lib/lb';
 import { ElementType } from '@/lib/echo';
-import { getWeaponPaths } from '@/lib/paths';
 import {
   ACTIVE_SORT_COLUMN_CLASS,
-  SEQUENCE_BADGE_STYLES,
   SORTABLE_GROUP_GRID,
   TABLE_ROW_HEIGHT_CLASS,
 } from '@/components/build/buildConstants';
@@ -65,16 +63,14 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
     character?.element,
     character?.Bonus1,
     sort as LBSortKey,
-    {} as Record<LBStatCode, number>,
+    entry.stats,
     character?.preferredStats,
   );
 
-  const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : 'Unknown Weapon';
-  const sequenceLevel = Math.max(0, Math.min(6, Math.trunc(Number(entry.sequence) || 0)));
   const finalCvColor = getCVRatingColor(entry.finalCV);
   const isHighestCV = finalCvColor.toLowerCase() === '#ff00ff';
 
-  // Compute echo set counts from buildState panels using selectedElement → fettersByElement
+  // Compute echo set counts from buildState panels
   const echoSetCounts: Record<string, number> = {};
   for (const panel of entry.buildState.echoPanels) {
     if (!panel.selectedElement) continue;
@@ -111,7 +107,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
           ? 'text-amber-600 font-bold'
           : 'text-text-primary/75';
 
-  // Build a minimal LBBuildRowEntry for BuildExpanded compatibility
+  // Build minimal LBBuildRowEntry for BuildExpanded
   const echoSummaryForExpanded: LBBuildEchoSummary = { sets: echoSetCounts, mainStats: [] };
   const rowEntry: LBBuildRowEntry = {
     id: entry.id,
@@ -125,14 +121,16 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
     timestamp: entry.timestamp,
   };
 
-  // Use the already-known buildState if detail hasn't loaded yet
   const detailEntry: LBBuildDetailEntry = detail ?? {
     ...rowEntry,
     buildState: entry.buildState,
   };
 
   const characterName = character
-    ? (character.name ?? `Character ${entry.character.id}`)
+    ? formatCharacterDisplayName(character, {
+        baseName: t(character.nameI18n ?? { en: character.name }),
+        roverElement: entry.buildState.roverElement,
+      })
     : `Character ${entry.character.id}`;
 
   return (
@@ -164,25 +162,14 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
           </div>
         </div>
 
-        {/* Weapon */}
-        <div className="flex items-end py-2 text-text-primary/75">
-          {weapon ? (
-            <img src={getWeaponPaths(weapon)} alt={weaponName} className="h-9 w-9" />
+        {/* Character */}
+        <div className="flex items-center gap-2 py-2">
+          {character?.head ? (
+            <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" />
           ) : (
-            <div className="h-9 w-9" />
+            <div className="h-9 w-9 bg-border" />
           )}
-          <span className="-ml-1.5 rounded border border-black/55 bg-black/85 px-1 py-0 text-xs leading-tight text-white">
-            R{entry.weapon.rank}
-          </span>
-        </div>
-
-        {/* Sequence */}
-        <div className="flex items-center py-2 text-text-primary/75">
-          <span
-            className={`inline-flex h-6 items-center justify-start rounded border pl-2 text-left text-xs font-semibold leading-none tracking-wide ${SEQUENCE_BADGE_STYLES[sequenceLevel]}`}
-          >
-            S{sequenceLevel}
-          </span>
+          <span className="text-lg font-semibold text-text-primary">{characterName}</span>
         </div>
 
         {/* Echo sets */}
@@ -193,7 +180,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
             computedActiveSets.map((setEntry) => (
               <div key={setEntry.setId} className="flex items-end gap-0.5">
                 {setEntry.icon ? (
-                  <img src={setEntry.icon} alt="" className="h-7 w-7" />
+                  <img src={setEntry.icon} alt="" title={setEntry.name} className="h-7 w-7" />
                 ) : (
                   <div className="h-8 w-8" />
                 )}
@@ -205,18 +192,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
           )}
         </div>
 
-        {/* Damage */}
-        <div
-          className={`flex h-full items-center px-3 text-lg font-semibold ${isDamageSort ? ACTIVE_SORT_COLUMN_CLASS : ''}`}
-        >
-          {entry.damage > 0 ? (
-            <span className="text-accent">{Math.round(entry.damage).toLocaleString()}</span>
-          ) : (
-            <span className="text-text-primary/40">—</span>
-          )}
-        </div>
-
-        {/* CV + Stats */}
+        {/* CV + Stats — identical to BuildRow */}
         <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
           <div className={`self-stretch ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
             <div className="flex h-full items-center justify-between px-2.5 text-lg">
@@ -245,9 +221,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
                   isStatSortActive ? ACTIVE_SORT_COLUMN_CLASS : sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : ''
                 }`}
               >
-                <div
-                  className={`flex h-full items-center gap-2 py-2 px-4 text-lg text-text-primary ${shouldDimRowStat ? 'opacity-50' : ''}`}
-                >
+                <div className={`flex h-full items-center gap-2 py-2 px-4 text-lg text-text-primary ${shouldDimRowStat ? 'opacity-50' : ''}`}>
                   {icon ? (
                     <img
                       src={icon}
@@ -263,6 +237,17 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
               </div>
             );
           })}
+        </div>
+
+        {/* Damage — last column, right-aligned */}
+        <div
+          className={`flex h-full items-center justify-end pr-4 text-lg font-semibold ${isDamageSort ? ACTIVE_SORT_COLUMN_CLASS : ''}`}
+        >
+          {entry.damage > 0 ? (
+            <span className="text-accent">{Math.round(entry.damage).toLocaleString()}</span>
+          ) : (
+            <span className="text-text-primary/30">—</span>
+          )}
         </div>
       </div>
 
