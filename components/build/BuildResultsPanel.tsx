@@ -35,36 +35,65 @@ interface BuildResultsPanelProps {
   onRetryDetail: (buildId: string) => void;
 }
 
-interface BuildTableGateExampleProps {
-  segments: Array<
-    | { type: 'text'; value: string }
-    | { type: 'icon'; src?: string; className?: string }
-  >;
+interface BuildTableGateOverlayProps {
+  characters: ReturnType<typeof useGameData>['characters'];
+  fetters: ReturnType<typeof useGameData>['fetters'];
+  statIcons: ReturnType<typeof useGameData>['statIcons'];
+  weaponList: ReturnType<typeof useGameData>['weaponList'];
 }
 
-const BuildTableGateExample: React.FC<BuildTableGateExampleProps> = ({
-  segments,
-}) => (
-  <div className="flex items-center gap-1 text-left text-sm text-text-primary/88 md:text-base">
-    <div className="flex min-w-0 flex-wrap items-center gap-1">
-      {segments.map((segment, index) => (
-        segment.type === 'text' ? (
-          <span key={`text-${index}`}>{segment.value}</span>
-        ) : (
-          <BuildTableGateInlineIcon
-            key={`icon-${index}`}
-            src={segment.src}
-            className={segment.className}
-          />
-        )
-      ))}
-    </div>
-  </div>
-);
+const BuildTableGateOverlay: React.FC<BuildTableGateOverlayProps> = ({
+  characters,
+  fetters,
+  statIcons,
+  weaponList,
+}) => {
+  const changliIcon = characters.find((entry) => entry.id === '1205')?.head ?? '';
+  const aemeathIcon = characters.find((entry) => entry.id === '1210')?.head ?? '';
+  const shorekeeperIcon = characters.find((entry) => entry.id === '1505')?.head ?? '';
+  const zaniIcon = characters.find((entry) => entry.id === '1507')?.head ?? '';
+  const trailblazingStarIcon = fetters.find((entry) => entry.id === 27)?.icon ?? '';
+  const blazingJusticeIcon = weaponList.find((entry) => entry.id === '21040036')?.iconUrl ?? '';
 
-const BuildTableGateInlineIcon: React.FC<{ src?: string; className?: string }> = ({ src, className = 'h-5 w-5 shrink-0 object-contain' }) => (
-  src ? <img src={src} alt="" className={className} /> : null
-);
+  return (
+    <div className="space-y-2.5">
+      <div className="flex gap-1 text-left text-sm text-text-primary/88 md:text-base">
+        <div className="flex min-w-0 flex-wrap items-end gap-1 [&>span]:self-end">
+          <span>Find the</span>
+          <img src={changliIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          <span>with the highest Crit Value</span>
+        </div>
+      </div>
+      <div className="flex items-end gap-1 text-left text-sm text-text-primary/88 md:text-base">
+        <div className="flex min-w-0 flex-wrap items-end gap-1 [&>span]:self-end">
+          <span>Find the</span>
+          <img src={aemeathIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          <span>on</span>
+          <img src={trailblazingStarIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          <span>with the highest Crit Damage</span>
+          <img src={statIcons?.['Crit DMG'] ?? ''} alt="" className="h-6 w-6 shrink-0 object-contain" />
+        </div>
+      </div>
+      <div className="flex items-end gap-1 text-left text-sm text-text-primary/88 md:text-base">
+        <div className="flex min-w-0 flex-wrap items-end gap-1 [&>span]:self-end">
+          <span>See how many</span>
+          <img src={zaniIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          <span>are bricked because they don&apos;t have</span>
+          <img src={blazingJusticeIcon} alt="" className="h-6 w-6 shrink-0 object-contain opacity-90" />
+        </div>
+      </div>
+      <div className="flex items-end gap-1 text-left text-sm text-text-primary/88 md:text-base">
+        <div className="flex min-w-0 flex-wrap items-end gap-1 [&>span]:self-end">
+          <span>Find the</span>
+          <img src={shorekeeperIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          <span>with the highest ATK</span>
+          <img src={statIcons?.ATK ?? ''} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          <span>idk lol</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   builds,
@@ -116,15 +145,6 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
   const activeCvOption = cvOptions.find((entry) => entry.key === cvSort) ?? cvOptions[0];
   const activePinnedStatKey = (isStatSortActive ? sort : displayStatColumns[0]) as StatSortKey;
   const activePinnedStatOption = statOptions.find((entry) => entry.key === activePinnedStatKey);
-  const critDamageGateIcon = statIcons?.['Crit DMG'] ?? statIcons?.['Crit Damage'] ?? '';
-  const gateExampleIcons = useMemo(() => ({
-    changliIcon: characters.find((entry) => entry.name === 'Changli')?.head ?? '',
-    aemeathIcon: characters.find((entry) => entry.name === 'Aemeath')?.head ?? '',
-    zaniIcon: characters.find((entry) => entry.name === 'Zani')?.head ?? '',
-    trailblazingStarIcon: fetters.find((entry) => entry.name?.en === 'Trailblazing Star')?.icon ?? '',
-    pulsationBracerIcon: weaponList.find((entry) => entry.name === 'Pulsation Bracer')?.iconUrl ?? '',
-    blazingJusticeIcon: weaponList.find((entry) => entry.name === 'Blazing Justice')?.iconUrl ?? '',
-  }), [characters, fetters, weaponList]);
 
   const hasBuildRows = builds.length > 0;
   const showInitialSkeleton = isLoading && !hasBuildRows;
@@ -140,32 +160,6 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
     if (sort === nextSort) { onToggleDirection(); return; }
     onSortChange(nextSort);
   };
-
-  const gateExamples = [
-    [
-      { type: 'text', value: 'Find the' },
-      { type: 'icon', src: gateExampleIcons.changliIcon },
-      { type: 'text', value: 'Changli with the highest Crit Value' },
-    ],
-    [
-      { type: 'text', value: 'Find the' },
-      { type: 'icon', src: gateExampleIcons.aemeathIcon },
-      { type: 'text', value: 'Aemeath on' },
-      { type: 'icon', src: gateExampleIcons.trailblazingStarIcon },
-      { type: 'text', value: 'Trailblazing Star with the highest' },
-      { type: 'icon', src: critDamageGateIcon },
-      { type: 'text', value: 'Crit Damage' },
-    ],
-    [
-      { type: 'text', value: 'See how many' },
-      { type: 'icon', src: gateExampleIcons.zaniIcon },
-      { type: 'text', value: 'Zanis have' },
-      { type: 'icon', src: gateExampleIcons.pulsationBracerIcon },
-      { type: 'text', value: 'Pulsation Bracer because they didn\'t pull' },
-      { type: 'icon', src: gateExampleIcons.blazingJusticeIcon, className: 'h-5 w-5 shrink-0 object-contain opacity-90' },
-      { type: 'text', value: 'Blazing Justice' },
-    ],
-  ] as const;
 
   const dismissTableGate = () => {
     setIsTableGateDismissed(true);
@@ -376,7 +370,7 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                   >
                     <div className="max-w-3xl space-y-4 rounded-xl border border-border/70 bg-background/72 p-5 text-center shadow-[0_18px_48px_rgba(0,0,0,0.28)] backdrop-blur-xs transition-[border-color,background-color,box-shadow,transform] duration-200 group-hover:border-accent/40 group-hover:bg-background/80 group-hover:shadow-[0_22px_56px_rgba(0,0,0,0.34)] group-hover:-translate-y-0.5 group-focus-visible:border-accent/40 group-focus-visible:bg-background/80 group-focus-visible:shadow-[0_22px_56px_rgba(0,0,0,0.34)] group-focus-visible:-translate-y-0.5">
                       <p className="text-sm tracking-wide text-text-primary md:text-lg">
-                        Builds do not show leaderboards or rankings. Character rankings are{' '}
+                        Builds do not show leaderboards or rankings, those are{' '}
                         <Link
                           href="/leaderboards"
                           onClick={(event) => event.stopPropagation()}
@@ -384,17 +378,17 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                         >
                           here
                         </Link>
-                        .
                       </p>
                       <div className="space-y-2">
                         <p className="text-xs font-semibold uppercase tracking-wide text-text-primary/55 md:text-sm">
                           Example use cases
                         </p>
-                        <div className="space-y-2.5">
-                          {gateExamples.map((segments, index) => (
-                            <BuildTableGateExample key={index} segments={[...segments]} />
-                          ))}
-                        </div>
+                        <BuildTableGateOverlay
+                          characters={characters}
+                          fetters={fetters}
+                          statIcons={statIcons}
+                          weaponList={weaponList}
+                        />
                       </div>
                       <p className="text-xs text-text-primary/55 md:text-sm">
                         Click anywhere around this message to reveal the builds table.
