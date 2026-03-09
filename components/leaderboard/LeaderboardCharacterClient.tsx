@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -16,7 +16,7 @@ import { LeaderboardTabs } from './LeaderboardTabs';
 import { LeaderboardResultsPanel } from './LeaderboardResultsPanel';
 
 function leaderboardSignature(entries: LBLeaderboardEntry[], total: number): string {
-  return `${total}:${entries.map((e) => `${e.id}:${e.damage}:${e.globalRank}:${e.timestamp}`).join(',')}`;
+  return `${total}:${entries.map((e) => `${e.id}:${e.damage}:${e.globalRank}:${e.timestamp}:${e.finalCV}`).join(',')}`;
 }
 
 interface LeaderboardCharacterClientProps {
@@ -29,8 +29,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const searchParams = useSearchParams();
   const { characters, fetters } = useGameData();
   const { t } = useLanguage();
-  const leaderboardSigRef = useRef(leaderboardSignature(initialData?.builds ?? [], initialData?.total ?? 0));
+  // initialData is always the default query result. Only use it when the URL has no params.
+  const isDefaultQuery = searchParams.toString() === '';
+  const ssrData = isDefaultQuery ? initialData : null;
+  const leaderboardSigRef = useRef(leaderboardSignature(ssrData?.builds ?? [], ssrData?.total ?? 0));
 
+  // Config metadata (weapon tabs, sequence tabs) is safe to seed from initialData regardless of query.
   const [configWeaponIds, setConfigWeaponIds] = useState<string[]>(() => initialData?.weaponIds ?? []);
   const [configSequences, setConfigSequences] = useState<string[]>(() => initialData?.sequences.length ? initialData.sequences : ['s0']);
 
@@ -57,15 +61,13 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => parseEchoMainCSV(searchParams.get('mains')));
   const [filterQuery, setFilterQuery] = useState('');
 
-  // Data state
-  const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialData?.builds ?? []);
-  const [total, setTotal] = useState(() => initialData?.total ?? 0);
+  // Data state — only seed rows from SSR data when URL params match the default query.
+  const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => ssrData?.builds ?? []);
+  const [total, setTotal] = useState(() => ssrData?.total ?? 0);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
-    if (!initialData) return null;
-    // Pre-settle on the default query so the skeleton is never shown on first load.
-    // Must match the JSON.stringify of { characterId, ...leaderboardQuery } computed by the useMemo below.
-    if (searchParams.toString() !== '') return null;
-    const firstWeaponId = initialData.weaponIds[0];
+    if (!ssrData) return null;
+    // Pre-settle only on the default query. Must match JSON.stringify({ characterId, ...leaderboardQuery }).
+    const firstWeaponId = ssrData.weaponIds[0];
     const weaponIds = firstWeaponId ? [firstWeaponId] : [];
     return JSON.stringify({
       characterId,

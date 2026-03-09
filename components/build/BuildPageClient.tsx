@@ -16,7 +16,7 @@ import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '.
 import posthog from 'posthog-js';
 
 function buildListSignature(builds: LBBuildRowEntry[], total: number): string {
-  return `${total}:${builds.map((b) => `${b.id}:${b.cv}:${b.timestamp}`).join(',')}`;
+  return `${total}:${builds.map((b) => `${b.id}:${b.cv}:${b.timestamp}:${b.weapon.id}`).join(',')}`;
 }
 
 interface BuildPageClientProps {
@@ -29,7 +29,10 @@ export const BuildPageClient: React.FC<BuildPageClientProps> = ({ initialData })
   const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
   const expansionCountRef = useRef(0);
-  const buildListSigRef = useRef(buildListSignature(initialData?.builds ?? [], initialData?.total ?? 0));
+  // initialData is always the default query result. Only use it when the URL has no params.
+  const isDefaultQuery = searchParams.toString() === '';
+  const ssrData = isDefaultQuery ? initialData : null;
+  const buildListSigRef = useRef(buildListSignature(ssrData?.builds ?? [], ssrData?.total ?? 0));
 
   const initialQuery = useMemo(
     () => parseInitialQuery(new URLSearchParams(searchParams.toString())),
@@ -49,12 +52,11 @@ export const BuildPageClient: React.FC<BuildPageClientProps> = ({ initialData })
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialQuery.echoMains);
   const [filterQuery, setFilterQuery] = useState('');
 
-  const [builds, setBuilds] = useState<LBBuildRowEntry[]>(() => initialData?.builds ?? []);
-  const [total, setTotal] = useState(() => initialData?.total ?? 0);
+  const [builds, setBuilds] = useState<LBBuildRowEntry[]>(() => ssrData?.builds ?? []);
+  const [total, setTotal] = useState(() => ssrData?.total ?? 0);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
-    if (!initialData) return null;
-    // Pre-settle on the default query (no URL params) so the skeleton is never shown.
-    return searchParams.toString() === '' ? '' : null;
+    // Pre-settle only when SSR data matches the current URL (default query).
+    return ssrData ? '' : null;
   });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const [expandedBuildIds, setExpandedBuildIds] = useState<Set<string>>(new Set());
@@ -174,8 +176,8 @@ export const BuildPageClient: React.FC<BuildPageClientProps> = ({ initialData })
       abortAllDetailRequests();
       setDetailLoadingById({});
       setDetailErrorById({});
-      // Skip localStorage cache if we already have SSR-prefetched data for this query.
-      if (cachedResponse && !initialData) {
+      // Skip localStorage cache only for the default query when SSR data already covers it.
+      if (cachedResponse && !(initialData && currentQueryKey === '')) {
         buildListSigRef.current = buildListSignature(cachedResponse.builds, cachedResponse.total);
         setBuilds(cachedResponse.builds);
         setTotal(cachedResponse.total);

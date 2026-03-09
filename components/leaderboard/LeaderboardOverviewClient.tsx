@@ -12,7 +12,9 @@ import { getWeaponPaths } from '@/lib/paths';
 const OVERVIEW_GRID = 'grid-cols-[40px_200px_minmax(320px,1fr)_96px_72px]';
 
 function overviewSignature(entries: LBCharacterOverview[]): string {
-  return entries.map((e) => `${e.id}:${e.totalEntries}`).join(',');
+  return entries.map((e) =>
+    `${e.id}:${e.totalEntries}:${e.teamCharacterIds.join('+')}:${e.weapons.map((w) => `${w.weaponId}=${Math.round(w.damage)}`).join('|')}`
+  ).join(',');
 }
 
 interface LeaderboardOverviewClientProps {
