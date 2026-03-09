@@ -85,9 +85,9 @@ Non-default queries (filtered, paginated, etc.) are **not** SSR-prefetched. Thos
 - Read `LB_URL` and `INTERNAL_API_KEY` from `process.env`
 - Reuse parsing functions from `lib/lb.ts` — extract `parseBuildRowEntry`, `parseLeaderboardEntry`, `parseStatsRecord` and shared types/interfaces into importable form (they're already exported or pure functions)
 - Three async functions, each wrapping a `fetch` → parse → return-or-null pipeline
-- `prefetchBuilds()`: hits `GET ${LB_URL}/build?page=1&size=12&sort=finalCV&direction=desc`
+- `prefetchBuilds()`: hits `GET ${LB_URL}/build?page=1&pageSize=12&sort=finalCV&direction=desc`
 - `prefetchLeaderboardOverview()`: hits `GET ${LB_URL}/leaderboard`
-- `prefetchLeaderboard(characterId)`: hits `GET ${LB_URL}/leaderboard/${characterId}?page=1&pageSize=12&sort=damage&direction=desc&sequence=s0&weaponIndex=0`
+- `prefetchLeaderboard(characterId)`: hits `GET ${LB_URL}/leaderboard/${characterId}?page=1&pageSize=12&sort=damage&direction=desc&weaponIndex=0`
 - All three catch errors → `console.error` → return `null`
 
 ### Phase 2: `/builds` SSR prefetch

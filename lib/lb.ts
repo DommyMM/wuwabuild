@@ -1,4 +1,5 @@
 import { DEFAULT_FORTE, SavedState } from '@/lib/build';
+import { toMainStatApiValue } from '@/lib/mainStatFilters';
 
 const LB_PROXY_BASE = '/api/lb';
 const DEFAULT_PAGE_SIZE = 12;
@@ -110,6 +111,24 @@ function clampPageSize(value: number | undefined): number {
   if (!Number.isFinite(value)) return DEFAULT_PAGE_SIZE;
   const parsed = Math.trunc(Number(value));
   return Math.min(MAX_PAGE_SIZE, Math.max(1, parsed));
+}
+
+function appendStringParams(params: URLSearchParams, key: string, values: string[] | undefined): void {
+  if (!values?.length) return;
+
+  for (const value of values.map((entry) => entry.trim()).filter(Boolean)) {
+    params.append(key, value);
+  }
+}
+
+function serializeEchoSetFilters(filters: LBEchoSetFilter[] | undefined): string | null {
+  if (!filters?.length) return null;
+  return filters.map((entry) => `${entry.count}~${entry.setId}`).join('.');
+}
+
+function serializeEchoMainFilters(filters: LBEchoMainFilter[] | undefined): string | null {
+  if (!filters?.length) return null;
+  return filters.map((entry) => `${entry.cost}~${toMainStatApiValue(entry.statType)}`).join('.');
 }
 
 export interface LBEchoSetFilter {
@@ -317,37 +336,26 @@ export async function listBuilds(
   const params = new URLSearchParams();
   const pageSize = clampPageSize(query.pageSize);
   params.set('page', String(query.page ?? 1));
-  params.set('size', String(pageSize));
   params.set('pageSize', String(pageSize));
   params.set('sort', toLBApiSortKey(query.sort ?? 'finalCV'));
   params.set('direction', query.direction ?? 'desc');
 
-  if (query.characterIds?.length) {
-    params.set('characterId', JSON.stringify(query.characterIds));
-  }
-  if (query.weaponIds?.length) {
-    params.set('weaponId', JSON.stringify(query.weaponIds));
-  }
+  appendStringParams(params, 'characterId', query.characterIds);
+  appendStringParams(params, 'weaponId', query.weaponIds);
   if (query.uid) {
     params.set('uid', query.uid);
   }
   if (query.username) {
     params.set('username', query.username);
   }
-  if (query.regionPrefixes?.length) {
-    params.set('region', JSON.stringify(query.regionPrefixes));
+  appendStringParams(params, 'region', query.regionPrefixes);
+  const echoSets = serializeEchoSetFilters(query.echoSets);
+  if (echoSets) {
+    params.set('echoSets', echoSets);
   }
-  if (query.echoSets?.length) {
-    params.set(
-      'echoSets',
-      JSON.stringify(query.echoSets.map((entry) => [entry.count, entry.setId])),
-    );
-  }
-  if (query.echoMains?.length) {
-    params.set(
-      'echoMains',
-      JSON.stringify(query.echoMains.map((entry) => [entry.cost, entry.statType])),
-    );
+  const echoMains = serializeEchoMainFilters(query.echoMains);
+  if (echoMains) {
+    params.set('echoMains', echoMains);
   }
 
   const requestUrl = `${resolveLBBaseUrl()}/build?${params.toString()}`;
@@ -401,12 +409,17 @@ export interface LBWeaponTop {
   owner: { username: string; uid: string };
 }
 
+export interface LBTrack {
+  key: string;
+  label: string;
+}
+
 export interface LBCharacterOverview {
   id: string;
   totalEntries: number;
   weapons: LBWeaponTop[];
   weaponIds: string[];
-  sequences: string[];
+  tracks: LBTrack[];
   teamCharacterIds: string[];
 }
 
@@ -432,14 +445,14 @@ export interface LBLeaderboardQuery {
   pageSize?: number;
   sort?: string;
   direction?: LBSortDirection;
-  weaponIds?: string[];
+  weaponId?: string;
   uid?: string;
   username?: string;
   regionPrefixes?: string[];
   echoSets?: LBEchoSetFilter[];
   echoMains?: LBEchoMainFilter[];
   weaponIndex?: number;
-  sequence?: string;
+  track?: string;
 }
 
 export interface LBLeaderboardResponse {
@@ -448,7 +461,10 @@ export interface LBLeaderboardResponse {
   page: number;
   pageSize: number;
   weaponIds: string[];
-  sequences: string[];
+  tracks: LBTrack[];
+  teamCharacterIds: string[];
+  activeWeaponId: string;
+  activeTrack: string;
 }
 
 export interface LBSubmitBuildResult {
@@ -477,7 +493,7 @@ export function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
   const watermark = isRecord(buildStateRaw.watermark) ? buildStateRaw.watermark : null;
 
   return {
-    id: typeof raw._id === 'string' ? raw._id : '',
+    id: typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : ''),
     buildState,
     cv: toFiniteNumber(raw.cv),
     cvPenalty: toFiniteNumber(raw.cvPenalty),
@@ -503,6 +519,18 @@ export function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
     },
     sequence: toFiniteNumber(buildState.sequence, 0),
   };
+}
+
+function parseTracks(raw: unknown): LBTrack[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .filter(isRecord)
+    .map((track) => ({
+      key: typeof track.key === 'string' ? track.key : '',
+      label: typeof track.label === 'string' ? track.label : '',
+    }))
+    .filter((track) => track.key.length > 0);
 }
 
 export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBCharacterOverview[]> {
@@ -534,11 +562,11 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
       });
 
     result.push({
-      id: typeof raw._id === 'string' ? raw._id : '',
+      id: typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : ''),
       totalEntries: toFiniteNumber(raw.totalEntries),
       weapons,
       weaponIds: Array.isArray(raw.weaponIds) ? raw.weaponIds.filter((v): v is string => typeof v === 'string') : [],
-      sequences: Array.isArray(raw.sequences) ? raw.sequences.filter((v): v is string => typeof v === 'string') : [],
+      tracks: parseTracks(raw.tracks),
       teamCharacterIds: Array.isArray(raw.teamCharacterIds) ? raw.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
     });
   }
@@ -554,21 +582,19 @@ export async function listLeaderboard(
   const params = new URLSearchParams();
   const pageSize = clampPageSize(query.pageSize);
   params.set('page', String(query.page ?? 1));
-  params.set('pageSize', String(pageSize));
+  params.set('size', String(pageSize));
   if (query.sort) params.set('sort', toLBApiSortKey(query.sort));
   if (query.direction) params.set('direction', query.direction);
   if (query.weaponIndex !== undefined) params.set('weaponIndex', String(query.weaponIndex));
-  if (query.sequence) params.set('sequence', query.sequence);
-  if (query.weaponIds?.length) params.set('weaponId', JSON.stringify(query.weaponIds));
+  if (query.track) params.set('track', query.track);
+  if (query.weaponId) params.set('weaponId', query.weaponId);
   if (query.uid) params.set('uid', query.uid);
   if (query.username) params.set('username', query.username);
-  if (query.regionPrefixes?.length) params.set('region', JSON.stringify(query.regionPrefixes));
-  if (query.echoSets?.length) {
-    params.set('echoSets', JSON.stringify(query.echoSets.map((entry) => [entry.count, entry.setId])));
-  }
-  if (query.echoMains?.length) {
-    params.set('echoMains', JSON.stringify(query.echoMains.map((entry) => [entry.cost, entry.statType])));
-  }
+  appendStringParams(params, 'region', query.regionPrefixes);
+  const leaderboardEchoSets = serializeEchoSetFilters(query.echoSets);
+  if (leaderboardEchoSets) params.set('echoSets', leaderboardEchoSets);
+  const leaderboardEchoMains = serializeEchoMainFilters(query.echoMains);
+  if (leaderboardEchoMains) params.set('echoMains', leaderboardEchoMains);
 
   const requestUrl = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}?${params.toString()}`;
   const response = await fetch(requestUrl, { method: 'GET', signal });
@@ -576,7 +602,17 @@ export async function listLeaderboard(
     throw new Error(`Failed to fetch leaderboard (${response.status})`);
   }
 
-  const payload = await response.json() as { builds?: unknown[]; total?: number; page?: number; pageSize?: number; weaponIds?: unknown[]; sequences?: unknown[] };
+  const payload = await response.json() as {
+    builds?: unknown[];
+    total?: number;
+    page?: number;
+    pageSize?: number;
+    weaponIds?: unknown[];
+    tracks?: unknown;
+    teamCharacterIds?: unknown[];
+    activeWeaponId?: unknown;
+    activeTrack?: unknown;
+  };
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
   const builds: LBLeaderboardEntry[] = [];
 
@@ -598,7 +634,10 @@ export async function listLeaderboard(
     page: toFiniteNumber(payload.page, query.page ?? 1),
     pageSize: toFiniteNumber(payload.pageSize, pageSize),
     weaponIds: Array.isArray(payload.weaponIds) ? (payload.weaponIds as unknown[]).filter((v): v is string => typeof v === 'string') : [],
-    sequences: Array.isArray(payload.sequences) ? (payload.sequences as unknown[]).filter((v): v is string => typeof v === 'string') : [],
+    tracks: parseTracks(payload.tracks),
+    teamCharacterIds: Array.isArray(payload.teamCharacterIds) ? payload.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
+    activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
+    activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
   };
 }
 

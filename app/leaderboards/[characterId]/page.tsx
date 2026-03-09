@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { characterId } = await params;
   return {
     title: `Character Leaderboard #${characterId} — WuWaBuilds`,
-    description: 'Global damage rankings for this Wuthering Waves character. Filter by weapon, sequence, echo sets, and more.',
+    description: 'Global damage rankings for this Wuthering Waves character. Filter by weapon, track, echo sets, and more.',
   };
 }
 

@@ -15,7 +15,7 @@ export const BuildHeader: React.FC = () => (
       CV is calculated from the sum of equipped echoes exclusively <br/>
       Only the first Crit 4 cost is counted towards CV
     </p>
-    <div className="flex justify-center pt-1">
+    <div className="flex justify-center pt-1 select-none">
       <div className="inline-flex items-center gap-2 rounded-md border border-accent/35 bg-background/70 px-3 py-1.5 text-sm">
         <span className="font-medium text-accent">Crit Value (CV):</span>
         <span className="font-gowun text-text-primary">2 x CR + CD</span>

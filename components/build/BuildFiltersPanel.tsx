@@ -7,6 +7,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { Character, formatCharacterDisplayName } from '@/lib/character';
 import { LBSortDirection, LBSortKey } from '@/lib/lb';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
+import { toMainStatLabel, toMainStatUrlKey } from '@/lib/mainStatFilters';
 import { getWeaponPaths } from '@/lib/paths';
 import { Weapon } from '@/lib/weapon';
 import { MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE, REGION_OPTIONS, SORT_OPTIONS } from './buildConstants';
@@ -113,16 +114,9 @@ interface BuildFiltersPanelProps {
   onPageSizeChange: (value: number) => void;
 }
 
-const MAIN_STAT_LABEL_BY_CODE: Map<string, string> = new Map(
-  MAIN_STAT_OPTIONS.map((entry) => [entry.code, entry.label]),
-);
 const MAIN_STAT_INDEX_BY_LABEL: Map<string, number> = new Map(
   MAIN_STAT_OPTIONS.map((entry, index) => [entry.label, index]),
 );
-
-function toMainStatLabel(raw: string): string {
-  return MAIN_STAT_LABEL_BY_CODE.get(raw) ?? raw;
-}
 
 function getMainStatOrder(label: string): number {
   return MAIN_STAT_INDEX_BY_LABEL.get(label) ?? Number.MAX_SAFE_INTEGER;
@@ -226,7 +220,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     [selectedSetEntries],
   );
   const selectedMainKeys = useMemo(
-    () => new Set(selectedMainEntries.map((entry) => `${entry.cost}~${toMainStatLabel(entry.statType)}`)),
+    () => new Set(selectedMainEntries.map((entry) => `${entry.cost}~${entry.statType}`)),
     [selectedMainEntries],
   );
 
@@ -362,7 +356,8 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     for (const cost of [4, 3, 1]) {
       const statEntries = Object.keys(getMainStatsByCost(cost));
       for (const statLabel of statEntries) {
-        const key = `${cost}~${toMainStatLabel(statLabel)}`;
+        const statKey = toMainStatUrlKey(statLabel);
+        const key = `${cost}~${statKey}`;
         if (selectedMainKeys.has(key)) continue;
         const label = toMainStatLabel(statLabel);
         if (normalizedQuery && !label.toLowerCase().includes(normalizedQuery)) continue;
@@ -372,9 +367,9 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
           section: 'Main Stats',
           subSection: getMainSubSection(cost),
           cost,
-          statType: toMainStatLabel(statLabel),
+          statType: statKey,
           label,
-          icon: statIcons?.[toMainStatLabel(statLabel)] ?? '',
+          icon: statIcons?.[label] ?? '',
         });
       }
     }
@@ -618,7 +613,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
           ))}
 
           {selectedMainEntries.map((entry, index) => {
-            const mainLabel = toMainStatLabel(entry.label);
+            const mainLabel = toMainStatLabel(entry.statType);
             const mainIcon = statIcons?.[mainLabel] ?? '';
             return (
               <span
@@ -790,7 +785,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                             src={item.icon}
                             alt=""
                             className="h-5 w-5 object-contain"
-                            style={ELEMENT_ICON_FILTERS[item.statType] ? { filter: ELEMENT_ICON_FILTERS[item.statType] } : undefined}
+                            style={ELEMENT_ICON_FILTERS[item.label] ? { filter: ELEMENT_ICON_FILTERS[item.label] } : undefined}
                           />
                         ) : <div className="h-5 w-5 rounded bg-border" />}
                         <span className="truncate">{item.label}</span>

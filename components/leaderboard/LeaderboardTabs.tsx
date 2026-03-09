@@ -3,6 +3,7 @@
 import React from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { LBTrack } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 import { SEQUENCE_BADGE_STYLES } from '@/components/build/buildConstants';
 
@@ -57,34 +58,34 @@ const WeaponCards: React.FC<WeaponCardsProps> = ({ weaponIds, weaponIndex, onSel
   );
 };
 
-// Sequence tabs
+// Track tabs
 
-interface SequenceTabsProps {
-  sequences: string[];
-  activeSequence: string;
-  onSelect: (seq: string) => void;
+interface TrackTabsProps {
+  tracks: LBTrack[];
+  activeTrack: string;
+  onSelect: (trackKey: string) => void;
 }
 
-const SequenceTabs: React.FC<SequenceTabsProps> = ({ sequences, activeSequence, onSelect }) => {
-  if (sequences.length <= 1) return null;
+const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) => {
+  if (tracks.length <= 1) return null;
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {sequences.map((seq) => {
-        const isActive = seq === activeSequence;
-        const level = Math.max(0, Math.min(6, Number(seq.replace(/\D/g, '')) || 0));
+      {tracks.map((track) => {
+        const isActive = track.key === activeTrack;
+        const level = Math.max(0, Math.min(6, Number(track.key.replace(/\D/g, '')) || 0));
         return (
           <button
-            key={seq}
+            key={track.key}
             type="button"
-            onClick={() => onSelect(seq)}
-            className={`cursor-pointer rounded-lg border px-4 py-1.5 text-xs font-semibold uppercase tracking-wide transition-all ${
+            onClick={() => onSelect(track.key)}
+            className={`cursor-pointer rounded-lg border px-4 py-1.5 text-xs font-semibold tracking-wide transition-all ${
               isActive
                 ? `${SEQUENCE_BADGE_STYLES[level]}`
                 : 'border-border bg-background text-text-primary/60 hover:border-accent/40 hover:text-text-primary'
             }`}
           >
-            {seq}
+            {track.label}
           </button>
         );
       })}
@@ -98,21 +99,21 @@ interface LeaderboardTabsProps {
   weaponIds: string[];
   weaponIndex: number;
   onSelectWeapon: (index: number) => void;
-  sequences: string[];
-  activeSequence: string;
-  onSelectSequence: (seq: string) => void;
+  tracks: LBTrack[];
+  activeTrack: string;
+  onSelectTrack: (trackKey: string) => void;
 }
 
 export const LeaderboardTabs: React.FC<LeaderboardTabsProps> = ({
   weaponIds,
   weaponIndex,
   onSelectWeapon,
-  sequences,
-  activeSequence,
-  onSelectSequence,
+  tracks,
+  activeTrack,
+  onSelectTrack,
 }) => (
   <div className="space-y-3">
     <WeaponCards weaponIds={weaponIds} weaponIndex={weaponIndex} onSelect={onSelectWeapon} />
-    <SequenceTabs sequences={sequences} activeSequence={activeSequence} onSelect={onSelectSequence} />
+    <TrackTabs tracks={tracks} activeTrack={activeTrack} onSelect={onSelectTrack} />
   </div>
 );

@@ -1,5 +1,6 @@
 import { LBEchoMainFilter, LBEchoSetFilter, normalizeLBSortKey, toLBApiSortKey } from '@/lib/lb';
-import { clampItemsPerPage, DEFAULT_DIRECTION, DEFAULT_PAGE, DEFAULT_SORT, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS } from './buildConstants';
+import { toMainStatUrlKey } from '@/lib/mainStatFilters';
+import { clampItemsPerPage, DEFAULT_DIRECTION, DEFAULT_PAGE, DEFAULT_SORT, ITEMS_PER_PAGE } from './buildConstants';
 import { QuerySnapshot } from './types';
 
 function parsePositiveInt(value: string | null, fallback: number): number {
@@ -28,24 +29,20 @@ function parseEchoSetCSV(value: string | null): LBEchoSetFilter[] {
 
 function parseEchoMainCSV(value: string | null): LBEchoMainFilter[] {
   if (!value) return [];
-  const labelByCode: Map<string, string> = new Map(
-    MAIN_STAT_OPTIONS.map((entry) => [entry.code, entry.label]),
-  );
   return value
     .split('.')
     .map((entry) => {
       const [costRaw, statType] = entry.split('~');
       const cost = Number.parseInt(costRaw ?? '', 10);
       if (!Number.isFinite(cost) || !statType) return null;
-      return { cost, statType: labelByCode.get(statType) ?? statType };
+      return { cost, statType: toMainStatUrlKey(statType) };
     })
     .filter((entry): entry is LBEchoMainFilter => entry !== null);
 }
 
 export function parseInitialQuery(searchParams: URLSearchParams): QuerySnapshot {
   const page = parsePositiveInt(searchParams.get('page'), DEFAULT_PAGE);
-  const rawPageSize = searchParams.get('size') ?? searchParams.get('pageSize');
-  const pageSize = clampItemsPerPage(parsePositiveInt(rawPageSize, ITEMS_PER_PAGE));
+  const pageSize = clampItemsPerPage(parsePositiveInt(searchParams.get('pageSize'), ITEMS_PER_PAGE));
   const sortParam = searchParams.get('sort');
   const directionParam = searchParams.get('direction');
   const sort = normalizeLBSortKey(sortParam, DEFAULT_SORT);
@@ -71,7 +68,7 @@ export function parseInitialQuery(searchParams: URLSearchParams): QuerySnapshot 
 export function serializeQuery(snapshot: QuerySnapshot): string {
   const params = new URLSearchParams();
   if (snapshot.page > DEFAULT_PAGE) params.set('page', String(snapshot.page));
-  if (snapshot.pageSize !== ITEMS_PER_PAGE) params.set('size', String(clampItemsPerPage(snapshot.pageSize)));
+  if (snapshot.pageSize !== ITEMS_PER_PAGE) params.set('pageSize', String(clampItemsPerPage(snapshot.pageSize)));
   if (snapshot.sort !== DEFAULT_SORT) params.set('sort', toLBApiSortKey(snapshot.sort));
   if (snapshot.direction !== DEFAULT_DIRECTION) params.set('direction', snapshot.direction);
   if (snapshot.characterIds.length) params.set('characters', snapshot.characterIds.join(','));

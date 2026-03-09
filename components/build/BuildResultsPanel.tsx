@@ -38,14 +38,12 @@ interface BuildResultsPanelProps {
 interface BuildTableGateOverlayProps {
   characters: ReturnType<typeof useGameData>['characters'];
   fetters: ReturnType<typeof useGameData>['fetters'];
-  statIcons: ReturnType<typeof useGameData>['statIcons'];
   weaponList: ReturnType<typeof useGameData>['weaponList'];
 }
 
 const BuildTableGateOverlay: React.FC<BuildTableGateOverlayProps> = ({
   characters,
   fetters,
-  statIcons,
   weaponList,
 }) => {
   const changliIcon = characters.find((entry) => entry.id === '1205')?.head ?? '';
@@ -71,7 +69,6 @@ const BuildTableGateOverlay: React.FC<BuildTableGateOverlayProps> = ({
           <span>on</span>
           <img src={trailblazingStarIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
           <span>with the highest Crit Damage</span>
-          <img src={statIcons?.['Crit DMG'] ?? ''} alt="" className="h-6 w-6 shrink-0 object-contain" />
         </div>
       </div>
       <div className="flex items-end gap-1 text-left text-sm text-text-primary/88 md:text-base">
@@ -86,9 +83,7 @@ const BuildTableGateOverlay: React.FC<BuildTableGateOverlayProps> = ({
         <div className="flex min-w-0 flex-wrap items-end gap-1 [&>span]:self-end">
           <span>Find the</span>
           <img src={shorekeeperIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
-          <span>with the highest ATK</span>
-          <img src={statIcons?.ATK ?? ''} alt="" className="h-6 w-6 shrink-0 object-contain" />
-          <span>idk lol</span>
+          <span>with the highest ATK idk lol</span>
         </div>
       </div>
     </div>
@@ -386,7 +381,6 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
                         <BuildTableGateOverlay
                           characters={characters}
                           fetters={fetters}
-                          statIcons={statIcons}
                           weaponList={weaponList}
                         />
                       </div>

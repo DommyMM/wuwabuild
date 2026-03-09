@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBListBuildsResponse, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
-import { clampItemsPerPage, DEFAULT_PAGE, MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE } from './buildConstants';
+import { toMainStatLabel } from '@/lib/mainStatFilters';
+import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE } from './buildConstants';
 import { getSortLabel } from './buildFormatters';
 import { parseInitialQuery, serializeQuery } from './buildQuery';
 import { readCachedBuildList, writeCachedBuildList } from './buildCache';
@@ -105,7 +106,7 @@ export const BuildPageClient: React.FC<BuildPageClientProps> = ({ initialData })
 
   const selectedMainEntries = useMemo<SelectedMainEntry[]>(() => (
     echoMains.map((entry) => {
-      const statLabel = MAIN_STAT_OPTIONS.find((opt) => opt.code === entry.statType)?.label ?? entry.statType;
+      const statLabel = toMainStatLabel(entry.statType);
       return {
         ...entry,
         label: statLabel,

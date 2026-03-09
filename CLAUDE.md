@@ -65,7 +65,9 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 - `BuildEditor` has a `View Ranking` button that routes to the selected character leaderboard.
 - Go LB runtime is validated with migrated legacy data and single-pass canonical ingest (`make import DUMP=...`).
 - API filtering should use canonical CDN IDs.
-- Go LB has 8 registered server-side character calculation configs (carlotta, jinhsi, changli, camellya, zani, phoebe, cartethyia, jiyan).
+- Frontend LB clients serialize multi-value query filters as repeated query params (`?characterId=1505&characterId=1603`); the Go API expects that canonical form.
+- Go LB currently has 9 registered character configs (`carlotta`, `jinhsi`, `changli`, `camellya`, `zani`, `phoebe`, `cartethyia`, `jiyan`, `lupa`), but `lupa` is still a placeholder with no tracks/team config.
+- Frontend leaderboard track migration is live: `lib/lb.ts`, `lib/lbServer.ts`, and `components/leaderboard/*` now model `track`/`tracks` only.
 - DB index suite updated via migration 002: sort indexes corrected to `NULLS LAST`, dead GIN indexes removed, stat sort indexes added.
 - Backend direction for this phase is:
   - **Go LB primary** (`/lb`, Chi + pgx + PostgreSQL).
@@ -266,17 +268,18 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
   - Fetches `GET /api/lb/leaderboard` via `listLeaderboardOverview(signal)`.
   - Renders a table: Character (portrait + element-colored name) | Team (partner portraits) | Entries | Weapon Rankings (4 slots).
   - Character rows, team portraits, and weapon rankings all come from the API — no hardcoded config.
+  - The overview backend now also returns `tracks`, but the current overview client does not consume them yet.
   - Rows link to `/leaderboards/{characterId}`.
 
 ### `/leaderboards/[characterId]`
 
 - Entry: `app/leaderboards/[characterId]/page.tsx` → `LeaderboardCharacterClient`.
 - `LeaderboardCharacterClient()`:
-  - Fetches `GET /api/lb/leaderboard/{characterId}?weaponIndex=&sequence=&sort=&...` via `listLeaderboard(id, query, signal)`.
-  - `weaponIds` and `sequences` are returned by the API (from the Go calc registry) — no hardcoded `LEADERBOARD_CHAR_CONFIGS`.
-  - State: `page`, `pageSize`, `sort` (default `damage`), `direction`, `weaponIndex`, `sequence`, plus echo/region/uid/username filters.
-  - `configWeaponIds` / `configSequences` state is populated from the first successful API response.
-  - URL sync: `weaponIndex`, `sequence`, `sort`, `direction`, `page`, filter params all persisted to query string.
+  - Fetches `GET /api/lb/leaderboard/{characterId}?weaponIndex=&weaponId=&track=&sort=&...` via `listLeaderboard(id, query, signal)`.
+  - Uses backend-returned `tracks`, `activeTrack`, `activeWeaponId`, and `teamCharacterIds` directly.
+  - State: `page`, `pageSize`, `sort` (default `damage`), `direction`, `weaponIndex`, `track`, plus echo/region/uid/username filters.
+  - `configWeaponIds`, `configTracks`, and `configTeamCharacterIds` state are populated from the API response; SSR prefetch also seeds `activeWeaponId`/`activeTrack`.
+  - URL sync persists `weaponIndex`, `track`, `sort`, `direction`, `page`, `pageSize`, and filter params.
   - Reuses `BuildFiltersPanel` (with empty `characters`/`weaponList` to hide those sections) and `LeaderboardResultsPanel`.
 - `LeaderboardResultsPanel()`:
   - Table header: `# | Owner | Weapon | Seq | Sets | Damage | CV+Stats`.
@@ -288,8 +291,9 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
   - Gold/silver/bronze styling for top 3.
   - Echo sets computed from `buildState.echoPanels` via `fettersByElement`.
   - Reuses `BuildExpanded` directly (no secondary detail fetch — `buildState` is in every leaderboard entry).
-- `WeaponCards` / `SequenceTabs`: private sub-components inside `LeaderboardTabs.tsx`.
-- `leaderboardConstants.ts`: exports only `LB_TABLE_GRID`, `DEFAULT_LB_SORT`, `DEFAULT_LB_SEQUENCE`.
+- `WeaponCards` / `TrackTabs`: private sub-components inside `LeaderboardTabs.tsx`; track tabs render backend labels from `{ key, label }`.
+- `LeaderboardHeader` now receives `teamCharacterIds` on the character page and renders team portraits above the table.
+- `leaderboardConstants.ts`: exports `LB_TABLE_GRID`, `DEFAULT_LB_SORT`, and `DEFAULT_LB_TRACK`.
 
 ## Architecture
 

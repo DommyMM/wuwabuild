@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, listLeaderboard, normalizeLBLeaderboardSortKey, toLBApiSortKey } from '@/lib/lb';
-import { clampItemsPerPage, ITEMS_PER_PAGE, MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE } from '@/components/build/buildConstants';
+import { LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBTrack, listLeaderboard, normalizeLBLeaderboardSortKey, toLBApiSortKey } from '@/lib/lb';
+import { toMainStatLabel } from '@/lib/mainStatFilters';
+import { clampItemsPerPage, ITEMS_PER_PAGE, MAX_ITEMS_PER_PAGE } from '@/components/build/buildConstants';
 import { BuildFiltersPanel } from '@/components/build/BuildFiltersPanel';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/build/types';
-import { DEFAULT_LB_SEQUENCE, DEFAULT_LB_SORT } from './leaderboardConstants';
+import { DEFAULT_LB_SORT, DEFAULT_LB_TRACK } from './leaderboardConstants';
 import { parseEchoMainCSV, parseEchoSetCSV, parsePositiveInt } from './leaderboardQuery';
 import { LeaderboardHeader } from './LeaderboardHeader';
 import { LeaderboardTabs } from './LeaderboardTabs';
@@ -33,24 +34,32 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const isDefaultQuery = searchParams.toString() === '';
   const ssrData = isDefaultQuery ? initialData : null;
   const leaderboardSigRef = useRef(leaderboardSignature(ssrData?.builds ?? [], ssrData?.total ?? 0));
+  const initialTrack = searchParams.get('track') ?? initialData?.activeTrack ?? DEFAULT_LB_TRACK;
+  const initialWeaponIndex = (() => {
+    const idx = Number.parseInt(searchParams.get('weaponIndex') ?? '', 10);
+    if (Number.isFinite(idx) && idx >= 0) return idx;
+    if (initialData?.activeWeaponId) {
+      const activeIndex = initialData.weaponIds.indexOf(initialData.activeWeaponId);
+      if (activeIndex >= 0) return activeIndex;
+    }
+    return 0;
+  })();
 
-  // Config metadata (weapon tabs, sequence tabs) is safe to seed from initialData regardless of query.
+  // Config metadata (weapon tabs, track tabs) is safe to seed from initialData regardless of query.
   const [configWeaponIds, setConfigWeaponIds] = useState<string[]>(() => initialData?.weaponIds ?? []);
-  const [configSequences, setConfigSequences] = useState<string[]>(() => initialData?.sequences.length ? initialData.sequences : ['s0']);
+  const [configTracks, setConfigTracks] = useState<LBTrack[]>(() => initialData?.tracks ?? []);
+  const [configTeamCharacterIds, setConfigTeamCharacterIds] = useState<string[]>(() => initialData?.teamCharacterIds ?? []);
 
   // State initialized from URL
   const [page, setPage] = useState(() => parsePositiveInt(searchParams.get('page'), 1));
-  const [pageSize, setPageSize] = useState(() => clampItemsPerPage(parsePositiveInt(searchParams.get('size') ?? searchParams.get('pageSize'), ITEMS_PER_PAGE)));
+  const [pageSize, setPageSize] = useState(() => clampItemsPerPage(parsePositiveInt(searchParams.get('pageSize'), ITEMS_PER_PAGE)));
   const [sort, setSort] = useState<LBLeaderboardSortKey>(() => normalizeLBLeaderboardSortKey(searchParams.get('sort'), DEFAULT_LB_SORT));
   const [direction, setDirection] = useState<LBSortDirection>(() => {
     const d = searchParams.get('direction');
     return d === 'asc' ? 'asc' : 'desc';
   });
-  const [weaponIndex, setWeaponIndex] = useState(() => {
-    const idx = Number.parseInt(searchParams.get('weaponIndex') ?? '0', 10);
-    return Number.isFinite(idx) && idx >= 0 ? idx : 0;
-  });
-  const [sequence, setSequence] = useState(() => searchParams.get('sequence') ?? DEFAULT_LB_SEQUENCE);
+  const [weaponIndex, setWeaponIndex] = useState(() => initialWeaponIndex);
+  const [track, setTrack] = useState(() => initialTrack);
   const [uid, setUid] = useState(() => searchParams.get('uid') ?? '');
   const [username, setUsername] = useState(() => searchParams.get('username') ?? '');
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => {
@@ -67,17 +76,16 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
     if (!ssrData) return null;
     // Pre-settle only on the default query. Must match JSON.stringify({ characterId, ...leaderboardQuery }).
-    const firstWeaponId = ssrData.weaponIds[0];
-    const weaponIds = firstWeaponId ? [firstWeaponId] : [];
+    const initialWeaponId = ssrData.activeWeaponId || ssrData.weaponIds[initialWeaponIndex] || undefined;
     return JSON.stringify({
       characterId,
       page: 1,
       pageSize: ITEMS_PER_PAGE,
       sort: DEFAULT_LB_SORT,
       direction: 'desc',
-      weaponIndex: 0,
-      sequence: DEFAULT_LB_SEQUENCE,
-      weaponIds,
+      weaponIndex: initialWeaponIndex,
+      weaponId: initialWeaponId,
+      track: initialTrack,
     });
   });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
@@ -85,16 +93,17 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [detailById] = useState<Record<string, LBBuildDetailEntry>>({});
   const [detailLoadingById] = useState<Record<string, boolean>>({});
   const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
+  const defaultTrackKey = configTracks[0]?.key ?? DEFAULT_LB_TRACK;
 
   // URL sync
   useEffect(() => {
     const params = new URLSearchParams();
     if (page > 1) params.set('page', String(page));
-    if (pageSize !== ITEMS_PER_PAGE) params.set('size', String(pageSize));
+    if (pageSize !== ITEMS_PER_PAGE) params.set('pageSize', String(pageSize));
     if (sort !== DEFAULT_LB_SORT) params.set('sort', toLBApiSortKey(sort));
     if (direction !== 'desc') params.set('direction', direction);
     if (weaponIndex !== 0) params.set('weaponIndex', String(weaponIndex));
-    if (sequence !== DEFAULT_LB_SEQUENCE) params.set('sequence', sequence);
+    if (track !== defaultTrackKey) params.set('track', track);
     if (uid) params.set('uid', uid);
     if (username) params.set('username', username);
     if (regionPrefixes.length) params.set('regions', regionPrefixes.join(','));
@@ -106,13 +115,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     if (current !== next) {
       router.replace(next ? `/leaderboards/${characterId}?${next}` : `/leaderboards/${characterId}`, { scroll: false });
     }
-  }, [characterId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, router, searchParams, sequence, sort, uid, username, weaponIndex]);
+  }, [characterId, defaultTrackKey, direction, echoMains, echoSets, page, pageSize, regionPrefixes, router, searchParams, sort, track, uid, username, weaponIndex]);
 
-  // Weapon IDs derived from selected tab
-  const weaponIds = useMemo<string[]>(() => {
-    const weaponId = configWeaponIds[weaponIndex];
-    return weaponId ? [weaponId] : [];
-  }, [configWeaponIds, weaponIndex]);
+  // Selected weapon derived from active tab
+  const weaponId = useMemo(() => configWeaponIds[weaponIndex] ?? '', [configWeaponIds, weaponIndex]);
 
   const leaderboardQuery = useMemo(() => ({
     page,
@@ -120,14 +126,14 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     sort,
     direction,
     weaponIndex,
-    sequence,
-    weaponIds,
+    weaponId: weaponId || undefined,
+    track,
     uid: uid || undefined,
     username: username || undefined,
     regionPrefixes: regionPrefixes.length ? regionPrefixes : undefined,
     echoSets: echoSets.length ? echoSets : undefined,
     echoMains: echoMains.length ? echoMains : undefined,
-  }), [direction, echoMains, echoSets, page, pageSize, regionPrefixes, sequence, sort, uid, username, weaponIds, weaponIndex]);
+  }), [direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId, weaponIndex]);
 
   // Query key for effect dependency
   const queryKey = useMemo(() => JSON.stringify({
@@ -161,7 +167,16 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
           setTotal(response.total);
         }
         if (response.weaponIds.length > 0) setConfigWeaponIds(response.weaponIds);
-        if (response.sequences.length > 0) setConfigSequences(response.sequences);
+        setConfigTracks(response.tracks);
+        setConfigTeamCharacterIds(response.teamCharacterIds);
+
+        if (response.activeWeaponId) {
+          const activeIndex = response.weaponIds.indexOf(response.activeWeaponId);
+          if (activeIndex >= 0) setWeaponIndex(activeIndex);
+        }
+        if (response.activeTrack && !response.tracks.some((entry) => entry.key === track)) {
+          setTrack(response.activeTrack);
+        }
       })
       .catch((fetchError) => {
         if (!active || controller.signal.aborted) return;
@@ -179,7 +194,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       active = false;
       controller.abort();
     };
-  }, [characterId, leaderboardQuery, page, pageSize, queryKey]);
+  }, [characterId, leaderboardQuery, page, pageSize, queryKey, track]);
 
   // Expand / detail
   const handleToggleExpand = useCallback((id: string) => {
@@ -255,7 +270,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
 
   const selectedMainEntries = useMemo<SelectedMainEntry[]>(() => (
     echoMains.map((entry) => {
-      const label = MAIN_STAT_OPTIONS.find((opt) => opt.code === entry.statType)?.label ?? entry.statType;
+      const label = toMainStatLabel(entry.statType);
       return { ...entry, label };
     })
   ), [echoMains]);
@@ -287,16 +302,16 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               characterElementIcon={character?.elementIcon}
               characterElement={character?.element ?? undefined}
               total={total}
-              teamCharacterIds={undefined}
+              teamCharacterIds={configTeamCharacterIds}
             />
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
               <LeaderboardTabs
                 weaponIds={configWeaponIds}
                 weaponIndex={weaponIndex}
                 onSelectWeapon={(idx) => { setWeaponIndex(idx); setPage(1); }}
-                sequences={configSequences}
-                activeSequence={sequence}
-                onSelectSequence={(seq) => { setSequence(seq); setPage(1); }}
+                tracks={configTracks}
+                activeTrack={track}
+                onSelectTrack={(trackKey) => { setTrack(trackKey); setPage(1); }}
               />
               <BuildFiltersPanel
                 sort={sort === 'damage' ? 'finalCV' : (sort as Parameters<typeof BuildFiltersPanel>[0]['sort'])}
