@@ -14,7 +14,7 @@ interface BuildPaginationProps {
 export const BuildPagination: React.FC<BuildPaginationProps> = ({ page, pageCount, statusText, onPageChange }) => (
   <div className="grid grid-cols-[1fr_auto_1fr] items-start">
     <div />
-    <div className="justify-self-center flex items-start gap-2 text-text-primary/75 my-2">
+    <div className="justify-self-center flex items-start gap-2 text-text-primary/75 my-4 md:my-2">
       <div className="flex flex-col items-center gap-1">
         <button type="button" onClick={() => onPageChange(1)} disabled={page <= 1} className={PAGINATION_BUTTON_CLASS}>
           <ChevronFirst className="h-4 w-4" />
@@ -56,7 +56,7 @@ export const BuildPagination: React.FC<BuildPaginationProps> = ({ page, pageCoun
         <span className="text-xs leading-none">last</span>
       </div>
     </div>
-    <div className="min-w-35 justify-self-end self-start text-right text-xs text-text-primary/60">
+    <div className="justify-self-end self-start text-right text-xs text-text-primary/60">
       {statusText}
     </div>
   </div>

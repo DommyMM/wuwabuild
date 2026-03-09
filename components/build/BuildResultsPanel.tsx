@@ -106,163 +106,166 @@ export const BuildResultsPanel: React.FC<BuildResultsPanelProps> = ({
         </div>
       )}
 
-      <div className="relative overflow-x-auto overflow-y-visible pb-1 md:overflow-x-visible">
-        <div className="overflow-visible rounded-lg border border-border bg-background/70">
-          {/* Table header */}
-          <div className={`grid ${TABLE_GRID} items-center gap-4.5 border-b border-border bg-background-secondary/95 text-lg text-text-primary rounded-t-lg`}>
-            <div className="py-2 text-center text-text-primary/70">#</div>
-            <div className="py-2">Owner</div>
-            <div className="py-2">Name</div>
-            <div className="py-2" aria-hidden="true" />
-            <div className="py-2" aria-hidden="true" />
-            <div className="py-2">Sets</div>
-            <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
-              <div className="self-stretch">
-                <SortHeaderMenu
-                  menuId="sort-cv"
-                  label={CV_OPTIONS.find((entry) => entry.key === cvSort)?.label ?? 'Crit Value'}
-                  active={isCvColumnActive}
-                  direction={direction}
-                  options={cvOptions}
-                  selectedKey={sort}
-                  onHeaderSort={() => handleSortRequest(cvSort)}
-                  onSelectOption={handleSortRequest}
-                  icon={activeCvOption?.icon}
-                  showHeaderPlaceholderIcon={false}
-                  showActive
-                />
-              </div>
-              {isStatSortActive ? (
-                <div className="col-span-4 self-stretch flex items-stretch">
-                  <SortHeaderMenu
-                    menuId="sort-stat-merged"
-                    label={getSortLabel(activePinnedStatKey)}
-                    active
-                    direction={direction}
-                    options={statOptions}
-                    selectedKey={sort}
-                    onHeaderSort={() => handleSortRequest(activePinnedStatKey)}
-                    onSelectOption={(nextSort) => {
-                      if (!STAT_OPTION_KEYS.includes(nextSort as StatSortKey)) return;
-                      setStatColumns((prev) => {
-                        const base = [nextSort as StatSortKey, ...displayStatColumns.filter((key) => key !== nextSort)];
-                        const normalized = [...base, ...prev].filter((key, idx, arr) => arr.indexOf(key) === idx);
-                        return normalized.slice(0, 4) as StatSortKey[];
-                      });
-                      handleSortRequest(nextSort);
-                    }}
-                    icon={activePinnedStatOption?.icon}
-                    iconFilter={activePinnedStatOption?.iconFilter}
-                    fillWidth
-                    naturalMenuWidth
-                    textSizeClass="text-lg"
-                    iconSizeClass="h-5 w-5"
-                    showActive
-                    triggerWrapperClassName="rounded-tr-lg"
-                  />
-                </div>
-              ) : (
-                displayStatColumns.map((columnKey, index) => {
-                  const option = statOptions.find((entry) => entry.key === columnKey);
-                  return (
-                    <div
-                      key={`header-${columnKey}-${index}`}
-                      className={`self-stretch ${sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : ''}`}
-                    >
+      <div className="relative">
+        <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
+          <div className="w-max min-w-full">
+            <div className="overflow-visible rounded-lg border border-border bg-background/70">
+              {/* Table header */}
+              <div className={`grid ${TABLE_GRID} items-center gap-4.5 border-b border-border bg-background-secondary/95 text-lg text-text-primary rounded-t-lg`}>
+                <div className="py-2 text-center text-text-primary/70">#</div>
+                <div className="py-2">Owner</div>
+                <div className="py-2">Name</div>
+                <div className="py-2" aria-hidden="true" />
+                <div className="py-2" aria-hidden="true" />
+                <div className="py-2">Sets</div>
+                <div className={`grid ${SORTABLE_GROUP_GRID} min-w-[652px] self-stretch gap-0`}>
+                  <div className="self-stretch">
+                    <SortHeaderMenu
+                      menuId="sort-cv"
+                      label={CV_OPTIONS.find((entry) => entry.key === cvSort)?.label ?? 'Crit Value'}
+                      active={isCvColumnActive}
+                      direction={direction}
+                      options={cvOptions}
+                      selectedKey={sort}
+                      onHeaderSort={() => handleSortRequest(cvSort)}
+                      onSelectOption={handleSortRequest}
+                      icon={activeCvOption?.icon}
+                      showHeaderPlaceholderIcon={false}
+                      showActive
+                    />
+                  </div>
+                  {isStatSortActive ? (
+                    <div className="col-span-4 self-stretch flex items-stretch">
                       <SortHeaderMenu
-                        menuId={`sort-stat-${index}`}
-                        label={getSortLabel(columnKey)}
-                        active={sort === columnKey}
+                        menuId="sort-stat-merged"
+                        label={getSortLabel(activePinnedStatKey)}
+                        active
                         direction={direction}
                         options={statOptions}
                         selectedKey={sort}
-                        alignMenuRight={index === displayStatColumns.length - 1}
-                        onHeaderSort={() => handleSortRequest(columnKey)}
+                        onHeaderSort={() => handleSortRequest(activePinnedStatKey)}
                         onSelectOption={(nextSort) => {
                           if (!STAT_OPTION_KEYS.includes(nextSort as StatSortKey)) return;
                           setStatColumns((prev) => {
-                            const base = [...displayStatColumns];
-                            base[index] = nextSort as StatSortKey;
+                            const base = [nextSort as StatSortKey, ...displayStatColumns.filter((key) => key !== nextSort)];
                             const normalized = [...base, ...prev].filter((key, idx, arr) => arr.indexOf(key) === idx);
                             return normalized.slice(0, 4) as StatSortKey[];
                           });
                           handleSortRequest(nextSort);
                         }}
-                        icon={option?.icon}
-                        iconFilter={option?.iconFilter}
-                        showPlaceholderLine
+                        icon={activePinnedStatOption?.icon}
+                        iconFilter={activePinnedStatOption?.iconFilter}
+                        fillWidth
+                        naturalMenuWidth
+                        textSizeClass="text-lg"
+                        iconSizeClass="h-5 w-5"
                         showActive
-                        triggerWrapperClassName={index === displayStatColumns.length - 1 ? 'rounded-tr-lg' : ''}
+                        triggerWrapperClassName="rounded-tr-lg"
                       />
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Rows area — overlay is scoped here so the header stays visible */}
-          <div className="relative overflow-hidden rounded-b-lg">
-            {/* Skeleton rows */}
-            {showInitialSkeleton && (
-              <div className="divide-y divide-border/60">
-                {Array.from({ length: pageSize }).map((_, index) => (
-                  <div
-                    key={index}
-                    className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
-                  >
-                    <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-8 w-8 animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-5 w-9 animate-pulse rounded bg-background-secondary/80" />
-                    <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
-                    <div className={`grid ${SORTABLE_GROUP_GRID} gap-0`}>
-                      <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
-                      <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                      <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                      <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                      <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                    </div>
+                  ) : (
+                    displayStatColumns.map((columnKey, index) => {
+                      const option = statOptions.find((entry) => entry.key === columnKey);
+                      return (
+                        <div
+                          key={`header-${columnKey}-${index}`}
+                          className={`self-stretch ${sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : ''}`}
+                        >
+                          <SortHeaderMenu
+                            menuId={`sort-stat-${index}`}
+                            label={getSortLabel(columnKey)}
+                            active={sort === columnKey}
+                            direction={direction}
+                            options={statOptions}
+                            selectedKey={sort}
+                            alignMenuRight={index === displayStatColumns.length - 1}
+                            onHeaderSort={() => handleSortRequest(columnKey)}
+                            onSelectOption={(nextSort) => {
+                              if (!STAT_OPTION_KEYS.includes(nextSort as StatSortKey)) return;
+                              setStatColumns((prev) => {
+                                const base = [...displayStatColumns];
+                                base[index] = nextSort as StatSortKey;
+                                const normalized = [...base, ...prev].filter((key, idx, arr) => arr.indexOf(key) === idx);
+                                return normalized.slice(0, 4) as StatSortKey[];
+                              });
+                              handleSortRequest(nextSort);
+                            }}
+                            icon={option?.icon}
+                            iconFilter={option?.iconFilter}
+                            showPlaceholderLine
+                            showActive
+                            triggerWrapperClassName={index === displayStatColumns.length - 1 ? 'rounded-tr-lg' : ''}
+                          />
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+              {/* Rows area — overlay is scoped here so the header stays visible */}
+              <div className="relative overflow-hidden rounded-b-lg">
+                {/* Skeleton rows */}
+                {showInitialSkeleton && (
+                  <div className="divide-y divide-border/60">
+                    {Array.from({ length: pageSize }).map((_, index) => (
+                      <div
+                        key={index}
+                        className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
+                      >
+                        <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
+                        <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
+                        <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
+                        <div className="h-8 w-8 animate-pulse rounded bg-background-secondary/80" />
+                        <div className="h-5 w-9 animate-pulse rounded bg-background-secondary/80" />
+                        <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
+                        <div className={`grid ${SORTABLE_GROUP_GRID} min-w-[652px] gap-0`}>
+                          <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
+                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                )}
 
-            {!showInitialSkeleton && !error && builds.length === 0 && (
-              <div className="p-6 text-center text-sm text-text-primary/65">
-                No builds match the current filters.
-              </div>
-            )}
+                {!showInitialSkeleton && !error && builds.length === 0 && (
+                  <div className="p-6 text-center text-sm text-text-primary/65">
+                    No builds match the current filters.
+                  </div>
+                )}
 
-            {!error && builds.length > 0 && (
-              <div className="relative divide-y divide-border/60">
-                {builds.map((entry, index) => (
-                  <BuildRow
-                    key={entry.id}
-                    entry={entry}
-                    rank={rankStart + index}
-                    isExpanded={expandedBuildIds.has(entry.id)}
-                    detail={detailById[entry.id]}
-                    isDetailLoading={detailLoadingById[entry.id] ?? false}
-                    detailError={detailErrorById[entry.id]}
-                    sort={sort}
-                    isCvColumnActive={isCvColumnActive}
-                    isStatSortActive={isStatSortActive}
-                    onToggleExpand={onToggleExpand}
-                    onRetryDetail={onRetryDetail}
-                  />
-                ))}
-                {showRefreshingOverlay && (
-                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 backdrop-blur-[1.5px]">
-                    <div className="flex items-center gap-3 rounded-md border border-accent/35 bg-background/80 px-4 py-2 text-sm text-text-primary">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
-                      Updating builds...
-                    </div>
+                {!error && builds.length > 0 && (
+                  <div className="relative divide-y divide-border/60">
+                    {builds.map((entry, index) => (
+                      <BuildRow
+                        key={entry.id}
+                        entry={entry}
+                        rank={rankStart + index}
+                        isExpanded={expandedBuildIds.has(entry.id)}
+                        detail={detailById[entry.id]}
+                        isDetailLoading={detailLoadingById[entry.id] ?? false}
+                        detailError={detailErrorById[entry.id]}
+                        sort={sort}
+                        isCvColumnActive={isCvColumnActive}
+                        isStatSortActive={isStatSortActive}
+                        onToggleExpand={onToggleExpand}
+                        onRetryDetail={onRetryDetail}
+                      />
+                    ))}
+                    {showRefreshingOverlay && (
+                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 backdrop-blur-[1.5px]">
+                        <div className="flex items-center gap-3 rounded-md border border-accent/35 bg-background/80 px-4 py-2 text-sm text-text-primary">
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
+                          Updating builds...
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

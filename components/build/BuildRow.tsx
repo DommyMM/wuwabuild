@@ -151,7 +151,7 @@ export const BuildRow: React.FC<BuildRowProps> = ({
           )}
         </div>
 
-        <div className={`grid ${SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
+        <div className={`grid ${SORTABLE_GROUP_GRID} min-w-[652px] self-stretch gap-0`}>
           <div className={`self-stretch ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
             <div className="flex h-full items-center justify-between px-2.5 text-lg">
               <span className="text-text-primary">

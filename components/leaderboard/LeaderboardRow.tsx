@@ -182,7 +182,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         </div>
 
         {/* CV + Stats + Damage */}
-        <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-0 self-stretch gap-0`}>
+        <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-[796px] self-stretch gap-0`}>
           <div className={`self-stretch ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
             <div className="flex h-full items-center justify-between px-2.5 text-lg">
               <span className="text-text-primary">

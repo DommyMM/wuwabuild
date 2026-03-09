@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { LBSortKey, LBSortDirection } from '@/lib/lb';
 
@@ -64,10 +64,41 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
   showActive = false,
   triggerWrapperClassName = '',
 }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const showLineOnly = showPlaceholderLine && !active;
+  const menuVisibilityClass = isMenuOpen ? 'block' : 'hidden group-hover/sort:block group-focus-within/sort:block';
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!containerRef.current) return;
+      const target = event.target;
+      if (target instanceof Node && !containerRef.current.contains(target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setIsMenuOpen(false);
+      blurFocusedMenuControl();
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMenuOpen]);
 
   return (
-    <div className={`group/sort relative h-full items-stretch ${fillWidth ? 'flex w-full' : 'inline-flex'}`}>
+    <div ref={containerRef} className={`group/sort relative h-full items-stretch ${fillWidth ? 'flex w-full' : 'inline-flex'}`}>
       <div
         className={`flex h-full ${fillWidth ? 'w-full' : 'w-auto'} overflow-hidden ${
           showActive ? active ? 'border-t-2 border-accent/85' : 'border-t-2 border-transparent' : ''
@@ -76,9 +107,11 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
         <button
           type="button"
           onClick={() => {
+            setIsMenuOpen(true);
             onHeaderSort();
-            blurFocusedMenuControl();
           }}
+          aria-expanded={isMenuOpen}
+          aria-controls={`${menuId}-menu`}
           className={`flex h-full ${fillWidth ? 'w-full' : 'w-auto'} items-center justify-between gap-2 py-2 px-4 ${textSizeClass} transition-colors ${contentOpacityClass} ${
             active
               ? 'border-accent/85 bg-black/35 text-accent'
@@ -115,7 +148,8 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
       </div>
 
       <div
-        className={`absolute top-full z-30 hidden w-max ${naturalMenuWidth ? 'min-w-41' : 'min-w-full'} overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary group-hover/sort:block group-focus-within/sort:block ${
+        id={`${menuId}-menu`}
+        className={`absolute top-full z-30 w-max ${naturalMenuWidth ? 'min-w-41' : 'min-w-full'} overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary ${menuVisibilityClass} ${
           alignMenuRight ? 'right-0 left-auto' : 'left-0'
         }`}
       >
@@ -127,6 +161,7 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
+                setIsMenuOpen(false);
                 onSelectOption(option.key);
                 blurFocusedMenuControl();
               }}

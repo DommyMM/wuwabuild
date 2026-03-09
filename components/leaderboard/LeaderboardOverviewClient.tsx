@@ -9,7 +9,7 @@ import { LBCharacterOverview, listLeaderboardOverview } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 
 // Overview table grid: # | Character | Weapons | Team | Entries
-const OVERVIEW_GRID = 'grid-cols-[40px_minmax(160px,200px)_minmax(0,1fr)_96px_72px]';
+const OVERVIEW_GRID = 'grid-cols-[40px_200px_minmax(320px,1fr)_96px_72px]';
 
 export const LeaderboardOverviewClient: React.FC = () => {
   const { getCharacter, getWeapon, loading: gameDataLoading } = useGameData();
@@ -63,42 +63,44 @@ export const LeaderboardOverviewClient: React.FC = () => {
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-lg border border-border bg-background/70">
-        {/* Header */}
-        <div className={`grid ${OVERVIEW_GRID} items-center border-b border-border bg-background-secondary/95 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-primary/50`}>
-          <div className="text-center">#</div>
-          <div>Character</div>
-          <div>Weapons</div>
-          <div className="text-center">Team</div>
-          <div className="text-center">Entries</div>
-        </div>
+      <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
+        <div className="w-max min-w-full">
+          <div className="overflow-hidden rounded-lg border border-border bg-background/70">
+            {/* Header */}
+            <div className={`grid ${OVERVIEW_GRID} min-w-[728px] items-center border-b border-border bg-background-secondary/95 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-primary/50`}>
+              <div className="text-center">#</div>
+              <div>Character</div>
+              <div>Weapons</div>
+              <div className="text-center">Team</div>
+              <div className="text-center">Entries</div>
+            </div>
 
-        {/* Rows */}
-        <div className="divide-y divide-border/50">
-          {showSkeleton
-            ? Array.from({ length: 8 }).map((_, index) => (
-                <div
-                  key={index}
-                  className={`grid ${OVERVIEW_GRID} items-center gap-3 px-3 py-3 odd:bg-background/30 even:bg-background-secondary/20`}
-                >
-                  <div className="mx-auto h-3 w-5 animate-pulse rounded bg-background-secondary/80" />
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-10 w-10 animate-pulse rounded-full bg-background-secondary/80" />
-                    <div className="h-4 w-24 animate-pulse rounded bg-background-secondary/80" />
-                  </div>
-                  <div className="flex gap-2">
-                    {Array.from({ length: 4 }).map((__, wi) => (
-                      <div key={wi} className="h-10 w-20 animate-pulse rounded bg-background-secondary/80" />
-                    ))}
-                  </div>
-                  <div className="flex justify-center gap-1">
-                    <div className="h-7 w-7 animate-pulse rounded-full bg-background-secondary/80" />
-                    <div className="h-7 w-7 animate-pulse rounded-full bg-background-secondary/80" />
-                  </div>
-                  <div className="mx-auto h-4 w-10 animate-pulse rounded bg-background-secondary/80" />
-                </div>
-              ))
-            : overview.map((entry, rowIndex) => {
+            {/* Rows */}
+            <div className="divide-y divide-border/50">
+              {showSkeleton
+                ? Array.from({ length: 8 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className={`grid ${OVERVIEW_GRID} min-w-[728px] items-center gap-3 px-3 py-3 odd:bg-background/30 even:bg-background-secondary/20`}
+                    >
+                      <div className="mx-auto h-3 w-5 animate-pulse rounded bg-background-secondary/80" />
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-10 w-10 animate-pulse rounded-full bg-background-secondary/80" />
+                        <div className="h-4 w-24 animate-pulse rounded bg-background-secondary/80" />
+                      </div>
+                      <div className="flex gap-2">
+                        {Array.from({ length: 4 }).map((__, wi) => (
+                          <div key={wi} className="h-10 w-20 animate-pulse rounded bg-background-secondary/80" />
+                        ))}
+                      </div>
+                      <div className="flex justify-center gap-1">
+                        <div className="h-7 w-7 animate-pulse rounded-full bg-background-secondary/80" />
+                        <div className="h-7 w-7 animate-pulse rounded-full bg-background-secondary/80" />
+                      </div>
+                      <div className="mx-auto h-4 w-10 animate-pulse rounded bg-background-secondary/80" />
+                    </div>
+                  ))
+                : overview.map((entry, rowIndex) => {
                 const character = getCharacter(entry.id);
                 const characterName = character
                   ? formatCharacterDisplayName(character, {
@@ -115,9 +117,9 @@ export const LeaderboardOverviewClient: React.FC = () => {
                   entry.weapons.map((w) => [w.weaponId, w]),
                 );
 
-                return (
-                  <Link key={entry.id} href={`/leaderboards/${entry.id}`} className="block">
-                    <div className={`grid ${OVERVIEW_GRID} items-center gap-3 px-3 py-3 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/8`}>
+                  return (
+                    <Link key={entry.id} href={`/leaderboards/${entry.id}`} className="block">
+                      <div className={`grid ${OVERVIEW_GRID} min-w-[728px] items-center gap-3 px-3 py-3 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/8`}>
                       {/* # */}
                       <div className="text-center text-sm text-text-primary/40">{rowIndex + 1}</div>
 
@@ -214,10 +216,12 @@ export const LeaderboardOverviewClient: React.FC = () => {
                           <span className="text-text-primary/30 text-xs">—</span>
                         )}
                       </div>
-                    </div>
-                  </Link>
-                );
-              })}
+                      </div>
+                    </Link>
+                  );
+                })}
+            </div>
+          </div>
         </div>
       </div>
     </div>
