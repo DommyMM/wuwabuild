@@ -10,15 +10,16 @@ For full technical context, see:
 
 ---
 
-## Status Snapshot (March 7, 2026)
+## Status Snapshot (March 9, 2026)
 
-- All core routes implemented: `/`, `/edit`, `/import`, `/saves`, `/builds`.
-- `/builds` is live and wired to LB `GET /build` (compact rows) and `GET /build/{id}` (detail expansion) with filters/sort/pagination + local query caching.
-- `/import` OCR flow is live; `Upload to Leaderboard` toggle is present but submission wiring is still pending.
-- `/edit` has a disabled `View Ranking` button pending leaderboard route integration.
-- `/leaderboards` placeholder route exists.
+- All core routes implemented: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`.
+- `/builds` is live and wired to LB `GET /build` with filters/sort/pagination + local query caching + SSR prefetch (2-min ISR, silent revalidation on mount).
+- `/leaderboards` overview and `/leaderboards/[characterId]` per-character pages are live, also SSR-prefetched.
+- `/import` OCR flow is live; `Upload to Leaderboard` toggle submits canonical `buildState` via `POST /api/lb/build`.
+- `/edit` `View Ranking` button routes to the selected character leaderboard page.
 - Go leaderboard backend (`/lb`) runs single-pass canonical ingest with 8 registered character damage configs.
 - Node backend (`/mongo`) remains the fallback path until remaining Go parity items are closed.
+- DB index suite fixed: sort indexes now use `NULLS LAST`; dead GIN indexes removed; stat sort indexes added.
 
 ---
 
@@ -57,7 +58,7 @@ AppProviders
 
 - **Leaderboard**: client code calls the generic Next `/api/lb/*` proxy, which forwards any LB child path to the Go LB with `X-Internal-Key`.
 - **OCR**: `/api/ocr` proxies to `https://ocr.wuwabuilds.moe/api/ocr` with `X-OCR-Region`, plus `X-Internal-Key` and forwarded client IP when configured.
-- **Build submission**: `POST /build` wiring pending.
+- **Build submission**: `POST /build` is wired — `/import` sends canonical `buildState` when the `Upload to Leaderboard` toggle is enabled.
 
 ---
 
@@ -65,11 +66,8 @@ AppProviders
 
 1. Go LB rollout:
    - Production cutover from legacy Mongo service to `/lb`.
-   - Finalize leaderboard/profile ranking behavior.
-2. Leaderboard surface integration:
-   - `/leaderboards` page implementation.
-   - `/import` leaderboard submission wiring to `POST /build`.
-   - `/edit` `View Ranking` action wiring.
+   - Apply pending DB migrations to Railway (dedupe constraint, globalRank CTE, echo backfill).
+2. Fine-tune `/builds` and leaderboard UX polish.
 
 ---
 
@@ -140,7 +138,7 @@ wuwabuilds/
 │   ├── edit/                # Build editor (/edit)
 │   ├── import/              # OCR import (/import)
 │   ├── saves/               # Local saves (/saves)
-│   ├── leaderboards/        # Placeholder (/leaderboards)
+│   ├── leaderboards/        # Leaderboard overview + per-character pages (/leaderboards, /leaderboards/[characterId])
 │   └── api/                 # API routes (ocr proxy, upload-bucket)
 ├── contexts/                # React Context providers
 ├── components/              # Components by feature area

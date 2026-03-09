@@ -56,25 +56,32 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 | `builds_imported` | User imports builds from JSON | `components/save/SavesPageClient.tsx` |
 | `builds_session_summary` | Session aggregation (expansion count on /builds unmount) | `components/build/BuildPageClient.tsx` |
 
-## LB + Builds Current Status (2026-03-08)
+## LB + Builds Current Status (2026-03-09)
 
 - `/builds` route is live and wired to LB `GET /build` filters/sort/pagination plus detail expansion via `GET /build/{id}`.
-- `/leaderboards` route is **implemented** — overview page + per-character pages are live.
+- `/builds`, `/leaderboards`, and `/leaderboards/[characterId]` are all **SSR-prefetched** — default query rendered server-side (2-minute ISR), hydrated directly into client state, silently revalidated on mount using diff-based ref signatures. Non-default URLs (with filter params) skip the SSR seed and fetch fresh on mount.
+- `/leaderboards` route is **live** — overview page + per-character pages implemented.
 - `/import` uploads to LB through `POST /api/lb/build` when `Upload to Leaderboard` is enabled, sending canonical `buildState` only and letting `/lb` derive stats/CV/echo summaries server-side.
 - `BuildEditor` has a `View Ranking` button that routes to the selected character leaderboard.
 - Go LB runtime is validated with migrated legacy data and single-pass canonical ingest (`make import DUMP=...`).
 - API filtering should use canonical CDN IDs.
-- Go LB currently has 8 registered server-side character calculation configs (carlotta, jinhsi, changli, camellya, zani, phoebe, cartethyia, jiyan).
-- Latest migration verification includes:
-  - full reimport + normalize succeeded (`11302` converted, `0` errors),
-  - canonical repair succeeded (`11302` scanned, updates applied, `0` errors),
-  - sample weapon mapping verified (`uid=901955607`, Camellya -> `weaponId 21020026`, rendered as Red Spring).
+- Go LB has 8 registered server-side character calculation configs (carlotta, jinhsi, changli, camellya, zani, phoebe, cartethyia, jiyan).
+- DB index suite updated via migration 002: sort indexes corrected to `NULLS LAST`, dead GIN indexes removed, stat sort indexes added.
 - Backend direction for this phase is:
   - **Go LB primary** (`/lb`, Chi + pgx + PostgreSQL).
   - **Node fallback** (`/mongo`, Express + MongoDB) until Go parity gates are met.
 - See `docs/LB_MIGRATION_STATUS.md` for implementation parity, risks, and decision gates.
 
-## Frontend Routes (Canonical, 2026-03-07)
+### SSR prefetch architecture (`lib/lbServer.ts`)
+
+- `lbServer.ts` is a server-only module that fetches directly from `LB_URL` with `X-Internal-Key`, bypassing the `/api/lb` proxy.
+- `PREFETCH_TTL_S = 120` (2 minutes) — single constant shared across all three prefetch functions.
+- Three exports: `prefetchBuilds()`, `prefetchLeaderboardOverview()`, `prefetchLeaderboard(characterId)` — each returns typed data or `null` on error.
+- Page server components call the prefetch function and pass `initialData` to the client component.
+- Client components use `isDefaultQuery = searchParams.toString() === ''` to guard: only seed state from SSR data when no filter params are present (prevents wrong data on bookmarked/filtered URLs).
+- Diff-based refs (`buildListSigRef`, `leaderboardSigRef`, `overviewSigRef`) track current state signature and skip `setState` if data hasn't changed after revalidation.
+
+## Frontend Routes (Canonical, 2026-03-09)
 
 | Route | Status | Entry | Primary Client Tree |
 |-------|--------|-------|---------------------|
@@ -533,19 +540,18 @@ Where `base` = character scaled + weapon scaled, `percent` = sum of all % source
 
 ## Migration Status
 
-Current status (March 8, 2026): core frontend migration is complete for main user flows.
+Current status (March 9, 2026): core frontend migration is complete for all user flows.
 
 | Track | Scope | Status |
 |-------|-------|--------|
 | Frontend rewrite | App Router + providers + `/`, `/edit`, `/import`, `/saves` | Done |
-| Builds surface | `/builds` list, filters, sort, pagination, LB fetch wiring | Live (fine-tuning in progress) |
-| Leaderboard integration | `/leaderboards` overview + per-character pages live; `/import` upload + `/edit` View Ranking pending | Mostly Done |
+| Builds surface | `/builds` list, filters, sort, pagination, SSR prefetch | Done |
+| Leaderboard integration | `/leaderboards` overview + per-character pages; SSR prefetch; `/import` upload + `/edit` View Ranking | Done |
 | LB backend cutover | Go `/lb` parity, migrations, submit normalization/backfill, Node fallback retirement | In Progress |
 
 Primary remaining workstreams:
-1. Fine-tune `/builds` behavior and UX polish.
-2. Connect `/import` leaderboard submission toggle and `/edit` View Ranking action.
-3. Close Go LB parity gates (dedupe constraint, globalRank CTE, echo backfill) and remove Node fallback dependency.
+1. Close Go LB parity gates (dedupe constraint, globalRank CTE, echo backfill) and remove Node fallback dependency.
+2. UX polish and fine-tuning.
 
 ## Related Services
 
