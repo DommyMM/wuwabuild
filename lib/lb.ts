@@ -372,6 +372,7 @@ export interface LBLeaderboardEntry {
   damage: number;
   filteredRank: number;
   globalRank: number;
+  stats: Record<LBStatCode, number>;
   owner: { username: string; uid: string };
   character: { id: string; level: number; roverElement?: string };
   weapon: { id: string; level: number; rank: number };
@@ -429,6 +430,7 @@ function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
     damage: toFiniteNumber(raw.damage),
     filteredRank: toFiniteNumber(raw.filteredRank, 0),
     globalRank: toFiniteNumber(raw.globalRank, 0),
+    stats: parseStatsRecord(raw),
     owner: {
       username: watermark && typeof watermark.username === 'string' ? watermark.username : '',
       uid: watermark && typeof watermark.uid === 'string' ? watermark.uid : '',

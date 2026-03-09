@@ -20,7 +20,7 @@ import {
   SORTABLE_GROUP_GRID,
   TABLE_ROW_HEIGHT_CLASS,
 } from '@/components/build/buildConstants';
-import { getSortLabel, resolveRegionBadge } from '@/components/build/buildFormatters';
+import { formatStatByKey, getSortLabel, resolveRegionBadge } from '@/components/build/buildFormatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '@/components/build/buildStatColumns';
 import { BuildExpanded } from '@/components/build/BuildExpanded';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
@@ -119,7 +119,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
     character: { id: entry.character.id },
     weapon: entry.weapon,
     sequence: entry.sequence,
-    stats: {} as Record<LBStatCode, number>,
+    stats: entry.stats,
     echoSummary: echoSummaryForExpanded,
     cv: entry.finalCV,
     timestamp: entry.timestamp,
@@ -221,7 +221,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
           <div className={`self-stretch ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
             <div className="flex h-full items-center justify-between px-2.5 text-lg">
               <span className="text-text-primary">
-                {Number(entry.cv ?? 0).toFixed(1)} : {Number(entry.finalCV ?? 0).toFixed(1)}
+                {Number(entry.stats.CR ?? 0).toFixed(1)} : {Number(entry.stats.CD ?? 0).toFixed(1)}
               </span>
               <span
                 className={`tracking-wide ${isHighestCV ? 'cv-glow' : ''}`}
@@ -234,6 +234,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
 
           {rowStatColumns.map((columnKey, statIndex) => {
             const label = getSortLabel(columnKey);
+            const value = entry.stats[columnKey] ?? 0;
             const icon = statIcons?.[label] ?? '';
             const iconFilter = ELEMENT_ICON_FILTERS[label];
             const shouldDimRowStat = isStatSortActive && statIndex > 0;
@@ -245,7 +246,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
                 }`}
               >
                 <div
-                  className={`flex h-full items-center gap-2 py-2 px-4 text-lg text-text-primary/50 ${shouldDimRowStat ? 'opacity-50' : ''}`}
+                  className={`flex h-full items-center gap-2 py-2 px-4 text-lg text-text-primary ${shouldDimRowStat ? 'opacity-50' : ''}`}
                 >
                   {icon ? (
                     <img
@@ -257,7 +258,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
                   ) : (
                     <span className="inline-block h-5 w-5 shrink-0 rounded bg-border" />
                   )}
-                  <span>—</span>
+                  <span>{formatStatByKey(columnKey, value)}</span>
                 </div>
               </div>
             );

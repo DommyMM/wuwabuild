@@ -177,9 +177,10 @@ export const LeaderboardOverviewClient: React.FC = () => {
                                 <div className="h-8 w-8 shrink-0 rounded bg-border/30" />
                               )}
                               <div className="min-w-0 flex-1">
+                                <div className="truncate text-xs font-medium text-text-primary/85">{weaponName}</div>
                                 {top && top.damage > 0 ? (
                                   <>
-                                    <div className="truncate text-xs text-text-primary/60">{top.owner.username || 'Anonymous'}</div>
+                                    <div className="truncate text-xs text-text-primary/50">{top.owner.username || 'Anonymous'}</div>
                                     <div className="text-sm font-semibold text-accent">
                                       {Math.round(top.damage).toLocaleString()}
                                     </div>
