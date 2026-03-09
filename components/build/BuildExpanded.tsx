@@ -28,6 +28,74 @@ type SubstatSummaryEntry = {
 
 const BASE_STATS_SET = new Set<string>(BASE_STATS);
 
+const SkeletonBlock: React.FC<{ className: string }> = ({ className }) => (
+  <div className={`animate-pulse rounded bg-white/8 ${className}`} />
+);
+
+const BuildExpandedSkeleton: React.FC = () => (
+  <>
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-2">
+        <SkeletonBlock className="h-9 w-9 shrink-0 rounded-sm" />
+        <SkeletonBlock className="h-6 w-36" />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <SkeletonBlock key={`forte-skeleton-${index}`} className="h-6 w-16 rounded" />
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <SkeletonBlock className="h-4 w-24" />
+        <SkeletonBlock className="h-5 w-10 rounded-full" />
+      </div>
+    </div>
+
+    <div className="grid grid-cols-5 gap-4 min-w-0">
+      {Array.from({ length: 5 }).map((_, panelIndex) => (
+        <div
+          key={`echo-panel-skeleton-${panelIndex}`}
+          className="relative min-w-0 aspect-6/5 rounded-xl border border-white/10 bg-[linear-gradient(170deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.03)_28%,rgba(0,0,0,0.28)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05),inset_0_-14px_24px_rgba(0,0,0,0.12),0_8px_16px_rgba(0,0,0,0.24)]"
+        >
+          <div className="absolute top-0 left-1/2 z-3 -translate-x-1/2 -translate-y-1/2">
+            <SkeletonBlock className="h-6 w-6 rounded-full" />
+          </div>
+
+          <div className="absolute inset-0 overflow-hidden rounded-xl">
+            <div className="absolute inset-y-0 left-0 w-[58%] bg-white/4" />
+          </div>
+
+          <div className="relative z-2 flex h-full">
+            <div className="flex w-1/2 flex-col items-start justify-between p-2">
+              <div className="flex flex-col items-start gap-1">
+                <SkeletonBlock className="h-7 w-16 rounded-md" />
+              </div>
+              <SkeletonBlock className="h-8 w-20 rounded-md" />
+            </div>
+
+            <div className="flex w-1/2 flex-col items-stretch justify-center gap-1 py-2.5 pl-8 pr-2">
+              {Array.from({ length: 5 }).map((_, subIndex) => (
+                <SkeletonBlock key={`echo-sub-skeleton-${panelIndex}-${subIndex}`} className="h-8 w-full rounded-sm" />
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div className="flex justify-center gap-2">
+      {Array.from({ length: 7 }).map((_, index) => (
+        <SkeletonBlock key={`summary-pill-skeleton-${index}`} className="h-9 w-26 rounded-full" />
+      ))}
+    </div>
+
+    <div className="flex justify-center">
+      <SkeletonBlock className="h-9 w-28 rounded" />
+    </div>
+  </>
+);
+
 // Returns the paired variant: "ATK" <-> "ATK%", "HP" <-> "HP%", "DEF" <-> "DEF%", else null
 function getBasePercentVariant(stat: string): string | null {
   if (BASE_STATS_SET.has(stat)) return `${stat}%`;
@@ -220,13 +288,8 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           transition={{ duration: 0.22, ease: 'easeInOut' }}
           className="overflow-hidden border-t border-border/50 bg-black/15 tracking-wide"
         >
-          <div className="space-y-4 py-3 px-12">
-            {isDetailLoading && (
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-background/70 p-3 text-sm text-text-primary/80">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
-                Loading build details...
-              </div>
-            )}
+          <div className="mx-auto w-full max-w-330 space-y-4 py-3 px-12">
+            {isDetailLoading && <BuildExpandedSkeleton />}
 
             {!isDetailLoading && detailError && (
               <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 p-3 text-sm text-red-200">
@@ -247,7 +310,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   {/* Left: Character icon + name + level */}
                   <div className="flex items-center gap-2">
                     {character?.head ? (
-                      <img src={character.head} alt={characterName} className="h-9 w- object-cover" />
+                      <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" />
                     ) : (
                       <div className="h-9 w-9 rounded bg-border" />
                     )}
@@ -288,7 +351,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="grid grid-cols-5 gap-4 min-w-0">
                     {detail.buildState.echoPanels.map((panel, panelIndex) => {
                       const echo = panel.id ? getEcho(panel.id) : null;
                       const echoName = echo
@@ -318,7 +381,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                         return (
                           <div
                             key={`${detail.id}-panel-empty-${panelIndex}`}
-                            className="relative flex flex-1 items-center justify-center aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
+                            className="relative flex min-w-0 items-center justify-center aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
                           >
                             <div className="h-7 w-7 rounded-full border-2 border-dashed border-white/20" />
                           </div>
@@ -328,7 +391,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                       return (
                         <div
                           key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
-                          className="relative flex-1 aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
+                          className="relative min-w-0 aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
                           style={{ borderColor: `${frameBorderColor}b3` }}
                         >
                           {/* Fetter icon top center */}
