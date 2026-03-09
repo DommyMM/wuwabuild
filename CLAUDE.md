@@ -60,8 +60,8 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 
 - `/builds` route is live and wired to LB `GET /build` filters/sort/pagination plus detail expansion via `GET /build/{id}`.
 - `/leaderboards` route is **implemented** — overview page + per-character pages are live.
-- `/import` has an `Upload to Leaderboard` toggle in UI, but no leaderboard submission wiring is connected yet.
-- `BuildEditor` still has a disabled `View Ranking` button with a TODO note for leaderboard logic.
+- `/import` uploads to LB through `POST /api/lb/build` when `Upload to Leaderboard` is enabled, sending canonical `buildState` only and letting `/lb` derive stats/CV/echo summaries server-side.
+- `BuildEditor` has a `View Ranking` button that routes to the selected character leaderboard.
 - Go LB runtime is validated with migrated legacy data and single-pass canonical ingest (`make import DUMP=...`).
 - API filtering should use canonical CDN IDs.
 - Go LB currently has 8 registered server-side character calculation configs (carlotta, jinhsi, changli, camellya, zani, phoebe, cartethyia, jiyan).
@@ -206,8 +206,8 @@ All routes render inside `app/layout.tsx` (`AppProviders` + `Navigation`), and a
 - Entry: `app/import/page.tsx` -> `ImportPageClient()`.
 - `ImportPageClient()`:
   - `handleFile(file)` validates size format (1920x1080) and DPI, then starts OCR.
-  - `handleReset()`, `buildImportedState(wm)`, `doImport(wm)`, `saveImportToSaves(wm)`, `handleImport(wm)`.
-  - `uploadToLb` toggle exists in UI but is currently not wired to leaderboard submission.
+  - `handleReset()`, `buildImportedState(wm)`, `uploadImportedState(buildState)`, `doImport(wm)`, `saveImportToSaves(wm)`, `handleImport(wm)`.
+  - Leaderboard submission goes through `lib/lb.ts -> submitBuild(buildState)`, posting only canonical `buildState` to `/api/lb/build`.
 - `ImportUploader()`:
   - `isValidFile`, `handleFile`, document-level paste listener, drag/drop and file input handlers.
 - `ImportResults()`:

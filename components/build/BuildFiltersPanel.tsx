@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDownAZ, ArrowUpAZ, Search, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Search, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Character, formatCharacterDisplayName } from '@/lib/character';
@@ -207,7 +207,9 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
       .filter((value) => value >= 1 && value <= maxPageSize);
     return [...new Set(presets)].sort((a, b) => a - b);
   }, [maxPageSize]);
+  const pageSizeMenuRef = useRef<HTMLDivElement | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isPageSizeMenuOpen, setIsPageSizeMenuOpen] = useState(false);
   const [isFilterMode, setIsFilterMode] = useState(false);
   const [activeItemIndex, setActiveItemIndex] = useState(-1);
 
@@ -427,6 +429,30 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     activeRow?.scrollIntoView({ block: 'nearest' });
   }, [isDropdownOpen, normalizedActiveItemIndex]);
 
+  useEffect(() => {
+    if (!isPageSizeMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!pageSizeMenuRef.current?.contains(event.target as Node)) {
+        setIsPageSizeMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsPageSizeMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isPageSizeMenuOpen]);
+
   const activeSortIcon = statIcons?.[activeSortLabel] ?? '';
   const activeSortIconFilter = ELEMENT_ICON_FILTERS[activeSortLabel];
 
@@ -458,16 +484,59 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
               </button>
             </>
           )}
-          <select
-            value={String(pageSize)}
-            onChange={(event) => onPageSizeChange(Number.parseInt(event.target.value, 10))}
-            className="appearance-none rounded-lg border border-border bg-background py-1.5 px-3 text-xs text-text-primary transition-colors hover:border-accent/50 focus:border-accent/60 focus:outline-none"
-            aria-label="Max items per page"
-          >
-            {pageSizePresets.map((value) => (
-              <option key={`page-size-${value}`} value={String(value)}>Max Rows: {value}</option>
-            ))}
-          </select>
+          <div ref={pageSizeMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setIsPageSizeMenuOpen((prev) => !prev)}
+              className={`inline-flex min-w-[7.5rem] items-center justify-between gap-2 border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none ${
+                isPageSizeMenuOpen
+                  ? 'rounded-t-lg rounded-b-none border-accent/70 bg-black/35 text-accent'
+                  : 'rounded-lg border-border bg-background text-text-primary hover:border-accent/50 hover:bg-background-secondary/80'
+              }`}
+              aria-haspopup="menu"
+              aria-expanded={isPageSizeMenuOpen}
+              aria-label="Max items per page"
+            >
+              <span className="whitespace-nowrap">Max Rows: {pageSize}</span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
+                  isPageSizeMenuOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {isPageSizeMenuOpen && (
+              <div
+                role="menu"
+                aria-label="Max rows"
+                className="absolute right-0 top-full z-40 min-w-full overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary shadow-xl"
+              >
+                {pageSizePresets.map((value) => {
+                  const isSelected = value === pageSize;
+                  return (
+                    <button
+                      key={`page-size-${value}`}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={isSelected}
+                      onClick={() => {
+                        onPageSizeChange(value);
+                        setIsPageSizeMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between gap-2 border-b border-border px-3 py-1.5 text-left text-xs transition-colors last:border-b-0 ${
+                        isSelected
+                          ? 'border-l-2 border-l-accent bg-black/35 text-accent'
+                          : 'border-l-2 border-l-transparent text-text-primary hover:border-l-border hover:bg-background hover:text-text-primary/95'
+                      }`}
+                    >
+                      <span className="whitespace-nowrap">Max Rows: {value}</span>
+                      {isSelected && <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           <button
             type="button"
             onClick={onClearAllFilters}

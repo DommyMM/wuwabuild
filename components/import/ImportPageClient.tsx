@@ -9,11 +9,13 @@ import { useToast } from '@/contexts/ToastContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
 import { loadImage } from '@/lib/import/cropImage';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
+import { submitBuild } from '@/lib/lb';
 import { saveBuild } from '@/lib/storage';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
 import type { AnalysisData } from '@/lib/import/types';
+import type { SavedState } from '@/lib/build';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 import posthog from 'posthog-js';
 
@@ -23,12 +25,13 @@ export function ImportPageClient() {
   const router = useRouter();
   const { loadState, state: buildState } = useBuild();
   const gameData = useGameData();
-  const { success, error: notifyError } = useToast();
+  const { success, error: notifyError, warning, info } = useToast();
   const { isProcessing, progress, analysisData, error, processImage, reset } = useOcrImport();
 
   const [step, setStep]                       = useState<ImportStep>('upload');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [uploadToLb, setUploadToLb]           = useState(true);
+  const [isSubmitting, setIsSubmitting]       = useState(false);
   const [pendingWm, setPendingWm]             = useState<{ username: string; uid: string } | null>(null);
 
   // Silent wake-up ping so Railway auto-starts the server if sleeping
@@ -69,23 +72,72 @@ export function ImportPageClient() {
     });
   };
 
-  const doImport = (wm: { username: string; uid: string }) => {
-    const importedState = buildImportedState(wm);
-    loadState(importedState);
-    posthog.capture('import_completed', {
-      action: 'load_to_editor',
-      character_id: importedState.characterId,
-    });
-    router.push('/edit');
+  const getImportedCharacterName = (importedState: SavedState) => (
+    gameData.getCharacter(importedState.characterId)?.name ??
+    analysisData.character?.name ??
+    'Imported Build'
+  );
+
+  const uploadImportedState = async (importedState: SavedState) => {
+    if (!uploadToLb) return;
+
+    if (!importedState.characterId || !importedState.weaponId) {
+      warning('Leaderboard upload skipped because the imported build is missing a character or weapon match.');
+      return;
+    }
+
+    if (!importedState.watermark.uid.trim()) {
+      warning('Leaderboard upload skipped because UID is required for build submission.');
+      return;
+    }
+
+    try {
+      const result = await submitBuild(importedState);
+      const actionLabel = result.action === 'created' ? 'created' : 'updated';
+
+      if (result.warnings.length > 0) {
+        warning(`Leaderboard entry ${actionLabel}. ${result.warnings[0]}`);
+        return;
+      }
+
+      success(`Leaderboard entry ${actionLabel}.`);
+      if (!result.damageComputed) {
+        info('Build saved without fresh damage data for this character.');
+      }
+    } catch (err) {
+      posthog.captureException(err);
+      notifyError(err instanceof Error ? `Leaderboard upload failed: ${err.message}` : 'Leaderboard upload failed.');
+    }
   };
 
-  const saveImportToSaves = (wm: { username: string; uid: string }) => {
+  const doImport = async (wm: { username: string; uid: string }) => {
+    const importedState = buildImportedState(wm);
+    const shouldUpload = uploadToLb;
+
     try {
-      const importedState = buildImportedState(wm);
-      const characterName =
-        gameData.getCharacter(importedState.characterId)?.name ??
-        analysisData.character?.name ??
-        'Imported Build';
+      if (shouldUpload) setIsSubmitting(true);
+      await uploadImportedState(importedState);
+      loadState(importedState);
+      posthog.capture('import_completed', {
+        action: 'load_to_editor',
+        character_id: importedState.characterId,
+      });
+      router.push('/edit');
+    } catch (err) {
+      posthog.captureException(err);
+      notifyError(err instanceof Error ? err.message : 'Failed to import build.');
+    } finally {
+      if (shouldUpload) setIsSubmitting(false);
+    }
+  };
+
+  const saveImportToSaves = async (wm: { username: string; uid: string }) => {
+    const importedState = buildImportedState(wm);
+    const shouldUpload = uploadToLb;
+
+    try {
+      if (shouldUpload) setIsSubmitting(true);
+      const characterName = getImportedCharacterName(importedState);
 
       const now = new Date();
       const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -95,6 +147,7 @@ export function ImportPageClient() {
         state: importedState,
       });
 
+      await uploadImportedState(importedState);
       posthog.capture('import_completed', {
         action: 'save_to_saves',
         character_id: importedState.characterId,
@@ -104,6 +157,8 @@ export function ImportPageClient() {
     } catch (err) {
       posthog.captureException(err);
       notifyError(err instanceof Error ? err.message : 'Failed to save imported build.');
+    } finally {
+      if (shouldUpload) setIsSubmitting(false);
     }
   };
 
@@ -111,7 +166,7 @@ export function ImportPageClient() {
     if (buildState.characterId) {
       setPendingWm(wm); // show confirmation modal
     } else {
-      doImport(wm);
+      void doImport(wm);
     }
   };
 
@@ -142,6 +197,7 @@ export function ImportPageClient() {
                 <input
                   type="checkbox"
                   checked={uploadToLb}
+                  disabled={isSubmitting}
                   onChange={e => setUploadToLb(e.target.checked)}
                   className="w-4 h-4 accent-(--color-accent) cursor-pointer"
                 />
@@ -149,6 +205,7 @@ export function ImportPageClient() {
               </label>
               <button
                 onClick={handleReset}
+                disabled={isSubmitting}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-text-primary/60 hover:text-text-primary hover:bg-background-secondary border border-border transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -178,6 +235,7 @@ export function ImportPageClient() {
           <ImportResults
             data={analysisData}
             isProcessing={isProcessing}
+            isSubmitting={isSubmitting}
             progress={progress}
             onImport={handleImport}
           />
@@ -210,11 +268,12 @@ export function ImportPageClient() {
         actions={(
           <div className="flex flex-col gap-2">
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (!pendingWm) return;
-                saveImportToSaves(pendingWm);
+                await saveImportToSaves(pendingWm);
                 setPendingWm(null);
               }}
+              disabled={isSubmitting}
               className="w-full rounded-xl bg-accent py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover"
             >
               Save Build
@@ -222,16 +281,18 @@ export function ImportPageClient() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setPendingWm(null)}
+                disabled={isSubmitting}
                 className="w-full rounded-xl border border-border py-2 text-sm font-semibold text-text-primary/70 transition-colors hover:border-text-primary/30 hover:text-text-primary"
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!pendingWm) return;
-                  doImport(pendingWm);
+                  await doImport(pendingWm);
                   setPendingWm(null);
                 }}
+                disabled={isSubmitting}
                 className="w-full rounded-xl border border-red-500/45 bg-red-500/15 py-2 text-sm font-semibold text-red-300 transition-colors hover:border-red-500/70 hover:bg-red-500/25"
               >
                 Override Current

@@ -13,6 +13,7 @@ import { ElementType } from '@/lib/echo';
 interface ImportResultsProps {
   data: AnalysisData;
   isProcessing: boolean;
+  isSubmitting?: boolean;
   progress: Record<RegionKey, 'pending' | 'done' | 'error'>;
   onImport: (watermarkOverride: { username: string; uid: string }) => void;
 }
@@ -108,7 +109,7 @@ function EchoCard({ echo, pending, className }: { echo?: EchoOCRData; pending?: 
   );
 }
 
-export function ImportResults({ data, isProcessing, progress, onImport }: ImportResultsProps) {
+export function ImportResults({ data, isProcessing, isSubmitting = false, progress, onImport }: ImportResultsProps) {
   const { getCharacterByName, weaponList } = useGameData();
 
   const [watermarkOverride, setWatermarkOverride] = useState<{ username?: string; uid?: string }>({});
@@ -122,7 +123,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
   const echoKeys = ['echo1', 'echo2', 'echo3', 'echo4', 'echo5'] as const;
   const progressEntries = Object.entries(progress) as [RegionKey, 'pending' | 'done' | 'error'][];
 
-  const canImport = !isProcessing && (
+  const canImport = !isProcessing && !isSubmitting && (
     progress.character === 'done' || progress.character === 'error'
   );
 
@@ -327,7 +328,7 @@ export function ImportResults({ data, isProcessing, progress, onImport }: Import
             : 'bg-border text-text-primary/30 cursor-not-allowed',
         ].join(' ')}
       >
-        {isProcessing ? 'Processing…' : 'Import Build'}
+        {isProcessing ? 'Processing…' : isSubmitting ? 'Uploading…' : 'Import Build'}
       </button>
     </div>
   );

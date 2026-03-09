@@ -451,6 +451,14 @@ export interface LBLeaderboardResponse {
   sequences: string[];
 }
 
+export interface LBSubmitBuildResult {
+  id: string;
+  requestId?: string;
+  action: string;
+  damageComputed: boolean;
+  warnings: string[];
+}
+
 function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
   if (!isRecord(raw)) {
     throw new Error('LB leaderboard row payload is malformed.');
@@ -620,4 +628,50 @@ export async function getBuildById(buildId: string, signal?: AbortSignal): Promi
   });
 
   return detail;
+}
+
+function parseSubmitBuildResult(raw: unknown): LBSubmitBuildResult {
+  if (!isRecord(raw)) {
+    throw new Error('LB submit response is malformed.');
+  }
+
+  return {
+    id: typeof raw._id === 'string' ? raw._id : '',
+    requestId: typeof raw.requestId === 'string' ? raw.requestId : undefined,
+    action: typeof raw.action === 'string' ? raw.action : 'updated',
+    damageComputed: Boolean(raw.damageComputed),
+    warnings: Array.isArray(raw.warnings)
+      ? raw.warnings.filter((warning): warning is string => typeof warning === 'string' && warning.length > 0)
+      : [],
+  };
+}
+
+export async function submitBuild(
+  buildState: SavedState,
+  signal?: AbortSignal,
+): Promise<LBSubmitBuildResult> {
+  const response = await fetch(`${resolveLBBaseUrl()}/build`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ buildState }),
+    signal,
+  });
+
+  if (!response.ok) {
+    let message = `Failed to submit build (${response.status})`;
+
+    try {
+      const payload = await response.json() as { error?: string; message?: string };
+      message = payload.error || payload.message || message;
+    } catch {
+      // Keep the generic message if the error response is not JSON.
+    }
+
+    throw new Error(message);
+  }
+
+  const payload = await response.json();
+  return parseSubmitBuildResult(payload);
 }
