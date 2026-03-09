@@ -90,7 +90,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
     const element = char ? char.element : '';
 
     return (
-        <main className="min-h-screen bg-background">
+        <main className="bg-background">
             {char && rawChar && (
                 <div className="sr-only">
                     <h1>{charName} Build Calculator & Leaderboards</h1>

@@ -18,7 +18,7 @@ export default async function CharacterLeaderboardPage({ params }: Props) {
   const { characterId } = await params;
   const initialData = await prefetchLeaderboard(characterId);
   return (
-    <main className="min-h-screen bg-background">
+    <main className="bg-background">
       <LeaderboardCharacterClient characterId={characterId} initialData={initialData} />
     </main>
   );

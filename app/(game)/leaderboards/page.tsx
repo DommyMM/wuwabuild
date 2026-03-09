@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default async function Leaderboards() {
   const initialData = await prefetchLeaderboardOverview();
   return (
-    <main className="min-h-screen bg-background">
+    <main className="bg-background">
       <LeaderboardOverviewClient initialData={initialData} />
     </main>
   );

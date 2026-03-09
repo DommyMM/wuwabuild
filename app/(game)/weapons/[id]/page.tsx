@@ -110,7 +110,7 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
     }
 
     return (
-        <main className="min-h-screen bg-background">
+        <main className="bg-background">
             {weaponInfo && (
                 <div className="sr-only">
                     <h1>{wepName} Stats & Build Calculator</h1>

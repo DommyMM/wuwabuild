@@ -1,4 +1,4 @@
-const LB_API = process.env.LB_URL ?? 'http://localhost:8080';
+const LB_API = process.env.LB_URL ?? 'https://db.wuwabuilds.moe';
 const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY;
 
 function buildHeaders(contentType?: string): HeadersInit {

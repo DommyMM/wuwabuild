@@ -7,7 +7,7 @@ import { Disclaimer } from './Disclaimer';
 
 export function HomePage() {
     return (
-        <main className="min-h-screen bg-background">
+        <main className="bg-background">
             <div className="max-w-3/4 mx-auto px-2 md:px-5 py-0 leading-relaxed">
                 {/* Hero Section */}
                 <section className="py-6">
