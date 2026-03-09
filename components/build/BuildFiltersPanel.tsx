@@ -116,9 +116,16 @@ interface BuildFiltersPanelProps {
 const MAIN_STAT_LABEL_BY_CODE: Map<string, string> = new Map(
   MAIN_STAT_OPTIONS.map((entry) => [entry.code, entry.label]),
 );
+const MAIN_STAT_INDEX_BY_LABEL: Map<string, number> = new Map(
+  MAIN_STAT_OPTIONS.map((entry, index) => [entry.label, index]),
+);
 
 function toMainStatLabel(raw: string): string {
   return MAIN_STAT_LABEL_BY_CODE.get(raw) ?? raw;
+}
+
+function getMainStatOrder(label: string): number {
+  return MAIN_STAT_INDEX_BY_LABEL.get(label) ?? Number.MAX_SAFE_INTEGER;
 }
 
 const getRegionLabel = (value: string): string => (
@@ -372,6 +379,8 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     mainItems.sort((a, b) => {
       const costDiff = getCostOrder(a.subSection) - getCostOrder(b.subSection);
       if (costDiff !== 0) return costDiff;
+      const orderDiff = getMainStatOrder(a.label) - getMainStatOrder(b.label);
+      if (orderDiff !== 0) return orderDiff;
       return a.label.localeCompare(b.label);
     });
     items.push(...mainItems.slice(0, 80));
