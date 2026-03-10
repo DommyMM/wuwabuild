@@ -356,146 +356,150 @@ export const BuildPageClient: React.FC<BuildPageClientProps> = ({ initialData })
           <div className="relative">
             <BuildHeader />
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
-              <BuildFiltersPanel
-                sort={sort}
-                direction={direction}
-                pageSize={pageSize}
-                maxPageSize={MAX_ITEMS_PER_PAGE}
-                activeSortLabel={getSortLabel(sort)}
-                showSortControls={false}
-                hasActiveFilters={hasActiveFilters}
-                filterQuery={filterQuery}
-                characters={characters}
-                weaponList={weaponList}
-                selectedCharacters={selectedCharacters}
-                selectedWeapons={selectedWeapons}
-                regionPrefixes={regionPrefixes}
-                selectedSetEntries={selectedSetEntries}
-                selectedMainEntries={selectedMainEntries}
-                username={username}
-                uid={uid}
-                setOptions={setOptions}
-                onFilterQueryChange={setFilterQuery}
-                onSortChange={(nextSort) => {
-                  setSort(nextSort);
-                  setPage(1);
-                }}
-                onToggleDirection={() => {
-                  setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-                  setPage(1);
-                }}
-                onAddCharacter={addCharacter}
-                onAddWeapon={addWeapon}
-                onAddRegion={addRegion}
-                onAddSet={addSetFilter}
-                onAddMain={addMainFilter}
-                onSetUsername={(value) => {
-                  setUsername(value.trim());
-                  setPage(1);
-                }}
-                onSetUid={(value) => {
-                  setUid(value.trim());
-                  setPage(1);
-                }}
-                onRemoveCharacter={(id) => {
-                  setCharacterIds((prev) => prev.filter((entry) => entry !== id));
-                  setPage(1);
-                }}
-                onRemoveWeapon={(id) => {
-                  setWeaponIds((prev) => prev.filter((entry) => entry !== id));
-                  setPage(1);
-                }}
-                onRemoveRegion={(value) => {
-                  setRegionPrefixes((prev) => prev.filter((entry) => entry !== value));
-                  setPage(1);
-                }}
-                onRemoveSetEntry={(index) => {
-                  setEchoSets((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
-                  setPage(1);
-                }}
-                onRemoveMainEntry={(index) => {
-                  setEchoMains((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
-                  setPage(1);
-                }}
-                onClearUsername={() => {
-                  setUsername('');
-                  setPage(1);
-                }}
-                onClearUid={() => {
-                  setUid('');
-                  setPage(1);
-                }}
-                onBackspaceRemove={() => {
-                  if (uid) {
-                    setUid('');
+              <div className="relative z-40">
+                <BuildFiltersPanel
+                  sort={sort}
+                  direction={direction}
+                  pageSize={pageSize}
+                  maxPageSize={MAX_ITEMS_PER_PAGE}
+                  activeSortLabel={getSortLabel(sort)}
+                  showSortControls={false}
+                  hasActiveFilters={hasActiveFilters}
+                  filterQuery={filterQuery}
+                  characters={characters}
+                  weaponList={weaponList}
+                  selectedCharacters={selectedCharacters}
+                  selectedWeapons={selectedWeapons}
+                  regionPrefixes={regionPrefixes}
+                  selectedSetEntries={selectedSetEntries}
+                  selectedMainEntries={selectedMainEntries}
+                  username={username}
+                  uid={uid}
+                  setOptions={setOptions}
+                  onFilterQueryChange={setFilterQuery}
+                  onSortChange={(nextSort) => {
+                    setSort(nextSort);
                     setPage(1);
-                    return;
-                  }
-                  if (username) {
+                  }}
+                  onToggleDirection={() => {
+                    setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                    setPage(1);
+                  }}
+                  onAddCharacter={addCharacter}
+                  onAddWeapon={addWeapon}
+                  onAddRegion={addRegion}
+                  onAddSet={addSetFilter}
+                  onAddMain={addMainFilter}
+                  onSetUsername={(value) => {
+                    setUsername(value.trim());
+                    setPage(1);
+                  }}
+                  onSetUid={(value) => {
+                    setUid(value.trim());
+                    setPage(1);
+                  }}
+                  onRemoveCharacter={(id) => {
+                    setCharacterIds((prev) => prev.filter((entry) => entry !== id));
+                    setPage(1);
+                  }}
+                  onRemoveWeapon={(id) => {
+                    setWeaponIds((prev) => prev.filter((entry) => entry !== id));
+                    setPage(1);
+                  }}
+                  onRemoveRegion={(value) => {
+                    setRegionPrefixes((prev) => prev.filter((entry) => entry !== value));
+                    setPage(1);
+                  }}
+                  onRemoveSetEntry={(index) => {
+                    setEchoSets((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+                    setPage(1);
+                  }}
+                  onRemoveMainEntry={(index) => {
+                    setEchoMains((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+                    setPage(1);
+                  }}
+                  onClearUsername={() => {
                     setUsername('');
                     setPage(1);
-                    return;
-                  }
-                  if (echoMains.length > 0) {
-                    setEchoMains((prev) => prev.slice(0, -1));
+                  }}
+                  onClearUid={() => {
+                    setUid('');
                     setPage(1);
-                    return;
-                  }
-                  if (echoSets.length > 0) {
-                    setEchoSets((prev) => prev.slice(0, -1));
+                  }}
+                  onBackspaceRemove={() => {
+                    if (uid) {
+                      setUid('');
+                      setPage(1);
+                      return;
+                    }
+                    if (username) {
+                      setUsername('');
+                      setPage(1);
+                      return;
+                    }
+                    if (echoMains.length > 0) {
+                      setEchoMains((prev) => prev.slice(0, -1));
+                      setPage(1);
+                      return;
+                    }
+                    if (echoSets.length > 0) {
+                      setEchoSets((prev) => prev.slice(0, -1));
+                      setPage(1);
+                      return;
+                    }
+                    if (weaponIds.length > 0) {
+                      setWeaponIds((prev) => prev.slice(0, -1));
+                      setPage(1);
+                      return;
+                    }
+                    if (characterIds.length > 0) {
+                      setCharacterIds((prev) => prev.slice(0, -1));
+                      setPage(1);
+                      return;
+                    }
+                    if (regionPrefixes.length > 0) {
+                      setRegionPrefixes((prev) => prev.slice(0, -1));
+                      setPage(1);
+                    }
+                  }}
+                  onClearAllFilters={clearAllFilters}
+                  onPageSizeChange={(value) => {
+                    setPageSize(clampItemsPerPage(value));
                     setPage(1);
-                    return;
-                  }
-                  if (weaponIds.length > 0) {
-                    setWeaponIds((prev) => prev.slice(0, -1));
-                    setPage(1);
-                    return;
-                  }
-                  if (characterIds.length > 0) {
-                    setCharacterIds((prev) => prev.slice(0, -1));
-                    setPage(1);
-                    return;
-                  }
-                  if (regionPrefixes.length > 0) {
-                    setRegionPrefixes((prev) => prev.slice(0, -1));
-                    setPage(1);
-                  }
-                }}
-                onClearAllFilters={clearAllFilters}
-                onPageSizeChange={(value) => {
-                  setPageSize(clampItemsPerPage(value));
-                  setPage(1);
-                }}
-              />
+                  }}
+                />
+              </div>
 
-              <BuildResultsPanel
-                builds={builds}
-                expandedBuildIds={expandedBuildIds}
-                detailById={detailById}
-                detailLoadingById={detailLoadingById}
-                detailErrorById={detailErrorById}
-                total={total}
-                page={page}
-                pageCount={normalizedPageCount}
-                pageSize={pageSize}
-                rankStart={rankStart}
-                isLoading={isLoading}
-                isRefreshing={isRefreshing}
-                error={error}
-                sort={sort}
-                direction={direction}
-                onSortChange={(nextSort) => {
-                  setSort(nextSort);
-                  setPage(1);
-                }}
-                onToggleDirection={() => {
-                  setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-                  setPage(1);
-                }}
-                onPageChange={setPage}
-                onToggleExpand={handleToggleExpand}
-                onRetryDetail={handleRetryDetail}
-              />
+              <div className="relative z-10">
+                <BuildResultsPanel
+                  builds={builds}
+                  expandedBuildIds={expandedBuildIds}
+                  detailById={detailById}
+                  detailLoadingById={detailLoadingById}
+                  detailErrorById={detailErrorById}
+                  total={total}
+                  page={page}
+                  pageCount={normalizedPageCount}
+                  pageSize={pageSize}
+                  rankStart={rankStart}
+                  isLoading={isLoading}
+                  isRefreshing={isRefreshing}
+                  error={error}
+                  sort={sort}
+                  direction={direction}
+                  onSortChange={(nextSort) => {
+                    setSort(nextSort);
+                    setPage(1);
+                  }}
+                  onToggleDirection={() => {
+                    setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                    setPage(1);
+                  }}
+                  onPageChange={setPage}
+                  onToggleExpand={handleToggleExpand}
+                  onRetryDetail={handleRetryDetail}
+                />
+              </div>
             </div>
           </div>
         </section>

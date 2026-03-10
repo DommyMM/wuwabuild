@@ -331,7 +331,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
       for (const count of counts) {
         const key = `${count}~${setOption.id}`;
         if (selectedSetKeys.has(key)) continue;
-        const label = `${setOption.name} ${count}p`;
+        const label = `${setOption.name}`;
         if (normalizedQuery && !label.toLowerCase().includes(normalizedQuery)) continue;
         setItems.push({
           key: `set-${key}`,
@@ -452,12 +452,12 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const activeSortIconFilter = ELEMENT_ICON_FILTERS[activeSortLabel];
 
   return (
-    <section>
+    <section className="relative z-10">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold uppercase tracking-wide text-accent">
           Filters
         </div>
-        <div className="relative z-30 flex flex-wrap items-center gap-2">
+        <div className="relative z-20 flex flex-wrap items-center gap-2">
           {showSortControls && (
             <>
               <select
@@ -483,7 +483,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
             <button
               type="button"
               onClick={() => setIsPageSizeMenuOpen((prev) => !prev)}
-              className={`inline-flex min-w-[7.5rem] items-center justify-between gap-2 border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none ${
+              className={`inline-flex min-w-30 items-center justify-between gap-2 border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none ${
                 isPageSizeMenuOpen
                   ? 'rounded-t-lg rounded-b-none border-accent/70 bg-black/35 text-accent'
                   : 'rounded-lg border-border bg-background text-text-primary hover:border-accent/50 hover:bg-background-secondary/80'
@@ -504,7 +504,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
               <div
                 role="menu"
                 aria-label="Max rows"
-                className="absolute right-0 top-full z-40 min-w-full overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary shadow-xl"
+                className="absolute right-0 top-full z-30 min-w-full overflow-hidden rounded-b-md border border-border border-t-0 bg-background-secondary shadow-xl"
               >
                 {pageSizePresets.map((value) => {
                   const isSelected = value === pageSize;
@@ -712,7 +712,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
         </div>
 
         {isDropdownOpen && visibleItems.length > 0 && (
-          <div className="scrollbar-thin absolute left-0 right-0 z-20 max-h-132 overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
+          <div className="scrollbar-thin absolute left-0 right-0 z-30 max-h-132 overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
             {visibleItems.map((item, index) => {
               const previous = index > 0 ? visibleItems[index - 1] : null;
               const showSection = index === 0 || previous?.section !== item.section;
