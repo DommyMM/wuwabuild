@@ -1,8 +1,8 @@
 // Substat roll quality tiers are derived from Substats.json roll arrays.
 // Boundaries are the midpoints between quartile buckets.
 
-// Tier colors: gold > purple > blue > cyan
-const TIER_COLORS = ['#00FFFF', '#4D96FF', '#B46BFF', '#E6B800'] as const;
+// Tier colors: gold > purple > blue > green
+const TIER_COLORS = ['#00FF00', '#4D96FF', '#B46BFF', '#E6B800'] as const;
 
 const toFiniteSortedValues = (rollValues: number[] | null | undefined): number[] => (
   Array.isArray(rollValues)

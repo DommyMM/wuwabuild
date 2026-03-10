@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBTrack, listLeaderboard } from '@/lib/lb';
+import { getBuildById, LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, MAX_ITEMS_PER_PAGE } from '@/components/build/buildConstants';
 import { BuildFiltersPanel } from '@/components/build/BuildFiltersPanel';
@@ -80,9 +80,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [detailById] = useState<Record<string, LBBuildDetailEntry>>({});
-  const [detailLoadingById] = useState<Record<string, boolean>>({});
+  const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
+  const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
   const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
+  const detailControllersRef = useRef<Record<string, AbortController>>({});
   const defaultWeaponId = configWeaponIds[0] ?? initialData?.weaponIds?.[0] ?? initialData?.activeWeaponId ?? '';
   const defaultTrackKey = configTracks[0]?.key ?? initialData?.tracks?.[0]?.key ?? initialData?.activeTrack ?? DEFAULT_LB_TRACK;
 
@@ -188,17 +189,57 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   }, [characterId, leaderboardQuery, page, pageSize, queryKey, track]);
 
   // Expand / detail
+  const loadBuildDetail = useCallback((buildId: string, force = false) => {
+    const normalizedBuildId = buildId.trim();
+    if (!normalizedBuildId) return;
+    if (!force && (detailById[normalizedBuildId] || detailLoadingById[normalizedBuildId])) {
+      return;
+    }
+
+    detailControllersRef.current[normalizedBuildId]?.abort();
+    const controller = new AbortController();
+    detailControllersRef.current[normalizedBuildId] = controller;
+
+    setDetailLoadingById((prev) => ({ ...prev, [normalizedBuildId]: true }));
+    setDetailErrorById((prev) => ({ ...prev, [normalizedBuildId]: null }));
+
+    void getBuildById(normalizedBuildId, controller.signal)
+      .then((detail) => {
+        setDetailById((prev) => ({ ...prev, [normalizedBuildId]: detail }));
+      })
+      .catch((fetchError) => {
+        if (controller.signal.aborted) return;
+        setDetailErrorById((prev) => ({
+          ...prev,
+          [normalizedBuildId]: fetchError instanceof Error ? fetchError.message : 'Failed to load build details.',
+        }));
+      })
+      .finally(() => {
+        if (controller.signal.aborted) return;
+        setDetailLoadingById((prev) => ({ ...prev, [normalizedBuildId]: false }));
+        delete detailControllersRef.current[normalizedBuildId];
+      });
+  }, [detailById, detailLoadingById]);
+
   const handleToggleExpand = useCallback((id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
-  }, []);
+    if (!detailById[id] && !detailLoadingById[id]) {
+      loadBuildDetail(id);
+    }
+  }, [detailById, detailLoadingById, loadBuildDetail]);
 
   const handleRetryDetail = useCallback((id: string) => {
-    setDetailErrorById((prev) => ({ ...prev, [id]: null }));
-  }, []);
+    loadBuildDetail(id, true);
+  }, [loadBuildDetail]);
+
+  useEffect(() => (() => {
+    Object.values(detailControllersRef.current).forEach((controller) => controller.abort());
+    detailControllersRef.current = {};
+  }), []);
 
   // Filter helpers
   const addRegion = useCallback((value: string) => {

@@ -425,7 +425,6 @@ export interface LBCharacterOverview {
 
 export interface LBLeaderboardEntry {
   id: string;
-  buildState: SavedState;
   cv: number;
   cvPenalty: number;
   finalCV: number;
@@ -438,6 +437,7 @@ export interface LBLeaderboardEntry {
   character: { id: string; level: number; roverElement?: string };
   weapon: { id: string; level: number; rank: number };
   sequence: number;
+  echoSummary: LBBuildEchoSummary;
 }
 
 export interface LBLeaderboardQuery {
@@ -483,45 +483,28 @@ export function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
   if (!isRecord(raw)) {
     throw new Error('LB leaderboard row payload is malformed.');
   }
-
-  const buildStateRaw = parseMaybeJSON(raw.buildState);
-  if (!isCanonicalSavedState(buildStateRaw)) {
-    throw new Error('LB leaderboard buildState is not in canonical SavedState format.');
-  }
-
-  const forte = Array.isArray(buildStateRaw.forte)
-    ? buildStateRaw.forte
-    : (DEFAULT_FORTE.map((entry) => [...entry]) as SavedState['forte']);
-
-  const buildState: SavedState = { ...buildStateRaw, forte };
-  const watermark = isRecord(buildStateRaw.watermark) ? buildStateRaw.watermark : null;
+  const row = parseBuildRowEntry(raw);
+  const character = isRecord(raw.character) ? raw.character : {};
 
   return {
-    id: typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : ''),
-    buildState,
-    cv: toFiniteNumber(raw.cv),
+    id: row.id,
+    cv: row.cv,
     cvPenalty: toFiniteNumber(raw.cvPenalty),
-    finalCV: toFiniteNumber(raw.finalCV),
-    timestamp: typeof raw.timestamp === 'string' ? raw.timestamp : '',
+    finalCV: toFiniteNumber(raw.finalCV, row.cv),
+    timestamp: row.timestamp,
     damage: toFiniteNumber(raw.damage),
     filteredRank: toFiniteNumber(raw.filteredRank, 0),
     globalRank: toFiniteNumber(raw.globalRank, 0),
     stats: parseStatsRecord(raw),
-    owner: {
-      username: watermark && typeof watermark.username === 'string' ? watermark.username : '',
-      uid: watermark && typeof watermark.uid === 'string' ? watermark.uid : '',
-    },
+    owner: row.owner,
     character: {
-      id: typeof buildState.characterId === 'string' ? buildState.characterId : '',
-      level: toFiniteNumber(buildState.characterLevel, 1),
-      roverElement: typeof buildState.roverElement === 'string' ? buildState.roverElement : undefined,
+      id: row.character.id,
+      level: toFiniteNumber(character.level, 1),
+      roverElement: typeof character.roverElement === 'string' ? character.roverElement : undefined,
     },
-    weapon: {
-      id: typeof buildState.weaponId === 'string' ? buildState.weaponId : '',
-      level: toFiniteNumber(buildState.weaponLevel, 1),
-      rank: toFiniteNumber(buildState.weaponRank, 1),
-    },
-    sequence: toFiniteNumber(buildState.sequence, 0),
+    weapon: row.weapon,
+    sequence: row.sequence,
+    echoSummary: row.echoSummary,
   };
 }
 

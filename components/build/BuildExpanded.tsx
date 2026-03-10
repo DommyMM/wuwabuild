@@ -27,6 +27,7 @@ type SubstatSummaryEntry = {
 };
 
 const BASE_STATS_SET = new Set<string>(BASE_STATS);
+const SUMMARY_PILL_ROW_CLASS_NAME = 'mx-auto flex w-max max-w-none flex-nowrap items-center justify-center gap-2';
 
 const SkeletonBlock: React.FC<{ className: string }> = ({ className }) => (
   <div className={`animate-pulse rounded bg-white/8 ${className}`} />
@@ -84,7 +85,7 @@ const BuildExpandedSkeleton: React.FC = () => (
       ))}
     </div>
 
-    <div className="flex justify-center gap-2">
+    <div className={SUMMARY_PILL_ROW_CLASS_NAME}>
       {Array.from({ length: 7 }).map((_, index) => (
         <SkeletonBlock key={`summary-pill-skeleton-${index}`} className="h-9 w-26 rounded-full" />
       ))}
@@ -239,6 +240,19 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
 
   const activeSelectedSubstats = hasManuallyInteracted ? selectedSubstats : autoSelectedSubstats;
   const hasSelectedSubstats = activeSelectedSubstats.size > 0;
+  const useCompactSummaryRow = detailSubstatSummary.length >= 13;
+  const summaryRowClassName = useCompactSummaryRow
+    ? 'mx-auto flex w-max max-w-none flex-nowrap items-center justify-center gap-1.5'
+    : SUMMARY_PILL_ROW_CLASS_NAME;
+  const summaryPillClassName = useCompactSummaryRow
+    ? 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2 py-0.75 text-[13px] font-semibold text-white/92 transition-all duration-200 cursor-pointer hover:border-amber-200/65'
+    : 'inline-flex items-center gap-1.25 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 cursor-pointer hover:border-amber-200/65';
+  const summaryValueClassName = useCompactSummaryRow ? 'text-sm' : 'text-base';
+  const summaryIconClassName = useCompactSummaryRow ? 'h-3.5 w-3.5 object-contain' : 'h-4 w-4 object-contain';
+  const summaryIconFallbackClassName = useCompactSummaryRow ? 'h-3.5 w-3.5 rounded bg-white/18' : 'h-4 w-4 rounded bg-white/18';
+  const summaryRvClassName = useCompactSummaryRow
+    ? 'inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.75 text-[13px] font-semibold text-white/92 transition-all duration-200 select-none'
+    : 'inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 select-none';
 
   const toggleSubstatSelection = (type: string) => {
     const normalizedType = normalizeSubstatKey(type);
@@ -286,9 +300,9 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.22, ease: 'easeInOut' }}
-          className="overflow-hidden border-t border-border/50 bg-black/15 tracking-wide"
+          className="overflow-x-visible overflow-y-hidden border-t border-border/50 bg-black/15 tracking-wide"
         >
-          <div className="mx-auto w-full max-w-330 space-y-4 py-3 px-12">
+          <div className="mx-auto w-full max-w-330 space-y-4 px-12 pt-3">
             {isDetailLoading && <BuildExpandedSkeleton />}
 
             {!isDetailLoading && detailError && (
@@ -505,69 +519,73 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                     })}
                   </div>
 
-                {detailSubstatSummary.length > 0 && (
-                  <div className="flex justify-center gap-2">
-                    {detailSubstatSummary.map((summary) => {
-                      const isSelected = activeSelectedSubstats.has(summary.type);
-                      const isDimmed = hasSelectedSubstats && !isSelected;
-                      const totalText = summary.isPercent
-                        ? formatPercentStat(summary.total)
-                        : formatFlatStat(summary.total);
-
-                      return (
-                        <button
-                          key={`${detail.id}-summary-${summary.type}`}
-                          type="button"
-                          aria-pressed={isSelected}
-                          onClick={() => toggleSubstatSelection(summary.type)}
-                          className={`inline-flex items-center gap-1.25 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 cursor-pointer hover:border-amber-200/65 ${
-                            isSelected
-                              ? 'border-amber-300/75 opacity-100'
-                              : isDimmed
-                                ? 'border-amber-300/45 opacity-40'
-                                : 'border-amber-300/45 opacity-100'
-                          }`}
-                          title={summary.type}
-                        >
-                          <span className="text-amber-300">x{summary.count}</span>
-                          {summary.icon ? (
-                            <img src={summary.icon} alt="" className="h-4 w-4 object-contain" />
-                          ) : (
-                            <span className="h-4 w-4 rounded bg-white/18" />
-                          )}
-                          <span className="text-base">{totalText}</span>
-                        </button>
-                      );
-                    })}
-
-                    {/* RV block */}
-                    <div
-                      className={`inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 select-none ${
-                        hasSelectedSubstats
-                          ? 'border border-amber-300/75 opacity-100'
-                          : 'border border-amber-300/45 opacity-70'
-                      }`}
-                    >
-                      <span className="text-amber-300">x{totalSelectedRolls}</span>
-                      <span>•</span>
-                      <span className="text-amber-300">RV</span>
-                      <span className="text-base">{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex justify-center">
-                  <button
-                    type="button"
-                    onClick={handleViewBuild}
-                    className="rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer"
-                  >
-                    View in Editor
-                  </button>
-                </div>
               </>
             )}
           </div>
+
+          {!isDetailLoading && !detailError && detail && (
+            <div className="space-y-4 px-4 pb-3 pt-4">
+              {detailSubstatSummary.length > 0 && (
+                <div className={summaryRowClassName}>
+                  {detailSubstatSummary.map((summary) => {
+                    const isSelected = activeSelectedSubstats.has(summary.type);
+                    const isDimmed = hasSelectedSubstats && !isSelected;
+                    const totalText = summary.isPercent
+                      ? formatPercentStat(summary.total)
+                      : formatFlatStat(summary.total);
+
+                    return (
+                      <button
+                        key={`${detail.id}-summary-${summary.type}`}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => toggleSubstatSelection(summary.type)}
+                        className={`${summaryPillClassName} ${
+                          isSelected
+                            ? 'border-amber-300/75 opacity-100'
+                            : isDimmed
+                              ? 'border-amber-300/45 opacity-40'
+                              : 'border-amber-300/45 opacity-100'
+                        }`}
+                        title={summary.type}
+                      >
+                        <span className="text-amber-300">x{summary.count}</span>
+                        {summary.icon ? (
+                          <img src={summary.icon} alt="" className={summaryIconClassName} />
+                        ) : (
+                          <span className={summaryIconFallbackClassName} />
+                        )}
+                        <span className={summaryValueClassName}>{totalText}</span>
+                      </button>
+                    );
+                  })}
+
+                  <div
+                    className={`${summaryRvClassName} ${
+                      hasSelectedSubstats
+                        ? 'border border-amber-300/75 opacity-100'
+                        : 'border border-amber-300/45 opacity-70'
+                    }`}
+                  >
+                    <span className="text-amber-300">x{totalSelectedRolls}</span>
+                    <span>•</span>
+                    <span className="text-amber-300">RV</span>
+                    <span className={summaryValueClassName}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleViewBuild}
+                  className="rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer"
+                >
+                  View in Editor
+                </button>
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

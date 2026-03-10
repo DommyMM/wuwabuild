@@ -6,7 +6,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { getCVRatingColor } from '@/lib/calculations/rollValues';
 import { getLBStatCode, LBBuildDetailEntry, LBBuildEchoSummary, LBBuildRowEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortKey } from '@/lib/lb';
-import { ElementType } from '@/lib/echo';
 import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '@/components/build/buildConstants';
 import { formatStatByKey, getSortLabel, resolveRegionBadge } from '@/components/build/buildFormatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '@/components/build/buildStatColumns';
@@ -41,7 +40,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   onToggleExpand,
   onRetryDetail,
 }) => {
-  const { fetters, fettersByElement, getCharacter, getEcho, statIcons } = useGameData();
+  const { fetters, getCharacter, getEcho, statIcons } = useGameData();
   const { t } = useLanguage();
 
   const character = getCharacter(entry.character.id);
@@ -59,15 +58,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   const finalCvColor = getCVRatingColor(entry.finalCV);
   const isHighestCV = finalCvColor.toLowerCase() === '#ff00ff';
 
-  // Compute echo set counts from buildState panels
-  const echoSetCounts: Record<string, number> = {};
-  for (const panel of entry.buildState.echoPanels) {
-    if (!panel.selectedElement) continue;
-    const fetter = fettersByElement[panel.selectedElement as ElementType];
-    if (!fetter) continue;
-    const key = String(fetter.id);
-    echoSetCounts[key] = (echoSetCounts[key] ?? 0) + 1;
-  }
+  const echoSetCounts = entry.echoSummary.sets;
 
   const computedActiveSets = Object.entries(echoSetCounts)
     .map(([setId, count]) => {
@@ -110,15 +101,10 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
     timestamp: entry.timestamp,
   };
 
-  const detailEntry: LBBuildDetailEntry = detail ?? {
-    ...rowEntry,
-    buildState: entry.buildState,
-  };
-
   const characterName = character
     ? formatCharacterDisplayName(character, {
         baseName: t(character.nameI18n ?? { en: character.name }),
-        roverElement: entry.buildState.roverElement,
+        roverElement: detail?.buildState.roverElement,
       })
     : `Character ${entry.character.id}`;
 
@@ -241,7 +227,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
       <BuildExpanded
         key={entry.id}
         entry={rowEntry}
-        detail={detailEntry}
+        detail={detail}
         isExpanded={isExpanded}
         isDetailLoading={isDetailLoading}
         detailError={detailError ?? null}
