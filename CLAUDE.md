@@ -56,16 +56,16 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 | `builds_imported` | User imports builds from JSON | `components/save/SavesPageClient.tsx` |
 | `builds_session_summary` | Session aggregation (expansion count on /builds unmount) | `components/build/BuildPageClient.tsx` |
 
-## LB + Builds Current Status (2026-03-09)
+## LB + Builds Current Status (2026-03-10)
 
 - `/builds` route is live and wired to LB `GET /build` filters/sort/pagination plus detail expansion via `GET /build/{id}`.
-- `/builds`, `/leaderboards`, and `/leaderboards/[characterId]` are all **SSR-prefetched** — default query rendered server-side (2-minute ISR), hydrated directly into client state, silently revalidated on mount using diff-based ref signatures. Non-default URLs (with filter params) skip the SSR seed and fetch fresh on mount.
+- `/builds`, `/leaderboards`, and `/leaderboards/[characterId]` are all **SSR-prefetched** — current query rendered server-side (2-minute ISR), hydrated directly into client state, silently revalidated on mount using diff-based ref signatures.
 - `/leaderboards` route is **live** — overview page + per-character pages implemented.
 - `/import` uploads to LB through `POST /api/lb/build` when `Upload to Leaderboard` is enabled, sending canonical `buildState` only and letting `/lb` derive stats/CV/echo summaries server-side.
 - `BuildEditor` has a `View Ranking` button that routes to the selected character leaderboard.
 - Go LB runtime is validated with migrated legacy data and single-pass canonical ingest (`make import DUMP=...`).
 - API filtering should use canonical CDN IDs.
-- Frontend LB clients now serialize simple multi-value filters as CSV/plain values (`?characterId=1505,1603`), with frontend-only normalization for main-stat filter keys before the LB request is sent.
+- Frontend LB clients now use repeated query params for multi-value filters where the backend expects them, and canonical leaderboard routes use `weaponId + track` rather than `weaponIndex`.
 - Go LB currently has 9 registered character configs (`carlotta`, `jinhsi`, `changli`, `camellya`, `zani`, `phoebe`, `cartethyia`, `jiyan`, `lupa`), but `lupa` is still a placeholder with no tracks/team config.
 - Frontend leaderboard track migration is live: `lib/lb.ts`, `lib/lbServer.ts`, and `components/leaderboard/*` now model `track`/`tracks` only.
 - DB index suite updated via migration 002: sort indexes corrected to `NULLS LAST`, dead GIN indexes removed, stat sort indexes added.
@@ -80,7 +80,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 - `PREFETCH_TTL_S = 120` (2 minutes) — single constant shared across all three prefetch functions.
 - Three exports: `prefetchBuilds()`, `prefetchLeaderboardOverview()`, `prefetchLeaderboard(characterId, query?)` — each returns typed data or `null` on error.
 - Page server components call the prefetch function and pass `initialData` to the client component.
-- Client components use `isDefaultQuery = searchParams.toString() === ''` to guard: only seed state from SSR data when no filter params are present (prevents wrong data on bookmarked/filtered URLs).
+- Client components treat `initialData` as the SSR result for the current URL, not only the default query.
 - Diff-based refs (`buildListSigRef`, `leaderboardSigRef`, `overviewSigRef`) track current state signature and skip `setState` if data hasn't changed after revalidation.
 
 ## Frontend Routes (Canonical, 2026-03-09)
@@ -278,20 +278,19 @@ This matches the Next.js App Router route-group convention for opting only a sub
 - `LeaderboardCharacterClient()`:
   - Fetches `GET /api/lb/leaderboard/{characterId}?weaponId=&track=&sort=&...` via `listLeaderboard(id, query, signal)`.
   - Uses backend-returned `tracks`, `activeTrack`, `activeWeaponId`, and `teamCharacterIds` directly.
-  - State: `page`, `pageSize`, `sort` (default `damage`), `direction`, `weaponIndex`, `track`, plus echo/region/uid/username filters.
+  - State: `page`, `pageSize`, `sort` (default `damage`), `direction`, local `weaponIndex` for tab rendering, canonical `weaponId`, `track`, plus echo/region/uid/username filters.
   - `configWeaponIds`, `configTracks`, and `configTeamCharacterIds` state are populated from the API response; SSR prefetch now seeds the exact selected board from the current URL.
-  - URL sync persists canonical `weaponId`, `track`, `sort`, `direction`, `page`, `pageSize`, and filter params; legacy `weaponIndex` URLs are rewritten on mount.
+  - URL sync persists canonical `weaponId`, `track`, `sort`, `direction`, `page`, `pageSize`, and filter params; `weaponId` and `track` are always present, and legacy `weaponIndex` URLs are rewritten to canonical URLs.
   - Reuses `BuildFiltersPanel` (with empty `characters`/`weaponList` to hide those sections) and `LeaderboardResultsPanel`.
 - `LeaderboardResultsPanel()`:
   - Table header: `# | Owner | Weapon | Seq | Sets | Damage | CV+Stats`.
   - Damage column is primary sort; CV+Stats group reuses `SortHeaderMenu`.
-  - Shows "global ranks are preserved" banner when `sort === 'damage'`.
+  - `globalRank` is the board's absolute rank for the selected `weaponId + track`, independent of the current display sort.
   - Reuses `BuildPagination`.
 - `LeaderboardRow()`:
-  - Rank: uses `globalRank` when `isDamageSort`, else `filteredRank`.
+  - Rank display uses `globalRank`, which always means best damage on the current board = `#1`.
   - Gold/silver/bronze styling for top 3.
-  - Echo sets computed from `buildState.echoPanels` via `fettersByElement`.
-  - Reuses `BuildExpanded` directly (no secondary detail fetch — `buildState` is in every leaderboard entry).
+  - Compact row payload comes from `/leaderboard/{characterId}`; full `buildState` is fetched on demand via `GET /build/{buildId}` when the row expands.
 - `WeaponCards` / `TrackTabs`: private sub-components inside `LeaderboardTabs.tsx`; track tabs render backend labels from `{ key, label }`.
 - `LeaderboardHeader` now receives `teamCharacterIds` on the character page and renders team portraits above the table.
 - `leaderboardConstants.ts`: exports `LB_TABLE_GRID`, `DEFAULT_LB_SORT`, and `DEFAULT_LB_TRACK`.

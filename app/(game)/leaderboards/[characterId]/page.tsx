@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { LeaderboardCharacterClient } from '@/components/leaderboard/LeaderboardCharacterClient';
-import { leaderboardSnapshotToApiQuery, parseInitialLeaderboardQuery, toURLSearchParams } from '@/components/leaderboard/leaderboardQuery';
+import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeaderboardQuery, serializeLeaderboardQuery, toURLSearchParams } from '@/components/leaderboard/leaderboardQuery';
 import { DEFAULT_LB_TRACK } from '@/components/leaderboard/leaderboardConstants';
 import { prefetchLeaderboard } from '@/lib/lbServer';
 
@@ -22,18 +23,25 @@ export default async function CharacterLeaderboardPage({ params, searchParams }:
   const rawSearchParams = toURLSearchParams(await searchParams);
   const parsedQuery = parseInitialLeaderboardQuery(rawSearchParams);
 
-  let initialData = await prefetchLeaderboard(characterId, leaderboardSnapshotToApiQuery(parsedQuery));
+  const initialData = await prefetchLeaderboard(characterId, leaderboardSnapshotToApiQuery(parsedQuery));
 
-  if (!rawSearchParams.get('weaponId') && rawSearchParams.get('weaponIndex') && initialData?.weaponIds.length) {
+  if (initialData) {
     const canonicalQuery = parseInitialLeaderboardQuery(rawSearchParams, {
       weaponIds: initialData.weaponIds,
       tracks: initialData.tracks,
       defaultWeaponId: initialData.activeWeaponId || initialData.weaponIds[0] || '',
       defaultTrack: initialData.activeTrack || initialData.tracks[0]?.key || DEFAULT_LB_TRACK,
     });
+    const canonicalSearch = serializeLeaderboardQuery(canonicalQuery, {
+      defaultWeaponId: initialData.activeWeaponId || initialData.weaponIds[0] || '',
+      defaultTrack: initialData.activeTrack || initialData.tracks[0]?.key || DEFAULT_LB_TRACK,
+    });
 
-    if (canonicalQuery.weaponId && canonicalQuery.weaponId !== initialData.activeWeaponId) {
-      initialData = await prefetchLeaderboard(characterId, leaderboardSnapshotToApiQuery(canonicalQuery));
+    if (rawSearchParams.toString() !== canonicalSearch) {
+      redirect(buildLeaderboardHref(characterId, canonicalQuery, {
+        defaultWeaponId: initialData.activeWeaponId || initialData.weaponIds[0] || '',
+        defaultTrack: initialData.activeTrack || initialData.tracks[0]?.key || DEFAULT_LB_TRACK,
+      }));
     }
   }
 

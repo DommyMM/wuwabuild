@@ -172,16 +172,14 @@ export function serializeLeaderboardQuery(
   const defaultPageSize = defaults.defaultPageSize ?? ITEMS_PER_PAGE;
   const defaultSort = defaults.defaultSort ?? DEFAULT_LB_SORT;
   const defaultDirection = defaults.defaultDirection ?? 'desc';
-  const defaultWeaponId = defaults.defaultWeaponId ?? '';
-  const defaultTrack = defaults.defaultTrack ?? DEFAULT_LB_TRACK;
 
   const params = new URLSearchParams();
   if (resolved.page > defaultPage) params.set('page', String(resolved.page));
   if (resolved.pageSize !== defaultPageSize) params.set('pageSize', String(resolved.pageSize));
   if (resolved.sort !== defaultSort) params.set('sort', toLBApiSortKey(resolved.sort));
   if (resolved.direction !== defaultDirection) params.set('direction', resolved.direction);
-  if (resolved.weaponId && resolved.weaponId !== defaultWeaponId) params.set('weaponId', resolved.weaponId);
-  if (resolved.track && resolved.track !== defaultTrack) params.set('track', resolved.track);
+  if (resolved.weaponId) params.set('weaponId', resolved.weaponId);
+  if (resolved.track) params.set('track', resolved.track);
   if (resolved.uid) params.set('uid', resolved.uid);
   if (resolved.username) params.set('username', resolved.username);
   if (resolved.regionPrefixes.length) params.set('regions', resolved.regionPrefixes.join(','));

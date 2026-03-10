@@ -69,7 +69,7 @@ Simple `Map<string, { data, expiry }>` in the server module. Cleared on deploy. 
 |-------|-------|-----|-----------|
 | `/builds` | Default (page 1, sort=finalCV, desc, size=12) | 60s | Most common landing query |
 | `/leaderboards` | Overview (all characters) | 60s | Single fan-out query in Go, worth caching |
-| `/leaderboards/[charId]` | Default (page 1, damage sort, s0, weapon 0) | 30s | Per-character, more variants |
+| `/leaderboards/[charId]` | Current query (canonical `weaponId` + `track`) | 30s | Per-character, more variants |
 
 Non-default queries (filtered, paginated, etc.) are **not** SSR-prefetched. Those stay client-only with the existing `buildCache.ts` localStorage layer.
 
@@ -83,7 +83,7 @@ Non-default queries (filtered, paginated, etc.) are **not** SSR-prefetched. Thos
 
 - `'use server'` or just server-only import guard
 - Read `LB_URL` and `INTERNAL_API_KEY` from `process.env`
-- Reuse parsing functions from `lib/lb.ts` — extract `parseBuildRowEntry`, `parseLeaderboardEntry`, `parseStatsRecord` and shared types/interfaces into importable form (they're already exported or pure functions)
+- Reuse parsing functions from `lib/lb.ts` — `parseBuildRowEntry`, `parseLeaderboardEntry`, and `parseStatsRecord` are the source of truth for compact list rows, leaderboard rows, and detail rows.
 - Three async functions, each wrapping a `fetch` → parse → return-or-null pipeline
 - `prefetchBuilds()`: hits `GET ${LB_URL}/build?page=1&pageSize=12&sort=finalCV&direction=desc`
 - `prefetchLeaderboardOverview()`: hits `GET ${LB_URL}/leaderboard`
@@ -138,6 +138,11 @@ Non-default queries (filtered, paginated, etc.) are **not** SSR-prefetched. Thos
 - Initialize `entries`, `total`, `configWeaponIds`, `configSequences` from `initialData` when present
 - Initialize `settledQueryKey` to match initial query key when `initialData` present
 - `useEffect` becomes silent revalidation
+
+Current behavior:
+- canonical leaderboard URL state uses `weaponId` and `track`
+- SSR prefetch seeds the exact selected board from the current URL
+- leaderboard list rows are compact; full `buildState` is fetched on expand through `GET /build/{id}`
 
 ### Phase 5: Diff-based silent revalidation
 
