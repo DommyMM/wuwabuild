@@ -87,7 +87,7 @@ Non-default queries (filtered, paginated, etc.) are **not** SSR-prefetched. Thos
 - Three async functions, each wrapping a `fetch` → parse → return-or-null pipeline
 - `prefetchBuilds()`: hits `GET ${LB_URL}/build?page=1&pageSize=12&sort=finalCV&direction=desc`
 - `prefetchLeaderboardOverview()`: hits `GET ${LB_URL}/leaderboard`
-- `prefetchLeaderboard(characterId)`: hits `GET ${LB_URL}/leaderboard/${characterId}?page=1&pageSize=12&sort=damage&direction=desc&weaponIndex=0`
+- `prefetchLeaderboard(characterId, query?)`: hits `GET ${LB_URL}/leaderboard/${characterId}` with canonical `weaponId`, `track`, paging, sorting, and filter params
 - All three catch errors → `console.error` → return `null`
 
 ### Phase 2: `/builds` SSR prefetch
@@ -129,7 +129,7 @@ Non-default queries (filtered, paginated, etc.) are **not** SSR-prefetched. Thos
 **File: `app/(game)/leaderboards/[characterId]/page.tsx`**
 
 - Already `async` (reads `params`)
-- Call `prefetchLeaderboard(characterId)`
+- Read `searchParams`, parse the current leaderboard query, and call `prefetchLeaderboard(characterId, query)`
 - Pass `initialData` prop to `LeaderboardCharacterClient`
 
 **File: `components/leaderboard/LeaderboardCharacterClient.tsx`**
@@ -188,7 +188,7 @@ In each revalidation `useEffect`, compare `signature(newData) === signature(curr
 | `components/build/BuildPageClient.tsx` | Accept `initialData` prop, initialize state from it, diff-skip on revalidation |
 | `app/(game)/leaderboards/page.tsx` | `async`, call `prefetchLeaderboardOverview()`, pass `initialData` |
 | `components/leaderboard/LeaderboardOverviewClient.tsx` | Accept `initialData` prop, initialize state, diff-skip on revalidation |
-| `app/(game)/leaderboards/[characterId]/page.tsx` | Call `prefetchLeaderboard(characterId)`, pass `initialData` |
+| `app/(game)/leaderboards/[characterId]/page.tsx` | Parse `searchParams`, call `prefetchLeaderboard(characterId, query)`, pass `initialData` |
 | `components/leaderboard/LeaderboardCharacterClient.tsx` | Accept `initialData` prop, initialize state + config, diff-skip on revalidation |
 
 7 files total. 1 new, 6 modified.

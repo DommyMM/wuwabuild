@@ -451,7 +451,6 @@ export interface LBLeaderboardQuery {
   regionPrefixes?: string[];
   echoSets?: LBEchoSetFilter[];
   echoMains?: LBEchoMainFilter[];
-  weaponIndex?: number;
   track?: string;
 }
 
@@ -466,6 +465,11 @@ export interface LBLeaderboardResponse {
   activeWeaponId: string;
   activeTrack: string;
 }
+
+export type LBLeaderboardCharacterConfig = Pick<
+  LBLeaderboardResponse,
+  'weaponIds' | 'tracks' | 'teamCharacterIds' | 'activeWeaponId' | 'activeTrack'
+>;
 
 export interface LBSubmitBuildResult {
   id: string;
@@ -582,23 +586,8 @@ export async function listLeaderboard(
   query: LBLeaderboardQuery,
   signal?: AbortSignal,
 ): Promise<LBLeaderboardResponse> {
-  const params = new URLSearchParams();
+  const params = buildLeaderboardSearchParams(query);
   const pageSize = clampPageSize(query.pageSize);
-  params.set('page', String(query.page ?? 1));
-  params.set('size', String(pageSize));
-  if (query.sort) params.set('sort', toLBApiSortKey(query.sort));
-  if (query.direction) params.set('direction', query.direction);
-  if (query.weaponIndex !== undefined) params.set('weaponIndex', String(query.weaponIndex));
-  if (query.track) params.set('track', query.track);
-  if (query.weaponId) params.set('weaponId', query.weaponId);
-  if (query.uid) params.set('uid', query.uid);
-  if (query.username) params.set('username', query.username);
-  appendStringParams(params, 'region', query.regionPrefixes);
-  const leaderboardEchoSets = serializeEchoSetFilters(query.echoSets);
-  if (leaderboardEchoSets) params.set('echoSets', leaderboardEchoSets);
-  const leaderboardEchoMains = serializeEchoMainFilters(query.echoMains);
-  if (leaderboardEchoMains) params.set('echoMains', leaderboardEchoMains);
-
   const requestUrl = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}?${params.toString()}`;
   const response = await fetch(requestUrl, { method: 'GET', signal });
   if (!response.ok) {
@@ -641,6 +630,45 @@ export async function listLeaderboard(
     teamCharacterIds: Array.isArray(payload.teamCharacterIds) ? payload.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
     activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
     activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
+  };
+}
+
+export function buildLeaderboardSearchParams(query: LBLeaderboardQuery): URLSearchParams {
+  const params = new URLSearchParams();
+  const pageSize = clampPageSize(query.pageSize);
+  params.set('page', String(query.page ?? 1));
+  params.set('pageSize', String(pageSize));
+  if (query.sort) params.set('sort', toLBApiSortKey(query.sort));
+  if (query.direction) params.set('direction', query.direction);
+  if (query.track) params.set('track', query.track);
+  if (query.weaponId) params.set('weaponId', query.weaponId);
+  if (query.uid) params.set('uid', query.uid);
+  if (query.username) params.set('username', query.username);
+  appendStringParams(params, 'region', query.regionPrefixes);
+  const leaderboardEchoSets = serializeEchoSetFilters(query.echoSets);
+  if (leaderboardEchoSets) params.set('echoSets', leaderboardEchoSets);
+  const leaderboardEchoMains = serializeEchoMainFilters(query.echoMains);
+  if (leaderboardEchoMains) params.set('echoMains', leaderboardEchoMains);
+  return params;
+}
+
+export async function getLeaderboardCharacterConfig(
+  characterId: string,
+  signal?: AbortSignal,
+): Promise<LBLeaderboardCharacterConfig> {
+  const response = await listLeaderboard(characterId, {
+    page: 1,
+    pageSize: 1,
+    sort: 'damage',
+    direction: 'desc',
+  }, signal);
+
+  return {
+    weaponIds: response.weaponIds,
+    tracks: response.tracks,
+    teamCharacterIds: response.teamCharacterIds,
+    activeWeaponId: response.activeWeaponId,
+    activeTrack: response.activeTrack,
   };
 }
 

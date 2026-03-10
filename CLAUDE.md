@@ -78,7 +78,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 
 - `lbServer.ts` is a server-only module that fetches directly from `LB_URL` with `X-Internal-Key`, bypassing the `/api/lb` proxy.
 - `PREFETCH_TTL_S = 120` (2 minutes) — single constant shared across all three prefetch functions.
-- Three exports: `prefetchBuilds()`, `prefetchLeaderboardOverview()`, `prefetchLeaderboard(characterId)` — each returns typed data or `null` on error.
+- Three exports: `prefetchBuilds()`, `prefetchLeaderboardOverview()`, `prefetchLeaderboard(characterId, query?)` — each returns typed data or `null` on error.
 - Page server components call the prefetch function and pass `initialData` to the client component.
 - Client components use `isDefaultQuery = searchParams.toString() === ''` to guard: only seed state from SSR data when no filter params are present (prevents wrong data on bookmarked/filtered URLs).
 - Diff-based refs (`buildListSigRef`, `leaderboardSigRef`, `overviewSigRef`) track current state signature and skip `setState` if data hasn't changed after revalidation.
@@ -269,18 +269,18 @@ This matches the Next.js App Router route-group convention for opting only a sub
   - Fetches `GET /api/lb/leaderboard` via `listLeaderboardOverview(signal)`.
   - Renders a table: Character (portrait + element-colored name) | Team (partner portraits) | Entries | Weapon Rankings (4 slots).
   - Character rows, team portraits, and weapon rankings all come from the API — no hardcoded config.
-  - The overview backend now also returns `tracks`, but the current overview client does not consume them yet.
-  - Rows link to `/leaderboards/{characterId}`.
+  - Uses backend-returned `tracks` to render direct playstyle links per character.
+  - Character name links to `/leaderboards/{characterId}`; weapon cards and track chips deep-link into canonical `weaponId` / `track` query routes.
 
 ### `/leaderboards/[characterId]`
 
 - Entry: `app/(game)/leaderboards/[characterId]/page.tsx` → `LeaderboardCharacterClient`.
 - `LeaderboardCharacterClient()`:
-  - Fetches `GET /api/lb/leaderboard/{characterId}?weaponIndex=&weaponId=&track=&sort=&...` via `listLeaderboard(id, query, signal)`.
+  - Fetches `GET /api/lb/leaderboard/{characterId}?weaponId=&track=&sort=&...` via `listLeaderboard(id, query, signal)`.
   - Uses backend-returned `tracks`, `activeTrack`, `activeWeaponId`, and `teamCharacterIds` directly.
   - State: `page`, `pageSize`, `sort` (default `damage`), `direction`, `weaponIndex`, `track`, plus echo/region/uid/username filters.
-  - `configWeaponIds`, `configTracks`, and `configTeamCharacterIds` state are populated from the API response; SSR prefetch also seeds `activeWeaponId`/`activeTrack`.
-  - URL sync persists `weaponIndex`, `track`, `sort`, `direction`, `page`, `pageSize`, and filter params.
+  - `configWeaponIds`, `configTracks`, and `configTeamCharacterIds` state are populated from the API response; SSR prefetch now seeds the exact selected board from the current URL.
+  - URL sync persists canonical `weaponId`, `track`, `sort`, `direction`, `page`, `pageSize`, and filter params; legacy `weaponIndex` URLs are rewritten on mount.
   - Reuses `BuildFiltersPanel` (with empty `characters`/`weaponList` to hide those sections) and `LeaderboardResultsPanel`.
 - `LeaderboardResultsPanel()`:
   - Table header: `# | Owner | Weapon | Seq | Sets | Damage | CV+Stats`.

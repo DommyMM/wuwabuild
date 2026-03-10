@@ -1,5 +1,5 @@
 // Server-only module, fetches directly from LB_URL with X-Internal-Key
-import { isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardResponse, LBTrack } from './lb';
+import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack } from './lb';
 
 // Centralized TTL for all SSR prefetch caches (seconds).
 const PREFETCH_TTL_S = 120; // 2 minutes
@@ -148,14 +148,17 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
   }
 }
 
-export async function prefetchLeaderboard(characterId: string): Promise<LBLeaderboardResponse | null> {
+export async function prefetchLeaderboard(
+  characterId: string,
+  query: Partial<LBLeaderboardQuery> = {},
+): Promise<LBLeaderboardResponse | null> {
   try {
-    const params = new URLSearchParams({
-      page: '1',
-      pageSize: '12',
+    const params = buildLeaderboardSearchParams({
+      page: 1,
+      pageSize: 12,
       sort: 'damage',
       direction: 'desc',
-      weaponIndex: '0',
+      ...query,
     });
     const url = `${getLBUrl()}/leaderboard/${encodeURIComponent(characterId)}?${params.toString()}`;
     const response = await fetch(url, {
@@ -167,6 +170,7 @@ export async function prefetchLeaderboard(characterId: string): Promise<LBLeader
       console.error('[lbServer] prefetchLeaderboard non-OK response', {
         url,
         characterId,
+        query,
         status: response.status,
         body: await response.text(),
       });
@@ -196,6 +200,7 @@ export async function prefetchLeaderboard(characterId: string): Promise<LBLeader
     console.log('[lbServer] prefetchLeaderboard payload', {
       url,
       characterId,
+      query,
       total: toFiniteNumber(payload.total, 0),
       page: toFiniteNumber(payload.page, 1),
       pageSize: toFiniteNumber(payload.pageSize, 12),

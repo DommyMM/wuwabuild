@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
+import { buildLeaderboardHref } from '@/components/leaderboard/leaderboardQuery';
 import { LBCharacterOverview, listLeaderboardOverview } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
+import { DEFAULT_LB_TRACK } from './leaderboardConstants';
 
 // Overview table grid: # | Character | Weapons | Team | Entries
 const OVERVIEW_GRID = 'grid-cols-[40px_200px_minmax(320px,1fr)_96px_72px]';
@@ -68,8 +70,8 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
             <div className="py-3">
               <h1 className="text-2xl font-bold text-text-primary">Damage Leaderboards</h1>
               <p className="mt-1 text-sm text-text-primary/55">
-                Characters are standardized to the same conditions — level 90, maxed forte, S0, R1 weapon.
-                The only variables are the five echoes. Click a character to view the full rankings.
+                Characters are ranked under normalized leaderboard scenarios with fixed levels and configured weapon tracks.
+                Switch weapons and playstyles to compare how the same echo builds perform under each board.
               </p>
             </div>
 
@@ -134,14 +136,19 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                           entry.weapons.map((w) => [w.weaponId, w]),
                         );
 
-                          return (
-                            <Link key={entry.id} href={`/leaderboards/${entry.id}`} className="block">
-                              <div className={`grid ${OVERVIEW_GRID} min-w-[728px] items-center gap-3 px-3 py-3 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/8`}>
+                        const defaultWeaponId = entry.weaponIds[0] ?? '';
+                        const defaultTrack = entry.tracks[0]?.key ?? DEFAULT_LB_TRACK;
+
+                        return (
+                          <div
+                            key={entry.id}
+                            className={`grid ${OVERVIEW_GRID} min-w-[728px] items-center gap-3 px-3 py-3 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/8`}
+                          >
                               {/* # */}
                               <div className="text-center text-sm text-text-primary/40">{rowIndex + 1}</div>
 
                               {/* Character column */}
-                              <div className="flex items-center gap-2.5">
+                              <Link href={`/leaderboards/${entry.id}`} className="flex items-center gap-2.5 min-w-0">
                                 <div className="relative shrink-0">
                                   {character?.head ? (
                                     <img
@@ -160,47 +167,69 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                     />
                                   )}
                                 </div>
-                                <span className={`truncate text-sm font-semibold ${element ? `char-sig ${element}` : 'text-text-primary'}`}>
+                                <span className={`truncate text-sm font-semibold transition-colors hover:text-accent ${element ? `char-sig ${element}` : 'text-text-primary'}`}>
                                   {characterName}
                                 </span>
-                              </div>
+                              </Link>
 
                               {/* Weapon rankings */}
-                              <div className="flex flex-wrap gap-1.5">
-                                {entry.weaponIds.map((weaponId) => {
-                                  const weapon = getWeapon(weaponId);
-                                  const top = weaponTopByWeaponId.get(weaponId);
-                                  const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-1.5">
+                                  {entry.weaponIds.map((weaponId) => {
+                                    const weapon = getWeapon(weaponId);
+                                    const top = weaponTopByWeaponId.get(weaponId);
+                                    const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
 
-                                  return (
-                                    <div
-                                      key={weaponId}
-                                      className="flex min-w-0 items-center gap-1.5 rounded border border-border/40 bg-background-secondary/50 px-1.5 py-1"
-                                    >
-                                      <div className="relative shrink-0">
-                                        {weapon ? (
-                                          <img
-                                            src={getWeaponPaths(weapon)}
-                                            alt={weaponName}
-                                            className="h-7 w-7 object-contain"
-                                          />
-                                        ) : (
-                                          <div className="h-7 w-7 rounded bg-border/30" />
-                                        )}
-                                      </div>
-                                      <div className="min-w-0">
-                                        <div className="max-w-[80px] truncate text-[11px] font-medium text-text-primary/80">{weaponName}</div>
-                                        {top && top.damage > 0 ? (
-                                          <div className="leading-tight text-xs font-semibold text-accent">
-                                            {Math.round(top.damage).toLocaleString()}
-                                          </div>
-                                        ) : (
-                                          <div className="text-[11px] text-text-primary/30">—</div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                                    return (
+                                      <Link
+                                        key={weaponId}
+                                        href={buildLeaderboardHref(entry.id, { weaponId }, {
+                                          defaultWeaponId,
+                                          defaultTrack,
+                                        })}
+                                        className="flex min-w-0 items-center gap-1.5 rounded border border-border/40 bg-background-secondary/50 px-1.5 py-1 transition-colors hover:border-accent/45 hover:bg-accent/8"
+                                      >
+                                        <div className="relative shrink-0">
+                                          {weapon ? (
+                                            <img
+                                              src={getWeaponPaths(weapon)}
+                                              alt={weaponName}
+                                              className="h-7 w-7 object-contain"
+                                            />
+                                          ) : (
+                                            <div className="h-7 w-7 rounded bg-border/30" />
+                                          )}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <div className="max-w-[80px] truncate text-[11px] font-medium text-text-primary/80">{weaponName}</div>
+                                          {top && top.damage > 0 ? (
+                                            <div className="leading-tight text-xs font-semibold text-accent">
+                                              {Math.round(top.damage).toLocaleString()}
+                                            </div>
+                                          ) : (
+                                            <div className="text-[11px] text-text-primary/30">—</div>
+                                          )}
+                                        </div>
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                                {entry.tracks.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {entry.tracks.map((track) => (
+                                      <Link
+                                        key={`${entry.id}-${track.key}`}
+                                        href={buildLeaderboardHref(entry.id, { track: track.key }, {
+                                          defaultWeaponId,
+                                          defaultTrack,
+                                        })}
+                                        className="rounded-full border border-border/50 bg-background/60 px-2.5 py-1 text-[11px] font-semibold text-text-primary/70 transition-colors hover:border-accent/45 hover:text-accent"
+                                      >
+                                        {track.label}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
 
                               {/* Team column */}
@@ -233,9 +262,8 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                   <span className="text-xs text-text-primary/30">—</span>
                                 )}
                               </div>
-                              </div>
-                            </Link>
-                          );
+                          </div>
+                        );
                         })}
                       {!showSkeleton && overview.length === 0 && (
                         <div className={`grid ${OVERVIEW_GRID} min-w-[728px] items-center gap-3 px-3 py-8 text-sm text-text-primary/45`}>

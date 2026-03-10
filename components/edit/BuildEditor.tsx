@@ -13,6 +13,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { DEFAULT_CARD_ART_TRANSFORM, CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
+import { buildLeaderboardHref } from '@/components/leaderboard/leaderboardQuery';
+import { DEFAULT_LB_TRACK } from '@/components/leaderboard/leaderboardConstants';
+import { getLeaderboardCharacterConfig } from '@/lib/lb';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { SequenceSelector } from '@/components/character/SequenceSelector';
 import { WeaponSelector } from '@/components/weapon/WeaponSelector';
@@ -251,12 +254,29 @@ export const BuildEditor: React.FC = () => {
     setIsCardGenerated(true);
   }, []);
 
-  const handleViewRanking = useCallback(() => {
+  const handleViewRanking = useCallback(async () => {
     const characterId = selected?.character.id ?? state.characterId;
     if (!characterId) return;
 
-    router.push(`/leaderboards/${characterId}`);
-  }, [router, selected?.character.id, state.characterId]);
+    try {
+      const config = await getLeaderboardCharacterConfig(characterId);
+      const defaultWeaponId = config.weaponIds[0] ?? config.activeWeaponId ?? '';
+      const defaultTrack = config.tracks[0]?.key ?? config.activeTrack ?? DEFAULT_LB_TRACK;
+      const resolvedWeaponId = state.weaponId && config.weaponIds.includes(state.weaponId) ? state.weaponId : '';
+      const candidateTrack = `s${state.sequence}`;
+      const resolvedTrack = config.tracks.some((track) => track.key === candidateTrack) ? candidateTrack : '';
+
+      router.push(buildLeaderboardHref(characterId, {
+        weaponId: resolvedWeaponId || undefined,
+        track: resolvedTrack || undefined,
+      }, {
+        defaultWeaponId,
+        defaultTrack,
+      }));
+    } catch {
+      router.push(`/leaderboards/${characterId}`);
+    }
+  }, [router, selected?.character.id, state.characterId, state.sequence, state.weaponId]);
 
   const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
