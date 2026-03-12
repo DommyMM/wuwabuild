@@ -5,60 +5,9 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LBTrack } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
-import { SEQUENCE_BADGE_STYLES } from '@/components/build/buildConstants';
+import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel } from './leaderboardConstants';
 
-// Weapon selector cards
-
-interface WeaponCardsProps {
-  weaponIds: string[];
-  weaponIndex: number;
-  onSelect: (index: number) => void;
-}
-
-const WeaponCards: React.FC<WeaponCardsProps> = ({ weaponIds, weaponIndex, onSelect }) => {
-  const { getWeapon } = useGameData();
-  const { t } = useLanguage();
-
-  if (weaponIds.length === 0) return null;
-
-  return (
-    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(weaponIds.length, 4)}, minmax(0, 1fr))` }}>
-      {weaponIds.map((weaponId, index) => {
-        const weapon = getWeapon(weaponId);
-        const label = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
-        const isActive = index === weaponIndex;
-
-        return (
-          <button
-            key={weaponId}
-            type="button"
-            onClick={() => onSelect(index)}
-            className={`flex cursor-pointer flex-col items-center gap-2 rounded-lg border px-3 py-3 text-center transition-all ${
-              isActive
-                ? 'border-accent/70 bg-accent/10 shadow-[0_0_12px_rgba(166,150,98,0.15)]'
-                : 'border-border/60 bg-background/60 hover:border-accent/35 hover:bg-accent/5'
-            }`}
-          >
-            {weapon ? (
-              <img
-                src={getWeaponPaths(weapon)}
-                alt={label}
-                className="h-14 w-14 object-contain"
-              />
-            ) : (
-              <div className="h-14 w-14 rounded bg-border/30" />
-            )}
-            <span className={`text-xs font-medium leading-tight ${isActive ? 'text-accent' : 'text-text-primary/70'}`}>
-              {label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-};
-
-// Track tabs
+// ─── Track selector ───────────────────────────────────────────────────────────
 
 interface TrackTabsProps {
   tracks: LBTrack[];
@@ -70,19 +19,21 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
   if (tracks.length <= 1) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-2">
       {tracks.map((track) => {
         const isActive = track.key === activeTrack;
-        const level = Math.max(0, Math.min(6, Number(track.key.replace(/\D/g, '')) || 0));
+        const level = parseLBSeqLevel(track.key);
+        const activeColors = LB_SEQ_BADGE_COLORS[level] || 'border-accent/55 bg-accent/10 text-accent';
+
         return (
           <button
             key={track.key}
             type="button"
             onClick={() => onSelect(track.key)}
-            className={`cursor-pointer rounded-lg border px-4 py-1.5 text-xs font-semibold tracking-wide transition-all ${
+            className={`cursor-pointer rounded-lg border px-4 py-2 text-sm font-semibold tracking-wide transition-all ${
               isActive
-                ? `${SEQUENCE_BADGE_STYLES[level]}`
-                : 'border-border bg-background text-text-primary/60 hover:border-accent/40 hover:text-text-primary'
+                ? `${activeColors} shadow-sm`
+                : 'border-border/50 bg-background/40 text-text-primary/55 hover:border-accent/30 hover:bg-accent/5 hover:text-text-primary/80'
             }`}
           >
             {track.label}
@@ -93,7 +44,58 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
   );
 };
 
-// Combined export
+// ─── Weapon selector (compact horizontal tab row) ─────────────────────────────
+
+interface WeaponTabsProps {
+  weaponIds: string[];
+  weaponIndex: number;
+  onSelect: (index: number) => void;
+}
+
+const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelect }) => {
+  const { getWeapon } = useGameData();
+  const { t } = useLanguage();
+
+  if (weaponIds.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {weaponIds.map((weaponId, index) => {
+        const weapon = getWeapon(weaponId);
+        const label = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
+        const isActive = index === weaponIndex;
+
+        return (
+          <button
+            key={weaponId}
+            type="button"
+            onClick={() => onSelect(index)}
+            className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 transition-all ${
+              isActive
+                ? 'border-accent/60 bg-accent/10 shadow-sm'
+                : 'border-border/50 bg-background/40 hover:border-accent/30 hover:bg-accent/5'
+            }`}
+          >
+            {weapon ? (
+              <img
+                src={getWeaponPaths(weapon)}
+                alt={label}
+                className="h-8 w-8 shrink-0 object-contain"
+              />
+            ) : (
+              <div className="h-8 w-8 shrink-0 rounded bg-border/30" />
+            )}
+            <span className={`text-sm font-medium leading-tight ${isActive ? 'text-accent' : 'text-text-primary/65'}`}>
+              {label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─── Combined export — tracks first (board selector), then weapons ─────────────
 
 interface LeaderboardTabsProps {
   weaponIds: string[];
@@ -112,8 +114,8 @@ export const LeaderboardTabs: React.FC<LeaderboardTabsProps> = ({
   activeTrack,
   onSelectTrack,
 }) => (
-  <div className="space-y-3">
-    <WeaponCards weaponIds={weaponIds} weaponIndex={weaponIndex} onSelect={onSelectWeapon} />
+  <div className="space-y-2.5">
     <TrackTabs tracks={tracks} activeTrack={activeTrack} onSelect={onSelectTrack} />
+    <WeaponTabs weaponIds={weaponIds} weaponIndex={weaponIndex} onSelect={onSelectWeapon} />
   </div>
 );

@@ -7,24 +7,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { buildLeaderboardHref } from '@/components/leaderboard/leaderboardQuery';
 import { LBCharacterOverview, listLeaderboardOverview } from '@/lib/lb';
+import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel } from '@/components/leaderboard/leaderboardConstants';
 import { getWeaponPaths } from '@/lib/paths';
-
-// Sequence badge color themes — index = sequence level (0–6)
-const SEQ_BADGE_COLORS = [
-  '',                                                           // S0 — no badge
-  'border-cyan-400/45 bg-cyan-500/15 text-cyan-200',
-  'border-blue-400/45 bg-blue-500/15 text-blue-200',
-  'border-violet-400/45 bg-violet-500/15 text-violet-200',
-  'border-fuchsia-400/45 bg-fuchsia-500/15 text-fuchsia-200',
-  'border-amber-400/55 bg-amber-500/20 text-amber-200',
-  'border-spectro/60 bg-spectro/20 text-spectro',
-] as const;
-
-/** Parse sequence level from trackKey (e.g. "s2_solo" → 2, "s0" → 0). */
-function parseSeqLevel(trackKey: string): number {
-  const m = trackKey.match(/^s(\d+)/);
-  return m ? Math.min(6, parseInt(m[1], 10)) : 0;
-}
 
 /** Strip leading "S{n} " from a track label (e.g. "S2 Hypercarry" → "Hypercarry"). */
 function stripSeqPrefix(label: string): string {
@@ -93,12 +77,22 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
         <section className="relative overflow-visible rounded-xl border border-border bg-background-secondary px-4 py-2">
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
           <div className="relative">
-            <div className="py-3">
-              <h1 className="text-2xl font-bold text-text-primary">Damage Leaderboards</h1>
-              <p className="mt-1 text-sm text-text-primary/55">
-                Characters are ranked under normalized leaderboard scenarios with fixed levels and configured weapon tracks.
-                Switch weapons and playstyles to compare how the same echo builds perform under each board.
+            <div className="flex flex-col items-center py-3 text-center">
+              <h1 className="text-center text-2xl font-semibold tracking-wide text-accent md:text-3xl">
+                Damage Leaderboards
+              </h1>
+              <div className="my-2 h-px w-96 bg-linear-to-r from-transparent via-accent/70 to-transparent" />
+              <p className="max-w-xl text-center text-xs text-text-primary/65 md:text-sm">
+                Characters ranked under normalized benchmark scenarios — echo builds compared at fixed level and weapon rank.
+                <br />
+                Switch weapons and playstyles to see how each setup stacks up across the same board.
               </p>
+              <div className="mt-2 flex select-none justify-center">
+                <div className="inline-flex items-center gap-2 rounded-md border border-accent/35 bg-background/70 px-3 py-1.5 text-xs">
+                  <span className="font-medium text-accent">Standardized to</span>
+                  <span className="text-text-primary/80">Lv.90 · S0 · R1</span>
+                </div>
+              </div>
             </div>
 
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
@@ -170,7 +164,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
 
                             const defaultWeaponId = entry.weaponIds[0] ?? '';
                             const defaultTrack = entry.trackKey;
-                            const seqLevel = parseSeqLevel(entry.trackKey);
+                            const seqLevel = parseLBSeqLevel(entry.trackKey);
                             const cleanTrackLabel = stripSeqPrefix(entry.trackLabel);
 
                             return (
@@ -199,7 +193,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                       {characterName} {cleanTrackLabel}
                                     </span>
                                     {seqLevel > 0 && (
-                                      <span className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-semibold leading-none tracking-wide ${SEQ_BADGE_COLORS[seqLevel]}`}>
+                                      <span className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[seqLevel]}`}>
                                         S{seqLevel}
                                       </span>
                                     )}
