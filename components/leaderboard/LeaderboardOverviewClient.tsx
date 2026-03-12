@@ -7,13 +7,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { buildLeaderboardHref } from '@/components/leaderboard/leaderboardQuery';
 import { LBCharacterOverview, listLeaderboardOverview } from '@/lib/lb';
-import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel } from '@/components/leaderboard/leaderboardConstants';
+import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboard/leaderboardConstants';
 import { getWeaponPaths } from '@/lib/paths';
-
-/** Strip leading "S{n} " from a track label (e.g. "S2 Hypercarry" → "Hypercarry"). */
-function stripSeqPrefix(label: string): string {
-  return label.replace(/^S\d+\s+/, '');
-}
 
 // Overview table grid: # | Character | Team | Entries | Weapon Rankings
 const OVERVIEW_GRID = 'grid-cols-[44px_260px_164px_76px_1fr]';
@@ -165,7 +160,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                             const defaultWeaponId = entry.weaponIds[0] ?? '';
                             const defaultTrack = entry.trackKey;
                             const seqLevel = parseLBSeqLevel(entry.trackKey);
-                            const cleanTrackLabel = stripSeqPrefix(entry.trackLabel);
+                            const cleanTrackLabel = stripLBSeqPrefix(entry.trackLabel);
 
                             return (
                               <div
