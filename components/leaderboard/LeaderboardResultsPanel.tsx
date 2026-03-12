@@ -17,6 +17,8 @@ const DAMAGE_SORT_KEY: LBLeaderboardSortKey = 'damage';
 
 interface LeaderboardResultsPanelProps {
   entries: LBLeaderboardEntry[];
+  activeWeaponId: string;
+  activeTrackKey: string;
   expandedIds: Set<string>;
   detailById: Record<string, LBBuildDetailEntry>;
   detailLoadingById: Record<string, boolean>;
@@ -40,6 +42,8 @@ interface LeaderboardResultsPanelProps {
 
 export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = ({
   entries,
+  activeWeaponId,
+  activeTrackKey,
   expandedIds,
   detailById,
   detailLoadingById,
@@ -268,6 +272,8 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                       <LeaderboardRow
                         key={entry.id}
                         entry={entry}
+                        activeWeaponId={activeWeaponId}
+                        activeTrackKey={activeTrackKey}
                         sort={sort}
                         isCvColumnActive={isCvColumnActive}
                         isStatSortActive={isStatSortActive}

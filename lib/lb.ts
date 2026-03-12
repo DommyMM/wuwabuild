@@ -191,6 +191,24 @@ export interface LBBuildDetailEntry extends LBBuildRowEntry {
   buildState: SavedState;
 }
 
+export interface LBMoveHitEntry {
+  name: string;
+  damage: number;
+  percentage: number;
+}
+
+export interface LBMoveEntry {
+  name: string;
+  damage: number;
+  hits: LBMoveHitEntry[];
+}
+
+export interface LBSubstatUpgradeTierSet {
+  min: Record<string, number>;
+  median: Record<string, number>;
+  max: Record<string, number>;
+}
+
 interface LBListBuildsResponseRaw {
   builds?: unknown[];
   total?: number;
@@ -322,6 +340,44 @@ function parseBuildDetailEntry(raw: unknown): LBBuildDetailEntry {
   return {
     ...row,
     buildState: { ...buildState, forte },
+  };
+}
+
+function parseMoveEntry(raw: unknown): LBMoveEntry | null {
+  if (!isRecord(raw)) return null;
+  const hits = Array.isArray(raw.hits)
+    ? raw.hits
+      .filter(isRecord)
+      .map((hit) => ({
+        name: typeof hit.name === 'string' ? hit.name : '',
+        damage: toFiniteNumber(hit.damage, 0),
+        percentage: toFiniteNumber(hit.percentage, 0),
+      }))
+      .filter((hit) => hit.name.length > 0 || hit.damage > 0)
+    : [];
+
+  return {
+    name: typeof raw.name === 'string' ? raw.name : '',
+    damage: toFiniteNumber(raw.damage, 0),
+    hits,
+  };
+}
+
+function parseUpgradeTierMap(raw: unknown): Record<string, number> {
+  if (!isRecord(raw)) return {};
+  return Object.fromEntries(
+    Object.entries(raw)
+      .map(([key, value]) => [key, toFiniteNumber(value, 0)])
+      .filter(([, value]) => Number.isFinite(value)),
+  );
+}
+
+function parseUpgradeTierSet(raw: unknown): LBSubstatUpgradeTierSet | null {
+  if (!isRecord(raw)) return null;
+  return {
+    min: parseUpgradeTierMap(raw.min),
+    median: parseUpgradeTierMap(raw.median),
+    max: parseUpgradeTierMap(raw.max),
   };
 }
 
@@ -677,6 +733,79 @@ export async function getBuildById(buildId: string, signal?: AbortSignal): Promi
   });
 
   return detail;
+}
+
+export async function getBuildMoves(
+  buildId: string,
+  weaponId: string,
+  trackKey: string,
+  signal?: AbortSignal,
+): Promise<LBMoveEntry[]> {
+  const requestUrl = `${resolveLBBaseUrl()}/build/${encodeURIComponent(buildId)}/moves/${encodeURIComponent(weaponId)}/${encodeURIComponent(trackKey)}`;
+  const response = await fetch(requestUrl, {
+    method: 'GET',
+    signal,
+  });
+
+  if (response.status === 404) {
+    return [];
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to fetch build moves (${response.status})`);
+  }
+
+  const payload = await response.json() as { moves?: unknown };
+  if (Array.isArray(payload.moves)) {
+    return payload.moves
+      .map(parseMoveEntry)
+      .filter((entry): entry is LBMoveEntry => entry !== null && (entry.name.length > 0 || entry.damage > 0));
+  }
+  if (isRecord(payload.moves)) {
+    return Object.entries(payload.moves)
+      .map(([name, damage]) => ({
+        name,
+        damage: toFiniteNumber(damage, 0),
+        hits: [],
+      }))
+      .filter((entry) => entry.name.length > 0 || entry.damage > 0);
+  }
+  return [];
+}
+
+export async function getBuildSubstatUpgrades(
+  buildId: string,
+  signal?: AbortSignal,
+): Promise<Record<string, Record<string, LBSubstatUpgradeTierSet>>> {
+  const requestUrl = `${resolveLBBaseUrl()}/build/${encodeURIComponent(buildId)}/substat-upgrades`;
+  const response = await fetch(requestUrl, {
+    method: 'GET',
+    signal,
+  });
+
+  if (response.status === 404) {
+    return {};
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to fetch substat upgrades (${response.status})`);
+  }
+
+  const payload = await response.json() as Record<string, unknown>;
+  const parsed: Record<string, Record<string, LBSubstatUpgradeTierSet>> = {};
+
+  for (const [weaponId, weaponValue] of Object.entries(payload)) {
+    if (!isRecord(weaponValue)) continue;
+    const seqMap: Record<string, LBSubstatUpgradeTierSet> = {};
+    for (const [trackKey, trackValue] of Object.entries(weaponValue)) {
+      const tierSet = parseUpgradeTierSet(trackValue);
+      if (!tierSet) continue;
+      seqMap[trackKey] = tierSet;
+    }
+    if (Object.keys(seqMap).length > 0) {
+      parsed[weaponId] = seqMap;
+    }
+  }
+
+  return parsed;
 }
 
 function parseSubmitBuildResult(raw: unknown): LBSubmitBuildResult {

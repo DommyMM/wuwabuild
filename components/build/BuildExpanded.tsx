@@ -17,6 +17,7 @@ import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
 import { saveDraftBuild } from '@/lib/storage';
 import { RegionBadge } from './buildConstants';
 import { formatFlatStat, formatPercentStat } from './buildFormatters';
+import { BuildSimulationSection } from './BuildSimulationSection';
 
 type SubstatSummaryEntry = {
   type: string;
@@ -117,6 +118,8 @@ interface BuildExpandedProps {
   getEcho: (id: string | null) => Echo | null;
   translateText: (i18n: Record<string, string> | undefined, fallback: string) => string;
   onRetryDetail: (buildId: string) => void;
+  activeBoardWeaponId?: string;
+  activeTrackKey?: string;
 }
 
 function normalizeSubstatKey(type: string | null | undefined): string | null {
@@ -138,6 +141,8 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   getEcho,
   translateText,
   onRetryDetail,
+  activeBoardWeaponId,
+  activeTrackKey,
 }) => {
   const router = useRouter();
   const { fettersByElement, getSubstatValues, statTranslations } = useGameData();
@@ -584,6 +589,15 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   View in Editor
                 </button>
               </div>
+
+              {detail && activeBoardWeaponId && activeTrackKey && (
+                <BuildSimulationSection
+                  buildId={detail.id}
+                  activeWeaponId={activeBoardWeaponId}
+                  activeTrackKey={activeTrackKey}
+                  isExpanded={isExpanded}
+                />
+              )}
             </div>
           )}
         </motion.div>

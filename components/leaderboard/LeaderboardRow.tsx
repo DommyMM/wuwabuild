@@ -15,6 +15,8 @@ import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from './leaderboardConstants';
 
 interface LeaderboardRowProps {
   entry: LBLeaderboardEntry;
+  activeWeaponId: string;
+  activeTrackKey: string;
   sort: LBLeaderboardSortKey;
   isCvColumnActive: boolean;
   isStatSortActive: boolean;
@@ -29,6 +31,8 @@ interface LeaderboardRowProps {
 
 export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   entry,
+  activeWeaponId,
+  activeTrackKey,
   sort,
   isCvColumnActive,
   isStatSortActive,
@@ -238,6 +242,8 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         getEcho={getEcho}
         translateText={(i18n, fallback) => t(i18n ?? { en: fallback })}
         onRetryDetail={onRetryDetail}
+        activeBoardWeaponId={activeWeaponId}
+        activeTrackKey={activeTrackKey}
       />
     </div>
   );

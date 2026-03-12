@@ -392,6 +392,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
             />
             <LeaderboardResultsPanel
               entries={entries}
+              activeWeaponId={weaponId}
+              activeTrackKey={track}
               expandedIds={expandedIds}
               detailById={detailById}
               detailLoadingById={detailLoadingById}
