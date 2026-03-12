@@ -416,10 +416,11 @@ export interface LBTrack {
 
 export interface LBCharacterOverview {
   id: string;
+  trackKey: string;
+  trackLabel: string;
   totalEntries: number;
   weapons: LBWeaponTop[];
-  weaponIds: string[];
-  tracks: LBTrack[];
+  weaponIds: string[]; // derived from weapons array
   teamCharacterIds: string[];
 }
 
@@ -547,16 +548,13 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
           },
         };
       });
-    const weaponIds = Array.isArray(raw.weaponIds)
-      ? raw.weaponIds.filter((v): v is string => typeof v === 'string')
-      : weapons.map((weapon) => weapon.weaponId).filter(Boolean);
-
     result.push({
       id: typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : ''),
+      trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
+      trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
       totalEntries: toFiniteNumber(raw.totalEntries),
       weapons,
-      weaponIds,
-      tracks: parseTracks(raw.tracks),
+      weaponIds: weapons.map((w) => w.weaponId).filter(Boolean),
       teamCharacterIds: Array.isArray(raw.teamCharacterIds) ? raw.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
     });
   }

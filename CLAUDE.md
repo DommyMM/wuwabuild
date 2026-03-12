@@ -267,10 +267,17 @@ This matches the Next.js App Router route-group convention for opting only a sub
 - Entry: `app/(game)/leaderboards/page.tsx` → `LeaderboardOverviewClient`.
 - `LeaderboardOverviewClient()`:
   - Fetches `GET /api/lb/leaderboard` via `listLeaderboardOverview(signal)`.
-  - Renders a table: Character (portrait + element-colored name) | Team (partner portraits) | Entries | Weapon Rankings (4 slots).
-  - Character rows, team portraits, and weapon rankings all come from the API — no hardcoded config.
-  - Uses backend-returned `tracks` to render direct playstyle links per character.
-  - Character name links to `/leaderboards/{characterId}`; weapon cards and track chips deep-link into canonical `weaponId` / `track` query routes.
+  - **Per-track rows**: the API returns one row per (character × track), so Changli with 4 tracks yields 4 rows. Characters sorted by total entry count (most popular first).
+  - Grid: `# | Character (portrait + name + track label subtitle) | Team | Top runs (weapon cards) | Entries`.
+  - `#` column: plain sequential index (no circle badge).
+  - Character portrait: bare `<img className="h-12 w-12 rounded-2xl">`, no border wrapper, no element icon overlay.
+  - Team portraits: direct `<img className="h-9 w-9 rounded-xl">`, no border wrapper — empty for solo tracks.
+  - Weapon cards: icon + damage number + owner username; no weapon name text, no inner border box; `title={weaponName}` for tooltip.
+  - Track label rendered as a subtitle under character name (e.g. "Hypercarry", "Solo").
+  - No track toggle chips — track is baked into each row.
+  - Row key: `` `${entry.id}:${entry.trackKey}` ``.
+  - `overviewSignature` includes `trackKey` for diff-based SSR revalidation.
+  - `LBCharacterOverview` shape: `id`, `trackKey`, `trackLabel`, `totalEntries`, `weapons[]`, `weaponIds[]` (derived), `teamCharacterIds[]`.
 
 ### `/leaderboards/[characterId]`
 
