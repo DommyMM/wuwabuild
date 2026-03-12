@@ -3,7 +3,7 @@ import { LeaderboardOverviewClient } from '@/components/leaderboard/LeaderboardO
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 
 export const metadata: Metadata = {
-  title: 'Global Leaderboards',
+  title: 'Character Leaderboards',
   description: 'Ranking the best Wuthering Waves character builds globally. See top-tier damage outputs, CV rankings, and optimal echo loadouts.',
 };
 

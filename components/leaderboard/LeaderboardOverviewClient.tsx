@@ -4,15 +4,35 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { RARITY_ACCENTS } from '@/components/weapon/rarityStyles';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { buildLeaderboardHref } from '@/components/leaderboard/leaderboardQuery';
 import { LBCharacterOverview, listLeaderboardOverview } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 
+// Sequence badge color themes — index = sequence level (0–6)
+const SEQ_BADGE_COLORS = [
+  '',                                                           // S0 — no badge
+  'border-cyan-400/45 bg-cyan-500/15 text-cyan-200',
+  'border-blue-400/45 bg-blue-500/15 text-blue-200',
+  'border-violet-400/45 bg-violet-500/15 text-violet-200',
+  'border-fuchsia-400/45 bg-fuchsia-500/15 text-fuchsia-200',
+  'border-amber-400/55 bg-amber-500/20 text-amber-200',
+  'border-spectro/60 bg-spectro/20 text-spectro',
+] as const;
+
+/** Parse sequence level from trackKey (e.g. "s2_solo" → 2, "s0" → 0). */
+function parseSeqLevel(trackKey: string): number {
+  const m = trackKey.match(/^s(\d+)/);
+  return m ? Math.min(6, parseInt(m[1], 10)) : 0;
+}
+
+/** Strip leading "S{n} " from a track label (e.g. "S2 Hypercarry" → "Hypercarry"). */
+function stripSeqPrefix(label: string): string {
+  return label.replace(/^S\d+\s+/, '');
+}
 
 // Overview table grid: # | Character | Team | Entries | Weapon Rankings
-const OVERVIEW_GRID = 'grid-cols-[44px_220px_128px_76px_minmax(360px,1fr)]';
+const OVERVIEW_GRID = 'grid-cols-[44px_260px_164px_76px_1fr]';
 
 function overviewSignature(entries: LBCharacterOverview[]): string {
   return entries.map((e) =>
@@ -91,13 +111,13 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
               <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
                 <div className="w-max min-w-full">
                   <div className="overflow-hidden rounded-lg border border-border bg-background/70">
-                    {/* Header */}
-                    <div className={`grid ${OVERVIEW_GRID} items-center gap-3 border-b border-border bg-background-secondary/95 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-primary/50`}>
-                      <div className="text-center">#</div>
-                      <div>Character</div>
-                      <div className="text-center">Team</div>
-                      <div className="text-center">Entries</div>
-                      <div className="text-center">Weapon Rankings</div>
+                    {/* Header — matches LeaderboardResultsPanel style */}
+                    <div className={`grid ${OVERVIEW_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-base text-text-primary`}>
+                      <div className="py-2 text-center text-text-primary/55">#</div>
+                      <div className="py-2 text-text-primary/70">Character</div>
+                      <div className="py-2 text-center text-text-primary/70">Team</div>
+                      <div className="py-2 text-center text-text-primary/70">Entries</div>
+                      <div className="py-2 px-1 text-center text-text-primary/70">Weapon Rankings</div>
                     </div>
 
                     {/* Rows */}
@@ -106,7 +126,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                         ? Array.from({ length: 8 }).map((_, index) => (
                             <div
                               key={index}
-                              className={`grid ${OVERVIEW_GRID} items-center gap-3 px-3 py-3 odd:bg-background/30 even:bg-background-secondary/20`}
+                              className={`grid ${OVERVIEW_GRID} items-center gap-4.5 px-3 py-3 odd:bg-background/30 even:bg-background-secondary/20`}
                             >
                               <div className="mx-auto h-3 w-5 animate-pulse rounded bg-background-secondary/80" />
                               <div className="flex items-center gap-3">
@@ -116,8 +136,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                   <div className="h-3 w-20 animate-pulse rounded bg-background-secondary/80" />
                                 </div>
                               </div>
-                              <div className="grid grid-cols-2 justify-center gap-1">
-                                <div className="h-9 w-9 animate-pulse rounded-xl bg-background-secondary/80" />
+                              <div className="flex justify-center gap-1">
                                 <div className="h-9 w-9 animate-pulse rounded-xl bg-background-secondary/80" />
                                 <div className="h-9 w-9 animate-pulse rounded-xl bg-background-secondary/80" />
                                 <div className="h-9 w-9 animate-pulse rounded-xl bg-background-secondary/80" />
@@ -151,11 +170,13 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
 
                             const defaultWeaponId = entry.weaponIds[0] ?? '';
                             const defaultTrack = entry.trackKey;
+                            const seqLevel = parseSeqLevel(entry.trackKey);
+                            const cleanTrackLabel = stripSeqPrefix(entry.trackLabel);
 
                             return (
                               <div
                                 key={`${entry.id}:${entry.trackKey}`}
-                                className={`grid ${OVERVIEW_GRID} items-center gap-3 px-3 py-3 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/8`}
+                                className={`grid ${OVERVIEW_GRID} items-center gap-4.5 px-3 py-3 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/8`}
                               >
                                 {/* # */}
                                 <div className="py-2 text-center text-text-primary/55">{rowIndex + 1}</div>
@@ -173,35 +194,44 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                       <div className="h-12 w-12 shrink-0 rounded-2xl bg-border/30" />
                                     )}
                                   </div>
-                                  <div className="min-w-0">
-                                    <span className={`block truncate text-sm font-semibold transition-colors hover:text-accent ${element ? `char-sig ${element}` : 'text-text-primary'}`}>
-                                      {characterName} {entry.trackLabel}
+                                  <div className="min-w-0 flex items-center gap-2">
+                                    <span className={`truncate text-xl font-semibold transition-colors hover:text-accent ${element ? `char-sig ${element}` : 'text-text-primary'}`}>
+                                      {characterName} {cleanTrackLabel}
                                     </span>
+                                    {seqLevel > 0 && (
+                                      <span className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-semibold leading-none tracking-wide ${SEQ_BADGE_COLORS[seqLevel]}`}>
+                                        S{seqLevel}
+                                      </span>
+                                    )}
                                   </div>
                                 </Link>
 
                                 {/* Team column */}
-                                <div className="flex justify-center">
-                                  {entry.teamCharacterIds.length === 0 ? (
-                                    <span className="text-xs text-text-primary/30">-</span>
+                                <div className="flex justify-center gap-1">
+                                  {character?.head ? (
+                                    <img
+                                      src={character.head}
+                                      alt={characterName}
+                                      title={characterName}
+                                      className="h-11 w-11 object-cover object-top"
+                                    />
                                   ) : (
-                                    <div className="grid grid-cols-2 gap-1">
-                                      {entry.teamCharacterIds.map((teamId) => {
-                                        const teamChar = getCharacter(teamId);
-                                        return teamChar?.head ? (
-                                          <img
-                                            key={teamId}
-                                            src={teamChar.head}
-                                            alt={teamChar.name}
-                                            title={teamChar.name}
-                                            className="h-11 w-11 object-cover object-top"
-                                          />
-                                        ) : (
-                                          <div key={teamId} className="h-11 w-11 bg-border/25" />
-                                        );
-                                      })}
-                                    </div>
+                                    <div className="h-11 w-11 bg-border/30" />
                                   )}
+                                  {entry.teamCharacterIds.map((teamId) => {
+                                    const teamChar = getCharacter(teamId);
+                                    return teamChar?.head ? (
+                                      <img
+                                        key={teamId}
+                                        src={teamChar.head}
+                                        alt={teamChar.name}
+                                        title={teamChar.name}
+                                        className="h-11 w-11 object-cover object-top"
+                                      />
+                                    ) : (
+                                      <div key={teamId} className="h-11 w-11 bg-border/25" />
+                                    );
+                                  })}
                                 </div>
 
                                 {/* Total entries */}
@@ -222,7 +252,6 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                     const weapon = getWeapon(weaponId);
                                     const top = weaponTopByWeaponId.get(weaponId);
                                     const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
-                                    const rarityStyle = weapon ? RARITY_ACCENTS[weapon.rarity] : null;
                                     const ownerLabel = top?.owner.username || 'Anonymous';
                                     const hasTopDamage = Boolean(top && top.damage > 0);
 
@@ -234,11 +263,10 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                           defaultTrack,
                                         })}
                                         title={weaponName}
-                                        className={`group relative flex min-w-[128px] flex-1 basis-[140px] items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-all hover:-translate-y-0.5 hover:border-accent/45 hover:bg-accent/8 ${
-                                          rarityStyle ? `${rarityStyle.border} ${rarityStyle.bg}` : 'border-border/40 bg-background-secondary/55'
-                                        }`}
+                                        className="group relative flex min-w-[128px] flex-1 basis-[140px] items-center gap-2.5 overflow-hidden rounded-lg border border-accent/15 bg-black/20 px-2.5 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-all hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
                                       >
-                                        <div className="absolute inset-0 rounded-[inherit] bg-[linear-gradient(135deg,rgba(255,255,255,0.05),transparent_55%)] opacity-60 transition-opacity group-hover:opacity-100" />
+                                        {/* Glassmorphic inner highlight */}
+                                        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06)_0%,transparent_50%)] opacity-70 transition-opacity group-hover:opacity-100" />
                                         {weapon ? (
                                           <img
                                             src={getWeaponPaths(weapon)}
@@ -268,7 +296,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                             );
                           })}
                       {!showSkeleton && overview.length === 0 && (
-                        <div className={`grid ${OVERVIEW_GRID} items-center gap-3 px-3 py-8 text-sm text-text-primary/45`}>
+                        <div className={`grid ${OVERVIEW_GRID} items-center gap-4.5 px-3 py-8 text-sm text-text-primary/45`}>
                           <div />
                           <div>No leaderboard entries found.</div>
                           <div className="text-center text-text-primary/30">-</div>
