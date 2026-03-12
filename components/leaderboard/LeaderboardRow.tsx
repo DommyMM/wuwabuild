@@ -77,7 +77,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
     .slice(0, 2);
 
   // Rank display
-  const rank = isDamageSort ? entry.globalRank : entry.filteredRank;
+  const rank = entry.globalRank;
   const rankColor =
     rank === 1
       ? 'text-yellow-400 font-bold'

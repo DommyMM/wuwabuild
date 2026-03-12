@@ -25,7 +25,7 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
 
   return (
     <div className="space-y-2">
-      <div className="text-center text-[11px] font-semibold uppercase tracking-[0.24em] text-text-primary/40">
+      <div className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-text-primary/40">
         Playstyle
       </div>
       <div className="flex flex-wrap justify-center gap-2.5">
@@ -48,7 +48,7 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
                   {label}
                 </span>
                 {level > 0 && (
-                  <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none tracking-wide ${badgeColors}`}>
+                  <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold leading-none tracking-wide ${badgeColors}`}>
                     S{level}
                   </span>
                 )}
@@ -75,7 +75,7 @@ const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelec
 
   return (
     <div className="space-y-2">
-      <div className="text-center text-[11px] font-semibold uppercase tracking-[0.24em] text-text-primary/40">
+      <div className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-text-primary/40">
         Weapon
       </div>
       <div className="flex flex-wrap justify-center gap-2.5">

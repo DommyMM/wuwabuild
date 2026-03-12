@@ -431,7 +431,6 @@ export interface LBLeaderboardEntry {
   finalCV: number;
   timestamp: string;
   damage: number;
-  filteredRank: number;
   globalRank: number;
   stats: Record<LBStatCode, number>;
   owner: { username: string; uid: string };
@@ -494,7 +493,6 @@ export function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
     finalCV: toFiniteNumber(raw.finalCV, row.cv),
     timestamp: row.timestamp,
     damage: toFiniteNumber(raw.damage),
-    filteredRank: toFiniteNumber(raw.filteredRank, 0),
     globalRank: toFiniteNumber(raw.globalRank, 0),
     stats: parseStatsRecord(raw),
     owner: row.owner,
