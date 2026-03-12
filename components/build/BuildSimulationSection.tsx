@@ -86,21 +86,24 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const [movesByKey, setMovesByKey] = useState<Record<string, LBMoveEntry[]>>({});
   const [moveErrorsByKey, setMoveErrorsByKey] = useState<Record<string, string | null>>({});
   const [loadingMoveKeys, setLoadingMoveKeys] = useState<Record<string, boolean>>({});
-  const [upgradesByWeaponTrack, setUpgradesByWeaponTrack] = useState<Record<string, Record<string, LBSubstatUpgradeTierSet>> | null>(null);
-  const [upgradesLoading, setUpgradesLoading] = useState(false);
-  const [upgradesError, setUpgradesError] = useState<string | null>(null);
+  const [upgradesByKey, setUpgradesByKey] = useState<Record<string, LBSubstatUpgradeTierSet | null>>({});
+  const [upgradeErrorsByKey, setUpgradeErrorsByKey] = useState<Record<string, string | null>>({});
+  const [loadingUpgradeKeys, setLoadingUpgradeKeys] = useState<Record<string, boolean>>({});
   const [isMovesOpen, setIsMovesOpen] = useState(false);
   const [isUpgradesOpen, setIsUpgradesOpen] = useState(false);
 
   const hasBoardContext = buildId.length > 0 && activeWeaponId.length > 0 && activeTrackKey.length > 0;
   const moveKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
+  const upgradeKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
   const weapon = getWeapon(activeWeaponId);
   const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : activeWeaponId;
   const trackLabel = formatTrackLabel(activeTrackKey);
   const moves = movesByKey[moveKey] ?? [];
   const moveError = moveErrorsByKey[moveKey] ?? null;
   const isMoveLoading = loadingMoveKeys[moveKey] ?? false;
-  const activeUpgrades = upgradesByWeaponTrack?.[activeWeaponId]?.[activeTrackKey] ?? null;
+  const activeUpgrades = upgradesByKey[upgradeKey] ?? null;
+  const upgradesError = upgradeErrorsByKey[upgradeKey] ?? null;
+  const upgradesLoading = loadingUpgradeKeys[upgradeKey] ?? false;
   const shouldLoadMoves = isExpanded && isMovesOpen;
   const shouldLoadUpgrades = isExpanded && isUpgradesOpen;
 
@@ -129,25 +132,28 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   }, [activeTrackKey, activeWeaponId, buildId, moveKey]);
 
   const loadUpgrades = useCallback((controller: AbortController) => {
-    setUpgradesLoading(true);
-    setUpgradesError(null);
+    setLoadingUpgradeKeys((prev) => ({ ...prev, [upgradeKey]: true }));
+    setUpgradeErrorsByKey((prev) => ({ ...prev, [upgradeKey]: null }));
 
-    void getBuildSubstatUpgrades(buildId, controller.signal)
+    void getBuildSubstatUpgrades(buildId, activeWeaponId, activeTrackKey, controller.signal)
       .then((payload) => {
-        setUpgradesByWeaponTrack(payload);
+        setUpgradesByKey((prev) => ({ ...prev, [upgradeKey]: payload }));
       })
       .catch((error) => {
         if (controller.signal.aborted) return;
-        setUpgradesError(error instanceof Error ? error.message : 'Failed to load substat upgrades.');
+        setUpgradeErrorsByKey((prev) => ({
+          ...prev,
+          [upgradeKey]: error instanceof Error ? error.message : 'Failed to load substat upgrades.',
+        }));
       })
       .finally(() => {
         if (controller.signal.aborted) return;
-        setUpgradesLoading(false);
+        setLoadingUpgradeKeys((prev) => ({ ...prev, [upgradeKey]: false }));
         if (upgradeControllerRef.current === controller) {
           upgradeControllerRef.current = null;
         }
       });
-  }, [buildId]);
+  }, [activeTrackKey, activeWeaponId, buildId, upgradeKey]);
 
   useEffect(() => {
     if (!shouldLoadMoves || !hasBoardContext) return;
@@ -163,7 +169,8 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   }, [hasBoardContext, loadMoves, loadingMoveKeys, moveKey, movesByKey, shouldLoadMoves]);
 
   useEffect(() => {
-    if (!shouldLoadUpgrades || !buildId || upgradesByWeaponTrack || upgradesLoading) return;
+    if (!shouldLoadUpgrades || !buildId) return;
+    if (hasCacheKey(upgradesByKey, upgradeKey) || loadingUpgradeKeys[upgradeKey]) return;
 
     upgradeControllerRef.current?.abort();
     const controller = new AbortController();
@@ -172,7 +179,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       if (controller.signal.aborted) return;
       loadUpgrades(controller);
     });
-  }, [buildId, loadUpgrades, shouldLoadUpgrades, upgradesByWeaponTrack, upgradesLoading]);
+  }, [buildId, loadUpgrades, loadingUpgradeKeys, shouldLoadUpgrades, upgradeKey, upgradesByKey]);
 
   useEffect(() => (() => {
     moveControllerRef.current?.abort();

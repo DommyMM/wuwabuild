@@ -748,6 +748,19 @@ export async function getBuildMoves(
   });
 
   if (response.status === 404) {
+    let payload: unknown = null;
+    try {
+      payload = await response.json();
+    } catch {
+      // Ignore malformed error bodies for debug logging.
+    }
+    console.warn('[LB] /build/{id}/moves payload (404)', {
+      requestUrl,
+      buildId,
+      weaponId,
+      trackKey,
+      payload,
+    });
     return [];
   }
   if (!response.ok) {
@@ -755,13 +768,13 @@ export async function getBuildMoves(
   }
 
   const payload = await response.json() as { moves?: unknown };
+  let parsed: LBMoveEntry[] = [];
   if (Array.isArray(payload.moves)) {
-    return payload.moves
+    parsed = payload.moves
       .map(parseMoveEntry)
       .filter((entry): entry is LBMoveEntry => entry !== null && (entry.name.length > 0 || entry.damage > 0));
-  }
-  if (isRecord(payload.moves)) {
-    return Object.entries(payload.moves)
+  } else if (isRecord(payload.moves)) {
+    parsed = Object.entries(payload.moves)
       .map(([name, damage]) => ({
         name,
         damage: toFiniteNumber(damage, 0),
@@ -769,42 +782,58 @@ export async function getBuildMoves(
       }))
       .filter((entry) => entry.name.length > 0 || entry.damage > 0);
   }
-  return [];
+  console.log('[LB] /build/{id}/moves payload', {
+    requestUrl,
+    buildId,
+    weaponId,
+    trackKey,
+    payload,
+  });
+  return parsed;
 }
 
 export async function getBuildSubstatUpgrades(
   buildId: string,
+  weaponId: string,
+  trackKey: string,
   signal?: AbortSignal,
-): Promise<Record<string, Record<string, LBSubstatUpgradeTierSet>>> {
-  const requestUrl = `${resolveLBBaseUrl()}/build/${encodeURIComponent(buildId)}/substat-upgrades`;
+): Promise<LBSubstatUpgradeTierSet | null> {
+  const requestUrl = `${resolveLBBaseUrl()}/build/${encodeURIComponent(buildId)}/substat-upgrades/${encodeURIComponent(weaponId)}/${encodeURIComponent(trackKey)}`;
   const response = await fetch(requestUrl, {
     method: 'GET',
     signal,
   });
 
   if (response.status === 404) {
-    return {};
+    let payload: unknown = null;
+    try {
+      payload = await response.json();
+    } catch {
+      // Ignore malformed error bodies for debug logging.
+    }
+    console.warn('[LB] /build/{id}/substat-upgrades payload (404)', {
+      requestUrl,
+      buildId,
+      weaponId,
+      trackKey,
+      payload,
+    });
+    return null;
   }
   if (!response.ok) {
     throw new Error(`Failed to fetch substat upgrades (${response.status})`);
   }
 
-  const payload = await response.json() as Record<string, unknown>;
-  const parsed: Record<string, Record<string, LBSubstatUpgradeTierSet>> = {};
+  const payload = await response.json() as { weaponId?: unknown; track?: unknown; tiers?: unknown };
+  const parsed = parseUpgradeTierSet(payload.tiers);
 
-  for (const [weaponId, weaponValue] of Object.entries(payload)) {
-    if (!isRecord(weaponValue)) continue;
-    const seqMap: Record<string, LBSubstatUpgradeTierSet> = {};
-    for (const [trackKey, trackValue] of Object.entries(weaponValue)) {
-      const tierSet = parseUpgradeTierSet(trackValue);
-      if (!tierSet) continue;
-      seqMap[trackKey] = tierSet;
-    }
-    if (Object.keys(seqMap).length > 0) {
-      parsed[weaponId] = seqMap;
-    }
-  }
-
+  console.log('[LB] /build/{id}/substat-upgrades payload', {
+    requestUrl,
+    buildId,
+    weaponId,
+    trackKey,
+    payload,
+  });
   return parsed;
 }
 
