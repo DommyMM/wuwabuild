@@ -1,166 +1,207 @@
-# WuWaBuilds
+# WuWaBuilds Frontend
 
-A sophisticated web application for Wuthering Waves players to create, customize, and share character builds through three distinct workflows: manual creation, screenshot OCR scanning, and direct image importing.
+Next.js App Router frontend for [wuwabuilds.moe](https://wuwabuilds.moe) — a Wuthering Waves build creator and leaderboard.
 
-Live at: [wuwabuilds.moe](https://wuwabuilds.moe)
+**Stack**: Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · Framer Motion
 
-## Core Pages & Features
+For full technical context, see:
+- [`CLAUDE.md`](./CLAUDE.md)
+- [`docs/LB_MIGRATION_STATUS.md`](./docs/LB_MIGRATION_STATUS.md)
 
-### Home Page (`/`)
-- Typewriter text effect showcasing core features
-- Build card carousel with 3D rotation effect (2D on mobile)
-- Two tutorial sections:
-  - Image import tutorial for Discord-posted builds
-  - Screenshot scanning guide with example regions
-- Mobile-optimized interface with touch/swipe gestures
-- Element-themed styling matching game aesthetics
+---
 
-### Build Editor (`/edit`)
-The comprehensive character build creation interface:
+## Status Snapshot (March 9, 2026)
 
-#### Character & Weapon Selection
-- Complete character roster with element variants (special handling for Rover)
-- Character level (1-90), sequence (0-6), and basic information controls
-- Type-filtered weapon selection with refinement and level controls
-- Real-time weapon stat calculation and passive display
+- All core routes implemented: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`.
+- `/builds` is live and wired to LB `GET /build` with filters/sort/pagination + local query caching + SSR prefetch (2-min ISR, silent revalidation on mount).
+- `/leaderboards` overview and `/leaderboards/[characterId]` per-character pages are live, also SSR-prefetched.
+- `/import` OCR flow is live; `Upload to Leaderboard` toggle submits canonical `buildState` via `POST /api/lb/build`, and failed/misread scans can now be reported directly from the import UI.
+- `/edit` `View Ranking` button routes to the selected character leaderboard page.
+- Go leaderboard backend (`/lb`) runs single-pass canonical ingest with 9 registered character damage configs.
+- Node backend (`/mongo`) remains the fallback path until remaining Go parity items are closed.
+- DB index suite fixed: sort indexes now use `NULLS LAST`; dead GIN indexes removed; stat sort indexes added.
 
-#### Echo Panel System
-- Five configurable echo panels with drag-and-drop reordering
-- Main stat selector with level-based scaling
-- Up to 4 substats per panel with CV calculation
-- Element set tracking with 2/5-piece bonus calculations
-- Phantom echo toggle for specialized builds
-- Cost validation system (warns when exceeding 12)
-- Echo preset save/load functionality
+---
 
-#### Forte/Talent System
-- Interactive skill tree with node activation and level tracking (1-10)
-- Branch-specific styling (Normal Attack, Resonance Skill, Forte Circuit, etc.)
-- "Max All" and reset buttons for quick configurations
-- Real-time stat contribution tracking per node
-- Level-based ability scaling with tooltips
+## Features
 
-#### Stats Dashboard
-- Comprehensive stat breakdown from all sources
-- Dynamic calculation of derived stats (CV, damage bonuses)
-- Element-specific bonuses and resistance calculations
-- Quality indicators for substats 
+- **Build Editor** (`/edit`) — Full character build creator with real-time stat calculations, drag-to-reposition splash art, weapon rank passives, forte node bonuses, echo set summaries, CV tiers, and downloadable build card export.
+- **OCR Import** (`/import`) — Upload a 1920×1080 screenshot; frontend crops into regions and sends each in parallel to the OCR backend. Supports character, weapon, echoes, forte, sequences, watermark extraction, and inline OCR issue reporting with screenshot-backed diagnostics.
+- **Build Browser** (`/builds`) — Paginated build listing with filters (character, weapon, echo sets, echo mains, UID/username search) and sort by CV, damage, timestamp, or individual stats.
+- **Local Saves** (`/saves`) — Save builds to localStorage with auto-migration from legacy save formats.
+- **Multi-Language** — 10 languages: English, Japanese, Korean, Chinese (Simplified/Traditional), German, Spanish, French, Thai, Ukrainian.
 
-#### Build Creation Tools
-- OCR screenshot scanning with region selection guides
-- Image upload and URL import options
-- Auto-save mechanism with recovery prompt for unsaved work
-- Real-time build card preview with element-specific styling
-- Customizable username/UID watermark for exported images
+---
 
-#### Build Card Display
-- Integrated preview within the editor
-- Element-themed visual styling that changes with character element
-- Character portrait with weapon and stats display
-- Echo panel visualization with set indicators and CV display
-- Forte/talent tree visual representation
-- Detailed stat breakdown with quality indicators
-- Export to image with customization options
+## Architecture
 
-The Edit page combines both input systems (manual configuration and OCR scanning) with real-time calculation to generate a visually styled build card that can be exported as an image. The card itself acts as both a live preview and the final output, updating dynamically as the build is modified.
+### State Management
 
-Key technical features include:
-- Canvas-based image generation for exports
-- Real-time stat calculations with complex game mechanics
-- Drag-and-drop echo panel organization
-- Element-specific theming that updates with character selection
-- Complex state management for all build components
+Context-based with a lightweight root layout plus a shared game-data layout:
 
-### Saved Builds Page (`/saves`)
-The centralized build management dashboard:
+```
+RootProviders (`app/layout.tsx`)
+└── LanguageProvider
 
-- Grid display of saved builds with search and filtering
-- Sort options by date, name, CV value, and character
-- Build preview cards with element-themed styling
-- Quick actions for loading, deleting, and renaming builds
-- Data management with backup/restore functionality
-- Responsive layout with pagination
+ToolProviders (`app/(game)/layout.tsx`)
+└── GameDataProvider       ← fetches and caches 9 JSON files client-side for tool routes only
+    └── ToastProvider
 
-The Saves page efficiently manages the user's build library, allowing for organization and quick access to previously created builds.
-
-### Import System (`/import`)
-Streamlined system for importing builds from Discord bot images:
-
-- Multiple input methods (file upload, drag-and-drop, clipboard paste)
-- Intelligent image processing workflow:
-  - Image is segmented into specific regions (character, weapon, echoes, etc.)
-  - Parallel OCR processing of all regions for efficiency
-  - Special logic for Rover detection (identifies gender and element variant)
-  - Direct conversion of OCR results into application data format
-- Real-time progress tracking with region-by-region indicators
-- Results preview before final import
-- One-click options to:
-  - Import directly to editor for further customization
-  - Save to local build library
-  - Submit to global leaderboard (optional)
-
-The Import system eliminates manual build recreation by automatically extracting and mapping all character build data from standardized Discord images directly into the application's data structure.
-
-### Global Builds Browser (`/builds`)
-A comprehensive browser for viewing and comparing builds from players worldwide:
-
-- **Warning overlay** that clarifies this is a build browser, not a leaderboard (dismissible)
-- Comprehensive filtering system:
-  - Character selection
-  - Weapon type filtering
-  - Echo set filtering
-  - Main stat filtering
-  - Region filtering (America, Europe, Asia, SEA, HMT)
-  - Username/UID search
-- Multiple sorting options (CV, CR, CD, ATK, etc.)
-- Expandable entries with detailed stat comparison
-- Pagination for navigating large result sets
-- All builds standardized to level 90 for fair comparison
-
-The Global Builds page serves as a comprehensive database for browsing and analyzing builds from the community, with advanced filtering and sorting capabilities.
-
-### Character Leaderboards (`/leaderboards`)
-Character-specific build rankings and damage analysis:
-
-- Character-specific build rankings
-- Weapon variant tabs with damage calculations
-- Sequence level filtering (S0-S6) where relevant
-- Visual damage comparison with graph visualization
-- Build sorting by damage output and crit metrics
-
-The Character Leaderboards provide focused analysis and ranking for specific characters, allowing players to see top-performing builds and damage comparisons for their favorite characters.
-
-## Technical Architecture
-
-### Core Technologies
-- Next.js with React and TypeScript
-- App Router architecture with client/server component separation
-- LocalStorage with custom compression for efficient data management
-- OCR API integration for screenshot processing
-
-### Key Technical Features
-- Custom data compression algorithm with property name mapping
-- Version-aware data migration for backward compatibility
-- Real-time stat calculations with complex game mechanics
-- Canvas-based image generation for build exports
-- Drag-and-drop functionality via DND Kit
-- Element-specific theming that dynamically updates
-- Responsive design for all device sizes
-
-### Performance Optimizations
-- Component memoization for expensive stat calculations
-- Data caching for frequently accessed game information
-- Efficient state management with context providers
-- Image optimization for fast loading
-
-### Analytics
-- Vercel Analytics and Speed Insights
-- ReactGA4 for privacy-focused user behavior tracking
-
-### Environment Variables
-```env
-NEXT_PUBLIC_API_URL= # OCR API endpoint (defaults to https://ocr.wuwabuilds.moe)
+EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
+└── BuildProvider          ← current build state (character, weapon, echoes, forte, watermark)
+    └── StatsProvider      ← derived stats + CV (memoized from build + game data)
 ```
 
-## Credits and License
-All Wuthering Waves game assets are property of Kuro Games. WuWaBuilds is a fan-made tool and is not affiliated with Kuro Games or Tencent.
+- `GameDataContext` — Fetches and caches Characters, Weapons, Echoes, Stats, Fetters, Curves on first tool-route mount, then reuses a module-level cache across the session.
+- `BuildContext` — Reducer-based state for the active build. Auto-saves draft to localStorage.
+- `StatsContext` — Derives all calculated stats (HP, ATK, DEF, DMG boosts, CV) from build + game data.
+- `LanguageContext` — i18n language selection persisted to localStorage.
+- `ToastContext` — Queue-based transient feedback (success/error/warning/info).
+
+### Next.js Structure Notes
+
+- `app/(game)` is a route group, so it does not affect public URLs. It only exists to opt game-data routes into a shared layout/provider boundary.
+- This matches the App Router recommendation for applying a layout to only a subset of routes.
+- Route-local implementation files are safe to colocate inside `app` because only `page.tsx` and `route.ts` create public routes.
+- Private folders like `_components` or `_lib` are optional. They would only be useful if we want stricter visual separation between route files and route-local helpers later.
+
+### API Integration
+
+- **Leaderboard**: client code calls the generic Next `/api/lb/*` proxy, which forwards any LB child path to the Go LB with `X-Internal-Key`.
+- **OCR**: `/api/ocr` proxies to `https://ocr.wuwabuilds.moe/api/ocr` with `X-OCR-Region`, plus `X-Internal-Key` and forwarded client IP when configured.
+- **Build submission**: `POST /build` is wired — `/import` sends canonical `buildState` when the `Upload to Leaderboard` toggle is enabled.
+- **OCR issue reporting**: `/import` can submit screenshot-linked JSON reports to R2 via `POST /api/report-ocr-issue` for manual review.
+
+---
+
+## Next Workstreams
+
+1. Go LB rollout:
+   - Production cutover from legacy Mongo service to `/lb`.
+   - Apply pending DB migrations to Railway (dedupe constraint, globalRank CTE, echo backfill).
+2. Fine-tune `/builds` and leaderboard UX polish.
+
+---
+
+## Dev
+
+```bash
+npm install
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+npm run start
+```
+
+## Lint
+
+```bash
+npm run lint
+```
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `LB_URL` | Yes | Server-side Go leaderboard backend URL used by the `/api/lb/*` proxy |
+| `API_URL` | Yes | Server-side OCR proxy URL |
+| `INTERNAL_API_KEY` | Yes | Shared secret used by the `/api/ocr` and `/api/lb/*` proxies |
+| `NEXT_PUBLIC_GA_TRACKING_ID` | No | Google Analytics tracking ID |
+| `NEXT_PUBLIC_POSTHOG_KEY` | No | PostHog analytics key |
+| `CLOUDFLARE_ACCOUNT_ID` | No | R2 config for import screenshot storage and OCR issue reports |
+| `R2_ACCESS_KEY_ID` | No | R2 credentials |
+| `R2_SECRET_ACCESS_KEY` | No | R2 credentials |
+| `R2_BUCKET_NAME` | No | R2 bucket name |
+
+---
+
+## OCR Import Flow
+
+1. Frontend receives a 1920×1080 screenshot from the user.
+2. Crops into independent regions (character, weapon, echoes, forte, watermark) using fixed coordinates.
+3. Posts each region in parallel to `/api/ocr` with `X-OCR-Region` header.
+4. The Next proxy forwards the request to the OCR backend and, when `INTERNAL_API_KEY` is set, includes the shared key plus the original client IP for backend rate limiting.
+5. Backend returns ID-enriched OCR payloads.
+6. Frontend converts analysis to `SavedState` and loads into the editor.
+7. Optional: fire-and-forget full screenshot upload to R2 (hash-deduped root-level `<hash>.jpg` object).
+8. Users can report scan problems from `/import`; report JSON is stored in the same bucket under `reports/YYYY/MM/DD/<reportId>.json` and linked back to the uploaded screenshot key.
+
+### OCR Issue Reports
+
+- `/import` stores the original screenshot in R2 as a deduplicated root-level JPEG object like `<hash>.jpg`.
+- Manual reports are stored as JSON objects under `reports/YYYY/MM/DD/<reportId>.json`.
+- Each report includes the screenshot key, OCR progress map, OCR payload, current error state, and the converted build state when available.
+- No database or webhook is required for the first pass; reports can be reviewed manually in R2.
+
+## Leaderboard Fetch Flow
+
+1. Client components request LB data through `/api/lb/*`.
+2. The catch-all Next proxy forwards the remaining child path to the Go LB service.
+3. When `INTERNAL_API_KEY` is set, the proxy includes `X-Internal-Key` so the LB service can stay private.
+4. Browser code never sees the shared key or calls the LB origin directly.
+
+---
+
+## Project Structure
+
+```
+wuwabuilds/
+├── app/                     # Next.js App Router entrypoints and layouts
+│   ├── page.tsx             # Home (/)
+│   ├── layout.tsx           # Root layout (Navigation + RootProviders)
+│   ├── (game)/              # Route group for pages that need game-data providers
+│   │   ├── layout.tsx       # Shared GameDataProvider/ToastProvider boundary
+│   │   ├── builds/          # Build browser (/builds)
+│   │   ├── edit/            # Build editor (/edit)
+│   │   ├── import/          # OCR import (/import)
+│   │   ├── saves/           # Local saves (/saves)
+│   │   ├── leaderboards/    # Leaderboards (/leaderboards, /leaderboards/[characterId])
+│   │   ├── characters/      # Character-seeded editor routes (/characters/[id])
+│   │   └── weapons/         # Weapon-seeded editor routes (/weapons/[id])
+│   └── api/                 # API routes (lb proxy, ocr proxy, upload-training, OCR issue reports)
+├── contexts/                # React Context providers
+├── components/              # Components by feature area
+│   ├── build/               # /builds page (filters, results, rows)
+│   ├── edit/                # /edit page (editor, action bar, card options)
+│   ├── card/                # Build card display sections
+│   ├── character/           # Character selector
+│   ├── weapon/              # Weapon selector
+│   ├── echo/                # Echo grid and panels
+│   ├── forte/               # Forte skill tree
+│   ├── import/              # OCR import flow
+│   ├── save/                # Local saves management
+│   ├── home/                # Homepage components
+│   └── ui/                  # Reusable UI (Modal, Tooltip, LevelSlider, etc.)
+├── hooks/                   # useOcrImport, useSelectedCharacter
+├── lib/                     # Utilities and data layer
+│   ├── calculations/        # CV, stat scaling, echo stats, weapon passives, set summaries
+│   ├── constants/           # Stat mappings, set bonuses, CDN URLs, skill branches
+│   ├── data/                # Legacy ID mappings for migration
+│   ├── import/              # OCR → SavedState conversion, crop regions
+│   ├── server/              # Server-only helpers (R2 storage, etc.)
+│   └── text/                # Localized game text rendering
+├── public/Data/             # Game data JSON (Characters, Weapons, Echoes, Stats, Curves, Fetters)
+└── scripts/                 # Python data sync scripts
+```
+
+---
+
+## Data Sync Scripts
+
+Run from `wuwabuilds/scripts/`:
+
+```bash
+python sync_all.py                                # Full pipeline: frontend Data + backend Data + LB calc data
+python sync_lb.py --weapons-only                 # Regenerate LB weapon bases only
+python download_echo_icons.py --clean --force    # Refresh backend echo template PNGs by CDN ID
+```
+
+`sync_all.py` runs `sync_characters`, `sync_weapons`, `sync_echoes`, `sync_fetters`,
+`stat_translations`, `sync_backend`, and `sync_lb` in sequence.
+See [`scripts/CDN_SYNC.md`](./scripts/CDN_SYNC.md) for per-script flags and outputs.
