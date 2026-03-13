@@ -54,6 +54,8 @@ export const SavesPageClient: React.FC = () => {
   const [pendingLoadBuild, setPendingLoadBuild] = useState<SavedBuild | null>(null);
   const [pendingDeleteBuild, setPendingDeleteBuild] = useState<SavedBuild | null>(null);
   const itemsPerPage = 10;
+  const [hostname, setHostname] = useState<string | null>(null);
+  const isLegacyDomain = hostname === 'wuwabuilds.moe' || hostname === 'www.wuwabuilds.moe';
 
   const refreshBuilds = useCallback(() => {
     const data = loadBuilds();
@@ -343,6 +345,10 @@ export const SavesPageClient: React.FC = () => {
   }, [refreshBuilds, refreshLegacySummary]);
 
   useEffect(() => {
+    setHostname(window.location.hostname);
+  }, []);
+
+  useEffect(() => {
     if (!deleteAllArmed) return;
     const timer = window.setTimeout(() => setDeleteAllArmed(false), 5000);
     return () => window.clearTimeout(timer);
@@ -563,7 +569,7 @@ export const SavesPageClient: React.FC = () => {
           </div>
         </div>
 
-        {typeof window !== 'undefined' && window.location.hostname === 'www.wuwabuilds.moe' ? (
+        {hostname === null ? null : isLegacyDomain ? (
           <div className="mb-4 rounded-lg border border-accent/45 bg-accent/10 p-3">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
@@ -595,7 +601,7 @@ export const SavesPageClient: React.FC = () => {
                 <p className="mt-1 text-xs text-text-primary/75">
                   Saved builds are stored locally on that domain. Visit{' '}
                   <a
-                    href="https://www.wuwabuilds.moe/saves"
+                    href="https://wuwabuilds.moe/saves"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline hover:text-text-primary"
@@ -606,7 +612,7 @@ export const SavesPageClient: React.FC = () => {
                 </p>
               </div>
               <a
-                href="https://www.wuwabuilds.moe/saves"
+                href="https://wuwabuilds.moe/saves"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="shrink-0 rounded-lg bg-accent px-3 py-2 text-center text-sm font-semibold text-background transition-colors hover:bg-accent-hover"
@@ -616,7 +622,6 @@ export const SavesPageClient: React.FC = () => {
             </div>
           </div>
         )}
-
         {legacySummary.parseError && (
           <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3">
             <div className="flex items-start justify-between gap-3">

@@ -330,7 +330,20 @@ This matches the Next.js App Router route-group convention for opting only a sub
   - Move breakdown and substat upgrades stay as two separate lazy endpoints:
     - `GET /api/lb/build/{id}/moves/{weaponId}/{track}`
     - `GET /api/lb/build/{id}/substat-upgrades/{weaponId}/{track}`
-  - Both fetch only after the user opens the relevant toggle inside an already-expanded row.
+  - The expanded row now renders in this order:
+    - `View in Editor`
+    - move toggle
+    - move content
+    - substat toggle
+    - substat content
+  - Both endpoints fetch only after the user opens the relevant toggle inside an already-expanded row.
+  - `BuildSimulationSection.tsx` owns the lazy fetch/cache state and toggle state only; rendering is split into:
+    - `BuildMoveBreakdown.tsx`
+    - `BuildSubstatUpgrades.tsx`
+  - Move breakdown is a frontend-rendered raw SVG visualization, not a chart-library dependency.
+  - Current move visualization is a single move-level pie chart with a custom hover tooltip.
+  - Individual hit/sub-move breakdown stays in the move list on the right rather than being rendered as a second chart ring.
+  - The move section intentionally does not repeat weapon / track text inside the chart block because that context is already visible in the row header.
   - Substat upgrades payload is interpreted as **damage gain over the current board result** for one additional min / median / max roll.
   - The frontend derives the displayed projected damage (`base board damage + gain`) locally from the leaderboard row's already-loaded `damage`.
   - Upgrade columns use canonical substat ordering matching build substat summaries (crits first, then natural stat order, flat stats last), not "largest gain first".
@@ -624,7 +637,7 @@ Cleanup: when `wuwabuilds.moe/saves` traffic drops to near zero, add `/saves` to
 | Service | Location | Tech | URL |
 |---------|----------|------|-----|
 | OCR Backend | `/backend/` | FastAPI + RapidOCR | https://ocr.wuwabuilds.moe |
-| Leaderboard API (Primary) | `/lb/` | Go (Chi + pgx + PostgreSQL) | https://lb.wuwabuilds.moe |
+| Leaderboard API (Primary) | `/lb/` | Go (Chi + pgx + PostgreSQL) | https://db.wuwabuilds.moe |
 | Leaderboard API (Fallback) | `/mongo/` | Express + MongoDB | https://lb.wuwabuilds.moe |
 | Legacy Frontend | `/frontend/` | Next.js 15 (deprecated) | — |
 

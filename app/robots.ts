@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
             allow: '/',
             disallow: ['/api/'],
         },
-        sitemap: 'https://wuwabuilds.moe/sitemap.xml',
+        sitemap: 'https://wuwa.build/sitemap.xml',
     };
 }

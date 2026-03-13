@@ -8,10 +8,11 @@ const nextConfig: NextConfig = {
         source: '/:path((?!saves).*)',
         has: [{ type: 'host', value: 'www.wuwabuilds.moe' }],
         destination: 'https://wuwa.build/:path*',
-        permanent: false,
+        permanent: true,
       },
     ];
-  },
+  }
+  ,
   async rewrites() {
     return [
       {

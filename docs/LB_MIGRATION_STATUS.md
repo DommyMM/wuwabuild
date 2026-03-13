@@ -11,9 +11,17 @@ Purpose: current-state reference for the active `wuwabuilds` frontend and Go `lb
 - `/leaderboards/[characterId]` uses `GET /leaderboard/{characterId}` with canonical `weaponId + track`.
 - Character leaderboard rows are compact. They include leaderboard-only fields like `damage` and `globalRank`, but not `buildState`.
 - Expanding a leaderboard row fetches `GET /build/{id}` for `buildState`.
-- `GET /build/{id}/moves/{weaponId}/{sequence}` and `GET /build/{id}/substat-upgrades/{weaponId}/{sequence}` remain separate on-demand detail endpoints.
+- `GET /build/{id}/moves/{weaponId}/{track}` and `GET /build/{id}/substat-upgrades/{weaponId}/{track}` remain separate on-demand detail endpoints.
 - The character page uses the already-loaded leaderboard row `damage` as the base result for the selected board and derives projected upgrade results client-side from the `tiers` gain payload.
 - The expanded substat-upgrades table shows only non-zero stat columns for the selected min / median / max tier and keeps a canonical stat order rather than sorting by gain.
+- The expanded move breakdown is rendered fully on the frontend:
+  - raw SVG pie chart
+  - custom hover tooltip positioned beside the cursor instead of directly under it
+  - move-level chart only; per-hit detail stays in the list/table content on the right
+- Expanded leaderboard row controls are ordered as:
+  - `View in Editor`
+  - move toggle and move content
+  - substat toggle and substat content
 
 ## Canonical Contracts
 
@@ -81,6 +89,7 @@ Rules:
 - Client revalidation is diff-based and skips state updates when the response signature is unchanged.
 - Leaderboard expansion fetches detail on demand instead of paying for full `buildState` in the base list query.
 - Move breakdown and substat-upgrades are then fetched independently from inside the expanded row, only when the user opens those sections.
+- The move chart should remain lightweight and frontend-owned unless backend-derived chart metadata becomes necessary; current UI intentionally avoids a second hit ring to keep the chart readable.
 - Substat-upgrades currently project damage only. They do not return or infer hypothetical `globalRank`.
 
 ## Current Open Work

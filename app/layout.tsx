@@ -26,7 +26,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-    metadataBase: new URL('https://wuwabuilds.moe'),
+    metadataBase: new URL('https://wuwa.build'),
     title: {
         default: 'WuWa Builds - Wuthering Waves Build Creator',
         template: '%s | WuWa Builds'
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     openGraph: {
         type: 'website',
         locale: 'en_US',
-        url: 'https://wuwabuilds.moe',
+        url: 'https://wuwa.build',
         siteName: 'WuWa Builds',
         title: 'WuWa Builds - Wuthering Waves Build Creator',
         description: 'Create and share Wuthering Waves builds with automatic screenshot scanning, real-time stat calculations, and build management tools.',

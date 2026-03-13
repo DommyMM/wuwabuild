@@ -34,7 +34,7 @@ function loadWeaponsForSitemap(): WeaponSitemapEntry[] {
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
-    const baseUrl = 'https://wuwabuilds.moe';
+    const baseUrl = 'https://wuwa.build';
 
     const staticRoutes = [
         '',
