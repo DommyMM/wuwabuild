@@ -325,8 +325,6 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
 
       {isMovesOpen && (
         <BuildMoveBreakdown
-          weaponName={weaponName}
-          trackLabel={trackLabel}
           isLoading={isMoveLoading}
           error={moveError}
           moves={moves}

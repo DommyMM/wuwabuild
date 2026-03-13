@@ -28,36 +28,48 @@ type ProcessedMove = {
   hits: ProcessedHit[];
 };
 
-type RingSegment = {
+type PieSegment = {
   key: string;
-  value: number;
+  moveIndex: number;
   color: string;
   opacity: number;
-  moveIndex: number;
-  hitKey?: string;
+  path: string;
+};
+
+type TooltipState = {
+  title: string;
+  damage: number;
+  percentage: number;
+  x: number;
+  y: number;
+  horizontal: 'left' | 'right';
+  vertical: 'top' | 'bottom';
 };
 
 function formatDamage(value: number): string {
   return Math.round(value).toLocaleString();
 }
 
-function toStrokeSegments(segments: RingSegment[], radius: number) {
-  const circumference = 2 * Math.PI * radius;
-  const gap = Math.min(6, circumference * 0.008);
-  let consumed = 0;
+function polarToCartesian(cx: number, cy: number, radius: number, angle: number) {
+  const radians = ((angle - 90) * Math.PI) / 180;
+  return {
+    x: cx + (radius * Math.cos(radians)),
+    y: cy + (radius * Math.sin(radians)),
+  };
+}
 
-  return segments.map((segment) => {
-    const rawLength = circumference * segment.value;
-    const visibleLength = Math.max(0, rawLength - gap);
-    const strokeDasharray = `${visibleLength} ${circumference - visibleLength}`;
-    const strokeDashoffset = -consumed;
-    consumed += rawLength;
-    return {
-      ...segment,
-      strokeDasharray,
-      strokeDashoffset,
-    };
-  });
+function describePieSlice(cx: number, cy: number, radius: number, startAngle: number, endAngle: number) {
+  const safeEndAngle = endAngle - 0.35;
+  const start = polarToCartesian(cx, cy, radius, startAngle);
+  const end = polarToCartesian(cx, cy, radius, safeEndAngle);
+  const largeArcFlag = safeEndAngle - startAngle > 180 ? 1 : 0;
+
+  return [
+    `M ${cx} ${cy}`,
+    `L ${start.x} ${start.y}`,
+    `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`,
+    'Z',
+  ].join(' ');
 }
 
 function processMoves(moves: LBMoveEntry[]): ProcessedMove[] {
@@ -81,12 +93,11 @@ function processMoves(moves: LBMoveEntry[]): ProcessedMove[] {
 
   return Array.from(grouped.entries())
     .map(([name, move]) => {
-      const totalHitDamage = Array.from(move.hits.values()).reduce((sum, value) => sum + value, 0);
       const hits = Array.from(move.hits.entries())
         .map(([hitName, damage]) => ({
           name: hitName,
           damage,
-          percentage: totalHitDamage > 0 ? (damage / totalDamage) * 100 : 0,
+          percentage: (damage / totalDamage) * 100,
         }))
         .sort((a, b) => b.damage - a.damage);
 
@@ -100,102 +111,76 @@ function processMoves(moves: LBMoveEntry[]): ProcessedMove[] {
     .sort((a, b) => b.damage - a.damage);
 }
 
+function buildPieSegments(moves: ProcessedMove[], activeMoveIndex: number | null): PieSegment[] {
+  let angle = 0;
+
+  return moves.map((move, moveIndex) => {
+    const segmentAngle = (move.percentage / 100) * 360;
+    const startAngle = angle;
+    const endAngle = angle + segmentAngle;
+    angle = endAngle;
+
+    return {
+      key: `move-${move.name}-${moveIndex}`,
+      moveIndex,
+      color: CHART_COLORS[moveIndex % CHART_COLORS.length],
+      opacity: activeMoveIndex === null || activeMoveIndex === moveIndex ? 1 : 0.34,
+      path: describePieSlice(150, 150, 126, startAngle, endAngle),
+    };
+  });
+}
+
 interface BuildMoveBreakdownProps {
-  weaponName: string;
-  trackLabel: string;
   isLoading: boolean;
   error: string | null;
   moves: LBMoveEntry[];
 }
 
 export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
-  weaponName,
-  trackLabel,
   isLoading,
   error,
   moves,
 }) => {
   const [activeMoveIndex, setActiveMoveIndex] = useState<number | null>(null);
   const [activeHitKey, setActiveHitKey] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   const processedMoves = useMemo(() => processMoves(moves), [moves]);
   const totalDamage = useMemo(
     () => processedMoves.reduce((sum, move) => sum + move.damage, 0),
     [processedMoves],
   );
-  const activeMove = activeMoveIndex !== null ? processedMoves[activeMoveIndex] ?? null : null;
-  const activeHit = useMemo(() => {
-    if (!activeHitKey) return null;
-    const [moveIndexRaw, ...hitNameParts] = activeHitKey.split(':');
-    const moveIndex = Number(moveIndexRaw);
-    if (!Number.isFinite(moveIndex)) return null;
-    const hitName = hitNameParts.join(':');
-    return processedMoves[moveIndex]?.hits.find((hit) => hit.name === hitName) ?? null;
-  }, [activeHitKey, processedMoves]);
-  const centerLabel = activeHit?.name ?? activeMove?.name ?? 'Total Damage';
-  const centerDamage = activeHit?.damage ?? activeMove?.damage ?? totalDamage;
-  const centerPercentage = activeHit?.percentage ?? activeMove?.percentage ?? 100;
-  const centerMeta = activeHit
-    ? activeMove?.name ?? null
-    : activeMove
-      ? `${activeMove.hits.length} hit${activeMove.hits.length === 1 ? '' : 's'}`
-      : `${processedMoves.length} move${processedMoves.length === 1 ? '' : 's'}`;
-
-  const innerSegments = useMemo(
-    () =>
-      toStrokeSegments(
-        processedMoves.map((move, moveIndex) => ({
-          key: `move-${move.name}-${moveIndex}`,
-          value: move.percentage / 100,
-          color: CHART_COLORS[moveIndex % CHART_COLORS.length],
-          opacity: activeMoveIndex === null || activeMoveIndex === moveIndex ? 1 : 0.42,
-          moveIndex,
-        })),
-        58,
-      ),
+  const totalHits = useMemo(
+    () => processedMoves.reduce((sum, move) => sum + move.hits.length, 0),
+    [processedMoves],
+  );
+  const pieSegments = useMemo(
+    () => buildPieSegments(processedMoves, activeMoveIndex),
     [activeMoveIndex, processedMoves],
   );
 
-  const outerSegments = useMemo(
-    () =>
-      toStrokeSegments(
-        processedMoves.flatMap((move, moveIndex) => {
-          const color = CHART_COLORS[moveIndex % CHART_COLORS.length];
-          if (move.hits.length === 0) {
-            return [{
-              key: `solo-${move.name}-${moveIndex}`,
-              value: move.percentage / 100,
-              color,
-              opacity: activeMoveIndex === null || activeMoveIndex === moveIndex ? 0.65 : 0.28,
-              moveIndex,
-            }];
-          }
+  function setTooltipFromEvent(
+    event: React.MouseEvent<SVGPathElement>,
+    nextTooltip: Omit<TooltipState, 'x' | 'y' | 'horizontal' | 'vertical'>,
+  ) {
+    const bounds = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
+    if (!bounds) return;
+    const localX = event.clientX - bounds.left;
+    const localY = event.clientY - bounds.top;
+    const horizontal: TooltipState['horizontal'] = localX > bounds.width * 0.62 ? 'left' : 'right';
+    const vertical: TooltipState['vertical'] = localY > bounds.height * 0.68 ? 'top' : 'bottom';
 
-          return move.hits.map((hit, hitIndex) => ({
-            key: `hit-${move.name}-${hit.name}-${hitIndex}`,
-            value: hit.damage / totalDamage,
-            color,
-            opacity:
-              activeHitKey === null
-                ? (activeMoveIndex === null || activeMoveIndex === moveIndex ? 0.72 : 0.28)
-                : activeHitKey === `${moveIndex}:${hit.name}`
-                  ? 1
-                  : 0.22,
-            moveIndex,
-            hitKey: `${moveIndex}:${hit.name}`,
-          }));
-        }),
-        84,
-      ),
-    [activeHitKey, activeMoveIndex, processedMoves, totalDamage],
-  );
+    setTooltip({
+      ...nextTooltip,
+      x: localX,
+      y: localY,
+      horizontal,
+      vertical,
+    });
+  }
 
   return (
     <section className="space-y-3">
-      <div className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/45">
-        {weaponName} • {trackLabel}
-      </div>
-
       {isLoading && (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, index) => (
@@ -223,94 +208,90 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
       )}
 
       {!isLoading && !error && processedMoves.length > 0 && (
-        <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
-          <div className="flex items-center justify-center lg:sticky lg:top-3">
-            <div className="relative h-[240px] w-[240px]">
-              <svg viewBox="0 0 220 220" className="h-full w-full">
-                <circle cx="110" cy="110" r="84" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="18" />
-                {outerSegments.map((segment) => (
-                  <circle
-                    key={segment.key}
-                    cx="110"
-                    cy="110"
-                    r="84"
-                    fill="none"
-                    stroke={segment.color}
-                    strokeWidth="18"
-                    strokeDasharray={segment.strokeDasharray}
-                    strokeDashoffset={segment.strokeDashoffset}
-                    strokeLinecap="butt"
-                    transform="rotate(-90 110 110)"
-                    opacity={segment.opacity}
-                    className="transition-opacity duration-150"
-                    onMouseEnter={() => {
-                      setActiveMoveIndex(segment.moveIndex);
-                      setActiveHitKey(segment.hitKey ?? null);
-                    }}
-                    onMouseLeave={() => {
-                      setActiveMoveIndex(null);
-                      setActiveHitKey(null);
-                    }}
-                  />
-                ))}
-
-                <circle cx="110" cy="110" r="58" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="28" />
-                {innerSegments.map((segment) => (
-                  <circle
-                    key={segment.key}
-                    cx="110"
-                    cy="110"
-                    r="58"
-                    fill="none"
-                    stroke={segment.color}
-                    strokeWidth="28"
-                    strokeDasharray={segment.strokeDasharray}
-                    strokeDashoffset={segment.strokeDashoffset}
-                    strokeLinecap="butt"
-                    transform="rotate(-90 110 110)"
-                    opacity={segment.opacity}
-                    className="transition-opacity duration-150"
-                    onMouseEnter={() => {
-                      setActiveMoveIndex(segment.moveIndex);
-                      setActiveHitKey(null);
-                    }}
-                    onMouseLeave={() => {
-                      setActiveMoveIndex(null);
-                    }}
-                  />
-                ))}
+        <div className="grid gap-6 lg:grid-cols-[minmax(340px,36%)_minmax(0,1fr)] lg:items-start">
+          <div className="space-y-3 lg:sticky lg:top-3">
+            <div className="relative mx-auto aspect-square w-full max-w-[420px]">
+              <svg viewBox="0 0 300 300" className="h-full w-full">
+                <circle cx="150" cy="150" r="126" fill="rgba(255,255,255,0.035)" />
+                {pieSegments.map((segment) => {
+                  const move = processedMoves[segment.moveIndex];
+                  return (
+                    <path
+                      key={segment.key}
+                      d={segment.path}
+                      fill={segment.color}
+                      opacity={segment.opacity}
+                      stroke="rgba(19,18,18,0.65)"
+                      strokeWidth="1.2"
+                      className="cursor-pointer transition-opacity duration-150"
+                      onMouseEnter={(event) => {
+                        setActiveMoveIndex(segment.moveIndex);
+                        setActiveHitKey(null);
+                        if (move) {
+                          setTooltipFromEvent(event, {
+                            title: move.name,
+                            damage: move.damage,
+                            percentage: move.percentage,
+                          });
+                        }
+                      }}
+                      onMouseMove={(event) => {
+                        if (move) {
+                          setTooltipFromEvent(event, {
+                            title: move.name,
+                            damage: move.damage,
+                            percentage: move.percentage,
+                          });
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        setActiveMoveIndex(null);
+                        setTooltip(null);
+                      }}
+                    />
+                  );
+                })}
               </svg>
 
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-                <div className="max-w-[124px] text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/45">
-                  {centerLabel}
+              {tooltip && (
+                <div
+                  className={`pointer-events-none absolute z-10 min-w-36 rounded-md border border-accent/70 bg-[#131313]/95 px-3 py-2 shadow-[0_10px_28px_rgba(0,0,0,0.38)] ${
+                    tooltip.horizontal === 'left' ? '-translate-x-[calc(100%+18px)]' : 'translate-x-[18px]'
+                  } ${
+                    tooltip.vertical === 'top' ? '-translate-y-[calc(100%+18px)]' : 'translate-y-[18px]'
+                  }`}
+                  style={{ left: tooltip.x, top: tooltip.y }}
+                >
+                  <div className="text-sm font-semibold text-white/96">{tooltip.title}</div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-base font-semibold text-accent">{formatDamage(tooltip.damage)}</span>
+                    <span className="text-xs text-text-primary/74">[{formatPercentStat(tooltip.percentage)}]</span>
+                  </div>
                 </div>
-                <div className="mt-1 text-2xl font-semibold text-white/92">
-                  {formatDamage(centerDamage)}
-                </div>
-                <div className="mt-1 text-xs font-medium text-accent">
-                  {formatPercentStat(centerPercentage)}
-                </div>
-                <div className="mt-2 text-[11px] text-text-primary/50">
-                  {centerMeta}
-                </div>
-                <div className="mt-1 text-[11px] text-text-primary/42">
-                  Inner ring: moves · Outer ring: hits
-                </div>
+              )}
+            </div>
+
+            <div className="mx-auto max-w-[420px] rounded-lg border border-border/45 bg-background-secondary/24 px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/42">
+                Total Damage
+              </div>
+              <div className="mt-1 text-xl font-semibold text-white/92">{formatDamage(totalDamage)}</div>
+              <div className="mt-1 text-xs text-text-primary/48">
+                {processedMoves.length} moves • {totalHits} hits
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
             {processedMoves.map((move, moveIndex) => {
-              const isActive = activeMoveIndex === null || activeMoveIndex === moveIndex;
+              const isMoveActive = activeMoveIndex === null || activeMoveIndex === moveIndex;
               const color = CHART_COLORS[moveIndex % CHART_COLORS.length];
 
               return (
                 <article
                   key={`${move.name}-${moveIndex}`}
                   className={`rounded-lg border px-3 py-2.5 transition-colors ${
-                    isActive
+                    isMoveActive
                       ? 'border-accent/25 bg-background-secondary/42'
                       : 'border-border/55 bg-background-secondary/20 opacity-55'
                   }`}
@@ -332,18 +313,20 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       </div>
 
                       {move.hits.length > 0 && (
-                        <div className="mt-2 space-y-1.5 border-l border-border/45 pl-3">
+                        <div className="mt-2 space-y-1">
                           {move.hits.map((hit, hitIndex) => {
-                            const hitIsActive = activeHitKey === null || activeHitKey === `${moveIndex}:${hit.name}`;
+                            const hitKey = `${moveIndex}:${hit.name}`;
+                            const isHitActive = activeHitKey === null || activeHitKey === hitKey;
+
                             return (
                               <div
                                 key={`${move.name}-${hit.name}-${hitIndex}`}
-                                className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3 rounded px-1.5 py-1 text-sm transition-colors ${
-                                  hitIsActive ? 'bg-black/10' : 'opacity-45'
+                                className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3 rounded px-1 py-1 text-sm transition-colors ${
+                                  isHitActive ? 'bg-black/10' : 'opacity-45'
                                 }`}
                                 onMouseEnter={() => {
                                   setActiveMoveIndex(moveIndex);
-                                  setActiveHitKey(`${moveIndex}:${hit.name}`);
+                                  setActiveHitKey(hitKey);
                                 }}
                                 onMouseLeave={() => {
                                   setActiveHitKey(null);
