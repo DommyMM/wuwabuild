@@ -31,6 +31,13 @@ const UPGRADE_STAT_LABELS: Record<string, string> = {
 };
 
 const FLAT_UPGRADE_STATS = new Set(['HP', 'ATK', 'DEF']);
+const UPGRADE_TIER_OPTIONS = [
+  { key: 'min', label: 'Min' },
+  { key: 'median', label: 'Mid' },
+  { key: 'max', label: 'Max' },
+] as const;
+
+type UpgradeTierKey = keyof LBSubstatUpgradeTierSet;
 
 type UpgradeRow = {
   key: string;
@@ -39,6 +46,18 @@ type UpgradeRow = {
   min: number;
   median: number;
   max: number;
+  isPercent: boolean;
+};
+
+type UpgradeColumn = {
+  key: string;
+  canonicalLabel: string;
+  label: string;
+  icon: string;
+  rollValue: number;
+  gain: number;
+  result: number;
+  percentGain: number;
   isPercent: boolean;
 };
 
@@ -61,6 +80,73 @@ function formatUpgradeValue(value: number, isPercent: boolean): string {
   return isPercent ? formatPercentStat(value) : formatFlatStat(value);
 }
 
+function formatSignedUpgradeValue(value: number, isPercent: boolean): string {
+  const formatted = formatUpgradeValue(value, isPercent);
+  return value > 0 ? `+${formatted}` : formatted;
+}
+
+function formatSignedPercent(value: number): string {
+  if (!Number.isFinite(value)) return '—';
+  return `+${value.toFixed(value >= 10 ? 1 : 2)}%`;
+}
+
+function getTierRollValue(values: number[] | null, tier: UpgradeTierKey): number | null {
+  if (!values || values.length === 0) return null;
+  if (tier === 'min') return values[0] ?? null;
+  if (tier === 'max') return values[values.length - 1] ?? null;
+  return values[Math.max(0, Math.floor((values.length - 1) / 2))] ?? null;
+}
+
+function getGainColor(percentGain: number, maxPercentGain: number): string {
+  if (!Number.isFinite(percentGain) || percentGain <= 0) return 'rgba(224,224,224,0.6)';
+  const ratio = maxPercentGain > 0 ? Math.min(1, percentGain / maxPercentGain) : 0;
+  const lightness = 61 + (ratio * 14);
+  return `hsl(129 73% ${lightness}%)`;
+}
+
+function canonicalUpgradeSort(
+  columns: UpgradeColumn[],
+  statTranslations: Record<string, Record<string, string>> | null | undefined,
+): UpgradeColumn[] {
+  const naturalOrder: string[] = [];
+
+  if (statTranslations) {
+    const seen = new Set<string>();
+    for (const key of Object.keys(statTranslations)) {
+      if (seen.has(key)) continue;
+      if (columns.some((column) => column.canonicalLabel === key)) {
+        naturalOrder.push(key);
+        seen.add(key);
+      }
+    }
+  } else {
+    naturalOrder.push(...columns.map((column) => column.canonicalLabel));
+  }
+
+  const crits: string[] = [];
+  const flats: string[] = [];
+  const rest: string[] = [];
+
+  for (const label of naturalOrder) {
+    if (label === 'Crit Rate' || label === 'Crit DMG') {
+      crits.push(label);
+    } else if (label === 'ATK' || label === 'HP' || label === 'DEF') {
+      flats.push(label);
+    } else {
+      rest.push(label);
+    }
+  }
+
+  const orderedLabels = [...crits, ...rest, ...flats];
+  const ordered = orderedLabels
+    .map((label) => columns.find((column) => column.canonicalLabel === label))
+    .filter((column): column is UpgradeColumn => column !== undefined);
+
+  const orderedKeys = new Set(ordered.map((column) => column.key));
+  const leftovers = columns.filter((column) => !orderedKeys.has(column.key));
+  return [...ordered, ...leftovers];
+}
+
 function hasCacheKey<T>(record: Record<string, T>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(record, key);
 }
@@ -70,6 +156,7 @@ interface BuildSimulationSectionProps {
   activeWeaponId: string;
   activeTrackKey: string;
   isExpanded: boolean;
+  baseDamage?: number;
 }
 
 export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
@@ -77,8 +164,9 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   activeWeaponId,
   activeTrackKey,
   isExpanded,
+  baseDamage,
 }) => {
-  const { getWeapon, statIcons, statTranslations } = useGameData();
+  const { getWeapon, getSubstatValues, statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
   const moveControllerRef = useRef<AbortController | null>(null);
   const upgradeControllerRef = useRef<AbortController | null>(null);
@@ -91,6 +179,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const [loadingUpgradeKeys, setLoadingUpgradeKeys] = useState<Record<string, boolean>>({});
   const [isMovesOpen, setIsMovesOpen] = useState(false);
   const [isUpgradesOpen, setIsUpgradesOpen] = useState(false);
+  const [selectedUpgradeTier, setSelectedUpgradeTier] = useState<UpgradeTierKey>('median');
 
   const hasBoardContext = buildId.length > 0 && activeWeaponId.length > 0 && activeTrackKey.length > 0;
   const moveKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
@@ -217,169 +306,288 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       });
   }, [activeUpgrades, statIcons, statTranslations, t]);
 
+  const upgradeColumns = useMemo<UpgradeColumn[]>(() => {
+    if (!activeUpgrades || !Number.isFinite(baseDamage) || (baseDamage ?? 0) <= 0) {
+      return [];
+    }
+
+    return Object.entries(activeUpgrades[selectedUpgradeTier] ?? {})
+      .map(([key, gain]) => {
+        const label = UPGRADE_STAT_LABELS[key] ?? key;
+        const isPercent = !FLAT_UPGRADE_STATS.has(key);
+        const icon = statIcons?.[label] ?? statIcons?.[label.replace('%', '')] ?? '';
+        const rollValue = getTierRollValue(getSubstatValues(label), selectedUpgradeTier) ?? 0;
+        const percentGain = gain > 0 ? (gain / (baseDamage ?? 1)) * 100 : 0;
+
+        return {
+          key,
+          canonicalLabel: label,
+          label: statTranslations?.[label] ? t(statTranslations[label]) : label,
+          icon,
+          rollValue,
+          gain,
+          result: (baseDamage ?? 0) + gain,
+          percentGain,
+          isPercent,
+        };
+      })
+      .filter((column) => column.gain > 0);
+  }, [activeUpgrades, baseDamage, getSubstatValues, selectedUpgradeTier, statIcons, statTranslations, t]);
+
+  const orderedUpgradeColumns = useMemo(
+    () => canonicalUpgradeSort(upgradeColumns, statTranslations),
+    [statTranslations, upgradeColumns],
+  );
+
+  const strongestPercentGain = useMemo(
+    () => orderedUpgradeColumns.reduce((max, column) => Math.max(max, column.percentGain), 0),
+    [orderedUpgradeColumns],
+  );
+
   if (!hasBoardContext) {
     return null;
   }
 
-  const actionRowClassName = 'group flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-[linear-gradient(155deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_34%,rgba(0,0,0,0.34)_100%)] px-4 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_24px_rgba(0,0,0,0.22)] transition-colors hover:border-accent/35 hover:bg-[linear-gradient(155deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.04)_34%,rgba(0,0,0,0.38)_100%)]';
+  const actionButtonClassName = 'inline-flex items-center gap-1.5 text-sm font-medium text-text-primary/72 transition-colors hover:text-accent focus-visible:outline-none focus-visible:text-accent';
+  const sectionHeaderClassName = 'flex items-center justify-between gap-3 border-b border-border/55 pb-2';
+  const sectionLabelClassName = 'text-[11px] font-semibold uppercase tracking-[0.2em] text-text-primary/52';
 
   return (
-    <div className="space-y-3">
-      <section className="space-y-2">
-        <button
-          type="button"
-          aria-expanded={isMovesOpen}
-          onClick={() => setIsMovesOpen((prev) => !prev)}
-          className={actionRowClassName}
-        >
-          <div className="min-w-0">
-            <div className="text-sm font-semibold uppercase tracking-[0.2em] text-accent/82">Move Breakdown</div>
-            <div className="mt-1 truncate text-sm text-text-primary/68">{weaponName} • {trackLabel}</div>
-          </div>
-          <ChevronDown className={`h-4 w-4 shrink-0 text-text-primary/60 transition-transform ${isMovesOpen ? 'rotate-180' : ''}`} />
-        </button>
+    <div className="space-y-4 border-t border-border/55 pt-3">
+      <div className="flex flex-col items-center gap-1 text-center">
+        <div className="text-[11px] uppercase tracking-[0.18em] text-text-primary/45">
+          {weaponName} • {trackLabel}
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
+          <button
+            type="button"
+            aria-expanded={isMovesOpen}
+            onClick={() => setIsMovesOpen((prev) => !prev)}
+            className={actionButtonClassName}
+          >
+            <span>{isMovesOpen ? 'Hide' : 'Show'} move breakdown</span>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isMovesOpen ? 'rotate-180 text-accent' : ''}`} />
+          </button>
 
-        {isMovesOpen && (
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_28%,rgba(0,0,0,0.34)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_14px_34px_rgba(0,0,0,0.28)]">
-            {isMoveLoading && (
-              <div className="space-y-2">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={`move-skeleton-${index}`} className="animate-pulse rounded-xl border border-white/8 bg-black/25 p-3">
+          <button
+            type="button"
+            aria-expanded={isUpgradesOpen}
+            onClick={() => setIsUpgradesOpen((prev) => !prev)}
+            className={actionButtonClassName}
+          >
+            <span>{isUpgradesOpen ? 'Hide' : 'Show'} substat upgrades</span>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isUpgradesOpen ? 'rotate-180 text-accent' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {isMovesOpen && (
+        <section className="space-y-3">
+          <div className={sectionHeaderClassName}>
+            <div className={sectionLabelClassName}>Move Breakdown</div>
+          </div>
+
+          {isMoveLoading && (
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={`move-skeleton-${index}`} className="animate-pulse border-b border-border/45 py-2.5 last:border-b-0">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="h-4 w-40 rounded bg-white/10" />
-                    <div className="mt-3 h-3 w-full rounded bg-white/6" />
-                    <div className="mt-2 h-3 w-2/3 rounded bg-white/6" />
+                    <div className="h-4 w-20 rounded bg-white/8" />
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="mt-2 h-3 w-2/3 rounded bg-white/6" />
+                </div>
+              ))}
+            </div>
+          )}
 
-            {!isMoveLoading && moveError && (
-              <div className="rounded-xl border border-red-400/35 bg-red-500/8 px-3 py-2 text-sm text-red-100">
-                {moveError}
-              </div>
-            )}
+          {!isMoveLoading && moveError && (
+            <div className="rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {moveError}
+            </div>
+          )}
 
-            {!isMoveLoading && !moveError && moves.length === 0 && (
-              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-4 text-sm text-text-primary/60">
-                No move breakdown available for this board.
-              </div>
-            )}
+          {!isMoveLoading && !moveError && moves.length === 0 && (
+            <div className="py-1 text-sm text-text-primary/60">
+              No move breakdown available for this board.
+            </div>
+          )}
 
-            {!isMoveLoading && !moveError && moves.map((move, moveIndex) => (
-              <article
-                key={`${move.name}-${moveIndex}`}
-                className="rounded-xl border border-white/8 bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-base font-semibold text-text-primary">{move.name || `Move ${moveIndex + 1}`}</div>
-                    <div className="mt-1 text-xs uppercase tracking-[0.18em] text-text-primary/45">
-                      {move.hits.length > 0 ? `${move.hits.length} hit${move.hits.length === 1 ? '' : 's'}` : 'Total'}
+          {!isMoveLoading && !moveError && moves.length > 0 && (
+            <div className="divide-y divide-border/45 border-y border-border/45">
+              {moves.map((move, moveIndex) => (
+                <article key={`${move.name}-${moveIndex}`} className="py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-text-primary">
+                        {move.name || `Move ${moveIndex + 1}`}
+                      </div>
+                      <div className="mt-0.5 text-xs text-text-primary/48">
+                        {move.hits.length > 0 ? `${move.hits.length} hit${move.hits.length === 1 ? '' : 's'}` : 'Total damage'}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-sm font-semibold text-accent">{formatDamage(move.damage)}</div>
                     </div>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-lg font-semibold text-accent">{formatDamage(move.damage)}</div>
-                    <div className="text-[11px] uppercase tracking-[0.16em] text-text-primary/45">Damage</div>
-                  </div>
-                </div>
 
-                {move.hits.length > 0 && (
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {move.hits.map((hit, hitIndex) => (
-                      <div
-                        key={`${move.name}-${hit.name}-${hitIndex}`}
-                        className="rounded-lg border border-white/7 bg-white/[0.03] px-2.5 py-2"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0 text-sm font-medium text-text-primary">{hit.name}</div>
-                          <div className="shrink-0 text-sm font-semibold text-white/88">{formatDamage(hit.damage)}</div>
+                  {move.hits.length > 0 && (
+                    <div className="mt-2 space-y-1.5 border-l border-border/45 pl-3">
+                      {move.hits.map((hit, hitIndex) => (
+                        <div
+                          key={`${move.name}-${hit.name}-${hitIndex}`}
+                          className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3 text-sm"
+                        >
+                          <div className="min-w-0 truncate text-text-primary/82">{hit.name}</div>
+                          <div className="text-text-primary/55">{formatPercentStat(hit.percentage)}</div>
+                          <div className="text-right font-medium text-white/88">{formatDamage(hit.damage)}</div>
                         </div>
-                        <div className="mt-1 text-xs text-text-primary/55">{formatPercentStat(hit.percentage)}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-2">
-        <button
-          type="button"
-          aria-expanded={isUpgradesOpen}
-          onClick={() => setIsUpgradesOpen((prev) => !prev)}
-          className={actionRowClassName}
-        >
-          <div className="min-w-0">
-            <div className="text-sm font-semibold uppercase tracking-[0.2em] text-accent/82">Substat Upgrades</div>
-            <div className="mt-1 truncate text-sm text-text-primary/68">{weaponName} • {trackLabel}</div>
-          </div>
-          <ChevronDown className={`h-4 w-4 shrink-0 text-text-primary/60 transition-transform ${isUpgradesOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        {isUpgradesOpen && (
-          <div className="rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_28%,rgba(0,0,0,0.34)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_14px_34px_rgba(0,0,0,0.28)]">
-            {upgradesLoading && (
-              <div className="space-y-2">
-                {Array.from({ length: 7 }).map((_, index) => (
-                  <div key={`upgrade-skeleton-${index}`} className="grid grid-cols-[minmax(0,1.2fr)_0.8fr_0.8fr_0.8fr] gap-3 animate-pulse rounded-lg border border-white/8 bg-black/20 px-3 py-2.5">
-                    <div className="h-4 rounded bg-white/10" />
-                    <div className="h-4 rounded bg-white/8" />
-                    <div className="h-4 rounded bg-white/8" />
-                    <div className="h-4 rounded bg-white/8" />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {!upgradesLoading && upgradesError && (
-              <div className="rounded-xl border border-red-400/35 bg-red-500/8 px-3 py-2 text-sm text-red-100">
-                {upgradesError}
-              </div>
-            )}
-
-            {!upgradesLoading && !upgradesError && upgradeRows.length === 0 && (
-              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-4 text-sm text-text-primary/60">
-                No substat upgrade data available for this board.
-              </div>
-            )}
-
-            {!upgradesLoading && !upgradesError && upgradeRows.length > 0 && (
-              <div className="overflow-hidden rounded-xl border border-white/8 bg-black/18">
-                <div className="grid grid-cols-[minmax(0,1.2fr)_0.8fr_0.8fr_0.8fr] gap-3 border-b border-white/8 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/50">
-                  <div>Stat</div>
-                  <div className="text-right">Min</div>
-                  <div className="text-right">Median</div>
-                  <div className="text-right">Max</div>
-                </div>
-
-                <div className="divide-y divide-white/6">
-                  {upgradeRows.map((row) => (
-                    <div
-                      key={row.key}
-                      className="grid grid-cols-[minmax(0,1.2fr)_0.8fr_0.8fr_0.8fr] gap-3 px-3 py-2.5 text-sm"
-                    >
-                      <div className="flex min-w-0 items-center gap-2 text-text-primary">
-                        {row.icon ? (
-                          <img src={row.icon} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                        ) : (
-                          <span className="h-4 w-4 shrink-0 rounded bg-white/12" />
-                        )}
-                        <span className="truncate">{row.label}</span>
-                      </div>
-                      <div className="text-right text-text-primary/68">{formatUpgradeValue(row.min, row.isPercent)}</div>
-                      <div className="text-right font-semibold text-white/90">{formatUpgradeValue(row.median, row.isPercent)}</div>
-                      <div className="text-right text-accent">{formatUpgradeValue(row.max, row.isPercent)}</div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  )}
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {isUpgradesOpen && (
+        <section className="space-y-3">
+          <div className={`${sectionHeaderClassName} flex-wrap`}>
+            <div>
+              <div className={sectionLabelClassName}>Substat Upgrades</div>
+            </div>
+            <div className="inline-flex items-center rounded-md border border-border/60 bg-background-secondary/75 p-0.5">
+              {UPGRADE_TIER_OPTIONS.map((option) => {
+                const isActive = option.key === selectedUpgradeTier;
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setSelectedUpgradeTier(option.key)}
+                    className={`rounded px-2.5 py-1 text-xs font-semibold tracking-wide transition-colors ${
+                      isActive
+                        ? 'bg-accent text-black'
+                        : 'text-text-primary/62 hover:text-text-primary'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
-      </section>
+
+          {upgradesLoading && (
+            <div className="space-y-2">
+              {Array.from({ length: 7 }).map((_, index) => (
+                <div key={`upgrade-skeleton-${index}`} className="grid grid-cols-[minmax(0,1.25fr)_0.8fr_0.8fr_0.8fr] gap-3 animate-pulse border-b border-border/45 py-2.5 last:border-b-0">
+                  <div className="h-4 rounded bg-white/10" />
+                  <div className="h-4 rounded bg-white/8" />
+                  <div className="h-4 rounded bg-white/8" />
+                  <div className="h-4 rounded bg-white/8" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!upgradesLoading && upgradesError && (
+            <div className="rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {upgradesError}
+            </div>
+          )}
+
+          {!upgradesLoading && !upgradesError && upgradeRows.length === 0 && (
+            <div className="py-1 text-sm text-text-primary/60">
+              No substat upgrade data available for this board.
+            </div>
+          )}
+
+          {!upgradesLoading && !upgradesError && upgradeRows.length > 0 && !baseDamage && (
+            <div className="py-1 text-sm text-text-primary/60">
+              Missing current board context for projected result rendering.
+            </div>
+          )}
+
+          {!upgradesLoading && !upgradesError && upgradeRows.length > 0 && Boolean(baseDamage) && orderedUpgradeColumns.length > 0 && (
+            <div className="scrollbar-thin overflow-x-auto [--scrollbar-height:2px] [--scrollbar-width:6px]">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-border/55 text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
+                    <th className="bg-background-secondary/48 py-2 pr-4 pl-3 text-left">Substat</th>
+                    <th className="py-2 px-3 text-center text-accent">Base</th>
+                    {orderedUpgradeColumns.map((column) => (
+                      <th key={`upgrade-column-${column.key}`} className="py-2 px-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {column.icon ? (
+                            <img src={column.icon} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                          ) : (
+                            <span className="h-4 w-4 shrink-0 rounded bg-white/12" />
+                          )}
+                          <span className="leading-none">{column.label}</span>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-border/45">
+                  <tr>
+                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected damage</th>
+                    <td className="px-3 py-2.5 text-center font-semibold text-white/92">
+                      {formatDamage(baseDamage ?? 0)}
+                    </td>
+                    {orderedUpgradeColumns.map((column) => {
+                      return (
+                        <td key={`upgrade-result-${column.key}`} className="px-3 py-2.5 text-center">
+                          <div className="font-semibold text-white/92">{formatDamage(column.result)}</div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+
+                  <tr>
+                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Gain over base</th>
+                    <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
+                    {orderedUpgradeColumns.map((column) => (
+                      <td key={`upgrade-gain-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
+                        +{formatDamage(column.gain)}
+                      </td>
+                    ))}
+                  </tr>
+
+                  <tr>
+                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">% gain over base</th>
+                    <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
+                    {orderedUpgradeColumns.map((column) => (
+                      <td key={`upgrade-percent-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
+                        {formatSignedPercent(column.percentGain)}
+                      </td>
+                    ))}
+                  </tr>
+
+                  <tr>
+                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Added roll</th>
+                    <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
+                    {orderedUpgradeColumns.map((column) => (
+                      <td key={`upgrade-roll-${column.key}`} className="px-3 py-2.5 text-center text-text-primary/78">
+                        {formatSignedUpgradeValue(column.rollValue, column.isPercent)}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!upgradesLoading && !upgradesError && upgradeRows.length > 0 && Boolean(baseDamage) && orderedUpgradeColumns.length > 0 && (
+            <p className="text-xs leading-5 text-text-primary/50">
+              Shows how one additional substat roll changes the current board result.
+            </p>
+          )}
+        </section>
+      )}
     </div>
   );
 };

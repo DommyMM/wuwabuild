@@ -325,6 +325,16 @@ This matches the Next.js App Router route-group convention for opting only a sub
   - Rank display uses `globalRank`, which always means best damage on the current board = `#1`.
   - Gold/silver/bronze styling for top 3.
   - Compact row payload comes from `/leaderboard/{characterId}`; full `buildState` is fetched on demand via `GET /build/{buildId}` when the row expands.
+  - Expanded rows pass the current board's `damage`, `weaponId`, and `track` into `BuildExpanded`, so board-context UI can render without another list query.
+- `BuildExpanded()` / `BuildSimulationSection()`:
+  - Move breakdown and substat upgrades stay as two separate lazy endpoints:
+    - `GET /api/lb/build/{id}/moves/{weaponId}/{track}`
+    - `GET /api/lb/build/{id}/substat-upgrades/{weaponId}/{track}`
+  - Both fetch only after the user opens the relevant toggle inside an already-expanded row.
+  - Substat upgrades payload is interpreted as **damage gain over the current board result** for one additional min / median / max roll.
+  - The frontend derives the displayed projected damage (`base board damage + gain`) locally from the leaderboard row's already-loaded `damage`.
+  - Upgrade columns use canonical substat ordering matching build substat summaries (crits first, then natural stat order, flat stats last), not "largest gain first".
+  - Projected leaderboard rank is intentionally not shown yet; adding it cleanly would require a backend rank-projection query rather than client inference.
 - `WeaponCards` / `TrackTabs`: private sub-components inside `LeaderboardTabs.tsx`; track tabs render backend labels from `{ key, label }`.
 - `LeaderboardHeader` now receives `teamCharacterIds` on the character page and renders team portraits above the table.
 - `leaderboardConstants.ts`: exports `LB_TABLE_GRID`, `DEFAULT_LB_SORT`, and `DEFAULT_LB_TRACK`.

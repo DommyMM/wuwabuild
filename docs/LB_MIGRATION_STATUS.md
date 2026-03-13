@@ -11,7 +11,9 @@ Purpose: current-state reference for the active `wuwabuilds` frontend and Go `lb
 - `/leaderboards/[characterId]` uses `GET /leaderboard/{characterId}` with canonical `weaponId + track`.
 - Character leaderboard rows are compact. They include leaderboard-only fields like `damage` and `globalRank`, but not `buildState`.
 - Expanding a leaderboard row fetches `GET /build/{id}` for `buildState`.
-- `GET /build/{id}/moves/{weaponId}/{sequence}` and `GET /build/{id}/substat-upgrades` remain separate on-demand detail endpoints.
+- `GET /build/{id}/moves/{weaponId}/{sequence}` and `GET /build/{id}/substat-upgrades/{weaponId}/{sequence}` remain separate on-demand detail endpoints.
+- The character page uses the already-loaded leaderboard row `damage` as the base result for the selected board and derives projected upgrade results client-side from the `tiers` gain payload.
+- The expanded substat-upgrades table shows only non-zero stat columns for the selected min / median / max tier and keeps a canonical stat order rather than sorting by gain.
 
 ## Canonical Contracts
 
@@ -78,12 +80,12 @@ Rules:
   - `/leaderboards/[characterId]`
 - Client revalidation is diff-based and skips state updates when the response signature is unchanged.
 - Leaderboard expansion fetches detail on demand instead of paying for full `buildState` in the base list query.
+- Move breakdown and substat-upgrades are then fetched independently from inside the expanded row, only when the user opens those sections.
+- Substat-upgrades currently project damage only. They do not return or infer hypothetical `globalRank`.
 
 ## Current Open Work
 
-- Add explicit expanded-row actions for:
-  - moves fetch
-  - substat-upgrades fetch
+- If projected leaderboard rank is desired for substat upgrades, add a backend endpoint that accepts one or more hypothetical board damage values and returns absolute rank on the current `weaponId + track` board.
 - Keep docs aligned as the expanded leaderboard UI grows.
 
 ## No Longer Accurate From Older Notes

@@ -244,6 +244,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         onRetryDetail={onRetryDetail}
         activeBoardWeaponId={activeWeaponId}
         activeTrackKey={activeTrackKey}
+        activeBoardDamage={entry.damage}
       />
     </div>
   );
