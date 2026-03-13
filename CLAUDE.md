@@ -28,10 +28,15 @@ API_URL=https://ocr.wuwabuilds.moe            # server-only, used by /api/ocr pr
 LB_URL=https://db.wuwabuilds.moe              # server-only, used by generic /api/lb/[...path] proxy
 INTERNAL_API_KEY=shared_secret_here           # shared by /api/ocr, /api/lb/*, backend, lb
 NEXT_PUBLIC_POSTHOG_KEY=phc_...
+CLOUDFLARE_ACCOUNT_ID=...                     # optional, R2 screenshot/report storage
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET_NAME=...
 ```
 
 Import OCR requests use the `X-OCR-Region` header via the frontend `/api/ocr` proxy.
 Leaderboard requests from browser code go through the generic `/api/lb/*` proxy, which adds `X-Internal-Key` server-side.
+When R2 is configured, `/import` also uploads deduplicated source screenshots and can persist OCR issue reports as JSON objects.
 
 ## Analytics
 
@@ -43,7 +48,7 @@ Leaderboard requests from browser code go through the generic `/api/lb/*` proxy,
 ### PostHog
 - **Implementation**: Client-side initialization via `instrumentation-client.ts` (Next.js 15.3+ pattern) with reverse proxy configured in `next.config.ts`
 
-### Tracked Events (6 total)
+### Tracked Events (7 total)
 
 High-value conversion events optimized for PostHog free tier (1M events/month):
 
@@ -52,6 +57,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 | `build_card_downloaded` | User downloads build card PNG | `components/edit/BuildEditor.tsx` |
 | `build_saved` | User saves build via Save modal | `components/save/SaveBuildModal.tsx` |
 | `import_completed` | User completes OCR import flow | `components/import/ImportPageClient.tsx` |
+| `ocr_issue_report_submitted` | User submits an OCR issue report from `/import` | `components/import/ImportPageClient.tsx` |
 | `builds_exported_all` | User exports all builds to JSON | `components/save/SavesPageClient.tsx` |
 | `builds_imported` | User imports builds from JSON | `components/save/SavesPageClient.tsx` |
 | `builds_session_summary` | Session aggregation (expansion count on /builds unmount) | `components/build/BuildPageClient.tsx` |
@@ -62,6 +68,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 - `/builds`, `/leaderboards`, and `/leaderboards/[characterId]` are all **SSR-prefetched** — current query rendered server-side (2-minute ISR), hydrated directly into client state, silently revalidated on mount using diff-based ref signatures.
 - `/leaderboards` route is **live** — overview page + per-character pages implemented.
 - `/import` uploads to LB through `POST /api/lb/build` when `Upload to Leaderboard` is enabled, sending canonical `buildState` only and letting `/lb` derive stats/CV/echo summaries server-side.
+- `/import` also supports manual OCR issue reporting backed by R2 screenshot storage and JSON report objects.
 - `BuildEditor` has a `View Ranking` button that routes to the selected character leaderboard.
 - Go LB runtime is validated with migrated legacy data and single-pass canonical ingest (`make import DUMP=...`).
 - API filtering should use canonical CDN IDs.
@@ -215,14 +222,17 @@ This matches the Next.js App Router route-group convention for opting only a sub
 
 - Entry: `app/(game)/import/page.tsx` -> `ImportPageClient()`.
 - `ImportPageClient()`:
-  - `handleFile(file)` validates size format (1920x1080) and DPI, then starts OCR.
+  - `handleFile(file)` validates the 1920x1080 screenshot, starts OCR, and kicks off best-effort screenshot upload to R2 in parallel.
   - `handleReset()`, `buildImportedState(wm)`, `uploadImportedState(buildState)`, `doImport(wm)`, `saveImportToSaves(wm)`, `handleImport(wm)`.
+  - `submitIssueReport(note)` posts screenshot-linked JSON diagnostics to `/api/report-ocr-issue`.
   - Leaderboard submission goes through `lib/lb.ts -> submitBuild(buildState)`, posting only canonical `buildState` to `/api/lb/build`.
 - `ImportUploader()`:
   - `isValidFile`, `handleFile`, document-level paste listener, drag/drop and file input handlers.
 - `ImportResults()`:
   - Internal UI helpers: `Sk`, `ImageWithSkeleton`, `ProgressDot`, `EchoCard`.
-  - Watermark override fields and import gating from OCR progress.
+  - Watermark override fields, import gating from OCR progress, and a generic `Report Scan Issue` action.
+- `ReportIssueModal()`:
+  - Collects an optional note, explains attached diagnostics, and submits the issue payload.
 - OCR hook (`useOcrImport()`):
   - `reset()`, `processImage(file)`:
     - crops each region and posts parallel OCR calls with `X-OCR-Region`.
@@ -230,11 +240,28 @@ This matches the Next.js App Router route-group convention for opting only a sub
   - `convert.ts`: `findByName`, `parseRoverInfo`, `convertAnalysisToSavedState`.
   - `echoMatching.ts`: `parseValue`, `normalizeStatName`, `matchEchoData`.
   - `cropImage.ts`: `getImageDpi`, `loadImage`, `cropImageToRegion`, `encodeImageFileAsJpegBase64`.
+  - `report.ts`: OCR issue payload types + default reason resolution.
   - `regions.ts`: canonical normalized OCR crop coordinates.
 - API routes used by import:
   - `app/api/ocr/route.ts`: health proxy + OCR proxy with region header forwarding.
-  - `app/api/upload-training/route.ts`: R2 dedupe/upload for import screenshots (hash-keyed JPEGs).
+  - `app/api/upload-training/route.ts`: R2 dedupe/upload for import screenshots (root-level hash-keyed JPEGs like `<hash>.jpg`).
   - `app/api/report-ocr-issue/route.ts`: stores OCR issue reports as JSON linked to the uploaded screenshot key.
+  - `app/api/upload-bucket/route.ts`: compatibility alias to `upload-training`; no longer the canonical name.
+- Server storage helpers:
+  - `lib/server/r2.ts`: shared R2 client, root-level hash image keys, and `reports/YYYY/MM/DD/<reportId>.json` object-key helpers.
+
+#### OCR report storage layout
+
+- Screenshot uploads are deduplicated JPEG objects stored at the bucket root with keys like `<sha256-16>.jpg`.
+- OCR issue reports are JSON text objects stored under `reports/YYYY/MM/DD/<reportId>.json`.
+- Report payloads include:
+  - screenshot key
+  - OCR progress by region
+  - raw OCR `analysisData`
+  - converted `SavedState` when conversion succeeds
+  - surfaced validation / OCR / leaderboard-upload errors
+  - optional user note
+- First-pass operations are manual: no webhook, bot, or database dependency is required.
 
 ### `/saves`
 

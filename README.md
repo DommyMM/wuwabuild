@@ -15,7 +15,7 @@ For full technical context, see:
 - All core routes implemented: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`.
 - `/builds` is live and wired to LB `GET /build` with filters/sort/pagination + local query caching + SSR prefetch (2-min ISR, silent revalidation on mount).
 - `/leaderboards` overview and `/leaderboards/[characterId]` per-character pages are live, also SSR-prefetched.
-- `/import` OCR flow is live; `Upload to Leaderboard` toggle submits canonical `buildState` via `POST /api/lb/build`.
+- `/import` OCR flow is live; `Upload to Leaderboard` toggle submits canonical `buildState` via `POST /api/lb/build`, and failed/misread scans can now be reported directly from the import UI.
 - `/edit` `View Ranking` button routes to the selected character leaderboard page.
 - Go leaderboard backend (`/lb`) runs single-pass canonical ingest with 9 registered character damage configs.
 - Node backend (`/mongo`) remains the fallback path until remaining Go parity items are closed.
@@ -26,7 +26,7 @@ For full technical context, see:
 ## Features
 
 - **Build Editor** (`/edit`) — Full character build creator with real-time stat calculations, drag-to-reposition splash art, weapon rank passives, forte node bonuses, echo set summaries, CV tiers, and downloadable build card export.
-- **OCR Import** (`/import`) — Upload a 1920×1080 screenshot; frontend crops into regions and sends each in parallel to the OCR backend. Supports character, weapon, echoes, forte, sequences, and watermark extraction.
+- **OCR Import** (`/import`) — Upload a 1920×1080 screenshot; frontend crops into regions and sends each in parallel to the OCR backend. Supports character, weapon, echoes, forte, sequences, watermark extraction, and inline OCR issue reporting with screenshot-backed diagnostics.
 - **Build Browser** (`/builds`) — Paginated build listing with filters (character, weapon, echo sets, echo mains, UID/username search) and sort by CV, damage, timestamp, or individual stats.
 - **Local Saves** (`/saves`) — Save builds to localStorage with auto-migration from legacy save formats.
 - **Multi-Language** — 10 languages: English, Japanese, Korean, Chinese (Simplified/Traditional), German, Spanish, French, Thai, Ukrainian.
@@ -70,6 +70,7 @@ EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
 - **Leaderboard**: client code calls the generic Next `/api/lb/*` proxy, which forwards any LB child path to the Go LB with `X-Internal-Key`.
 - **OCR**: `/api/ocr` proxies to `https://ocr.wuwabuilds.moe/api/ocr` with `X-OCR-Region`, plus `X-Internal-Key` and forwarded client IP when configured.
 - **Build submission**: `POST /build` is wired — `/import` sends canonical `buildState` when the `Upload to Leaderboard` toggle is enabled.
+- **OCR issue reporting**: `/import` can submit screenshot-linked JSON reports to R2 via `POST /api/report-ocr-issue` for manual review.
 
 ---
 
@@ -128,7 +129,15 @@ npm run lint
 4. The Next proxy forwards the request to the OCR backend and, when `INTERNAL_API_KEY` is set, includes the shared key plus the original client IP for backend rate limiting.
 5. Backend returns ID-enriched OCR payloads.
 6. Frontend converts analysis to `SavedState` and loads into the editor.
-7. Optional: fire-and-forget full screenshot upload to R2 (hash-deduped) plus manual OCR issue reports stored as JSON in the same bucket.
+7. Optional: fire-and-forget full screenshot upload to R2 (hash-deduped root-level `<hash>.jpg` object).
+8. Users can report scan problems from `/import`; report JSON is stored in the same bucket under `reports/YYYY/MM/DD/<reportId>.json` and linked back to the uploaded screenshot key.
+
+### OCR Issue Reports
+
+- `/import` stores the original screenshot in R2 as a deduplicated root-level JPEG object like `<hash>.jpg`.
+- Manual reports are stored as JSON objects under `reports/YYYY/MM/DD/<reportId>.json`.
+- Each report includes the screenshot key, OCR progress map, OCR payload, current error state, and the converted build state when available.
+- No database or webhook is required for the first pass; reports can be reviewed manually in R2.
 
 ## Leaderboard Fetch Flow
 
@@ -175,6 +184,7 @@ wuwabuilds/
 │   ├── constants/           # Stat mappings, set bonuses, CDN URLs, skill branches
 │   ├── data/                # Legacy ID mappings for migration
 │   ├── import/              # OCR → SavedState conversion, crop regions
+│   ├── server/              # Server-only helpers (R2 storage, etc.)
 │   └── text/                # Localized game text rendering
 ├── public/Data/             # Game data JSON (Characters, Weapons, Echoes, Stats, Curves, Fetters)
 └── scripts/                 # Python data sync scripts
