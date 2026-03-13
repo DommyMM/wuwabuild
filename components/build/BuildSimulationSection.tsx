@@ -5,7 +5,8 @@ import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getBuildMoves, getBuildSubstatUpgrades, LBMoveEntry, LBSubstatUpgradeTierSet } from '@/lib/lb';
-import { formatFlatStat, formatPercentStat } from './buildFormatters';
+import { BuildMoveBreakdown } from './BuildMoveBreakdown';
+import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
 
 const UPGRADE_STAT_LABELS: Record<string, string> = {
   HP: 'HP',
@@ -49,16 +50,8 @@ type UpgradeRow = {
   isPercent: boolean;
 };
 
-type UpgradeColumn = {
-  key: string;
+type OrderedUpgradeColumn = BuildUpgradeColumn & {
   canonicalLabel: string;
-  label: string;
-  icon: string;
-  rollValue: number;
-  gain: number;
-  result: number;
-  percentGain: number;
-  isPercent: boolean;
 };
 
 function formatTrackLabel(trackKey: string): string {
@@ -72,24 +65,6 @@ function formatTrackLabel(trackKey: string): string {
     .join(' ');
 }
 
-function formatDamage(value: number): string {
-  return Math.round(value).toLocaleString();
-}
-
-function formatUpgradeValue(value: number, isPercent: boolean): string {
-  return isPercent ? formatPercentStat(value) : formatFlatStat(value);
-}
-
-function formatSignedUpgradeValue(value: number, isPercent: boolean): string {
-  const formatted = formatUpgradeValue(value, isPercent);
-  return value > 0 ? `+${formatted}` : formatted;
-}
-
-function formatSignedPercent(value: number): string {
-  if (!Number.isFinite(value)) return '—';
-  return `+${value.toFixed(value >= 10 ? 1 : 2)}%`;
-}
-
 function getTierRollValue(values: number[] | null, tier: UpgradeTierKey): number | null {
   if (!values || values.length === 0) return null;
   if (tier === 'min') return values[0] ?? null;
@@ -97,17 +72,10 @@ function getTierRollValue(values: number[] | null, tier: UpgradeTierKey): number
   return values[Math.max(0, Math.floor((values.length - 1) / 2))] ?? null;
 }
 
-function getGainColor(percentGain: number, maxPercentGain: number): string {
-  if (!Number.isFinite(percentGain) || percentGain <= 0) return 'rgba(224,224,224,0.6)';
-  const ratio = maxPercentGain > 0 ? Math.min(1, percentGain / maxPercentGain) : 0;
-  const lightness = 61 + (ratio * 14);
-  return `hsl(129 73% ${lightness}%)`;
-}
-
 function canonicalUpgradeSort(
-  columns: UpgradeColumn[],
+  columns: OrderedUpgradeColumn[],
   statTranslations: Record<string, Record<string, string>> | null | undefined,
-): UpgradeColumn[] {
+): OrderedUpgradeColumn[] {
   const naturalOrder: string[] = [];
 
   if (statTranslations) {
@@ -140,7 +108,7 @@ function canonicalUpgradeSort(
   const orderedLabels = [...crits, ...rest, ...flats];
   const ordered = orderedLabels
     .map((label) => columns.find((column) => column.canonicalLabel === label))
-    .filter((column): column is UpgradeColumn => column !== undefined);
+    .filter((column): column is OrderedUpgradeColumn => column !== undefined);
 
   const orderedKeys = new Set(ordered.map((column) => column.key));
   const leftovers = columns.filter((column) => !orderedKeys.has(column.key));
@@ -298,15 +266,10 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           isPercent,
         };
       })
-      .filter((row) => row.min > 0 || row.median > 0 || row.max > 0)
-      .sort((a, b) => {
-        if (b.median !== a.median) return b.median - a.median;
-        if (b.max !== a.max) return b.max - a.max;
-        return a.label.localeCompare(b.label);
-      });
+      .filter((row) => row.min > 0 || row.median > 0 || row.max > 0);
   }, [activeUpgrades, statIcons, statTranslations, t]);
 
-  const upgradeColumns = useMemo<UpgradeColumn[]>(() => {
+  const upgradeColumns = useMemo<OrderedUpgradeColumn[]>(() => {
     if (!activeUpgrades || !Number.isFinite(baseDamage) || (baseDamage ?? 0) <= 0) {
       return [];
     }
@@ -339,21 +302,15 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     [statTranslations, upgradeColumns],
   );
 
-  const strongestPercentGain = useMemo(
-    () => orderedUpgradeColumns.reduce((max, column) => Math.max(max, column.percentGain), 0),
-    [orderedUpgradeColumns],
-  );
-
   if (!hasBoardContext) {
     return null;
   }
 
   const actionButtonClassName = 'flex w-full items-center justify-between rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer';
-  const sectionMetaClassName = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/45';
 
   return (
     <div className="space-y-3 font-plus-jakarta">
-      <div className="mx-auto flex w-full max-w-56 flex-col gap-2">
+      <div className="mx-auto flex w-48 flex-col gap-2">
         <button
           type="button"
           aria-expanded={isMovesOpen}
@@ -378,200 +335,27 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       </div>
 
       {isMovesOpen && (
-        <section className="space-y-3">
-          <div className={`text-center ${sectionMetaClassName}`}>
-            {weaponName} • {trackLabel}
-          </div>
-
-          {isMoveLoading && (
-            <div className="space-y-2">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={`move-skeleton-${index}`} className="animate-pulse border-b border-border/45 py-2.5 last:border-b-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="h-4 w-40 rounded bg-white/10" />
-                    <div className="h-4 w-20 rounded bg-white/8" />
-                  </div>
-                  <div className="mt-2 h-3 w-2/3 rounded bg-white/6" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!isMoveLoading && moveError && (
-            <div className="rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-              {moveError}
-            </div>
-          )}
-
-          {!isMoveLoading && !moveError && moves.length === 0 && (
-            <div className="py-1 text-sm text-text-primary/60">
-              No move breakdown available for this board.
-            </div>
-          )}
-
-          {!isMoveLoading && !moveError && moves.length > 0 && (
-            <div className="divide-y divide-border/45 border-y border-border/45">
-              {moves.map((move, moveIndex) => (
-                <article key={`${move.name}-${moveIndex}`} className="py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-text-primary">
-                        {move.name || `Move ${moveIndex + 1}`}
-                      </div>
-                      <div className="mt-0.5 text-xs text-text-primary/48">
-                        {move.hits.length > 0 ? `${move.hits.length} hit${move.hits.length === 1 ? '' : 's'}` : 'Total damage'}
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-sm font-semibold text-accent">{formatDamage(move.damage)}</div>
-                    </div>
-                  </div>
-
-                  {move.hits.length > 0 && (
-                    <div className="mt-2 space-y-1.5 border-l border-border/45 pl-3">
-                      {move.hits.map((hit, hitIndex) => (
-                        <div
-                          key={`${move.name}-${hit.name}-${hitIndex}`}
-                          className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3 text-sm"
-                        >
-                          <div className="min-w-0 truncate text-text-primary/82">{hit.name}</div>
-                          <div className="text-text-primary/55">{formatPercentStat(hit.percentage)}</div>
-                          <div className="text-right font-medium text-white/88">{formatDamage(hit.damage)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+        <BuildMoveBreakdown
+          weaponName={weaponName}
+          trackLabel={trackLabel}
+          isLoading={isMoveLoading}
+          error={moveError}
+          moves={moves}
+        />
       )}
 
       {isUpgradesOpen && (
-        <section className="space-y-3">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <div className="inline-flex items-center rounded-md border border-border/60 bg-background-secondary/75 p-0.5">
-              {UPGRADE_TIER_OPTIONS.map((option) => {
-                const isActive = option.key === selectedUpgradeTier;
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    onClick={() => setSelectedUpgradeTier(option.key)}
-                    className={`rounded px-2.5 py-1 text-xs font-semibold tracking-wide transition-colors ${
-                      isActive
-                        ? 'bg-accent text-black'
-                        : 'text-text-primary/62 hover:text-text-primary'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {upgradesLoading && (
-            <div className="space-y-2">
-              {Array.from({ length: 7 }).map((_, index) => (
-                <div key={`upgrade-skeleton-${index}`} className="grid grid-cols-[minmax(0,1.25fr)_0.8fr_0.8fr_0.8fr] gap-3 animate-pulse border-b border-border/45 py-2.5 last:border-b-0">
-                  <div className="h-4 rounded bg-white/10" />
-                  <div className="h-4 rounded bg-white/8" />
-                  <div className="h-4 rounded bg-white/8" />
-                  <div className="h-4 rounded bg-white/8" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!upgradesLoading && upgradesError && (
-            <div className="rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-              {upgradesError}
-            </div>
-          )}
-
-          {!upgradesLoading && !upgradesError && upgradeRows.length === 0 && (
-            <div className="py-1 text-sm text-text-primary/60">
-              No substat upgrade data available for this board.
-            </div>
-          )}
-
-          {!upgradesLoading && !upgradesError && upgradeRows.length > 0 && !baseDamage && (
-            <div className="py-1 text-sm text-text-primary/60">
-              Missing current board context for projected result rendering.
-            </div>
-          )}
-
-          {!upgradesLoading && !upgradesError && upgradeRows.length > 0 && Boolean(baseDamage) && orderedUpgradeColumns.length > 0 && (
-            <table className="border-collapse text-sm mx-auto">
-              <thead>
-                <tr className="border-b border-border/55 text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
-                  <th className="min-w-30 bg-background-secondary/48 py-2 pr-4 pl-3 text-left">Substat</th>
-                  <th className="min-w-30 py-2 px-3 text-center text-accent">Original</th>
-                  {orderedUpgradeColumns.map((column) => (
-                    <th key={`upgrade-column-${column.key}`} className="min-w-30 py-2 px-3 text-center">
-                      <div className="flex items-end justify-center gap-1">
-                        {column.icon ? (
-                          <img src={column.icon} alt="" className="h-3.5 w-3.5 shrink-0 object-contain" />
-                        ) : (
-                          <span className="h-3.5 w-3.5 shrink-0 rounded bg-white/12" />
-                        )}
-                        <span className="leading-none">{column.label}</span>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-border/45">
-                <tr>
-                  <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected damage</th>
-                  <td className="px-3 py-2.5 text-center font-semibold text-white/92">
-                    {formatDamage(baseDamage ?? 0)}
-                  </td>
-                  {orderedUpgradeColumns.map((column) => {
-                    return (
-                      <td key={`upgrade-result-${column.key}`} className="px-3 py-2.5 text-center">
-                        <div className="font-semibold text-white/92">{formatDamage(column.result)}</div>
-                      </td>
-                    );
-                  })}
-                </tr>
-
-                <tr>
-                  <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Gain over base</th>
-                  <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
-                  {orderedUpgradeColumns.map((column) => (
-                    <td key={`upgrade-gain-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
-                      +{formatDamage(column.gain)}
-                    </td>
-                  ))}
-                </tr>
-
-                <tr>
-                  <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">% gain over base</th>
-                  <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
-                  {orderedUpgradeColumns.map((column) => (
-                    <td key={`upgrade-percent-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
-                      {formatSignedPercent(column.percentGain)}
-                    </td>
-                  ))}
-                </tr>
-
-                <tr>
-                  <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Added roll</th>
-                  <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
-                  {orderedUpgradeColumns.map((column) => (
-                    <td key={`upgrade-roll-${column.key}`} className="px-3 py-2.5 text-center text-text-primary/78">
-                      {formatSignedUpgradeValue(column.rollValue, column.isPercent)}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          )}
-        </section>
+        <BuildSubstatUpgrades
+          isLoading={upgradesLoading}
+          error={upgradesError}
+          hasUpgradeData={upgradeRows.length > 0}
+          hasBaseDamage={Boolean(baseDamage)}
+          baseDamage={baseDamage}
+          tierOptions={UPGRADE_TIER_OPTIONS}
+          selectedTier={selectedUpgradeTier}
+          onSelectTier={(tier) => setSelectedUpgradeTier(tier as UpgradeTierKey)}
+          orderedUpgradeColumns={orderedUpgradeColumns}
+        />
       )}
     </div>
   );
