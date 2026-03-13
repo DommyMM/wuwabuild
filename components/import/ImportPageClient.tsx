@@ -1,22 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
-import { loadImage } from '@/lib/import/cropImage';
+import { encodeImageFileAsJpegBase64, loadImage } from '@/lib/import/cropImage';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { submitBuild } from '@/lib/lb';
 import { loadDraftBuild, saveBuild, saveDraftBuild } from '@/lib/storage';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
+import { ReportIssueModal } from './ReportIssueModal';
 import type { AnalysisData } from '@/lib/import/types';
 import type { SavedState } from '@/lib/build';
+import { getDefaultReportReason, type OcrIssueReason } from '@/lib/import/report';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 import posthog from 'posthog-js';
+import Link from 'next/link';
 
 type ImportStep = 'upload' | 'results';
 
@@ -33,12 +35,39 @@ export function ImportPageClient() {
   const [isSubmitting, setIsSubmitting]       = useState(false);
   const [pendingWm, setPendingWm]             = useState<{ username: string; uid: string } | null>(null);
   const [draftBuildState, setDraftBuildState] = useState<SavedState | null>(() => loadDraftBuild());
+  const [selectedFile, setSelectedFile]       = useState<File | null>(null);
+  const [trainingImageKey, setTrainingImageKey] = useState<string | null>(null);
+  const [lastImportWatermark, setLastImportWatermark] = useState<{ username: string; uid: string } | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportReason, setReportReason] = useState<OcrIssueReason>('manual_report');
 
   // Silent wake-up ping so Railway auto-starts the server if sleeping
   useEffect(() => { fetch('/api/ocr').catch(() => {}); }, []);
 
+  const uploadTrainingImage = async (file: File) => {
+    try {
+      const image = await encodeImageFileAsJpegBase64(file);
+      const res = await fetch('/api/upload-training', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image }),
+      });
+      const payload = await res.json() as { success?: boolean; key?: string };
+      if (payload.success && typeof payload.key === 'string') {
+        setTrainingImageKey(payload.key);
+      }
+    } catch {
+      // Best-effort only; OCR should still continue.
+    }
+  };
+
   const handleFile = async (f: File) => {
     setValidationError(null);
+    setLbUploadError(null);
+    setSelectedFile(f);
+    setTrainingImageKey(null);
+    setLastImportWatermark(null);
 
     const img = await loadImage(f);
     if (img.naturalWidth !== 1920 || img.naturalHeight !== 1080) {
@@ -50,7 +79,8 @@ export function ImportPageClient() {
 
     reset();
     setStep('results');
-    processImage(f);
+    void uploadTrainingImage(f);
+    void processImage(f);
   };
 
   const handleReset = () => {
@@ -58,6 +88,12 @@ export function ImportPageClient() {
     setStep('upload');
     setValidationError(null);
     setLbUploadError(null);
+    setSelectedFile(null);
+    setTrainingImageKey(null);
+    setLastImportWatermark(null);
+    setPendingWm(null);
+    setIsReportModalOpen(false);
+    setReportReason('manual_report');
   };
 
   const buildImportedState = (wm: { username: string; uid: string }) => {
@@ -78,6 +114,31 @@ export function ImportPageClient() {
     analysisData.character?.name ??
     'Imported Build'
   );
+
+  const getActiveWatermark = () => (
+    lastImportWatermark ?? {
+      username: analysisData.watermark?.username ?? '',
+      uid: String(analysisData.watermark?.uid ?? ''),
+    }
+  );
+
+  const getReportImportedState = () => {
+    const activeWatermark = getActiveWatermark();
+    try {
+      return buildImportedState(activeWatermark);
+    } catch {
+      return null;
+    }
+  };
+
+  const openReportModal = (reason: OcrIssueReason = getDefaultReportReason({
+    validationError,
+    ocrError: error,
+    lbUploadError,
+  })) => {
+    setReportReason(reason);
+    setIsReportModalOpen(true);
+  };
 
   const uploadImportedState = async (importedState: SavedState) => {
     if (!uploadToLb) return;
@@ -173,10 +234,76 @@ export function ImportPageClient() {
   };
 
   const handleImport = (wm: { username: string; uid: string }) => {
+    setLastImportWatermark(wm);
     if (draftBuildState?.characterId) {
       setPendingWm(wm); // show confirmation modal
     } else {
       void doImport(wm);
+    }
+  };
+
+  const submitIssueReport = async (note: string) => {
+    try {
+      const activeWatermark = getActiveWatermark();
+      let fallbackImage: string | undefined;
+
+      if (!trainingImageKey) {
+        if (!selectedFile) {
+          notifyError('No screenshot is available to attach to this report.');
+          return;
+        }
+        fallbackImage = await encodeImageFileAsJpegBase64(selectedFile);
+      }
+
+      setIsSubmittingReport(true);
+
+      const res = await fetch('/api/report-ocr-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          note,
+          route: '/import',
+          reason: reportReason,
+          trainingImageKey: trainingImageKey ?? undefined,
+          image: fallbackImage,
+          progress,
+          analysisData,
+          importedState: getReportImportedState() ?? undefined,
+          validationError,
+          ocrError: error,
+          lbUploadError,
+          uploadToLb,
+          watermark: activeWatermark,
+          client: {
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            submittedAt: new Date().toISOString(),
+          },
+        }),
+      });
+
+      const payload = await res.json() as { success?: boolean; reason?: string; trainingImageKey?: string | null };
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.reason || 'Failed to submit issue report.');
+      }
+
+      if (!trainingImageKey && typeof payload.trainingImageKey === 'string' && payload.trainingImageKey) {
+        setTrainingImageKey(payload.trainingImageKey);
+      }
+
+      posthog.capture('ocr_issue_report_submitted', {
+        reason: reportReason,
+        has_note: note.trim().length > 0,
+        has_training_image_key: Boolean(trainingImageKey || payload.trainingImageKey),
+        character_id: getReportImportedState()?.characterId ?? null,
+      });
+      success('Report submitted. Thanks.');
+      setIsReportModalOpen(false);
+    } catch (err) {
+      posthog.captureException(err);
+      notifyError(err instanceof Error ? err.message : 'Failed to submit issue report.');
+    } finally {
+      setIsSubmittingReport(false);
     }
   };
 
@@ -227,28 +354,46 @@ export function ImportPageClient() {
 
         {/* Validation error */}
         {validationError && (
-          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400">
-            {validationError}
+          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+            <div>{validationError}</div>
+            <button
+              type="button"
+              onClick={() => openReportModal('validation_error')}
+              className="mt-3 text-sm font-medium text-red-200 underline underline-offset-2 transition-colors hover:text-red-100"
+            >
+              Report this issue
+            </button>
           </div>
         )}
 
         {/* OCR error */}
         {error && (
-          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400">
-            {error}
+          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+            <div>{error}</div>
+            <button
+              type="button"
+              onClick={() => openReportModal('ocr_error')}
+              className="mt-3 text-sm font-medium text-red-200 underline underline-offset-2 transition-colors hover:text-red-100"
+            >
+              Report this issue
+            </button>
           </div>
         )}
 
         {/* LB upload error — illegal echo data from OCR misread */}
         {lbUploadError && (
-          <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-sm text-yellow-400">
+          <div className="mb-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-400">
             <span className="font-medium">Leaderboard upload skipped.</span>{' '}
-            {lbUploadError}{' '}
-            Try re-scanning with a cleaner screenshot, or{' '}
-            <Link href="/help" className="underline underline-offset-2 hover:text-yellow-300 transition-colors">
-              report the issue
-            </Link>
-            .
+            {lbUploadError}
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => openReportModal('illegal_echo')}
+                className="text-sm font-medium text-yellow-200 underline underline-offset-2 transition-colors hover:text-yellow-100"
+              >
+                Report this issue
+              </button>
+            </div>
           </div>
         )}
 
@@ -261,6 +406,7 @@ export function ImportPageClient() {
             isSubmitting={isSubmitting}
             progress={progress}
             onImport={handleImport}
+            onReportIssue={() => openReportModal()}
           />
         )}
 
@@ -323,6 +469,15 @@ export function ImportPageClient() {
             </div>
           </div>
         )}
+      />
+
+      <ReportIssueModal
+        key={`${isReportModalOpen ? 'open' : 'closed'}-${reportReason}`}
+        isOpen={isReportModalOpen}
+        reason={reportReason}
+        isSubmitting={isSubmittingReport}
+        onClose={() => setIsReportModalOpen(false)}
+        onSubmit={submitIssueReport}
       />
 
     </main>

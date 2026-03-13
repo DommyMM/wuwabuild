@@ -5,8 +5,7 @@ import type { AnalysisData } from '@/lib/import/types';
 import type { RegionKey } from '@/lib/import/regions';
 import { IMPORT_REGIONS } from '@/lib/import/regions';
 import { loadImage, cropImageToRegion } from '@/lib/import/cropImage';
-
-type RegionStatus = 'pending' | 'done' | 'error';
+import type { RegionStatus } from '@/lib/import/report';
 
 interface UseOcrImportReturn {
   isProcessing: boolean;
@@ -41,16 +40,6 @@ export function useOcrImport(): UseOcrImportReturn {
     try {
       const img = await loadImage(file);
       const regions = Object.entries(IMPORT_REGIONS) as [RegionKey, typeof IMPORT_REGIONS[RegionKey]][];
-
-      // Fire-and-forget training upload if 1920×1080
-      if (img.naturalWidth === 1920 && img.naturalHeight === 1080) {
-        const fullBase64 = await cropImageToRegion(img, { x1: 0, x2: 1, y1: 0, y2: 1 });
-        fetch('/api/upload-training', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: fullBase64 }),
-        }).catch(() => {});
-      }
 
       // Crop all regions and fire OCR in parallel
       const tasks = regions.map(async ([key, region]) => {

@@ -225,16 +225,16 @@ This matches the Next.js App Router route-group convention for opting only a sub
   - Watermark override fields and import gating from OCR progress.
 - OCR hook (`useOcrImport()`):
   - `reset()`, `processImage(file)`:
-    - optional `/api/upload-training` fire-and-forget for full 1920x1080 images,
     - crops each region and posts parallel OCR calls with `X-OCR-Region`.
 - Import conversion/utils:
   - `convert.ts`: `findByName`, `parseRoverInfo`, `convertAnalysisToSavedState`.
   - `echoMatching.ts`: `parseValue`, `normalizeStatName`, `matchEchoData`.
-  - `cropImage.ts`: `getImageDpi`, `loadImage`, `cropImageToRegion`.
+  - `cropImage.ts`: `getImageDpi`, `loadImage`, `cropImageToRegion`, `encodeImageFileAsJpegBase64`.
   - `regions.ts`: canonical normalized OCR crop coordinates.
 - API routes used by import:
   - `app/api/ocr/route.ts`: health proxy + OCR proxy with region header forwarding.
-  - `app/api/upload-training/route.ts`: R2 dedupe/upload for training images (hash-keyed PNGs).
+  - `app/api/upload-training/route.ts`: R2 dedupe/upload for import screenshots (hash-keyed JPEGs).
+  - `app/api/report-ocr-issue/route.ts`: stores OCR issue reports as JSON linked to the uploaded screenshot key.
 
 ### `/saves`
 

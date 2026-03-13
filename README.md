@@ -113,7 +113,7 @@ npm run lint
 | `INTERNAL_API_KEY` | Yes | Shared secret used by the `/api/ocr` and `/api/lb/*` proxies |
 | `NEXT_PUBLIC_GA_TRACKING_ID` | No | Google Analytics tracking ID |
 | `NEXT_PUBLIC_POSTHOG_KEY` | No | PostHog analytics key |
-| `CLOUDFLARE_ACCOUNT_ID` | No | R2 config for training image upload |
+| `CLOUDFLARE_ACCOUNT_ID` | No | R2 config for import screenshot storage and OCR issue reports |
 | `R2_ACCESS_KEY_ID` | No | R2 credentials |
 | `R2_SECRET_ACCESS_KEY` | No | R2 credentials |
 | `R2_BUCKET_NAME` | No | R2 bucket name |
@@ -128,7 +128,7 @@ npm run lint
 4. The Next proxy forwards the request to the OCR backend and, when `INTERNAL_API_KEY` is set, includes the shared key plus the original client IP for backend rate limiting.
 5. Backend returns ID-enriched OCR payloads.
 6. Frontend converts analysis to `SavedState` and loads into the editor.
-7. Optional: fire-and-forget full screenshot upload to R2 for training data (hash-deduped).
+7. Optional: fire-and-forget full screenshot upload to R2 (hash-deduped) plus manual OCR issue reports stored as JSON in the same bucket.
 
 ## Leaderboard Fetch Flow
 
@@ -155,7 +155,7 @@ wuwabuilds/
 │   │   ├── leaderboards/    # Leaderboards (/leaderboards, /leaderboards/[characterId])
 │   │   ├── characters/      # Character-seeded editor routes (/characters/[id])
 │   │   └── weapons/         # Weapon-seeded editor routes (/weapons/[id])
-│   └── api/                 # API routes (lb proxy, ocr proxy, upload-bucket)
+│   └── api/                 # API routes (lb proxy, ocr proxy, upload-training, OCR issue reports)
 ├── contexts/                # React Context providers
 ├── components/              # Components by feature area
 │   ├── build/               # /builds page (filters, results, rows)

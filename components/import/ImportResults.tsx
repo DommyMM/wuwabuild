@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { AnalysisData, EchoOCRData } from '@/lib/import/types';
 import type { RegionKey } from '@/lib/import/regions';
+import type { RegionStatus } from '@/lib/import/report';
 import { useGameData } from '@/contexts/GameDataContext';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
@@ -14,8 +15,9 @@ interface ImportResultsProps {
   data: AnalysisData;
   isProcessing: boolean;
   isSubmitting?: boolean;
-  progress: Record<RegionKey, 'pending' | 'done' | 'error'>;
+  progress: Record<RegionKey, RegionStatus>;
   onImport: (watermarkOverride: { username: string; uid: string }) => void;
+  onReportIssue?: () => void;
 }
 
 // Single pulsing skeleton block.
@@ -57,7 +59,7 @@ function ImageWithSkeleton({
   );
 }
 
-function ProgressDot({ status }: { status: 'pending' | 'done' | 'error' }) {
+function ProgressDot({ status }: { status: RegionStatus }) {
   if (status === 'done') return <CheckCircle className="w-4 h-4 text-green-400" />;
   if (status === 'error') return <XCircle className="w-4 h-4 text-red-400" />;
   return <Loader2 className="w-4 h-4 text-text-primary/40 animate-spin" />;
@@ -109,7 +111,14 @@ function EchoCard({ echo, pending, className }: { echo?: EchoOCRData; pending?: 
   );
 }
 
-export function ImportResults({ data, isProcessing, isSubmitting = false, progress, onImport }: ImportResultsProps) {
+export function ImportResults({
+  data,
+  isProcessing,
+  isSubmitting = false,
+  progress,
+  onImport,
+  onReportIssue,
+}: ImportResultsProps) {
   const { getCharacterByName, weaponList } = useGameData();
 
   const [watermarkOverride, setWatermarkOverride] = useState<{ username?: string; uid?: string }>({});
@@ -121,7 +130,7 @@ export function ImportResults({ data, isProcessing, isSubmitting = false, progre
   const forte = data.forte;
   const seq = data.sequences?.sequence ?? 0;
   const echoKeys = ['echo1', 'echo2', 'echo3', 'echo4', 'echo5'] as const;
-  const progressEntries = Object.entries(progress) as [RegionKey, 'pending' | 'done' | 'error'][];
+  const progressEntries = Object.entries(progress) as [RegionKey, RegionStatus][];
 
   const canImport = !isProcessing && !isSubmitting && (
     progress.character === 'done' || progress.character === 'error'
@@ -317,19 +326,29 @@ export function ImportResults({ data, isProcessing, isSubmitting = false, progre
         </div>
       </div>
 
-      {/* Import button */}
-      <button
-        onClick={() => onImport({ username, uid })}
-        disabled={!canImport}
-        className={[
-          'w-full py-3 rounded-xl font-semibold text-sm transition-all',
-          canImport
-            ? 'bg-accent text-background hover:bg-accent-hover cursor-pointer'
-            : 'bg-border text-text-primary/30 cursor-not-allowed',
-        ].join(' ')}
-      >
-        {isProcessing ? 'Processing…' : isSubmitting ? 'Uploading…' : 'Import Build'}
-      </button>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <button
+          onClick={() => onImport({ username, uid })}
+          disabled={!canImport}
+          className={[
+            'w-full py-3 rounded-xl font-semibold text-sm transition-all',
+            canImport
+              ? 'bg-accent text-background hover:bg-accent-hover cursor-pointer'
+              : 'bg-border text-text-primary/30 cursor-not-allowed',
+          ].join(' ')}
+        >
+          {isProcessing ? 'Processing…' : isSubmitting ? 'Uploading…' : 'Import Build'}
+        </button>
+
+        <button
+          type="button"
+          onClick={onReportIssue}
+          disabled={isProcessing || isSubmitting || !onReportIssue}
+          className="w-full rounded-xl border border-border py-3 text-sm font-semibold text-text-primary/70 transition-colors hover:border-text-primary/25 hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-primary/30"
+        >
+          Report Scan Issue
+        </button>
+      </div>
     </div>
   );
 }
