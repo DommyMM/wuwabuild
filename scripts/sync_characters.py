@@ -608,6 +608,7 @@ def _extract_skill_tree_substats(skill_trees: dict | None) -> list[str]:
     # Map English name prefixes to substat names
     NAME_TO_STAT = {
         "HP+": "HP",
+        "HP Up": "HP",
         "ATK+": "ATK",
         "DEF+": "DEF",
     }
