@@ -310,7 +310,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
 
   return (
     <div className="space-y-3 font-plus-jakarta">
-      <div className="mx-auto flex w-48 flex-col gap-2">
+      <div className="mx-auto w-48">
         <button
           type="button"
           aria-expanded={isMovesOpen}
@@ -320,17 +320,6 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
         >
           <span>{isMovesOpen ? 'Hide' : 'Show'} move breakdown</span>
           <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isMovesOpen ? 'rotate-180 text-accent' : ''}`} />
-        </button>
-
-        <button
-          type="button"
-          aria-expanded={isUpgradesOpen}
-          onClick={() => setIsUpgradesOpen((prev) => !prev)}
-          className={actionButtonClassName}
-          title={`${weaponName} • ${trackLabel}`}
-        >
-          <span>{isUpgradesOpen ? 'Hide' : 'Show'} substat upgrades</span>
-          <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isUpgradesOpen ? 'rotate-180 text-accent' : ''}`} />
         </button>
       </div>
 
@@ -343,6 +332,19 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           moves={moves}
         />
       )}
+
+      <div className="mx-auto w-48">
+        <button
+          type="button"
+          aria-expanded={isUpgradesOpen}
+          onClick={() => setIsUpgradesOpen((prev) => !prev)}
+          className={actionButtonClassName}
+          title={`${weaponName} • ${trackLabel}`}
+        >
+          <span>{isUpgradesOpen ? 'Hide' : 'Show'} substat upgrades</span>
+          <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isUpgradesOpen ? 'rotate-180 text-accent' : ''}`} />
+        </button>
+      </div>
 
       {isUpgradesOpen && (
         <BuildSubstatUpgrades
