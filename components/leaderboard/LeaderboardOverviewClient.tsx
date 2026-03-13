@@ -77,17 +77,11 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                 Damage Leaderboards
               </h1>
               <div className="my-2 h-px w-96 bg-linear-to-r from-transparent via-accent/70 to-transparent" />
-              <p className="max-w-xl text-center text-xs text-text-primary/65 md:text-sm">
-                Characters ranked under normalized benchmark scenarios — echo builds compared at fixed level and weapon rank.
-                <br />
-                Switch weapons and playstyles to see how each setup stacks up across the same board.
+              <p className="text-center text-xs text-text-primary/65 md:text-sm">
+                Characters and weapons are all standardized to the same conditions, only your echoes change between builds <br />
+                Switch weapons and playstyles to see how each setup stacks up across the same board. <br />
+                All levels and forte are maxed, and weapons are R1 for 5 stars, R5 for 4 stars
               </p>
-              <div className="mt-2 flex select-none justify-center">
-                <div className="inline-flex items-center gap-2 rounded-md border border-accent/35 bg-background/70 px-3 py-1.5 text-xs">
-                  <span className="font-medium text-accent">Standardized to</span>
-                  <span className="text-text-primary/80">Lv.90 · S0 · R1</span>
-                </div>
-              </div>
             </div>
 
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">

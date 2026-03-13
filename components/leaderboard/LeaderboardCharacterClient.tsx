@@ -336,84 +336,88 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               activeTrackKey={track}
               activeTrackLabel={configTracks.find((t) => t.key === track)?.label}
             />
-            <LeaderboardTabs
-              weaponIds={configWeaponIds}
-              weaponIndex={weaponIndex}
-              onSelectWeapon={(idx) => { setWeaponIndex(idx); setPage(1); }}
-              tracks={configTracks}
-              activeTrack={track}
-              onSelectTrack={(trackKey) => { setTrack(trackKey); setPage(1); }}
-            />
-            <BuildFiltersPanel
-              sort={sort === 'damage' ? 'finalCV' : (sort as Parameters<typeof BuildFiltersPanel>[0]['sort'])}
-              direction={direction}
-              pageSize={pageSize}
-              maxPageSize={MAX_ITEMS_PER_PAGE}
-              activeSortLabel="Damage"
-              showSortControls={false}
-              hasActiveFilters={hasActiveFilters}
-              filterQuery={filterQuery}
-              characters={[]}
-              weaponList={[]}
-              selectedCharacters={[]}
-              selectedWeapons={[]}
-              regionPrefixes={regionPrefixes}
-              selectedSetEntries={selectedSetEntries}
-              selectedMainEntries={selectedMainEntries}
-              username={username}
-              uid={uid}
-              setOptions={setOptions}
-              onFilterQueryChange={setFilterQuery}
-              onSortChange={() => {}}
-              onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
-              onAddCharacter={() => {}}
-              onAddWeapon={() => {}}
-              onAddRegion={addRegion}
-              onAddSet={addSetFilter}
-              onAddMain={addMainFilter}
-              onSetUsername={(value) => { setUsername(value.trim()); setPage(1); }}
-              onSetUid={(value) => { setUid(value.trim()); setPage(1); }}
-              onRemoveCharacter={() => {}}
-              onRemoveWeapon={() => {}}
-              onRemoveRegion={(value) => { setRegionPrefixes((prev) => prev.filter((r) => r !== value)); setPage(1); }}
-              onRemoveSetEntry={(index) => { setEchoSets((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
-              onRemoveMainEntry={(index) => { setEchoMains((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
-              onClearUsername={() => { setUsername(''); setPage(1); }}
-              onClearUid={() => { setUid(''); setPage(1); }}
-              onBackspaceRemove={() => {
-                if (uid) { setUid(''); setPage(1); return; }
-                if (username) { setUsername(''); setPage(1); return; }
-                if (echoMains.length > 0) { setEchoMains((prev) => prev.slice(0, -1)); setPage(1); return; }
-                if (echoSets.length > 0) { setEchoSets((prev) => prev.slice(0, -1)); setPage(1); return; }
-                if (regionPrefixes.length > 0) { setRegionPrefixes((prev) => prev.slice(0, -1)); setPage(1); }
-              }}
-              onClearAllFilters={clearAllFilters}
-              onPageSizeChange={(value) => { setPageSize(clampItemsPerPage(value)); setPage(1); }}
-            />
-            <LeaderboardResultsPanel
-              entries={entries}
-              activeWeaponId={weaponId}
-              activeTrackKey={track}
-              expandedIds={expandedIds}
-              detailById={detailById}
-              detailLoadingById={detailLoadingById}
-              detailErrorById={detailErrorById}
-              total={total}
-              page={page}
-              pageCount={normalizedPageCount}
-              pageSize={pageSize}
-              rankStart={rankStart}
-              isLoading={isLoading}
-              isRefreshing={isRefreshing}
-              error={error}
-              sort={sort}
-              direction={direction}
-              onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
-              onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
-              onPageChange={setPage}
-              onToggleExpand={handleToggleExpand}
-              onRetryDetail={handleRetryDetail}
-            />
+            <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
+              <LeaderboardTabs
+                weaponIds={configWeaponIds}
+                weaponIndex={weaponIndex}
+                onSelectWeapon={(idx) => { setWeaponIndex(idx); setPage(1); }}
+                tracks={configTracks}
+                activeTrack={track}
+                onSelectTrack={(trackKey) => { setTrack(trackKey); setPage(1); }}
+              />
+              <div className="relative z-40">
+                <BuildFiltersPanel
+                  sort={sort === 'damage' ? 'finalCV' : (sort as Parameters<typeof BuildFiltersPanel>[0]['sort'])}
+                  direction={direction}
+                  pageSize={pageSize}
+                  maxPageSize={MAX_ITEMS_PER_PAGE}
+                  activeSortLabel="Damage"
+                  showSortControls={false}
+                  hasActiveFilters={hasActiveFilters}
+                  filterQuery={filterQuery}
+                  characters={[]}
+                  weaponList={[]}
+                  selectedCharacters={[]}
+                  selectedWeapons={[]}
+                  regionPrefixes={regionPrefixes}
+                  selectedSetEntries={selectedSetEntries}
+                  selectedMainEntries={selectedMainEntries}
+                  username={username}
+                  uid={uid}
+                  setOptions={setOptions}
+                  onFilterQueryChange={setFilterQuery}
+                  onSortChange={() => {}}
+                  onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
+                  onAddCharacter={() => {}}
+                  onAddWeapon={() => {}}
+                  onAddRegion={addRegion}
+                  onAddSet={addSetFilter}
+                  onAddMain={addMainFilter}
+                  onSetUsername={(value) => { setUsername(value.trim()); setPage(1); }}
+                  onSetUid={(value) => { setUid(value.trim()); setPage(1); }}
+                  onRemoveCharacter={() => {}}
+                  onRemoveWeapon={() => {}}
+                  onRemoveRegion={(value) => { setRegionPrefixes((prev) => prev.filter((r) => r !== value)); setPage(1); }}
+                  onRemoveSetEntry={(index) => { setEchoSets((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
+                  onRemoveMainEntry={(index) => { setEchoMains((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
+                  onClearUsername={() => { setUsername(''); setPage(1); }}
+                  onClearUid={() => { setUid(''); setPage(1); }}
+                  onBackspaceRemove={() => {
+                    if (uid) { setUid(''); setPage(1); return; }
+                    if (username) { setUsername(''); setPage(1); return; }
+                    if (echoMains.length > 0) { setEchoMains((prev) => prev.slice(0, -1)); setPage(1); return; }
+                    if (echoSets.length > 0) { setEchoSets((prev) => prev.slice(0, -1)); setPage(1); return; }
+                    if (regionPrefixes.length > 0) { setRegionPrefixes((prev) => prev.slice(0, -1)); setPage(1); }
+                  }}
+                  onClearAllFilters={clearAllFilters}
+                  onPageSizeChange={(value) => { setPageSize(clampItemsPerPage(value)); setPage(1); }}
+                />
+              </div>
+              <LeaderboardResultsPanel
+                entries={entries}
+                activeWeaponId={weaponId}
+                activeTrackKey={track}
+                expandedIds={expandedIds}
+                detailById={detailById}
+                detailLoadingById={detailLoadingById}
+                detailErrorById={detailErrorById}
+                total={total}
+                page={page}
+                pageCount={normalizedPageCount}
+                pageSize={pageSize}
+                rankStart={rankStart}
+                isLoading={isLoading}
+                isRefreshing={isRefreshing}
+                error={error}
+                sort={sort}
+                direction={direction}
+                onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
+                onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
+                onPageChange={setPage}
+                onToggleExpand={handleToggleExpand}
+                onRetryDetail={handleRetryDetail}
+              />
+            </div>
           </div>
         </section>
 

@@ -94,27 +94,109 @@ body {
   background: var(--scrollbar-thumb);
 }
 
-/* Element gradient text shine */
-@keyframes shine {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-
 .char-sig {
-  background-size: 200% auto;
+  --char-gradient: linear-gradient(to right, #ffffff, #ffffff);
+  --char-glow: rgba(255, 255, 255, 0.22);
+  background-image: var(--char-gradient);
+  background-repeat: no-repeat;
+  background-size: 180% 180%;
+  background-position: 100% 0%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: shine 3s linear infinite;
+  animation: char-sig-flow 6s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 0.08em var(--char-glow));
 }
 
-.char-sig.fusion  { background-image: linear-gradient(to right, #ff4500, #ff8c00, #ffd700, #ff4d00); }
-.char-sig.glacio  { background-image: linear-gradient(to right, #00ced1, #87ceeb, #b0e0e6, #ffffff, #00ffff); }
-.char-sig.aero    { background-image: linear-gradient(to right, #b0ffb0, #d0f0c0, #ffffff, #90ee90, #b0ffb0); }
-.char-sig.electro { background-image: linear-gradient(to right, #8a2be2, #7b68ee, #9370db, #6a5acd, #8a2be2); }
-.char-sig.spectro { background-image: linear-gradient(to right, #fffacd, #ffd700, #ffa500, #fffacd); }
-.char-sig.havoc   { background-image: linear-gradient(to right, #ff1493, #8b008b, #ff69b4, #9400d3, #ff1493); }
-.char-sig.rover   { background-image: linear-gradient(to right, #ff4500, #00ced1, #b0ffb0, #8a2be2, #fffacd, #8b008b, #ff69b4); }
+@keyframes char-sig-flow {
+  0% { background-position: 100% 0%; }
+  100% { background-position: 0% 100%; }
+}
+
+@keyframes char-sig-fusion {
+  0% { background-position: 100% 6%; }
+  45% { background-position: 58% 36%; }
+  100% { background-position: 8% 96%; }
+}
+
+@keyframes char-sig-glacio {
+  0% { background-position: 88% 0%; }
+  50% { background-position: 44% 42%; }
+  100% { background-position: 0% 100%; }
+}
+
+@keyframes char-sig-aero {
+  0% { background-position: 82% 12%; }
+  100% { background-position: 18% 88%; }
+}
+
+@keyframes char-sig-electro {
+  0% { background-position: 100% 0%; }
+  35% { background-position: 64% 30%; }
+  65% { background-position: 36% 72%; }
+  100% { background-position: 0% 100%; }
+}
+
+@keyframes char-sig-spectro {
+  0% { background-position: 94% 8%; }
+  100% { background-position: 10% 92%; }
+}
+
+@keyframes char-sig-havoc {
+  0% { background-position: 96% 4%; }
+  50% { background-position: 50% 60%; }
+  100% { background-position: 4% 98%; }
+}
+
+@keyframes char-sig-rover {
+  0% { background-position: 100% 10%; }
+  50% { background-position: 50% 50%; }
+  100% { background-position: 0% 90%; }
+}
+
+.char-sig.fusion  {
+  --char-gradient: linear-gradient(240deg, #ff4d00 0%, #ff7b00 18%, #ffd166 34%, #ff8c00 56%, #ff4500 78%, #ff4d00 100%);
+  --char-glow: rgba(255, 133, 32, 0.28);
+  animation: char-sig-fusion 4.8s ease-in-out infinite alternate;
+}
+.char-sig.glacio  {
+  --char-gradient: linear-gradient(240deg, #00d5ff 0%, #8be9ff 22%, #ffffff 40%, #b9f6ff 58%, #6fd8ff 78%, #00d5ff 100%);
+  --char-glow: rgba(135, 220, 255, 0.26);
+  animation: char-sig-glacio 7.4s ease-in-out infinite alternate;
+}
+.char-sig.aero    {
+  --char-gradient: linear-gradient(240deg, #7cf5a6 0%, #c8ffd8 24%, #ffffff 42%, #b6ffbf 60%, #76ee95 80%, #7cf5a6 100%);
+  --char-glow: rgba(142, 255, 170, 0.24);
+  animation: char-sig-aero 8.2s ease-in-out infinite alternate;
+}
+.char-sig.electro {
+  --char-gradient: linear-gradient(240deg, #7a4dff 0%, #b38cff 24%, #efe4ff 42%, #c59eff 60%, #8a5cff 80%, #7a4dff 100%);
+  --char-glow: rgba(162, 118, 255, 0.26);
+  animation: char-sig-electro 3.6s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+}
+.char-sig.spectro {
+  --char-gradient: linear-gradient(240deg, #f6e27a 0%, #fff2b0 22%, #fffdf0 40%, #ffd86b 60%, #f4c542 80%, #f6e27a 100%);
+  --char-glow: rgba(255, 224, 112, 0.24);
+  animation: char-sig-spectro 6.8s ease-in-out infinite alternate;
+}
+.char-sig.havoc   {
+  --char-gradient: linear-gradient(240deg, #ff3ca2 0%, #d145ff 22%, #ffd3f1 40%, #f36fd3 58%, #8f2bd9 80%, #ff3ca2 100%);
+  --char-glow: rgba(240, 96, 205, 0.28);
+  animation: char-sig-havoc 5.2s ease-in-out infinite alternate;
+}
+.char-sig.rover   {
+  --char-gradient: linear-gradient(240deg, #ff6f4d 0%, #47d2ff 16%, #8dffb1 32%, #a36eff 50%, #fff1a6 68%, #ff73cb 84%, #ff6f4d 100%);
+  --char-glow: rgba(255, 255, 255, 0.24);
+  animation: char-sig-rover 8.6s linear infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-sig {
+    animation: none;
+    background-size: 100% 100%;
+    background-position: 50% 50%;
+  }
+}
 
 .level-slider::-webkit-slider-thumb {
   -webkit-appearance: none;

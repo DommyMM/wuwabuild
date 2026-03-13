@@ -8,11 +8,11 @@ import { getWeaponPaths } from '@/lib/paths';
 import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix } from './leaderboardConstants';
 
 const BASE_GLASS_CARD =
-  'group relative overflow-hidden rounded-xl border px-3 py-2.5 shadow-[0_8px_18px_rgba(0,0,0,0.24)] backdrop-blur-sm transition-all duration-200';
+  'group relative overflow-hidden rounded-xl border px-3 py-2.5 shadow-[0_3px_12px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-200';
 const INACTIVE_GLASS_CARD =
-  'border-white/10 bg-[linear-gradient(170deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_28%,rgba(0,0,0,0.36)_100%)] hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10';
+  'border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.015)_32%,rgba(0,0,0,0.26)_100%)] hover:-translate-y-0.5 hover:border-accent/30 hover:bg-accent/10';
 const ACTIVE_GOLD_CARD =
-  'border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_10px_24px_rgba(0,0,0,0.32)]';
+  'border-amber-300/35 bg-[linear-gradient(180deg,rgba(166,150,98,0.22)_0%,rgba(255,255,255,0.03)_34%,rgba(0,0,0,0.34)_100%)] shadow-[0_6px_16px_rgba(0,0,0,0.26)]';
 
 interface TrackTabsProps {
   tracks: LBTrack[];
@@ -42,7 +42,7 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
               onClick={() => onSelect(track.key)}
               className={`${BASE_GLASS_CARD} cursor-pointer ${isActive ? ACTIVE_GOLD_CARD : INACTIVE_GLASS_CARD}`}
             >
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08)_0%,transparent_52%)] opacity-70 transition-opacity duration-200 group-hover:opacity-100" />
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_46%)] opacity-55 transition-opacity duration-200 group-hover:opacity-75" />
               <div className="relative flex items-center gap-2">
                 <span className={`text-sm font-semibold tracking-wide ${isActive ? 'text-amber-50' : 'text-text-primary/78'}`}>
                   {label}
@@ -91,7 +91,7 @@ const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelec
               onClick={() => onSelect(index)}
               className={`${BASE_GLASS_CARD} flex min-w-[156px] cursor-pointer items-center gap-3 ${isActive ? ACTIVE_GOLD_CARD : INACTIVE_GLASS_CARD}`}
             >
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08)_0%,transparent_52%)] opacity-70 transition-opacity duration-200 group-hover:opacity-100" />
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_46%)] opacity-55 transition-opacity duration-200 group-hover:opacity-75" />
               {weapon ? (
                 <img
                   src={getWeaponPaths(weapon)}
