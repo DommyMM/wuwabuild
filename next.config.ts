@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/:path((?!saves).*)',
-        has: [{ type: 'host', value: 'www.wuwabuilds.moe' }],
+        has: [{ type: 'host', value: 'wuwabuilds.moe' }],
         destination: 'https://wuwa.build/:path*',
         permanent: true,
       },
