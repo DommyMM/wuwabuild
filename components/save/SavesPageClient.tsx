@@ -597,22 +597,22 @@ export const SavesPageClient: React.FC = () => {
           <div className="mb-4 rounded-lg border border-accent/45 bg-accent/10 p-3">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-sm font-medium text-accent">Moving from wuwabuilds.moe?</p>
+                <p className="text-sm font-medium text-accent">Moving from www.wuwabuilds.moe?</p>
                 <p className="mt-1 text-xs text-text-primary/75">
                   Saved builds are stored locally on that domain. Visit{' '}
                   <a
-                    href="https://wuwabuilds.moe/saves"
+                    href="https://www.wuwabuilds.moe/saves"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline hover:text-text-primary"
                   >
-                    wuwabuilds.moe/saves
+                    www.wuwabuilds.moe/saves
                   </a>{' '}
                   to export them, then import here.
                 </p>
               </div>
               <a
-                href="https://wuwabuilds.moe/saves"
+                href="https://www.wuwabuilds.moe/saves"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="shrink-0 rounded-lg bg-accent px-3 py-2 text-center text-sm font-semibold text-background transition-colors hover:bg-accent-hover"
