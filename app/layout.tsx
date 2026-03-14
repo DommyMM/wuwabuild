@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Gowun_Dodum, Plus_Jakarta_Sans, Ropa_Sans } from "next/font/google";
 import { GoogleAnalytics } from '@next/third-parties/google';
+import { Analytics } from "@vercel/analytics/next";
 import { Navigation } from "@/components/Navigation";
 import { RootProviders } from "@/contexts/index";
 import "./globals.css";
@@ -81,10 +82,11 @@ export default async function RootLayout({
                     <Navigation />
                     {children}
                 </RootProviders>
+                <Analytics />
+                {process.env.NODE_ENV === "production" && (
+                    <GoogleAnalytics gaId="G-SP375JKDPX" />
+                )}
             </body>
-            {process.env.NODE_ENV === "production" && (
-                <GoogleAnalytics gaId="G-SP375JKDPX" />
-            )}
         </html>
     );
 }
