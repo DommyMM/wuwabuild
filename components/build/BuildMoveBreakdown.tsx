@@ -34,6 +34,19 @@ type PieSegment = {
   color: string;
   opacity: number;
   path: string;
+  tooltipAnchorX: number;
+  tooltipAnchorY: number;
+  hitSegments: HitSegment[];
+};
+
+type HitSegment = {
+  key: string;
+  title: string;
+  damage: number;
+  percentage: number;
+  path: string;
+  tooltipAnchorX: number;
+  tooltipAnchorY: number;
 };
 
 type TooltipState = {
@@ -116,6 +129,11 @@ function polarToCartesian(cx: number, cy: number, radius: number, angle: number)
   };
 }
 
+function getSliceTooltipAnchor(startAngle: number, endAngle: number, radius = 92) {
+  const midAngle = startAngle + ((endAngle - startAngle) / 2);
+  return polarToCartesian(150, 150, radius, midAngle);
+}
+
 function describePieSlice(cx: number, cy: number, radius: number, startAngle: number, endAngle: number) {
   const safeEndAngle = endAngle - 0.35;
   const start = polarToCartesian(cx, cy, radius, startAngle);
@@ -177,6 +195,26 @@ function buildPieSegments(moves: ProcessedMove[], activeMoveIndex: number | null
     const startAngle = angle;
     const endAngle = angle + segmentAngle;
     angle = endAngle;
+    const tooltipAnchor = getSliceTooltipAnchor(startAngle, endAngle);
+    let hitAngle = startAngle;
+    const hitSegments = move.hits.map((hit, hitIndex) => {
+      const nextHitAngle = hitAngle + ((hit.damage / move.damage) * segmentAngle);
+      const hitTooltipAnchor = getSliceTooltipAnchor(hitAngle, nextHitAngle, 76);
+      const hitSegment: HitSegment = {
+        key: `${moveIndex}:${hit.name}`,
+        title: hit.name,
+        damage: hit.damage,
+        percentage: hit.percentage,
+        path: describePieSlice(150, 150, 126, hitAngle, nextHitAngle),
+        tooltipAnchorX: hitTooltipAnchor.x,
+        tooltipAnchorY: hitTooltipAnchor.y,
+      };
+      hitAngle = nextHitAngle;
+      return {
+        ...hitSegment,
+        key: hitIndex === 0 ? hitSegment.key : `${hitSegment.key}:${hitIndex}`,
+      };
+    });
 
     return {
       key: `move-${move.name}-${moveIndex}`,
@@ -184,6 +222,9 @@ function buildPieSegments(moves: ProcessedMove[], activeMoveIndex: number | null
       color: CHART_COLORS[moveIndex % CHART_COLORS.length],
       opacity: activeMoveIndex === null || activeMoveIndex === moveIndex ? 1 : 0.34,
       path: describePieSlice(150, 150, 126, startAngle, endAngle),
+      tooltipAnchorX: tooltipAnchor.x,
+      tooltipAnchorY: tooltipAnchor.y,
+      hitSegments,
     };
   });
 }
@@ -218,17 +259,21 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     () => buildPieSegments(processedMoves, activeMoveIndex),
     [activeMoveIndex, processedMoves],
   );
+  const activeHitSegment = useMemo(() => {
+    if (activeMoveIndex === null || activeHitKey === null) return null;
+    const segment = pieSegments[activeMoveIndex];
+    if (!segment) return null;
+    return segment.hitSegments.find((hitSegment) => hitSegment.key === activeHitKey) ?? null;
+  }, [activeHitKey, activeMoveIndex, pieSegments]);
 
-  function setTooltipFromEvent(
-    event: React.MouseEvent<SVGPathElement>,
+  function setTooltipFromAnchor(
+    anchorX: number,
+    anchorY: number,
     nextTooltip: Omit<TooltipState, 'anchorX' | 'anchorY' | 'left' | 'top'>,
   ) {
-    const bounds = chartRef.current?.getBoundingClientRect()
-      ?? event.currentTarget.ownerSVGElement?.getBoundingClientRect();
+    const bounds = chartRef.current?.getBoundingClientRect();
     if (!bounds) return;
 
-    const anchorX = event.clientX - bounds.left;
-    const anchorY = event.clientY - bounds.top;
     const tooltipWidth = tooltipRef.current?.getBoundingClientRect().width ?? 0;
     const tooltipHeight = tooltipRef.current?.getBoundingClientRect().height ?? 0;
     const position = resolveTooltipPosition(
@@ -247,6 +292,19 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
       left: position.left,
       top: position.top,
     });
+  }
+
+  function setTooltipFromEvent(
+    event: React.MouseEvent<SVGPathElement>,
+    nextTooltip: Omit<TooltipState, 'anchorX' | 'anchorY' | 'left' | 'top'>,
+  ) {
+    const bounds = chartRef.current?.getBoundingClientRect()
+      ?? event.currentTarget.ownerSVGElement?.getBoundingClientRect();
+    if (!bounds) return;
+
+    const anchorX = event.clientX - bounds.left;
+    const anchorY = event.clientY - bounds.top;
+    setTooltipFromAnchor(anchorX, anchorY, nextTooltip);
   }
 
   useLayoutEffect(() => {
@@ -348,6 +406,16 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     />
                   );
                 })}
+                {activeHitSegment && (
+                  <path
+                    d={activeHitSegment.path}
+                    fill={pieSegments[activeMoveIndex ?? 0]?.color ?? '#ffffff'}
+                    opacity={0.98}
+                    stroke="rgba(255,255,255,0.82)"
+                    strokeWidth="1.35"
+                    className="drop-shadow-[0_0_12px_rgba(0,0,0,0.28)]"
+                  />
+                )}
               </svg>
 
               {tooltip && (
@@ -380,6 +448,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
             {processedMoves.map((move, moveIndex) => {
               const isMoveActive = activeMoveIndex === null || activeMoveIndex === moveIndex;
               const color = CHART_COLORS[moveIndex % CHART_COLORS.length];
+              const segment = pieSegments[moveIndex];
 
               return (
                 <article
@@ -389,10 +458,21 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       ? 'border-accent/25 bg-background-secondary/42'
                       : 'border-border/55 bg-background-secondary/20 opacity-55'
                   }`}
-                  onMouseEnter={() => setActiveMoveIndex(moveIndex)}
+                  onMouseEnter={() => {
+                    setActiveMoveIndex(moveIndex);
+                    setActiveHitKey(null);
+                    if (segment) {
+                      setTooltipFromAnchor(segment.tooltipAnchorX, segment.tooltipAnchorY, {
+                        title: move.name,
+                        damage: move.damage,
+                        percentage: move.percentage,
+                      });
+                    }
+                  }}
                   onMouseLeave={() => {
                     setActiveMoveIndex(null);
                     setActiveHitKey(null);
+                    setTooltip(null);
                   }}
                 >
                   <div className="flex items-start gap-3">
@@ -407,24 +487,39 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       </div>
 
                       {move.hits.length > 0 && (
-                        <div className="mt-2 space-y-1">
+                        <div className="mt-2">
                           {move.hits.map((hit, hitIndex) => {
-                            const hitKey = `${moveIndex}:${hit.name}`;
+                            const hitSegment = segment?.hitSegments[hitIndex];
+                            const hitKey = hitSegment?.key ?? `${moveIndex}:${hit.name}`;
                             const isHitActive = activeHitKey === null || activeHitKey === hitKey;
 
                             return (
                               <div
                                 key={`${move.name}-${hit.name}-${hitIndex}`}
-                                className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3 rounded px-1 py-1 text-sm transition-colors cursor-default ${
+                                className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3 rounded px-4 py-1.5 text-sm transition-colors cursor-pointer ${
                                   isHitActive ? 'bg-black/10' : 'opacity-45'
                                 }`}
                                 onMouseEnter={() => {
                                   setActiveMoveIndex(moveIndex);
                                   setActiveHitKey(hitKey);
+                                  if (hitSegment) {
+                                    setTooltipFromAnchor(hitSegment.tooltipAnchorX, hitSegment.tooltipAnchorY, {
+                                      title: hitSegment.title,
+                                      damage: hitSegment.damage,
+                                      percentage: hitSegment.percentage,
+                                    });
+                                  }
                                 }}
                                 onMouseLeave={() => {
                                   setActiveHitKey(null);
                                   setActiveMoveIndex(moveIndex);
+                                  if (segment) {
+                                    setTooltipFromAnchor(segment.tooltipAnchorX, segment.tooltipAnchorY, {
+                                      title: move.name,
+                                      damage: move.damage,
+                                      percentage: move.percentage,
+                                    });
+                                  }
                                 }}
                               >
                                 <div className="min-w-0 truncate text-text-primary/78">{hit.name}</div>
