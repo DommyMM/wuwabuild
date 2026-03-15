@@ -30,26 +30,6 @@ interface BuildCardProps {
   onArtTransformChange: (next: CardArtTransform) => void;
 }
 
-const normalizeWeaponStatIconKey = (stat: string | null | undefined): string | null => {
-  if (!stat) return null;
-
-  const normalized = stat.replace(/\./g, '').trim();
-  const alias: Record<string, string> = {
-    ER: 'Energy Regen',
-    EnergyEfficiency: 'Energy Regen',
-    EnergyRecover: 'Energy Regen',
-    'Energy Regen': 'Energy Regen',
-    'Energy Regeneration': 'Energy Regen',
-    Crit: 'Crit Rate',
-    'Crit Rate': 'Crit Rate',
-    'Crit DMG': 'Crit DMG',
-    'Crit Damage': 'Crit DMG',
-    LifeMax: 'HP',
-    Hp: 'HP',
-  };
-
-  return alias[normalized] ?? normalized;
-};
 
 export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   useAltSkin = false,
@@ -79,12 +59,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   const bloomClass = selected?.element ? (ELEMENT_BLOOM[selected.element] ?? '') : '';
 
   const weaponAtkIcon = statIcons?.['ATK'];
-  const weaponMainIconKey = weapon
-    ? (normalizeWeaponStatIconKey(weapon.main_stat)
-      ?? normalizeWeaponStatIconKey(weapon.mainStatI18n?.en)
-      ?? 'Energy Regen')
-    : null;
-  const weaponMainIcon = weaponMainIconKey ? statIcons?.[weaponMainIconKey] ?? statIcons?.['Energy Regen'] : null;
+  const weaponMainIcon = weapon?.main_stat ? statIcons?.[weapon.main_stat] ?? null : null;
   const weaponAtkHoverKey = normalizeStatHoverKey('ATK');
   const weaponMainHoverKey = weapon
     ? (normalizeStatHoverKey(weapon.main_stat) ?? normalizeStatHoverKey(weapon.mainStatI18n?.en))
