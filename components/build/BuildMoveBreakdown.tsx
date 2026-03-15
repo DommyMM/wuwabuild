@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LBMoveEntry } from '@/lib/lb';
 import { formatPercentStat } from './buildFormatters';
 
@@ -40,11 +40,69 @@ type TooltipState = {
   title: string;
   damage: number;
   percentage: number;
-  x: number;
-  y: number;
-  horizontal: 'left' | 'right';
-  vertical: 'top' | 'bottom';
+  anchorX: number;
+  anchorY: number;
+  left: number;
+  top: number;
 };
+
+const TOOLTIP_OFFSET = 18;
+const TOOLTIP_PADDING = 8;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function resolveTooltipPosition(
+  anchorX: number,
+  anchorY: number,
+  boundsWidth: number,
+  boundsHeight: number,
+  tooltipWidth: number,
+  tooltipHeight: number,
+) {
+  const minLeft = TOOLTIP_PADDING;
+  const minTop = TOOLTIP_PADDING;
+  const maxLeft = Math.max(minLeft, boundsWidth - tooltipWidth - TOOLTIP_PADDING);
+  const maxTop = Math.max(minTop, boundsHeight - tooltipHeight - TOOLTIP_PADDING);
+
+  const rightLeft = anchorX + TOOLTIP_OFFSET;
+  const leftLeft = anchorX - TOOLTIP_OFFSET - tooltipWidth;
+  const bottomTop = anchorY + TOOLTIP_OFFSET;
+  const topTop = anchorY - TOOLTIP_OFFSET - tooltipHeight;
+
+  const fitsRight = rightLeft <= maxLeft;
+  const fitsLeft = leftLeft >= minLeft;
+  const fitsBottom = bottomTop <= maxTop;
+  const fitsTop = topTop >= minTop;
+
+  const clampedRightLeft = clamp(rightLeft, minLeft, maxLeft);
+  const clampedLeftLeft = clamp(leftLeft, minLeft, maxLeft);
+  const clampedBottomTop = clamp(bottomTop, minTop, maxTop);
+  const clampedTopTop = clamp(topTop, minTop, maxTop);
+
+  const rightOverflow = Math.abs(clampedRightLeft - rightLeft);
+  const leftOverflow = Math.abs(clampedLeftLeft - leftLeft);
+  const bottomOverflow = Math.abs(clampedBottomTop - bottomTop);
+  const topOverflow = Math.abs(clampedTopTop - topTop);
+
+  return {
+    left: fitsRight
+      ? rightLeft
+      : fitsLeft
+        ? leftLeft
+        : rightOverflow <= leftOverflow
+          ? clampedRightLeft
+          : clampedLeftLeft,
+    top: fitsBottom
+      ? bottomTop
+      : fitsTop
+        ? topTop
+        : bottomOverflow <= topOverflow
+          ? clampedBottomTop
+          : clampedTopTop,
+  };
+}
 
 function formatDamage(value: number): string {
   return Math.round(value).toLocaleString();
@@ -144,6 +202,8 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   const [activeMoveIndex, setActiveMoveIndex] = useState<number | null>(null);
   const [activeHitKey, setActiveHitKey] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const chartRef = useRef<HTMLDivElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   const processedMoves = useMemo(() => processMoves(moves), [moves]);
   const totalDamage = useMemo(
@@ -161,23 +221,60 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
   function setTooltipFromEvent(
     event: React.MouseEvent<SVGPathElement>,
-    nextTooltip: Omit<TooltipState, 'x' | 'y' | 'horizontal' | 'vertical'>,
+    nextTooltip: Omit<TooltipState, 'anchorX' | 'anchorY' | 'left' | 'top'>,
   ) {
-    const bounds = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
+    const bounds = chartRef.current?.getBoundingClientRect()
+      ?? event.currentTarget.ownerSVGElement?.getBoundingClientRect();
     if (!bounds) return;
-    const localX = event.clientX - bounds.left;
-    const localY = event.clientY - bounds.top;
-    const horizontal: TooltipState['horizontal'] = localX > bounds.width * 0.62 ? 'left' : 'right';
-    const vertical: TooltipState['vertical'] = localY > bounds.height * 0.68 ? 'top' : 'bottom';
+
+    const anchorX = event.clientX - bounds.left;
+    const anchorY = event.clientY - bounds.top;
+    const tooltipWidth = tooltipRef.current?.getBoundingClientRect().width ?? 0;
+    const tooltipHeight = tooltipRef.current?.getBoundingClientRect().height ?? 0;
+    const position = resolveTooltipPosition(
+      anchorX,
+      anchorY,
+      bounds.width,
+      bounds.height,
+      tooltipWidth,
+      tooltipHeight,
+    );
 
     setTooltip({
       ...nextTooltip,
-      x: localX,
-      y: localY,
-      horizontal,
-      vertical,
+      anchorX,
+      anchorY,
+      left: position.left,
+      top: position.top,
     });
   }
+
+  useLayoutEffect(() => {
+    if (!tooltip || !chartRef.current || !tooltipRef.current) return;
+
+    const bounds = chartRef.current.getBoundingClientRect();
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    const nextPosition = resolveTooltipPosition(
+      tooltip.anchorX,
+      tooltip.anchorY,
+      bounds.width,
+      bounds.height,
+      tooltipRect.width,
+      tooltipRect.height,
+    );
+
+    if (nextPosition.left === tooltip.left && nextPosition.top === tooltip.top) return;
+
+    setTooltip((current) => (
+      current
+        ? {
+            ...current,
+            left: nextPosition.left,
+            top: nextPosition.top,
+          }
+        : current
+    ));
+  }, [tooltip]);
 
   return (
     <section className="space-y-3">
@@ -210,7 +307,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
       {!isLoading && !error && processedMoves.length > 0 && (
         <div className="grid gap-6 lg:grid-cols-[minmax(340px,36%)_minmax(0,1fr)] lg:items-start">
           <div className="space-y-3 lg:sticky lg:top-3">
-            <div className="relative mx-auto aspect-square w-full max-w-[420px]">
+            <div ref={chartRef} className="relative mx-auto aspect-square w-full max-w-[420px]">
               <svg viewBox="0 0 300 300" className="h-full w-full">
                 <circle cx="150" cy="150" r="126" fill="rgba(255,255,255,0.035)" />
                 {pieSegments.map((segment) => {
@@ -255,14 +352,11 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
               {tooltip && (
                 <div
-                  className={`pointer-events-none absolute z-10 min-w-36 rounded-md border border-accent/70 bg-[#131313]/95 px-3 py-2 shadow-[0_10px_28px_rgba(0,0,0,0.38)] ${
-                    tooltip.horizontal === 'left' ? '-translate-x-[calc(100%+18px)]' : 'translate-x-[18px]'
-                  } ${
-                    tooltip.vertical === 'top' ? '-translate-y-[calc(100%+18px)]' : 'translate-y-[18px]'
-                  }`}
-                  style={{ left: tooltip.x, top: tooltip.y }}
+                  ref={tooltipRef}
+                  className="pointer-events-none absolute z-10 w-max min-w-36 rounded-md border border-accent/70 bg-[#131313]/95 px-3 py-2 shadow-[0_10px_28px_rgba(0,0,0,0.38)]"
+                  style={{ left: tooltip.left, top: tooltip.top }}
                 >
-                  <div className="text-sm font-semibold text-white/96">{tooltip.title}</div>
+                  <div className="whitespace-nowrap text-sm font-semibold text-white/96">{tooltip.title}</div>
                   <div className="mt-1 flex items-baseline gap-2">
                     <span className="text-base font-semibold text-accent">{formatDamage(tooltip.damage)}</span>
                     <span className="text-xs text-text-primary/74">[{formatPercentStat(tooltip.percentage)}]</span>

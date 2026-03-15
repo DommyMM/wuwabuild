@@ -164,6 +164,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     sequence: detail?.buildState.sequence ?? entry.sequence,
     getWeapon,
   });
+  const hasLeaderboardBoardContext = Boolean(detail && activeBoardWeaponId && activeTrackKey);
 
   const handleViewLeaderboard = () => {
     if (!leaderboardLink) return;
@@ -544,7 +545,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           </div>
 
           {!isDetailLoading && !detailError && detail && (
-            <div className="space-y-4 px-4 pb-3 pt-4">
+            <div className="min-w-0 space-y-4 overflow-hidden px-4 pb-3 pt-4">
               {detailSubstatSummary.length > 0 && (
                 <div className={summaryRowClassName}>
                   {detailSubstatSummary.map((summary) => {
@@ -603,7 +604,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                 >
                   View in Editor
                 </button>
-                {leaderboardLink && (
+                {leaderboardLink && !hasLeaderboardBoardContext && (
                   <button
                     type="button"
                     onClick={handleViewLeaderboard}

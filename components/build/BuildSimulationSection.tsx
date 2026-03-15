@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
 import { getBuildMoves, getBuildSubstatUpgrades, LBMoveEntry, LBSubstatUpgradeTierSet } from '@/lib/lb';
 import { BuildMoveBreakdown } from './BuildMoveBreakdown';
 import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
@@ -285,7 +286,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
         return {
           key,
           canonicalLabel: label,
-          label: statTranslations?.[label] ? t(statTranslations[label]) : label,
+          label: getEchoSubstatShortLabel(statTranslations?.[label] ? t(statTranslations[label]) : label),
           icon,
           rollValue,
           gain,
