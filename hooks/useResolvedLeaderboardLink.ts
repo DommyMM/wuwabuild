@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { buildLeaderboardHref } from '@/components/leaderboard/leaderboardQuery';
-import { LBCharacterOverview, listLeaderboardOverview } from '@/lib/lb';
+import { readCachedLeaderboardOverview, getCachedLeaderboardOverview } from '@/lib/leaderboardOverviewCache';
+import { LBCharacterOverview } from '@/lib/lb';
 import { Weapon } from '@/lib/weapon';
 
 export interface ResolvedLeaderboardLink {
@@ -19,29 +20,6 @@ interface ResolveLeaderboardLinkOptions {
   weaponId?: string | null;
   sequence?: number | null;
   getWeapon?: (id: string | null) => Weapon | null;
-}
-
-let cachedOverview: LBCharacterOverview[] | null = null;
-let cachedOverviewPromise: Promise<LBCharacterOverview[]> | null = null;
-
-function getCachedLeaderboardOverview(): Promise<LBCharacterOverview[]> {
-  if (cachedOverview) {
-    return Promise.resolve(cachedOverview);
-  }
-
-  if (!cachedOverviewPromise) {
-    cachedOverviewPromise = listLeaderboardOverview()
-      .then((entries) => {
-        cachedOverview = entries;
-        return entries;
-      })
-      .catch((error) => {
-        cachedOverviewPromise = null;
-        throw error;
-      });
-  }
-
-  return cachedOverviewPromise;
 }
 
 function getTrackCandidateKey(sequence: number | null | undefined): string {
@@ -150,15 +128,12 @@ export function resolveLeaderboardLink(
 export function useResolvedLeaderboardLink(
   opts: ResolveLeaderboardLinkOptions,
 ): ResolvedLeaderboardLink | null {
-  const [overview, setOverview] = useState<LBCharacterOverview[] | null>(() => cachedOverview);
+  const [overview, setOverview] = useState<LBCharacterOverview[] | null>(() => readCachedLeaderboardOverview());
 
   useEffect(() => {
     let cancelled = false;
-    const overviewPromise = cachedOverview
-      ? Promise.resolve(cachedOverview)
-      : getCachedLeaderboardOverview();
 
-    void overviewPromise
+    void getCachedLeaderboardOverview()
       .then((entries) => {
         if (!cancelled) {
           setOverview(entries);

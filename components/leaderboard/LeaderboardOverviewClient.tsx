@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
+import { getCachedLeaderboardOverview, primeLeaderboardOverviewCache, readCachedLeaderboardOverview } from '@/lib/leaderboardOverviewCache';
 import { buildLeaderboardHref } from '@/components/leaderboard/leaderboardQuery';
-import { LBCharacterOverview, listLeaderboardOverview } from '@/lib/lb';
+import { LBCharacterOverview } from '@/lib/lb';
 import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboard/leaderboardConstants';
 import { getWeaponPaths } from '@/lib/paths';
 
@@ -31,20 +32,27 @@ interface LeaderboardOverviewClientProps {
 export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps> = ({ initialData }) => {
   const { getCharacter, getWeapon } = useGameData();
   const { t } = useLanguage();
-  const [overview, setOverview] = useState<LBCharacterOverview[]>(() => initialData ?? []);
+  const [overview, setOverview] = useState<LBCharacterOverview[]>(() => initialData ?? readCachedLeaderboardOverview() ?? []);
   const [fetchState, setFetchState] = useState<{ isLoading: boolean; error: string | null }>(() => ({
-    isLoading: !initialData,
+    isLoading: !(initialData ?? readCachedLeaderboardOverview()),
     error: null,
   }));
   // Ref tracks the current signature to diff-check without adding overview to effect deps.
-  const overviewSigRef = useRef(overviewSignature(initialData ?? []));
+  const overviewSigRef = useRef(overviewSignature(initialData ?? readCachedLeaderboardOverview() ?? []));
 
   useEffect(() => {
-    const controller = new AbortController();
+    if (initialData) {
+      primeLeaderboardOverviewCache(initialData);
+      overviewSigRef.current = overviewSignature(initialData);
+    }
+  }, [initialData]);
 
-    listLeaderboardOverview(controller.signal)
+  useEffect(() => {
+    let cancelled = false;
+
+    void getCachedLeaderboardOverview()
       .then((data) => {
-        if (controller.signal.aborted) return;
+        if (cancelled) return;
         // Diff check: skip setState if data hasn't changed.
         const newSig = overviewSignature(data);
         if (newSig !== overviewSigRef.current) {
@@ -54,14 +62,16 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
         setFetchState({ isLoading: false, error: null });
       })
       .catch((err) => {
-        if (controller.signal.aborted) return;
+        if (cancelled) return;
         setFetchState({
           isLoading: false,
           error: err instanceof Error ? err.message : String(err),
         });
       });
 
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const showSkeleton = fetchState.isLoading;
