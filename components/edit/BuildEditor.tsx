@@ -12,10 +12,8 @@ import { ROVER_ELEMENTS } from '@/lib/constants/statBonuses';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
+import { useResolvedLeaderboardLink } from '@/hooks/useResolvedLeaderboardLink';
 import { DEFAULT_CARD_ART_TRANSFORM, CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
-import { buildLeaderboardHref } from '@/components/leaderboard/leaderboardQuery';
-import { DEFAULT_LB_TRACK } from '@/components/leaderboard/leaderboardConstants';
-import { getLeaderboardCharacterConfig } from '@/lib/lb';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { SequenceSelector } from '@/components/character/SequenceSelector';
 import { WeaponSelector } from '@/components/weapon/WeaponSelector';
@@ -146,6 +144,12 @@ export const BuildEditor: React.FC = () => {
   const { error: toastError } = useToast();
   const selected = useSelectedCharacter();
   const selectedWeapon = getWeapon(state.weaponId);
+  const leaderboardLink = useResolvedLeaderboardLink({
+    characterId: selected?.character.id ?? state.characterId,
+    weaponId: state.weaponId,
+    sequence: state.sequence,
+    getWeapon,
+  });
 
   const { scrollY } = useScroll();
 
@@ -254,29 +258,10 @@ export const BuildEditor: React.FC = () => {
     setIsCardGenerated(true);
   }, []);
 
-  const handleViewRanking = useCallback(async () => {
-    const characterId = selected?.character.id ?? state.characterId;
-    if (!characterId) return;
-
-    try {
-      const config = await getLeaderboardCharacterConfig(characterId);
-      const defaultWeaponId = config.weaponIds[0] ?? config.activeWeaponId ?? '';
-      const defaultTrack = config.tracks[0]?.key ?? config.activeTrack ?? DEFAULT_LB_TRACK;
-      const resolvedWeaponId = state.weaponId && config.weaponIds.includes(state.weaponId) ? state.weaponId : '';
-      const candidateTrack = `s${state.sequence}`;
-      const resolvedTrack = config.tracks.some((track) => track.key === candidateTrack) ? candidateTrack : '';
-
-      router.push(buildLeaderboardHref(characterId, {
-        weaponId: resolvedWeaponId || undefined,
-        track: resolvedTrack || undefined,
-      }, {
-        defaultWeaponId,
-        defaultTrack,
-      }));
-    } catch {
-      router.push(`/leaderboards/${characterId}`);
-    }
-  }, [router, selected?.character.id, state.characterId, state.sequence, state.weaponId]);
+  const handleViewRanking = useCallback(() => {
+    if (!leaderboardLink) return;
+    router.push(leaderboardLink.href);
+  }, [leaderboardLink, router]);
 
   const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
@@ -625,14 +610,15 @@ export const BuildEditor: React.FC = () => {
                           ) : 'Download'}
                         </span>
                       </button>
-                      <button
-                        onClick={handleViewRanking}
-                        disabled={!selected?.character.id && !state.characterId}
-                        className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-accent/60 cursor-pointer disabled:cursor-not-allowed disabled:text-text-primary/40"
-                      >
-                        <Trophy size={14} />
-                        View Ranking
-                      </button>
+                      {leaderboardLink && (
+                        <button
+                          onClick={handleViewRanking}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-accent/60"
+                        >
+                          <Trophy size={14} />
+                          View Ranking
+                        </button>
+                      )}
                     </div>
 
                     {isArtEditMode && (

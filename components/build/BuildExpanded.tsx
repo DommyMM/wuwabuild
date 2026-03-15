@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useResolvedLeaderboardLink } from '@/hooks/useResolvedLeaderboardLink';
 import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
@@ -147,7 +148,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   activeBoardDamage,
 }) => {
   const router = useRouter();
-  const { fettersByElement, getSubstatValues, statTranslations } = useGameData();
+  const { fettersByElement, getSubstatValues, getWeapon, statTranslations } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
 
@@ -155,6 +156,18 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     if (!detail) return;
     saveDraftBuild(detail.buildState);
     router.push('/edit');
+  };
+
+  const leaderboardLink = useResolvedLeaderboardLink({
+    characterId: detail?.buildState.characterId ?? entry.character.id,
+    weaponId: detail?.buildState.weaponId ?? entry.weapon.id,
+    sequence: detail?.buildState.sequence ?? entry.sequence,
+    getWeapon,
+  });
+
+  const handleViewLeaderboard = () => {
+    if (!leaderboardLink) return;
+    router.push(leaderboardLink.href);
   };
 
   // Derive character default substat selections without effect-driven state updates.
@@ -582,7 +595,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                 </div>
               )}
 
-              <div className="flex justify-center">
+              <div className="flex flex-wrap justify-center gap-2">
                 <button
                   type="button"
                   onClick={handleViewBuild}
@@ -590,6 +603,15 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                 >
                   View in Editor
                 </button>
+                {leaderboardLink && (
+                  <button
+                    type="button"
+                    onClick={handleViewLeaderboard}
+                    className="rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer"
+                  >
+                    View Leaderboard
+                  </button>
+                )}
               </div>
 
               {detail && activeBoardWeaponId && activeTrackKey && (
