@@ -55,6 +55,10 @@ export interface Echo {
   iconUrl: string;
   phantomIconUrl?: string;
   bonuses?: Array<{ stat: StatName; value: number; characterCondition?: string[] }>;
+  skill?: {
+    description: string;
+    params: string[][];
+  };
 }
 
 export type EchoPanel = {
@@ -182,6 +186,14 @@ export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
   iconUrl: toCdnUrl(cdn.icon),
   phantomIconUrl: cdn.phantomIcon ? toCdnUrl(cdn.phantomIcon) : undefined,
   bonuses: cdn.bonuses as Array<{ stat: StatName; value: number; characterCondition?: string[] }> | undefined,
+  skill: cdn.skill
+    ? {
+      description: cdn.skill.description,
+      params: Array.isArray(cdn.skill.params)
+        ? cdn.skill.params.map((entry) => Array.isArray(entry.ArrayString) ? entry.ArrayString.map((value) => String(value)) : [])
+        : [],
+    }
+    : undefined,
 });
 
 export const validateCDNEcho = (echo: CDNEcho): boolean => {

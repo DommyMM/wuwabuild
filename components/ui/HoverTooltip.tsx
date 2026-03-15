@@ -14,6 +14,7 @@ interface HoverTooltipProps {
   content: ReactNode;
   children: ReactNode;
   placement?: TooltipPlacement;
+  strictPlacement?: boolean;
   offset?: number;
   disabled?: boolean;
   tooltipClassName?: string;
@@ -80,6 +81,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   content,
   children,
   placement = 'right',
+  strictPlacement = false,
   offset = 10,
   disabled = false,
   tooltipClassName = '',
@@ -123,14 +125,16 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
     const triggerRect = triggerEl.getBoundingClientRect();
     const tooltipRect = tooltipEl.getBoundingClientRect();
 
-    const candidates = getCandidateOrder(placement);
     let resolved = getPositionForPlacement(triggerRect, tooltipRect, placement, offset);
 
-    for (const candidate of candidates) {
-      const next = getPositionForPlacement(triggerRect, tooltipRect, candidate, offset);
-      if (isInsideViewport(next, tooltipRect)) {
-        resolved = next;
-        break;
+    if (!strictPlacement) {
+      const candidates = getCandidateOrder(placement);
+      for (const candidate of candidates) {
+        const next = getPositionForPlacement(triggerRect, tooltipRect, candidate, offset);
+        if (isInsideViewport(next, tooltipRect)) {
+          resolved = next;
+          break;
+        }
       }
     }
 
@@ -152,7 +156,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
       left: clamp(resolved.left, VIEWPORT_PADDING, maxLeft),
       top: nextTop,
     });
-  }, [maxRisePx, offset, pinViewportBottom, placement]);
+  }, [maxRisePx, offset, pinViewportBottom, placement, strictPlacement]);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
