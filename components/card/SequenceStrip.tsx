@@ -5,7 +5,7 @@ import { HoverTooltip } from '@/components/ui/HoverTooltip';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CDNChainEntry, I18nString } from '@/lib/character';
 import { ELEMENT_COLOR } from '@/lib/elementVisuals';
-import { renderTemplateWithHighlights, stripGameMarkup } from '@/lib/text/gameText';
+import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
 
 interface SequenceStripProps {
   chains: CDNChainEntry[];
@@ -31,7 +31,7 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
         const chain = chains[i];
         const active = i < sequence;
         const chainName = resolveLocalizedText(chain?.name);
-        const chainDescription = stripGameMarkup(resolveLocalizedText(chain?.description));
+        const chainDescription = resolveLocalizedText(chain?.description);
         const tooltipContent = chain ? (
           <div className="font-plus-jakarta text-white/90">
             <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{resolvedCharacterName}</p>
@@ -40,7 +40,7 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
               Resonance Chain {i + 1}
             </div>
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/86">
-              {renderTemplateWithHighlights({
+              {renderGameTemplateWithHighlights({
                 template: chainDescription,
                 getParamValue: (index) => chain.param?.[index] ?? null,
                 highlightClassName: 'text-cyan-200 font-semibold',

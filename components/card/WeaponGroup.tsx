@@ -6,7 +6,7 @@ import { Weapon } from '@/lib/weapon';
 import { RARITY_ACCENTS } from '@/components/weapon/rarityStyles';
 import { StatHoverKey } from '@/lib/constants/statHover';
 import { HoverTooltip } from '@/components/ui/HoverTooltip';
-import { renderTemplateWithHighlights, stripGameMarkup } from '@/lib/text/gameText';
+import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
 
 interface WeaponGroupProps {
   weapon: Weapon;
@@ -42,11 +42,11 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
   const translatedWeaponName = t(weapon.nameI18n ?? { en: weapon.name });
   const translatedMainStatName = t(weapon.mainStatI18n ?? { en: weapon.main_stat });
   const translatedPassiveName = t(weapon.effectName ?? { en: '' });
-  const passiveTemplate = stripGameMarkup(t(weapon.effect ?? { en: '' }));
+  const passiveTemplate = t(weapon.effect ?? { en: '' });
   const rarityStyle = RARITY_ACCENTS[weapon.rarity];
   const hasActiveHover = Boolean(activeHoverStat);
   const rankIndex = Math.max(0, Math.min(4, Math.floor(weaponRank || 1) - 1));
-  const renderedPassiveText = renderTemplateWithHighlights({
+  const renderedPassiveText = renderGameTemplateWithHighlights({
     template: passiveTemplate,
     getParamValue: (paramIndex) => {
       const slotValues = weapon.params?.[String(paramIndex)];
@@ -116,40 +116,35 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
           )}
         </div>
       </HoverTooltip>
-      <div className="relative flex min-w-0 flex-col gap-1.5 pb-4">
-        <div className="relative z-10 flex min-w-0 flex-col gap-1.5">
-          <span className={`truncate text-2xl font-semibold leading-tight text-white/95 transition-all duration-200 ${nameInteractionClass}`}>
-            {translatedWeaponName || weapon.name}
-          </span>
-          <div className="flex items-center gap-4">
-            <div
-              className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-200 ${getChipClass(weaponAtkHoverKey)}`}
-              onMouseEnter={weaponAtkHoverKey ? () => onHoverStatChange?.(weaponAtkHoverKey) : undefined}
-              onMouseLeave={weaponAtkHoverKey ? () => onHoverStatChange?.(null) : undefined}
-            >
-              {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-5 w-5 object-contain" />}
-              <span className="text-lg font-semibold text-white/88">{weaponStats.scaledAtk}</span>
-            </div>
-            <div
-              className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-200 ${getChipClass(weaponMainHoverKey)}`}
-              onMouseEnter={weaponMainHoverKey ? () => onHoverStatChange?.(weaponMainHoverKey) : undefined}
-              onMouseLeave={weaponMainHoverKey ? () => onHoverStatChange?.(null) : undefined}
-            >
-              {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-5 w-5 object-contain" />}
-              <span className="text-lg font-semibold text-white/88">{weaponStats.scaledMainStat}%</span>
-            </div>
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <span className={`truncate text-2xl font-semibold leading-tight text-white/95 transition-all duration-200 ${nameInteractionClass}`}>
+          {translatedWeaponName || weapon.name}
+        </span>
+        <div className="flex items-center gap-4">
+          <div
+            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-200 ${getChipClass(weaponAtkHoverKey)}`}
+            onMouseEnter={weaponAtkHoverKey ? () => onHoverStatChange?.(weaponAtkHoverKey) : undefined}
+            onMouseLeave={weaponAtkHoverKey ? () => onHoverStatChange?.(null) : undefined}
+          >
+            {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-5 w-5 object-contain" />}
+            <span className="text-lg font-semibold text-white/88">{weaponStats.scaledAtk}</span>
           </div>
-          <div className="flex items-center gap-2.5 text-sm font-medium leading-none text-white/78">
-            <span className="rounded-md border border-white/18 bg-black/40 px-3 py-1.5">
-              Lv.{weaponLevel}
-            </span>
-            <span className="rounded-md border border-white/22 bg-black/40 px-3 py-1.5">
-              R{weaponRank}
-            </span>
+          <div
+            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-200 ${getChipClass(weaponMainHoverKey)}`}
+            onMouseEnter={weaponMainHoverKey ? () => onHoverStatChange?.(weaponMainHoverKey) : undefined}
+            onMouseLeave={weaponMainHoverKey ? () => onHoverStatChange?.(null) : undefined}
+          >
+            {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-5 w-5 object-contain" />}
+            <span className="text-lg font-semibold text-white/88">{weaponStats.scaledMainStat}%</span>
           </div>
         </div>
-        <div className="pointer-events-none absolute -right-4 bottom-4 z-0 text-right text-xs font-semibold tracking-[0.18em] text-white/18 lowercase [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]">
-          wuwa.build
+        <div className="flex items-center gap-2.5 text-sm font-medium leading-none text-white/78">
+          <span className="rounded-md border border-white/18 bg-black/40 px-3 py-1.5">
+            Lv.{weaponLevel}
+          </span>
+          <span className="rounded-md border border-white/22 bg-black/40 px-3 py-1.5">
+            R{weaponRank}
+          </span>
         </div>
       </div>
     </div>

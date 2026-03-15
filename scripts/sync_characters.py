@@ -25,6 +25,9 @@ from cdn_config import CDN_BASE
 LEGACY_ID_PATTERN = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI\.png")
 NUMBER_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 NON_PARAM_BRACE_TOKEN_PATTERN = re.compile(r"\{(?!\d+\})[^{}]+\}")
+SIZE_TAG_PATTERN = re.compile(r"</?size(?:=[^>]+)?>", re.IGNORECASE)
+TEXT_ENTRY_TAG_PATTERN = re.compile(r"</?te\b[^>]*>", re.IGNORECASE)
+SAP_TAG_PATTERN = re.compile(r"</?SapTag[^>]*>", re.IGNORECASE)
 
 # Sequence bonus parsing, embedded into each chain entry at sync time.
 # Maps game description text patterns to our StatName values.
@@ -60,6 +63,18 @@ _CHAIN_CONDITIONAL_RE = re.compile(
 _MARKUP_RE = re.compile(r'<[^>]+>')
 # Stat names with internal periods that would be split by a naive sentence splitter.
 _PROTECT_PAIRS = [('Crit. Rate', 'CRIT_RATE_PH'), ('Crit. DMG', 'CRIT_DMG_PH')]
+
+DAMAGE_TYPE_TAG_MAP = {
+    4: "Basic Attack DMG",
+    5: "Heavy Attack DMG",
+    6: "Resonance Skill DMG",
+    7: "Resonance Liberation DMG",
+}
+
+DAMAGE_TYPE_TEXT_TO_SUBSTAT = {
+    damage_type: f"{damage_type} Bonus"
+    for damage_type in DAMAGE_TYPE_TAG_MAP.values()
+}
 
 
 def _chain_strip_markup(text: str) -> str:
@@ -495,14 +510,85 @@ def transform_character(
     if "tags" in result:
         # Pass raw skillTrees data before it gets simplified
         raw_skill_trees = data.get("skillTrees")
-        preferred = get_preferred_substats(result["tags"], raw_skill_trees)
+        preferred = get_preferred_substats(result["tags"], raw_skill_trees, result.get("moves"))
         if preferred:
             result["preferredStats"] = preferred
 
     return result
 
 
-def get_preferred_substats(tags: list[dict], skill_trees: dict | None = None) -> list[str]:
+def _strip_game_markup_for_matching(text: str) -> str:
+    return _MARKUP_RE.sub('', _sanitize_game_text(text or ''))
+
+
+def _extract_damage_type_from_tags(tags: list[dict]) -> str | None:
+    if not tags:
+        return None
+
+    for tag in tags:
+        tag_id = tag.get("id")
+        priority = tag.get("priority", 999)
+        if priority == 2 and tag_id in DAMAGE_TYPE_TAG_MAP:
+            return DAMAGE_TYPE_TAG_MAP[tag_id]
+    return None
+
+
+def _collect_move_damage_type_counts(moves: Any) -> dict[str, int]:
+    counts = {damage_type: 0 for damage_type in DAMAGE_TYPE_TEXT_TO_SUBSTAT}
+    if not isinstance(moves, list):
+        return counts
+
+    patterns = {
+        damage_type: re.compile(
+            rf"(?:considered(?:\s+as)?|counts?\s+as|is)\s+{re.escape(damage_type)}\b",
+            re.IGNORECASE,
+        )
+        for damage_type in DAMAGE_TYPE_TEXT_TO_SUBSTAT
+    }
+
+    for move in moves:
+        if not isinstance(move, dict):
+            continue
+
+        description = move.get("description")
+        if isinstance(description, dict):
+            text = description.get("en", "")
+        else:
+            text = str(description or "")
+
+        clean = _strip_game_markup_for_matching(text)
+        if not clean:
+            continue
+
+        for damage_type, pattern in patterns.items():
+            counts[damage_type] += len(pattern.findall(clean))
+
+    return counts
+
+
+def _infer_damage_type_from_moves(moves: Any) -> str | None:
+    counts = _collect_move_damage_type_counts(moves)
+    ranked = sorted(
+        ((count, damage_type) for damage_type, count in counts.items() if count > 0),
+        reverse=True,
+    )
+    if not ranked:
+        return None
+
+    top_count, top_damage_type = ranked[0]
+    second_count = ranked[1][0] if len(ranked) > 1 else 0
+
+    if top_count <= second_count:
+        return None
+
+    return top_damage_type
+
+
+def get_preferred_substats(
+    tags: list[dict],
+    skill_trees: dict | list[dict] | None = None,
+    moves: list[dict] | None = None,
+) -> list[str]:
     """
     Derive preferred substats from character tags and skillTree nodes.
     
@@ -523,30 +609,19 @@ def get_preferred_substats(tags: list[dict], skill_trees: dict | None = None) ->
     if not tags:
         return []
     
-    # Tag ID to damage bonus stat mapping
-    DAMAGE_TYPE_MAP = {
-        4: "Basic Attack DMG Bonus",
-        5: "Heavy Attack DMG Bonus",  
-        6: "Resonance Skill DMG Bonus",
-        7: "Resonance Liberation DMG Bonus",
-    }
-    
     stats = []
-    damage_type_stat = None
+    damage_type = None
     is_healer = False
     
-    # Check tags for damage type and healer tag
+    # Check healer tag first.
     for tag in tags:
         tag_id = tag.get("id")
-        priority = tag.get("priority", 999)
         
         # Tag ID 1 = Support and Healer
         if tag_id == 1:
             is_healer = True
-        
-        # Priority 2 = Main damage type
-        if priority == 2 and tag_id in DAMAGE_TYPE_MAP:
-            damage_type_stat = DAMAGE_TYPE_MAP[tag_id]
+
+    damage_type = _extract_damage_type_from_tags(tags) or _infer_damage_type_from_moves(moves)
     
     # Step 1: Add crits by default
     stats.extend(["Crit Rate", "Crit DMG"])
@@ -564,6 +639,7 @@ def get_preferred_substats(tags: list[dict], skill_trees: dict | None = None) ->
             stats.append(stat)
     
     # Step 4: Add damage type bonus from tags if present
+    damage_type_stat = DAMAGE_TYPE_TEXT_TO_SUBSTAT.get(damage_type or "")
     if damage_type_stat and damage_type_stat not in stats:
         stats.append(damage_type_stat)
     
@@ -574,25 +650,24 @@ def get_preferred_substats(tags: list[dict], skill_trees: dict | None = None) ->
     return stats
 
 # Does what its name says it does
-def _has_healing_bonus_in_skill_tree(skill_trees: dict | None) -> bool:
-    if not skill_trees or not isinstance(skill_trees, dict):
+def _has_healing_bonus_in_skill_tree(skill_trees: dict | list[dict] | None) -> bool:
+    if not skill_trees or not isinstance(skill_trees, (dict, list)):
         return False
-    
-    for node in skill_trees.values():
+
+    nodes = skill_trees.values() if isinstance(skill_trees, dict) else skill_trees
+    for node in nodes:
         if not isinstance(node, dict):
             continue
-        
-        params = node.get("params", {})
-        if not isinstance(params, dict):
-            continue
-        
-        # Get English name
-        name_field = params.get("name", {})
-        if isinstance(name_field, dict):
-            en_name = name_field.get("en", "")
+
+        if isinstance(skill_trees, dict):
+            params = node.get("params", {})
+            if not isinstance(params, dict):
+                continue
+            name_field = params.get("name", {})
+            en_name = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field)
         else:
-            en_name = str(name_field)
-        
+            en_name = str(node.get("name", ""))
+
         # Check for "Healing Bonus"
         if "Healing Bonus" in en_name:
             return True
@@ -600,9 +675,9 @@ def _has_healing_bonus_in_skill_tree(skill_trees: dict | None) -> bool:
     return False
 
 
-def _extract_skill_tree_substats(skill_trees: dict | None) -> list[str]:
+def _extract_skill_tree_substats(skill_trees: dict | list[dict] | None) -> list[str]:
     # Extract scaling stats from skill tree nodes by parsing English names.
-    if not skill_trees or not isinstance(skill_trees, dict):
+    if not skill_trees or not isinstance(skill_trees, (dict, list)):
         return []
     
     # Map English name prefixes to substat names
@@ -616,21 +691,22 @@ def _extract_skill_tree_substats(skill_trees: dict | None) -> list[str]:
     found_stats = set()
     
     # Scan all skill tree nodes
-    for node in skill_trees.values():
-        if not isinstance(node, dict) or not node.get("tree"):
+    nodes = skill_trees.values() if isinstance(skill_trees, dict) else skill_trees
+    for node in nodes:
+        if not isinstance(node, dict):
             continue
-        
-        params = node.get("params", {})
-        if not isinstance(params, dict):
-            continue
-        
-        # Get English name
-        name_field = params.get("name", {})
-        if isinstance(name_field, dict):
-            en_name = name_field.get("en", "")
+
+        if isinstance(skill_trees, dict):
+            if not node.get("tree"):
+                continue
+            params = node.get("params", {})
+            if not isinstance(params, dict):
+                continue
+            name_field = params.get("name", {})
+            en_name = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field)
         else:
-            en_name = str(name_field)
-        
+            en_name = str(node.get("name", ""))
+
         # Check if this is a scaling stat we care about
         for prefix, stat_name in NAME_TO_STAT.items():
             if en_name.startswith(prefix):
@@ -657,6 +733,9 @@ def _sanitize_game_text(value: str) -> str:
     if not value:
         return ""
     cleaned = NON_PARAM_BRACE_TOKEN_PATTERN.sub("", value)
+    cleaned = SIZE_TAG_PATTERN.sub("", cleaned)
+    cleaned = TEXT_ENTRY_TAG_PATTERN.sub("", cleaned)
+    cleaned = SAP_TAG_PATTERN.sub("", cleaned)
     cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
     cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
     return cleaned
@@ -684,6 +763,33 @@ def _normalize_param_value(value: Any) -> str:
             return raw
 
     return NUMBER_TOKEN_PATTERN.sub(repl, text)
+
+
+def _resanitize_existing_character_text_fields(character: dict[str, Any]) -> None:
+    for chain in character.get("chains") or []:
+        if not isinstance(chain, dict):
+            continue
+        if "name" in chain:
+            chain["name"] = _sanitize_i18n_value(chain.get("name"))
+        if "description" in chain:
+            chain["description"] = _sanitize_i18n_value(chain.get("description"))
+
+    for move in character.get("moves") or []:
+        if not isinstance(move, dict):
+            continue
+        if "name" in move:
+            move["name"] = _sanitize_i18n_value(move.get("name"))
+        if "description" in move:
+            move["description"] = _sanitize_i18n_value(move.get("description"))
+        if "descriptionParams" in move and isinstance(move.get("descriptionParams"), list):
+            move["descriptionParams"] = [_normalize_param_value(value) for value in move["descriptionParams"]]
+        for value_entry in move.get("values") or []:
+            if not isinstance(value_entry, dict):
+                continue
+            if "name" in value_entry:
+                value_entry["name"] = _sanitize_i18n_value(value_entry.get("name"))
+            if "values" in value_entry and isinstance(value_entry.get("values"), list):
+                value_entry["values"] = [_normalize_param_value(value) for value in value_entry["values"]]
 
 
 def _extract_moves_frontend(raw: dict, description_param_map: dict[int, list[str]]) -> list[dict]:
@@ -902,11 +1008,13 @@ def main():
         if not combined_path.exists():
             parser.error(f"No Characters.json found at {combined_path}. Use --fetch to sync from CDN.")
             return 1
-        print(f"Re-parsing sequence bonuses in {combined_path} ...")
+        print(f"Re-parsing sequence bonuses and preferred stats in {combined_path} ...")
         with open(combined_path, encoding="utf-8") as f:
             characters = json.load(f)
         total = 0
+        preferred_updates = 0
         for char in characters:
+            _resanitize_existing_character_text_fields(char)
             for chain in char.get("chains") or []:
                 desc = chain.get("description")
                 en_desc = desc.get("en", "") if isinstance(desc, dict) else str(desc or "")
@@ -916,12 +1024,26 @@ def main():
                 if bonus:
                     chain["bonus"] = bonus
                     total += 1
+
+            preferred = get_preferred_substats(
+                char.get("tags") or [],
+                char.get("skillTrees"),
+                char.get("moves"),
+            )
+            existing_preferred = char.get("preferredStats")
+            if preferred:
+                if preferred != existing_preferred:
+                    preferred_updates += 1
+                char["preferredStats"] = preferred
+            elif "preferredStats" in char:
+                preferred_updates += 1
+                char.pop("preferredStats", None)
         if not args.dry_run:
             with open(combined_path, "w", encoding="utf-8") as f:
                 json.dump(characters, f, separators=(",", ":"), ensure_ascii=False)
-            print(f"Embedded {total} sequence bonuses → {combined_path}")
+            print(f"Embedded {total} sequence bonuses and refreshed {preferred_updates} preferred stat sets → {combined_path}")
         else:
-            print(f"[dry-run] Would embed {total} sequence bonuses")
+            print(f"[dry-run] Would embed {total} sequence bonuses and refresh {preferred_updates} preferred stat sets")
         return 0
 
     raw_characters = fetch_cdn_characters(single_id=args.id, workers=args.workers)

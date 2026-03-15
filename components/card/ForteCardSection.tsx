@@ -7,7 +7,7 @@ import { Character, I18nString } from '@/lib/character';
 import { ForteState } from '@/lib/build';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { SKILL_BRANCHES } from '@/lib/constants/skillBranches';
-import { resolveTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
+import { resolveGameTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
 
 const BRANCH_MOVE_TYPE: Record<string, number> = {
   'normal-attack': 1,
@@ -129,7 +129,8 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
 
     const level = Math.max(1, Math.min(10, options.level));
     const moveName = stripGameMarkup(resolveLocalizedText(move.name));
-    const moveDescription = stripGameMarkup(resolveLocalizedText(move.description));
+    const moveDescription = resolveLocalizedText(move.description);
+    const plainMoveDescription = stripGameMarkup(moveDescription);
     const selectedMoveValues = (move.values ?? [])
       .map((valueEntry) => ({
         id: valueEntry.id,
@@ -172,9 +173,9 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
             </div>
           </div>
         )}
-        {moveDescription && (
+        {plainMoveDescription && (
           <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/86">
-            {resolveTemplateFromValues({
+            {resolveGameTemplateFromValues({
               template: moveDescription,
               values: descriptionParams.length > 0 ? descriptionParams : fallbackParams,
               keepUnknownPlaceholders: true,
