@@ -61,13 +61,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title,
       description,
-      openGraph: { title, description },
+      openGraph: { title, description, url: `https://wuwa.build/leaderboards/${characterId}` },
+      alternates: { canonical: `/leaderboards/${characterId}` },
     };
   }
 
   return {
     title: `Character Leaderboard #${characterId} - WuWaBuilds`,
     description: 'Global damage rankings for this Wuthering Waves character. Filter by weapon, track, echo sets, and more.',
+    alternates: { canonical: `/leaderboards/${characterId}` },
   };
 }
 
@@ -105,8 +107,37 @@ export default async function CharacterLeaderboardPage({ params, searchParams }:
     ? `${initialData.total.toLocaleString()} ranked build${initialData.total === 1 ? '' : 's'}`
     : 'global ranked builds';
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://wuwa.build"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Leaderboards",
+        "item": "https://wuwa.build/leaderboards"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": characterName ? `${characterName} Leaderboard` : "Character Leaderboard",
+        "item": `https://wuwa.build/leaderboards/${characterId}`
+      }
+    ]
+  };
+
   return (
     <div className="bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {character && (
         <div className="sr-only">
           <h1>{characterName} Damage Leaderboard</h1>

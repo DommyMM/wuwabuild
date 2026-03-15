@@ -44,7 +44,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
         url: `${baseUrl}${route}`,
         lastModified: new Date(),
         changeFrequency: 'daily' as const,
-        priority: route === '' ? 1 : 0.8,
+        priority: route === '' ? 1 : 0.9,
     }));
 
     let dynamicRoutes: MetadataRoute.Sitemap = [];
@@ -56,13 +56,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
         const charPath = path.join(dataDir, 'Characters.json');
         if (fs.existsSync(charPath)) {
             const charsData = JSON.parse(fs.readFileSync(charPath, 'utf8'));
-            const charRoutes = Object.values(charsData).map((char: unknown) => ({
-                url: `${baseUrl}/characters/${(char as { id: string | number }).id}`,
+            const chars = Object.values(charsData) as { id: string | number }[];
+            const charRoutes = chars.map((char) => ({
+                url: `${baseUrl}/characters/${char.id}`,
                 lastModified: new Date(),
                 changeFrequency: 'weekly' as const,
                 priority: 0.6,
             }));
-            dynamicRoutes = [...dynamicRoutes, ...charRoutes];
+            const lbRoutes = chars.map((char) => ({
+                url: `${baseUrl}/leaderboards/${char.id}`,
+                lastModified: new Date(),
+                changeFrequency: 'daily' as const,
+                priority: 0.9,
+            }));
+            dynamicRoutes = [...dynamicRoutes, ...charRoutes, ...lbRoutes];
         }
 
         // Weapons

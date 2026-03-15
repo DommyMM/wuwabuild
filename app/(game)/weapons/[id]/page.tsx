@@ -74,7 +74,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         description = `Calculate exact damage scaling and stats for ${weaponInfo.name.en} in Wuthering Waves. See optimal builds across different characters on the WuWaBuilds leaderboard.`;
     }
 
-    return { title, description, openGraph: { title, description } };
+    return { title, description, openGraph: { title, description, url: `https://wuwa.build/weapons/${id}` }, alternates: { canonical: `/weapons/${id}` } };
 }
 
 export default async function WeaponPage({ params }: { params: Promise<{ id: string }> }) {

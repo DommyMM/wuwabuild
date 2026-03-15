@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         description = `Calculate the best builds and optimal damage for ${char.name} in Wuthering Waves. Explore top player leaderboards, weapon rankings, and simulated echo loadouts on WuWaBuilds.`;
     }
 
-    return { title, description, openGraph: { title, description } };
+    return { title, description, openGraph: { title, description, url: `https://wuwa.build/characters/${id}` }, alternates: { canonical: `/characters/${id}` } };
 }
 
 export default async function CharacterPage({ params }: { params: Promise<{ id: string }> }) {

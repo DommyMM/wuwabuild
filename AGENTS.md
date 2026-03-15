@@ -2,12 +2,12 @@
 
 ## Project Overview
 
-WuWaBuilds is a Wuthering Waves build creator at [wuwabuilds.moe](https://wuwabuilds.moe). Players create, customize, and share character builds with real-time stat calculations, echo management, and build card export. The app is a full rewrite of the legacy `frontend/` codebase, using React Context providers for centralized state management.
+WuWaBuilds is a Wuthering Waves build creator at [wuwa.build](https://wuwa.build). Players create, customize, and share character builds with real-time stat calculations, echo management, and build card export. The app is a full rewrite of the legacy `frontend/` codebase, using React Context providers for centralized state management.
 
 **This is the active codebase** — located in `/wuwabuilds/`. The legacy `/frontend/` and backend services (`/backend/`, `/lb/`) are separate projects with their own documentation.
 
-
 Data sync scripts (Python, run from `scripts/`):
+
 ```bash
 python sync_characters.py --fetch    # Sync characters from CDN
 python sync_weapons.py --fetch       # Sync weapons from CDN
@@ -41,26 +41,28 @@ When R2 is configured, `/import` also uploads deduplicated source screenshots an
 ## Analytics
 
 ### Google Analytics
+
 - **Package**: `@next/third-parties`
 - **Implementation**: `GoogleAnalytics` component in `app/layout.tsx`
 - **Tracking**: Automatic pageviews across all routes
 
 ### PostHog
+
 - **Implementation**: Client-side initialization via `instrumentation-client.ts` (Next.js 15.3+ pattern) with reverse proxy configured in `next.config.ts`
 
 ### Tracked Events (7 total)
 
 High-value conversion events optimized for PostHog free tier (1M events/month):
 
-| Event | Description | File |
-|-------|-------------|------|
-| `build_card_downloaded` | User downloads build card PNG | `components/edit/BuildEditor.tsx` |
-| `build_saved` | User saves build via Save modal | `components/save/SaveBuildModal.tsx` |
-| `import_completed` | User completes OCR import flow | `components/import/ImportPageClient.tsx` |
-| `ocr_issue_report_submitted` | User submits an OCR issue report from `/import` | `components/import/ImportPageClient.tsx` |
-| `builds_exported_all` | User exports all builds to JSON | `components/save/SavesPageClient.tsx` |
-| `builds_imported` | User imports builds from JSON | `components/save/SavesPageClient.tsx` |
-| `builds_session_summary` | Session aggregation (expansion count on /builds unmount) | `components/build/BuildPageClient.tsx` |
+| Event                          | Description                                              | File                                       |
+| ------------------------------ | -------------------------------------------------------- | ------------------------------------------ |
+| `build_card_downloaded`      | User downloads build card PNG                            | `components/edit/BuildEditor.tsx`        |
+| `build_saved`                | User saves build via Save modal                          | `components/save/SaveBuildModal.tsx`     |
+| `import_completed`           | User completes OCR import flow                           | `components/import/ImportPageClient.tsx` |
+| `ocr_issue_report_submitted` | User submits an OCR issue report from `/import`        | `components/import/ImportPageClient.tsx` |
+| `builds_exported_all`        | User exports all builds to JSON                          | `components/save/SavesPageClient.tsx`    |
+| `builds_imported`            | User imports builds from JSON                            | `components/save/SavesPageClient.tsx`    |
+| `builds_session_summary`     | Session aggregation (expansion count on /builds unmount) | `components/build/BuildPageClient.tsx`   |
 
 ## LB + Builds Current Status (2026-03-10)
 
@@ -92,15 +94,15 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 
 ## Frontend Routes (Canonical, 2026-03-09)
 
-| Route | Status | Entry | Primary Client Tree |
-|-------|--------|-------|---------------------|
-| `/` | Implemented | `app/page.tsx` | `components/home/*` + shared `Navigation` |
-| `/builds` | Implemented | `app/(game)/builds/page.tsx` | `components/build/*` + `lib/lb.ts` |
-| `/edit` | Implemented | `app/(game)/edit/page.tsx` | `components/edit/*`, `components/card/*`, `components/echo/*`, `components/forte/*`, selectors |
-| `/import` | Implemented | `app/(game)/import/page.tsx` | `components/import/*`, `hooks/useOcrImport.ts`, `lib/import/*` |
-| `/saves` | Implemented | `app/(game)/saves/page.tsx` | `components/save/*`, `lib/storage.ts`, `lib/legacyMigration.ts` |
-| `/leaderboards` | Implemented | `app/(game)/leaderboards/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
-| `/leaderboards/[characterId]` | Implemented | `app/(game)/leaderboards/[characterId]/page.tsx` | `components/leaderboard/*` + `lib/lb.ts` |
+| Route                           | Status      | Entry                                              | Primary Client Tree                                                                                    |
+| ------------------------------- | ----------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `/`                           | Implemented | `app/page.tsx`                                   | `components/home/*` + shared `Navigation`                                                          |
+| `/builds`                     | Implemented | `app/(game)/builds/page.tsx`                     | `components/build/*` + `lib/lb.ts`                                                                 |
+| `/edit`                       | Implemented | `app/(game)/edit/page.tsx`                       | `components/edit/*`, `components/card/*`, `components/echo/*`, `components/forte/*`, selectors |
+| `/import`                     | Implemented | `app/(game)/import/page.tsx`                     | `components/import/*`, `hooks/useOcrImport.ts`, `lib/import/*`                                   |
+| `/saves`                      | Implemented | `app/(game)/saves/page.tsx`                      | `components/save/*`, `lib/storage.ts`, `lib/legacyMigration.ts`                                  |
+| `/leaderboards`               | Implemented | `app/(game)/leaderboards/page.tsx`               | `components/leaderboard/*` + `lib/lb.ts`                                                           |
+| `/leaderboards/[characterId]` | Implemented | `app/(game)/leaderboards/[characterId]/page.tsx` | `components/leaderboard/*` + `lib/lb.ts`                                                           |
 
 `app/layout.tsx` now stays lightweight (`RootProviders` + `Navigation`) while game-data routes render under `app/(game)/layout.tsx`, which mounts `ToolProviders` and the game-data loading gate only for pages that need the data bundle.
 This matches the Next.js App Router route-group convention for opting only a subset of segments into a shared layout. Route-local implementation files remain safely colocated under `app` because only `page.tsx` and `route.ts` create public routes.
@@ -451,21 +453,21 @@ Each sonata set: `id`, `name` (all languages), `icon` (direct CDN URL), `pieceCo
 
 ### Fetter → Sonata Set Mapping
 
-| Fetter ID | Set | Fetter ID | Set |
-|-----------|-----|-----------|-----|
-| 1 | Glacio | 14 | Tidebreaking |
-| 2 | Fusion | 16 | Gust |
-| 3 | Electro | 17 | Windward |
-| 4 | Aero | 18 | Flaming |
-| 5 | Spectro | 19 | Dream |
-| 6 | Havoc | 20 | Crown |
-| 7 | Healing | 21 | Law |
-| 8 | ER | 22 | Flamewing |
-| 9 | Attack | 23 | Thread |
-| 10 | Frosty | 24 | Pact |
-| 11 | Radiance | 25 | Halo |
-| 12 | Midnight | 26 | Rite |
-| 13 | Empyrean | 27-29 | Trailblazing/Chromatic/Sound |
+| Fetter ID | Set      | Fetter ID | Set                          |
+| --------- | -------- | --------- | ---------------------------- |
+| 1         | Glacio   | 14        | Tidebreaking                 |
+| 2         | Fusion   | 16        | Gust                         |
+| 3         | Electro  | 17        | Windward                     |
+| 4         | Aero     | 18        | Flaming                      |
+| 5         | Spectro  | 19        | Dream                        |
+| 6         | Havoc    | 20        | Crown                        |
+| 7         | Healing  | 21        | Law                          |
+| 8         | ER       | 22        | Flamewing                    |
+| 9         | Attack   | 23        | Thread                       |
+| 10        | Frosty   | 24        | Pact                         |
+| 11        | Radiance | 25        | Halo                         |
+| 12        | Midnight | 26        | Rite                         |
+| 13        | Empyrean | 27-29     | Trailblazing/Chromatic/Sound |
 
 No fetter ID 15 exists.
 
@@ -482,6 +484,7 @@ Uses `CharacterCurve.json` for character stats and `LevelCurve.json` for weapon 
 ### Echo Default Stats
 
 4-cost and 3-cost echoes provide built-in ATK. 1-cost provides HP. Calculated from cost and level:
+
 - 4-cost: `30 + normalLevels×4.5 + bonusLevels×6`
 - 3-cost: `20 + normalLevels×3 + bonusLevels×4`
 - 1-cost: `456 + 72 + (level-1)×73` (for level > 0)
@@ -495,6 +498,7 @@ value = min + ((max - min) × level / 25)
 ### Forte Bonus Calculation
 
 8 stat nodes across 4 trees (tree3/circuit has no stat nodes):
+
 - tree1 (col 0) & tree5 (col 4) → Bonus1 (element DMG / Crit Rate / Crit DMG / Healing)
 - tree2 (col 1) & tree4 (col 3) → Bonus2 (ATK% / HP% / DEF%)
 - Each node: top = 70% of base value, middle = 30% of base value
@@ -522,30 +526,37 @@ Where `base` = character scaled + weapon scaled, `percent` = sum of all % source
 ## Special Cases
 
 ### Rover Handling
+
 - Rover (M) id `"4"`, Rover (F) id `"5"` — detected via `name.startsWith('Rover')`
 - Element stored separately in `roverElement` field
 - Affects forte bonus type, Fleurdelys echo bonus, skill tree visuals
 
 ### Phantom Echoes
+
 - 35+ special echoes with phantom skin variants
 - `phantom` boolean on EchoPanelState toggles display
 
 ### Zani S2 Passive
+
 - Character id `"38"` (Zani) at sequence ≥2 gains +20% Crit Rate
 
 ### Weapon "Attribute" Passive
+
 - Weapons with `passive: "Attribute"` apply their passive% as the character's element DMG
 
 ### Echo Cost Validation
+
 - Max total cost: 12
 - Max 4-cost echoes: 2
 - Max 3-cost echoes: 3
 
 ### Substat Deduplication
+
 - Each stat type can only appear once per echo panel
 - Same stat can appear across different panels
 
 ### Characters with Alternate Skins
+
 - Jinhsi, Sanhua, Changli, Carlotta
 
 ## Theme & Styling
@@ -562,6 +573,7 @@ Where `base` = character scaled + weapon scaled, `percent` = sum of all % source
 ```
 
 ### Element Colors
+
 ```css
 --color-glacio: #41AEFB    --color-fusion: #F0744E
 --color-electro: #B46BFF   --color-aero: #55FFB5
@@ -570,11 +582,13 @@ Where `base` = character scaled + weapon scaled, `percent` = sum of all % source
 ```
 
 ### Rarity Colors
+
 ```css
 --color-rarity-4: #E400F0   --color-rarity-5: #CFB17F
 ```
 
 ### Custom CSS Classes
+
 - `.char-sig.{element}` — Animated gradient text for element names
 - `.level-slider` / `.rank-slider` / `.forte-level-slider` — Custom slider thumb styles
 - `rover-rainbow` — Keyframe animation cycling all element border colors
@@ -582,9 +596,11 @@ Where `base` = character scaled + weapon scaled, `percent` = sum of all % source
 ## Code Conventions
 
 ### Path Alias
+
 - `@/*` maps to project root (e.g., `@/components/...`, `@/contexts/...`)
 
 ### Component Patterns
+
 - All page components are `'use client'` (App Router client components)
 - Contexts export their own hooks: `useBuild()`, `useGameData()`, `useStats()`, `useLanguage()`
 - Modals use the reusable `Modal` component from `components/ui/Modal.tsx`
@@ -592,6 +608,7 @@ Where `base` = character scaled + weapon scaled, `percent` = sum of all % source
 - Tooltips use the reusable `HoverTooltip` component (`components/ui/HoverTooltip.tsx`); `/edit` is the current reference implementation before wider adoption.
 
 ### Naming Conventions
+
 - Components: PascalCase files and exports
 - Hooks: `use` prefix, camelCase
 - Types/interfaces: PascalCase
@@ -599,6 +616,7 @@ Where `base` = character scaled + weapon scaled, `percent` = sum of all % source
 - CSS: Tailwind utility classes preferred; custom CSS only for complex animations/sliders
 
 ### Image Assets
+
 - CDN base: `https://files.wuthery.com`
 - Character/weapon/echo data now includes direct CDN URLs from sync scripts
 - `paths.ts` is being deprecated in favor of direct URLs from data
@@ -607,14 +625,15 @@ Where `base` = character scaled + weapon scaled, `percent` = sum of all % source
 
 Current status (March 9, 2026): core frontend migration is complete for all user flows.
 
-| Track | Scope | Status |
-|-------|-------|--------|
-| Frontend rewrite | App Router + providers + `/`, `/edit`, `/import`, `/saves` | Done |
-| Builds surface | `/builds` list, filters, sort, pagination, SSR prefetch | Done |
-| Leaderboard integration | `/leaderboards` overview + per-character pages; SSR prefetch; `/import` upload + `/edit` View Ranking | Done |
-| LB backend cutover | Go `/lb` parity, migrations, submit normalization/backfill, Node fallback retirement | In Progress |
+| Track                   | Scope                                                                                                       | Status      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- | ----------- |
+| Frontend rewrite        | App Router + providers +`/`, `/edit`, `/import`, `/saves`                                           | Done        |
+| Builds surface          | `/builds` list, filters, sort, pagination, SSR prefetch                                                   | Done        |
+| Leaderboard integration | `/leaderboards` overview + per-character pages; SSR prefetch; `/import` upload + `/edit` View Ranking | Done        |
+| LB backend cutover      | Go `/lb` parity, migrations, submit normalization/backfill, Node fallback retirement                      | In Progress |
 
 Primary remaining workstreams:
+
 1. Close Go LB parity gates (dedupe constraint, globalRank CTE, echo backfill) and remove Node fallback dependency.
 2. UX polish and fine-tuning.
 
@@ -627,6 +646,7 @@ Single Vercel deployment serves both domains once `wuwa.build` is wired. `www.wu
 **`next.config.ts`**: redirects `www.wuwabuilds.moe/*` → `wuwa.build/*` except `/saves` (`permanent: false` during transition).
 
 **`components/save/SavesPageClient.tsx`**: hostname-conditional banner between the search panel and legacy notices:
+
 - On `www.wuwabuilds.moe`: "We've moved to wuwa.build — export here, import there"
 - On `wuwa.build` (or any other host): "Coming from wuwabuilds.moe? Go export there first"
 
@@ -634,11 +654,11 @@ Cleanup: when `wuwabuilds.moe/saves` traffic drops to near zero, add `/saves` to
 
 ## Related Services
 
-| Service | Location | Tech | URL |
-|---------|----------|------|-----|
-| OCR Backend | `/backend/` | FastAPI + RapidOCR | https://ocr.wuwabuilds.moe |
-| Leaderboard API (Primary) | `/lb/` | Go (Chi + pgx + PostgreSQL) | https://db.wuwabuilds.moe |
-| Leaderboard API (Fallback) | `/mongo/` | Express + MongoDB | https://lb.wuwabuilds.moe |
-| Legacy Frontend | `/frontend/` | Next.js 15 (deprecated) | — |
+| Service                    | Location       | Tech                        | URL                        |
+| -------------------------- | -------------- | --------------------------- | -------------------------- |
+| OCR Backend                | `/backend/`  | FastAPI + RapidOCR          | https://ocr.wuwabuilds.moe |
+| Leaderboard API (Primary)  | `/lb/`       | Go (Chi + pgx + PostgreSQL) | https://db.wuwabuilds.moe  |
+| Leaderboard API (Fallback) | `/mongo/`    | Express + MongoDB           | https://lb.wuwabuilds.moe  |
+| Legacy Frontend            | `/frontend/` | Next.js 15 (deprecated)     | —                         |
 
 Each has its own CLAUDE.md / README with documentation.
