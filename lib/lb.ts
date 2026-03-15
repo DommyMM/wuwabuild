@@ -363,22 +363,23 @@ function parseMoveEntry(raw: unknown): LBMoveEntry | null {
   };
 }
 
-function parseUpgradeTierMap(raw: unknown): Record<string, number> {
-  if (!isRecord(raw)) return {};
-  return Object.fromEntries(
-    Object.entries(raw)
-      .map(([key, value]) => [key, toFiniteNumber(value, 0)])
-      .filter(([, value]) => Number.isFinite(value)),
-  );
-}
-
+// parseUpgradeTierSet transposes the API's per-stat format
+// { CritRate: { min, median, max, ... }, ... }
+// into the per-tier format the component expects:
+// { min: { CritRate: n }, median: { CritRate: n }, max: { CritRate: n } }
 function parseUpgradeTierSet(raw: unknown): LBSubstatUpgradeTierSet | null {
   if (!isRecord(raw)) return null;
-  return {
-    min: parseUpgradeTierMap(raw.min),
-    median: parseUpgradeTierMap(raw.median),
-    max: parseUpgradeTierMap(raw.max),
-  };
+  const min: Record<string, number> = {};
+  const median: Record<string, number> = {};
+  const max: Record<string, number> = {};
+  for (const [statKey, tierData] of Object.entries(raw)) {
+    if (!isRecord(tierData)) continue;
+    min[statKey] = toFiniteNumber(tierData.min, 0);
+    median[statKey] = toFiniteNumber(tierData.median, 0);
+    max[statKey] = toFiniteNumber(tierData.max, 0);
+  }
+  if (Object.keys(min).length === 0) return null;
+  return { min, median, max };
 }
 
 function resolveLBBaseUrl(): string {
