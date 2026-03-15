@@ -649,10 +649,11 @@ def _extract_moves_lb(char: dict) -> list[dict]:
                 continue
             sub_name_field = v.get("name", {})
             sub_name_en = sub_name_field.get("en", "") if isinstance(sub_name_field, dict) else str(sub_name_field)
+            all_vals = v.get("values") or []
             values.append({
                 "id": v.get("id"),
                 "name": sub_name_en,
-                "values": v.get("values") or [],
+                "values": [all_vals[-1]] if all_vals else [],
             })
 
         result.append({
