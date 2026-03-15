@@ -427,6 +427,29 @@ def _extract_trigger(text: str) -> str:
     return ""
 
 
+# Regex that matches " and " followed immediately by a trigger-start keyword.
+# Used by _split_compound_and to separate clauses with distinct triggers joined
+# by "and" in a single sentence, e.g.:
+#   "Casting Resonance Skill grants X for 15s and casting Resonance Liberation
+#    increases Y by Z%, lasting for 5s"
+_AND_TRIGGER_RE = re.compile(
+    r"\s+and\s+(?=(?:Hitting|Casting|Using|While|Upon|After|When|Dealing|"
+    r"Inflicting|Holding|Reaching)\b)",
+    re.I,
+)
+
+
+def _split_compound_and(sentence: str) -> list[str]:
+    """Split a sentence at ' and [TriggerKeyword]' into sub-clauses.
+
+    Only splits where the word after 'and' is a recognised trigger keyword,
+    so ordinary "and" conjunctions inside a single clause are left intact.
+    Returns the original sentence in a one-element list when no split occurs.
+    """
+    parts = _AND_TRIGGER_RE.split(sentence)
+    return [p.strip() for p in parts if p.strip()]
+
+
 def _parse_effect_en(effect_en: str) -> list[dict]:
     """Parse a fetter piece effect_en into a list of structured effect dicts.
 
@@ -472,6 +495,11 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
 
     sentences = [s for s in sentences if not _META_RE.match(s)]
 
+    # Expand compound "and [TriggerKeyword]" clauses so each distinct trigger
+    # gets its own entry.  Simple conjunctions inside a single clause (e.g.
+    # "Basic Attack or Heavy Attack") are not affected.
+    sentences = [part for s in sentences for part in _split_compound_and(s)]
+
     results: list[dict] = []
 
     for sentence in sentences:
@@ -501,13 +529,21 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
             # Stacking info was in a separate meta-sentence; attach it here.
             entry["max_stacks"] = global_stacks
             entry["per_stack"] = True
-        elif global_stacks > 0 and trigger:
-            # e.g. "Glacio DMG +10% after Basic Attack. This effect stacks up to 3 times."
-            # The value is per-stack; stacking count lives in the meta-sentence.
-            entry["max_stacks"] = global_stacks
-            entry["per_stack"] = True
 
         results.append(entry)
+
+    # Post-pass: attach global_stacks to the last clause that has a trigger but
+    # no inline stacks yet.  This handles patterns like:
+    #   "Stat +X% after Trigger.  This effect stacks up to N times."
+    # and correctly scopes stacking to the final clause when a sentence was
+    # split into multiple sub-clauses by _split_compound_and (the stacking
+    # meta-sentence always refers to the last-mentioned effect).
+    if global_stacks > 0:
+        for entry in reversed(results):
+            if "max_stacks" not in entry and entry.get("trigger"):
+                entry["max_stacks"] = global_stacks
+                entry["per_stack"] = True
+                break
 
     return results
 
