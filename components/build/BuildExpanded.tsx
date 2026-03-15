@@ -122,6 +122,7 @@ interface BuildExpandedProps {
   activeBoardWeaponId?: string;
   activeTrackKey?: string;
   activeBoardDamage?: number;
+  globalRank?: number;
 }
 
 function normalizeSubstatKey(type: string | null | undefined): string | null {
@@ -146,6 +147,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   activeBoardWeaponId,
   activeTrackKey,
   activeBoardDamage,
+  globalRank,
 }) => {
   const router = useRouter();
   const { fettersByElement, getSubstatValues, getWeapon, statTranslations } = useGameData();
@@ -622,6 +624,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   activeTrackKey={activeTrackKey}
                   isExpanded={isExpanded}
                   baseDamage={activeBoardDamage}
+                  globalRank={globalRank}
                 />
               )}
             </div>

@@ -11,6 +11,8 @@ export interface BuildUpgradeColumn {
   result: number;
   percentGain: number;
   isPercent: boolean;
+  projectedRank: number;
+  rankDelta: number;
 }
 
 interface TierOption {
@@ -24,6 +26,7 @@ interface BuildSubstatUpgradesProps {
   hasUpgradeData: boolean;
   hasBaseDamage: boolean;
   baseDamage?: number;
+  globalRank?: number;
   tierOptions: readonly TierOption[];
   selectedTier: string;
   onSelectTier: (tier: string) => void;
@@ -49,6 +52,14 @@ function formatSignedUpgradeValue(value: number, isPercent: boolean): string {
   return value > 0 ? `+${formatted}` : formatted;
 }
 
+function getRankDeltaColor(rankDelta: number, maxDelta: number): string {
+  if (!Number.isFinite(rankDelta) || rankDelta === 0) return 'rgba(224,224,224,0.6)';
+  if (rankDelta < 0) return 'hsl(0 72% 65%)';
+  const ratio = maxDelta > 0 ? Math.min(1, rankDelta / maxDelta) : 0;
+  const lightness = 61 + (ratio * 14);
+  return `hsl(129 73% ${lightness}%)`;
+}
+
 function getGainColor(percentGain: number, maxPercentGain: number): string {
   if (!Number.isFinite(percentGain) || percentGain <= 0) return 'rgba(224,224,224,0.6)';
   const ratio = maxPercentGain > 0 ? Math.min(1, percentGain / maxPercentGain) : 0;
@@ -62,6 +73,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
   hasUpgradeData,
   hasBaseDamage,
   baseDamage,
+  globalRank,
   tierOptions,
   selectedTier,
   onSelectTier,
@@ -69,6 +81,10 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
 }) => {
   const strongestPercentGain = orderedUpgradeColumns.reduce(
     (max, column) => Math.max(max, column.percentGain),
+    0,
+  );
+  const maxRankDelta = orderedUpgradeColumns.reduce(
+    (max, column) => Math.max(max, column.rankDelta),
     0,
   );
 
@@ -150,7 +166,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
 
           <tbody className="divide-y divide-border/45">
             <tr>
-              <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected damage</th>
+              <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected result</th>
               <td className="px-3 py-2.5 text-center font-semibold text-white/92">
                 {formatDamage(baseDamage ?? 0)}
               </td>
@@ -179,6 +195,30 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
                   {formatSignedPercent(column.percentGain)}
                 </td>
               ))}
+            </tr>
+
+            <tr>
+              <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected rank</th>
+              <td className="px-3 py-2.5 text-center font-semibold text-white/72">
+                {(globalRank ?? 0) > 0 ? `${globalRank!.toLocaleString()}` : '—'}
+              </td>
+              {orderedUpgradeColumns.map((column) => {
+                const color = getRankDeltaColor(column.rankDelta, maxRankDelta);
+                return (
+                  <td key={`upgrade-rank-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color }}>
+                    {column.projectedRank > 0 ? (
+                      <>
+                        <span>{column.projectedRank.toLocaleString()}</span>
+                        {column.rankDelta !== 0 && (
+                          <span className="ml-1 text-xs opacity-70">
+                            ({column.rankDelta > 0 ? '+' : ''}{column.rankDelta.toLocaleString()})
+                          </span>
+                        )}
+                      </>
+                    ) : '—'}
+                  </td>
+                );
+              })}
             </tr>
 
             <tr>

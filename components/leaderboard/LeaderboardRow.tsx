@@ -245,6 +245,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         activeBoardWeaponId={activeWeaponId}
         activeTrackKey={activeTrackKey}
         activeBoardDamage={entry.damage}
+        globalRank={entry.globalRank}
       />
     </div>
   );

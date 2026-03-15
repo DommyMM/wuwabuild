@@ -53,6 +53,8 @@ type UpgradeRow = {
 
 type OrderedUpgradeColumn = BuildUpgradeColumn & {
   canonicalLabel: string;
+  projectedRank: number;
+  rankDelta: number;
 };
 
 function formatTrackLabel(trackKey: string): string {
@@ -126,6 +128,7 @@ interface BuildSimulationSectionProps {
   activeTrackKey: string;
   isExpanded: boolean;
   baseDamage?: number;
+  globalRank?: number;
 }
 
 export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
@@ -134,6 +137,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   activeTrackKey,
   isExpanded,
   baseDamage,
+  globalRank,
 }) => {
   const { getWeapon, getSubstatValues, statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
@@ -275,6 +279,13 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       return [];
     }
 
+    const tierRankMap: Record<string, number> =
+      selectedUpgradeTier === 'min'
+        ? activeUpgrades.minRank
+        : selectedUpgradeTier === 'max'
+          ? activeUpgrades.maxRank
+          : activeUpgrades.medianRank;
+
     return Object.entries(activeUpgrades[selectedUpgradeTier] ?? {})
       .map(([key, gain]) => {
         const label = UPGRADE_STAT_LABELS[key] ?? key;
@@ -282,6 +293,8 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
         const icon = statIcons?.[label] ?? statIcons?.[label.replace('%', '')] ?? '';
         const rollValue = getTierRollValue(getSubstatValues(label), selectedUpgradeTier) ?? 0;
         const percentGain = gain > 0 ? (gain / (baseDamage ?? 1)) * 100 : 0;
+        const projectedRank = tierRankMap[key] ?? 0;
+        const rankDelta = (globalRank ?? 0) - projectedRank;
 
         return {
           key,
@@ -293,10 +306,12 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           result: (baseDamage ?? 0) + gain,
           percentGain,
           isPercent,
+          projectedRank,
+          rankDelta,
         };
       })
       .filter((column) => column.gain > 0);
-  }, [activeUpgrades, baseDamage, getSubstatValues, selectedUpgradeTier, statIcons, statTranslations, t]);
+  }, [activeUpgrades, baseDamage, getSubstatValues, globalRank, selectedUpgradeTier, statIcons, statTranslations, t]);
 
   const orderedUpgradeColumns = useMemo(
     () => canonicalUpgradeSort(upgradeColumns, statTranslations),
@@ -352,6 +367,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           hasUpgradeData={upgradeRows.length > 0}
           hasBaseDamage={Boolean(baseDamage)}
           baseDamage={baseDamage}
+          globalRank={globalRank}
           tierOptions={UPGRADE_TIER_OPTIONS}
           selectedTier={selectedUpgradeTier}
           onSelectTier={(tier) => setSelectedUpgradeTier(tier as UpgradeTierKey)}

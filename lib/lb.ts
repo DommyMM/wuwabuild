@@ -207,6 +207,9 @@ export interface LBSubstatUpgradeTierSet {
   min: Record<string, number>;
   median: Record<string, number>;
   max: Record<string, number>;
+  minRank: Record<string, number>;
+  medianRank: Record<string, number>;
+  maxRank: Record<string, number>;
 }
 
 interface LBListBuildsResponseRaw {
@@ -364,22 +367,27 @@ function parseMoveEntry(raw: unknown): LBMoveEntry | null {
 }
 
 // parseUpgradeTierSet transposes the API's per-stat format
-// { CritRate: { min, median, max, ... }, ... }
-// into the per-tier format the component expects:
-// { min: { CritRate: n }, median: { CritRate: n }, max: { CritRate: n } }
+// { CritRate: { min, median, max, minRank, medianRank, maxRank }, ... }
+// into the per-tier format the component expects.
 function parseUpgradeTierSet(raw: unknown): LBSubstatUpgradeTierSet | null {
   if (!isRecord(raw)) return null;
   const min: Record<string, number> = {};
   const median: Record<string, number> = {};
   const max: Record<string, number> = {};
+  const minRank: Record<string, number> = {};
+  const medianRank: Record<string, number> = {};
+  const maxRank: Record<string, number> = {};
   for (const [statKey, tierData] of Object.entries(raw)) {
     if (!isRecord(tierData)) continue;
     min[statKey] = toFiniteNumber(tierData.min, 0);
     median[statKey] = toFiniteNumber(tierData.median, 0);
     max[statKey] = toFiniteNumber(tierData.max, 0);
+    minRank[statKey] = toFiniteNumber(tierData.minRank, 0);
+    medianRank[statKey] = toFiniteNumber(tierData.medianRank, 0);
+    maxRank[statKey] = toFiniteNumber(tierData.maxRank, 0);
   }
   if (Object.keys(min).length === 0) return null;
-  return { min, median, max };
+  return { min, median, max, minRank, medianRank, maxRank };
 }
 
 function resolveLBBaseUrl(): string {
