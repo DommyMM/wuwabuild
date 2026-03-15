@@ -691,6 +691,7 @@ def _extract_sequence_bonuses(char: dict) -> list[dict]:
 
 # Regex for the "up to Y%" cap pattern used in scaling party buffs.
 _RE_UP_TO_CAP = re.compile(r"up\s+to\s+(\d+(?:\.\d+)?)\s*%", re.I)
+_RE_UP_TO_POINTS = re.compile(r"up\s+to\s+(\d+(?:\.\d+)?)\s+points?", re.I)
 
 # Phrases indicating the buff applies to party members (not just the caster).
 _PARTY_SCOPE_PHRASES = [
@@ -698,6 +699,10 @@ _PARTY_SCOPE_PHRASES = [
     "nearby party",
     "resonators on the team",
     "incoming resonator",
+    "all team members",
+    "all resonators in the team",
+    "all characters on teams nearby",
+    "all nearby resonators in the team",
 ]
 
 # Echo active skill party phrases (superset of _PARTY_SCOPE_PHRASES).
@@ -724,6 +729,19 @@ _AMPLIFY_RE = re.compile(
     r"\s+)?DMG\s+(?:is\s+)?[Aa]mplified\s+by\s+(\d+(?:\.\d+)?)\s*%",
     re.I,
 )
+_AMPLIFY_BY_RE = re.compile(
+    r"(Glacio|Fusion|Electro|Aero|Havoc|Spectro"
+    r"|Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation)"
+    r"\s+DMG\s+by\s+(\d+(?:\.\d+)?)\s*%",
+    re.I,
+)
+_AMPLIFY_NOUN_RE = re.compile(
+    r"(\d+(?:\.\d+)?)\s*%\s+"
+    r"(Glacio|Fusion|Electro|Aero|Havoc|Spectro"
+    r"|Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation)"
+    r"\s+DMG\s+Amplification",
+    re.I,
+)
 
 _ELEMENT_TO_CODE = {
     "glacio": "GD", "fusion": "FD", "electro": "ED",
@@ -735,6 +753,34 @@ _MOVE_TYPE_TO_CODE = {
     "resonance skill": "resonance_skill",
     "resonance liberation": "resonance_liberation",
 }
+
+
+def _append_amplify_entry(out: list[dict], qualifier: str, value: float) -> None:
+    qualifier = (qualifier or "").strip().lower()
+    entry: dict = {"type": "amplify", "value": value}
+    if qualifier in _ELEMENT_TO_CODE:
+        entry["element"] = _ELEMENT_TO_CODE[qualifier]
+    elif qualifier in _MOVE_TYPE_TO_CODE:
+        entry["move_type"] = _MOVE_TYPE_TO_CODE[qualifier]
+    if entry not in out:
+        out.append(entry)
+
+
+def _extract_amplify_buffs(text: str) -> list[dict]:
+    """Extract amplify buffs across the common wording variants used in LB text."""
+    out: list[dict] = []
+
+    for amp_m in _AMPLIFY_RE.finditer(text):
+        _append_amplify_entry(out, amp_m.group(1) or "", float(amp_m.group(2)))
+
+    lower = text.lower()
+    if "amplif" in lower:
+        for amp_m in _AMPLIFY_BY_RE.finditer(text):
+            _append_amplify_entry(out, amp_m.group(1), float(amp_m.group(2)))
+        for amp_m in _AMPLIFY_NOUN_RE.finditer(text):
+            _append_amplify_entry(out, amp_m.group(2), float(amp_m.group(1)))
+
+    return out
 
 
 def _parse_echo_party_buffs(effect_en: str) -> list[dict]:
@@ -775,14 +821,7 @@ def _parse_echo_party_buffs(effect_en: str) -> list[dict]:
             party_buffs.append({"type": "moveTypeDMG", "value": float(m.group(1))})
 
         # Amplify patterns.
-        for amp_m in _AMPLIFY_RE.finditer(sentence):
-            qualifier = (amp_m.group(1) or "").strip().lower()
-            amp_val = float(amp_m.group(2))
-            entry: dict = {"type": "amplify", "value": amp_val}
-            if qualifier in _ELEMENT_TO_CODE:
-                entry["element"] = _ELEMENT_TO_CODE[qualifier]
-            elif qualifier in _MOVE_TYPE_TO_CODE:
-                entry["move_type"] = _MOVE_TYPE_TO_CODE[qualifier]
+        for entry in _extract_amplify_buffs(sentence):
             party_buffs.append(entry)
 
     return party_buffs
@@ -847,6 +886,16 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
                 elif stat_name in ("Crit DMG",):
                     party_buffs.append({"type": "critDMG", "value": cap_val})
 
+        # Flat ATK caps phrased as "up to N points".
+        for cap_m in _RE_UP_TO_POINTS.finditer(resolved):
+            cap_val = float(cap_m.group(1))
+            before_cap = resolved[max(0, cap_m.start() - 80):cap_m.start()]
+            stat_back_m = None
+            for sm in _STAT_RE.finditer(before_cap):
+                stat_back_m = sm
+            if stat_back_m and _stat_name_for_match(stat_back_m) == "ATK":
+                party_buffs.append({"type": "atkFlat", "value": cap_val})
+
         # Also run _extract_buffs for ATK / ATK% / other plain (non-capped) stats.
         for b in _extract_buffs(resolved):
             stat = b["stat"]
@@ -865,15 +914,7 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
                 party_buffs.append({"type": "atkPercentage", "value": val})
 
         # --- Kind B: amplify buffs ---
-        for amp_m in _AMPLIFY_RE.finditer(resolved):
-            qualifier = (amp_m.group(1) or "").strip().lower()
-            amp_val = float(amp_m.group(2))
-            entry: dict = {"type": "amplify", "value": amp_val}
-            if qualifier in _ELEMENT_TO_CODE:
-                entry["element"] = _ELEMENT_TO_CODE[qualifier]
-            elif qualifier in _MOVE_TYPE_TO_CODE:
-                entry["move_type"] = _MOVE_TYPE_TO_CODE[qualifier]
-            # else: generic amplify (no qualifier key)
+        for entry in _extract_amplify_buffs(resolved):
             party_buffs.append(entry)
 
     return party_buffs
