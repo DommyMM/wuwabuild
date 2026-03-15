@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { getBuildById, LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBTrack, listLeaderboard } from '@/lib/lb';
+import { getBuildById, LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, MAX_ITEMS_PER_PAGE } from '@/components/build/buildConstants';
 import { BuildFiltersPanel } from '@/components/build/BuildFiltersPanel';
@@ -53,6 +53,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [configWeaponIds, setConfigWeaponIds] = useState<string[]>(() => initialData?.weaponIds ?? []);
   const [configTracks, setConfigTracks] = useState<LBTrack[]>(() => initialData?.tracks ?? []);
   const [configTeamCharacterIds, setConfigTeamCharacterIds] = useState<string[]>(() => initialData?.teamCharacterIds ?? []);
+  const [configTeamMembers, setConfigTeamMembers] = useState<LBTeamMemberConfig[]>(() => initialData?.teamMembers ?? []);
 
   // State initialized from URL
   const [page, setPage] = useState(() => initialSnapshot.page);
@@ -161,6 +162,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         if (response.weaponIds.length > 0) setConfigWeaponIds(response.weaponIds);
         setConfigTracks(response.tracks);
         setConfigTeamCharacterIds(response.teamCharacterIds);
+        setConfigTeamMembers(response.teamMembers);
 
         if (response.activeWeaponId) {
           const activeIndex = response.weaponIds.indexOf(response.activeWeaponId);
@@ -333,6 +335,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               characterHead={character?.head}
               characterElement={character?.element ?? undefined}
               teamCharacterIds={configTeamCharacterIds}
+              teamMembers={configTeamMembers}
+              activeWeaponId={weaponId}
               activeTrackKey={track}
               activeTrackLabel={configTracks.find((t) => t.key === track)?.label}
             />

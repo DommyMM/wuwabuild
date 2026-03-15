@@ -33,6 +33,24 @@ function isWeaponTop(value: unknown): boolean {
   );
 }
 
+function isTeamMemberConfig(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as {
+    charId?: unknown;
+    weaponId?: unknown;
+    refinement?: unknown;
+    setId?: unknown;
+    echoId?: unknown;
+  };
+  return (
+    typeof candidate.charId === 'string' &&
+    (candidate.weaponId === undefined || typeof candidate.weaponId === 'string') &&
+    (candidate.refinement === undefined || isFiniteNumber(candidate.refinement)) &&
+    (candidate.setId === undefined || typeof candidate.setId === 'string') &&
+    (candidate.echoId === undefined || typeof candidate.echoId === 'string')
+  );
+}
+
 function isCharacterOverview(value: unknown): value is LBCharacterOverview {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<LBCharacterOverview>;
@@ -46,7 +64,9 @@ function isCharacterOverview(value: unknown): value is LBCharacterOverview {
     Array.isArray(candidate.weaponIds) &&
     candidate.weaponIds.every((weaponId) => typeof weaponId === 'string') &&
     Array.isArray(candidate.teamCharacterIds) &&
-    candidate.teamCharacterIds.every((characterId) => typeof characterId === 'string')
+    candidate.teamCharacterIds.every((characterId) => typeof characterId === 'string') &&
+    Array.isArray(candidate.teamMembers) &&
+    candidate.teamMembers.every(isTeamMemberConfig)
   );
 }
 

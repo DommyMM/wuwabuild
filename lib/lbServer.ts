@@ -1,5 +1,5 @@
 // Server-only module, fetches directly from LB_URL with X-Internal-Key
-import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack } from './lb';
+import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack, LBTeamMemberConfig } from './lb';
 
 // Centralized TTL for all SSR prefetch caches (seconds).
 const PREFETCH_TTL_S = 120; // 2 minutes
@@ -14,6 +14,21 @@ function parseTracks(raw: unknown): LBTrack[] {
       label: typeof track.label === 'string' ? track.label : '',
     }))
     .filter((track) => track.key.length > 0);
+}
+
+function parseTeamMembers(raw: unknown): LBTeamMemberConfig[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .filter(isRecord)
+    .map((member) => ({
+      charId: typeof member.charId === 'string' ? member.charId : '',
+      weaponId: typeof member.weaponId === 'string' ? member.weaponId : undefined,
+      refinement: typeof member.refinement === 'number' && Number.isFinite(member.refinement) ? member.refinement : undefined,
+      setId: typeof member.setId === 'string' ? member.setId : undefined,
+      echoId: typeof member.echoId === 'string' ? member.echoId : undefined,
+    }))
+    .filter((member) => member.charId.length > 0);
 }
 
 function getLBUrl(): string {
@@ -135,6 +150,7 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
         teamCharacterIds: Array.isArray(raw.teamCharacterIds)
           ? raw.teamCharacterIds.filter((v): v is string => typeof v === 'string')
           : [],
+        teamMembers: parseTeamMembers(raw.teamMembers),
       });
     }
     console.log('[lbServer] prefetchLeaderboardOverview payload', {
@@ -186,6 +202,7 @@ export async function prefetchLeaderboard(
       weaponIds?: unknown[];
       tracks?: unknown;
       teamCharacterIds?: unknown[];
+      teamMembers?: unknown[];
       activeWeaponId?: unknown;
       activeTrack?: unknown;
     };
@@ -220,6 +237,7 @@ export async function prefetchLeaderboard(
       teamCharacterIds: Array.isArray(payload.teamCharacterIds)
         ? payload.teamCharacterIds.filter((v): v is string => typeof v === 'string')
         : [],
+      teamMembers: parseTeamMembers(payload.teamMembers),
       activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
       activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
     };

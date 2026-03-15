@@ -474,6 +474,14 @@ export interface LBWeaponTop {
   owner: { username: string; uid: string };
 }
 
+export interface LBTeamMemberConfig {
+  charId: string;
+  weaponId?: string;
+  refinement?: number;
+  setId?: string;
+  echoId?: string;
+}
+
 export interface LBTrack {
   key: string;
   label: string;
@@ -487,6 +495,7 @@ export interface LBCharacterOverview {
   weapons: LBWeaponTop[];
   weaponIds: string[]; // derived from weapons array
   teamCharacterIds: string[];
+  teamMembers: LBTeamMemberConfig[];
 }
 
 export interface LBLeaderboardEntry {
@@ -527,13 +536,14 @@ export interface LBLeaderboardResponse {
   weaponIds: string[];
   tracks: LBTrack[];
   teamCharacterIds: string[];
+  teamMembers: LBTeamMemberConfig[];
   activeWeaponId: string;
   activeTrack: string;
 }
 
 export type LBLeaderboardCharacterConfig = Pick<
   LBLeaderboardResponse,
-  'weaponIds' | 'tracks' | 'teamCharacterIds' | 'activeWeaponId' | 'activeTrack'
+  'weaponIds' | 'tracks' | 'teamCharacterIds' | 'teamMembers' | 'activeWeaponId' | 'activeTrack'
 >;
 
 export interface LBSubmitBuildResult {
@@ -584,6 +594,21 @@ function parseTracks(raw: unknown): LBTrack[] {
     .filter((track) => track.key.length > 0);
 }
 
+function parseTeamMembers(raw: unknown): LBTeamMemberConfig[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .filter(isRecord)
+    .map((member) => ({
+      charId: typeof member.charId === 'string' ? member.charId : '',
+      weaponId: typeof member.weaponId === 'string' ? member.weaponId : undefined,
+      refinement: typeof member.refinement === 'number' && Number.isFinite(member.refinement) ? member.refinement : undefined,
+      setId: typeof member.setId === 'string' ? member.setId : undefined,
+      echoId: typeof member.echoId === 'string' ? member.echoId : undefined,
+    }))
+    .filter((member) => member.charId.length > 0);
+}
+
 export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBCharacterOverview[]> {
   const requestUrl = `${resolveLBBaseUrl()}/leaderboard`;
   const response = await fetch(requestUrl, { method: 'GET', signal });
@@ -619,6 +644,7 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
       weapons,
       weaponIds: weapons.map((w) => w.weaponId).filter(Boolean),
       teamCharacterIds: Array.isArray(raw.teamCharacterIds) ? raw.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
+      teamMembers: parseTeamMembers(raw.teamMembers),
     });
   }
 
@@ -646,6 +672,7 @@ export async function listLeaderboard(
     weaponIds?: unknown[];
     tracks?: unknown;
     teamCharacterIds?: unknown[];
+    teamMembers?: unknown[];
     activeWeaponId?: unknown;
     activeTrack?: unknown;
   };
@@ -672,6 +699,7 @@ export async function listLeaderboard(
     weaponIds: Array.isArray(payload.weaponIds) ? (payload.weaponIds as unknown[]).filter((v): v is string => typeof v === 'string') : [],
     tracks: parseTracks(payload.tracks),
     teamCharacterIds: Array.isArray(payload.teamCharacterIds) ? payload.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
+    teamMembers: parseTeamMembers(payload.teamMembers),
     activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
     activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
   };
@@ -711,6 +739,7 @@ export async function getLeaderboardCharacterConfig(
     weaponIds: response.weaponIds,
     tracks: response.tracks,
     teamCharacterIds: response.teamCharacterIds,
+    teamMembers: response.teamMembers,
     activeWeaponId: response.activeWeaponId,
     activeTrack: response.activeTrack,
   };
