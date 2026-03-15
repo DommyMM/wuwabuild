@@ -495,10 +495,16 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
         entry: dict = {"trigger": trigger, "buffs": buffs, "duration": duration}
         if stacks_m:
             entry["max_stacks"] = int(stacks_m.group(1))
+            if per_stack_m:
+                entry["per_stack"] = True
         elif per_stack_m and global_stacks > 0:
             # Stacking info was in a separate meta-sentence; attach it here.
             entry["max_stacks"] = global_stacks
-        if per_stack_m:
+            entry["per_stack"] = True
+        elif global_stacks > 0 and trigger:
+            # e.g. "Glacio DMG +10% after Basic Attack. This effect stacks up to 3 times."
+            # The value is per-stack; stacking count lives in the meta-sentence.
+            entry["max_stacks"] = global_stacks
             entry["per_stack"] = True
 
         results.append(entry)
