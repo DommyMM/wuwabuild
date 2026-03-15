@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { PATHS } from '@/lib/paths';
 
 // Arc geometry: 6 orbs sweep clockwise from 0° (top) to 210° (bottom-left)
 
@@ -21,32 +20,16 @@ const ACTIVE_BG: React.CSSProperties = {
 };
 
 interface SequenceSelectorProps {
-  cdnId: number;
-  characterName: string;
-  roverElement?: string;
+  sequenceIconUrl?: string;
   current: number;
   onChange: (seq: number) => void;
   compact?: boolean;
   className?: string;
 }
 
-function getLocalWavebandPath(name: string, roverElement?: string): string {
-  let filename: string;
-  if (name === 'Rover') {
-    if (roverElement === 'Aero') filename = 'RoverAero';
-    else if (roverElement === 'Havoc') filename = 'RoverHavoc';
-    else filename = 'RoverSpectro';
-  } else {
-    filename = name;
-  }
-  return `/images/Wavebands/${filename}.png`;
-}
-
 export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
-  cdnId, characterName, roverElement, current, onChange, compact = false, className = '',
+  sequenceIconUrl, current, onChange, compact = false, className = '',
 }) => {
-  const sequenceIconUrl = `${PATHS.cdn.base}/Image/IconRup/T_IconRup_Part_${cdnId}_UI.png`;
-  const localFallback = getLocalWavebandPath(characterName, roverElement);
   const size = compact ? MOBILE_SIZE : DESKTOP_SIZE;
   const orb = compact ? MOBILE_ORB : DESKTOP_ORB;
   const arcRadius = compact ? MOBILE_ARC_RADIUS : DESKTOP_ARC_RADIUS;
@@ -68,12 +51,13 @@ export const SequenceSelector: React.FC<SequenceSelectorProps> = ({
     <div className={`relative ${className}`} style={{ width: size, height: size }}>
       {/* Center waveband icon */}
       <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-        <img
-          src={sequenceIconUrl}
-          alt="Sequence"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).src = localFallback; }}
-          className={`${compact ? 'h-28' : 'h-36'} object-contain drop-shadow-[0_0_12px_rgba(166,150,98,0.3)]`}
-        />
+        {sequenceIconUrl ? (
+          <img
+            src={sequenceIconUrl}
+            alt="Sequence"
+            className={`${compact ? 'h-28' : 'h-36'} object-contain drop-shadow-[0_0_12px_rgba(166,150,98,0.3)]`}
+          />
+        ) : null}
       </div>
 
       {/* Orbs in arc */}

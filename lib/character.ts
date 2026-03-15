@@ -98,6 +98,7 @@ export interface CDNCharacter {
   skillTrees?: CDNSkillTreeNode[];
   chains?: CDNChainEntry[];
   moves?: CDNMoveEntry[];
+  sequenceIcon?: string;
   preferredStats?: string[];
 }
 
@@ -158,6 +159,7 @@ export interface Character {
   forteNodes?: Record<string, ForteNodeData>; // Keyed by "tree1.top", "tree1.middle", etc.
   chains?: CDNChainEntry[]; // Resonance chains (S1–S6) with icon URLs
   moves?: CDNMoveEntry[]; // Compact skill payload for tooltip rendering
+  sequenceIcon?: string; // Canonical center waveband art from grouped Item data
   roverElementName?: Element; // For Rover's element selection (Aero | Spectro | Havoc)
   preferredStats?: string[]; // Ordered list of preferred substats for RV calculation
 }
@@ -350,6 +352,7 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     forteNodes,
     chains: cdn.chains,
     moves: cdn.moves,
+    sequenceIcon: cdn.sequenceIcon,
     preferredStats: Array.isArray(cdn.preferredStats)
       ? cdn.preferredStats.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
       : undefined,

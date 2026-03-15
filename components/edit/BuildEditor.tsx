@@ -459,12 +459,10 @@ export const BuildEditor: React.FC = () => {
 
                   {/* Row 1, Col 2: Sequences + Weapon + Rank slider */}
                   <div className="relative order-3 flex min-w-0 flex-col items-center gap-4 overflow-visible md:col-start-2 md:row-start-1 md:items-stretch md:justify-between md:overflow-hidden">
-                    {selected.character.cdnId && (
+                    {selected.character.sequenceIcon && (
                       <SequenceSelector
                         compact={isPhoneViewport}
-                        cdnId={selected.character.cdnId}
-                        characterName={selected.character.name}
-                        roverElement={state.roverElement}
+                        sequenceIconUrl={selected.character.sequenceIcon}
                         current={state.sequence}
                         onChange={setSequence}
                       />

@@ -124,6 +124,7 @@ def parse_chain_bonus(desc_en: str, params: list[str]) -> dict | None:
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Character"
+CDN_ITEM_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Item"
 CDN_SKILL_CONFIG_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/Skill.json"
 
 # Known CDN path typos that need deterministic normalization.
@@ -137,6 +138,14 @@ OUTPUT_DIR = Path(__file__).parent.parent / "public/Data/Characters"
 
 # Skip test/placeholder characters
 SKIP_IDS = {9990, 9991}
+
+# Most characters expose a canonical waveband item at 1000<character_id>.
+# Rover variants reuse shared grouped Item ids instead of per-variant ids.
+ROVER_SEQUENCE_ITEM_IDS = {
+    "Rover: Aero": 10001406,
+    "Rover: Spectro": 10001500,
+    "Rover: Havoc": 10001604,
+}
 
 # Default schema for character files.
 #   True           = keep entire field as-is
@@ -434,6 +443,76 @@ def simplify_chains(chains: Any) -> list[dict] | None:
     return result if result else None
 
 
+def get_sequence_item_id(data: dict) -> int | None:
+    """Return the grouped Item ID that stores the canonical sequence icon."""
+    name_field = data.get("name", {})
+    en_name = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field or "")
+    if en_name in ROVER_SEQUENCE_ITEM_IDS:
+        return ROVER_SEQUENCE_ITEM_IDS[en_name]
+
+    char_id = data.get("id")
+    if not isinstance(char_id, int):
+        return None
+    return int(f"1000{char_id}")
+
+
+def _fetch_sequence_icon(session: Any, item_id: int) -> tuple[int, str | None]:
+    url = f"{CDN_ITEM_DOWNLOAD_BASE}/{item_id}.json"
+    try:
+        resp = session.get(url, timeout=30)
+        if resp.status_code != 200:
+            print(f"  Failed sequence item {item_id}: HTTP {resp.status_code}")
+            return (item_id, None)
+
+        data = resp.json()
+        icon_data = data.get("icon", {}) if isinstance(data, dict) else {}
+        icon = icon_data.get("icon", "") if isinstance(icon_data, dict) else ""
+        if isinstance(icon, str) and icon.startswith("/d/"):
+            icon = f"{CDN_BASE}{icon}"
+        return (item_id, icon if isinstance(icon, str) and icon else None)
+    except Exception as e:
+        print(f"  Error sequence item {item_id}: {e}")
+        return (item_id, None)
+
+
+def fetch_sequence_icons(raw_characters: list[dict], workers: int | None = None) -> dict[int, str]:
+    """Fetch canonical sequence icons from grouped Item files for non-Rover characters."""
+    try:
+        import requests
+    except ImportError:
+        print("Install requests library: pip install requests")
+        return {}
+
+    char_to_item: dict[int, int] = {}
+    for data in raw_characters:
+        char_id = data.get("id")
+        item_id = get_sequence_item_id(data)
+        if isinstance(char_id, int) and isinstance(item_id, int):
+            char_to_item[char_id] = item_id
+
+    if not char_to_item:
+        return {}
+
+    session = requests.Session()
+    item_ids = sorted(set(char_to_item.values()))
+    actual_workers = workers if workers else 20
+    print(f"Fetching {len(item_ids)} canonical sequence icons with {actual_workers} threads...")
+
+    item_icon_map: dict[int, str] = {}
+    with ThreadPoolExecutor(max_workers=actual_workers) as pool:
+        futures = {pool.submit(_fetch_sequence_icon, session, item_id): item_id for item_id in item_ids}
+        for future in as_completed(futures):
+            item_id, icon = future.result()
+            if icon:
+                item_icon_map[item_id] = icon
+
+    return {
+        char_id: item_icon_map[item_id]
+        for char_id, item_id in char_to_item.items()
+        if item_id in item_icon_map
+    }
+
+
 def extract_by_schema(data: dict, schema: dict) -> dict:
     """Extract fields from data according to schema."""
     output = {}
@@ -460,6 +539,7 @@ def transform_character(
     data: dict,
     schema: dict,
     description_param_map: dict[int, list[str]] | None = None,
+    sequence_icon_map: dict[int, str] | None = None,
 ) -> dict | None:
     """Transform raw CDN character data using schema."""
     char_id = data.get("id")
@@ -513,6 +593,11 @@ def transform_character(
         preferred = get_preferred_substats(result["tags"], raw_skill_trees, result.get("moves"))
         if preferred:
             result["preferredStats"] = preferred
+
+    if isinstance(char_id, int):
+        sequence_icon = (sequence_icon_map or {}).get(char_id)
+        if sequence_icon:
+            result["sequenceIcon"] = sequence_icon
 
     return result
 
@@ -1048,13 +1133,15 @@ def main():
 
     raw_characters = fetch_cdn_characters(single_id=args.id, workers=args.workers)
     description_param_map = fetch_skill_description_params()
+    sequence_icon_map = fetch_sequence_icons(raw_characters, workers=args.workers)
 
     print(f"\nLoaded {len(raw_characters)} raw character files")
+    print(f"Resolved {len(sequence_icon_map)} canonical sequence icons")
 
     # Transform characters using schema.
     characters = []
     for data in raw_characters:
-        char = transform_character(data, schema, description_param_map)
+        char = transform_character(data, schema, description_param_map, sequence_icon_map)
         if char:
             characters.append(char)
 

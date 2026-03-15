@@ -11,13 +11,6 @@ const ELEMENT_NAME_MAP: Record<string, string> = {
   'Aero': 'Wind'
 };
 
-// Used by SequenceSelector for sequence icon URLs.
-export const PATHS = {
-  cdn: {
-    base: CDN_UI_COMMON_BASE,
-  },
-};
-
 export const getWeaponPaths = (weapon: Weapon | null): string => {
   if (!weapon) return '/images/Resources/Weapon.png';
   return weapon.iconUrl ?? '';
