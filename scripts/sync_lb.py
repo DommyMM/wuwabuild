@@ -10,10 +10,9 @@ Outputs:
 - lb/internal/calc/data/character_bases.json
 - lb/internal/calc/data/weapon_bases.json    (lv1 ATK + secondary, effect_en, params_r1/params_r5)
 - lb/internal/calc/data/echo_bases.json
-- lb/internal/calc/data/fetter_bases.json
+- lb/internal/calc/data/fetter_bases.json    (piece_effects include parsed `effects` arrays)
 - lb/internal/calc/data/character_curve.json
 - lb/internal/calc/data/level_curve.json
-- lb/internal/calc/weapon_buffs_gen.go       (always-active bonuses as Go source)
 """
 
 from __future__ import annotations
@@ -228,6 +227,266 @@ def _resolve_effect_placeholders(effect_en: str, add_prop: list[dict], effect_pa
         return values_from_add_prop[idx] if idx < len(values_from_add_prop) else match.group(0)
 
     return re.sub(r"\{(\d+)\}", repl, effect_en)
+
+
+# ---------------------------------------------------------------------------
+# Fetter effect_en parser
+# ---------------------------------------------------------------------------
+# Converts the natural-language effect_en strings from fetter 5pc/3pc tiers
+# into structured `effects` arrays that the Go engine can consume directly
+# instead of relying on hardcoded maps.
+#
+# Each parsed effect is a dict with three keys:
+#   trigger  – str: the condition that activates the buff, exactly as written
+#              in the source text (e.g. "releasing Intro Skill",
+#              "Hitting a target with Aero Erosion").  Empty string means the
+#              buff is passive / always-active for the rotation.
+#   buffs    – list[{stat, value}]: one entry per stat granted.
+#              `stat` uses the same canonical English names as character_bases
+#              stats and echo_bases bonuses (e.g. "Crit Rate", "Aero DMG",
+#              "Resonance Skill DMG Bonus").  `value` is a display-unit float
+#              (e.g. 10.0 for 10%).
+#   duration – float | None: seconds the buff lasts, or null when the effect
+#              has no explicit duration (treat as covering the full rotation).
+#
+# Extra optional fields present when relevant:
+#   max_stacks – int: maximum stack count for accumulating buffs.
+#   per_stack  – bool: true when `value` is the per-stack amount (multiply by
+#                max_stacks to get the effective total at full stacks).
+#
+# The original `effect_en` string is always preserved alongside `effects` so
+# that humans can audit what the parser produced and spot mismatches easily.
+#
+# Canonical stat names (matching character_bases.json + echo_bases bonuses):
+#   "ATK", "DEF", "HP", "Crit Rate", "Crit DMG", "Energy Regen",
+#   "Healing Bonus",
+#   "Aero DMG", "Glacio DMG", "Fusion DMG", "Electro DMG",
+#   "Havoc DMG", "Spectro DMG",
+#   "Basic Attack DMG Bonus", "Heavy Attack DMG Bonus",
+#   "Resonance Skill DMG Bonus", "Resonance Liberation DMG Bonus",
+#   "Echo Skill DMG Bonus", "Outro Skill DMG",     ← non-substat extras
+#   "Coordinated Attack DMG"                         ← non-substat extras
+# ---------------------------------------------------------------------------
+
+# Ordered list of (canonical_name, regex_fragment) pairs.
+# Longer/more-specific entries MUST come before shorter ones to prevent
+# partial matches (e.g. "Resonance Skill DMG Bonus" before "Resonance Skill DMG").
+_STAT_NAMES: list[tuple[str, str]] = [
+    # Move-type DMG bonuses — most specific first
+    ("Resonance Liberation DMG Bonus", r"Resonance Liberation DMG Bonus"),
+    ("Resonance Skill DMG Bonus",      r"Resonance Skill DMG Bonus"),
+    ("Basic Attack DMG Bonus",         r"Basic Attack DMG Bonus"),
+    ("Heavy Attack DMG Bonus",         r"Heavy Attack DMG Bonus"),
+    # Non-substat DMG types (keep as-is for future engine support)
+    ("Echo Skill DMG Bonus",           r"Echo Skill DMG Bonus"),
+    ("Coordinated Attack DMG",         r"Coordinated Attack DMG"),
+    ("Outro Skill DMG",                r"Outro Skill DMG(?! Bonus)"),
+    # Move-type DMG without "Bonus" suffix (less common, check after Bonus variants)
+    ("Resonance Liberation DMG",       r"Resonance Liberation DMG(?! Bonus)"),
+    ("Resonance Skill DMG",            r"Resonance Skill DMG(?! Bonus)"),
+    ("Basic Attack DMG",               r"Basic Attack DMG(?! Bonus)"),
+    ("Heavy Attack DMG",               r"Heavy Attack DMG(?! Bonus)"),
+    # Elemental DMG — effect_en sometimes writes "Aero DMG Bonus", which maps
+    # to the same canonical "Aero DMG" stat (the "Bonus" suffix is stylistic).
+    ("Aero DMG",     r"Aero DMG(?:\s+Bonus)?"),
+    ("Glacio DMG",   r"Glacio DMG(?:\s+Bonus)?"),
+    ("Fusion DMG",   r"Fusion DMG(?:\s+Bonus)?"),
+    ("Electro DMG",  r"Electro DMG(?:\s+Bonus)?"),
+    ("Havoc DMG",    r"Havoc DMG(?:\s+Bonus)?"),
+    ("Spectro DMG",  r"Spectro DMG(?:\s+Bonus)?"),
+    # "all Attribute DMG" / "Attribute DMG" → generic all-element bonus
+    ("All Attribute DMG", r"(?:all\s+)?[Aa]ttribute DMG(?:\s+Bonus)?"),
+    # Base stats
+    ("Crit Rate",     r"Crit\.?\s*Rate"),
+    ("Crit DMG",      r"Crit\.?\s*DMG"),
+    ("ATK",           r"\bATK\b"),
+    ("DEF",           r"\bDEF\b"),
+    ("HP",            r"\bHP\b"),
+    ("Energy Regen",  r"Energy Regen(?:eration)?\.?"),
+    ("Healing Bonus", r"Healing Bonus"),
+]
+
+
+def _build_stat_regex() -> re.Pattern[str]:
+    """Build a combined alternation regex using named groups (s0, s1, …) so
+    that the matched canonical name can be recovered from the group index."""
+    parts = [f"(?P<s{i}>{pat})" for i, (_, pat) in enumerate(_STAT_NAMES)]
+    return re.compile("|".join(parts))
+
+
+_STAT_RE = _build_stat_regex()
+
+# Regexes for numeric value / duration / stacking extraction.
+_RE_PCT       = re.compile(r"(\d+(?:\.\d+)?)\s*%")
+_RE_DURATION  = re.compile(
+    r"(?:lasting\s+for|for|lasts?|each\s+stack\s+lasts?)\s+(\d+(?:\.\d+)?)\s*s\b", re.I
+)
+_RE_STACKS    = re.compile(r"stack(?:s)?\s+up\s+to\s+(\d+)\s+times?", re.I)
+_RE_PER_STACK = re.compile(r"(\d+(?:\.\d+)?)\s*%\s+every\s+\d", re.I)  # "5% every 1.5s"
+
+# Trigger-condition prefixes that appear at the start of a clause.
+_TRIGGER_STARTS = re.compile(
+    r"^(Hitting|Casting|Using|While|Upon|After|When|Dealing|Inflicting|"
+    r"Holding|Reaching|At\b|With\b)",
+    re.I,
+)
+
+
+def _stat_name_for_match(m: re.Match) -> str:
+    """Return the canonical stat name for a _STAT_RE match."""
+    for i, (name, _) in enumerate(_STAT_NAMES):
+        if m.group(f"s{i}") is not None:
+            return name
+    return m.group(0)  # fallback: raw matched text
+
+
+def _extract_buffs(text: str) -> list[dict]:
+    """Find all (stat, value) buff pairs in *text*.
+
+    Handles three common orderings:
+      "30% Aero DMG Bonus"          – value then stat
+      "Aero DMG + 10%"              – stat then value with + separator
+      "increases ATK by 15%"        – stat then value with 'by' / 'increases by'
+    """
+    buffs: list[dict] = []
+    used: list[tuple[int, int]] = []  # (start, end) spans already claimed
+
+    def _overlaps(s: int, e: int) -> bool:
+        return any(a < e and b > s for a, b in used)
+
+    # Pass A – "X% StatName" (value precedes stat)
+    for pct_m in _RE_PCT.finditer(text):
+        val = float(pct_m.group(1))
+        after_start = pct_m.end()
+        after = text[after_start:after_start + 70].lstrip()
+        stat_m = _STAT_RE.match(after)
+        if stat_m:
+            stat = _stat_name_for_match(stat_m)
+            span_end = after_start + after.find(stat_m.group(0)) + len(stat_m.group(0))
+            if not _overlaps(pct_m.start(), span_end):
+                buffs.append({"stat": stat, "value": val})
+                used.append((pct_m.start(), span_end))
+
+    # Pass B – "StatName + X%" or "StatName … by X%" (stat precedes value).
+    # Uses a wider 80-char window to handle wordy constructions like Pact.
+    # Rejects the match when another stat name appears in the text between
+    # this stat and the value — that indicates "A increases B by X%" where
+    # B (not A) is the buffed stat.
+    for stat_m in _STAT_RE.finditer(text):
+        stat = _stat_name_for_match(stat_m)
+        after = text[stat_m.end():stat_m.end() + 80]
+        pct_m = re.search(
+            r"(?:\+\s*|by\s+|increases?\s+by\s+)(\d+(?:\.\d+)?)\s*%",
+            after, re.I,
+        )
+        if pct_m:
+            between = after[: pct_m.start()]
+            if _STAT_RE.search(between):
+                continue  # another stat sits between this one and the value
+            val = float(pct_m.group(1))
+            span_end = stat_m.end() + pct_m.end()
+            if not _overlaps(stat_m.start(), span_end):
+                buffs.append({"stat": stat, "value": val})
+                used.append((stat_m.start(), span_end))
+
+    return buffs
+
+
+def _extract_duration(text: str) -> float | None:
+    """Return the explicit duration in seconds, or None if absent."""
+    m = _RE_DURATION.search(text)
+    return float(m.group(1)) if m else None
+
+
+def _extract_trigger(text: str) -> str:
+    """Extract the condition/trigger clause from an effect sentence.
+
+    Looks for:
+    1. A leading condition phrase ("Hitting …", "Upon using …", "While …", …)
+       up to the first comma or buff verb.
+    2. A trailing "after/upon releasing MOVE" clause after the stat+value.
+    Falls back to "" (passive / always-active) if neither is found.
+    """
+    # Pattern 1 – clause starts with a known trigger keyword
+    cond_m = re.match(
+        r"^((?:Hitting|Casting|Using|While|Upon|After|When|Dealing|Inflicting|"
+        r"Holding|Reaching)\b.+?)"
+        r"(?:,\s*|\s+(?:increases?|grants?|gains?|deal))",
+        text, re.I,
+    )
+    if cond_m:
+        return cond_m.group(1).strip().rstrip(",")
+
+    # Pattern 2 – "STAT + X% after/upon TRIGGER"
+    after_m = re.search(
+        r"\b(?:after|upon)\b\s+(?:releasing\s+)?(.+?)(?:\.|,|$)", text, re.I
+    )
+    if after_m:
+        return after_m.group(1).strip().rstrip(".,")
+
+    return ""
+
+
+def _parse_effect_en(effect_en: str) -> list[dict]:
+    """Parse a fetter piece effect_en into a list of structured effect dicts.
+
+    Each dict has:
+      trigger  – str (empty = passive/always-active)
+      buffs    – list[{stat, value}]
+      duration – float | None (seconds; None = no explicit duration)
+
+    Optional fields when present:
+      max_stacks – int
+      per_stack  – bool (value is per-stack; multiply by max_stacks for total)
+
+    The function splits multi-sentence effects and returns one dict per
+    distinct buff clause.  Pure stacking/meta sentences ("This effect stacks
+    up to …", "Effects of the same name …") are dropped.
+    """
+    if not effect_en:
+        return []
+
+    # Normalise in-word abbreviations that contain ". " so they don't
+    # trigger false sentence splits (e.g. "Crit. Rate" → "Crit Rate").
+    text = re.sub(r"\bCrit\.\s+", "Crit ", effect_en)
+    text = re.sub(r"\bRegen\.\s+", "Regen ", text)
+
+    # Split into sentences; drop pure meta-sentences.
+    _META_RE = re.compile(
+        r"^(?:this effect|effects? of the same name|cd\s*:)", re.I
+    )
+    sentences = [s.strip() for s in re.split(r"\.\s+", text.rstrip(".")) if s.strip()]
+    sentences = [s for s in sentences if not _META_RE.match(s)]
+
+    results: list[dict] = []
+
+    for sentence in sentences:
+        # Extract trigger first so we can filter out threshold-condition
+        # values that appear in the trigger clause but aren't actual buffs
+        # (e.g. "Reaching 250% Energy Regen" → 250 should not be a buff).
+        trigger  = _extract_trigger(sentence)
+        buffs = [
+            b for b in _extract_buffs(sentence)
+            if trigger == "" or b["stat"] not in trigger
+        ]
+        if not buffs:
+            continue
+
+        duration = _extract_duration(sentence)
+
+        # Stacking annotations (informational – Go engine decides how to apply)
+        stacks_m     = _RE_STACKS.search(sentence)
+        per_stack_m  = _RE_PER_STACK.search(sentence)
+
+        entry: dict = {"trigger": trigger, "buffs": buffs, "duration": duration}
+        if stacks_m:
+            entry["max_stacks"] = int(stacks_m.group(1))
+        if per_stack_m:
+            entry["per_stack"] = True
+
+        results.append(entry)
+
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -665,6 +924,7 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
             normalized_piece_effects[piece_key] = {
                 "effect_en": effect_en,
                 "add_prop": add_prop,
+                "effects": _parse_effect_en(effect_en),
             }
 
         out[set_key] = {
