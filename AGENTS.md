@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-WuWaBuilds is a Wuthering Waves build creator at [wuwa.build](https://wuwa.build). Players create, customize, and share character builds with real-time stat calculations, echo management, and build card export. The app is a full rewrite of the legacy `frontend/` codebase, using React Context providers for centralized state management.
+WuWaBuilds is a Wuthering Waves build creator at [wuwa.build](https://wuwa.build). Players create, customize, and share character builds with real-time stat calculations, echo management, and build card export. The app uses React Context providers for centralized state management.
 
-**This is the active codebase** — located in `/wuwabuilds/`. The legacy `/frontend/` and backend services (`/backend/`, `/lb/`) are separate projects with their own documentation.
+**This is the active frontend** — located in `/wuwabuilds/`. Backend services (OCR `/backend/`, leaderboard `/lb/`) are sibling projects with their own documentation.
 
 Data sync scripts (Python, run from `scripts/`):
 
@@ -64,24 +64,16 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 | `builds_imported`            | User imports builds from JSON                            | `components/save/SavesPageClient.tsx`    |
 | `builds_session_summary`     | Session aggregation (expansion count on /builds unmount) | `components/build/BuildPageClient.tsx`   |
 
-## LB + Builds Current Status (2026-03-10)
+## LB + Builds Current Status (2026-03-14)
 
 - `/builds` route is live and wired to LB `GET /build` filters/sort/pagination plus detail expansion via `GET /build/{id}`.
 - `/builds`, `/leaderboards`, and `/leaderboards/[characterId]` are all **SSR-prefetched** — current query rendered server-side (2-minute ISR), hydrated directly into client state, silently revalidated on mount using diff-based ref signatures.
 - `/leaderboards` route is **live** — overview page + per-character pages implemented.
-- `/import` uploads to LB through `POST /api/lb/build` when `Upload to Leaderboard` is enabled, sending canonical `buildState` only and letting `/lb` derive stats/CV/echo summaries server-side.
+- `/import` uploads to LB through `POST /api/lb/build` when `Upload to Leaderboard` is enabled, sending canonical `buildState` only; `/lb` derives stats/CV/echo summaries server-side.
 - `/import` also supports manual OCR issue reporting backed by R2 screenshot storage and JSON report objects.
 - `BuildEditor` has a `View Ranking` button that routes to the selected character leaderboard.
-- Go LB runtime is validated with migrated legacy data and single-pass canonical ingest (`make import DUMP=...`).
-- API filtering should use canonical CDN IDs.
-- Frontend LB clients now use repeated query params for multi-value filters where the backend expects them, and canonical leaderboard routes use `weaponId + track` rather than `weaponIndex`.
-- Go LB currently has 9 registered character configs (`carlotta`, `jinhsi`, `changli`, `camellya`, `zani`, `phoebe`, `cartethyia`, `jiyan`, `lupa`), but `lupa` is still a placeholder with no tracks/team config.
-- Frontend leaderboard track migration is live: `lib/lb.ts`, `lib/lbServer.ts`, and `components/leaderboard/*` now model `track`/`tracks` only.
-- DB index suite updated via migration 002: sort indexes corrected to `NULLS LAST`, dead GIN indexes removed, stat sort indexes added.
-- Backend direction for this phase is:
-  - **Go LB primary** (`/lb`, Chi + pgx + PostgreSQL).
-  - **Node fallback** (`/mongo`, Express + MongoDB) until Go parity gates are met.
-- See `docs/LB_MIGRATION_STATUS.md` for implementation parity, risks, and decision gates.
+- **Leaderboard backend**: Go service at `/lb` (Chi + pgx + PostgreSQL), deployed as the sole source. API filtering uses canonical CDN IDs; frontend uses repeated query params for multi-value filters; leaderboard routes use `weaponId` + `track`. For schema, maintenance commands, and calc engine see **lb/AGENTS.md**.
+- Frontend: `lib/lb.ts`, `lib/lbServer.ts`, and `components/leaderboard/*` model `track`/`tracks` only.
 
 ### SSR prefetch architecture (`lib/lbServer.ts`)
 
@@ -92,7 +84,7 @@ High-value conversion events optimized for PostHog free tier (1M events/month):
 - Client components treat `initialData` as the SSR result for the current URL, not only the default query.
 - Diff-based refs (`buildListSigRef`, `leaderboardSigRef`, `overviewSigRef`) track current state signature and skip `setState` if data hasn't changed after revalidation.
 
-## Frontend Routes (Canonical, 2026-03-09)
+## Frontend Routes (Canonical, 2026-03-14)
 
 | Route                           | Status      | Entry                                              | Primary Client Tree                                                                                    |
 | ------------------------------- | ----------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -623,19 +615,14 @@ Where `base` = character scaled + weapon scaled, `percent` = sum of all % source
 
 ## Migration Status
 
-Current status (March 9, 2026): core frontend migration is complete for all user flows.
+Current status (March 14, 2026): core frontend and leaderboard integration are complete.
 
-| Track                   | Scope                                                                                                       | Status      |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------- | ----------- |
-| Frontend rewrite        | App Router + providers +`/`, `/edit`, `/import`, `/saves`                                           | Done        |
-| Builds surface          | `/builds` list, filters, sort, pagination, SSR prefetch                                                   | Done        |
-| Leaderboard integration | `/leaderboards` overview + per-character pages; SSR prefetch; `/import` upload + `/edit` View Ranking | Done        |
-| LB backend cutover      | Go `/lb` parity, migrations, submit normalization/backfill, Node fallback retirement                      | In Progress |
+| Track                   | Scope                                                                                                       | Status |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- | ------ |
+| Frontend                | App Router + providers + `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`                     | Done   |
+| Leaderboard integration | SSR prefetch; `/import` upload; `/edit` View Ranking; Go LB at `/lb`                                      | Done   |
 
-Primary remaining workstreams:
-
-1. Close Go LB parity gates (dedupe constraint, globalRank CTE, echo backfill) and remove Node fallback dependency.
-2. UX polish and fine-tuning.
+Remaining: UX polish and fine-tuning. For LB schema and maintenance see lb/AGENTS.md.
 
 ## Domain Migration (wuwabuilds.moe → wuwa.build)
 
@@ -654,11 +641,22 @@ Cleanup: when `wuwabuilds.moe/saves` traffic drops to near zero, add `/saves` to
 
 ## Related Services
 
-| Service                    | Location       | Tech                        | URL                        |
-| -------------------------- | -------------- | --------------------------- | -------------------------- |
-| OCR Backend                | `/backend/`  | FastAPI + RapidOCR          | https://ocr.wuwabuilds.moe |
-| Leaderboard API (Primary)  | `/lb/`       | Go (Chi + pgx + PostgreSQL) | https://db.wuwabuilds.moe  |
-| Leaderboard API (Fallback) | `/mongo/`    | Express + MongoDB           | https://lb.wuwabuilds.moe  |
-| Legacy Frontend            | `/frontend/` | Next.js 15 (deprecated)     | —                         |
+| Service           | Location      | Tech                        | URL                        |
+| ----------------- | ------------- | --------------------------- | -------------------------- |
+| OCR Backend       | `/backend/`   | FastAPI + RapidOCR          | https://ocr.wuwabuilds.moe |
+| Leaderboard API  | `/lb/`        | Go (Chi + pgx + PostgreSQL) | https://db.wuwabuilds.moe  |
 
-Each has its own CLAUDE.md / README with documentation.
+For LB schema, maintenance commands, and calc engine see **lb/AGENTS.md**. Each service has its own README.
+
+## Cache & prefetch (LB routes)
+
+- **Server**: `lib/lbServer.ts` fetches directly from `LB_URL` with `X-Internal-Key` (bypasses `/api/lb` proxy). `PREFETCH_TTL_S = 120`. Exports: `prefetchBuilds()`, `prefetchLeaderboardOverview()`, `prefetchLeaderboard(characterId, query?)`. Page server components pass `initialData` to client; clients use diff-based refs to skip `setState` when revalidation data is unchanged.
+- **Client**: `buildCache.ts` — localStorage LRU for `/builds` list responses (2-min TTL, max 30 entries). Client-initiated and filtered/paginated queries still go through `/api/lb/*` with `no-store`.
+- No Redis; Go LB has no response caching. For cache invalidation, TTL tuning, or Go-side caching see lb/AGENTS.md.
+
+## Leaderboard API (high-level)
+
+- **List**: `GET /build` — compact rows; no `buildState`/`damage`/rank in list. `GET /build/{id}` — detail with `buildState`.
+- **Leaderboard**: `GET /leaderboard` — overview (per character×track). `GET /leaderboard/{characterId}` — board rows with `weaponId` + `track`; returns `damage`, `globalRank`, `tracks`, `weaponIds`, `teamCharacterIds`. Expand fetches `GET /build/{id}`; move breakdown and substat-upgrades are separate on-demand endpoints.
+- **Submit**: `POST /build` — canonical `buildState` only.
+- **URL**: Canonical leaderboard route uses `weaponId` and `track` (both always present). Legacy `weaponIndex` accepted and rewritten. For full contracts, rank semantics, and DB see **lb/AGENTS.md**.

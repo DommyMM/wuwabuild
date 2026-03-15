@@ -1,25 +1,21 @@
 # WuWaBuilds Frontend
 
-Next.js App Router frontend for [wuwabuilds.moe](https://wuwabuilds.moe) — a Wuthering Waves build creator and leaderboard.
+Next.js App Router frontend for [wuwa.build](https://wuwa.build), a Wuthering Waves build creator and leaderboard.
 
 **Stack**: Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · Framer Motion
 
-For full technical context, see:
-- [`CLAUDE.md`](./CLAUDE.md)
-- [`docs/LB_MIGRATION_STATUS.md`](./docs/LB_MIGRATION_STATUS.md)
+For full technical context, see [AGENTS.md](./AGENTS.md).
 
 ---
 
-## Status Snapshot (March 9, 2026)
+## Status Snapshot (March 14, 2026)
 
 - All core routes implemented: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`.
 - `/builds` is live and wired to LB `GET /build` with filters/sort/pagination + local query caching + SSR prefetch (2-min ISR, silent revalidation on mount).
 - `/leaderboards` overview and `/leaderboards/[characterId]` per-character pages are live, also SSR-prefetched.
-- `/import` OCR flow is live; `Upload to Leaderboard` toggle submits canonical `buildState` via `POST /api/lb/build`, and failed/misread scans can now be reported directly from the import UI.
+- `/import` OCR flow is live; `Upload to Leaderboard` toggle submits canonical `buildState` via `POST /api/lb/build`, and failed/misread scans can be reported from the import UI.
 - `/edit` `View Ranking` button routes to the selected character leaderboard page.
-- Go leaderboard backend (`/lb`) runs single-pass canonical ingest with 9 registered character damage configs.
-- Node backend (`/mongo`) remains the fallback path until remaining Go parity items are closed.
-- DB index suite fixed: sort indexes now use `NULLS LAST`; dead GIN indexes removed; stat sort indexes added.
+- Leaderboard backend is Go at `/lb`, deployed as the sole source (see lb/AGENTS.md).
 
 ---
 
@@ -71,15 +67,6 @@ EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
 - **OCR**: `/api/ocr` proxies to `https://ocr.wuwabuilds.moe/api/ocr` with `X-OCR-Region`, plus `X-Internal-Key` and forwarded client IP when configured.
 - **Build submission**: `POST /build` is wired — `/import` sends canonical `buildState` when the `Upload to Leaderboard` toggle is enabled.
 - **OCR issue reporting**: `/import` can submit screenshot-linked JSON reports to R2 via `POST /api/report-ocr-issue` for manual review.
-
----
-
-## Next Workstreams
-
-1. Go LB rollout:
-   - Production cutover from legacy Mongo service to `/lb`.
-   - Apply pending DB migrations to Railway (dedupe constraint, globalRank CTE, echo backfill).
-2. Fine-tune `/builds` and leaderboard UX polish.
 
 ---
 
