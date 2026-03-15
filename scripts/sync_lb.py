@@ -451,11 +451,25 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
     text = re.sub(r"\bCrit\.\s+", "Crit ", effect_en)
     text = re.sub(r"\bRegen\.\s+", "Regen ", text)
 
-    # Split into sentences; drop pure meta-sentences.
+    # Split into sentences. Keep meta-sentences (e.g. "This effect stacks up to
+    # N times.") temporarily so we can extract global stacking info before
+    # dropping them from the main results.
     _META_RE = re.compile(
         r"^(?:this effect|effects? of the same name|cd\s*:)", re.I
     )
     sentences = [s.strip() for s in re.split(r"\.\s+", text.rstrip(".")) if s.strip()]
+
+    # Pre-pass: extract stacking info from meta-sentences so it can be attached
+    # to per-stack buff entries whose stacking sentence was split off separately
+    # (e.g. Attack set: "ATK +5% every 1.5s." then "This effect stacks up to 4 times.").
+    global_stacks = 0
+    for s in sentences:
+        if _META_RE.match(s):
+            m = _RE_STACKS.search(s)
+            if m:
+                global_stacks = int(m.group(1))
+                break
+
     sentences = [s for s in sentences if not _META_RE.match(s)]
 
     results: list[dict] = []
@@ -475,12 +489,15 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
         duration = _extract_duration(sentence)
 
         # Stacking annotations (informational – Go engine decides how to apply)
-        stacks_m     = _RE_STACKS.search(sentence)
-        per_stack_m  = _RE_PER_STACK.search(sentence)
+        stacks_m    = _RE_STACKS.search(sentence)
+        per_stack_m = _RE_PER_STACK.search(sentence)
 
         entry: dict = {"trigger": trigger, "buffs": buffs, "duration": duration}
         if stacks_m:
             entry["max_stacks"] = int(stacks_m.group(1))
+        elif per_stack_m and global_stacks > 0:
+            # Stacking info was in a separate meta-sentence; attach it here.
+            entry["max_stacks"] = global_stacks
         if per_stack_m:
             entry["per_stack"] = True
 
