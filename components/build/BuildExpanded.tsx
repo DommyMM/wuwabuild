@@ -301,7 +301,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   }, [activeSelectedSubstats, detailSubstatSummary]);
 
   // Calculate overall RV for selected substats.
-  // Uses detailSubstatSummary (already has total + count per stat) — no need to re-iterate panels.
+  // Uses detailSubstatSummary (already has total + count per stat), no need to re-iterate panels.
   const overallRV = useMemo(() => {
     if (activeSelectedSubstats.size === 0 || detailSubstatSummary.length === 0) return 0;
 

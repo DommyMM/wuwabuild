@@ -217,7 +217,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
             );
           })}
 
-          {/* Damage — inside group, no gap */}
+          {/* Damage inside group, no gap */}
           <div className={`flex h-full items-center justify-end pr-4 text-lg font-semibold ${isDamageSort ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
             {entry.damage > 0 ? (
               <span className="text-accent">{Math.round(entry.damage).toLocaleString()}</span>

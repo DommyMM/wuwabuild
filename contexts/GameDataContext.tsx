@@ -19,7 +19,7 @@ interface SubstatData {
   [statName: string]: number[];
 }
 
-// Raw JSON shape as loaded from files/fetch — exported for use in layout.tsx
+// Raw JSON shape as loaded from files/fetch, exported for use in layout.tsx
 export interface RawGameData {
   characters: unknown;
   echoes: unknown;

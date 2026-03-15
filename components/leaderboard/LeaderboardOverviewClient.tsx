@@ -104,7 +104,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
               <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
                 <div className="w-max min-w-full">
                   <div className="overflow-hidden rounded-lg border border-border bg-background/70">
-                    {/* Header — matches LeaderboardResultsPanel style */}
+                    {/* Header matches LeaderboardResultsPanel style */}
                     <div className={`grid ${OVERVIEW_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-base text-text-primary`}>
                       <div className="py-2 text-center text-text-primary/55">#</div>
                       <div className="py-2 text-text-primary/70">Character</div>

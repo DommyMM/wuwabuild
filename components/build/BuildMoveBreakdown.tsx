@@ -415,7 +415,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                             return (
                               <div
                                 key={`${move.name}-${hit.name}-${hitIndex}`}
-                                className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3 rounded px-1 py-1 text-sm transition-colors ${
+                                className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3 rounded px-1 py-1 text-sm transition-colors cursor-default ${
                                   isHitActive ? 'bg-black/10' : 'opacity-45'
                                 }`}
                                 onMouseEnter={() => {

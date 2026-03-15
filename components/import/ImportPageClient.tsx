@@ -380,7 +380,7 @@ export function ImportPageClient() {
           </div>
         )}
 
-        {/* LB upload error — illegal echo data from OCR misread */}
+        {/* LB upload error: illegal echo data from OCR misread */}
         {lbUploadError && (
           <div className="mb-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-400">
             <span className="font-medium">Leaderboard upload skipped.</span>{' '}

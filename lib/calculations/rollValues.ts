@@ -21,7 +21,7 @@ export function calculateSubstatRollPercentage(
 // Calculate overall RV for selected substats.
 //
 // Formula: average over stat types of (avgRollValue / maxRollValue).
-// Each selected stat type is weighted equally — 3x Crit Rate rolls don't
+// Each selected stat type is weighted equally, 3x Crit Rate rolls don't
 // outweigh 1x Crit DMG roll just because you have more of them. Both stats
 // contribute one equal "slot" to the average.
 //

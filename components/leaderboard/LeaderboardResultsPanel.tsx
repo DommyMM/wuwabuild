@@ -208,7 +208,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                     })
                   )}
 
-                  {/* Damage — inside group, no gap */}
+                  {/* Damage inside group, no gap */}
                   <div className="self-stretch">
                     <div className={`flex h-full overflow-hidden rounded-tr-lg ${isDamageSort ? 'border-t-2 border-accent/85' : 'border-t-2 border-transparent'}`}>
                       <button

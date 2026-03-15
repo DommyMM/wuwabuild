@@ -183,7 +183,7 @@ Done!
   Size after:       {total_final_mb:.1f} MB
   Saved:            {total_original_mb - total_final_mb:.1f} MB
   Local backup:     {LOCAL_DIR}
-  {"(dry run — R2 was not modified)" if dry_run else ""}
+  {"(dry run, R2 was not modified)" if dry_run else ""}
 """)
 
 
