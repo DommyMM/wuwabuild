@@ -98,7 +98,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                     {/* Header matches LeaderboardResultsPanel style */}
                     <div className={`grid ${OVERVIEW_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-base text-text-primary`}>
                       <div className="py-2 text-center text-text-primary/55">#</div>
-                      <div className="py-2 text-text-primary/70">Character</div>
+                      <div className="py-2 text-text-primary/70">Leaderboard</div>
                       <div className="py-2 text-center text-text-primary/70">Team</div>
                       <div className="py-2 text-center text-text-primary/70">Entries</div>
                       <div className="py-2 px-1 text-center text-text-primary/70">Weapon Rankings</div>

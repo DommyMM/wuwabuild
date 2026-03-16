@@ -875,6 +875,54 @@ export async function getBuildSubstatUpgrades(
   return parsed;
 }
 
+export interface LBStandingEntry {
+  key: string;
+  weaponId: string;
+  trackKey: string;
+  rank: number;
+  total: number;
+  trackLabel: string;
+  teamCharacterIds: string[];
+  damage: number;
+}
+
+export async function getBuildStandings(
+  characterId: string,
+  buildId: string,
+  signal?: AbortSignal,
+): Promise<LBStandingEntry[]> {
+  const requestUrl = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}/build/${encodeURIComponent(buildId)}/standings`;
+  const response = await fetch(requestUrl, { method: 'GET', signal });
+
+  if (response.status === 404) {
+    return [];
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to fetch standings (${response.status})`);
+  }
+
+  const payload = await response.json() as { standings?: unknown };
+  if (!Array.isArray(payload.standings)) return [];
+
+  const result: LBStandingEntry[] = [];
+  for (const raw of payload.standings) {
+    if (!isRecord(raw)) continue;
+    result.push({
+      key: typeof raw.key === 'string' ? raw.key : '',
+      weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
+      trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
+      rank: toFiniteNumber(raw.rank, 0),
+      total: toFiniteNumber(raw.total, 0),
+      trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
+      teamCharacterIds: Array.isArray(raw.teamCharacterIds)
+        ? raw.teamCharacterIds.filter((v): v is string => typeof v === 'string')
+        : [],
+      damage: toFiniteNumber(raw.damage, 0),
+    });
+  }
+  return result;
+}
+
 function parseSubmitBuildResult(raw: unknown): LBSubmitBuildResult {
   if (!isRecord(raw)) {
     throw new Error('LB submit response is malformed.');

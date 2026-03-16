@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -12,8 +12,8 @@ import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
 import { FORTE_LABELS } from '@/lib/constants/skillBranches';
 import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
-import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
-import { getEchoPaths } from '@/lib/paths';
+import { getBuildStandings, LBBuildDetailEntry, LBBuildRowEntry, LBStandingEntry } from '@/lib/lb';
+import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
 import { saveDraftBuild } from '@/lib/storage';
 import { RegionBadge } from './constants';
@@ -150,9 +150,45 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   globalRank,
 }) => {
   const router = useRouter();
-  const { fettersByElement, getSubstatValues, getWeapon, statTranslations } = useGameData();
+  const { fettersByElement, getSubstatValues, getWeapon, getCharacter, statTranslations } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
+
+  const [standings, setStandings] = useState<LBStandingEntry[] | null>(null);
+  const [standingsLoading, setStandingsLoading] = useState(false);
+  const [standingsError, setStandingsError] = useState<string | null>(null);
+  const standingsControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!isExpanded || !detail) return;
+    if (standings !== null) return;
+
+    const characterId = detail.buildState.characterId;
+    const buildId = detail.id;
+    if (!characterId || !buildId) return;
+
+    standingsControllerRef.current?.abort();
+    const controller = new AbortController();
+    standingsControllerRef.current = controller;
+
+    setStandingsLoading(true);
+    setStandingsError(null);
+
+    getBuildStandings(characterId, buildId, controller.signal)
+      .then((data) => {
+        setStandings(data);
+        setStandingsLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setStandingsError('Could not load leaderboard rankings.');
+        setStandingsLoading(false);
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [isExpanded, detail]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleViewBuild = () => {
     if (!detail) return;
@@ -626,6 +662,96 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   baseDamage={activeBoardDamage}
                   globalRank={globalRank}
                 />
+              )}
+
+              {/* Leaderboard Rankings section */}
+              {standingsLoading && (
+                <div className="space-y-2 pt-1">
+                  <div className="h-3 w-36 animate-pulse rounded bg-white/8" />
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={`standings-skel-${i}`} className="grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr] gap-3">
+                      <div className="h-8 animate-pulse rounded bg-white/8" />
+                      <div className="h-8 animate-pulse rounded bg-white/8" />
+                      <div className="h-8 animate-pulse rounded bg-white/8" />
+                      <div className="h-8 animate-pulse rounded bg-white/8" />
+                      <div className="h-8 animate-pulse rounded bg-white/8" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!standingsLoading && standingsError && (
+                <p className="text-xs text-text-primary/40">{standingsError}</p>
+              )}
+
+              {!standingsLoading && !standingsError && standings && standings.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-text-primary/45">Leaderboard Rankings</p>
+                  <div className="overflow-hidden rounded-lg border border-border/50 bg-black/20">
+                    {standings.map((entry) => {
+                      const weapon = getWeapon(entry.weaponId);
+                      const weaponName = weapon?.name ?? entry.weaponId;
+                      const weaponIcon = weapon ? getWeaponPaths(weapon) : null;
+                      const isR1 = weapon?.rarity === '5-star';
+                      const rankPct = entry.total > 0 ? (entry.rank / entry.total) * 100 : 0;
+                      const topPctText = rankPct < 0.001 ? '< 0.001%' : `top ${rankPct.toFixed(3)}%`;
+
+                      return (
+                        <div
+                          key={entry.key}
+                          className="grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr] items-center gap-3 border-b border-border/30 px-3 py-2 text-sm last:border-b-0 odd:bg-white/2 even:bg-transparent"
+                        >
+                          {/* Rank / Total + top% */}
+                          <div className="flex flex-col leading-tight">
+                            <span className="font-semibold text-text-primary">
+                              {entry.rank.toLocaleString()}<span className="text-text-primary/40">/{entry.total.toLocaleString()}</span>
+                            </span>
+                            <span className="text-[11px] text-text-primary/45">{topPctText}</span>
+                          </div>
+
+                          {/* Weapon */}
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            {weaponIcon ? (
+                              <img src={weaponIcon} alt={weaponName} className="h-8 w-8 shrink-0 object-contain" />
+                            ) : (
+                              <div className="h-8 w-8 shrink-0 rounded bg-white/10" />
+                            )}
+                            <div className="flex min-w-0 flex-col leading-tight">
+                              <span className="truncate text-xs font-medium text-text-primary/85">{weaponName}</span>
+                              <span className="text-[11px] text-text-primary/40">{isR1 ? 'R1' : 'R5'}</span>
+                            </div>
+                          </div>
+
+                          {/* Team */}
+                          <div className="flex items-center gap-1">
+                            {entry.teamCharacterIds.map((id) => {
+                              const teamChar = getCharacter(id);
+                              return teamChar?.head ? (
+                                <img
+                                  key={id}
+                                  src={teamChar.head}
+                                  alt={teamChar.name}
+                                  title={teamChar.name}
+                                  className="h-9 w-9 rounded-xl object-cover object-top"
+                                />
+                              ) : (
+                                <div key={id} className="h-9 w-9 rounded-xl bg-border/25" />
+                              );
+                            })}
+                          </div>
+
+                          {/* Track label */}
+                          <div className="text-xs text-text-primary/65">{entry.trackLabel}</div>
+
+                          {/* Damage */}
+                          <div className="text-right font-semibold tabular-nums text-text-primary">
+                            {Math.round(entry.damage).toLocaleString()}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
           )}
