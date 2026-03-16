@@ -72,6 +72,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const leaderboardSigRef = useRef(leaderboardSignature(initialData?.builds ?? [], initialData?.total ?? 0));
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialData?.builds ?? []);
   const [total, setTotal] = useState(() => initialData?.total ?? 0);
+  const [autoExpandBuildId, setAutoExpandBuildId] = useState<string | null>(null);
+  const didDeepLinkRef = useRef(false);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
     if (!initialData) return null;
     return JSON.stringify({
@@ -171,6 +173,18 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         if (response.activeTrack && !response.tracks.some((entry) => entry.key === track)) {
           setTrack(response.activeTrack);
         }
+
+        // UID deep-link: on first load with a uid filter, jump to the build's page and auto-expand it.
+        if (!didDeepLinkRef.current && uid.trim() && response.builds.length > 0) {
+          const firstEntry = response.builds[0];
+          if (firstEntry && firstEntry.globalRank > 0) {
+            const targetPage = Math.ceil(firstEntry.globalRank / pageSize);
+            didDeepLinkRef.current = true;
+            setAutoExpandBuildId(firstEntry.id);
+            setUid('');
+            setPage(targetPage);
+          }
+        }
       })
       .catch((fetchError) => {
         if (!active || controller.signal.aborted) return;
@@ -242,6 +256,18 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     Object.values(detailControllersRef.current).forEach((controller) => controller.abort());
     detailControllersRef.current = {};
   }), []);
+
+  // Auto-expand after UID deep-link navigation: wait until the target build appears in entries.
+  useEffect(() => {
+    if (!autoExpandBuildId) return;
+    if (!entries.some((e) => e.id === autoExpandBuildId)) return;
+    if (expandedIds.has(autoExpandBuildId)) { setAutoExpandBuildId(null); return; }
+    const id = autoExpandBuildId;
+    void Promise.resolve().then(() => {
+      handleToggleExpand(id);
+      setAutoExpandBuildId(null);
+    });
+  }, [autoExpandBuildId, entries, expandedIds, handleToggleExpand]);
 
   // Filter helpers
   const addRegion = useCallback((value: string) => {

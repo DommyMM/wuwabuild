@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
 import { getBuildMoves, getBuildSubstatUpgrades, getBuildStandings, LBMoveEntry, LBSubstatUpgradeTierSet, LBStandingEntry } from '@/lib/lb';
-import { getWeaponPaths } from '@/lib/paths';
 import { BuildMoveBreakdown } from './BuildMoveBreakdown';
 import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
+import { BuildStandingsTable } from './BuildStandingsTable';
 
 const UPGRADE_STAT_LABELS: Record<string, string> = {
   HP: 'HP',
@@ -131,6 +130,7 @@ interface BuildSimulationSectionProps {
   activeWeaponId: string;
   activeTrackKey: string;
   isExpanded: boolean;
+  playerUid?: string;
   baseDamage?: number;
   globalRank?: number;
 }
@@ -142,10 +142,11 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   activeWeaponId,
   activeTrackKey,
   isExpanded,
+  playerUid,
   baseDamage,
   globalRank,
 }) => {
-  const { getWeapon, getCharacter, getSubstatValues, statIcons, statTranslations } = useGameData();
+  const { getWeapon, getSubstatValues, statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
   const moveControllerRef = useRef<AbortController | null>(null);
   const upgradeControllerRef = useRef<AbortController | null>(null);
@@ -253,31 +254,44 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     });
   }, [buildId, loadUpgrades, loadingUpgradeKeys, shouldLoadUpgrades, upgradeKey, upgradesByKey]);
 
-  useEffect(() => {
-    if (!isExpanded || !isStandingsOpen || !characterId || !buildId) return;
-    if (standings !== null) return;
-
-    standingsControllerRef.current?.abort();
-    const controller = new AbortController();
-    standingsControllerRef.current = controller;
-
+  const loadStandings = useCallback((controller: AbortController) => {
     setStandingsLoading(true);
     setStandingsError(null);
 
-    getBuildStandings(characterId, buildId, controller.signal)
+    void getBuildStandings(characterId, buildId, controller.signal)
       .then((data) => {
         if (controller.signal.aborted) return;
         setStandings(data);
-        setStandingsLoading(false);
       })
       .catch((err: unknown) => {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (controller.signal.aborted) return;
+        void err;
         setStandingsError('Could not load leaderboard rankings.');
+      })
+      .finally(() => {
+        // Always null the ref so re-opens can start a new request.
+        if (standingsControllerRef.current === controller) {
+          standingsControllerRef.current = null;
+        }
+        if (controller.signal.aborted) return;
         setStandingsLoading(false);
       });
+  }, [characterId, buildId]);
 
+  useEffect(() => {
+    if (!isExpanded || !isStandingsOpen || !characterId || !buildId) return;
+    // Use the ref (not standingsLoading state) as the in-flight guard so this effect
+    // doesn't re-run when standingsLoading changes and abort its own in-flight request.
+    if (standings !== null || standingsControllerRef.current) return;
+
+    const controller = new AbortController();
+    standingsControllerRef.current = controller;
+    void Promise.resolve().then(() => {
+      if (controller.signal.aborted) return;
+      loadStandings(controller);
+    });
     return () => { controller.abort(); };
-  }, [isExpanded, isStandingsOpen, characterId, buildId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isExpanded, isStandingsOpen, characterId, buildId, loadStandings, standings]);
 
   useEffect(() => (() => {
     moveControllerRef.current?.abort();
@@ -426,100 +440,17 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
 
       {isStandingsOpen && (
         <section className="space-y-2">
-          {standingsLoading && (
-            <div className="mx-auto w-fit min-w-96 space-y-1.5">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={`standings-skel-${i}`} className="grid animate-pulse grid-cols-[5rem_4rem_9rem_6rem_7rem_5rem] gap-3 py-2">
-                  {Array.from({ length: 6 }).map((__, j) => (
-                    <div key={j} className="h-7 rounded bg-white/8" />
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!standingsLoading && standingsError && (
-            <p className="text-center text-xs text-text-primary/40">{standingsError}</p>
-          )}
-
-          {!standingsLoading && !standingsError && standings && standings.length > 0 && (
-            <table className="mx-auto border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border/55 text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
-                  <th className="min-w-20 bg-background-secondary/48 py-2 pr-4 pl-3 text-left">Rank</th>
-                  <th className="min-w-16 py-2 px-3 text-left">Top%</th>
-                  <th className="min-w-36 py-2 px-3 text-left">Weapon</th>
-                  <th className="min-w-24 py-2 px-3 text-left">Team</th>
-                  <th className="min-w-28 py-2 px-3 text-left">Board</th>
-                  <th className="min-w-20 py-2 pl-3 pr-3 text-right">Damage</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/45">
-                {standings.map((standingEntry) => {
-                  const weapon = getWeapon(standingEntry.weaponId);
-                  const weaponName = weapon?.name ?? standingEntry.weaponId;
-                  const weaponIcon = weapon ? getWeaponPaths(weapon) : null;
-                  const isR1 = weapon?.rarity === '5-star';
-                  const rankPct = standingEntry.total > 0 ? (standingEntry.rank / standingEntry.total) * 100 : 0;
-                  const topPctText = rankPct < 0.001 ? '< 0.001%' : `top ${rankPct.toFixed(3)}%`;
-                  const isActiveBoard = hasBoardContext &&
-                    standingEntry.weaponId === activeWeaponId &&
-                    standingEntry.trackKey === activeTrackKey;
-
-                  return (
-                    <tr key={standingEntry.key} className={isActiveBoard ? 'bg-accent/8' : ''}>
-                      <td className={`py-2.5 pr-4 pl-3 font-semibold text-text-primary border-l-2 ${isActiveBoard ? 'border-l-accent bg-accent/5' : 'border-l-transparent bg-background-secondary/32'}`}>
-                        {standingEntry.rank.toLocaleString()}<span className="text-text-primary/40 text-xs">/{standingEntry.total.toLocaleString()}</span>
-                      </td>
-                      <td className="py-2.5 px-3 text-xs text-text-primary/55">
-                        {topPctText}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <div className="flex items-center gap-1.5">
-                          {weaponIcon ? (
-                            <img src={weaponIcon} alt={weaponName} className="h-8 w-8 shrink-0 object-contain" />
-                          ) : (
-                            <div className="h-8 w-8 shrink-0 rounded bg-white/10" />
-                          )}
-                          <div className="leading-tight">
-                            <div className="text-xs font-medium text-text-primary/85">{weaponName}</div>
-                            <div className="text-[11px] text-text-primary/40">{isR1 ? 'R1' : 'R5'}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <div className="flex items-center gap-1">
-                          {(() => {
-                            const mainChar = getCharacter(characterId);
-                            const allIds = mainChar ? [characterId, ...standingEntry.teamCharacterIds] : standingEntry.teamCharacterIds;
-                            return allIds.map((id) => {
-                              const c = getCharacter(id);
-                              return c?.head ? (
-                                <img key={id} src={c.head} alt={c.name} title={c.name} className="h-8 w-8 object-cover object-top" />
-                              ) : (
-                                <div key={id} className="h-8 w-8 bg-border/25" />
-                              );
-                            });
-                          })()}
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap py-2.5 px-3">
-                        <Link
-                          href={`/leaderboards/${encodeURIComponent(characterId)}?weaponId=${encodeURIComponent(standingEntry.weaponId)}&track=${encodeURIComponent(standingEntry.trackKey)}`}
-                          className={`text-xs transition-colors hover:text-accent ${isActiveBoard ? 'font-semibold text-accent/80' : 'text-text-primary/65'}`}
-                        >
-                          {characterName} — {standingEntry.trackLabel}
-                        </Link>
-                      </td>
-                      <td className="py-2.5 pl-3 pr-3 text-right font-semibold tabular-nums text-accent">
-                        {Math.round(standingEntry.damage).toLocaleString()}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+          <BuildStandingsTable
+            standings={standings}
+            standingsLoading={standingsLoading}
+            standingsError={standingsError}
+            characterId={characterId}
+            characterName={characterName}
+            hasBoardContext={hasBoardContext}
+            activeWeaponId={activeWeaponId}
+            activeTrackKey={activeTrackKey}
+            playerUid={playerUid ?? ''}
+          />
         </section>
       )}
     </div>

@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { useResolvedLeaderboardLink } from '@/hooks/useResolvedLeaderboardLink';
 import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
@@ -123,6 +122,7 @@ interface BuildExpandedProps {
   activeTrackKey?: string;
   activeBoardDamage?: number;
   globalRank?: number;
+  playerUid?: string;
 }
 
 function normalizeSubstatKey(type: string | null | undefined): string | null {
@@ -148,9 +148,10 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   activeTrackKey,
   activeBoardDamage,
   globalRank,
+  playerUid,
 }) => {
   const router = useRouter();
-  const { fettersByElement, getSubstatValues, getWeapon, statTranslations } = useGameData();
+  const { fettersByElement, getSubstatValues, statTranslations } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
 
@@ -160,18 +161,6 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     router.push('/edit');
   };
 
-  const leaderboardLink = useResolvedLeaderboardLink({
-    characterId: detail?.buildState.characterId ?? entry.character.id,
-    weaponId: detail?.buildState.weaponId ?? entry.weapon.id,
-    sequence: detail?.buildState.sequence ?? entry.sequence,
-    getWeapon,
-  });
-  const hasLeaderboardBoardContext = Boolean(detail && activeBoardWeaponId && activeTrackKey);
-
-  const handleViewLeaderboard = () => {
-    if (!leaderboardLink) return;
-    router.push(leaderboardLink.href);
-  };
 
   // Derive character default substat selections without effect-driven state updates.
   const autoSelectedSubstats = useMemo(() => {
@@ -598,23 +587,14 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                 </div>
               )}
 
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="mx-auto w-48">
                 <button
                   type="button"
                   onClick={handleViewBuild}
-                  className="rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer"
+                  className="flex w-full items-center justify-center rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer"
                 >
                   View in Editor
                 </button>
-                {leaderboardLink && !hasLeaderboardBoardContext && (
-                  <button
-                    type="button"
-                    onClick={handleViewLeaderboard}
-                    className="rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer"
-                  >
-                    View Leaderboard
-                  </button>
-                )}
               </div>
 
               {detail && (
@@ -625,6 +605,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   activeWeaponId={activeBoardWeaponId ?? ''}
                   activeTrackKey={activeTrackKey ?? ''}
                   isExpanded={isExpanded}
+                  playerUid={playerUid}
                   baseDamage={activeBoardDamage}
                   globalRank={globalRank}
                 />
