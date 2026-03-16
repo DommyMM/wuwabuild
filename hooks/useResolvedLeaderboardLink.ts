@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { buildLeaderboardHref } from '@/components/leaderboard/leaderboardQuery';
+import { buildLeaderboardHref } from '@/components/leaderboards/character/leaderboardCharacterQuery';
 import { readCachedLeaderboardOverview, getCachedLeaderboardOverview } from '@/lib/leaderboardOverviewCache';
 import { LBCharacterOverview } from '@/lib/lb';
 import { Weapon } from '@/lib/weapon';

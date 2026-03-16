@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { BuildPageClient } from '@/components/build/BuildPageClient';
+import { GlobalBoardPageClient } from '@/components/leaderboards/board/GlobalBoardPageClient';
 import { prefetchBuilds } from '@/lib/lbServer';
 
 export const metadata: Metadata = {
@@ -10,5 +10,5 @@ export const metadata: Metadata = {
 
 export default async function Builds() {
   const initialData = await prefetchBuilds();
-  return <BuildPageClient initialData={initialData} />;
+  return <GlobalBoardPageClient initialData={initialData} />;
 }

@@ -3,9 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { LeaderboardCharacterClient } from '@/components/leaderboard/LeaderboardCharacterClient';
-import { DEFAULT_LB_TRACK } from '@/components/leaderboard/leaderboardConstants';
-import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeaderboardQuery, serializeLeaderboardQuery, toURLSearchParams } from '@/components/leaderboard/leaderboardQuery';
+import { LeaderboardCharacterClient } from '@/components/leaderboards/character/LeaderboardCharacterClient';
+import { DEFAULT_LB_TRACK } from '@/components/leaderboards/constants';
+import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeaderboardQuery, serializeLeaderboardQuery, toURLSearchParams } from '@/components/leaderboards/character/leaderboardCharacterQuery';
 import { CDNCharacter, adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
 import { prefetchLeaderboard } from '@/lib/lbServer';
 

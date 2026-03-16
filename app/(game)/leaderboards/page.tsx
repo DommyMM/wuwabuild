@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { LeaderboardOverviewClient } from '@/components/leaderboard/LeaderboardOverviewClient';
+import { LeaderboardOverviewClient } from '@/components/leaderboards/overview/LeaderboardOverviewClient';
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 
 export const metadata: Metadata = {

@@ -6,12 +6,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { getCVRatingColor } from '@/lib/calculations/rollValues';
 import { getLBStatCode, LBBuildDetailEntry, LBBuildEchoSummary, LBBuildRowEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortKey } from '@/lib/lb';
-import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '@/components/build/buildConstants';
-import { formatStatByKey, getSortLabel, resolveRegionBadge } from '@/components/build/buildFormatters';
-import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '@/components/build/buildStatColumns';
-import { BuildExpanded } from '@/components/build/BuildExpanded';
+import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '../constants';
+import { formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
+import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
+import { BuildExpanded } from '../BuildExpanded';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
-import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from './leaderboardConstants';
+import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from '../constants';
 
 interface LeaderboardRowProps {
   entry: LBLeaderboardEntry;
