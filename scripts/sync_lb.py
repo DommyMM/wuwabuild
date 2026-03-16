@@ -295,7 +295,7 @@ _STAT_NAMES: list[tuple[str, str]] = [
     ("Havoc DMG",    r"Havoc DMG(?:\s+Bonus)?"),
     ("Spectro DMG",  r"Spectro DMG(?:\s+Bonus)?"),
     # "all Attribute DMG" / "Attribute DMG" → generic all-element bonus
-    ("All Attribute DMG", r"(?:all\s+)?[Aa]ttribute DMG(?:\s+Bonus)?"),
+    ("All Attribute DMG", r"(?:[Aa]ll[-\s])?[Aa]ttribute DMG(?:\s+Bonus)?"),
     # Base stats
     ("Crit Rate",     r"Crit\.?\s*Rate"),
     ("Crit DMG",      r"Crit\.?\s*DMG"),
@@ -321,13 +321,13 @@ _RE_PCT       = re.compile(r"(\d+(?:\.\d+)?)\s*%")
 _RE_DURATION  = re.compile(
     r"(?:lasting\s+for|for|lasts?|each\s+stack\s+lasts?)\s+(\d+(?:\.\d+)?)\s*s\b", re.I
 )
-_RE_STACKS    = re.compile(r"stack(?:s)?\s+up\s+to\s+(\d+)\s+times?", re.I)
+_RE_STACKS    = re.compile(r"stack(?:ing|s)?\s+up\s+to\s+(\d+)\s+times?", re.I)
 _RE_PER_STACK = re.compile(r"(\d+(?:\.\d+)?)\s*%\s+every\s+\d", re.I)  # "5% every 1.5s"
 
 # Trigger-condition prefixes that appear at the start of a clause.
 _TRIGGER_STARTS = re.compile(
     r"^(Hitting|Casting|Using|While|Upon|After|When|Dealing|Inflicting|"
-    r"Holding|Reaching|At\b|With\b)",
+    r"Holding|Reaching|At\b|With\b|Every\s+time)",
     re.I,
 )
 
@@ -410,7 +410,7 @@ def _extract_trigger(text: str) -> str:
     # Pattern 1 – clause starts with a known trigger keyword
     cond_m = re.match(
         r"^((?:Hitting|Casting|Using|While|Upon|After|When|Dealing|Inflicting|"
-        r"Holding|Reaching)\b.+?)"
+        r"Holding|Reaching|Every\s+time)\b.+?)"
         r"(?:,\s*|\s+(?:increases?|grants?|gains?|deal))",
         text, re.I,
     )
@@ -434,7 +434,7 @@ def _extract_trigger(text: str) -> str:
 #    increases Y by Z%, lasting for 5s"
 _AND_TRIGGER_RE = re.compile(
     r"\s+and\s+(?=(?:Hitting|Casting|Using|While|Upon|After|When|Dealing|"
-    r"Inflicting|Holding|Reaching)\b)",
+    r"Inflicting|Holding|Reaching|Every\s+time)\b)",
     re.I,
 )
 
@@ -448,6 +448,131 @@ def _split_compound_and(sentence: str) -> list[str]:
     """
     parts = _AND_TRIGGER_RE.split(sentence)
     return [p.strip() for p in parts if p.strip()]
+
+
+# Canonical trigger-move keys (matching weapon_effects.go TriggerMove values)
+_TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
+    (r"tune\s+break",                              "Passive"),
+    (r"while\s+the\s+wielder\s+is\s+on\s+the\s+field", "Passive"),
+    (r"concerto\s+energy",                         "forte"),
+    (r"\becho\s+skill\b",                          "echoSkill"),
+    (r"\boutro\s+skill\b",                         "outro"),
+    (r"\bintro\s+skill\b",                         "intro"),
+    (r"\bresonance\s+liberation\b",                "liberation"),
+    (r"\bresonance\s+skill\b",                     "skill"),
+    (r"\bheavy\s+attack\b",                        "basic"),
+    (r"\bbasic\s+attack\b",                        "basic"),
+    (r"\bhitting\s+a\s+target\b",                  "basic"),
+    (r"\bdealing\s+(?:basic|heavy)\s+attack\s+dmg","basic"),
+]
+
+# Stat name → (go_type, element, moveType). None means skip (unsupported/complex).
+_STAT_TO_GO_EFFECT: dict[str, tuple[str, str, str]] = {
+    "ATK":                              ("atkPercentage", "", ""),
+    "Crit Rate":                        ("critRate",      "", ""),
+    "Crit DMG":                         ("critDMG",       "", ""),
+    "All Attribute DMG":                ("elementalDMG",  "", ""),
+    "Basic Attack DMG Bonus":           ("moveTypeDMG",   "", "BA"),
+    "Basic Attack DMG":                 ("moveTypeDMG",   "", "BA"),
+    "Heavy Attack DMG Bonus":           ("moveTypeDMG",   "", "HA"),
+    "Heavy Attack DMG":                 ("moveTypeDMG",   "", "HA"),
+    "Resonance Skill DMG Bonus":        ("moveTypeDMG",   "", "RS"),
+    "Resonance Skill DMG":              ("moveTypeDMG",   "", "RS"),
+    "Resonance Liberation DMG Bonus":   ("moveTypeDMG",   "", "RL"),
+    "Resonance Liberation DMG":         ("moveTypeDMG",   "", "RL"),
+    "Echo Skill DMG Bonus":             ("moveTypeDMG",   "", "echoSkill"),
+    "Aero DMG":     ("elementalDMG", "AD", ""),
+    "Glacio DMG":   ("elementalDMG", "GD", ""),
+    "Fusion DMG":   ("elementalDMG", "FD", ""),
+    "Electro DMG":  ("elementalDMG", "ED", ""),
+    "Havoc DMG":    ("elementalDMG", "HD", ""),
+    "Spectro DMG":  ("elementalDMG", "SD", ""),
+}
+
+
+def _trigger_to_move_keys(trigger: str) -> list[str]:
+    """Normalize raw trigger text to a list of canonical trigger-move keys.
+
+    Handles compound triggers: "Casting Intro Skill or Resonance Liberation"
+    produces ["intro", "liberation"].  Returns [] for unrecognisable triggers.
+
+    Empty trigger → [] (unconditional/passive — already covered by passive_bonuses;
+    skip to avoid double-counting in weapon_effects).
+    Explicitly team-triggered effects like "tune break" → ["Passive"].
+    """
+    if not trigger.strip():
+        return []  # unconditional: already in passive_bonuses, don't emit weapon_effect
+    # Split on literal " or " to handle multi-trigger phrases, but only where
+    # each side contains a recognisable move keyword.
+    parts = re.split(r"\s+or\s+", trigger, flags=re.I)
+    keys: list[str] = []
+    for part in parts:
+        p = part.lower()
+        for pattern, key in _TRIGGER_MOVE_PATTERNS:
+            if re.search(pattern, p, re.I):
+                if key not in keys:
+                    keys.append(key)
+                break
+    return keys
+
+
+def _derive_go_weapon_effects(
+    effects: list[dict],
+    rarity: str,
+) -> list[dict]:
+    """Produce Go-ready weapon effect dicts from parsed effects_r1/r5 data.
+
+    Each output dict has keys: type, triggerMove, value, and optionally
+    element, moveType, duration, maxStacks, stacking.
+
+    Skips effects whose stat maps to None (amplify, defIgnore, unsupported).
+    Skips effects containing "amplif" in the trigger text (DMG Amplification).
+    Uses R5 values for 4-star weapons (caller should pass effects_r5 when rarity="4-star").
+    """
+    out: list[dict] = []
+    for eff in effects:
+        trigger = eff.get("trigger", "")
+        # Skip effects involving DMG Amplification (amplify type — handled manually)
+        if re.search(r"amplif", trigger, re.I):
+            continue
+        move_keys = _trigger_to_move_keys(trigger)
+        if not move_keys:
+            continue
+
+        max_stacks: int = eff.get("max_stacks", 0)
+        per_stack: bool = eff.get("per_stack", False)
+        stacking = "accumulate" if (max_stacks > 0 and per_stack) else ""
+        duration = eff.get("duration")
+
+        for buff in eff.get("buffs", []):
+            stat = buff.get("stat", "")
+            value = buff.get("value", 0.0)
+            type_info = _STAT_TO_GO_EFFECT.get(stat)
+            if type_info is None:
+                continue  # DEF, HP, Energy Regen, etc. — skip
+            go_type, element, move_type = type_info
+
+            for move_key in move_keys:
+                entry: dict = {
+                    "type":        go_type,
+                    "triggerMove": move_key,
+                    "value":       value,
+                }
+                if element:
+                    entry["element"] = element
+                if move_type:
+                    entry["moveType"] = move_type
+                # Duration handling: None and non-Passive → emit -1 (full rotation)
+                if duration is not None:
+                    entry["duration"] = duration
+                elif move_key != "Passive":
+                    entry["duration"] = -1
+                if max_stacks > 0:
+                    entry["maxStacks"] = max_stacks
+                if stacking:
+                    entry["stacking"] = stacking
+                out.append(entry)
+    return out
 
 
 def _parse_effect_en(effect_en: str) -> list[dict]:
@@ -482,16 +607,20 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
     )
     sentences = [s.strip() for s in re.split(r"\.\s+", text.rstrip(".")) if s.strip()]
 
-    # Pre-pass: extract stacking info from meta-sentences so it can be attached
-    # to per-stack buff entries whose stacking sentence was split off separately
-    # (e.g. Attack set: "ATK +5% every 1.5s." then "This effect stacks up to 4 times.").
+    # Pre-pass: extract stacking info and duration from meta-sentences so they
+    # can be attached to per-stack buff entries whose stacking sentence was
+    # split off separately (e.g. Attack set: "ATK +5% every 1.5s." then
+    # "This effect stacks up to 4 times.").
     global_stacks = 0
+    global_duration: float | None = None
     for s in sentences:
         if _META_RE.match(s):
             m = _RE_STACKS.search(s)
             if m:
                 global_stacks = int(m.group(1))
-                break
+            d = _extract_duration(s)
+            if d is not None:
+                global_duration = d
 
     sentences = [s for s in sentences if not _META_RE.match(s)]
 
@@ -544,6 +673,14 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
                 entry["max_stacks"] = global_stacks
                 entry["per_stack"] = True
                 break
+
+    # Post-pass: attach global_duration to entries missing explicit duration
+    # when a trigger is present (meta-sentences like "This effect lasts for Xs"
+    # refer to the triggered effects listed before them).
+    if global_duration is not None:
+        for entry in results:
+            if entry.get("trigger") and entry.get("duration") is None:
+                entry["duration"] = global_duration
 
     return results
 
@@ -1087,6 +1224,10 @@ def _build_weapon_bases(
         effects_r1 = _parse_effect_en(resolved_r1)
         effects_r5 = _parse_effect_en(resolved_r5)
 
+        # For 4-star weapons, use R5 values in the Go effects (easier to obtain at R5).
+        go_effects_source = effects_r5 if rarity_str == "4-star" else effects_r1
+        weapon_effects = _derive_go_weapon_effects(go_effects_source, rarity_str)
+
         out[wid] = {
             "name": name,
             "legacyId": legacy_id,
@@ -1101,6 +1242,7 @@ def _build_weapon_bases(
             "params_r5": params_r5,
             "effects_r1": effects_r1,
             "effects_r5": effects_r5,
+            "weapon_effects": weapon_effects,
         }
 
     out = {k: out[k] for k in sorted(out, key=lambda x: int(x))}
