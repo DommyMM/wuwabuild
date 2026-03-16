@@ -20,6 +20,7 @@ interface LeaderboardCharacterHeaderProps {
   activeWeaponId?: string;
   activeTrackKey?: string;
   activeTrackLabel?: string;
+  activeTrackNote?: string;
 }
 
 interface LoadoutIcon {
@@ -29,11 +30,73 @@ interface LoadoutIcon {
   tooltip: React.ReactNode;
 }
 
+function LoadoutIconRow({
+  icons,
+  keyPrefix,
+}: {
+  icons: LoadoutIcon[];
+  keyPrefix: string;
+}) {
+  if (icons.length === 0) return null;
+
+  return (
+    <div className="-mt-4 flex items-center justify-center gap-1">
+      {icons.map((icon) => (
+        <HoverTooltip
+          key={`${keyPrefix}-${icon.key}`}
+          content={icon.tooltip}
+          disabled={!icon.tooltip}
+          placement="bottom"
+          strictPlacement
+        >
+          <div
+            role="img"
+            aria-label={icon.label}
+            className="h-10 w-10 rounded-xl border border-white/10 bg-black/60 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url("${icon.src}")` }}
+          />
+        </HoverTooltip>
+      ))}
+    </div>
+  );
+}
+
 const formatValue = (value: number): string => (
   Number.isInteger(value)
     ? String(Math.trunc(value))
     : value.toFixed(1).replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0+$/u, '')
 );
+
+// Terms that appear in track notes and get an inline tooltip when hovered.
+const NOTE_GLOSSARY: Record<string, React.ReactNode> = {
+  'crit fished': (
+    <span>
+      Guaranteed crit on the move, because the player usually resets if the hit doesn&apos;t crit
+    </span>
+  ),
+};
+
+const NOTE_PATTERN = new RegExp(
+  `(${Object.keys(NOTE_GLOSSARY).map((t) => t.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')).join('|')})`,
+  'gi',
+);
+
+function renderNoteWithTooltips(note: string): React.ReactNode {
+  const parts = note.split(NOTE_PATTERN);
+  return parts.map((part, i) => {
+    const tooltip = NOTE_GLOSSARY[part.toLowerCase()];
+    if (tooltip) {
+      return (
+        <HoverTooltip key={i} content={tooltip} placement="top">
+          <span className="cursor-help underline decoration-dotted decoration-white/40 underline-offset-2">
+            {part}
+          </span>
+        </HoverTooltip>
+      );
+    }
+    return part;
+  });
+}
 
 export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProps> = ({
   characterName,
@@ -44,6 +107,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
   activeWeaponId,
   activeTrackKey,
   activeTrackLabel,
+  activeTrackNote,
 }) => {
   const {
     fetters,
@@ -100,7 +164,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
         {passiveName ? (
           <p className="mt-2 text-sm font-semibold text-white/95">
             {passiveName}
-            {rank ? <span className="ml-1 text-white/50">R{rank}</span> : <span className="ml-1 text-orange-300">R1</span>}
+            <span className="ml-1 text-orange-400">{rank ? `R${rank}` : 'R1'}</span>
           </p>
         ) : null}
 
@@ -160,7 +224,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
             });
 
             return (
-              <div key={`${fetter.id}-${pieceCount}`} className="rounded-lg border border-white/12 bg-black/25 px-2.5 py-2">
+              <div key={`${fetter.id}-${pieceCount}`} className="rounded-lg border border-white/12 bg-black/60 px-2.5 py-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
                   {pieceCount}-Piece
                 </p>
@@ -315,9 +379,12 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
               </span>
             )}
           </div>
+          {activeTrackNote ? (
+            <p className="text-center mt-2">{renderNoteWithTooltips(activeTrackNote)}</p>
+          ) : null}
         </div>
 
-        <div className="mt-5 flex w-full max-w-5xl flex-wrap items-start justify-center gap-8 md:gap-10">
+        <div className="mt-2 flex w-full max-w-5xl flex-wrap items-start justify-center gap-8 md:gap-10">
           <div className="flex flex-col items-center">
             <div className="h-25 w-25 rounded-3xl border border-white/12 bg-black/16 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
               {characterHead ? (
@@ -331,30 +398,10 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
                 <div className="h-full w-full rounded-[inherit] bg-background-secondary/80" />
               )}
             </div>
-            {leadLoadoutIcons.length > 0 ? (
-              <div className="mt-2 flex items-center justify-center gap-0.5 rounded-2xl border border-white/10 bg-black/25 px-2 py-1">
-                {leadLoadoutIcons.map((icon) => (
-                  <HoverTooltip
-                    key={`lead-${icon.key}`}
-                    content={icon.tooltip}
-                    disabled={!icon.tooltip}
-                    placement="bottom"
-                    strictPlacement
-                  >
-                    <img
-                      src={icon.src}
-                      alt={icon.label}
-                      className="h-9 w-9 object-contain"
-                    />
-                  </HoverTooltip>
-                ))}
-              </div>
-            ) : null}
+            <LoadoutIconRow icons={leadLoadoutIcons} keyPrefix="lead" />
           </div>
 
           {supportMembers.map((member) => {
-            const visibleLoadoutIcons = member.loadoutIcons;
-
             return (
               <div key={member.id} className="flex flex-col items-center">
                 <div className="h-25 w-25 rounded-3xl border border-white/12 bg-black/16 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
@@ -369,25 +416,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
                     <div className="h-full w-full rounded-[inherit] bg-background-secondary/80" />
                   )}
                 </div>
-                {visibleLoadoutIcons.length > 0 ? (
-                  <div className="mt-2 flex items-center justify-center gap-0.5 rounded-2xl border border-white/10 bg-black/25 px-2 py-1">
-                    {visibleLoadoutIcons.map((icon) => (
-                      <HoverTooltip
-                        key={`${member.id}-${icon.key}`}
-                        content={icon.tooltip}
-                        disabled={!icon.tooltip}
-                        placement="bottom"
-                        strictPlacement
-                      >
-                        <img
-                          src={icon.src}
-                          alt={icon.label}
-                          className="h-9 w-9 object-contain"
-                        />
-                      </HoverTooltip>
-                    ))}
-                  </div>
-                ) : null}
+                <LoadoutIconRow icons={member.loadoutIcons} keyPrefix={member.id} />
               </div>
             );
           })}

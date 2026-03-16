@@ -485,6 +485,7 @@ export interface LBTeamMemberConfig {
 export interface LBTrack {
   key: string;
   label: string;
+  note?: string;
 }
 
 export interface LBCharacterOverview {
@@ -590,6 +591,7 @@ function parseTracks(raw: unknown): LBTrack[] {
     .map((track) => ({
       key: typeof track.key === 'string' ? track.key : '',
       label: typeof track.label === 'string' ? track.label : '',
+      note: typeof track.note === 'string' ? track.note : undefined,
     }))
     .filter((track) => track.key.length > 0);
 }

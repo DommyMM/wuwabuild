@@ -368,6 +368,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               activeWeaponId={weaponId}
               activeTrackKey={track}
               activeTrackLabel={configTracks.find((t) => t.key === track)?.label}
+              activeTrackNote={configTracks.find((t) => t.key === track)?.note}
             />
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
               <LeaderboardTabs
