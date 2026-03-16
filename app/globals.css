@@ -190,14 +190,6 @@ body {
   animation: char-sig-rover 8.6s linear infinite alternate;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .char-sig {
-    animation: none;
-    background-size: 100% 100%;
-    background-position: 50% 50%;
-  }
-}
-
 .level-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -362,6 +354,11 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .char-sig {
+    animation: none;
+    background-size: 100% 100%;
+    background-position: 50% 50%;
+  }
   .cv-glow {
     animation: none;
     background: rgb(255, 0, 255);

@@ -902,6 +902,12 @@ export async function getBuildStandings(
   }
 
   const payload = await response.json() as { standings?: unknown };
+  console.log('[LB] /leaderboard/{id}/build/{id}/standings payload', {
+    requestUrl,
+    characterId,
+    buildId,
+    payload,
+  });
   if (!Array.isArray(payload.standings)) return [];
 
   const result: LBStandingEntry[] = [];
