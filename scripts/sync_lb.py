@@ -277,6 +277,8 @@ _STAT_NAMES: list[tuple[str, str]] = [
     ("Resonance Skill DMG Bonus",      r"Resonance Skill DMG Bonus"),
     ("Basic Attack DMG Bonus",         r"Basic Attack DMG Bonus"),
     ("Heavy Attack DMG Bonus",         r"Heavy Attack DMG Bonus"),
+    # Generic all-move-type bonus (no specific move type prefix); e.g. Red Spring forte trigger
+    ("Basic DMG Bonus",                r"Basic DMG Bonus"),
     # Non-substat DMG types (keep as-is for future engine support)
     ("Echo Skill DMG Bonus",           r"Echo Skill DMG Bonus"),
     ("Coordinated Attack DMG",         r"Coordinated Attack DMG"),
@@ -319,7 +321,9 @@ _STAT_RE = _build_stat_regex()
 # Regexes for numeric value / duration / stacking extraction.
 _RE_PCT       = re.compile(r"(\d+(?:\.\d+)?)\s*%")
 _RE_DURATION  = re.compile(
-    r"(?:lasting\s+for|for|lasts?|each\s+stack\s+lasts?)\s+(\d+(?:\.\d+)?)\s*s\b", re.I
+    r"(?:lasting\s+for|for|lasts?|each\s+stack\s+lasts?)\s+(\d+(?:\.\d+)?)"
+    r"(?:\s*s\b|(?=\s*[,.]|\s*$))",  # "s" suffix OR end-of-clause/sentence
+    re.I
 )
 _RE_STACKS    = re.compile(r"stack(?:ing|s)?\s+up\s+to\s+(\d+)\s+times?", re.I)
 _RE_PER_STACK = re.compile(r"(\d+(?:\.\d+)?)\s*%\s+every\s+\d", re.I)  # "5% every 1.5s"
@@ -472,6 +476,7 @@ _STAT_TO_GO_EFFECT: dict[str, tuple[str, str, str]] = {
     "Crit Rate":                        ("critRate",      "", ""),
     "Crit DMG":                         ("critDMG",       "", ""),
     "All Attribute DMG":                ("elementalDMG",  "", ""),
+    "Basic DMG Bonus":                  ("moveTypeDMG",   "", ""),            # generic (all move types)
     "Basic Attack DMG Bonus":           ("moveTypeDMG",   "", "basic_attack"),
     "Basic Attack DMG":                 ("moveTypeDMG",   "", "basic_attack"),
     "Heavy Attack DMG Bonus":           ("moveTypeDMG",   "", "heavy_attack"),
@@ -652,8 +657,7 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
         entry: dict = {"trigger": trigger, "buffs": buffs, "duration": duration}
         if stacks_m:
             entry["max_stacks"] = int(stacks_m.group(1))
-            if per_stack_m:
-                entry["per_stack"] = True
+            entry["per_stack"] = True  # "stacking up to N times" always means accumulate
         elif per_stack_m and global_stacks > 0:
             # Stacking info was in a separate meta-sentence; attach it here.
             entry["max_stacks"] = global_stacks
@@ -661,14 +665,14 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
 
         results.append(entry)
 
-    # Post-pass: attach global_stacks to the last clause that has a trigger but
-    # no inline stacks yet.  This handles patterns like:
+    # Post-pass: attach global_stacks to the first triggered clause that has no
+    # inline stacks yet.  This handles patterns like:
     #   "Stat +X% after Trigger.  This effect stacks up to N times."
-    # and correctly scopes stacking to the final clause when a sentence was
-    # split into multiple sub-clauses by _split_compound_and (the stacking
-    # meta-sentence always refers to the last-mentioned effect).
+    # Forward iteration is correct when the meta-sentence appears between two
+    # distinct effects (e.g. Red Spring) — the stacking belongs to the effect
+    # mentioned just before the meta-sentence, i.e. the first eligible entry.
     if global_stacks > 0:
-        for entry in reversed(results):
+        for entry in results:
             if "max_stacks" not in entry and entry.get("trigger"):
                 entry["max_stacks"] = global_stacks
                 entry["per_stack"] = True
