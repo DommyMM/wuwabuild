@@ -201,7 +201,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       active = false;
       controller.abort();
     };
-  }, [characterId, leaderboardQuery, page, pageSize, queryKey, track]);
+  }, [characterId, deepLinkBuildId, leaderboardQuery, page, pageSize, queryKey, track]);
 
   // Expand / detail
   const loadBuildDetail = useCallback((buildId: string, force = false) => {
@@ -260,7 +260,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   useEffect(() => {
     if (!autoExpandBuildId) return;
     if (!entries.some((e) => e.id === autoExpandBuildId)) return;
-    if (expandedIds.has(autoExpandBuildId)) { setAutoExpandBuildId(null); return; }
+    if (expandedIds.has(autoExpandBuildId)) { void Promise.resolve().then(() => setAutoExpandBuildId(null)); return; }
     const id = autoExpandBuildId;
     void Promise.resolve().then(() => {
       handleToggleExpand(id);
