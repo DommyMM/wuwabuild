@@ -64,6 +64,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [track, setTrack] = useState(() => initialSnapshot.track);
   const [uid, setUid] = useState(() => initialSnapshot.uid);
   const [username, setUsername] = useState(() => initialSnapshot.username);
+  const [deepLinkBuildId] = useState(() => initialSnapshot.buildId);
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => initialSnapshot.regionPrefixes);
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialSnapshot.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialSnapshot.echoMains);
@@ -107,10 +108,11 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     regionPrefixes,
     echoSets,
     echoMains,
+    buildId: deepLinkBuildId,
   }, {
     defaultWeaponId,
     defaultTrack: defaultTrackKey,
-  }), [defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
+  }), [defaultTrackKey, defaultWeaponId, deepLinkBuildId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
   const leaderboardQuery = useMemo(
     () => leaderboardSnapshotToApiQuery(currentQuerySnapshot),
     [currentQuerySnapshot],
@@ -174,15 +176,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
           setTrack(response.activeTrack);
         }
 
-        // UID deep-link: on first load with a uid filter, jump to the build's page and auto-expand it.
-        if (!didDeepLinkRef.current && uid.trim() && response.builds.length > 0) {
-          const firstEntry = response.builds[0];
-          if (firstEntry && firstEntry.globalRank > 0) {
-            const targetPage = Math.ceil(firstEntry.globalRank / pageSize);
+        // buildId deep-link: auto-expand the target build when it appears in entries.
+        if (!didDeepLinkRef.current && deepLinkBuildId) {
+          const target = response.builds.find((b) => b.id === deepLinkBuildId);
+          if (target) {
             didDeepLinkRef.current = true;
-            setAutoExpandBuildId(firstEntry.id);
-            setUid('');
-            setPage(targetPage);
+            setAutoExpandBuildId(target.id);
           }
         }
       })
@@ -266,6 +265,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     void Promise.resolve().then(() => {
       handleToggleExpand(id);
       setAutoExpandBuildId(null);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-build-id="${id}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 200);
     });
   }, [autoExpandBuildId, entries, expandedIds, handleToggleExpand]);
 

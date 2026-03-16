@@ -15,6 +15,8 @@ export interface LeaderboardQuerySnapshot {
   regionPrefixes: string[];
   echoSets: LBEchoSetFilter[];
   echoMains: LBEchoMainFilter[];
+  /** Deep-link: auto-expand this build. URL-only — not sent to API. */
+  buildId: string;
 }
 
 export interface LeaderboardQueryDefaults {
@@ -90,6 +92,7 @@ export function resolveLeaderboardQuerySnapshot(
     regionPrefixes: snapshot.regionPrefixes?.map((entry) => entry.trim()).filter(Boolean) ?? [],
     echoSets: snapshot.echoSets ?? [],
     echoMains: snapshot.echoMains ?? [],
+    buildId: snapshot.buildId?.trim() ?? '',
   };
 }
 
@@ -113,6 +116,7 @@ export function parseInitialLeaderboardQuery(
     track: resolveTrackKey(searchParams, opts.tracks, defaultTrack),
     uid: searchParams.get('uid') ?? '',
     username: searchParams.get('username') ?? '',
+    buildId: searchParams.get('buildId') ?? '',
     regionPrefixes: parseCSV(searchParams.get('regions')),
     echoSets: parseEchoSetCSV(searchParams.get('sets')),
     echoMains: parseEchoMainCSV(searchParams.get('mains')),
@@ -145,6 +149,7 @@ export function serializeLeaderboardQuery(
   if (resolved.track) params.set('track', resolved.track);
   if (resolved.uid) params.set('uid', resolved.uid);
   if (resolved.username) params.set('username', resolved.username);
+  if (resolved.buildId) params.set('buildId', resolved.buildId);
   if (resolved.regionPrefixes.length) params.set('regions', resolved.regionPrefixes.join(','));
   if (resolved.echoSets.length) {
     params.set('sets', resolved.echoSets.map((entry) => `${entry.count}~${entry.setId}`).join('.'));

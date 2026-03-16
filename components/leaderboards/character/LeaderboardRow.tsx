@@ -113,7 +113,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
     : `Character ${entry.character.id}`;
 
   return (
-    <div>
+    <div data-build-id={entry.id}>
       <div
         role="button"
         tabIndex={0}
@@ -246,7 +246,6 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         activeTrackKey={activeTrackKey}
         activeBoardDamage={entry.damage}
         globalRank={entry.globalRank}
-        playerUid={entry.owner.uid}
       />
     </div>
   );

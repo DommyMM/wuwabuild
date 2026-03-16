@@ -130,7 +130,6 @@ interface BuildSimulationSectionProps {
   activeWeaponId: string;
   activeTrackKey: string;
   isExpanded: boolean;
-  playerUid?: string;
   baseDamage?: number;
   globalRank?: number;
 }
@@ -445,6 +444,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
             standingsError={standingsError}
             characterId={characterId}
             characterName={characterName}
+            buildId={buildId}
             hasBoardContext={hasBoardContext}
             activeWeaponId={activeWeaponId}
             activeTrackKey={activeTrackKey}
