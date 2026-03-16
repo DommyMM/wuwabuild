@@ -142,7 +142,6 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   activeWeaponId,
   activeTrackKey,
   isExpanded,
-  playerUid,
   baseDamage,
   globalRank,
 }) => {
@@ -449,7 +448,6 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
             hasBoardContext={hasBoardContext}
             activeWeaponId={activeWeaponId}
             activeTrackKey={activeTrackKey}
-            playerUid={playerUid ?? ''}
           />
         </section>
       )}

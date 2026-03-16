@@ -15,7 +15,6 @@ interface BuildStandingsTableProps {
   hasBoardContext: boolean;
   activeWeaponId: string;
   activeTrackKey: string;
-  playerUid: string;
 }
 
 export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
@@ -27,7 +26,6 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
   hasBoardContext,
   activeWeaponId,
   activeTrackKey,
-  playerUid,
 }) => {
   const { getWeapon, getCharacter } = useGameData();
 
@@ -67,7 +65,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
         </tr>
       </thead>
       <tbody className="divide-y divide-border/45">
-        {standings.map((standingEntry) => {
+        {[...standings].sort((a, b) => a.rank - b.rank).map((standingEntry) => {
           const weapon = getWeapon(standingEntry.weaponId);
           const weaponName = weapon?.name ?? standingEntry.weaponId;
           const weaponIcon = weapon ? getWeaponPaths(weapon) : null;
@@ -78,8 +76,8 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
             standingEntry.weaponId === activeWeaponId &&
             standingEntry.trackKey === activeTrackKey;
 
-          const boardHref = playerUid
-            ? `/leaderboards/${encodeURIComponent(characterId)}?weaponId=${encodeURIComponent(standingEntry.weaponId)}&track=${encodeURIComponent(standingEntry.trackKey)}&uid=${encodeURIComponent(playerUid)}`
+          const boardHref = standingEntry.uid
+            ? `/leaderboards/${encodeURIComponent(characterId)}?weaponId=${encodeURIComponent(standingEntry.weaponId)}&track=${encodeURIComponent(standingEntry.trackKey)}&uid=${encodeURIComponent(standingEntry.uid)}`
             : `/leaderboards/${encodeURIComponent(characterId)}?weaponId=${encodeURIComponent(standingEntry.weaponId)}&track=${encodeURIComponent(standingEntry.trackKey)}`;
 
           const mainChar = getCharacter(characterId);

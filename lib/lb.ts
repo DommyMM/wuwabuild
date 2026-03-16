@@ -877,6 +877,7 @@ export async function getBuildSubstatUpgrades(
 
 export interface LBStandingEntry {
   key: string;
+  uid: string;
   weaponId: string;
   trackKey: string;
   rank: number;
@@ -910,6 +911,7 @@ export async function getBuildStandings(
     if (!isRecord(raw)) continue;
     result.push({
       key: typeof raw.key === 'string' ? raw.key : '',
+      uid: typeof raw.uid === 'string' ? raw.uid : '',
       weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
       trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
       rank: toFiniteNumber(raw.rank, 0),
