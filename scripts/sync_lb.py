@@ -472,21 +472,21 @@ _STAT_TO_GO_EFFECT: dict[str, tuple[str, str, str]] = {
     "Crit Rate":                        ("critRate",      "", ""),
     "Crit DMG":                         ("critDMG",       "", ""),
     "All Attribute DMG":                ("elementalDMG",  "", ""),
-    "Basic Attack DMG Bonus":           ("moveTypeDMG",   "", "BA"),
-    "Basic Attack DMG":                 ("moveTypeDMG",   "", "BA"),
-    "Heavy Attack DMG Bonus":           ("moveTypeDMG",   "", "HA"),
-    "Heavy Attack DMG":                 ("moveTypeDMG",   "", "HA"),
-    "Resonance Skill DMG Bonus":        ("moveTypeDMG",   "", "RS"),
-    "Resonance Skill DMG":              ("moveTypeDMG",   "", "RS"),
-    "Resonance Liberation DMG Bonus":   ("moveTypeDMG",   "", "RL"),
-    "Resonance Liberation DMG":         ("moveTypeDMG",   "", "RL"),
-    "Echo Skill DMG Bonus":             ("moveTypeDMG",   "", "echoSkill"),
-    "Aero DMG":     ("elementalDMG", "AD", ""),
-    "Glacio DMG":   ("elementalDMG", "GD", ""),
-    "Fusion DMG":   ("elementalDMG", "FD", ""),
-    "Electro DMG":  ("elementalDMG", "ED", ""),
-    "Havoc DMG":    ("elementalDMG", "HD", ""),
-    "Spectro DMG":  ("elementalDMG", "SD", ""),
+    "Basic Attack DMG Bonus":           ("moveTypeDMG",   "", "basic_attack"),
+    "Basic Attack DMG":                 ("moveTypeDMG",   "", "basic_attack"),
+    "Heavy Attack DMG Bonus":           ("moveTypeDMG",   "", "heavy_attack"),
+    "Heavy Attack DMG":                 ("moveTypeDMG",   "", "heavy_attack"),
+    "Resonance Skill DMG Bonus":        ("moveTypeDMG",   "", "resonance_skill"),
+    "Resonance Skill DMG":              ("moveTypeDMG",   "", "resonance_skill"),
+    "Resonance Liberation DMG Bonus":   ("moveTypeDMG",   "", "resonance_liberation"),
+    "Resonance Liberation DMG":         ("moveTypeDMG",   "", "resonance_liberation"),
+    "Echo Skill DMG Bonus":             ("moveTypeDMG",   "", "echo"),
+    "Aero DMG":     ("elementalDMG", "Aero",    ""),
+    "Glacio DMG":   ("elementalDMG", "Glacio",  ""),
+    "Fusion DMG":   ("elementalDMG", "Fusion",  ""),
+    "Electro DMG":  ("elementalDMG", "Electro", ""),
+    "Havoc DMG":    ("elementalDMG", "Havoc",   ""),
+    "Spectro DMG":  ("elementalDMG", "Spectro", ""),
 }
 
 
@@ -881,8 +881,8 @@ _AMPLIFY_NOUN_RE = re.compile(
 )
 
 _ELEMENT_TO_CODE = {
-    "glacio": "GD", "fusion": "FD", "electro": "ED",
-    "aero": "AD", "havoc": "HD", "spectro": "SD",
+    "glacio": "Glacio", "fusion": "Fusion", "electro": "Electro",
+    "aero": "Aero", "havoc": "Havoc", "spectro": "Spectro",
 }
 _MOVE_TYPE_TO_CODE = {
     "basic attack": "basic_attack",
