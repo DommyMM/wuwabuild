@@ -8,14 +8,13 @@ For full technical context, see [AGENTS.md](./AGENTS.md).
 
 ---
 
-## Status Snapshot (March 14, 2026)
+## Status Snapshot (March 15, 2026)
 
 - All core routes implemented: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`.
-- `/builds` is live and wired to LB `GET /build` with filters/sort/pagination + local query caching + SSR prefetch (2-min ISR, silent revalidation on mount).
-- `/leaderboards` overview and `/leaderboards/[characterId]` per-character pages are live, also SSR-prefetched.
-- `/import` OCR flow is live; `Upload to Leaderboard` toggle submits canonical `buildState` via `POST /api/lb/build`, and failed/misread scans can be reported from the import UI.
-- `/edit` `View Ranking` button routes to the selected character leaderboard page.
-- Leaderboard backend is Go at `/lb`, deployed as the sole source (see lb/AGENTS.md).
+- `/builds` global board and `/leaderboards` pages are live with SSR prefetch (2-min ISR, silent revalidation on mount).
+- `/import` OCR flow is live with leaderboard upload and screenshot-backed scan issue reports.
+- Build expansion shows move breakdown, substat upgrade tiers, and leaderboard standings across all weapon × track boards.
+- Leaderboard backend is Go in its own AGENTS.md file. 
 
 ---
 
@@ -53,13 +52,6 @@ EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
 - `StatsContext` — Derives all calculated stats (HP, ATK, DEF, DMG boosts, CV) from build + game data.
 - `LanguageContext` — i18n language selection persisted to localStorage.
 - `ToastContext` — Queue-based transient feedback (success/error/warning/info).
-
-### Next.js Structure Notes
-
-- `app/(game)` is a route group, so it does not affect public URLs. It only exists to opt game-data routes into a shared layout/provider boundary.
-- This matches the App Router recommendation for applying a layout to only a subset of routes.
-- Route-local implementation files are safe to colocate inside `app` because only `page.tsx` and `route.ts` create public routes.
-- Private folders like `_components` or `_lib` are optional. They would only be useful if we want stricter visual separation between route files and route-local helpers later.
 
 ### API Integration
 
@@ -119,20 +111,6 @@ npm run lint
 7. Optional: fire-and-forget full screenshot upload to R2 (hash-deduped root-level `<hash>.jpg` object).
 8. Users can report scan problems from `/import`; report JSON is stored in the same bucket under `reports/YYYY/MM/DD/<reportId>.json` and linked back to the uploaded screenshot key.
 
-### OCR Issue Reports
-
-- `/import` stores the original screenshot in R2 as a deduplicated root-level JPEG object like `<hash>.jpg`.
-- Manual reports are stored as JSON objects under `reports/YYYY/MM/DD/<reportId>.json`.
-- Each report includes the screenshot key, OCR progress map, OCR payload, current error state, and the converted build state when available.
-- No database or webhook is required for the first pass; reports can be reviewed manually in R2.
-
-## Leaderboard Fetch Flow
-
-1. Client components request LB data through `/api/lb/*`.
-2. The catch-all Next proxy forwards the remaining child path to the Go LB service.
-3. When `INTERNAL_API_KEY` is set, the proxy includes `X-Internal-Key` so the LB service can stay private.
-4. Browser code never sees the shared key or calls the LB origin directly.
-
 ---
 
 ## Project Structure
@@ -154,7 +132,11 @@ wuwabuilds/
 │   └── api/                 # API routes (lb proxy, ocr proxy, upload-training, OCR issue reports)
 ├── contexts/                # React Context providers
 ├── components/              # Components by feature area
-│   ├── build/               # /builds page (filters, results, rows)
+│   ├── leaderboards/        # All leaderboard + build browser components
+│   │   ├── board/           # /builds global board (filters, results, rows)
+│   │   ├── character/       # /leaderboards/[characterId] per-character page
+│   │   ├── overview/        # /leaderboards overview page
+│   │   └── (shared)         # BuildExpanded, BuildFiltersPanel, BuildPagination, etc.
 │   ├── edit/                # /edit page (editor, action bar, card options)
 │   ├── card/                # Build card display sections
 │   ├── character/           # Character selector
@@ -184,9 +166,9 @@ wuwabuilds/
 Run from `wuwabuilds/scripts/`:
 
 ```bash
-python sync_all.py                                # Full pipeline: frontend Data + backend Data + LB calc data
-python sync_lb.py --weapons-only                 # Regenerate LB weapon bases only
-python download_echo_icons.py --clean --force    # Refresh backend echo template PNGs by CDN ID
+py sync_all.py                                # Full pipeline: frontend Data + backend Data + LB calc data
+py sync_lb.py --weapons-only                 # Regenerate LB weapon bases only
+py download_echo_icons.py --clean --force    # Refresh backend echo template PNGs by CDN ID
 ```
 
 `sync_all.py` runs `sync_characters`, `sync_weapons`, `sync_echoes`, `sync_fetters`,
