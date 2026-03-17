@@ -64,7 +64,18 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [track, setTrack] = useState(() => initialSnapshot.track);
   const [uid, setUid] = useState(() => initialSnapshot.uid);
   const [username, setUsername] = useState(() => initialSnapshot.username);
-  const [deepLinkBuildId] = useState(() => initialSnapshot.buildId);
+  // URL-reactive buildId: re-derived on every render so same-page navigation (standings click) is detected.
+  const deepLinkBuildId = initialSnapshot.buildId;
+  // Frozen context: which weapon/track was active when this buildId was introduced.
+  // Updated via render-time ref mutation when the buildId changes.
+  const buildIdContextRef = useRef<{ buildId: string; weaponId: string; track: string } | null>(
+    deepLinkBuildId ? { buildId: deepLinkBuildId, weaponId: initialSnapshot.weaponId, track: initialSnapshot.track } : null
+  );
+  if (deepLinkBuildId && buildIdContextRef.current?.buildId !== deepLinkBuildId) {
+    buildIdContextRef.current = { buildId: deepLinkBuildId, weaponId: initialSnapshot.weaponId, track: initialSnapshot.track };
+  } else if (!deepLinkBuildId && buildIdContextRef.current) {
+    buildIdContextRef.current = null;
+  }
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => initialSnapshot.regionPrefixes);
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialSnapshot.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialSnapshot.echoMains);
@@ -74,7 +85,11 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialData?.builds ?? []);
   const [total, setTotal] = useState(() => initialData?.total ?? 0);
   const [autoExpandBuildId, setAutoExpandBuildId] = useState<string | null>(null);
-  const didDeepLinkRef = useRef(false);
+  // Track which buildId we've already auto-expanded, so same-page navigation to a new buildId re-triggers.
+  const didDeepLinkRef = useRef<string | null>(null);
+  // Used to suppress the URL sync effect for one cycle when external navigation updates weapon/track state.
+  const suppressUrlSyncRef = useRef(false);
+  const prevSearchParamsRef = useRef(searchParamsString);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
     if (!initialData) return null;
     return JSON.stringify({
@@ -96,6 +111,14 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     () => configWeaponIds[weaponIndex] ?? initialSnapshot.weaponId ?? '',
     [configWeaponIds, initialSnapshot.weaponId, weaponIndex],
   );
+  // Clear the deep link buildId once the user navigates away from the weapon/track it was introduced on.
+  const activeBuildId = useMemo(() => {
+    if (!deepLinkBuildId || !buildIdContextRef.current) return undefined;
+    const ctx = buildIdContextRef.current;
+    if (ctx.weaponId && weaponId !== ctx.weaponId) return undefined;
+    if (ctx.track && track !== ctx.track) return undefined;
+    return deepLinkBuildId;
+  }, [deepLinkBuildId, weaponId, track]);
   const currentQuerySnapshot = useMemo(() => resolveLeaderboardQuerySnapshot({
     page,
     pageSize,
@@ -108,18 +131,45 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     regionPrefixes,
     echoSets,
     echoMains,
-    buildId: deepLinkBuildId,
+    buildId: activeBuildId,
   }, {
     defaultWeaponId,
     defaultTrack: defaultTrackKey,
-  }), [defaultTrackKey, defaultWeaponId, deepLinkBuildId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
+  }), [activeBuildId, defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
   const leaderboardQuery = useMemo(
     () => leaderboardSnapshotToApiQuery(currentQuerySnapshot),
     [currentQuerySnapshot],
   );
 
+  // External navigation sync — MUST be registered before the URL sync effect (effects run in order).
+  // When a standings deep-link changes the URL to a different weapon/track while on the same page,
+  // sync weaponIndex + track from the URL and suppress the URL sync for this cycle so it doesn't
+  // immediately revert the navigation back to the current state's weapon.
+  useEffect(() => {
+    if (searchParamsString === prevSearchParamsRef.current) return;
+    prevSearchParamsRef.current = searchParamsString;
+    if (!initialSnapshot.buildId) return;
+    const urlWeaponId = initialSnapshot.weaponId;
+    const urlTrack = initialSnapshot.track;
+    const stateWeaponId = configWeaponIds[weaponIndex] ?? '';
+    if (urlWeaponId === stateWeaponId && urlTrack === track) return;
+    suppressUrlSyncRef.current = true;
+    // Also update the buildId context so activeBuildId stays valid after state updates.
+    if (initialSnapshot.buildId) {
+      buildIdContextRef.current = { buildId: initialSnapshot.buildId, weaponId: urlWeaponId ?? '', track: urlTrack ?? '' };
+    }
+    const idx = urlWeaponId ? configWeaponIds.indexOf(urlWeaponId) : -1;
+    if (idx >= 0) setWeaponIndex(idx);
+    if (urlTrack && urlTrack !== track) setTrack(urlTrack);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParamsString]);
+
   // URL sync
   useEffect(() => {
+    if (suppressUrlSyncRef.current) {
+      suppressUrlSyncRef.current = false;
+      return;
+    }
     const next = serializeLeaderboardQuery(currentQuerySnapshot, {
       defaultWeaponId,
       defaultTrack: defaultTrackKey,
@@ -192,11 +242,11 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
           setTrack(response.activeTrack);
         }
 
-        // buildId deep-link: auto-expand the target build (now works for ghost builds too).
-        if (!didDeepLinkRef.current && deepLinkBuildId) {
-          const target = mergedBuilds.find((b) => b.id === deepLinkBuildId);
+        // buildId deep-link: auto-expand the target build (fires again on same-page navigation to new buildId).
+        if (activeBuildId && didDeepLinkRef.current !== activeBuildId) {
+          const target = mergedBuilds.find((b) => b.id === activeBuildId);
           if (target) {
-            didDeepLinkRef.current = true;
+            didDeepLinkRef.current = activeBuildId;
             setAutoExpandBuildId(target.id);
           }
         }
@@ -217,7 +267,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       active = false;
       controller.abort();
     };
-  }, [characterId, deepLinkBuildId, leaderboardQuery, page, pageSize, queryKey, track]);
+  }, [activeBuildId, characterId, leaderboardQuery, page, pageSize, queryKey, track]);
 
   // Expand / detail
   const loadBuildDetail = useCallback((buildId: string, force = false) => {
@@ -446,7 +496,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               </div>
               <LeaderboardResultsPanel
                 entries={entries}
-                deepLinkBuildId={deepLinkBuildId}
+                deepLinkBuildId={activeBuildId ?? ''}
                 activeWeaponId={weaponId}
                 activeTrackKey={track}
                 metricLabel={activeMetricLabel}
