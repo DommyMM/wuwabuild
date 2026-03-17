@@ -17,6 +17,7 @@ const DAMAGE_SORT_KEY: LBLeaderboardSortKey = 'damage';
 
 interface LeaderboardResultsPanelProps {
   entries: LBLeaderboardEntry[];
+  deepLinkBuildId: string;
   activeWeaponId: string;
   activeTrackKey: string;
   metricLabel: string;
@@ -43,6 +44,7 @@ interface LeaderboardResultsPanelProps {
 
 export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = ({
   entries,
+  deepLinkBuildId,
   activeWeaponId,
   activeTrackKey,
   metricLabel,
@@ -274,6 +276,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                       <LeaderboardRow
                         key={entry.id}
                         entry={entry}
+                        isGhost={entry.globalRank === 0 && entry.id === deepLinkBuildId}
                         activeWeaponId={activeWeaponId}
                         activeTrackKey={activeTrackKey}
                         sort={sort}

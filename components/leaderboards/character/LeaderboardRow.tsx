@@ -15,6 +15,7 @@ import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from '../constants';
 
 interface LeaderboardRowProps {
   entry: LBLeaderboardEntry;
+  isGhost?: boolean;
   activeWeaponId: string;
   activeTrackKey: string;
   sort: LBLeaderboardSortKey;
@@ -31,6 +32,7 @@ interface LeaderboardRowProps {
 
 export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   entry,
+  isGhost = false,
   activeWeaponId,
   activeTrackKey,
   sort,
@@ -118,7 +120,11 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
-        className={`grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
+        className={`grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors ${
+          isGhost
+            ? 'border-l-2 border-l-accent/60 bg-accent/6 hover:bg-accent/12'
+            : 'odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10'
+        } focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
         onClick={() => onToggleExpand(entry.id)}
         onKeyDown={(event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;

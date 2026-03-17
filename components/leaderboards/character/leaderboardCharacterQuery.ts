@@ -15,7 +15,7 @@ export interface LeaderboardQuerySnapshot {
   regionPrefixes: string[];
   echoSets: LBEchoSetFilter[];
   echoMains: LBEchoMainFilter[];
-  /** Deep-link: auto-expand this build. URL-only — not sent to API. */
+  /** Deep-link: auto-expand this build. Sent to API for ghost build resolution. */
   buildId: string;
 }
 
@@ -186,6 +186,7 @@ export function leaderboardSnapshotToApiQuery(
     regionPrefixes: resolved.regionPrefixes.length ? resolved.regionPrefixes : undefined,
     echoSets: resolved.echoSets.length ? resolved.echoSets : undefined,
     echoMains: resolved.echoMains.length ? resolved.echoMains : undefined,
+    buildId: resolved.buildId || undefined,
   };
 }
 

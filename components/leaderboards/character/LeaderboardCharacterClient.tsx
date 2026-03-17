@@ -154,13 +154,29 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     )
       .then((response) => {
         if (!active) return;
+
+        // If page was overridden by backend for ghost resolution, sync it.
+        if (response.page !== page) setPage(response.page);
+
         const nextPageCount = Math.max(1, Math.ceil(response.total / pageSize));
         if (page > nextPageCount) setPage(nextPageCount);
-        // Diff check: skip setState if data hasn't changed (avoids re-render on silent revalidation).
-        const nextSig = leaderboardSignature(response.builds, response.total);
+
+        // Insert ghost build at the correct position by damage if present.
+        let mergedBuilds = response.builds;
+        if (response.ghostBuild) {
+          const ghostDamage = response.ghostBuild.damage;
+          const insertIdx = mergedBuilds.findIndex((b) => b.damage < ghostDamage);
+          if (insertIdx === -1) {
+            mergedBuilds = [...mergedBuilds, response.ghostBuild];
+          } else {
+            mergedBuilds = [...mergedBuilds.slice(0, insertIdx), response.ghostBuild, ...mergedBuilds.slice(insertIdx)];
+          }
+        }
+
+        const nextSig = leaderboardSignature(mergedBuilds, response.total);
         if (nextSig !== leaderboardSigRef.current) {
           leaderboardSigRef.current = nextSig;
-          setEntries(response.builds);
+          setEntries(mergedBuilds);
           setTotal(response.total);
         }
         if (response.weaponIds.length > 0) setConfigWeaponIds(response.weaponIds);
@@ -176,9 +192,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
           setTrack(response.activeTrack);
         }
 
-        // buildId deep-link: auto-expand the target build when it appears in entries.
+        // buildId deep-link: auto-expand the target build (now works for ghost builds too).
         if (!didDeepLinkRef.current && deepLinkBuildId) {
-          const target = response.builds.find((b) => b.id === deepLinkBuildId);
+          const target = mergedBuilds.find((b) => b.id === deepLinkBuildId);
           if (target) {
             didDeepLinkRef.current = true;
             setAutoExpandBuildId(target.id);
@@ -430,6 +446,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               </div>
               <LeaderboardResultsPanel
                 entries={entries}
+                deepLinkBuildId={deepLinkBuildId}
                 activeWeaponId={weaponId}
                 activeTrackKey={track}
                 metricLabel={activeMetricLabel}

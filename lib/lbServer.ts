@@ -196,6 +196,7 @@ export async function prefetchLeaderboard(
 
     const payload = await response.json() as {
       builds?: unknown[];
+      ghostBuild?: unknown;
       total?: number;
       page?: number;
       pageSize?: number;
@@ -215,6 +216,12 @@ export async function prefetchLeaderboard(
         // skip malformed rows
       }
     }
+
+    let ghostBuild: LBLeaderboardEntry | null = null;
+    if (isRecord(payload.ghostBuild)) {
+      try { ghostBuild = parseLeaderboardEntry(payload.ghostBuild); } catch { /* ignore */ }
+    }
+
     console.log('[lbServer] prefetchLeaderboard payload', {
       url,
       characterId,
@@ -223,10 +230,12 @@ export async function prefetchLeaderboard(
       page: toFiniteNumber(payload.page, 1),
       pageSize: toFiniteNumber(payload.pageSize, 12),
       droppedRows: Math.max(0, rawBuilds.length - builds.length),
+      hasGhost: ghostBuild !== null,
       payload,
     });
     return {
       builds,
+      ghostBuild,
       total: toFiniteNumber(payload.total, 0),
       page: toFiniteNumber(payload.page, 1),
       pageSize: toFiniteNumber(payload.pageSize, 12),

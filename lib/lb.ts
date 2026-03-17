@@ -531,10 +531,12 @@ export interface LBLeaderboardQuery {
   echoSets?: LBEchoSetFilter[];
   echoMains?: LBEchoMainFilter[];
   track?: string;
+  buildId?: string;
 }
 
 export interface LBLeaderboardResponse {
   builds: LBLeaderboardEntry[];
+  ghostBuild: LBLeaderboardEntry | null;
   total: number;
   page: number;
   pageSize: number;
@@ -672,6 +674,7 @@ export async function listLeaderboard(
 
   const payload = await response.json() as {
     builds?: unknown[];
+    ghostBuild?: unknown;
     total?: number;
     page?: number;
     pageSize?: number;
@@ -697,8 +700,18 @@ export async function listLeaderboard(
     }
   }
 
+  let ghostBuild: LBLeaderboardEntry | null = null;
+  if (isRecord(payload.ghostBuild)) {
+    try {
+      ghostBuild = parseLeaderboardEntry(payload.ghostBuild);
+    } catch {
+      // Ghost build was malformed — ignore silently.
+    }
+  }
+
   return {
     builds,
+    ghostBuild,
     total: toFiniteNumber(payload.total, 0),
     page: toFiniteNumber(payload.page, query.page ?? 1),
     pageSize: toFiniteNumber(payload.pageSize, pageSize),
@@ -722,6 +735,7 @@ export function buildLeaderboardSearchParams(query: LBLeaderboardQuery): URLSear
   if (query.weaponId) params.set('weaponId', query.weaponId);
   if (query.uid) params.set('uid', query.uid);
   if (query.username) params.set('username', query.username);
+  if (query.buildId) params.set('buildId', query.buildId);
   appendStringParams(params, 'region', query.regionPrefixes);
   const leaderboardEchoSets = serializeEchoSetFilters(query.echoSets);
   if (leaderboardEchoSets) params.set('echoSets', leaderboardEchoSets);

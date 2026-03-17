@@ -68,7 +68,8 @@ EditorProviders (nested on /edit)
 - **Client cache** (`globalBoardCache.ts`): localStorage LRU for `/builds` list responses (2-min TTL, 30 entries max). Filtered/paginated queries always go through `/api/lb/*` with `no-store`.
 - **Leaderboard**: one row per (character × track). Each entry has `trackKey`, `trackLabel`, `totalEntries`, `weapons[]`, `teamCharacterIds[]`. Row key: `` `${entry.id}:${entry.trackKey}` ``.
 - **weaponId**: canonical CDN ID — selects which `damage_map` key to read, does **not** filter eligible builds.
-- **globalRank**: absolute rank on the selected board regardless of active sort/filters.
+- **globalRank**: competitive rank on the deduped board (damage sort, one build per UID). `0` in browse mode or for ghost builds.
+- **Ghost build**: when a deep-linked `buildId` is deduped out, the API returns it as `ghostBuild`. Frontend inserts it at the correct damage position with no rank shown and a subtle accent highlight.
 - **Standings** (`GET /leaderboard/{charId}/build/{buildId}/standings`): fetched on row expand in `BuildExpanded.tsx`, renders rank/total/damage across every weapon × track board.
 
 ---
