@@ -19,6 +19,7 @@ interface LeaderboardResultsPanelProps {
   entries: LBLeaderboardEntry[];
   activeWeaponId: string;
   activeTrackKey: string;
+  metricLabel: string;
   expandedIds: Set<string>;
   detailById: Record<string, LBBuildDetailEntry>;
   detailLoadingById: Record<string, boolean>;
@@ -44,6 +45,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   entries,
   activeWeaponId,
   activeTrackKey,
+  metricLabel,
   expandedIds,
   detailById,
   detailLoadingById,
@@ -121,13 +123,13 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
         <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
           <div className="w-max min-w-full">
             <div className="overflow-hidden rounded-lg border border-border bg-background/70">
-              {/* Table header: Rank | Owner | Character | Sets | [CV+Stats+Damage] */}
+              {/* Table header: Rank | Owner | Character | Sets | [CV+Stats+Metric] */}
               <div className={`grid ${LB_TABLE_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
                 <div className="py-2 text-center text-text-primary/70">#</div>
                 <div className="py-2">Owner</div>
                 <div className="py-2">Name</div>
                 <div className="py-2">Sets</div>
-                {/* CV + Stats + Damage group */}
+                {/* CV + Stats + Metric group */}
                 <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-200 self-stretch gap-0`}>
                   <div className="self-stretch">
                     <SortHeaderMenu
@@ -208,7 +210,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                     })
                   )}
 
-                  {/* Damage inside group, no gap */}
+                  {/* Metric inside group, no gap */}
                   <div className="self-stretch">
                     <div className={`flex h-full overflow-hidden rounded-tr-lg ${isDamageSort ? 'border-t-2 border-accent/85' : 'border-t-2 border-transparent'}`}>
                       <button
@@ -220,7 +222,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                             : 'text-text-primary/85 hover:bg-background/60 hover:text-text-primary'
                         }`}
                       >
-                        <span>Damage</span>
+                        <span>{metricLabel}</span>
                         {isDamageSort ? (
                           <ChevronDown
                             className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${

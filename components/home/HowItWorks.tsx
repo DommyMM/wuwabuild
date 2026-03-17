@@ -5,22 +5,34 @@ const STEPS = [
         icon: ScanLine,
         step: '01',
         title: 'Upload a screenshot',
-        description:
-            'Paste any 1920×1080 screenshot. OCR crops and scans each region in parallel — character, weapon, echoes, forte, and sequences.',
+        description: (
+            <>
+                Use{' '}
+                <a
+                    href="https://discord.com/channels/963760374543450182/1323199091072569479"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent/80 hover:text-accent underline underline-offset-2"
+                >
+                    wuwa-bot
+                </a>{' '}
+                to get a screenshot, then drop it here. We scan the character, weapon, echoes, forte, and sequences all at once.
+            </>
+        ),
     },
     {
         icon: SlidersHorizontal,
         step: '02',
-        title: 'Review and fine-tune',
+        title: 'Review and adjust',
         description:
-            'Open the full editor to adjust stats, swap echoes, update forte nodes, or change weapon rank. CV and damage preview updates instantly.',
+            'Open the full editor to fix any OCR misreads, swap echoes, update forte nodes, or change weapon rank. CV and damage preview update as you go.',
     },
     {
         icon: Share2,
         step: '03',
-        title: 'Export or compete',
+        title: 'Share or compete',
         description:
-            'Download a polished build card to share anywhere, or upload to the leaderboard to rank your damage across weapon and track boards.',
+            'Download a build card to share anywhere, or submit to the leaderboard and see how your damage ranks across weapon and track boards.',
     },
 ] as const;
 

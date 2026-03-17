@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
+import { isHealTrackKey } from '@/lib/lb';
 import { getCachedLeaderboardOverview, primeLeaderboardOverviewCache, readCachedLeaderboardOverview } from '@/lib/leaderboardOverviewCache';
 import { buildLeaderboardHref } from '../character/leaderboardCharacterQuery';
 import { LBCharacterOverview } from '@/lib/lb';
@@ -21,9 +22,10 @@ function overviewSignature(entries: LBCharacterOverview[]): string {
   ).join(',');
 }
 
-function formatOverviewDamage(value: number): string {
+function formatOverviewMetric(value: number, trackKey: string): string {
   if (value <= 0) return 'No data';
-  return `${Math.round(value).toLocaleString()} DMG`;
+  const suffix = isHealTrackKey(trackKey) ? 'Score' : 'Damage';
+  return `${Math.round(value).toLocaleString()} ${suffix}`;
 }
 
 interface LeaderboardOverviewClientProps {
@@ -76,6 +78,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
   }, []);
 
   const showSkeleton = fetchState.isLoading;
+  const hasScoreBoards = overview.some((entry) => isHealTrackKey(entry.trackKey));
 
   return (
     <main className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
@@ -83,7 +86,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
         <section className="relative overflow-visible rounded-xl border border-border bg-background-secondary px-4 py-2">
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
           <div className="relative">
-            <LeaderboardOverviewHeader />
+            <LeaderboardOverviewHeader hasScoreBoards={hasScoreBoards} />
 
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
               {fetchState.error && (
@@ -261,9 +264,9 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                           <div className="h-10 w-10 shrink-0 rounded bg-border/30" />
                                         )}
                                         <div className="relative min-w-0 flex-1">
-                                          {hasTopDamage ? (
+                                              {hasTopDamage ? (
                                             <div className="text-sm font-semibold leading-tight text-text-primary">
-                                              {formatOverviewDamage(top?.damage ?? 0)}
+                                              {formatOverviewMetric(top?.damage ?? 0, entry.trackKey)}
                                             </div>
                                           ) : (
                                             <div className="text-sm font-medium text-text-primary/35">Open board</div>

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { getBuildById, LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
+import { getBuildById, isHealTrackKey, LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, MAX_ITEMS_PER_PAGE } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
@@ -347,6 +347,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   );
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
+  const activeMetricLabel = isHealTrackKey(track) ? 'Score' : 'Damage';
   const rankStart = (() => {
     if (total <= 0) return 1;
     if (page === normalizedPageCount) return Math.max(1, total - entries.length + 1);
@@ -385,7 +386,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                   direction={direction}
                   pageSize={pageSize}
                   maxPageSize={MAX_ITEMS_PER_PAGE}
-                  activeSortLabel="Damage"
+                  activeSortLabel={activeMetricLabel}
                   showSortControls={false}
                   hasActiveFilters={hasActiveFilters}
                   filterQuery={filterQuery}
@@ -431,6 +432,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 entries={entries}
                 activeWeaponId={weaponId}
                 activeTrackKey={track}
+                metricLabel={activeMetricLabel}
                 expandedIds={expandedIds}
                 detailById={detailById}
                 detailLoadingById={detailLoadingById}

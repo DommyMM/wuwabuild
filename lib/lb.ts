@@ -488,6 +488,10 @@ export interface LBTrack {
   note?: string;
 }
 
+export function isHealTrackKey(trackKey: string | null | undefined): boolean {
+  return typeof trackKey === 'string' && trackKey.startsWith('heal_');
+}
+
 export interface LBCharacterOverview {
   id: string;
   trackKey: string;
