@@ -3,7 +3,7 @@ import Link from 'next/link';
 export function Footer() {
     return (
         <footer className="border-t border-border py-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between gap-2 sm:gap-0 mb-2">
                 <span className="font-gowun text-accent text-sm">WuWa Builds</span>
                 <div className="flex items-center gap-4">
                     <Link
@@ -21,7 +21,7 @@ export function Footer() {
                 </div>
             </div>
             <p className="text-xs text-text-primary/35">
-                Independent fan tool, unaffiliated with Wuthering Waves or Kuro Games. All game content © Kuro Games.
+                Independent fan tool, unaffiliated with Wuthering Waves or Kuro Games.
             </p>
         </footer>
     );

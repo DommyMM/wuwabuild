@@ -25,7 +25,7 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
   const selected = useSelectedCharacter();
   const [showRollQuality, setShowRollQuality] = useState(true);
   const [showCV, setShowCV] = useState(true);
-  const [useAltSkin, setUseAltSkin] = useState(false);
+  const [useAltSkin, setUseAltSkin] = useState(true);
 
   const hasSkin = selected ? hasAlternateSkin(selected.character) : false;
 

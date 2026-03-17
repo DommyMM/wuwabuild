@@ -355,14 +355,16 @@ export function ImportPageClient() {
         {/* Validation error */}
         {validationError && (
           <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
-            <div>{validationError}</div>
-            <button
-              type="button"
-              onClick={() => openReportModal('validation_error')}
-              className="mt-3 text-sm font-medium text-red-200 underline underline-offset-2 transition-colors hover:text-red-100"
-            >
-              Report this issue
-            </button>
+            <div className="flex items-center justify-between">
+              {validationError}
+              <button
+                type="button"
+                onClick={() => openReportModal('validation_error')}
+                className="text-sm font-medium text-red-200 underline underline-offset-2 transition-colors hover:text-red-100"
+              >
+                Report this issue
+              </button>
+            </div>
           </div>
         )}
 

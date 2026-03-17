@@ -15,7 +15,7 @@ interface HomePageProps {
 export function HomePage({ lbStats }: HomePageProps) {
     return (
         <main className="bg-background overflow-x-hidden">
-            <div className="max-w-5xl mx-auto px-6 py-0 leading-relaxed">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-0 leading-relaxed">
                 <HeroSection totalBuilds={lbStats.totalBuilds} totalLeaderboards={lbStats.totalLeaderboards} />
                 <HowItWorks />
                 <FAQ />

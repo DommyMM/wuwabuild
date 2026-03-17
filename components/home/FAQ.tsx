@@ -39,8 +39,8 @@ export function FAQ() {
     }
 
     return (
-        <section className="py-10 border-t border-border">
-            <h2 className="text-xs font-semibold text-text-primary/40 uppercase tracking-widest mb-7">FAQ</h2>
+        <section className="py-6 border-t border-border">
+            <h2 className="text-xs font-semibold text-text-primary/40 uppercase tracking-widest mb-2">FAQ</h2>
             <div className="flex flex-col gap-2">
                 {FAQS.map((faq, index) => {
                     const isOpen = openIndex === index;
