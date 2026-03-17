@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import fs from 'fs';
+
+// Reads searchParams to determine weapon/track — must be dynamic.
+// Overrides the force-static default set in (game)/layout.tsx.
+export const dynamic = 'force-dynamic';
 import path from 'path';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';

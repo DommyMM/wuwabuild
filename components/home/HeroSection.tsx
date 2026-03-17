@@ -3,41 +3,62 @@
 import Link from 'next/link';
 import { Carousel } from './Carousel';
 
-export function HeroSection() {
+interface HeroSectionProps {
+    totalBuilds: number;
+    totalLeaderboards: number;
+}
+
+export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps) {
     return (
-        <section className="pt-14 pb-10">
-            {/* Headline + subcopy + CTAs — centered */}
-            <div className="text-center mb-10">
-                <h1 className="text-5xl font-bold font-gowun text-text-primary leading-tight mb-4">
-                    Build, import, and compare<br />
-                    <span className="text-accent">Wuthering Waves</span> builds
-                </h1>
-                <p className="text-text-primary/60 text-lg max-w-2xl mx-auto leading-relaxed mb-8">
-                    Scan screenshots into editable builds, fine-tune stats live, export polished cards, and explore top leaderboard setups.
-                </p>
-                <div className="flex items-center justify-center gap-3 flex-wrap">
-                    <Link
-                        href="/import"
-                        className="px-5 py-3 bg-accent text-background font-semibold rounded-md hover:bg-accent-hover transition-all duration-200 hover:-translate-y-0.5"
-                    >
-                        Import Screenshot
-                    </Link>
-                    <Link
-                        href="/edit"
-                        className="px-5 py-3 bg-background-secondary border border-border text-text-primary rounded-md hover:border-accent hover:text-accent transition-all duration-200 hover:-translate-y-0.5"
-                    >
-                        Open Editor
-                    </Link>
-                    <Link href="/builds" className="text-sm text-text-primary/50 hover:text-accent transition-colors duration-150 ml-2">
-                        Browse Builds →
-                    </Link>
-                    <Link href="/leaderboards" className="text-sm text-text-primary/50 hover:text-accent transition-colors duration-150">
-                        View Leaderboards →
-                    </Link>
+        <section className="pt-10 pb-8">
+            {/* Live stats */}
+            {(totalBuilds > 0 || totalLeaderboards > 0) && (
+                <div className="flex items-center justify-center gap-8 mb-5">
+                    {totalBuilds > 0 && (
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-bold font-gowun text-accent">
+                                {totalBuilds.toLocaleString()}
+                            </span>
+                            <span className="text-xs text-text-primary/40 uppercase tracking-widest">
+                                builds submitted
+                            </span>
+                        </div>
+                    )}
+                    {totalLeaderboards > 0 && (
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-bold font-gowun text-accent">
+                                {totalLeaderboards.toLocaleString()}
+                            </span>
+                            <span className="text-xs text-text-primary/40 uppercase tracking-widest">
+                                active leaderboards
+                            </span>
+                        </div>
+                    )}
                 </div>
+            )}
+
+            {/* Tagline */}
+            <p className="text-text-primary/60 text-base mb-7 text-center">
+                Scan your build, submit to the leaderboard, or browse what everyone else is running.
+            </p>
+
+            {/* CTAs */}
+            <div className="flex items-center justify-center gap-3 flex-wrap mb-10">
+                <Link href="/import" className="px-5 py-2.5 bg-accent text-background font-semibold rounded-md transition-colors duration-200 hover:bg-accent-hover hover:shadow-[0_0_18px_rgba(166,150,98,0.35)]">
+                    Import Screenshot
+                </Link>
+                <Link href="/edit" className="px-5 py-2.5 bg-accent/6 border border-accent/20 text-text-primary/75 rounded-md transition-colors duration-200 hover:bg-accent/12 hover:border-accent/45 hover:text-accent">
+                    Open Editor
+                </Link>
+                <Link href="/builds" className="px-5 py-2.5 bg-accent/6 border border-accent/20 text-text-primary/75 rounded-md transition-colors duration-200 hover:bg-accent/12 hover:border-accent/45 hover:text-accent">
+                    Browse Builds
+                </Link>
+                <Link href="/leaderboards" className="px-5 py-2.5 bg-accent/6 border border-accent/20 text-text-primary/75 rounded-md transition-colors duration-200 hover:bg-accent/12 hover:border-accent/45 hover:text-accent">
+                    View Leaderboards
+                </Link>
             </div>
 
-            {/* Carousel — full width below hero text */}
+            {/* Carousel */}
             <Carousel />
         </section>
     );

@@ -1,7 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async headers() {
+    return [
+      {
+        // Game data JSONs — only change on deployment, cache aggressively.
+        // s-maxage: CDN holds for 1 year, busted automatically on Vercel deploy.
+        // max-age: browser holds for 1 hour (covers tab reuse without re-downloading).
+        source: '/Data/:file*.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=31536000, max-age=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+    ];
+  },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production'
       ? { exclude: ['error', 'warn'] }

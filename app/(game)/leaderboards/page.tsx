@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { LeaderboardOverviewClient } from '@/components/leaderboards/overview/LeaderboardOverviewClient';
-import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 
 export const metadata: Metadata = {
   title: 'Character Leaderboards',
@@ -8,11 +7,10 @@ export const metadata: Metadata = {
   alternates: { canonical: '/leaderboards' },
 };
 
-export default async function Leaderboards() {
-  const initialData = await prefetchLeaderboardOverview();
+export default function Leaderboards() {
   return (
     <main className="bg-background">
-      <LeaderboardOverviewClient initialData={initialData} />
+      <LeaderboardOverviewClient />
     </main>
   );
 }
