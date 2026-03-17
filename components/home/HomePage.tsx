@@ -1,27 +1,26 @@
 'use client';
 
-import { Typewriter } from './Typewriter';
-import { Carousel } from './Carousel';
-import { CTACards } from './CTACards';
+import { HeroSection } from './HeroSection';
+import { HowItWorks } from './HowItWorks';
+import { FeatureStrip } from './FeatureStrip';
+import { LiveStats } from './LiveStats';
 import { Disclaimer } from './Disclaimer';
 
-export function HomePage() {
+interface HomePageProps {
+    lbStats: {
+        totalBuilds: number;
+        totalLeaderboards: number;
+    };
+}
+
+export function HomePage({ lbStats }: HomePageProps) {
     return (
-        <main className="bg-background">
-            <div className="max-w-3/4 mx-auto px-2 md:px-5 py-0 leading-relaxed">
-                {/* Hero Section */}
-                <section className="py-6">
-                    <h3 className="text-4xl font-bold font-gowun text-accent mb-6 max-md:text-2xl max-md:mb-3 text-center">
-                        Build Creator
-                    </h3>
-                    <Typewriter />
-                    <Carousel />
-                </section>
-
-                {/* CTA Cards */}
-                <CTACards />
-
-                {/* Disclaimer */}
+        <main className="bg-background overflow-x-hidden">
+            <div className="max-w-5xl mx-auto px-6 py-0 leading-relaxed">
+                <HeroSection />
+                <HowItWorks />
+                <FeatureStrip />
+                <LiveStats totalBuilds={lbStats.totalBuilds} totalLeaderboards={lbStats.totalLeaderboards} />
                 <Disclaimer />
             </div>
         </main>

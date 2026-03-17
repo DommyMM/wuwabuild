@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { HomePage } from '@/components/home/HomePage';
+import { prefetchLeaderboardOverview, prefetchBuilds } from '@/lib/lbServer';
 
 export const metadata: Metadata = {
     title: 'WuWa Builds | Wuthering Waves Build Creator & Leaderboards',
@@ -7,7 +8,16 @@ export const metadata: Metadata = {
     alternates: { canonical: '/' },
 };
 
-export default function Home() {
+export default async function Home() {
+    const [overview, buildsRes] = await Promise.all([
+        prefetchLeaderboardOverview(),
+        prefetchBuilds(),
+    ]);
+    const lbStats = {
+        totalBuilds: buildsRes?.total ?? 0,
+        totalLeaderboards: overview?.length ?? 0,
+    };
+
     return (
         <>
             <script
@@ -39,7 +49,7 @@ export default function Home() {
                     })
                 }}
             />
-            <HomePage />
+            <HomePage lbStats={lbStats} />
         </>
     );
 }
