@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import posthog from 'posthog-js';
-import { setNextEditorSource } from '@/lib/analytics';
 
 const FLOWS = [
     {
@@ -33,8 +32,7 @@ const FLOWS = [
 
 export function HowItWorks() {
     const trackFlowClick = (cta: 'import' | 'edit') => {
-        if (cta === 'edit') setNextEditorSource('home_cta');
-        posthog.capture('home_cta_clicked', {
+        posthog.capture('home_cta_click', {
             cta,
             section: 'how_it_works',
         });

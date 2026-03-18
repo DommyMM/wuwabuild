@@ -26,7 +26,6 @@ import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import posthog from 'posthog-js';
-import { consumeNextEditorSource } from '@/lib/analytics';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -125,7 +124,6 @@ export const BuildEditor: React.FC = () => {
   const customArtBlobRef = useRef<Blob | null>(null);
   const editorStartedTrackedRef = useRef(false);
   const previousDirtyRef = useRef(false);
-  const editorSourceRef = useRef(consumeNextEditorSource());
 
   useEffect(() => {
     if (isCardGenerated) {
@@ -202,8 +200,7 @@ export const BuildEditor: React.FC = () => {
   useEffect(() => {
     if (!editorStartedTrackedRef.current && state.isDirty && !previousDirtyRef.current) {
       editorStartedTrackedRef.current = true;
-      posthog.capture('editor_started', {
-        source: editorSourceRef.current,
+      posthog.capture('editor_start', {
         character_id: state.characterId,
         weapon_id: state.weaponId,
       });
@@ -243,7 +240,7 @@ export const BuildEditor: React.FC = () => {
       link.href = url;
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
-      posthog.capture('build_card_downloaded', {
+      posthog.capture('build_card_download', {
         character_id: state.characterId,
         character_name: selected?.character.name ?? null,
         weapon_id: state.weaponId,
@@ -272,7 +269,7 @@ export const BuildEditor: React.FC = () => {
 
   const handleGenerateCard = useCallback(() => {
     setIsCardGenerated(true);
-    posthog.capture('build_card_generated', {
+    posthog.capture('build_card_generate', {
       character_id: state.characterId,
       character_name: selected?.character.name ?? null,
       weapon_id: state.weaponId,
@@ -282,7 +279,7 @@ export const BuildEditor: React.FC = () => {
 
   const handleViewRanking = useCallback(() => {
     if (!leaderboardLink) return;
-    posthog.capture('view_ranking_clicked', {
+    posthog.capture('leaderboard_open_from_editor', {
       character_id: state.characterId,
       weapon_id: state.weaponId,
       sequence: state.sequence,

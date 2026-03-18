@@ -20,7 +20,7 @@
     "lucide-react": "^0.562.0",
     "motion": "^12.23.26",
     "next": "^16.1.6",
-    "posthog-js": "^1.359.1",
+    "posthog-js": "^1.362.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-fast-marquee": "^1.6.5"

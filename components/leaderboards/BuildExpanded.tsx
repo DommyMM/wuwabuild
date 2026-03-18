@@ -19,7 +19,6 @@ import { RegionBadge } from './constants';
 import { formatFlatStat, formatPercentStat } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
 import posthog from 'posthog-js';
-import { setNextEditorSource } from '@/lib/analytics';
 
 type SubstatSummaryEntry = {
   type: string;
@@ -159,13 +158,12 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
 
   const handleViewBuild = () => {
     if (!detail) return;
-    posthog.capture('build_view_in_editor_clicked', {
+    posthog.capture('discovery_open_in_editor_click', {
       surface,
       character_id: detail.buildState.characterId ?? null,
       track_key: activeTrackKey ?? null,
       weapon_id: activeBoardWeaponId ?? null,
     });
-    setNextEditorSource('leaderboard');
     saveDraftBuild(detail.buildState);
     router.push('/edit');
   };

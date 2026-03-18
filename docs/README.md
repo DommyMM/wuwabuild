@@ -12,7 +12,8 @@ Use it when:
 2. `leaderboards.md`
 3. `editor-and-state.md`
 4. `data-pipeline.md`
-5. `domain-glossary.md`
+5. `posthog.md`
+6. `domain-glossary.md`
 
 ## Principle
 

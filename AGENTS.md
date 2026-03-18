@@ -8,6 +8,20 @@ For leaderboard service details see **[lb/AGENTS.md](../lb/AGENTS.md)**.
 
 ---
 
+## Docs First
+
+Use this file for high-level routing and invariants. Use `docs/` for longer behavior context before reading source.
+
+- `docs/README.md` — read order and scope
+- `docs/leaderboards.md` — leaderboard fetch, dedup, ghost behavior
+- `docs/editor-and-state.md` — provider and state flow
+- `docs/data-pipeline.md` — OCR/data sync/ops commands
+- `docs/domain-glossary.md` — shared terms and rank semantics
+
+When behavior changes, update the corresponding file in `docs/`.
+
+---
+
 ## Where to find things
 
 | If you want to…                               | Go to                                                     |
@@ -68,7 +82,7 @@ EditorProviders (nested on /edit)
 - **Client cache** (`globalBoardCache.ts`): localStorage LRU for `/builds` list responses (2-min TTL, 30 entries max). Filtered/paginated queries always go through `/api/lb/*` with `no-store`.
 - **Leaderboard**: one row per (character × track). Each entry has `trackKey`, `trackLabel`, `totalEntries`, `weapons[]`, `teamCharacterIds[]`. Row key: `` `${entry.id}:${entry.trackKey}` ``.
 - **weaponId**: canonical CDN ID — selects which `damage_map` key to read, does **not** filter eligible builds.
-- **globalRank**: competitive rank on the deduped board (damage sort, one build per UID). `0` in browse mode or for ghost builds.
+- **globalRank** (`/leaderboard/{characterId}` rows): always returned. In competitive mode (damage sort, no UID/username filter) it is deduped competitive rank. In browse mode (non-damage sort or UID/username filters), UID-best rows keep their competitive rank and non-best duplicates are `0`. Ghost build sidecar is always `0`.
 - **Ghost build**: when a deep-linked `buildId` is deduped out, the API returns it as `ghostBuild`. Frontend inserts it at the correct damage position with no rank shown and a subtle accent highlight.
 - **Standings** (`GET /leaderboard/{charId}/build/{buildId}/standings`): fetched on row expand in `BuildExpanded.tsx`, renders rank/total/damage across every weapon × track board.
 

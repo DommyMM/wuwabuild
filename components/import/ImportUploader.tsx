@@ -6,7 +6,7 @@ import { Upload, Clipboard } from 'lucide-react';
 
 interface ImportUploaderProps {
   onFile: (file: File, method: 'drop' | 'browse' | 'paste') => void;
-  onInvalidFile: (reason: 'bad_file_type') => void;
+  onInvalidFile: (payload: { reason: 'bad_file_type'; fileType: string | null }) => void;
 }
 
 const ACCEPTED = ['image/jpeg', 'image/png'];
@@ -24,7 +24,7 @@ export function ImportUploader({ onFile, onInvalidFile }: ImportUploaderProps) {
       onFile(f, method);
       return;
     }
-    onInvalidFile('bad_file_type');
+    onInvalidFile({ reason: 'bad_file_type', fileType: f.type || null });
   }, [onFile, onInvalidFile]);
 
   // Document-level paste listener (Ctrl+V)

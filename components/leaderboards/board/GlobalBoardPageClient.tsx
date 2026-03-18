@@ -29,8 +29,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
-  const expansionCountRef = useRef(0);
-  const lastTrackedFilterQueryKeyRef = useRef<string | null>(null);
+  const lastTrackedFilterSignatureRef = useRef<string | null>(null);
   // initialData is always the default query result. Only use it when the URL has no params.
   const isDefaultQuery = searchParams.toString() === '';
   const ssrData = isDefaultQuery ? initialData : null;
@@ -156,23 +155,26 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     }
   }, [querySnapshot, router, searchParams]);
 
-  // Track session aggregated expansion count on unmount
-  useEffect(() => {
-    return () => {
-      if (expansionCountRef.current > 0) {
-        posthog.capture('builds_session_summary', {
-          expansions_count: expansionCountRef.current,
-        });
-      }
-    };
-  }, []);
+  const filterSignature = useMemo(() => JSON.stringify({
+    characterIds,
+    weaponIds,
+    regionPrefixes,
+    username: username.trim(),
+    uid: uid.trim(),
+    echoSets,
+    echoMains,
+    sort,
+    direction,
+    pageSize,
+  }), [characterIds, weaponIds, regionPrefixes, username, uid, echoSets, echoMains, sort, direction, pageSize]);
 
   useEffect(() => {
     if (!settledQueryKey) return;
     if (settledQueryKey !== currentQueryKey) return;
-    if (lastTrackedFilterQueryKeyRef.current === currentQueryKey) return;
-    lastTrackedFilterQueryKeyRef.current = currentQueryKey;
-    posthog.capture('builds_filter_applied', {
+    if (lastTrackedFilterSignatureRef.current === filterSignature) return;
+    lastTrackedFilterSignatureRef.current = filterSignature;
+    posthog.capture('discovery_filter_apply', {
+      surface: 'builds',
       character_count: characterIds.length,
       weapon_count: weaponIds.length,
       region_count: regionPrefixes.length,
@@ -184,7 +186,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       direction,
       page_size: pageSize,
     });
-  }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, pageSize, regionPrefixes.length, settledQueryKey, sort, uid, username, weaponIds.length]);
+  }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, filterSignature, pageSize, regionPrefixes.length, settledQueryKey, sort, uid, username, weaponIds.length]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -297,7 +299,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       }
       if (willExpand) {
         const build = builds.find((entry) => entry.id === normalizedBuildId);
-        posthog.capture('build_result_expanded', {
+        posthog.capture('discovery_result_expand', {
           surface: 'builds',
           character_id: build?.character.id ?? null,
           track_key: null,
@@ -308,7 +310,6 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
 
     if (!detailById[normalizedBuildId] && !detailLoadingById[normalizedBuildId]) {
       loadBuildDetail(normalizedBuildId);
-      expansionCountRef.current += 1;
     }
   }, [builds, detailById, detailLoadingById, loadBuildDetail]);
 

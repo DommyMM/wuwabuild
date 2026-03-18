@@ -19,7 +19,6 @@ import { getDefaultReportReason, type OcrIssueReason } from '@/lib/import/report
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 import posthog from 'posthog-js';
 import Link from 'next/link';
-import { setNextEditorSource } from '@/lib/analytics';
 
 type ImportStep = 'upload' | 'results';
 
@@ -75,11 +74,16 @@ export function ImportPageClient() {
       const errorMsg = `Image should be 1920×1080, got ${img.naturalWidth}×${img.naturalHeight}. ` +
         `For best results, download the image from Discord instead of screenshotting`;
       setValidationError(errorMsg);
-      posthog.capture('import_validation_failed', { reason: 'bad_dimensions' });
+      posthog.capture('import_validation_fail', {
+        reason: 'bad_dimensions',
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        file_type: f.type || null,
+      });
       return;
     }
 
-    posthog.capture('import_started', {
+    posthog.capture('import_start', {
       method,
       has_existing_draft: Boolean(draftBuildState?.characterId),
     });
@@ -87,7 +91,7 @@ export function ImportPageClient() {
     setStep('results');
     void uploadTrainingImage(f);
     void processImage(f).then((summary) => {
-      posthog.capture('ocr_completed', {
+      posthog.capture('ocr_complete', {
         duration_ms: summary.durationMs,
         failed_regions_count: summary.failedRegionsCount,
         failed_regions: summary.failedRegions,
@@ -101,8 +105,11 @@ export function ImportPageClient() {
     });
   };
 
-  const handleInvalidFile = () => {
-    posthog.capture('import_validation_failed', { reason: 'bad_file_type' });
+  const handleInvalidFile = (payload: { reason: 'bad_file_type'; fileType: string | null }) => {
+    posthog.capture('import_validation_fail', {
+      reason: payload.reason,
+      file_type: payload.fileType,
+    });
   };
 
   const handleReset = () => {
@@ -228,11 +235,11 @@ export function ImportPageClient() {
       await uploadImportedState(importedState);
       saveDraftBuild(importedState);
       setDraftBuildState(importedState);
-      posthog.capture('import_completed', {
+      posthog.capture('import_complete', {
         action: 'load_to_editor',
         character_id: importedState.characterId,
+        uploaded_to_lb: shouldUpload,
       });
-      setNextEditorSource('import');
       router.push('/edit');
     } catch (err) {
       posthog.captureException(err);
@@ -259,9 +266,10 @@ export function ImportPageClient() {
       });
 
       await uploadImportedState(importedState);
-      posthog.capture('import_completed', {
+      posthog.capture('import_complete', {
         action: 'save_to_saves',
         character_id: importedState.characterId,
+        uploaded_to_lb: shouldUpload,
       });
       success(`Saved "${saved.name}".`);
       router.push('/saves');
@@ -331,7 +339,7 @@ export function ImportPageClient() {
         setTrainingImageKey(payload.trainingImageKey);
       }
 
-      posthog.capture('ocr_issue_report_submitted', {
+      posthog.capture('ocr_issue_report_submit', {
         reason: reportReason,
         has_note: note.trim().length > 0,
         has_training_image_key: Boolean(trainingImageKey || payload.trainingImageKey),

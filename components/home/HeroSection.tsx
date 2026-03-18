@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { Carousel } from './Carousel';
 import posthog from 'posthog-js';
-import { setNextEditorSource } from '@/lib/analytics';
 
 interface HeroSectionProps {
     totalBuilds: number;
@@ -12,8 +11,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps) {
     const trackCtaClick = (cta: 'import' | 'edit' | 'builds' | 'leaderboards') => {
-        if (cta === 'edit') setNextEditorSource('home_cta');
-        posthog.capture('home_cta_clicked', {
+        posthog.capture('home_cta_click', {
             cta,
             section: 'hero',
         });

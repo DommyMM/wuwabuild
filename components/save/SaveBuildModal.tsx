@@ -117,7 +117,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
       });
 
       markClean();
-      posthog.capture('build_saved', {
+      posthog.capture('build_save', {
         is_update: Boolean(existingBuild),
         character_id: state.characterId,
         weapon_id: state.weaponId,

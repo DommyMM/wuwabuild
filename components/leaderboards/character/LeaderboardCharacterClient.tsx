@@ -55,7 +55,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [configTracks, setConfigTracks] = useState<LBTrack[]>(() => initialData?.tracks ?? []);
   const [configTeamCharacterIds, setConfigTeamCharacterIds] = useState<string[]>(() => initialData?.teamCharacterIds ?? []);
   const [configTeamMembers, setConfigTeamMembers] = useState<LBTeamMemberConfig[]>(() => initialData?.teamMembers ?? []);
-  const viewedRef = useRef(false);
+  const lastTrackedFilterSignatureRef = useRef<string | null>(null);
 
   // State initialized from URL
   const [page, setPage] = useState(() => initialSnapshot.page);
@@ -193,16 +193,40 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const isLoading = isPendingQuery && entries.length === 0;
   const isRefreshing = isPendingQuery && entries.length > 0;
   const error = fetchError?.queryKey === queryKey ? fetchError.message : null;
+  const filterSignature = useMemo(() => JSON.stringify({
+    characterId,
+    weaponId,
+    track,
+    uid: uid.trim(),
+    username: username.trim(),
+    regionPrefixes,
+    echoSets,
+    echoMains,
+    sort,
+    direction,
+    pageSize,
+  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sort, direction, pageSize]);
 
   useEffect(() => {
-    if (viewedRef.current) return;
-    viewedRef.current = true;
-    posthog.capture('leaderboard_viewed', {
+    if (!settledQueryKey) return;
+    if (settledQueryKey !== queryKey) return;
+    if (lastTrackedFilterSignatureRef.current === filterSignature) return;
+    lastTrackedFilterSignatureRef.current = filterSignature;
+    posthog.capture('discovery_filter_apply', {
+      surface: 'leaderboard_character',
       character_id: characterId,
       weapon_id: weaponId || null,
       track_key: track || null,
+      region_count: regionPrefixes.length,
+      has_uid_search: uid.trim().length > 0,
+      has_username_search: username.trim().length > 0,
+      echo_set_count: echoSets.length,
+      echo_main_count: echoMains.length,
+      sort,
+      direction,
+      page_size: pageSize,
     });
-  }, [characterId, track, weaponId]);
+  }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, settledQueryKey, sort, track, uid, username, weaponId]);
 
   // Fetch leaderboard data
   useEffect(() => {
@@ -321,7 +345,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       if (next.has(id)) { next.delete(id); } else { next.add(id); }
       if (willExpand) {
         const entry = entries.find((row) => row.id === id);
-        posthog.capture('build_result_expanded', {
+        posthog.capture('discovery_result_expand', {
           surface: 'leaderboard_character',
           character_id: entry?.character.id ?? characterId,
           track_key: track,
@@ -464,7 +488,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 weaponIndex={weaponIndex}
                 onSelectWeapon={(idx) => {
                   const nextWeaponId = configWeaponIds[idx] ?? null;
-                  posthog.capture('leaderboard_tab_changed', {
+                  posthog.capture('leaderboard_tab_change', {
                     character_id: characterId,
                     weapon_id: nextWeaponId,
                     track_key: track,
@@ -476,7 +500,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 tracks={configTracks}
                 activeTrack={track}
                 onSelectTrack={(trackKey) => {
-                  posthog.capture('leaderboard_tab_changed', {
+                  posthog.capture('leaderboard_tab_change', {
                     character_id: characterId,
                     weapon_id: weaponId || null,
                     track_key: trackKey,
