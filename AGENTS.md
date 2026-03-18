@@ -124,7 +124,7 @@ R2_BUCKET_NAME=...
 - `BuildSimulationSection` (moves + substat upgrades) requires `weaponId`, `track`, and `damage` from the parent leaderboard row — it only renders on character leaderboard pages, not the global `/builds` board.
 - Echo cost constraint: max total 12, max two 4-cost, max three 3-cost. Violations trigger purge in the LB import pipeline.
 - `ForteState` is a 5-tuple: `[[level, topNode, middleNode], ...]`, column order: normal-attack(0), skill(1), circuit(2), liberation(3), intro(4).
-- `upgrades` keys in `calculations` are **PascalCase** (`"ATK"`, `"CritRate"`) — intentionally different from snake_case stat keys everywhere else.
+- `upgrades` keys in `calculations` are snake_case and aligned with `stats` keys (for example `atk`, `crit_rate`).
 
 ---
 

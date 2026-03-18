@@ -25,7 +25,7 @@ Common terms used by the frontend and leaderboard backend.
 ## Key Conventions
 
 - `stats` keys are snake_case.
-- `upgrades` keys are PascalCase.
+- `upgrades` keys are snake_case.
 - Echo panel constraints: max total cost 12, max two 4-cost, max three 3-cost.
 - `ForteState` order: normal attack, skill, circuit, liberation, intro.
 

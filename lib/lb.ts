@@ -367,7 +367,7 @@ function parseMoveEntry(raw: unknown): LBMoveEntry | null {
 }
 
 // parseUpgradeTierSet transposes the API's per-stat format
-// { CritRate: { min, median, max, minRank, medianRank, maxRank }, ... }
+// { crit_rate: { min, median, max, minRank, medianRank, maxRank }, ... }
 // into the per-tier format the component expects.
 function parseUpgradeTierSet(raw: unknown): LBSubstatUpgradeTierSet | null {
   if (!isRecord(raw)) return null;
