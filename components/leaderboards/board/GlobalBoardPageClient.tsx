@@ -30,6 +30,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
   const expansionCountRef = useRef(0);
+  const lastTrackedFilterQueryKeyRef = useRef<string | null>(null);
   // initialData is always the default query result. Only use it when the URL has no params.
   const isDefaultQuery = searchParams.toString() === '';
   const ssrData = isDefaultQuery ? initialData : null;
@@ -167,6 +168,25 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   }, []);
 
   useEffect(() => {
+    if (!settledQueryKey) return;
+    if (settledQueryKey !== currentQueryKey) return;
+    if (lastTrackedFilterQueryKeyRef.current === currentQueryKey) return;
+    lastTrackedFilterQueryKeyRef.current = currentQueryKey;
+    posthog.capture('builds_filter_applied', {
+      character_count: characterIds.length,
+      weapon_count: weaponIds.length,
+      region_count: regionPrefixes.length,
+      has_uid_search: uid.trim().length > 0,
+      has_username_search: username.trim().length > 0,
+      echo_set_count: echoSets.length,
+      echo_main_count: echoMains.length,
+      sort,
+      direction,
+      page_size: pageSize,
+    });
+  }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, pageSize, regionPrefixes.length, settledQueryKey, sort, uid, username, weaponIds.length]);
+
+  useEffect(() => {
     const controller = new AbortController();
     let active = true;
     const cacheKey = currentQueryKey;
@@ -269,10 +289,19 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
 
     setExpandedBuildIds((prev) => {
       const next = new Set(prev);
+      const willExpand = !next.has(normalizedBuildId);
       if (next.has(normalizedBuildId)) {
         next.delete(normalizedBuildId);
       } else {
         next.add(normalizedBuildId);
+      }
+      if (willExpand) {
+        const build = builds.find((entry) => entry.id === normalizedBuildId);
+        posthog.capture('build_result_expanded', {
+          surface: 'builds',
+          character_id: build?.character.id ?? null,
+          track_key: null,
+        });
       }
       return next;
     });
@@ -281,7 +310,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       loadBuildDetail(normalizedBuildId);
       expansionCountRef.current += 1;
     }
-  }, [detailById, detailLoadingById, loadBuildDetail]);
+  }, [builds, detailById, detailLoadingById, loadBuildDetail]);
 
   const handleRetryDetail = useCallback((buildId: string) => {
     loadBuildDetail(buildId, true);

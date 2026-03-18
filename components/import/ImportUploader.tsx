@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { Upload, Clipboard } from 'lucide-react';
 
 interface ImportUploaderProps {
-  onFile: (file: File) => void;
+  onFile: (file: File, method: 'drop' | 'browse' | 'paste') => void;
+  onInvalidFile: (reason: 'bad_file_type') => void;
 }
 
 const ACCEPTED = ['image/jpeg', 'image/png'];
@@ -14,13 +15,17 @@ function isValidFile(f: File): boolean {
   return ACCEPTED.includes(f.type);
 }
 
-export function ImportUploader({ onFile }: ImportUploaderProps) {
+export function ImportUploader({ onFile, onInvalidFile }: ImportUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  const handleFile = useCallback((f: File) => {
-    if (isValidFile(f)) onFile(f);
-  }, [onFile]);
+  const handleFile = useCallback((f: File, method: 'drop' | 'browse' | 'paste') => {
+    if (isValidFile(f)) {
+      onFile(f, method);
+      return;
+    }
+    onInvalidFile('bad_file_type');
+  }, [onFile, onInvalidFile]);
 
   // Document-level paste listener (Ctrl+V)
   useEffect(() => {
@@ -29,7 +34,7 @@ export function ImportUploader({ onFile }: ImportUploaderProps) {
       const imageItem = items.find(it => it.type.startsWith('image/'));
       if (imageItem) {
         const f = imageItem.getAsFile();
-        if (f) handleFile(f);
+        if (f) handleFile(f, 'paste');
       }
     };
     document.addEventListener('paste', onPaste);
@@ -40,12 +45,12 @@ export function ImportUploader({ onFile }: ImportUploaderProps) {
     e.preventDefault();
     setDragging(false);
     const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
+    if (f) handleFile(f, 'drop');
   }, [handleFile]);
 
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (f) handleFile(f);
+    if (f) handleFile(f, 'browse');
     e.target.value = '';
   };
 

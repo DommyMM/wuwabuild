@@ -19,6 +19,7 @@ import { getDefaultReportReason, type OcrIssueReason } from '@/lib/import/report
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 import posthog from 'posthog-js';
 import Link from 'next/link';
+import { setNextEditorSource } from '@/lib/analytics';
 
 type ImportStep = 'upload' | 'results';
 
@@ -62,7 +63,7 @@ export function ImportPageClient() {
     }
   };
 
-  const handleFile = async (f: File) => {
+  const handleFile = async (f: File, method: 'drop' | 'browse' | 'paste') => {
     setValidationError(null);
     setLbUploadError(null);
     setSelectedFile(f);
@@ -74,13 +75,34 @@ export function ImportPageClient() {
       const errorMsg = `Image should be 1920×1080, got ${img.naturalWidth}×${img.naturalHeight}. ` +
         `For best results, download the image from Discord instead of screenshotting`;
       setValidationError(errorMsg);
+      posthog.capture('import_validation_failed', { reason: 'bad_dimensions' });
       return;
     }
 
+    posthog.capture('import_started', {
+      method,
+      has_existing_draft: Boolean(draftBuildState?.characterId),
+    });
     reset();
     setStep('results');
     void uploadTrainingImage(f);
-    void processImage(f);
+    void processImage(f).then((summary) => {
+      posthog.capture('ocr_completed', {
+        duration_ms: summary.durationMs,
+        failed_regions_count: summary.failedRegionsCount,
+        failed_regions: summary.failedRegions,
+        has_character: summary.hasCharacter,
+        has_weapon: summary.hasWeapon,
+        has_uid: summary.hasUid,
+        character_id: summary.characterId,
+      });
+    }).catch((err) => {
+      posthog.captureException(err);
+    });
+  };
+
+  const handleInvalidFile = () => {
+    posthog.capture('import_validation_failed', { reason: 'bad_file_type' });
   };
 
   const handleReset = () => {
@@ -141,15 +163,28 @@ export function ImportPageClient() {
   };
 
   const uploadImportedState = async (importedState: SavedState) => {
-    if (!uploadToLb) return;
+    const captureSubmitResult = (result: 'created' | 'updated' | 'warning' | 'skipped' | 'error', reason: string, damageComputed?: boolean) => {
+      posthog.capture('leaderboard_submit_result', {
+        result,
+        reason,
+        damage_computed: damageComputed ?? false,
+        character_id: importedState.characterId ?? null,
+      });
+    };
+    if (!uploadToLb) {
+      captureSubmitResult('skipped', 'upload_disabled');
+      return;
+    }
 
     if (!importedState.characterId || !importedState.weaponId) {
       warning('Leaderboard upload skipped because the imported build is missing a character or weapon match.');
+      captureSubmitResult('skipped', 'missing_character_or_weapon');
       return;
     }
 
     if (!importedState.watermark.uid.trim()) {
       warning('Leaderboard upload skipped because UID is required for build submission.');
+      captureSubmitResult('skipped', 'uid_missing');
       return;
     }
 
@@ -159,10 +194,12 @@ export function ImportPageClient() {
 
       if (result.warnings.length > 0) {
         warning(`Leaderboard entry ${actionLabel}. ${result.warnings[0]}`);
+        captureSubmitResult('warning', 'api_warning', result.damageComputed);
         return;
       }
 
       success(`Leaderboard entry ${actionLabel}.`);
+      captureSubmitResult(result.action === 'created' ? 'created' : 'updated', 'success', result.damageComputed);
       if (!result.damageComputed) {
         info('Build saved without fresh damage data for this character.');
       }
@@ -174,8 +211,10 @@ export function ImportPageClient() {
           'OCR may have misread one or more echo stats (e.g. a duplicate substat or wrong set assignment). ' +
           'The build was loaded to the editor for manual correction but was not submitted to the leaderboard.'
         );
+        captureSubmitResult('error', 'illegal_echo');
       } else {
         notifyError(`Leaderboard upload failed: ${msg}`);
+        captureSubmitResult('error', 'submit_failed');
       }
     }
   };
@@ -193,6 +232,7 @@ export function ImportPageClient() {
         action: 'load_to_editor',
         character_id: importedState.characterId,
       });
+      setNextEditorSource('import');
       router.push('/edit');
     } catch (err) {
       posthog.captureException(err);
@@ -399,7 +439,7 @@ export function ImportPageClient() {
           </div>
         )}
 
-        {step === 'upload' && <ImportUploader onFile={handleFile} />}
+        {step === 'upload' && <ImportUploader onFile={handleFile} onInvalidFile={handleInvalidFile} />}
 
         {step === 'results' && (
           <ImportResults

@@ -18,6 +18,8 @@ import { saveDraftBuild } from '@/lib/storage';
 import { RegionBadge } from './constants';
 import { formatFlatStat, formatPercentStat } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
+import posthog from 'posthog-js';
+import { setNextEditorSource } from '@/lib/analytics';
 
 type SubstatSummaryEntry = {
   type: string;
@@ -122,6 +124,7 @@ interface BuildExpandedProps {
   activeTrackKey?: string;
   activeBoardDamage?: number;
   globalRank?: number;
+  surface?: 'builds' | 'leaderboard_character';
 }
 
 function normalizeSubstatKey(type: string | null | undefined): string | null {
@@ -147,6 +150,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   activeTrackKey,
   activeBoardDamage,
   globalRank,
+  surface = 'builds',
 }) => {
   const router = useRouter();
   const { fettersByElement, getSubstatValues, statTranslations } = useGameData();
@@ -155,6 +159,13 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
 
   const handleViewBuild = () => {
     if (!detail) return;
+    posthog.capture('build_view_in_editor_clicked', {
+      surface,
+      character_id: detail.buildState.characterId ?? null,
+      track_key: activeTrackKey ?? null,
+      weapon_id: activeBoardWeaponId ?? null,
+    });
+    setNextEditorSource('leaderboard');
     saveDraftBuild(detail.buildState);
     router.push('/edit');
   };

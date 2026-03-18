@@ -15,6 +15,7 @@ import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeader
 import { LeaderboardCharacterHeader } from './LeaderboardCharacterHeader';
 import { LeaderboardTabs } from './LeaderboardTabs';
 import { LeaderboardResultsPanel } from './LeaderboardResultsPanel';
+import posthog from 'posthog-js';
 
 function leaderboardSignature(entries: LBLeaderboardEntry[], total: number): string {
   return `${total}:${entries.map((e) => `${e.id}:${e.damage}:${e.globalRank}:${e.timestamp}:${e.finalCV}`).join(',')}`;
@@ -54,6 +55,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [configTracks, setConfigTracks] = useState<LBTrack[]>(() => initialData?.tracks ?? []);
   const [configTeamCharacterIds, setConfigTeamCharacterIds] = useState<string[]>(() => initialData?.teamCharacterIds ?? []);
   const [configTeamMembers, setConfigTeamMembers] = useState<LBTeamMemberConfig[]>(() => initialData?.teamMembers ?? []);
+  const viewedRef = useRef(false);
 
   // State initialized from URL
   const [page, setPage] = useState(() => initialSnapshot.page);
@@ -192,6 +194,16 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const isRefreshing = isPendingQuery && entries.length > 0;
   const error = fetchError?.queryKey === queryKey ? fetchError.message : null;
 
+  useEffect(() => {
+    if (viewedRef.current) return;
+    viewedRef.current = true;
+    posthog.capture('leaderboard_viewed', {
+      character_id: characterId,
+      weapon_id: weaponId || null,
+      track_key: track || null,
+    });
+  }, [characterId, track, weaponId]);
+
   // Fetch leaderboard data
   useEffect(() => {
     const controller = new AbortController();
@@ -305,13 +317,22 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const handleToggleExpand = useCallback((id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
+      const willExpand = !next.has(id);
       if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      if (willExpand) {
+        const entry = entries.find((row) => row.id === id);
+        posthog.capture('build_result_expanded', {
+          surface: 'leaderboard_character',
+          character_id: entry?.character.id ?? characterId,
+          track_key: track,
+        });
+      }
       return next;
     });
     if (!detailById[id] && !detailLoadingById[id]) {
       loadBuildDetail(id);
     }
-  }, [detailById, detailLoadingById, loadBuildDetail]);
+  }, [characterId, detailById, detailLoadingById, entries, loadBuildDetail, track]);
 
   const handleRetryDetail = useCallback((id: string) => {
     loadBuildDetail(id, true);
@@ -441,10 +462,29 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               <LeaderboardTabs
                 weaponIds={configWeaponIds}
                 weaponIndex={weaponIndex}
-                onSelectWeapon={(idx) => { setWeaponIndex(idx); setPage(1); }}
+                onSelectWeapon={(idx) => {
+                  const nextWeaponId = configWeaponIds[idx] ?? null;
+                  posthog.capture('leaderboard_tab_changed', {
+                    character_id: characterId,
+                    weapon_id: nextWeaponId,
+                    track_key: track,
+                    tab_kind: 'weapon',
+                  });
+                  setWeaponIndex(idx);
+                  setPage(1);
+                }}
                 tracks={configTracks}
                 activeTrack={track}
-                onSelectTrack={(trackKey) => { setTrack(trackKey); setPage(1); }}
+                onSelectTrack={(trackKey) => {
+                  posthog.capture('leaderboard_tab_changed', {
+                    character_id: characterId,
+                    weapon_id: weaponId || null,
+                    track_key: trackKey,
+                    tab_kind: 'track',
+                  });
+                  setTrack(trackKey);
+                  setPage(1);
+                }}
               />
               <div className="relative z-40">
                 <BuildFiltersPanel

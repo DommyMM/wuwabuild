@@ -1,4 +1,8 @@
+'use client';
+
 import Link from 'next/link';
+import posthog from 'posthog-js';
+import { setNextEditorSource } from '@/lib/analytics';
 
 const FLOWS = [
     {
@@ -28,6 +32,14 @@ const FLOWS = [
 ] as const;
 
 export function HowItWorks() {
+    const trackFlowClick = (cta: 'import' | 'edit') => {
+        if (cta === 'edit') setNextEditorSource('home_cta');
+        posthog.capture('home_cta_clicked', {
+            cta,
+            section: 'how_it_works',
+        });
+    };
+
     return (
         <section className="py-6 border-t border-border">
             <h2 className="text-xs font-semibold text-text-primary/40 uppercase tracking-widest mb-2">
@@ -40,6 +52,7 @@ export function HowItWorks() {
                         <p className="text-sm text-text-primary/50 leading-relaxed mb-2">{flow.description}</p>
                         <Link
                             href={flow.link.href}
+                            onClick={() => trackFlowClick(flow.link.href === '/import' ? 'import' : 'edit')}
                             className="relative text-sm text-accent/70 hover:text-accent transition-colors duration-150 after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-accent after:transition-[width] after:duration-200 hover:after:w-full"
                         >
                             {flow.link.label}

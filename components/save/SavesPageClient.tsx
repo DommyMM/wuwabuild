@@ -16,6 +16,7 @@ import { buildLegacyIdMaps, clearLegacySavesFromStorage, convertLegacyBuilds, ge
 import legacyEchoes from '@/lib/data/legacyEchoes.json';
 import legacyWeapons from '@/lib/data/legacyWeapons.json';
 import posthog from 'posthog-js';
+import { setNextEditorSource } from '@/lib/analytics';
 
 type SortBy = 'date' | 'name' | 'cv';
 type SortDirection = 'asc' | 'desc';
@@ -172,6 +173,12 @@ export const SavesPageClient: React.FC = () => {
 
   const confirmLoadBuild = useCallback((build: SavedBuild) => {
     try {
+      posthog.capture('saved_build_loaded', {
+        build_id: build.id,
+        character_id: build.state.characterId ?? null,
+        weapon_id: build.state.weaponId ?? null,
+      });
+      setNextEditorSource('saves');
       saveDraftBuild(build.state);
       router.push('/edit');
     } catch {
@@ -284,6 +291,11 @@ export const SavesPageClient: React.FC = () => {
       if (expandedBuildId === build.id) {
         setExpandedBuildId(null);
       }
+      posthog.capture('saved_build_deleted', {
+        build_id: build.id,
+        character_id: build.state.characterId ?? null,
+        weapon_id: build.state.weaponId ?? null,
+      });
       refreshBuilds();
       success(`Deleted "${build.name}".`);
     } catch {
@@ -318,6 +330,10 @@ export const SavesPageClient: React.FC = () => {
       clearLegacySavesFromStorage();
       refreshBuilds();
       refreshLegacySummary();
+      posthog.capture('legacy_migration_completed', {
+        migrated_count: merged.length,
+        skipped_count: converted.skippedCount,
+      });
 
       success(`Migrated ${merged.length} legacy build(s).`);
       if (converted.skippedCount > 0) {

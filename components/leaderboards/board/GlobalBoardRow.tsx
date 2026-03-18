@@ -209,6 +209,7 @@ export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
         getEcho={getEcho}
         translateText={(i18n, fallback) => t(i18n ?? { en: fallback })}
         onRetryDetail={onRetryDetail}
+        surface="builds"
       />
     </div>
   );

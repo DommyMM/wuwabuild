@@ -26,6 +26,7 @@ import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import posthog from 'posthog-js';
+import { consumeNextEditorSource } from '@/lib/analytics';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -122,6 +123,9 @@ export const BuildEditor: React.FC = () => {
   const [customArtUrl, setCustomArtUrl] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const customArtBlobRef = useRef<Blob | null>(null);
+  const editorStartedTrackedRef = useRef(false);
+  const previousDirtyRef = useRef(false);
+  const editorSourceRef = useRef(consumeNextEditorSource());
 
   useEffect(() => {
     if (isCardGenerated) {
@@ -195,6 +199,18 @@ export const BuildEditor: React.FC = () => {
     setIsActionBarVisible(el.getBoundingClientRect().bottom > 70);
   });
 
+  useEffect(() => {
+    if (!editorStartedTrackedRef.current && state.isDirty && !previousDirtyRef.current) {
+      editorStartedTrackedRef.current = true;
+      posthog.capture('editor_started', {
+        source: editorSourceRef.current,
+        character_id: state.characterId,
+        weapon_id: state.weaponId,
+      });
+    }
+    previousDirtyRef.current = state.isDirty;
+  }, [state.characterId, state.isDirty, state.weaponId]);
+
   const handleDownload = useCallback(async () => {
     if (!cardRef.current || isDownloading) return;
     setIsDownloading(true);
@@ -256,12 +272,23 @@ export const BuildEditor: React.FC = () => {
 
   const handleGenerateCard = useCallback(() => {
     setIsCardGenerated(true);
-  }, []);
+    posthog.capture('build_card_generated', {
+      character_id: state.characterId,
+      character_name: selected?.character.name ?? null,
+      weapon_id: state.weaponId,
+      sequence: state.sequence,
+    });
+  }, [selected?.character.name, state.characterId, state.sequence, state.weaponId]);
 
   const handleViewRanking = useCallback(() => {
     if (!leaderboardLink) return;
+    posthog.capture('view_ranking_clicked', {
+      character_id: state.characterId,
+      weapon_id: state.weaponId,
+      sequence: state.sequence,
+    });
     router.push(leaderboardLink.href);
-  }, [leaderboardLink, router]);
+  }, [leaderboardLink, router, state.characterId, state.sequence, state.weaponId]);
 
   const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {

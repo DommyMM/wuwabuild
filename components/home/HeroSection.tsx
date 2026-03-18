@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { Carousel } from './Carousel';
+import posthog from 'posthog-js';
+import { setNextEditorSource } from '@/lib/analytics';
 
 interface HeroSectionProps {
     totalBuilds: number;
@@ -9,6 +11,14 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps) {
+    const trackCtaClick = (cta: 'import' | 'edit' | 'builds' | 'leaderboards') => {
+        if (cta === 'edit') setNextEditorSource('home_cta');
+        posthog.capture('home_cta_clicked', {
+            cta,
+            section: 'hero',
+        });
+    };
+
     return (
         <section className="pt-10 pb-8">
             {/* Live stats */}
@@ -44,16 +54,16 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
 
             {/* CTAs */}
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-center gap-3 mb-10">
-                <Link href="/import" className="text-center px-5 py-2.5 bg-accent text-background font-semibold rounded-md transition-colors duration-200 hover:bg-accent-hover hover:shadow-[0_0_18px_rgba(166,150,98,0.35)]">
+                <Link href="/import" onClick={() => trackCtaClick('import')} className="text-center px-5 py-2.5 bg-accent text-background font-semibold rounded-md transition-colors duration-200 hover:bg-accent-hover hover:shadow-[0_0_18px_rgba(166,150,98,0.35)]">
                     Import Build
                 </Link>
-                <Link href="/edit" className="text-center px-5 py-2.5 bg-accent/6 border border-accent/20 text-text-primary/75 rounded-md transition-colors duration-200 hover:bg-accent/12 hover:border-accent/45 hover:text-accent">
+                <Link href="/edit" onClick={() => trackCtaClick('edit')} className="text-center px-5 py-2.5 bg-accent/6 border border-accent/20 text-text-primary/75 rounded-md transition-colors duration-200 hover:bg-accent/12 hover:border-accent/45 hover:text-accent">
                     Open Editor
                 </Link>
-                <Link href="/builds" className="text-center px-5 py-2.5 bg-accent/6 border border-accent/20 text-text-primary/75 rounded-md transition-colors duration-200 hover:bg-accent/12 hover:border-accent/45 hover:text-accent">
+                <Link href="/builds" onClick={() => trackCtaClick('builds')} className="text-center px-5 py-2.5 bg-accent/6 border border-accent/20 text-text-primary/75 rounded-md transition-colors duration-200 hover:bg-accent/12 hover:border-accent/45 hover:text-accent">
                     Browse Builds
                 </Link>
-                <Link href="/leaderboards" className="text-center px-5 py-2.5 bg-accent/6 border border-accent/20 text-text-primary/75 rounded-md transition-colors duration-200 hover:bg-accent/12 hover:border-accent/45 hover:text-accent">
+                <Link href="/leaderboards" onClick={() => trackCtaClick('leaderboards')} className="text-center px-5 py-2.5 bg-accent/6 border border-accent/20 text-text-primary/75 rounded-md transition-colors duration-200 hover:bg-accent/12 hover:border-accent/45 hover:text-accent">
                     View Leaderboards
                 </Link>
             </div>
