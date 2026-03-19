@@ -1060,6 +1060,89 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
 
     return party_buffs
 
+_RE_INHERENT_ELEM_GAIN = re.compile(
+    r"\bgain(?:s)?\s+(\d+(?:\.\d+)?)\s*%\s+"
+    r"(Glacio|Fusion|Electro|Aero|Havoc|Spectro)\s+DMG\s+Bonus\b",
+    re.I,
+)
+
+_RE_INHERENT_MOVE_GAIN = re.compile(
+    r"\bgain(?:s)?\s+(\d+(?:\.\d+)?)\s*%\s+"
+    r"(Basic|Heavy|Resonance Skill|Resonance Liberation)\s+DMG\s+Bonus\b",
+    re.I,
+)
+
+_RE_INHERENT_INTRO_MV = re.compile(
+    r"DMG\s+Multiplier\s+of\s+Intro\s+Skill\b.*?\bis\s+increased\s+by\s+(\d+(?:\.\d+)?)\s*%",
+    re.I,
+)
+
+def _parse_char_inherent_self_buffs(char: dict) -> list[dict]:
+    """Parse self-scoped buffs from a character's inherent skills (type=4 moves) at S0.
+
+    These are typically always-on personal passives like:
+      - "Jinhsi gains 20% Spectro DMG Bonus."
+      - "Gain 15% Basic DMG Bonus."
+      - "DMG Multiplier of Intro Skill ... is increased by 50%."
+
+    Returns a list of buff dicts in the same shape as CharPartyBuff.
+    NOTE: This intentionally does NOT try to model conditional/stacking mechanics.
+    """
+    moves = char.get("moves") or []
+    out: list[dict] = []
+
+    for move in moves:
+        if not isinstance(move, dict):
+            continue
+        if move.get("type") != 4:
+            continue
+
+        desc_field = move.get("description", {})
+        desc_en = desc_field.get("en", "") if isinstance(desc_field, dict) else str(desc_field or "")
+        desc_en = _MARKUP_RE.sub("", desc_en).strip()
+        if not desc_en:
+            continue
+        desc_params = [str(v) for v in (move.get("descriptionParams") or [])]
+        resolved = _resolve_effect_placeholders(desc_en, [], desc_params)
+        if not resolved:
+            continue
+
+        # Skip anything party-scoped (rare for inherents, but safe).
+        lower = resolved.lower()
+        if any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES):
+            continue
+
+        # Elemental DMG bonus (always-on).
+        for m in _RE_INHERENT_ELEM_GAIN.finditer(resolved):
+            out.append({"type": "elementalDMG", "element": m.group(2).title(), "value": float(m.group(1))})
+
+        # Move-type DMG bonus (Basic/Heavy/RS/RL).
+        for m in _RE_INHERENT_MOVE_GAIN.finditer(resolved):
+            kind = m.group(2).strip().lower()
+            mt = None
+            if kind == "basic":
+                mt = "basic_attack"
+            elif kind == "heavy":
+                mt = "heavy_attack"
+            elif kind == "resonance skill":
+                mt = "resonance_skill"
+            elif kind == "resonance liberation":
+                mt = "resonance_liberation"
+            if mt:
+                out.append({"type": "moveTypeDMG", "move_type": mt, "value": float(m.group(1))})
+
+        # Intro MV multiplier (applies only to intro moves).
+        mv_m = _RE_INHERENT_INTRO_MV.search(resolved)
+        if mv_m:
+            out.append({"type": "mvMultiplier", "move_type": "intro", "value": float(mv_m.group(1))})
+
+    # De-dupe exact entries while preserving order.
+    uniq: list[dict] = []
+    for e in out:
+        if e not in uniq:
+            uniq.append(e)
+    return uniq
+
 def _build_character_bases(
     full_chars: list[dict]
 ) -> dict[str, dict]:
@@ -1082,6 +1165,7 @@ def _build_character_bases(
         chains = _extract_chains_lb(char)
         moves = _extract_moves_lb(char)
         party_buffs_s0 = _parse_char_kit_party_buffs(char)
+        self_buffs_s0 = _parse_char_inherent_self_buffs(char)
 
         out[cdn_id] = {
             "name": name,
@@ -1093,6 +1177,7 @@ def _build_character_bases(
             "chains": chains,
             "moves": moves,
             "party_buffs_s0": party_buffs_s0,
+            "self_buffs_s0": self_buffs_s0,
             "stats": {
                 "HP": hp, "ATK": atk, "DEF": defense,
                 "Crit Rate": 5, "Crit DMG": 150, "Energy Regen": 100,
