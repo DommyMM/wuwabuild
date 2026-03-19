@@ -838,7 +838,10 @@ _RE_UP_TO_POINTS = re.compile(r"up\s+to\s+(\d+(?:\.\d+)?)\s+points?", re.I)
 _PARTY_SCOPE_PHRASES = [
     "party member",
     "nearby party",
+    "next resonator",
     "resonators on the team",
+    "resonators on nearby teams",
+    "resonators in the team",
     "incoming resonator",
     "all team members",
     "all resonators in the team",
@@ -893,6 +896,8 @@ _MOVE_TYPE_TO_CODE = {
     "heavy attack": "heavy_attack",
     "resonance skill": "resonance_skill",
     "resonance liberation": "resonance_liberation",
+    "echo skill": "echo",
+    "aero erosion": "erosion",
 }
 
 
@@ -921,6 +926,129 @@ def _extract_amplify_buffs(text: str) -> list[dict]:
         for amp_m in _AMPLIFY_NOUN_RE.finditer(text):
             _append_amplify_entry(out, amp_m.group(2), float(amp_m.group(1)))
 
+    return out
+
+
+_RES_PEN_RE = re.compile(
+    r"(?:reduce|reduces|reducing)\s+(?:their|the target'?s?|targets'?|enemy'?s?)?\s*"
+    r"(Glacio|Fusion|Electro|Aero|Havoc|Spectro)\s+RES\s+by\s+(\d+(?:\.\d+)?)\s*%",
+    re.I,
+)
+_AERO_EROSION_AMP_RE = re.compile(
+    r"aero erosion dmg.*?amplified by\s+(\d+(?:\.\d+)?)\s*%",
+    re.I,
+)
+
+
+def _append_unique_party_buff(out: list[dict], entry: dict) -> None:
+    if entry not in out:
+        out.append(entry)
+
+
+def _split_buff_sentences(text: str) -> list[str]:
+    text = re.sub(r"\bCrit\.\s+", "Crit ", text)
+    text = re.sub(r"\bRegen\.\s+", "Regen ", text)
+    return [s.strip() for s in re.split(r"(?:\.\s+|\.\n+|\n+)", text) if s.strip()]
+
+
+def _stat_to_party_buffs(stat: str, value: float) -> list[dict]:
+    if stat == "Crit Rate":
+        return [{"type": "critRate", "value": value}]
+    if stat == "Crit DMG":
+        return [{"type": "critDMG", "value": value}]
+    if stat in ("ATK", "ATK%"):
+        return [{"type": "atkPercentage", "value": value}]
+    if stat == "All Attribute DMG":
+        return [{"type": "elementalDMG", "value": value}]
+    if stat in ("Aero DMG", "Glacio DMG", "Fusion DMG", "Electro DMG", "Havoc DMG", "Spectro DMG"):
+        return [{"type": "elementalDMG", "element": stat.replace(" DMG", ""), "value": value}]
+    if stat in ("Basic DMG Bonus",):
+        return [{"type": "moveTypeDMG", "value": value}]
+    if stat in ("Basic Attack DMG Bonus", "Basic Attack DMG"):
+        return [{"type": "moveTypeDMG", "move_type": "basic_attack", "value": value}]
+    if stat in ("Heavy Attack DMG Bonus", "Heavy Attack DMG"):
+        return [{"type": "moveTypeDMG", "move_type": "heavy_attack", "value": value}]
+    if stat in ("Resonance Skill DMG Bonus", "Resonance Skill DMG"):
+        return [{"type": "moveTypeDMG", "move_type": "resonance_skill", "value": value}]
+    if stat in ("Resonance Liberation DMG Bonus", "Resonance Liberation DMG"):
+        return [{"type": "moveTypeDMG", "move_type": "resonance_liberation", "value": value}]
+    if stat == "Echo Skill DMG Bonus":
+        return [{"type": "moveTypeDMG", "move_type": "echo", "value": value}]
+    return []
+
+
+def _extract_team_debuff_buffs(text: str) -> list[dict]:
+    out: list[dict] = []
+    for m in _RES_PEN_RE.finditer(text):
+        _append_unique_party_buff(out, {
+            "type": "resPen",
+            "element": _ELEMENT_TO_CODE[m.group(1).lower()],
+            "value": -float(m.group(2)),
+        })
+    for m in _AERO_EROSION_AMP_RE.finditer(text):
+        _append_unique_party_buff(out, {
+            "type": "amplify",
+            "move_type": "erosion",
+            "value": float(m.group(1)),
+        })
+    return out
+
+
+def _parse_party_scoped_buffs(text: str) -> list[dict]:
+    out: list[dict] = []
+    for sentence in _split_buff_sentences(text):
+        lower = sentence.lower()
+        if not any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES):
+            continue
+        emitted_types: set[tuple[str, str, str]] = set()
+
+        for cap_m in _RE_UP_TO_CAP.finditer(sentence):
+            cap_val = float(cap_m.group(1))
+            after_cap = sentence[cap_m.end():cap_m.end() + 60].lstrip()
+            stat_m = _STAT_RE.match(after_cap)
+            if stat_m:
+                for entry in _stat_to_party_buffs(_stat_name_for_match(stat_m), cap_val):
+                    _append_unique_party_buff(out, entry)
+                    emitted_types.add((entry.get("type", ""), entry.get("element", ""), entry.get("move_type", "")))
+                continue
+
+            before_cap = sentence[max(0, cap_m.start() - 60):cap_m.start()]
+            stat_back_m = None
+            for sm in _STAT_RE.finditer(before_cap):
+                stat_back_m = sm
+            if stat_back_m:
+                for entry in _stat_to_party_buffs(_stat_name_for_match(stat_back_m), cap_val):
+                    _append_unique_party_buff(out, entry)
+                    emitted_types.add((entry.get("type", ""), entry.get("element", ""), entry.get("move_type", "")))
+
+        for cap_m in _RE_UP_TO_POINTS.finditer(sentence):
+            cap_val = float(cap_m.group(1))
+            before_cap = sentence[max(0, cap_m.start() - 80):cap_m.start()]
+            stat_back_m = None
+            for sm in _STAT_RE.finditer(before_cap):
+                stat_back_m = sm
+            if stat_back_m and _stat_name_for_match(stat_back_m) == "ATK":
+                entry = {"type": "atkFlat", "value": cap_val}
+                _append_unique_party_buff(out, entry)
+                emitted_types.add((entry["type"], "", ""))
+
+        for b in _extract_buffs(sentence):
+            for entry in _stat_to_party_buffs(b["stat"], b["value"]):
+                key = (entry.get("type", ""), entry.get("element", ""), entry.get("move_type", ""))
+                if key in emitted_types:
+                    continue
+                _append_unique_party_buff(out, entry)
+
+        for entry in _extract_amplify_buffs(sentence):
+            _append_unique_party_buff(out, entry)
+
+    return out
+
+
+def _parse_support_text_buffs(text: str) -> list[dict]:
+    out = _parse_party_scoped_buffs(text)
+    for entry in _extract_team_debuff_buffs(text):
+        _append_unique_party_buff(out, entry)
     return out
 
 
@@ -995,70 +1123,84 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
 
         # Check if this move is party-scoped.
         lower = resolved.lower()
-        if not any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES):
-            continue
+        if any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES):
+            for cap_m in _RE_UP_TO_CAP.finditer(resolved):
+                cap_val = float(cap_m.group(1))
+                after_cap = resolved[cap_m.end():cap_m.end() + 60].lstrip()
+                stat_m = _STAT_RE.match(after_cap)
+                if stat_m:
+                    stat_name = _stat_name_for_match(stat_m)
+                    if stat_name == "Crit Rate":
+                        party_buffs.append({"type": "critRate", "value": cap_val})
+                        continue
+                    if stat_name == "Crit DMG":
+                        party_buffs.append({"type": "critDMG", "value": cap_val})
+                        continue
 
-        # --- Kind A: regular stat buffs ---
-        # For "up to Y%" cap patterns on Crit Rate / Crit DMG, use Y as value.
-        # Check capped patterns first before falling through to _extract_buffs.
-        for cap_m in _RE_UP_TO_CAP.finditer(resolved):
-            cap_val = float(cap_m.group(1))
-            # Look at the text after the cap match for the stat name.
-            after_cap = resolved[cap_m.end():cap_m.end() + 60].lstrip()
-            stat_m = _STAT_RE.match(after_cap)
-            if stat_m:
-                stat_name = _stat_name_for_match(stat_m)
-                if stat_name == "Crit Rate":
-                    party_buffs.append({"type": "critRate", "value": cap_val})
+                before_cap = resolved[max(0, cap_m.start() - 60):cap_m.start()]
+                stat_back_m = None
+                for sm in _STAT_RE.finditer(before_cap):
+                    stat_back_m = sm
+                if stat_back_m:
+                    stat_name = _stat_name_for_match(stat_back_m)
+                    if stat_name == "Crit Rate":
+                        party_buffs.append({"type": "critRate", "value": cap_val})
+                    elif stat_name == "Crit DMG":
+                        party_buffs.append({"type": "critDMG", "value": cap_val})
+
+            for cap_m in _RE_UP_TO_POINTS.finditer(resolved):
+                cap_val = float(cap_m.group(1))
+                before_cap = resolved[max(0, cap_m.start() - 80):cap_m.start()]
+                stat_back_m = None
+                for sm in _STAT_RE.finditer(before_cap):
+                    stat_back_m = sm
+                if stat_back_m and _stat_name_for_match(stat_back_m) == "ATK":
+                    party_buffs.append({"type": "atkFlat", "value": cap_val})
+
+            for b in _extract_buffs(resolved):
+                stat = b["stat"]
+                val = b["value"]
+                if stat == "Crit Rate":
+                    if not any(pb["type"] == "critRate" for pb in party_buffs):
+                        party_buffs.append({"type": "critRate", "value": val})
+                elif stat == "Crit DMG":
+                    if not any(pb["type"] == "critDMG" for pb in party_buffs):
+                        party_buffs.append({"type": "critDMG", "value": val})
+                elif stat in ("ATK", "ATK%"):
+                    party_buffs.append({"type": "atkPercentage", "value": val})
+
+            for entry in _extract_amplify_buffs(resolved):
+                party_buffs.append(entry)
+
+            # Explicit team-scoped elemental DMG wording like Ciaccona Solo Concert.
+            for sentence in _split_buff_sentences(resolved):
+                sentence_lower = sentence.lower()
+                if not (
+                    "dmg bonus to all nearby resonators in the team" in sentence_lower or
+                    "dmg for all resonators in the team by" in sentence_lower or
+                    "grants all resonators in the team" in sentence_lower or
+                    "grant the incoming resonator" in sentence_lower
+                ):
                     continue
-                if stat_name in ("Crit DMG",):
-                    party_buffs.append({"type": "critDMG", "value": cap_val})
-                    continue
-            # Also try: "up to Y% Crit DMG/Rate" where stat precedes the cap
-            # by looking backwards, check the token before "up to"
-            before_cap = resolved[max(0, cap_m.start() - 60):cap_m.start()]
-            stat_back_m = None
-            for sm in _STAT_RE.finditer(before_cap):
-                stat_back_m = sm  # take last match before cap
-            if stat_back_m:
-                stat_name = _stat_name_for_match(stat_back_m)
-                if stat_name == "Crit Rate":
-                    party_buffs.append({"type": "critRate", "value": cap_val})
-                elif stat_name in ("Crit DMG",):
-                    party_buffs.append({"type": "critDMG", "value": cap_val})
+                for b in _extract_buffs(sentence):
+                    if b["stat"] in ("Aero DMG", "Glacio DMG", "Fusion DMG", "Electro DMG", "Havoc DMG", "Spectro DMG", "All Attribute DMG"):
+                        for entry in _stat_to_party_buffs(b["stat"], b["value"]):
+                            _append_unique_party_buff(party_buffs, entry)
 
-        # Flat ATK caps phrased as "up to N points".
-        for cap_m in _RE_UP_TO_POINTS.finditer(resolved):
-            cap_val = float(cap_m.group(1))
-            before_cap = resolved[max(0, cap_m.start() - 80):cap_m.start()]
-            stat_back_m = None
-            for sm in _STAT_RE.finditer(before_cap):
-                stat_back_m = sm
-            if stat_back_m and _stat_name_for_match(stat_back_m) == "ATK":
-                party_buffs.append({"type": "atkFlat", "value": cap_val})
-
-        # Also run _extract_buffs for ATK / ATK% / other plain (non-capped) stats.
-        for b in _extract_buffs(resolved):
-            stat = b["stat"]
-            val = b["value"]
-            if stat == "Crit Rate":
-                # Only add if there's no cap pattern covering this (avoid duplicates)
-                # Skip, capped patterns were handled above; plain Crit Rate buffs
-                # for party members are less common but still added if no cap found.
-                # We check: if a cap was already emitted for critRate, skip.
-                if not any(pb["type"] == "critRate" for pb in party_buffs):
-                    party_buffs.append({"type": "critRate", "value": val})
-            elif stat == "Crit DMG":
-                if not any(pb["type"] == "critDMG" for pb in party_buffs):
-                    party_buffs.append({"type": "critDMG", "value": val})
-            elif stat in ("ATK", "ATK%"):
-                party_buffs.append({"type": "atkPercentage", "value": val})
-
-        # --- Kind B: amplify buffs ---
-        for entry in _extract_amplify_buffs(resolved):
-            party_buffs.append(entry)
+        for entry in _extract_team_debuff_buffs(resolved):
+            _append_unique_party_buff(party_buffs, entry)
 
     return party_buffs
+
+
+def _parse_weapon_party_buffs_by_rank(weapon: dict) -> list[list[dict]]:
+    out: list[list[dict]] = []
+    effect_en = (weapon.get("effect") or {}).get("en", "")
+    for rank in range(1, 6):
+        resolved = _resolve_effect_placeholders(effect_en, [], _params_for_rank(weapon, rank))
+        buffs = _parse_support_text_buffs(resolved)
+        out.append(buffs)
+    return out
 
 _RE_INHERENT_ELEM_GAIN = re.compile(
     r"\bgain(?:s)?\s+(\d+(?:\.\d+)?)\s*%\s+"
@@ -1316,6 +1458,7 @@ def _build_weapon_bases(
         # For 4-star weapons, use R5 values in the Go effects (easier to obtain at R5).
         go_effects_source = effects_r5 if rarity_str == "4-star" else effects_r1
         weapon_effects = _derive_go_weapon_effects(go_effects_source, rarity_str)
+        party_buffs_by_rank = _parse_weapon_party_buffs_by_rank(w)
 
         out[wid] = {
             "name": name,
@@ -1331,6 +1474,7 @@ def _build_weapon_bases(
             "params_r5": params_r5,
             "effects_r1": effects_r1,
             "effects_r5": effects_r5,
+            "party_buffs_by_rank": party_buffs_by_rank,
             "weapon_effects": weapon_effects,
         }
 
@@ -1456,6 +1600,7 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
             normalized_piece_effects[piece_key] = {
                 "effect_en": effect_en,
                 "add_prop": add_prop,
+                "party_buffs": _parse_support_text_buffs(effect_en),
                 "effects": _parse_effect_en(effect_en),
             }
 
