@@ -1,7 +1,5 @@
 import 'server-only';
 import { ImageResponse } from 'next/og';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 
 export type OgCardVariant = 'site' | 'leaderboard-overview' | 'character' | 'weapon' | 'leaderboard';
 
@@ -24,11 +22,13 @@ const SURFACE = '#1A1A1E';
 const TEXT = '#EEEEEE';
 const TEXT_MUTED = '#999999';
 
-async function loadFonts() {
-  const fontData = await readFile(join(process.cwd(), 'assets', 'PlusJakartaSans-VariableFont_wght.ttf'));
-  return [
-    { name: 'PlusJakarta', data: Buffer.from(fontData), style: 'normal' as const, weight: 600 as const },
-  ];
+let fontCache: ArrayBuffer | null = null;
+
+async function loadFont(): Promise<ArrayBuffer> {
+  if (fontCache) return fontCache;
+  const res = await fetch('https://fonts.gstatic.com/s/plusjakartasans/v12/LDIbaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA_TknNSg.ttf');
+  fontCache = await res.arrayBuffer();
+  return fontCache;
 }
 
 async function fetchArt(url: string | null | undefined): Promise<string | null> {
@@ -46,10 +46,13 @@ async function fetchArt(url: string | null | undefined): Promise<string | null> 
 }
 
 export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
-  const [fonts, artSrc] = await Promise.all([
-    loadFonts(),
+  const [fontData, artSrc] = await Promise.all([
+    loadFont(),
     fetchArt(data.artUrl),
   ]);
+  const fonts = [
+    { name: 'PlusJakarta', data: fontData, style: 'normal' as const, weight: 600 as const },
+  ];
 
   const accent = data.accentColor || GOLD;
 
