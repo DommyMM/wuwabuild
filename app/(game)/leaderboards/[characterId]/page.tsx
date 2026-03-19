@@ -1,48 +1,24 @@
 import type { Metadata } from 'next';
-import fs from 'fs';
 
 // Reads searchParams to determine weapon/track — must be dynamic.
 // Overrides the force-static default set in (game)/layout.tsx.
 export const dynamic = 'force-dynamic';
-import path from 'path';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { LeaderboardCharacterClient } from '@/components/leaderboards/character/LeaderboardCharacterClient';
 import { DEFAULT_LB_TRACK } from '@/components/leaderboards/constants';
 import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeaderboardQuery, serializeLeaderboardQuery, toURLSearchParams } from '@/components/leaderboards/character/leaderboardCharacterQuery';
-import { CDNCharacter, adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
+import { adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
 import { prefetchLeaderboard } from '@/lib/lbServer';
+import { loadCharacterRaw } from '@/lib/server/ogData';
 
 interface Props {
   params: Promise<{ characterId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-type GenericRecord = Record<string, unknown>;
-
-function loadCharacter(characterId: string): CDNCharacter | null {
-  const charactersPath = path.join(process.cwd(), 'public', 'Data', 'Characters.json');
-  if (!fs.existsSync(charactersPath)) return null;
-
-  const rawData = JSON.parse(fs.readFileSync(charactersPath, 'utf8')) as unknown;
-  const rawCharacters = Array.isArray(rawData)
-    ? rawData
-    : (rawData && typeof rawData === 'object')
-      ? Object.values(rawData as GenericRecord)
-      : [];
-
-  const rawCharacter = rawCharacters.find((entry) => (
-    entry &&
-    typeof entry === 'object' &&
-    'id' in entry &&
-    (entry as { id?: string | number }).id?.toString() === characterId
-  ));
-
-  return (rawCharacter as CDNCharacter | undefined) ?? null;
-}
-
 function getCharacterPageCopy(characterId: string) {
-  const rawCharacter = loadCharacter(characterId);
+  const rawCharacter = loadCharacterRaw(characterId);
   const character = rawCharacter ? adaptCDNCharacter(rawCharacter) : null;
   const characterName = character
     ? formatCharacterDisplayName(character, {
@@ -66,13 +42,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       openGraph: { title, description, url: `https://wuwa.build/leaderboards/${characterId}` },
+      twitter: { title, description },
       alternates: { canonical: `/leaderboards/${characterId}` },
     };
   }
 
+  const fallbackTitle = `Character Leaderboard #${characterId} - WuWaBuilds`;
+  const fallbackDescription = 'Global damage rankings for this Wuthering Waves character. Filter by weapon, track, echo sets, and more.';
   return {
-    title: `Character Leaderboard #${characterId} - WuWaBuilds`,
-    description: 'Global damage rankings for this Wuthering Waves character. Filter by weapon, track, echo sets, and more.',
+    title: fallbackTitle,
+    description: fallbackDescription,
+    twitter: { title: fallbackTitle, description: fallbackDescription },
     alternates: { canonical: `/leaderboards/${characterId}` },
   };
 }

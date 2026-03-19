@@ -3,21 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import Link from 'next/link';
 import { CharacterClient } from './CharacterClient';
-import { adaptCDNCharacter, CDNCharacter } from '@/lib/character';
+import { adaptCDNCharacter } from '@/lib/character';
+import { loadCharacterRaw } from '@/lib/server/ogData';
 
-// We use 'unknown' instead of 'any' to satisfy the strict ESLint rules
 type GenericDict = Record<string, unknown>;
-
-function loadCharacter(id: string): CDNCharacter | null {
-    const dataDir = path.join(process.cwd(), 'public', 'Data');
-    const charPath = path.join(dataDir, 'Characters.json');
-    if (fs.existsSync(charPath)) {
-        const charsData = JSON.parse(fs.readFileSync(charPath, 'utf8')) as GenericDict;
-        const rawChar = Object.values(charsData).find((c: unknown) => (c as { id?: string | number }).id?.toString() === id) as CDNCharacter | undefined;
-        return rawChar || null;
-    }
-    return null;
-}
 
 function loadWeapons(): GenericDict[] {
     const dataDir = path.join(process.cwd(), 'public', 'Data');
@@ -60,20 +49,26 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     let title = 'Character Build Calculator - WuWaBuilds';
     let description = 'Calculate the best builds, echoes, and stats for this character on WuwaBuilds.';
 
-    const rawChar = loadCharacter(id);
+    const rawChar = loadCharacterRaw(id);
     if (rawChar) {
         const char = adaptCDNCharacter(rawChar);
         title = `${char.name} Build, Stats & Calculator - Wuthering Waves`;
         description = `Calculate the best builds and optimal damage for ${char.name} in Wuthering Waves. Explore top player leaderboards, weapon rankings, and simulated echo loadouts on WuWaBuilds.`;
     }
 
-    return { title, description, openGraph: { title, description, url: `https://wuwa.build/characters/${id}` }, alternates: { canonical: `/characters/${id}` } };
+    return {
+        title,
+        description,
+        openGraph: { title, description, url: `https://wuwa.build/characters/${id}` },
+        twitter: { title, description },
+        alternates: { canonical: `/characters/${id}` },
+    };
 }
 
 export default async function CharacterPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
 
-    const rawChar = loadCharacter(id);
+    const rawChar = loadCharacterRaw(id);
     const char = rawChar ? adaptCDNCharacter(rawChar) : null;
     let matchingWeapons: GenericDict[] = [];
 
