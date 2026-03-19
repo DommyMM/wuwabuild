@@ -25,13 +25,9 @@ const TEXT = '#EEEEEE';
 const TEXT_MUTED = '#999999';
 
 async function loadFonts() {
-  const [semiBold, bold] = await Promise.all([
-    readFile(join(process.cwd(), 'assets', 'PlusJakartaSans-SemiBold.ttf')),
-    readFile(join(process.cwd(), 'assets', 'PlusJakartaSans-Bold.ttf')),
-  ]);
+  const fontData = await readFile(join(process.cwd(), 'assets', 'PlusJakartaSans-VariableFont_wght.ttf'));
   return [
-    { name: 'PlusJakarta', data: semiBold, style: 'normal' as const, weight: 600 as const },
-    { name: 'PlusJakarta', data: bold, style: 'normal' as const, weight: 700 as const },
+    { name: 'PlusJakarta', data: Buffer.from(fontData), style: 'normal' as const, weight: 600 as const },
   ];
 }
 
@@ -153,6 +149,7 @@ export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
               }}
             />
             <img
+              alt=""
               src={artSrc}
               width={460}
               height={540}
