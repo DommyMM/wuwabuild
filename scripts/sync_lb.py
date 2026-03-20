@@ -1230,6 +1230,13 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
         for entry in _extract_team_debuff_buffs(resolved):
             _append_unique_party_buff(party_buffs, entry)
 
+        # Support-side target-state enabling like Chisa's Thread of Bane.
+        # We treat this as party-facing because teammate loadouts are modeled
+        # as fully-achievable support shells during the DPS window.
+        if "thread of bane" in lower:
+            for m in _RE_DEF_IGNORE.finditer(resolved):
+                _append_unique_party_buff(party_buffs, {"type": "defIgnore", "value": float(m.group(1))})
+
     return party_buffs
 
 
@@ -1241,6 +1248,11 @@ def _parse_weapon_party_buffs_by_rank(weapon: dict) -> list[list[dict]]:
         buffs = _parse_support_text_buffs(resolved)
         out.append(buffs)
     return out
+
+_RE_DEF_IGNORE = re.compile(
+    r"\bignore\s+(\d+(?:\.\d+)?)\s*%\s+of\s+(?:(?:the\s+target'?s|their)\s+)?DEF\b",
+    re.I,
+)
 
 _RE_INHERENT_ELEM_GAIN = re.compile(
     r"\bgain(?:s)?\s+(\d+(?:\.\d+)?)\s*%\s+"
