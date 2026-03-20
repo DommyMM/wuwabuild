@@ -326,12 +326,12 @@ _RE_DURATION  = re.compile(
     r")",
     re.I
 )
-_RE_STACKS    = re.compile(r"stack(?:ing|s)?\s+up\s+to\s+(\d+)\s+times?", re.I)
+_RE_STACKS    = re.compile(r"stack(?:ing|s)?\s+up\s+to\s+(\d+)(?:\s+times?)?", re.I)
 _RE_PER_STACK = re.compile(r"(\d+(?:\.\d+)?)\s*%\s+every\s+\d", re.I)  # "5% every 1.5s"
 
 # Trigger-condition prefixes that appear at the start of a clause.
 _TRIGGER_STARTS = re.compile(
-    r"^(Hitting|Casting|Using|While|Upon|After|When|Dealing|Inflicting|"
+    r"^(Hitting|Casting|Using|While|Upon|After|When|Dealing|Inflicting|Performing|"
     r"Holding|Reaching|At\b|With\b|Every\s+time)",
     re.I,
 )
@@ -364,6 +364,7 @@ def _extract_buffs(text: str) -> list[dict]:
         val = float(pct_m.group(1))
         after_start = pct_m.end()
         after = text[after_start:after_start + 70].lstrip()
+        after = re.sub(r"^(?:additional|extra)\s+", "", after, flags=re.I)
         stat_m = _STAT_RE.match(after)
         if stat_m:
             stat = _stat_name_for_match(stat_m)
@@ -372,7 +373,58 @@ def _extract_buffs(text: str) -> list[dict]:
                 buffs.append({"stat": stat, "value": val})
                 used.append((pct_m.start(), span_end))
 
-    # Pass B – "StatName + X%" or "StatName … by X%" (stat precedes value).
+    # Pass B - "ignore(s) X% of the target's DEF".
+    def_ignore_m = re.search(
+        r"\bignores?\s+(\d+(?:\.\d+)?)\s*%\s+of\s+(?:(?:the\s+target'?s|their)\s+)?DEF\b",
+        text,
+        re.I,
+    )
+    if def_ignore_m:
+        span = def_ignore_m.span()
+        if not _overlaps(*span):
+            buffs.append({"stat": "DEF Ignore", "value": float(def_ignore_m.group(1))})
+            used.append(span)
+
+    # Pass C - move-specific amplification, including Frazzle.
+    frazzle_amp_m = re.search(
+        r"\bAmplif(?:y|ies)\s+Spectro\s+Frazzle\s+DMG(?:\s+dealt)?\s+by\s+(\d+(?:\.\d+)?)\s*%",
+        text,
+        re.I,
+    )
+    if frazzle_amp_m:
+        span = frazzle_amp_m.span()
+        if not _overlaps(*span):
+            buffs.append({
+                "stat": "DMG Amplification",
+                "move_type": "frazzle",
+                "value": float(frazzle_amp_m.group(1)),
+            })
+            used.append(span)
+
+    move_amp_m = re.search(
+        r"\b(Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation|Echo Skill)\s+DMG\s+Amplification\b.*?\b(\d+(?:\.\d+)?)\s*%",
+        text,
+        re.I,
+    )
+    if move_amp_m:
+        move_type_map = {
+            "basic attack": "basic_attack",
+            "heavy attack": "heavy_attack",
+            "resonance skill": "resonance_skill",
+            "resonance liberation": "resonance_liberation",
+            "echo skill": "echo",
+        }
+        move_type = move_type_map.get(move_amp_m.group(1).strip().lower())
+        span = move_amp_m.span()
+        if move_type and not _overlaps(*span):
+            buffs.append({
+                "stat": "DMG Amplification",
+                "move_type": move_type,
+                "value": float(move_amp_m.group(2)),
+            })
+            used.append(span)
+
+    # Pass D – "StatName + X%" or "StatName … by X%" (stat precedes value).
     # Uses a wider 80-char window to handle wordy constructions like Pact.
     # Rejects the match when another stat name appears in the text between
     # this stat and the value, that indicates "A increases B by X%" where
@@ -394,19 +446,7 @@ def _extract_buffs(text: str) -> list[dict]:
                 buffs.append({"stat": stat, "value": val})
                 used.append((stat_m.start(), span_end))
 
-    # Pass C - "ignore X% of the target's DEF".
-    def_ignore_m = re.search(
-        r"\bignore\s+(\d+(?:\.\d+)?)\s*%\s+of\s+(?:(?:the\s+target'?s|their)\s+)?DEF\b",
-        text,
-        re.I,
-    )
-    if def_ignore_m:
-        span = def_ignore_m.span()
-        if not _overlaps(*span):
-            buffs.append({"stat": "DEF Ignore", "value": float(def_ignore_m.group(1))})
-            used.append(span)
-
-    # Pass D - generic "the DMG taken ... is Amplified by X%".
+    # Pass E - generic "the DMG taken ... is Amplified by X%".
     dmg_amp_m = re.search(
         r"\bDMG\s+taken\b.*?\bAmplified\s+by\s+(\d+(?:\.\d+)?)\s*%",
         text,
@@ -441,9 +481,9 @@ def _extract_trigger(text: str) -> str:
     """
     # Pattern 1 – clause starts with a known trigger keyword
     cond_m = re.match(
-        r"^((?:Hitting|Casting|Using|While|Upon|After|When|Dealing|Inflicting|"
+        r"^((?:Hitting|Casting|Using|While|Upon|After|When|Dealing|Inflicting|Performing|"
         r"Holding|Reaching|Every\s+time)\b.+?)"
-        r"(?:,\s*|\s+(?:increases?|grants?|gains?|deal))",
+        r"(?:,\s*|\s+(?:increases?|grants?|gains?))",
         text, re.I,
     )
     if cond_m:
@@ -465,7 +505,7 @@ def _extract_trigger(text: str) -> str:
 #   "Casting Resonance Skill grants X for 15s and casting Resonance Liberation
 #    increases Y by Z%, lasting for 5s"
 _AND_TRIGGER_RE = re.compile(
-    r"\s+and\s+(?=(?:Hitting|Casting|Using|While|Upon|After|When|Dealing|"
+    r"\s+and\s+(?=(?:Hitting|Casting|Using|While|Upon|After|When|Dealing|Performing|"
     r"Inflicting|Holding|Reaching|Every\s+time)\b)",
     re.I,
 )
@@ -486,6 +526,8 @@ def _split_compound_and(sentence: str) -> list[str]:
 _TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
     (r"tune\s+break",                              "Passive"),
     (r"while\s+the\s+wielder\s+is\s+on\s+the\s+field", "Passive"),
+    (r"(?:targets?|enemies?)\s+with\s+spectro\s+frazzle", "Passive"),
+    (r"negative\s+statuses",                       "Passive"),
     (r"concerto\s+energy",                         "forte"),
     (r"\becho\s+skill\b",                          "echoSkill"),
     (r"\boutro\s+skill\b",                         "outro"),
@@ -586,6 +628,9 @@ def _derive_go_weapon_effects(
             if type_info is None:
                 continue  # DEF, HP, Energy Regen, etc. — skip
             go_type, element, move_type = type_info
+            buff_move_type = str(buff.get("move_type", "") or "").strip()
+            if buff_move_type:
+                move_type = buff_move_type
 
             for move_key in move_keys:
                 entry: dict = {
@@ -628,6 +673,9 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
     """
     if not effect_en:
         return []
+
+    effect_en = _MARKUP_RE.sub("", effect_en)
+    effect_en = re.sub(r"\{[^}]+\}", "", effect_en)
 
     # Normalise in-word abbreviations that contain ". " so they don't
     # trigger false sentence splits (e.g. "Crit. Rate" → "Crit Rate").
