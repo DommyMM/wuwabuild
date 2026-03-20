@@ -117,9 +117,8 @@ def transform_echo(raw: dict) -> dict:
             "description": (raw["skill"].get("descriptionEx") or {}).get("en"),
             "params": raw["skill"].get("levelDescriptionStrArray"),
         },
+        "legacyId": legacy_id or str(raw.get("id", "") or ""),
     }
-    if legacy_id:
-        echo["legacyId"] = legacy_id
     bonuses = extract_main_slot_bonuses(raw["skill"])
     if bonuses:
         echo["bonuses"] = bonuses

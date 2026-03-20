@@ -582,8 +582,7 @@ def transform_character(
 
     # Add legacyId extracted from iconRound URL for backwards compatibility
     legacy_id = extract_legacy_id(data)
-    if legacy_id:
-        result["legacyId"] = legacy_id
+    result["legacyId"] = legacy_id or str(char_id or "")
 
     # Derive preferred substats from character tags and skillTrees
     # Only includes substat-eligible stats (no Elemental DMG or Healing Bonus)

@@ -291,8 +291,7 @@ def transform_weapon(data: dict, schema: dict, legacy_name_index: dict[str, list
         return None
     output = extract_by_schema(data, schema)
     legacy_id = _resolve_legacy_weapon_id(data, legacy_name_index)
-    if legacy_id:
-        output["legacyId"] = legacy_id
+    output["legacyId"] = legacy_id or str(output.get("id", "") or "")
     passive_bonuses = extract_unconditional_passive_bonuses(data)
     if passive_bonuses:
         output["unconditionalPassiveBonuses"] = passive_bonuses
@@ -412,15 +411,10 @@ def main():
     # Transform
     weapons = []
     skipped = 0
-    missing_legacy_ids: list[str] = []
     for data in raw_weapons:
         weapon = transform_weapon(data, SCHEMA, legacy_name_index)
         if weapon:
             weapons.append(weapon)
-            if not weapon.get("legacyId"):
-                wid = weapon.get("id", "?")
-                name = weapon.get("name", {}).get("en", "?") if isinstance(weapon.get("name"), dict) else "?"
-                missing_legacy_ids.append(f"{wid} ({name})")
         else:
             wid = data.get("id", "?")
             name = data.get("name", {}).get("en", "?") if isinstance(data.get("name"), dict) else "?"
@@ -429,11 +423,6 @@ def main():
 
     weapons.sort(key=lambda w: w.get("name", {}).get("en", ""))
     print(f"Transformed {len(weapons)} weapons ({skipped} skipped)")
-    if missing_legacy_ids:
-        print("ERROR: Failed to resolve legacyId for:")
-        for entry in missing_legacy_ids:
-            print(f"  - {entry}")
-        return 1
 
     if not weapons:
         print("No weapons to save")

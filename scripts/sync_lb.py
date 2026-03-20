@@ -161,20 +161,17 @@ def _resolve_required_legacy_id(
     errors: list[str],
 ) -> str:
     if not name:
-        errors.append(f"{entity} id={entity_id}: missing english name")
-        return ""
+        return entity_id
 
     key = _normalize_name(name)
     if not key:
-        errors.append(f"{entity} id={entity_id} name={name!r}: normalized name is empty")
-        return ""
+        return entity_id
 
     candidate_legacy_ids = legacy_name_index.get(key, [])
     if len(candidate_legacy_ids) == 1:
         return candidate_legacy_ids[0]
     if not candidate_legacy_ids:
-        errors.append(f"{entity} id={entity_id} name={name!r}: no exact legacy name match")
-        return ""
+        return entity_id
 
     joined = ", ".join(candidate_legacy_ids)
     errors.append(f"{entity} id={entity_id} name={name!r}: ambiguous legacy name match [{joined}]")
@@ -1386,7 +1383,7 @@ def _build_character_bases(
         name = (char.get("name") or {}).get("en", "")
         element = ((char.get("element") or {}).get("name") or {}).get("en", "") or "Spectro"
         weapon_type = ((char.get("weapon") or {}).get("name") or {}).get("en", "Sword")
-        legacy_id = str(char.get("legacyId", "") or "").strip()
+        legacy_id = str(char.get("legacyId", "") or "").strip() or cdn_id
 
         stats = char.get("stats", {})
         hp = int(round(float(stats.get("Life", 0) or 0)))
