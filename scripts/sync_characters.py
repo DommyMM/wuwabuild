@@ -131,6 +131,8 @@ CDN_SKILL_CONFIG_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/Skill.json"
 CDN_PATH_FIXUPS = {
     "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_zanni1_UI.png":
         "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_zanNi1_UI.png",
+    "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Xigelika_UI.png":
+        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_xigelika_UI.png",
 }
 
 # Output directory relative to this script
