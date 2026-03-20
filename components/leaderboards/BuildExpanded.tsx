@@ -594,16 +594,6 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                 </div>
               )}
 
-              <div className="mx-auto w-48">
-                <button
-                  type="button"
-                  onClick={handleViewBuild}
-                  className="flex w-full items-center justify-center rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer"
-                >
-                  View in Editor
-                </button>
-              </div>
-
               {detail && (
                 <BuildSimulationSection
                   buildId={detail.id}
@@ -614,6 +604,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   isExpanded={isExpanded}
                   baseDamage={activeBoardDamage}
                   globalRank={globalRank}
+                  onViewInEditor={handleViewBuild}
                 />
               )}
             </div>

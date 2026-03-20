@@ -132,6 +132,7 @@ interface BuildSimulationSectionProps {
   isExpanded: boolean;
   baseDamage?: number;
   globalRank?: number;
+  onViewInEditor?: () => void;
 }
 
 export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
@@ -143,6 +144,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   isExpanded,
   baseDamage,
   globalRank,
+  onViewInEditor,
 }) => {
   const { getWeapon, getSubstatValues, statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
@@ -368,9 +370,18 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   );
 
   const actionButtonClassName = 'flex w-full items-center justify-between rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer';
+  const viewInEditorButtonClassName = actionButtonClassName.replace('justify-between', 'justify-center');
 
   return (
     <div className="space-y-3 font-plus-jakarta">
+      {onViewInEditor && (
+        <div className="mx-auto w-48">
+          <button type="button" onClick={onViewInEditor} className={viewInEditorButtonClassName}>
+            View in Editor
+          </button>
+        </div>
+      )}
+
       {hasBoardContext && (
         <>
           <div className="mx-auto w-48">

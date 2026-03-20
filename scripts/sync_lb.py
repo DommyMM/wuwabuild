@@ -321,8 +321,12 @@ _STAT_RE = _build_stat_regex()
 # Regexes for numeric value / duration / stacking extraction.
 _RE_PCT       = re.compile(r"(\d+(?:\.\d+)?)\s*%")
 _RE_DURATION  = re.compile(
+    r"(?:"
     r"(?:lasting\s+for|for|lasts?|each\s+stack\s+lasts?)\s+(\d+(?:\.\d+)?)"
-    r"(?:\s*s\b|(?=\s*[,.]|\s*$))",  # "s" suffix OR end-of-clause/sentence
+    r"(?:\s*s\b|(?=\s*[,.]|\s*$))"
+    r"|"
+    r"(\d+(?:\.\d+)?)\s*s?\s+(?:after|upon|while|during|within)\b"
+    r")",
     re.I
 )
 _RE_STACKS    = re.compile(r"stack(?:ing|s)?\s+up\s+to\s+(\d+)\s+times?", re.I)
@@ -393,13 +397,40 @@ def _extract_buffs(text: str) -> list[dict]:
                 buffs.append({"stat": stat, "value": val})
                 used.append((stat_m.start(), span_end))
 
+    # Pass C - "ignore X% of the target's DEF".
+    def_ignore_m = re.search(
+        r"\bignore\s+(\d+(?:\.\d+)?)\s*%\s+of\s+(?:(?:the\s+target'?s|their)\s+)?DEF\b",
+        text,
+        re.I,
+    )
+    if def_ignore_m:
+        span = def_ignore_m.span()
+        if not _overlaps(*span):
+            buffs.append({"stat": "DEF Ignore", "value": float(def_ignore_m.group(1))})
+            used.append(span)
+
+    # Pass D - generic "the DMG taken ... is Amplified by X%".
+    dmg_amp_m = re.search(
+        r"\bDMG\s+taken\b.*?\bAmplified\s+by\s+(\d+(?:\.\d+)?)\s*%",
+        text,
+        re.I,
+    )
+    if dmg_amp_m:
+        span = dmg_amp_m.span()
+        if not _overlaps(*span):
+            buffs.append({"stat": "DMG Amplification", "value": float(dmg_amp_m.group(1))})
+            used.append(span)
+
     return buffs
 
 
 def _extract_duration(text: str) -> float | None:
     """Return the explicit duration in seconds, or None if absent."""
     m = _RE_DURATION.search(text)
-    return float(m.group(1)) if m else None
+    if not m:
+        return None
+    value = m.group(1) or m.group(2)
+    return float(value) if value else None
 
 
 def _extract_trigger(text: str) -> str:
@@ -464,8 +495,8 @@ _TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
     (r"\bintro\s+skill\b",                         "intro"),
     (r"\bresonance\s+liberation\b",                "liberation"),
     (r"\bresonance\s+skill\b",                     "skill"),
-    (r"\bheavy\s+attack\b",                        "basic"),
-    (r"\bbasic\s+attack\b",                        "basic"),
+    (r"\bheavy\s+attacks?\b",                      "basic"),
+    (r"\bbasic\s+attacks?\b",                      "basic"),
     (r"\bhitting\s+a\s+target\b",                  "basic"),
     (r"\bdealing\s+(?:basic|heavy)\s+attack\s+dmg","basic"),
 ]
@@ -475,6 +506,8 @@ _STAT_TO_GO_EFFECT: dict[str, tuple[str, str, str]] = {
     "ATK":                              ("atkPercentage", "", ""),
     "Crit Rate":                        ("critRate",      "", ""),
     "Crit DMG":                         ("critDMG",       "", ""),
+    "DEF Ignore":                       ("defIgnore",     "", ""),
+    "DMG Amplification":                ("amplify",       "", ""),
     "All Attribute DMG":                ("elementalDMG",  "", ""),
     "Basic DMG Bonus":                  ("moveTypeDMG",   "", ""),            # generic (all move types)
     "Basic Attack DMG Bonus":           ("moveTypeDMG",   "", "basic_attack"),
@@ -641,6 +674,12 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
         # values that appear in the trigger clause but aren't actual buffs
         # (e.g. "Reaching 250% Energy Regen" → 250 should not be a buff).
         trigger  = _extract_trigger(sentence)
+        if not trigger and results and sentence.strip().lower().startswith("if "):
+            # Some weapon/tooltips split a triggered effect across two sentences,
+            # e.g. "After casting Intro Skill..., ignore DEF. If the target...
+            # DMG taken is Amplified..." In those cases, inherit the prior
+            # trigger window instead of dropping the second clause as passive.
+            trigger = str(results[-1].get("trigger", "") or "")
         buffs = [
             b for b in _extract_buffs(sentence)
             if trigger == "" or b["stat"] not in trigger
