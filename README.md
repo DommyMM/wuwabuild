@@ -2,19 +2,19 @@
 
 Next.js App Router frontend for [wuwa.build](https://wuwa.build), a Wuthering Waves build creator and leaderboard.
 
-**Stack**: Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · Framer Motion
+**Stack**: Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · Motion (`motion` on npm)
 
 For full technical context, see [AGENTS.md](./AGENTS.md).
 
 ---
 
-## Status Snapshot (March 15, 2026)
+## Status Snapshot (March 19, 2026)
 
-- All core routes implemented: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`.
-- `/builds` global board and `/leaderboards` pages are live with SSR prefetch (2-min ISR, silent revalidation on mount).
+- Core routes: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`, `/characters/[id]`, `/weapons/[id]`, `/tos`, `/privacy`.
+- **Home (`/`)** uses ISR (`revalidate = 120`) and server-prefetched LB stats. **`/leaderboards/[characterId]`** server-prefetches the first page of board data. **`/builds`** and **`/leaderboards`** load list data on the client via `/api/lb/*` (with optional silent revalidation where implemented).
 - `/import` OCR flow is live with leaderboard upload and screenshot-backed scan issue reports.
 - Build expansion shows move breakdown, substat upgrade tiers, and leaderboard standings across all weapon × track boards.
-- Leaderboard backend is Go in its own AGENTS.md file. 
+- Leaderboard API is the Go service documented in [`../lb/AGENTS.md`](../lb/AGENTS.md).
 
 ---
 
@@ -56,7 +56,7 @@ EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
 ### API Integration
 
 - **Leaderboard**: client code calls the generic Next `/api/lb/*` proxy, which forwards any LB child path to the Go LB with `X-Internal-Key`.
-- **OCR**: `/api/ocr` proxies to `https://ocr.wuwabuilds.moe/api/ocr` with `X-OCR-Region`, plus `X-Internal-Key` and forwarded client IP when configured.
+- **OCR**: `/api/ocr` proxies to `API_URL` (production typically points at `https://ocr.wuwabuilds.moe`) with `X-OCR-Region`, plus `X-Internal-Key` and forwarded client IP when configured.
 - **Build submission**: `POST /build` is wired — `/import` sends canonical `buildState` when the `Upload to Leaderboard` toggle is enabled.
 - **OCR issue reporting**: `/import` can submit screenshot-linked JSON reports to R2 via `POST /api/report-ocr-issue` for manual review.
 
@@ -82,16 +82,20 @@ npm run start
 npm run lint
 ```
 
+Runs ESLint and `tsc --noEmit`. There is no `npm test` script in this package yet.
+
 ---
 
 ## Environment Variables
 
+Use `.env.example` as a template for local `.env` (not committed).
+
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `LB_URL` | Yes | Server-side Go leaderboard backend URL used by the `/api/lb/*` proxy |
-| `API_URL` | Yes | Server-side OCR proxy URL |
+| `API_URL` | Yes | Server-side OCR backend base URL (dev default in code is `http://localhost:5000`) |
 | `INTERNAL_API_KEY` | Yes | Shared secret used by the `/api/ocr` and `/api/lb/*` proxies |
-| `NEXT_PUBLIC_GA_TRACKING_ID` | No | Google Analytics tracking ID |
+| `NEXT_PUBLIC_GA_TRACKING_ID` | No | Optional; production may use a fixed GA id in `app/layout.tsx` instead |
 | `NEXT_PUBLIC_POSTHOG_KEY` | No | PostHog analytics key |
 | `CLOUDFLARE_ACCOUNT_ID` | No | R2 config for import screenshot storage and OCR issue reports |
 | `R2_ACCESS_KEY_ID` | No | R2 credentials |
@@ -120,6 +124,8 @@ wuwabuilds/
 ├── app/                     # Next.js App Router entrypoints and layouts
 │   ├── page.tsx             # Home (/)
 │   ├── layout.tsx           # Root layout (Navigation + RootProviders)
+│   ├── tos/                 # Terms of service
+│   ├── privacy/             # Privacy policy
 │   ├── (game)/              # Route group for pages that need game-data providers
 │   │   ├── layout.tsx       # Shared GameDataProvider/ToastProvider boundary
 │   │   ├── builds/          # Build browser (/builds)

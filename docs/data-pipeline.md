@@ -37,7 +37,7 @@ Required:
 - `INTERNAL_API_KEY`
 
 Optional:
-- `NEXT_PUBLIC_GA_TRACKING_ID`
+- `NEXT_PUBLIC_GA_TRACKING_ID` (production may use a fixed GA id in `app/layout.tsx` instead)
 - `NEXT_PUBLIC_POSTHOG_KEY`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `R2_ACCESS_KEY_ID`

@@ -2,7 +2,7 @@
 
 Next.js App Router build editor and damage leaderboard at [wuwa.build](https://wuwa.build).
 
-**Stack**: Next.js 16 · React 19 · TypeScript 5 · Tailwind v4 · Framer Motion
+**Stack**: Next.js 16 · React 19 · TypeScript 5 · Tailwind v4 · Motion (`motion` on npm)
 
 For leaderboard service details see **[lb/AGENTS.md](../lb/AGENTS.md)**.
 
@@ -26,7 +26,7 @@ When behavior changes, update the corresponding file in `docs/`.
 
 | If you want to…                               | Go to                                                     |
 | --------------------------------------------- | --------------------------------------------------------- |
-| Add or edit a page route                      | `app/(game)/`                                             |
+| Add or edit a game tool route                 | `app/(game)/` (also `app/tos`, `app/privacy` at repo root) |
 | Understand provider hierarchy                 | `app/layout.tsx`, `app/(game)/layout.tsx`                 |
 | Edit the build editor                         | `components/edit/`, `contexts/BuildContext.tsx`           |
 | Edit the global board (/builds)               | `components/leaderboards/board/`                          |
@@ -53,6 +53,10 @@ When behavior changes, update the corresponding file in `docs/`.
 | `/builds`                      | `app/(game)/builds/page.tsx`                       | `components/leaderboards/board/*`              |
 | `/leaderboards`                | `app/(game)/leaderboards/page.tsx`                 | `components/leaderboards/overview/*`           |
 | `/leaderboards/[characterId]`  | `app/(game)/leaderboards/[characterId]/page.tsx`   | `components/leaderboards/character/*`          |
+| `/characters/[id]`             | `app/(game)/characters/[id]/page.tsx`              | `components/edit/*`, `components/card/*`     |
+| `/weapons/[id]`                | `app/(game)/weapons/[id]/page.tsx`                 | same as character-seeded editor                |
+| `/tos`                         | `app/tos/page.tsx`                                 | `components/legal/*`                           |
+| `/privacy`                     | `app/privacy/page.tsx`                             | `components/legal/*`                           |
 
 `app/(game)` is a route group — does not affect public URLs. Opts game-data pages into a shared `GameDataProvider + ToastProvider` boundary.
 
@@ -68,7 +72,7 @@ ToolProviders (app/(game)/layout.tsx)
 └── GameDataProvider       ← 9 JSON files, client-cached after first load
     └── ToastProvider
 
-EditorProviders (nested on /edit)
+EditorProviders (nested on /edit, /characters/[id], /weapons/[id])
 └── BuildProvider          ← active build via useReducer + localStorage debounce
     └── StatsProvider      ← derived stats/CV (pure, recalcs on build/data change)
 ```
@@ -77,8 +81,8 @@ EditorProviders (nested on /edit)
 
 ## LB Integration
 
-- **SSR prefetch** (`lib/lbServer.ts`): server-only, fetches directly from `LB_URL` with `X-Internal-Key`, bypasses `/api/lb` proxy. `PREFETCH_TTL_S = 120`. Three exports: `prefetchBuilds()`, `prefetchLeaderboardOverview()`, `prefetchLeaderboard(characterId, query?)`. Page server components pass `initialData` to clients.
-- **Silent revalidation**: diff-based ref signatures (`buildListSigRef`, etc.) skip `setState` when revalidation data is unchanged.
+- **SSR / ISR prefetch** (`lib/lbServer.ts`): server-only; calls LB with `LB_URL` + `X-Internal-Key` and `next: { revalidate: 120 }` (`PREFETCH_TTL_S`). Exports: `prefetchBuilds()`, `prefetchLeaderboardOverview()`, `prefetchLeaderboard(characterId, query?)`. **`/`** prefetches overview + builds for homepage stats (`app/page.tsx` sets `revalidate = 120`). **`/leaderboards/[characterId]`** passes prefetched data into the client as `initialData`. **`/builds`** and **`/leaderboards`** list pages load via `/api/lb/*` on the client (no server-supplied `initialData` there).
+- **Silent revalidation** (leaderboard clients): diff-based ref signatures (`buildListSigRef`, etc.) skip `setState` when revalidation data is unchanged.
 - **Client cache** (`globalBoardCache.ts`): localStorage LRU for `/builds` list responses (2-min TTL, 30 entries max). Filtered/paginated queries always go through `/api/lb/*` with `no-store`.
 - **Leaderboard**: one row per (character × track). Each entry has `trackKey`, `trackLabel`, `totalEntries`, `weapons[]`, `teamCharacterIds[]`. Row key: `` `${entry.id}:${entry.trackKey}` ``.
 - **weaponId**: canonical CDN ID — selects which `damage_map` key to read, does **not** filter eligible builds.
@@ -104,11 +108,13 @@ Outputs: `public/Data/*.json`, `backend/Data/`, `lb/internal/calc/data/*.json`. 
 
 ## Environment Variables
 
+Copy `.env.example` to `.env` for local development (never commit secrets).
+
 ```
 LB_URL=...                     # server-only, used by /api/lb/* proxy
-API_URL=...                    # server-only, used by /api/ocr proxy
+API_URL=...                    # server-only, used by /api/ocr proxy (defaults to localhost in dev)
 INTERNAL_API_KEY=...           # shared secret for LB + OCR proxies
-NEXT_PUBLIC_GA_TRACKING_ID=... # optional
+NEXT_PUBLIC_GA_TRACKING_ID=... # optional (prod layout may use a fixed GA id via @next/third-parties)
 NEXT_PUBLIC_POSTHOG_KEY=...    # optional
 CLOUDFLARE_ACCOUNT_ID=...      # optional, R2 screenshot/report storage
 R2_ACCESS_KEY_ID=...
@@ -121,6 +127,7 @@ R2_BUCKET_NAME=...
 ## Useful Misc Information
 
 - `lbServer.ts` is **server-only** — never import from client components. Fetches directly from `LB_URL` to avoid a server-to-self network round-trip through the API proxy.
+- Production GA: `app/layout.tsx` uses `@next/third-parties/google` with a fixed measurement id; `NEXT_PUBLIC_GA_TRACKING_ID` is optional and may be unused depending on deploy.
 - `BuildSimulationSection` (moves + substat upgrades) requires `weaponId`, `track`, and `damage` from the parent leaderboard row — it only renders on character leaderboard pages, not the global `/builds` board.
 - Echo cost constraint: max total 12, max two 4-cost, max three 3-cost. Violations trigger purge in the LB import pipeline.
 - `ForteState` is a 5-tuple: `[[level, topNode, middleNode], ...]`, column order: normal-attack(0), skill(1), circuit(2), liberation(3), intro(4).
@@ -130,7 +137,7 @@ R2_BUCKET_NAME=...
 
 ## Domain Migration (wuwabuilds.moe → wuwa.build)
 
-Implemented in code, dormant until `wuwa.build` is wired in Vercel. `next.config.ts` redirects `www.wuwabuilds.moe/*` → `wuwa.build/*` except `/saves` (`permanent: false`). `SavesPageClient.tsx` shows a hostname-conditional migration banner. Activate by adding `wuwa.build` to the Vercel project.
+Implemented in code, dormant until `wuwa.build` is wired in Vercel. `next.config.ts` redirects `www.wuwabuilds.moe/*` → `https://wuwa.build/*` with `permanent: true`, excluding `/saves` via the path matcher. `SavesPageClient.tsx` shows a hostname-conditional migration banner. Activate by adding `wuwa.build` to the Vercel project.
 
 ---
 

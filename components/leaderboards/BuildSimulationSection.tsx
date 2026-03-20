@@ -373,7 +373,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const viewInEditorButtonClassName = actionButtonClassName.replace('justify-between', 'justify-center');
 
   return (
-    <div className="space-y-3 font-plus-jakarta">
+    <div className="space-y-3 font-plus-jakarta max-w-333">
       {onViewInEditor && (
         <div className="mx-auto w-48">
           <button type="button" onClick={onViewInEditor} className={viewInEditorButtonClassName}>

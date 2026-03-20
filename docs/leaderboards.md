@@ -11,10 +11,11 @@ This doc explains how leaderboard data is fetched, cached, and rendered in `wuwa
 
 ## Fetch Model
 
-- Server components prefetch initial leaderboard data using `lbServer.ts`.
-- Prefetch calls backend directly via `LB_URL` and `X-Internal-Key`.
-- Client revalidation runs after mount.
-- UI updates are skipped when signature checks show no effective data change.
+- **`/`** — server component prefetches overview + global build stats via `lbServer.ts` (ISR on the page).
+- **`/leaderboards/[characterId]`** — server prefetches the first board payload via `lbServer.ts` and passes it as `initialData`.
+- **`/builds`** and **`/leaderboards`** — list data is fetched on the client through `/api/lb/*` (no server `initialData` on those routes).
+- Prefetch always calls LB directly with `LB_URL` and `X-Internal-Key` (never through the Next proxy).
+- Where revalidation exists, client fetches after mount; signature checks can skip `setState` when nothing effectively changed.
 
 ## Important Invariants
 

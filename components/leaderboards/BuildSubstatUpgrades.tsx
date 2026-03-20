@@ -144,94 +144,100 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
       )}
 
       {!isLoading && !error && hasUpgradeData && hasBaseDamage && orderedUpgradeColumns.length > 0 && (
-        <table className="mx-auto border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border/55 text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
-              <th className="min-w-30 bg-background-secondary/48 py-2 pr-4 pl-3 text-left">Substat</th>
-              <th className="min-w-30 py-2 px-3 text-center text-accent">Original</th>
-              {orderedUpgradeColumns.map((column) => (
-                <th key={`upgrade-column-${column.key}`} className="min-w-30 py-2 px-3 text-center">
-                  <div className="flex items-end justify-center gap-1">
-                    {column.icon ? (
-                      <img src={column.icon} alt="" className="h-3.5 w-3.5 shrink-0 object-contain" />
-                    ) : (
-                      <span className="h-3.5 w-3.5 shrink-0 rounded bg-white/12" />
-                    )}
-                    <span className="leading-none">{column.label}</span>
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
+        <div className="min-w-0 w-full">
+          <div className="scrollbar-thin overflow-x-auto pb-1">
+            <div className="w-max min-w-full">
+              <table className="mx-auto border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-border/55 text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
+                    <th className="min-w-30 bg-background-secondary/48 py-2 pr-4 pl-3 text-left">Substat</th>
+                    <th className="min-w-30 py-2 px-3 text-center text-accent">Original</th>
+                    {orderedUpgradeColumns.map((column) => (
+                      <th key={`upgrade-column-${column.key}`} className="min-w-30 py-2 px-3 text-center">
+                        <div className="flex items-end justify-center gap-1">
+                          {column.icon ? (
+                            <img src={column.icon} alt="" className="h-3.5 w-3.5 shrink-0 object-contain" />
+                          ) : (
+                            <span className="h-3.5 w-3.5 shrink-0 rounded bg-white/12" />
+                          )}
+                          <span className="leading-none">{column.label}</span>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
 
-          <tbody className="divide-y divide-border/45">
-            <tr>
-              <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected result</th>
-              <td className="px-3 py-2.5 text-center font-semibold text-white/92">
-                {formatDamage(baseDamage ?? 0)}
-              </td>
-              {orderedUpgradeColumns.map((column) => (
-                <td key={`upgrade-result-${column.key}`} className="px-3 py-2.5 text-center">
-                  <div className="font-semibold text-white/92">{formatDamage(column.result)}</div>
-                </td>
-              ))}
-            </tr>
+                <tbody className="divide-y divide-border/45">
+                  <tr>
+                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected result</th>
+                    <td className="px-3 py-2.5 text-center font-semibold text-white/92">
+                      {formatDamage(baseDamage ?? 0)}
+                    </td>
+                    {orderedUpgradeColumns.map((column) => (
+                      <td key={`upgrade-result-${column.key}`} className="px-3 py-2.5 text-center">
+                        <div className="font-semibold text-white/92">{formatDamage(column.result)}</div>
+                      </td>
+                    ))}
+                  </tr>
 
-            <tr>
-              <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Gain over base</th>
-              <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
-              {orderedUpgradeColumns.map((column) => (
-                <td key={`upgrade-gain-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
-                  +{formatDamage(column.gain)}
-                </td>
-              ))}
-            </tr>
+                  <tr>
+                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Gain over base</th>
+                    <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
+                    {orderedUpgradeColumns.map((column) => (
+                      <td key={`upgrade-gain-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
+                        +{formatDamage(column.gain)}
+                      </td>
+                    ))}
+                  </tr>
 
-            <tr>
-              <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">% gain over base</th>
-              <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
-              {orderedUpgradeColumns.map((column) => (
-                <td key={`upgrade-percent-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
-                  {formatSignedPercent(column.percentGain)}
-                </td>
-              ))}
-            </tr>
+                  <tr>
+                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">% gain over base</th>
+                    <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
+                    {orderedUpgradeColumns.map((column) => (
+                      <td key={`upgrade-percent-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
+                        {formatSignedPercent(column.percentGain)}
+                      </td>
+                    ))}
+                  </tr>
 
-            <tr>
-              <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected rank</th>
-              <td className="px-3 py-2.5 text-center font-semibold text-white/72">
-                {(globalRank ?? 0) > 0 ? `${globalRank!.toLocaleString()}` : '—'}
-              </td>
-              {orderedUpgradeColumns.map((column) => {
-                const color = getRankDeltaColor(column.rankDelta, maxRankDelta);
-                return (
-                  <td key={`upgrade-rank-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color }}>
-                    {column.projectedRank > 0 ? (
-                      <>
-                        <span>{column.projectedRank.toLocaleString()}</span>
-                        {column.rankDelta !== 0 && (
-                          <span className="ml-1 text-xs opacity-70">
-                            ({column.rankDelta > 0 ? '+' : ''}{column.rankDelta.toLocaleString()})
-                          </span>
-                        )}
-                      </>
-                    ) : '—'}
-                  </td>
-                );
-              })}
-            </tr>
+                  <tr>
+                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected rank</th>
+                    <td className="px-3 py-2.5 text-center font-semibold text-white/72">
+                      {(globalRank ?? 0) > 0 ? `${globalRank!.toLocaleString()}` : '—'}
+                    </td>
+                    {orderedUpgradeColumns.map((column) => {
+                      const color = getRankDeltaColor(column.rankDelta, maxRankDelta);
+                      return (
+                        <td key={`upgrade-rank-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color }}>
+                          {column.projectedRank > 0 ? (
+                            <>
+                              <span>{column.projectedRank.toLocaleString()}</span>
+                              {column.rankDelta !== 0 && (
+                                <span className="ml-1 text-xs opacity-70">
+                                  ({column.rankDelta > 0 ? '+' : ''}{column.rankDelta.toLocaleString()})
+                                </span>
+                              )}
+                            </>
+                          ) : '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
 
-            <tr>
-              <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Added roll</th>
-              <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
-              {orderedUpgradeColumns.map((column) => (
-                <td key={`upgrade-roll-${column.key}`} className="px-3 py-2.5 text-center text-text-primary/78">
-                  {formatSignedUpgradeValue(column.rollValue, column.isPercent)}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
+                  <tr>
+                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Added roll</th>
+                    <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
+                    {orderedUpgradeColumns.map((column) => (
+                      <td key={`upgrade-roll-${column.key}`} className="px-3 py-2.5 text-center text-text-primary/78">
+                        {formatSignedUpgradeValue(column.rollValue, column.isPercent)}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );
