@@ -783,6 +783,7 @@ def _extract_moves_lb(char: dict) -> list[dict]:
         desc_en = desc_field.get("en", "") if isinstance(desc_field, dict) else str(desc_field)
         desc_en = _MARKUP_RE.sub("", desc_en).strip()
         desc_params = [str(v) for v in (move.get("descriptionParams") or [])]
+        damage_types = _extract_move_damage_types(desc_en)
 
         values = []
         for v in move.get("values") or []:
@@ -804,6 +805,7 @@ def _extract_moves_lb(char: dict) -> list[dict]:
             "name": name_en,
             "description": desc_en,
             "description_params": desc_params,
+            "damage_types": damage_types,
             "max_level": move.get("maxLevel") or 0,
             "values": values,
         })
@@ -899,6 +901,44 @@ _MOVE_TYPE_TO_CODE = {
     "echo skill": "echo",
     "aero erosion": "erosion",
 }
+
+_CONSIDERED_DMG_RE = re.compile(
+    r"considered(?:\s+as)?\s+([A-Za-z][A-Za-z\s-]*?)"
+    r"\s+DMG",
+    re.I,
+)
+
+
+def _normalize_damage_type_label(label: str) -> str:
+    label = re.sub(r"\s+", " ", (label or "").strip().lower())
+    if not label:
+        return ""
+
+    if label in _MOVE_TYPE_TO_CODE:
+        return _MOVE_TYPE_TO_CODE[label]
+
+    # Keep future labels instead of dropping them outright.
+    # Example: "Coordinated Attack" -> "coordinated_attack"
+    return re.sub(r"[^a-z0-9]+", "_", label).strip("_")
+
+
+def _extract_move_damage_types(description: str) -> list[str]:
+    """Extract damage-classification tags from a move description.
+
+    The source move `type` tells us which skill bucket the move belongs to
+    (basic / skill / liberation / intro / forte). Some descriptions then add a
+    separate rule for how the damage should actually be classified, e.g.
+    "This instance of DMG is considered Basic Attack DMG."
+    """
+    if not description:
+        return []
+
+    out: list[str] = []
+    for m in _CONSIDERED_DMG_RE.finditer(description):
+        code = _normalize_damage_type_label(m.group(1))
+        if code and code not in out:
+            out.append(code)
+    return out
 
 
 def _append_amplify_entry(out: list[dict], qualifier: str, value: float) -> None:
