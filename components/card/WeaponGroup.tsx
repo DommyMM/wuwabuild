@@ -84,11 +84,11 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
                 Lv.{weaponLevel}
               </span>
               <span className="inline-flex items-center gap-1 rounded-md border border-white/18 bg-black/45 px-2 py-0.5 text-white/88">
-                {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-4 w-4 object-contain" />}
+                {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-4 w-4 object-contain" loading="lazy" />}
                 {weaponStats.scaledAtk}
               </span>
               <span className="inline-flex items-center gap-1 rounded-md border border-white/18 bg-black/45 px-2 py-0.5 text-white/88">
-                {weaponMainIcon && <img src={weaponMainIcon} alt={translatedMainStatName} className="h-4 w-4 object-contain" />}
+                {weaponMainIcon && <img src={weaponMainIcon} alt={translatedMainStatName} className="h-4 w-4 object-contain" loading="lazy" />}
                 {weaponStats.scaledMainStat}%
               </span>
             </div>
@@ -110,6 +110,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
             src={weapon.iconUrl}
             alt={translatedWeaponName || weapon.name}
             className="h-full w-full object-contain"
+            loading="lazy"
           />
           {weaponPassiveHoverMatch && (
             <div className="pointer-events-none absolute inset-0 rounded-xl border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.22),0_0_14px_rgba(110,255,255,0.45)]" />
@@ -126,7 +127,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
             onMouseEnter={weaponAtkHoverKey ? () => onHoverStatChange?.(weaponAtkHoverKey) : undefined}
             onMouseLeave={weaponAtkHoverKey ? () => onHoverStatChange?.(null) : undefined}
           >
-            {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-5 w-5 object-contain" />}
+            {weaponAtkIcon && <img src={weaponAtkIcon} alt="ATK" className="h-5 w-5 object-contain" loading="lazy" />}
             <span className="text-lg font-semibold text-white/88">{weaponStats.scaledAtk}</span>
           </div>
           <div
@@ -134,7 +135,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
             onMouseEnter={weaponMainHoverKey ? () => onHoverStatChange?.(weaponMainHoverKey) : undefined}
             onMouseLeave={weaponMainHoverKey ? () => onHoverStatChange?.(null) : undefined}
           >
-            {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-5 w-5 object-contain" />}
+            {weaponMainIcon && <img src={weaponMainIcon} alt={weapon.main_stat} className="h-5 w-5 object-contain" loading="lazy" />}
             <span className="text-lg font-semibold text-white/88">{weaponStats.scaledMainStat}%</span>
           </div>
         </div>

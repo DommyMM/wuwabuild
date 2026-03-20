@@ -386,8 +386,9 @@ def _extract_buffs(text: str) -> list[dict]:
             used.append(span)
 
     # Pass C - move-specific amplification, including Frazzle.
+    # Matches verb form: "Amplif[y/ies] [the] [Element] Frazzle DMG [intervening text] by X%"
     frazzle_amp_m = re.search(
-        r"\bAmplif(?:y|ies)\s+Spectro\s+Frazzle\s+DMG(?:\s+dealt)?\s+by\s+(\d+(?:\.\d+)?)\s*%",
+        r"\bAmplif(?:y|ies)\s+(?:the\s+)?(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\b[^.]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
         text,
         re.I,
     )
@@ -398,6 +399,21 @@ def _extract_buffs(text: str) -> list[dict]:
                 "stat": "DMG Amplification",
                 "move_type": "frazzle",
                 "value": float(frazzle_amp_m.group(1)),
+            })
+            used.append(span)
+    # Noun form: "X% [Element] Frazzle DMG Amplification" (e.g. "100% Spectro Frazzle DMG Amplification")
+    noun_frazzle_m = re.search(
+        r"(\d+(?:\.\d+)?)\s*%\s+(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\s+Amplification\b",
+        text,
+        re.I,
+    )
+    if noun_frazzle_m:
+        span = noun_frazzle_m.span()
+        if not _overlaps(*span):
+            buffs.append({
+                "stat": "DMG Amplification",
+                "move_type": "frazzle",
+                "value": float(noun_frazzle_m.group(1)),
             })
             used.append(span)
 
@@ -972,11 +988,17 @@ _AMPLIFY_NOUN_RE = re.compile(
     r"\s+DMG\s+Amplification",
     re.I,
 )
-# Frazzle amplify: "[Element ]Frazzle DMG [of...] by X%" (allows intervening text up to 80 chars).
+# Frazzle amplify verb form: "[Element ]Frazzle DMG [of...] by X%" (allows intervening text up to 80 chars).
 # Handles weapon outro passives like "Casting Outro Skill Amplifies the Spectro Frazzle DMG of all
 # Resonators on the team by 30%" where qualifiers and audience phrases sit between DMG and "by".
 _AMPLIFY_FRAZZLE_RE = re.compile(
     r"(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\b[^.]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
+    re.I,
+)
+# Frazzle amplify noun form: "X% [Element] Frazzle DMG Amplification"
+# e.g. "granting 100% Spectro Frazzle DMG Amplification" (Phoebe Attentive Heart).
+_AMPLIFY_FRAZZLE_NOUN_RE = re.compile(
+    r"(\d+(?:\.\d+)?)\s*%\s+(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\s+Amplification\b",
     re.I,
 )
 
@@ -1062,13 +1084,19 @@ def _extract_amplify_buffs(text: str) -> list[dict]:
             entry = {"type": "amplify", "move_type": "frazzle", "value": float(fraz_m.group(1))}
             if entry not in out:
                 out.append(entry)
+        for noun_m in _AMPLIFY_FRAZZLE_NOUN_RE.finditer(text):
+            entry = {"type": "amplify", "move_type": "frazzle", "value": float(noun_m.group(1))}
+            if entry not in out:
+                out.append(entry)
 
     return out
 
 
 _RES_PEN_RE = re.compile(
-    r"(?:reduce|reduces|reducing)\s+(?:their|the target'?s?|targets'?|enemy'?s?)?\s*"
-    r"(Glacio|Fusion|Electro|Aero|Havoc|Spectro)\s+RES\s+by\s+(\d+(?:\.\d+)?)\s*%",
+    r"(?:reduce|reduces|reducing)\s+"
+    r"(?:(?:their|the\s+target'?s?|targets'?|enemy'?s?|the)\s+)?"
+    r"(Glacio|Fusion|Electro|Aero|Havoc|Spectro)\s+RES\b"
+    r"[^.]{0,60}\bby\s+(\d+(?:\.\d+)?)\s*%",
     re.I,
 )
 _AERO_EROSION_AMP_RE = re.compile(
@@ -1115,6 +1143,13 @@ def _stat_to_party_buffs(stat: str, value: float) -> list[dict]:
 
 
 def _extract_team_debuff_buffs(text: str) -> list[dict]:
+    """Extract team-facing debuffs and unconditional amplify effects from any text.
+
+    These are always party-facing by definition regardless of scope phrases:
+    - Elemental RES reduction on enemies (benefits any team member dealing that element)
+    - Frazzle DMG Amplification granted to/applied for the active resonator
+    - Aero Erosion DMG amplify
+    """
     out: list[dict] = []
     for m in _RES_PEN_RE.finditer(text):
         _append_unique_party_buff(out, {
@@ -1128,6 +1163,22 @@ def _extract_team_debuff_buffs(text: str) -> list[dict]:
             "move_type": "erosion",
             "value": float(m.group(1)),
         })
+    # Frazzle DMG Amplification (verb form: "Amplifies [the] Frazzle DMG ... by X%")
+    lower = text.lower()
+    if "frazzle" in lower:
+        for m in _AMPLIFY_FRAZZLE_RE.finditer(text):
+            _append_unique_party_buff(out, {
+                "type": "amplify",
+                "move_type": "frazzle",
+                "value": float(m.group(1)),
+            })
+        # Noun form: "X% [Element] Frazzle DMG Amplification"
+        for m in _AMPLIFY_FRAZZLE_NOUN_RE.finditer(text):
+            _append_unique_party_buff(out, {
+                "type": "amplify",
+                "move_type": "frazzle",
+                "value": float(m.group(1)),
+            })
     return out
 
 

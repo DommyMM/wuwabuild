@@ -181,6 +181,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
           className="h-full min-h-full w-auto max-w-none object-contain"
           style={imageStyle}
           draggable={false}
+          fetchPriority="high"
         />
       </div>
 

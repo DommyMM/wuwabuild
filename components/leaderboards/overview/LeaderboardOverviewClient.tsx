@@ -176,6 +176,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                         src={character.head}
                                         alt={characterName}
                                         className="h-12 w-12 object-cover object-top"
+                                        loading="lazy"
                                       />
                                     ) : (
                                       <div className="h-12 w-12 shrink-0 rounded-2xl bg-border/30" />
@@ -201,6 +202,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                       alt={characterName}
                                       title={characterName}
                                       className="h-11 w-11 object-cover object-top"
+                                      loading="lazy"
                                     />
                                   ) : (
                                     <div className="h-11 w-11 bg-border/30" />
@@ -214,6 +216,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                         alt={teamChar.name}
                                         title={teamChar.name}
                                         className="h-11 w-11 object-cover object-top"
+                                        loading="lazy"
                                       />
                                     ) : (
                                       <div key={teamId} className="h-11 w-11 bg-border/25" />
@@ -259,6 +262,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                             src={getWeaponPaths(weapon)}
                                             alt={weaponName}
                                             className="relative h-10 w-10 shrink-0 object-contain"
+                                            loading="lazy"
                                           />
                                         ) : (
                                           <div className="h-10 w-10 shrink-0 rounded bg-border/30" />

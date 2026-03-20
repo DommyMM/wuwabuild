@@ -229,6 +229,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                           src={fetter?.icon ?? ''}
                           alt=""
                           className="h-5 w-5 object-contain"
+                          loading="lazy"
                         />
                       </button>
                     );
@@ -245,6 +246,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                 src={getEchoPaths(echo, panelState.phantom)}
                 alt={echo ? (echo.nameI18n ? t(echo.nameI18n) : echo.name) : 'Select Echo'}
                 className="h-24 w-24 object-cover"
+                loading="lazy"
               />
             </button>
           </div>

@@ -150,7 +150,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         {/* Character */}
         <div className="flex items-center gap-2 py-2">
           {character?.head ? (
-            <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" />
+            <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" loading="lazy" />
           ) : (
             <div className="h-9 w-9 bg-border" />
           )}
@@ -165,7 +165,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
             computedActiveSets.map((setEntry) => (
               <div key={setEntry.setId} className="flex items-end gap-0.5">
                 {setEntry.icon ? (
-                  <img src={setEntry.icon} alt="" title={setEntry.name} className="h-7 w-7" />
+                  <img src={setEntry.icon} alt="" title={setEntry.name} className="h-7 w-7" loading="lazy" />
                 ) : (
                   <div className="h-8 w-8" />
                 )}
@@ -213,6 +213,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
                       alt=""
                       className="w-5 h-5 shrink-0 object-contain"
                       style={iconFilter ? { filter: iconFilter } : undefined}
+                      loading="lazy"
                     />
                   ) : (
                     <span className="inline-block h-5 w-5 shrink-0 rounded bg-border" />
