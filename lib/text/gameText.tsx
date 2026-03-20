@@ -2,7 +2,7 @@ import React, { ReactNode } from 'react';
 import { CDNFetter } from '@/lib/echo';
 
 const PLACEHOLDER_PATTERN = /\{(\d+)\}/g;
-const MARKUP_TAG_PATTERN = /<\/?(?:color|size|te)\b[^>]*>|<br\s*\/?>/giu;
+const MARKUP_TAG_PATTERN = /<\/?[a-zA-Z][^>]*>|<br\s*\/?>/giu;
 const OPEN_COLOR_PATTERN = /^<color=([^>]+)>$/iu;
 const CLOSE_COLOR_PATTERN = /^<\/color>$/iu;
 const OPEN_SIZE_PATTERN = /^<size=([^>]+)>$/iu;
@@ -257,7 +257,9 @@ export const renderGameTemplateWithHighlights = ({
 }: RenderGameTemplateWithHighlightsArgs): ReactNode => {
   if (!template) return null;
 
-  const segments = parseGameMarkupSegments(template.replace(/\r\n/gu, '\n'));
+  const segments = parseGameMarkupSegments(
+    template.replace(/\r\n/gu, '\n').replace(/\{(?!\d+\})[^{}]+\}/gu, ''),
+  );
   if (segments.length === 0) return null;
 
   return (

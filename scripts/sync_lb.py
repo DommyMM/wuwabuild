@@ -924,6 +924,13 @@ _AMPLIFY_NOUN_RE = re.compile(
     r"\s+DMG\s+Amplification",
     re.I,
 )
+# Frazzle amplify: "[Element ]Frazzle DMG [of...] by X%" (allows intervening text up to 80 chars).
+# Handles weapon outro passives like "Casting Outro Skill Amplifies the Spectro Frazzle DMG of all
+# Resonators on the team by 30%" where qualifiers and audience phrases sit between DMG and "by".
+_AMPLIFY_FRAZZLE_RE = re.compile(
+    r"(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\b[^.]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
+    re.I,
+)
 
 _ELEMENT_TO_CODE = {
     "glacio": "Glacio", "fusion": "Fusion", "electro": "Electro",
@@ -1001,6 +1008,12 @@ def _extract_amplify_buffs(text: str) -> list[dict]:
             _append_amplify_entry(out, amp_m.group(1), float(amp_m.group(2)))
         for amp_m in _AMPLIFY_NOUN_RE.finditer(text):
             _append_amplify_entry(out, amp_m.group(2), float(amp_m.group(1)))
+
+    if "frazzle" in lower:
+        for fraz_m in _AMPLIFY_FRAZZLE_RE.finditer(text):
+            entry = {"type": "amplify", "move_type": "frazzle", "value": float(fraz_m.group(1))}
+            if entry not in out:
+                out.append(entry)
 
     return out
 
@@ -1125,6 +1138,10 @@ def _parse_support_text_buffs(text: str) -> list[dict]:
     out = _parse_party_scoped_buffs(text)
     for entry in _extract_team_debuff_buffs(text):
         _append_unique_party_buff(out, entry)
+    # Weapon outro Frazzle amplify: enemy-scoped ("on targets around active Resonator")
+    # but team-facing — any Frazzle DMG by any team member benefits, like RES shred.
+    for fraz_m in _AMPLIFY_FRAZZLE_RE.finditer(text):
+        _append_unique_party_buff(out, {"type": "amplify", "move_type": "frazzle", "value": float(fraz_m.group(1))})
     return out
 
 
@@ -1281,6 +1298,7 @@ def _parse_weapon_party_buffs_by_rank(weapon: dict) -> list[list[dict]]:
     effect_en = (weapon.get("effect") or {}).get("en", "")
     for rank in range(1, 6):
         resolved = _resolve_effect_placeholders(effect_en, [], _params_for_rank(weapon, rank))
+        resolved = _MARKUP_RE.sub("", resolved).strip()
         buffs = _parse_support_text_buffs(resolved)
         out.append(buffs)
     return out
