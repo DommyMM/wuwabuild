@@ -199,12 +199,6 @@ export function ImportPageClient() {
       const result = await submitBuild(importedState);
       const actionLabel = result.action === 'created' ? 'created' : 'updated';
 
-      if (result.warnings.length > 0) {
-        warning(`Leaderboard entry ${actionLabel}. ${result.warnings[0]}`);
-        captureSubmitResult('warning', 'api_warning', result.damageComputed);
-        return;
-      }
-
       success(`Leaderboard entry ${actionLabel}.`);
       captureSubmitResult(result.action === 'created' ? 'created' : 'updated', 'success', result.damageComputed);
       if (!result.damageComputed) {

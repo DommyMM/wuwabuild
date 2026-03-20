@@ -963,6 +963,19 @@ _RE_ECHO_DMG_BOOST = re.compile(
     r"damage\s+(?:dealt\s+)?(?:will\s+be\s+)?(?:boosted|increased)\s+by\s+(\d+(?:\.\d+)?)\s*%",
     re.I,
 )
+# Echo/support "increase the DMG Bonus ... by X%" (e.g. Hyvatia: "increase the DMG Bonus of the
+# next Resonator to come on stage by X%"). Distinct from _RE_ECHO_DMG_BOOST which requires "damage".
+_RE_ECHO_DMG_BONUS_BOOST = re.compile(
+    r"increase[sd]?\s+(?:the\s+)?DMG\s+Bonus\b[^.]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
+    re.I,
+)
+# Party-scoped generic "increases/increased DMG dealt by X%" (e.g. Lynae Liberation 24%, Spectrum Blaster 8%×3).
+# Groups: (1) = value when "increases the DMG dealt ... by X%"; (2) = value when "DMG dealt ... is increased by X%".
+_RE_PARTY_DMG_INCREASE = re.compile(
+    r"(?:increase[sd]?\s+the\s+DMG\s+dealt\b[^.]{0,100}\bby\s+(\d+(?:\.\d+)?)\s*%"
+    r"|DMG\s+dealt\b[^.]{0,100}\bis\s+increased\s+by\s+(\d+(?:\.\d+)?)\s*%)",
+    re.I,
+)
 
 # ATK% with optional intermediate word "bonus" (e.g. Fallacy: "10% bonus ATK for 20s").
 _RE_ECHO_BONUS_ATK = re.compile(r"(\d+(?:\.\d+)?)\s*%\s+(?:bonus\s+)?ATK\b", re.I)
@@ -983,9 +996,9 @@ _AMPLIFY_BY_RE = re.compile(
 )
 _AMPLIFY_NOUN_RE = re.compile(
     r"(\d+(?:\.\d+)?)\s*%\s+"
-    r"(Glacio|Fusion|Electro|Aero|Havoc|Spectro"
-    r"|Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation)"
-    r"\s+DMG\s+Amplification",
+    r"(All|Glacio|Fusion|Electro|Aero|Havoc|Spectro"
+    r"|Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation)?"
+    r"\s*DMG\s+Amplification",
     re.I,
 )
 # Frazzle amplify verb form: "[Element ]Frazzle DMG [of...] by X%" (allows intervening text up to 80 chars).
@@ -1230,6 +1243,14 @@ def _parse_party_scoped_buffs(text: str) -> list[dict]:
         for entry in _extract_amplify_buffs(sentence):
             _append_unique_party_buff(out, entry)
 
+        # Generic "increases/increased DMG dealt by X%" (e.g. Spectrum Blaster, Lynae Liberation).
+        for m in _RE_PARTY_DMG_INCREASE.finditer(sentence):
+            val = float(m.group(1) if m.group(1) is not None else m.group(2))
+            stack_m = re.search(r"up\s+to\s+(\d+)\s+stacks?", sentence, re.I)
+            if stack_m:
+                val *= int(stack_m.group(1))
+            _append_unique_party_buff(out, {"type": "elementalDMG", "value": val})
+
     return out
 
 
@@ -1268,18 +1289,19 @@ def _parse_echo_party_buffs(effect_en: str) -> list[dict]:
         for m in _RE_ECHO_BONUS_ATK.finditer(sentence):
             party_buffs.append({"type": "atkPercentage", "value": float(m.group(1))})
 
-        # Other named stats (Crit Rate, Crit DMG, etc.) via shared extractor.
+        # Named stats via shared extractor (Crit Rate, Crit DMG, All Attribute DMG, etc.).
         for b in _extract_buffs(sentence):
-            stat = b["stat"]
-            val = b["value"]
-            if stat == "Crit Rate":
-                party_buffs.append({"type": "critRate", "value": val})
-            elif stat == "Crit DMG":
-                party_buffs.append({"type": "critDMG", "value": val})
+            for entry in _stat_to_party_buffs(b["stat"], b["value"]):
+                if entry not in party_buffs:
+                    party_buffs.append(entry)
 
         # Generic damage boost ("damage dealt will be boosted by X%").
         for m in _RE_ECHO_DMG_BOOST.finditer(sentence):
             party_buffs.append({"type": "moveTypeDMG", "value": float(m.group(1))})
+
+        # "increase the DMG Bonus ... by X%" (e.g. Hyvatia next-resonator buff).
+        for m in _RE_ECHO_DMG_BONUS_BOOST.finditer(sentence):
+            party_buffs.append({"type": "elementalDMG", "value": float(m.group(1))})
 
         # Amplify patterns.
         for entry in _extract_amplify_buffs(sentence):
@@ -1378,6 +1400,14 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
                     if b["stat"] in ("Aero DMG", "Glacio DMG", "Fusion DMG", "Electro DMG", "Havoc DMG", "Spectro DMG", "All Attribute DMG"):
                         for entry in _stat_to_party_buffs(b["stat"], b["value"]):
                             _append_unique_party_buff(party_buffs, entry)
+
+            # Generic "increases/increased DMG dealt by X%" (e.g. Lynae Liberation +24%).
+            for m in _RE_PARTY_DMG_INCREASE.finditer(resolved):
+                val = float(m.group(1) if m.group(1) is not None else m.group(2))
+                stack_m = re.search(r"up\s+to\s+(\d+)\s+stacks?", resolved, re.I)
+                if stack_m:
+                    val *= int(stack_m.group(1))
+                _append_unique_party_buff(party_buffs, {"type": "elementalDMG", "value": val})
 
         for entry in _extract_team_debuff_buffs(resolved):
             _append_unique_party_buff(party_buffs, entry)
@@ -1753,7 +1783,9 @@ def _build_echo_bases(
             "effect_en": effect_en,
             "params": effect_params,
             "bonuses": bonuses,
-            "party_buffs": _parse_echo_party_buffs(effect_en),
+            "party_buffs": _parse_echo_party_buffs(
+                _resolve_effect_placeholders(effect_en, [], effect_params[0] if effect_params else [])
+            ),
         }
 
     out = {k: out[k] for k in sorted(out, key=lambda x: int(x))}
