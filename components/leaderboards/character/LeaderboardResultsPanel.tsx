@@ -40,6 +40,7 @@ interface LeaderboardResultsPanelProps {
   onPageChange: (page: number) => void;
   onToggleExpand: (id: string) => void;
   onRetryDetail: (id: string) => void;
+  autoExpandRowRef?: React.Ref<HTMLDivElement>;
 }
 
 export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = ({
@@ -67,6 +68,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   onPageChange,
   onToggleExpand,
   onRetryDetail,
+  autoExpandRowRef,
 }) => {
   const { statIcons } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
@@ -289,6 +291,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         detailError={detailErrorById[entry.id]}
                         onToggleExpand={onToggleExpand}
                         onRetryDetail={onRetryDetail}
+                        rowRef={entry.id === deepLinkBuildId ? autoExpandRowRef : undefined}
                       />
                     ))}
                     {showRefreshingOverlay && (

@@ -101,6 +101,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const autoExpandRowRef = useRef<HTMLDivElement | null>(null);
   const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
   const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
   const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
@@ -377,8 +378,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       handleToggleExpand(id);
       setAutoExpandBuildId(null);
       setTimeout(() => {
-        const el = document.querySelector(`[data-build-id="${id}"]`);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        autoExpandRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 200);
     });
   }, [autoExpandBuildId, entries, expandedIds, handleToggleExpand]);
@@ -581,6 +581,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
                 onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
                 onPageChange={setPage}
+                autoExpandRowRef={autoExpandRowRef}
                 onToggleExpand={handleToggleExpand}
                 onRetryDetail={handleRetryDetail}
               />

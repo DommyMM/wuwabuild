@@ -28,6 +28,7 @@ interface LeaderboardRowProps {
   detailError: string | null | undefined;
   onToggleExpand: (id: string) => void;
   onRetryDetail: (id: string) => void;
+  rowRef?: React.Ref<HTMLDivElement>;
 }
 
 export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
@@ -45,6 +46,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   detailError,
   onToggleExpand,
   onRetryDetail,
+  rowRef,
 }) => {
   const { fetters, getCharacter, getEcho, statIcons } = useGameData();
   const { t } = useLanguage();
@@ -115,7 +117,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
     : `Character ${entry.character.id}`;
 
   return (
-    <div data-build-id={entry.id}>
+    <div ref={rowRef}>
       <div
         role="button"
         tabIndex={0}
