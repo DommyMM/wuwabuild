@@ -637,6 +637,12 @@ def _derive_go_weapon_effects(
         stacking = "accumulate" if (max_stacks > 0 and per_stack) else ""
         duration = eff.get("duration")
 
+        # Use only the first recognised trigger key for each effect entry.
+        # "X or Y" triggers (e.g. "Intro Skill or Resonance Liberation") should
+        # not produce two identical entries — the buff fires once and cannot stack
+        # with itself ("Effects of the same name cannot be stacked").
+        move_key = move_keys[0]
+
         for buff in eff.get("buffs", []):
             stat = buff.get("stat", "")
             value = buff.get("value", 0.0)
@@ -648,26 +654,25 @@ def _derive_go_weapon_effects(
             if buff_move_type:
                 move_type = buff_move_type
 
-            for move_key in move_keys:
-                entry: dict = {
-                    "type":        go_type,
-                    "triggerMove": move_key,
-                    "value":       value,
-                }
-                if element:
-                    entry["element"] = element
-                if move_type:
-                    entry["moveType"] = move_type
-                # Duration handling: None and non-Passive → emit -1 (full rotation)
-                if duration is not None:
-                    entry["duration"] = duration
-                elif move_key != "Passive":
-                    entry["duration"] = -1
-                if max_stacks > 0:
-                    entry["maxStacks"] = max_stacks
-                if stacking:
-                    entry["stacking"] = stacking
-                out.append(entry)
+            entry: dict = {
+                "type":        go_type,
+                "triggerMove": move_key,
+                "value":       value,
+            }
+            if element:
+                entry["element"] = element
+            if move_type:
+                entry["moveType"] = move_type
+            # Duration handling: None and non-Passive → emit -1 (full rotation)
+            if duration is not None:
+                entry["duration"] = duration
+            elif move_key != "Passive":
+                entry["duration"] = -1
+            if max_stacks > 0:
+                entry["maxStacks"] = max_stacks
+            if stacking:
+                entry["stacking"] = stacking
+            out.append(entry)
     return out
 
 
