@@ -359,6 +359,39 @@ def _extract_buffs(text: str) -> list[dict]:
     def _overlaps(s: int, e: int) -> bool:
         return any(a < e and b > s for a, b in used)
 
+    # Pass B2 - "MOVETYPE DMG ignores X% [of] DEF [and Y% Element RES on targets]".
+    # Must run before Pass A so it claims the DEF/RES spans before the generic value+stat pass.
+    # Handles scoped DEF/RES penetration, e.g. "Resonance Liberation DMG ignores 32% DEF
+    # and 10% Fusion RES on targets for 8s".
+    _MOVE_TYPE_TO_CODE = {
+        "basic attack":         "basic_attack",
+        "heavy attack":         "heavy_attack",
+        "resonance skill":      "resonance_skill",
+        "resonance liberation": "resonance_liberation",
+        "echo skill":           "echo",
+    }
+    move_def_res_m = re.search(
+        r"\b(Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation|Echo Skill)"
+        r"\s+DMG\s+ignores?\s+(\d+(?:\.\d+)?)\s*%\s+"
+        r"(?:of\s+(?:the\s+)?(?:target'?s?\s+)?)?"
+        r"DEF"
+        r"(?:\s+and\s+(\d+(?:\.\d+)?)\s*%\s+(Havoc|Spectro|Glacio|Fusion|Electro|Aero)\s+RES)?",
+        text, re.I,
+    )
+    if move_def_res_m:
+        mt_key = _MOVE_TYPE_TO_CODE.get(move_def_res_m.group(1).lower(), "")
+        span = move_def_res_m.span()
+        if mt_key and not _overlaps(*span):
+            buffs.append({"stat": "DEF Ignore", "move_type": mt_key, "value": float(move_def_res_m.group(2))})
+            used.append(span)
+            if move_def_res_m.group(3) and move_def_res_m.group(4):
+                buffs.append({
+                    "stat": "RES Ignore",
+                    "element": move_def_res_m.group(4).capitalize(),
+                    "move_type": mt_key,
+                    "value": -float(move_def_res_m.group(3)),
+                })
+
     # Pass A – "X% StatName" (value precedes stat)
     for pct_m in _RE_PCT.finditer(text):
         val = float(pct_m.group(1))
@@ -541,6 +574,7 @@ def _split_compound_and(sentence: str) -> list[str]:
 # Canonical trigger-move keys (matching weapon_effects.go TriggerMove values)
 _TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
     (r"tune\s+break",                              "Passive"),
+    (r"tune\s+rupture",                            "Passive"),
     (r"while\s+the\s+wielder\s+is\s+on\s+the\s+field", "Passive"),
     (r"(?:targets?|enemies?)\s+with\s+spectro\s+frazzle", "Passive"),
     (r"negative\s+statuses",                       "Passive"),
@@ -562,6 +596,7 @@ _STAT_TO_GO_EFFECT: dict[str, tuple[str, str, str]] = {
     "Crit Rate":                        ("critRate",      "", ""),
     "Crit DMG":                         ("critDMG",       "", ""),
     "DEF Ignore":                       ("defIgnore",     "", ""),
+    "RES Ignore":                       ("resPen",        "", ""),  # element supplied by buff dict
     "DMG Amplification":                ("amplify",       "", ""),
     "All Attribute DMG":                ("elementalDMG",  "", ""),
     "Basic DMG Bonus":                  ("moveTypeDMG",   "", ""),            # generic (all move types)
@@ -653,6 +688,9 @@ def _derive_go_weapon_effects(
             buff_move_type = str(buff.get("move_type", "") or "").strip()
             if buff_move_type:
                 move_type = buff_move_type
+            buff_element = str(buff.get("element", "") or "").strip()
+            if buff_element:
+                element = buff_element
 
             entry: dict = {
                 "type":        go_type,
