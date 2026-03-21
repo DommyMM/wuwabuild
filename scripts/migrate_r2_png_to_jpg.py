@@ -22,10 +22,11 @@ from dotenv import load_dotenv
 from PIL import Image
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPTS_DIR.parent
-LOCAL_DIR = ROOT_DIR / "r2-backup"
+FRONTEND_DIR = SCRIPTS_DIR.parent        # wuwabuilds/
+REPO_ROOT = FRONTEND_DIR.parent          # Wuwabuilds/ (sibling of wuwabuilds, backend, lb)
+LOCAL_DIR = REPO_ROOT / "r2-backup"
 
-load_dotenv(ROOT_DIR / ".env")
+load_dotenv(FRONTEND_DIR / ".env")
 
 BUCKET = os.environ["R2_BUCKET_NAME"]
 ACCOUNT_ID = os.environ["CLOUDFLARE_ACCOUNT_ID"]
@@ -71,6 +72,18 @@ def list_all_keys(s3) -> list[str]:
         if not continuation_token:
             break
     return keys
+
+
+def download_object(key: str) -> dict:
+    """Download-only mode: save raw bytes as-is, always overwrite."""
+    local_path = LOCAL_DIR / key
+    local_path.parent.mkdir(parents=True, exist_ok=True)
+
+    s3 = get_s3_client()
+    data = s3.get_object(Bucket=BUCKET, Key=key)["Body"].read()
+    local_path.write_bytes(data)
+
+    return {"key": key, "kb": len(data) / 1024}
 
 
 def process_object(key: str, dry_run: bool) -> dict:
@@ -127,6 +140,27 @@ def process_object(key: str, dry_run: bool) -> dict:
         "original_kb": original_kb,
         "final_kb": final_kb,
     }
+
+
+def download_all():
+    """Download every R2 object as-is to LOCAL_DIR, always overwriting."""
+    LOCAL_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"Saving all files to: {LOCAL_DIR}")
+    print(f"Workers: {WORKERS}\n=== DOWNLOAD ONLY ===\n")
+
+    s3 = get_s3_client()
+    keys = list_all_keys(s3)
+    print(f"Found {len(keys)} objects in '{BUCKET}'\n")
+
+    total_kb = 0.0
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        futures = {pool.submit(download_object, key): key for key in keys}
+        for i, future in enumerate(as_completed(futures), 1):
+            result = future.result()
+            total_kb += result["kb"]
+            print(f"  [{i}/{len(keys)}] {result['key']} ({result['kb']:.0f} KB)")
+
+    print(f"\nDone! {len(keys)} files, {total_kb / 1024:.1f} MB → {LOCAL_DIR}")
 
 
 def migrate(dry_run: bool):
@@ -192,5 +226,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dry-run", action="store_true", help="Download + convert locally only"
     )
+    parser.add_argument(
+        "--download-only", action="store_true", help="Download raw files as-is, always overwrite"
+    )
     args = parser.parse_args()
-    migrate(args.dry_run)
+    if args.download_only:
+        download_all()
+    else:
+        migrate(args.dry_run)
