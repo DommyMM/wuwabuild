@@ -15,7 +15,12 @@ export const LeaderboardOverviewHeader: React.FC<LeaderboardOverviewHeaderProps>
     <p className="text-center text-xs text-text-primary/65 md:text-sm">
       Characters and weapons are all standardized to the same conditions, only your echoes change between builds <br />
       Switch weapons and playstyles to see how each setup stacks up across the same board. <br />
-      All levels and forte are maxed, and weapons are R1 for 5 stars, R5 for 4 stars
+      All levels and forte are maxed, and weapons are R1 for 5 stars, R5 for 4 stars <br />
+      If you have any suggestions, message{' '}
+      <span className="font-plus-jakarta text-xs font-semibold lowercase tracking-[0.06em] text-accent">
+        @dommymm
+      </span>{' '}
+      on Discord.
     </p>
   </div>
 );

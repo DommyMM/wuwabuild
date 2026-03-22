@@ -1048,7 +1048,7 @@ _AMPLIFY_NOUN_RE = re.compile(
 # Handles weapon outro passives like "Casting Outro Skill Amplifies the Spectro Frazzle DMG of all
 # Resonators on the team by 30%" where qualifiers and audience phrases sit between DMG and "by".
 _AMPLIFY_FRAZZLE_RE = re.compile(
-    r"(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\b[^.]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
+    r"(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\b[^.)]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
     re.I,
 )
 # Frazzle amplify noun form: "X% [Element] Frazzle DMG Amplification"
@@ -1223,6 +1223,13 @@ def _extract_team_debuff_buffs(text: str) -> list[dict]:
     lower = text.lower()
     if "frazzle" in lower:
         for m in _AMPLIFY_FRAZZLE_RE.finditer(text):
+            # Skip self-targeted Frazzle amps: "Frazzle DMG dealt by [CharName]" without
+            # a team-scope indicator means it only benefits the character themselves.
+            ctx = text[max(0, m.start() - 120):m.end()].lower()
+            if "dealt by" in ctx and not any(p in ctx for p in (
+                "other resonator", "resonators in the team", "all resonators", "incoming resonator",
+            )):
+                continue
             _append_unique_party_buff(out, {
                 "type": "amplify",
                 "move_type": "frazzle",
