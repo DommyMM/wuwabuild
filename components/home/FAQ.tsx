@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Plus, Minus } from 'lucide-react';
+import { DiscordHandle } from '@/components/ui/DiscordHandle';
 
-const FAQS = [
+const FAQS: { q: string; a: React.ReactNode }[] = [
     {
         q: 'Is this affiliated with Kuro Games?',
-        a: 'No. Independent fan tool. All game content and assets belong to Kuro Games.',
+        a: 'No, independent fan tool. All game content and assets belong to Kuro Games.',
     },
     {
         q: 'Can I edit my build after submitting?',
@@ -15,21 +16,21 @@ const FAQS = [
     },
     {
         q: "What's the difference between Builds and Leaderboards?",
-        a: '/builds is a searchable archive of all submitted builds — filter by character, echo sets, CV, stats, whatever. /leaderboards ranks the highest damage outputs per character, weapon, and sequence level.',
+        a: 'Builds is an archive of all builds without damage, while Leaderboards standardize to specific weapons and conditions with calculated damage.',
     },
     {
         q: 'What is CV?',
         a: 'Crit Value: (Crit Rate × 2) + Crit DMG. Standard way to measure how well your crit stats rolled.',
     },
     {
-        q: 'Is it free? Do I need an account?',
-        a: 'Free, no account. Upload and go.',
+        q: 'What screenshot format does Import accept?',
+        a: 'Exactly and only the 1920x1080 wuwa-bot output, screenshots or crops will ruin results and accuracy',
     },
     {
-        q: 'What screenshot format does OCR accept?',
-        a: '1920×1080 — either the in-game character screen or a wuwa-bot output. Other resolutions will not parse correctly.',
+        q: 'When is <character> getting added to Leaderboards?',
+        a: <>Whenever I feel like it. Hit up <DiscordHandle label="message me" /> on Discord to request a character or share the details.</>,
     },
-] as const;
+];
 
 export function FAQ() {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -74,7 +75,7 @@ export function FAQ() {
                                     >
                                         <div className="px-5 pb-4">
                                             <div className="border border-dashed border-border rounded-lg p-4">
-                                                <p className="text-sm text-text-primary/55 leading-relaxed">{faq.a}</p>
+                                                <div className="text-sm text-text-primary/55 leading-relaxed">{faq.a}</div>
                                             </div>
                                         </div>
                                     </motion.div>

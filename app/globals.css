@@ -18,6 +18,7 @@
   --color-rover: #7892A1;
   --color-rarity-4: #E400F0;
   --color-rarity-5: #CFB17F;
+  --color-cv: #ff00ff;
   --font-ropa: var(--font-ropa-next), sans-serif;
   --font-gowun: var(--font-gowun-next), sans-serif;
   --font-plus-jakarta: var(--font-plus-jakarta-next), sans-serif;
@@ -43,55 +44,18 @@ body {
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
   background-color: var(--color-background-secondary);
-  width: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 100px;
+  background: rgba(191, 173, 125, 0.6);
+  border-radius: 9999px;
 }
 
-.scrollbar-thin {
-  --scrollbar-width: 6px;
-  --scrollbar-height: 6px;
-  --scrollbar-thumb: rgba(191, 173, 125, 0.6);
-  --scrollbar-track: transparent;
+* {
   scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-}
-.scrollbar-thin::-webkit-scrollbar {
-  width: var(--scrollbar-width);
-  height: var(--scrollbar-height);
-  background: var(--scrollbar-track);
-}
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-}
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  border-radius: 9999px;
-  background: var(--scrollbar-thumb);
-}
-
-/* Backward-compatible alias */
-.scroll-thin {
-  --scrollbar-width: 6px;
-  --scrollbar-height: 6px;
-  --scrollbar-thumb: rgba(191, 173, 125, 0.6);
-  --scrollbar-track: transparent;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-}
-.scroll-thin::-webkit-scrollbar {
-  width: var(--scrollbar-width);
-  height: var(--scrollbar-height);
-  background: var(--scrollbar-track);
-}
-.scroll-thin::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-}
-.scroll-thin::-webkit-scrollbar-thumb {
-  border-radius: 9999px;
-  background: var(--scrollbar-thumb);
+  scrollbar-color: rgba(191, 173, 125, 0.6) transparent;
 }
 
 .char-sig {
@@ -339,12 +303,12 @@ body {
 .cv-glow {
   font-weight: 600;
   letter-spacing: 1px;
-  background: linear-gradient(90deg, 
-    rgb(255, 0, 255) 0%, 
-    rgb(255, 120, 255) 25%, 
-    rgb(255, 200, 255) 50%, 
-    rgb(255, 120, 255) 75%, 
-    rgb(255, 0, 255) 100%
+  background: linear-gradient(90deg,
+    var(--color-cv) 0%,
+    rgb(255, 120, 255) 25%,
+    rgb(255, 200, 255) 50%,
+    rgb(255, 120, 255) 75%,
+    var(--color-cv) 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -361,6 +325,6 @@ body {
   }
   .cv-glow {
     animation: none;
-    background: rgb(255, 0, 255);
+    background: var(--color-cv);
   }
 }

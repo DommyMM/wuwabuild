@@ -78,7 +78,6 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
   }, []);
 
   const showSkeleton = fetchState.isLoading;
-  const hasScoreBoards = overview.some((entry) => isHealTrackKey(entry.trackKey));
 
   return (
     <main className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
@@ -86,7 +85,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
         <section className="relative overflow-visible rounded-xl border border-border bg-background-secondary px-4 py-2">
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
           <div className="relative">
-            <LeaderboardOverviewHeader hasScoreBoards={hasScoreBoards} />
+            <LeaderboardOverviewHeader />
 
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
               {fetchState.error && (
