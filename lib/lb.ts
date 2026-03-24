@@ -944,6 +944,89 @@ export async function getBuildStandings(
   return result;
 }
 
+// Board optimality types
+
+export interface LBOptimalityReference {
+  tier: string;
+  damage: number;
+  layout: string;
+  setPattern: string[];
+  mainStats: string[];
+  substats: string[];
+  echoIds: string[];
+  topLevelStats: Record<string, number>;
+}
+
+export interface LBBoardOptimality {
+  characterId: string;
+  weaponId: string;
+  sequence: string;
+  configVersion: string;
+  ceilingDamage: number;
+  standardizedDamage: number;
+  lowRollDamage: number;
+  currentDamage?: number;
+  currentVsCeiling?: number;
+  currentVsStandardized?: number;
+  ceiling: LBOptimalityReference;
+  standardized: LBOptimalityReference;
+  lowRoll: LBOptimalityReference;
+  generatedAt: string;
+}
+
+function parseOptimalityReference(raw: unknown): LBOptimalityReference {
+  if (!isRecord(raw)) {
+    return { tier: '', damage: 0, layout: '', setPattern: [], mainStats: [], substats: [], echoIds: [], topLevelStats: {} };
+  }
+  return {
+    tier: typeof raw.tier === 'string' ? raw.tier : '',
+    damage: toFiniteNumber(raw.damage),
+    layout: typeof raw.layout === 'string' ? raw.layout : '',
+    setPattern: Array.isArray(raw.setPattern) ? raw.setPattern.filter((v): v is string => typeof v === 'string') : [],
+    mainStats: Array.isArray(raw.mainStats) ? raw.mainStats.filter((v): v is string => typeof v === 'string') : [],
+    substats: Array.isArray(raw.substats) ? raw.substats.filter((v): v is string => typeof v === 'string') : [],
+    echoIds: Array.isArray(raw.echoIds) ? raw.echoIds.filter((v): v is string => typeof v === 'string') : [],
+    topLevelStats: isRecord(raw.topLevelStats) ? Object.fromEntries(
+      Object.entries(raw.topLevelStats).map(([k, v]) => [k, toFiniteNumber(v)])
+    ) : {},
+  };
+}
+
+export async function getBoardOptimality(
+  characterId: string,
+  weaponId: string,
+  sequence: string,
+  buildId?: string,
+  signal?: AbortSignal,
+): Promise<LBBoardOptimality | null> {
+  let url = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}/optimality/${encodeURIComponent(weaponId)}/${encodeURIComponent(sequence)}`;
+  if (buildId) {
+    url += `?buildId=${encodeURIComponent(buildId)}`;
+  }
+  const response = await fetch(url, { method: 'GET', signal });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`Failed to fetch board optimality (${response.status})`);
+  }
+  const raw = await response.json() as Record<string, unknown>;
+  return {
+    characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
+    weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
+    sequence: typeof raw.sequence === 'string' ? raw.sequence : '',
+    configVersion: typeof raw.configVersion === 'string' ? raw.configVersion : '',
+    ceilingDamage: toFiniteNumber(raw.ceilingDamage),
+    standardizedDamage: toFiniteNumber(raw.standardizedDamage),
+    lowRollDamage: toFiniteNumber(raw.lowRollDamage),
+    currentDamage: typeof raw.currentDamage === 'number' ? raw.currentDamage : undefined,
+    currentVsCeiling: typeof raw.currentVsCeiling === 'number' ? raw.currentVsCeiling : undefined,
+    currentVsStandardized: typeof raw.currentVsStandardized === 'number' ? raw.currentVsStandardized : undefined,
+    ceiling: parseOptimalityReference(raw.ceiling),
+    standardized: parseOptimalityReference(raw.standardized),
+    lowRoll: parseOptimalityReference(raw.lowRoll),
+    generatedAt: typeof raw.generatedAt === 'string' ? raw.generatedAt : '',
+  };
+}
+
 function parseSubmitBuildResult(raw: unknown): LBSubmitBuildResult {
   if (!isRecord(raw)) {
     throw new Error('LB submit response is malformed.');

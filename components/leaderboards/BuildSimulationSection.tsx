@@ -9,6 +9,7 @@ import { getBuildMoves, getBuildSubstatUpgrades, getBuildStandings, LBMoveEntry,
 import { BuildMoveBreakdown } from './BuildMoveBreakdown';
 import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
 import { BuildStandingsTable } from './BuildStandingsTable';
+import { BuildOptimalityPanel } from './BuildOptimalityPanel';
 
 const UPGRADE_STAT_LABELS: Record<string, string> = {
   hp: 'HP',
@@ -160,6 +161,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const [loadingUpgradeKeys, setLoadingUpgradeKeys] = useState<Record<string, boolean>>({});
   const [isMovesOpen, setIsMovesOpen] = useState(false);
   const [isUpgradesOpen, setIsUpgradesOpen] = useState(false);
+  const [isOptimalityOpen, setIsOptimalityOpen] = useState(false);
   const [selectedUpgradeTier, setSelectedUpgradeTier] = useState<UpgradeTierKey>('median');
   const [standings, setStandings] = useState<LBStandingEntry[] | null>(null);
   const [standingsLoading, setStandingsLoading] = useState(false);
@@ -461,6 +463,33 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
             activeTrackKey={activeTrackKey}
           />
         </section>
+      )}
+
+      {hasBoardContext && (
+        <>
+          <div className="mx-auto w-48">
+            <button
+              type="button"
+              aria-expanded={isOptimalityOpen}
+              onClick={() => setIsOptimalityOpen((prev) => !prev)}
+              className={actionButtonClassName}
+              title={`${weaponName} • ${trackLabel}`}
+            >
+              <span>{isOptimalityOpen ? 'Hide' : 'Show'} board reference</span>
+              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isOptimalityOpen ? 'rotate-180 text-accent' : ''}`} />
+            </button>
+          </div>
+
+          {isOptimalityOpen && (
+            <BuildOptimalityPanel
+              characterId={characterId}
+              weaponId={activeWeaponId}
+              trackKey={activeTrackKey}
+              buildId={buildId}
+              baseDamage={baseDamage}
+            />
+          )}
+        </>
       )}
     </div>
   );
