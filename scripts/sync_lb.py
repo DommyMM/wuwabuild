@@ -808,14 +808,14 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
 
         results.append(entry)
 
-    # Post-pass: attach global_stacks to the first triggered clause that has no
+    # Post-pass: attach global_stacks to the last triggered clause that has no
     # inline stacks yet.  This handles patterns like:
-    #   "Stat +X% after Trigger.  This effect stacks up to N times."
-    # Forward iteration is correct when the meta-sentence appears between two
-    # distinct effects (e.g. Red Spring) — the stacking belongs to the effect
-    # mentioned just before the meta-sentence, i.e. the first eligible entry.
+    #   "Stat +X% after TriggerA.  Stat +Y% after TriggerB.  This effect stacks up to N times."
+    # Reverse iteration is correct when the meta-sentence appears at the end of the
+    # description — the stacking belongs to the most recently defined triggered entry
+    # (e.g. Frosty Resolve where "stacks up to 2 times" refers to the RS DMG effect).
     if global_stacks > 0:
-        for entry in results:
+        for entry in reversed(results):
             if "max_stacks" not in entry and entry.get("trigger"):
                 entry["max_stacks"] = global_stacks
                 entry["per_stack"] = True
