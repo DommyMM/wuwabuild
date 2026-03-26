@@ -18,6 +18,7 @@ interface HoverTooltipProps {
   offset?: number;
   disabled?: boolean;
   tooltipClassName?: string;
+  triggerClassName?: string;
   maxRisePx?: number;
   pinViewportBottom?: boolean;
 }
@@ -85,6 +86,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   offset = 10,
   disabled = false,
   tooltipClassName = '',
+  triggerClassName = '',
   maxRisePx,
   pinViewportBottom = false,
 }) => {
@@ -247,7 +249,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
     <>
       <div
         ref={triggerRef}
-        className="inline-flex"
+        className={`inline-flex ${triggerClassName}`}
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
       >

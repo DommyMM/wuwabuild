@@ -4,6 +4,7 @@ import React, { useCallback } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
+import { HoverTooltip } from '@/components/ui/HoverTooltip';
 
 function fmtLayout(layout: string): string {
   return layout.split('').join('-');
@@ -22,20 +23,27 @@ interface TierRowProps {
   ratio?: number;
 }
 
-const TIER_STYLES: Record<string, { bar: string; text: string }> = {
-  ceiling: { bar: 'bg-amber-400/75', text: 'text-amber-300/90' },
-  standardized: { bar: 'bg-text-primary/40', text: 'text-text-primary/65' },
-  low_roll: { bar: 'bg-white/15', text: 'text-text-primary/35' },
+const TIER_STYLES: Record<string, { track: string; fill: string; text: string }> = {
+  ceiling: { track: 'bg-amber-400/30', fill: 'bg-white/60', text: 'text-amber-300/90' },
+  standardized: { track: 'bg-white/18', fill: 'bg-white/55', text: 'text-text-primary/65' },
+  low_roll: { track: 'bg-white/8', fill: 'bg-white/40', text: 'text-text-primary/35' },
+};
+
+const TIER_TOOLTIPS: Record<string, string> = {
+  ceiling: 'Theoretical best-case build: max substat rolls across all echoes.',
+  standardized: 'Best echo set and main stats with median substat rolls — a realistic top-end build.',
+  low_roll: 'Same optimal setup but with minimum substat rolls — worst expected outcome.',
 };
 
 const TierRow: React.FC<TierRowProps> = ({ label, ref_, currentDamage, ratio }) => {
   const style = TIER_STYLES[ref_.tier] ?? TIER_STYLES.standardized;
+  const tooltip = TIER_TOOLTIPS[ref_.tier] ?? '';
   const fillPct = currentDamage && ref_.damage > 0
     ? Math.min(100, (currentDamage / ref_.damage) * 100)
     : 0;
 
   const ratioColor =
-    ratio === undefined ? ''
+    ratio === undefined ? 'text-text-primary/30'
       : ratio >= 1 ? 'text-emerald-400'
         : ratio >= 0.95 ? 'text-accent'
           : ratio >= 0.90 ? 'text-amber-200/70'
@@ -43,21 +51,24 @@ const TierRow: React.FC<TierRowProps> = ({ label, ref_, currentDamage, ratio }) 
 
   return (
     <div className="flex items-center gap-3">
-      <span className={`w-18 shrink-0 text-[10.5px] font-semibold uppercase tracking-wider ${style.text}`}>
-        {label}
-      </span>
-      <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-white/6">
-        <div
-          className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ${style.bar}`}
-          style={{ width: `${fillPct}%` }}
-        />
-        <div className="absolute -inset-y-px right-0 w-[1.5px] rounded-full bg-white/20" />
-      </div>
+      <HoverTooltip content={tooltip} placement="top">
+        <span className={`w-18 shrink-0 cursor-default text-[10.5px] font-semibold uppercase tracking-wider underline decoration-dotted decoration-current/40 underline-offset-2 ${style.text}`}>
+          {label}
+        </span>
+      </HoverTooltip>
+      <HoverTooltip content={tooltip} placement="top" triggerClassName="flex-1">
+        <div className={`relative h-1 w-full overflow-hidden rounded-full ${style.track}`}>
+          <div
+            className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ${style.fill}`}
+            style={{ width: `${fillPct}%` }}
+          />
+        </div>
+      </HoverTooltip>
       <span className={`w-16 shrink-0 text-right font-mono text-[12px] font-semibold tabular-nums ${style.text}`}>
         {fmtDmg(ref_.damage)}
       </span>
       <span className={`w-12 shrink-0 text-right text-[11px] font-semibold tabular-nums ${ratioColor}`}>
-        {ratio !== undefined ? `${(ratio * 100).toFixed(1)}%` : ''}
+        {ratio !== undefined ? `${(ratio * 100).toFixed(1)}%` : '—'}
       </span>
     </div>
   );
@@ -123,6 +134,9 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
   const vsStd = hasCurrent && data.standardizedDamage > 0
     ? currentDamage / data.standardizedDamage
     : data.currentVsStandardized;
+  const vsLowRoll = hasCurrent && data.lowRoll.damage > 0
+    ? currentDamage / data.lowRoll.damage
+    : undefined;
 
   const ref = data.standardized;
   const setLabel = ref.setPattern.map(getFetterName).join(' + ');
@@ -167,6 +181,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
           label="Low Roll"
           ref_={data.lowRoll}
           currentDamage={hasCurrent ? currentDamage : undefined}
+          ratio={vsLowRoll}
         />
       </div>
 
