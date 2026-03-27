@@ -152,12 +152,11 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
         if (!allowedElementKey) return true;
         return key === allowedElementKey;
       })
-      .map(([key, value]) => ({
-        key,
-        label: SORT_OPTIONS.find((o) => o.key === key)?.label ?? key,
-        value,
-        kind: (PERCENT_STAT_KEYS as ReadonlySet<string>).has(key) ? 'percent' as const : 'flat' as const,
-      }));
+      .flatMap(([key, value]) => {
+        const option = SORT_OPTIONS.find((o) => o.key === key);
+        if (!option) return [];
+        return [{ key, label: option.label, value, kind: (PERCENT_STAT_KEYS as ReadonlySet<string>).has(key) ? 'percent' as const : 'flat' as const }];
+      });
   }, [character, selectedRef.topLevelStats]);
 
   const highlightedSubstats = useMemo(
