@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
-import { LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
-import { HoverTooltip } from '@/components/ui/HoverTooltip';
+import { Character, Element } from '@/lib/character';
 import { EchoPanelState, FETTER_MAP } from '@/lib/echo';
+import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
+import { HoverTooltip } from '@/components/ui/HoverTooltip';
 import { formatFlatStat, formatPercentStat } from './formatters';
-import { LeaderboardEchoCard } from './LeaderboardEchoCard';
+import { RegionBadge } from './constants';
+import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
 
 function fmtDmg(v: number): string {
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
@@ -38,15 +41,15 @@ interface TierRowProps {
 }
 
 const TIER_STYLES: Record<string, { track: string; fill: string; text: string }> = {
-  ceiling: { track: 'bg-amber-400/30', fill: 'bg-white/60', text: 'text-amber-300/90' },
-  standardized: { track: 'bg-white/18', fill: 'bg-white/55', text: 'text-text-primary/65' },
-  low_roll: { track: 'bg-white/8', fill: 'bg-white/40', text: 'text-text-primary/35' },
+  ceiling: { track: 'bg-amber-400/30', fill: 'bg-amber-200/90', text: 'text-amber-300/90' },
+  standardized: { track: 'bg-cyan-400/20', fill: 'bg-cyan-200/80', text: 'text-cyan-100/75' },
+  low_roll: { track: 'bg-zinc-400/20', fill: 'bg-zinc-200/75', text: 'text-zinc-200/55' },
 };
 
 const TIER_TOOLTIPS: Record<string, string> = {
-  ceiling: 'Theoretical best-case build: max substat rolls across all echoes.',
-  standardized: 'Best echo set and main stats with median substat rolls — a realistic top-end build.',
-  low_roll: 'Same optimal setup but with minimum rolls on the selected five substats for every echo. Still an optimized board, not a random worst-case build.',
+  ceiling: 'Best build possible with max substat rolls',
+  standardized: 'Best build possible with median substat rolls',
+  low_roll: 'Best build possible with minimum substat rolls',
 };
 
 const TOP_LEVEL_STAT_META: Array<{ key: string; label: string; kind: 'flat' | 'percent' }> = [
@@ -68,6 +71,24 @@ const TOP_LEVEL_STAT_META: Array<{ key: string; label: string; kind: 'flat' | 'p
   { key: 'resonance_skill_dmg', label: 'Resonance Skill DMG Bonus', kind: 'percent' },
   { key: 'resonance_liberation_dmg', label: 'Resonance Liberation DMG Bonus', kind: 'percent' },
 ];
+
+const ELEMENTAL_STAT_KEYS = new Set([
+  'fusion_dmg',
+  'glacio_dmg',
+  'electro_dmg',
+  'aero_dmg',
+  'havoc_dmg',
+  'spectro_dmg',
+]);
+
+const ELEMENT_TO_STAT_KEY: Partial<Record<Element, string>> = {
+  [Element.Fusion]: 'fusion_dmg',
+  [Element.Glacio]: 'glacio_dmg',
+  [Element.Electro]: 'electro_dmg',
+  [Element.Aero]: 'aero_dmg',
+  [Element.Havoc]: 'havoc_dmg',
+  [Element.Spectro]: 'spectro_dmg',
+};
 
 const EMPTY_REFERENCE: LBOptimalityReference = {
   tier: '',
@@ -95,33 +116,31 @@ const TierRow: React.FC<TierRowProps> = ({ label, ref_, currentDamage, ratio, is
             : 'text-text-primary/50';
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-md border px-1.5 py-1 text-left transition-colors ${
-        isActive ? 'border-white/18 bg-white/[0.04]' : 'border-transparent hover:border-white/10 hover:bg-white/[0.02]'
-      }`}
-    >
-      <HoverTooltip content={tooltip} placement="top">
-        <span className={`w-18 shrink-0 cursor-default text-[10.5px] font-semibold uppercase tracking-wider underline decoration-dotted decoration-current/40 underline-offset-2 ${style.text}`}>
+    <HoverTooltip content={tooltip} placement="top" triggerClassName="w-full">
+      <button
+        type="button"
+        onClick={onClick}
+        className={`flex w-full cursor-pointer items-center gap-2 rounded-md border px-1.5 py-1 text-left transition-colors ${
+          isActive ? 'border-white/18 bg-white/4' : 'border-transparent hover:border-white/10 hover:bg-white/2'
+        }`}
+      >
+        <span className={`w-18 shrink-0 text-[10.5px] font-semibold uppercase tracking-wider underline decoration-dotted decoration-current/40 underline-offset-2 ${style.text}`}>
           {label}
         </span>
-      </HoverTooltip>
-      <HoverTooltip content={tooltip} placement="top" triggerClassName="flex-1">
         <div className={`relative h-1 w-full overflow-hidden rounded-full ${style.track}`}>
           <div
             className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ${style.fill}`}
             style={{ width: `${fillPct}%` }}
           />
         </div>
-      </HoverTooltip>
-      <span className={`w-16 shrink-0 text-right font-mono text-[12px] font-semibold tabular-nums ${style.text}`}>
-        {fmtDmg(ref_.damage)}
-      </span>
-      <span className={`w-12 shrink-0 text-right text-[11px] font-semibold tabular-nums ${ratioColor}`}>
-        {ratio !== undefined ? `${(ratio * 100).toFixed(1)}%` : '—'}
-      </span>
-    </button>
+        <span className={`w-16 shrink-0 text-right font-mono text-[12px] font-semibold tabular-nums ${style.text}`}>
+          {fmtDmg(ref_.damage)}
+        </span>
+        <span className={`w-12 shrink-0 text-right text-[11px] font-semibold tabular-nums ${ratioColor}`}>
+          {ratio !== undefined ? `${(ratio * 100).toFixed(1)}%` : '—'}
+        </span>
+      </button>
+    </HoverTooltip>
   );
 };
 
@@ -130,6 +149,10 @@ interface BuildOptimalityPanelProps {
   loading: boolean;
   error: string | null;
   baseDamage?: number;
+  buildDetail: LBBuildDetailEntry;
+  character: Character | null;
+  characterName: string;
+  regionBadge: RegionBadge | null;
 }
 
 export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
@@ -137,8 +160,13 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
   loading,
   error,
   baseDamage,
+  buildDetail,
+  character,
+  characterName,
+  regionBadge,
 }) => {
-  const { fetters, getEcho, getMainStatsByCost, getSubstatValues } = useGameData();
+  const { t } = useLanguage();
+  const { fetters, getEcho, getMainStatsByCost, getSubstatValues, statIcons } = useGameData();
   const [selectedTier, setSelectedTier] = useState<'ceiling' | 'standardized' | 'low_roll'>('standardized');
 
   const selectedRef = useMemo<LBOptimalityReference>(() => {
@@ -147,6 +175,18 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     if (selectedTier === 'low_roll') return data.lowRoll;
     return data.standardized;
   }, [data, selectedTier]);
+
+  const selectedSetIds = useMemo(
+    () => selectedRef.setPattern.map((value) => Number.parseInt(value, 10)).filter((value) => Number.isFinite(value)),
+    [selectedRef.setPattern],
+  );
+  const selectedSetEntries = useMemo(() => (
+    selectedSetIds.map((setId) => ({
+      id: setId,
+      element: FETTER_MAP[setId],
+      fetter: fetters.find((entry) => entry.id === setId) ?? null,
+    }))
+  ), [fetters, selectedSetIds]);
 
   const syntheticPanels = useMemo<EchoPanelState[]>(() => (
     selectedRef.echoIds.map((echoId, idx) => {
@@ -162,11 +202,17 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
       const mainStatTable = getMainStatsByCost(cost);
       const mainStatRange = mainStatType ? mainStatTable[mainStatType] : null;
       const mainStatValue = mainStatRange?.[1] ?? null;
+      const echo = echoId ? getEcho(echoId) : null;
+      const matchedSet = selectedSetEntries.length === 1
+        ? selectedSetEntries[0]
+        : echo
+          ? selectedSetEntries.find((entry) => entry.element && echo.elements.includes(entry.element))
+          : null;
 
       return {
         id: echoId ?? null,
         level: 25,
-        selectedElement: null,
+        selectedElement: matchedSet?.element ?? null,
         phantom: false,
         stats: {
           mainStat: {
@@ -180,29 +226,40 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
         },
       };
     })
-  ), [getMainStatsByCost, getSubstatValues, selectedRef]);
+  ), [getEcho, getMainStatsByCost, getSubstatValues, selectedRef, selectedSetEntries]);
 
-  const topLevelStats = useMemo(() => (
-    TOP_LEVEL_STAT_META
+  const topLevelStats = useMemo(() => {
+    const allowedElementStatKey = character?.element && character.element !== Element.Rover
+      ? ELEMENT_TO_STAT_KEY[character.element]
+      : null;
+
+    return TOP_LEVEL_STAT_META
       .map((meta) => ({ ...meta, value: selectedRef.topLevelStats[meta.key] ?? 0 }))
       .filter((entry) => entry.value > 0)
-  ), [selectedRef.topLevelStats]);
+      .filter((entry) => {
+        if (!ELEMENTAL_STAT_KEYS.has(entry.key)) return true;
+        if (!allowedElementStatKey) return true;
+        return entry.key === allowedElementStatKey;
+      });
+  }, [character, selectedRef.topLevelStats]);
 
-  const selectedSetIds = useMemo(
-    () => selectedRef.setPattern.map((value) => Number.parseInt(value, 10)).filter((value) => Number.isFinite(value)),
-    [selectedRef.setPattern],
-  );
-  const selectedSetEntries = useMemo(() => (
-    selectedSetIds.map((setId) => ({
-      id: setId,
-      element: FETTER_MAP[setId],
-      fetter: fetters.find((entry) => entry.id === setId) ?? null,
-    }))
-  ), [fetters, selectedSetIds]);
   const highlightedSubstats = useMemo(
     () => new Set(selectedRef.substats.filter((value): value is string => Boolean(value))),
     [selectedRef.substats],
   );
+  const syntheticDetail = useMemo<LBBuildDetailEntry>(() => ({
+    ...buildDetail,
+    id: `${buildDetail.id}-optimality-${selectedTier}`,
+    buildState: {
+      ...buildDetail.buildState,
+      characterId: data?.characterId ?? buildDetail.buildState.characterId,
+      weaponId: data?.weaponId ?? buildDetail.buildState.weaponId,
+      characterLevel: data?.characterLevel ?? buildDetail.buildState.characterLevel,
+      weaponLevel: data?.weaponLevel ?? buildDetail.buildState.weaponLevel,
+      forte: data?.forte ?? buildDetail.buildState.forte,
+      echoPanels: syntheticPanels,
+    },
+  }), [buildDetail, data, selectedTier, syntheticPanels]);
 
   if (loading) {
     return (
@@ -264,7 +321,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
         {!hasCurrent && <span className="w-12 shrink-0" />}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1">
         <TierRow
           label="Ceiling"
           ref_={data.ceiling}
@@ -291,61 +348,41 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
         />
       </div>
 
-      {topLevelStats.length > 0 && (
-        <>
-          <div className="h-px bg-border/35" />
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-text-primary/28">
-                Derived Reference Stats
-              </div>
-              <div className="shrink-0 rounded-md border border-border/45 bg-white/[0.03] px-2.5 py-1 text-right">
-                <div className="text-[9.5px] uppercase tracking-[0.18em] text-text-primary/28">Reference DMG</div>
-                <div className="font-mono text-[13px] font-semibold text-text-primary/78">{fmtDmg(selectedRef.damage)}</div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {topLevelStats.map((entry) => (
-                <div
-                  key={`${selectedTier}-tls-${entry.key}`}
-                  className="rounded-full border border-border/45 bg-white/[0.03] px-2.5 py-0.75 text-[10.5px] text-text-primary/60"
-                >
-                  <span className="uppercase tracking-wider text-text-primary/30">{entry.label}</span>
-                  <span className="ml-1.5 font-semibold text-text-primary/82">
-                    {entry.kind === 'percent' ? formatPercentStat(entry.value) : formatFlatStat(entry.value)}
-                  </span>
-                </div>
-              ))}
-            </div>
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap gap-1.5">
+          <div className="rounded-full border border-amber-300/35 bg-amber-300/8 px-2.5 py-0.75 text-[10.5px] text-amber-100/75">
+            <span className="uppercase tracking-wider text-amber-200/55">Reference DMG</span>
+            <span className="ml-1.5 font-mono font-semibold text-amber-100">{fmtDmg(selectedRef.damage)}</span>
           </div>
-        </>
-      )}
 
-      <div className="h-px bg-border/35" />
-      <div className="mx-auto w-full max-w-330 pt-1">
-        <div className="grid grid-cols-5 gap-4 min-w-0">
-        {syntheticPanels.map((panel, panelIndex) => {
-          const echo = panel.id ? getEcho(panel.id) : null;
-          const matchedSet = selectedSetEntries.length === 1
-            ? selectedSetEntries[0]
-            : echo
-              ? selectedSetEntries.find((entry) => entry.element && echo.elements.includes(entry.element))
-              : null;
-          const matchedFetter = matchedSet?.fetter ?? null;
-          const fetterIcon = matchedFetter?.icon ?? matchedFetter?.fetterIcon ?? null;
+          {topLevelStats.map((entry) => (
+            <div
+              key={`${selectedTier}-tls-${entry.key}`}
+              className="rounded-full border border-border/45 bg-white/3 px-2.5 py-0.75 text-[10.5px] text-text-primary/60"
+            >
+              <span className="uppercase tracking-wider text-text-primary/30">{entry.label}</span>
+              <span className="ml-1.5 font-semibold text-text-primary/82">
+                {entry.kind === 'percent' ? formatPercentStat(entry.value) : formatFlatStat(entry.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
 
-          return (
-            <LeaderboardEchoCard
-              key={`${selectedTier}-${panel.id ?? 'empty'}-${panelIndex}`}
-              cardKey={`${selectedTier}-${panel.id ?? 'empty'}-${panelIndex}`}
-              panel={panel}
-              fetterIcon={fetterIcon}
-              iconAlt={matchedFetter ? String(matchedFetter.id) : ''}
-              selectedSubstats={highlightedSubstats}
-            />
-          );
-        })}
+      <div className="font-ropa tracking-wide">
+        <div className="mx-auto w-full max-w-330 space-y-4 px-12 pt-1">
+          <BuildExpandedEchoPanels
+            detail={syntheticDetail}
+            character={character}
+            characterName={characterName}
+            regionBadge={regionBadge}
+            statIcons={statIcons}
+            getEcho={getEcho}
+            translateText={(i18n, fallback) => t(i18n ?? { en: fallback })}
+            activeSelectedSubstats={highlightedSubstats}
+            hasSelectedSubstats={highlightedSubstats.size > 0}
+            showHeader={false}
+          />
         </div>
       </div>
     </div>

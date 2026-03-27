@@ -1,4 +1,4 @@
-import { DEFAULT_FORTE, SavedState } from '@/lib/build';
+import { DEFAULT_FORTE, ForteState, SavedState } from '@/lib/build';
 import { toMainStatApiValue } from '@/lib/mainStatFilters';
 
 const LB_PROXY_BASE = '/api/lb';
@@ -962,6 +962,9 @@ export interface LBBoardOptimality {
   weaponId: string;
   sequence: string;
   configVersion: string;
+  characterLevel: number;
+  weaponLevel: number;
+  forte: ForteState;
   ceilingDamage: number;
   standardizedDamage: number;
   lowRollDamage: number;
@@ -992,6 +995,34 @@ function parseOptimalityReference(raw: unknown): LBOptimalityReference {
   };
 }
 
+function parseOptimalityForte(raw: unknown): ForteState {
+  if (!Array.isArray(raw) || raw.length !== 5) {
+    return DEFAULT_FORTE.map((entry) => [...entry]) as ForteState;
+  }
+
+  const parsed = raw.map((entry, index) => {
+    if (Array.isArray(entry)) {
+      return [
+        toFiniteNumber(entry[0], DEFAULT_FORTE[index][0]),
+        Boolean(entry[1]),
+        Boolean(entry[2]),
+      ] as const;
+    }
+
+    if (isRecord(entry)) {
+      return [
+        toFiniteNumber(entry.Level ?? entry.level, DEFAULT_FORTE[index][0]),
+        Boolean(entry.Top ?? entry.top),
+        Boolean(entry.Middle ?? entry.middle),
+      ] as const;
+    }
+
+    return [...DEFAULT_FORTE[index]] as const;
+  });
+
+  return parsed as ForteState;
+}
+
 export async function getBoardOptimality(
   characterId: string,
   weaponId: string,
@@ -1014,6 +1045,9 @@ export async function getBoardOptimality(
     weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
     sequence: typeof raw.sequence === 'string' ? raw.sequence : '',
     configVersion: typeof raw.configVersion === 'string' ? raw.configVersion : '',
+    characterLevel: toFiniteNumber(raw.characterLevel, 90),
+    weaponLevel: toFiniteNumber(raw.weaponLevel, 90),
+    forte: parseOptimalityForte(raw.forte),
     ceilingDamage: toFiniteNumber(raw.ceilingDamage),
     standardizedDamage: toFiniteNumber(raw.standardizedDamage),
     lowRollDamage: toFiniteNumber(raw.lowRollDamage),

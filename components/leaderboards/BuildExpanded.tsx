@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
-import { FORTE_LABELS } from '@/lib/constants/skillBranches';
 import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
@@ -14,7 +13,7 @@ import { saveDraftBuild } from '@/lib/storage';
 import { RegionBadge } from './constants';
 import { formatFlatStat, formatPercentStat } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
-import { LeaderboardEchoCard } from './LeaderboardEchoCard';
+import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
 import posthog from 'posthog-js';
 
 type SubstatSummaryEntry = {
@@ -149,10 +148,9 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   surface = 'builds',
 }) => {
   const router = useRouter();
-  const { getFetterByElement, getSubstatValues, statTranslations } = useGameData();
+  const { getSubstatValues, statTranslations } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
-  void translateText;
 
   const handleViewBuild = () => {
     if (!detail) return;
@@ -337,71 +335,17 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
 
             {!isDetailLoading && !detailError && detail && (
               <>
-                <div className="flex items-center justify-between gap-4">
-                  {/* Left: Character icon + name + level */}
-                  <div className="flex items-center gap-2">
-                    {character?.head ? (
-                      <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" />
-                    ) : (
-                      <div className="h-9 w-9 rounded bg-border" />
-                    )}
-                    <div className="text-base font-medium text-text-primary">
-                      {characterName} Lv.{detail.buildState.characterLevel}
-                    </div>
-                  </div>
-
-                  {/* Center: Forte labels */}
-                  <div className="flex flex-wrap items-center justify-center gap-1.5">
-                    {FORTE_LABELS.map((label, forteIndex) => {
-                      const entryForte = detail.buildState.forte?.[forteIndex];
-                      const level = Number(entryForte?.[0] ?? 1);
-                      return (
-                        <span
-                          key={`${detail.id}-forte-${label}`}
-                          className="rounded border border-border bg-background-secondary px-2 py-1 text-[11px] font-semibold text-text-primary/85"
-                        >
-                          {label} {level}
-                        </span>
-                      );
-                    })}
-                  </div>
-
-                  {/* Right: Owner info */}
-                  <div className="flex items-center gap-1 text-sm text-text-primary/70">
-                    <span>{detail.owner.username || 'Anonymous'}</span>
-                    <span>-</span>
-                    <span>{detail.owner.uid || '-'}</span>
-                    {regionBadge && (
-                      <>
-                        <span>-</span>
-                        <span className={`rounded px-2 py-0.5 text-xs font-semibold tracking-wide ${regionBadge.className}`}>
-                          {regionBadge.label}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-5 gap-4 min-w-0">
-                  {detail.buildState.echoPanels.map((panel, panelIndex) => {
-                    const echo = panel.id ? getEcho(panel.id) : null;
-                    const elementType = echo ? (echo.elements.length === 1 ? echo.elements[0] : panel.selectedElement) : null;
-                    const fetter = elementType ? getFetterByElement(elementType) : null;
-                    const fetterIcon = fetter?.icon ?? fetter?.fetterIcon ?? null;
-
-                    return (
-                      <LeaderboardEchoCard
-                        key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
-                        cardKey={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
-                        panel={panel}
-                        fetterIcon={fetterIcon}
-                        iconAlt={elementType ?? ''}
-                        selectedSubstats={activeSelectedSubstats}
-                        dimUnselectedSubstats={hasSelectedSubstats}
-                      />
-                    );
-                  })}
-                </div>
+                <BuildExpandedEchoPanels
+                  detail={detail}
+                  character={character}
+                  characterName={characterName}
+                  regionBadge={regionBadge}
+                  statIcons={statIcons}
+                  getEcho={getEcho}
+                  translateText={translateText}
+                  activeSelectedSubstats={activeSelectedSubstats}
+                  hasSelectedSubstats={hasSelectedSubstats}
+                />
 
               </>
             )}
@@ -462,8 +406,11 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
               {detail && (
                 <BuildSimulationSection
                   buildId={detail.id}
+                  buildDetail={detail}
+                  character={character}
                   characterId={detail.buildState.characterId ?? ''}
                   characterName={characterName}
+                  regionBadge={regionBadge}
                   activeWeaponId={activeBoardWeaponId ?? ''}
                   activeTrackKey={activeTrackKey ?? ''}
                   isExpanded={isExpanded}

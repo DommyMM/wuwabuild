@@ -249,7 +249,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
     <>
       <div
         ref={triggerRef}
-        className={`inline-flex ${triggerClassName}`}
+        className={triggerClassName || 'inline-flex'}
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
       >

@@ -5,11 +5,13 @@ import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
-import { getBoardOptimality, getBuildMoves, getBuildStandings, getBuildSubstatUpgrades, LBBoardOptimality, LBMoveEntry, LBStandingEntry, LBSubstatUpgradeTierSet } from '@/lib/lb';
+import { Character } from '@/lib/character';
+import { getBoardOptimality, getBuildMoves, getBuildStandings, getBuildSubstatUpgrades, LBBoardOptimality, LBBuildDetailEntry, LBMoveEntry, LBStandingEntry, LBSubstatUpgradeTierSet } from '@/lib/lb';
 import { BuildMoveBreakdown } from './BuildMoveBreakdown';
 import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
 import { BuildStandingsTable } from './BuildStandingsTable';
 import { BuildOptimalityPanel } from './BuildOptimalityPanel';
+import { RegionBadge } from './constants';
 
 const UPGRADE_STAT_LABELS: Record<string, string> = {
   hp: 'HP',
@@ -126,8 +128,11 @@ function hasCacheKey<T>(record: Record<string, T>, key: string): boolean {
 
 interface BuildSimulationSectionProps {
   buildId: string;
+  buildDetail: LBBuildDetailEntry;
+  character: Character | null;
   characterId: string;
   characterName: string;
+  regionBadge: RegionBadge | null;
   activeWeaponId: string;
   activeTrackKey: string;
   isExpanded: boolean;
@@ -138,8 +143,11 @@ interface BuildSimulationSectionProps {
 
 export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   buildId,
+  buildDetail,
+  character,
   characterId,
   characterName,
+  regionBadge,
   activeWeaponId,
   activeTrackKey,
   isExpanded,
@@ -534,6 +542,10 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               loading={optimalityLoading}
               error={optimalityError}
               baseDamage={baseDamage}
+              buildDetail={buildDetail}
+              character={character}
+              characterName={characterName}
+              regionBadge={regionBadge}
             />
           )}
         </>
