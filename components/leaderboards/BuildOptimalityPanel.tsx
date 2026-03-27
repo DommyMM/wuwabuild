@@ -8,7 +8,7 @@ import { FETTER_MAP } from '@/lib/echo';
 import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
 import { HoverTooltip } from '@/components/ui/HoverTooltip';
 import { formatFlatStat, formatPercentStat } from './formatters';
-import { RegionBadge } from './constants';
+import { RegionBadge, ELEMENT_STAT_KEYS, PERCENT_STAT_KEYS, SORT_OPTIONS } from './constants';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
 
 function fmtDmg(v: number): string {
@@ -39,43 +39,6 @@ const TIER_TOOLTIPS: Record<string, string> = {
   low_roll: 'Best build possible with minimum substat rolls',
 };
 
-const TOP_LEVEL_STAT_META: Array<{ key: string; label: string; kind: 'flat' | 'percent' }> = [
-  { key: 'atk', label: 'ATK', kind: 'flat' },
-  { key: 'hp', label: 'HP', kind: 'flat' },
-  { key: 'def', label: 'DEF', kind: 'flat' },
-  { key: 'crit_rate', label: 'Crit Rate', kind: 'percent' },
-  { key: 'crit_dmg', label: 'Crit DMG', kind: 'percent' },
-  { key: 'energy_regen', label: 'Energy Regen', kind: 'percent' },
-  { key: 'healing_bonus', label: 'Healing Bonus', kind: 'percent' },
-  { key: 'fusion_dmg', label: 'Fusion DMG', kind: 'percent' },
-  { key: 'glacio_dmg', label: 'Glacio DMG', kind: 'percent' },
-  { key: 'electro_dmg', label: 'Electro DMG', kind: 'percent' },
-  { key: 'aero_dmg', label: 'Aero DMG', kind: 'percent' },
-  { key: 'havoc_dmg', label: 'Havoc DMG', kind: 'percent' },
-  { key: 'spectro_dmg', label: 'Spectro DMG', kind: 'percent' },
-  { key: 'basic_attack_dmg', label: 'Basic Attack DMG Bonus', kind: 'percent' },
-  { key: 'heavy_attack_dmg', label: 'Heavy Attack DMG Bonus', kind: 'percent' },
-  { key: 'resonance_skill_dmg', label: 'Resonance Skill DMG Bonus', kind: 'percent' },
-  { key: 'resonance_liberation_dmg', label: 'Resonance Liberation DMG Bonus', kind: 'percent' },
-];
-
-const ELEMENTAL_STAT_KEYS = new Set([
-  'fusion_dmg',
-  'glacio_dmg',
-  'electro_dmg',
-  'aero_dmg',
-  'havoc_dmg',
-  'spectro_dmg',
-]);
-
-const ELEMENT_TO_STAT_KEY: Partial<Record<Element, string>> = {
-  [Element.Fusion]: 'fusion_dmg',
-  [Element.Glacio]: 'glacio_dmg',
-  [Element.Electro]: 'electro_dmg',
-  [Element.Aero]: 'aero_dmg',
-  [Element.Havoc]: 'havoc_dmg',
-  [Element.Spectro]: 'spectro_dmg',
-};
 
 const EMPTY_REFERENCE: LBOptimalityReference = {
   tier: '',
@@ -178,18 +141,23 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
   void selectedSetEntries; // retained for future use; set info is available in selectedRef
 
   const topLevelStats = useMemo(() => {
-    const allowedElementStatKey = character?.element && character.element !== Element.Rover
-      ? ELEMENT_TO_STAT_KEY[character.element]
+    const allowedElementKey = character?.element && character.element !== Element.Rover
+      ? `${character.element.toLowerCase()}_dmg`
       : null;
 
-    return TOP_LEVEL_STAT_META
-      .map((meta) => ({ ...meta, value: selectedRef.topLevelStats[meta.key] ?? 0 }))
-      .filter((entry) => entry.value > 0)
-      .filter((entry) => {
-        if (!ELEMENTAL_STAT_KEYS.has(entry.key)) return true;
-        if (!allowedElementStatKey) return true;
-        return entry.key === allowedElementStatKey;
-      });
+    return Object.entries(selectedRef.topLevelStats)
+      .filter(([, v]) => v > 0)
+      .filter(([key]) => {
+        if (!(ELEMENT_STAT_KEYS as readonly string[]).includes(key)) return true;
+        if (!allowedElementKey) return true;
+        return key === allowedElementKey;
+      })
+      .map(([key, value]) => ({
+        key,
+        label: SORT_OPTIONS.find((o) => o.key === key)?.label ?? key,
+        value,
+        kind: (PERCENT_STAT_KEYS as ReadonlySet<string>).has(key) ? 'percent' as const : 'flat' as const,
+      }));
   }, [character, selectedRef.topLevelStats]);
 
   const highlightedSubstats = useMemo(
