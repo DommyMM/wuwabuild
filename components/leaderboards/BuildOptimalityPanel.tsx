@@ -349,12 +349,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
       </div>
 
       <div className="space-y-2.5">
-        <div className="flex flex-wrap gap-1.5">
-          <div className="rounded-full border border-amber-300/35 bg-amber-300/8 px-2.5 py-0.75 text-[10.5px] text-amber-100/75">
-            <span className="uppercase tracking-wider text-amber-200/55">Reference DMG</span>
-            <span className="ml-1.5 font-mono font-semibold text-amber-100">{fmtDmg(selectedRef.damage)}</span>
-          </div>
-
+        <div className="flex flex-wrap justify-center gap-1.5">
           {topLevelStats.map((entry) => (
             <div
               key={`${selectedTier}-tls-${entry.key}`}
