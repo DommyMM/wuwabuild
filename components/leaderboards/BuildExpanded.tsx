@@ -4,20 +4,17 @@ import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
-import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
 import { FORTE_LABELS } from '@/lib/constants/skillBranches';
 import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
-import { getEchoPaths } from '@/lib/paths';
-import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
 import { saveDraftBuild } from '@/lib/storage';
 import { RegionBadge } from './constants';
 import { formatFlatStat, formatPercentStat } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
+import { LeaderboardEchoCard } from './LeaderboardEchoCard';
 import posthog from 'posthog-js';
 
 type SubstatSummaryEntry = {
@@ -152,9 +149,10 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   surface = 'builds',
 }) => {
   const router = useRouter();
-  const { fettersByElement, getSubstatValues, statTranslations } = useGameData();
+  const { getFetterByElement, getSubstatValues, statTranslations } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
+  void translateText;
 
   const handleViewBuild = () => {
     if (!detail) return;
@@ -385,158 +383,25 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                 </div>
 
                 <div className="grid grid-cols-5 gap-4 min-w-0">
-                    {detail.buildState.echoPanels.map((panel, panelIndex) => {
-                      const echo = panel.id ? getEcho(panel.id) : null;
-                      const echoName = echo
-                        ? translateText(echo.nameI18n as Record<string, string> | undefined, echo.name)
-                        : 'Empty Slot';
-                      const mainStatType = normalizeSubstatKey(panel.stats.mainStat.type);
-                      const mainStatValue = panel.stats.mainStat.value;
-                      const mainStatIcon = mainStatType
-                        ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')] ?? '')
-                        : '';
-                      const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
+                  {detail.buildState.echoPanels.map((panel, panelIndex) => {
+                    const echo = panel.id ? getEcho(panel.id) : null;
+                    const elementType = echo ? (echo.elements.length === 1 ? echo.elements[0] : panel.selectedElement) : null;
+                    const fetter = elementType ? getFetterByElement(elementType) : null;
+                    const fetterIcon = fetter?.icon ?? fetter?.fetterIcon ?? null;
 
-                      const panelSubstats = panel.stats.subStats.filter((sub) => {
-                        const key = normalizeSubstatKey(sub.type);
-                        return Boolean(key && sub.value !== null);
-                      });
-
-                      const elementType = echo ? (echo.elements.length === 1 ? echo.elements[0] : panel.selectedElement) : null;
-                      const fetter = elementType ? fettersByElement[elementType] : null;
-                      const fetterIcon = fetter?.icon ?? fetter?.fetterIcon ?? null;
-
-                      const echoCV = calculateEchoSubstatCV(panel);
-                      const cvTier = echoCV > 0 ? getEchoCVTierStyle(echoCV) : null;
-                      const frameBorderColor = getEchoCVFrameColor(echoCV);
-
-                      if (!echo) {
-                        return (
-                          <div
-                            key={`${detail.id}-panel-empty-${panelIndex}`}
-                            className="relative flex min-w-0 items-center justify-center aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
-                          >
-                            <div className="h-7 w-7 rounded-full border-2 border-dashed border-white/20" />
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div
-                          key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
-                          className="relative min-w-0 aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
-                          style={{ borderColor: `${frameBorderColor}b3` }}
-                        >
-                          {/* Fetter icon top center */}
-                          {fetterIcon && (
-                            <div className="absolute top-0 left-1/2 z-3 -translate-x-1/2 -translate-y-1/2">
-                              <img
-                                src={fetterIcon}
-                                alt={elementType ?? ''}
-                                className="h-6 w-6 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
-                              />
-                            </div>
-                          )}
-
-                          {/* Echo image rounded so it doesn't clip container */}
-                          <img
-                            src={getEchoPaths(echo, panel.phantom)}
-                            alt={echoName}
-                            className="absolute h-full object-cover transition-all duration-200 rounded-xl"
-                            style={ECHO_IMAGE_FADE_STYLE}
-                          />
-
-                          {/* Two column layout */}
-                          <div className="relative z-2 flex h-full">
-                            {/* Left column: CV badge (top) + main stat (bottom) */}
-                            <div className="flex w-1/2 flex-col items-start justify-between p-2">
-                              {/* CV badge */}
-                              <div className="flex flex-col items-start gap-1">
-                                {cvTier && (
-                                  <div
-                                    className="flex items-center rounded-md border px-2 py-1"
-                                    style={{
-                                      borderColor: `${cvTier.color}66`,
-                                      color: cvTier.color,
-                                      backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
-                                    }}
-                                  >
-                                    <span className="text-xs font-bold leading-tight">{echoCV.toFixed(1)} CV</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Main stat */}
-                              {mainStatType && mainStatValue != null && (
-                                <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/75 px-2 py-1">
-                                  {mainStatIcon ? (
-                                    <img src={mainStatIcon} alt="" className="h-5 w-5 object-contain" />
-                                  ) : (
-                                    <span className="h-5 w-5 rounded bg-white/18" />
-                                  )}
-                                  <span className="text-base font-semibold">
-                                    {isMainPercent
-                                      ? `${Number(mainStatValue).toFixed(1)}%`
-                                      : Math.round(Number(mainStatValue)).toLocaleString()}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Right column: substats */}
-                            <div className="flex w-1/2 flex-col items-stretch justify-center gap-1 py-2.5 pl-8 pr-2">
-                              {Array.from({ length: 5 }).map((_, subIndex) => {
-                                const sub = panelSubstats[subIndex];
-                                if (!sub?.type || sub.value === null) {
-                                  return <div key={`${detail.id}-empty-sub-${panelIndex}-${subIndex}`} className="h-8 w-full" />;
-                                }
-
-                                const subType = normalizeSubstatKey(sub.type) ?? '';
-                                const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')] ?? '';
-                                const isSubPercent = isPercentStat(subType);
-                                const tierColor = getSubstatTierColor(subType, Number(sub.value), getSubstatValues(subType));
-                                const isMatchedSelection = hasSelectedSubstats && activeSelectedSubstats.has(subType);
-                                const isDimmed = hasSelectedSubstats && !isMatchedSelection;
-
-                                const tierStyle: React.CSSProperties | undefined = tierColor ? {
-                                  color: tierColor,
-                                } : undefined;
-
-                                const selectedStyle: React.CSSProperties | undefined = isMatchedSelection ? {
-                                  backgroundColor: 'rgba(255, 215, 0, 0.15)',
-                                  boxShadow: '0 0 2px rgba(255, 215, 0, 0.30)',
-                                } : undefined;
-
-                                const combinedStyle: React.CSSProperties = {
-                                  ...(tierStyle ?? {}),
-                                  ...(selectedStyle ?? {}),
-                                };
-
-                                return (
-                                  <div
-                                    key={`${detail.id}-sub-${panelIndex}-${subIndex}`}
-                                    className={`flex w-full items-center gap-1 rounded-sm bg-black/40 px-1.5 py-1.5 text-base font-semibold leading-none shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] transition-opacity duration-200 ${
-                                      isDimmed ? 'opacity-35' : 'opacity-100'
-                                    }`}
-                                    style={combinedStyle}
-                                  >
-                                    {subIcon ? (
-                                      <img src={subIcon} alt="" className={`h-4.5 w-4.5 object-contain ${isMatchedSelection ? 'brightness-125' : ''}`} />
-                                    ) : (
-                                      <span className="h-4 w-4 rounded bg-white/18" />
-                                    )}
-                                    <span>
-                                      {isSubPercent ? `${Number(sub.value).toFixed(1)}%` : Math.round(Number(sub.value))}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                    return (
+                      <LeaderboardEchoCard
+                        key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
+                        cardKey={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
+                        panel={panel}
+                        fetterIcon={fetterIcon}
+                        iconAlt={elementType ?? ''}
+                        selectedSubstats={activeSelectedSubstats}
+                        dimUnselectedSubstats={hasSelectedSubstats}
+                      />
+                    );
+                  })}
+                </div>
 
               </>
             )}
