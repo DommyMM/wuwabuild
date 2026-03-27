@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Character, Element } from '@/lib/character';
-import { EchoPanelState, FETTER_MAP } from '@/lib/echo';
+import { FETTER_MAP } from '@/lib/echo';
 import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
 import { HoverTooltip } from '@/components/ui/HoverTooltip';
 import { formatFlatStat, formatPercentStat } from './formatters';
@@ -17,19 +17,6 @@ function fmtDmg(v: number): string {
   return v.toFixed(0);
 }
 
-function getLayoutCost(layout: string, idx: number): number | null {
-  const raw = layout[idx];
-  if (!raw) return null;
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function getTierRollValue(values: number[] | null, tier: string): number | null {
-  if (!values || values.length === 0) return null;
-  if (tier === 'ceiling') return values[values.length - 1] ?? null;
-  if (tier === 'low_roll') return values[0] ?? null;
-  return values[Math.max(0, Math.floor((values.length - 1) / 2))] ?? null;
-}
 
 interface TierRowProps {
   label: string;
@@ -99,6 +86,7 @@ const EMPTY_REFERENCE: LBOptimalityReference = {
   substats: [],
   echoIds: [],
   topLevelStats: {},
+  echoPanels: [],
 };
 
 const TierRow: React.FC<TierRowProps> = ({ label, ref_, currentDamage, ratio, isActive, onClick }) => {
@@ -166,7 +154,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
   regionBadge,
 }) => {
   const { t } = useLanguage();
-  const { fetters, getEcho, getMainStatsByCost, getSubstatValues, statIcons } = useGameData();
+  const { fetters, getEcho, statIcons } = useGameData();
   const [selectedTier, setSelectedTier] = useState<'ceiling' | 'standardized' | 'low_roll'>('standardized');
 
   const selectedRef = useMemo<LBOptimalityReference>(() => {
@@ -187,46 +175,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
       fetter: fetters.find((entry) => entry.id === setId) ?? null,
     }))
   ), [fetters, selectedSetIds]);
-
-  const syntheticPanels = useMemo<EchoPanelState[]>(() => (
-    selectedRef.echoIds.map((echoId, idx) => {
-      const rollValueByStat = new Map<string, number>();
-      selectedRef.substats.forEach((stat) => {
-        if (!rollValueByStat.has(stat)) {
-          rollValueByStat.set(stat, getTierRollValue(getSubstatValues(stat), selectedRef.tier) ?? 0);
-        }
-      });
-
-      const cost = getLayoutCost(selectedRef.layout, idx);
-      const mainStatType = selectedRef.mainStats[idx] ?? null;
-      const mainStatTable = getMainStatsByCost(cost);
-      const mainStatRange = mainStatType ? mainStatTable[mainStatType] : null;
-      const mainStatValue = mainStatRange?.[1] ?? null;
-      const echo = echoId ? getEcho(echoId) : null;
-      const matchedSet = selectedSetEntries.length === 1
-        ? selectedSetEntries[0]
-        : echo
-          ? selectedSetEntries.find((entry) => entry.element && echo.elements.includes(entry.element))
-          : null;
-
-      return {
-        id: echoId ?? null,
-        level: 25,
-        selectedElement: matchedSet?.element ?? null,
-        phantom: false,
-        stats: {
-          mainStat: {
-            type: mainStatType,
-            value: mainStatValue,
-          },
-          subStats: selectedRef.substats.map((stat) => ({
-            type: stat,
-            value: rollValueByStat.get(stat) ?? 0,
-          })),
-        },
-      };
-    })
-  ), [getEcho, getMainStatsByCost, getSubstatValues, selectedRef, selectedSetEntries]);
+  void selectedSetEntries; // retained for future use; set info is available in selectedRef
 
   const topLevelStats = useMemo(() => {
     const allowedElementStatKey = character?.element && character.element !== Element.Rover
@@ -257,9 +206,9 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
       characterLevel: data?.characterLevel ?? buildDetail.buildState.characterLevel,
       weaponLevel: data?.weaponLevel ?? buildDetail.buildState.weaponLevel,
       forte: data?.forte ?? buildDetail.buildState.forte,
-      echoPanels: syntheticPanels,
+      echoPanels: selectedRef.echoPanels,
     },
-  }), [buildDetail, data, selectedTier, syntheticPanels]);
+  }), [buildDetail, data, selectedTier, selectedRef.echoPanels]);
 
   if (loading) {
     return (

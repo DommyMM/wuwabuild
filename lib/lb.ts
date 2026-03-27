@@ -1,4 +1,5 @@
 import { DEFAULT_FORTE, ForteState, SavedState } from '@/lib/build';
+import { EchoPanelState } from '@/lib/echo';
 import { toMainStatApiValue } from '@/lib/mainStatFilters';
 
 const LB_PROXY_BASE = '/api/lb';
@@ -955,6 +956,7 @@ export interface LBOptimalityReference {
   substats: string[];
   echoIds: string[];
   topLevelStats: Record<string, number>;
+  echoPanels: EchoPanelState[];
 }
 
 export interface LBBoardOptimality {
@@ -977,9 +979,35 @@ export interface LBBoardOptimality {
   generatedAt: string;
 }
 
+function parseOptimalityEchoPanel(raw: unknown): EchoPanelState | null {
+  if (!isRecord(raw)) return null;
+  const stats = isRecord(raw.stats) ? raw.stats : {};
+  const mainStat = isRecord(stats.mainStat) ? stats.mainStat : {};
+  const subStats = Array.isArray(stats.subStats) ? stats.subStats : [];
+  return {
+    id: typeof raw.id === 'string' ? raw.id : null,
+    level: typeof raw.level === 'number' ? raw.level : 25,
+    selectedElement: typeof raw.selectedElement === 'string' && raw.selectedElement !== '' ? raw.selectedElement as EchoPanelState['selectedElement'] : null,
+    phantom: typeof raw.phantom === 'boolean' ? raw.phantom : false,
+    stats: {
+      mainStat: {
+        type: typeof mainStat.type === 'string' && mainStat.type !== '' ? mainStat.type : null,
+        value: typeof mainStat.value === 'number' ? mainStat.value : null,
+      },
+      subStats: subStats.map((s: unknown) => {
+        const sub = isRecord(s) ? s : {};
+        return {
+          type: typeof sub.type === 'string' && sub.type !== '' ? sub.type : null,
+          value: typeof sub.value === 'number' ? sub.value : null,
+        };
+      }),
+    },
+  };
+}
+
 function parseOptimalityReference(raw: unknown): LBOptimalityReference {
   if (!isRecord(raw)) {
-    return { tier: '', damage: 0, layout: '', setPattern: [], mainStats: [], substats: [], echoIds: [], topLevelStats: {} };
+    return { tier: '', damage: 0, layout: '', setPattern: [], mainStats: [], substats: [], echoIds: [], topLevelStats: {}, echoPanels: [] };
   }
   return {
     tier: typeof raw.tier === 'string' ? raw.tier : '',
@@ -992,6 +1020,9 @@ function parseOptimalityReference(raw: unknown): LBOptimalityReference {
     topLevelStats: isRecord(raw.topLevelStats) ? Object.fromEntries(
       Object.entries(raw.topLevelStats).map(([k, v]) => [k, toFiniteNumber(v)])
     ) : {},
+    echoPanels: Array.isArray(raw.echoPanels)
+      ? raw.echoPanels.map(parseOptimalityEchoPanel).filter((p): p is EchoPanelState => p !== null)
+      : [],
   };
 }
 
