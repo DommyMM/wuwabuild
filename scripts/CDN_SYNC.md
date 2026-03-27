@@ -28,6 +28,7 @@ wuwabuilds/
 │   ├── Weapons/              # Individual weapon JSONs (--individual)
 │   ├── Echoes.json           # Combined echo data
 │   ├── Fetters.json          # Sonata/element set data — see below
+│   ├── EchoStats.json        # Echo main-stat ranges + substat roll tables
 │   ├── Stats.json            # Localized stat labels + icon URLs
 │   ├── CharacterCurve.json   # Static character scaling curve (copied to lb)
 │   ├── LevelCurve.json       # Static scaling data (copied to lb)
@@ -35,6 +36,7 @@ wuwabuilds/
     ├── Characters.json       # Backend OCR character mapping data
     ├── Weapons.json          # Backend OCR weapon mapping data
     ├── Echoes.json           # Backend OCR echo mapping data
+    ├── EchoStats.json        # Backend OCR echo stat matching data
     └── Echoes/*.png          # Backend echo icon templates keyed by CDN ID
 └── ../lb/internal/calc/
     ├── data/
@@ -42,6 +44,7 @@ wuwabuilds/
     │   ├── weapon_bases.json
     │   ├── echo_bases.json
     │   ├── fetter_bases.json
+    │   ├── echo_stats.json
     │   ├── id_maps.json
     │   ├── character_curve.json
     │   └── level_curve.json

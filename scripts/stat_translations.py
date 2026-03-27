@@ -1,7 +1,7 @@
 """
 Sync stat translations from Wuthery CDN PropertyIndexs.json to public/Data/Stats.json.
 
-Fetches PropertyIndexs.json and picks out the stats used in Mainstat.json and Substats.json by their exact CDN English name.
+Fetches PropertyIndexs.json and picks out the stats used in EchoStats.json by their exact CDN English name.
 
 HP%, ATK%, DEF% are not separate entries so they're derived by
 appending "%" to each translation of their base stat (HP / ATK / DEF).

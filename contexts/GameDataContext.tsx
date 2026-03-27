@@ -24,8 +24,7 @@ export interface RawGameData {
   characters: unknown;
   echoes: unknown;
   weapons: unknown;
-  mainStats: unknown;
-  substats: unknown;
+  echoStats: unknown;
   stats: unknown;
   fetters: unknown;
   characterCurves: unknown;
@@ -144,7 +143,24 @@ function processRawGameData(raw: RawGameData): GameDataState {
     if (fetter) fettersByElement[elementType as ElementType] = fetter;
   }
 
-  const substatsRaw = raw.substats as { subStats?: SubstatData } | SubstatData | null;
+  const echoStatsRaw = raw.echoStats as {
+    subStats?: SubstatData;
+    mainStats?: { [key: string]: { [statName: string]: [number, number] } };
+    defaultMainStats?: { [key: string]: [string, number, number] };
+  } | null;
+  const mainStats = echoStatsRaw?.mainStats ?? null;
+  const defaultMainStats = echoStatsRaw?.defaultMainStats ?? {};
+  const normalizedMainStats = mainStats
+    ? Object.fromEntries(
+        Object.entries(mainStats).map(([costKey, statsByName]) => [
+          costKey,
+          {
+            default: defaultMainStats[costKey] ?? ['ATK', 0, 0],
+            mainStats: statsByName,
+          },
+        ])
+      ) as MainStatData
+    : null;
 
   return {
     characters: validCharacters,
@@ -152,10 +168,8 @@ function processRawGameData(raw: RawGameData): GameDataState {
     echoesByCost,
     weapons: weaponMap,
     weaponList,
-    mainStats: (raw.mainStats as MainStatData) ?? null,
-    substats: substatsRaw
-      ? ((substatsRaw as { subStats?: SubstatData }).subStats ?? (substatsRaw as SubstatData))
-      : null,
+    mainStats: normalizedMainStats,
+    substats: echoStatsRaw?.subStats ?? null,
     statTranslations,
     statIcons,
     fetters,
@@ -170,8 +184,7 @@ async function fetchRawGameData(): Promise<RawGameData> {
     charactersRes,
     echoesRes,
     weaponsRes,
-    mainStatsRes,
-    substatsRes,
+    echoStatsRes,
     statsRes,
     fettersRes,
     characterCurvesRes,
@@ -180,8 +193,7 @@ async function fetchRawGameData(): Promise<RawGameData> {
     fetch('/Data/Characters.json'),
     fetch('/Data/Echoes.json'),
     fetch('/Data/Weapons.json'),
-    fetch('/Data/Mainstat.json'),
-    fetch('/Data/Substats.json'),
+    fetch('/Data/EchoStats.json'),
     fetch('/Data/Stats.json'),
     fetch('/Data/Fetters.json'),
     fetch('/Data/CharacterCurve.json'),
@@ -192,8 +204,7 @@ async function fetchRawGameData(): Promise<RawGameData> {
     { res: charactersRes, name: 'Characters' },
     { res: echoesRes, name: 'Echoes' },
     { res: weaponsRes, name: 'Weapons' },
-    { res: mainStatsRes, name: 'Main Stats' },
-    { res: substatsRes, name: 'Substats' },
+    { res: echoStatsRes, name: 'Echo Stats' },
     { res: statsRes, name: 'Stat Translations' },
     { res: fettersRes, name: 'Fetters' },
     { res: characterCurvesRes, name: 'Character Curves' },
@@ -210,8 +221,7 @@ async function fetchRawGameData(): Promise<RawGameData> {
     characters,
     echoes,
     weapons,
-    mainStats,
-    substats,
+    echoStats,
     stats,
     fetters,
     characterCurves,
@@ -220,15 +230,14 @@ async function fetchRawGameData(): Promise<RawGameData> {
     charactersRes.json(),
     echoesRes.json(),
     weaponsRes.json(),
-    mainStatsRes.json(),
-    substatsRes.json(),
+    echoStatsRes.json(),
     statsRes.json(),
     fettersRes.json(),
     characterCurvesRes.json(),
     levelCurvesRes.json(),
   ]);
 
-  return { characters, echoes, weapons, mainStats, substats, stats, fetters, characterCurves, levelCurves };
+  return { characters, echoes, weapons, echoStats, stats, fetters, characterCurves, levelCurves };
 }
 
 async function loadGameDataState(): Promise<GameDataState> {

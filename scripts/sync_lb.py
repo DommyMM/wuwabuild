@@ -3,6 +3,7 @@ Generate LB base-data from local synced game data.
 
 Inputs (all from frontend public/Data/):
 - Characters.json, Weapons.json, Echoes.json
+- EchoStats.json
 - Fetters.json
 - CharacterCurve.json, LevelCurve.json
 
@@ -13,6 +14,7 @@ Outputs:
 - lb/internal/calc/data/fetter_bases.json    (piece_effects include parsed `effects` arrays)
 - lb/internal/calc/data/character_curve.json
 - lb/internal/calc/data/level_curve.json
+- lb/internal/calc/data/echo_stats.json
 """
 
 from __future__ import annotations
@@ -37,6 +39,7 @@ ECHOES_JSON = DATA_DIR / "Echoes.json"
 FETTERS_JSON = DATA_DIR / "Fetters.json"
 CHARACTER_CURVE_JSON = DATA_DIR / "CharacterCurve.json"
 LEVEL_CURVE_JSON = DATA_DIR / "LevelCurve.json"
+ECHO_STATS_JSON = DATA_DIR / "EchoStats.json"
 LEGACY_ECHOES_JSON = SCRIPTS_DIR.parent / "lib" / "data" / "legacyEchoes.json"
 LEGACY_WEAPONS_JSON = SCRIPTS_DIR.parent / "lib" / "data" / "legacyWeapons.json"
 
@@ -46,6 +49,7 @@ ECHO_BASES_JSON = DATA_OUTPUT_DIR / "echo_bases.json"
 FETTER_BASES_JSON = DATA_OUTPUT_DIR / "fetter_bases.json"
 CHARACTER_CURVE_OUT_JSON = DATA_OUTPUT_DIR / "character_curve.json"
 LEVEL_CURVE_OUT_JSON = DATA_OUTPUT_DIR / "level_curve.json"
+ECHO_STATS_OUT_JSON = DATA_OUTPUT_DIR / "echo_stats.json"
 
 FORTE_PARENT_TO_TREE = {
     1: "tree1", 2: "tree2", 3: "tree4", 6: "tree5",
@@ -200,6 +204,15 @@ def _write_json(path: Path, data: Any, dry_run: bool, pretty: bool = False) -> N
         payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     path.write_text(payload, encoding="utf-8")
     print(f"Wrote {path}")
+
+
+def _copy_file(src: Path, dst: Path, dry_run: bool) -> None:
+    if dry_run:
+        print(f"[DRY RUN] Would copy {src} -> {dst}")
+        return
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+    print(f"Copied {src} -> {dst}")
 
 
 def _fmt_effect_value(value: float) -> str:
@@ -1948,7 +1961,7 @@ def main() -> int:
     if args.weapons_only:
         return _sync_weapons_only(args.dry_run, args.pretty)
 
-    required = [CHARACTERS_JSON, WEAPONS_JSON, ECHOES_JSON, FETTERS_JSON, CHARACTER_CURVE_JSON, LEVEL_CURVE_JSON]
+    required = [CHARACTERS_JSON, WEAPONS_JSON, ECHOES_JSON, ECHO_STATS_JSON, FETTERS_JSON, CHARACTER_CURVE_JSON, LEVEL_CURVE_JSON]
     for path in required:
         if not path.exists():
             print(f"ERROR: Missing required input: {path}")
@@ -1982,6 +1995,7 @@ def main() -> int:
     _write_json(FETTER_BASES_JSON, fetter_bases, args.dry_run, pretty=args.pretty)
     _write_json(CHARACTER_CURVE_OUT_JSON, character_curve, args.dry_run, pretty=args.pretty)
     _write_json(LEVEL_CURVE_OUT_JSON, level_curves, args.dry_run, pretty=args.pretty)
+    _copy_file(ECHO_STATS_JSON, ECHO_STATS_OUT_JSON, args.dry_run)
 
     print("\nGenerated summary:")
     print(f"  Characters: {len(character_bases)}")

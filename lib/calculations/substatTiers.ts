@@ -1,4 +1,4 @@
-// Substat roll quality tiers are derived from Substats.json roll arrays.
+// Substat roll quality tiers are derived from EchoStats.json roll arrays.
 // Boundaries are the midpoints between quartile buckets.
 
 // Tier colors: gold > purple > blue > green

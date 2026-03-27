@@ -111,8 +111,7 @@ def main() -> int:
     sync_characters(args.dry_run)
     sync_weapons(args.dry_run)
     sync_echoes(args.dry_run)
-    copy_unchanged("Mainstat.json", args.dry_run)
-    copy_unchanged("Substats.json", args.dry_run)
+    copy_unchanged("EchoStats.json", args.dry_run)
     print("Backend sync complete." if not args.dry_run else "Dry run complete, nothing written.")
     return 0
 
