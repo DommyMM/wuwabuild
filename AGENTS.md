@@ -55,6 +55,7 @@ When behavior changes, update the corresponding file in `docs/`.
 | `/leaderboards/[characterId]`  | `app/(game)/leaderboards/[characterId]/page.tsx`   | `components/leaderboards/character/*`          |
 | `/characters/[id]`             | `app/(game)/characters/[id]/page.tsx`              | `components/edit/*`, `components/card/*`     |
 | `/weapons/[id]`                | `app/(game)/weapons/[id]/page.tsx`                 | same as character-seeded editor                |
+| `/profile/[uid]`               | `app/(game)/profile/[uid]/page.tsx`                | `components/profile/*`                         |
 | `/tos`                         | `app/tos/page.tsx`                                 | `components/legal/*`                           |
 | `/privacy`                     | `app/privacy/page.tsx`                             | `components/legal/*`                           |
 

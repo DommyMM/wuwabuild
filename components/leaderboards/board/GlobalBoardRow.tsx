@@ -8,10 +8,27 @@ import { getCVRatingColor } from '@/lib/calculations/rollValues';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { getLBStatCode, LBBuildDetailEntry, LBBuildRowEntry, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
-import { ACTIVE_SORT_COLUMN_CLASS, SEQUENCE_BADGE_STYLES, SORTABLE_GROUP_GRID, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from '../constants';
+import { ACTIVE_SORT_COLUMN_CLASS, SEQUENCE_BADGE_STYLES, SORTABLE_GROUP_GRID, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS, RegionBadge } from '../constants';
 import { formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
 import { BuildExpanded } from '../BuildExpanded';
+import { Echo } from '@/lib/echo';
+import { Character } from '@/lib/character';
+
+export interface GlobalBoardRowExpandedProps {
+  entry: LBBuildRowEntry;
+  detail: LBBuildDetailEntry | undefined;
+  isExpanded: boolean;
+  isDetailLoading: boolean;
+  detailError: string | null | undefined;
+  character: Character | null;
+  characterName: string;
+  regionBadge: RegionBadge | null;
+  statIcons: Record<string, string> | null;
+  getEcho: (id: string | null) => Echo | null;
+  translateText: (i18n: Record<string, string> | undefined, fallback: string) => string;
+  onRetryDetail: (buildId: string) => void;
+}
 
 interface GlobalBoardRowProps {
   entry: LBBuildRowEntry;
@@ -25,6 +42,7 @@ interface GlobalBoardRowProps {
   isStatSortActive: boolean;
   onToggleExpand: (buildId: string) => void;
   onRetryDetail: (buildId: string) => void;
+  renderExpanded?: (props: GlobalBoardRowExpandedProps) => React.ReactNode;
 }
 
 export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
@@ -39,6 +57,7 @@ export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
   isStatSortActive,
   onToggleExpand,
   onRetryDetail,
+  renderExpanded,
 }) => {
   const { fetters, getCharacter, getEcho, getWeapon, statIcons } = useGameData();
   const { t } = useLanguage();
@@ -195,22 +214,37 @@ export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
         </div>
       </div>
 
-      <BuildExpanded
-        key={entry.id}
-        entry={entry}
-        detail={detail}
-        isExpanded={isExpanded}
-        isDetailLoading={isDetailLoading}
-        detailError={detailError}
-        character={character}
-        characterName={characterName}
-        regionBadge={regionBadge}
-        statIcons={statIcons}
-        getEcho={getEcho}
-        translateText={(i18n, fallback) => t(i18n ?? { en: fallback })}
-        onRetryDetail={onRetryDetail}
-        surface="builds"
-      />
+      {renderExpanded ? renderExpanded({
+        entry,
+        detail,
+        isExpanded,
+        isDetailLoading,
+        detailError,
+        character,
+        characterName,
+        regionBadge,
+        statIcons,
+        getEcho,
+        translateText: (i18n, fallback) => t(i18n ?? { en: fallback }),
+        onRetryDetail,
+      }) : (
+        <BuildExpanded
+          key={entry.id}
+          entry={entry}
+          detail={detail}
+          isExpanded={isExpanded}
+          isDetailLoading={isDetailLoading}
+          detailError={detailError}
+          character={character}
+          characterName={characterName}
+          regionBadge={regionBadge}
+          statIcons={statIcons}
+          getEcho={getEcho}
+          translateText={(i18n, fallback) => t(i18n ?? { en: fallback })}
+          onRetryDetail={onRetryDetail}
+          surface="builds"
+        />
+      )}
     </div>
   );
 };

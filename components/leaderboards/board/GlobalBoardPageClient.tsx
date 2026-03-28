@@ -13,6 +13,7 @@ import { readCachedBuildList, writeCachedBuildList } from './globalBoardCache';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
 import { GlobalBoardHeader } from './GlobalBoardHeader';
 import { GlobalBoardResultsPanel } from './GlobalBoardResultsPanel';
+import { GlobalBoardRowExpandedProps } from './GlobalBoardRow';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '../types';
 import posthog from 'posthog-js';
 
@@ -22,9 +23,10 @@ function buildListSignature(builds: LBBuildRowEntry[], total: number): string {
 
 interface GlobalBoardPageClientProps {
   initialData?: LBListBuildsResponse | null;
+  renderExpanded?: (props: GlobalBoardRowExpandedProps) => React.ReactNode;
 }
 
-export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ initialData }) => {
+export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ initialData, renderExpanded }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters } = useGameData();
@@ -528,6 +530,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
                   onPageChange={setPage}
                   onToggleExpand={handleToggleExpand}
                   onRetryDetail={handleRetryDetail}
+                  renderExpanded={renderExpanded}
                 />
               </div>
             </div>

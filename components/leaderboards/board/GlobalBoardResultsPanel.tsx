@@ -8,7 +8,7 @@ import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from 
 import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from '../constants';
 import { getSortLabel } from '../formatters';
 import { BuildPagination } from '../BuildPagination';
-import { GlobalBoardRow } from './GlobalBoardRow';
+import { GlobalBoardRow, GlobalBoardRowExpandedProps } from './GlobalBoardRow';
 import { SortHeaderMenu, SortMenuOption } from '../SortHeaderMenu';
 import { StatSortKey } from '../types';
 
@@ -33,6 +33,7 @@ interface GlobalBoardResultsPanelProps {
   onPageChange: (page: number) => void;
   onToggleExpand: (buildId: string) => void;
   onRetryDetail: (buildId: string) => void;
+  renderExpanded?: (props: GlobalBoardRowExpandedProps) => React.ReactNode;
 }
 
 interface BuildTableGateOverlayProps {
@@ -111,6 +112,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   onPageChange,
   onToggleExpand,
   onRetryDetail,
+  renderExpanded,
 }) => {
   const { characters, fetters, statIcons, weaponList } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
@@ -337,6 +339,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                           isStatSortActive={isStatSortActive}
                           onToggleExpand={onToggleExpand}
                           onRetryDetail={onRetryDetail}
+                          renderExpanded={renderExpanded}
                         />
                       ))}
                       {showRefreshingOverlay && (
