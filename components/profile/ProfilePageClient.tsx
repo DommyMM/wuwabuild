@@ -4,17 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import {
-  getBuildById,
-  LBBuildDetailEntry,
-  LBBuildRowEntry,
-  LBEchoMainFilter,
-  LBEchoSetFilter,
-  LBListBuildsResponse,
-  LBSortDirection,
-  LBSortKey,
-  listBuilds,
-} from '@/lib/lb';
+import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE } from '@/components/leaderboards/constants';
 import { getSortLabel, resolveRegionBadge } from '@/components/leaderboards/formatters';
@@ -25,6 +15,10 @@ import { GlobalBoardResultsPanel } from '@/components/leaderboards/board/GlobalB
 import { GlobalBoardRowExpandedProps } from '@/components/leaderboards/board/GlobalBoardRow';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/leaderboards/types';
 import { ProfileBuildExpanded } from './ProfileBuildExpanded';
+
+// Profile table: no Owner column. Name gets the freed space (wider).
+// # | Name | Weapon | Seq | Sets | [CV + 4 stats]
+const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_76px_76px_88px_minmax(0,1fr)]';
 
 function buildListSignature(builds: LBBuildRowEntry[], total: number): string {
   return `${total}:${builds.map((b) => `${b.id}:${b.cv}:${b.timestamp}:${b.weapon.id}`).join(',')}`;
@@ -402,6 +396,9 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => 
                   onToggleExpand={handleToggleExpand}
                   onRetryDetail={handleRetryDetail}
                   renderExpanded={renderExpanded}
+                  tableGrid={PROFILE_TABLE_GRID}
+                  showOwner={false}
+                  showTableGate={false}
                 />
               </div>
             </div>

@@ -43,6 +43,8 @@ interface GlobalBoardRowProps {
   onToggleExpand: (buildId: string) => void;
   onRetryDetail: (buildId: string) => void;
   renderExpanded?: (props: GlobalBoardRowExpandedProps) => React.ReactNode;
+  tableGrid?: string;
+  showOwner?: boolean;
 }
 
 export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
@@ -58,6 +60,8 @@ export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
   onToggleExpand,
   onRetryDetail,
   renderExpanded,
+  tableGrid = TABLE_GRID,
+  showOwner = true,
 }) => {
   const { fetters, getCharacter, getEcho, getWeapon, statIcons } = useGameData();
   const { t } = useLanguage();
@@ -102,7 +106,7 @@ export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
-        className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
+        className={`grid ${tableGrid} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
         onClick={() => onToggleExpand(entry.id)}
         onKeyDown={(event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -112,16 +116,18 @@ export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
       >
         <div className="py-2 text-center text-text-primary/75">{rank}</div>
 
-        <div className="py-2">
-          <div className="flex items-center gap-2">
-            {regionBadge && (
-              <span className={`rounded px-2 py-1 text-xs font-semibold tracking-wide ${regionBadge.className}`}>
-                {regionBadge.label}
-              </span>
-            )}
-            <span className="text-lg text-text-primary">{entry.owner.username || 'Anonymous'}</span>
+        {showOwner && (
+          <div className="py-2">
+            <div className="flex items-center gap-2">
+              {regionBadge && (
+                <span className={`rounded px-2 py-1 text-xs font-semibold tracking-wide ${regionBadge.className}`}>
+                  {regionBadge.label}
+                </span>
+              )}
+              <span className="text-lg text-text-primary">{entry.owner.username || 'Anonymous'}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex items-center gap-2 py-2">
           {character?.head ? (

@@ -41,6 +41,7 @@ export const MAIN_STAT_OPTIONS = [
 
 export const SORT_OPTIONS: Array<{ key: LBSortKey; label: string }> = [
   { key: 'finalCV', label: 'Crit Value' },
+  { key: 'sequence', label: 'Sequence' },
   { key: 'timestamp', label: 'Date' },
   { key: 'crit_rate', label: 'Crit Rate' },
   { key: 'crit_dmg', label: 'Crit DMG' },

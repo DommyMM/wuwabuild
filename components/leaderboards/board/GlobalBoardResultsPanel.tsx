@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
 import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from '../constants';
 import { getSortLabel } from '../formatters';
+import { ChevronDown } from 'lucide-react';
 import { BuildPagination } from '../BuildPagination';
 import { GlobalBoardRow, GlobalBoardRowExpandedProps } from './GlobalBoardRow';
 import { SortHeaderMenu, SortMenuOption } from '../SortHeaderMenu';
@@ -34,6 +35,9 @@ interface GlobalBoardResultsPanelProps {
   onToggleExpand: (buildId: string) => void;
   onRetryDetail: (buildId: string) => void;
   renderExpanded?: (props: GlobalBoardRowExpandedProps) => React.ReactNode;
+  tableGrid?: string;
+  showOwner?: boolean;
+  showTableGate?: boolean;
 }
 
 interface BuildTableGateOverlayProps {
@@ -113,10 +117,21 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   onToggleExpand,
   onRetryDetail,
   renderExpanded,
+  tableGrid = TABLE_GRID,
+  showOwner = true,
+  showTableGate = true,
 }) => {
   const { characters, fetters, statIcons, weaponList } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
   const [isTableGateDismissed, setIsTableGateDismissed] = useState(false);
+  useEffect(() => {
+    if (!showTableGate) return;
+    try {
+      const stored = localStorage.getItem('builds_gate_dismissed');
+      const today = new Date().toISOString().slice(0, 10);
+      if (stored === today) setIsTableGateDismissed(true);
+    } catch {}
+  }, [showTableGate]);
 
   const cvSort: CVSortKey = (sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg') ? sort : 'finalCV';
   const isCvColumnActive = sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg';
@@ -151,7 +166,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   const statusText = showInitialSkeleton
     ? 'Loading builds...'
     : isRefreshing ? 'Updating...' : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;
-  const showBuildTableGate = !error && isTableGateDismissed === false;
+  const showBuildTableGate = showTableGate && !error && !isTableGateDismissed;
 
   const handleSortRequest = (nextSort: LBSortKey) => {
     if (sort === nextSort) { onToggleDirection(); return; }
@@ -160,6 +175,9 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
 
   const dismissTableGate = () => {
     setIsTableGateDismissed(true);
+    try {
+      localStorage.setItem('builds_gate_dismissed', new Date().toISOString().slice(0, 10));
+    } catch {}
   };
 
   return (
@@ -175,12 +193,23 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
           <div className="w-max min-w-full">
             <div className="overflow-visible rounded-lg border border-border bg-background/70">
               {/* Table header */}
-              <div className={`grid ${TABLE_GRID} items-center gap-4.5 border-b border-border bg-background-secondary/95 text-lg text-text-primary rounded-t-lg`}>
+              <div className={`grid ${tableGrid} items-center gap-4.5 border-b border-border bg-background-secondary/95 text-lg text-text-primary rounded-t-lg`}>
                 <div className="py-2 text-center text-text-primary/70">#</div>
-                <div className="py-2">Owner</div>
+                {showOwner && <div className="py-2">Owner</div>}
                 <div className="py-2">Name</div>
                 <div className="py-2" aria-hidden="true" />
-                <div className="py-2" aria-hidden="true" />
+                <div className="py-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSortRequest('sequence')}
+                    className={`flex items-center gap-1 text-left transition-colors hover:text-text-primary ${sort === 'sequence' ? 'text-text-primary' : 'text-text-primary/70'}`}
+                  >
+                    Sequences
+                    {sort === 'sequence' && (
+                      <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${direction === 'asc' ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                </div>
                 <div className="py-2">Sets</div>
                 <div className={`grid ${SORTABLE_GROUP_GRID} min-w-[652px] self-stretch gap-0`}>
                   <div className="self-stretch">
@@ -275,14 +304,16 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                       {Array.from({ length: pageSize }).map((_, index) => (
                         <div
                           key={index}
-                          className={`grid ${TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20`}
+                          className={`grid ${tableGrid} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20`}
                         >
                           <div className="py-2 text-center">
                             <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
                           </div>
-                          <div className="py-2">
-                            <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
-                          </div>
+                          {showOwner && (
+                            <div className="py-2">
+                              <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
+                            </div>
+                          )}
                           <div className="py-2">
                             <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
                           </div>
@@ -340,6 +371,8 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                           onToggleExpand={onToggleExpand}
                           onRetryDetail={onRetryDetail}
                           renderExpanded={renderExpanded}
+                          tableGrid={tableGrid}
+                          showOwner={showOwner}
                         />
                       ))}
                       {showRefreshingOverlay && (

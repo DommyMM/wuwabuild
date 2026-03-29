@@ -27,7 +27,7 @@ export type LBStatSortKey =
   | 'basic_attack_dmg' | 'heavy_attack_dmg' | 'resonance_skill_dmg' | 'resonance_liberation_dmg'
   | 'energy_regen' | 'healing_bonus';
 
-export type LBSortKey = 'finalCV' | 'timestamp' | 'characterId' | LBStatSortKey;
+export type LBSortKey = 'finalCV' | 'timestamp' | 'characterId' | 'sequence' | LBStatSortKey;
 export type LBLeaderboardSortKey = Exclude<LBSortKey, 'characterId'> | 'damage';
 
 export type LBSortDirection = 'asc' | 'desc';
@@ -62,7 +62,7 @@ export const LB_STAT_ENTRIES: LBStatEntry[] = [
 ];
 
 const LB_SORT_KEY_SET: ReadonlySet<LBSortKey> = new Set([
-  'finalCV', 'timestamp', 'characterId',
+  'finalCV', 'timestamp', 'characterId', 'sequence',
   ...LB_STAT_ENTRIES.map((entry) => entry.sortKey),
 ]);
 
