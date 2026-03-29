@@ -7,6 +7,7 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 - Server prefetch helpers: `lib/lbServer.ts`
 - Client fetch layer: `lib/lb.ts`
 - Global board cache: `components/leaderboards/board/globalBoardCache.ts`
+- Overview cache: `lib/leaderboardOverviewCache.ts`
 - Shared expansion panel: `components/leaderboards/BuildExpanded.tsx`
 - Character query helpers: `components/leaderboards/character/leaderboardCharacterQuery.ts`
 - Global board query helpers: `components/leaderboards/board/globalBoardQuery.ts`
@@ -15,7 +16,7 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 
 - **`/`** — server component prefetches overview + global build stats via `lbServer.ts` (ISR on the page).
 - **`/leaderboards/[characterId]`** — server prefetches the first board payload via `lbServer.ts`, canonicalizes the incoming query string against the returned weapon/track config, and passes the payload as `initialData`.
-- **`/builds`** and **`/leaderboards`** — list data is fetched on the client through `/api/lb/*`.
+- **`/builds`** and **`/leaderboards`** — list data is fetched on the client through `/api/lb/*`. The overview page additionally uses `leaderboardOverviewCache.ts` (1-hour TTL localStorage + memory) to avoid redundant fetches across mounts.
 - Prefetch always calls LB directly with `LB_URL` and `X-Internal-Key` (never through the Next proxy).
 - Where revalidation exists, client fetches after mount; signature checks can skip `setState` when nothing effectively changed.
 - `/builds` keeps a small localStorage cache by serialized query for smoother revisits.
