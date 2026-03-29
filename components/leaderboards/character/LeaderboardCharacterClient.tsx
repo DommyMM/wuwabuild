@@ -264,8 +264,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         if (page > nextPageCount) setPage(nextPageCount);
 
         // Insert ghost build at the correct position by damage if present.
+        // Skip if the build already appears in the regular results (e.g. deep-linked to its own page).
         let mergedBuilds = response.builds;
-        if (response.ghostBuild) {
+        if (response.ghostBuild && !mergedBuilds.some((b) => b.id === response.ghostBuild!.id)) {
           const ghostDamage = response.ghostBuild.damage;
           const insertIdx = mergedBuilds.findIndex((b) => b.damage < ghostDamage);
           if (insertIdx === -1) {
