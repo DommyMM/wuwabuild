@@ -18,7 +18,7 @@ import { ProfileBuildExpanded } from './ProfileBuildExpanded';
 
 // Profile table: no Owner column. Name gets the freed space (wider).
 // # | Name | Weapon | Seq | Sets | [CV + 4 stats]
-const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_76px_76px_88px_minmax(0,1fr)]';
+const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_72px_80px_88px_minmax(0,1fr)]';
 
 function buildListSignature(builds: LBBuildRowEntry[], total: number): string {
   return `${total}:${builds.map((b) => `${b.id}:${b.cv}:${b.timestamp}:${b.weapon.id}`).join(',')}`;

@@ -10,14 +10,13 @@ import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { saveDraftBuild } from '@/lib/storage';
 import { Character } from '@/lib/character';
 import { Echo } from '@/lib/echo';
-import { RegionBadge } from '@/components/leaderboards/constants';
+import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL, RegionBadge } from '@/components/leaderboards/constants';
 import { formatFlatStat, formatPercentStat } from '@/components/leaderboards/formatters';
 import { BuildSimulationSection } from '@/components/leaderboards/BuildSimulationSection';
 import { LeaderboardCard } from './LeaderboardCard';
 import posthog from 'posthog-js';
 
 const BASE_STATS_SET = new Set<string>(BASE_STATS);
-const SUMMARY_PILL_ROW_CLASS = 'mx-auto flex w-max max-w-none flex-nowrap items-center justify-center gap-2';
 
 type SubstatSummaryEntry = {
   type: string;
@@ -52,13 +51,10 @@ interface ProfileBuildExpandedProps {
   getEcho: (id: string | null) => Echo | null;
   translateText: (i18n: Record<string, string> | undefined, fallback: string) => string;
   onRetryDetail: (buildId: string) => void;
-  /** Rank data — available when rendered from a character leaderboard context */
   globalRank?: number;
-  totalEntries?: number;
   damage?: number;
   activeTrackKey?: string;
   activeWeaponId?: string;
-  teamCharacterIds?: string[];
 }
 
 export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
@@ -73,11 +69,9 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
   statIcons,
   onRetryDetail,
   globalRank,
-  totalEntries,
   damage,
   activeTrackKey,
   activeWeaponId,
-  teamCharacterIds,
 }) => {
   const router = useRouter();
   const { getSubstatValues, statTranslations } = useGameData();
@@ -152,14 +146,6 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
 
   const activeSelectedSubstats = hasManuallyInteracted ? selectedSubstats : autoSelectedSubstats;
   const hasSelectedSubstats = activeSelectedSubstats.size > 0;
-  const useCompactRow = detailSubstatSummary.length >= 13;
-  const pillClass = useCompactRow
-    ? 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2 py-0.75 text-[13px] font-semibold text-white/92 transition-all duration-200 cursor-pointer hover:border-amber-200/65'
-    : 'inline-flex items-center gap-1.25 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 cursor-pointer hover:border-amber-200/65';
-  const summaryRowClass = useCompactRow
-    ? 'mx-auto flex w-max max-w-none flex-nowrap items-center justify-center gap-1.5'
-    : SUMMARY_PILL_ROW_CLASS;
-
   const toggleSubstat = (type: string) => {
     const key = normalizeSubstatKey(type);
     if (!key) return;
@@ -221,20 +207,11 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
             {!isDetailLoading && !detailError && detail && (
               <>
                 {/* ── LeaderboardCard — the hero visual ── */}
-                <LeaderboardCard
-                  entry={entry}
-                  detail={detail}
-                  globalRank={globalRank}
-                  totalEntries={totalEntries}
-                  damage={damage}
-                  activeTrackKey={activeTrackKey}
-                  activeWeaponId={activeWeaponId}
-                  teamCharacterIds={teamCharacterIds}
-                />
+                <LeaderboardCard entry={entry} detail={detail} />
 
                 {/* ── Substat summary pills ── */}
                 {detailSubstatSummary.length > 0 && (
-                  <div className={summaryRowClass}>
+                  <div className={LB_SUMMARY_ROW}>
                     {detailSubstatSummary.map((summary) => {
                       const isSelected = activeSelectedSubstats.has(summary.type);
                       const isDimmed = hasSelectedSubstats && !isSelected;
@@ -247,7 +224,7 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
                           type="button"
                           aria-pressed={isSelected}
                           onClick={() => toggleSubstat(summary.type)}
-                          className={`${pillClass} ${
+                          className={`${LB_SUMMARY_PILL} ${
                             isSelected
                               ? 'border-amber-300/75 opacity-100'
                               : isDimmed
@@ -258,20 +235,26 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
                         >
                           <span className="text-amber-300">x{summary.count}</span>
                           {summary.icon ? (
-                            <img src={summary.icon} alt="" className={useCompactRow ? 'h-3.5 w-3.5 object-contain' : 'h-4 w-4 object-contain'} />
+                            <img src={summary.icon} alt="" className={LB_SUMMARY_ICON} />
                           ) : (
-                            <span className={useCompactRow ? 'h-3.5 w-3.5 rounded bg-white/18' : 'h-4 w-4 rounded bg-white/18'} />
+                            <span className={LB_SUMMARY_ICON_EMPTY} />
                           )}
-                          <span className={useCompactRow ? 'text-sm' : 'text-base'}>{totalText}</span>
+                          <span className={LB_SUMMARY_VAL}>{totalText}</span>
                         </button>
                       );
                     })}
 
-                    <div className={`${useCompactRow ? 'inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.75 text-[13px] font-semibold text-white/92' : 'inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92'} ${hasSelectedSubstats ? 'border border-amber-300/75 opacity-100' : 'border border-amber-300/45 opacity-70'}`}>
+                    <div
+                      className={`${LB_SUMMARY_RV} ${
+                        hasSelectedSubstats
+                          ? 'border border-amber-300/75 opacity-100'
+                          : 'border border-amber-300/45 opacity-70'
+                      }`}
+                    >
                       <span className="text-amber-300">x{totalSelectedRolls}</span>
                       <span>•</span>
                       <span className="text-amber-300">RV</span>
-                      <span className={useCompactRow ? 'text-sm' : 'text-base'}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
+                      <span className={LB_SUMMARY_VAL}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
                     </div>
                   </div>
                 )}

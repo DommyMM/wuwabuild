@@ -157,6 +157,19 @@ export const LB_SORTABLE_GROUP_GRID = 'grid-cols-[172px_repeat(4,121px)_minmax(1
 export const DEFAULT_LB_SORT = 'damage';
 export const DEFAULT_LB_TRACK = 's0';
 
+// Expanded build substat summary row (leaderboard + profile).
+export const LB_SUMMARY_ROW = 'mx-auto flex w-max max-w-none flex-nowrap items-center justify-center gap-2';
+
+export const LB_SUMMARY_PILL = 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 cursor-pointer hover:border-amber-200/65';
+
+export const LB_SUMMARY_VAL = 'text-base';
+
+export const LB_SUMMARY_ICON = 'h-4 w-4 object-contain';
+
+export const LB_SUMMARY_ICON_EMPTY = 'h-4 w-4 rounded bg-white/18';
+
+export const LB_SUMMARY_RV = 'inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 select-none';
+
 // Sequence badge border/bg/text colors. Index = sequence level 0-6.
 export const LB_SEQ_BADGE_COLORS = [
   '', // S0 - no badge shown

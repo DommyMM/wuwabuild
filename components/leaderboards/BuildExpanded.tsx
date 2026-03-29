@@ -10,7 +10,7 @@ import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { saveDraftBuild } from '@/lib/storage';
-import { RegionBadge } from './constants';
+import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL, RegionBadge } from './constants';
 import { formatFlatStat, formatPercentStat } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
@@ -25,7 +25,6 @@ type SubstatSummaryEntry = {
 };
 
 const BASE_STATS_SET = new Set<string>(BASE_STATS);
-const SUMMARY_PILL_ROW_CLASS_NAME = 'mx-auto flex w-max max-w-none flex-nowrap items-center justify-center gap-2';
 
 const SkeletonBlock: React.FC<{ className: string }> = ({ className }) => (
   <div className={`animate-pulse rounded bg-white/8 ${className}`} />
@@ -83,7 +82,7 @@ const BuildExpandedSkeleton: React.FC = () => (
       ))}
     </div>
 
-    <div className={SUMMARY_PILL_ROW_CLASS_NAME}>
+    <div className={LB_SUMMARY_ROW}>
       {Array.from({ length: 7 }).map((_, index) => (
         <SkeletonBlock key={`summary-pill-skeleton-${index}`} className="h-9 w-26 rounded-full" />
       ))}
@@ -255,20 +254,6 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
 
   const activeSelectedSubstats = hasManuallyInteracted ? selectedSubstats : autoSelectedSubstats;
   const hasSelectedSubstats = activeSelectedSubstats.size > 0;
-  const useCompactSummaryRow = detailSubstatSummary.length >= 13;
-  const summaryRowClassName = useCompactSummaryRow
-    ? 'mx-auto flex w-max max-w-none flex-nowrap items-center justify-center gap-1.5'
-    : SUMMARY_PILL_ROW_CLASS_NAME;
-  const summaryPillClassName = useCompactSummaryRow
-    ? 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2 py-0.75 text-[13px] font-semibold text-white/92 transition-all duration-200 cursor-pointer hover:border-amber-200/65'
-    : 'inline-flex items-center gap-1.25 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 cursor-pointer hover:border-amber-200/65';
-  const summaryValueClassName = useCompactSummaryRow ? 'text-sm' : 'text-base';
-  const summaryIconClassName = useCompactSummaryRow ? 'h-3.5 w-3.5 object-contain' : 'h-4 w-4 object-contain';
-  const summaryIconFallbackClassName = useCompactSummaryRow ? 'h-3.5 w-3.5 rounded bg-white/18' : 'h-4 w-4 rounded bg-white/18';
-  const summaryRvClassName = useCompactSummaryRow
-    ? 'inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.75 text-[13px] font-semibold text-white/92 transition-all duration-200 select-none'
-    : 'inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 select-none';
-
   const toggleSubstatSelection = (type: string) => {
     const normalizedType = normalizeSubstatKey(type);
     if (!normalizedType) return;
@@ -354,7 +339,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           {!isDetailLoading && !detailError && detail && (
             <div className="min-w-0 space-y-4 overflow-hidden px-4 pb-3 pt-4">
               {detailSubstatSummary.length > 0 && (
-                <div className={summaryRowClassName}>
+                <div className={LB_SUMMARY_ROW}>
                   {detailSubstatSummary.map((summary) => {
                     const isSelected = activeSelectedSubstats.has(summary.type);
                     const isDimmed = hasSelectedSubstats && !isSelected;
@@ -368,7 +353,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                         type="button"
                         aria-pressed={isSelected}
                         onClick={() => toggleSubstatSelection(summary.type)}
-                        className={`${summaryPillClassName} ${
+                        className={`${LB_SUMMARY_PILL} ${
                           isSelected
                             ? 'border-amber-300/75 opacity-100'
                             : isDimmed
@@ -379,17 +364,17 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                       >
                         <span className="text-amber-300">x{summary.count}</span>
                         {summary.icon ? (
-                          <img src={summary.icon} alt="" className={summaryIconClassName} />
+                          <img src={summary.icon} alt="" className={LB_SUMMARY_ICON} />
                         ) : (
-                          <span className={summaryIconFallbackClassName} />
+                          <span className={LB_SUMMARY_ICON_EMPTY} />
                         )}
-                        <span className={summaryValueClassName}>{totalText}</span>
+                        <span className={LB_SUMMARY_VAL}>{totalText}</span>
                       </button>
                     );
                   })}
 
                   <div
-                    className={`${summaryRvClassName} ${
+                    className={`${LB_SUMMARY_RV} ${
                       hasSelectedSubstats
                         ? 'border border-amber-300/75 opacity-100'
                         : 'border border-amber-300/45 opacity-70'
@@ -398,7 +383,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                     <span className="text-amber-300">x{totalSelectedRolls}</span>
                     <span>•</span>
                     <span className="text-amber-300">RV</span>
-                    <span className={summaryValueClassName}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
+                    <span className={LB_SUMMARY_VAL}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
                   </div>
                 </div>
               )}
