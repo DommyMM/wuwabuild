@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
@@ -123,15 +123,16 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
 }) => {
   const { characters, fetters, statIcons, weaponList } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
-  const [isTableGateDismissed, setIsTableGateDismissed] = useState(false);
-  useEffect(() => {
-    if (!showTableGate) return;
+  const [isTableGateDismissed, setIsTableGateDismissed] = useState(() => {
+    if (!showTableGate) return false;
     try {
       const stored = localStorage.getItem('builds_gate_dismissed');
       const today = new Date().toISOString().slice(0, 10);
-      if (stored === today) setIsTableGateDismissed(true);
-    } catch {}
-  }, [showTableGate]);
+      return stored === today;
+    } catch {
+      return false;
+    }
+  });
 
   const cvSort: CVSortKey = (sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg') ? sort : 'finalCV';
   const isCvColumnActive = sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg';
