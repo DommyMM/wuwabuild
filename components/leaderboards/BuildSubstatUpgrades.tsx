@@ -27,6 +27,7 @@ interface BuildSubstatUpgradesProps {
   hasBaseDamage: boolean;
   baseDamage?: number;
   globalRank?: number;
+  showRankDelta: boolean;
   tierOptions: readonly TierOption[];
   selectedTier: string;
   onSelectTier: (tier: string) => void;
@@ -74,6 +75,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
   hasBaseDamage,
   baseDamage,
   globalRank,
+  showRankDelta,
   tierOptions,
   selectedTier,
   onSelectTier,
@@ -212,7 +214,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
                           {column.projectedRank > 0 ? (
                             <>
                               <span>{column.projectedRank.toLocaleString()}</span>
-                              {column.rankDelta !== 0 && (
+                              {showRankDelta && column.rankDelta !== 0 && (
                                 <span className="ml-1 text-xs opacity-70">
                                   ({column.rankDelta > 0 ? '+' : ''}{column.rankDelta.toLocaleString()})
                                 </span>

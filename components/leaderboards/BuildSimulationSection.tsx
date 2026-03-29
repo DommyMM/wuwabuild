@@ -59,6 +59,7 @@ type OrderedUpgradeColumn = BuildUpgradeColumn & {
   canonicalLabel: string;
   projectedRank: number;
   rankDelta: number;
+  showRankDelta: boolean;
 };
 
 function formatTrackLabel(trackKey: string): string {
@@ -198,6 +199,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const shouldLoadMoves = isExpanded && isMovesOpen;
   const shouldLoadUpgrades = isExpanded && isUpgradesOpen;
   const shouldLoadOptimality = isExpanded && isOptimalityOpen && hasBoardContext;
+  const showUpgradeRankDelta = (globalRank ?? 0) > 0;
 
   const loadMoves = useCallback((controller: AbortController) => {
     setLoadingMoveKeys((prev) => ({ ...prev, [moveKey]: true }));
@@ -403,7 +405,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
         const rollValue = getTierRollValue(getSubstatValues(label), selectedUpgradeTier) ?? 0;
         const percentGain = gain > 0 ? (gain / (baseDamage ?? 1)) * 100 : 0;
         const projectedRank = tierRankMap[key] ?? 0;
-        const rankDelta = (globalRank ?? 0) - projectedRank;
+        const rankDelta = showUpgradeRankDelta ? ((globalRank ?? 0) - projectedRank) : 0;
 
         return {
           key,
@@ -417,10 +419,11 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           isPercent,
           projectedRank,
           rankDelta,
+          showRankDelta: showUpgradeRankDelta,
         };
       })
       .filter((column) => column.gain > 0);
-  }, [activeUpgrades, baseDamage, getSubstatValues, globalRank, selectedUpgradeTier, statIcons, statTranslations, t]);
+  }, [activeUpgrades, baseDamage, getSubstatValues, globalRank, selectedUpgradeTier, showUpgradeRankDelta, statIcons, statTranslations, t]);
 
   const orderedUpgradeColumns = useMemo(
     () => canonicalUpgradeSort(upgradeColumns, statTranslations),
@@ -484,6 +487,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               hasBaseDamage={Boolean(baseDamage)}
               baseDamage={baseDamage}
               globalRank={globalRank}
+              showRankDelta={showUpgradeRankDelta}
               tierOptions={UPGRADE_TIER_OPTIONS}
               selectedTier={selectedUpgradeTier}
               onSelectTier={(tier) => setSelectedUpgradeTier(tier as UpgradeTierKey)}
