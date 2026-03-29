@@ -21,6 +21,7 @@ This doc explains provider boundaries and editor state flow in `wuwabuilds/`.
 - `BuildProvider`:
   - Holds active build state through reducer logic.
   - Persists draft changes to local storage with debounce.
+  - Can disable persistence (`persistDraft={false}`) for read-only renderers such as profile leaderboard cards.
 - `StatsProvider`:
   - Computes derived stats and CV from build + game data.
 
@@ -31,6 +32,15 @@ This doc explains provider boundaries and editor state flow in `wuwabuilds/`.
 3. Stats provider recalculates derived outputs.
 4. UI sections consume derived and raw state.
 5. Draft is persisted locally for recovery.
+
+## Route Shapes
+
+- `/edit`, `/characters/[id]`, `/weapons/[id]`:
+  - use `EditorProviders`
+  - persist draft edits locally
+- `/profile/[uid]` expanded cards:
+  - wrap leaderboard builds in `BuildProvider` + `StatsProvider`
+  - explicitly disable draft persistence
 
 ## Non-Obvious Constraints
 
@@ -44,6 +54,7 @@ This doc explains provider boundaries and editor state flow in `wuwabuilds/`.
   - max total cost 12
   - max two 4-cost echoes
   - max three 3-cost echoes
+- Watermark username / UID can be seeded from OCR and carried through save/import flows.
 
 ## Implementation Hotspots
 

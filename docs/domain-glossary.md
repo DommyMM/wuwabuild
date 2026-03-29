@@ -16,11 +16,12 @@ Common terms used by the frontend and leaderboard backend.
 - **`calculations`**: Per-weapon detailed output (`stats`, `moves`, `upgrades`).
 - **`globalRank`** (for `/leaderboard/{characterId}` rows):
   - Always returned in responses.
-  - Competitive mode (`sort=damage` with no UID/username filter): deduped competitive rank.
-  - Browse mode (stat/CV/timestamp sorts or UID/username filters): UID-best rows keep their competitive rank, non-best duplicate rows are `0`.
-  - Ghost build sidecar: always `0`.
+  - `> 0` means frontend can show a competitive rank badge.
+  - `0` means frontend should treat the row as unranked for display purposes.
+  - Ghost builds are always `0`.
 - **Ghost build**: Deep-linked build returned even if deduped out.
 - **Standings**: Rank/damage of one build across all weapon x track boards.
+- **Browse mode**: Any view where users are exploring rows rather than reading canonical competitive standings, such as non-damage sorts or direct player-filtered slices.
 
 ## Key Conventions
 
@@ -28,4 +29,3 @@ Common terms used by the frontend and leaderboard backend.
 - `upgrades` keys are snake_case.
 - Echo panel constraints: max total cost 12, max two 4-cost, max three 3-cost.
 - `ForteState` order: normal attack, skill, circuit, liberation, intro.
-

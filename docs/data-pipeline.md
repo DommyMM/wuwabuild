@@ -10,7 +10,8 @@ This doc consolidates OCR flow, sync scripts, env vars, and day-to-day commands 
 4. Next proxy forwards to OCR backend.
 5. OCR payloads are converted into saved build state.
 6. Optional leaderboard upload submits canonical build payload.
-7. Optional screenshot/report artifacts are stored in R2.
+7. Optional full-image upload goes through `/api/upload-training` and stores a hash-deduped JPG in R2.
+8. OCR issue reports are written through `/api/report-ocr-issue` and can either reference an existing uploaded image or upload one inline first.
 
 ## Data Sync Scripts
 
@@ -37,7 +38,6 @@ Required:
 - `INTERNAL_API_KEY`
 
 Optional:
-- `NEXT_PUBLIC_GA_TRACKING_ID` (production may use a fixed GA id in `app/layout.tsx` instead)
 - `NEXT_PUBLIC_POSTHOG_KEY`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `R2_ACCESS_KEY_ID`
@@ -60,3 +60,4 @@ npm run lint
 
 - Keep server-only env usage inside server boundaries and API routes.
 - Do not import server-only LB helpers into client components.
+- R2-backed OCR issue reporting should fail closed when storage is not configured; the import flow itself should still remain usable.

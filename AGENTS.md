@@ -115,7 +115,6 @@ Copy `.env.example` to `.env` for local development (never commit secrets).
 LB_URL=...                     # server-only, used by /api/lb/* proxy
 API_URL=...                    # server-only, used by /api/ocr proxy (defaults to localhost in dev)
 INTERNAL_API_KEY=...           # shared secret for LB + OCR proxies
-NEXT_PUBLIC_GA_TRACKING_ID=... # optional (prod layout may use a fixed GA id via @next/third-parties)
 NEXT_PUBLIC_POSTHOG_KEY=...    # optional
 CLOUDFLARE_ACCOUNT_ID=...      # optional, R2 screenshot/report storage
 R2_ACCESS_KEY_ID=...
@@ -128,7 +127,7 @@ R2_BUCKET_NAME=...
 ## Useful Misc Information
 
 - `lbServer.ts` is **server-only** — never import from client components. Fetches directly from `LB_URL` to avoid a server-to-self network round-trip through the API proxy.
-- Production GA: `app/layout.tsx` uses `@next/third-parties/google` with a fixed measurement id; `NEXT_PUBLIC_GA_TRACKING_ID` is optional and may be unused depending on deploy.
+- Production GA: `app/layout.tsx` uses `@next/third-parties/google` with a fixed measurement id.
 - `BuildSimulationSection` (moves + substat upgrades) requires `weaponId`, `track`, and `damage` from the parent leaderboard row — it only renders on character leaderboard pages, not the global `/builds` board.
 - Echo cost constraint: max total 12, max two 4-cost, max three 3-cost. Violations trigger purge in the LB import pipeline.
 - `ForteState` is a 5-tuple: `[[level, topNode, middleNode], ...]`, column order: normal-attack(0), skill(1), circuit(2), liberation(3), intro(4).

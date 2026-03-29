@@ -23,10 +23,20 @@ Current init path:
 - `instrumentation-client.ts`
 
 Current init settings:
+- only initializes in the browser and only in production
 - `api_host: '/ingest'`
 - `ui_host: 'https://us.posthog.com'`
 - `defaults: '2026-01-30'`
 - `capture_exceptions: true`
+
+## Pageview Behavior
+
+- With `defaults: '2026-01-30'`, PostHog inherits the newer `capture_pageview: 'history_change'` default.
+- In the installed SDK, history-change pageviews are keyed off `window.location.pathname`.
+- Practical effect for this app:
+  - route changes like `/builds` -> `/leaderboards` create pageviews
+  - query-only changes like `/builds?page=1` -> `/builds?page=2` do not create extra PostHog pageviews
+- Filter usage is intentionally measured with `discovery_filter_apply`, not pageviews.
 
 ## Event Catalog (Current)
 
@@ -145,6 +155,7 @@ Current init settings:
   - `has_username_search`: boolean
   - `echo_set_count`: number
   - `echo_main_count`: number
+  - `er_min`: number | null (leaderboard surface only)
   - `sort`: sort key
   - `direction`: `asc` | `desc`
   - `page_size`: number
@@ -170,6 +181,12 @@ Current init settings:
   - `surface`: `builds` | `leaderboard_character`
   - `character_id`: string | null
   - `track_key`: string | null
+  - `weapon_id`: string | null
+
+#### `profile_open_in_editor_click`
+- Purpose: user opens a build from the profile surface into the editor.
+- Properties:
+  - `character_id`: string | null
   - `weapon_id`: string | null
 
 ### Saves Lifecycle
@@ -212,6 +229,7 @@ Current init settings:
 - `discovery_filter_apply` emits after settled query state and dedupes by filter signature.
 - `discovery_result_expand` emits only when row goes closed -> open.
 - `leaderboard_tab_change` emits only on actual tab change.
+- Query-string changes on `/builds` and `/leaderboards/[characterId]` are allowed to happen often; use custom events for analysis instead of expecting pageview counts to reflect filter churn.
 - Do not add events on slider drag ticks, every keystroke, or every minor state mutation.
 
 ## Dashboard Blueprint
