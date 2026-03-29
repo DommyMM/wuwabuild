@@ -533,6 +533,8 @@ export interface LBLeaderboardQuery {
   echoMains?: LBEchoMainFilter[];
   track?: string;
   buildId?: string;
+  /** Minimum Energy Regen threshold (e.g. 110 = 110%+). 0 = no filter. */
+  erMin?: number;
 }
 
 export interface LBLeaderboardResponse {
@@ -547,6 +549,7 @@ export interface LBLeaderboardResponse {
   teamMembers: LBTeamMemberConfig[];
   activeWeaponId: string;
   activeTrack: string;
+  erMin: number;
 }
 
 export type LBLeaderboardCharacterConfig = Pick<
@@ -685,6 +688,7 @@ export async function listLeaderboard(
     teamMembers?: unknown[];
     activeWeaponId?: unknown;
     activeTrack?: unknown;
+    erMin?: unknown;
   };
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
   const builds: LBLeaderboardEntry[] = [];
@@ -722,6 +726,7 @@ export async function listLeaderboard(
     teamMembers: parseTeamMembers(payload.teamMembers),
     activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
     activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
+    erMin: toFiniteNumber(payload.erMin, 0),
   };
 }
 
@@ -737,6 +742,7 @@ export function buildLeaderboardSearchParams(query: LBLeaderboardQuery): URLSear
   if (query.uid) params.set('uid', query.uid);
   if (query.username) params.set('username', query.username);
   if (query.buildId) params.set('buildId', query.buildId);
+  if (query.erMin) params.set('erMin', String(query.erMin));
   appendStringParams(params, 'region', query.regionPrefixes);
   const leaderboardEchoSets = serializeEchoSetFilters(query.echoSets);
   if (leaderboardEchoSets) params.set('echoSets', leaderboardEchoSets);

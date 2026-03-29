@@ -81,6 +81,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => initialSnapshot.regionPrefixes);
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialSnapshot.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialSnapshot.echoMains);
+  const [erMin, setErMin] = useState<number>(() => initialSnapshot.erMin);
   const [filterQuery, setFilterQuery] = useState('');
 
   const leaderboardSigRef = useRef(leaderboardSignature(initialData?.builds ?? [], initialData?.total ?? 0));
@@ -135,6 +136,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     echoSets,
     echoMains,
     buildId: activeBuildId,
+    erMin,
   }, {
     defaultWeaponId,
     defaultTrack: defaultTrackKey,
@@ -206,7 +208,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     sort,
     direction,
     pageSize,
-  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sort, direction, pageSize]);
+    erMin,
+  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sort, direction, pageSize, erMin]);
 
   useEffect(() => {
     if (!settledQueryKey) return;
@@ -223,11 +226,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       has_username_search: username.trim().length > 0,
       echo_set_count: echoSets.length,
       echo_main_count: echoMains.length,
+      er_min: erMin || null,
       sort,
       direction,
       page_size: pageSize,
     });
-  }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, settledQueryKey, sort, track, uid, username, weaponId]);
+  }, [characterId, direction, echoMains.length, echoSets.length, erMin, filterSignature, pageSize, queryKey, regionPrefixes.length, settledQueryKey, sort, track, uid, username, weaponId]);
 
   // Fetch leaderboard data
   useEffect(() => {
@@ -411,6 +415,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     setUsername('');
     setEchoSets([]);
     setEchoMains([]);
+    setErMin(0);
     setFilterQuery('');
     setPage(1);
   }, []);
@@ -507,6 +512,18 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                     tab_kind: 'track',
                   });
                   setTrack(trackKey);
+                  setPage(1);
+                }}
+                erMin={erMin}
+                onSelectErMin={(value) => {
+                  posthog.capture('leaderboard_tab_change', {
+                    character_id: characterId,
+                    weapon_id: weaponId || null,
+                    track_key: track,
+                    tab_kind: 'er_bracket',
+                    er_min: value,
+                  });
+                  setErMin(value);
                   setPage(1);
                 }}
               />

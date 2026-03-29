@@ -17,6 +17,8 @@ export interface LeaderboardQuerySnapshot {
   echoMains: LBEchoMainFilter[];
   /** Deep-link: auto-expand this build. Sent to API for ghost build resolution. */
   buildId: string;
+  /** Minimum Energy Regen threshold (e.g. 110 = 110%+). 0 = no filter. */
+  erMin: number;
 }
 
 export interface LeaderboardQueryDefaults {
@@ -93,6 +95,7 @@ export function resolveLeaderboardQuerySnapshot(
     echoSets: snapshot.echoSets ?? [],
     echoMains: snapshot.echoMains ?? [],
     buildId: snapshot.buildId?.trim() ?? '',
+    erMin: Number.isFinite(snapshot.erMin) && (snapshot.erMin ?? 0) > 0 ? Math.trunc(snapshot.erMin as number) : 0,
   };
 }
 
@@ -120,6 +123,7 @@ export function parseInitialLeaderboardQuery(
     regionPrefixes: parseCSV(searchParams.get('regions')),
     echoSets: parseEchoSetCSV(searchParams.get('sets')),
     echoMains: parseEchoMainCSV(searchParams.get('mains')),
+    erMin: parsePositiveInt(searchParams.get('erMin'), 0),
   }, {
     defaultPage,
     defaultPageSize,
@@ -150,6 +154,7 @@ export function serializeLeaderboardQuery(
   if (resolved.uid) params.set('uid', resolved.uid);
   if (resolved.username) params.set('username', resolved.username);
   if (resolved.buildId) params.set('buildId', resolved.buildId);
+  if (resolved.erMin > 0) params.set('erMin', String(resolved.erMin));
   if (resolved.regionPrefixes.length) params.set('regions', resolved.regionPrefixes.join(','));
   if (resolved.echoSets.length) {
     params.set('sets', resolved.echoSets.map((entry) => `${entry.count}~${entry.setId}`).join('.'));
@@ -187,6 +192,7 @@ export function leaderboardSnapshotToApiQuery(
     echoSets: resolved.echoSets.length ? resolved.echoSets : undefined,
     echoMains: resolved.echoMains.length ? resolved.echoMains : undefined,
     buildId: resolved.buildId || undefined,
+    erMin: resolved.erMin > 0 ? resolved.erMin : undefined,
   };
 }
 

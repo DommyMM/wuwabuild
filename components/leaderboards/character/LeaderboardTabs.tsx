@@ -114,6 +114,43 @@ const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelec
   );
 };
 
+const ER_BRACKETS = [0, 110, 120, 130, 140, 150, 160] as const;
+type ErBracket = typeof ER_BRACKETS[number];
+
+interface ErBracketTabsProps {
+  erMin: number;
+  onSelect: (value: ErBracket) => void;
+}
+
+const ErBracketTabs: React.FC<ErBracketTabsProps> = ({ erMin, onSelect }) => (
+  <div className="space-y-2">
+    <div className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-text-primary/40">
+      ER Bracket
+    </div>
+    <div className="flex flex-wrap justify-center gap-1.5">
+      {ER_BRACKETS.map((bracket) => {
+        const isActive = erMin === bracket;
+        const label = bracket === 0 ? 'All' : `${bracket}%+`;
+        return (
+          <button
+            key={bracket}
+            type="button"
+            onClick={() => onSelect(bracket)}
+            className={[
+              'cursor-pointer rounded-lg border px-3 py-1 text-xs font-semibold tracking-wide transition-all duration-150',
+              isActive
+                ? 'border-amber-300/35 bg-[linear-gradient(180deg,rgba(166,150,98,0.22)_0%,rgba(0,0,0,0.34)_100%)] text-amber-50 shadow-[0_2px_8px_rgba(0,0,0,0.22)]'
+                : 'border-border/60 bg-white/4 text-text-primary/55 hover:border-accent/30 hover:bg-accent/8 hover:text-text-primary/80',
+            ].join(' ')}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
 interface LeaderboardTabsProps {
   weaponIds: string[];
   weaponIndex: number;
@@ -121,6 +158,8 @@ interface LeaderboardTabsProps {
   tracks: LBTrack[];
   activeTrack: string;
   onSelectTrack: (trackKey: string) => void;
+  erMin: number;
+  onSelectErMin: (value: ErBracket) => void;
 }
 
 export const LeaderboardTabs: React.FC<LeaderboardTabsProps> = ({
@@ -130,9 +169,12 @@ export const LeaderboardTabs: React.FC<LeaderboardTabsProps> = ({
   tracks,
   activeTrack,
   onSelectTrack,
+  erMin,
+  onSelectErMin,
 }) => (
   <div className="space-y-4">
     <TrackTabs tracks={tracks} activeTrack={activeTrack} onSelect={onSelectTrack} />
     <WeaponTabs weaponIds={weaponIds} weaponIndex={weaponIndex} onSelect={onSelectWeapon} />
+    <ErBracketTabs erMin={erMin} onSelect={onSelectErMin} />
   </div>
 );
