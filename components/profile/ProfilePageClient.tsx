@@ -19,6 +19,8 @@ import { ProfileBuildExpanded } from './ProfileBuildExpanded';
 // Profile table: no Owner column. Name gets the freed space (wider).
 // # | Name | Weapon | Seq | Sets | [CV + 4 stats]
 const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_72px_80px_88px_minmax(0,1fr)]';
+const PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS = 'max-w-360';
+const PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS = 'max-w-[1620px]';
 
 function buildListSignature(builds: LBBuildRowEntry[], total: number): string {
   return `${total}:${builds.map((b) => `${b.id}:${b.cv}:${b.timestamp}:${b.weapon.id}`).join(',')}`;
@@ -248,6 +250,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => 
   useEffect(() => (() => { abortAllDetailRequests(); }), [abortAllDetailRequests]);
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
+  const hasExpandedBuild = expandedBuildIds.size > 0;
   const rankStart = (() => {
     if (total <= 0) return 1;
     if (page === normalizedPageCount) return Math.max(1, total - builds.length + 1);
@@ -279,43 +282,44 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => 
 
   return (
     <main className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
-      <div className="mx-auto w-full max-w-360 space-y-4 p-3 px-0 md:p-5">
-
-        {/* ── Profile Header ── */}
-        <section className="relative overflow-hidden rounded-xl border border-border bg-background-secondary px-6 py-5">
+      <div
+        className={`mx-auto w-full space-y-4 p-3 px-0 transition-[max-width] duration-300 ease-out md:p-5 ${
+          hasExpandedBuild ? PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS : PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS
+        }`}
+      >
+        <section className="relative overflow-visible rounded-xl border border-border bg-background-secondary">
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top_left,rgba(166,150,98,0.10),transparent_55%)]" />
-          <div className="relative flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-2xl font-bold text-text-primary/50 select-none">
-              {profileUsername.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                {regionBadge && (
-                  <span className={`rounded px-2 py-0.5 text-xs font-semibold ${regionBadge.className}`}>
-                    {regionBadge.label}
-                  </span>
-                )}
-                <h1 className="text-2xl font-bold tracking-wide text-text-primary">{profileUsername}</h1>
+          <div className="relative overflow-hidden rounded-[inherit]">
+            <div className="border-b border-border/70 px-6 py-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-2xl font-bold text-text-primary/50 select-none">
+                  {profileUsername.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    {regionBadge && (
+                      <span className={`rounded px-2 py-0.5 text-xs font-semibold ${regionBadge.className}`}>
+                        {regionBadge.label}
+                      </span>
+                    )}
+                    <h1 className="text-2xl font-bold tracking-wide text-text-primary">{profileUsername}</h1>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-3 text-sm text-text-primary/55">
+                    <span>UID {uid}</span>
+                    {total > 0 && (
+                      <span className="rounded-md border border-border bg-background/60 px-2 py-0.5 text-xs">
+                        {total.toLocaleString()} build{total !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="mt-0.5 flex items-center gap-3 text-sm text-text-primary/55">
-                <span>UID {uid}</span>
-                {total > 0 && (
-                  <span className="rounded-md border border-border bg-background/60 px-2 py-0.5 text-xs">
-                    {total.toLocaleString()} build{total !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
             </div>
-          </div>
-        </section>
 
-        {/* ── Builds Table ── */}
-        <section className="relative overflow-visible rounded-xl border border-border bg-background-secondary px-4 py-2">
-          <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.08),transparent_58%)]" />
-          <div className="relative">
-            <div className="mt-2 space-y-3 pt-2">
-              <div className="relative z-40">
-                <BuildFiltersPanel
+            <div className="px-4 py-3">
+              <div className="space-y-3">
+                <div className="relative z-40">
+                  <BuildFiltersPanel
                   sort={sort}
                   direction={direction}
                   pageSize={pageSize}
@@ -370,36 +374,37 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => 
                     setEchoSets([]); setEchoMains([]); setFilterQuery(''); setPage(DEFAULT_PAGE);
                   }}
                   onPageSizeChange={(value) => { setPageSize(clampItemsPerPage(value)); setPage(1); }}
-                />
-              </div>
+                  />
+                </div>
 
-              <div className="relative z-10">
-                <GlobalBoardResultsPanel
-                  builds={builds}
-                  expandedBuildIds={expandedBuildIds}
-                  detailById={detailById}
-                  detailLoadingById={detailLoadingById}
-                  detailErrorById={detailErrorById}
-                  total={total}
-                  page={page}
-                  pageCount={normalizedPageCount}
-                  pageSize={pageSize}
-                  rankStart={rankStart}
-                  isLoading={isLoading}
-                  isRefreshing={isRefreshing}
-                  error={error}
-                  sort={sort}
-                  direction={direction}
-                  onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
-                  onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
-                  onPageChange={setPage}
-                  onToggleExpand={handleToggleExpand}
-                  onRetryDetail={handleRetryDetail}
-                  renderExpanded={renderExpanded}
-                  tableGrid={PROFILE_TABLE_GRID}
-                  showOwner={false}
-                  showTableGate={false}
-                />
+                <div className="relative z-10">
+                  <GlobalBoardResultsPanel
+                    builds={builds}
+                    expandedBuildIds={expandedBuildIds}
+                    detailById={detailById}
+                    detailLoadingById={detailLoadingById}
+                    detailErrorById={detailErrorById}
+                    total={total}
+                    page={page}
+                    pageCount={normalizedPageCount}
+                    pageSize={pageSize}
+                    rankStart={rankStart}
+                    isLoading={isLoading}
+                    isRefreshing={isRefreshing}
+                    error={error}
+                    sort={sort}
+                    direction={direction}
+                    onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
+                    onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
+                    onPageChange={setPage}
+                    onToggleExpand={handleToggleExpand}
+                    onRetryDetail={handleRetryDetail}
+                    renderExpanded={renderExpanded}
+                    tableGrid={PROFILE_TABLE_GRID}
+                    showOwner={false}
+                    showTableGate={false}
+                  />
+                </div>
               </div>
             </div>
           </div>

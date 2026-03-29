@@ -183,7 +183,7 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
           transition={{ duration: 0.22, ease: 'easeInOut' }}
           className="overflow-x-visible overflow-y-hidden border-t border-border/50 bg-black/15 tracking-wide"
         >
-          <div className="mx-auto w-full max-w-330 space-y-4 px-4 pt-5 pb-3">
+          <div className="mx-auto w-full max-w-[1472px] space-y-4 px-4 pt-5 pb-3">
             {isDetailLoading && (
               <div className="flex items-center justify-center gap-3 py-8 text-sm text-text-primary/55">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
