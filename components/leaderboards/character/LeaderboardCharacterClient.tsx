@@ -123,6 +123,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     if (ctx.track && track !== ctx.track) return undefined;
     return deepLinkBuildId;
   }, [deepLinkBuildId, weaponId, track]);
+  const activeTrackConfig = useMemo(
+    () => configTracks.find((entry) => entry.key === track),
+    [configTracks, track],
+  );
   const currentQuerySnapshot = useMemo(() => resolveLeaderboardQuerySnapshot({
     page,
     pageSize,
@@ -140,7 +144,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   }, {
     defaultWeaponId,
     defaultTrack: defaultTrackKey,
-  }), [activeBuildId, defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
+  }), [activeBuildId, defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, erMin, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
   const leaderboardQuery = useMemo(
     () => leaderboardSnapshotToApiQuery(currentQuerySnapshot),
     [currentQuerySnapshot],
@@ -168,6 +172,13 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     if (urlTrack && urlTrack !== track) setTrack(urlTrack);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParamsString]);
+
+  useEffect(() => {
+    const validBrackets = activeTrackConfig?.erBrackets?.length ? activeTrackConfig.erBrackets : [110, 120, 130, 140, 150];
+    if (erMin === 0 || validBrackets.includes(erMin)) return;
+    setErMin(0);
+    setPage(1);
+  }, [activeTrackConfig, erMin]);
 
   // URL sync
   useEffect(() => {
@@ -459,7 +470,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     uid.trim().length > 0 ||
     username.trim().length > 0 ||
     echoSets.length > 0 ||
-    echoMains.length > 0
+    echoMains.length > 0 ||
+    erMin > 0
   );
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -484,8 +496,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               teamMembers={configTeamMembers}
               activeWeaponId={weaponId}
               activeTrackKey={track}
-              activeTrackLabel={configTracks.find((t) => t.key === track)?.label}
-              activeTrackNote={configTracks.find((t) => t.key === track)?.note}
+              activeTrackLabel={activeTrackConfig?.label}
+              activeTrackNote={activeTrackConfig?.note}
             />
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
               <LeaderboardTabs

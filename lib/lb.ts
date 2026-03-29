@@ -487,6 +487,7 @@ export interface LBTrack {
   key: string;
   label: string;
   note?: string;
+  erBrackets?: number[];
 }
 
 export function isHealTrackKey(trackKey: string | null | undefined): boolean {
@@ -602,6 +603,11 @@ function parseTracks(raw: unknown): LBTrack[] {
       key: typeof track.key === 'string' ? track.key : '',
       label: typeof track.label === 'string' ? track.label : '',
       note: typeof track.note === 'string' ? track.note : undefined,
+      erBrackets: Array.isArray(track.erBrackets)
+        ? track.erBrackets
+          .map((value) => toFiniteNumber(value, 0))
+          .filter((value) => Number.isFinite(value) && value > 0)
+        : undefined,
     }))
     .filter((track) => track.key.length > 0);
 }
