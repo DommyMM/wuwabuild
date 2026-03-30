@@ -1401,53 +1401,61 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
         # Check if this move is party-scoped.
         lower = resolved.lower()
         if any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES):
-            for cap_m in _RE_UP_TO_CAP.finditer(resolved):
-                cap_val = float(cap_m.group(1))
-                after_cap = resolved[cap_m.end():cap_m.end() + 60].lstrip()
-                stat_m = _STAT_RE.match(after_cap)
-                if stat_m:
-                    stat_name = _stat_name_for_match(stat_m)
-                    if stat_name == "Crit Rate":
-                        party_buffs.append({"type": "critRate", "value": cap_val})
-                        continue
-                    if stat_name == "Crit DMG":
-                        party_buffs.append({"type": "critDMG", "value": cap_val})
-                        continue
+            # Crit Rate/DMG and ATK cap-values must be extracted at sentence level so
+            # that a party-scope phrase in one sentence (e.g. a DEF team buff) does not
+            # cause self-only stat buffs in a different sentence to be misclassified as
+            # party buffs (e.g. Mornye's CriticalProtocol ER-scaled self crit).
+            for sentence in _split_buff_sentences(resolved):
+                if not any(phrase in sentence.lower() for phrase in _PARTY_SCOPE_PHRASES):
+                    continue
 
-                before_cap = resolved[max(0, cap_m.start() - 60):cap_m.start()]
-                stat_back_m = None
-                for sm in _STAT_RE.finditer(before_cap):
-                    stat_back_m = sm
-                if stat_back_m:
-                    stat_name = _stat_name_for_match(stat_back_m)
-                    if stat_name == "Crit Rate":
-                        party_buffs.append({"type": "critRate", "value": cap_val})
-                    elif stat_name == "Crit DMG":
-                        party_buffs.append({"type": "critDMG", "value": cap_val})
+                for cap_m in _RE_UP_TO_CAP.finditer(sentence):
+                    cap_val = float(cap_m.group(1))
+                    after_cap = sentence[cap_m.end():cap_m.end() + 60].lstrip()
+                    stat_m = _STAT_RE.match(after_cap)
+                    if stat_m:
+                        stat_name = _stat_name_for_match(stat_m)
+                        if stat_name == "Crit Rate":
+                            party_buffs.append({"type": "critRate", "value": cap_val})
+                            continue
+                        if stat_name == "Crit DMG":
+                            party_buffs.append({"type": "critDMG", "value": cap_val})
+                            continue
 
-            for cap_m in _RE_UP_TO_POINTS.finditer(resolved):
-                cap_val = float(cap_m.group(1))
-                before_cap = resolved[max(0, cap_m.start() - 80):cap_m.start()]
-                stat_back_m = None
-                for sm in _STAT_RE.finditer(before_cap):
-                    stat_back_m = sm
-                if stat_back_m and _stat_name_for_match(stat_back_m) == "ATK":
-                    party_buffs.append({"type": "atkFlat", "value": cap_val})
+                    before_cap = sentence[max(0, cap_m.start() - 60):cap_m.start()]
+                    stat_back_m = None
+                    for sm in _STAT_RE.finditer(before_cap):
+                        stat_back_m = sm
+                    if stat_back_m:
+                        stat_name = _stat_name_for_match(stat_back_m)
+                        if stat_name == "Crit Rate":
+                            party_buffs.append({"type": "critRate", "value": cap_val})
+                        elif stat_name == "Crit DMG":
+                            party_buffs.append({"type": "critDMG", "value": cap_val})
 
-            for b in _extract_buffs(resolved):
-                stat = b["stat"]
-                val = b["value"]
-                if stat == "Crit Rate":
-                    if not any(pb["type"] == "critRate" for pb in party_buffs):
-                        party_buffs.append({"type": "critRate", "value": val})
-                elif stat == "Crit DMG":
-                    if not any(pb["type"] == "critDMG" for pb in party_buffs):
-                        party_buffs.append({"type": "critDMG", "value": val})
-                elif stat in ("ATK", "ATK%"):
-                    party_buffs.append({"type": "atkPercentage", "value": val})
+                for cap_m in _RE_UP_TO_POINTS.finditer(sentence):
+                    cap_val = float(cap_m.group(1))
+                    before_cap = sentence[max(0, cap_m.start() - 80):cap_m.start()]
+                    stat_back_m = None
+                    for sm in _STAT_RE.finditer(before_cap):
+                        stat_back_m = sm
+                    if stat_back_m and _stat_name_for_match(stat_back_m) == "ATK":
+                        party_buffs.append({"type": "atkFlat", "value": cap_val})
 
-            for entry in _extract_amplify_buffs(resolved):
-                party_buffs.append(entry)
+                for b in _extract_buffs(sentence):
+                    stat = b["stat"]
+                    val = b["value"]
+                    if stat == "Crit Rate":
+                        if not any(pb["type"] == "critRate" for pb in party_buffs):
+                            party_buffs.append({"type": "critRate", "value": val})
+                    elif stat == "Crit DMG":
+                        if not any(pb["type"] == "critDMG" for pb in party_buffs):
+                            party_buffs.append({"type": "critDMG", "value": val})
+                    elif stat in ("ATK", "ATK%"):
+                        party_buffs.append({"type": "atkPercentage", "value": val})
+
+                for entry in _extract_amplify_buffs(sentence):
+                    party_buffs.append(entry)
 
             # Explicit team-scoped elemental DMG wording like Ciaccona Solo Concert.
             for sentence in _split_buff_sentences(resolved):
