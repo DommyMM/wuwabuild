@@ -1,31 +1,5 @@
 import type { ImportRegion } from './types';
 
-// Read DPI from a PNG file's pHYs chunk (client-side, first 512 bytes only).
-// Returns the DPI value if the chunk specifies meters as the unit, otherwise null.
-export async function getImageDpi(file: File): Promise<number | null> {
-  const buf = await file.slice(0, 512).arrayBuffer();
-  const view = new DataView(buf);
-  // Check PNG signature
-  if (view.getUint32(0) !== 0x89504e47) return null;
-  let offset = 8;
-  while (offset + 12 <= buf.byteLength) {
-    const chunkLen  = view.getUint32(offset);
-    const chunkType = String.fromCharCode(
-      view.getUint8(offset + 4), view.getUint8(offset + 5),
-      view.getUint8(offset + 6), view.getUint8(offset + 7),
-    );
-    if (chunkType === 'pHYs' && chunkLen === 9) {
-      const ppuX = view.getUint32(offset + 8);
-      const unit = view.getUint8(offset + 16);
-      if (unit === 1) return Math.round(ppuX / 39.3701); // pixels per metre → DPI
-      return null; // unit unknown (not metre)
-    }
-    if (chunkType === 'IDAT' || chunkType === 'IEND') break;
-    offset += 12 + chunkLen;
-  }
-  return null;
-}
-
 // Load a File into an HTMLImageElement
 export function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

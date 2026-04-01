@@ -3,7 +3,7 @@ import { LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardQuery, LBLeaderboardSor
 import { parsePositiveInt, parseCSV, parseEchoSetCSV, parseEchoMainCSV } from '../queryHelpers';
 import { DEFAULT_LB_SORT, DEFAULT_LB_TRACK } from '../constants';
 
-export interface LeaderboardQuerySnapshot {
+interface LeaderboardQuerySnapshot {
   page: number;
   pageSize: number;
   sort: LBLeaderboardSortKey;
@@ -21,7 +21,7 @@ export interface LeaderboardQuerySnapshot {
   erMin: number;
 }
 
-export interface LeaderboardQueryDefaults {
+interface LeaderboardQueryDefaults {
   defaultPage?: number;
   defaultPageSize?: number;
   defaultSort?: LBLeaderboardSortKey;
@@ -35,7 +35,7 @@ interface ParseInitialLeaderboardQueryOptions extends LeaderboardQueryDefaults {
   tracks?: LBTrack[];
 }
 
-export type SearchParamRecord = Record<string, string | string[] | undefined>;
+type SearchParamRecord = Record<string, string | string[] | undefined>;
 
 function resolveDirection(value: string | null | undefined, fallback: LBSortDirection): LBSortDirection {
   return value === 'asc' || value === 'desc' ? value : fallback;

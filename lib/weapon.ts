@@ -84,12 +84,6 @@ export interface Weapon {
   mainStatI18n?: I18nString;
 }
 
-export interface WeaponState {
-  id: string | null;
-  level: number;
-  rank: number;
-}
-
 // CDN weapon type.id → WeaponType enum
 const WEAPON_TYPE_MAP: Record<number, WeaponType> = {
   1: WeaponType.Broadblade,

@@ -28,7 +28,7 @@ export const matchesEchoBonusCondition = (
 
 // First-panel conditional/unconditional stat bonuses per echo
 
-export interface EchoBonus {
+interface EchoBonus {
   stat: StatName;
   value: number;
   characterCondition?: string[];
@@ -42,7 +42,7 @@ export const hasPhantomVariant = (echo: Echo): boolean =>
 
 // Unconditional passive stat bonuses from resonance chains
 
-export interface SequenceBonus {
+interface SequenceBonus {
   minSequence: number;
   stat: StatName;
   value: number;

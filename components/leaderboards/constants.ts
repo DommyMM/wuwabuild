@@ -2,7 +2,7 @@ import { LBSortDirection, LBSortKey, LBStatSortKey } from '@/lib/lb';
 
 export const ITEMS_PER_PAGE = 12;
 export const MAX_ITEMS_PER_PAGE = 100;
-export const MIN_ITEMS_PER_PAGE = 1;
+const MIN_ITEMS_PER_PAGE = 1;
 
 export function clampItemsPerPage(value: number): number {
   if (!Number.isFinite(value)) return ITEMS_PER_PAGE;
@@ -10,7 +10,6 @@ export function clampItemsPerPage(value: number): number {
   return Math.min(MAX_ITEMS_PER_PAGE, Math.max(MIN_ITEMS_PER_PAGE, parsed));
 }
 
-export const IDENTITY_DEBOUNCE_MS = 350;
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_SORT: LBSortKey = 'finalCV';
 export const DEFAULT_DIRECTION: LBSortDirection = 'desc';
@@ -138,7 +137,6 @@ export const PAGINATION_BUTTON_CLASS = 'inline-flex h-7.5 w-7.5 cursor-pointer i
 export const PAGE_INDICATOR_CLASS = 'inline-flex h-7.5 w-7.5 items-center justify-center rounded border border-border bg-background text-xs text-text-primary';
 
 export const ACTIVE_SORT_COLUMN_CLASS = 'bg-black/28';
-export const ACTIVE_HEADER_TOP_BORDER_CLASS = 'border-accent/85';
 
 // Index = sequence level 0–6
 export const SEQUENCE_BADGE_STYLES = [
@@ -192,9 +190,3 @@ export function stripLBSeqPrefix(label: string): string {
   return label.replace(/^S\d+\s+/, '');
 }
 
-/** Generate a short description for a leaderboard track. */
-export function getLBTrackExcerpt(trackKey: string, teamCount: number): string {
-  const isSolo = trackKey.includes('solo') || teamCount === 0;
-  if (isSolo) return 'Solo benchmark - no external team buffs applied.';
-  return `Full team benchmark with ${teamCount} support resonator${teamCount !== 1 ? 's' : ''}.`;
-}

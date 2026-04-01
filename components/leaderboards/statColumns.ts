@@ -23,7 +23,7 @@ const DISPLAY_STAT_CODE_MAP: Record<string, StatSortKey> = {
   'Spectro DMG': 'spectro_dmg',
 };
 
-export function resolvePrimaryScalingStatKey(baseScaling: string | undefined): StatSortKey {
+function resolvePrimaryScalingStatKey(baseScaling: string | undefined): StatSortKey {
   if (baseScaling === 'HP') return 'hp';
   if (baseScaling === 'DEF') return 'def';
   return 'atk';
@@ -40,7 +40,7 @@ export function resolveCharacterBaseScaling(character: Character | null): 'ATK' 
   return 'ATK';
 }
 
-export function resolveElementStatKey(characterElement: string | undefined): StatSortKey | null {
+function resolveElementStatKey(characterElement: string | undefined): StatSortKey | null {
   if (characterElement === 'Aero') return 'aero_dmg';
   if (characterElement === 'Glacio') return 'glacio_dmg';
   if (characterElement === 'Fusion') return 'fusion_dmg';
@@ -50,7 +50,7 @@ export function resolveElementStatKey(characterElement: string | undefined): Sta
   return null;
 }
 
-export function pickHighestStatKey(
+function pickHighestStatKey(
   candidateKeys: readonly StatSortKey[],
   stats: Record<LBStatCode, number>,
   excluded: ReadonlySet<StatSortKey>,

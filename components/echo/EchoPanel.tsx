@@ -46,7 +46,7 @@ function EchoName({ text, className }: { text: string; className?: string }) {
   );
 }
 
-export interface DragHandleProps {
+interface DragHandleProps {
   [key: string]: unknown;
   role?: string;
   tabIndex?: number;

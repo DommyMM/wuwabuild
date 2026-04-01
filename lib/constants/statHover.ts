@@ -105,12 +105,3 @@ export const normalizeStatHoverKey = (value: string | null | undefined): StatHov
   const normalized = normalizeToken(value);
   return STAT_HOVER_ALIAS_MAP[normalized] ?? null;
 };
-
-export const isStatHoverMatch = (
-  target: StatHoverKey | string | null | undefined,
-  active: StatHoverKey | null
-): boolean => {
-  if (!active) return false;
-  const targetKey = typeof target === 'string' ? normalizeStatHoverKey(target) : target;
-  return targetKey === active;
-};

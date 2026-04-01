@@ -32,13 +32,13 @@ export type LBLeaderboardSortKey = Exclude<LBSortKey, 'characterId'> | 'damage';
 
 export type LBSortDirection = 'asc' | 'desc';
 
-export interface LBStatEntry {
+interface LBStatEntry {
   code: LBStatCode;
   sortKey: LBStatSortKey;
   label: string;
 }
 
-export const LB_STAT_ENTRIES: LBStatEntry[] = [
+const LB_STAT_ENTRIES: LBStatEntry[] = [
   { code: 'A', sortKey: 'atk', label: 'ATK' },
   { code: 'H', sortKey: 'hp', label: 'HP' },
   { code: 'D', sortKey: 'def', label: 'DEF' },
@@ -142,7 +142,7 @@ export interface LBEchoMainFilter {
   statType: string;
 }
 
-export interface LBListBuildsQuery {
+interface LBListBuildsQuery {
   page?: number;
   pageSize?: number;
   sort?: LBSortKey;
@@ -553,12 +553,7 @@ export interface LBLeaderboardResponse {
   erMin: number;
 }
 
-export type LBLeaderboardCharacterConfig = Pick<
-  LBLeaderboardResponse,
-  'weaponIds' | 'tracks' | 'teamCharacterIds' | 'teamMembers' | 'activeWeaponId' | 'activeTrack'
->;
-
-export interface LBSubmitBuildResult {
+interface LBSubmitBuildResult {
   id: string;
   requestId?: string;
   action: string;
@@ -755,27 +750,6 @@ export function buildLeaderboardSearchParams(query: LBLeaderboardQuery): URLSear
   const leaderboardEchoMains = serializeEchoMainFilters(query.echoMains);
   if (leaderboardEchoMains) params.set('echoMains', leaderboardEchoMains);
   return params;
-}
-
-export async function getLeaderboardCharacterConfig(
-  characterId: string,
-  signal?: AbortSignal,
-): Promise<LBLeaderboardCharacterConfig> {
-  const response = await listLeaderboard(characterId, {
-    page: 1,
-    pageSize: 1,
-    sort: 'damage',
-    direction: 'desc',
-  }, signal);
-
-  return {
-    weaponIds: response.weaponIds,
-    tracks: response.tracks,
-    teamCharacterIds: response.teamCharacterIds,
-    teamMembers: response.teamMembers,
-    activeWeaponId: response.activeWeaponId,
-    activeTrack: response.activeTrack,
-  };
 }
 
 // Build by ID

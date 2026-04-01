@@ -31,7 +31,7 @@ interface TextSegment {
   state: MarkupState;
 }
 
-export interface RenderTemplateWithHighlightsArgs {
+interface RenderTemplateWithHighlightsArgs {
   template: string;
   getParamValue: (index: number) => string | null;
   highlightClassName?: string;
@@ -39,7 +39,7 @@ export interface RenderTemplateWithHighlightsArgs {
   unknownPlaceholderClassName?: string;
 }
 
-export interface FetterPieceDescriptionResult {
+interface FetterPieceDescriptionResult {
   renderedParts: ReactNode;
   unresolvedCount: number;
 }
@@ -200,7 +200,7 @@ const renderTextSegmentWithHighlights = (
   return parts;
 };
 
-export const renderTemplateWithHighlights = ({
+const renderTemplateWithHighlights = ({
   template,
   getParamValue,
   highlightClassName = 'text-cyan-200 font-semibold',
@@ -314,26 +314,6 @@ export const resolveFetterPieceDescription = (
     unresolvedCount,
   };
 };
-
-export const resolveTemplateFromValues = ({
-  template,
-  values,
-  keepUnknownPlaceholders = true,
-  highlightClassName = 'text-cyan-200 font-semibold',
-  unknownPlaceholderClassName = 'text-amber-200/90 font-semibold',
-}: ResolveTemplateFromValuesOptions): ReactNode => renderTemplateWithHighlights({
-  template,
-  getParamValue: (index) => {
-    if (index < 0 || index >= values.length) return null;
-    const value = values[index];
-    if (value == null) return null;
-    const normalized = String(value).trim();
-    return normalized.length > 0 ? normalized : null;
-  },
-  keepUnknownPlaceholders,
-  highlightClassName,
-  unknownPlaceholderClassName,
-});
 
 export const resolveGameTemplateFromValues = ({
   template,

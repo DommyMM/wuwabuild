@@ -1,19 +1,19 @@
 import React from 'react';
 import { OverflowMarquee } from '@/components/ui/OverflowMarquee';
 
-export function formatStatValue(value: number | string | null | undefined): string {
+function formatStatValue(value: number | string | null | undefined): string {
     if (value === null || value === undefined) return '';
     if (typeof value === 'string') return value;
     if (Number.isInteger(value)) return String(value);
     return value.toFixed(1).replace(/\.0$/, '');
 }
 
-export interface EchoStatSubStat {
+interface EchoStatSubStat {
     type?: string | null;
     value?: number | string | null;
 }
 
-export interface EchoStatPreviewProps {
+interface EchoStatPreviewProps {
     icon?: string | null;
     name?: string;
     level?: number;

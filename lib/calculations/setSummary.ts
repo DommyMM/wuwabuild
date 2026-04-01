@@ -1,6 +1,6 @@
 import { Echo, EchoPanelState, ElementType } from '@/lib/echo';
 
-export interface BuildSetCount {
+interface BuildSetCount {
   element: ElementType;
   count: number;
 }

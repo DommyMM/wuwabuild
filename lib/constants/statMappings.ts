@@ -2,7 +2,6 @@ export const BASE_STATS = ['HP', 'ATK', 'DEF'] as const;
 export type BaseStatName = typeof BASE_STATS[number];
 
 export type BasePercentStatName = `${BaseStatName}%`;
-export const BASE_PERCENT_STATS = BASE_STATS.map((stat) => `${stat}%`) as readonly BasePercentStatName[];
 
 export const ELEMENTAL_DMG_STATS = [
   'Aero DMG',

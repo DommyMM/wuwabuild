@@ -20,7 +20,7 @@ interface SubstatData {
 }
 
 // Raw JSON shape as loaded from files/fetch, exported for use in layout.tsx
-export interface RawGameData {
+interface RawGameData {
   characters: unknown;
   echoes: unknown;
   weapons: unknown;

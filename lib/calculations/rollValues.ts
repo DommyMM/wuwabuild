@@ -1,23 +1,5 @@
 import { EchoPanelState } from '@/lib/echo';
 
-// Calculate roll value based on max possible roll and values
-export function calculateSubstatRollPercentage(
-  statType: string,
-  value: number,
-  substatValues: number[] | null
-): number {
-  if (!substatValues || substatValues.length === 0) {
-    return 0;
-  }
-
-  const maxRoll = Math.max(...substatValues);
-  if (maxRoll === 0) {
-    return 0;
-  }
-
-  return (value / maxRoll) * 100;
-}
-
 // Calculate overall RV for selected substats.
 //
 // Formula: average over stat types of (avgRollValue / maxRollValue).
@@ -92,7 +74,7 @@ export const calculateCV = (echoPanels: EchoPanelState[]): number => {
 //   Decent    ≥ 28.0  ~ 22 %
 //   Passable  ≥ 25.2   ~ 11 %  (minimum double-crit)
 //   Bad        < 25.2          (single-crit or no crit)
-export interface EchoCVTierStyle {
+interface EchoCVTierStyle {
   color: string;    // hex for badge text and border tint
   bgColor?: string; // override background (e.g., inverted badge for MAX)
   label: string;
@@ -116,7 +98,7 @@ export const getEchoCVFrameColor = (cv: number): string => {
   return tier.label === 'Bad' ? '#fbbf24' : tier.color;
 };
 
-export const CV_RATINGS = {
+const CV_RATINGS = {
   IMPOSSIBLE: 254,      // theoretical max: 5 * 42 + 44
   PERFECT: 240,         // 5 * 39.8 + 44 ≈ 243
   EXCELLENT: 224,        // 5 * 36.0 + 44
@@ -125,28 +107,6 @@ export const CV_RATINGS = {
   AVERAGE: 170,          // 5 * 25.2 + 44 (min double-crit)
   BELOW_AVERAGE: 140,    // below min double-crit
 } as const;
-
-export type CVRating =
-  | 'Impossible'
-  | 'Perfect'
-  | 'Excellent'
-  | 'Great'
-  | 'Good'
-  | 'Average'
-  | 'Below Average'
-  | 'Needs Work';
-
-// Get a CV rating string based on the CV value.
-export const getCVRating = (cv: number): CVRating => {
-  if (cv >= CV_RATINGS.IMPOSSIBLE) return 'Impossible';
-  if (cv >= CV_RATINGS.PERFECT) return 'Perfect';
-  if (cv >= CV_RATINGS.EXCELLENT) return 'Excellent';
-  if (cv >= CV_RATINGS.GREAT) return 'Great';
-  if (cv >= CV_RATINGS.GOOD) return 'Good';
-  if (cv >= CV_RATINGS.AVERAGE) return 'Average';
-  if (cv >= CV_RATINGS.BELOW_AVERAGE) return 'Below Average';
-  return 'Needs Work';
-};
 
 // Get CV rating color for display.
 export const getCVRatingColor = (cv: number): string => {

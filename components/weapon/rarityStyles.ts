@@ -1,6 +1,6 @@
 import { WeaponRarity } from '@/lib/weapon';
 
-export interface RarityAccentStyle {
+interface RarityAccentStyle {
   border: string;
   bg: string;
   text: string;

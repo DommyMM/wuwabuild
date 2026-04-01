@@ -5,7 +5,7 @@ import { type CDNCharacter, adaptCDNCharacter, formatCharacterDisplayName } from
 
 type GenericRecord = Record<string, unknown>;
 
-export interface WeaponRecord {
+interface WeaponRecord {
   id?: string | number;
   name?: { en?: string };
   type?: { name?: { en?: string } };
@@ -65,13 +65,13 @@ function normalizeWeaponsData(data: unknown): WeaponRecord[] {
   });
 }
 
-export function loadAllWeapons(): WeaponRecord[] {
+function loadAllWeapons(): WeaponRecord[] {
   const rawData = readJson('Weapons.json');
   if (!rawData) return [];
   return normalizeWeaponsData(rawData);
 }
 
-export function findWeapon(id: string): WeaponRecord | undefined {
+function findWeapon(id: string): WeaponRecord | undefined {
   return loadAllWeapons().find((w) => w.id != null && w.id.toString() === id);
 }
 

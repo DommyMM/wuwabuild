@@ -23,7 +23,7 @@ export interface LevelCurves {
 }
 
 // Get the level key for curve lookup
-export const getLevelKey = (level: number): string => {
+const getLevelKey = (level: number): string => {
   if (level <= 20) {
     if (level === 1) return "1/20";
     return level === 20 ? "20/20" : level.toString();
@@ -45,27 +45,8 @@ export const getLevelKey = (level: number): string => {
   return "90/90";
 };
 
-// Scale a character stat based on level using character curves.
-export const scaleCharacterStat = (
-  baseStat: number,
-  level: number,
-  statType: keyof CurveStats,
-  curves: CharacterCurve | null
-): number => {
-  if (!curves) return baseStat;
-  if (level < 1 || level > 90) return baseStat;
-
-  const levelKey = level === 20 || level === 40 || level === 50 || level === 60 || level === 70 || level === 80
-    ? `${level}/${level}`
-    : level.toString();
-  const curve = curves.CHARACTER_CURVE[levelKey];
-  if (!curve) return baseStat;
-
-  return Math.floor(baseStat * (curve[statType] / 10000));
-};
-
 // Scale weapon ATK based on level using weapon curves.
-export const scaleWeaponAtk = (
+const scaleWeaponAtk = (
   baseAtk: number,
   level: number,
   curves: LevelCurves | null
@@ -76,7 +57,7 @@ export const scaleWeaponAtk = (
 };
 
 // Scale weapon stat based on level using weapon curves.
-export const scaleWeaponStat = (
+const scaleWeaponStat = (
   baseStat: number,
   level: number,
   curves: LevelCurves | null

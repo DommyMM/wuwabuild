@@ -14,14 +14,6 @@ import { createDefaultEchoPanelState } from '@/lib/calculations/echoes';
 import { DRAFT_BUILD_STORAGE_KEY } from '@/lib/storage';
 import { getLocalStorageItem, removeLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
 
-// Column index order: 0=normal-attack, 1=skill, 2=circuit, 3=liberation, 4=intro
-const FORTE_KEY_TO_INDEX: Record<string, number> = {
-  'normal-attack': 0, skill: 1, circuit: 2, liberation: 3, intro: 4,
-};
-const TREE_TO_INDEX: Record<string, number> = {
-  tree1: 0, tree2: 1, tree3: 2, tree4: 3, tree5: 4,
-};
-
 interface BuildState {
   characterId: string | null;
   characterLevel: number;
@@ -583,5 +575,3 @@ export function BuildProvider({
     </BuildContext.Provider>
   );
 }
-
-export { FORTE_KEY_TO_INDEX, TREE_TO_INDEX };

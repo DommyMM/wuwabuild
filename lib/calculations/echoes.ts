@@ -3,7 +3,7 @@ import { StatName } from '@/lib/constants/statMappings';
 
 // Calculate the default stat value for an echo based on its cost and level.
 // 4-cost and 3-cost echoes provide ATK, 1-cost echoes provide HP.
-export const calculateEchoDefaultStat = (cost: number, level: number): number => {
+const calculateEchoDefaultStat = (cost: number, level: number): number => {
   const normalLevels = Math.floor(level - Math.floor(level / 5));
   const bonusLevels = Math.floor(level / 5);
 
@@ -67,11 +67,6 @@ export const sumSubStats = (statType: StatName, panels: EchoPanelState[]): numbe
   ), 0);
 };
 
-// Sum both main and substats of a specific type.
-export const sumAllStats = (statType: StatName, panels: EchoPanelState[]): number => {
-  return sumMainStats(statType, panels) + sumSubStats(statType, panels);
-};
-
 // Get the total cost of all equipped echoes.
 export const getTotalEchoCost = (
   echoPanels: EchoPanelState[],
@@ -84,17 +79,8 @@ export const getTotalEchoCost = (
   }, 0);
 };
 
-// Check if the total echo cost exceeds the limit (12).
-export const isEchoCostOverLimit = (
-  echoPanels: EchoPanelState[],
-  getEcho: (id: string | null) => Echo | null,
-  limit: number = 12
-): boolean => {
-  return getTotalEchoCost(echoPanels, getEcho) > limit;
-};
-
 // Create default echo stats structure.
-export const createDefaultEchoStats = () => ({
+const createDefaultEchoStats = () => ({
   mainStat: { type: null, value: null },
   subStats: Array(5).fill(null).map(() => ({ type: null, value: null }))
 });

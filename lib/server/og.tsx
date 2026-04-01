@@ -1,9 +1,9 @@
 import 'server-only';
 import { ImageResponse } from 'next/og';
 
-export type OgCardVariant = 'site' | 'leaderboard-overview' | 'character' | 'weapon' | 'leaderboard';
+type OgCardVariant = 'site' | 'leaderboard-overview' | 'character' | 'weapon' | 'leaderboard';
 
-export interface OgCardData {
+interface OgCardData {
   variant: OgCardVariant;
   title: string;
   subtitle: string;
@@ -14,7 +14,6 @@ export interface OgCardData {
 
 export const OG_SIZE = { width: 1200, height: 630 } as const;
 export const OG_CONTENT_TYPE = 'image/png';
-export const OG_ALT_PREFIX = 'WuWa Builds';
 
 const GOLD = '#D4A843';
 const BG = '#0E0E10';

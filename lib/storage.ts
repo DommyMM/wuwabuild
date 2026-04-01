@@ -2,7 +2,7 @@ import { SavedBuild, SavedBuilds, SavedState, ForteState, ForteEntry, createDefa
 import { convertLegacyBuilds, LegacyIdMaps } from '@/lib/legacyMigration';
 
 // Storage keys
-export const SAVED_BUILDS_STORAGE_KEY = 'wuwabuilds_saves';
+const SAVED_BUILDS_STORAGE_KEY = 'wuwabuilds_saves';
 export const DRAFT_BUILD_STORAGE_KEY = 'wuwa_draft_build';
 const CURRENT_VERSION = '2.0.0';
 const IDENTITY_LEGACY_MAPS: LegacyIdMaps = {
@@ -226,12 +226,6 @@ export function mergeBuilds(builds: SavedBuild[]): SavedBuild[] {
   return merged;
 }
 
-// Load a specific build by ID.
-export function loadBuild(id: string): SavedBuild | null {
-  const data = loadBuilds();
-  return data.builds.find(b => b.id === id) || null;
-}
-
 // Delete a build by ID.
 export function deleteBuild(id: string): boolean {
   const data = loadBuilds();
@@ -243,17 +237,6 @@ export function deleteBuild(id: string): boolean {
     return true;
   }
   return false;
-}
-
-// Duplicate an existing build with a new name.
-export function duplicateBuild(id: string, newName?: string): SavedBuild | null {
-  const original = loadBuild(id);
-  if (!original) return null;
-
-  return saveBuild({
-    name: newName || `${original.name} (Copy)`,
-    state: JSON.parse(JSON.stringify(original.state)) // Deep clone
-  });
 }
 
 // Rename an existing build without changing date/state.
@@ -286,27 +269,6 @@ export function renameBuild(id: string, newName: string): SavedBuild | null {
 export function clearAllBuilds(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(SAVED_BUILDS_STORAGE_KEY);
-}
-
-// Export a single build to a downloadable JSON file.
-export function exportBuild(build: SavedBuild): void {
-  const exportData = {
-    version: CURRENT_VERSION,
-    exportDate: new Date().toISOString(),
-    build
-  };
-
-  const json = JSON.stringify(exportData, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `wuwabuilds_${sanitizeFilename(build.name)}_${Date.now()}.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }
 
 // Export all builds to a downloadable JSON file.
@@ -390,15 +352,6 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
-// Sanitize a string for use in filenames.
-function sanitizeFilename(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .substring(0, 50);
-}
-
 // Validate that an object is a valid SavedBuild.
 function validateBuild(build: unknown): build is SavedBuild {
   if (!build || typeof build !== 'object') return false;
@@ -427,31 +380,4 @@ function migrateData(data: SavedBuilds): SavedBuilds {
     savedEchoes: data.savedEchoes || [],
     version: CURRENT_VERSION
   };
-}
-
-// Get storage usage statistics.
-export function getStorageStats(): { used: number; total: number; percentage: number } {
-  if (typeof window === 'undefined') {
-    return { used: 0, total: 0, percentage: 0 };
-  }
-
-  try {
-    let total = 0;
-    for (const key in localStorage) {
-      if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
-        total += localStorage[key].length * 2; // UTF-16 uses 2 bytes per character
-      }
-    }
-
-    // Most browsers have a 5MB limit
-    const maxSize = 5 * 1024 * 1024;
-
-    return {
-      used: total,
-      total: maxSize,
-      percentage: Math.round((total / maxSize) * 100)
-    };
-  } catch {
-    return { used: 0, total: 0, percentage: 0 };
-  }
 }

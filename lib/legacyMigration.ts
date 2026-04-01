@@ -1,7 +1,7 @@
 import { SavedBuild, SavedState, ForteState, ForteEntry, createDefaultSavedState } from '@/lib/build';
 import { ELEMENT_SETS, ElementType } from '@/lib/echo';
 
-export const LEGACY_SAVED_BUILDS_STORAGE_KEY = 'saved_builds';
+const LEGACY_SAVED_BUILDS_STORAGE_KEY = 'saved_builds';
 
 export interface LegacyIdMaps {
   characterIds: Map<string, string>;
@@ -9,13 +9,13 @@ export interface LegacyIdMaps {
   echoIds: Map<string, string>;
 }
 
-export interface LegacyBuildParseResult {
+interface LegacyBuildParseResult {
   builds: SavedBuild[];
   sourceCount: number;
   skippedCount: number;
 }
 
-export interface LegacySavesSummary {
+interface LegacySavesSummary {
   found: boolean;
   buildCount: number;
   parseError: boolean;
@@ -86,7 +86,7 @@ const STAT_ALIAS_MAP: Record<string, string> = {
 // - T_IconMonsterHead_34010_1_UI.png  -> "34010"
 // - T_IconMonsterHead_31083_UI.png    -> "31083"
 // - T_IconMonsterGoods_061_UI.png     -> "061" and "61"
-export function extractLegacyEchoIdsFromUrl(url: string | undefined): string[] {
+function extractLegacyEchoIdsFromUrl(url: string | undefined): string[] {
   if (!url) return [];
   const filename = url.split('/').pop() ?? '';
   const numericParts = filename.match(/\d+/g) ?? [];

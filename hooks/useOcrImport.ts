@@ -16,7 +16,7 @@ interface UseOcrImportReturn {
   reset: () => void;
 }
 
-export interface OcrProcessSummary {
+interface OcrProcessSummary {
   durationMs: number;
   failedRegions: RegionKey[];
   failedRegionsCount: number;

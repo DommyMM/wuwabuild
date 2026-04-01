@@ -1,7 +1,7 @@
 import type { CDNFetter } from '@/lib/echo';
 import { StatName } from '@/lib/constants/statMappings';
 
-export interface SetBonusEntry {
+interface SetBonusEntry {
   stat: StatName;
   value: number;
 }
@@ -27,7 +27,7 @@ const normalizeSetPropValue = (prop: { value: number; isRatio: boolean }): numbe
 
 type SetAddProp = { id: number; value: number; isRatio: boolean };
 
-export const getSetBonusesFromProps = (
+const getSetBonusesFromProps = (
   props: SetAddProp[] | null | undefined
 ): SetBonusEntry[] => {
   if (!Array.isArray(props)) return [];
@@ -65,12 +65,4 @@ export const getSetBonusesFromFetter = (
   if (!fetter) return [];
 
   return getSetBonusesFromProps(getActivationTierProps(fetter, pieceCount));
-};
-
-export const getPrimarySetBonusFromFetter = (
-  fetter: CDNFetter | null | undefined,
-  pieceCount: number
-): SetBonusEntry | null => {
-  const bonuses = getSetBonusesFromFetter(fetter, pieceCount);
-  return bonuses[0] ?? null;
 };

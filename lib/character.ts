@@ -164,7 +164,7 @@ export interface Character {
   preferredStats?: string[]; // Ordered list of preferred substats for RV calculation
 }
 
-export type CharacterSkin = CDNCharacter['skins'][number];
+type CharacterSkin = CDNCharacter['skins'][number];
 
 const skinHasColorOverrides = (skin: CharacterSkin): boolean =>
   Object.values(skin.color ?? {}).some((value) => value != null);
@@ -194,7 +194,7 @@ const ROVER_GENDER_BY_LEGACY_ID: Record<string, 'M' | 'F'> = {
   '5': 'F',
 };
 
-export const getRoverGenderTag = (legacyId?: string): 'M' | 'F' | undefined => (
+const getRoverGenderTag = (legacyId?: string): 'M' | 'F' | undefined => (
   legacyId ? ROVER_GENDER_BY_LEGACY_ID[legacyId] : undefined
 );
 
@@ -224,22 +224,6 @@ export const formatCharacterDisplayName = (
   ) ? roverElement.trim() : null;
 
   return [baseName, gender ? `(${gender})` : null, normalizedElement].filter(Boolean).join(' ');
-};
-
-export type CharacterCreate = Omit<Character, "ER"> & { ER?: number };
-
-export const createCharacter = (char: CharacterCreate): Character => ({
-  ...char,
-  ER: char.ER ?? 100
-});
-
-export const validateCharacter = (char: Character): boolean => {
-  return (
-    char.HP > 0 &&
-    char.ATK > 0 &&
-    char.DEF > 0 &&
-    char.ER >= 0
-  );
 };
 
 // parentNodes[0] → tree key mapping

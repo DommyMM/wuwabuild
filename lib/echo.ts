@@ -61,11 +61,6 @@ export interface Echo {
   };
 }
 
-export type EchoPanel = {
-  index: number;
-  id: string | null;
-};
-
 export interface EchoPanelState {
   id: string | null;
   level: number;
@@ -75,20 +70,6 @@ export interface EchoPanelState {
     subStats: Array<{ type: string | null; value: number | null }>;
   };
   phantom: boolean;
-}
-
-export interface SetInfo {
-  element: ElementType;
-  count: number;
-}
-
-export interface SetRowProps {
-  element: ElementType;
-  count: number;
-}
-
-export interface SetSectionProps {
-  sets: SetInfo[];
 }
 
 export const ELEMENT_SETS = {
@@ -123,16 +104,10 @@ export const ELEMENT_SETS = {
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
-export type CostSection = typeof COST_SECTIONS[number];
 export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
   'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
   'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward' | 'Flaming' | 'Dream' | 'Crown' | 'Law' | 'Flamewing' |
   'Thread' | 'Pact' | 'Halo' | 'Rite' | 'Trailblazing' | 'Chromatic' | 'Sound';
-
-// Helper function to get piece counts for an element, derived from CDN fetter data
-export const getEchoPieceCounts = (element: ElementType, fettersByElement: Partial<Record<ElementType, CDNFetter>>): number[] => {
-  return fettersByElement[element]?.pieceCount === 3 ? [3] : [2, 5];
-};
 
 // Fetter ID → ElementType mapping (from Phantom repo analysis)
 export const FETTER_MAP: Record<number, ElementType> = {

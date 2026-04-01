@@ -6,7 +6,7 @@ import { readCachedLeaderboardOverview, getCachedLeaderboardOverview } from '@/l
 import { LBCharacterOverview } from '@/lib/lb';
 import { Weapon } from '@/lib/weapon';
 
-export interface ResolvedLeaderboardLink {
+interface ResolvedLeaderboardLink {
   href: string;
   characterId: string;
   trackKey: string;
@@ -95,7 +95,7 @@ function resolveWeaponId(
   return bestWeaponId;
 }
 
-export function resolveLeaderboardLink(
+function resolveLeaderboardLink(
   overview: LBCharacterOverview[],
   opts: ResolveLeaderboardLinkOptions,
 ): ResolvedLeaderboardLink | null {

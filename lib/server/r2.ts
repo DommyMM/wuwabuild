@@ -12,7 +12,7 @@ const s3Client = new S3Client({
   },
 });
 
-export interface TrainingImageUploadResult {
+interface TrainingImageUploadResult {
   success: boolean;
   key?: string;
   deduplicated?: boolean;
@@ -36,16 +36,16 @@ export function isR2Configured(): boolean {
   );
 }
 
-export function decodeBase64Image(image: string): Buffer {
+function decodeBase64Image(image: string): Buffer {
   const normalized = image.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
   return Buffer.from(normalized, 'base64');
 }
 
-export function isJpeg(buffer: Buffer): boolean {
+function isJpeg(buffer: Buffer): boolean {
   return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
 }
 
-export function getTrainingImageKey(imageBuffer: Buffer): string {
+function getTrainingImageKey(imageBuffer: Buffer): string {
   return `${createHash('sha256').update(imageBuffer).digest('hex').substring(0, 16)}.jpg`;
 }
 

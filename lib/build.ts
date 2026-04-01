@@ -20,15 +20,6 @@ export type ForteEntry = [number, boolean, boolean];
 // 5-column forte state matching tree1–5
 export type ForteState = [ForteEntry, ForteEntry, ForteEntry, ForteEntry, ForteEntry];
 
-// @deprecated: Use ForteState, kept for migration only
-export interface ForteLevels {
-  'normal-attack': number;
-  skill: number;
-  circuit: number;
-  liberation: number;
-  intro: number;
-}
-
 export interface SavedState {
   version?: string;
   characterId: string | null;
@@ -62,14 +53,6 @@ export const DEFAULT_WATERMARK: WatermarkState = {
   username: '',
   uid: '',
   artSource: '',
-};
-
-export const DEFAULT_FORTE_LEVELS: ForteLevels = {
-  'normal-attack': 1,
-  skill: 1,
-  circuit: 1,
-  liberation: 1,
-  intro: 1
 };
 
 export const DEFAULT_FORTE: ForteState = [

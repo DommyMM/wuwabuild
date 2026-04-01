@@ -11,7 +11,7 @@ export interface SortMenuOption {
   iconFilter?: string;
 }
 
-export function blurFocusedMenuControl(): void {
+function blurFocusedMenuControl(): void {
   if (typeof document === 'undefined') return;
   const activeElement = document.activeElement;
   if (activeElement instanceof HTMLElement) {

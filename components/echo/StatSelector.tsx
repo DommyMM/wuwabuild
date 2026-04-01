@@ -128,7 +128,7 @@ interface SubstatSelectorProps {
   disabled?: boolean;
 }
 
-export const SubstatSelector: React.FC<SubstatSelectorProps> = ({
+const SubstatSelector: React.FC<SubstatSelectorProps> = ({
   index,
   selectedStat,
   selectedValue,
