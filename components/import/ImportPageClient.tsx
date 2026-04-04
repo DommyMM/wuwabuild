@@ -358,7 +358,7 @@ export function ImportPageClient() {
           <div>
             <h1 className="text-2xl font-bold text-text-primary">Import Build</h1>
             <p className="text-sm text-text-primary/50">
-              Import a build from a wuwa-bot screenshot —{' '}
+              Import a build from wuwa-bot —{' '}
               <a
                 href="https://discord.com/channels/963760374543450182/1323199091072569479"
                 target="_blank"

@@ -100,6 +100,7 @@ export function ImportUploader({ onFile, onInvalidFile }: ImportUploaderProps) {
           width={1286}
           height={1080}
           className="w-full rounded-lg border border-border opacity-70"
+          loading="eager"
         />
       </div>
     </div>

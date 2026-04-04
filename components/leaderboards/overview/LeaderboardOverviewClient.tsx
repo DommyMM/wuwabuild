@@ -14,7 +14,7 @@ import { getWeaponPaths } from '@/lib/paths';
 import { LeaderboardOverviewHeader } from './LeaderboardOverviewHeader';
 
 // Overview table grid: # | Character | Team | Entries | Weapon Rankings
-const OVERVIEW_GRID = 'grid-cols-[44px_260px_164px_76px_1fr]';
+const OVERVIEW_GRID = 'grid-cols-[44px_280px_144px_76px_1fr]';
 
 function overviewSignature(entries: LBCharacterOverview[]): string {
   return entries.map((e) =>
