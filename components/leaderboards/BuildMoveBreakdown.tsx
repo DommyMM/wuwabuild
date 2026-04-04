@@ -2,7 +2,15 @@
 
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LBMoveEntry } from '@/lib/lb';
+import { ELEMENT_COLOR } from '@/lib/elementVisuals';
 import { formatPercentStat } from './formatters';
+
+function formatMoveTypeLabel(moveType: string): string {
+  return moveType
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
 
 const CHART_COLORS = [
   '#a69662',
@@ -25,6 +33,8 @@ type ProcessedMove = {
   name: string;
   damage: number;
   percentage: number;
+  elemType?: string;
+  moveTypes?: string[];
   hits: ProcessedHit[];
 };
 
@@ -53,6 +63,8 @@ type TooltipState = {
   title: string;
   damage: number;
   percentage: number;
+  elemType?: string;
+  moveTypes?: string[];
   anchorX: number;
   anchorY: number;
   left: number;
@@ -149,12 +161,14 @@ function describePieSlice(cx: number, cy: number, radius: number, startAngle: nu
 }
 
 function processMoves(moves: LBMoveEntry[]): ProcessedMove[] {
-  const grouped = new Map<string, { damage: number; hits: Map<string, number> }>();
+  const grouped = new Map<string, { damage: number; hits: Map<string, number>; elemType?: string; moveTypes?: string[] }>();
 
   for (const move of moves) {
     const key = move.name?.trim() || 'Unnamed Move';
     const existing = grouped.get(key) ?? { damage: 0, hits: new Map<string, number>() };
     existing.damage += move.damage;
+    if (move.elemType) existing.elemType = move.elemType;
+    if (move.moveTypes) existing.moveTypes = move.moveTypes;
 
     for (const hit of move.hits ?? []) {
       const hitKey = hit.name?.trim() || 'Hit';
@@ -181,6 +195,8 @@ function processMoves(moves: LBMoveEntry[]): ProcessedMove[] {
         name,
         damage: move.damage,
         percentage: (move.damage / totalDamage) * 100,
+        elemType: move.elemType,
+        moveTypes: move.moveTypes,
         hits,
       };
     })
@@ -387,6 +403,8 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                             title: move.name,
                             damage: move.damage,
                             percentage: move.percentage,
+                            elemType: move.elemType,
+                            moveTypes: move.moveTypes,
                           });
                         }
                       }}
@@ -396,6 +414,8 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                             title: move.name,
                             damage: move.damage,
                             percentage: move.percentage,
+                            elemType: move.elemType,
+                            moveTypes: move.moveTypes,
                           });
                         }
                       }}
@@ -425,6 +445,27 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                   style={{ left: tooltip.left, top: tooltip.top }}
                 >
                   <div className="whitespace-nowrap text-sm font-semibold text-white/96">{tooltip.title}</div>
+                  {(tooltip.elemType || tooltip.moveTypes?.[0]) && (
+                    <div className="mt-1 flex items-center gap-1">
+                      {tooltip.elemType && ELEMENT_COLOR[tooltip.elemType] && (
+                        <span
+                          className="rounded border px-1.5 py-px text-[10px] leading-4"
+                          style={{
+                            color: ELEMENT_COLOR[tooltip.elemType],
+                            borderColor: `${ELEMENT_COLOR[tooltip.elemType]}40`,
+                            backgroundColor: `${ELEMENT_COLOR[tooltip.elemType]}12`,
+                          }}
+                        >
+                          {tooltip.elemType}
+                        </span>
+                      )}
+                      {tooltip.moveTypes?.[0] && formatMoveTypeLabel(tooltip.moveTypes[0]) && (
+                        <span className="rounded border border-white/10 bg-white/5 px-1.5 py-px text-[10px] leading-4 text-text-primary/48">
+                          {formatMoveTypeLabel(tooltip.moveTypes[0])}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div className="mt-1 flex items-baseline gap-2">
                     <span className="text-base font-semibold text-accent">{formatDamage(tooltip.damage)}</span>
                     <span className="text-xs text-text-primary/74">[{formatPercentStat(tooltip.percentage)}]</span>
@@ -466,6 +507,8 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         title: move.name,
                         damage: move.damage,
                         percentage: move.percentage,
+                        elemType: move.elemType,
+                        moveTypes: move.moveTypes,
                       });
                     }
                   }}
@@ -480,10 +523,29 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-3">
                         <div className="truncate text-sm font-semibold text-text-primary">{move.name}</div>
-                        <div className="text-right">
-                          <div className="text-sm font-semibold text-accent">{formatDamage(move.damage)}</div>
-                          <div className="text-xs text-text-primary/52">{move.percentage.toFixed(1)}%</div>
+                        <div className="shrink-0 text-sm font-semibold text-accent">{formatDamage(move.damage)}</div>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 mt-1">
+                        <div className="flex items-center gap-1">
+                          {move.elemType && ELEMENT_COLOR[move.elemType] && (
+                            <span
+                              className="rounded border px-1.5 py-px text-[10px] leading-4"
+                              style={{
+                                color: ELEMENT_COLOR[move.elemType],
+                                borderColor: `${ELEMENT_COLOR[move.elemType]}40`,
+                                backgroundColor: `${ELEMENT_COLOR[move.elemType]}12`,
+                              }}
+                            >
+                              {move.elemType}
+                            </span>
+                          )}
+                          {move.moveTypes?.[0] && (
+                            <span className="rounded border border-white/10 bg-white/5 px-1.5 py-px text-[10px] leading-4 text-text-primary/48">
+                              {formatMoveTypeLabel(move.moveTypes[0])}
+                            </span>
+                          )}
                         </div>
+                        <div className="text-xs text-text-primary/52">{move.percentage.toFixed(1)}%</div>
                       </div>
 
                       {move.hits.length > 0 && (
@@ -518,6 +580,8 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                                       title: move.name,
                                       damage: move.damage,
                                       percentage: move.percentage,
+                                      elemType: move.elemType,
+                                      moveTypes: move.moveTypes,
                                     });
                                   }
                                 }}

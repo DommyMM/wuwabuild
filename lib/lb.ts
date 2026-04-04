@@ -201,6 +201,8 @@ export interface LBMoveHitEntry {
 export interface LBMoveEntry {
   name: string;
   damage: number;
+  elemType?: string;
+  moveTypes?: string[];
   hits: LBMoveHitEntry[];
 }
 
@@ -360,9 +362,15 @@ function parseMoveEntry(raw: unknown): LBMoveEntry | null {
       .filter((hit) => hit.name.length > 0 || hit.damage > 0)
     : [];
 
+  const moveTypes = Array.isArray(raw.moveTypes)
+    ? raw.moveTypes.filter((t): t is string => typeof t === 'string')
+    : undefined;
+
   return {
     name: typeof raw.name === 'string' ? raw.name : '',
     damage: toFiniteNumber(raw.damage, 0),
+    elemType: typeof raw.elemType === 'string' ? raw.elemType : undefined,
+    moveTypes: moveTypes && moveTypes.length > 0 ? moveTypes : undefined,
     hits,
   };
 }
