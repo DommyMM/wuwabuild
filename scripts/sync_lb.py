@@ -406,33 +406,10 @@ def _extract_buffs(text: str) -> list[dict]:
                     "value": -float(move_def_res_m.group(3)),
                 })
 
-    # Pass A – "X% StatName" (value precedes stat)
-    for pct_m in _RE_PCT.finditer(text):
-        val = float(pct_m.group(1))
-        after_start = pct_m.end()
-        after = text[after_start:after_start + 70].lstrip()
-        after = re.sub(r"^(?:additional|extra)\s+", "", after, flags=re.I)
-        stat_m = _STAT_RE.match(after)
-        if stat_m:
-            stat = _stat_name_for_match(stat_m)
-            span_end = after_start + after.find(stat_m.group(0)) + len(stat_m.group(0))
-            if not _overlaps(pct_m.start(), span_end):
-                buffs.append({"stat": stat, "value": val})
-                used.append((pct_m.start(), span_end))
-
-    # Pass B - "ignore(s) X% of the target's DEF".
-    def_ignore_m = re.search(
-        r"\bignores?\s+(\d+(?:\.\d+)?)\s*%\s+of\s+(?:(?:the\s+target'?s|their)\s+)?DEF\b",
-        text,
-        re.I,
-    )
-    if def_ignore_m:
-        span = def_ignore_m.span()
-        if not _overlaps(*span):
-            buffs.append({"stat": "DEF Ignore", "value": float(def_ignore_m.group(1))})
-            used.append(span)
-
-    # Pass C - move-specific amplification, including Frazzle.
+    # Pass A - move-specific amplification, including Frazzle.
+    # Run before the generic "% StatName" matcher so noun-form text like
+    # "24% Heavy Attack DMG Amplification" is claimed as amplification instead
+    # of being truncated to a plain "Heavy Attack DMG" buff.
     # Matches verb form: "Amplif[y/ies] [the] [Element] Frazzle DMG [intervening text] by X%"
     frazzle_amp_m = re.search(
         r"\bAmplif(?:y|ies)\s+(?:the\s+)?(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\b[^.]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
@@ -485,6 +462,55 @@ def _extract_buffs(text: str) -> list[dict]:
                 "move_type": move_type,
                 "value": float(move_amp_m.group(2)),
             })
+            used.append(span)
+    move_amp_noun_m = re.search(
+        r"(\d+(?:\.\d+)?)\s*%\s+"
+        r"(Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation|Echo Skill)\s+DMG\s+Amplification\b",
+        text,
+        re.I,
+    )
+    if move_amp_noun_m:
+        move_type_map = {
+            "basic attack": "basic_attack",
+            "heavy attack": "heavy_attack",
+            "resonance skill": "resonance_skill",
+            "resonance liberation": "resonance_liberation",
+            "echo skill": "echo",
+        }
+        move_type = move_type_map.get(move_amp_noun_m.group(2).strip().lower())
+        span = move_amp_noun_m.span()
+        if move_type and not _overlaps(*span):
+            buffs.append({
+                "stat": "DMG Amplification",
+                "move_type": move_type,
+                "value": float(move_amp_noun_m.group(1)),
+            })
+            used.append(span)
+
+    # Pass B – "X% StatName" (value precedes stat)
+    for pct_m in _RE_PCT.finditer(text):
+        val = float(pct_m.group(1))
+        after_start = pct_m.end()
+        after = text[after_start:after_start + 70].lstrip()
+        after = re.sub(r"^(?:additional|extra)\s+", "", after, flags=re.I)
+        stat_m = _STAT_RE.match(after)
+        if stat_m:
+            stat = _stat_name_for_match(stat_m)
+            span_end = after_start + after.find(stat_m.group(0)) + len(stat_m.group(0))
+            if not _overlaps(pct_m.start(), span_end):
+                buffs.append({"stat": stat, "value": val})
+                used.append((pct_m.start(), span_end))
+
+    # Pass C - "ignore(s) X% of the target's DEF".
+    def_ignore_m = re.search(
+        r"\bignores?\s+(\d+(?:\.\d+)?)\s*%\s+of\s+(?:(?:the\s+target'?s|their)\s+)?DEF\b",
+        text,
+        re.I,
+    )
+    if def_ignore_m:
+        span = def_ignore_m.span()
+        if not _overlaps(*span):
+            buffs.append({"stat": "DEF Ignore", "value": float(def_ignore_m.group(1))})
             used.append(span)
 
     # Pass D – "StatName + X%" or "StatName … by X%" (stat precedes value).
