@@ -291,6 +291,7 @@ _STAT_NAMES: list[tuple[str, str]] = [
     ("Basic DMG Bonus",                r"Basic DMG Bonus"),
     # Non-substat DMG types (keep as-is for future engine support)
     ("Echo Skill DMG Bonus",           r"Echo Skill DMG Bonus"),
+    ("Echo Skill DMG",                 r"Echo Skill DMG(?! Bonus)"),
     ("Coordinated Attack DMG",         r"Coordinated Attack DMG"),
     ("Outro Skill DMG",                r"Outro Skill DMG(?! Bonus)"),
     # Move-type DMG without "Bonus" suffix (less common, check after Bonus variants)
@@ -589,6 +590,7 @@ _TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
     (r"tune\s+break",                              "Passive"),
     (r"tune\s+rupture",                            "Passive"),
     (r"while\s+the\s+wielder\s+is\s+on\s+the\s+field", "Passive"),
+    (r"while\s+both\s+effects?\s+are\s+active",    "Passive"),
     (r"(?:targets?|enemies?)\s+with\s+spectro\s+frazzle", "Passive"),
     (r"negative\s+statuses",                       "Passive"),
     (r"concerto\s+energy",                         "forte"),
@@ -597,10 +599,11 @@ _TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
     (r"\bintro\s+skill\b",                         "intro"),
     (r"\bresonance\s+liberation\b",                "liberation"),
     (r"\bresonance\s+skill\b",                     "skill"),
-    (r"\bheavy\s+attacks?\b",                      "basic"),
+    (r"\bheavy\s+attacks?\b",                      "heavy"),
     (r"\bbasic\s+attacks?\b",                      "basic"),
     (r"\bhitting\s+a\s+target\b",                  "basic"),
-    (r"\bdealing\s+(?:basic|heavy)\s+attack\s+dmg","basic"),
+    (r"\bdealing\s+heavy\s+attack\s+dmg",          "heavy"),
+    (r"\bdealing\s+basic\s+attack\s+dmg",          "basic"),
 ]
 
 # Stat name → (go_type, element, moveType). None means skip (unsupported/complex).
@@ -622,6 +625,7 @@ _STAT_TO_GO_EFFECT: dict[str, tuple[str, str, str]] = {
     "Resonance Liberation DMG Bonus":   ("moveTypeDMG",   "", "resonance_liberation"),
     "Resonance Liberation DMG":         ("moveTypeDMG",   "", "resonance_liberation"),
     "Echo Skill DMG Bonus":             ("moveTypeDMG",   "", "echo"),
+    "Echo Skill DMG":                   ("moveTypeDMG",   "", "echo"),
     "Aero DMG":     ("elementalDMG", "Aero",    ""),
     "Glacio DMG":   ("elementalDMG", "Glacio",  ""),
     "Fusion DMG":   ("elementalDMG", "Fusion",  ""),
