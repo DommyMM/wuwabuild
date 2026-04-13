@@ -1539,13 +1539,13 @@ _RE_DEF_IGNORE = re.compile(
 )
 
 _RE_INHERENT_ELEM_GAIN = re.compile(
-    r"\bgain(?:s)?\s+(\d+(?:\.\d+)?)\s*%\s+"
+    r"\b(?:gain(?:s)?|grants?)\s+(\d+(?:\.\d+)?)\s*%\s+"
     r"(Glacio|Fusion|Electro|Aero|Havoc|Spectro)\s+DMG\s+Bonus\b",
     re.I,
 )
 
 _RE_INHERENT_MOVE_GAIN = re.compile(
-    r"\bgain(?:s)?\s+(\d+(?:\.\d+)?)\s*%\s+"
+    r"\b(?:gain(?:s)?|grants?)\s+(\d+(?:\.\d+)?)\s*%\s+"
     r"(Basic|Heavy|Resonance Skill|Resonance Liberation)\s+DMG\s+Bonus\b",
     re.I,
 )
@@ -1585,34 +1585,37 @@ def _parse_char_inherent_self_buffs(char: dict) -> list[dict]:
         if not resolved:
             continue
 
-        # Skip anything party-scoped (rare for inherents, but safe).
-        lower = resolved.lower()
-        if any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES):
-            continue
+        # Inherent text can mix self-scoped and party-scoped sentences (e.g. Chisa's
+        # "All Ends Here": one sentence grants self Havoc DMG Bonus on cast, another
+        # sentence references "Resonators in the team with Thread of Bane"). Filter
+        # at sentence level so self buffs are still captured.
+        for sentence in _split_buff_sentences(resolved):
+            if any(phrase in sentence.lower() for phrase in _PARTY_SCOPE_PHRASES):
+                continue
 
-        # Elemental DMG bonus (always-on).
-        for m in _RE_INHERENT_ELEM_GAIN.finditer(resolved):
-            out.append({"type": "elementalDMG", "element": m.group(2).title(), "value": float(m.group(1))})
+            # Elemental DMG bonus (always-on).
+            for m in _RE_INHERENT_ELEM_GAIN.finditer(sentence):
+                out.append({"type": "elementalDMG", "element": m.group(2).title(), "value": float(m.group(1))})
 
-        # Move-type DMG bonus (Basic/Heavy/RS/RL).
-        for m in _RE_INHERENT_MOVE_GAIN.finditer(resolved):
-            kind = m.group(2).strip().lower()
-            mt = None
-            if kind == "basic":
-                mt = "basic_attack"
-            elif kind == "heavy":
-                mt = "heavy_attack"
-            elif kind == "resonance skill":
-                mt = "resonance_skill"
-            elif kind == "resonance liberation":
-                mt = "resonance_liberation"
-            if mt:
-                out.append({"type": "moveTypeDMG", "move_type": mt, "value": float(m.group(1))})
+            # Move-type DMG bonus (Basic/Heavy/RS/RL).
+            for m in _RE_INHERENT_MOVE_GAIN.finditer(sentence):
+                kind = m.group(2).strip().lower()
+                mt = None
+                if kind == "basic":
+                    mt = "basic_attack"
+                elif kind == "heavy":
+                    mt = "heavy_attack"
+                elif kind == "resonance skill":
+                    mt = "resonance_skill"
+                elif kind == "resonance liberation":
+                    mt = "resonance_liberation"
+                if mt:
+                    out.append({"type": "moveTypeDMG", "move_type": mt, "value": float(m.group(1))})
 
-        # Intro MV multiplier (applies only to intro moves).
-        mv_m = _RE_INHERENT_INTRO_MV.search(resolved)
-        if mv_m:
-            out.append({"type": "mvMultiplier", "move_type": "intro", "value": float(mv_m.group(1))})
+            # Intro MV multiplier (applies only to intro moves).
+            mv_m = _RE_INHERENT_INTRO_MV.search(sentence)
+            if mv_m:
+                out.append({"type": "mvMultiplier", "move_type": "intro", "value": float(mv_m.group(1))})
 
     # De-dupe exact entries while preserving order.
     uniq: list[dict] = []
