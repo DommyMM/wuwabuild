@@ -6,16 +6,17 @@ Next.js App Router build editor and damage leaderboard at [wuwa.build](https://w
 
 For leaderboard service details see **[lb/AGENTS.md](../lb/AGENTS.md)**.
 
+This file is a thin orchestration layer: where things live and what each part does. Behavior depth lives in `docs/`; the source is the source of truth.
+
 ---
 
-## Docs First
-
-Use this file for high-level routing and invariants. Use `docs/` for longer behavior context before reading source.
+## Docs
 
 - `docs/README.md` — read order and scope
-- `docs/leaderboards.md` — leaderboard fetch, dedup, ghost behavior
-- `docs/editor-and-state.md` — provider and state flow
-- `docs/data-pipeline.md` — OCR/data sync/ops commands
+- `docs/leaderboards.md` — fetch model, caches, ghost/dedup behavior, query state
+- `docs/editor-and-state.md` — provider boundaries and editor flow
+- `docs/data-pipeline.md` — OCR flow, sync scripts, env vars, dev commands
+- `docs/posthog.md` — event catalog and tracking rules
 - `docs/domain-glossary.md` — shared terms and rank semantics
 
 When behavior changes, update the corresponding file in `docs/`.
@@ -53,7 +54,7 @@ When behavior changes, update the corresponding file in `docs/`.
 | `/builds`                      | `app/(game)/builds/page.tsx`                       | `components/leaderboards/board/*`              |
 | `/leaderboards`                | `app/(game)/leaderboards/page.tsx`                 | `components/leaderboards/overview/*`           |
 | `/leaderboards/[characterId]`  | `app/(game)/leaderboards/[characterId]/page.tsx`   | `components/leaderboards/character/*`          |
-| `/characters/[id]`             | `app/(game)/characters/[id]/page.tsx`              | `components/edit/*`, `components/card/*`     |
+| `/characters/[id]`             | `app/(game)/characters/[id]/page.tsx`              | `components/edit/*`, `components/card/*`       |
 | `/weapons/[id]`                | `app/(game)/weapons/[id]/page.tsx`                 | same as character-seeded editor                |
 | `/profile/[uid]`               | `app/(game)/profile/[uid]/page.tsx`                | `components/profile/*`                         |
 | `/tos`                         | `app/tos/page.tsx`                                 | `components/legal/*`                           |
@@ -78,61 +79,36 @@ EditorProviders (nested on /edit, /characters/[id], /weapons/[id])
     └── StatsProvider      ← derived stats/CV (pure, recalcs on build/data change)
 ```
 
----
-
-## LB Integration
-
-- **SSR / ISR prefetch** (`lib/lbServer.ts`): server-only; calls LB with `LB_URL` + `X-Internal-Key` and `next: { revalidate: 120 }` (`PREFETCH_TTL_S`). Exports: `prefetchBuilds()`, `prefetchLeaderboardOverview()`, `prefetchLeaderboard(characterId, query?)`. **`/`** prefetches overview + builds for homepage stats (`app/page.tsx` sets `revalidate = 120`). **`/leaderboards/[characterId]`** passes prefetched data into the client as `initialData`. **`/builds`** and **`/leaderboards`** list pages load via `/api/lb/*` on the client (no server-supplied `initialData` there).
-- **Silent revalidation** (leaderboard clients): diff-based ref signatures (`buildListSigRef`, etc.) skip `setState` when revalidation data is unchanged.
-- **Client cache** (`globalBoardCache.ts`): localStorage LRU for `/builds` list responses (2-min TTL, 30 entries max). Filtered/paginated queries always go through `/api/lb/*` with `no-store`.
-- **Overview cache** (`lib/leaderboardOverviewCache.ts`): localStorage + in-memory cache for `/leaderboards` overview list (1-hour TTL, expires at next local midnight). Shared across mounts via module-level `memoryStore`.
-- **Leaderboard**: one row per (character × track). Each entry has `trackKey`, `trackLabel`, `totalEntries`, `weapons[]`, `teamCharacterIds[]`. Row key: `` `${entry.id}:${entry.trackKey}` ``.
-- **weaponId**: canonical CDN ID — selects which `damage_map` key to read, does **not** filter eligible builds.
-- **globalRank** (`/leaderboard/{characterId}` rows): always returned. In competitive mode (damage sort, no UID/username filter) it is deduped competitive rank. In browse mode (non-damage sort or UID/username filters), UID-best rows keep their competitive rank and non-best duplicates are `0`. Ghost build sidecar is always `0`.
-- **Ghost build**: when a deep-linked `buildId` is deduped out, the API returns it as `ghostBuild`. Frontend inserts it at the correct damage position with no rank shown and a subtle accent highlight.
-- **Standings** (`GET /leaderboard/{charId}/build/{buildId}/standings`): fetched on row expand in `BuildExpanded.tsx`, renders rank/total/damage across every weapon × track board.
+See `docs/editor-and-state.md` for responsibilities, route shapes, and editor flow.
 
 ---
 
-## Data Sync
+## Key invariants
 
-Run from `wuwabuilds/scripts/`:
+These are the easy-to-violate rules. Behavior context lives in the docs.
 
-```bash
-py sync_all.py                             # Full pipeline (frontend Data + backend Data + LB calc JSON)
-py sync_lb.py --weapons-only               # Regenerate LB weapon bases only
-py download_echo_icons.py --clean --force  # Refresh backend echo template PNGs by CDN ID
-```
-
-Outputs: `public/Data/*.json`, `backend/Data/`, `lb/internal/calc/data/*.json`. See `scripts/CDN_SYNC.md` for per-script flags.
+- `lib/lbServer.ts` is **server-only** — never import from a client component. See `docs/leaderboards.md` for the prefetch/revalidate model.
+- `weaponId` selects the `damage_map` key — it does **not** filter eligible builds.
+- Leaderboard row identity is `` `${entry.id}:${entry.trackKey}` ``.
+- Treat `globalRank > 0` as a competitive rank to display, `0` as "do not show rank" (browse mode + ghost rows).
+- Ghost build behavior, dedup rules, and standings expansion are all in `docs/leaderboards.md`.
 
 ---
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` for local development (never commit secrets).
+Copy `.env.example` to `.env` for local development (never commit secrets). See `docs/data-pipeline.md` for the full list and notes.
 
 ```
-LB_URL=...                     # server-only, used by /api/lb/* proxy
-API_URL=...                    # server-only, used by /api/ocr proxy (defaults to localhost in dev)
-INTERNAL_API_KEY=...           # shared secret for LB + OCR proxies
-NEXT_PUBLIC_POSTHOG_KEY=...    # optional
-CLOUDFLARE_ACCOUNT_ID=...      # optional, R2 screenshot/report storage
-R2_ACCESS_KEY_ID=...
-R2_SECRET_ACCESS_KEY=...
-R2_BUCKET_NAME=...
+LB_URL                     # server-only, used by /api/lb/* proxy
+API_URL                    # server-only, used by /api/ocr proxy (defaults to localhost in dev)
+INTERNAL_API_KEY           # shared secret for LB + OCR proxies
+NEXT_PUBLIC_POSTHOG_KEY    # optional
+CLOUDFLARE_ACCOUNT_ID      # optional, R2 screenshot/report storage
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+R2_BUCKET_NAME
 ```
-
----
-
-## Useful Misc Information
-
-- `lbServer.ts` is **server-only** — never import from client components. Fetches directly from `LB_URL` to avoid a server-to-self network round-trip through the API proxy.
-- Production GA: `app/layout.tsx` uses `@next/third-parties/google` with a fixed measurement id.
-- `BuildSimulationSection` (moves + substat upgrades) requires `weaponId`, `track`, and `damage` from the parent leaderboard row — it only renders on character leaderboard pages, not the global `/builds` board.
-- Echo cost constraint: max total 12, max two 4-cost, max three 3-cost. Violations trigger purge in the LB import pipeline.
-- `ForteState` is a 5-tuple: `[[level, topNode, middleNode], ...]`, column order: normal-attack(0), skill(1), circuit(2), liberation(3), intro(4).
-- `upgrades` keys in `calculations` are snake_case and aligned with `stats` keys (for example `atk`, `crit_rate`).
 
 ---
 
