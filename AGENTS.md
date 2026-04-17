@@ -4,7 +4,7 @@ Next.js App Router build editor and damage leaderboard at [wuwa.build](https://w
 
 **Stack**: Next.js 16 · React 19 · TypeScript 5 · Tailwind v4 · Motion (`motion` on npm)
 
-For leaderboard service details see **[lb/AGENTS.md](../lb/AGENTS.md)**.
+For leaderboard service details see the **wuwa-lb** repo `AGENTS.md`.
 
 This file is a thin orchestration layer: where things live and what each part does. Behavior depth lives in `docs/`; the source is the source of truth.
 
@@ -112,15 +112,11 @@ R2_BUCKET_NAME
 
 ---
 
-## Domain Migration (wuwabuilds.moe → wuwa.build)
-
-Implemented in code, dormant until `wuwa.build` is wired in Vercel. `next.config.ts` redirects `www.wuwabuilds.moe/*` → `https://wuwa.build/*` with `permanent: true`, excluding `/saves` via the path matcher. `SavesPageClient.tsx` shows a hostname-conditional migration banner. Activate by adding `wuwa.build` to the Vercel project.
-
----
-
 ## Related Services
 
-| Service         | Location    | Tech                           | URL                        |
-| --------------- | ----------- | ------------------------------ | -------------------------- |
-| OCR Backend     | `/backend/` | FastAPI + RapidOCR             | https://ocr.wuwabuilds.moe |
-| Leaderboard API | `/lb/`      | Go (Chi + pgx + PostgreSQL 18) | https://db.wuwabuilds.moe  |
+| Service         | Repo              | Tech                           |
+| --------------- | ----------------- | ------------------------------ |
+| OCR Backend     | sibling `backend` | FastAPI + RapidOCR             |
+| Leaderboard API | sibling `wuwa-lb` | Go (Chi + pgx + PostgreSQL 18) |
+
+Domain migration (`wuwabuilds.moe` → `wuwa.build`) is wired in `next.config.ts`.
