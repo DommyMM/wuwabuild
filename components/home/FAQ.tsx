@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Plus, Minus } from 'lucide-react';
 import { DiscordHandle } from '@/components/ui/DiscordHandle';
 
 const FAQS: { q: string; a: React.ReactNode }[] = [
@@ -20,70 +19,96 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     },
     {
         q: 'What is CV?',
-        a: 'Crit Value: (Crit Rate × 2) + Crit DMG. Standard way to measure how well your crit stats rolled.',
+        a: 'Crit Value: (Crit Rate × 2) + Crit DMG. Standard way to measure how well your crit stats rolled. Separate from leaderboard rank, which is based on computed damage.',
     },
     {
         q: 'What screenshot format does Import accept?',
-        a: 'Exactly and only the 1920x1080 wuwa-bot output, screenshots or crops will ruin results and accuracy',
+        a: 'Exactly and only the 1920×1080 wuwa-bot output. Screenshots or crops will ruin results and accuracy.',
     },
     {
         q: 'When is <character> getting added to Leaderboards?',
-        a: <>Whenever I feel like it. Hit up <DiscordHandle label="message me" /> on Discord to request a character or share the details.</>,
+        a: (
+            <>
+                Whenever I feel like it. Hit up <DiscordHandle label="message me" /> on Discord to
+                request a character or share the details.
+            </>
+        ),
     },
 ];
 
 export function FAQ() {
-    const [openIndex, setOpenIndex] = useState<number | null>(0);
+    const [openIndex, setOpenIndex] = useState<number | null>(2);
 
-    function toggle(index: number) {
+    const toggle = (index: number) => {
         setOpenIndex((prev) => (prev === index ? null : index));
-    }
+    };
 
     return (
-        <section className="py-6 border-t border-border">
-            <h2 className="text-xs font-semibold text-text-primary/40 uppercase tracking-widest mb-2">FAQ</h2>
-            <div className="flex flex-col gap-2">
-                {FAQS.map((faq, index) => {
-                    const isOpen = openIndex === index;
-                    return (
-                        <div
-                            key={faq.q}
-                            className={`bg-background-secondary rounded-xl border transition-colors duration-200 ${
-                                isOpen ? 'border-accent/30' : 'border-border'
-                            }`}
-                        >
-                            <button
-                                onClick={() => toggle(index)}
-                                className="flex w-full items-center justify-between px-5 py-4 text-left"
-                            >
-                                <span className="text-sm font-medium text-text-primary">{faq.q}</span>
-                                {isOpen ? (
-                                    <Minus className="size-4 shrink-0 text-accent" />
-                                ) : (
-                                    <Plus className="size-4 shrink-0 text-accent" />
-                                )}
-                            </button>
-                            <AnimatePresence initial={false}>
-                                {isOpen && (
-                                    <motion.div
-                                        key="answer"
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.25, ease: 'easeInOut' }}
-                                        style={{ overflow: 'hidden' }}
+        <section className="px-6 sm:px-10 lg:px-16 pt-20 sm:pt-28 lg:pt-32">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-10 lg:gap-20">
+                <div>
+                    <div className="text-[11px] tracking-[0.22em] uppercase text-text-primary/50 mb-2.5">
+                        Frequently asked
+                    </div>
+                    <h2 className="font-plus-jakarta text-3xl lg:text-[32px] leading-[1.1] tracking-[-0.02em] font-medium">
+                        Things players<br />ask first.
+                    </h2>
+                    <p className="mt-5 text-sm text-text-primary/50 max-w-[280px]">
+                        Not seeing yours? Reach out on Discord — link in footer.
+                    </p>
+                </div>
+
+                <div>
+                    {FAQS.map((faq, i) => {
+                        const isOpen = openIndex === i;
+                        return (
+                            <div key={faq.q} className="border-b border-border">
+                                <button
+                                    onClick={() => toggle(i)}
+                                    className="w-full flex items-center justify-between gap-4 py-5 text-left"
+                                    aria-expanded={isOpen}
+                                >
+                                    <div className="flex items-baseline gap-4 min-w-0">
+                                        <span className="font-gowun text-xs text-text-primary/40 shrink-0">
+                                            0{i + 1}
+                                        </span>
+                                        <span
+                                            className={`text-sm sm:text-base transition-colors ${
+                                                isOpen ? 'text-accent' : 'text-text-primary'
+                                            }`}
+                                        >
+                                            {faq.q}
+                                        </span>
+                                    </div>
+                                    <span
+                                        className={`shrink-0 text-lg leading-none transition-colors ${
+                                            isOpen ? 'text-accent' : 'text-text-primary/50'
+                                        }`}
+                                        aria-hidden
                                     >
-                                        <div className="px-5 pb-4">
-                                            <div className="border border-dashed border-border rounded-lg p-4">
-                                                <div className="text-sm text-text-primary/55 leading-relaxed">{faq.a}</div>
+                                        {isOpen ? '−' : '+'}
+                                    </span>
+                                </button>
+                                <AnimatePresence initial={false}>
+                                    {isOpen && (
+                                        <motion.div
+                                            key="answer"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.25, ease: 'easeInOut' }}
+                                            style={{ overflow: 'hidden' }}
+                                        >
+                                            <div className="pb-5 pl-7 sm:pl-9 max-w-[620px] text-sm leading-relaxed text-text-primary/65">
+                                                {faq.a}
                                             </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    );
-                })}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </section>
     );

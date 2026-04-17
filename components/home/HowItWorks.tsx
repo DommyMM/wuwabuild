@@ -3,60 +3,84 @@
 import Link from 'next/link';
 import posthog from 'posthog-js';
 
-const FLOWS = [
+const STEPS: { n: string; title: string; desc: string }[] = [
     {
-        title: 'Submitting to the leaderboard',
-        description: (
-            <>
-                Use{' '}
-                <a
-                    href="https://discord.com/channels/963760374543450182/1323199091072569479"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent/80 hover:text-accent underline underline-offset-2"
-                >
-                    wuwa-bot
-                </a>{' '}
-                to get an image, then drop it on the import page. OCR scans it and fills everything in automatically.
-                You can update your display name or UID before submitting but the rest is locked to what was scanned. Do report issues or misreads.
-            </>
-        ),
-        link: { href: '/import', label: 'Import a screenshot →' },
+        n: '01',
+        title: 'Take a screenshot',
+        desc: 'Use wuwa-bot in Discord to get a clean 1920×1080 stat panel image. Crops and manual screenshots OCR poorly — don\'t bother.',
     },
     {
-        title: 'Build editor',
-        description: 'Separate from the leaderboard. Create builds from scratch, swap echoes, adjust forte nodes, try different weapon ranks — stats recalculate live. Export a build card image to share anywhere. Good for planning or sharing without submitting to the board.',
-        link: { href: '/edit', label: 'Open the editor →' },
+        n: '02',
+        title: 'Drop it on Import',
+        desc: 'OCR fills the stats it reads. Review the scan, correct anything off, report any misreads so training data improves.',
     },
-] as const;
+    {
+        n: '03',
+        title: 'Submit or edit',
+        desc: 'Publish to the per-character leaderboard, or open the editor to iterate on the build without submitting.',
+    },
+    {
+        n: '04',
+        title: 'Ranked per weapon & track',
+        desc: 'Damage is computed against a standardized rotation and ranked within each weapon × track tab.',
+    },
+];
 
 export function HowItWorks() {
     const trackFlowClick = (cta: 'import' | 'edit') => {
-        posthog.capture('home_cta_click', {
-            cta,
-            section: 'how_it_works',
-        });
+        posthog.capture('home_cta_click', { cta, section: 'how_it_works' });
     };
 
     return (
-        <section className="py-6 border-t border-border">
-            <h2 className="text-xs font-semibold text-text-primary/40 uppercase tracking-widest mb-2">
-                How it works
-            </h2>
-            <div className="flex flex-col gap-4">
-                {FLOWS.map((flow) => (
-                    <div key={flow.title}>
-                        <div className="font-semibold text-text-primary text-sm mb-1.5">{flow.title}</div>
-                        <p className="text-sm text-text-primary/50 leading-relaxed mb-2">{flow.description}</p>
-                        <Link
-                            href={flow.link.href}
-                            onClick={() => trackFlowClick(flow.link.href === '/import' ? 'import' : 'edit')}
-                            className="relative text-sm text-accent/70 hover:text-accent transition-colors duration-150 after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-accent after:transition-[width] after:duration-200 hover:after:w-full"
-                        >
-                            {flow.link.label}
-                        </Link>
+        <section className="px-6 sm:px-10 lg:px-16 pt-20 sm:pt-28 lg:pt-32">
+            <div className="mb-10 sm:mb-12">
+                <div className="text-[11px] tracking-[0.22em] uppercase text-text-primary/50 mb-2.5">
+                    How it works
+                </div>
+                <h2 className="font-plus-jakarta text-3xl sm:text-4xl lg:text-[40px] leading-[1.05] tracking-[-0.02em] font-medium">
+                    Screenshot to leaderboard,<br className="hidden sm:inline" />
+                    {' '}in about ten seconds.
+                </h2>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 border-t border-b border-border">
+                {STEPS.map((step, i) => (
+                    <div
+                        key={step.n}
+                        className={`py-8 sm:py-10 lg:px-7 ${
+                            i < STEPS.length - 1
+                                ? 'border-b lg:border-b-0 lg:border-r border-border'
+                                : ''
+                        }`}
+                    >
+                        <div className="font-gowun text-sm text-accent tracking-widest mb-6 sm:mb-7">
+                            {step.n} <span className="text-text-primary/25">/ 04</span>
+                        </div>
+                        <div className="text-lg font-medium text-text-primary mb-2.5">
+                            {step.title}
+                        </div>
+                        <p className="text-sm leading-normal text-text-primary/55">
+                            {step.desc}
+                        </p>
                     </div>
                 ))}
+            </div>
+
+            <div className="mt-7 flex flex-wrap gap-x-8 gap-y-2">
+                <Link
+                    href="/import"
+                    onClick={() => trackFlowClick('import')}
+                    className="text-sm text-accent hover:text-accent-hover border-b border-accent pb-0.5 transition-colors"
+                >
+                    Import a screenshot →
+                </Link>
+                <Link
+                    href="/edit"
+                    onClick={() => trackFlowClick('edit')}
+                    className="text-sm text-text-primary/70 hover:text-accent transition-colors"
+                >
+                    Open the editor →
+                </Link>
             </div>
         </section>
     );

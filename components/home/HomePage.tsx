@@ -1,25 +1,42 @@
-'use client';
-
 import { HeroSection } from './HeroSection';
+import { TopBuilds } from './TopBuilds';
+import { BuildsVsLeaderboards } from './BuildsVsLeaderboards';
 import { HowItWorks } from './HowItWorks';
 import { FAQ } from './FAQ';
 import { Footer } from './Footer';
+
+export interface HomeTopBuild {
+    id: string;
+    characterId: string;
+    characterName: string;
+    element: string;
+    cv: number;
+    owner: string;
+}
 
 interface HomePageProps {
     lbStats: {
         totalBuilds: number;
         totalLeaderboards: number;
     };
+    topBuilds: HomeTopBuild[];
 }
 
-export function HomePage({ lbStats }: HomePageProps) {
+export function HomePage({ lbStats, topBuilds }: HomePageProps) {
     return (
         <main className="bg-background overflow-x-hidden">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-0 leading-relaxed">
-                <HeroSection totalBuilds={lbStats.totalBuilds} totalLeaderboards={lbStats.totalLeaderboards} />
+            <div className="max-w-[1440px] mx-auto">
+                <HeroSection
+                    totalBuilds={lbStats.totalBuilds}
+                    totalLeaderboards={lbStats.totalLeaderboards}
+                />
+                <TopBuilds builds={topBuilds} />
+                <BuildsVsLeaderboards />
                 <HowItWorks />
                 <FAQ />
-                <Footer />
+                <div className="px-6 sm:px-10 lg:px-16 pt-20 sm:pt-24">
+                    <Footer />
+                </div>
             </div>
         </main>
     );
