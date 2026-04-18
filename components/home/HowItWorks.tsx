@@ -19,7 +19,7 @@ const STEPS: { n: string; title: string; desc: React.ReactNode }[] = [
                 >
                     Discord bot
                 </a>
-                . Don't crop or screenshot, just download or copy directly
+                . Don&apos;t crop or screenshot, just download or copy directly
             </>
         ),
     },

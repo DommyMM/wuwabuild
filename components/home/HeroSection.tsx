@@ -12,10 +12,6 @@ interface HeroSectionProps {
 function LiveNumber({ value }: { value: number }) {
     const [display, setDisplay] = useState(0);
     useEffect(() => {
-        if (typeof window === 'undefined') {
-            setDisplay(value);
-            return;
-        }
         let frame: number;
         const start = performance.now();
         const dur = 1500;
