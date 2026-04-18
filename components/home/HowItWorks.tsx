@@ -21,8 +21,8 @@ const STEPS: { n: string; title: string; desc: string }[] = [
     },
     {
         n: '04',
-        title: 'Ranked per weapon & track',
-        desc: 'Damage is computed against a standardized rotation and ranked within each weapon × track tab.',
+        title: 'Ranked per weapon & playstyle',
+        desc: 'Damage is computed against a standardized rotation and ranked within each weapon × playstyle tab.',
     },
 ];
 

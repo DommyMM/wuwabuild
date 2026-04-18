@@ -53,7 +53,7 @@ export function FAQ() {
                     <h2 className="font-plus-jakarta text-3xl lg:text-[32px] leading-[1.1] tracking-[-0.02em] font-medium">
                         Things players<br />ask first.
                     </h2>
-                    <p className="mt-5 text-sm text-text-primary/50 max-w-[280px]">
+                    <p className="mt-5 text-sm text-text-primary/50 max-w-70">
                         Not seeing yours? Reach out on Discord — link in footer.
                     </p>
                 </div>
@@ -99,7 +99,7 @@ export function FAQ() {
                                             transition={{ duration: 0.25, ease: 'easeInOut' }}
                                             style={{ overflow: 'hidden' }}
                                         >
-                                            <div className="pb-5 pl-7 sm:pl-9 max-w-[620px] text-sm leading-relaxed text-text-primary/65">
+                                            <div className="pb-5 pl-7 sm:pl-9 max-w-155 text-sm leading-relaxed text-text-primary/65">
                                                 {faq.a}
                                             </div>
                                         </motion.div>

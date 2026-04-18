@@ -350,16 +350,3 @@ body {
 .gold-glow:hover {
   box-shadow: 0 0 28px -4px rgba(166, 150, 98, 0.35);
 }
-
-.build-card-ph {
-  position: relative;
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.015) 0 8px,
-      rgba(255, 255, 255, 0.04) 8px 16px
-    ),
-    #191919;
-  border: 1px solid var(--color-border);
-  overflow: hidden;
-}
