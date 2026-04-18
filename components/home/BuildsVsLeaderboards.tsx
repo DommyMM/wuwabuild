@@ -1,11 +1,11 @@
 import Link from 'next/link';
 
 const BUILD_PILLS = ['No damage', 'Any weapon', 'Any rank'];
-const LB_PILLS = ['Computed damage', 'Specific weapons', 'Specific sequences'];
+const LB_PILLS = ['Calcs damage', 'Specific weapons', 'Specific sequences'];
 
 export function BuildsVsLeaderboards() {
     return (
-        <section className="px-6 sm:px-10 lg:px-16 pt-16 sm:pt-24">
+        <section className="pt-10 md:pt-14">
             <h2 className="text-xs font-semibold text-text-primary/50 uppercase tracking-[0.22em] mb-6">
                 Two ways to use the website
             </h2>

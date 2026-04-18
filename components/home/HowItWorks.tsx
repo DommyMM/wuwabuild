@@ -1,28 +1,42 @@
 'use client';
 
+import type React from 'react';
 import Link from 'next/link';
 import posthog from 'posthog-js';
 
-const STEPS: { n: string; title: string; desc: string }[] = [
+const STEPS: { n: string; title: string; desc: React.ReactNode }[] = [
     {
         n: '01',
         title: 'Take a screenshot',
-        desc: 'Use wuwa-bot in Discord to get a clean 1920×1080 stat panel image. Crops and manual screenshots OCR poorly — don\'t bother.',
+        desc: (
+            <>
+                Grab the image from the{' '}
+                <a
+                    href="https://discord.com/channels/963760374543450182/1323199091072569479"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:text-accent-hover underline underline-offset-2"
+                >
+                    Discord bot
+                </a>
+                . Don't crop or screenshot, just download or copy directly
+            </>
+        ),
     },
     {
         n: '02',
         title: 'Drop it on Import',
-        desc: 'OCR fills the stats it reads. Review the scan, correct anything off, report any misreads so training data improves.',
+        desc: 'We will automatically scan the image. Just review the results, adjust the name or uid if needed, and report any errors encountered. ',
     },
     {
         n: '03',
-        title: 'Submit or edit',
-        desc: 'Publish to the per-character leaderboard, or open the editor to iterate on the build without submitting.',
+        title: 'Download the build card',
+        desc: 'Open the editor to download a card image of the full build and stats.',
     },
     {
         n: '04',
-        title: 'Ranked per weapon & playstyle',
-        desc: 'Damage is computed against a standardized rotation and ranked within each weapon × playstyle tab.',
+        title: 'See where you rank',
+        desc: 'Browse the leaderboards to see how you match up against other players in specific weapons, sequences, and playstyles.',
     },
 ];
 
@@ -32,28 +46,27 @@ export function HowItWorks() {
     };
 
     return (
-        <section className="px-6 sm:px-10 lg:px-16 pt-20 sm:pt-28 lg:pt-32">
-            <div className="mb-10 sm:mb-12">
-                <div className="text-[11px] tracking-[0.22em] uppercase text-text-primary/50 mb-2.5">
+        <section className="pt-14 md:pt-20">
+            <div className="mb-8 md:mb-10">
+                <div className="text-xs tracking-[0.22em] uppercase text-text-primary/50 mb-2.5">
                     How it works
                 </div>
-                <h2 className="font-plus-jakarta text-3xl sm:text-4xl lg:text-[40px] leading-[1.05] tracking-[-0.02em] font-medium">
-                    Screenshot to leaderboard,<br className="hidden sm:inline" />
-                    {' '}in about ten seconds.
+                <h2 className="font-plus-jakarta text-3xl md:text-5xl leading-[1.05] tracking-[-0.02em] font-medium text-balance">
+                    Screenshot to leaderboard, in about ten seconds.
                 </h2>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 border-t border-b border-border">
+            <div className="grid grid-cols-1 md:grid-cols-4 border-t border-b border-border">
                 {STEPS.map((step, i) => (
                     <div
                         key={step.n}
-                        className={`py-8 sm:py-10 lg:px-7 ${
+                        className={`py-7 md:py-9 md:px-7 ${
                             i < STEPS.length - 1
-                                ? 'border-b lg:border-b-0 lg:border-r border-border'
+                                ? 'border-b md:border-b-0 md:border-r border-border'
                                 : ''
                         }`}
                     >
-                        <div className="font-gowun text-sm text-accent tracking-widest mb-6 sm:mb-7">
+                        <div className="font-gowun text-sm text-accent tracking-widest mb-5">
                             {step.n} <span className="text-text-primary/25">/ 04</span>
                         </div>
                         <div className="text-lg font-medium text-text-primary mb-2.5">
