@@ -12,6 +12,11 @@ export interface HomeTopBuild {
     element: string;
     cv: number;
     owner: string;
+    sequence: number;
+    bannerUrl: string | null;
+    iconRoundUrl: string | null;
+    weaponIconUrl: string | null;
+    weaponName: string | null;
 }
 
 interface HomePageProps {

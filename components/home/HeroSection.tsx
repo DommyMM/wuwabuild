@@ -58,11 +58,11 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
 
                     <h1 className="font-plus-jakarta text-[44px] sm:text-6xl lg:text-[76px] leading-[0.98] tracking-[-0.035em] font-medium text-text-primary">
                         Scan your stats.<br />
-                        <span className="text-accent italic font-normal">Rank</span>
-                        {' '}your damage.
+                        <span className="text-accent italic font-normal pr-[0.18em]">Rank</span>
+                        your damage.
                     </h1>
 
-                    <p className="mt-6 sm:mt-7 max-w-[480px] text-base sm:text-[17px] leading-[1.5] text-text-primary/65">
+                    <p className="mt-6 sm:mt-7 max-w-[560px] text-base sm:text-[17px] leading-[1.5] text-text-primary/65">
                         Drop a screenshot. We OCR the stat panel, compute damage against standardized
                         conditions, and rank you per-character against every other player.
                     </p>

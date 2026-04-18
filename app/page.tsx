@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { HomePage, type HomeTopBuild } from '@/components/home/HomePage';
 import { prefetchLeaderboardOverview, prefetchBuilds } from '@/lib/lbServer';
-import { loadCharacterSummary } from '@/lib/server/ogData';
+import { loadCharacterSummary, loadWeaponSummary } from '@/lib/server/ogData';
 
 export const revalidate = 120; // ISR: full page HTML cached at edge, re-rendered at most once per 2 min
 
@@ -29,6 +29,7 @@ export default async function Home() {
         .slice(0, 4)
         .map((build) => {
             const summary = loadCharacterSummary(build.character.id);
+            const weapon = loadWeaponSummary(build.weapon.id);
             return {
                 id: build.id,
                 characterId: build.character.id,
@@ -36,6 +37,11 @@ export default async function Home() {
                 element: (summary?.element ?? '').toString().toLowerCase(),
                 cv: build.cv,
                 owner: build.owner.username,
+                sequence: Math.max(0, Math.min(6, Math.trunc(Number(build.sequence) || 0))),
+                bannerUrl: summary?.bannerUrl ?? null,
+                iconRoundUrl: summary?.iconRoundUrl ?? null,
+                weaponIconUrl: weapon?.iconUrl ?? null,
+                weaponName: weapon?.name ?? null,
             };
         });
 
