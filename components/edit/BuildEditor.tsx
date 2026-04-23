@@ -22,6 +22,7 @@ import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
 import { BuildCardOptions, CardOptions } from './BuildCardOptions';
 import { BuildCard } from './BuildCard';
+import { CardScaler } from './CardScaler';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -35,6 +36,8 @@ const ART_ZOOM_STEP = 0.05;
 const MIN_ART_ZOOM = 1;
 const MAX_ART_ZOOM = 4;
 const FIXED_CARD_PREVIEW_WIDTH = 1440;
+const FIXED_CARD_PREVIEW_HEIGHT = FIXED_CARD_PREVIEW_WIDTH / 2.4;
+const EXPORT_CARD_WIDTH = 3840;
 type RoverElement = (typeof ROVER_ELEMENTS)[number];
 type CharacterArtState = {
   ownerCharacterId: string | null;
@@ -227,16 +230,16 @@ export const BuildEditor: React.FC = () => {
     setIsDownloading(true);
     const { toBlob } = await import('html-to-image');
 
-    // Scale up from current CSS size so all fixed values (border-radius, shadows etc.) scale proportionally
-    const exportWidth = 3840;
-    const pixelRatio = exportWidth / cardRef.current.offsetWidth;
+    const pixelRatio = EXPORT_CARD_WIDTH / FIXED_CARD_PREVIEW_WIDTH;
 
     try {
       await new Promise(resolve => requestAnimationFrame(resolve));
 
       const exportBlob = await toBlob(cardRef.current, {
         cacheBust: true,
+        height: FIXED_CARD_PREVIEW_HEIGHT,
         pixelRatio,
+        width: FIXED_CARD_PREVIEW_WIDTH,
       });
       if (!exportBlob) {
         throw new Error('Card export returned an empty blob.');
@@ -609,18 +612,24 @@ export const BuildEditor: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <BuildCard
+                    <CardScaler
                       ref={cardRef}
-                      useAltSkin={cardOptions.useAltSkin}
-                      showCV={cardOptions.showCV}
-                      showRollQuality={cardOptions.showRollQuality}
-                      artTransform={artTransform}
-                      artSourceMode={artSourceMode}
-                      customArtUrl={customArtUrl}
-                      isArtEditMode={isArtEditMode}
-                      onCustomArtUpload={handleCustomArtUpload}
-                      onArtTransformChange={setArtTransform}
-                    />
+                      className="pt-0"
+                      designHeight={FIXED_CARD_PREVIEW_HEIGHT}
+                      designWidth={FIXED_CARD_PREVIEW_WIDTH}
+                    >
+                        <BuildCard
+                          useAltSkin={cardOptions.useAltSkin}
+                          showCV={cardOptions.showCV}
+                          showRollQuality={cardOptions.showRollQuality}
+                          artTransform={artTransform}
+                          artSourceMode={artSourceMode}
+                          customArtUrl={customArtUrl}
+                          isArtEditMode={isArtEditMode}
+                          onCustomArtUpload={handleCustomArtUpload}
+                          onArtTransformChange={setArtTransform}
+                        />
+                    </CardScaler>
                   )}
                 </div>
                 {/* Action bar, flipped version of BuildCardOptions */}
