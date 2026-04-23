@@ -33,7 +33,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
   const { state, getSavedState, markClean } = useBuild();
   const { getCharacter, getWeapon, getEcho, getFetterByElement } = useGameData();
   const { t } = useLanguage();
-  const [name, setName] = useState(existingBuild?.name || '');
+  const [name, setName] = useState(existingBuild?.name || defaultName || '');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -85,13 +85,6 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
 
   const visibleSets = setSummaries.slice(0, 3);
   const hiddenSetCount = Math.max(0, setSummaries.length - visibleSets.length);
-
-  React.useEffect(() => {
-    if (isOpen) {
-      setName(existingBuild?.name || defaultName || '');
-      setError(null);
-    }
-  }, [isOpen, existingBuild, defaultName]);
 
   const handleSave = useCallback(async () => {
     const trimmedName = name.trim();

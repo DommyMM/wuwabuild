@@ -68,16 +68,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [username, setUsername] = useState(() => initialSnapshot.username);
   // URL-reactive buildId: re-derived on every render so same-page navigation (standings click) is detected.
   const deepLinkBuildId = initialSnapshot.buildId;
-  // Frozen context: which weapon/track was active when this buildId was introduced.
-  // Updated via render-time ref mutation when the buildId changes.
-  const buildIdContextRef = useRef<{ buildId: string; weaponId: string; track: string } | null>(
-    deepLinkBuildId ? { buildId: deepLinkBuildId, weaponId: initialSnapshot.weaponId, track: initialSnapshot.track } : null
-  );
-  if (deepLinkBuildId && buildIdContextRef.current?.buildId !== deepLinkBuildId) {
-    buildIdContextRef.current = { buildId: deepLinkBuildId, weaponId: initialSnapshot.weaponId, track: initialSnapshot.track };
-  } else if (!deepLinkBuildId && buildIdContextRef.current) {
-    buildIdContextRef.current = null;
-  }
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => initialSnapshot.regionPrefixes);
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialSnapshot.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialSnapshot.echoMains);
@@ -115,18 +105,26 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     () => configWeaponIds[weaponIndex] ?? initialSnapshot.weaponId ?? '',
     [configWeaponIds, initialSnapshot.weaponId, weaponIndex],
   );
+  const buildIdContext = useMemo(
+    () => (deepLinkBuildId
+      ? { buildId: deepLinkBuildId, weaponId: initialSnapshot.weaponId, track: initialSnapshot.track }
+      : null),
+    [deepLinkBuildId, initialSnapshot.track, initialSnapshot.weaponId],
+  );
   // Clear the deep link buildId once the user navigates away from the weapon/track it was introduced on.
   const activeBuildId = useMemo(() => {
-    if (!deepLinkBuildId || !buildIdContextRef.current) return undefined;
-    const ctx = buildIdContextRef.current;
+    if (!deepLinkBuildId || !buildIdContext) return undefined;
+    const ctx = buildIdContext;
     if (ctx.weaponId && weaponId !== ctx.weaponId) return undefined;
     if (ctx.track && track !== ctx.track) return undefined;
     return deepLinkBuildId;
-  }, [deepLinkBuildId, weaponId, track]);
+  }, [buildIdContext, deepLinkBuildId, track, weaponId]);
   const activeTrackConfig = useMemo(
     () => configTracks.find((entry) => entry.key === track),
     [configTracks, track],
   );
+  const validErBrackets = activeTrackConfig?.erBrackets?.length ? activeTrackConfig.erBrackets : [110, 120, 130, 140, 150];
+  const effectiveErMin = erMin === 0 || validErBrackets.includes(erMin) ? erMin : 0;
   const currentQuerySnapshot = useMemo(() => resolveLeaderboardQuerySnapshot({
     page,
     pageSize,
@@ -140,11 +138,11 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     echoSets,
     echoMains,
     buildId: activeBuildId,
-    erMin,
+    erMin: effectiveErMin,
   }, {
     defaultWeaponId,
     defaultTrack: defaultTrackKey,
-  }), [activeBuildId, defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, erMin, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
+  }), [activeBuildId, defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, effectiveErMin, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
   const leaderboardQuery = useMemo(
     () => leaderboardSnapshotToApiQuery(currentQuerySnapshot),
     [currentQuerySnapshot],
@@ -163,22 +161,17 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     const stateWeaponId = configWeaponIds[weaponIndex] ?? '';
     if (urlWeaponId === stateWeaponId && urlTrack === track) return;
     suppressUrlSyncRef.current = true;
-    // Also update the buildId context so activeBuildId stays valid after state updates.
-    if (initialSnapshot.buildId) {
-      buildIdContextRef.current = { buildId: initialSnapshot.buildId, weaponId: urlWeaponId ?? '', track: urlTrack ?? '' };
-    }
     const idx = urlWeaponId ? configWeaponIds.indexOf(urlWeaponId) : -1;
-    if (idx >= 0) setWeaponIndex(idx);
-    if (urlTrack && urlTrack !== track) setTrack(urlTrack);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParamsString]);
-
-  useEffect(() => {
-    const validBrackets = activeTrackConfig?.erBrackets?.length ? activeTrackConfig.erBrackets : [110, 120, 130, 140, 150];
-    if (erMin === 0 || validBrackets.includes(erMin)) return;
-    setErMin(0);
-    setPage(1);
-  }, [activeTrackConfig, erMin]);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (idx >= 0) setWeaponIndex(idx);
+      if (urlTrack && urlTrack !== track) setTrack(urlTrack);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [configWeaponIds, initialSnapshot.buildId, initialSnapshot.track, initialSnapshot.weaponId, searchParamsString, track, weaponIndex]);
 
   // URL sync
   useEffect(() => {
@@ -219,8 +212,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     sort,
     direction,
     pageSize,
-    erMin,
-  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sort, direction, pageSize, erMin]);
+    erMin: effectiveErMin,
+  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sort, direction, pageSize, effectiveErMin]);
 
   useEffect(() => {
     if (!settledQueryKey) return;
@@ -237,12 +230,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       has_username_search: username.trim().length > 0,
       echo_set_count: echoSets.length,
       echo_main_count: echoMains.length,
-      er_min: erMin || null,
+      er_min: effectiveErMin || null,
       sort,
       direction,
       page_size: pageSize,
     });
-  }, [characterId, direction, echoMains.length, echoSets.length, erMin, filterSignature, pageSize, queryKey, regionPrefixes.length, settledQueryKey, sort, track, uid, username, weaponId]);
+  }, [characterId, direction, echoMains.length, echoSets.length, effectiveErMin, filterSignature, pageSize, queryKey, regionPrefixes.length, settledQueryKey, sort, track, uid, username, weaponId]);
 
   // Fetch leaderboard data
   useEffect(() => {
@@ -472,7 +465,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     username.trim().length > 0 ||
     echoSets.length > 0 ||
     echoMains.length > 0 ||
-    erMin > 0
+    effectiveErMin > 0
   );
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -527,7 +520,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                   setTrack(trackKey);
                   setPage(1);
                 }}
-                erMin={erMin}
+                erMin={effectiveErMin}
                 onSelectErMin={(value) => {
                   posthog.capture('leaderboard_tab_change', {
                     character_id: characterId,

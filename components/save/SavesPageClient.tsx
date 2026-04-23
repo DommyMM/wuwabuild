@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, ArrowDownAZ, ArrowUpAZ, ChevronDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Download, Search, Upload, X } from 'lucide-react';
 import { SavedBuild } from '@/lib/build';
@@ -26,18 +26,22 @@ type FilterSuggestion = {
   icon: string;
 };
 
+const EMPTY_BUILDS: SavedBuild[] = [];
+const STORAGE_SUMMARY_FALLBACK = {
+  found: false,
+  buildCount: 0,
+  parseError: false,
+};
+
+const subscribeToClientRender = () => () => {};
+
 export const SavesPageClient: React.FC = () => {
   const router = useRouter();
   const { success, error: notifyError, warning } = useToast();
   const { characters, echoes, weaponList } = useGameData();
   const { t } = useLanguage();
-  const [builds, setBuilds] = useState<SavedBuild[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [legacySummary, setLegacySummary] = useState({
-    found: false,
-    buildCount: 0,
-    parseError: false,
-  });
+  const isClient = useSyncExternalStore(subscribeToClientRender, () => true, () => false);
+  const [storageRevision, setStorageRevision] = useState(0);
   const [isLegacyMigrating, setIsLegacyMigrating] = useState(false);
   const [showLegacyDeleteConfirm, setShowLegacyDeleteConfirm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,16 +58,28 @@ export const SavesPageClient: React.FC = () => {
   const [pendingLoadBuild, setPendingLoadBuild] = useState<SavedBuild | null>(null);
   const [pendingDeleteBuild, setPendingDeleteBuild] = useState<SavedBuild | null>(null);
   const itemsPerPage = 10;
-  const [hostname, setHostname] = useState<string | null>(null);
+  const sortTimerRef = useRef<number | null>(null);
+  const builds = isClient && storageRevision >= 0 ? loadBuilds().builds : EMPTY_BUILDS;
+  const legacySummary = isClient && storageRevision >= 0
+    ? getLegacySavesSummaryFromStorage()
+    : STORAGE_SUMMARY_FALLBACK;
+  const isLoaded = isClient;
+  const hostname = isClient ? window.location.hostname : null;
   const isLegacyDomain = hostname === 'wuwabuilds.moe' || hostname === 'www.wuwabuilds.moe';
 
-  const refreshBuilds = useCallback(() => {
-    const data = loadBuilds();
-    setBuilds(data.builds);
+  const refreshStorage = useCallback(() => {
+    setStorageRevision((prev) => prev + 1);
   }, []);
 
-  const refreshLegacySummary = useCallback(() => {
-    setLegacySummary(getLegacySavesSummaryFromStorage());
+  const triggerSortAnimation = useCallback(() => {
+    setIsSorting(true);
+    if (sortTimerRef.current !== null) {
+      window.clearTimeout(sortTimerRef.current);
+    }
+    sortTimerRef.current = window.setTimeout(() => {
+      setIsSorting(false);
+      sortTimerRef.current = null;
+    }, 160);
   }, []);
 
   const legacyIdMaps = useMemo(
@@ -155,10 +171,11 @@ export const SavesPageClient: React.FC = () => {
   }, [buildCVs, builds, searchQuery, selectedCharacterIds, selectedWeaponIds, sortBy, sortDirection]);
 
   const pageCount = Math.max(1, Math.ceil(filteredAndSortedBuilds.length / itemsPerPage));
+  const currentPageValue = Math.min(currentPage, pageCount);
   const paginatedBuilds = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
+    const start = (currentPageValue - 1) * itemsPerPage;
     return filteredAndSortedBuilds.slice(start, start + itemsPerPage);
-  }, [currentPage, filteredAndSortedBuilds]);
+  }, [currentPageValue, filteredAndSortedBuilds]);
 
   const handleExportAll = useCallback(() => {
     try {
@@ -226,7 +243,7 @@ export const SavesPageClient: React.FC = () => {
 
       if (isV2ImportPayload(parsed)) {
         const imported = await importBuild(file);
-        refreshBuilds();
+        refreshStorage();
         posthog.capture('saves_import', { count: imported.length, format: 'json' });
         success(`Imported ${imported.length} build(s).`);
         return;
@@ -238,7 +255,7 @@ export const SavesPageClient: React.FC = () => {
       }
 
       const merged = mergeBuilds(converted.builds);
-      refreshBuilds();
+      refreshStorage();
       posthog.capture('saves_import', { count: merged.length, format: 'json', skipped: converted.skippedCount });
       success(`Migrated and imported ${merged.length} legacy build(s).`);
       if (converted.skippedCount > 0) {
@@ -250,7 +267,7 @@ export const SavesPageClient: React.FC = () => {
     } finally {
       event.target.value = '';
     }
-  }, [isV2ImportPayload, legacyIdMaps, notifyError, refreshBuilds, success, warning]);
+  }, [isV2ImportPayload, legacyIdMaps, notifyError, refreshStorage, success, warning]);
 
   const handleDeleteAll = useCallback(() => {
     if (!deleteAllArmed) {
@@ -260,10 +277,10 @@ export const SavesPageClient: React.FC = () => {
     }
 
     clearAllBuilds();
-    setBuilds([]);
+    refreshStorage();
     setDeleteAllArmed(false);
     success('Deleted all saved builds.');
-  }, [deleteAllArmed, success, warning]);
+  }, [deleteAllArmed, refreshStorage, success, warning]);
 
   const handleRenameBuild = useCallback((build: SavedBuild, nextName: string) => {
     try {
@@ -272,12 +289,12 @@ export const SavesPageClient: React.FC = () => {
         notifyError('Build not found.');
         return;
       }
-      refreshBuilds();
+      refreshStorage();
       success(`Renamed to "${renamed.name}".`);
     } catch (error) {
       notifyError(error instanceof Error ? error.message : 'Failed to rename build.');
     }
-  }, [notifyError, refreshBuilds, success]);
+  }, [notifyError, refreshStorage, success]);
 
   const confirmDeleteBuild = useCallback((build: SavedBuild) => {
     try {
@@ -294,12 +311,12 @@ export const SavesPageClient: React.FC = () => {
         character_id: build.state.characterId ?? null,
         weapon_id: build.state.weaponId ?? null,
       });
-      refreshBuilds();
+      refreshStorage();
       success(`Deleted "${build.name}".`);
     } catch {
       notifyError('Failed to delete build.');
     }
-  }, [expandedBuildId, notifyError, refreshBuilds, success]);
+  }, [expandedBuildId, notifyError, refreshStorage, success]);
 
   const handleDeleteBuild = useCallback((build: SavedBuild) => {
     setPendingDeleteBuild(build);
@@ -313,21 +330,20 @@ export const SavesPageClient: React.FC = () => {
       const payload = readLegacySavesPayload();
       if (!payload) {
         warning('No legacy saves found.');
-        refreshLegacySummary();
+        refreshStorage();
         return;
       }
 
       const converted = convertLegacyBuilds(payload, legacyIdMaps);
       if (converted.builds.length === 0) {
         warning('No valid legacy builds to migrate.');
-        refreshLegacySummary();
+        refreshStorage();
         return;
       }
 
       const merged = mergeBuilds(converted.builds);
       clearLegacySavesFromStorage();
-      refreshBuilds();
-      refreshLegacySummary();
+      refreshStorage();
       posthog.capture('legacy_migration_complete', {
         migrated_count: merged.length,
         skipped_count: converted.skippedCount,
@@ -343,24 +359,14 @@ export const SavesPageClient: React.FC = () => {
     } finally {
       setIsLegacyMigrating(false);
     }
-  }, [isLegacyMigrating, legacyIdMaps, notifyError, refreshBuilds, refreshLegacySummary, success, warning]);
+  }, [isLegacyMigrating, legacyIdMaps, notifyError, refreshStorage, success, warning]);
 
   const confirmDeleteLegacy = useCallback(() => {
     clearLegacySavesFromStorage();
     setShowLegacyDeleteConfirm(false);
-    refreshLegacySummary();
+    refreshStorage();
     success('Deleted legacy saves.');
-  }, [refreshLegacySummary, success]);
-
-  useEffect(() => {
-    refreshBuilds();
-    refreshLegacySummary();
-    setIsLoaded(true);
-  }, [refreshBuilds, refreshLegacySummary]);
-
-  useEffect(() => {
-    setHostname(window.location.hostname);
-  }, []);
+  }, [refreshStorage, success]);
 
   useEffect(() => {
     if (!deleteAllArmed) return;
@@ -368,21 +374,11 @@ export const SavesPageClient: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [deleteAllArmed]);
 
-  useEffect(() => {
-    setIsSorting(true);
-    const timer = window.setTimeout(() => setIsSorting(false), 160);
-    return () => window.clearTimeout(timer);
-  }, [sortBy, sortDirection]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedCharacterIds, selectedWeaponIds]);
-
-  useEffect(() => {
-    if (currentPage > pageCount) {
-      setCurrentPage(pageCount);
+  useEffect(() => () => {
+    if (sortTimerRef.current !== null) {
+      window.clearTimeout(sortTimerRef.current);
     }
-  }, [currentPage, pageCount]);
+  }, []);
 
   const addFilterSuggestion = useCallback((item: FilterSuggestion) => {
     if (item.type === 'character') {
@@ -391,14 +387,17 @@ export const SavesPageClient: React.FC = () => {
       setSelectedWeaponIds((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
     }
     setEntityQuery('');
+    setCurrentPage(1);
   }, []);
 
   const removeCharacterFilter = useCallback((id: string) => {
     setSelectedCharacterIds((prev) => prev.filter((charId) => charId !== id));
+    setCurrentPage(1);
   }, []);
 
   const removeWeaponFilter = useCallback((id: string) => {
     setSelectedWeaponIds((prev) => prev.filter((weaponId) => weaponId !== id));
+    setCurrentPage(1);
   }, []);
 
   const handleFilterInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -433,7 +432,10 @@ export const SavesPageClient: React.FC = () => {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 placeholder="Search build name..."
                 className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none"
               />
@@ -443,7 +445,11 @@ export const SavesPageClient: React.FC = () => {
               <div className="relative">
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortBy)}
+                  onChange={(e) => {
+                    setSortBy(e.target.value as SortBy);
+                    setCurrentPage(1);
+                    triggerSortAnimation();
+                  }}
                   className="appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-text-primary focus:border-accent/60 focus:outline-none"
                 >
                   <option value="date">Sort: Date</option>
@@ -457,7 +463,11 @@ export const SavesPageClient: React.FC = () => {
               </div>
 
               <button
-                onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                onClick={() => {
+                  setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                  setCurrentPage(1);
+                  triggerSortAnimation();
+                }}
                 className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary transition-colors hover:border-text-primary/40"
                 title="Toggle sort direction"
               >
@@ -718,26 +728,26 @@ export const SavesPageClient: React.FC = () => {
               <div className="mt-4 flex items-center justify-center gap-2">
                 <button
                   onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
+                  disabled={currentPageValue === 1}
                   className="rounded-lg border border-border bg-background p-2 text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="First page"
                 >
                   <ChevronFirst size={16} />
                 </button>
                 <button
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(Math.max(1, currentPageValue - 1))}
+                  disabled={currentPageValue === 1}
                   className="rounded-lg border border-border bg-background p-2 text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Previous page"
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <span className="min-w-20 text-center text-sm text-text-primary/80">
-                  Page {currentPage} / {pageCount}
+                  Page {currentPageValue} / {pageCount}
                 </span>
                 <button
-                  onClick={() => setCurrentPage((prev) => Math.min(pageCount, prev + 1))}
-                  disabled={currentPage === pageCount}
+                  onClick={() => setCurrentPage(Math.min(pageCount, currentPageValue + 1))}
+                  disabled={currentPageValue === pageCount}
                   className="rounded-lg border border-border bg-background p-2 text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Next page"
                 >
@@ -745,7 +755,7 @@ export const SavesPageClient: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setCurrentPage(pageCount)}
-                  disabled={currentPage === pageCount}
+                  disabled={currentPageValue === pageCount}
                   className="rounded-lg border border-border bg-background p-2 text-text-primary transition-colors hover:border-text-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Last page"
                 >

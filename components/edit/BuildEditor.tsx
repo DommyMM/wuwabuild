@@ -36,6 +36,13 @@ const MIN_ART_ZOOM = 1;
 const MAX_ART_ZOOM = 4;
 const FIXED_CARD_PREVIEW_WIDTH = 1440;
 type RoverElement = (typeof ROVER_ELEMENTS)[number];
+type CharacterArtState = {
+  ownerCharacterId: string | null;
+  isEditMode: boolean;
+  transform: CardArtTransform;
+  sourceMode: CardArtSourceMode;
+  customUrl: string | null;
+};
 
 const ROVER_ELEMENT_ACTIVE_CLASS: Record<RoverElement, string> = {
   Spectro: 'bg-spectro/30 border-spectro/70 text-spectro',
@@ -104,22 +111,25 @@ const readFileAsDataUrl = (file: File): Promise<string> => (
   })
 );
 
+const createDefaultArtState = (characterId: string | null): CharacterArtState => ({
+  ownerCharacterId: characterId,
+  isEditMode: false,
+  transform: DEFAULT_CARD_ART_TRANSFORM,
+  sourceMode: 'default',
+  customUrl: null,
+});
+
 export const BuildEditor: React.FC = () => {
   const router = useRouter();
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const [isPhoneViewport, setIsPhoneViewport] = useState(false);
 
   const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
   const [isCardGenerated, setIsCardGenerated] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isArtEditMode, setIsArtEditMode] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-  const [artTransform, setArtTransform] = useState<CardArtTransform>(DEFAULT_CARD_ART_TRANSFORM);
-  const [artSourceMode, setArtSourceMode] = useState<CardArtSourceMode>('default');
-  const [customArtUrl, setCustomArtUrl] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const customArtBlobRef = useRef<Blob | null>(null);
   const editorStartedTrackedRef = useRef(false);
@@ -154,14 +164,27 @@ export const BuildEditor: React.FC = () => {
   });
 
   const { scrollY } = useScroll();
+  const [artState, setArtState] = useState<CharacterArtState>(() => createDefaultArtState(state.characterId));
+  const activeArtState = artState.ownerCharacterId === state.characterId
+    ? artState
+    : createDefaultArtState(state.characterId);
+  const { customUrl: customArtUrl, isEditMode: isArtEditMode, sourceMode: artSourceMode, transform: artTransform } = activeArtState;
+  const portalTarget = typeof document === 'undefined' ? null : document.getElementById('nav-toolbar-portal');
+
+  const setArtTransform = useCallback((next: React.SetStateAction<CardArtTransform>) => {
+    setArtState((prev) => {
+      const current = prev.ownerCharacterId === state.characterId ? prev : createDefaultArtState(state.characterId);
+      return {
+        ...current,
+        transform: typeof next === 'function' ? next(current.transform) : next,
+      };
+    });
+  }, [state.characterId]);
 
   const clearArtState = useCallback(() => {
     customArtBlobRef.current = null;
-
-    setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
-    setArtSourceMode('default');
-    setCustomArtUrl(null);
-  }, []);
+    setArtState(createDefaultArtState(state.characterId));
+  }, [state.characterId]);
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 767px)');
@@ -170,10 +193,6 @@ export const BuildEditor: React.FC = () => {
 
     media.addEventListener('change', onChange);
     return () => media.removeEventListener('change', onChange);
-  }, []);
-
-  useEffect(() => {
-    setPortalTarget(document.getElementById('nav-toolbar-portal'));
   }, []);
 
   // Reset weapon when switching to a character with a different weapon type
@@ -185,11 +204,6 @@ export const BuildEditor: React.FC = () => {
       setWeaponRank(1);
     }
   }, [selected, selectedWeapon, setWeapon, setWeaponLevel, setWeaponRank]);
-
-  useEffect(() => {
-    clearArtState();
-    setIsArtEditMode(false);
-  }, [state.characterId, clearArtState]);
 
   useMotionValueEvent(scrollY, 'change', () => {
     const el = actionBarRef.current;
@@ -253,7 +267,7 @@ export const BuildEditor: React.FC = () => {
     } finally {
       setIsDownloading(false);
     }
-  }, [isDownloading, selected?.character.name, state.characterId, state.weaponId, state.sequence, toastError]);
+  }, [isDownloading, selected, state.characterId, state.weaponId, state.sequence, toastError]);
 
   const handleResetBuild = useCallback(() => {
     setIsResetDialogOpen(true);
@@ -264,8 +278,11 @@ export const BuildEditor: React.FC = () => {
   }, []);
 
   const handleToggleArtEditMode = useCallback(() => {
-    setIsArtEditMode(v => !v);
-  }, []);
+    setArtState((prev) => {
+      const current = prev.ownerCharacterId === state.characterId ? prev : createDefaultArtState(state.characterId);
+      return { ...current, isEditMode: !current.isEditMode };
+    });
+  }, [state.characterId]);
 
   const handleGenerateCard = useCallback(() => {
     setIsCardGenerated(true);
@@ -317,17 +334,18 @@ export const BuildEditor: React.FC = () => {
       return;
     }
     customArtBlobRef.current = file;
-    setCustomArtUrl(dataUrl);
-    setArtSourceMode('custom');
-    setArtTransform({ x: 0, y: 0, scale: autoScale });
-  }, [toastError]);
+    setArtState({
+      customUrl: dataUrl,
+      isEditMode: activeArtState.isEditMode,
+      ownerCharacterId: state.characterId,
+      sourceMode: 'custom',
+      transform: { x: 0, y: 0, scale: autoScale },
+    });
+  }, [activeArtState.isEditMode, state.characterId, toastError]);
 
   const handleRemoveCustomArt = useCallback(() => {
-    customArtBlobRef.current = null;
-    setCustomArtUrl(null);
-    setArtSourceMode('default');
-    setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
-  }, []);
+    clearArtState();
+  }, [clearArtState]);
 
   const handleUseSplashArt = useCallback(async () => {
     const characterId = selected?.character.id;
@@ -367,18 +385,22 @@ export const BuildEditor: React.FC = () => {
     }
 
     customArtBlobRef.current = null;
-    setCustomArtUrl(splashUrl);
-    setArtSourceMode('custom');
-    setArtTransform({ x: 0, y: 0, scale: autoScale });
-  }, [selected, toastError]);
+    setArtState({
+      customUrl: splashUrl,
+      isEditMode: activeArtState.isEditMode,
+      ownerCharacterId: state.characterId,
+      sourceMode: 'custom',
+      transform: { x: 0, y: 0, scale: autoScale },
+    });
+  }, [activeArtState.isEditMode, selected, state.characterId, toastError]);
 
   const handleResetArtTransform = useCallback(() => {
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
-  }, []);
+  }, [setArtTransform]);
 
   const handleNudgeArt = useCallback((dx: number, dy: number) => {
     setArtTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-  }, []);
+  }, [setArtTransform]);
 
   const handleZoomArt = useCallback((delta: number) => {
     setArtTransform(prev => {
@@ -386,7 +408,7 @@ export const BuildEditor: React.FC = () => {
       const clamped = Math.max(MIN_ART_ZOOM, Math.min(MAX_ART_ZOOM, next));
       return { ...prev, scale: clamped };
     });
-  }, []);
+  }, [setArtTransform]);
 
   return (
     <div className="mx-auto flex max-w-360 min-w-0 flex-col overflow-x-clip">
@@ -735,6 +757,7 @@ export const BuildEditor: React.FC = () => {
             )}
       </div>
       <SaveBuildModal
+        key={`${isSaveModalOpen ? 'open' : 'closed'}-${state.characterId}`}
         isOpen={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}
         defaultName={selected?.character.name ? `${selected.character.name} Build` : undefined}
@@ -750,7 +773,6 @@ export const BuildEditor: React.FC = () => {
         onConfirm={() => {
           resetBuild();
           clearArtState();
-          setIsArtEditMode(false);
           setIsResetDialogOpen(false);
         }}
       />
