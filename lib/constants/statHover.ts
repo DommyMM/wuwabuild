@@ -1,4 +1,4 @@
-export const STAT_HOVER_KEYS = [
+const STAT_HOVER_KEYS = [
   'HP',
   'ATK',
   'DEF',

@@ -6,7 +6,7 @@ const LB_PROXY_BASE = '/api/lb';
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 100;
 
-export const LB_STAT_CODES = [
+const LB_STAT_CODES = [
   'H', 'H%',
   'A', 'A%',
   'D', 'D%',
