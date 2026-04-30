@@ -10,6 +10,7 @@ The script-level reference is [`scripts/CDN_SYNC.md`](../scripts/CDN_SYNC.md). T
 - Encore is a real REST API: tiny per-language responses, ~200–400ms per call, no observed flakiness, exposes a `/new` changelog endpoint with `GameVer` / `ResVer` / list of newly-added IDs.
 - Both sources track the same game version today (3.3.0, character 1608 Phrolova, weapon 21050104). The premise that one is "more up to date" hasn't held up in measurements — it's about reliability and speed, not freshness.
 - Schemas differ enough that we need a transformer layer; field coverage on Encore is a superset of what we currently consume.
+- Wuthery can still have per-field localization gaps even when it has the new entity. Example: echo item `60001995` has blank `name.en` in Wuthery, while Encore exposes the English name through its echo list/detail keyed by `MonsterId`.
 
 ## Empirical Comparison
 
@@ -111,8 +112,9 @@ Validation on 2026-04-30 for `1608`:
 
 | `Echoes.json` field | Encore source |
 |---|---|
-| `id` | `Id` |
-| `name` | per-lang `Name` |
+| `id` | `ItemId` in detail, or Wuthery-style item ID derived from rarity rows |
+| `monsterId` / lookup ID | Encore list/detail `Id` / `MonsterId` |
+| `name` | list `Name` / detail `MonsterName` |
 | `cost`, `rarity` | `Rarity`, `PhantomType` |
 | `element` | `Element.Id` |
 | `fetter` (FetterGroup IDs) | `FetterGroups[].Id` |
@@ -122,6 +124,19 @@ Validation on 2026-04-30 for `1608`:
 | `skill.description`, `skill.params` | `Skill` object |
 
 The `FetterGroups[].Fetters[]` payload embedded in each echo is sufficient on its own — the separate `PhantomFetterGroups.json` / `PhantomFetters.json` localization-index fetches that today drive `sync_fetters.py` may become unnecessary if we sync from Encore.
+
+### Echo ID and Localization Notes
+
+Wuthery's `Grouped/Phantom` rows are item/rarity rows. For the new Voidborne Construct echo:
+
+- Wuthery has `60001992` through `60001995` for rarity tiers, all sharing `monsterId: 6000199`.
+- The 5-star canonical row is `60001995`, which is the ID we keep in `public/Data/Echoes.json`, backend OCR templates, and LB data.
+- Wuthery's `name.en` is blank for all four rows. Wuthery `Grouped/Monster/340000271.json` is also blank for English.
+- Wuthery `Grouped/Monster/340000270.json` has `Aleph-1's Creation`, but that is the summoned unit name from the skill text, not the echo display name.
+- Encore's echo list has `Id: 6000199`, `Name: "Reminiscence: Threnodian - Voidborne Construct"`.
+- Encore's echo detail at `/api/en/echo/6000199` has `ItemId: 60001995`, `MonsterId: 6000199`, and `MonsterName: "Reminiscence: Threnodian - Voidborne Construct"`.
+
+Current behavior in `sync_echoes.py`: Wuthery remains the primary source. If a 5-star Wuthery echo has no English name, the script fetches Encore's English echo list and fills the missing name by matching Wuthery `monsterId` to Encore list `Id`. This is source-derived fallback, not a per-ID hardcode.
 
 ## Strategy
 
@@ -153,4 +168,4 @@ Wuthery-only mode is retained as a break-glass for the case where Encore goes do
 - Does Encore expose ascension/material data (`ascensions`)? Yes for character breach mats through `Breaches[]`; still decide whether to sync them now or leave current public shape untouched.
 - Chain `param[]` arrays are available as `ResonantChain[].AttributesDescriptionParams`. `AttributesDescription` itself usually has values pre-substituted.
 - Weapon refinement values per rank (`params`) — present in Wuthery; reachable in Encore via `WeaponDetail.SkillParam` (TBC, not in the abridged OpenAPI schema we have).
-- Whether `lib/echo.ts`'s `FETTER_MAP` keys still align if we switch to fetter group IDs returned by Encore (likely identical — both come from the same game-data dump — but verify).
+- Whether `lib/echo.ts`'s `FETTER_MAP` keys still align if we switch to fetter group IDs returned by Encore. Current 3.3 data verifies the new IDs `30 -> QuietSnow` and `31 -> Memories` across frontend, backend, and LB transforms.

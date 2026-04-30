@@ -252,6 +252,8 @@ python sync_echoes.py --fetch --workers 20          # Explicit fetch parallelism
 python sync_echoes.py --fetch --dry-run --pretty    # Preview
 ```
 
+`sync_echoes.py` uses Wuthery `Grouped/Phantom` as the primary source. If a 5-star Wuthery echo has a blank English name, it fetches Encore's English echo list and fills only the missing name by matching Wuthery `monsterId` to Encore list `Id`. This covers source localization gaps such as Wuthery item `60001995` / monster `6000199`, where Wuthery has the echo and skill data but no English display name.
+
 ### Fetters + Stats
 
 ```bash
@@ -382,16 +384,16 @@ Echo data is fetched from the CDN **Grouped/Phantom** folder (same list + parall
 
 Matching: Strip "Phantom: " prefix and match by English name, with normalization for inconsistencies ("Phantom: Nightmare Crownless" → "Nightmare: Crownless", "Phantom: Twin Nova - Collapsar Blade" → "Twin Nova: Collapsar Blade").
 
-**Result**: 34 phantom skins merged, 0 orphaned.
+**Current result**: 35 phantom skins merged, 1 orphaned cosmetic row (`Phantom: Kronaclaw`).
 
 ### Filtering & Result
 
-- `phantomType === 1` only (filters out 63 `phantomType 2` cosmetic unlock items)
+- `phantomType === 1` only (filters out cosmetic unlock items)
 - `rarity.id === 5` only (5-star echoes)
 - Deduplicated by English name
 - Phantom skins merged into base echoes
 
-**Result**: 159 unique echoes (37 cost-4, 50 cost-3, 72 cost-1), 34 with phantom skins
+**Current result**: 162 unique echoes (39 cost-4, 51 cost-3, 72 cost-1), 35 with phantom skins.
 
 ### Fetter → Sonata Set Mapping
 
@@ -408,7 +410,7 @@ The `fetter` array in each Phantom file maps to sonata set names. These are kept
 | 7 | Healing | 18 | Flaming | 27 | Trailblazing |
 | 8 | ER | 19 | Dream | 28 | Chromatic |
 | 9 | Attack | 20 | Crown | 29 | Sound |
-| 10 | Frosty | | | | |
+| 10 | Frosty | 30 | QuietSnow | 31 | Memories |
 
 No fetter 15 exists (gap in numbering).
 
@@ -457,8 +459,8 @@ Skipped: `phantomType 2` (cosmetic unlock items), `rarity < 5`, `type`, `attribu
 
 ## What Gets Synced — Fetters (Sonata/Element Sets)
 
-**Source files:** `PhantomFetterGroups.json` (28 set groups) + `PhantomFetters.json` (53 individual tier entries)
-**Output:** `public/Data/Fetters.json` (one entry per sonata set, 28 total)
+**Source files:** `PhantomFetterGroups.json` (30 set groups) + `PhantomFetters.json` (57 individual tier entries)
+**Output:** `public/Data/Fetters.json` (one entry per sonata set, 30 total)
 
 Each entry in Fetters.json represents one complete sonata/element set (e.g., Freezing Frost, Molten Rift).
 The `id` matches what the echo's `fetter[]` array contains and what `FETTER_MAP` in `lib/echo.ts` keys on.
