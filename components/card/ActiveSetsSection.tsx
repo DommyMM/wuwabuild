@@ -39,12 +39,12 @@ const formatSetBonusValue = (value: number): string => (
 
 const getSetNameLayout = (name: string): SetNameLayout => {
   const words = name.trim().split(/\s+/u).filter(Boolean);
-  // 3+ word names read best after the second word; among 2-word names, only split the extra-long ones.
-  const shouldSplit = words.length >= 3 || (words.length === 2 && name.length >= 16);
+  // With max-w-50 chips we can keep most 3-word names on one line; only split the really long ones.
+  const shouldSplit = words.length >= 4 || name.length >= 18;
   const content = shouldSplit ? [words.slice(0, Math.min(2, words.length - 1)).join(' '), <br key="set-name-break" />, words.slice(Math.min(2, words.length - 1)).join(' ')] : name;
   return {
     content,
-    compact: shouldSplit || name.length >= 15,
+    compact: shouldSplit,
   };
 };
 
@@ -91,6 +91,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   const { t } = useLanguage();
   const hasActiveSets = stats.activeSets.length > 0;
   const hasActiveHover = Boolean(activeHoverStat);
+  const expandFully = stats.activeSets.length === 1;
 
   if (!hasActiveSets && !showCV) return null;
 
@@ -108,7 +109,9 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
         const threshold = fetter?.pieceCount ?? 2;
         const pieceLabel = getPieceLabel(count, threshold);
         const displayName = fetter ? t(fetter.name) : setName;
-        const { compact: useCompactName, content: setNameContent } = getSetNameLayout(displayName);
+        const { compact: layoutCompact, content: layoutContent } = getSetNameLayout(displayName);
+        const useCompactName = layoutCompact && !expandFully;
+        const setNameContent = expandFully ? displayName : layoutContent;
         const setIcon = fetter?.icon ?? '';
         const setBonuses = getSetBonusesFromFetter(fetter, count);
         const setHoverMatch = Boolean(
@@ -175,9 +178,9 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
             placement="top"
           >
             <div
-              className={`flex h-8 max-w-45 items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
+              className={`flex h-8 ${expandFully ? '' : 'max-w-50'} items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
             >
-              {setIcon && <img src={setIcon} alt={setIcon} className="h-5 w-5 object-contain" />}
+              {setIcon && <img src={setIcon} alt={setIcon} className="h-5 w-5 shrink-0 object-contain" />}
               <span className={`text-center ${useCompactName ? 'text-xs leading-none' : ''}`}>
                 {setNameContent}
               </span>

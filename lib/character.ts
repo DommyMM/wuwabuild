@@ -173,8 +173,8 @@ const isAlternateSkinVariant = (
   character: Pick<Character, 'iconRound' | 'banner'>,
   skin: CharacterSkin
 ): boolean => {
-  const hasDifferentRound = Boolean(character.iconRound && skin.icon.iconRound !== character.iconRound);
-  const hasDifferentBanner = Boolean(character.banner && skin.icon.banner !== character.banner);
+  const hasDifferentRound = Boolean(character.iconRound && skin.icon.iconRound.toLowerCase() !== character.iconRound.toLowerCase());
+  const hasDifferentBanner = Boolean(character.banner && skin.icon.banner.toLowerCase() !== character.banner.toLowerCase());
   return hasDifferentRound || hasDifferentBanner || skinHasColorOverrides(skin);
 };
 
