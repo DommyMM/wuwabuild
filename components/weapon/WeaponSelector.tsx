@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Modal } from '@/components/ui/Modal';
 import { Weapon, WeaponRarity } from '@/lib/weapon';
 import { getWeaponPaths } from '@/lib/paths';
+import { DISABLED_WEAPON_IDS } from '@/lib/constants/disabledEntries';
 
 const FALLBACK_WEAPON = '/images/Resources/Weapon.png';
 
@@ -92,13 +93,15 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
   const character = getCharacter(state.characterId);
   const selectedWeapon = getWeapon(state.weaponId);
 
-  // 5-star first, then alphabetical
+  // Drop disabled IDs, then 5-star first, then alphabetical
   const sortedWeapons = useMemo(() => {
     if (!character) return [];
-    return [...getWeaponsByType(character.weaponType)].sort((a, b) => {
-      const diff = parseInt(b.rarity) - parseInt(a.rarity);
-      return diff !== 0 ? diff : a.name.localeCompare(b.name);
-    });
+    return [...getWeaponsByType(character.weaponType)]
+      .filter((w) => !DISABLED_WEAPON_IDS.has(w.id))
+      .sort((a, b) => {
+        const diff = parseInt(b.rarity) - parseInt(a.rarity);
+        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      });
   }, [character, getWeaponsByType]);
 
   const filteredWeapons = useMemo(() => {

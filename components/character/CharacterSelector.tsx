@@ -8,6 +8,7 @@ import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { Modal } from '@/components/ui/Modal';
 import { Character, Element } from '@/lib/character';
 import { ELEMENT_CHIP_ACTIVE, ELEMENT_BG } from '@/lib/elementVisuals';
+import { DISABLED_CHARACTER_IDS } from '@/lib/constants/disabledEntries';
 
 const FALLBACK_FACE = '/images/Resources/Resonator.png';
 
@@ -67,9 +68,10 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   const { t } = useLanguage();
   const selected = useSelectedCharacter();
 
-  // Dedupe rovers, sort: 5-star first then alphabetical
+  // Dedupe rovers, drop disabled IDs, sort 5-star first alphabetical
   const processedCharacters = useMemo(() => {
-    const deduped = deduplicateRovers(characters);
+    const visible = characters.filter((c) => !DISABLED_CHARACTER_IDS.has(c.id));
+    const deduped = deduplicateRovers(visible);
     return deduped.sort((a, b) => {
       const rarityDiff = (b.rarity ?? 4) - (a.rarity ?? 4);
       return rarityDiff !== 0 ? rarityDiff : a.name.localeCompare(b.name);
