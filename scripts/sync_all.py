@@ -1,8 +1,9 @@
 """
-Run all CDN sync scripts with default options.
+Run all sync scripts with default options.
 
 Fetches characters, weapons, echoes, fetters (element/sonata sets), and stat
-translations from Wuthery CDN and writes them to public/Data.
+translations and writes them to public/Data. Wuthery is the default source;
+pass --encore to run the experimental Encore API sync path.
 Also generates backend OCR data and LB constants.
 Pass-through flags (e.g. --dry-run, --pretty) apply to all scripts.
 """
@@ -19,26 +20,44 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run all CDN sync scripts")
     parser.add_argument("--dry-run", action="store_true", help="Preview only (no writes)")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output")
+    parser.add_argument("--encore", action="store_true", help="Use experimental Encore API sync instead of Wuthery CDN")
+    parser.add_argument("--skip-echo-icons", action="store_true", help="Skip backend echo template refresh for Encore")
+    parser.add_argument("--force-echo-icons", action="store_true", help="Refresh existing backend echo templates for Encore")
     args, rest = parser.parse_known_args()
 
-    passthrough = []
+    common_flags = []
+    pretty_flags = []
     if args.dry_run:
-        passthrough.append("--dry-run")
+        common_flags.append("--dry-run")
     if args.pretty:
-        passthrough.append("--pretty")
-    passthrough.extend(rest)
+        pretty_flags.append("--pretty")
+    passthrough = [*common_flags, *pretty_flags, *rest]
 
-    scripts = [
-        ("Characters", [sys.executable, str(scripts_dir / "sync_characters.py"), "--fetch"]),
-        ("Weapons",    [sys.executable, str(scripts_dir / "sync_weapons.py"), "--fetch"]),
-        ("Echoes",     [sys.executable, str(scripts_dir / "sync_echoes.py"), "--fetch"]),
-        ("Fetters",    [sys.executable, str(scripts_dir / "sync_fetters.py")]),
-        ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py")]),
-        ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py")]),
-        ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py")]),
-    ]
+    if not args.encore:
+        scripts = [
+            ("Characters", [sys.executable, str(scripts_dir / "sync_characters.py"), "--fetch"]),
+            ("Weapons",    [sys.executable, str(scripts_dir / "sync_weapons.py"), "--fetch"]),
+            ("Echoes",     [sys.executable, str(scripts_dir / "sync_echoes.py"), "--fetch"]),
+            ("Fetters",    [sys.executable, str(scripts_dir / "sync_fetters.py")]),
+            ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py")]),
+            ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py")]),
+            ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py")]),
+        ]
+    else:
+        encore_flags = [*common_flags, *pretty_flags, *rest]
+        if args.skip_echo_icons:
+            encore_flags.append("--skip-echo-icons")
+        if args.force_echo_icons:
+            encore_flags.append("--force-echo-icons")
+        scripts = [
+            ("Encore Data", [sys.executable, str(scripts_dir / "sync_encore.py"), *encore_flags]),
+            ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py"), *common_flags, *pretty_flags, *rest]),
+            ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py"), *common_flags]),
+            ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py"), *common_flags, *pretty_flags]),
+        ]
     for name, cmd in scripts:
-        cmd.extend(passthrough)
+        if not args.encore:
+            cmd.extend(passthrough)
         print(f"\n--- Sync {name} ---")
         r = subprocess.run(cmd, cwd=scripts_dir)
         if r.returncode != 0:

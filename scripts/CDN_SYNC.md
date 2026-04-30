@@ -2,6 +2,8 @@
 
 This system syncs game data from Wuthery's CDN to keep character/weapon/echo data up-to-date.
 
+For the comparison with the alternative `encore.moe` API (different host, different schema, faster + more reliable but per-language fan-out) and the dual-mode/fallback strategy, see [`../docs/sync-sources.md`](../docs/sync-sources.md). The OpenAPI spec is vendored at [`encore_api.json`](encore_api.json).
+
 ## Data Source
 
 - **CDN Base**: `https://files.wuthery.com`
@@ -14,6 +16,7 @@ This system syncs game data from Wuthery's CDN to keep character/weapon/echo dat
 wuwabuilds/
 ├── scripts/
 │   ├── sync_characters.py    # Character sync (Python, CDN API)
+│   ├── sync_characters_encore.py # Character sync prototype (Encore API, compare/output only)
 │   ├── sync_weapons.py       # Weapon sync (Python, CDN API)
 │   ├── sync_echoes.py        # Echo sync (Python, CDN Grouped/Phantom)
 │   ├── sync_fetters.py       # Sonata/element set sync (Python, CDN LocalizationIndex)
@@ -224,6 +227,10 @@ python sync_characters.py --fetch --id 1205           # Sync single character
 python sync_characters.py --fetch --workers 20        # Explicit fetch parallelism
 python sync_characters.py --fetch --dry-run --pretty  # Preview
 python sync_characters.py --fetch --include-skills    # Include full skill multiplier data
+
+# Encore prototype: fetch one character and compare to current public data.
+python sync_characters_encore.py --id 1608 --compare
+python sync_characters_encore.py --id 1608 --output ../public/Data/Characters.encore.1608.json --pretty
 ```
 
 ### Weapons

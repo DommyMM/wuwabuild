@@ -86,6 +86,7 @@ FETTER_ID_TO_SET_KEY = {
     13: "Empyrean", 14: "Tidebreaking", 16: "Gust", 17: "Windward", 18: "Flaming",
     19: "Dream", 20: "Crown", 21: "Law", 22: "Flamewing", 23: "Thread", 24: "Pact",
     25: "Halo", 26: "Rite", 27: "Trailblazing", 28: "Chromatic", 29: "Sound",
+    30: "QuietSnow", 31: "Memories",
 }
 
 

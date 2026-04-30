@@ -133,6 +133,8 @@ CDN_PATH_FIXUPS = {
         "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_zanNi1_UI.png",
     "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Xigelika_UI.png":
         "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_xigelika_UI.png",
+    "d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Feixue_UI.png":
+        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_FeiXue_UI.png",
 }
 
 # Output directory relative to this script

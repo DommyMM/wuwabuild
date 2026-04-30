@@ -44,7 +44,9 @@ const SET_CHIP_ACTIVE: Record<string, string> = {
   'Rite': 'bg-amber-300/20 border-amber-300/50 text-amber-300',
   'Trailblazing': 'bg-red-500/20 border-red-500/50 text-red-500',
   'Chromatic': 'bg-pink-300/20 border-pink-300/50 text-pink-300',
-  'Sound': 'bg-teal-300/20 border-teal-300/50 text-teal-300'
+  'Sound': 'bg-teal-300/20 border-teal-300/50 text-teal-300',
+  'QuietSnow': 'bg-sky-200/20 border-sky-200/50 text-sky-200',
+  'Memories': 'bg-fuchsia-300/20 border-fuchsia-300/50 text-fuchsia-300'
 };
 
 // Cost-based card styling (matches weapon/character rarity pattern)
@@ -103,7 +105,7 @@ const SET_FILTER_ORDER: ElementType[] = [
   'Empyrean', 'Frosty', 'Midnight', 'Radiance', 'Tidebreaking',
   'Gust', 'Windward', 'Flaming', 'Dream', 'Crown', 'Law',
   'Flamewing', 'Thread', 'Pact', 'Halo', 'Rite',
-  'Trailblazing', 'Chromatic', 'Sound'
+  'Trailblazing', 'Chromatic', 'Sound', 'QuietSnow', 'Memories'
 ];
 
 export const EchoSelector: React.FC<EchoSelectorProps> = ({

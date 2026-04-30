@@ -100,14 +100,16 @@ export const ELEMENT_SETS = {
   'Rite': 'Rite of Gilded Revelation',
   'Trailblazing': 'Trailblazing Star',
   'Chromatic': 'Chromatic Foam',
-  'Sound': 'Sound of True Name'
+  'Sound': 'Sound of True Name',
+  'QuietSnow': 'Wishes of Quiet Snowfall',
+  'Memories': 'Reel of Spliced Memories'
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
 export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
   'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
   'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward' | 'Flaming' | 'Dream' | 'Crown' | 'Law' | 'Flamewing' |
-  'Thread' | 'Pact' | 'Halo' | 'Rite' | 'Trailblazing' | 'Chromatic' | 'Sound';
+  'Thread' | 'Pact' | 'Halo' | 'Rite' | 'Trailblazing' | 'Chromatic' | 'Sound' | 'QuietSnow' | 'Memories';
 
 // Fetter ID → ElementType mapping (from Phantom repo analysis)
 export const FETTER_MAP: Record<number, ElementType> = {
@@ -140,10 +142,19 @@ export const FETTER_MAP: Record<number, ElementType> = {
   27: 'Trailblazing',
   28: 'Chromatic',
   29: 'Sound',
+  30: 'QuietSnow',
+  31: 'Memories',
 };
 
-// Prepend CDN base to a raw /d/ icon path
-const toCdnUrl = (rawPath: string): string => `${CDN_BASE}${rawPath}`;
+const ENCORE_RESOURCE_BASE = 'https://api.encore.moe/resource/Data';
+
+const toImageUrl = (rawPath: string): string => {
+  if (!rawPath) return rawPath;
+  if (/^https?:\/\//u.test(rawPath)) return rawPath;
+  if (rawPath.startsWith('/d/')) return `${CDN_BASE}${rawPath}`;
+  if (rawPath.startsWith('/Game/')) return `${ENCORE_RESOURCE_BASE}${rawPath}`;
+  return rawPath;
+};
 
 export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
   // Legacy fields
@@ -158,8 +169,8 @@ export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
   // CDN-native fields
   nameI18n: cdn.name,
   cdnId: cdn.id,
-  iconUrl: toCdnUrl(cdn.icon),
-  phantomIconUrl: cdn.phantomIcon ? toCdnUrl(cdn.phantomIcon) : undefined,
+  iconUrl: toImageUrl(cdn.icon),
+  phantomIconUrl: cdn.phantomIcon ? toImageUrl(cdn.phantomIcon) : undefined,
   bonuses: cdn.bonuses as Array<{ stat: StatName; value: number; characterCondition?: string[] }> | undefined,
   skill: cdn.skill
     ? {

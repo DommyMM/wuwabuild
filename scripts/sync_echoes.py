@@ -20,6 +20,7 @@ from cdn_config import CDN_BASE
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Phantom"
+ENCORE_ECHO_LIST_API = "https://api-v2.encore.moe/api/en/echo"
 # Scripts in /scripts; output in /public/Data
 OUTPUT_FILE = Path(__file__).parent.parent / "public/Data/Echoes.json"
 
@@ -102,13 +103,50 @@ def extract_legacy_id(icon_path: str) -> str | None:
     return m.group(1) if m else None
 
 
-def transform_echo(raw: dict) -> dict:
+def fetch_encore_echo_name_index() -> dict[int, str]:
+    """Fetch Encore echo names keyed by MonsterId/Id for Wuthery localization gaps."""
+    try:
+        import requests
+    except ImportError:
+        return {}
+
+    try:
+        resp = requests.get(ENCORE_ECHO_LIST_API, timeout=30)
+        resp.raise_for_status()
+        payload = resp.json()
+    except Exception as exc:
+        print(f"  Warning: failed to fetch Encore echo-name fallback: {exc}")
+        return {}
+
+    out: dict[int, str] = {}
+    for item in payload.get("Echo", []):
+        try:
+            echo_id = int(item.get("Id"))
+        except (TypeError, ValueError):
+            continue
+        name = str(item.get("Name") or "").strip()
+        if name:
+            out[echo_id] = name
+    return out
+
+
+def _apply_name_fallback(raw: dict, encore_names: dict[int, str]) -> dict:
+    name = dict(raw.get("name") or {})
+    if not name.get("en"):
+        fallback = encore_names.get(raw.get("monsterId"))
+        if fallback:
+            name["en"] = fallback
+    return name
+
+
+def transform_echo(raw: dict, encore_names: dict[int, str] | None = None) -> dict:
     """Transform raw Phantom JSON to our Echo schema."""
     icon_path = raw["icon"].get("icon", "")
     legacy_id = extract_legacy_id(icon_path)
+    name = _apply_name_fallback(raw, encore_names or {})
     echo: dict[str, Any] = {
         "id": raw["id"],
-        "name": raw["name"],
+        "name": name,
         "cost": raw["cost"]["cost"],
         "fetter": raw["fetter"],
         "element": raw["element"],
@@ -197,6 +235,13 @@ def _process_raw_list(raw_list: list[dict]) -> tuple[list[dict], dict]:
     base_echoes: dict[str, dict] = {}
     phantom_skins: list[dict] = []
     skipped_cosmetic = skipped_rarity = duplicates = 0
+    needs_name_fallback = any(
+        raw.get("phantomType") == 1
+        and raw.get("rarity", {}).get("id") == 5
+        and not raw.get("name", {}).get("en")
+        for raw in raw_list
+    )
+    encore_names = fetch_encore_echo_name_index() if needs_name_fallback else {}
 
     for raw in raw_list:
         if raw.get("phantomType") != 1:
@@ -205,14 +250,14 @@ def _process_raw_list(raw_list: list[dict]) -> tuple[list[dict], dict]:
         if raw.get("rarity", {}).get("id") != 5:
             skipped_rarity += 1
             continue
-        name_en = raw.get("name", {}).get("en", "")
+        name_en = _apply_name_fallback(raw, encore_names).get("en", "")
         if name_en.startswith("Phantom: "):
             phantom_skins.append(raw)
             continue
         if name_en in base_echoes:
             duplicates += 1
             continue
-        base_echoes[name_en] = transform_echo(raw)
+        base_echoes[name_en] = transform_echo(raw, encore_names)
 
     merged = orphaned = 0
     for skin in phantom_skins:

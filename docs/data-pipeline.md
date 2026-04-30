@@ -21,6 +21,7 @@ Run from `scripts/`:
 py sync_all.py
 py sync_lb.py --weapons-only
 py download_echo_icons.py --clean --force
+py sync_characters_encore.py --id 1608 --compare
 ```
 
 Primary outputs include:
@@ -28,7 +29,7 @@ Primary outputs include:
 - backend data outputs
 - leaderboard calc data outputs
 
-See `scripts/CDN_SYNC.md` for script-level flags and details.
+See `scripts/CDN_SYNC.md` for script-level flags and details. For the trade-offs between Wuthery's CDN and the alternative `encore.moe` API (and the dual-mode/fallback strategy), see `sync-sources.md`.
 
 ## Environment Variables
 

@@ -26,8 +26,8 @@ FETTER_MAP: dict[int, str] = {
     18: "Flaming",     19: "Dream",       20: "Crown",       21: "Law",
     22: "Flamewing",   23: "Thread",      24: "Pact",        25: "Halo",
     26: "Rite",        27: "Trailblazing", 28: "Chromatic",  29: "Sound",
+    30: "QuietSnow",   31: "Memories",
 }
-
 
 def sync_characters(dry_run: bool) -> int:
     data = json.loads((FRONTEND_DATA / "Characters.json").read_text(encoding="utf-8"))
@@ -72,10 +72,11 @@ def sync_echoes(dry_run: bool) -> int:
     data = json.loads((FRONTEND_DATA / "Echoes.json").read_text(encoding="utf-8"))
     out = []
     for echo in data:
+        echo_id = str(echo["id"])
         elements = [FETTER_MAP[fid] for fid in echo.get("fetter", []) if fid in FETTER_MAP]
         out.append({
-            "name": echo["name"]["en"],
-            "id": str(echo["id"]),  # Always CDN ID, match what _load_from_cdn uses
+            "name": echo["name"].get("en") or echo_id,
+            "id": echo_id,  # Always CDN ID, match what _load_from_cdn uses
             "cost": echo["cost"],
             "elements": elements,
         })
