@@ -3,15 +3,13 @@ export type BaseStatName = typeof BASE_STATS[number];
 
 export type BasePercentStatName = `${BaseStatName}%`;
 
-const ELEMENTAL_DMG_STATS = [
-  'Aero DMG',
-  'Glacio DMG',
-  'Fusion DMG',
-  'Electro DMG',
-  'Havoc DMG',
-  'Spectro DMG',
-] as const;
-export type ElementalDmgStatName = typeof ELEMENTAL_DMG_STATS[number];
+export type ElementalDmgStatName =
+  | 'Aero DMG'
+  | 'Glacio DMG'
+  | 'Fusion DMG'
+  | 'Electro DMG'
+  | 'Havoc DMG'
+  | 'Spectro DMG';
 
 export type StatName =
   | BaseStatName

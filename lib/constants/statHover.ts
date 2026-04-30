@@ -1,24 +1,21 @@
-const STAT_HOVER_KEYS = [
-  'HP',
-  'ATK',
-  'DEF',
-  'Crit Rate',
-  'Crit DMG',
-  'Energy Regen',
-  'Aero DMG',
-  'Glacio DMG',
-  'Fusion DMG',
-  'Electro DMG',
-  'Havoc DMG',
-  'Spectro DMG',
-  'Basic Attack DMG Bonus',
-  'Heavy Attack DMG Bonus',
-  'Resonance Skill DMG Bonus',
-  'Resonance Liberation DMG Bonus',
-  'Healing Bonus',
-] as const;
-
-export type StatHoverKey = typeof STAT_HOVER_KEYS[number];
+export type StatHoverKey =
+  | 'HP'
+  | 'ATK'
+  | 'DEF'
+  | 'Crit Rate'
+  | 'Crit DMG'
+  | 'Energy Regen'
+  | 'Aero DMG'
+  | 'Glacio DMG'
+  | 'Fusion DMG'
+  | 'Electro DMG'
+  | 'Havoc DMG'
+  | 'Spectro DMG'
+  | 'Basic Attack DMG Bonus'
+  | 'Heavy Attack DMG Bonus'
+  | 'Resonance Skill DMG Bonus'
+  | 'Resonance Liberation DMG Bonus'
+  | 'Healing Bonus';
 
 const normalizeToken = (value: string): string =>
   value

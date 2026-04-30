@@ -6,17 +6,27 @@ const LB_PROXY_BASE = '/api/lb';
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 100;
 
-const LB_STAT_CODES = [
-  'H', 'H%',
-  'A', 'A%',
-  'D', 'D%',
-  'CR', 'CD',
-  'AD', 'GD', 'FD', 'ED', 'HD', 'SD',
-  'BA', 'HA', 'RS', 'RL',
-  'ER', 'HB',
-] as const;
-
-export type LBStatCode = (typeof LB_STAT_CODES)[number];
+export type LBStatCode =
+  | 'H'
+  | 'H%'
+  | 'A'
+  | 'A%'
+  | 'D'
+  | 'D%'
+  | 'CR'
+  | 'CD'
+  | 'AD'
+  | 'GD'
+  | 'FD'
+  | 'ED'
+  | 'HD'
+  | 'SD'
+  | 'BA'
+  | 'HA'
+  | 'RS'
+  | 'RL'
+  | 'ER'
+  | 'HB';
 
 export type LBStatSortKey =
   | 'hp' | 'hp_pct'
