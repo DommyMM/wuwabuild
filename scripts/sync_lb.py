@@ -96,10 +96,6 @@ NAME_TOKEN_ALIASES = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -616,6 +612,9 @@ def _split_compound_and(sentence: str) -> list[str]:
 _TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
     (r"tune\s+break",                              "Passive"),
     (r"tune\s+rupture",                            "Passive"),
+    # DOT-applier kits (Hiyuki/Aero/Havoc-applier weapons): the wielder keeps
+    # the debuff up across nearly every move in their rotation, so model as Passive.
+    (r"applies\s+(?:glacio\s+chafe|havoc\s+bane|aero\s+erosion|spectro\s+frazzle)", "Passive"),
     (r"while\s+the\s+wielder\s+is\s+on\s+the\s+field", "Passive"),
     (r"while\s+both\s+effects?\s+are\s+active",    "Passive"),
     (r"(?:targets?|enemies?)\s+with\s+spectro\s+frazzle", "Passive"),
