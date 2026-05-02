@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Image as ImageIcon } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { hasAlternateSkin } from '@/lib/character';
@@ -14,13 +15,15 @@ export interface CardOptions {
 
 interface BuildCardOptionsProps {
   onChange: (options: CardOptions) => void;
+  onUseSplashArt?: () => void;
   className?: string;
 }
 
 const INPUT_BASE = 'rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/25 focus:border-accent/60 focus:outline-none';
 const LABEL_BASE = 'text-[10px] font-medium uppercase tracking-wider text-text-primary/40';
+const SPLASH_BUTTON_BASE = 'inline-flex h-[38px] shrink-0 items-center justify-center gap-1.5 rounded-md border border-border bg-background-secondary px-3 text-xs font-semibold text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50';
 
-export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, className = '' }) => {
+export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, onUseSplashArt, className = '' }) => {
   const { state, setWatermark } = useBuild();
   const selected = useSelectedCharacter();
   const [showRollQuality, setShowRollQuality] = useState(true);
@@ -70,11 +73,11 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
         />
       </div>
 
-      {/* Art source OR Use Skin */}
+      {/* Art credit / skin selection plus quick splash art */}
       <div className="col-span-4 flex min-w-0 flex-col gap-1.5 md:col-auto">
+        <span className={LABEL_BASE}>{hasSkin ? 'Skin' : 'Art Source'}</span>
         {hasSkin ? (
-          <>
-            <span className={LABEL_BASE}>Skin</span>
+          <div className="flex min-w-0 items-center gap-2">
             <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-2">
               <input
                 type="checkbox"
@@ -83,10 +86,20 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
                 className="h-4 w-4 accent-accent"
               />
             </label>
-          </>
+            <button
+              type="button"
+              onClick={onUseSplashArt}
+              disabled={!selected || !onUseSplashArt}
+              className={SPLASH_BUTTON_BASE}
+              title="Use splash art"
+              aria-label="Use splash art"
+            >
+              <ImageIcon size={14} />
+              Splash
+            </button>
+          </div>
         ) : (
-          <>
-            <label className={LABEL_BASE}>Art Source</label>
+          <div className="flex min-w-0 items-center gap-2">
               <input
                 type="text"
                 value={state.watermark.artSource}
@@ -94,7 +107,18 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, cl
                 placeholder="art by @artist"
                 className={`${INPUT_BASE} w-full md:w-[160px]`}
               />
-          </>
+            <button
+              type="button"
+              onClick={onUseSplashArt}
+              disabled={!selected || !onUseSplashArt}
+              className={SPLASH_BUTTON_BASE}
+              title="Use splash art"
+              aria-label="Use splash art"
+            >
+              <ImageIcon size={14} />
+              Splash
+            </button>
+          </div>
         )}
       </div>
 

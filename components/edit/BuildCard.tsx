@@ -79,7 +79,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   );
 
   return (
-    <div ref={ref} className="relative select-none overflow-visible">
+    <div ref={ref} className="build-card-frame relative w-full select-none overflow-visible">
       {selected && (
         <div className="font-plus-jakarta tracking-wide leading-none text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
           <div className="relative overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')] aspect-[2.4/1]">

@@ -134,7 +134,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                       backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
                     }}
                   >
-                    <span className="text-xs font-bold leading-none">{echoCV.toFixed(1)} CV</span>
+                    <span className="whitespace-nowrap text-xs font-bold leading-none">{echoCV.toFixed(1)} CV</span>
                   </div>
                 )}
               </div>

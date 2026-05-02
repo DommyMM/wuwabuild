@@ -228,17 +228,32 @@ export const BuildEditor: React.FC = () => {
   const handleDownload = useCallback(async () => {
     if (!cardRef.current || isDownloading) return;
     setIsDownloading(true);
+
+    setArtState((prev) => {
+      const current = prev.ownerCharacterId === state.characterId ? prev : createDefaultArtState(state.characterId);
+      return { ...current, isEditMode: false };
+    });
+
     const { toBlob } = await import('html-to-image');
 
     const pixelRatio = EXPORT_CARD_WIDTH / FIXED_CARD_PREVIEW_WIDTH;
 
     try {
       await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
 
       const exportBlob = await toBlob(cardRef.current, {
         cacheBust: true,
         height: FIXED_CARD_PREVIEW_HEIGHT,
         pixelRatio,
+        style: {
+          height: `${FIXED_CARD_PREVIEW_HEIGHT}px`,
+          maxHeight: `${FIXED_CARD_PREVIEW_HEIGHT}px`,
+          maxWidth: `${FIXED_CARD_PREVIEW_WIDTH}px`,
+          minHeight: `${FIXED_CARD_PREVIEW_HEIGHT}px`,
+          minWidth: `${FIXED_CARD_PREVIEW_WIDTH}px`,
+          width: `${FIXED_CARD_PREVIEW_WIDTH}px`,
+        },
         width: FIXED_CARD_PREVIEW_WIDTH,
       });
       if (!exportBlob) {
@@ -390,12 +405,12 @@ export const BuildEditor: React.FC = () => {
     customArtBlobRef.current = null;
     setArtState({
       customUrl: splashUrl,
-      isEditMode: activeArtState.isEditMode,
+      isEditMode: true,
       ownerCharacterId: state.characterId,
       sourceMode: 'custom',
       transform: { x: 0, y: 0, scale: autoScale },
     });
-  }, [activeArtState.isEditMode, selected, state.characterId, toastError]);
+  }, [selected, state.characterId, toastError]);
 
   const handleResetArtTransform = useCallback(() => {
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
@@ -583,6 +598,7 @@ export const BuildEditor: React.FC = () => {
           <BuildCardOptions
             className={isCardGenerated ? 'md:rounded-b-none md:border-b-0' : ''}
             onChange={setCardOptions}
+            onUseSplashArt={handleUseSplashArt}
           />
           <button
             onClick={handleGenerateCard}

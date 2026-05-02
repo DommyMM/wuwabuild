@@ -41,6 +41,12 @@ body {
   overflow-x: hidden;
 }
 
+.build-card-frame,
+.build-card-frame * {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
   background-color: var(--color-background-secondary);
