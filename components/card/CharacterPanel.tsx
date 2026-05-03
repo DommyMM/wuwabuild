@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SelectedCharacter } from '@/hooks/useSelectedCharacter';
-import { CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
+import { ART_ZOOM_STEP, MAX_ART_ZOOM, MIN_ART_ZOOM, CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
 import { getAlternateSkin } from '@/lib/character';
 
 interface CharacterPanelProps {
@@ -37,6 +37,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
   onArtTransformChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const artEditOverlayRef = useRef<HTMLDivElement>(null);
   const [isDropActive, setIsDropActive] = useState(false);
   const [isDraggingArt, setIsDraggingArt] = useState(false);
   const dragRef = useRef<{
@@ -49,6 +50,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
   const frameRef = useRef<number | null>(null);
   const pendingPositionRef = useRef<{ x: number; y: number } | null>(null);
   const scaleRef = useRef(artTransform.scale);
+  const positionRef = useRef({ x: artTransform.x, y: artTransform.y });
   const altBanner = getAlternateSkin(selected.character)?.icon.banner;
   const baseBannerUrl = useAltSkin && altBanner ? altBanner : selected.banner;
   const bannerUrl = artSourceMode === 'custom' && customArtUrl ? customArtUrl : baseBannerUrl;
@@ -68,6 +70,10 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
   useEffect(() => {
     scaleRef.current = artTransform.scale;
   }, [artTransform.scale]);
+
+  useEffect(() => {
+    positionRef.current = { x: artTransform.x, y: artTransform.y };
+  }, [artTransform.x, artTransform.y]);
 
   const flushPendingPosition = useCallback(() => {
     frameRef.current = null;
@@ -129,6 +135,34 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
       }
     };
   }, []);
+
+  useEffect(() => {
+    const overlay = artEditOverlayRef.current;
+    if (!overlay || !isArtEditMode || !hasCustomArt) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const direction = event.deltaY < 0 ? 1 : -1;
+      const nextScale = Math.max(
+        MIN_ART_ZOOM,
+        Math.min(MAX_ART_ZOOM, Number((scaleRef.current + direction * ART_ZOOM_STEP).toFixed(2))),
+      );
+
+      if (nextScale === scaleRef.current) return;
+
+      scaleRef.current = nextScale;
+      onArtTransformChange({
+        x: positionRef.current.x,
+        y: positionRef.current.y,
+        scale: nextScale,
+      });
+    };
+
+    overlay.addEventListener('wheel', handleWheel, { passive: false });
+    return () => overlay.removeEventListener('wheel', handleWheel);
+  }, [hasCustomArt, isArtEditMode, onArtTransformChange]);
 
   const dragOverlayClassName = useMemo(() => {
     if (isDropActive) return 'border-accent/85 bg-black/40';
@@ -218,6 +252,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
             </button>
           ) : (
             <div
+              ref={artEditOverlayRef}
               className={`absolute inset-0 z-40 rounded-r-[48px] border border-dashed transition-colors ${dragOverlayClassName} ${isDraggingArt ? 'cursor-grabbing' : 'cursor-grab'}`}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}

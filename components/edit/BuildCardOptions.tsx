@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Image as ImageIcon } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { hasAlternateSkin } from '@/lib/character';
@@ -16,14 +15,21 @@ export interface CardOptions {
 interface BuildCardOptionsProps {
   onChange: (options: CardOptions) => void;
   onUseSplashArt?: () => void;
+  isSplashArtActive?: boolean;
   className?: string;
 }
 
 const INPUT_BASE = 'rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/25 focus:border-accent/60 focus:outline-none';
 const LABEL_BASE = 'text-[10px] font-medium uppercase tracking-wider text-text-primary/40';
-const SPLASH_BUTTON_BASE = 'inline-flex h-[38px] shrink-0 items-center justify-center gap-1.5 rounded-md border border-border bg-background-secondary px-3 text-xs font-semibold text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50';
+const CHECKBOX_BOX_BASE = 'flex h-[38px] w-[42px] cursor-pointer items-center justify-center rounded-md border border-border bg-background-secondary transition-colors hover:border-accent/50 has-disabled:cursor-not-allowed has-disabled:opacity-50';
+const CHECKBOX_INPUT_BASE = 'h-4 w-4 accent-accent';
 
-export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, onUseSplashArt, className = '' }) => {
+export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({
+  onChange,
+  onUseSplashArt,
+  isSplashArtActive = false,
+  className = '',
+}) => {
   const { state, setWatermark } = useBuild();
   const selected = useSelectedCharacter();
   const [showRollQuality, setShowRollQuality] = useState(true);
@@ -73,64 +79,54 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, on
         />
       </div>
 
-      {/* Art credit / skin selection plus quick splash art */}
+      {/* Art credit / skin selection */}
       <div className="col-span-4 flex min-w-0 flex-col gap-1.5 md:col-auto">
         <span className={LABEL_BASE}>{hasSkin ? 'Skin' : 'Art Source'}</span>
         {hasSkin ? (
-          <div className="flex min-w-0 items-center gap-2">
-            <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-2">
-              <input
-                type="checkbox"
-                checked={useAltSkin}
-                onChange={e => setUseAltSkin(e.target.checked)}
-                className="h-4 w-4 accent-accent"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={onUseSplashArt}
-              disabled={!selected || !onUseSplashArt}
-              className={SPLASH_BUTTON_BASE}
-              title="Use splash art"
-              aria-label="Use splash art"
-            >
-              <ImageIcon size={14} />
-              Splash
-            </button>
-          </div>
+          <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-2">
+            <input
+              type="checkbox"
+              checked={useAltSkin}
+              onChange={e => setUseAltSkin(e.target.checked)}
+              className="h-4 w-4 accent-accent"
+            />
+          </label>
         ) : (
-          <div className="flex min-w-0 items-center gap-2">
-              <input
-                type="text"
-                value={state.watermark.artSource}
-                onChange={e => setWatermark({ artSource: e.target.value })}
-                placeholder="art by @artist"
-                className={`${INPUT_BASE} w-full md:w-[160px]`}
-              />
-            <button
-              type="button"
-              onClick={onUseSplashArt}
-              disabled={!selected || !onUseSplashArt}
-              className={SPLASH_BUTTON_BASE}
-              title="Use splash art"
-              aria-label="Use splash art"
-            >
-              <ImageIcon size={14} />
-              Splash
-            </button>
-          </div>
+          <input
+            type="text"
+            value={state.watermark.artSource}
+            onChange={e => setWatermark({ artSource: e.target.value })}
+            placeholder="art by @artist"
+            className={`${INPUT_BASE} w-full md:w-[145px]`}
+          />
         )}
+      </div>
+
+      {/* Splash Art */}
+      <div className="col-span-1 flex min-w-0 flex-col gap-1.5 md:col-auto">
+        <span className={LABEL_BASE}>Splash Art</span>
+        <label className={CHECKBOX_BOX_BASE}>
+          <input
+            type="checkbox"
+            checked={isSplashArtActive}
+            onChange={onUseSplashArt}
+            disabled={!selected || !onUseSplashArt}
+            className={CHECKBOX_INPUT_BASE}
+            aria-label={isSplashArtActive ? 'Use original art' : 'Use splash art'}
+          />
+        </label>
       </div>
 
       {/* Roll Quality */}
       <div className="col-span-1 flex min-w-0 flex-col gap-1.5 md:col-auto">
         <span className={LABEL_BASE}>Quality</span>
-        <label className="flex h-[38px] cursor-pointer items-center rounded-md border border-border bg-background-secondary px-3 py-2">
+        <label className={CHECKBOX_BOX_BASE}>
           <input
             type="checkbox"
             checked={showRollQuality}
             onChange={e => setShowRollQuality(e.target.checked)}
-            className="h-4 w-4 accent-accent"
+            className={CHECKBOX_INPUT_BASE}
+            aria-label="Show roll quality"
           />
         </label>
       </div>
@@ -138,12 +134,13 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({ onChange, on
       {/* CV */}
       <div className="col-span-1 flex min-w-0 flex-col gap-1.5 md:col-auto">
         <span className={LABEL_BASE}>CV</span>
-        <label className="flex h-[38px] cursor-pointer items-center rounded-md border border-border bg-background-secondary px-3 py-2">
+        <label className={CHECKBOX_BOX_BASE}>
           <input
             type="checkbox"
             checked={showCV}
             onChange={e => setShowCV(e.target.checked)}
-            className="h-4 w-4 accent-accent"
+            className={CHECKBOX_INPUT_BASE}
+            aria-label="Show crit value"
           />
         </label>
       </div>

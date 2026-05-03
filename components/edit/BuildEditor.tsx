@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
@@ -13,7 +13,14 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { useResolvedLeaderboardLink } from '@/hooks/useResolvedLeaderboardLink';
-import { DEFAULT_CARD_ART_TRANSFORM, CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
+import {
+  ART_ZOOM_STEP,
+  DEFAULT_CARD_ART_TRANSFORM,
+  MAX_ART_ZOOM,
+  MIN_ART_ZOOM,
+  CardArtSourceMode,
+  CardArtTransform,
+} from '@/lib/cardArt';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { SequenceSelector } from '@/components/character/SequenceSelector';
 import { WeaponSelector } from '@/components/weapon/WeaponSelector';
@@ -32,9 +39,6 @@ const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MIN_CUSTOM_IMAGE_HEIGHT = 600;
 const ART_NUDGE_STEP = 12;
-const ART_ZOOM_STEP = 0.05;
-const MIN_ART_ZOOM = 1;
-const MAX_ART_ZOOM = 4;
 const FIXED_CARD_PREVIEW_WIDTH = 1440;
 const FIXED_CARD_PREVIEW_HEIGHT = FIXED_CARD_PREVIEW_WIDTH / 2.4;
 const EXPORT_CARD_WIDTH = 3840;
@@ -172,6 +176,15 @@ export const BuildEditor: React.FC = () => {
     ? artState
     : createDefaultArtState(state.characterId);
   const { customUrl: customArtUrl, isEditMode: isArtEditMode, sourceMode: artSourceMode, transform: artTransform } = activeArtState;
+  const isSplashArtActive = useMemo(() => {
+    if (!selected || artSourceMode !== 'custom' || !customArtUrl) return false;
+
+    return getSplashUrlCandidates(
+      String(selected.character.id),
+      selected.character.legacyId ?? null,
+      selected.isRover,
+    ).includes(customArtUrl);
+  }, [artSourceMode, customArtUrl, selected]);
   const portalTarget = typeof document === 'undefined' ? null : document.getElementById('nav-toolbar-portal');
 
   const setArtTransform = useCallback((next: React.SetStateAction<CardArtTransform>) => {
@@ -395,6 +408,11 @@ export const BuildEditor: React.FC = () => {
       return;
     }
 
+    if (activeArtState.sourceMode === 'custom' && activeArtState.customUrl === splashUrl) {
+      clearArtState();
+      return;
+    }
+
     if (naturalHeight > 0 && naturalHeight < MIN_CUSTOM_IMAGE_HEIGHT) {
       autoScale = Math.min(
         MAX_ART_ZOOM,
@@ -410,7 +428,7 @@ export const BuildEditor: React.FC = () => {
       sourceMode: 'custom',
       transform: { x: 0, y: 0, scale: autoScale },
     });
-  }, [selected, state.characterId, toastError]);
+  }, [activeArtState.customUrl, activeArtState.sourceMode, clearArtState, selected, state.characterId, toastError]);
 
   const handleResetArtTransform = useCallback(() => {
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
@@ -597,6 +615,7 @@ export const BuildEditor: React.FC = () => {
         <div className="relative flex min-w-0 flex-col items-stretch gap-3 md:flex-row md:items-start">
           <BuildCardOptions
             className={isCardGenerated ? 'md:rounded-b-none md:border-b-0' : ''}
+            isSplashArtActive={isSplashArtActive}
             onChange={setCardOptions}
             onUseSplashArt={handleUseSplashArt}
           />
@@ -714,14 +733,6 @@ export const BuildEditor: React.FC = () => {
                               className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               +
-                            </button>
-
-                            <button
-                              onClick={handleUseSplashArt}
-                              disabled={!selected}
-                              className="rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              Use Splash Art
                             </button>
 
                             <button
