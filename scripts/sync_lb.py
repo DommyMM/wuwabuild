@@ -331,14 +331,29 @@ _RE_PCT       = re.compile(r"(\d+(?:\.\d+)?)\s*%")
 _RE_DURATION  = re.compile(
     r"(?:"
     r"(?:lasting\s+for|for|lasts?|each\s+stack\s+lasts?)\s+(\d+(?:\.\d+)?)"
-    r"(?:\s*s\b|(?=\s*[,.]|\s*$))"
+    r"(?:\s*%?\s*s\b|(?=\s*[,.]|\s*$))"
     r"|"
-    r"(\d+(?:\.\d+)?)\s*s?\s+(?:after|upon|while|during|within)\b"
+    r"(\d+(?:\.\d+)?)\s*%?\s*s?\s+(?:after|upon|while|during|within)\b"
     r")",
     re.I
 )
 _RE_STACKS    = re.compile(r"stack(?:ing|s)?\s+up\s+to\s+(\d+)(?:\s+times?)?", re.I)
 _RE_PER_STACK = re.compile(r"(\d+(?:\.\d+)?)\s*%\s+every\s+\d", re.I)  # "5% every 1.5s"
+
+_ELEMENT_AMP_TO_CODE = {
+    "glacio": "Glacio",
+    "fusion": "Fusion",
+    "electro": "Electro",
+    "aero": "Aero",
+    "havoc": "Havoc",
+    "spectro": "Spectro",
+}
+
+_STATUS_DMG_AMP_TO_MOVE_TYPE = {
+    "glacio chafe": "glacio_bite",
+    "spectro frazzle": "frazzle",
+    "aero erosion": "erosion",
+}
 
 # Trigger-condition prefixes that appear at the start of a clause.
 _TRIGGER_STARTS = re.compile(
@@ -407,6 +422,41 @@ def _extract_buffs(text: str) -> list[dict]:
     # Run before the generic "% StatName" matcher so noun-form text like
     # "24% Heavy Attack DMG Amplification" is claimed as amplification instead
     # of being truncated to a plain "Heavy Attack DMG" buff.
+    for elem_amp_m in re.finditer(
+        r"\b(Glacio|Fusion|Electro|Aero|Havoc|Spectro)\s+DMG\s+(?:is\s+)?"
+        r"[Aa]mplified\s+by\s+(\d+(?:\.\d+)?)\s*%",
+        text,
+        re.I,
+    ):
+        span = elem_amp_m.span()
+        if not _overlaps(*span):
+            element = _ELEMENT_AMP_TO_CODE.get(elem_amp_m.group(1).lower(), "")
+            buffs.append({
+                "stat": "DMG Amplification",
+                "element": element,
+                "value": float(elem_amp_m.group(2)),
+            })
+            used.append(span)
+
+    for status_amp_m in re.finditer(
+        r"\b(Glacio\s+Chafe|Spectro\s+Frazzle|Aero\s+Erosion)\s+DMG\b"
+        r"[^.]{0,100}\b[Aa]mplified\s+by\s+(\d+(?:\.\d+)?)\s*%",
+        text,
+        re.I,
+    ):
+        span = status_amp_m.span()
+        if not _overlaps(*span):
+            move_type = _STATUS_DMG_AMP_TO_MOVE_TYPE.get(
+                re.sub(r"\s+", " ", status_amp_m.group(1).strip().lower()),
+                "",
+            )
+            buffs.append({
+                "stat": "DMG Amplification",
+                "move_type": move_type,
+                "value": float(status_amp_m.group(2)),
+            })
+            used.append(span)
+
     # Matches verb form: "Amplif[y/ies] [the] [Element] Frazzle DMG [intervening text] by X%"
     frazzle_amp_m = re.search(
         r"\bAmplif(?:y|ies)\s+(?:the\s+)?(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\b[^.]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
