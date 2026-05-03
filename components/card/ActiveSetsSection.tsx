@@ -21,11 +21,6 @@ type PieceTooltipModel = {
   effect: FetterPieceEffect;
 };
 
-type SetNameLayout = {
-  content: React.ReactNode;
-  compact: boolean;
-};
-
 const getPieceLabel = (count: number, threshold: number): string => {
   if (threshold === 3) return '3';
   return count >= 5 ? '5' : '2';
@@ -36,17 +31,6 @@ const formatSetBonusValue = (value: number): string => (
     ? String(Math.trunc(value))
     : value.toFixed(1).replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0+$/u, '')
 );
-
-const getSetNameLayout = (name: string): SetNameLayout => {
-  const words = name.trim().split(/\s+/u).filter(Boolean);
-  // With max-w-50 chips we can keep most 3-word names on one line; only split the really long ones.
-  const shouldSplit = words.length >= 4 || name.length >= 18;
-  const content = shouldSplit ? [words.slice(0, Math.min(2, words.length - 1)).join(' '), <br key="set-name-break" />, words.slice(Math.min(2, words.length - 1)).join(' ')] : name;
-  return {
-    content,
-    compact: shouldSplit,
-  };
-};
 
 const getFetterPieceTooltipModels = (fetter: CDNFetter | undefined): PieceTooltipModel[] => {
   if (!fetter) return [];
@@ -91,27 +75,24 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   const { t } = useLanguage();
   const hasActiveSets = stats.activeSets.length > 0;
   const hasActiveHover = Boolean(activeHoverStat);
-  const expandFully = stats.activeSets.length === 1;
 
   if (!hasActiveSets && !showCV) return null;
 
   return (
-    <div className="flex gap-2 pt-2 pl-4 text-sm font-semibold leading-none">
+    <div className="flex w-full min-w-0 gap-2 overflow-hidden pt-2 pl-4 text-sm font-semibold leading-none">
       {showCV && (
-        <div className="flex items-center rounded-xl bg-black/35 p-1.5">
+        <div className="flex shrink-0 items-center rounded-xl bg-black/35 p-1.5">
           <span className="rounded-md">
             {stats.cv.toFixed(1)} CV
           </span>
         </div>
       )}
-      {stats.activeSets.map(({ element, count, setName }) => {
+      {stats.activeSets.map(({ element, count, setName }, index) => {
         const fetter = fettersByElement[element];
         const threshold = fetter?.pieceCount ?? 2;
         const pieceLabel = getPieceLabel(count, threshold);
         const displayName = fetter ? t(fetter.name) : setName;
-        const { compact: layoutCompact, content: layoutContent } = getSetNameLayout(displayName);
-        const useCompactName = layoutCompact && !expandFully;
-        const setNameContent = expandFully ? displayName : layoutContent;
+        const isLastSet = index === stats.activeSets.length - 1;
         const setIcon = fetter?.icon ?? '';
         const setBonuses = getSetBonusesFromFetter(fetter, count);
         const setHoverMatch = Boolean(
@@ -178,13 +159,13 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
             placement="top"
           >
             <div
-              className={`flex h-8 ${expandFully ? '' : 'max-w-50'} items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
+              className={`flex h-8 min-w-0 max-w-50 ${isLastSet ? 'shrink' : 'shrink-0'} items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
             >
               {setIcon && <img src={setIcon} alt={setIcon} className="h-5 w-5 shrink-0 object-contain" />}
-              <span className={`text-center ${useCompactName ? 'text-xs leading-none' : ''}`}>
-                {setNameContent}
+              <span className={`min-w-0 text-center leading-none ${isLastSet ? 'whitespace-normal text-xs' : 'whitespace-nowrap text-sm'}`}>
+                {displayName}
               </span>
-              <span className="rounded-md border border-amber-300/55 bg-amber-300/18 px-1 text-xs">
+              <span className="shrink-0 rounded-md border border-amber-300/55 bg-amber-300/18 px-1 text-xs">
                 {pieceLabel}
               </span>
             </div>

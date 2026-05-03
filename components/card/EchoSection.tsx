@@ -151,7 +151,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                     <div className="pointer-events-none absolute inset-0 border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.24),0_0_16px_rgba(110,255,255,0.45)]" />
                   )}
                 </div>
-                <div className="relative mb-1 h-px w-1/2 bg-[linear-gradient(90deg,rgba(255,255,255,0.20)_0%,rgba(255,255,255,0.09)_55%,rgba(255,255,255,0)_100%)]">
+                <div className="relative mb-1 h-px w-1/2">
                   {fetterIcon && (
                     <img
                       src={fetterIcon}
