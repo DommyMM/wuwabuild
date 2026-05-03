@@ -71,7 +71,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
       : 'opacity-45 brightness-90';
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <HoverTooltip
         placement="right"
         content={(

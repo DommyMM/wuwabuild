@@ -75,6 +75,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   const { t } = useLanguage();
   const hasActiveSets = stats.activeSets.length > 0;
   const hasActiveHover = Boolean(activeHoverStat);
+  const hasMultipleActiveSets = stats.activeSets.length > 1;
 
   if (!hasActiveSets && !showCV) return null;
 
@@ -92,7 +93,10 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
         const threshold = fetter?.pieceCount ?? 2;
         const pieceLabel = getPieceLabel(count, threshold);
         const displayName = fetter ? t(fetter.name) : setName;
-        const isLastSet = index === stats.activeSets.length - 1;
+        const shouldFlexSet = !hasMultipleActiveSets || index === stats.activeSets.length - 1;
+        const chipSizeClass = hasMultipleActiveSets
+          ? `${shouldFlexSet ? 'shrink' : 'shrink-0'} max-w-50`
+          : 'flex-1';
         const setIcon = fetter?.icon ?? '';
         const setBonuses = getSetBonusesFromFetter(fetter, count);
         const setHoverMatch = Boolean(
@@ -159,10 +163,10 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
             placement="top"
           >
             <div
-              className={`flex h-8 min-w-0 max-w-50 ${isLastSet ? 'shrink' : 'shrink-0'} items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
+              className={`flex h-8 min-w-0 ${chipSizeClass} items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
             >
               {setIcon && <img src={setIcon} alt={setIcon} className="h-5 w-5 shrink-0 object-contain" />}
-              <span className={`min-w-0 text-center leading-none ${isLastSet ? 'whitespace-normal text-xs' : 'whitespace-nowrap text-sm'}`}>
+              <span className={`min-w-0 flex-1 text-center text-sm ${shouldFlexSet ? 'whitespace-normal leading-tight' : 'whitespace-nowrap leading-none'}`}>
                 {displayName}
               </span>
               <span className="shrink-0 rounded-md border border-amber-300/55 bg-amber-300/18 px-1 text-xs">
