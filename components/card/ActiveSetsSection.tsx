@@ -26,6 +26,8 @@ const getPieceLabel = (count: number, threshold: number): string => {
   return count >= 5 ? '5' : '2';
 };
 
+const WRAPPING_SET_NAME_LENGTH = 18;
+
 const formatSetBonusValue = (value: number): string => (
   Number.isInteger(value)
     ? String(Math.trunc(value))
@@ -94,9 +96,13 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
         const pieceLabel = getPieceLabel(count, threshold);
         const displayName = fetter ? t(fetter.name) : setName;
         const shouldFlexSet = !hasMultipleActiveSets || index === stats.activeSets.length - 1;
+        const shouldUseCompactText = hasMultipleActiveSets && displayName.length >= WRAPPING_SET_NAME_LENGTH;
         const chipSizeClass = hasMultipleActiveSets
-          ? `${shouldFlexSet ? 'shrink' : 'shrink-0'} max-w-50`
-          : 'flex-1';
+          ? `${shouldFlexSet ? 'shrink' : 'w-fit shrink-0'} ${shouldUseCompactText ? 'max-w-42' : 'max-w-50'}`
+          : 'w-fit shrink-0';
+        const chipTextClass = hasMultipleActiveSets
+          ? 'whitespace-normal leading-tight'
+          : 'whitespace-nowrap leading-none';
         const setIcon = fetter?.icon ?? '';
         const setBonuses = getSetBonusesFromFetter(fetter, count);
         const setHoverMatch = Boolean(
@@ -161,12 +167,13 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
             content={tooltipContent}
             disabled={!fetter}
             placement="top"
+            triggerClassName={`flex min-w-0 ${chipSizeClass}`}
           >
             <div
-              className={`flex h-8 min-w-0 ${chipSizeClass} items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
+              className={`flex min-h-8 w-full min-w-0 items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
             >
               {setIcon && <img src={setIcon} alt={setIcon} className="h-5 w-5 shrink-0 object-contain" />}
-              <span className={`min-w-0 flex-1 text-center text-sm ${shouldFlexSet ? 'whitespace-normal leading-tight' : 'whitespace-nowrap leading-none'}`}>
+              <span className={`min-w-0 flex-1 text-center ${shouldUseCompactText ? 'text-xs' : 'text-sm'} ${chipTextClass}`}>
                 {displayName}
               </span>
               <span className="shrink-0 rounded-md border border-amber-300/55 bg-amber-300/18 px-1 text-xs">
