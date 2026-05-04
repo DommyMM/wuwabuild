@@ -453,6 +453,30 @@ function IssuePanel({ items }: { items: BulkItem[] }) {
     return null;
   }
 
+  const exportIssues = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      count: items.length,
+      issues: items.map(item => ({
+        file: (item.file as File & { webkitRelativePath?: string }).webkitRelativePath || item.file.name,
+        name: item.file.name,
+        size: item.file.size,
+        lastModified: item.file.lastModified,
+        status: item.status,
+        message: item.message,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `bulk-import-issues-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <section className="flex flex-col gap-3 rounded-md border border-border bg-surface/40 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -460,7 +484,15 @@ function IssuePanel({ items }: { items: BulkItem[] }) {
           <h2 className="text-sm font-semibold text-text-primary">Issues</h2>
           <p className="text-xs text-text-secondary">{items.length} failed or skipped images</p>
         </div>
-        {items.length > 24 && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={exportIssues}
+            className="rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-text-primary hover:bg-surface-hover"
+          >
+            Export JSON
+          </button>
+          {items.length > 24 && (
           <button
             type="button"
             onClick={() => setExpanded(value => !value)}
@@ -468,7 +500,8 @@ function IssuePanel({ items }: { items: BulkItem[] }) {
           >
             {expanded ? 'Show fewer' : `Show all ${items.length}`}
           </button>
-        )}
+          )}
+        </div>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {visibleItems.map(item => (

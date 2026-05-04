@@ -6,18 +6,19 @@ interface BuildSetCount {
 }
 
 // Count set pieces from the current echo panel state.
-// Mirrors the same duplicate-echo handling used by stats calculations.
+// Mirrors the duplicate-echo handling used by stats calculations:
+// the same echo can count once per selected set, but not twice within one set.
 export function getBuildSetCounts(
   echoPanels: EchoPanelState[],
   getEcho: (id: string | null) => Echo | null
 ): BuildSetCount[] {
   const counts: Partial<Record<ElementType, number>> = {};
-  const usedEchoes = new Set<string>();
+  const usedEchoSetPieces = new Set<string>();
 
   for (const panel of echoPanels) {
     if (!panel.id) continue;
     const echo = getEcho(panel.id);
-    if (!echo || usedEchoes.has(echo.id)) continue;
+    if (!echo) continue;
 
     const element =
       echo.elements.length === 1
@@ -26,8 +27,11 @@ export function getBuildSetCounts(
 
     if (!element) continue;
 
+    const echoSetKey = `${element}:${echo.id}`;
+    if (usedEchoSetPieces.has(echoSetKey)) continue;
+
     counts[element] = (counts[element] ?? 0) + 1;
-    usedEchoes.add(echo.id);
+    usedEchoSetPieces.add(echoSetKey);
   }
 
   return Object.entries(counts)

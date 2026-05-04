@@ -103,17 +103,19 @@ export function StatsProvider({ children }: StatsProviderProps) {
 
   const { elementCounts, activeSets } = useMemo(() => {
     const counts: Record<ElementType, number> = {} as Record<ElementType, number>;
-    const usedEchoes = new Set<string>();
+    const usedEchoSetPieces = new Set<string>();
     const sets: { element: ElementType; count: number; setName: string }[] = [];
 
     echoPanels.forEach(panel => {
       if (!panel.id) return;
       const echo = getEcho(panel.id);
-      if (!echo || usedEchoes.has(echo.name)) return;
+      if (!echo) return;
       const element = echo.elements.length === 1 ? echo.elements[0] : panel.selectedElement;
       if (element) {
+        const echoSetKey = `${element}:${echo.id}`;
+        if (usedEchoSetPieces.has(echoSetKey)) return;
         counts[element] = (counts[element] || 0) + 1;
-        usedEchoes.add(echo.name);
+        usedEchoSetPieces.add(echoSetKey);
       }
     });
 
