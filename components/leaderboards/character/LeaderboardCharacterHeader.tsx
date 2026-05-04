@@ -344,6 +344,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
       id: member.charId,
       head: character?.head,
       name: character ? t(character.nameI18n ?? { en: character.name }) : member.charId,
+      sequence: member.sequence ?? 0,
       loadoutIcons,
     };
   });
@@ -404,7 +405,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
           {supportMembers.map((member) => {
             return (
               <div key={member.id} className="flex flex-col items-center">
-                <div className="h-25 w-25 rounded-3xl border border-white/12 bg-black/16 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+                <div className="relative h-25 w-25 rounded-3xl border border-white/12 bg-black/16 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
                   {member.head ? (
                     <div
                       role="img"
@@ -414,6 +415,14 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
                     />
                   ) : (
                     <div className="h-full w-full rounded-[inherit] bg-background-secondary/80" />
+                  )}
+                  {member.sequence > 0 && (
+                    <span
+                      className={`absolute -right-1 -top-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[member.sequence]}`}
+                      aria-label={`Sequence ${member.sequence}`}
+                    >
+                      S{member.sequence}
+                    </span>
                   )}
                 </div>
                 <LoadoutIconRow icons={member.loadoutIcons} keyPrefix={member.id} />

@@ -499,6 +499,8 @@ export interface LBTeamMemberConfig {
   refinement?: number;
   setId?: string;
   echoId?: string;
+  /** Support sequence level on this track, 0 if S0. Drives the S{n} badge in headers. */
+  sequence?: number;
 }
 
 export interface LBTrack {
@@ -636,6 +638,7 @@ function parseTeamMembers(raw: unknown): LBTeamMemberConfig[] {
       refinement: typeof member.refinement === 'number' && Number.isFinite(member.refinement) ? member.refinement : undefined,
       setId: typeof member.setId === 'string' ? member.setId : undefined,
       echoId: typeof member.echoId === 'string' ? member.echoId : undefined,
+      sequence: typeof member.sequence === 'number' && Number.isFinite(member.sequence) ? member.sequence : undefined,
     }))
     .filter((member) => member.charId.length > 0);
 }
