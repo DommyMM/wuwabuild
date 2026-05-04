@@ -103,6 +103,11 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
         const chipTextClass = hasMultipleActiveSets
           ? 'whitespace-normal leading-tight'
           : 'whitespace-nowrap leading-none';
+        const chipTextSizeClass = hasMultipleActiveSets
+          ? shouldUseCompactText
+            ? 'w-min flex-none'
+            : 'flex-none'
+          : 'flex-1';
         const setIcon = fetter?.icon ?? '';
         const setBonuses = getSetBonusesFromFetter(fetter, count);
         const setHoverMatch = Boolean(
@@ -173,7 +178,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
               className={`flex min-h-8 w-full min-w-0 items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
             >
               {setIcon && <img src={setIcon} alt={setIcon} className="h-5 w-5 shrink-0 object-contain" />}
-              <span className={`min-w-0 flex-1 text-center ${shouldUseCompactText ? 'text-xs' : 'text-sm'} ${chipTextClass}`}>
+              <span className={`min-w-0 ${chipTextSizeClass} text-center ${shouldUseCompactText ? 'text-xs' : 'text-sm'} ${chipTextClass}`}>
                 {displayName}
               </span>
               <span className="shrink-0 rounded-md border border-amber-300/55 bg-amber-300/18 px-1 text-xs">
