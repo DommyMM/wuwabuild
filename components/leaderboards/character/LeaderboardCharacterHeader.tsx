@@ -40,7 +40,7 @@ function LoadoutIconRow({
   if (icons.length === 0) return null;
 
   return (
-    <div className="-mt-4 flex items-center justify-center gap-1">
+    <div className="relative z-10 -mt-4 flex items-center justify-center gap-1">
       {icons.map((icon) => (
         <HoverTooltip
           key={`${keyPrefix}-${icon.key}`}

@@ -499,7 +499,6 @@ export interface LBTeamMemberConfig {
   refinement?: number;
   setId?: string;
   echoId?: string;
-  /** Support sequence level on this track, 0 if S0. Drives the S{n} badge in headers. */
   sequence?: number;
 }
 
