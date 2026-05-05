@@ -33,7 +33,25 @@ function parseTeamMembers(raw: unknown): LBTeamMemberConfig[] {
       refinement: typeof member.refinement === 'number' && Number.isFinite(member.refinement) ? member.refinement : undefined,
       setId: typeof member.setId === 'string' ? member.setId : undefined,
       echoId: typeof member.echoId === 'string' ? member.echoId : undefined,
+      sequence: typeof member.sequence === 'number' && Number.isFinite(member.sequence) ? member.sequence : undefined,
     }))
+    .filter((member) => member.charId.length > 0);
+}
+
+function parseTeamCharSpec(spec: string): LBTeamMemberConfig {
+  const [charId, seqRaw] = spec.split(':', 2);
+  const seq = seqRaw === undefined ? NaN : Number(seqRaw);
+  return {
+    charId,
+    sequence: Number.isFinite(seq) ? Math.max(0, Math.min(6, Math.trunc(seq))) : undefined,
+  };
+}
+
+function parseTeamCharacterSpecs(raw: unknown): LBTeamMemberConfig[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((v): v is string => typeof v === 'string')
+    .map((spec) => parseTeamCharSpec(spec))
     .filter((member) => member.charId.length > 0);
 }
 
@@ -146,6 +164,8 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
       const weaponIds = Array.isArray(raw.weaponIds)
         ? raw.weaponIds.filter((v): v is string => typeof v === 'string')
         : weapons.map((weapon) => weapon.weaponId).filter(Boolean);
+      const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
+      const teamMembers = parseTeamMembers(raw.teamMembers);
       result.push({
         id: typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : ''),
         trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
@@ -153,10 +173,8 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
         totalEntries: toFiniteNumber(raw.totalEntries),
         weapons,
         weaponIds,
-        teamCharacterIds: Array.isArray(raw.teamCharacterIds)
-          ? raw.teamCharacterIds.filter((v): v is string => typeof v === 'string')
-          : [],
-        teamMembers: parseTeamMembers(raw.teamMembers),
+        teamCharacterIds: fallbackTeamMembers.map((member) => member.charId),
+        teamMembers: teamMembers.length > 0 ? teamMembers : fallbackTeamMembers,
       });
     }
     console.log('[lbServer] prefetchLeaderboardOverview payload', {

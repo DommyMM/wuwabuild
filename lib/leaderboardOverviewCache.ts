@@ -41,13 +41,15 @@ function isTeamMemberConfig(value: unknown): boolean {
     refinement?: unknown;
     setId?: unknown;
     echoId?: unknown;
+    sequence?: unknown;
   };
   return (
     typeof candidate.charId === 'string' &&
     (candidate.weaponId === undefined || typeof candidate.weaponId === 'string') &&
     (candidate.refinement === undefined || isFiniteNumber(candidate.refinement)) &&
     (candidate.setId === undefined || typeof candidate.setId === 'string') &&
-    (candidate.echoId === undefined || typeof candidate.echoId === 'string')
+    (candidate.echoId === undefined || typeof candidate.echoId === 'string') &&
+    (candidate.sequence === undefined || isFiniteNumber(candidate.sequence))
   );
 }
 

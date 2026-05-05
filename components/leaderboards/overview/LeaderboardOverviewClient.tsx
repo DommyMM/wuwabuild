@@ -18,7 +18,7 @@ const OVERVIEW_GRID = 'grid-cols-[44px_280px_144px_76px_1fr]';
 
 function overviewSignature(entries: LBCharacterOverview[]): string {
   return entries.map((e) =>
-    `${e.id}:${e.trackKey}:${e.totalEntries}:${e.teamCharacterIds.join('+')}:${e.weapons.map((w) => `${w.weaponId}=${Math.round(w.damage)}`).join('|')}`
+    `${e.id}:${e.trackKey}:${e.totalEntries}:${e.teamMembers.map((m) => `${m.charId}:${m.sequence ?? 0}`).join('+')}:${e.weapons.map((w) => `${w.weaponId}=${Math.round(w.damage)}`).join('|')}`
   ).join(',');
 }
 
@@ -206,11 +206,11 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                   ) : (
                                     <div className="h-11 w-11 bg-border/30" />
                                   )}
-                                  {entry.teamCharacterIds.map((teamId) => {
-                                    const teamChar = getCharacter(teamId);
+                                  {(entry.teamMembers.length > 0 ? entry.teamMembers : entry.teamCharacterIds.map((charId) => ({ charId }))).map((member, index) => {
+                                    const teamChar = getCharacter(member.charId);
                                     return teamChar?.head ? (
                                       <img
-                                        key={teamId}
+                                        key={`${member.charId}-${index}`}
                                         src={teamChar.head}
                                         alt={teamChar.name}
                                         title={teamChar.name}
@@ -218,7 +218,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                         loading="lazy"
                                       />
                                     ) : (
-                                      <div key={teamId} className="h-11 w-11 bg-border/25" />
+                                      <div key={`${member.charId}-${index}`} className="h-11 w-11 bg-border/25" />
                                     );
                                   })}
                                 </div>

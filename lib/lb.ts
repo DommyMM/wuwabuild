@@ -626,6 +626,23 @@ function parseTracks(raw: unknown): LBTrack[] {
     .filter((track) => track.key.length > 0);
 }
 
+function parseTeamCharSpec(spec: string): { charId: string; sequence?: number } {
+  const [charId, seqRaw] = spec.split(':', 2);
+  const seq = seqRaw === undefined ? NaN : Number(seqRaw);
+  return {
+    charId,
+    sequence: Number.isFinite(seq) ? Math.max(0, Math.min(6, Math.trunc(seq))) : undefined,
+  };
+}
+
+function parseTeamCharacterSpecs(raw: unknown): LBTeamMemberConfig[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((v): v is string => typeof v === 'string')
+    .map((spec) => parseTeamCharSpec(spec))
+    .filter((member) => member.charId.length > 0);
+}
+
 function parseTeamMembers(raw: unknown): LBTeamMemberConfig[] {
   if (!Array.isArray(raw)) return [];
 
@@ -656,6 +673,8 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
   for (const raw of rawChars) {
     if (!isRecord(raw)) continue;
     const rawWeapons = Array.isArray(raw.weapons) ? raw.weapons : [];
+    const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
+    const teamMembers = parseTeamMembers(raw.teamMembers);
     const weapons: LBWeaponTop[] = rawWeapons
       .filter(isRecord)
       .map((w) => {
@@ -676,8 +695,8 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
       totalEntries: toFiniteNumber(raw.totalEntries),
       weapons,
       weaponIds: weapons.map((w) => w.weaponId).filter(Boolean),
-      teamCharacterIds: Array.isArray(raw.teamCharacterIds) ? raw.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
-      teamMembers: parseTeamMembers(raw.teamMembers),
+      teamCharacterIds: fallbackTeamMembers.map((member) => member.charId),
+      teamMembers: teamMembers.length > 0 ? teamMembers : fallbackTeamMembers,
     });
   }
 
@@ -910,6 +929,7 @@ export interface LBStandingEntry {
   total: number;
   trackLabel: string;
   teamCharacterIds: string[];
+  teamMembers: LBTeamMemberConfig[];
   damage: number;
 }
 
@@ -935,6 +955,8 @@ export async function getBuildStandings(
   const result: LBStandingEntry[] = [];
   for (const raw of payload.standings) {
     if (!isRecord(raw)) continue;
+    const teamMembers = parseTeamMembers(raw.teamMembers);
+    const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
     result.push({
       key: typeof raw.key === 'string' ? raw.key : '',
       weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
@@ -942,9 +964,8 @@ export async function getBuildStandings(
       rank: toFiniteNumber(raw.rank, 0),
       total: toFiniteNumber(raw.total, 0),
       trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
-      teamCharacterIds: Array.isArray(raw.teamCharacterIds)
-        ? raw.teamCharacterIds.filter((v): v is string => typeof v === 'string')
-        : [],
+      teamCharacterIds: fallbackTeamMembers.map((member) => member.charId),
+      teamMembers: teamMembers.length > 0 ? teamMembers : fallbackTeamMembers,
       damage: toFiniteNumber(raw.damage, 0),
     });
   }

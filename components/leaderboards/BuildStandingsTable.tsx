@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useGameData } from '@/contexts/GameDataContext';
-import { LBStandingEntry } from '@/lib/lb';
+import { LBStandingEntry, LBTeamMemberConfig } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 
 interface BuildStandingsTableProps {
@@ -81,7 +81,12 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
           const boardHref = `/leaderboards/${encodeURIComponent(characterId)}?weaponId=${encodeURIComponent(standingEntry.weaponId)}&track=${encodeURIComponent(standingEntry.trackKey)}&buildId=${encodeURIComponent(buildId)}`;
 
           const mainChar = getCharacter(characterId);
-          const allIds = mainChar ? [characterId, ...standingEntry.teamCharacterIds] : standingEntry.teamCharacterIds;
+          const supportMembers: LBTeamMemberConfig[] = standingEntry.teamMembers.length > 0
+            ? standingEntry.teamMembers
+            : standingEntry.teamCharacterIds.map((charId) => ({ charId }));
+          const teamMembers: LBTeamMemberConfig[] = mainChar
+            ? [{ charId: characterId }, ...supportMembers]
+            : supportMembers;
 
           return (
             <tr key={standingEntry.key} className={isActiveBoard ? 'bg-accent/8' : ''}>
@@ -106,12 +111,12 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
               </td>
               <td className="py-2.5 px-3">
                 <div className="flex items-center gap-1">
-                  {allIds.map((id) => {
-                    const c = getCharacter(id);
+                  {teamMembers.map((member, index) => {
+                    const c = getCharacter(member.charId);
                     return c?.head ? (
-                      <img key={id} src={c.head} alt={c.name} title={c.name} className="h-8 w-8 object-cover object-top" />
+                      <img key={`${member.charId}-${index}`} src={c.head} alt={c.name} title={c.name} className="h-8 w-8 shrink-0 object-cover object-top" />
                     ) : (
-                      <div key={id} className="h-8 w-8 bg-border/25" />
+                      <div key={`${member.charId}-${index}`} className="h-8 w-8 bg-border/25" />
                     );
                   })}
                 </div>
