@@ -1060,12 +1060,44 @@ def _extract_sequence_bonuses(char: dict) -> list[dict]:
             continue
         bonus = chain.get("bonus")
         if isinstance(bonus, dict) and bonus.get("stat") and bonus.get("value") is not None:
+            if _skip_sequence_bonus(char, chain, i, bonus):
+                continue
             bonuses.append({
                 "minSequence": i + 1,
                 "stat": bonus["stat"],
                 "value": float(bonus["value"])
             })
     return bonuses
+
+
+def _skip_sequence_bonus(char: dict, chain: dict, index: int, bonus: dict) -> bool:
+    """Drop chain.bonus entries whose value disagrees with the chain's first param.
+
+    The CDN convention for `chain.bonus` is that `bonus.value` mirrors the
+    numeric magnitude of `param[0]` (the unconditional headline bonus). When
+    they disagree, the bonus has been authored against a different param —
+    typically a conditional clause buried later in the description — and
+    cannot be applied as a flat sequence bonus.
+    """
+    try:
+        value = float(bonus.get("value"))
+    except (TypeError, ValueError):
+        return False
+
+    params = chain.get("param") or []
+    if not params:
+        return True
+
+    raw = params[0]
+    if not isinstance(raw, str):
+        return True
+
+    try:
+        param_value = float(raw.replace("%", "").replace(",", ".").strip())
+    except ValueError:
+        return True
+
+    return param_value != value
 
 
 # Regex for the "up to Y%" cap pattern used in scaling party buffs.

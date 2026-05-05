@@ -81,18 +81,30 @@ def _chain_strip_markup(text: str) -> str:
     return _MARKUP_RE.sub('', text)
 
 
-def _chain_split_sentences(text: str) -> list[str]:
+def _chain_split_sentences(text: str) -> list[tuple[str, str]]:
+    """Split chain description into (sentence, original_line) tuples.
+
+    Splitting on '.' can separate a conditional clause from the stat boost
+    that follows on the same line (e.g. "At 2 stacks of Snow Rust, ... {1}.
+    Hiyuki's Crit. DMG is increased by {2}.").  By returning the original
+    line alongside each sentence, callers can check the full line context
+    for conditional keywords.
+    """
     protected = text
     for original, ph in _PROTECT_PAIRS:
         protected = protected.replace(original, ph)
-    sentences: list[str] = []
+    sentences: list[tuple[str, str]] = []
     for line in protected.split('\n'):
+        # Restore protection in the full line for context checks.
+        restored_line = line
+        for original, ph in _PROTECT_PAIRS:
+            restored_line = restored_line.replace(ph, original)
         for part in re.split(r'\.(?=\s|$)', line):
             s = part.strip()
             if s:
                 for original, ph in _PROTECT_PAIRS:
                     s = s.replace(ph, original)
-                sentences.append(s)
+                sentences.append((s, restored_line))
     return sentences
 
 
@@ -104,15 +116,21 @@ def _parse_param_value(param_str: str) -> float | None:
 def parse_chain_bonus(desc_en: str, params: list[str]) -> dict | None:
     """Return {stat, value} for an unconditional passive stat bonus, or None."""
     clean = _chain_strip_markup(desc_en)
-    for sentence in _chain_split_sentences(clean):
+    for sentence, original_line in _chain_split_sentences(clean):
         for pattern, stat_name in _CHAIN_STAT_PATTERNS:
             m = pattern.search(sentence)
             if not m:
                 continue
             before = sentence[:m.start()]
             after  = sentence[m.end():]
+            # Check the isolated sentence for conditional keywords.
             if _CHAIN_CONDITIONAL_RE.search(before) or _CHAIN_CONDITIONAL_RE.search(after):
                 break  # sentence is conditional and we skip it
+            # Also check the full original line: a preceding sentence on the
+            # same line may carry a conditional that scopes the stat boost
+            # (e.g. "At 2 stacks of X, ... {1}. Crit. DMG is increased by {2}.")
+            if original_line != sentence and _CHAIN_CONDITIONAL_RE.search(original_line):
+                break
             param_idx = int(m.group(1))
             if param_idx >= len(params):
                 break
