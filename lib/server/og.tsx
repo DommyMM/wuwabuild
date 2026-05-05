@@ -85,7 +85,7 @@ export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
           }}
         >
           {/* Site tag */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: artSrc ? 'flex-start' : 'center', gap: 10, marginBottom: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: accent, display: 'flex' }} />
             <span style={{ fontSize: 18, fontWeight: 600, color: accent, textTransform: 'uppercase', letterSpacing: 2 }}>
               wuwa.build
@@ -104,7 +104,7 @@ export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
 
           {/* Chips */}
           {data.chips.length > 0 && (
-            <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap', justifyContent: artSrc ? 'flex-start' : 'center' }}>
               {data.chips.slice(0, 3).map((chip) => (
                 <div
                   key={chip}
@@ -175,7 +175,7 @@ export function renderFallbackCard(): Promise<ImageResponse> {
   return renderOgCard({
     variant: 'site',
     title: 'WuWa Builds',
-    subtitle: 'Build creator, OCR import, and leaderboards for Wuthering Waves',
-    chips: ['Import', 'Builds', 'Leaderboards'],
+    subtitle: 'Build maker, showcase cards, OCR scanner, and global damage leaderboards',
+    chips: ['Build Maker', 'Showcase Cards', 'Leaderboards'],
   });
 }

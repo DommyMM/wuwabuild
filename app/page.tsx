@@ -6,10 +6,10 @@ export const revalidate = 120; // ISR: full page HTML cached at edge, re-rendere
 
 export const metadata: Metadata = {
     title: 'WuWa Builds | Wuthering Waves Build Creator & Leaderboards',
-    description: 'Create, share, and discover top-tier Wuthering Waves character builds. Features automatic OCR screenshot importing, real-time stat calculations, and global leaderboards.',
+    description: 'Create, share, and discover top-tier Wuthering Waves character builds. Flex your builds with automatic OCR scanner, stat calculations, and global damage rankings.',
     twitter: {
         title: 'WuWa Builds | Wuthering Waves Build Creator & Leaderboards',
-        description: 'Create, share, and discover top-tier Wuthering Waves character builds. Features automatic OCR screenshot importing, real-time stat calculations, and global leaderboards.',
+        description: 'Create, share, and discover top-tier Wuthering Waves character builds. Flex your builds with automatic OCR scanner, stat calculations, and global damage rankings.',
     },
     alternates: { canonical: '/' },
 };

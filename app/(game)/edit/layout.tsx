@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { EditorProviders } from '@/contexts';
 
 export const metadata: Metadata = {
-    title: 'Create Build',
-    description: 'Create, customize, and share your Wuthering Waves character builds. Configure weapons, echoes, forte levels, and sequence nodes to calculate perfect damage.',
+    title: 'WuWa Build Maker & Showcase Card Generator',
+    description: 'Create and generate beautiful Wuthering Waves character build cards. Flex your best builds with our automatic OCR scanner and live damage leaderboards.',
 };
 
 export default function EditLayout({ children }: { children: React.ReactNode }) {

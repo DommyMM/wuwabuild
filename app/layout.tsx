@@ -41,13 +41,13 @@ export const metadata: Metadata = {
         locale: 'en_US',
         url: 'https://wuwa.build',
         siteName: 'WuWa Builds',
-        title: 'WuWa Builds - Wuthering Waves Build Creator',
-        description: 'Create and share Wuthering Waves builds with automatic screenshot scanning, real-time stat calculations, and build management tools.',
+        title: 'WuWa Builds - Wuthering Waves Build Creator & Showcase',
+        description: 'Create and share Wuthering Waves character build cards. Flex your best setups with our custom build maker, automatic OCR scanner, and real-time damage calculator.',
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'WuWa Builds - Wuthering Waves Build Creator',
-        description: 'Create and share Wuthering Waves builds with automatic screenshot scanning, real-time stat calculations, and build management tools.',
+        title: 'WuWa Builds - Wuthering Waves Build Creator & Showcase',
+        description: 'Create and share Wuthering Waves character build cards. Flex your best setups with our custom build maker, automatic OCR scanner, and real-time damage calculator.',
     },
     robots: {
         index: true,

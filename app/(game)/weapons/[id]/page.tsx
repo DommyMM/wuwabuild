@@ -115,44 +115,94 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
         });
     }
 
+    const jsonLdBreadcrumbs = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://wuwa.build"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Weapons",
+                "item": "https://wuwa.build/builds"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": wepName || "Weapon",
+                "item": `https://wuwa.build/weapons/${id}`
+            }
+        ]
+    };
+
+    const jsonLdItem = wepName ? {
+        "@context": "https://schema.org",
+        "@type": "ItemPage",
+        "mainEntity": {
+            "@type": "Thing",
+            "name": wepName,
+            "description": `${wepName} is a ${weaponInfo?.rarity?.id || 5}-star ${typeName} weapon in Wuthering Waves.`
+        }
+    } : null;
+
     return (
         <main className="bg-background">
-            {weaponInfo && (
-                <div className="sr-only">
-                    <h1>{wepName} Stats & Build Calculator</h1>
-                    <p>
-                        Welcome to the WuWaBuilds {wepName} calculator and database.
-                        The {wepName} is a {weaponInfo.rarity?.id || 5}-star {typeName} weapon in Wuthering Waves.
-                        Use our tool to calculate its exact passive scaling, view max level stats, and see how it performs on different resonators across the global leaderboard. Our custom backend engine runs native damage calculations for imported builds.
-                    </p>
-
-                    {effectName && (
-                        <>
-                            <h2>Passive: {effectName}</h2>
-                            <h3>Rank 1</h3>
-                            <p>{effectRank1}</p>
-                            <h3>Rank 5</h3>
-                            <p>{effectRank5}</p>
-                        </>
-                    )}
-
-                    <h2>Best Characters for {wepName}</h2>
-                    <p>Equip this weapon on matching {typeName} resonators to calculate their damage output. View character leaderboards:</p>
-                    <ul>
-                        {matchingCharacters.map((c) => (
-                            <li key={c.id}>
-                                <Link href={`/characters/${c.id}`}>{getI18nText(c.name)}</Link>
-                            </li>
-                        ))}
-                    </ul>
-
-                    <h2>View Top Builds</h2>
-                    <p>Browse the <Link href="/builds">WuWaBuilds database</Link> to discover how top players utilize the {wepName}.</p>
-                </div>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumbs) }}
+            />
+            {jsonLdItem && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdItem) }}
+                />
             )}
             <div className="px-3 py-4 md:px-16 md:py-6">
                 <WeaponClient weaponId={id} />
             </div>
+            {weaponInfo && (
+                <details className="mx-3 mb-8 md:mx-16 rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-gray-400 [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:text-gray-300 [&_h2]:text-base [&_h2]:font-medium [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-gray-300 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:mt-3 [&_h3]:text-gray-400 [&_p]:mt-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mt-2 [&_li]:mt-1 [&_a]:text-accent hover:[&_a]:text-accent-hover [&_a]:underline">
+                    <summary className="cursor-pointer font-semibold text-gray-300 hover:text-white transition-colors">
+                        About {wepName}
+                    </summary>
+                    <div className="mt-4">
+                        <h1>{wepName} Stats & Build Calculator</h1>
+                        <p>
+                            Welcome to the WuWaBuilds {wepName} calculator and database.
+                            The {wepName} is a {weaponInfo.rarity?.id || 5}-star {typeName} weapon in Wuthering Waves.
+                            Use our tool to calculate its exact passive scaling, view max level stats, and see how it performs on different resonators across the global leaderboard. Our custom backend engine runs native damage calculations for imported builds.
+                        </p>
+
+                        {effectName && (
+                            <>
+                                <h2>Passive: {effectName}</h2>
+                                <h3>Rank 1</h3>
+                                <p>{effectRank1}</p>
+                                <h3>Rank 5</h3>
+                                <p>{effectRank5}</p>
+                            </>
+                        )}
+
+                        <h2>Best Characters for {wepName}</h2>
+                        <p>Equip this weapon on matching {typeName} resonators to calculate their damage output. View character leaderboards:</p>
+                        <ul>
+                            {matchingCharacters.map((c) => (
+                                <li key={c.id}>
+                                    <Link href={`/characters/${c.id}`}>{getI18nText(c.name)}</Link>
+                                </li>
+                            ))}
+                        </ul>
+
+                        <h2>View Top Builds</h2>
+                        <p>Browse the <Link href="/builds">WuWaBuilds database</Link> to discover how top players utilize the {wepName}.</p>
+                    </div>
+                </details>
+            )}
         </main>
     );
 }

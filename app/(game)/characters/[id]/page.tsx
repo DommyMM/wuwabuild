@@ -84,58 +84,108 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
     const weaponType = char ? char.weaponType : '';
     const element = char ? char.element : '';
 
+    const jsonLdBreadcrumbs = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://wuwa.build"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Characters",
+                "item": "https://wuwa.build/builds"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": charName || "Character",
+                "item": `https://wuwa.build/characters/${id}`
+            }
+        ]
+    };
+
+    const jsonLdProfile = charName ? {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        "mainEntity": {
+            "@type": "Person",
+            "name": charName,
+            "description": `${charName} in Wuthering Waves. ${element} ${weaponType} Resonator.`
+        }
+    } : null;
+
     return (
         <main className="bg-background">
-            {char && rawChar && (
-                <div className="sr-only">
-                    <h1>{charName} Build Calculator & Leaderboards</h1>
-                    <p>
-                        Welcome to the WuWaBuilds {charName} stat calculator and global leaderboard.
-                        {charName} is a {element} Resonator who uses a {weaponType}. Here you can calculate optimal substats, simulate echo loadouts, and determine the highest damage ceiling for {charName}. Our custom server-side engine computes precise damage rotations for player-submitted builds.
-                    </p>
-
-                    <h2>Top {charName} Builds on the Leaderboard</h2>
-                    <p>
-                        Curious how your {charName} compares? Browse the <Link href="/builds">WuWaBuilds database</Link> or check the global <Link href={`/leaderboards/${id}`}>leaderboard for {charName}</Link> to see the best player setups. Compare total damage, Crit Value (CV), and echo loadouts.
-                    </p>
-
-                    <h2>Matching {weaponType} Weapons</h2>
-                    <p>Selecting the right weapon drastically changes {charName}&apos;s damage output. Calculate rankings with these matching weapons:</p>
-                    <ul>
-                        {matchingWeapons.map((w) => (
-                            <li key={w.id as string}>
-                                <Link href={`/weapons/${w.id}`}>{getI18nText(w.name) || (w.id as string)}</Link>
-                            </li>
-                        ))}
-                    </ul>
-
-                    <h2>{charName} Skill & Forte Multipliers</h2>
-                    {rawChar.moves?.map(move => (
-                        <div key={move.id}>
-                            <h3>{getI18nText(move.name)}</h3>
-                            <p>{getI18nText(move.description)}</p>
-                            <ul>
-                                {move.values?.map(val => {
-                                    const valName = getI18nText(val.name);
-                                    if (!valName || !val.values) return null;
-                                    return <li key={val.id}>{valName}: {val.values[val.values.length - 1]}</li>;
-                                })}
-                            </ul>
-                        </div>
-                    ))}
-
-                    <h2>Resonance Chains</h2>
-                    {rawChar.chains?.map((chain, index) => (
-                        <div key={chain.id}>
-                            <h3>Sequence {index + 1}: {getI18nText(chain.name)}</h3>
-                            <p>{getI18nText(chain.description)}</p>
-                        </div>
-                    ))}
-                </div>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumbs) }}
+            />
+            {jsonLdProfile && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdProfile) }}
+                />
             )}
             <div className="px-3 py-4 md:px-16 md:py-6">
                 <CharacterClient characterId={id} />
             </div>
+            {char && rawChar && (
+                <details className="mx-3 mb-8 md:mx-16 rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-gray-400 [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:text-gray-300 [&_h2]:text-base [&_h2]:font-medium [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-gray-300 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:mt-3 [&_h3]:text-gray-400 [&_p]:mt-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mt-2 [&_li]:mt-1 [&_a]:text-accent hover:[&_a]:text-accent-hover [&_a]:underline">
+                    <summary className="cursor-pointer font-semibold text-gray-300 hover:text-white transition-colors">
+                        About {charName}
+                    </summary>
+                    <div className="mt-4">
+                        <h1>{charName} Build Calculator & Leaderboards</h1>
+                        <p>
+                            Welcome to the WuWaBuilds {charName} stat calculator and global leaderboard.
+                            {charName} is a {element} Resonator who uses a {weaponType}. Here you can calculate optimal substats, simulate echo loadouts, and determine the highest damage ceiling for {charName}. Our custom server-side engine computes precise damage rotations for player-submitted builds.
+                        </p>
+
+                        <h2>Top {charName} Builds on the Leaderboard</h2>
+                        <p>
+                            Curious how your {charName} compares? Browse the <Link href="/builds">WuWaBuilds database</Link> or check the global <Link href={`/leaderboards/${id}`}>leaderboard for {charName}</Link> to see the best player setups. Compare total damage, Crit Value (CV), and echo loadouts.
+                        </p>
+
+                        <h2>Matching {weaponType} Weapons</h2>
+                        <p>Selecting the right weapon drastically changes {charName}&apos;s damage output. Calculate rankings with these matching weapons:</p>
+                        <ul>
+                            {matchingWeapons.map((w) => (
+                                <li key={w.id as string}>
+                                    <Link href={`/weapons/${w.id}`}>{getI18nText(w.name) || (w.id as string)}</Link>
+                                </li>
+                            ))}
+                        </ul>
+
+                        <h2>{charName} Skill & Forte Multipliers</h2>
+                        {rawChar.moves?.map(move => (
+                            <div key={move.id}>
+                                <h3>{getI18nText(move.name)}</h3>
+                                <p>{getI18nText(move.description)}</p>
+                                <ul>
+                                    {move.values?.map(val => {
+                                        const valName = getI18nText(val.name);
+                                        if (!valName || !val.values) return null;
+                                        return <li key={val.id}>{valName}: {val.values[val.values.length - 1]}</li>;
+                                    })}
+                                </ul>
+                            </div>
+                        ))}
+
+                        <h2>Resonance Chains</h2>
+                        {rawChar.chains?.map((chain, index) => (
+                            <div key={chain.id}>
+                                <h3>Sequence {index + 1}: {getI18nText(chain.name)}</h3>
+                                <p>{getI18nText(chain.description)}</p>
+                            </div>
+                        ))}
+                    </div>
+                </details>
+            )}
         </main>
     );
 }

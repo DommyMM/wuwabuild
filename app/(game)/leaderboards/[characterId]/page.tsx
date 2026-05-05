@@ -122,27 +122,6 @@ export default async function CharacterLeaderboardPage({ params, searchParams }:
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {character && (
-        <div className="sr-only">
-          <h1>{characterName} Damage Leaderboard</h1>
-          <p>
-            Explore the WuWaBuilds damage leaderboard for {characterName}.
-            {characterElement ? ` ${characterName} is a ${characterElement} Resonator` : ''}
-            {character.weaponType ? ` who uses ${character.weaponType}.` : '.'}
-            {' '}Compare weapon rankings, build filters, echo combinations, and benchmark tracks for this character.
-          </p>
-          <p>
-            This page tracks {leaderboardSummary}
-            {activeTrack ? ` across the ${activeTrack.label} benchmark.` : '.'}
-          </p>
-          <p>
-            Use the filters to narrow results by weapon, sequence track, main stats, echo sets, username, or UID.
-          </p>
-          <p>
-            Visit the <Link href={`/characters/${characterId}`}>{characterName} build calculator</Link> or return to the <Link href="/leaderboards">leaderboard overview</Link>.
-          </p>
-        </div>
-      )}
       <LeaderboardCharacterClient characterId={characterId} initialData={initialData} />
     </div>
   );
