@@ -18,6 +18,7 @@ interface LeaderboardRowProps {
   isGhost?: boolean;
   activeWeaponId: string;
   activeTrackKey: string;
+  erMin?: number;
   sort: LBLeaderboardSortKey;
   isCvColumnActive: boolean;
   isStatSortActive: boolean;
@@ -36,6 +37,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   isGhost = false,
   activeWeaponId,
   activeTrackKey,
+  erMin = 0,
   sort,
   isCvColumnActive,
   isStatSortActive,
@@ -254,6 +256,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         activeBoardWeaponId={activeWeaponId}
         activeTrackKey={activeTrackKey}
         activeBoardDamage={entry.damage}
+        erMin={erMin}
         globalRank={entry.globalRank}
         surface="leaderboard_character"
       />

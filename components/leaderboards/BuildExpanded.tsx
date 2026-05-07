@@ -117,6 +117,8 @@ interface BuildExpandedProps {
   activeBoardWeaponId?: string;
   activeTrackKey?: string;
   activeBoardDamage?: number;
+  /** Active ER bracket on the leaderboard view. 0 = unfiltered. */
+  erMin?: number;
   globalRank?: number;
   surface?: 'builds' | 'leaderboard_character';
 }
@@ -143,6 +145,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   activeBoardWeaponId,
   activeTrackKey,
   activeBoardDamage,
+  erMin = 0,
   globalRank,
   surface = 'builds',
 }) => {
@@ -398,6 +401,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   regionBadge={regionBadge}
                   activeWeaponId={activeBoardWeaponId ?? ''}
                   activeTrackKey={activeTrackKey ?? ''}
+                  erMin={erMin}
                   isExpanded={isExpanded}
                   baseDamage={activeBoardDamage}
                   globalRank={globalRank}

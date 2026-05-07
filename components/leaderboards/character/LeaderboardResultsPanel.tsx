@@ -20,6 +20,7 @@ interface LeaderboardResultsPanelProps {
   deepLinkBuildId: string;
   activeWeaponId: string;
   activeTrackKey: string;
+  erMin?: number;
   metricLabel: string;
   expandedIds: Set<string>;
   detailById: Record<string, LBBuildDetailEntry>;
@@ -48,6 +49,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   deepLinkBuildId,
   activeWeaponId,
   activeTrackKey,
+  erMin = 0,
   metricLabel,
   expandedIds,
   detailById,
@@ -281,6 +283,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         isGhost={entry.globalRank === 0 && entry.id === deepLinkBuildId}
                         activeWeaponId={activeWeaponId}
                         activeTrackKey={activeTrackKey}
+                        erMin={erMin}
                         sort={sort}
                         isCvColumnActive={isCvColumnActive}
                         isStatSortActive={isStatSortActive}

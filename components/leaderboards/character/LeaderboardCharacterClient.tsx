@@ -586,6 +586,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 deepLinkBuildId={activeBuildId ?? ''}
                 activeWeaponId={weaponId}
                 activeTrackKey={track}
+                erMin={effectiveErMin}
                 metricLabel={activeMetricLabel}
                 expandedIds={expandedIds}
                 detailById={detailById}

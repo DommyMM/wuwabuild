@@ -136,6 +136,8 @@ interface BuildSimulationSectionProps {
   regionBadge: RegionBadge | null;
   activeWeaponId: string;
   activeTrackKey: string;
+  /** Active ER bracket for the optimality reference lookup. 0 = unfiltered. */
+  erMin?: number;
   isExpanded: boolean;
   baseDamage?: number;
   globalRank?: number;
@@ -151,6 +153,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   regionBadge,
   activeWeaponId,
   activeTrackKey,
+  erMin = 0,
   isExpanded,
   baseDamage,
   globalRank,
@@ -183,7 +186,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const hasBoardContext = buildId.length > 0 && activeWeaponId.length > 0 && activeTrackKey.length > 0;
   const moveKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
   const upgradeKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
-  const optimalityKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
+  const optimalityKey = `${buildId}:${activeWeaponId}:${activeTrackKey}:${erMin}`;
   const weapon = getWeapon(activeWeaponId);
   const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : activeWeaponId;
   const trackLabel = formatTrackLabel(activeTrackKey);
@@ -253,7 +256,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     setLoadingOptimalityKeys((prev) => ({ ...prev, [optimalityKey]: true }));
     setOptimalityErrorsByKey((prev) => ({ ...prev, [optimalityKey]: null }));
 
-    void getBoardOptimality(characterId, activeWeaponId, activeTrackKey, buildId, controller.signal)
+    void getBoardOptimality(characterId, activeWeaponId, activeTrackKey, buildId, erMin, controller.signal)
       .then((payload) => {
         if (controller.signal.aborted) return;
         setOptimalityByKey((prev) => ({ ...prev, [optimalityKey]: payload }));
@@ -272,7 +275,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           optimalityControllerRef.current = null;
         }
       });
-  }, [activeTrackKey, activeWeaponId, buildId, characterId, optimalityKey]);
+  }, [activeTrackKey, activeWeaponId, buildId, characterId, erMin, optimalityKey]);
 
   useEffect(() => {
     if (!shouldLoadMoves || !hasBoardContext) return;

@@ -990,6 +990,8 @@ export interface LBBoardOptimality {
   characterId: string;
   weaponId: string;
   sequence: string;
+  /** ER bracket the bundle was generated under. 0 means the unfiltered "All" benchmark. */
+  erMin: number;
   configVersion: string;
   characterLevel: number;
   weaponLevel: number;
@@ -1086,12 +1088,15 @@ export async function getBoardOptimality(
   weaponId: string,
   sequence: string,
   buildId?: string,
+  erMin?: number,
   signal?: AbortSignal,
 ): Promise<LBBoardOptimality | null> {
-  let url = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}/optimality/${encodeURIComponent(weaponId)}/${encodeURIComponent(sequence)}`;
-  if (buildId) {
-    url += `?buildId=${encodeURIComponent(buildId)}`;
-  }
+  const params = new URLSearchParams();
+  if (buildId) params.set('buildId', buildId);
+  if (erMin && erMin > 0) params.set('erMin', String(Math.trunc(erMin)));
+  const query = params.toString();
+  const base = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}/optimality/${encodeURIComponent(weaponId)}/${encodeURIComponent(sequence)}`;
+  const url = query ? `${base}?${query}` : base;
   const response = await fetch(url, { method: 'GET', signal });
   if (response.status === 404) return null;
   if (!response.ok) {
@@ -1102,6 +1107,7 @@ export async function getBoardOptimality(
     characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
     weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
     sequence: typeof raw.sequence === 'string' ? raw.sequence : '',
+    erMin: toFiniteNumber(raw.erMin, 0),
     configVersion: typeof raw.configVersion === 'string' ? raw.configVersion : '',
     characterLevel: toFiniteNumber(raw.characterLevel, 90),
     weaponLevel: toFiniteNumber(raw.weaponLevel, 90),
