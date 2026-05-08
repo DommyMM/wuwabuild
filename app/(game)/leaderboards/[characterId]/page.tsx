@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 // Reads searchParams to determine weapon/track — must be dynamic.
 // Overrides the force-static default set in (game)/layout.tsx.
 export const dynamic = 'force-dynamic';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { LeaderboardCharacterClient } from '@/components/leaderboards/character/LeaderboardCharacterClient';
 import { DEFAULT_LB_TRACK } from '@/components/leaderboards/constants';
@@ -61,7 +60,7 @@ export default async function CharacterLeaderboardPage({ params, searchParams }:
   const { characterId } = await params;
   const rawSearchParams = toURLSearchParams(await searchParams);
   const parsedQuery = parseInitialLeaderboardQuery(rawSearchParams);
-  const { character, characterName } = getCharacterPageCopy(characterId);
+  const { characterName } = getCharacterPageCopy(characterId);
 
   const initialData = await prefetchLeaderboard(characterId, leaderboardSnapshotToApiQuery(parsedQuery));
 
@@ -84,12 +83,6 @@ export default async function CharacterLeaderboardPage({ params, searchParams }:
       }));
     }
   }
-
-  const activeTrack = initialData?.tracks.find((track) => track.key === initialData.activeTrack) ?? initialData?.tracks[0] ?? null;
-  const characterElement = character?.roverElementName ?? character?.element ?? null;
-  const leaderboardSummary = initialData
-    ? `${initialData.total.toLocaleString()} ranked build${initialData.total === 1 ? '' : 's'}`
-    : 'global ranked builds';
 
   const jsonLd = {
     "@context": "https://schema.org",
