@@ -14,6 +14,10 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
     title: `${uid}'s Profile — wuwa.build`,
     description: `Browse Wuthering Waves builds submitted by UID ${uid}.`,
     alternates: { canonical: `/profile/${uid}` },
+    robots: {
+      index: false,
+      follow: true,
+    },
   };
 }
 

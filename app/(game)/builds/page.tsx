@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { GlobalBoardPageClient } from '@/components/leaderboards/board/GlobalBoardPageClient';
+import { prefetchBuilds } from '@/lib/lbServer';
 
 export const dynamic = 'force-static';
+export const revalidate = 120;
 
 export const metadata: Metadata = {
   title: 'Browse Builds',
@@ -9,6 +11,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/builds' },
 };
 
-export default function Builds() {
-  return <GlobalBoardPageClient />;
+export default async function Builds() {
+  const initialData = await prefetchBuilds();
+
+  return <GlobalBoardPageClient initialData={initialData} />;
 }

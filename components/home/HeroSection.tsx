@@ -53,7 +53,7 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
 
                     <p className="mt-5 max-w-140 text-base md:text-lg leading-normal text-text-primary/65">
                         Just upload the wuwa-bot image. We scan the image, compute damage against standardized
-                        conditions, and rank you build against others.
+                        conditions, and rank your build against others.
                     </p>
 
                     <div className="mt-8 md:mt-10 flex flex-col gap-3 max-w-120">

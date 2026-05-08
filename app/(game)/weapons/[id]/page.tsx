@@ -162,16 +162,40 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdItem) }}
                 />
             )}
+            {weaponInfo && (
+                <section className="mx-3 mb-4 rounded-lg border border-white/10 bg-black/20 p-4 text-sm leading-relaxed text-gray-300 md:mx-16 md:mt-4">
+                    <h1 className="text-xl font-semibold text-gray-100">
+                        {wepName} Stats & Build Calculator
+                    </h1>
+                    <p className="mt-2 max-w-4xl text-gray-400">
+                        Calculate Wuthering Waves builds using {wepName}, a {weaponInfo.rarity?.id || 5}-star {typeName} weapon. Compare passive scaling, matching resonators, and leaderboard performance across submitted WuWaBuilds setups.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                        <Link className="text-accent underline hover:text-accent-hover" href="/builds">
+                            Browse top builds
+                        </Link>
+                        {matchingCharacters.slice(0, 6).map((character) => (
+                            <Link
+                                className="text-accent underline hover:text-accent-hover"
+                                href={`/characters/${character.id}`}
+                                key={character.id}
+                            >
+                                {getI18nText(character.name)}
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
             <div className="px-3 py-4 md:px-16 md:py-6">
                 <WeaponClient weaponId={id} />
             </div>
             {weaponInfo && (
                 <details className="mx-3 mb-8 md:mx-16 rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-gray-400 [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:text-gray-300 [&_h2]:text-base [&_h2]:font-medium [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-gray-300 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:mt-3 [&_h3]:text-gray-400 [&_p]:mt-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mt-2 [&_li]:mt-1 [&_a]:text-accent hover:[&_a]:text-accent-hover [&_a]:underline">
                     <summary className="cursor-pointer font-semibold text-gray-300 hover:text-white transition-colors">
-                        About {wepName}
+                        Detailed {wepName} weapon data
                     </summary>
                     <div className="mt-4">
-                        <h1>{wepName} Stats & Build Calculator</h1>
+                        <h2>{wepName} Stats & Build Calculator</h2>
                         <p>
                             Welcome to the WuWaBuilds {wepName} calculator and database.
                             The {wepName} is a {weaponInfo.rarity?.id || 5}-star {typeName} weapon in Wuthering Waves.

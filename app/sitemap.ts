@@ -6,15 +6,24 @@ type WeaponSitemapEntry = {
     id?: string | number;
 };
 
-function loadWeaponsForSitemap(): WeaponSitemapEntry[] {
-    const dataDir = path.join(process.cwd(), 'public', 'Data');
-    const wepPath = path.join(dataDir, 'Weapons.json');
+const DATA_DIR = path.join(process.cwd(), 'public', 'Data');
+const CHARACTERS_PATH = path.join(DATA_DIR, 'Characters.json');
+const WEAPONS_PATH = path.join(DATA_DIR, 'Weapons.json');
 
-    if (!fs.existsSync(wepPath)) {
+function getFileLastModified(filePath: string): Date {
+    try {
+        return fs.statSync(filePath).mtime;
+    } catch {
+        return new Date('2026-01-01T00:00:00.000Z');
+    }
+}
+
+function loadWeaponsForSitemap(): WeaponSitemapEntry[] {
+    if (!fs.existsSync(WEAPONS_PATH)) {
         return [];
     }
 
-    const rawData = JSON.parse(fs.readFileSync(wepPath, 'utf8')) as unknown;
+    const rawData = JSON.parse(fs.readFileSync(WEAPONS_PATH, 'utf8')) as unknown;
     if (Array.isArray(rawData)) {
         return rawData as WeaponSitemapEntry[];
     }
@@ -35,6 +44,11 @@ function loadWeaponsForSitemap(): WeaponSitemapEntry[] {
 
 export default function sitemap(): MetadataRoute.Sitemap {
     const baseUrl = 'https://wuwa.build';
+    const characterDataModified = getFileLastModified(CHARACTERS_PATH);
+    const weaponDataModified = getFileLastModified(WEAPONS_PATH);
+    const staticLastModified = characterDataModified > weaponDataModified
+        ? characterDataModified
+        : weaponDataModified;
 
     const staticRoutes = [
         '',
@@ -42,7 +56,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
         '/leaderboards',
     ].map((route) => ({
         url: `${baseUrl}${route}`,
-        lastModified: new Date(),
+        lastModified: staticLastModified,
         changeFrequency: 'daily' as const,
         priority: route === '' ? 1 : 0.9,
     }));
@@ -50,22 +64,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     let dynamicRoutes: MetadataRoute.Sitemap = [];
 
     try {
-        const dataDir = path.join(process.cwd(), 'public', 'Data');
-
         // Characters
-        const charPath = path.join(dataDir, 'Characters.json');
-        if (fs.existsSync(charPath)) {
-            const charsData = JSON.parse(fs.readFileSync(charPath, 'utf8'));
+        if (fs.existsSync(CHARACTERS_PATH)) {
+            const charsData = JSON.parse(fs.readFileSync(CHARACTERS_PATH, 'utf8'));
             const chars = Object.values(charsData) as { id: string | number }[];
             const charRoutes = chars.map((char) => ({
                 url: `${baseUrl}/characters/${char.id}`,
-                lastModified: new Date(),
+                lastModified: characterDataModified,
                 changeFrequency: 'weekly' as const,
                 priority: 0.6,
             }));
             const lbRoutes = chars.map((char) => ({
                 url: `${baseUrl}/leaderboards/${char.id}`,
-                lastModified: new Date(),
+                lastModified: characterDataModified,
                 changeFrequency: 'daily' as const,
                 priority: 0.9,
             }));
@@ -73,13 +84,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
         }
 
         // Weapons
-        const wepPath = path.join(dataDir, 'Weapons.json');
-        if (fs.existsSync(wepPath)) {
+        if (fs.existsSync(WEAPONS_PATH)) {
             const wepRoutes = loadWeaponsForSitemap()
                 .filter((weapon): weapon is WeaponSitemapEntry & { id: string | number } => weapon.id != null)
                 .map((weapon) => ({
                     url: `${baseUrl}/weapons/${weapon.id}`,
-                    lastModified: new Date(),
+                    lastModified: weaponDataModified,
                     changeFrequency: 'weekly' as const,
                     priority: 0.6,
                 }));
