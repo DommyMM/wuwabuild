@@ -702,7 +702,7 @@ def get_preferred_substats(
     
     Logic:
     1. By default, assign Crit Rate + Crit DMG to all characters
-    2. BUT if healer (tag ID 1) OR has "Healing Bonus" in skill tree: remove crits
+    2. Keep Crit Rate + Crit DMG for every character, including healers/supports
     3. Extract scaling stats from skill tree (HP/ATK/DEF from "HP+", "ATK+", "DEF+" nodes)
     4. Add damage type bonus from priority 2 tags when present
     5. Always include Energy Regen
@@ -719,26 +719,11 @@ def get_preferred_substats(
     
     stats = []
     damage_type = None
-    is_healer = False
-    
-    # Check healer tag first.
-    for tag in tags:
-        tag_id = tag.get("id")
-        
-        # Tag ID 1 = Support and Healer
-        if tag_id == 1:
-            is_healer = True
 
     damage_type = _extract_damage_type_from_tags(tags) or _infer_damage_type_from_moves(moves)
     
     # Step 1: Add crits by default
     stats.extend(["Crit Rate", "Crit DMG"])
-    
-    # Step 2: Remove crits if healer OR has Healing Bonus in skill tree
-    has_healing_bonus = _has_healing_bonus_in_skill_tree(skill_trees)
-    if is_healer or has_healing_bonus:
-        stats.remove("Crit Rate")
-        stats.remove("Crit DMG")
     
     # Step 3: Extract scaling stats from skill tree (HP/ATK/DEF)
     skill_tree_stats = _extract_skill_tree_substats(skill_trees)

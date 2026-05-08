@@ -178,7 +178,7 @@ The `preferredStats` field is derived automatically from character tags and skil
 **Derivation Logic:**
 
 1. **Default:** All characters get `Crit Rate` and `Crit DMG`
-2. **Healers:** Characters with tag ID 1 ("Support and Healer") OR "Healing Bonus" nodes in their skill tree have crits removed (since Healing Bonus is a main stat only)
+2. **Universal crit:** Crit Rate and Crit DMG are kept for every character, including healers and supports.
 3. **Scaling Stats:** Automatically extracted from skill tree nodes:
    - Looks for "HP+", "ATK+", "DEF+" node names to identify scaling stat
    - Returns flat stat name (e.g., "ATK", "HP", "DEF")
