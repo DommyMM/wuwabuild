@@ -21,13 +21,11 @@ const SURFACE = '#1A1A1E';
 const TEXT = '#EEEEEE';
 const TEXT_MUTED = '#999999';
 
-let fontCache: ArrayBuffer | null = null;
+const HEX_COLOR_RE = /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i;
 
-async function loadFont(): Promise<ArrayBuffer> {
-  if (fontCache) return fontCache;
-  const res = await fetch('https://fonts.gstatic.com/s/plusjakartasans/v12/LDIbaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA_TknNSg.ttf');
-  fontCache = await res.arrayBuffer();
-  return fontCache;
+function normalizeColor(color: string | undefined): string {
+  if (!color || !HEX_COLOR_RE.test(color)) return GOLD;
+  return color.length === 9 ? color.slice(0, 7) : color;
 }
 
 async function fetchArt(url: string | null | undefined): Promise<string | null> {
@@ -35,9 +33,11 @@ async function fetchArt(url: string | null | undefined): Promise<string | null> 
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) return null;
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.toLowerCase().startsWith('image/')) return null;
     const buf = await res.arrayBuffer();
+    if (buf.byteLength === 0) return null;
     const base64 = Buffer.from(buf).toString('base64');
-    const ct = res.headers.get('content-type') ?? 'image/png';
     return `data:${ct};base64,${base64}`;
   } catch {
     return null;
@@ -45,15 +45,19 @@ async function fetchArt(url: string | null | undefined): Promise<string | null> 
 }
 
 export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
-  const [fontData, artSrc] = await Promise.all([
-    loadFont(),
-    fetchArt(data.artUrl),
-  ]);
-  const fonts = [
-    { name: 'PlusJakarta', data: fontData, style: 'normal' as const, weight: 600 as const },
-  ];
+  const artSrc = await fetchArt(data.artUrl);
 
-  const accent = data.accentColor || GOLD;
+  try {
+    return renderOgCardResponse(data, artSrc);
+  } catch (error) {
+    if (!artSrc) throw error;
+    return renderOgCardResponse(data, null);
+  }
+}
+
+function renderOgCardResponse(data: OgCardData, artSrc: string | null): ImageResponse {
+  const accent = normalizeColor(data.accentColor);
+  const chips = data.chips.filter((chip) => chip.trim().length > 0).slice(0, 3);
 
   return new ImageResponse(
     (
@@ -63,7 +67,7 @@ export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
           height: '100%',
           display: 'flex',
           background: BG,
-          fontFamily: 'PlusJakarta',
+          fontFamily: 'Arial, sans-serif',
           color: TEXT,
           position: 'relative',
           overflow: 'hidden',
@@ -103,9 +107,9 @@ export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
           </div>
 
           {/* Chips */}
-          {data.chips.length > 0 && (
+          {chips.length > 0 && (
             <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap', justifyContent: artSrc ? 'flex-start' : 'center' }}>
-              {data.chips.slice(0, 3).map((chip) => (
+              {chips.map((chip) => (
                 <div
                   key={chip}
                   style={{
@@ -166,7 +170,6 @@ export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
     ),
     {
       ...OG_SIZE,
-      fonts,
     },
   );
 }
