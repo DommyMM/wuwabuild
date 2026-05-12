@@ -216,11 +216,11 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     [selectedWeapons],
   );
   const selectedSetKeys = useMemo(
-    () => new Set(selectedSetEntries.map((entry) => `${entry.count}~${entry.setId}`)),
+    () => new Set(selectedSetEntries.map((entry) => `${entry.count}-${entry.setId}`)),
     [selectedSetEntries],
   );
   const selectedMainKeys = useMemo(
-    () => new Set(selectedMainEntries.map((entry) => `${entry.cost}~${entry.statType}`)),
+    () => new Set(selectedMainEntries.map((entry) => `${entry.cost}-${entry.statType}`)),
     [selectedMainEntries],
   );
 
@@ -329,7 +329,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     for (const setOption of setOptions) {
       const counts = setOption.pieceCount === 3 ? [3] : [2, 5];
       for (const count of counts) {
-        const key = `${count}~${setOption.id}`;
+        const key = `${count}-${setOption.id}`;
         if (selectedSetKeys.has(key)) continue;
         const label = `${setOption.name}`;
         if (normalizedQuery && !label.toLowerCase().includes(normalizedQuery)) continue;
@@ -357,7 +357,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
       const statEntries = Object.keys(getMainStatsByCost(cost));
       for (const statLabel of statEntries) {
         const statKey = toMainStatUrlKey(statLabel);
-        const key = `${cost}~${statKey}`;
+        const key = `${cost}-${statKey}`;
         if (selectedMainKeys.has(key)) continue;
         const label = toMainStatLabel(statLabel);
         if (normalizedQuery && !label.toLowerCase().includes(normalizedQuery)) continue;

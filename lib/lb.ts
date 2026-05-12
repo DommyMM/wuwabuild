@@ -134,12 +134,12 @@ function appendStringParams(params: URLSearchParams, key: string, values: string
 
 function serializeEchoSetFilters(filters: LBEchoSetFilter[] | undefined): string | null {
   if (!filters?.length) return null;
-  return filters.map((entry) => `${entry.count}~${entry.setId}`).join('.');
+  return filters.map((entry) => `${entry.count}-${entry.setId}`).join('.');
 }
 
 function serializeEchoMainFilters(filters: LBEchoMainFilter[] | undefined): string | null {
   if (!filters?.length) return null;
-  return filters.map((entry) => `${entry.cost}~${toMainStatApiValue(entry.statType)}`).join('.');
+  return filters.map((entry) => `${entry.cost}-${toMainStatApiValue(entry.statType)}`).join('.');
 }
 
 export interface LBEchoSetFilter {

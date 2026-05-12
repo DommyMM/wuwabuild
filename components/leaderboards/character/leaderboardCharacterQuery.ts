@@ -157,10 +157,10 @@ export function serializeLeaderboardQuery(
   if (resolved.erMin > 0) params.set('erMin', String(resolved.erMin));
   if (resolved.regionPrefixes.length) params.set('regions', resolved.regionPrefixes.join(','));
   if (resolved.echoSets.length) {
-    params.set('sets', resolved.echoSets.map((entry) => `${entry.count}~${entry.setId}`).join('.'));
+    params.set('sets', resolved.echoSets.map((entry) => `${entry.count}-${entry.setId}`).join('.'));
   }
   if (resolved.echoMains.length) {
-    params.set('mains', resolved.echoMains.map((entry) => `${entry.cost}~${entry.statType}`).join('.'));
+    params.set('mains', resolved.echoMains.map((entry) => `${entry.cost}-${entry.statType}`).join('.'));
   }
   return params.toString();
 }

@@ -11,14 +11,21 @@ export function parseCSV(value: string | null): string[] {
   return value.split(',').map((entry) => entry.trim()).filter(Boolean);
 }
 
+function splitPair(entry: string): [string, string] | null {
+  const idx = entry.search(/[-~]/);
+  if (idx < 0) return null;
+  return [entry.slice(0, idx), entry.slice(idx + 1)];
+}
+
 export function parseEchoSetCSV(value: string | null): LBEchoSetFilter[] {
   if (!value) return [];
   return value
     .split('.')
     .map((entry) => {
-      const [countRaw, idRaw] = entry.split('~');
-      const count = Number.parseInt(countRaw ?? '', 10);
-      const setId = Number.parseInt(idRaw ?? '', 10);
+      const pair = splitPair(entry);
+      if (!pair) return null;
+      const count = Number.parseInt(pair[0], 10);
+      const setId = Number.parseInt(pair[1], 10);
       if (!Number.isFinite(count) || !Number.isFinite(setId)) return null;
       return { count, setId };
     })
@@ -30,8 +37,10 @@ export function parseEchoMainCSV(value: string | null): LBEchoMainFilter[] {
   return value
     .split('.')
     .map((entry) => {
-      const [costRaw, statType] = entry.split('~');
-      const cost = Number.parseInt(costRaw ?? '', 10);
+      const pair = splitPair(entry);
+      if (!pair) return null;
+      const cost = Number.parseInt(pair[0], 10);
+      const statType = pair[1];
       if (!Number.isFinite(cost) || !statType) return null;
       return { cost, statType: toMainStatUrlKey(statType) };
     })

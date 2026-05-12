@@ -40,10 +40,10 @@ export function serializeQuery(snapshot: QuerySnapshot): string {
   if (snapshot.username) params.set('username', snapshot.username);
   if (snapshot.uid) params.set('uid', snapshot.uid);
   if (snapshot.echoSets.length) {
-    params.set('sets', snapshot.echoSets.map((entry) => `${entry.count}~${entry.setId}`).join('.'));
+    params.set('sets', snapshot.echoSets.map((entry) => `${entry.count}-${entry.setId}`).join('.'));
   }
   if (snapshot.echoMains.length) {
-    params.set('mains', snapshot.echoMains.map((entry) => `${entry.cost}~${entry.statType}`).join('.'));
+    params.set('mains', snapshot.echoMains.map((entry) => `${entry.cost}-${entry.statType}`).join('.'));
   }
   return params.toString();
 }
