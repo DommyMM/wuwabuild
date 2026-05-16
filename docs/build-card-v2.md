@@ -96,20 +96,20 @@ Board switching belongs to a future bottom menu bar on the profile row.
 
 ### Team comp inside the rank module
 
-Lifted from [LeaderboardCharacterHeader.tsx](../components/leaderboards/character/LeaderboardCharacterHeader.tsx) at a smaller scale to fit the constrained mid-column width.
+Lifted from [LeaderboardCharacterHeader.tsx](../components/leaderboards/character/LeaderboardCharacterHeader.tsx) but compressed so the rank module stays short enough to not eat into the echo strip below.
 
 ```
 HYPERCARRY
-[👤][👤][👤][👤]          #19 / 994
-[W ][W ][E ][S ]         1,233,878
+[👤 S6][👤][👤]   #40 / 994
+                 1,924,973
 ```
 
-- Portrait: 44×44 (`h-11 w-11`), `rounded-xl`, 1px `border-white/12`, `bg-black/35`.
-- Sequence badge: top-right of portrait when sequence > 0, color tier from [LB_SEQ_BADGE_COLORS](../components/leaderboards/constants.ts).
-- Loadout row: up to 3 icons per member, 18×18 (`h-4.5 w-4.5`), `rounded-md`, overlapping the portrait `-mt-2`.
-  - Lead member: weapon only (the build's equipped weapon — already shown at top of card, but mirrored here so the row reads uniformly).
-  - Supports: weapon + echo + set, in that order, all from `LBTeamMemberConfig` on the active standing.
-- Team is built in `ProfileBuildCard.activeTeam` from `selected.character` (lead) + `canonicalStanding.teamMembers` (supports).
+- Portrait: 44×44 (`h-11 w-11`), `rounded-lg`, 1px `border-white/14`, `bg-black/40`.
+- Sequence badge: top-right when `sequence > 0`, `text-[10px] font-bold px-1.5 py-px`, color tier from [LB_SEQ_BADGE_COLORS](../components/leaderboards/constants.ts). Larger and bolder than before so it's actually legible.
+- **No visible loadout row** — surfaces on hover instead. The original overlap pattern (`-mt-2` icons under each portrait) read as "floating weapons" and added 20+ px of vertical bloat per member.
+- Hover tooltip per portrait: character name + up to 3 loadout icons (weapon, echo, set) at 24×24. When the standings backend hasn't populated `weaponId/echoId/setId` for that teammate, the tooltip shows "No loadout data" — surfaces the gap without breaking layout.
+- Row layout: `flex items-center gap-3` — no `justify-between`. Team avatars and rank/damage stack pack to the left, no dead space in the middle.
+- Team built in `ProfileBuildCard.activeTeam` from `selected.character` (lead) + `canonicalStanding.teamMembers` (supports). Backend `TeamMemberConfig` ([lb/internal/calc/buffs.go:360](../../lb/internal/calc/buffs.go#L360)) supports gear fields; whether each board's standings populates them depends on the per-character `chars/*.go` config.
 
 ### Canonical board
 
