@@ -55,6 +55,19 @@ Center column slots `04`+`05`+`06`+`07` exactly replace the old `WeaponGroup` + 
 
 Assembly: `components/profile/ProfileBuildCard.tsx` orchestrates the variant, replaces the current `LeaderboardCard` shim.
 
+## Talent pill row
+
+Replaces the old 5×3 forte node grid on the *card only*. The full forte tree stays in `/edit`.
+
+```
+[NA-icon 10] [SK-icon 10] [FC-icon 10] [LB-icon 10] [IN-icon 10]
+```
+
+- Pill: 26px tall (`h-6.5`), `pr-1.5 pl-0.5`, 1px border (max-level pills tint `border-accent/35`).
+- Skill icon: 20×20 (`h-5 w-5`), pulled from `character.skillIcons[skillKey]` with the same key map ForteCardSection uses (`normal-attack`, `skill`, `circuit`, `liberation`, `intro`). Falls back to `character.elementIcon` then to the 2-letter glyph if neither resolves.
+- Level: Gowun 13px tabular `--text-primary` (max → `--accent-hover`).
+- Background: `bg-black/35` so the colored icons read against the card's atmospheric backdrop.
+
 ## Rank module
 
 Surface chrome matches the echo cards so the rank module reads as part of the same family: `linear-gradient(170deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 28%, rgba(0,0,0,0.44) 100%)` with inset hairline + bottom-shadow, 1px `border-amber-300/45`, `rounded-xl`, `px-4 py-3`.
@@ -79,7 +92,24 @@ Anatomy:
 
 Dropped vs the original mock: the big tier letter, weapon chip, sequence chip, ER-bracket chip, in-card board picker, the `DMG ▾ / RV ▾` mode toggle, **and the TOP %% text**. Color alone now carries the percentile signal — `#19` in gold reads "top 1%" without spending screen real estate on the literal number.
 
-Board switching belongs to a future bottom menu bar on the profile row. Team comp portraits (the akasha pattern) also live there, not in the card — the per-character leaderboard header already renders them well at [components/leaderboards/character/LeaderboardCharacterHeader.tsx](../components/leaderboards/character/LeaderboardCharacterHeader.tsx) and that's the shape to lift later.
+Board switching belongs to a future bottom menu bar on the profile row.
+
+### Team comp inside the rank module
+
+Lifted from [LeaderboardCharacterHeader.tsx](../components/leaderboards/character/LeaderboardCharacterHeader.tsx) at a smaller scale to fit the constrained mid-column width.
+
+```
+HYPERCARRY
+[👤][👤][👤][👤]          #19 / 994
+[W ][W ][E ][S ]         1,233,878
+```
+
+- Portrait: 44×44 (`h-11 w-11`), `rounded-xl`, 1px `border-white/12`, `bg-black/35`.
+- Sequence badge: top-right of portrait when sequence > 0, color tier from [LB_SEQ_BADGE_COLORS](../components/leaderboards/constants.ts).
+- Loadout row: up to 3 icons per member, 18×18 (`h-4.5 w-4.5`), `rounded-md`, overlapping the portrait `-mt-2`.
+  - Lead member: weapon only (the build's equipped weapon — already shown at top of card, but mirrored here so the row reads uniformly).
+  - Supports: weapon + echo + set, in that order, all from `LBTeamMemberConfig` on the active standing.
+- Team is built in `ProfileBuildCard.activeTeam` from `selected.character` (lead) + `canonicalStanding.teamMembers` (supports).
 
 ### Canonical board
 
@@ -94,21 +124,6 @@ Unchanged. Existing tier-color underline + CV badge tested well in v1 and aren't
 The substat summary already renders below the card in [ProfileBuildExpanded.tsx:213-260](../components/profile/ProfileBuildExpanded.tsx#L213-L260) (`LB_SUMMARY_ROW`) and is interactive — pills filter the RV calc. Lifting it into the card frame just stacks the same readout twice. Decision: one or the other, not both. The existing row stays in `ProfileBuildExpanded`.
 
 If we ever want a static read-only twin inside the card, the deleted `RVBar.tsx` from commit `8510498` is the starting point — but only re-introduce when there's a clear use case (e.g. shareable static export of the card image).
-
-## Talent pill row
-
-Replaces the old 5×3 forte node grid on the *card only*. The full forte tree stays in `/edit`.
-
-```
-[NA 10] [SK 10] [FC 10] [LB 10] [IN 10]
-```
-
-- Pill: 22px tall (`h-5.5`), `px-1.5`, 1px border (max-level pills tint `border-accent/30`).
-- Glyph: Ropa 9px uppercase `--text-primary/40` (no separate badge — just the 2-letter code inline).
-- Level: Gowun 12px tabular `--text-primary` (max state → `--accent-hover`).
-- Row gap: 6px.
-
-Labels ("Normal", "Skill", etc.) dropped — the 2-letter glyph is canonical enough among players and keeps the row inside the original forte column's horizontal envelope.
 
 ## Data flow
 

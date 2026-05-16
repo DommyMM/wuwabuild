@@ -11,7 +11,8 @@ import { computeTopPercent, getRankTier } from '@/lib/calculations/rankTier';
 import { DEFAULT_CARD_ART_TRANSFORM } from '@/lib/cardArt';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { ELEMENT_BLOOM, ELEMENT_TINT } from '@/lib/elementVisuals';
-import { getBuildStandings, LBBuildRowEntry, LBStandingEntry } from '@/lib/lb';
+import { getBuildStandings, LBBuildRowEntry, LBStandingEntry, LBTeamMemberConfig } from '@/lib/lb';
+import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 
 import { CharacterPanel } from '@/components/card/CharacterPanel';
 import { SequenceStrip } from '@/components/card/SequenceStrip';
@@ -21,7 +22,7 @@ import { StatsTableSection } from '@/components/card/StatsTableSection';
 import { TalentPills } from '@/components/card/TalentPills';
 import { ActiveSetsSection } from '@/components/card/ActiveSetsSection';
 import { EchoSection } from '@/components/card/EchoSection';
-import { RankBoard, RankModule } from '@/components/card/RankModule';
+import { RankBoard, RankLoadoutIcon, RankModule, RankTeamMember } from '@/components/card/RankModule';
 
 interface ProfileBuildCardProps {
   entry: LBBuildRowEntry;
@@ -30,7 +31,7 @@ interface ProfileBuildCardProps {
 export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => {
   const selected = useSelectedCharacter();
   const { state } = useBuild();
-  const { getWeapon, levelCurves, statIcons } = useGameData();
+  const { getWeapon, getCharacter, getEcho, fetters, levelCurves, statIcons } = useGameData();
   const { t } = useLanguage();
   const [activeHoverStat, setActiveHoverStat] = useState<StatHoverKey | null>(null);
 
@@ -80,29 +81,91 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
   // every weapon variant the build's damage_map covers (one per LB track), so
   // without anchoring on state.weaponId we'd show a phantom rank for a weapon
   // the player never equipped.
-  const activeBoard = useMemo<RankBoard | null>(() => {
+  const canonicalStanding = useMemo<LBStandingEntry | null>(() => {
     if (standings.length === 0) return null;
     const ranked = standings.filter((s) => s.rank > 0 && s.total > 0);
     if (ranked.length === 0) return null;
+    return ranked.find((s) => s.weaponId === state.weaponId) ?? ranked[0];
+  }, [standings, state.weaponId]);
 
-    const canonical = ranked.find((s) => s.weaponId === state.weaponId) ?? ranked[0];
-    const boardWeapon = getWeapon(canonical.weaponId);
-    const weaponName = boardWeapon ? t(boardWeapon.nameI18n ?? { en: boardWeapon.name }) : canonical.weaponId;
-    const topPercent = computeTopPercent(canonical.rank, canonical.total);
+  const activeBoard = useMemo<RankBoard | null>(() => {
+    if (!canonicalStanding) return null;
+    const boardWeapon = getWeapon(canonicalStanding.weaponId);
+    const weaponName = boardWeapon
+      ? t(boardWeapon.nameI18n ?? { en: boardWeapon.name })
+      : canonicalStanding.weaponId;
+    const topPercent = computeTopPercent(canonicalStanding.rank, canonicalStanding.total);
     return {
-      rank: canonical.rank,
-      total: canonical.total,
+      rank: canonicalStanding.rank,
+      total: canonicalStanding.total,
       topPercent,
       tier: getRankTier(topPercent).letter,
-      weaponId: canonical.weaponId,
+      weaponId: canonicalStanding.weaponId,
       weaponName,
       weaponElement: selected?.element,
       sequence: entry.sequence,
-      trackKey: canonical.trackKey,
-      trackLabel: canonical.trackLabel || canonical.trackKey,
-      damage: canonical.damage,
+      trackKey: canonicalStanding.trackKey,
+      trackLabel: canonicalStanding.trackLabel || canonicalStanding.trackKey,
+      damage: canonicalStanding.damage,
     };
-  }, [standings, state.weaponId, getWeapon, t, selected?.element, entry.sequence]);
+  }, [canonicalStanding, getWeapon, t, selected?.element, entry.sequence]);
+
+  // Lead = build's own character. Supports come from the active standing.
+  const activeTeam = useMemo<RankTeamMember[]>(() => {
+    if (!selected || !canonicalStanding) return [];
+
+    const leadWeapon = getWeapon(state.weaponId);
+    const leadIcons: RankLoadoutIcon[] = leadWeapon
+      ? [{
+        key: 'weapon',
+        src: getWeaponPaths(leadWeapon),
+        label: t(leadWeapon.nameI18n ?? { en: leadWeapon.name }),
+      }]
+      : [];
+
+    const lead: RankTeamMember = {
+      id: `lead-${selected.character.id}`,
+      name: selected.displayName,
+      head: selected.character.head ?? selected.character.iconRound,
+      sequence: state.sequence,
+      loadoutIcons: leadIcons,
+    };
+
+    const supports: RankTeamMember[] = canonicalStanding.teamMembers.map((member: LBTeamMemberConfig) => {
+      const supportChar = getCharacter(member.charId);
+      const supportWeapon = getWeapon(member.weaponId ?? null);
+      const supportEcho = getEcho(member.echoId ?? null);
+      const supportSet = fetters.find((f) => String(f.id) === member.setId);
+
+      const icons: RankLoadoutIcon[] = [
+        supportWeapon ? {
+          key: 'weapon',
+          src: getWeaponPaths(supportWeapon),
+          label: t(supportWeapon.nameI18n ?? { en: supportWeapon.name }),
+        } : null,
+        supportEcho ? {
+          key: 'echo',
+          src: getEchoPaths(supportEcho),
+          label: t(supportEcho.nameI18n ?? { en: supportEcho.name }),
+        } : null,
+        supportSet?.icon ? {
+          key: 'set',
+          src: supportSet.icon,
+          label: t(supportSet.name),
+        } : null,
+      ].filter((icon): icon is RankLoadoutIcon => icon !== null);
+
+      return {
+        id: `support-${member.charId}`,
+        name: supportChar ? t(supportChar.nameI18n ?? { en: supportChar.name }) : member.charId,
+        head: supportChar?.head ?? supportChar?.iconRound,
+        sequence: member.sequence ?? 0,
+        loadoutIcons: icons,
+      };
+    });
+
+    return [lead, ...supports];
+  }, [selected, canonicalStanding, getWeapon, getCharacter, getEcho, fetters, state.weaponId, state.sequence, t]);
 
   const tintClass = selected?.element
     ? (ELEMENT_TINT[selected.element] ?? 'from-transparent via-transparent to-transparent')
@@ -169,7 +232,7 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
                       element={selected.element}
                       characterName={selected.nameI18n}
                     />
-                    <div className="flex flex-1 flex-col gap-2">
+                    <div className="flex flex-1 flex-col space-y-2">
                       <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
                       {weapon && weaponStats ? (
@@ -188,9 +251,13 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
                         />
                       ) : null}
 
-                      <TalentPills forte={state.forte} />
+                      <TalentPills character={selected.character} forte={state.forte} />
 
-                      <RankModule board={activeBoard} loading={standingsLoading} />
+                      <RankModule
+                        board={activeBoard}
+                        team={activeTeam}
+                        loading={standingsLoading}
+                      />
                     </div>
                   </div>
 
