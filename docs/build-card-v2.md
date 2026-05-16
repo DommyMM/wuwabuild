@@ -49,7 +49,7 @@ Center column slots `04`+`05`+`06`+`07` exactly replace the old `WeaponGroup` + 
 | 07 | CV + sonata pill | keep — compress to one row | [components/card/ActiveSetsSection.tsx](../components/card/ActiveSetsSection.tsx) |
 | 08 | Stat list | keep | [components/card/StatsTableSection.tsx](../components/card/StatsTableSection.tsx) |
 | 09 | Echo cards | keep as-is | [components/card/EchoSection.tsx](../components/card/EchoSection.tsx) |
-| 10 | RV aggregate bar | **new** | `components/card/RVBar.tsx` |
+| 10 | RV aggregate bar | not in card | lives under the card in [ProfileBuildExpanded.tsx](../components/profile/ProfileBuildExpanded.tsx) — duplicating it inside the frame just stacks the same data twice |
 
 Assembly: `components/profile/ProfileBuildCard.tsx` orchestrates the variant, replaces the current `LeaderboardCard` shim.
 
@@ -95,21 +95,11 @@ The two modes share the tier/TOP %/#-of-total chrome — only the right-column s
 
 Unchanged. Existing tier-color underline + CV badge tested well in v1 and aren't worth swapping for the akasha pip translation — too much visual noise inside the new card's already-busy lower half. `getSubstatTierIndex` is kept in [lib/calculations/substatTiers.ts](../lib/calculations/substatTiers.ts) as a small helper for any future indicator, but no consumer wires it today.
 
-## RV aggregate bar
+## RV aggregate bar — kept under the card, not inside it
 
-Full-width strip directly under the 5 echoes. Today this data lives outside the card in [components/profile/ProfileBuildExpanded.tsx:213-260](../components/profile/ProfileBuildExpanded.tsx#L213-L260) as `LB_SUMMARY_ROW`. Lift it into the card frame and restyle pills per spec.
+The substat summary already renders below the card in [ProfileBuildExpanded.tsx:213-260](../components/profile/ProfileBuildExpanded.tsx#L213-L260) (`LB_SUMMARY_ROW`) and is interactive — pills filter the RV calc. Lifting it into the card frame just stacks the same readout twice. Decision: one or the other, not both. The existing row stays in `ProfileBuildExpanded`.
 
-```
-[×20 ✦ Crit Rate 68.8%] [×12 ✸ Crit DMG 76.2%]  ← priority (gold-outlined)
-[×3 ⊙ ER 18.1%] [×3 ⚔ ATK 51] [×2 ♡ HP% 8.2%] …  ← neutral
-                                              [×35 · RV  3030%]  ← right-anchored total
-```
-
-- Strip: 1px `--border`, 10×12 padding, 8px gap, single wrapping row.
-- Pill: 4×8 padding, 1px border, Ropa 11px, Gowun for numeric.
-- Priority pill: `rgba(166,150,98,.45)` border, `rgba(166,150,98,.10)` fill, value `--gold-hi`.
-- RV total: same gold-tinted chrome, Gowun 700 13px, label `×N · RV` 10px 0.22em.
-- Priority list source: `character.preferredStats` (curated per character; falls back to `DEFAULT_PREFERRED_STATS` in [lib/calculations/rollValues.ts:35](../lib/calculations/rollValues.ts#L35)).
+If we ever want a static read-only twin inside the card, the deleted `RVBar.tsx` from commit `8510498` is the starting point — but only re-introduce when there's a clear use case (e.g. shareable static export of the card image).
 
 ## Talent pill row
 

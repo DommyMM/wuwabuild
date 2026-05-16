@@ -10,7 +10,6 @@ import { getUnconditionalWeaponPassiveBonuses } from '@/lib/calculations/weaponP
 import { computeTopPercent, getRankTier } from '@/lib/calculations/rankTier';
 import { DEFAULT_CARD_ART_TRANSFORM } from '@/lib/cardArt';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
-import { DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { ELEMENT_BLOOM, ELEMENT_TINT } from '@/lib/elementVisuals';
 import { getBuildStandings, LBBuildRowEntry, LBStandingEntry } from '@/lib/lb';
 
@@ -23,7 +22,6 @@ import { TalentPills } from '@/components/card/TalentPills';
 import { ActiveSetsSection } from '@/components/card/ActiveSetsSection';
 import { EchoSection } from '@/components/card/EchoSection';
 import { RankBoard, RankMode, RankModule } from '@/components/card/RankModule';
-import { RVBar } from '@/components/card/RVBar';
 
 const RANK_MODE_STORAGE_KEY = 'wuwabuilds:profile-card-rank-mode';
 
@@ -101,8 +99,6 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
     () => weapon ? calculateWeaponStats(weapon, state.weaponLevel, levelCurves) : null,
     [weapon, state.weaponLevel, levelCurves]
   );
-
-  const preferredStats = selected?.character.preferredStats ?? DEFAULT_PREFERRED_STATS;
 
   const boards = useMemo<RankBoard[]>(() => {
     if (standings.length === 0) return [];
@@ -247,10 +243,6 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
                 activeHoverStat={activeHoverStat}
                 onHoverStatChange={setActiveHoverStat}
               />
-
-              <div className="px-4 pb-3">
-                <RVBar echoPanels={state.echoPanels} preferredStats={preferredStats} />
-              </div>
             </div>
           </div>
         </div>
