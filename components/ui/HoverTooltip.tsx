@@ -268,7 +268,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
           aria-hidden="true"
         >
           <div
-            className={`relative max-h-[90vh] max-w-xl overflow-hidden rounded-2xl border border-amber-200/34 bg-[radial-gradient(circle_at_18%_0%,rgba(255,202,104,0.28)_0%,rgba(255,202,104,0.10)_28%,transparent_54%),linear-gradient(145deg,rgba(82,64,48,0.98)_0%,rgba(48,48,43,0.98)_42%,rgba(21,22,22,0.98)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.50),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${tooltipClassName}`}
+            className={`relative max-h-[90vh] max-w-xl overflow-hidden rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${tooltipClassName}`}
           >
             <div
               ref={scrollRef}
