@@ -244,8 +244,6 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
                 echoPanels={state.echoPanels}
                 showCV
                 showRollQuality
-                rollIndicator="pips"
-                preferredStats={preferredStats}
                 activeHoverStat={activeHoverStat}
                 onHoverStatChange={setActiveHoverStat}
               />

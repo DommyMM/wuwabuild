@@ -77,18 +77,18 @@ export const RankModule: React.FC<RankModuleProps> = ({
 
   return (
     <div
-      className="relative grid items-center gap-5 border border-accent/45 px-5.5 py-5"
+      className="relative grid items-center gap-3 border border-accent/45 px-3 py-2.5"
       style={{
-        gridTemplateColumns: '96px minmax(0,1fr) auto',
+        gridTemplateColumns: '64px minmax(0,1fr) auto',
         background: 'linear-gradient(180deg, rgba(166,150,98,0.10) 0%, rgba(255,255,255,0.02) 34%, rgba(0,0,0,0.30) 100%)',
       }}
     >
       {/* Tier letter cell */}
       <div
-        className="relative grid h-22 w-22 place-items-center border border-accent font-plus-jakarta text-[64px] leading-none font-bold tracking-[-0.04em]"
+        className="relative grid h-16 w-16 place-items-center border border-accent font-plus-jakarta text-[44px] leading-none font-bold tracking-[-0.04em]"
         style={{
           color: tierStyle?.color ?? 'rgba(224,224,224,0.4)',
-          textShadow: tierStyle?.glow ? `0 0 24px ${tierStyle.glow}` : undefined,
+          textShadow: tierStyle?.glow ? `0 0 18px ${tierStyle.glow}` : undefined,
           background: 'radial-gradient(circle at 30% 25%, rgba(255,235,180,0.18), transparent 60%), linear-gradient(180deg, rgba(166,150,98,0.20), rgba(0,0,0,0.4))',
         }}
       >
@@ -96,48 +96,48 @@ export const RankModule: React.FC<RankModuleProps> = ({
       </div>
 
       {/* Middle column: scope chips + rank line */}
-      <div className="flex flex-col gap-2 min-w-0">
+      <div className="flex min-w-0 flex-col gap-1.5">
         {/* Scope chips with board picker */}
         <div className="relative" ref={boardMenuRef}>
           {hasBoards && active ? (
             <button
               type="button"
               onClick={() => boards.length > 1 && setBoardMenuOpen((prev) => !prev)}
-              className={`flex flex-wrap items-center gap-1.5 ${boards.length > 1 ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
+              className={`flex min-w-0 flex-wrap items-center gap-1 ${boards.length > 1 ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
               aria-haspopup={boards.length > 1 ? 'listbox' : undefined}
               aria-expanded={boardMenuOpen}
             >
               <span
-                className="inline-flex items-center gap-1.5 border border-accent/45 bg-accent/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-accent-hover"
+                className="inline-flex max-w-[140px] items-center gap-1 truncate border border-accent/45 bg-accent/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.06em] text-accent-hover"
               >
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: dotColor }} />
-                {active.weaponName}
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: dotColor }} />
+                <span className="truncate">{active.weaponName}</span>
               </span>
-              <span className="border border-border bg-white/3 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-text-primary/65">
+              <span className="border border-border bg-white/3 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.06em] text-text-primary/65">
                 S{active.sequence}
               </span>
-              <span className="border border-border bg-white/3 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-text-primary/65">
+              <span className="max-w-[110px] truncate border border-border bg-white/3 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.06em] text-text-primary/65">
                 {active.trackLabel}
               </span>
               {active.erBracket != null && active.erBracket > 0 && (
-                <span className="border border-border bg-white/3 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-text-primary/65">
+                <span className="border border-border bg-white/3 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.06em] text-text-primary/65">
                   ER ≥ {active.erBracket}%
                 </span>
               )}
               {boards.length > 1 && (
-                <span className="font-gowun text-[10px] uppercase tracking-[0.22em] text-text-primary/40">
-                  {boards.length} boards ▾
+                <span className="font-gowun text-[9px] uppercase tracking-[0.18em] text-text-primary/40">
+                  {boards.length} ▾
                 </span>
               )}
             </button>
           ) : (
-            <span className="font-ropa text-[11px] uppercase tracking-[0.08em] text-text-primary/40">
+            <span className="font-ropa text-[10px] uppercase tracking-[0.08em] text-text-primary/40">
               {loading ? 'Loading boards…' : 'Not ranked'}
             </span>
           )}
 
           {boardMenuOpen && boards.length > 1 && (
-            <div className="absolute left-0 top-full z-30 mt-2 w-72 border border-border bg-background-secondary shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+            <div className="absolute left-0 top-full z-30 mt-1.5 w-72 border border-border bg-background-secondary shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
               <div className="border-b border-border px-3 py-2 font-ropa text-[10px] uppercase tracking-[0.22em] text-text-primary/40">
                 Boards this build qualifies for
               </div>
@@ -178,24 +178,24 @@ export const RankModule: React.FC<RankModuleProps> = ({
         </div>
 
         {/* TOP % + #/total line */}
-        <div className="flex items-baseline gap-3.5">
+        <div className="flex min-w-0 items-baseline gap-2">
           {loading ? (
-            <span className="font-gowun text-[28px] font-bold tabular-nums text-accent/30">— —</span>
+            <span className="font-gowun text-[20px] font-bold tabular-nums text-accent/30">— —</span>
           ) : active ? (
             <>
-              <div className="font-gowun text-[28px] font-bold leading-none tabular-nums tracking-[-0.02em] text-accent">
-                <span className="mr-1.5 font-ropa text-[11px] font-normal uppercase tracking-[0.22em] text-text-primary/40">
+              <div className="font-gowun text-[20px] font-bold leading-none tabular-nums tracking-[-0.02em] text-accent">
+                <span className="mr-1 font-ropa text-[9px] font-normal uppercase tracking-[0.2em] text-text-primary/40">
                   TOP
                 </span>
                 {formatPct(active.topPercent)}%
               </div>
-              <div className="font-gowun text-[15px] tabular-nums text-text-primary">
+              <div className="truncate font-gowun text-[12px] tabular-nums text-text-primary">
                 #<strong className="font-bold">{formatNumber(active.rank)}</strong>
                 <span className="text-text-primary/40"> / {formatNumber(active.total)}</span>
               </div>
             </>
           ) : (
-            <span className="font-ropa text-[12px] text-text-primary/55">
+            <span className="font-ropa text-[10px] text-text-primary/55">
               Submit to a board to see your rank.
             </span>
           )}
@@ -203,12 +203,12 @@ export const RankModule: React.FC<RankModuleProps> = ({
       </div>
 
       {/* Right column: value + mode toggle */}
-      <div className="flex flex-col items-end gap-1">
+      <div className="flex shrink-0 flex-col items-end gap-1">
         <div className="relative" ref={modeMenuRef}>
           <button
             type="button"
             onClick={() => setModeMenuOpen((prev) => !prev)}
-            className="flex items-center gap-1 border border-border bg-black/30 px-2 py-1 font-ropa text-[10px] uppercase tracking-[0.18em] text-text-primary/65 transition-colors hover:border-accent/45 hover:text-accent-hover"
+            className="flex items-center gap-0.5 border border-border bg-black/30 px-1.5 py-0.5 font-ropa text-[9px] uppercase tracking-[0.16em] text-text-primary/65 transition-colors hover:border-accent/45 hover:text-accent-hover"
             aria-haspopup="listbox"
             aria-expanded={modeMenuOpen}
           >
@@ -216,7 +216,7 @@ export const RankModule: React.FC<RankModuleProps> = ({
             <span className="text-text-primary/40">▾</span>
           </button>
           {modeMenuOpen && (
-            <div className="absolute right-0 top-full z-30 mt-2 w-44 border border-border bg-background-secondary shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+            <div className="absolute right-0 top-full z-30 mt-1.5 w-44 border border-border bg-background-secondary shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
               {(['damage', 'rv'] as RankMode[]).map((option) => {
                 const isActive = option === mode;
                 return (
@@ -243,8 +243,8 @@ export const RankModule: React.FC<RankModuleProps> = ({
             </div>
           )}
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <div className="font-gowun text-[32px] font-bold leading-none tabular-nums tracking-[-0.02em] text-text-primary">
+        <div className="flex flex-col items-end gap-0.5">
+          <div className="font-gowun text-[22px] font-bold leading-none tabular-nums tracking-[-0.02em] text-text-primary">
             {loading || showModeValue == null ? (
               <span className="text-text-primary/30">— — —</span>
             ) : mode === 'damage' ? (
@@ -253,7 +253,7 @@ export const RankModule: React.FC<RankModuleProps> = ({
               `${showModeValue.toFixed(1)}%`
             )}
           </div>
-          <div className="font-ropa text-[10px] uppercase tracking-[0.18em] text-text-primary/40">
+          <div className="font-ropa text-[8.5px] uppercase tracking-[0.16em] text-text-primary/40">
             {valueLabel}
           </div>
         </div>

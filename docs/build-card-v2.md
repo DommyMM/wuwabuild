@@ -48,7 +48,7 @@ Center column slots `04`+`05`+`06`+`07` exactly replace the old `WeaponGroup` + 
 | 06 | Rank module | **new** | `components/card/RankModule.tsx` |
 | 07 | CV + sonata pill | keep — compress to one row | [components/card/ActiveSetsSection.tsx](../components/card/ActiveSetsSection.tsx) |
 | 08 | Stat list | keep | [components/card/StatsTableSection.tsx](../components/card/StatsTableSection.tsx) |
-| 09 | Echo cards | keep + `rollIndicator` prop | [components/card/EchoSection.tsx](../components/card/EchoSection.tsx) |
+| 09 | Echo cards | keep as-is | [components/card/EchoSection.tsx](../components/card/EchoSection.tsx) |
 | 10 | RV aggregate bar | **new** | `components/card/RVBar.tsx` |
 
 Assembly: `components/profile/ProfileBuildCard.tsx` orchestrates the variant, replaces the current `LeaderboardCard` shim.
@@ -91,24 +91,9 @@ Anatomy:
 
 The two modes share the tier/TOP %/#-of-total chrome — only the right-column score swaps.
 
-## Roll pips (echo substats)
+## Echo cards
 
-WuWa substats roll **once** from an 8-tier value pool. We don't have Genshin's roll-count axis. The akasha-style 4-dot visual is repurposed for **value quartile** — same pip count, gold-on-dim per the design HTML (no rainbow):
-
-| Pips | Quartile | Fill |
-|---|---|---|
-| ●●●● | Q4 (top) | 4 filled at `--accent` |
-| ●●●○ | Q3 | 3 filled, 1 dim at `--accent/25` |
-| ●●○○ | Q2 | 2 filled, 2 dim |
-| ●○○○ | Q1 | 1 filled, 3 dim |
-
-4 segments, 4×4px circles, 1.5px gap, left of substat icon. Backed by `getSubstatTierIndex` in [lib/calculations/substatTiers.ts](../lib/calculations/substatTiers.ts) (existing quartile logic, no new math).
-
-**Priority tinting** stays separate from pip quartile:
-- Priority substat (in `character.preferredStats`): name + value `--gold-hi`, icon `--gold`.
-- Neutral substat: name + value `--text-3`.
-
-`EchoSection` gains a `rollIndicator: 'pips' | 'underline' | 'none'` prop, default `'underline'` (current behavior). `ProfileBuildCard` passes `'pips'`.
+Unchanged. Existing tier-color underline + CV badge tested well in v1 and aren't worth swapping for the akasha pip translation — too much visual noise inside the new card's already-busy lower half. `getSubstatTierIndex` is kept in [lib/calculations/substatTiers.ts](../lib/calculations/substatTiers.ts) as a small helper for any future indicator, but no consumer wires it today.
 
 ## RV aggregate bar
 
