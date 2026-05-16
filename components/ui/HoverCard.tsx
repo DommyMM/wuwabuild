@@ -34,8 +34,8 @@ interface HoverCardProps {
 
 const WIDTH_CLASS: Record<NonNullable<HoverCardProps['width']>, string> = {
   sm: 'w-[18rem]',
-  md: 'w-[21rem]',
-  lg: 'w-[24rem]',
+  md: 'w-96',
+  lg: 'w-96',
 };
 
 const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
@@ -65,7 +65,7 @@ interface HoverCardIconProps {
 export const HoverCardIcon: React.FC<HoverCardIconProps> = ({
   src,
   alt = '',
-  size = 88,
+  size = 96,
   borderClass = 'border-white/24',
   bgClass = 'bg-black/40',
   cornerBadge,
@@ -91,27 +91,12 @@ export const HoverCardIcon: React.FC<HoverCardIconProps> = ({
   </div>
 );
 
-interface HoverCardStarsProps {
-  count: number;
-}
-
-export const HoverCardStars: React.FC<HoverCardStarsProps> = ({ count }) => {
-  if (count <= 0) return null;
-  return (
-    <div className="flex gap-px text-amber-400">
-      {Array.from({ length: count }).map((_, i) => (
-        <span key={i} className="text-[10px]">★</span>
-      ))}
-    </div>
-  );
-};
-
 interface HoverCardChipsProps {
   chips: HoverCardChipModel[];
 }
 
 const HoverCardChips: React.FC<HoverCardChipsProps> = ({ chips }) => (
-  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+  <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
     {chips.map((chip, i) => {
       const toneClass = chip.tone === 'amber'
         ? 'border-amber-300/30 bg-amber-300/12 text-amber-100/95'
@@ -121,7 +106,7 @@ const HoverCardChips: React.FC<HoverCardChipsProps> = ({ chips }) => (
       return (
         <span
           key={i}
-          className={`flex items-center gap-1 rounded-md border px-2 py-0.5 ${toneClass}`}
+          className={`flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${toneClass}`}
         >
           {chip.icon && (
             <img
@@ -158,7 +143,7 @@ export const HoverCardSection: React.FC<HoverCardSectionProps> = ({
   className = '',
 }) => {
   const wrapperClass = variant === 'inset'
-    ? 'rounded-lg border border-white/12 bg-black/30 px-2.5 py-2'
+    ? 'rounded-lg border border-white/12 bg-black/30 px-2 py-1.5'
     : '';
   const badgeToneClass = badge ? BADGE_TONE_CLASS[badge.tone ?? 'orange'] : '';
   return (
@@ -169,13 +154,13 @@ export const HoverCardSection: React.FC<HoverCardSectionProps> = ({
         </p>
       )}
       {title && (
-        <p className={`${eyebrow ? 'mt-1' : ''} text-sm font-semibold text-white/95`}>
+        <p className={`${eyebrow ? 'mt-0.5' : ''} text-sm font-semibold text-white/95`}>
           {title}
           {badge && <span className={`ml-1 ${badgeToneClass}`}>{badge.text}</span>}
         </p>
       )}
       {children && (
-        <div className={`${title || eyebrow ? 'mt-1' : ''} text-sm leading-relaxed text-white/86`}>
+        <div className={`${title || eyebrow ? 'mt-0.5' : ''} text-sm leading-relaxed text-white/86`}>
           {children}
         </div>
       )}
@@ -233,7 +218,7 @@ const HoverCardPanel: React.FC<{
   body?: ReactNode;
   width: NonNullable<HoverCardProps['width']>;
 }> = ({ icon, eyebrow, title, subtitle, badge, chips, body, width }) => {
-  const headerIndentClass = icon ? `${HEADER_INDENT_CLASS} min-h-[4.75rem]` : '';
+  const headerIndentClass = icon ? `${HEADER_INDENT_CLASS} min-h-[4.5rem]` : '';
   const badgeToneClass = badge ? BADGE_TONE_CLASS[badge.tone ?? 'orange'] : '';
 
   return (
@@ -255,7 +240,7 @@ const HoverCardPanel: React.FC<{
         )}
         {chips && chips.length > 0 && <HoverCardChips chips={chips} />}
       </div>
-      {body && <div className="mt-2.5 space-y-2">{body}</div>}
+      {body && <div className="mt-1.5 space-y-1.5">{body}</div>}
     </div>
   );
 };
