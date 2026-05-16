@@ -18,7 +18,9 @@ Splash, sequence rail, weapon block, right-rail stat list, CV/sonata pill, and e
 
 All visual decisions, including the triptych audit of WaveMate / current / akasha references, the module-by-module decision matrix, the annotated wireframe at 1280×720 (real canvas 2400×1080), and four module mocks (rank, talent pills, echo + dots, RV bar), live in [https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html](https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html). Read it open in a browser before editing components — measurements there are authoritative.
 
-## Layout (2400×1080 canvas)
+## Layout
+
+Aspect locked to `2.4/1` to match the existing editor card — the only thing v2 changes is the *contents* of the center column, never the outer frame. The design HTML's 2400×1080 (2.22:1) wireframe is reference for *internal proportions*, not the final canvas size.
 
 ```
 ┌───────────────┬──┬───────────────────────────┬───────────────┐
