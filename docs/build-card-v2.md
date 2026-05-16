@@ -20,7 +20,12 @@ All visual decisions, including the triptych audit of WaveMate / current / akash
 
 ## Layout
 
-Aspect locked to `2.4/1` to match the existing editor card — the only thing v2 changes is the *contents* of the center column, never the outer frame. The design HTML's 2400×1080 (2.22:1) wireframe is reference for *internal proportions*, not the final canvas size.
+The card splits into **two siblings** stacked vertically inside `build-card-frame`:
+
+1. **Upper card** — `aspect-[2.4/1]`, contains splash + sequence rail + mid column (name/weapon/talents/rank/sonata) + stats column. Top corners rounded. Same width-to-height ratio as the editor's `BuildCard`.
+2. **Echo strip** — sibling below the upper card. Bottom corners rounded. Auto height (~240px). Reuses the same `BgCg/T_Bg1_UI.png` backdrop + the same tint/bloom/gradient overlays as the upper card so the seam reads as one continuous surface.
+
+Lifting echoes out of the aspect-lock buys the upper card ~35% more vertical room (since echoes are no longer eating into the 2.4/1 height). That's what makes room for the rank module's team strip + loadout icons without crushing anything above.
 
 ```
 ┌───────────────┬──┬───────────────────────────┬───────────────┐
@@ -96,20 +101,23 @@ Board switching belongs to a future bottom menu bar on the profile row.
 
 ### Team comp inside the rank module
 
-Lifted from [LeaderboardCharacterHeader.tsx](../components/leaderboards/character/LeaderboardCharacterHeader.tsx) but compressed so the rank module stays short enough to not eat into the echo strip below.
+Lifted from [LeaderboardCharacterHeader.tsx](../components/leaderboards/character/LeaderboardCharacterHeader.tsx) with the akasha-pattern of per-portrait gear icons. **No hover tooltips** — the card is downloadable, so every signal renders statically.
 
 ```
-HYPERCARRY
-[👤 S6][👤][👤]   #40 / 994
-                 1,924,973
+HYPERCARRY  [LEAD][SUPP][SUPP]
+            [ W ][W·E·S][W·E·S]
+            ────────────────────
+            #19 / 994  TOP 1.91%        1,233,878
 ```
 
-- Portrait: 44×44 (`h-11 w-11`), `rounded-lg`, 1px `border-white/14`, `bg-black/40`.
-- Sequence badge: top-right when `sequence > 0`, `text-[10px] font-bold px-1.5 py-px`, color tier from [LB_SEQ_BADGE_COLORS](../components/leaderboards/constants.ts). Larger and bolder than before so it's actually legible.
-- **No visible loadout row** — surfaces on hover instead. The original overlap pattern (`-mt-2` icons under each portrait) read as "floating weapons" and added 20+ px of vertical bloat per member.
-- Hover tooltip per portrait: character name + up to 3 loadout icons (weapon, echo, set) at 24×24. When the standings backend hasn't populated `weaponId/echoId/setId` for that teammate, the tooltip shows "No loadout data" — surfaces the gap without breaking layout.
-- Row layout: `flex items-center gap-3` — no `justify-between`. Team avatars and rank/damage stack pack to the left, no dead space in the middle.
-- Team built in `ProfileBuildCard.activeTeam` from `selected.character` (lead) + `canonicalStanding.teamMembers` (supports). Backend `TeamMemberConfig` ([lb/internal/calc/buffs.go:360](../../lb/internal/calc/buffs.go#L360)) supports gear fields; whether each board's standings populates them depends on the per-character `chars/*.go` config.
+- Portrait: 40×40 (`h-10 w-10`), `rounded-lg`, 1px border.
+- **Lead portrait** (build's own character): `border-accent` + inset gold glow so it's the visual anchor of the strip.
+- Support portraits: `border-white/14`, `bg-black/40`.
+- Sequence badge: top-right when `sequence > 0`, `text-[10px] font-bold px-1.5 py-px`, color tier from [LB_SEQ_BADGE_COLORS](../components/leaderboards/constants.ts).
+- **Loadout row visible under each portrait** — up to 3 icons (weapon, echo, set), 14×14 (`h-3.5 w-3.5`), no overlap. Empty 14px slot reserved when no icons so the strip stays vertically aligned across members.
+- Track label sits inline left of the team strip as a kicker — keeps everything on one row, saves a line.
+- Separator: `border-t border-white/8 pt-2` above the rank/damage line so the team and the score read as distinct.
+- Team built in `ProfileBuildCard.activeTeam` from `selected.character` (lead, `isLead: true`) + `canonicalStanding.teamMembers` (supports). Backend `TeamMemberConfig` ([lb/internal/calc/buffs.go:360](../../lb/internal/calc/buffs.go#L360)) supports gear fields; population depends on the per-character `chars/*.go` config.
 
 ### Canonical board
 

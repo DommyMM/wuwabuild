@@ -128,6 +128,7 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
       name: selected.displayName,
       head: selected.character.head ?? selected.character.iconRound,
       sequence: state.sequence,
+      isLead: true,
       loadoutIcons: leadIcons,
     };
 
@@ -192,19 +193,24 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
 
   if (!selected) return null;
 
+  const backgroundOverlays = (
+    <div className="pointer-events-none absolute inset-0 z-0">
+      <div className="absolute inset-0 bg-black/10" />
+      <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
+      <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,transparent_35%,rgba(0,0,0,0.22)_100%)]" />
+    </div>
+  );
+
   return (
     <div className="build-card-frame relative w-full select-none overflow-visible">
       <div className="font-plus-jakarta tracking-wide leading-none text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
-        <div className="relative overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')] aspect-[2.4/1]">
+        {/* Upper card — aspect-locked, splash + mid + stats only */}
+        <div className="relative overflow-hidden rounded-t-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')] aspect-[2.4/1]">
           <div className="pointer-events-none absolute right-3/8 top-8/25 z-10 text-right text-xs font-semibold tracking-[0.18em] text-white/18 lowercase [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]">
             wuwa.build
           </div>
-          <div className="pointer-events-none absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-black/10" />
-            <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
-            <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,transparent_35%,rgba(0,0,0,0.22)_100%)]" />
-          </div>
+          {backgroundOverlays}
 
           <div className="relative z-10 flex h-full">
             <CharacterPanel
@@ -222,66 +228,70 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
               onArtTransformChange={() => {}}
             />
 
-            <div className="flex w-full flex-col">
-              <div className="flex">
-                <div className="flex min-w-120 shrink-0 flex-col gap-3 pt-4">
-                  <div className="flex gap-4">
-                    <SequenceStrip
-                      chains={selected.character.chains ?? []}
-                      sequence={state.sequence}
-                      element={selected.element}
-                      characterName={selected.nameI18n}
-                    />
-                    <div className="flex flex-1 flex-col space-y-2">
-                      <NameGroup selected={selected} characterLevel={state.characterLevel} />
-
-                      {weapon && weaponStats ? (
-                        <WeaponGroup
-                          weapon={weapon}
-                          weaponStats={weaponStats}
-                          weaponLevel={state.weaponLevel}
-                          weaponRank={state.weaponRank}
-                          weaponAtkIcon={weaponAtkIcon}
-                          weaponMainIcon={weaponMainIcon}
-                          activeHoverStat={activeHoverStat}
-                          onHoverStatChange={setActiveHoverStat}
-                          weaponAtkHoverKey={weaponAtkHoverKey}
-                          weaponMainHoverKey={weaponMainHoverKey}
-                          weaponPassiveHoverMatch={weaponPassiveHoverMatch}
-                        />
-                      ) : null}
-
-                      <TalentPills character={selected.character} forte={state.forte} />
-
-                      <RankModule
-                        board={activeBoard}
-                        team={activeTeam}
-                        loading={standingsLoading}
-                      />
-                    </div>
-                  </div>
-
-                  <ActiveSetsSection
-                    showCV
-                    activeHoverStat={activeHoverStat}
-                    onHoverStatChange={setActiveHoverStat}
+            <div className="flex h-full w-full">
+              <div className="flex min-w-120 shrink-0 flex-col gap-3 pt-4">
+                <div className="flex gap-4">
+                  <SequenceStrip
+                    chains={selected.character.chains ?? []}
+                    sequence={state.sequence}
+                    element={selected.element}
+                    characterName={selected.nameI18n}
                   />
+                  <div className="flex flex-1 flex-col space-y-2">
+                    <NameGroup selected={selected} characterLevel={state.characterLevel} />
+
+                    {weapon && weaponStats ? (
+                      <WeaponGroup
+                        weapon={weapon}
+                        weaponStats={weaponStats}
+                        weaponLevel={state.weaponLevel}
+                        weaponRank={state.weaponRank}
+                        weaponAtkIcon={weaponAtkIcon}
+                        weaponMainIcon={weaponMainIcon}
+                        activeHoverStat={activeHoverStat}
+                        onHoverStatChange={setActiveHoverStat}
+                        weaponAtkHoverKey={weaponAtkHoverKey}
+                        weaponMainHoverKey={weaponMainHoverKey}
+                        weaponPassiveHoverMatch={weaponPassiveHoverMatch}
+                      />
+                    ) : null}
+
+                    <TalentPills character={selected.character} forte={state.forte} />
+
+                    <RankModule
+                      board={activeBoard}
+                      team={activeTeam}
+                      loading={standingsLoading}
+                    />
+                  </div>
                 </div>
 
-                <StatsTableSection
+                <ActiveSetsSection
+                  showCV
                   activeHoverStat={activeHoverStat}
                   onHoverStatChange={setActiveHoverStat}
                 />
               </div>
 
-              <EchoSection
-                echoPanels={state.echoPanels}
-                showCV
-                showRollQuality
+              <StatsTableSection
                 activeHoverStat={activeHoverStat}
                 onHoverStatChange={setActiveHoverStat}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Echoes — sibling below the aspect-locked card so they hang off cleanly. */}
+        <div className="relative overflow-hidden rounded-b-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]">
+          {backgroundOverlays}
+          <div className="relative z-10">
+            <EchoSection
+              echoPanels={state.echoPanels}
+              showCV
+              showRollQuality
+              activeHoverStat={activeHoverStat}
+              onHoverStatChange={setActiveHoverStat}
+            />
           </div>
         </div>
       </div>

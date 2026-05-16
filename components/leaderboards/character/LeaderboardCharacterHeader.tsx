@@ -9,6 +9,7 @@ import { getSetBonusesFromPieceEffect } from '@/lib/constants/setBonuses';
 import { LBTeamMemberConfig } from '@/lib/lb';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { renderGameTemplateWithHighlights, resolveFetterPieceDescription } from '@/lib/text/gameText';
+import { WeaponHoverContent } from '@/components/weapon/WeaponHoverContent';
 import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix } from '../constants';
 
 interface LeaderboardCharacterHeaderProps {
@@ -131,60 +132,24 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     const weapon = getWeapon(weaponId ?? null);
     if (!weapon) return null;
 
-    const weaponName = t(weapon.nameI18n ?? { en: weapon.name });
-    const passiveName = t(weapon.effectName ?? { en: '' });
-    const rank = refinement && refinement > 0 ? refinement : null;
-    const rankIndex = Math.max(0, Math.min(4, (rank ?? 1) - 1));
+    const rank = refinement && refinement > 0 ? refinement : 1;
     const atk90 = Math.floor(weapon.ATK * 12.5);
     const mainStat90 = parseFloat((weapon.base_main * 4.5).toFixed(1));
     const atkIcon = statIcons?.['ATK'];
     const mainStatIcon = weapon.main_stat ? (statIcons?.[weapon.main_stat] ?? null) : null;
 
     return (
-      <div className="font-plus-jakarta text-white/90">
-        <p className="text-base font-semibold text-white/96">{weaponName}</p>
-        <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-white/65">
-          {weapon.rarity} {weapon.type}
-        </p>
-
-        <div className="mt-2 flex items-center gap-1.5 text-sm">
-          <span className="rounded-md border border-white/10 bg-black/30 px-2 py-0.5 text-xs text-white/55">Lv 90</span>
-          <span className="flex items-center gap-1 rounded-md border border-white/10 bg-black/30 px-2 py-0.5 text-xs">
-            {atkIcon ? <img src={atkIcon} alt="ATK" className="h-3.5 w-3.5 object-contain" /> : null}
-            <span className="font-semibold text-white/90">{atk90}</span>
-          </span>
-          {weapon.main_stat ? (
-            <span className="flex items-center gap-1 rounded-md border border-white/10 bg-black/30 px-2 py-0.5 text-xs">
-              {mainStatIcon ? <img src={mainStatIcon} alt={weapon.main_stat} className="h-3.5 w-3.5 object-contain" /> : null}
-              <span className="font-semibold text-white/90">{mainStat90}%</span>
-            </span>
-          ) : null}
-        </div>
-
-        {passiveName ? (
-          <p className="mt-2 text-sm font-semibold text-white/95">
-            {passiveName}
-            <span className="ml-1 text-orange-400">{rank ? `R${rank}` : 'R1'}</span>
-          </p>
-        ) : null}
-
-        {weapon.effect?.en ? (
-          <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-white/86">
-            {renderGameTemplateWithHighlights({
-              template: t(weapon.effect),
-              getParamValue: (paramIndex) => {
-                const slotValues = weapon.params?.[String(paramIndex)];
-                if (!slotValues?.length) return null;
-                return slotValues[Math.min(rankIndex, slotValues.length - 1)] ?? null;
-              },
-              highlightClassName: 'text-cyan-200 font-semibold',
-              keepUnknownPlaceholders: true,
-            })}
-          </p>
-        ) : null}
-      </div>
+      <WeaponHoverContent
+        weapon={weapon}
+        weaponLevel={90}
+        weaponRank={rank}
+        scaledAtk={atk90}
+        scaledMainStat={mainStat90}
+        atkIcon={atkIcon}
+        mainStatIcon={mainStatIcon}
+      />
     );
-  }, [getWeapon, statIcons, t]);
+  }, [getWeapon, statIcons]);
 
   const renderFetterTooltip = React.useCallback((setId?: string): React.ReactNode => {
     const fetter = fetters.find((entry) => String(entry.id) === setId);
