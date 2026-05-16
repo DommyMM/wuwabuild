@@ -74,8 +74,9 @@ export const HoverCardIcon: React.FC<HoverCardIconProps> = ({
 }) => (
   <div
     style={{ width: size, height: size }}
-    className={`relative flex items-center justify-center overflow-hidden rounded-xl border ${borderClass} ${bgClass} shadow-[0_10px_22px_rgba(0,0,0,0.55)]`}
+    className={`relative flex items-center justify-center overflow-hidden rounded-xl border bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.09)_24%,transparent_58%),linear-gradient(145deg,rgba(120,90,54,0.88)_0%,rgba(47,48,48,0.96)_48%,rgba(20,21,22,0.98)_100%)] ${borderClass} ${bgClass} shadow-[0_10px_22px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.14)]`}
   >
+    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.16)_0%,transparent_36%,rgba(0,0,0,0.20)_100%)]" />
     {src && <img src={src} alt={alt} className={imgClassName} loading="lazy" />}
     {cornerBadge && (
       <div className="pointer-events-none absolute -top-1 -right-1 z-10">
