@@ -2,7 +2,7 @@
 
 **Status:** spec locked, implementation pending — Phase 1 (frontend only).
 **Owner:** frontend.
-**Related:** [docs/design/build-card-v2/rank-plan.html](design/build-card-v2/rank-plan.html) (visual reference), [docs/leaderboards.md](leaderboards.md), [lb/docs/api-behaviors.md](../../lb/docs/api-behaviors.md).
+**Related:** [docs/https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html](https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html) (visual reference), [docs/leaderboards.md](leaderboards.md), [lb/docs/api-behaviors.md](../../lb/docs/api-behaviors.md).
 
 ## Problem
 
@@ -16,7 +16,7 @@ Drop the forte node grid on profile cards. Replace it with a **Rank module** (ti
 
 Splash, sequence rail, weapon block, right-rail stat list, CV/sonata pill, and echo-card chrome all stay. The editor's `BuildCard` is unchanged — `/edit` keeps the full forte input.
 
-All visual decisions, including the triptych audit of WaveMate / current / akasha references, the module-by-module decision matrix, the annotated wireframe at 1280×720 (real canvas 2400×1080), and four module mocks (rank, talent pills, echo + dots, RV bar), live in [design/build-card-v2/rank-plan.html](design/build-card-v2/rank-plan.html). Read it open in a browser before editing components — measurements there are authoritative.
+All visual decisions, including the triptych audit of WaveMate / current / akasha references, the module-by-module decision matrix, the annotated wireframe at 1280×720 (real canvas 2400×1080), and four module mocks (rank, talent pills, echo + dots, RV bar), live in [https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html](https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html). Read it open in a browser before editing components — measurements there are authoritative.
 
 ## Layout (2400×1080 canvas)
 
@@ -203,4 +203,4 @@ Toggle wires to this when in RV mode.
 4. `RVBar` (lift logic from `ProfileBuildExpanded`).
 5. `ProfileBuildCard` assembly, swapped in by `LeaderboardCard`.
 6. Wire `character.preferredStats` curated list (define for current top characters; default for the rest).
-7. Visual QA against `design/build-card-v2/rank-plan.html` at 1× canvas.
+7. Visual QA against `https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html` at 1× canvas.
