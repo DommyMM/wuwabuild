@@ -5,6 +5,7 @@ import type { AnalysisData } from '@/lib/import/types';
 import type { RegionKey } from '@/lib/import/regions';
 import { IMPORT_REGIONS } from '@/lib/import/regions';
 import { loadImage, cropImageToRegion } from '@/lib/import/cropImage';
+import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
 import type { RegionStatus } from '@/lib/import/report';
 
 interface UseOcrImportReturn {
@@ -77,8 +78,7 @@ export function useOcrImport(): UseOcrImportReturn {
           } catch {
             data = await attempt(); // one automatic retry
           }
-          // Backend wraps results in { success, analysis }, unwrap it
-          const analysis = (data as Record<string, unknown>)?.analysis ?? data;
+          const analysis = unwrapOcrAnalysisPayload(data, `${key} OCR`);
           nextProgress = { ...nextProgress, [key]: 'done' };
           nextAnalysisData = { ...nextAnalysisData, [key]: analysis };
           setProgress(nextProgress);

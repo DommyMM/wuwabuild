@@ -5,6 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { loadImage, cropImageToRegion } from '@/lib/import/cropImage';
 import { IMPORT_REGIONS, type RegionKey } from '@/lib/import/regions';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
+import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
 import type { AnalysisData } from '@/lib/import/types';
 import { submitBuild } from '@/lib/lb';
 import { AlertTriangle, CheckCircle2, FolderOpen, Loader2, Pause, Play, RotateCcw, UploadCloud, XCircle } from 'lucide-react';
@@ -85,12 +86,8 @@ async function postRegion(file: File, image: HTMLImageElement, regionKey: Region
     throw new Error(`${regionKey} OCR failed (${response.status}) for ${file.name}`);
   }
 
-  const payload = await response.json() as { success?: boolean; analysis?: unknown; error?: string };
-  if (payload.success === false) {
-    throw new Error(payload.error || `${regionKey} OCR failed for ${file.name}`);
-  }
-
-  return payload.analysis;
+  const payload = await response.json();
+  return unwrapOcrAnalysisPayload(payload, `${regionKey} OCR for ${file.name}`);
 }
 
 export function BulkImportPageClient() {
