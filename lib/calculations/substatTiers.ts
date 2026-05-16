@@ -33,12 +33,23 @@ export const getSubstatTierColor = (
   value: number,
   rollValues: number[] | null | undefined
 ): string | null => {
+  const tier = getSubstatTierIndex(value, rollValues);
+  return tier == null ? null : TIER_COLORS[tier - 1];
+};
+
+// Returns the quartile rank (1 = bottom, 4 = top) for a substat roll, or null
+// when there isn't enough data to bucket it. Used by the echo card's pip mode
+// to render N-of-4 filled dots without re-deriving thresholds per row.
+export const getSubstatTierIndex = (
+  value: number,
+  rollValues: number[] | null | undefined
+): 1 | 2 | 3 | 4 | null => {
   const thresholds = deriveThresholds(toFiniteSortedValues(rollValues));
   if (!thresholds) return null;
 
   const [t1, t2, t3] = thresholds;
-  if (value >= t3) return TIER_COLORS[3]; // gold
-  if (value >= t2) return TIER_COLORS[2]; // purple
-  if (value >= t1) return TIER_COLORS[1]; // blue
-  return TIER_COLORS[0];                  // cyan
+  if (value >= t3) return 4;
+  if (value >= t2) return 3;
+  if (value >= t1) return 2;
+  return 1;
 };

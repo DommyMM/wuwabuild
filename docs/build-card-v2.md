@@ -93,16 +93,16 @@ The two modes share the tier/TOP %/#-of-total chrome — only the right-column s
 
 ## Roll pips (echo substats)
 
-WuWa substats roll **once** from an 8-tier value pool. We don't have Genshin's roll-count axis. The akasha-style 4-dot visual is repurposed for **value quartile**:
+WuWa substats roll **once** from an 8-tier value pool. We don't have Genshin's roll-count axis. The akasha-style 4-dot visual is repurposed for **value quartile** — same pip count, gold-on-dim per the design HTML (no rainbow):
 
-| Pips | Quartile | Color | Source |
-|---|---|---|---|
-| ●●●● | Q4 (top) | `--gold-hi` | `getSubstatTierColor` returns gold tier |
-| ●●●○ | Q3 | `#B46BFF` (purple) | purple tier |
-| ●●○○ | Q2 | `#4D96FF` (blue) | blue tier |
-| ●○○○ | Q1 | `#00FF00` (cyan-green) | green tier |
+| Pips | Quartile | Fill |
+|---|---|---|
+| ●●●● | Q4 (top) | 4 filled at `--accent` |
+| ●●●○ | Q3 | 3 filled, 1 dim at `--accent/25` |
+| ●●○○ | Q2 | 2 filled, 2 dim |
+| ●○○○ | Q1 | 1 filled, 3 dim |
 
-4 segments, 4×4px circles, 1.5px gap, left of substat icon. Backed by [lib/calculations/substatTiers.ts:31](../lib/calculations/substatTiers.ts#L31) (existing quartile logic, no new math).
+4 segments, 4×4px circles, 1.5px gap, left of substat icon. Backed by `getSubstatTierIndex` in [lib/calculations/substatTiers.ts](../lib/calculations/substatTiers.ts) (existing quartile logic, no new math).
 
 **Priority tinting** stays separate from pip quartile:
 - Priority substat (in `character.preferredStats`): name + value `--gold-hi`, icon `--gold`.

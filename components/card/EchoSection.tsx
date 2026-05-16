@@ -8,16 +8,23 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
-import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
+import { getSubstatTierColor, getSubstatTierIndex } from '@/lib/calculations/substatTiers';
 import { getEchoPaths } from '@/lib/paths';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { isRover } from '@/lib/character';
 import { matchesEchoBonusCondition } from '@/lib/constants/statBonuses';
 
+// `underline` keeps the editor's tier-colored bottom border (default).
+// `pips` renders a 4-segment quartile indicator on the left of each substat
+// (used by Build Card v2 / profile cards). `none` disables both.
+export type EchoRollIndicator = 'underline' | 'pips' | 'none';
+
 interface EchoSectionProps {
   echoPanels: EchoPanelState[];
   showCV?: boolean;
   showRollQuality?: boolean;
+  rollIndicator?: EchoRollIndicator;
+  preferredStats?: readonly string[];
   activeHoverStat?: StatHoverKey | null;
   onHoverStatChange?: (next: StatHoverKey | null) => void;
 }
@@ -35,9 +42,24 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
   echoPanels,
   showCV = true,
   showRollQuality = true,
+  rollIndicator = 'underline',
+  preferredStats,
   activeHoverStat = null,
   onHoverStatChange,
 }) => {
+  const preferredSet = React.useMemo(() => {
+    if (!preferredStats || preferredStats.length === 0) return null;
+    const set = new Set<string>();
+    for (const stat of preferredStats) {
+      const trimmed = stat.trim();
+      if (!trimmed) continue;
+      set.add(trimmed);
+      // Treat the base + percent variants as the same priority key.
+      if (trimmed.endsWith('%')) set.add(trimmed.slice(0, -1));
+      else set.add(`${trimmed}%`);
+    }
+    return set;
+  }, [preferredStats]);
   const { getEcho, fettersByElement, statIcons, getSubstatValues } = useGameData();
   const { state } = useBuild();
   const { t } = useLanguage();
@@ -193,25 +215,55 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                   const subType = sub.type.trim();
                   const isSubPercent = isPercentStat(subType);
                   const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')];
-                  const tierColor = showRollQuality
-                    ? getSubstatTierColor(subType, sub.value, getSubstatValues(subType))
+                  const rollValues = getSubstatValues(subType);
+                  const showTierCues = showRollQuality && rollIndicator !== 'none';
+                  const tierColor = showTierCues && rollIndicator === 'underline'
+                    ? getSubstatTierColor(subType, sub.value, rollValues)
                     : null;
+                  const tierIndex = showTierCues && rollIndicator === 'pips'
+                    ? getSubstatTierIndex(sub.value, rollValues)
+                    : null;
+                  const isPriority = Boolean(preferredSet?.has(subType));
                   const subHoverKey = normalizeStatHoverKey(subType);
                   const baseStyle = tierColor ? {
                     backgroundColor: `${tierColor}18`,
                     borderBottom: `1px solid ${tierColor}80`,
                   } : undefined;
+                  const textColor = rollIndicator === 'pips'
+                    ? (isPriority ? 'text-accent-hover' : 'text-text-primary/55')
+                    : '';
 
                   return (
                     <div
                       key={si}
-                      className={`flex items-center gap-1 rounded-sm px-1 py-0.5 transition-all duration-200 ${getPillInteractionClass(subHoverKey)}`}
+                      className={`flex items-center gap-1 rounded-sm px-1 py-0.5 transition-all duration-200 ${textColor} ${getPillInteractionClass(subHoverKey)}`}
                       style={getPillInteractionStyle(subHoverKey, baseStyle)}
                       onMouseEnter={subHoverKey ? () => onHoverStatChange?.(subHoverKey) : undefined}
                       onMouseLeave={subHoverKey ? () => onHoverStatChange?.(null) : undefined}
                     >
+                      {rollIndicator === 'pips' && (
+                        <span className="flex shrink-0 items-center gap-[1.5px]" aria-hidden>
+                          {[1, 2, 3, 4].map((slot) => {
+                            const filled = tierIndex != null && slot <= tierIndex;
+                            return (
+                              <span
+                                key={slot}
+                                className={`h-1 w-1 rounded-full ${
+                                  filled ? 'bg-accent' : 'bg-accent/25'
+                                }`}
+                              />
+                            );
+                          })}
+                        </span>
+                      )}
                       {subIcon && (
-                        <img src={subIcon} alt={subType} className="h-4.5 w-4.5 object-contain" />
+                        <img
+                          src={subIcon}
+                          alt={subType}
+                          className={`h-4.5 w-4.5 object-contain ${
+                            rollIndicator === 'pips' && !isPriority ? 'opacity-55' : ''
+                          }`}
+                        />
                       )}
                       <span className="text-sm leading-none font-semibold">
                         {isSubPercent ? `${sub.value.toFixed(1)}%` : Math.round(sub.value)}
