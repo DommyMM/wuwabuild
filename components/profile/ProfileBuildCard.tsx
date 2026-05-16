@@ -102,6 +102,7 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
       tier: getRankTier(topPercent).letter,
       weaponId: canonicalStanding.weaponId,
       weaponName,
+      weaponIcon: boardWeapon ? getWeaponPaths(boardWeapon) : undefined,
       weaponElement: selected?.element,
       sequence: entry.sequence,
       trackKey: canonicalStanding.trackKey,
@@ -281,19 +282,16 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
           </div>
         </div>
 
-        {/* Echoes — sibling below the aspect-locked card so they hang off cleanly. */}
-        <div className="relative overflow-hidden rounded-b-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')]">
-          {backgroundOverlays}
-          <div className="relative z-10">
-            <EchoSection
-              echoPanels={state.echoPanels}
-              showCV
-              showRollQuality
-              activeHoverStat={activeHoverStat}
-              onHoverStatChange={setActiveHoverStat}
-            />
-          </div>
-        </div>
+        {/* Echoes — sibling below the aspect-locked card. No backdrop: they sit on
+            whatever page background is behind, so they read as hanging off the card
+            rather than a second card stacked underneath. */}
+        <EchoSection
+          echoPanels={state.echoPanels}
+          showCV
+          showRollQuality
+          activeHoverStat={activeHoverStat}
+          onHoverStatChange={setActiveHoverStat}
+        />
       </div>
     </div>
   );

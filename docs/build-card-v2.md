@@ -99,25 +99,24 @@ Dropped vs the original mock: the big tier letter, weapon chip, sequence chip, E
 
 Board switching belongs to a future bottom menu bar on the profile row.
 
-### Team comp inside the rank module
+### Single-row rank module
 
-Lifted from [LeaderboardCharacterHeader.tsx](../components/leaderboards/character/LeaderboardCharacterHeader.tsx) with the akasha-pattern of per-portrait gear icons. **No hover tooltips** — the card is downloadable, so every signal renders statically.
+Everything sits on **one horizontal row**. No damage number (akasha doesn't show it either; the percentile + rank# pair already tells the story). Order: rank → percentile → [auto spacer] → team → track+weapon pill.
 
 ```
-HYPERCARRY  [LEAD][SUPP][SUPP]
-            [ W ][W·E·S][W·E·S]
-            ────────────────────
-            #19 / 994  TOP 1.91%        1,233,878
+#19 / 994   TOP 1.91%                    [👤][👤][👤]  [⚔ HYPERCARRY]
 ```
 
-- Portrait: 40×40 (`h-10 w-10`), `rounded-lg`, 1px border.
-- **Lead portrait** (build's own character): `border-accent` + inset gold glow so it's the visual anchor of the strip.
-- Support portraits: `border-white/14`, `bg-black/40`.
-- Sequence badge: top-right when `sequence > 0`, `text-[10px] font-bold px-1.5 py-px`, color tier from [LB_SEQ_BADGE_COLORS](../components/leaderboards/constants.ts).
-- **Loadout row visible under each portrait** — up to 3 icons (weapon, echo, set), 14×14 (`h-3.5 w-3.5`), no overlap. Empty 14px slot reserved when no icons so the strip stays vertically aligned across members.
-- Track label sits inline left of the team strip as a kicker — keeps everything on one row, saves a line.
-- Separator: `border-t border-white/8 pt-2` above the rank/damage line so the team and the score read as distinct.
-- Team built in `ProfileBuildCard.activeTeam` from `selected.character` (lead, `isLead: true`) + `canonicalStanding.teamMembers` (supports). Backend `TeamMemberConfig` ([lb/internal/calc/buffs.go:360](../../lb/internal/calc/buffs.go#L360)) supports gear fields; population depends on the per-character `chars/*.go` config.
+- Module: `flex items-center gap-3 rounded-xl border border-amber-300/45 px-3 py-2`, same echo-card-style backdrop.
+- **Rank number**: `font-gowun 700 22px`, color tinted by percentile tier (gold/silver/bronze/neutral) using `getRankTier`.
+- **Total**: `/ 994` at `text-primary/40` 11px.
+- **TOP %**: `font-gowun 14px text-accent` with a 9px `TOP` kicker.
+- **Team avatars**: 36×36 (`h-9 w-9`), `rounded-lg`, pushed right with `ml-auto`. Lead gets `border-accent` + inset gold glow; supports `border-white/14`.
+- **Sequence badge**: top-right when > 0, `text-[10px] font-bold px-1.5 py-px`, color from [LB_SEQ_BADGE_COLORS](../components/leaderboards/constants.ts).
+- **Per-portrait loadout strip**: 3 tiny icons (12×12) bleeding off the bottom of each portrait (`-bottom-1 left-1/2 -translate-x-1/2`) when standings populates `weaponId/echoId/setId`. Absolute positioning keeps the module flat — single-row height stays 36px regardless of whether icons are present.
+- **Track + weapon pill**: small bordered chip on the right, weapon icon + uppercase track label. Replaces both the in-card weapon chip and the kicker-style track label from earlier drafts.
+
+Team built in `ProfileBuildCard.activeTeam` from `selected.character` (lead, `isLead: true`) + `canonicalStanding.teamMembers` (supports). Backend `TeamMemberConfig` ([lb/internal/calc/buffs.go:360](../../lb/internal/calc/buffs.go#L360)) supports gear fields, but populating them is a per-character `chars/*.go` concern — for characters whose config only specifies `charId` + `sequence`, the loadout strip is empty.
 
 ### Canonical board
 
