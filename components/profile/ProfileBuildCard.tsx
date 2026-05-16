@@ -21,19 +21,7 @@ import { StatsTableSection } from '@/components/card/StatsTableSection';
 import { TalentPills } from '@/components/card/TalentPills';
 import { ActiveSetsSection } from '@/components/card/ActiveSetsSection';
 import { EchoSection } from '@/components/card/EchoSection';
-import { RankBoard, RankMode, RankModule } from '@/components/card/RankModule';
-
-const RANK_MODE_STORAGE_KEY = 'wuwabuilds:profile-card-rank-mode';
-
-const readPersistedMode = (): RankMode => {
-  if (typeof window === 'undefined') return 'damage';
-  try {
-    const raw = window.localStorage.getItem(RANK_MODE_STORAGE_KEY);
-    return raw === 'rv' ? 'rv' : 'damage';
-  } catch {
-    return 'damage';
-  }
-};
+import { RankBoard, RankModule } from '@/components/card/RankModule';
 
 interface ProfileBuildCardProps {
   entry: LBBuildRowEntry;
@@ -46,8 +34,6 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
   const { t } = useLanguage();
   const [activeHoverStat, setActiveHoverStat] = useState<StatHoverKey | null>(null);
 
-  const [mode, setMode] = useState<RankMode>(() => readPersistedMode());
-  const [activeBoardIdx, setActiveBoardIdx] = useState(0);
   const [standings, setStandings] = useState<LBStandingEntry[]>([]);
   const [standingsLoading, setStandingsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -65,7 +51,6 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
       if (controller.signal.aborted) return;
       setStandingsLoading(true);
       setStandings([]);
-      setActiveBoardIdx(0);
     });
 
     getBuildStandings(characterId, buildId, controller.signal)
@@ -85,46 +70,39 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
     return () => controller.abort();
   }, [characterId, buildId]);
 
-  const handleModeChange = (next: RankMode) => {
-    setMode(next);
-    try {
-      window.localStorage.setItem(RANK_MODE_STORAGE_KEY, next);
-    } catch {
-      // ignore storage failures
-    }
-  };
-
   const weapon = getWeapon(state.weaponId);
   const weaponStats = useMemo(
     () => weapon ? calculateWeaponStats(weapon, state.weaponLevel, levelCurves) : null,
     [weapon, state.weaponLevel, levelCurves]
   );
 
-  const boards = useMemo<RankBoard[]>(() => {
-    if (standings.length === 0) return [];
-    const next = standings
-      .filter((s) => s.rank > 0 && s.total > 0)
-      .map<RankBoard>((s) => {
-        const weapon = getWeapon(s.weaponId);
-        const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : s.weaponId;
-        const topPercent = computeTopPercent(s.rank, s.total);
-        return {
-          rank: s.rank,
-          total: s.total,
-          topPercent,
-          tier: getRankTier(topPercent).letter,
-          weaponId: s.weaponId,
-          weaponName,
-          weaponElement: selected?.element,
-          sequence: entry.sequence,
-          trackKey: s.trackKey,
-          trackLabel: s.trackLabel || s.trackKey,
-          damage: s.damage,
-        };
-      });
-    next.sort((a, b) => a.rank - b.rank);
-    return next;
-  }, [standings, getWeapon, t, selected?.element, entry.sequence]);
+  // Canonical board = the one matching the equipped weapon. Standings returns
+  // every weapon variant the build's damage_map covers (one per LB track), so
+  // without anchoring on state.weaponId we'd show a phantom rank for a weapon
+  // the player never equipped.
+  const activeBoard = useMemo<RankBoard | null>(() => {
+    if (standings.length === 0) return null;
+    const ranked = standings.filter((s) => s.rank > 0 && s.total > 0);
+    if (ranked.length === 0) return null;
+
+    const canonical = ranked.find((s) => s.weaponId === state.weaponId) ?? ranked[0];
+    const boardWeapon = getWeapon(canonical.weaponId);
+    const weaponName = boardWeapon ? t(boardWeapon.nameI18n ?? { en: boardWeapon.name }) : canonical.weaponId;
+    const topPercent = computeTopPercent(canonical.rank, canonical.total);
+    return {
+      rank: canonical.rank,
+      total: canonical.total,
+      topPercent,
+      tier: getRankTier(topPercent).letter,
+      weaponId: canonical.weaponId,
+      weaponName,
+      weaponElement: selected?.element,
+      sequence: entry.sequence,
+      trackKey: canonical.trackKey,
+      trackLabel: canonical.trackLabel || canonical.trackKey,
+      damage: canonical.damage,
+    };
+  }, [standings, state.weaponId, getWeapon, t, selected?.element, entry.sequence]);
 
   const tintClass = selected?.element
     ? (ELEMENT_TINT[selected.element] ?? 'from-transparent via-transparent to-transparent')
@@ -212,14 +190,7 @@ export const ProfileBuildCard: React.FC<ProfileBuildCardProps> = ({ entry }) => 
 
                       <TalentPills forte={state.forte} />
 
-                      <RankModule
-                        mode={mode}
-                        boards={boards}
-                        activeIdx={activeBoardIdx}
-                        loading={standingsLoading}
-                        onModeChange={handleModeChange}
-                        onBoardChange={setActiveBoardIdx}
-                      />
+                      <RankModule board={activeBoard} loading={standingsLoading} />
                     </div>
                   </div>
 

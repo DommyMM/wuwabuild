@@ -57,41 +57,32 @@ Assembly: `components/profile/ProfileBuildCard.tsx` orchestrates the variant, re
 
 ## Rank module
 
-Surface: `linear-gradient(180deg, rgba(166,150,98,.10) 0%, rgba(255,255,255,.02) 34%, rgba(0,0,0,.30) 100%)`, 1px `rgba(166,150,98,.45)` border, 20×22 padding, 20px gap between columns.
+Surface: `linear-gradient(180deg, rgba(166,150,98,.10) 0%, rgba(255,255,255,.02) 34%, rgba(0,0,0,.30) 100%)`, 1px `rgba(166,150,98,.45)` border, 12×10 padding.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  ┌──┐  [● Frostburn] [S0] [Quickswap] [ER ≥ 120%]  [DMG ▾]      │
-│  │ S│                                                            │
-│  │  │  TOP 2.96%   #125 / 4,220                       1,532,212  │
-│  └──┘                                                 ─────────  │
-│                                                       COMPUTED   │
-│                                                        DAMAGE    │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│  HYPERCARRY                                        │
+│                                                    │
+│  #19  / 994     TOP 1.91%               1,233,878  │
+└────────────────────────────────────────────────────┘
 ```
 
 Anatomy:
 
 | Element | Spec |
 |---|---|
-| Tier letter | 88×88 cell, `font-display 700 64px`, `--gold-hi`, `text-shadow 0 0 24px rgba(166,150,98,.5)` |
-| Tier mapping | S ≤ 1%, A ≤ 10%, B ≤ 25%, C ≤ 50%, D otherwise (by `topPercent` on active board) |
-| Tier colors | S `--gold-hi` · A silver `#C4C7CB` · B bronze `#B7895C` · C `--text-2` · D `--text-3` |
-| Scope chips | 11px Ropa, 0.08em tracking, all-caps, 1px border; active chip = gold tint |
-| TOP % | `font-number 700 28px`, `--gold`; kicker "TOP" 11px 0.22em `--text-3` |
-| Rank num | `font-number 15px` for `#125`, " / 4,220" at `--text-3` |
-| Right column | 32px `font-number 700` value, 10px 0.18em label ("COMPUTED DAMAGE" or "RV TOTAL") |
-| Mode picker | Compact dropdown, top-right. `DMG ▾` opens menu with `By damage` (default) / `By RV` |
-| Board picker | Click scope chip group to open a popover listing all boards this build qualifies for; selecting changes which rank is shown. Default is **best of all eligible boards** |
+| Track kicker | Ropa 10px, 0.22em tracking, all-caps, `--text-primary/55` |
+| Rank number | `font-gowun 700 28px` tabular, colored by percentile tier (gold→silver→bronze→neutral) using the same threshold table the old tier letter used. Replaces the tier-letter cell entirely. |
+| Tier color map | TOP ≤ 1% `--gold-hi` (glow) · ≤ 10% silver `#C4C7CB` · ≤ 25% bronze `#B7895C` · ≤ 50% `--text-primary/65` · else `--text-primary/40` |
+| Total | `font-gowun 13px` tabular `--text-primary/40` ("/ 994") |
+| TOP % | `font-gowun 16px` `--accent`; kicker "TOP" 9px 0.22em `--text-primary/40` |
+| Damage value | `font-gowun 700 22px` tabular `--text-primary` — no kicker (the number alone is unambiguous as damage) |
 
-### Two ranking modes
+Dropped vs the original mock: the big tier letter (re-encoded percent), weapon chip (already in `WeaponGroup`), sequence chip (already in `SequenceStrip`), ER-bracket chip (Phase 2), in-card board picker, and the `DMG ▾ / RV ▾` mode toggle. Board switching belongs to a future bottom menu bar on the profile row; RV mode is parked entirely until the backend provides an RV-ranked index.
 
-| Mode | What it ranks | Right-column value | Source |
-|---|---|---|---|
-| **Damage** *(default)* | Per-board competitive rank, weapon × sequence × track × ER bracket | Computed damage (large, tabular) | `LBLeaderboardEntry.damage`, `globalRank` |
-| **RV** | Population-wide rank by preferred-substat roll value for this character | `RV%` (large, tabular) | Phase 3 backend column; Phase 1 derives client-side via `calculateOverallRV` and shows "—" rank |
+### Canonical board
 
-The two modes share the tier/TOP %/#-of-total chrome — only the right-column score swaps.
+The card always shows the rank for the **equipped weapon**: `standings.find(s => s.weaponId === state.weaponId)`, falling back to the first ranked standing if no match exists. Without this anchor, standings sorted by rank ascending will surface phantom boards — the build's `damage_map` carries values for every weapon variant the LB tracks, so the build "ranks" on weapons it never equipped.
 
 ## Echo cards
 
@@ -108,22 +99,23 @@ If we ever want a static read-only twin inside the card, the deleted `RVBar.tsx`
 Replaces the old 5×3 forte node grid on the *card only*. The full forte tree stays in `/edit`.
 
 ```
-[NA Normal 10] [SK Skill 8] [FC Circuit 10] [LB Lib. 10] [IN Intro 6]
+[NA 10] [SK 10] [FC 10] [LB 10] [IN 10]
 ```
 
-- Pill: 26px tall, 4/8/4/6 padding, 1px border.
-- Glyph badge: 16×16, 1px border, mono 9px `--text-3`.
-- Label: Ropa 400 11px `--text-2`.
-- Level: Gowun 13px `--text` (max state → `--gold-hi`, border → `rgba(166,150,98,.30)`).
+- Pill: 22px tall (`h-5.5`), `px-1.5`, 1px border (max-level pills tint `border-accent/30`).
+- Glyph: Ropa 9px uppercase `--text-primary/40` (no separate badge — just the 2-letter code inline).
+- Level: Gowun 12px tabular `--text-primary` (max state → `--accent-hover`).
 - Row gap: 6px.
+
+Labels ("Normal", "Skill", etc.) dropped — the 2-letter glyph is canonical enough among players and keeps the row inside the original forte column's horizontal envelope.
 
 ## Data flow
 
 ### Phase 1 — frontend only (this PR)
 
-Per-row rank fetched **lazily on row expand** via the existing `/leaderboard/{characterId}/build/{buildId}/standings` endpoint ([lib/lb.ts:936](../lib/lb.ts#L936)). Rank module renders a skeleton until standings resolve, then picks `bestRank = min(rank for rank in standings)`. The dropdown lets the user switch to any other standing.
+Per-row rank fetched **lazily on row expand** via the existing `/leaderboard/{characterId}/build/{buildId}/standings` endpoint ([lib/lb.ts:936](../lib/lb.ts#L936)). Rank module renders a skeleton until standings resolve, then picks the standing matching the equipped weapon. No board switching inside the card — when needed, a future bottom menu bar on the profile row will let users browse alternate boards.
 
-RV mode in Phase 1 shows: tier from local CV → tier mapping, TOP % blank, rank "—", right-column RV% computed from `calculateOverallRV`. Honest about being un-ranked until the backend provides RV ranking.
+RV mode is parked. The `DMG ▾ / RV ▾` toggle, mode persistence, and `calculateOverallRV` wiring were all removed from the card surface — re-introduce only when the backend provides an RV-ranked index (Phase 3 below).
 
 ### Phase 2 — rank on row
 
