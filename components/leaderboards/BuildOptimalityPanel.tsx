@@ -6,7 +6,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { Character, Element } from '@/lib/character';
 import { FETTER_MAP } from '@/lib/echo';
 import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
-import { HoverTooltip } from '@/components/ui/HoverTooltip';
+import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
 import { formatFlatStat, formatPercentStat } from './formatters';
 import { RegionBadge, ELEMENT_STAT_KEYS, PERCENT_STAT_KEYS, SORT_OPTIONS } from './constants';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
@@ -67,7 +67,14 @@ const TierRow: React.FC<TierRowProps> = ({ label, ref_, currentDamage, ratio, is
             : 'text-text-primary/50';
 
   return (
-    <HoverTooltip content={tooltip} placement="top" triggerClassName="w-full">
+    <HoverCard
+      placement="top"
+      triggerClassName="w-full"
+      title={label}
+      subtitle="Benchmark Tier"
+      body={<HoverCardDescription>{tooltip}</HoverCardDescription>}
+      width="sm"
+    >
       <button
         type="button"
         onClick={onClick}
@@ -91,7 +98,7 @@ const TierRow: React.FC<TierRowProps> = ({ label, ref_, currentDamage, ratio, is
           {ratio !== undefined ? `${(ratio * 100).toFixed(1)}%` : '—'}
         </span>
       </button>
-    </HoverTooltip>
+    </HoverCard>
   );
 };
 

@@ -2,14 +2,14 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { HoverTooltip } from '@/components/ui/HoverTooltip';
+import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getSetBonusesFromPieceEffect } from '@/lib/constants/setBonuses';
 import { LBTeamMemberConfig } from '@/lib/lb';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
-import { renderGameTemplateWithHighlights, resolveFetterPieceDescription } from '@/lib/text/gameText';
-import { WeaponHoverContent } from '@/components/weapon/WeaponHoverContent';
+import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
+import { EchoHoverCard } from '@/components/echo/EchoHoverCard';
+import { FetterHoverCard } from '@/components/echo/FetterHoverCard';
 import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix } from '../constants';
 
 interface LeaderboardCharacterHeaderProps {
@@ -28,7 +28,7 @@ interface LoadoutIcon {
   key: string;
   src: string;
   label: string;
-  tooltip: React.ReactNode;
+  wrap?: (trigger: React.ReactNode) => React.ReactNode;
 }
 
 function LoadoutIconRow({
@@ -42,31 +42,24 @@ function LoadoutIconRow({
 
   return (
     <div className="relative z-10 -mt-4 flex items-center justify-center gap-1">
-      {icons.map((icon) => (
-        <HoverTooltip
-          key={`${keyPrefix}-${icon.key}`}
-          content={icon.tooltip}
-          disabled={!icon.tooltip}
-          placement="bottom"
-          strictPlacement
-        >
+      {icons.map((icon) => {
+        const trigger = (
           <div
             role="img"
             aria-label={icon.label}
             className="h-10 w-10 rounded-xl border border-white/10 bg-black/60 bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: `url("${icon.src}")` }}
           />
-        </HoverTooltip>
-      ))}
+        );
+        return (
+          <React.Fragment key={`${keyPrefix}-${icon.key}`}>
+            {icon.wrap ? icon.wrap(trigger) : trigger}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }
-
-const formatValue = (value: number): string => (
-  Number.isInteger(value)
-    ? String(Math.trunc(value))
-    : value.toFixed(1).replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0+$/u, '')
-);
 
 // Terms that appear in track notes and get an inline tooltip when hovered.
 const NOTE_GLOSSARY: Record<string, React.ReactNode> = {
@@ -88,11 +81,18 @@ function renderNoteWithTooltips(note: string): React.ReactNode {
     const tooltip = NOTE_GLOSSARY[part.toLowerCase()];
     if (tooltip) {
       return (
-        <HoverTooltip key={i} content={tooltip} placement="top">
+        <HoverCard
+          key={i}
+          placement="top"
+          title={part}
+          subtitle="Glossary"
+          body={<HoverCardDescription>{tooltip}</HoverCardDescription>}
+          width="sm"
+        >
           <span className="cursor-help underline decoration-dotted decoration-white/40 underline-offset-2">
             {part}
           </span>
-        </HoverTooltip>
+        </HoverCard>
       );
     }
     return part;
@@ -114,10 +114,8 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     fetters,
     getCharacter,
     getEcho,
-    getFetterByElement,
     getWeapon,
     statIcons,
-    statTranslations,
   } = useGameData();
   const { t } = useLanguage();
 
@@ -128,9 +126,9 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
   const activeWeaponIcon = activeWeapon ? getWeaponPaths(activeWeapon) : null;
   const activeWeaponName = activeWeapon ? t(activeWeapon.nameI18n ?? { en: activeWeapon.name }) : null;
 
-  const renderWeaponTooltip = React.useCallback((weaponId?: string, refinement?: number): React.ReactNode => {
+  const wrapWeapon = React.useCallback((weaponId?: string, refinement?: number) => {
     const weapon = getWeapon(weaponId ?? null);
-    if (!weapon) return null;
+    if (!weapon) return undefined;
 
     const rank = refinement && refinement > 0 ? refinement : 1;
     const atk90 = Math.floor(weapon.ATK * 12.5);
@@ -138,141 +136,39 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     const atkIcon = statIcons?.['ATK'];
     const mainStatIcon = weapon.main_stat ? (statIcons?.[weapon.main_stat] ?? null) : null;
 
-    return (
-      <WeaponHoverContent
-        weapon={weapon}
-        weaponLevel={90}
-        weaponRank={rank}
-        scaledAtk={atk90}
-        scaledMainStat={mainStat90}
-        atkIcon={atkIcon}
-        mainStatIcon={mainStatIcon}
-      />
-    );
+    return function wrapWeaponTrigger(trigger: React.ReactNode) {
+      return (
+        <WeaponHoverCard
+          placement="bottom"
+          weapon={weapon}
+          weaponLevel={90}
+          weaponRank={rank}
+          scaledAtk={atk90}
+          scaledMainStat={mainStat90}
+          atkIcon={atkIcon}
+          mainStatIcon={mainStatIcon}
+        >
+          {trigger}
+        </WeaponHoverCard>
+      );
+    };
   }, [getWeapon, statIcons]);
 
-  const renderFetterTooltip = React.useCallback((setId?: string): React.ReactNode => {
-    const fetter = fetters.find((entry) => String(entry.id) === setId);
-    if (!fetter) return null;
-
-    const pieceEffects = fetter.pieceEffects ?? {};
-    const pieces = Object.entries(pieceEffects)
-      .map(([pieceCount, effect]) => ({ pieceCount: Number(pieceCount), effect }))
-      .filter((entry) => Number.isFinite(entry.pieceCount) && entry.effect)
-      .sort((a, b) => a.pieceCount - b.pieceCount);
-
-    const resolvedPieces = pieces.length > 0
-      ? pieces
-      : [{
-        pieceCount: fetter.pieceCount,
-        effect: {
-          pieceCount: fetter.pieceCount,
-          fetterId: fetter.fetterId,
-          addProp: fetter.addProp,
-          buffIds: fetter.buffIds,
-          effectDescription: fetter.effectDescription,
-          effectDescriptionParam: fetter.effectDescriptionParam,
-        },
-      }];
-
-    return (
-      <div className="font-plus-jakarta text-white/90">
-        <p className="text-base font-semibold text-white/96">{t(fetter.name)}</p>
-        <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-white/65">Sonata Effect</p>
-
-        <div className="mt-2 space-y-2">
-          {resolvedPieces.map(({ pieceCount, effect }) => {
-            const pieceBonuses = getSetBonusesFromPieceEffect(effect);
-            const renderBonuses = pieceBonuses.length > 0 && (effect.buffIds?.length ?? 0) === 0;
-            const { renderedParts } = resolveFetterPieceDescription(effect, {
-              descriptionTemplate: t(effect.effectDescription),
-            });
-
-            return (
-              <div key={`${fetter.id}-${pieceCount}`} className="rounded-lg border border-white/12 bg-black/60 px-2.5 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
-                  {pieceCount}-Piece
-                </p>
-                {renderBonuses ? (
-                  <div className="mt-1 space-y-1">
-                    {pieceBonuses.map((bonus, index) => {
-                      const localizedStatName = statTranslations?.[bonus.stat]
-                        ? t(statTranslations[bonus.stat])
-                        : bonus.stat;
-                      return (
-                        <p key={`${fetter.id}-${pieceCount}-${bonus.stat}-${index}`} className="text-sm leading-relaxed text-white/86">
-                          <span>{localizedStatName}</span>{' '}
-                          <span className="text-cyan-200 font-semibold">+{formatValue(bonus.value)}</span>
-                        </p>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-white/86">
-                    {renderedParts}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }, [fetters, statTranslations, t]);
-
-  const renderEchoTooltip = React.useCallback((echoId?: string): React.ReactNode => {
+  const wrapEcho = React.useCallback((echoId?: string) => {
     const echo = getEcho(echoId ?? null);
-    if (!echo) return null;
+    if (!echo) return undefined;
+    return function wrapEchoTrigger(trigger: React.ReactNode) {
+      return <EchoHoverCard placement="bottom" echo={echo}>{trigger}</EchoHoverCard>;
+    };
+  }, [getEcho]);
 
-    const echoName = t(echo.nameI18n ?? { en: echo.name });
-    const setNames = echo.elements
-      .map((element) => getFetterByElement(element))
-      .filter((fetter): fetter is NonNullable<typeof fetters[number]> => Boolean(fetter))
-      .map((fetter) => t(fetter.name));
-    const skillTemplate = echo.skill?.description ?? '';
-    const levelOneParams = echo.skill?.params?.[0] ?? [];
-
-    return (
-      <div className="font-plus-jakarta text-white/90">
-        <p className="text-base font-semibold text-white/96">{echoName}</p>
-        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wide text-white/65">Cost {echo.cost}</span>
-          {setNames.map((name) => (
-            <span key={`${echo.id}-${name}`} className="rounded-md border border-white/15 bg-black/35 px-2 py-0.5 text-xs font-semibold text-white/84">
-              {name}
-            </span>
-          ))}
-        </div>
-
-        {echo.bonuses?.length ? (
-          <div className="mt-2 space-y-1">
-            {echo.bonuses.map((bonus, index) => {
-              const localizedStatName = statTranslations?.[bonus.stat]
-                ? t(statTranslations[bonus.stat])
-                : bonus.stat;
-              return (
-                <p key={`${echo.id}-${bonus.stat}-${index}`} className="text-sm leading-relaxed text-white/86">
-                  <span>{localizedStatName}</span>{' '}
-                  <span className="text-cyan-200 font-semibold">+{formatValue(bonus.value)}</span>
-                </p>
-              );
-            })}
-          </div>
-        ) : null}
-
-        {skillTemplate ? (
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/86">
-            {renderGameTemplateWithHighlights({
-              template: skillTemplate,
-              getParamValue: (index) => levelOneParams[index] ?? null,
-              highlightClassName: 'text-cyan-200 font-semibold',
-              keepUnknownPlaceholders: true,
-            })}
-          </p>
-        ) : null}
-      </div>
-    );
-  }, [getEcho, getFetterByElement, statTranslations, t]);
+  const wrapFetter = React.useCallback((setId?: string) => {
+    const fetter = fetters.find((entry) => String(entry.id) === setId);
+    if (!fetter) return undefined;
+    return function wrapFetterTrigger(trigger: React.ReactNode) {
+      return <FetterHoverCard placement="bottom" fetter={fetter}>{trigger}</FetterHoverCard>;
+    };
+  }, [fetters]);
 
   const supportConfigs: LBTeamMemberConfig[] = teamMembers.length > 0
     ? teamMembers
@@ -284,26 +180,27 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     const echo = getEcho(member.echoId ?? null);
     const set = fetters.find((entry) => String(entry.id) === member.setId);
 
-    const loadoutIcons: LoadoutIcon[] = [
-      weapon ? {
+    const loadoutIconCandidates: Array<LoadoutIcon | null> = [
+      weapon ? ({
         key: 'weapon',
         src: getWeaponPaths(weapon),
         label: t(weapon.nameI18n ?? { en: weapon.name }),
-        tooltip: renderWeaponTooltip(member.weaponId, member.refinement),
-      } : null,
-      echo ? {
+        wrap: wrapWeapon(member.weaponId, member.refinement),
+      }) : null,
+      echo ? ({
         key: 'echo',
         src: getEchoPaths(echo),
         label: t(echo.nameI18n ?? { en: echo.name }),
-        tooltip: renderEchoTooltip(member.echoId),
-      } : null,
-      set?.icon ? {
+        wrap: wrapEcho(member.echoId),
+      }) : null,
+      set?.icon ? ({
         key: 'set',
         src: set.icon,
         label: t(set.name),
-        tooltip: renderFetterTooltip(member.setId),
-      } : null,
-    ].filter((icon): icon is LoadoutIcon => icon !== null);
+        wrap: wrapFetter(member.setId),
+      }) : null,
+    ];
+    const loadoutIcons = loadoutIconCandidates.filter((icon): icon is LoadoutIcon => icon !== null);
 
     return {
       id: member.charId,
@@ -319,7 +216,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
       key: 'weapon',
       src: activeWeaponIcon,
       label: activeWeaponName ?? 'Weapon',
-      tooltip: renderWeaponTooltip(activeWeaponId),
+      wrap: wrapWeapon(activeWeaponId),
     }]
     : [];
 

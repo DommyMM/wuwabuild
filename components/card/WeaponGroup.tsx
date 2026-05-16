@@ -4,9 +4,8 @@ import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Weapon } from '@/lib/weapon';
 import { RARITY_ACCENTS } from '@/components/weapon/rarityStyles';
-import { WeaponHoverContent } from '@/components/weapon/WeaponHoverContent';
+import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
 import { StatHoverKey } from '@/lib/constants/statHover';
-import { HoverTooltip } from '@/components/ui/HoverTooltip';
 
 interface WeaponGroupProps {
   weapon: Weapon;
@@ -58,19 +57,15 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
 
   return (
     <div className="flex items-center gap-3">
-      <HoverTooltip
+      <WeaponHoverCard
         placement="right"
-        content={(
-          <WeaponHoverContent
-            weapon={weapon}
-            weaponLevel={weaponLevel}
-            weaponRank={weaponRank}
-            scaledAtk={weaponStats.scaledAtk}
-            scaledMainStat={weaponStats.scaledMainStat}
-            atkIcon={weaponAtkIcon}
-            mainStatIcon={weaponMainIcon}
-          />
-        )}
+        weapon={weapon}
+        weaponLevel={weaponLevel}
+        weaponRank={weaponRank}
+        scaledAtk={weaponStats.scaledAtk}
+        scaledMainStat={weaponStats.scaledMainStat}
+        atkIcon={weaponAtkIcon}
+        mainStatIcon={weaponMainIcon}
       >
         <div className={`relative flex h-30 w-30 items-center justify-center overflow-hidden rounded-xl border shadow-[0_8px_18px_rgba(0,0,0,0.35)] transition-all duration-200 ${weaponPassiveHoverMatch ? 'brightness-110 saturate-110' : ''} ${rarityStyle?.border ?? 'border-white/28'} ${rarityStyle?.bg ?? 'bg-black/20'}`}>
           <img
@@ -83,7 +78,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
             <div className="pointer-events-none absolute inset-0 rounded-xl border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.22),0_0_14px_rgba(110,255,255,0.45)]" />
           )}
         </div>
-      </HoverTooltip>
+      </WeaponHoverCard>
       <div className="flex min-w-0 flex-col gap-1.5">
         <span className={`truncate text-2xl font-semibold leading-tight text-white/95 transition-all duration-200 ${nameInteractionClass}`}>
           {translatedWeaponName || weapon.name}

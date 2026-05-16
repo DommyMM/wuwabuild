@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { HoverTooltip } from '@/components/ui/HoverTooltip';
+import { HoverCard, HoverCardIcon, HoverCardDescription } from '@/components/ui/HoverCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CDNChainEntry, I18nString } from '@/lib/character';
 import { ELEMENT_COLOR } from '@/lib/elementVisuals';
@@ -32,54 +32,67 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
         const active = i < sequence;
         const chainName = resolveLocalizedText(chain?.name);
         const chainDescription = resolveLocalizedText(chain?.description);
-        const tooltipContent = chain ? (
-          <div className="font-plus-jakarta text-white/90">
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{resolvedCharacterName}</p>
-            <p className="mt-1 text-base font-semibold text-white/96">{chainName}</p>
-            <div className="mt-2 inline-flex rounded-md border border-white/15 bg-black/35 px-2 py-1 text-xs font-semibold text-white/86">
-              Resonance Chain {i + 1}
-            </div>
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/86">
-              {renderGameTemplateWithHighlights({
-                template: chainDescription,
-                getParamValue: (index) => chain.param?.[index] ?? null,
-                highlightClassName: 'text-cyan-200 font-semibold',
-                keepUnknownPlaceholders: true,
-                unknownPlaceholderClassName: 'text-amber-200/90 font-semibold',
-              })}
-            </p>
+
+        const trigger = (
+          <div
+            className={`relative flex h-11.5 w-11.5 items-center justify-center rounded-full border transition-all duration-300 ${
+              active ? 'opacity-100' : 'opacity-40 grayscale'
+            }`}
+            style={{
+              borderColor: active ? `${color}90` : 'rgba(255,255,255,0.15)',
+              backgroundColor: active ? `${color}15` : 'rgba(0,0,0,0.4)',
+              boxShadow: active
+                ? `0 0 10px ${color}30, inset 0 0 8px ${color}15`
+                : 'none',
+            }}
+          >
+            {chain?.icon && (
+              <img
+                src={chain.icon}
+                alt={`Sequence ${i + 1}`}
+                className="h-2/3 w-2/3 object-contain transition-all duration-300"
+              />
+            )}
           </div>
-        ) : null;
+        );
+
+        if (!chain) {
+          return <React.Fragment key={i}>{trigger}</React.Fragment>;
+        }
+
+        const icon = (
+          <HoverCardIcon
+            src={chain.icon}
+            alt={chainName}
+            borderClass="border-white/24"
+            bgClass="bg-black/45"
+            imgClassName="h-3/4 w-3/4 object-contain"
+          />
+        );
 
         return (
-          <HoverTooltip
+          <HoverCard
             key={i}
-            content={tooltipContent}
-            disabled={!chain}
             placement="right"
             maxRisePx={180}
+            icon={icon}
+            eyebrow={resolvedCharacterName}
+            title={chainName}
+            chips={[{ label: `Resonance Chain ${i + 1}`, tone: 'amber' }]}
+            body={chainDescription ? (
+              <HoverCardDescription>
+                {renderGameTemplateWithHighlights({
+                  template: chainDescription,
+                  getParamValue: (index) => chain.param?.[index] ?? null,
+                  highlightClassName: 'text-cyan-200 font-semibold',
+                  keepUnknownPlaceholders: true,
+                  unknownPlaceholderClassName: 'text-amber-200/90 font-semibold',
+                })}
+              </HoverCardDescription>
+            ) : undefined}
           >
-            <div
-              className={`relative flex h-11.5 w-11.5 items-center justify-center rounded-full border transition-all duration-300 ${
-                active ? 'opacity-100' : 'opacity-40 grayscale'
-              }`}
-              style={{
-                borderColor: active ? `${color}90` : 'rgba(255,255,255,0.15)',
-                backgroundColor: active ? `${color}15` : 'rgba(0,0,0,0.4)',
-                boxShadow: active
-                  ? `0 0 10px ${color}30, inset 0 0 8px ${color}15`
-                  : 'none',
-              }}
-            >
-              {chain?.icon && (
-                <img
-                  src={chain.icon}
-                  alt={`Sequence ${i + 1}`}
-                  className="h-2/3 w-2/3 object-contain transition-all duration-300"
-                />
-              )}
-            </div>
-          </HoverTooltip>
+            {trigger}
+          </HoverCard>
         );
       })}
     </div>

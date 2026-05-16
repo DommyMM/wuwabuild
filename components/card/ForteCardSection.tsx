@@ -1,7 +1,13 @@
 'use client';
 
-import React from 'react';
-import { HoverTooltip } from '@/components/ui/HoverTooltip';
+import React, { ReactNode } from 'react';
+import {
+  HoverCard,
+  HoverCardIcon,
+  HoverCardSection,
+  HoverCardDescription,
+  HoverCardChipModel,
+} from '@/components/ui/HoverCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Character, I18nString } from '@/lib/character';
 import { ForteState } from '@/lib/build';
@@ -115,17 +121,21 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
     const index = Math.max(0, Math.min(9, level - 1));
     return values[index] ?? values[values.length - 1] ?? null;
   };
-  const buildMoveTooltipContent = (
+  type SkillCardOptions = {
+    icon: string;
+    label: string;
+    level: number;
+    fallbackTitle: string;
+    showLevelChip?: boolean;
+  };
+
+  const buildMoveCard = (
     move: MoveEntry | undefined,
-    options: {
-      icon: string;
-      label: string;
-      level: number;
-      fallbackTitle: string;
-      showLevelChip?: boolean;
-    }
-  ): React.ReactNode => {
-    if (!move) return null;
+    options: SkillCardOptions,
+    trigger: ReactNode,
+    placement: 'right' | 'left' | 'top' | 'bottom' = 'right'
+  ): ReactNode => {
+    if (!move) return trigger;
 
     const level = Math.max(1, Math.min(10, options.level));
     const moveName = stripGameMarkup(resolveLocalizedText(move.name));
@@ -141,61 +151,61 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
     const descriptionParams = (move.descriptionParams ?? []).map((value) => String(value));
     const fallbackParams = selectedMoveValues.map((entry) => entry.value);
 
-    return (
-      <div className="font-plus-jakarta text-white/90">
-        {options.icon ? (
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-stretch gap-x-3 gap-y-2">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{characterName}</p>
-              <p className="mt-1 text-base font-semibold text-white/96">{moveName || options.fallbackTitle}</p>
-            </div>
-            <div className="row-span-2 flex min-h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-white/18 bg-black/35 shadow-[0_8px_18px_rgba(0,0,0,0.25)]">
-              <img src={options.icon} alt={options.label} className="h-full w-full object-contain" />
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
-              <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">{options.label}</span>
-              {options.showLevelChip !== false && (
-                <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">Lv.{level}</span>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/70">{characterName}</p>
-              <p className="mt-1 text-base font-semibold text-white/96">{moveName || options.fallbackTitle}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
-              <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">{options.label}</span>
-              {options.showLevelChip !== false && (
-                <span className="rounded-md border border-white/15 bg-black/35 px-2 py-1 text-white/88">Lv.{level}</span>
-              )}
-            </div>
-          </div>
-        )}
+    const cardIcon = options.icon ? (
+      <HoverCardIcon
+        src={options.icon}
+        alt={options.label}
+        borderClass="border-white/24"
+        bgClass="bg-black/45"
+      />
+    ) : undefined;
+
+    const chips: HoverCardChipModel[] = [{ label: options.label }];
+    if (options.showLevelChip !== false) {
+      chips.push({ label: `Lv.${level}` });
+    }
+
+    const body = (
+      <>
         {plainMoveDescription && (
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/86">
+          <HoverCardDescription>
             {resolveGameTemplateFromValues({
               template: moveDescription,
               values: descriptionParams.length > 0 ? descriptionParams : fallbackParams,
               keepUnknownPlaceholders: true,
               highlightClassName: 'text-cyan-200 font-semibold',
             })}
-          </p>
+          </HoverCardDescription>
         )}
         {selectedMoveValues.length > 0 && (
-          <div className="mt-2 space-y-1.5">
+          <div className="space-y-1.5">
             {selectedMoveValues.map((entry) => (
-              <div key={`${move.id}-${entry.id}`} className="rounded-md border border-white/12 bg-black/25 px-2 py-1.5">
-                <p className="text-xs font-semibold text-amber-100/90">{entry.name || options.fallbackTitle}</p>
+              <HoverCardSection
+                key={`${move.id}-${entry.id}`}
+                variant="inset"
+                eyebrow={entry.name || options.fallbackTitle}
+              >
                 {entry.value && (
-                  <p className="mt-0.5 text-sm font-semibold text-cyan-200">{entry.value}</p>
+                  <p className="text-sm font-semibold text-cyan-200">{entry.value}</p>
                 )}
-              </div>
+              </HoverCardSection>
             ))}
           </div>
         )}
-      </div>
+      </>
+    );
+
+    return (
+      <HoverCard
+        placement={placement}
+        icon={cardIcon}
+        eyebrow={characterName}
+        title={moveName || options.fallbackTitle}
+        chips={chips}
+        body={body}
+      >
+        {trigger}
+      </HoverCard>
     );
   };
 
@@ -222,114 +232,82 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
         const branchMoveType = BRANCH_MOVE_TYPE[branch.skillKey];
         const move = character.moves?.find((entry) => entry.type === branchMoveType);
         const selectedLevel = Math.max(1, Math.min(10, level));
-        const tooltipContent = buildMoveTooltipContent(move, {
-          icon: skillIcon,
-          label: branch.skillName,
-          level: selectedLevel,
-          fallbackTitle: branch.skillName,
-        });
         const topInherentMove = isCircuit ? inherentMoves[0] : undefined;
         const midInherentMove = isCircuit ? inherentMoves[1] : undefined;
-        const topInherentTooltipContent = buildMoveTooltipContent(topInherentMove, {
-          icon: topNodeIcon,
-          label: 'Inherent Skill',
-          level: 1,
-          fallbackTitle: topNodeName || 'Inherent Skill',
-          showLevelChip: false,
-        });
-        const midInherentTooltipContent = buildMoveTooltipContent(midInherentMove, {
-          icon: midNodeIcon,
-          label: 'Inherent Skill',
-          level: 1,
-          fallbackTitle: midNodeName || 'Inherent Skill',
-          showLevelChip: false,
-        });
+
+        const topNode = (
+          <NodeBadge
+            icon={topNodeIcon}
+            active={topActive}
+            isCircuit={isCircuit}
+            alt={`${branch.skillName} top node`}
+            hoverKey={topNodeHoverKey}
+            activeHoverStat={activeHoverStat}
+            onHoverStatChange={onHoverStatChange}
+          />
+        );
+        const midNode = (
+          <NodeBadge
+            icon={midNodeIcon}
+            active={midActive}
+            isCircuit={isCircuit}
+            alt={`${branch.skillName} middle node`}
+            hoverKey={midNodeHoverKey}
+            activeHoverStat={activeHoverStat}
+            onHoverStatChange={onHoverStatChange}
+          />
+        );
+        const skillButton = (
+          <div className={`flex flex-col items-center rounded-sm transition-all duration-200 ${bottomInteractionClass}`}>
+            <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-all duration-200">
+              {skillIcon && (
+                <img src={skillIcon} alt={branch.skillName} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
+              )}
+            </div>
+            <span
+              className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 transition-all duration-200 ${
+                isMaxLevel
+                  ? 'border-amber-300/55 bg-amber-300/92 text-[#4a3400]'
+                  : 'border-black/35 bg-black/55 text-white/92'
+              }`}
+            >
+              {level}
+            </span>
+          </div>
+        );
 
         return (
           <div key={branch.skillKey} className="flex shrink-0 flex-col items-center justify-end gap-0.5">
-            {isCircuit && topInherentMove ? (
-              <HoverTooltip
-                content={topInherentTooltipContent}
-                disabled={!topInherentTooltipContent}
-                placement="right"
-              >
-                <NodeBadge
-                  icon={topNodeIcon}
-                  active={topActive}
-                  isCircuit={isCircuit}
-                  alt={`${branch.skillName} top node`}
-                  hoverKey={topNodeHoverKey}
-                  activeHoverStat={activeHoverStat}
-                  onHoverStatChange={onHoverStatChange}
-                />
-              </HoverTooltip>
-            ) : (
-              <NodeBadge
-                icon={topNodeIcon}
-                active={topActive}
-                isCircuit={isCircuit}
-                alt={`${branch.skillName} top node`}
-                hoverKey={topNodeHoverKey}
-                activeHoverStat={activeHoverStat}
-                onHoverStatChange={onHoverStatChange}
-              />
-            )}
+            {isCircuit && topInherentMove
+              ? buildMoveCard(topInherentMove, {
+                  icon: topNodeIcon,
+                  label: 'Inherent Skill',
+                  level: 1,
+                  fallbackTitle: topNodeName || 'Inherent Skill',
+                  showLevelChip: false,
+                }, topNode)
+              : topNode}
 
             <div className="-my-0.5 h-1.5 w-px shrink-0 bg-white/28" />
 
-            {isCircuit && midInherentMove ? (
-              <HoverTooltip
-                content={midInherentTooltipContent}
-                disabled={!midInherentTooltipContent}
-                placement="right"
-              >
-                <NodeBadge
-                  icon={midNodeIcon}
-                  active={midActive}
-                  isCircuit={isCircuit}
-                  alt={`${branch.skillName} middle node`}
-                  hoverKey={midNodeHoverKey}
-                  activeHoverStat={activeHoverStat}
-                  onHoverStatChange={onHoverStatChange}
-                />
-              </HoverTooltip>
-            ) : (
-              <NodeBadge
-                icon={midNodeIcon}
-                active={midActive}
-                isCircuit={isCircuit}
-                alt={`${branch.skillName} middle node`}
-                hoverKey={midNodeHoverKey}
-                activeHoverStat={activeHoverStat}
-                onHoverStatChange={onHoverStatChange}
-              />
-            )}
+            {isCircuit && midInherentMove
+              ? buildMoveCard(midInherentMove, {
+                  icon: midNodeIcon,
+                  label: 'Inherent Skill',
+                  level: 1,
+                  fallbackTitle: midNodeName || 'Inherent Skill',
+                  showLevelChip: false,
+                }, midNode)
+              : midNode}
 
             <div className="-my-0.5 h-2.5 w-px shrink-0 bg-white/28" />
 
-            {/* Skill icon frame + level bubble below */}
-            <HoverTooltip
-              content={tooltipContent}
-              disabled={!move}
-              placement="right"
-            >
-              <div className={`flex flex-col items-center rounded-sm transition-all duration-200 ${bottomInteractionClass}`}>
-                <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-all duration-200">
-                  {skillIcon && (
-                    <img src={skillIcon} alt={branch.skillName} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
-                  )}
-                </div>
-                <span
-                  className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 transition-all duration-200 ${
-                    isMaxLevel
-                      ? 'border-amber-300/55 bg-amber-300/92 text-[#4a3400]'
-                      : 'border-black/35 bg-black/55 text-white/92'
-                  }`}
-                >
-                  {level}
-                </span>
-              </div>
-            </HoverTooltip>
+            {buildMoveCard(move, {
+              icon: skillIcon,
+              label: branch.skillName,
+              level: selectedLevel,
+              fallbackTitle: branch.skillName,
+            }, skillButton)}
           </div>
         );
       })}

@@ -21,6 +21,10 @@ interface HoverTooltipProps {
   triggerClassName?: string;
   maxRisePx?: number;
   pinViewportBottom?: boolean;
+  // Optional node rendered as a sibling of the panel, outside its overflow-hidden box.
+  // Use this for decorations that should visually "hang" off the panel (e.g. an entity icon
+  // protruding top-left). Absolute positioning is up to the caller.
+  leadingNode?: ReactNode;
 }
 
 const VIEWPORT_PADDING = 8;
@@ -89,6 +93,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   triggerClassName = '',
   maxRisePx,
   pinViewportBottom = false,
+  leadingNode,
 }) => {
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
@@ -259,23 +264,28 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
         <div
           ref={tooltipRef}
           style={{ top: position.top, left: position.left, pointerEvents: 'none' }}
-          className={`pointer-events-none fixed z-45 max-h-[90vh] max-w-xl overflow-hidden rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${tooltipClassName}`}
+          className="pointer-events-none fixed z-45"
           aria-hidden="true"
         >
           <div
-            ref={scrollRef}
-            className="max-h-[calc(90vh-48px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0"
+            className={`relative max-h-[90vh] max-w-xl overflow-hidden rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${tooltipClassName}`}
           >
-            {content}
+            <div
+              ref={scrollRef}
+              className="max-h-[calc(90vh-48px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0"
+            >
+              {content}
+            </div>
+            {showBottomArrow && (
+              <>
+                <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-10 bg-linear-to-t from-black/58 to-transparent" />
+                <span className="pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 text-sm leading-none font-semibold text-white/74">
+                  ⌄
+                </span>
+              </>
+            )}
           </div>
-          {showBottomArrow && (
-            <>
-              <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-10 bg-linear-to-t from-black/58 to-transparent" />
-              <span className="pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 text-sm leading-none font-semibold text-white/74">
-                ⌄
-              </span>
-            </>
-          )}
+          {leadingNode}
         </div>,
         document.body
       )}

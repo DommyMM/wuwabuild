@@ -4,22 +4,15 @@ import React from 'react';
 import { useStats } from '@/contexts/StatsContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { CDNFetter } from '@/lib/echo';
-import { getSetBonusesFromFetter, getSetBonusesFromPieceEffect } from '@/lib/constants/setBonuses';
+import { getSetBonusesFromFetter } from '@/lib/constants/setBonuses';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
-import { HoverTooltip } from '@/components/ui/HoverTooltip';
-import { FetterPieceEffect, resolveFetterPieceDescription } from '@/lib/text/gameText';
+import { FetterHoverCard } from '@/components/echo/FetterHoverCard';
 
 interface ActiveSetsSectionProps {
   showCV?: boolean;
   activeHoverStat?: StatHoverKey | null;
   onHoverStatChange?: (next: StatHoverKey | null) => void;
 }
-
-type PieceTooltipModel = {
-  pieceCount: number;
-  effect: FetterPieceEffect;
-};
 
 const getPieceLabel = (count: number, threshold: number): string => {
   if (threshold === 3) return '3';
@@ -28,52 +21,12 @@ const getPieceLabel = (count: number, threshold: number): string => {
 
 const WRAPPING_SET_NAME_LENGTH = 18;
 
-const formatSetBonusValue = (value: number): string => (
-  Number.isInteger(value)
-    ? String(Math.trunc(value))
-    : value.toFixed(1).replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0+$/u, '')
-);
-
-const getFetterPieceTooltipModels = (fetter: CDNFetter | undefined): PieceTooltipModel[] => {
-  if (!fetter) return [];
-
-  const entries: PieceTooltipModel[] = [];
-  const pieceEffects = fetter.pieceEffects ?? {};
-  for (const [pieceCountText, pieceEffect] of Object.entries(pieceEffects)) {
-    const pieceCount = Number(pieceCountText);
-    if (!Number.isFinite(pieceCount) || !pieceEffect) continue;
-    entries.push({ pieceCount, effect: pieceEffect });
-  }
-
-  if (entries.length === 0) {
-    entries.push({
-      pieceCount: fetter.pieceCount,
-      effect: {
-        pieceCount: fetter.pieceCount,
-        fetterId: fetter.fetterId,
-        addProp: fetter.addProp,
-        buffIds: fetter.buffIds,
-        effectDescription: fetter.effectDescription,
-      },
-    });
-  }
-
-  entries.sort((a, b) => a.pieceCount - b.pieceCount);
-
-  if (fetter.pieceCount === 3) {
-    return entries.filter((entry) => entry.pieceCount === 3);
-  }
-
-  const standardEntries = entries.filter((entry) => entry.pieceCount === 2 || entry.pieceCount === 5);
-  return standardEntries.length > 0 ? standardEntries : entries;
-};
-
 export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   showCV = true,
   activeHoverStat = null,
 }) => {
   const { stats } = useStats();
-  const { fettersByElement, statTranslations } = useGameData();
+  const { fettersByElement } = useGameData();
   const { t } = useLanguage();
   const hasActiveSets = stats.activeSets.length > 0;
   const hasActiveHover = Boolean(activeHoverStat);
@@ -118,74 +71,37 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
           : setHoverMatch
             ? 'opacity-100 ring-1 ring-white/34 bg-white/12 shadow-[0_0_10px_rgba(255,255,255,0.22)]'
             : 'opacity-45 brightness-90';
-        const pieceModels = getFetterPieceTooltipModels(fetter);
-        const tooltipContent = fetter ? (
-          <div className="font-plus-jakarta text-white/90">
-            <div className="flex items-center gap-2">
-              {setIcon && <img src={setIcon} alt="" className="h-6 w-6 object-contain" />}
-              <p className="text-base font-semibold text-white/96">
-                {displayName}
-              </p>
-            </div>
-            <div className="mt-2 space-y-2">
-              {pieceModels.map((pieceModel) => {
-                const pieceBonuses = getSetBonusesFromPieceEffect(pieceModel.effect);
-                const shouldRenderNormalizedBonuses = pieceBonuses.length > 0 && (pieceModel.effect.buffIds?.length ?? 0) === 0;
-                const localizedDescription = t(pieceModel.effect.effectDescription);
-                const { renderedParts } = resolveFetterPieceDescription(pieceModel.effect, {
-                  descriptionTemplate: localizedDescription,
-                });
-                return (
-                  <div key={`${fetter.id}-${pieceModel.pieceCount}`} className="rounded-lg border border-white/12 bg-black/25 px-2.5 py-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
-                      {pieceModel.pieceCount}-Piece
-                    </p>
-                    {shouldRenderNormalizedBonuses ? (
-                      <div className="mt-1 space-y-1">
-                        {pieceBonuses.map((bonus, bonusIndex) => {
-                          const localizedStatName = statTranslations?.[bonus.stat]
-                            ? t(statTranslations[bonus.stat])
-                            : bonus.stat;
-                          return (
-                            <p key={`${fetter.id}-${pieceModel.pieceCount}-${bonus.stat}-${bonusIndex}`} className="text-sm leading-relaxed text-white/86">
-                              <span>{localizedStatName}</span>{' '}
-                              <span className="text-cyan-200 font-semibold">+{formatSetBonusValue(bonus.value)}</span>
-                            </p>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-white/86">
-                        {renderedParts}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+        const trigger = (
+          <div
+            className={`flex min-h-8 w-full min-w-0 items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
+          >
+            {setIcon && <img src={setIcon} alt={setIcon} className="h-5 w-5 shrink-0 object-contain" />}
+            <span className={`min-w-0 ${chipTextSizeClass} text-center ${shouldUseCompactText ? 'text-xs' : 'text-sm'} ${chipTextClass}`}>
+              {displayName}
+            </span>
+            <span className="shrink-0 rounded-md border border-amber-300/55 bg-amber-300/18 px-1 text-xs">
+              {pieceLabel}
+            </span>
           </div>
-        ) : null;
+        );
+
+        if (!fetter) {
+          return (
+            <div key={`${element}-${count}`} className={`flex min-w-0 ${chipSizeClass}`}>
+              {trigger}
+            </div>
+          );
+        }
 
         return (
-          <HoverTooltip
+          <FetterHoverCard
             key={`${element}-${count}`}
-            content={tooltipContent}
-            disabled={!fetter}
+            fetter={fetter}
             placement="top"
             triggerClassName={`flex min-w-0 ${chipSizeClass}`}
           >
-            <div
-              className={`flex min-h-8 w-full min-w-0 items-center gap-2 rounded-xl bg-black/35 px-2 py-1 transition-all duration-200 ${interactionClass}`}
-            >
-              {setIcon && <img src={setIcon} alt={setIcon} className="h-5 w-5 shrink-0 object-contain" />}
-              <span className={`min-w-0 ${chipTextSizeClass} text-center ${shouldUseCompactText ? 'text-xs' : 'text-sm'} ${chipTextClass}`}>
-                {displayName}
-              </span>
-              <span className="shrink-0 rounded-md border border-amber-300/55 bg-amber-300/18 px-1 text-xs">
-                {pieceLabel}
-              </span>
-            </div>
-          </HoverTooltip>
+            {trigger}
+          </FetterHoverCard>
         );
       })}
     </div>
