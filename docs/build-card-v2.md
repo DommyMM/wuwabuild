@@ -57,13 +57,13 @@ Assembly: `components/profile/ProfileBuildCard.tsx` orchestrates the variant, re
 
 ## Rank module
 
-Surface: `linear-gradient(180deg, rgba(166,150,98,.10) 0%, rgba(255,255,255,.02) 34%, rgba(0,0,0,.30) 100%)`, 1px `rgba(166,150,98,.45)` border, 12×10 padding.
+Surface chrome matches the echo cards so the rank module reads as part of the same family: `linear-gradient(170deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 28%, rgba(0,0,0,0.44) 100%)` with inset hairline + bottom-shadow, 1px `border-amber-300/45`, `rounded-xl`, `px-4 py-3`.
 
 ```
 ┌────────────────────────────────────────────────────┐
 │  HYPERCARRY                                        │
 │                                                    │
-│  #19  / 994     TOP 1.91%               1,233,878  │
+│  #19  / 994                             1,233,878  │
 └────────────────────────────────────────────────────┘
 ```
 
@@ -72,13 +72,14 @@ Anatomy:
 | Element | Spec |
 |---|---|
 | Track kicker | Ropa 10px, 0.22em tracking, all-caps, `--text-primary/55` |
-| Rank number | `font-gowun 700 28px` tabular, colored by percentile tier (gold→silver→bronze→neutral) using the same threshold table the old tier letter used. Replaces the tier-letter cell entirely. |
+| Rank number | `font-gowun 700 30px` tabular, **colored by percentile tier**. Color is the only quality signal — no separate TOP % text. |
 | Tier color map | TOP ≤ 1% `--gold-hi` (glow) · ≤ 10% silver `#C4C7CB` · ≤ 25% bronze `#B7895C` · ≤ 50% `--text-primary/65` · else `--text-primary/40` |
-| Total | `font-gowun 13px` tabular `--text-primary/40` ("/ 994") |
-| TOP % | `font-gowun 16px` `--accent`; kicker "TOP" 9px 0.22em `--text-primary/40` |
-| Damage value | `font-gowun 700 22px` tabular `--text-primary` — no kicker (the number alone is unambiguous as damage) |
+| Total | `font-gowun 14px` tabular `--text-primary/40` ("/ 994") |
+| Damage value | `font-gowun 700 22px` tabular `--text-primary` — no kicker (number alone is unambiguous as damage) |
 
-Dropped vs the original mock: the big tier letter (re-encoded percent), weapon chip (already in `WeaponGroup`), sequence chip (already in `SequenceStrip`), ER-bracket chip (Phase 2), in-card board picker, and the `DMG ▾ / RV ▾` mode toggle. Board switching belongs to a future bottom menu bar on the profile row; RV mode is parked entirely until the backend provides an RV-ranked index.
+Dropped vs the original mock: the big tier letter, weapon chip, sequence chip, ER-bracket chip, in-card board picker, the `DMG ▾ / RV ▾` mode toggle, **and the TOP %% text**. Color alone now carries the percentile signal — `#19` in gold reads "top 1%" without spending screen real estate on the literal number.
+
+Board switching belongs to a future bottom menu bar on the profile row. Team comp portraits (the akasha pattern) also live there, not in the card — the per-character leaderboard header already renders them well at [components/leaderboards/character/LeaderboardCharacterHeader.tsx](../components/leaderboards/character/LeaderboardCharacterHeader.tsx) and that's the shape to lift later.
 
 ### Canonical board
 
