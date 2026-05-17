@@ -179,7 +179,8 @@ export function BulkImportPageClient() {
         echoes: gameData.echoes,
       });
 
-      if (!savedState.characterId || !savedState.weaponId || !savedState.watermark.uid.trim()) {
+      const trimmedUid = savedState.watermark.uid.trim();
+      if (!savedState.characterId || !savedState.weaponId || !trimmedUid || trimmedUid === '0') {
         setItem(item.id, { status: 'skipped', message: 'Missing character, weapon, or UID' });
         addCounter({ processed: 1, skipped: 1 });
         return;
@@ -527,7 +528,7 @@ function IssueCard({ item }: { item: BulkItem }) {
           <StatusBadge status={item.status} />
         </div>
         <div className="mt-1 truncate text-sm text-text-primary" title={fileName}>{fileName}</div>
-        <p className="mt-1 break-words text-xs leading-5 text-text-secondary">{item.message || 'No message'}</p>
+        <p className="mt-1 wrap-break-word text-xs leading-5 text-text-secondary">{item.message || 'No message'}</p>
       </div>
     </article>
   );
