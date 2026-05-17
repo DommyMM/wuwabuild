@@ -6,9 +6,13 @@ import { Check, ChevronDown } from 'lucide-react';
 import { RankBoard } from '@/components/card/RankModule';
 import { getRankTier } from '@/lib/calculations/rankTier';
 
+/** Sentinel key meaning "don't show any ranking; use the default forte section instead." */
+export const NO_RANKING_KEY = '__no_ranking__';
+
 interface AdjustRankingButtonProps {
   availableBoards: RankBoard[];
   activeBoard: RankBoard | null;
+  showOriginalForte: boolean;
   equippedWeaponId?: string;
   onSelect: (key: string) => void;
 }
@@ -21,6 +25,7 @@ const formatPct = (value: number): string => {
 };
 
 interface PopoverProps {
+  popoverRef: React.RefObject<HTMLDivElement | null>;
   anchorRect: DOMRect;
   boards: RankBoard[];
   activeKey: string | null;
@@ -30,6 +35,7 @@ interface PopoverProps {
 }
 
 const Popover: React.FC<PopoverProps> = ({
+  popoverRef,
   anchorRect,
   boards,
   activeKey,
@@ -37,12 +43,10 @@ const Popover: React.FC<PopoverProps> = ({
   onSelect,
   onClose,
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (!ref.current) return;
-      if (!ref.current.contains(event.target as Node)) onClose();
+      if (!popoverRef.current) return;
+      if (!popoverRef.current.contains(event.target as Node)) onClose();
     };
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -53,9 +57,10 @@ const Popover: React.FC<PopoverProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [onClose]);
+  }, [onClose, popoverRef]);
 
   const sorted = [...boards].sort((a, b) => a.topPercent - b.topPercent);
+  const isOriginalActive = activeKey === NO_RANKING_KEY;
 
   const style: React.CSSProperties = {
     position: 'fixed',
@@ -68,17 +73,35 @@ const Popover: React.FC<PopoverProps> = ({
 
   return createPortal(
     <div
-      ref={ref}
+      ref={popoverRef}
       role="listbox"
       style={style}
-      className="font-plus-jakarta overflow-hidden rounded-lg border border-amber-300/30 bg-[linear-gradient(170deg,rgba(28,24,18,0.97)_0%,rgba(10,8,6,0.97)_100%)] shadow-[0_24px_48px_rgba(0,0,0,0.6)] backdrop-blur-md"
+      className="font-plus-jakarta overflow-hidden rounded-lg bg-[linear-gradient(170deg,rgba(28,24,18,0.97)_0%,rgba(10,8,6,0.97)_100%)] shadow-[0_24px_48px_rgba(0,0,0,0.6)] backdrop-blur-md"
     >
-      <div className="border-b border-white/8 px-3 py-2">
-        <span className="font-ropa text-[10px] uppercase tracking-[0.22em] text-text-primary/55">
-          Switch ranking
-        </span>
-      </div>
       <div className="max-h-80 overflow-y-auto">
+        {/* "Original forte" — opt out of the rank display, revert to default forte section */}
+        <button
+          role="option"
+          aria-selected={isOriginalActive}
+          onClick={() => { onSelect(NO_RANKING_KEY); onClose(); }}
+          className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
+            isOriginalActive ? 'bg-amber-300/10' : 'hover:bg-white/4'
+          }`}
+        >
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-primary/40">
+            ⌀
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="truncate text-xs text-text-primary/90">Original forte</span>
+            <span className="font-ropa text-[9px] uppercase tracking-[0.18em] text-text-primary/45">
+              Hide ranking
+            </span>
+          </div>
+          {isOriginalActive && <Check size={12} className="shrink-0 text-amber-300" />}
+        </button>
+
+        {sorted.length > 0 && <div className="h-px bg-white/6" />}
+
         {sorted.map((b) => {
           const isActive = b.key === activeKey;
           const isEquipped = equippedWeaponId === b.weaponId;
@@ -101,7 +124,7 @@ const Popover: React.FC<PopoverProps> = ({
               )}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <div className="flex items-center gap-1.5">
-                  <span className="truncate text-xs font-semibold text-text-primary/90">{b.weaponName}</span>
+                  <span className="truncate text-xs text-text-primary/90">{b.weaponName}</span>
                   {isEquipped && (
                     <span className="rounded-full bg-accent/20 px-1.5 py-px text-[8px] font-semibold uppercase tracking-wider text-accent">
                       Equipped
@@ -136,10 +159,12 @@ const Popover: React.FC<PopoverProps> = ({
 export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
   availableBoards,
   activeBoard,
+  showOriginalForte,
   equippedWeaponId,
   onSelect,
 }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 
@@ -148,33 +173,44 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
     setAnchorRect(buttonRef.current.getBoundingClientRect());
   }, [isOpen]);
 
+  // Keep the popover anchored to the button as the page scrolls or resizes.
+  // Ignore scroll events that originate inside the popover so its own scrollable
+  // content can be used without the popover closing or jumping.
   useEffect(() => {
     if (!isOpen) return;
-    const close = () => setIsOpen(false);
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
+    const reposition = (event?: Event) => {
+      if (event && popoverRef.current?.contains(event.target as Node)) return;
+      if (buttonRef.current) {
+        setAnchorRect(buttonRef.current.getBoundingClientRect());
+      }
+    };
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
     return () => {
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
     };
   }, [isOpen]);
 
-  const disabled = availableBoards.length <= 1;
-  const tier = activeBoard ? getRankTier(activeBoard.topPercent) : null;
+  // Disabled only when there's truly nothing to pick — no boards AND no
+  // "original forte" toggle would be meaningful.
+  const hasBoards = availableBoards.length > 0;
 
   return (
     <>
       <button
         ref={buttonRef}
         type="button"
-        disabled={disabled || !activeBoard}
+        disabled={!hasBoards && !showOriginalForte && !activeBoard}
         onMouseDown={(e) => e.stopPropagation()}
         onClick={() => setIsOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className="flex cursor-pointer items-center gap-2 rounded-lg bg-background-secondary px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {activeBoard ? (
+        {showOriginalForte ? (
+          <span className="text-text-primary/80">Original forte</span>
+        ) : activeBoard ? (
           <>
             {activeBoard.weaponIcon && (
               <div
@@ -184,15 +220,9 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
                 style={{ backgroundImage: `url("${activeBoard.weaponIcon}")` }}
               />
             )}
-            <span className="font-semibold">{activeBoard.weaponName}</span>
+            <span>{activeBoard.weaponName}</span>
             <span className="text-text-primary/30">·</span>
-            <span
-              className="font-gowun text-[13px] tabular-nums"
-              style={{
-                color: tier?.color,
-                textShadow: tier?.glow ? `0 0 10px ${tier.glow}` : undefined,
-              }}
-            >
+            <span className="font-gowun text-[13px] tabular-nums text-accent">
               TOP {formatPct(activeBoard.topPercent)}%
             </span>
             <span className="font-ropa text-[10px] uppercase tracking-[0.18em] text-text-primary/65">
@@ -207,9 +237,10 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
 
       {isOpen && anchorRect && (
         <Popover
+          popoverRef={popoverRef}
           anchorRect={anchorRect}
           boards={availableBoards}
-          activeKey={activeBoard?.key ?? null}
+          activeKey={showOriginalForte ? NO_RANKING_KEY : (activeBoard?.key ?? null)}
           equippedWeaponId={equippedWeaponId}
           onSelect={onSelect}
           onClose={() => setIsOpen(false)}

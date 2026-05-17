@@ -668,8 +668,7 @@ export const BuildEditor: React.FC = () => {
                 </div>
                 {/* Action bar, flipped version of BuildCardOptions */}
                 <CardActionBar
-                  className="flex justify-start md:pl-12"
-                  panelClassName="flex w-full flex-col rounded-lg border border-border bg-background md:w-auto md:rounded-t-none md:border-t-0"
+                  className="flex flex-col md:pl-12"
                   isArtEditMode={isArtEditMode}
                   onToggleArtEditMode={handleToggleArtEditMode}
                   isDownloading={isDownloading}

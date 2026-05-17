@@ -23,7 +23,7 @@ import { CardActionBar } from '@/components/card/CardActionBar';
 import { RankBoard } from '@/components/card/RankModule';
 import { ProfileRankSection } from './ProfileRankSection';
 import { SubstatSummaryRow } from './SubstatSummaryRow';
-import { AdjustRankingButton } from './AdjustRankingButton';
+import { AdjustRankingButton, NO_RANKING_KEY } from './AdjustRankingButton';
 import posthog from 'posthog-js';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -156,7 +156,10 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ entry, detail 
       });
   }, [standings, getWeapon, t, entry.sequence]);
 
+  const showOriginalForte = selectedStandingKey === NO_RANKING_KEY;
+
   const activeBoard = useMemo<RankBoard | null>(() => {
+    if (showOriginalForte) return null;
     if (availableBoards.length === 0) return null;
     if (selectedStandingKey) {
       const match = availableBoards.find((b) => b.key === selectedStandingKey);
@@ -164,7 +167,7 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ entry, detail 
     }
     // Default = lowest top% (most impressive ranking) across all variants.
     return [...availableBoards].sort((a, b) => a.topPercent - b.topPercent)[0];
-  }, [availableBoards, selectedStandingKey]);
+  }, [showOriginalForte, availableBoards, selectedStandingKey]);
 
   const handleToggleArtEditMode = useCallback(() => setIsArtEditMode((v) => !v), []);
   const handleResetArtTransform = useCallback(() => setArtTransform(DEFAULT_CARD_ART_TRANSFORM), []);
@@ -280,14 +283,14 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ entry, detail 
               isArtEditMode={isArtEditMode}
               onCustomArtUpload={handleCustomArtUpload}
               onArtTransformChange={setArtTransform}
-              forteSection={
+              forteSection={showOriginalForte ? undefined : (
                 <ProfileRankSection
                   availableBoards={availableBoards}
                   activeBoard={activeBoard}
                   standings={standings}
                   standingsLoading={standingsLoading}
                 />
-              }
+              )}
             />
             <SubstatSummaryRow />
           </div>
@@ -307,6 +310,7 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ entry, detail 
               <AdjustRankingButton
                 availableBoards={availableBoards}
                 activeBoard={activeBoard}
+                showOriginalForte={showOriginalForte}
                 equippedWeaponId={equippedWeaponId}
                 onSelect={setSelectedStandingKey}
               />
