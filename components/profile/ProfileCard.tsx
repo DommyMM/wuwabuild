@@ -32,7 +32,7 @@ const MIN_CUSTOM_IMAGE_HEIGHT = 600;
 const FIXED_CARD_PREVIEW_WIDTH = 1440;
 const EXPORT_CARD_WIDTH = 3840;
 
-interface LeaderboardCardProps {
+interface ProfileCardProps {
   entry: LBBuildRowEntry;
   detail: LBBuildDetailEntry;
 }
@@ -64,7 +64,7 @@ const readFileAsDataUrl = (file: File): Promise<string> => (
   })
 );
 
-export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ entry, detail }) => {
+export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail }) => {
   const { error: toastError } = useToast();
   const { getWeapon, getCharacter } = useGameData();
   const { t } = useLanguage();

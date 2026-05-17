@@ -17,6 +17,9 @@ interface AdjustRankingButtonProps {
   onSelect: (key: string) => void;
 }
 
+const VIEWPORT_MARGIN = 8;
+const ANCHOR_GAP = 6;
+
 const formatNumber = (value: number): string => Math.round(value).toLocaleString();
 const formatPct = (value: number): string => {
   if (value < 0.01) return '<0.01';
@@ -26,6 +29,7 @@ const formatPct = (value: number): string => {
 
 interface PopoverProps {
   popoverRef: React.RefObject<HTMLDivElement | null>;
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
   anchorRect: DOMRect;
   boards: RankBoard[];
   activeKey: string | null;
@@ -36,6 +40,7 @@ interface PopoverProps {
 
 const Popover: React.FC<PopoverProps> = ({
   popoverRef,
+  buttonRef,
   anchorRect,
   boards,
   activeKey,
@@ -45,8 +50,13 @@ const Popover: React.FC<PopoverProps> = ({
 }) => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (!popoverRef.current) return;
-      if (!popoverRef.current.contains(event.target as Node)) onClose();
+      const target = event.target as Node;
+      // Click inside the popover → keep it open.
+      if (popoverRef.current?.contains(target)) return;
+      // Click on the trigger button itself → let the button's onClick toggle.
+      // (React synthetic stopPropagation can't stop native bubbling to document.)
+      if (buttonRef.current?.contains(target)) return;
+      onClose();
     };
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -57,18 +67,40 @@ const Popover: React.FC<PopoverProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [onClose, popoverRef]);
+  }, [onClose, popoverRef, buttonRef]);
 
   const sorted = [...boards].sort((a, b) => a.topPercent - b.topPercent);
   const isOriginalActive = activeKey === NO_RANKING_KEY;
 
+  // Native-select-style positioning: prefer below the button, but flip above
+  // when there's clearly more room up there. Also clamp horizontally so we
+  // never spill off the right edge of the viewport.
+  const viewportHeight = typeof window === 'undefined' ? 800 : window.innerHeight;
+  const viewportWidth = typeof window === 'undefined' ? 1280 : window.innerWidth;
+  const spaceBelow = viewportHeight - anchorRect.bottom - VIEWPORT_MARGIN - ANCHOR_GAP;
+  const spaceAbove = anchorRect.top - VIEWPORT_MARGIN - ANCHOR_GAP;
+  const flipUp = spaceBelow < 200 && spaceAbove > spaceBelow;
+  const maxHeight = Math.max(160, flipUp ? spaceAbove : spaceBelow);
+
+  const minWidth = Math.max(300, anchorRect.width);
+  const maxWidth = Math.min(420, viewportWidth - VIEWPORT_MARGIN * 2);
+  // Clamp left so the popover stays inside the viewport.
+  const left = Math.min(
+    Math.max(VIEWPORT_MARGIN, anchorRect.left),
+    Math.max(VIEWPORT_MARGIN, viewportWidth - minWidth - VIEWPORT_MARGIN),
+  );
+
   const style: React.CSSProperties = {
     position: 'fixed',
-    top: anchorRect.bottom + 6,
-    left: anchorRect.left,
+    ...(flipUp
+      ? { bottom: viewportHeight - anchorRect.top + ANCHOR_GAP }
+      : { top: anchorRect.bottom + ANCHOR_GAP }
+    ),
+    left,
     zIndex: 60,
-    minWidth: Math.max(300, anchorRect.width),
-    maxWidth: 380,
+    minWidth,
+    maxWidth,
+    maxHeight,
   };
 
   return createPortal(
@@ -76,9 +108,9 @@ const Popover: React.FC<PopoverProps> = ({
       ref={popoverRef}
       role="listbox"
       style={style}
-      className="font-plus-jakarta overflow-hidden rounded-lg bg-[linear-gradient(170deg,rgba(28,24,18,0.97)_0%,rgba(10,8,6,0.97)_100%)] shadow-[0_24px_48px_rgba(0,0,0,0.6)] backdrop-blur-md"
+      className="font-plus-jakarta flex flex-col overflow-hidden rounded-lg bg-[linear-gradient(170deg,rgba(28,24,18,0.97)_0%,rgba(10,8,6,0.97)_100%)] shadow-[0_24px_48px_rgba(0,0,0,0.6)] backdrop-blur-md"
     >
-      <div className="max-h-80 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {/* "Original forte" — opt out of the rank display, revert to default forte section */}
         <button
           role="option"
@@ -173,9 +205,8 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
     setAnchorRect(buttonRef.current.getBoundingClientRect());
   }, [isOpen]);
 
-  // Keep the popover anchored to the button as the page scrolls or resizes.
-  // Ignore scroll events that originate inside the popover so its own scrollable
-  // content can be used without the popover closing or jumping.
+  // Reposition (not close) as the page scrolls or resizes. Ignore scrolls that
+  // originate inside the popover so the user can scroll the option list.
   useEffect(() => {
     if (!isOpen) return;
     const reposition = (event?: Event) => {
@@ -192,8 +223,6 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
     };
   }, [isOpen]);
 
-  // Disabled only when there's truly nothing to pick — no boards AND no
-  // "original forte" toggle would be meaningful.
   const hasBoards = availableBoards.length > 0;
 
   return (
@@ -202,7 +231,6 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
         ref={buttonRef}
         type="button"
         disabled={!hasBoards && !showOriginalForte && !activeBoard}
-        onMouseDown={(e) => e.stopPropagation()}
         onClick={() => setIsOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -238,6 +266,7 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
       {isOpen && anchorRect && (
         <Popover
           popoverRef={popoverRef}
+          buttonRef={buttonRef}
           anchorRect={anchorRect}
           boards={availableBoards}
           activeKey={showOriginalForte ? NO_RANKING_KEY : (activeBoard?.key ?? null)}

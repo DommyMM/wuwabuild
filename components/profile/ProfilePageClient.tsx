@@ -261,7 +261,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => 
   const profileUsername = builds[0]?.owner.username || uid;
   const regionBadge = builds[0] ? resolveRegionBadge(builds[0].owner.uid) : null;
 
-  // Custom renderExpanded for profile — renders LeaderboardCard inside
+  // Custom renderExpanded for profile — renders ProfileCard inside
   const renderExpanded = useCallback((props: GlobalBoardRowExpandedProps) => (
     <ProfileBuildExpanded
       key={props.entry.id}

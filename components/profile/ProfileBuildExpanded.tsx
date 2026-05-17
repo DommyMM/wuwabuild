@@ -9,7 +9,7 @@ import { Character } from '@/lib/character';
 import { Echo } from '@/lib/echo';
 import { RegionBadge } from '@/components/leaderboards/constants';
 import { BuildSimulationSection } from '@/components/leaderboards/BuildSimulationSection';
-import { LeaderboardCard } from './LeaderboardCard';
+import { ProfileCard } from './ProfileCard';
 import posthog from 'posthog-js';
 
 interface ProfileBuildExpandedProps {
@@ -90,8 +90,8 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
 
             {!isDetailLoading && !detailError && detail && (
               <>
-                {/* ── LeaderboardCard — the hero visual (includes substat row + action bar) ── */}
-                <LeaderboardCard entry={entry} detail={detail} />
+                {/* ── ProfileCard — the hero visual (includes substat row + action bar) ── */}
+                <ProfileCard entry={entry} detail={detail} />
 
                 {/* ── Simulation section (standings + view in editor) ── */}
                 <BuildSimulationSection
