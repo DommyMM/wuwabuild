@@ -91,7 +91,7 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
 
                 {/* Right — stats masthead */}
                 <div className="md:border-l md:border-accent/20 md:pl-10 flex flex-col gap-7">
-                    <div className="text-[11px] tracking-[0.22em] uppercase text-text-primary/40">
+                    <div className="text-[12px] tracking-[0.22em] uppercase text-text-primary/60">
                         By the numbers
                     </div>
 
@@ -100,7 +100,7 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
                             <div className="font-gowun text-6xl md:text-7xl leading-[0.95] text-accent tracking-[-0.03em] tabular-nums">
                                 <LiveNumber value={totalBuilds} />
                             </div>
-                            <div className="text-[11px] tracking-[0.18em] uppercase text-text-primary/45 mt-2.5">
+                            <div className="text-[12px] tracking-[0.18em] uppercase text-text-primary/65 mt-2.5">
                                 Builds submitted
                             </div>
                         </div>
@@ -108,13 +108,13 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
                             <div className="font-gowun text-6xl md:text-7xl leading-[0.95] text-accent tracking-[-0.03em] tabular-nums">
                                 <LiveNumber value={totalLeaderboards} />
                             </div>
-                            <div className="text-[11px] tracking-[0.18em] uppercase text-text-primary/45 mt-2.5">
+                            <div className="text-[12px] tracking-[0.18em] uppercase text-text-primary/65 mt-2.5">
                                 Active leaderboards
                             </div>
                         </div>
                     </div>
 
-                    <p className="text-xs text-text-primary/40 leading-normal max-w-95">
+                    <p className="text-sm text-text-primary/60 leading-normal max-w-95">
                         Every leaderboard is scoped per character, weapon and playstyle.
                     </p>
                 </div>

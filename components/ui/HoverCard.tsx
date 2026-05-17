@@ -49,7 +49,7 @@ const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
 const ICON_HANG_TOP = -18;
 const ICON_HANG_LEFT = -18;
 // Padding-left applied to the header so it clears the icon footprint inside the panel.
-const HEADER_INDENT_CLASS = 'pl-[5.25rem]';
+const HEADER_INDENT_CLASS = 'pl-[5.5rem]';
 
 interface HoverCardIconProps {
   src?: string | null;
@@ -218,7 +218,7 @@ const HoverCardPanel: React.FC<{
   body?: ReactNode;
   width: NonNullable<HoverCardProps['width']>;
 }> = ({ icon, eyebrow, title, subtitle, badge, chips, body, width }) => {
-  const headerIndentClass = icon ? `${HEADER_INDENT_CLASS} min-h-[4.5rem]` : '';
+  const headerIndentClass = icon ? `${HEADER_INDENT_CLASS} min-h-[4.75rem]` : '';
   const badgeToneClass = badge ? BADGE_TONE_CLASS[badge.tone ?? 'orange'] : '';
 
   return (
@@ -240,7 +240,7 @@ const HoverCardPanel: React.FC<{
         )}
         {chips && chips.length > 0 && <HoverCardChips chips={chips} />}
       </div>
-      {body && <div className="mt-1.5 space-y-1.5">{body}</div>}
+      {body && <div className="mt-3 space-y-1.5">{body}</div>}
     </div>
   );
 };
