@@ -280,10 +280,14 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
                   )}
                   {member.sequence > 0 && (
                     <span
-                      className={`absolute -right-1 -top-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[member.sequence]}`}
                       aria-label={`Sequence ${member.sequence}`}
+                      className="absolute -right-1.5 -top-1.5 rounded-full bg-black/80 shadow-[0_2px_8px_rgba(0,0,0,0.55)] backdrop-blur-sm"
                     >
-                      S{member.sequence}
+                      <span
+                        className={`block rounded-full border px-2 py-0.5 text-[11px] font-bold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[member.sequence]}`}
+                      >
+                        S{member.sequence}
+                      </span>
                     </span>
                   )}
                 </div>
