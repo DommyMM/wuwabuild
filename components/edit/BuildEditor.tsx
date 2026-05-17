@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Minus, Pencil, RotateCcw, Trash2, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Element } from '@/lib/character';
@@ -14,7 +14,6 @@ import { useToast } from '@/contexts/ToastContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { useResolvedLeaderboardLink } from '@/hooks/useResolvedLeaderboardLink';
 import {
-  ART_ZOOM_STEP,
   DEFAULT_CARD_ART_TRANSFORM,
   MAX_ART_ZOOM,
   MIN_ART_ZOOM,
@@ -29,6 +28,7 @@ import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
 import { BuildCardOptions, CardOptions } from './BuildCardOptions';
 import { BuildCard } from './BuildCard';
+import { CardActionBar } from '@/components/card/CardActionBar';
 import { CardScaler } from './CardScaler';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
@@ -38,7 +38,6 @@ import posthog from 'posthog-js';
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MIN_CUSTOM_IMAGE_HEIGHT = 600;
-const ART_NUDGE_STEP = 12;
 const FIXED_CARD_PREVIEW_WIDTH = 1440;
 const FIXED_CARD_PREVIEW_HEIGHT = FIXED_CARD_PREVIEW_WIDTH / 2.4;
 const EXPORT_CARD_WIDTH = 3840;
@@ -668,127 +667,29 @@ export const BuildEditor: React.FC = () => {
                   )}
                 </div>
                 {/* Action bar, flipped version of BuildCardOptions */}
-                <div className="flex justify-start md:pl-12">
-                  <div className="flex w-full flex-col rounded-lg border border-border bg-background md:w-auto md:rounded-t-none md:border-t-0">
-                    <div className="flex flex-wrap items-center gap-2 p-3 md:gap-3">
-                      <button
-                        onClick={handleToggleArtEditMode}
-                        className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                          isArtEditMode
-                            ? 'border-accent/70 bg-accent/15 text-accent'
-                            : 'border-border bg-background-secondary text-text-primary hover:border-accent/60'
-                        }`}
-                      >
-                        <Pencil size={14} />
-                        {isArtEditMode ? 'Done' : 'Edit'}
-                      </button>
-                      <button
-                        onClick={handleDownload}
-                        disabled={isDownloading}
-                        className="group relative flex items-center gap-2 overflow-hidden rounded-lg border border-accent/65 bg-accent px-5 py-2 text-sm font-semibold text-background transition-all duration-300 hover:brightness-110 disabled:cursor-wait disabled:opacity-50"
-                      >
-                        <Download size={14} className="relative z-10" />
-                        <span className="relative z-10">
-                          {isDownloading ? (
-                            <span className="flex items-center gap-0.5">
-                              <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '0ms' }} />
-                              <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '150ms' }} />
-                              <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-current" style={{ animationDelay: '300ms' }} />
-                            </span>
-                          ) : 'Download'}
-                        </span>
-                      </button>
-                      {leaderboardLink && (
-                        <button
-                          onClick={handleViewRanking}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-accent/60"
-                        >
-                          <Trophy size={14} />
-                          View Ranking
-                        </button>
-                      )}
-                    </div>
-
-                    {isArtEditMode && (
-                      <div className="border-t border-border px-3 py-3">
-                        <div className="flex flex-col gap-3">
-                          <div className="flex flex-wrap items-center gap-1 md:gap-2">
-                            <span className="text-sm font-medium text-text-primary/80">Zoom</span>
-                            <button
-                              onClick={() => handleZoomArt(-ART_ZOOM_STEP)}
-                              disabled={artTransform.scale <= MIN_ART_ZOOM}
-                              className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              <Minus size={12} />
-                            </button>
-                            <button
-                              type="button"
-                              className="min-w-14 rounded-md border border-border bg-background px-2.5 py-1 text-center text-sm font-semibold text-accent transition-colors hover:border-accent"
-                            >
-                              {`${Math.round(artTransform.scale * 100)}%`}
-                            </button>
-                            <button
-                              onClick={() => handleZoomArt(ART_ZOOM_STEP)}
-                              disabled={artTransform.scale >= MAX_ART_ZOOM}
-                              className="rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              +
-                            </button>
-
-                            <button
-                              onClick={handleRemoveCustomArt}
-                              disabled={artSourceMode !== 'custom'}
-                              className="flex items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:border-red-400/60 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              <Trash2 size={12} />
-                              Remove Custom
-                            </button>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-4">
-                            <div className="grid grid-cols-3 grid-rows-3 gap-1.5">
-                              <span />
-                              <button
-                                onClick={() => handleNudgeArt(0, -ART_NUDGE_STEP)}
-                                className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                              >
-                                <ArrowUp size={14} />
-                              </button>
-                              <span />
-                              <button
-                                onClick={() => handleNudgeArt(-ART_NUDGE_STEP, 0)}
-                                className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                              >
-                                <ArrowLeft size={14} />
-                              </button>
-                              <button
-                                onClick={handleResetArtTransform}
-                                className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                                title="Reset position and zoom"
-                              >
-                                <RotateCcw size={14} />
-                              </button>
-                              <button
-                                onClick={() => handleNudgeArt(ART_NUDGE_STEP, 0)}
-                                className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                              >
-                                <ArrowRight size={14} />
-                              </button>
-                              <span />
-                              <button
-                                onClick={() => handleNudgeArt(0, ART_NUDGE_STEP)}
-                                className="rounded-md border border-border bg-background-secondary p-2 text-text-primary hover:border-accent/60"
-                              >
-                                <ArrowDown size={14} />
-                              </button>
-                              <span />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <CardActionBar
+                  className="flex justify-start md:pl-12"
+                  panelClassName="flex w-full flex-col rounded-lg border border-border bg-background md:w-auto md:rounded-t-none md:border-t-0"
+                  isArtEditMode={isArtEditMode}
+                  onToggleArtEditMode={handleToggleArtEditMode}
+                  isDownloading={isDownloading}
+                  onDownload={handleDownload}
+                  artTransform={artTransform}
+                  artSourceMode={artSourceMode}
+                  onZoom={handleZoomArt}
+                  onNudge={handleNudgeArt}
+                  onResetArtTransform={handleResetArtTransform}
+                  onRemoveCustomArt={handleRemoveCustomArt}
+                  extraActions={leaderboardLink ? (
+                    <button
+                      onClick={handleViewRanking}
+                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-accent/60"
+                    >
+                      <Trophy size={14} />
+                      View Ranking
+                    </button>
+                  ) : null}
+                />
               </>
             )}
       </div>

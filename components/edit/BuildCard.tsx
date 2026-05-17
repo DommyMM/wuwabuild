@@ -28,6 +28,12 @@ interface BuildCardProps {
   isArtEditMode: boolean;
   onCustomArtUpload: (file: File) => void;
   onArtTransformChange: (next: CardArtTransform) => void;
+  /**
+   * Replaces the default <ForteCardSection> slot. Profile cards pass
+   * <TalentPills/> + <RankModule/> here so they share the same overall card
+   * skeleton as the editor.
+   */
+  forteSection?: React.ReactNode;
 }
 
 
@@ -41,6 +47,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   isArtEditMode,
   onCustomArtUpload,
   onArtTransformChange,
+  forteSection,
 }, ref) => {
   const selected = useSelectedCharacter();
   const { state, setWatermark } = useBuild();
@@ -161,12 +168,14 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                           </div>
                         )}
 
-                        <ForteCardSection
-                          character={selected.character}
-                          forte={state.forte}
-                          activeHoverStat={activeHoverStat}
-                          onHoverStatChange={setActiveHoverStat}
-                        />
+                        {forteSection ?? (
+                          <ForteCardSection
+                            character={selected.character}
+                            forte={state.forte}
+                            activeHoverStat={activeHoverStat}
+                            onHoverStatChange={setActiveHoverStat}
+                          />
+                        )}
                       </div>
                     </div>
                     <ActiveSetsSection
