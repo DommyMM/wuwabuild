@@ -53,8 +53,8 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
   const positionRef = useRef({ x: artTransform.x, y: artTransform.y });
   const altBanner = getAlternateSkin(selected.character)?.icon.banner;
   const baseBannerUrl = useAltSkin && altBanner ? altBanner : selected.banner;
-  const bannerUrl = artSourceMode === 'custom' && customArtUrl ? customArtUrl : baseBannerUrl;
-  const hasCustomArt = artSourceMode === 'custom' && Boolean(customArtUrl);
+  const hasEditableArt = artSourceMode !== 'default' && Boolean(customArtUrl);
+  const bannerUrl = hasEditableArt && customArtUrl ? customArtUrl : baseBannerUrl;
 
   const openFilePicker = () => {
     fileInputRef.current?.click();
@@ -103,7 +103,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
   }, []);
 
   const handlePointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isArtEditMode || !hasCustomArt || event.button !== 0) return;
+    if (!isArtEditMode || !hasEditableArt || event.button !== 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = {
@@ -114,7 +114,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
       baseY: artTransform.y,
     };
     setIsDraggingArt(true);
-  }, [artTransform.x, artTransform.y, hasCustomArt, isArtEditMode]);
+  }, [artTransform.x, artTransform.y, hasEditableArt, isArtEditMode]);
 
   const handlePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
@@ -138,7 +138,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
 
   useEffect(() => {
     const overlay = artEditOverlayRef.current;
-    if (!overlay || !isArtEditMode || !hasCustomArt) return;
+    if (!overlay || !isArtEditMode || !hasEditableArt) return;
 
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
@@ -162,7 +162,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
 
     overlay.addEventListener('wheel', handleWheel, { passive: false });
     return () => overlay.removeEventListener('wheel', handleWheel);
-  }, [hasCustomArt, isArtEditMode, onArtTransformChange]);
+  }, [hasEditableArt, isArtEditMode, onArtTransformChange]);
 
   const dragOverlayClassName = useMemo(() => {
     if (isDropActive) return 'border-accent/85 bg-black/40';
@@ -180,8 +180,9 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
   return (
     <div className="relative w-3/10 shrink-0 self-stretch z-10 overflow-hidden rounded-r-[48px] shadow-[4px_0_15px_rgba(0,0,0,0.15)]">
       {/* Glass pane background */}
-      <div className="absolute inset-0 border-r border-white/12 rounded-r-[48px] overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_42%,rgba(0,0,0,0.34)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),inset_0_-18px_24px_rgba(0,0,0,0.16)]">
+      <div className="character-pane-adaptive-bg absolute inset-0 border-r border-white/12 rounded-r-[48px] overflow-hidden shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),inset_0_-18px_24px_rgba(0,0,0,0.16)]">
         <div className={`absolute bottom-0 left-0 right-0 h-1/3 bg-linear-to-t ${tintClass} opacity-40 mix-blend-screen pointer-events-none`} />
+        <div className="character-pane-element-glow pointer-events-none absolute inset-0" />
       </div>
 
       {showIdentityWatermark && (
@@ -221,7 +222,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
 
       {isArtEditMode && (
         <>
-          {!hasCustomArt ? (
+          {!hasEditableArt ? (
             <button
               type="button"
               className={`absolute inset-0 z-40 flex cursor-pointer flex-col items-center justify-center gap-2 border border-dashed rounded-r-[48px] transition-colors ${

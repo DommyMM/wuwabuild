@@ -4,7 +4,7 @@ export interface CardArtTransform {
   scale: number;
 }
 
-export type CardArtSourceMode = 'default' | 'custom';
+export type CardArtSourceMode = 'default' | 'custom' | 'splash';
 
 export const ART_ZOOM_STEP = 0.05;
 export const MIN_ART_ZOOM = 1;

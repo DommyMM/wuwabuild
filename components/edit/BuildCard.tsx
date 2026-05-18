@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef, useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -16,7 +17,7 @@ import { NameGroup } from '@/components/card/NameGroup';
 import { WeaponGroup } from '@/components/card/WeaponGroup';
 import { CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
-import { ELEMENT_BLOOM, ELEMENT_TINT } from '@/lib/elementVisuals';
+import { ELEMENT_BLOOM, ELEMENT_COLOR, ELEMENT_TINT } from '@/lib/elementVisuals';
 
 interface BuildCardProps {
   useAltSkin?: boolean;
@@ -35,6 +36,11 @@ interface BuildCardProps {
    */
   forteSection?: React.ReactNode;
 }
+
+type ElementCardStyle = CSSProperties & Record<
+  '--card-element' | '--card-element-soft' | '--card-element-faint' | '--card-element-glow' | '--card-element-edge',
+  string
+>;
 
 
 export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
@@ -64,6 +70,14 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
     ? (ELEMENT_TINT[selected.element] ?? 'from-transparent via-transparent to-transparent')
     : 'from-transparent via-transparent to-transparent';
   const bloomClass = selected?.element ? (ELEMENT_BLOOM[selected.element] ?? '') : '';
+  const elementColor = selected?.element ? (ELEMENT_COLOR[selected.element] ?? '#ffffff') : '#ffffff';
+  const elementCardStyle = useMemo<ElementCardStyle>(() => ({
+    '--card-element': elementColor,
+    '--card-element-soft': `${elementColor}20`,
+    '--card-element-faint': `${elementColor}0d`,
+    '--card-element-glow': `${elementColor}30`,
+    '--card-element-edge': `${elementColor}40`,
+  }), [elementColor]);
 
   const weaponAtkIcon = statIcons?.['ATK'];
   const weaponMainIcon = weapon?.main_stat ? statIcons?.[weapon.main_stat] ?? null : null;
@@ -89,16 +103,21 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
     <div ref={ref} className="build-card-frame relative w-full select-none overflow-visible">
       {selected && (
         <div className="font-plus-jakarta tracking-wide leading-none text-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
-          <div className="relative overflow-hidden rounded-lg bg-cover bg-center bg-[url('https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png')] aspect-[2.4/1]">
+          <div
+            className="build-card-surface relative overflow-hidden rounded-lg bg-cover bg-center aspect-[2.4/1]"
+            style={elementCardStyle}
+          >
             <div className="pointer-events-none absolute right-3/8 top-8/25 z-10 text-right text-xs font-semibold tracking-[0.18em] text-white/18 lowercase [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]">
               wuwa.build
             </div>
             {/* Background overlays inside the fixed-ratio frame */}
             <div className="pointer-events-none absolute inset-0 z-0">
               <div className="absolute inset-0 bg-black/10" />
+              <div className="build-card-element-wash absolute inset-0" />
               <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
               <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,transparent_35%,rgba(0,0,0,0.22)_100%)]" />
+              <div className="build-card-depth-mask absolute inset-0" />
+              <div className="build-card-edge-light absolute inset-0" />
             </div>
 
             <div className="relative z-10 flex h-full">

@@ -37,6 +37,11 @@ interface ProfileCardProps {
   detail: LBBuildDetailEntry;
 }
 
+interface StandingsResult {
+  key: string;
+  standings: LBStandingEntry[];
+}
+
 const buildStandingKey = (s: LBStandingEntry): string => (
   s.key && s.key.length > 0 ? s.key : `${s.weaponId}:${s.trackKey}`
 );
@@ -90,11 +95,16 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail }) => {
   // because the AdjustRankingButton in the action bar also needs the full board
   // list — and the action bar sits outside the BuildProvider subtree if we want
   // toggling rankings to not re-mount the card.
-  const [standings, setStandings] = useState<LBStandingEntry[]>([]);
-  const [standingsLoading, setStandingsLoading] = useState(false);
+  const [standingsResult, setStandingsResult] = useState<StandingsResult>({ key: '', standings: [] });
   const abortRef = useRef<AbortController | null>(null);
 
   const characterId = entry.character.id;
+  const standingsRequestKey = characterId && entry.id ? `${characterId}:${entry.id}` : '';
+  const standings = useMemo(
+    () => standingsResult.key === standingsRequestKey ? standingsResult.standings : [],
+    [standingsRequestKey, standingsResult.key, standingsResult.standings],
+  );
+  const standingsLoading = Boolean(standingsRequestKey && standingsResult.key !== standingsRequestKey);
   const characterRef = getCharacter(characterId);
   const characterName = characterRef
     ? t(characterRef.nameI18n ?? { en: characterRef.name })
@@ -106,26 +116,20 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail }) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-
-    setStandingsLoading(true);
-    setStandings([]);
+    const requestKey = standingsRequestKey;
 
     getBuildStandings(characterId, entry.id, controller.signal)
       .then((result) => {
         if (controller.signal.aborted) return;
-        setStandings(result);
+        setStandingsResult({ key: requestKey, standings: result });
       })
       .catch(() => {
         if (controller.signal.aborted) return;
-        setStandings([]);
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return;
-        setStandingsLoading(false);
+        setStandingsResult({ key: requestKey, standings: [] });
       });
 
     return () => controller.abort();
-  }, [characterId, entry.id]);
+  }, [characterId, entry.id, standingsRequestKey]);
 
   const availableBoards = useMemo<RankBoard[]>(() => {
     return standings
@@ -296,6 +300,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail }) => {
           </div>
 
           <CardActionBar
+            className="flex flex-col"
             isArtEditMode={isArtEditMode}
             onToggleArtEditMode={handleToggleArtEditMode}
             isDownloading={isDownloading}

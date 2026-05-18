@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { Trophy } from 'lucide-react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Element } from '@/lib/character';
@@ -28,11 +27,12 @@ import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
 import { BuildCardOptions, CardOptions } from './BuildCardOptions';
 import { BuildCard } from './BuildCard';
-import { CardActionBar } from '@/components/card/CardActionBar';
+import { BuildCardActionPanel } from './BuildCardActionPanel';
 import { CardScaler } from './CardScaler';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { getSplashArtTransform, getSplashUrlCandidates } from '@/lib/splashArt';
 import posthog from 'posthog-js';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -80,34 +80,6 @@ const getImageNaturalHeightFromUrl = async (url: string): Promise<number> => (
   })
 );
 
-const SPLASH_EXTENSIONS = ['webp', 'jpg', 'png'] as const;
-
-const getSplashUrlCandidates = (characterId: string, legacyId: string | null, isRover: boolean): string[] => {
-  const candidates: string[] = [];
-
-  if (isRover) {
-    if (legacyId) {
-      candidates.push(`/images/splash/rover-${legacyId}.webp`);
-      candidates.push(`/images/splash/Rover-${legacyId}.webp`);
-      if (legacyId === '4') {
-        candidates.push('/images/splash/RoverMale.webp');
-        candidates.push('/images/splash/RoverM.webp');
-      }
-      if (legacyId === '5') {
-        candidates.push('/images/splash/RoverFemale.webp');
-        candidates.push('/images/splash/RoverF.webp');
-      }
-    }
-    candidates.push('/images/splash/Rover.webp');
-  }
-
-  SPLASH_EXTENSIONS.forEach(ext => {
-    candidates.push(`/images/splash/${characterId}.${ext}`);
-  });
-
-  return Array.from(new Set(candidates));
-};
-
 const readFileAsDataUrl = (file: File): Promise<string> => (
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -125,6 +97,38 @@ const createDefaultArtState = (characterId: string | null): CharacterArtState =>
   customUrl: null,
 });
 
+const resolveSplashArt = async (
+  characterId: string,
+  legacyId: string | null,
+  isRover: boolean,
+): Promise<{ url: string; transform: CardArtTransform } | null> => {
+  const splashCandidates = getSplashUrlCandidates(characterId, legacyId, isRover);
+
+  for (const candidate of splashCandidates) {
+    try {
+      const naturalHeight = await getImageNaturalHeightFromUrl(candidate);
+      let autoScale = MIN_ART_ZOOM;
+      if (naturalHeight > 0 && naturalHeight < MIN_CUSTOM_IMAGE_HEIGHT) {
+        autoScale = Math.min(
+          MAX_ART_ZOOM,
+          Number((MIN_CUSTOM_IMAGE_HEIGHT / naturalHeight).toFixed(2))
+        );
+      }
+
+      const configuredTransform = getSplashArtTransform(characterId);
+
+      return {
+        url: candidate,
+        transform: configuredTransform ?? { x: 0, y: 0, scale: autoScale },
+      };
+    } catch {
+      // Try next fallback candidate.
+    }
+  }
+
+  return null;
+};
+
 export const BuildEditor: React.FC = () => {
   const router = useRouter();
   const [isActionBarVisible, setIsActionBarVisible] = useState(true);
@@ -136,6 +140,7 @@ export const BuildEditor: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [splashDisabledIds, setSplashDisabledIds] = useState<Set<string>>(() => new Set());
   const cardRef = useRef<HTMLDivElement>(null);
   const customArtBlobRef = useRef<Blob | null>(null);
   const editorStartedTrackedRef = useRef(false);
@@ -176,13 +181,7 @@ export const BuildEditor: React.FC = () => {
     : createDefaultArtState(state.characterId);
   const { customUrl: customArtUrl, isEditMode: isArtEditMode, sourceMode: artSourceMode, transform: artTransform } = activeArtState;
   const isSplashArtActive = useMemo(() => {
-    if (!selected || artSourceMode !== 'custom' || !customArtUrl) return false;
-
-    return getSplashUrlCandidates(
-      String(selected.character.id),
-      selected.character.legacyId ?? null,
-      selected.isRover,
-    ).includes(customArtUrl);
+    return selected ? artSourceMode === 'splash' && Boolean(customArtUrl) : false;
   }, [artSourceMode, customArtUrl, selected]);
   const portalTarget = typeof document === 'undefined' ? null : document.getElementById('nav-toolbar-portal');
 
@@ -209,6 +208,38 @@ export const BuildEditor: React.FC = () => {
     media.addEventListener('change', onChange);
     return () => media.removeEventListener('change', onChange);
   }, []);
+
+  useEffect(() => {
+    if (!selected || !state.characterId) return;
+    if (splashDisabledIds.has(state.characterId)) return;
+    if (activeArtState.sourceMode !== 'default' || activeArtState.customUrl) return;
+
+    let cancelled = false;
+    const characterKey = state.characterId;
+
+    resolveSplashArt(
+      String(selected.character.id),
+      selected.character.legacyId ?? null,
+      selected.isRover,
+    ).then((splash) => {
+      if (cancelled || !splash) return;
+      customArtBlobRef.current = null;
+      setArtState((prev) => {
+        const current = prev.ownerCharacterId === characterKey ? prev : createDefaultArtState(characterKey);
+        if (current.sourceMode !== 'default' || current.customUrl) return prev;
+        return {
+          ...current,
+          customUrl: splash.url,
+          sourceMode: 'splash',
+          transform: splash.transform,
+        };
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeArtState.customUrl, activeArtState.sourceMode, selected, splashDisabledIds, state.characterId]);
 
   // Reset weapon when switching to a character with a different weapon type
   useEffect(() => {
@@ -379,55 +410,49 @@ export const BuildEditor: React.FC = () => {
 
   const handleUseSplashArt = useCallback(async () => {
     const characterId = selected?.character.id;
-    if (!characterId) return;
+    const stateCharacterId = state.characterId;
+    if (!characterId || !stateCharacterId) return;
 
-    const splashCandidates = getSplashUrlCandidates(
+    if (activeArtState.sourceMode === 'splash') {
+      setSplashDisabledIds((prev) => {
+        const next = new Set(prev);
+        next.add(stateCharacterId);
+        return next;
+      });
+      clearArtState();
+      return;
+    }
+
+    const splash = await resolveSplashArt(
       String(characterId),
       selected.character.legacyId ?? null,
       selected.isRover
     );
 
-    let splashUrl: string | null = null;
-    let naturalHeight = 0;
-    let autoScale = MIN_ART_ZOOM;
-
-    for (const candidate of splashCandidates) {
-      try {
-        naturalHeight = await getImageNaturalHeightFromUrl(candidate);
-        splashUrl = candidate;
-        break;
-      } catch {
-        // Try next fallback candidate.
-      }
-    }
-
-    if (!splashUrl) {
+    if (!splash) {
       toastError('Splash image not found for this character.');
-      console.error('Splash image load failed. Tried:', splashCandidates);
+      console.error('Splash image load failed. Tried:', getSplashUrlCandidates(
+        String(characterId),
+        selected.character.legacyId ?? null,
+        selected.isRover
+      ));
       return;
-    }
-
-    if (activeArtState.sourceMode === 'custom' && activeArtState.customUrl === splashUrl) {
-      clearArtState();
-      return;
-    }
-
-    if (naturalHeight > 0 && naturalHeight < MIN_CUSTOM_IMAGE_HEIGHT) {
-      autoScale = Math.min(
-        MAX_ART_ZOOM,
-        Number((MIN_CUSTOM_IMAGE_HEIGHT / naturalHeight).toFixed(2))
-      );
     }
 
     customArtBlobRef.current = null;
-    setArtState({
-      customUrl: splashUrl,
-      isEditMode: true,
-      ownerCharacterId: state.characterId,
-      sourceMode: 'custom',
-      transform: { x: 0, y: 0, scale: autoScale },
+    setSplashDisabledIds((prev) => {
+      const next = new Set(prev);
+      next.delete(stateCharacterId);
+      return next;
     });
-  }, [activeArtState.customUrl, activeArtState.sourceMode, clearArtState, selected, state.characterId, toastError]);
+    setArtState({
+      customUrl: splash.url,
+      isEditMode: true,
+      ownerCharacterId: stateCharacterId,
+      sourceMode: 'splash',
+      transform: splash.transform,
+    });
+  }, [activeArtState.sourceMode, clearArtState, selected, state.characterId, toastError]);
 
   const handleResetArtTransform = useCallback(() => {
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
@@ -666,9 +691,7 @@ export const BuildEditor: React.FC = () => {
                     </CardScaler>
                   )}
                 </div>
-                {/* Action bar, flipped version of BuildCardOptions */}
-                <CardActionBar
-                  className="flex flex-col md:pl-12"
+                <BuildCardActionPanel
                   isArtEditMode={isArtEditMode}
                   onToggleArtEditMode={handleToggleArtEditMode}
                   isDownloading={isDownloading}
@@ -679,15 +702,7 @@ export const BuildEditor: React.FC = () => {
                   onNudge={handleNudgeArt}
                   onResetArtTransform={handleResetArtTransform}
                   onRemoveCustomArt={handleRemoveCustomArt}
-                  extraActions={leaderboardLink ? (
-                    <button
-                      onClick={handleViewRanking}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:border-accent/60"
-                    >
-                      <Trophy size={14} />
-                      View Ranking
-                    </button>
-                  ) : null}
+                  onViewRanking={leaderboardLink ? handleViewRanking : undefined}
                 />
               </>
             )}

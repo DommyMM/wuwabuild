@@ -56,7 +56,9 @@ const TeamMemberAvatar: React.FC<{ member: RankTeamMember }> = ({ member }) => (
       role="img"
       aria-label={member.name}
       title={member.name}
-      className="relative h-10 w-10 rounded-lg border border-white/18 bg-black/45 bg-cover bg-center bg-no-repeat shadow-[0_4px_12px_rgba(0,0,0,0.34)]"
+      className={`relative h-10 w-10 rounded-lg border bg-black/45 bg-cover bg-center bg-no-repeat shadow-[0_4px_12px_rgba(0,0,0,0.34)] ${
+        member.isLead ? 'border-accent/85 ring-1 ring-accent/35' : 'border-white/18'
+      }`}
       style={member.head ? { backgroundImage: `url("${member.head}")` } : undefined}
     >
       {member.sequence > 0 && (
@@ -131,20 +133,8 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
         )}
       </div>
 
-      {/* Vertical divider */}
-      {team.length > 0 && (
-        <div className="h-12 w-px shrink-0 bg-linear-to-b from-transparent via-white/14 to-transparent" />
-      )}
-
-      {/* Team strip — supports only; lead is already represented by the weapon group above */}
-      {team.length > 0 && (
-        <div className="flex shrink-0 items-start gap-2.5">
-          {team.map((member) => <TeamMemberAvatar key={member.id} member={member} />)}
-        </div>
-      )}
-
-      {/* Track + weapon pill (passive — switcher lives in the action bar) */}
-      <div className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md border border-white/14 bg-black/35 px-2.5 py-1.5">
+      {/* Board identity: keep the weapon/playstyle attached to the rank. */}
+      <div className="flex shrink-0 items-center gap-1.5 rounded-md border border-white/14 bg-black/35 px-2.5 py-1.5">
         {board?.weaponIcon && (
           <div
             role="img"
@@ -158,6 +148,18 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
           {trackLabel}
         </span>
       </div>
+
+      <div className="min-w-2 flex-1" />
+
+      {/* Team strip: lead + configured supports for the active ranking board. */}
+      {team.length > 0 && (
+        <>
+          <div className="h-12 w-px shrink-0 bg-linear-to-b from-transparent via-white/14 to-transparent" />
+          <div className="flex shrink-0 items-start gap-2.5">
+            {team.map((member) => <TeamMemberAvatar key={member.id} member={member} />)}
+          </div>
+        </>
+      )}
     </div>
   );
 };
