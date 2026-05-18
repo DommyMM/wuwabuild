@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBListBuildsResponse, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
@@ -27,7 +27,6 @@ interface GlobalBoardPageClientProps {
 }
 
 export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ initialData, renderExpanded }) => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
@@ -150,12 +149,12 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   }, []);
 
   useEffect(() => {
-    const current = searchParams.toString();
+    if (typeof window === 'undefined') return;
     const next = serializeQuery(querySnapshot);
-    if (current !== next) {
-      router.replace(next ? `/builds?${next}` : '/builds', { scroll: false });
-    }
-  }, [querySnapshot, router, searchParams]);
+    const currentSearch = window.location.search.replace(/^\?/, '');
+    if (currentSearch === next) return;
+    window.history.replaceState(null, '', next ? `/builds?${next}` : '/builds');
+  }, [querySnapshot]);
 
   const filterSignature = useMemo(() => JSON.stringify({
     characterIds,

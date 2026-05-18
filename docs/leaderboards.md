@@ -24,7 +24,7 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 ## Query State Model
 
 - On both `/builds` and `/leaderboards/[characterId]`, the URL is the source of truth for shareable state.
-- Client components seed from `useSearchParams()`, then push canonical state back with `router.replace(..., { scroll: false })`.
+- Client components seed from `useSearchParams()`, then push canonical state back with `window.history.replaceState(...)`. `router.replace` is avoided because it no-ops on `force-static` routes when the page was first loaded with non-empty search params.
 - Browser back/forward, same-route deep links, and manual query edits resync visible controls from the URL.
 - Character leaderboards preserve deep-link support for `buildId`, but only show the auto-expanded build while the matching weapon + track are active.
 

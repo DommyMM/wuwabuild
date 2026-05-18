@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
@@ -31,7 +31,6 @@ interface ProfilePageClientProps {
 }
 
 export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
@@ -137,12 +136,12 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => 
 
   // Sync URL without uid param in query (uid lives in path)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const withoutUid = serializeQuery({ ...querySnapshot, uid: '' });
-    const current = searchParams.toString();
-    if (current !== withoutUid) {
-      router.replace(withoutUid ? `/profile/${uid}?${withoutUid}` : `/profile/${uid}`, { scroll: false });
-    }
-  }, [querySnapshot, router, searchParams, uid]);
+    const currentSearch = window.location.search.replace(/^\?/, '');
+    if (currentSearch === withoutUid) return;
+    window.history.replaceState(null, '', withoutUid ? `/profile/${uid}?${withoutUid}` : `/profile/${uid}`);
+  }, [querySnapshot, uid]);
 
   useEffect(() => {
     const controller = new AbortController();
