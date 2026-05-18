@@ -49,32 +49,36 @@ type ToastAction =
 
 const DEFAULT_TOAST_DURATION = 4500;
 const MIN_TOAST_DURATION = 1500;
-const MAX_VISIBLE_TOASTS = 2;
+const MAX_VISIBLE_TOASTS = 3;
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-function getToastStyles(type: ToastType): { container: string; icon: string } {
+function getToastStyles(type: ToastType): { container: string; icon: string; rail: string } {
   if (type === 'success') {
     return {
-      container: 'border-emerald-400/45 bg-emerald-500/12 text-emerald-100 shadow-[0_10px_30px_-12px_rgba(16,185,129,0.5)]',
-      icon: 'bg-emerald-300/20 text-emerald-100',
+      container: 'border-emerald-300/35 bg-[#17231f]/96 text-emerald-50 shadow-[0_18px_44px_-24px_rgba(16,185,129,0.72)]',
+      icon: 'border border-emerald-200/20 bg-emerald-300/15 text-emerald-100',
+      rail: 'bg-emerald-300/75',
     };
   }
   if (type === 'error') {
     return {
-      container: 'border-red-400/45 bg-red-500/12 text-red-100 shadow-[0_10px_30px_-12px_rgba(239,68,68,0.5)]',
-      icon: 'bg-red-300/20 text-red-100',
+      container: 'border-red-300/35 bg-[#2a1a1b]/96 text-red-50 shadow-[0_18px_44px_-24px_rgba(239,68,68,0.72)]',
+      icon: 'border border-red-200/20 bg-red-300/15 text-red-100',
+      rail: 'bg-red-300/75',
     };
   }
   if (type === 'warning') {
     return {
-      container: 'border-amber-400/45 bg-amber-500/12 text-amber-100 shadow-[0_10px_30px_-12px_rgba(245,158,11,0.5)]',
-      icon: 'bg-amber-300/20 text-amber-100',
+      container: 'border-amber-300/35 bg-[#292319]/96 text-amber-50 shadow-[0_18px_44px_-24px_rgba(245,158,11,0.68)]',
+      icon: 'border border-amber-200/20 bg-amber-300/15 text-amber-100',
+      rail: 'bg-amber-300/75',
     };
   }
   return {
-    container: 'border-border/90 bg-background-secondary/95 text-text-primary shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]',
-    icon: 'bg-background/55 text-text-primary',
+    container: 'border-accent/35 bg-[#24221b]/96 text-[#efe7d0] shadow-[0_18px_44px_-24px_rgba(166,150,98,0.65)]',
+    icon: 'border border-accent/25 bg-accent/15 text-accent',
+    rail: 'bg-accent/75',
   };
 }
 
@@ -302,7 +306,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         aria-relevant="additions text"
         className="pointer-events-none fixed inset-x-0 bottom-3 z-95 flex flex-col items-center gap-2 px-3 sm:inset-x-auto sm:bottom-4 sm:right-4 sm:items-end sm:px-0"
       >
-        <ul className="flex w-full max-w-md flex-col gap-2">
+        <ul className="flex w-full max-w-[28rem] flex-col gap-2 sm:w-[28rem]">
           <AnimatePresence initial={false}>
             {state.visible.map((toast) => {
               const styles = getToastStyles(toast.type);
@@ -316,18 +320,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   transition={{ type: 'spring', stiffness: 520, damping: 36, mass: 0.7 }}
                   onMouseEnter={() => pauseToastById(toast.id)}
                   onMouseLeave={() => resumeToastById(toast.id)}
-                  className={`pointer-events-auto rounded-xl border backdrop-blur-md ${styles.container}`}
+                  role={toast.type === 'error' ? 'alert' : 'status'}
+                  className={`pointer-events-auto relative overflow-hidden rounded-lg border backdrop-blur-md ${styles.container}`}
                 >
-                  <div className="flex items-center gap-3 px-3.5 py-3">
-                    <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${styles.icon}`}>
+                  <span aria-hidden="true" className={`absolute inset-y-2 left-0 w-0.5 rounded-r-full ${styles.rail}`} />
+                  <div className="grid min-h-12 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
+                    <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${styles.icon}`}>
                       <ToastIcon type={toast.type} />
                     </span>
-                    <p className="min-w-0 flex-1 text-base leading-snug">
+                    <p className="min-w-0 translate-y-px break-words pr-1 text-sm font-medium leading-[1.35] sm:text-[15px]">
                       {toast.message}
                     </p>
                     <button
                       onClick={() => dismissToast(toast.id)}
-                      className="rounded-md p-1.5 text-current/75 transition-colors hover:bg-black/20 hover:text-current"
+                      className="-mr-1 rounded-md p-1.5 text-current/65 transition-colors hover:bg-white/10 hover:text-current"
                       aria-label="Dismiss notification"
                     >
                       <X size={14} />

@@ -74,6 +74,7 @@ export function ImportPageClient() {
       const errorMsg = `Image should be 1920×1080, got ${img.naturalWidth}×${img.naturalHeight}. ` +
         `For best results, download the image from Discord instead of screenshotting`;
       setValidationError(errorMsg);
+      notifyError('Image must be 1920x1080. Download it from Discord instead of screenshotting.');
       posthog.capture('import_validation_fail', {
         reason: 'bad_dimensions',
         width: img.naturalWidth,
@@ -91,6 +92,9 @@ export function ImportPageClient() {
     setStep('results');
     void uploadTrainingImage(f);
     void processImage(f).then((summary) => {
+      if (summary.failedRegionsCount > 0) {
+        warning(`Scan finished with ${summary.failedRegionsCount} unread section(s). Review the build before importing.`);
+      }
       posthog.capture('ocr_complete', {
         duration_ms: summary.durationMs,
         failed_regions_count: summary.failedRegionsCount,
@@ -106,6 +110,7 @@ export function ImportPageClient() {
   };
 
   const handleInvalidFile = (payload: { reason: 'bad_file_type'; fileType: string | null }) => {
+    notifyError('Unsupported file type. Use PNG or JPG.');
     posthog.capture('import_validation_fail', {
       reason: payload.reason,
       file_type: payload.fileType,
@@ -184,13 +189,13 @@ export function ImportPageClient() {
     }
 
     if (!importedState.characterId || !importedState.weaponId) {
-      warning('Leaderboard upload skipped because the imported build is missing a character or weapon match.');
+      warning('Leaderboard skipped: character or weapon was not recognized.');
       captureSubmitResult('skipped', 'missing_character_or_weapon');
       return;
     }
 
     if (!importedState.watermark.uid.trim()) {
-      warning('Leaderboard upload skipped because UID is required for build submission.');
+      warning('Leaderboard skipped: UID is required.');
       captureSubmitResult('skipped', 'uid_missing');
       return;
     }
@@ -202,7 +207,7 @@ export function ImportPageClient() {
       success(`Leaderboard entry ${actionLabel}.`);
       captureSubmitResult(result.action === 'created' ? 'created' : 'updated', 'success', result.damageComputed);
       if (!result.damageComputed) {
-        info('Build saved without fresh damage data for this character.');
+        info('Saved without fresh damage data for this character.');
       }
     } catch (err) {
       posthog.captureException(err);
@@ -214,7 +219,7 @@ export function ImportPageClient() {
         );
         captureSubmitResult('error', 'illegal_echo');
       } else {
-        notifyError(`Leaderboard upload failed: ${msg}`);
+        notifyError(msg ? `Leaderboard upload failed: ${msg}` : 'Leaderboard upload failed.');
         captureSubmitResult('error', 'submit_failed');
       }
     }

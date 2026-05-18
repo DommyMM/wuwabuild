@@ -164,7 +164,7 @@ export const BuildEditor: React.FC = () => {
   } = useBuild();
   const { getWeapon, characters } = useGameData();
   const { t } = useLanguage();
-  const { error: toastError } = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
   const selected = useSelectedCharacter();
   const selectedWeapon = getWeapon(state.weaponId);
   const leaderboardLink = useResolvedLeaderboardLink({
@@ -321,6 +321,7 @@ export const BuildEditor: React.FC = () => {
         weapon_id: state.weaponId,
         sequence: state.sequence,
       });
+      toastSuccess('Build card downloaded.');
     } catch (e) {
       posthog.captureException(e);
       toastError('Failed to download build card.');
@@ -328,7 +329,7 @@ export const BuildEditor: React.FC = () => {
     } finally {
       setIsDownloading(false);
     }
-  }, [isDownloading, selected, state.characterId, state.weaponId, state.sequence, toastError]);
+  }, [isDownloading, selected, state.characterId, state.weaponId, state.sequence, toastError, toastSuccess]);
 
   const handleResetBuild = useCallback(() => {
     setIsResetDialogOpen(true);
@@ -367,7 +368,7 @@ export const BuildEditor: React.FC = () => {
 
   const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
-      toastError('Unsupported file type. Use PNG, JPG, or WEBP.');
+      toastError('Unsupported image type. Use PNG, JPG, or WEBP.');
       return;
     }
     if (file.size > MAX_UPLOAD_BYTES) {
@@ -402,7 +403,8 @@ export const BuildEditor: React.FC = () => {
       sourceMode: 'custom',
       transform: { x: 0, y: 0, scale: autoScale },
     });
-  }, [activeArtState.isEditMode, state.characterId, toastError]);
+    toastSuccess('Custom card art applied.');
+  }, [activeArtState.isEditMode, state.characterId, toastError, toastSuccess]);
 
   const handleRemoveCustomArt = useCallback(() => {
     clearArtState();
@@ -711,6 +713,7 @@ export const BuildEditor: React.FC = () => {
         key={`${isSaveModalOpen ? 'open' : 'closed'}-${state.characterId}`}
         isOpen={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}
+        onSave={(build) => toastSuccess(`Saved "${build.name}".`)}
         defaultName={selected?.character.name ? `${selected.character.name} Build` : undefined}
       />
 
