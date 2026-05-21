@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { ProfilePageClient } from '@/components/profile/ProfilePageClient';
 
-export const dynamic = 'force-dynamic';
-
 interface ProfilePageProps {
   params: Promise<{ uid: string }>;
 }

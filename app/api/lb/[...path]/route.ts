@@ -40,7 +40,17 @@ async function proxyRequest(
   });
 
   const data = await res.json();
-  return Response.json(data, { status: res.status });
+
+  // Forward the upstream Cache-Control for successful reads so Vercel's CDN
+  // can serve repeats from the edge instead of re-invoking this function.
+  // Only GET 2xx, never let a transient error response get cached.
+  const headers: HeadersInit = {};
+  if (method === 'GET' && res.ok) {
+    const cacheControl = res.headers.get('cache-control');
+    if (cacheControl) headers['Cache-Control'] = cacheControl;
+  }
+
+  return Response.json(data, { status: res.status, headers });
 }
 
 export async function GET(

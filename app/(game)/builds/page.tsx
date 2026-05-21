@@ -3,7 +3,7 @@ import { GlobalBoardPageClient } from '@/components/leaderboards/board/GlobalBoa
 import { prefetchBuilds } from '@/lib/lbServer';
 
 export const dynamic = 'force-static';
-export const revalidate = 120;
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Browse Builds',

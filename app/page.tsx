@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { HomePage } from '@/components/home/HomePage';
 import { prefetchLeaderboardOverview, prefetchBuilds } from '@/lib/lbServer';
 
-export const revalidate = 120; // ISR: full page HTML cached at edge, re-rendered at most once per 2 min
+export const revalidate = 300; // ISR: full page HTML cached at edge, re-rendered at most once per 5 min
 
 export const metadata: Metadata = {
     title: 'WuWa Builds | Wuthering Waves Build Creator & Leaderboards',

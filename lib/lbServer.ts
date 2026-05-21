@@ -2,7 +2,7 @@
 import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack, LBTeamMemberConfig } from './lb';
 
 // Centralized TTL for all SSR prefetch caches (seconds).
-const PREFETCH_TTL_S = 120; // 2 minutes
+const PREFETCH_TTL_S = 300; // 5 minutes
 
 function parseTracks(raw: unknown): LBTrack[] {
   if (!Array.isArray(raw)) return [];
