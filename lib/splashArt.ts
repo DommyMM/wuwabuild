@@ -1,8 +1,8 @@
 import { CardArtTransform } from '@/lib/cardArt';
 
-export const SPLASH_EXTENSIONS = ['webp', 'jpg', 'png'] as const;
+const SPLASH_EXTENSIONS = ['webp', 'jpg', 'png'] as const;
 
-export const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
+const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1105': { x: -40, y: 0, scale: 1.1 },
   '1108': { x: -80, y: 0, scale: 1.05 },
   '1205': { x: 52, y: 124, scale: 1.4 },

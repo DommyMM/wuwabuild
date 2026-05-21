@@ -40,7 +40,7 @@ export const getSubstatTierColor = (
 // Returns the quartile rank (1 = bottom, 4 = top) for a substat roll, or null
 // when there isn't enough data to bucket it. Used by the echo card's pip mode
 // to render N-of-4 filled dots without re-deriving thresholds per row.
-export const getSubstatTierIndex = (
+const getSubstatTierIndex = (
   value: number,
   rollValues: number[] | null | undefined
 ): 1 | 2 | 3 | 4 | null => {

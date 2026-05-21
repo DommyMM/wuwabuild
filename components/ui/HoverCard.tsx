@@ -168,7 +168,7 @@ export const HoverCardSection: React.FC<HoverCardSectionProps> = ({
   );
 };
 
-export interface HoverCardBonusItem {
+interface HoverCardBonusItem {
   name: ReactNode;
   value: ReactNode;
   prefix?: string; // e.g. '+' for stat bonuses

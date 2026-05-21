@@ -3,7 +3,7 @@ import { Weapon } from '@/lib/weapon';
 import { ForteState } from '@/lib/build';
 
 // Character curve stats interface
-export interface CurveStats {
+interface CurveStats {
   HP: number;
   ATK: number;
   DEF: number;

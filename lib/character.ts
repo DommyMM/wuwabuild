@@ -8,7 +8,7 @@ export enum Element {
   Rover = "Rover"
 }
 
-export enum WeaponType {
+enum WeaponType {
   Pistol = "Pistol",
   Rectifier = "Rectifier",
   Broadblade = "Broadblade",
@@ -16,7 +16,7 @@ export enum WeaponType {
   Gauntlet = "Gauntlet"
 }
 
-export enum Role {
+enum Role {
   Concerto = "Concerto",
   Support = "Support",
   DPS = "DPS"
@@ -40,7 +40,7 @@ export interface I18nString {
   'zh-Hant'?: string;
 }
 
-export interface CDNSkillTreeNode {
+interface CDNSkillTreeNode {
   id: number;
   coordinate: number; // 1 = middle/lower, 2 = top/upper
   parentNodes: number[];
@@ -51,7 +51,7 @@ export interface CDNSkillTreeNode {
 }
 
 // Preprocessed forte node for easy lookup by tree + position.
-export interface ForteNodeData {
+interface ForteNodeData {
   name: string;
   icon: string;
   value: number;    // Parsed percentage (e.g. 1.2 for "1.20%")
@@ -66,13 +66,13 @@ export interface CDNChainEntry {
   bonus?: { stat: string; value: number }; // unconditional passive stat bonus (parsed at sync time)
 }
 
-export interface CDNMoveValueEntry {
+interface CDNMoveValueEntry {
   id: number;
   name: I18nString | string;
   values: string[];
 }
 
-export interface CDNMoveEntry {
+interface CDNMoveEntry {
   id: number;
   type: number;
   sort: number;

@@ -1,7 +1,7 @@
 import { EchoPanelState } from './echo';
 import { createDefaultEchoPanelState } from './calculations/echoes';
 
-export interface SavedEchoData {
+interface SavedEchoData {
   id: string;
   panelData: EchoPanelState;
 }

@@ -166,16 +166,16 @@ interface LBListBuildsQuery {
   echoMains?: LBEchoMainFilter[];
 }
 
-export interface LBBuildOwner {
+interface LBBuildOwner {
   username: string;
   uid: string;
 }
 
-export interface LBBuildCharacter {
+interface LBBuildCharacter {
   id: string;
 }
 
-export interface LBBuildWeapon {
+interface LBBuildWeapon {
   id: string;
   level: number;
   rank: number;
@@ -202,7 +202,7 @@ export interface LBBuildDetailEntry extends LBBuildRowEntry {
   buildState: SavedState;
 }
 
-export interface LBMoveHitEntry {
+interface LBMoveHitEntry {
   name: string;
   damage: number;
   percentage: number;
