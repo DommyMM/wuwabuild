@@ -46,6 +46,65 @@ const StatHoverRow: React.FC<{ label: string; children: React.ReactNode }> = ({ 
   </div>
 );
 
+// Discrete bar of every possible roll for a substat, tinted by quality tier.
+// The roll this build landed is enlarged and labelled.
+const SubstatRollBar: React.FC<{
+  rollValues: number[];
+  currentValue: number;
+  isPercent: boolean;
+}> = ({ rollValues, currentValue, isPercent }) => {
+  const sorted = rollValues.filter((value) => Number.isFinite(value)).slice().sort((a, b) => a - b);
+  if (sorted.length < 2) {
+    return <span className="text-sm font-semibold text-white/90">{formatStatRoll(currentValue, isPercent)}</span>;
+  }
+
+  let currentIndex = 0;
+  let bestDelta = Infinity;
+  sorted.forEach((value, index) => {
+    const delta = Math.abs(value - currentValue);
+    if (delta < bestDelta) {
+      bestDelta = delta;
+      currentIndex = index;
+    }
+  });
+
+  return (
+    <div className="flex items-end gap-0.5 pt-4">
+      {sorted.map((value, index) => {
+        const tier = getSubstatTierInfo(value, sorted);
+        const color = tier?.color ?? '#888888';
+        const isCurrent = index === currentIndex;
+        return (
+          <div key={index} className="relative flex flex-1 flex-col items-center">
+            {isCurrent && (
+              <span
+                className={`absolute -top-4 text-xs font-bold leading-none ${
+                  index === 0
+                    ? 'left-0'
+                    : index === sorted.length - 1
+                      ? 'right-0'
+                      : 'left-1/2 -translate-x-1/2'
+                }`}
+                style={{ color }}
+              >
+                {formatStatRoll(value, isPercent)}
+              </span>
+            )}
+            <div
+              className="w-full rounded-[2px]"
+              style={{
+                backgroundColor: color,
+                height: isCurrent ? 18 : 7,
+                opacity: isCurrent ? 1 : 0.4,
+              }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = ({
   detail,
   character,
@@ -58,7 +117,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
   hasSelectedSubstats,
   showHeader = true,
 }) => {
-  const { fettersByElement, getSubstatValues, statTranslations } = useGameData();
+  const { fettersByElement, getSubstatValues, getMainStatsByCost, statTranslations } = useGameData();
 
   return (
     <>
@@ -123,6 +182,9 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                 ? translateText(statTranslations[mainStatType], mainStatType)
                 : mainStatType)
             : '';
+          const mainStatRange: [number, number] | null = mainStatType
+            ? (getMainStatsByCost(echo?.cost ?? null)[mainStatType] ?? null)
+            : null;
 
           const panelSubstats = panel.stats.subStats.filter((sub) => {
             const key = normalizeSubstatKey(sub.type);
@@ -221,11 +283,17 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                       title={mainStatLabel || mainStatType}
                       subtitle="Echo main stat"
                       body={(
-                        <StatHoverRow label="Value">
-                          {isMainPercent
-                            ? `${Number(mainStatValue).toFixed(1)}%`
-                            : Math.round(Number(mainStatValue)).toLocaleString()}
-                        </StatHoverRow>
+                        mainStatRange ? (
+                          <StatHoverRow label="Range">
+                            {`${formatStatRoll(mainStatRange[0], isMainPercent)} – ${formatStatRoll(mainStatRange[1], isMainPercent)}`}
+                          </StatHoverRow>
+                        ) : (
+                          <StatHoverRow label="Value">
+                            {isMainPercent
+                              ? `${Number(mainStatValue).toFixed(1)}%`
+                              : Math.round(Number(mainStatValue)).toLocaleString()}
+                          </StatHoverRow>
+                        )
                       )}
                     >
                       <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/75 px-2 py-1">
@@ -276,32 +344,21 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                     const subLabel = statTranslations?.[subType]
                       ? translateText(statTranslations[subType], subType)
                       : subType;
-                    const sortedRolls = subRollValues
-                      ? subRollValues.filter((v) => Number.isFinite(v)).slice().sort((a, b) => a - b)
-                      : [];
-                    const rangeText = sortedRolls.length >= 2
-                      ? `${formatStatRoll(sortedRolls[0], isSubPercent)} – ${formatStatRoll(sortedRolls[sortedRolls.length - 1], isSubPercent)}`
-                      : null;
 
                     return (
                       <HoverCard
                         key={`${detail.id}-sub-${panelIndex}-${subIndex}`}
                         placement="right"
-                        width="sm"
+                        width="md"
                         triggerClassName="pointer-events-auto block w-full"
                         title={subLabel}
+                        subtitle="Substat"
                         body={(
-                          <div className="space-y-1">
-                            <StatHoverRow label="This roll">
-                              {formatStatRoll(Number(sub.value), isSubPercent)}
-                            </StatHoverRow>
-                            {tierInfo && (
-                              <StatHoverRow label="Quality">
-                                <span style={{ color: tierInfo.color }}>{tierInfo.label}</span>
-                              </StatHoverRow>
-                            )}
-                            {rangeText && <StatHoverRow label="Roll range">{rangeText}</StatHoverRow>}
-                          </div>
+                          <SubstatRollBar
+                            rollValues={subRollValues ?? []}
+                            currentValue={Number(sub.value)}
+                            isPercent={isSubPercent}
+                          />
                         )}
                       >
                         <div
