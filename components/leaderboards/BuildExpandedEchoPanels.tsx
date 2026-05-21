@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
+import { calculateEchoSubstatCV, ECHO_CV_TIERS, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { getSubstatTierInfo } from '@/lib/calculations/substatTiers';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { FORTE_LABELS } from '@/lib/constants/skillBranches';
@@ -12,7 +12,7 @@ import { LBBuildDetailEntry } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
 import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
 import { EchoHoverCard } from '@/components/echo/EchoHoverCard';
-import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
+import { HoverCard } from '@/components/ui/HoverCard';
 import { RegionBadge } from './constants';
 
 interface BuildExpandedEchoPanelsProps {
@@ -47,7 +47,7 @@ const StatHoverRow: React.FC<{ label: string; children: React.ReactNode }> = ({ 
 );
 
 // Discrete bar of every possible roll for a substat, tinted by quality tier.
-// The roll this build landed is enlarged and labelled.
+// The roll this build landed is enlarged, brightened and labelled.
 const SubstatRollBar: React.FC<{
   rollValues: number[];
   currentValue: number;
@@ -68,39 +68,78 @@ const SubstatRollBar: React.FC<{
     }
   });
 
+  const tierColors = sorted.map((value) => getSubstatTierInfo(value, sorted)?.color ?? '#888888');
+  const currentColor = tierColors[currentIndex];
+
   return (
-    <div className="flex items-end gap-0.5 pt-4">
-      {sorted.map((value, index) => {
-        const tier = getSubstatTierInfo(value, sorted);
-        const color = tier?.color ?? '#888888';
-        const isCurrent = index === currentIndex;
-        return (
-          <div key={index} className="relative flex flex-1 flex-col items-center">
-            {isCurrent && (
-              <span
-                className={`absolute -top-4 text-xs font-bold leading-none ${
-                  index === 0
-                    ? 'left-0'
-                    : index === sorted.length - 1
-                      ? 'right-0'
-                      : 'left-1/2 -translate-x-1/2'
-                }`}
-                style={{ color }}
-              >
-                {formatStatRoll(value, isPercent)}
-              </span>
-            )}
+    <div>
+      <div className="flex items-end gap-0.5">
+        {sorted.map((value, index) => (
+          <span
+            key={index}
+            className="min-w-0 flex-1 text-center text-xs font-bold leading-none tabular-nums"
+            style={{ color: index === currentIndex ? currentColor : 'transparent' }}
+          >
+            {formatStatRoll(value, isPercent)}
+          </span>
+        ))}
+      </div>
+      <div className="mt-1 flex items-end gap-0.5">
+        {sorted.map((value, index) => {
+          const isCurrent = index === currentIndex;
+          return (
             <div
-              className="w-full rounded-[2px]"
+              key={index}
+              className="min-w-0 flex-1 rounded-[2px]"
               style={{
-                backgroundColor: color,
+                backgroundColor: tierColors[index],
                 height: isCurrent ? 18 : 7,
                 opacity: isCurrent ? 1 : 0.4,
               }}
             />
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Echo CV plotted on its quality-tier ladder; the build's tier is enlarged.
+const EchoCVBar: React.FC<{ cv: number }> = ({ cv }) => {
+  const tiers = ECHO_CV_TIERS.slice().reverse(); // low → high
+  const currentLabel = getEchoCVTierStyle(cv).label;
+  const currentIndex = tiers.findIndex((tier) => tier.label === currentLabel);
+  const valueText = cv.toFixed(1);
+
+  return (
+    <div>
+      <div className="flex items-end gap-0.5">
+        {tiers.map((tier, index) => (
+          <span
+            key={tier.label}
+            className="min-w-0 flex-1 text-center text-xs font-bold leading-none tabular-nums"
+            style={{ color: index === currentIndex ? tier.color : 'transparent' }}
+          >
+            {valueText}
+          </span>
+        ))}
+      </div>
+      <div className="mt-1 flex items-end gap-0.5">
+        {tiers.map((tier, index) => {
+          const isCurrent = index === currentIndex;
+          return (
+            <div
+              key={tier.label}
+              className="min-w-0 flex-1 rounded-[2px]"
+              style={{
+                backgroundColor: tier.color,
+                height: isCurrent ? 18 : 7,
+                opacity: isCurrent ? 1 : 0.4,
+              }}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -246,20 +285,11 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                     {cvTier && (
                       <HoverCard
                         placement="top"
-                        width="sm"
-                        triggerClassName="pointer-events-auto inline-flex"
-                        title={`${echoCV.toFixed(1)} CV`}
-                        subtitle="Crit Value"
-                        body={(
-                          <div className="space-y-1.5">
-                            <StatHoverRow label="Rating">
-                              <span style={{ color: cvTier.color }}>{cvTier.label}</span>
-                            </StatHoverRow>
-                            <HoverCardDescription>
-                              Crit Value of this echo&apos;s substats — 2 &times; Crit Rate + Crit DMG. The main stat is not counted.
-                            </HoverCardDescription>
-                          </div>
-                        )}
+                        width="md"
+                        triggerClassName="pointer-events-auto inline-flex cursor-pointer"
+                        title="Crit Value"
+                        subtitle="2 × Crit Rate + Crit DMG"
+                        body={<EchoCVBar cv={echoCV} />}
                       >
                         <div
                           className="flex items-center rounded-md border px-2 py-1"
@@ -350,7 +380,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                         key={`${detail.id}-sub-${panelIndex}-${subIndex}`}
                         placement="right"
                         width="md"
-                        triggerClassName="pointer-events-auto block w-full"
+                        triggerClassName="pointer-events-auto block w-full cursor-pointer"
                         title={subLabel}
                         subtitle="Substat"
                         body={(

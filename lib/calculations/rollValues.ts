@@ -74,21 +74,41 @@ export const calculateCV = (echoPanels: EchoPanelState[]): number => {
 //   Decent    ≥ 28.0  ~ 22 %
 //   Passable  ≥ 25.2   ~ 11 %  (minimum double-crit)
 //   Bad        < 25.2          (single-crit or no crit)
-interface EchoCVTierStyle {
+export interface EchoCVTier {
+  label: string;
+  /** Inclusive CV lower bound for this tier. */
+  min: number;
   color: string;    // hex for badge text and border tint
   bgColor?: string; // override background (e.g., inverted badge for MAX)
+  isMax?: boolean;
+}
+
+/** Maximum attainable echo substat CV — both crit substats at their max roll. */
+export const ECHO_CV_MAX = 42.0;
+
+/** Echo substat CV tiers, ordered highest → lowest. Single source of truth for
+ *  the thresholds, labels and colors used by getEchoCVTierStyle and the CV bar. */
+export const ECHO_CV_TIERS: readonly EchoCVTier[] = [
+  { label: 'MAX',       min: ECHO_CV_MAX, color: '#CC0000', bgColor: 'rgba(255,255,255,0.95)', isMax: true },
+  { label: 'Perfect',   min: 39.8,        color: '#FF00FF' },
+  { label: 'Excellent', min: 36.0,        color: '#00FFFF' },
+  { label: 'High',      min: 32.0,        color: '#00FF00' },
+  { label: 'Decent',    min: 28.0,        color: '#E6B800' },
+  { label: 'Passable',  min: 25.2,        color: '#FF8C00' },
+  { label: 'Bad',       min: 0,           color: '#888888' },
+];
+
+interface EchoCVTierStyle {
+  color: string;
+  bgColor?: string;
   label: string;
-  isMax?: boolean;  // max CV of 42
+  isMax?: boolean;
 }
 
 export const getEchoCVTierStyle = (cv: number): EchoCVTierStyle => {
-  if (cv >= 42.0) return { color: '#CC0000', bgColor: 'rgba(255,255,255,0.95)', label: 'MAX', isMax: true }; // inverted red
-  if (cv >= 39.8) return { color: '#FF00FF', label: 'Perfect'  };              // hot pink
-  if (cv >= 36.0) return { color: '#00FFFF', label: 'Excellent' };             // cyan
-  if (cv >= 32.0) return { color: '#00FF00', label: 'High'     };              // green
-  if (cv >= 28.0) return { color: '#E6B800', label: 'Decent'   };              // gold
-  if (cv >= 25.2) return { color: '#FF8C00', label: 'Passable' };              // orange
-  return               { color: '#888888',  label: 'Bad'      };              // gray
+  const tier = ECHO_CV_TIERS.find((entry) => cv >= entry.min)
+    ?? ECHO_CV_TIERS[ECHO_CV_TIERS.length - 1];
+  return { color: tier.color, bgColor: tier.bgColor, label: tier.label, isMax: tier.isMax };
 };
 
 // Use CV-tier tint for the card frame, but keep weak echoes on the default amber

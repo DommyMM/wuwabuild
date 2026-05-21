@@ -272,7 +272,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
           >
             <div
               ref={scrollRef}
-              className="max-h-[calc(90vh-48px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0"
+              className="max-h-[calc(90vh-48px)] overflow-x-hidden overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0"
             >
               {content}
             </div>
