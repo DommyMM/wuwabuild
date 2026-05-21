@@ -10,6 +10,7 @@ import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { saveDraftBuild } from '@/lib/storage';
+import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
 import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL, RegionBadge } from './constants';
 import { formatFlatStat, formatPercentStat } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
@@ -376,18 +377,33 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                     );
                   })}
 
-                  <div
-                    className={`${LB_SUMMARY_RV} ${
-                      hasSelectedSubstats
-                        ? 'border border-amber-300/75 opacity-100'
-                        : 'border border-amber-300/45 opacity-70'
-                    }`}
+                  <HoverCard
+                    placement="top"
+                    width="md"
+                    title="Roll Value"
+                    subtitle={`${totalSelectedRolls} roll${totalSelectedRolls === 1 ? '' : 's'} selected`}
+                    body={(
+                      <HoverCardDescription>
+                        Roll Value grades how well your substats rolled. Each roll is scored
+                        against the highest value that stat can roll — a perfect roll is 100%.
+                        The figure shown sums every selected roll. Use the stat pills to choose
+                        which substats count.
+                      </HoverCardDescription>
+                    )}
                   >
-                    <span className="text-amber-300">x{totalSelectedRolls}</span>
-                    <span>•</span>
-                    <span className="text-amber-300">RV</span>
-                    <span className={LB_SUMMARY_VAL}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
-                  </div>
+                    <div
+                      className={`${LB_SUMMARY_RV} ${
+                        hasSelectedSubstats
+                          ? 'border border-amber-300/75 opacity-100'
+                          : 'border border-amber-300/45 opacity-70'
+                      }`}
+                    >
+                      <span className="text-amber-300">x{totalSelectedRolls}</span>
+                      <span>•</span>
+                      <span className="text-amber-300">RV</span>
+                      <span className={LB_SUMMARY_VAL}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
+                    </div>
+                  </HoverCard>
                 </div>
               )}
 

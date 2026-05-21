@@ -3,7 +3,7 @@
 import React from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
-import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
+import { getSubstatTierInfo } from '@/lib/calculations/substatTiers';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { FORTE_LABELS } from '@/lib/constants/skillBranches';
 import { Character } from '@/lib/character';
@@ -11,6 +11,8 @@ import { Echo } from '@/lib/echo';
 import { LBBuildDetailEntry } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
 import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
+import { EchoHoverCard } from '@/components/echo/EchoHoverCard';
+import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
 import { RegionBadge } from './constants';
 
 interface BuildExpandedEchoPanelsProps {
@@ -32,6 +34,18 @@ function normalizeSubstatKey(type: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function formatStatRoll(value: number, isPercent: boolean): string {
+  return isPercent ? `${Number(value).toFixed(1)}%` : String(Math.round(Number(value)));
+}
+
+// A label/value pair used inside hover tooltip bodies on the echo panels.
+const StatHoverRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="flex items-baseline justify-between gap-4">
+    <span className="text-xs font-semibold uppercase tracking-wide text-white/55">{label}</span>
+    <span className="text-sm font-semibold text-white/90">{children}</span>
+  </div>
+);
+
 export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = ({
   detail,
   character,
@@ -44,7 +58,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
   hasSelectedSubstats,
   showHeader = true,
 }) => {
-  const { fettersByElement, getSubstatValues } = useGameData();
+  const { fettersByElement, getSubstatValues, statTranslations } = useGameData();
 
   return (
     <>
@@ -104,6 +118,11 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
             ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')] ?? '')
             : '';
           const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
+          const mainStatLabel = mainStatType
+            ? (statTranslations?.[mainStatType]
+                ? translateText(statTranslations[mainStatType], mainStatType)
+                : mainStatType)
+            : '';
 
           const panelSubstats = panel.stats.subStats.filter((sub) => {
             const key = normalizeSubstatKey(sub.type);
@@ -152,36 +171,76 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                 style={ECHO_IMAGE_FADE_STYLE}
               />
 
-              <div className="relative z-2 flex h-full">
+              {/* Echo identity hover — sits beneath the content layer, covers the artwork half. */}
+              <EchoHoverCard echo={echo} placement="top" triggerClassName="absolute inset-y-0 left-0 z-1 w-1/2">
+                <span aria-hidden className="block h-full w-full" />
+              </EchoHoverCard>
+
+              {/* Content layer is click-through so the echo hover behind it stays reachable;
+                  individual chips re-enable pointer events. */}
+              <div className="pointer-events-none relative z-2 flex h-full">
                 <div className="flex w-1/2 flex-col items-start justify-between p-2">
                   <div className="flex flex-col items-start gap-1">
                     {cvTier && (
-                      <div
-                        className="flex items-center rounded-md border px-2 py-1"
-                        style={{
-                          borderColor: `${cvTier.color}66`,
-                          color: cvTier.color,
-                          backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
-                        }}
+                      <HoverCard
+                        placement="top"
+                        width="sm"
+                        triggerClassName="pointer-events-auto inline-flex"
+                        title={`${echoCV.toFixed(1)} CV`}
+                        subtitle="Crit Value"
+                        body={(
+                          <div className="space-y-1.5">
+                            <StatHoverRow label="Rating">
+                              <span style={{ color: cvTier.color }}>{cvTier.label}</span>
+                            </StatHoverRow>
+                            <HoverCardDescription>
+                              Crit Value of this echo&apos;s substats — 2 &times; Crit Rate + Crit DMG. The main stat is not counted.
+                            </HoverCardDescription>
+                          </div>
+                        )}
                       >
-                        <span className="text-xs font-bold leading-tight">{echoCV.toFixed(1)} CV</span>
-                      </div>
+                        <div
+                          className="flex items-center rounded-md border px-2 py-1"
+                          style={{
+                            borderColor: `${cvTier.color}66`,
+                            color: cvTier.color,
+                            backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
+                          }}
+                        >
+                          <span className="text-xs font-bold leading-tight">{echoCV.toFixed(1)} CV</span>
+                        </div>
+                      </HoverCard>
                     )}
                   </div>
 
                   {mainStatType && mainStatValue != null && (
-                    <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/75 px-2 py-1">
-                      {mainStatIcon ? (
-                        <img src={mainStatIcon} alt="" className="h-5 w-5 object-contain" />
-                      ) : (
-                        <span className="h-5 w-5 rounded bg-white/18" />
+                    <HoverCard
+                      placement="right"
+                      width="sm"
+                      triggerClassName="pointer-events-auto inline-flex"
+                      title={mainStatLabel || mainStatType}
+                      subtitle="Echo main stat"
+                      body={(
+                        <StatHoverRow label="Value">
+                          {isMainPercent
+                            ? `${Number(mainStatValue).toFixed(1)}%`
+                            : Math.round(Number(mainStatValue)).toLocaleString()}
+                        </StatHoverRow>
                       )}
-                      <span className="text-base font-semibold">
-                        {isMainPercent
-                          ? `${Number(mainStatValue).toFixed(1)}%`
-                          : Math.round(Number(mainStatValue)).toLocaleString()}
-                      </span>
-                    </div>
+                    >
+                      <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/75 px-2 py-1">
+                        {mainStatIcon ? (
+                          <img src={mainStatIcon} alt="" className="h-5 w-5 object-contain" />
+                        ) : (
+                          <span className="h-5 w-5 rounded bg-white/18" />
+                        )}
+                        <span className="text-base font-semibold">
+                          {isMainPercent
+                            ? `${Number(mainStatValue).toFixed(1)}%`
+                            : Math.round(Number(mainStatValue)).toLocaleString()}
+                        </span>
+                      </div>
+                    </HoverCard>
                   )}
                 </div>
 
@@ -195,12 +254,13 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                     const subType = normalizeSubstatKey(sub.type) ?? '';
                     const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')] ?? '';
                     const isSubPercent = isPercentStat(subType);
-                    const tierColor = getSubstatTierColor(subType, Number(sub.value), getSubstatValues(subType));
+                    const subRollValues = getSubstatValues(subType);
+                    const tierInfo = getSubstatTierInfo(Number(sub.value), subRollValues);
                     const isMatchedSelection = hasSelectedSubstats && activeSelectedSubstats.has(subType);
                     const isDimmed = hasSelectedSubstats && !isMatchedSelection;
 
-                    const tierStyle: React.CSSProperties | undefined = tierColor ? {
-                      color: tierColor,
+                    const tierStyle: React.CSSProperties | undefined = tierInfo ? {
+                      color: tierInfo.color,
                     } : undefined;
 
                     const selectedStyle: React.CSSProperties | undefined = isMatchedSelection ? {
@@ -213,23 +273,53 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                       ...(selectedStyle ?? {}),
                     };
 
+                    const subLabel = statTranslations?.[subType]
+                      ? translateText(statTranslations[subType], subType)
+                      : subType;
+                    const sortedRolls = subRollValues
+                      ? subRollValues.filter((v) => Number.isFinite(v)).slice().sort((a, b) => a - b)
+                      : [];
+                    const rangeText = sortedRolls.length >= 2
+                      ? `${formatStatRoll(sortedRolls[0], isSubPercent)} – ${formatStatRoll(sortedRolls[sortedRolls.length - 1], isSubPercent)}`
+                      : null;
+
                     return (
-                      <div
+                      <HoverCard
                         key={`${detail.id}-sub-${panelIndex}-${subIndex}`}
-                        className={`flex w-full items-center gap-1 rounded-sm bg-black/40 px-1.5 py-1.5 text-base font-semibold leading-none shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] transition-opacity duration-200 ${
-                          isDimmed ? 'opacity-35' : 'opacity-100'
-                        }`}
-                        style={combinedStyle}
-                      >
-                        {subIcon ? (
-                          <img src={subIcon} alt="" className={`h-4.5 w-4.5 object-contain ${isMatchedSelection ? 'brightness-125' : ''}`} />
-                        ) : (
-                          <span className="h-4 w-4 rounded bg-white/18" />
+                        placement="right"
+                        width="sm"
+                        triggerClassName="pointer-events-auto block w-full"
+                        title={subLabel}
+                        body={(
+                          <div className="space-y-1">
+                            <StatHoverRow label="This roll">
+                              {formatStatRoll(Number(sub.value), isSubPercent)}
+                            </StatHoverRow>
+                            {tierInfo && (
+                              <StatHoverRow label="Quality">
+                                <span style={{ color: tierInfo.color }}>{tierInfo.label}</span>
+                              </StatHoverRow>
+                            )}
+                            {rangeText && <StatHoverRow label="Roll range">{rangeText}</StatHoverRow>}
+                          </div>
                         )}
-                        <span>
-                          {isSubPercent ? `${Number(sub.value).toFixed(1)}%` : Math.round(Number(sub.value))}
-                        </span>
-                      </div>
+                      >
+                        <div
+                          className={`flex w-full items-center gap-1 rounded-sm bg-black/40 px-1.5 py-1.5 text-base font-semibold leading-none shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] transition-opacity duration-200 ${
+                            isDimmed ? 'opacity-35' : 'opacity-100'
+                          }`}
+                          style={combinedStyle}
+                        >
+                          {subIcon ? (
+                            <img src={subIcon} alt="" className={`h-4.5 w-4.5 object-contain ${isMatchedSelection ? 'brightness-125' : ''}`} />
+                          ) : (
+                            <span className="h-4 w-4 rounded bg-white/18" />
+                          )}
+                          <span>
+                            {isSubPercent ? `${Number(sub.value).toFixed(1)}%` : Math.round(Number(sub.value))}
+                          </span>
+                        </div>
+                      </HoverCard>
                     );
                   })}
                 </div>

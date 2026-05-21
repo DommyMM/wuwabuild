@@ -53,3 +53,24 @@ const getSubstatTierIndex = (
   if (value >= t1) return 2;
   return 1;
 };
+
+// Quartile labels, index 0 = lowest tier.
+const TIER_LABELS = ['Low', 'Fair', 'Good', 'High'] as const;
+
+export interface SubstatTierInfo {
+  /** Quartile rank, 1 (lowest rolls) to 4 (highest rolls). */
+  index: 1 | 2 | 3 | 4;
+  label: string;
+  color: string;
+}
+
+// Resolves a substat roll into a quartile label + color, or null when there
+// isn't enough roll data to bucket it. Used by hover tooltips on echo panels.
+export const getSubstatTierInfo = (
+  value: number,
+  rollValues: number[] | null | undefined
+): SubstatTierInfo | null => {
+  const index = getSubstatTierIndex(value, rollValues);
+  if (index == null) return null;
+  return { index, label: TIER_LABELS[index - 1], color: TIER_COLORS[index - 1] };
+};
