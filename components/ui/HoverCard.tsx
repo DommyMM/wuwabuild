@@ -13,6 +13,8 @@ export interface HoverCardChipModel {
   icon?: string | null;
   iconAlt?: string;
   tone?: ChipTone;
+  // Arbitrary accent color (e.g. an element color). Overrides `tone` when set.
+  color?: string;
 }
 
 interface HoverCardProps {
@@ -98,15 +100,25 @@ interface HoverCardChipsProps {
 const HoverCardChips: React.FC<HoverCardChipsProps> = ({ chips }) => (
   <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
     {chips.map((chip, i) => {
-      const toneClass = chip.tone === 'amber'
-        ? 'border-amber-300/30 bg-amber-300/12 text-amber-100/95'
-        : chip.tone === 'cyan'
-          ? 'border-cyan-300/30 bg-cyan-300/12 text-cyan-100/95'
-          : 'border-white/10 bg-black/30 text-white/82';
+      const toneClass = chip.color
+        ? ''
+        : chip.tone === 'amber'
+          ? 'border-amber-300/30 bg-amber-300/12 text-amber-100/95'
+          : chip.tone === 'cyan'
+            ? 'border-cyan-300/30 bg-cyan-300/12 text-cyan-100/95'
+            : 'border-white/10 bg-black/30 text-white/82';
+      const colorStyle: React.CSSProperties | undefined = chip.color
+        ? {
+          borderColor: `color-mix(in srgb, ${chip.color} 42%, transparent)`,
+          backgroundColor: `color-mix(in srgb, ${chip.color} 15%, transparent)`,
+          color: `color-mix(in srgb, ${chip.color} 80%, white)`,
+        }
+        : undefined;
       return (
         <span
           key={i}
           className={`flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${toneClass}`}
+          style={colorStyle}
         >
           {chip.icon && (
             <img

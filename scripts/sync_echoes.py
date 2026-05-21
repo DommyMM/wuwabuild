@@ -152,7 +152,8 @@ def transform_echo(raw: dict, encore_names: dict[int, str] | None = None) -> dic
         "element": raw["element"],
         "icon": icon_path,
         "skill": {
-            "description": (raw["skill"].get("descriptionEx") or {}).get("en"),
+            # Keep the full i18n object so the frontend can localize; was .en-only.
+            "description": raw["skill"].get("descriptionEx") or {},
             "params": raw["skill"].get("levelDescriptionStrArray"),
         },
         "legacyId": legacy_id or str(raw.get("id", "") or ""),

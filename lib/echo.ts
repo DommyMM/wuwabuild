@@ -36,7 +36,7 @@ export interface CDNEcho {
   phantomIcon?: string;
   bonuses?: Array<{ stat: string; value: number; characterCondition?: string[] }>;
   skill: {
-    description: string;
+    description: I18nString;
     params: Array<{ ArrayString: string[] }>;
   };
 }
@@ -56,7 +56,7 @@ export interface Echo {
   phantomIconUrl?: string;
   bonuses?: Array<{ stat: StatName; value: number; characterCondition?: string[] }>;
   skill?: {
-    description: string;
+    description: I18nString;
     params: string[][];
   };
 }

@@ -6,6 +6,7 @@ import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LBTeamMemberConfig } from '@/lib/lb';
+import { CDNFetter } from '@/lib/echo';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
 import { EchoHoverCard } from '@/components/echo/EchoHoverCard';
@@ -154,11 +155,15 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     };
   }, [getWeapon, statIcons]);
 
-  const wrapEcho = React.useCallback((echoId?: string) => {
+  const wrapEcho = React.useCallback((echoId?: string, fetter?: CDNFetter | null) => {
     const echo = getEcho(echoId ?? null);
     if (!echo) return undefined;
     return function wrapEchoTrigger(trigger: React.ReactNode) {
-      return <EchoHoverCard placement="bottom" echo={echo}>{trigger}</EchoHoverCard>;
+      return (
+        <EchoHoverCard placement="bottom" echo={echo} resolvedFetter={fetter ?? null}>
+          {trigger}
+        </EchoHoverCard>
+      );
     };
   }, [getEcho]);
 
@@ -191,7 +196,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
         key: 'echo',
         src: getEchoPaths(echo),
         label: t(echo.nameI18n ?? { en: echo.name }),
-        wrap: wrapEcho(member.echoId),
+        wrap: wrapEcho(member.echoId, set),
       }) : null,
       set?.icon ? ({
         key: 'set',
