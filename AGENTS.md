@@ -23,6 +23,19 @@ When behavior changes, update the corresponding file in `docs/`.
 
 ---
 
+## Changelog
+
+`lib/changelog.ts` is the source of truth for the public changelog at `/changelog`.
+
+When you ship something a **player would notice**, add it — extend the latest entry or add a new dated one at the top of the array. Group related commits into one line; this is a changelog, not a commit log.
+
+- **Include**: new features, visible fixes, OCR/import accuracy, new character/weapon/echo data, noticeable performance gains.
+- **Skip**: refactors, dependency bumps, internal tooling, SEO/analytics, and anything not yet wired into a live page.
+
+User-facing changes from the `wuwa-lb` and `backend` repos belong here too — the changelog is per-product, not per-repo.
+
+---
+
 ## Where to find things
 
 | If you want to…                               | Go to                                                     |
@@ -40,6 +53,7 @@ When behavior changes, update the corresponding file in `docs/`.
 | Edit stat calculations / game data loading    | `lib/calculations/`, `contexts/GameDataContext.tsx`       |
 | Add or edit API proxy routes                  | `app/api/`                                                |
 | Change CDN data sync output                   | `scripts/sync_lb.py`, `scripts/sync_characters.py`, etc.  |
+| Add a public changelog entry                  | `lib/changelog.ts` (rendered at `/changelog`)             |
 
 ---
 
@@ -59,6 +73,7 @@ When behavior changes, update the corresponding file in `docs/`.
 | `/profile/[uid]`               | `app/(game)/profile/[uid]/page.tsx`                | `components/profile/*`                         |
 | `/tos`                         | `app/tos/page.tsx`                                 | `components/legal/*`                           |
 | `/privacy`                     | `app/privacy/page.tsx`                             | `components/legal/*`                           |
+| `/changelog`                   | `app/changelog/page.tsx`                           | `components/changelog/*`                       |
 
 `app/(game)` is a route group — does not affect public URLs. Opts game-data pages into a shared `GameDataProvider + ToastProvider` boundary.
 

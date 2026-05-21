@@ -272,7 +272,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                 style={ECHO_IMAGE_FADE_STYLE}
               />
 
-              {/* Echo identity hover — sits beneath the content layer, covers the artwork half. */}
+              {/* Echo identity hover sits beneath the content layer, covers the artwork half. */}
               <EchoHoverCard echo={echo} resolvedFetter={fetter} placement="top" triggerClassName="absolute inset-y-0 left-0 z-1 w-1/2">
                 <span aria-hidden className="block h-full w-full" />
               </EchoHoverCard>

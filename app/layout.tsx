@@ -3,6 +3,7 @@ import { Gowun_Dodum, Plus_Jakarta_Sans, Ropa_Sans } from "next/font/google";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { Analytics } from "@vercel/analytics/next";
 import { Navigation } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
 import { RootProviders } from "@/contexts/index";
 import "./globals.css";
 
@@ -77,10 +78,13 @@ export default async function RootLayout({
             lang="en"
             className={`${ropaSans.variable} ${gowunDodum.variable} ${plusJakartaSans.variable}`}
         >
-            <body>
+            <body className="flex min-h-screen flex-col bg-background text-text-primary">
                 <RootProviders>
                     <Navigation />
-                    {children}
+                    <div className="flex-1">
+                        {children}
+                    </div>
+                    <Footer />
                 </RootProviders>
                 <Analytics />
                 {process.env.NODE_ENV === "production" && (
