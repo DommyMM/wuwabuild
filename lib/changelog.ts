@@ -18,7 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             { kind: 'improved', text: 'Echo set tooltips now show set bonuses in your selected language.' },
             { kind: 'improved', text: 'Hover any stat on the builds board to see its roll-value bars and a clearer crit-value breakdown.' },
-            { kind: 'improved', text: 'Leaderboard pages load faster — query results are now cached.' },
+            { kind: 'improved', text: 'Leaderboard pages load faster because query results are now cached.' },
             { kind: 'new', text: 'Denia is now available in the editor and on the leaderboards.' },
         ],
     },
@@ -34,7 +34,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-05-15',
         changes: [
             { kind: 'improved', text: 'Cleaner, more consistent hover cards and tooltips throughout the site.' },
-            { kind: 'fixed', text: 'Import no longer stalls when OCR cannot read a screenshot — it reports the failure and moves on.' },
+            { kind: 'fixed', text: 'Import no longer stalls when OCR cannot read a screenshot. It reports the failure and moves on.' },
         ],
     },
     {
@@ -74,7 +74,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-04-30',
         patch: '3.3',
         changes: [
-            { kind: 'new', text: 'Patch 3.3 — new characters, weapons, and echoes, with screenshot import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, with screenshot import support.' },
         ],
     },
     {
@@ -110,33 +110,33 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2026-03-28',
         changes: [
-            { kind: 'new', text: 'Energy regen brackets — leaderboards split builds by ER so support and healer builds rank fairly.' },
+            { kind: 'new', text: 'Energy regen brackets split builds by ER so support and healer builds rank fairly.' },
             { kind: 'improved', text: 'Leaderboards can now be sorted by sequence level.' },
         ],
     },
     {
         date: '2026-03-24',
         changes: [
-            { kind: 'new', text: 'Build expansions show an optimality reference — how your build compares to an optimal-echo ceiling, and the rank that ceiling would reach.' },
+            { kind: 'new', text: 'Build expansions show an optimality reference: how your build compares to an optimal-echo ceiling, and the rank that ceiling would reach.' },
         ],
     },
     {
         date: '2026-03-21',
         changes: [
-            { kind: 'new', text: 'More characters added to the damage leaderboards — Camellya, Changli, Jinhsi, Cartethyia, Zani, Jiyan, Phoebe, Lupa, Aemeath, Augusta, and Iuno.' },
+            { kind: 'new', text: 'More characters added to the damage leaderboards: Camellya, Changli, Jinhsi, Cartethyia, Zani, Jiyan, Phoebe, Lupa, Aemeath, Augusta, and Iuno.' },
         ],
     },
     {
         date: '2026-03-19',
         patch: '3.2',
         changes: [
-            { kind: 'new', text: 'Patch 3.2 — new characters, weapons, and echoes, with screenshot import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, with screenshot import support.' },
         ],
     },
     {
         date: '2026-03-17',
         changes: [
-            { kind: 'improved', text: 'Builds are now deduplicated per player — your best build holds the rank, and weaker duplicates become linkable ghost builds.' },
+            { kind: 'improved', text: 'Builds are now deduplicated per player. Your best build holds the rank, and weaker duplicates become linkable ghost builds.' },
         ],
     },
     {
@@ -149,7 +149,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2026-03-15',
         changes: [
-            { kind: 'new', text: 'Substat upgrade suggestions — expand a leaderboard build to see how each substat roll would move its rank.' },
+            { kind: 'new', text: 'Substat upgrade suggestions show how each substat roll would move a leaderboard build.' },
             { kind: 'new', text: 'Leaderboard standings, ranks, team buff details, and tooltips for sets, weapons, sequences, and forte.' },
         ],
     },
@@ -161,21 +161,21 @@ export const CHANGELOG: ChangelogEntry[] = [
             { kind: 'new', text: 'Damage leaderboards scoped per character, weapon, and playstyle, with team comps and full move breakdowns.' },
             { kind: 'new', text: 'Rebuilt builds board with filtering by character, weapon, set, and stat.' },
             { kind: 'new', text: 'Redesigned build editor and build cards, with full language support.' },
-            { kind: 'improved', text: 'Import rebuilt with a faster streaming pipeline — and you can report a bad scan in one click.' },
+            { kind: 'improved', text: 'Import rebuilt with a faster streaming pipeline, and you can report a bad scan in one click.' },
         ],
     },
     {
         date: '2026-02-06',
         patch: '3.1',
         changes: [
-            { kind: 'new', text: 'Patch 3.1 — new characters, weapons, and echoes, with screenshot import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, with screenshot import support.' },
         ],
     },
     {
         date: '2025-12-29',
         patch: '3.0',
         changes: [
-            { kind: 'new', text: 'Patch 3.0 — new characters, weapons, and echoes, with screenshot import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, with screenshot import support.' },
             { kind: 'new', text: 'Echoes can now be added directly in the stat calculator.' },
         ],
     },
@@ -183,7 +183,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2025-11-20',
         patch: '2.8',
         changes: [
-            { kind: 'new', text: 'Patch 2.8 — new characters, weapons, and echoes (including Kumokiri), with import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, including Kumokiri, with import support.' },
         ],
     },
     {
@@ -196,27 +196,27 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2025-10-12',
         patch: '2.7',
         changes: [
-            { kind: 'new', text: 'Patch 2.7 — new characters, weapons, and echoes, with screenshot import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, with screenshot import support.' },
         ],
     },
     {
         date: '2025-09-07',
         changes: [
-            { kind: 'improved', text: 'Fewer wrong echo matches on import — color is used as a tiebreaker, and you are warned when a screenshot is cropped too tightly.' },
+            { kind: 'improved', text: 'Fewer wrong echo matches on import. Color is used as a tiebreaker, and you are warned when a screenshot is cropped too tightly.' },
         ],
     },
     {
         date: '2025-08-27',
         patch: '2.6',
         changes: [
-            { kind: 'new', text: 'Patch 2.6 — new characters, weapons, and echoes, including Phantom echoes, with import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, including Phantom echoes, with import support.' },
         ],
     },
     {
         date: '2025-08-09',
         patch: '2.5',
         changes: [
-            { kind: 'new', text: 'Patch 2.5 — new characters, weapons, and echoes, with screenshot import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, with screenshot import support.' },
         ],
     },
     {
@@ -235,7 +235,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2025-06-12',
         patch: '2.4',
         changes: [
-            { kind: 'new', text: 'Patch 2.4 — new characters, weapons, and echoes, with screenshot import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, with screenshot import support.' },
             { kind: 'new', text: 'Added a stat calculator page.' },
         ],
     },
@@ -273,7 +273,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2025-03-26',
         patch: '2.2',
         changes: [
-            { kind: 'new', text: 'Patch 2.2 — new characters, weapons, and echoes, with screenshot import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, with screenshot import support.' },
         ],
     },
     {
@@ -299,7 +299,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2025-02-12',
         patch: '2.1',
         changes: [
-            { kind: 'new', text: 'Patch 2.1 — new characters, weapons, and echoes (including Brant), with import support.' },
+            { kind: 'new', text: 'New characters, weapons, and echoes, including Brant, with import support.' },
         ],
     },
     {
@@ -318,7 +318,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2025-01-21',
         changes: [
-            { kind: 'new', text: 'Added the Import page — scan a screenshot to auto-fill an entire build.' },
+            { kind: 'new', text: 'Added the Import page. Scan a screenshot to auto-fill an entire build.' },
         ],
     },
     {
@@ -343,7 +343,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2025-01-02',
         patch: '2.0',
         changes: [
-            { kind: 'new', text: 'Patch 2.0 (Rinascita) — new region content: characters, weapons, and echoes.' },
+            { kind: 'new', text: 'Rinascita region content added: characters, weapons, and echoes.' },
         ],
     },
     {
@@ -374,7 +374,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2024-11-28',
         title: 'Where it started.',
         changes: [
-            { kind: 'new', text: 'WuWa Builds launched — a build editor for Wuthering Waves: choose your resonator, weapon, sequences, forte, and echoes to generate a shareable build card.' },
+            { kind: 'new', text: 'WuWa Builds launched as a build editor for Wuthering Waves.' },
             { kind: 'new', text: 'Builds and echoes save to your browser, so your work persists between visits.' },
         ],
     },
