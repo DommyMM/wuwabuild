@@ -79,13 +79,13 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
           )}
         </div>
       </WeaponHoverCard>
-      <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col justify-center gap-1.5">
         <span className={`truncate text-2xl font-semibold leading-tight text-white/95 transition-all duration-200 ${nameInteractionClass}`}>
           {translatedWeaponName || weapon.name}
         </span>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2.5">
           <div
-            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-200 ${getChipClass(weaponAtkHoverKey)}`}
+            className={`flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-0.5 transition-all duration-200 ${getChipClass(weaponAtkHoverKey)}`}
             onMouseEnter={weaponAtkHoverKey ? () => onHoverStatChange?.(weaponAtkHoverKey) : undefined}
             onMouseLeave={weaponAtkHoverKey ? () => onHoverStatChange?.(null) : undefined}
           >
@@ -93,7 +93,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
             <span className="text-lg font-semibold text-white/88">{weaponStats.scaledAtk}</span>
           </div>
           <div
-            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-200 ${getChipClass(weaponMainHoverKey)}`}
+            className={`flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-0.5 transition-all duration-200 ${getChipClass(weaponMainHoverKey)}`}
             onMouseEnter={weaponMainHoverKey ? () => onHoverStatChange?.(weaponMainHoverKey) : undefined}
             onMouseLeave={weaponMainHoverKey ? () => onHoverStatChange?.(null) : undefined}
           >
@@ -101,11 +101,11 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
             <span className="text-lg font-semibold text-white/88">{weaponStats.scaledMainStat}%</span>
           </div>
         </div>
-        <div className="flex items-center gap-2.5 text-sm font-medium leading-none text-white/78">
-          <span className="rounded-md border border-white/18 bg-black/40 px-3 py-1.5">
+        <div className="flex items-center gap-2 text-sm font-medium leading-none text-white/78">
+          <span className="rounded-md border border-white/18 bg-black/40 px-2.5 py-1">
             Lv.{weaponLevel}
           </span>
-          <span className="rounded-md border border-white/22 bg-black/40 px-3 py-1.5">
+          <span className="rounded-md border border-white/18 bg-black/40 px-2.5 py-1">
             R{weaponRank}
           </span>
         </div>
