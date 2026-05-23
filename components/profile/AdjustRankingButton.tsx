@@ -210,7 +210,9 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const reposition = (event?: Event) => {
-      if (event && popoverRef.current?.contains(event.target as Node)) return;
+      // `resize` fires with target === window, which isn't a Node — guard before calling contains.
+      const target = event?.target;
+      if (target instanceof Node && popoverRef.current?.contains(target)) return;
       if (buttonRef.current) {
         setAnchorRect(buttonRef.current.getBoundingClientRect());
       }
