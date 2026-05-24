@@ -5,11 +5,11 @@ import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Character Leaderboards',
-  description: 'Ranking the best Wuthering Waves character builds globally. See top-tier damage outputs, CV rankings, and optimal echo loadouts.',
+  title: 'WuWa Leaderboards — Wuthering Waves Damage & CV Rankings',
+  description: 'Global Wuthering Waves leaderboards. Compare the best character builds, see top-tier simulated damage rotations, Crit Value (CV) rankings, and echo stats.',
   twitter: {
-    title: 'Character Leaderboards',
-    description: 'Ranking the best Wuthering Waves character builds globally. See top-tier damage outputs, CV rankings, and optimal echo loadouts.',
+    title: 'WuWa Leaderboards — Wuthering Waves Damage & CV Rankings',
+    description: 'Global Wuthering Waves leaderboards. Compare the best character builds, see top-tier simulated damage rotations, Crit Value (CV) rankings, and echo stats.',
   },
   alternates: { canonical: '/leaderboards' },
 };

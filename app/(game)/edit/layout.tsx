@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { EditorProviders } from '@/contexts';
 
 export const metadata: Metadata = {
-    title: 'WuWa Build Maker & Showcase Card Generator',
-    description: 'Create and generate beautiful Wuthering Waves character build cards. Flex your best builds with our automatic OCR scanner and live damage leaderboards.',
+    title: 'WuWa Build Maker, Showcase Card Generator & Calculator',
+    description: 'The ultimate Wuthering Waves build maker. Create, calculate, and generate beautiful character showcase cards. Flex your echo stats with our real-time calculator.',
     alternates: { canonical: '/edit' },
 };
 

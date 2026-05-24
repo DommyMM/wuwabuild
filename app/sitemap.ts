@@ -51,14 +51,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
         : weaponDataModified;
 
     const staticRoutes = [
-        '',
-        '/builds',
-        '/leaderboards',
+        { path: '', priority: 1.0, changeFrequency: 'daily' as const },
+        { path: '/builds', priority: 0.9, changeFrequency: 'daily' as const },
+        { path: '/leaderboards', priority: 0.9, changeFrequency: 'daily' as const },
+        { path: '/edit', priority: 0.9, changeFrequency: 'weekly' as const },
+        { path: '/import', priority: 0.8, changeFrequency: 'weekly' as const },
+        { path: '/changelog', priority: 0.7, changeFrequency: 'daily' as const },
+        { path: '/privacy', priority: 0.3, changeFrequency: 'monthly' as const },
+        { path: '/tos', priority: 0.3, changeFrequency: 'monthly' as const },
     ].map((route) => ({
-        url: `${baseUrl}${route}`,
+        url: `${baseUrl}${route.path}`,
         lastModified: staticLastModified,
-        changeFrequency: 'daily' as const,
-        priority: route === '' ? 1 : 0.9,
+        changeFrequency: route.changeFrequency,
+        priority: route.priority,
     }));
 
     let dynamicRoutes: MetadataRoute.Sitemap = [];

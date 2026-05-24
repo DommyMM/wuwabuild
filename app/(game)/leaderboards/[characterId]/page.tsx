@@ -34,8 +34,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { character, characterName } = getCharacterPageCopy(characterId);
 
   if (character) {
-    const title = `${characterName} Leaderboard - WuWaBuilds`;
-    const description = `Global damage rankings for ${characterName} in Wuthering Waves. Compare top builds, weapons, tracks, echo sets, and benchmark setups on WuWaBuilds.`;
+    const title = `${characterName} Build Rankings & Leaderboard | WuWa Builds`;
+    const description = `See the best Wuthering Waves ${characterName} builds ranked by simulated damage. Compare top player echo sets, weapon stats, and CV leaderboards.`;
 
     return {
       title,
@@ -46,8 +46,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const fallbackTitle = `Character Leaderboard #${characterId} - WuWaBuilds`;
-  const fallbackDescription = 'Global damage rankings for this Wuthering Waves character. Filter by weapon, track, echo sets, and more.';
+  const fallbackTitle = `Character Leaderboard #${characterId} | WuWa Builds`;
+  const fallbackDescription = 'Global damage rankings for this Wuthering Waves character. Filter by weapon, track, echo sets, and compare setups.';
   return {
     title: fallbackTitle,
     description: fallbackDescription,

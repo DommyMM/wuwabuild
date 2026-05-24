@@ -5,11 +5,11 @@ import { prefetchLeaderboardOverview, prefetchBuilds } from '@/lib/lbServer';
 export const revalidate = 300; // ISR: full page HTML cached at edge, re-rendered at most once per 5 min
 
 export const metadata: Metadata = {
-    title: 'WuWa Builds | Wuthering Waves Build Creator & Leaderboards',
-    description: 'Create, share, and discover top-tier Wuthering Waves character builds. Flex your builds with automatic OCR scanner, stat calculations, and global damage rankings.',
+    title: 'WuWa Builds — Wuthering Waves Build Maker & Leaderboards',
+    description: 'Create, showcase, and compare Wuthering Waves builds. The ultimate build maker, automatic OCR screenshot scanner, damage calculator, and global leaderboards.',
     twitter: {
-        title: 'WuWa Builds | Wuthering Waves Build Creator & Leaderboards',
-        description: 'Create, share, and discover top-tier Wuthering Waves character builds. Flex your builds with automatic OCR scanner, stat calculations, and global damage rankings.',
+        title: 'WuWa Builds — Wuthering Waves Build Maker & Leaderboards',
+        description: 'Create, showcase, and compare Wuthering Waves builds. The ultimate build maker, automatic OCR screenshot scanner, damage calculator, and global leaderboards.',
     },
     alternates: { canonical: '/' },
 };

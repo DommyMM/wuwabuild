@@ -34,7 +34,7 @@ export const metadata: Metadata = {
         template: '%s | WuWa Builds'
     },
     description: 'Create and share Wuthering Waves builds with automatic screenshot scanning, real-time stat calculations, and build management tools.',
-    keywords: ['Wuthering Waves', 'WuWa', 'build creator', 'character builds', 'echo builds', 'game tools'],
+    keywords: ['Wuthering Waves', 'WuWa', 'wuwa builds', 'wuwa build maker', 'wuwa leaderboards', 'wuwaflex', 'showcase card', 'screenshot scanner', 'damage calculator', 'build creator', 'character builds', 'echo builds'],
     authors: [{ name: 'WuWa Builds' }],
     creator: 'WuWa Builds',
     openGraph: {

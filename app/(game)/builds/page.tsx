@@ -6,8 +6,8 @@ export const dynamic = 'force-static';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Browse Builds',
-  description: 'Explore and filter community-created Wuthering Waves builds. Find the best echo combinations, main stats, and substat priorities for every character.',
+  title: 'Wuthering Waves Character Builds & Echo Database',
+  description: 'Explore the best Wuthering Waves character builds. Filter by resonator, weapon, and echoes to find optimal substats, main stats, and community guides.',
   alternates: { canonical: '/builds' },
 };
 
