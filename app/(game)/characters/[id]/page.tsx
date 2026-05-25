@@ -5,7 +5,7 @@ import path from 'path';
 import Link from 'next/link';
 import { adaptCDNCharacter } from '@/lib/character';
 import { loadCharacterRaw } from '@/lib/server/ogData';
-import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
+import { CharacterReferenceSections } from './CharacterReferenceSections';
 
 type GenericDict = Record<string, unknown>;
 
@@ -39,28 +39,15 @@ function getImageUrl(val: unknown): string {
     return icon.iconMiddle || icon.icon || icon.iconSmall || icon.iconRound || icon.banner || '';
 }
 
+function getRarity(val: unknown): number | undefined {
+    if (!val || typeof val !== 'object') return undefined;
+    const rarity = val as { id?: unknown };
+    return typeof rarity.id === 'number' ? rarity.id : undefined;
+}
+
 function formatNumber(value: unknown): string {
     if (typeof value !== 'number' || !Number.isFinite(value)) return '0';
     return Math.round(value).toLocaleString('en-US');
-}
-
-function RichGameText({
-    template,
-    values = [],
-    className = '',
-}: {
-    template: string;
-    values?: Array<string | null | undefined>;
-    className?: string;
-}) {
-    const rendered = renderGameTemplateWithHighlights({
-        template,
-        getParamValue: (index) => values[index] ?? null,
-        highlightClassName: 'text-cyan-200 font-semibold',
-        keepUnknownPlaceholders: false,
-    });
-
-    return <p className={`whitespace-pre-line leading-relaxed text-text-primary/72 ${className}`}>{rendered}</p>;
 }
 
 function CompactStat({
@@ -133,6 +120,13 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
     const charName = char ? char.name : '';
     const weaponType = char ? char.weaponType : '';
     const element = char ? char.element : '';
+    const matchingWeaponRefs = matchingWeapons.map((weapon) => ({
+        id: String(weapon.id),
+        name: getI18nText(weapon.name) || String(weapon.id),
+        icon: getImageUrl(weapon.icon),
+        rarity: getRarity(weapon.rarity),
+        type: weaponType,
+    }));
     const elementColor = rawChar?.element?.color || undefined;
     const heroStyle = {
         '--seo-element-color': elementColor ?? '#a69662',
@@ -250,110 +244,14 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
                 </section>
             )}
             {char && rawChar && (
-                <section className="mx-auto mb-10 mt-4 max-w-360 px-3 md:mt-6 md:px-16">
-                    <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-                        <div className="space-y-4">
-                            <div className="rounded-xl border border-white/10 bg-background-secondary/70 p-5">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-primary/38">Matching weapons</p>
-                                <div className="mt-4 grid gap-2">
-                                    {matchingWeapons.slice(0, 8).map((weapon) => {
-                                        const name = getI18nText(weapon.name) || (weapon.id as string);
-                                        const icon = getImageUrl(weapon.icon);
-                                        return (
-                                            <Link
-                                                className="group grid grid-cols-[44px_minmax(0,1fr)] items-center gap-3 rounded-sm border border-white/10 bg-black/24 p-2 transition-colors hover:border-accent/45 hover:bg-accent/8"
-                                                href={`/weapons/${weapon.id}`}
-                                                key={weapon.id as string}
-                                            >
-                                                <span className="flex h-11 w-11 items-center justify-center rounded-md border border-white/10 bg-black/35">
-                                                    {icon && <img src={icon} alt="" className="h-10 w-10 object-contain" loading="lazy" />}
-                                                </span>
-                                                <span className="min-w-0">
-                                                    <span className="block truncate text-sm font-semibold text-text-primary/86 group-hover:text-accent">{name}</span>
-                                                    <span className="text-xs text-text-primary/42">{weaponType}</span>
-                                                </span>
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="rounded-xl border border-white/10 bg-background-secondary/70 p-5">
-                            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-4">
-                                <div>
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-primary/38">Parsed data</p>
-                                    <h2 className="mt-1 font-plus-jakarta text-2xl font-semibold tracking-[-0.02em] text-text-primary">
-                                        Skills and resonance chains
-                                    </h2>
-                                </div>
-                                <Link className="text-sm font-semibold text-accent hover:text-accent-hover" href={`/leaderboards/${id}`}>
-                                    Leaderboard &rarr;
-                                </Link>
-                            </div>
-
-                            <div className="mt-5 space-y-5">
-                                {rawChar.moves?.map(move => {
-                                    const moveName = getI18nText(move.name);
-                                    const description = getI18nText(move.description);
-                                    return (
-                                        <article key={move.id} className="rounded-lg border border-white/10 bg-black/20 p-4">
-                                            <h3 className="font-plus-jakarta text-lg font-semibold tracking-[-0.01em] text-text-primary">{moveName}</h3>
-                                            {description && (
-                                                <RichGameText
-                                                    template={description}
-                                                    values={move.descriptionParams}
-                                                    className="mt-2"
-                                                />
-                                            )}
-                                            {move.values?.length > 0 && (
-                                                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                                                    {move.values.map(val => {
-                                                        const valName = getI18nText(val.name);
-                                                        if (!valName || !val.values?.length) return null;
-                                                        return (
-                                                            <div key={val.id} className="rounded-sm border border-white/8 bg-white/[0.025] p-2">
-                                                                <p className="truncate text-xs text-text-primary/45">{valName}</p>
-                                                                <p className="mt-1 font-gowun text-sm text-text-primary tabular-nums">{val.values[val.values.length - 1]}</p>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </article>
-                                    );
-                                })}
-
-                                {rawChar.chains?.length ? (
-                                    <div className="grid gap-3 md:grid-cols-2">
-                                        {rawChar.chains.map((chain, index) => {
-                                            const name = getI18nText(chain.name);
-                                            const description = getI18nText(chain.description);
-                                            return (
-                                                <article key={chain.id} className="rounded-lg border border-white/10 bg-black/20 p-4">
-                                                    <div className="flex items-center gap-3">
-                                                        {chain.icon && <img src={chain.icon} alt="" className="h-10 w-10 rounded-md border border-white/10 bg-black/30 object-contain" loading="lazy" />}
-                                                        <div>
-                                                            <p className={`seq-badge s${index + 1}`}>S{index + 1}</p>
-                                                            <h3 className="mt-1 font-plus-jakarta text-base font-semibold tracking-[-0.01em] text-text-primary">{name}</h3>
-                                                        </div>
-                                                    </div>
-                                                    {description && (
-                                                        <RichGameText
-                                                            template={description}
-                                                            values={chain.param}
-                                                            className="mt-3 text-sm"
-                                                        />
-                                                    )}
-                                                </article>
-                                            );
-                                        })}
-                                    </div>
-                                ) : null}
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <CharacterReferenceSections
+                    characterId={id}
+                    characterName={charName}
+                    weaponType={weaponType}
+                    matchingWeapons={matchingWeaponRefs}
+                    moves={rawChar.moves ?? []}
+                    chains={rawChar.chains ?? []}
+                />
             )}
         </main>
     );
