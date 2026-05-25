@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import fs from 'fs';
 import path from 'path';
 import Link from 'next/link';
-import { WeaponClient } from './WeaponClient';
 import { CDNCharacter } from '@/lib/character';
+import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
 
 type WeaponRecord = {
     id?: string | number;
@@ -13,6 +14,12 @@ type WeaponRecord = {
     effect?: { en?: string };
     params?: Record<string, string[]>;
     rarity?: { id?: number };
+    icon?: { icon?: string; iconMiddle?: string; iconSmall?: string } | string;
+    stats?: {
+        first?: { attribute?: string; value?: number };
+        second?: { attribute?: string; name?: { en?: string }; value?: number; isRatio?: boolean };
+    };
+    unconditionalPassiveBonuses?: Record<string, number[]>;
 };
 
 function normalizeWeaponsData(data: unknown): WeaponRecord[] {
@@ -55,6 +62,62 @@ function getI18nText(val: unknown): string {
     if (!val) return '';
     if (typeof val === 'string') return val;
     return (val as { en?: string }).en || '';
+}
+
+function getWeaponIcon(weapon: WeaponRecord | undefined): string {
+    const icon = weapon?.icon;
+    if (!icon) return '';
+    if (typeof icon === 'string') return icon;
+    return icon.iconMiddle || icon.icon || icon.iconSmall || '';
+}
+
+function formatSubstatValue(value: number | undefined, isRatio: boolean | undefined): string {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '0%';
+    const normalized = isRatio ? value * 100 : value / 100;
+    return `${normalized.toFixed(1).replace(/\.0$/u, '')}%`;
+}
+
+function RichGameText({
+    template,
+    rank,
+    params,
+    className = '',
+}: {
+    template: string;
+    rank: number;
+    params?: Record<string, string[]>;
+    className?: string;
+}) {
+    const rankIndex = Math.max(0, Math.min(4, rank - 1));
+    const rendered = renderGameTemplateWithHighlights({
+        template,
+        getParamValue: (index) => {
+            const values = params?.[String(index)];
+            return values?.[rankIndex] ?? null;
+        },
+        highlightClassName: 'text-cyan-200 font-semibold',
+        keepUnknownPlaceholders: false,
+    });
+
+    return <p className={`whitespace-pre-line leading-relaxed text-text-primary/72 ${className}`}>{rendered}</p>;
+}
+
+function CompactStat({
+    label,
+    value,
+    detail,
+}: {
+    label: string;
+    value: ReactNode;
+    detail?: ReactNode;
+}) {
+    return (
+        <div className="rounded-md border border-white/8 bg-white/[0.025] px-3 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-text-primary/32">{label}</p>
+            <p className="mt-1 font-gowun text-xl leading-none text-text-primary tabular-nums">{value}</p>
+            {detail && <p className="mt-1 text-xs text-text-primary/42">{detail}</p>}
+        </div>
+    );
 }
 
 export async function generateStaticParams() {
@@ -100,20 +163,12 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
     }
 
     const effectName = weaponInfo?.effectName?.en;
-    let effectRank1 = weaponInfo?.effect?.en || '';
-    let effectRank5 = weaponInfo?.effect?.en || '';
-
-    if (weaponInfo?.params && weaponInfo.effect?.en) {
-        const weaponParams = weaponInfo.params;
-        effectRank1 = effectRank1.replace(/\{(\d+)\}/g, (match, idx) => {
-            const arr = weaponParams[idx];
-            return arr && arr.length > 0 ? arr[0] : match;
-        });
-        effectRank5 = effectRank5.replace(/\{(\d+)\}/g, (match, idx) => {
-            const arr = weaponParams[idx];
-            return arr && arr.length > 0 ? arr[arr.length - 1] : match;
-        });
-    }
+    const effectTemplate = weaponInfo?.effect?.en || '';
+    const weaponIcon = getWeaponIcon(weaponInfo);
+    const baseAtk = weaponInfo?.stats?.first?.value ?? 0;
+    const substatName = weaponInfo?.stats?.second?.name?.en ?? weaponInfo?.stats?.second?.attribute ?? 'Substat';
+    const substatValue = formatSubstatValue(weaponInfo?.stats?.second?.value, weaponInfo?.stats?.second?.isRatio);
+    const passiveBonuses = Object.entries(weaponInfo?.unconditionalPassiveBonuses ?? {}).slice(0, 6);
 
     const jsonLdBreadcrumbs = {
         "@context": "https://schema.org",
@@ -163,69 +218,136 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
                 />
             )}
             {weaponInfo && (
-                <section className="mx-3 mb-4 rounded-lg border border-white/10 bg-black/20 p-4 text-sm leading-relaxed text-gray-300 md:mx-16 md:mt-4">
-                    <h1 className="text-xl font-semibold text-gray-100">
-                        {wepName} Stats & Build Calculator
-                    </h1>
-                    <p className="mt-2 max-w-4xl text-gray-400">
-                        Calculate Wuthering Waves builds using {wepName}, a {weaponInfo.rarity?.id || 5}-star {typeName} weapon. Compare passive scaling, matching resonators, and leaderboard performance across submitted WuWaBuilds setups.
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-3">
-                        <Link className="text-accent underline hover:text-accent-hover" href="/builds">
-                            Browse top builds
-                        </Link>
-                        {matchingCharacters.slice(0, 6).map((character) => (
-                            <Link
-                                className="text-accent underline hover:text-accent-hover"
-                                href={`/characters/${character.id}`}
-                                key={character.id}
-                            >
-                                {getI18nText(character.name)}
-                            </Link>
-                        ))}
+                <section className="mx-auto max-w-360 px-3 pt-4 md:px-16 md:pt-8">
+                    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-background-secondary/72 shadow-[0_6px_16px_rgba(0,0,0,0.26)]">
+                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(46%_120%_at_12%_0%,rgba(166,150,98,0.18)_0%,transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.035)_0%,transparent_48%,rgba(0,0,0,0.24)_100%)]" />
+                        <div className="relative grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
+                            <div className="relative min-h-[250px] border-b border-white/10 bg-black/20 lg:border-r lg:border-b-0">
+                                {weaponIcon && (
+                                    <img
+                                        src={weaponIcon}
+                                        alt=""
+                                        className="absolute inset-x-0 bottom-6 mx-auto h-52 w-52 object-contain opacity-95"
+                                        loading="eager"
+                                    />
+                                )}
+                            </div>
+                            <div className="p-5 md:p-7">
+                                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+                                    <div>
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">Weapon dossier</p>
+                                        <h1 className="mt-2 font-plus-jakarta text-4xl font-semibold leading-[1.02] tracking-[-0.02em] text-text-primary md:text-6xl">
+                                            {wepName}
+                                        </h1>
+                                        <p className="mt-4 max-w-2xl text-base leading-relaxed text-text-primary/68">
+                                            {weaponInfo.rarity?.id || 5}-star {typeName} reference page with parsed passive ranks, base stats, and compatible resonators.
+                                        </p>
+                                        <div className="mt-6 flex flex-wrap gap-2">
+                                            <Link className="gold-glow rounded-sm border border-accent/45 bg-accent px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover" href="/builds">
+                                                Browse top builds
+                                            </Link>
+                                            {matchingCharacters[0] && (
+                                                <Link className="gold-glow rounded-sm border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-text-primary/82 transition-colors hover:border-accent/45 hover:text-accent" href={`/characters/${matchingCharacters[0].id}`}>
+                                                    Open {getI18nText(matchingCharacters[0].name)}
+                                                </Link>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="grid gap-2 rounded-lg border border-white/10 bg-black/18 p-2 md:grid-cols-3 xl:grid-cols-2">
+                                        <CompactStat label="Rarity" value={`${weaponInfo.rarity?.id || 5} star`} />
+                                        <CompactStat label="Type" value={typeName} />
+                                        <CompactStat label="Base ATK" value={baseAtk.toLocaleString('en-US')} />
+                                        <CompactStat label={substatName} value={substatValue} />
+                                        <CompactStat label="Passive" value={effectName || 'Weapon skill'} />
+                                        <CompactStat label="Matches" value={matchingCharacters.length} detail={`${typeName} resonators`} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
             )}
-            <div className="px-3 py-4 md:px-16 md:py-6">
-                <WeaponClient weaponId={id} />
-            </div>
             {weaponInfo && (
-                <details className="mx-3 mb-8 md:mx-16 rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-gray-400 [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:text-gray-300 [&_h2]:text-base [&_h2]:font-medium [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-gray-300 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:mt-3 [&_h3]:text-gray-400 [&_p]:mt-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mt-2 [&_li]:mt-1 [&_a]:text-accent hover:[&_a]:text-accent-hover [&_a]:underline">
-                    <summary className="cursor-pointer font-semibold text-gray-300 hover:text-white transition-colors">
-                        Detailed {wepName} weapon data
-                    </summary>
-                    <div className="mt-4">
-                        <h2>{wepName} Stats & Build Calculator</h2>
-                        <p>
-                            Welcome to the WuWaBuilds {wepName} calculator and database.
-                            The {wepName} is a {weaponInfo.rarity?.id || 5}-star {typeName} weapon in Wuthering Waves.
-                            Use our tool to calculate its exact passive scaling, view max level stats, and see how it performs on different resonators across the global leaderboard. Our custom backend engine runs native damage calculations for imported builds.
-                        </p>
+                <section className="mx-auto mb-10 mt-4 max-w-360 px-3 md:mt-6 md:px-16">
+                    <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+                        <div className="space-y-4">
+                            <div className="rounded-xl border border-white/10 bg-background-secondary/70 p-5">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-primary/38">Matching resonators</p>
+                                <div className="mt-4 grid gap-2">
+                                    {matchingCharacters.slice(0, 10).map((character) => {
+                                        const name = getI18nText(character.name);
+                                        return (
+                                            <Link
+                                                className="group grid grid-cols-[44px_minmax(0,1fr)] items-center gap-3 rounded-sm border border-white/10 bg-black/24 p-2 transition-colors hover:border-accent/45 hover:bg-accent/8"
+                                                href={`/characters/${character.id}`}
+                                                key={character.id}
+                                            >
+                                                <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-black/35">
+                                                    {character.icon?.iconRound && <img src={character.icon.iconRound} alt="" className="h-11 w-11 object-cover" loading="lazy" />}
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block truncate text-sm font-semibold text-text-primary/86 group-hover:text-accent">{name}</span>
+                                                    <span className="text-xs text-text-primary/42">{typeName}</span>
+                                                </span>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
 
-                        {effectName && (
-                            <>
-                                <h2>Passive: {effectName}</h2>
-                                <h3>Rank 1</h3>
-                                <p>{effectRank1}</p>
-                                <h3>Rank 5</h3>
-                                <p>{effectRank5}</p>
-                            </>
-                        )}
+                        <div className="rounded-xl border border-white/10 bg-background-secondary/70 p-5">
+                            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-4">
+                                <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-primary/38">Parsed data</p>
+                                    <h2 className="mt-1 font-plus-jakarta text-2xl font-semibold tracking-[-0.02em] text-text-primary">
+                                        Passive and rank scaling
+                                    </h2>
+                                </div>
+                                <Link className="text-sm font-semibold text-accent hover:text-accent-hover" href="/builds">
+                                    Builds &rarr;
+                                </Link>
+                            </div>
 
-                        <h2>Best Characters for {wepName}</h2>
-                        <p>Equip this weapon on matching {typeName} resonators to calculate their damage output. View character leaderboards:</p>
-                        <ul>
-                            {matchingCharacters.map((c) => (
-                                <li key={c.id}>
-                                    <Link href={`/characters/${c.id}`}>{getI18nText(c.name)}</Link>
-                                </li>
-                            ))}
-                        </ul>
+                            {effectTemplate && (
+                                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                                    {[1, 5].map((rank) => (
+                                        <article key={rank} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                            <p className="seq-badge">{`R${rank}`}</p>
+                                            <h3 className="mt-3 font-plus-jakarta text-lg font-semibold tracking-[-0.01em] text-text-primary">
+                                                {effectName || 'Passive'}
+                                            </h3>
+                                            <RichGameText
+                                                template={effectTemplate}
+                                                rank={rank}
+                                                params={weaponInfo.params}
+                                                className="mt-2"
+                                            />
+                                        </article>
+                                    ))}
+                                </div>
+                            )}
 
-                        <h2>View Top Builds</h2>
-                        <p>Browse the <Link href="/builds">WuWaBuilds database</Link> to discover how top players utilize the {wepName}.</p>
+                            {passiveBonuses.length > 0 && (
+                                <div className="mt-5 rounded-lg border border-white/10 bg-black/20 p-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-text-primary/38">Static passive bonuses</p>
+                                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                        {passiveBonuses.map(([stat, values]) => (
+                                            <div key={stat} className="rounded-sm border border-white/8 bg-white/[0.025] p-2">
+                                                <p className="truncate text-xs text-text-primary/45">{stat}</p>
+                                                <p className="mt-1 font-gowun text-sm text-text-primary tabular-nums">
+                                                    <span className="text-accent">+</span>{values[0]}%
+                                                    <span className="text-text-primary/35"> {'->'} </span>
+                                                    <span className="text-accent">+</span>{values[values.length - 1]}%
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </details>
+                </section>
             )}
         </main>
     );
