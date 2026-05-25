@@ -18,10 +18,11 @@ This doc consolidates OCR flow, sync scripts, env vars, and day-to-day commands 
 Run from `scripts/`:
 
 ```bash
-py sync_all.py
+py sync_all.py                                # Default Wuthery pipeline
+py sync_all.py --encore                       # Same pipeline, Encore API source via sync_encore.py
 py sync_lb.py --weapons-only
 py download_echo_icons.py --clean --force
-py sync_characters_encore.py --id 1608 --compare
+py sync_characters_encore.py --id 1608 --compare   # One-character diff prototype
 ```
 
 Primary outputs include:

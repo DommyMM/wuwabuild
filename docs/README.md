@@ -16,6 +16,12 @@ Use it when:
 6. `posthog.md`
 7. `domain-glossary.md`
 
+Topical companions (read when working on the relevant surface):
+
+- `build-card-v2.md` — profile card / rank module spec and shipped phase 1 wiring
+- `design-brief.md` — visual identity, palette, and home page redesign brief
+- `seo-audit-findings.md` — search visibility analysis and metadata realignment history
+
 ## Principle
 
 Keep `AGENTS.md` concise routing.

@@ -1,12 +1,12 @@
 # Build Card v2 — Rank-Surfacing Profile Card
 
-**Status:** spec locked, implementation pending — Phase 1 (frontend only).
+**Status:** Phase 1 shipped — `ProfileCard.tsx` reuses the editor's `BuildCard` via the `forteSection` slot, injecting `TalentPills` + `RankModule`. Phase 2 (row-level `bestRank` / `allRanks` payload) and Phase 3 (RV ranking) still pending.
 **Owner:** frontend.
 **Related:** [docs/https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html](https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html) (visual reference), [docs/leaderboards.md](leaderboards.md), [lb/docs/api-behaviors.md](../../lb/docs/api-behaviors.md).
 
 ## Problem
 
-The current build card ([components/edit/BuildCard.tsx](../components/edit/BuildCard.tsx)) is the same artifact in `/edit`, `/characters/[id]`, `/weapons/[id]`, and inside every expanded row on `/profile/[uid]` (via [components/profile/LeaderboardCard.tsx](../components/profile/LeaderboardCard.tsx)). It is editorial — splash, sequence rail, forte node grid, stat list, echoes — but it never surfaces the one number that decides whether a build is good: **its rank on a leaderboard**. The forte node grid, by contrast, is canonical but rarely the reason anyone shares the card.
+The current build card ([components/edit/BuildCard.tsx](../components/edit/BuildCard.tsx)) is the same artifact in `/edit`, `/characters/[id]`, `/weapons/[id]`, and inside every expanded row on `/profile/[uid]` (via [components/profile/ProfileCard.tsx](../components/profile/ProfileCard.tsx)). It is editorial — splash, sequence rail, forte node grid, stat list, echoes — but it never surfaces the one number that decides whether a build is good: **its rank on a leaderboard**. The forte node grid, by contrast, is canonical but rarely the reason anyone shares the card.
 
 Build Card v2 swaps those priorities for the *profile* surface only — the editor card is untouched.
 
@@ -51,14 +51,14 @@ Center column slots `04`+`05`+`06`+`07` exactly replace the old `WeaponGroup` + 
 | 02 | Sequence rail | keep | [components/card/SequenceStrip.tsx](../components/card/SequenceStrip.tsx) |
 | 03 | Char header | keep | [components/card/NameGroup.tsx](../components/card/NameGroup.tsx) |
 | 04 | Weapon block | keep — minor: R chip inline with Lv | [components/card/WeaponGroup.tsx](../components/card/WeaponGroup.tsx) |
-| 05 | Talent pill row | **new** | `components/card/TalentPills.tsx` |
-| 06 | Rank module | **new** | `components/card/RankModule.tsx` |
+| 05 | Talent pill row | shipped | [components/card/TalentPills.tsx](../components/card/TalentPills.tsx) |
+| 06 | Rank module | shipped | [components/card/RankModule.tsx](../components/card/RankModule.tsx) |
 | 07 | CV + sonata pill | keep — compress to one row | [components/card/ActiveSetsSection.tsx](../components/card/ActiveSetsSection.tsx) |
 | 08 | Stat list | keep | [components/card/StatsTableSection.tsx](../components/card/StatsTableSection.tsx) |
 | 09 | Echo cards | keep as-is | [components/card/EchoSection.tsx](../components/card/EchoSection.tsx) |
 | 10 | RV aggregate bar | not in card | lives under the card in [ProfileBuildExpanded.tsx](../components/profile/ProfileBuildExpanded.tsx) — duplicating it inside the frame just stacks the same data twice |
 
-Assembly: `components/profile/ProfileBuildCard.tsx` orchestrates the variant, replaces the current `LeaderboardCard` shim.
+Assembly: `components/profile/ProfileCard.tsx` orchestrates the variant. `BuildCard` exposes a `forteSection` prop that profile cards fill with `<TalentPills/>` + `<RankModule/>`; the editor leaves it unset and renders the default `<ForteCardSection/>`.
 
 ## Talent pill row
 
@@ -116,7 +116,7 @@ Everything sits on **one horizontal row**. No damage number (akasha doesn't show
 - **Per-portrait loadout strip**: 3 tiny icons (12×12) bleeding off the bottom of each portrait (`-bottom-1 left-1/2 -translate-x-1/2`) when standings populates `weaponId/echoId/setId`. Absolute positioning keeps the module flat — single-row height stays 36px regardless of whether icons are present.
 - **Track + weapon pill**: small bordered chip on the right, weapon icon + uppercase track label. Replaces both the in-card weapon chip and the kicker-style track label from earlier drafts.
 
-Team built in `ProfileBuildCard.activeTeam` from `selected.character` (lead, `isLead: true`) + `canonicalStanding.teamMembers` (supports). Backend `TeamMemberConfig` ([lb/internal/calc/buffs.go:360](../../lb/internal/calc/buffs.go#L360)) supports gear fields, but populating them is a per-character `chars/*.go` concern — for characters whose config only specifies `charId` + `sequence`, the loadout strip is empty.
+Team built in `ProfileCard.activeTeam` from `selected.character` (lead, `isLead: true`) + `canonicalStanding.teamMembers` (supports). Backend `TeamMemberConfig` ([lb/internal/calc/buffs.go:360](../../lb/internal/calc/buffs.go#L360)) supports gear fields, but populating them is a per-character `chars/*.go` concern — for characters whose config only specifies `charId` + `sequence`, the loadout strip is empty.
 
 ### Canonical board
 
@@ -189,10 +189,10 @@ Toggle wires to this when in RV mode.
 
 ## Implementation order (Phase 1)
 
-1. `RankModule` shell + dropdown UX + skeleton state, wired to existing `getBuildStandings`.
-2. `TalentPills` row.
-3. `EchoSection` `rollIndicator='pips'` mode.
-4. `RVBar` (lift logic from `ProfileBuildExpanded`).
-5. `ProfileBuildCard` assembly, swapped in by `LeaderboardCard`.
+1. `RankModule` shell + skeleton state, wired to existing `getBuildStandings`. *(shipped — `components/card/RankModule.tsx`)*
+2. `TalentPills` row. *(shipped — `components/card/TalentPills.tsx`)*
+3. `EchoSection` `rollIndicator='pips'` mode. *(see `EchoSection` props in `components/card/EchoSection.tsx`)*
+4. `RVBar` — parked; RV aggregate lives in `ProfileBuildExpanded` row, not inside the card.
+5. `ProfileCard` assembly (replaces the old `LeaderboardCard` shim).
 6. Wire `character.preferredStats` curated list (define for current top characters; default for the rest).
 7. Visual QA against `https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html` at 1× canvas.

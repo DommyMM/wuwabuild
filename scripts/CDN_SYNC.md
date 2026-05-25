@@ -15,14 +15,18 @@ For the comparison with the alternative `encore.moe` API (different host, differ
 ```
 wuwabuilds/
 ├── scripts/
-│   ├── sync_characters.py    # Character sync (Python, CDN API)
-│   ├── sync_characters_encore.py # Character sync prototype (Encore API, compare/output only)
-│   ├── sync_weapons.py       # Weapon sync (Python, CDN API)
-│   ├── sync_echoes.py        # Echo sync (Python, CDN Grouped/Phantom)
-│   ├── sync_fetters.py       # Sonata/element set sync (Python, CDN LocalizationIndex)
+│   ├── sync_characters.py    # Character sync (Python, Wuthery CDN API)
+│   ├── sync_characters_encore.py # Character sync prototype (Encore API, single-id compare/output)
+│   ├── sync_weapons.py       # Weapon sync (Python, Wuthery CDN API)
+│   ├── sync_echoes.py        # Echo sync (Python, Wuthery Grouped/Phantom, with Encore name fallback)
+│   ├── sync_fetters.py       # Sonata/element set sync (Python, Wuthery LocalizationIndex)
+│   ├── sync_encore.py        # Combined characters/weapons/echoes/fetters sync via Encore API (sync_all --encore)
+│   ├── stat_translations.py  # Stat i18n + icon URL sync -> Stats.json
 │   ├── sync_backend.py       # Transform public/Data -> ../backend/Data OCR schema
 │   ├── download_echo_icons.py # Download backend echo templates as {id}.png
-│   ├── sync_all.py           # Run full frontend + backend sync pipeline
+│   ├── download_character_icons.py / download_weapon_icons.py # On-demand icon refresh helpers
+│   ├── migrate_r2_png_to_jpg.py # One-off R2 maintenance script
+│   ├── sync_all.py           # Run full frontend + backend + LB pipeline (--encore for Encore source)
 │   └── CDN_SYNC.md           # This file
 ├── public/Data/
 │   ├── Characters.json       # Combined character data
@@ -61,7 +65,7 @@ wuwabuilds/
 
 ## Full Pipeline (`sync_all.py`)
 
-`sync_all.py` runs the full frontend + backend + LB data pipeline in this order:
+`sync_all.py` runs the full frontend + backend + LB data pipeline. The default path uses the Wuthery CDN:
 
 1. `sync_characters.py --fetch`
 2. `sync_weapons.py --fetch`
@@ -70,6 +74,8 @@ wuwabuilds/
 5. `stat_translations.py`
 6. `sync_backend.py`
 7. `sync_lb.py`
+
+With `--encore`, steps 1-4 collapse into a single `sync_encore.py` invocation; `stat_translations.py`, `sync_backend.py`, and `sync_lb.py` still run as the final three steps. `--skip-echo-icons` / `--force-echo-icons` pass through to the Encore step.
 
 Pass-through flags: `--dry-run`, `--pretty` (plus unknown extra args are forwarded to each script).
 

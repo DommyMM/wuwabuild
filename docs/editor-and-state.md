@@ -4,12 +4,13 @@ This doc explains provider boundaries and editor state flow in `wuwabuilds/`.
 
 ## Provider Topology
 
-- Root providers (`app/layout.tsx`):
+- Root providers (`app/layout.tsx` → `RootProviders` in `contexts/index.tsx`):
   - `LanguageProvider`
-- Tool route providers (`app/(game)/layout.tsx`):
+- Tool route providers (`app/(game)/layout.tsx` → `ToolProviders` in `contexts/index.tsx`):
   - `GameDataProvider`
   - `ToastProvider`
-- Editor-level providers (editor-like routes):
+  - `GameDataLoadingGate` (children only render once `GameDataContext` resolves)
+- Editor-level providers (`EditorProviders` in `contexts/index.tsx`, used by `/edit`, `/characters/[id]`, `/weapons/[id]`, and profile expanded cards):
   - `BuildProvider`
   - `StatsProvider`
 

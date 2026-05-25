@@ -115,12 +115,19 @@ Current init settings:
   - `sequence`: number
 
 #### `build_card_download`
-- Purpose: user downloads card output.
+- Purpose: user downloads card output from the editor.
 - Properties:
   - `character_id`: string | null
   - `character_name`: string | null
   - `weapon_id`: string | null
   - `sequence`: number
+
+#### `profile_card_download`
+- Purpose: user downloads a build card from the profile surface.
+- Properties:
+  - `character_id`: string | null
+  - `character_name`: string | null
+  - `build_id`: string
 
 #### `leaderboard_open_from_editor`
 - Purpose: user opens ranking page from editor.

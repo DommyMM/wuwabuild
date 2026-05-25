@@ -10,8 +10,8 @@ For full technical context, see [AGENTS.md](./AGENTS.md).
 
 ## Status Snapshot (March 28, 2026)
 
-- Core routes: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`, `/profile/[uid]`, `/characters/[id]`, `/weapons/[id]`, `/tos`, `/privacy`.
-- **Home (`/`)** uses ISR (`revalidate = 120`) and server-prefetched LB stats. **`/leaderboards/[characterId]`** server-prefetches the first board payload, canonicalizes query params on the server, and then keeps URL state in sync on the client. **`/builds`** and **`/leaderboards`** fetch list data on the client via `/api/lb/*`.
+- Core routes: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`, `/profile/[uid]`, `/characters/[id]`, `/weapons/[id]`, `/changelog`, `/tos`, `/privacy`.
+- **Home (`/`)** uses ISR (`revalidate = 300`) and server-prefetched LB stats. **`/leaderboards/[characterId]`** is `force-dynamic`: it server-prefetches the first board payload, canonicalizes the incoming query string against the returned weapon/track config and `redirect()`s to it, then keeps URL state in sync on the client. **`/builds`** and **`/leaderboards`** fetch list data on the client via `/api/lb/*`.
 - `/import` OCR flow is live with leaderboard upload and screenshot-backed scan issue reports.
 - Build expansion shows move breakdown, substat upgrade tiers, and leaderboard standings across all weapon × track boards.
 - Root layout includes Vercel Analytics, Google Analytics in production, and PostHog initialization via `instrumentation-client.ts`.
@@ -41,7 +41,7 @@ RootProviders (`app/layout.tsx`)
 └── LanguageProvider
 
 ToolProviders (`app/(game)/layout.tsx`)
-└── GameDataProvider       ← fetches and caches 9 JSON files client-side for tool routes only
+└── GameDataProvider       ← fetches and caches 8 JSON files client-side for tool routes only
     └── ToastProvider
 
 EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
@@ -49,7 +49,7 @@ EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
     └── StatsProvider      ← derived stats + CV (memoized from build + game data)
 ```
 
-- `GameDataContext` — Fetches and caches Characters, Weapons, Echoes, Stats, Fetters, Curves on first tool-route mount, then reuses a module-level cache across the session.
+- `GameDataContext` — Fetches and caches the 8 game-data JSON files (Characters, Echoes, Weapons, EchoStats, Stats, Fetters, CharacterCurve, LevelCurve) on first tool-route mount, then reuses a module-level cache across the session.
 - `BuildContext` — Reducer-based state for the active build. Auto-saves draft to localStorage.
 - `StatsContext` — Derives all calculated stats (HP, ATK, DEF, DMG boosts, CV) from build + game data.
 - `LanguageContext` — i18n language selection persisted to localStorage.
@@ -85,7 +85,7 @@ npm run start
 npm run lint
 ```
 
-Runs ESLint and `tsc --noEmit`. There is no `npm test` script in this package yet.
+Runs ESLint and `tsc --noEmit`. `npm run build` runs the same `lint` step before `next build`. There is no `npm test` script in this package yet.
 
 ---
 
@@ -109,7 +109,7 @@ Use `.env.example` as a template for local `.env` (not committed).
 ## OCR Import Flow
 
 1. Frontend receives a 1920×1080 screenshot from the user.
-2. Crops into independent regions (character, weapon, echoes, forte, watermark) using fixed coordinates.
+2. Crops into independent regions (character, weapon, forte, sequences, watermark, echo1–echo5) using fixed coordinates in `lib/import/regions.ts`.
 3. Posts each region in parallel to `/api/ocr` with `X-OCR-Region` header.
 4. The Next proxy forwards the request to the OCR backend and, when `INTERNAL_API_KEY` is set, includes the shared key plus the original client IP for backend rate limiting.
 5. Backend returns ID-enriched OCR payloads.
@@ -126,6 +126,7 @@ wuwabuilds/
 ├── app/                     # Next.js App Router entrypoints and layouts
 │   ├── page.tsx             # Home (/)
 │   ├── layout.tsx           # Root layout (Navigation + RootProviders)
+│   ├── changelog/           # Public changelog (/changelog)
 │   ├── tos/                 # Terms of service
 │   ├── privacy/             # Privacy policy
 │   ├── (game)/              # Route group for pages that need game-data providers
@@ -138,7 +139,7 @@ wuwabuilds/
 │   │   ├── leaderboards/    # Leaderboards (/leaderboards, /leaderboards/[characterId])
 │   │   ├── characters/      # Character-seeded editor routes (/characters/[id])
 │   │   └── weapons/         # Weapon-seeded editor routes (/weapons/[id])
-│   └── api/                 # API routes (lb proxy, ocr proxy, upload-training, OCR issue reports)
+│   └── api/                 # API routes (lb proxy, ocr proxy, upload-training, report-ocr-issue)
 ├── contexts/                # React Context providers
 ├── components/              # Components by feature area
 │   ├── leaderboards/        # All leaderboard + build browser components
@@ -156,13 +157,13 @@ wuwabuilds/
 │   ├── save/                # Local saves management
 │   ├── home/                # Homepage components
 │   └── ui/                  # Reusable UI (Modal, Tooltip, LevelSlider, etc.)
-├── hooks/                   # useOcrImport, useSelectedCharacter
+├── hooks/                   # useOcrImport, useSelectedCharacter, useResolvedLeaderboardLink
 ├── lib/                     # Utilities and data layer
-│   ├── calculations/        # CV, stat scaling, echo stats, weapon passives, set summaries
-│   ├── constants/           # Stat mappings, set bonuses, CDN URLs, skill branches
-│   ├── data/                # Legacy ID mappings for migration
-│   ├── import/              # OCR → SavedState conversion, crop regions
-│   ├── server/              # Server-only helpers (R2 storage, etc.)
+│   ├── calculations/        # Stats/CV, echo stats, weapon passives, set summaries, roll values, substat tiers, rank tier
+│   ├── constants/           # Stat mappings, set bonuses, CDN URLs, skill branches, stat hover/bonuses, disabled entries
+│   ├── data/                # Legacy ID mappings for migration (legacyEchoes/legacyWeapons JSON)
+│   ├── import/              # OCR → SavedState conversion, crop regions, echo matching, issue reports
+│   ├── server/              # Server-only helpers (R2 storage, OG image data)
 │   └── text/                # Localized game text rendering
 ├── public/Data/             # Game data JSON (Characters, Weapons, Echoes, Stats, Curves, Fetters)
 └── scripts/                 # Python data sync scripts
@@ -176,10 +177,13 @@ Run from `wuwabuilds/scripts/`:
 
 ```bash
 py sync_all.py                                # Full pipeline: frontend Data + backend Data + LB calc data
-py sync_lb.py --weapons-only                 # Regenerate LB weapon bases only
-py download_echo_icons.py --clean --force    # Refresh backend echo template PNGs by CDN ID
+py sync_all.py --encore                       # Same pipeline using the experimental Encore API source
+py sync_lb.py --weapons-only                  # Regenerate LB weapon bases only
+py download_echo_icons.py --clean --force     # Refresh backend echo template PNGs by CDN ID
 ```
 
-`sync_all.py` runs `sync_characters`, `sync_weapons`, `sync_echoes`, `sync_fetters`,
-`stat_translations`, `sync_backend`, and `sync_lb` in sequence.
-See [`scripts/CDN_SYNC.md`](./scripts/CDN_SYNC.md) for per-script flags and outputs.
+`sync_all.py` (default Wuthery path) runs `sync_characters`, `sync_weapons`, `sync_echoes`, `sync_fetters`,
+`stat_translations`, `sync_backend`, and `sync_lb` in sequence. With `--encore` it runs `sync_encore.py`
+in place of the four per-entity scripts, then the same `stat_translations` / `sync_backend` / `sync_lb`.
+See [`scripts/CDN_SYNC.md`](./scripts/CDN_SYNC.md) for per-script flags and outputs and
+[`docs/sync-sources.md`](./docs/sync-sources.md) for the source-comparison rationale.

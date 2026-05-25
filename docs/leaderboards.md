@@ -15,11 +15,11 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 ## Fetch Model
 
 - **`/`** — server component prefetches overview + global build stats via `lbServer.ts` (ISR on the page).
-- **`/leaderboards/[characterId]`** — server prefetches the first board payload via `lbServer.ts`, canonicalizes the incoming query string against the returned weapon/track config, and passes the payload as `initialData`.
+- **`/leaderboards/[characterId]`** — `force-dynamic`. Server prefetches the first board payload via `lbServer.ts`, canonicalizes the incoming query string against the returned weapon/track config, and `redirect()`s when the URL doesn't match. The payload is passed to the client as `initialData`.
 - **`/builds`** and **`/leaderboards`** — list data is fetched on the client through `/api/lb/*`. The overview page additionally uses `leaderboardOverviewCache.ts` (1-hour TTL localStorage + memory) to avoid redundant fetches across mounts.
-- Prefetch always calls LB directly with `LB_URL` and `X-Internal-Key` (never through the Next proxy).
+- Prefetch always calls LB directly with `LB_URL` and `X-Internal-Key` (never through the Next proxy). Prefetch responses are cached via `next: { revalidate: 300 }` (5 minutes, see `PREFETCH_TTL_S` in `lbServer.ts`).
 - Where revalidation exists, client fetches after mount; signature checks can skip `setState` when nothing effectively changed.
-- `/builds` keeps a small localStorage cache by serialized query for smoother revisits.
+- `/builds` keeps a small localStorage cache by serialized query (via `globalBoardCache.ts`) for smoother revisits.
 
 ## Query State Model
 

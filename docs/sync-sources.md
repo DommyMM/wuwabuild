@@ -95,12 +95,14 @@ Everything we currently sync is reachable from Encore. The mapping isn't always 
 
 ## Character Prototype
 
-`scripts/sync_characters_encore.py` is the first low-risk prototype. It does not replace `sync_characters.py`; it fetches one character from Encore and transforms it into the existing public `Characters.json` shape for diffing.
+`scripts/sync_characters_encore.py` is the original single-character prototype. It does not replace `sync_characters.py`; it fetches one character from Encore and transforms it into the existing public `Characters.json` shape for diffing.
 
 ```bash
 py scripts/sync_characters_encore.py --id 1608 --compare
 py scripts/sync_characters_encore.py --id 1608 --output public/Data/Characters.encore.1608.json --pretty
 ```
+
+A combined `scripts/sync_encore.py` extends the prototype to cover characters, weapons, echoes, and fetters in one run, and is what `sync_all.py --encore` invokes (see [`scripts/CDN_SYNC.md`](../scripts/CDN_SYNC.md)). The Wuthery scripts remain the default pipeline.
 
 Validation on 2026-04-30 for `1608`:
 

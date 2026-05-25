@@ -39,6 +39,8 @@ To address these findings, we have updated and deployed targeted metadata config
 
 ## Key Metadata Realignment (Implemented 2026-05-24)
 
+> All seven metadata blocks below are live in the current codebase. Verify via `app/page.tsx`, `app/(game)/edit/layout.tsx`, `app/(game)/import/page.tsx`, `app/(game)/builds/page.tsx`, `app/(game)/leaderboards/page.tsx`, `app/(game)/leaderboards/[characterId]/page.tsx`, and the `keywords` array in `app/layout.tsx`.
+
 To capture missing impressions and raise rankings for low-CTR terms, the following routes were updated:
 
 ### 1. Homepage (`app/page.tsx`)
@@ -85,14 +87,19 @@ To capture missing impressions and raise rankings for low-CTR terms, the followi
 
 ## Actionable Recommendations (Next Steps)
 
-### 1. Leverage Competitor Search Volume ("wuwaflex")
+> Status legend: **shipped** — verified in current code. **pending** — not yet implemented at audit re-review time.
+
+### 1. Leverage Competitor Search Volume ("wuwaflex") — **pending**
 * **Action:** To capture searches for `wuwaflex`, insert a subtle FAQ or description block on the homepage or `/edit` page detailing our build card exporter as a "high-quality wuwaflex alternative for build showcases".
 * **Impact:** This signals to search engine crawlers that the page is a highly relevant result for those search keywords.
+* **Status:** Keywords list in `app/layout.tsx` already includes `wuwaflex`, but no on-page FAQ/description copy has been added to `/` or `/edit` to anchor the term.
 
-### 2. Multi-Locale SEO Target (Vietnam & Japan)
+### 2. Multi-Locale SEO Target (Vietnam & Japan) — **pending**
 * **Action:** Since Vietnam (14%) and Japan (12%) make up over a quarter of your actual active traffic, translating route metadata and game data values server-side represents the highest visibility scaling opportunity.
 * **Next Steps:** Prioritize Japanese and Vietnamese localization directories using a routing middleware like `next-intl` to allow search engines to crawl and index `/ja/characters/[id]` and `/vi/characters/[id]`.
+* **Status:** `next-intl` is not installed; no `/ja`, `/vi`, or other locale-prefixed app routes exist. Client-side `LanguageProvider` still drives in-page i18n only.
 
-### 3. Google Search Console Sitemap Refresh
+### 3. Google Search Console Sitemap Refresh — **operational (out of repo)**
 * **Action:** After deploying these metadata changes, log into GSC and request a re-crawl of `sitemap.xml`.
 * **Verification:** Monitor the **Pages** indexing report to ensure that `/edit`, `/import`, `/changelog`, `/privacy`, and `/tos` shift from "Discovered - currently not indexed" to "Indexed".
+* **Status:** `app/sitemap.ts` and `app/robots.ts` are in place; the re-crawl request itself happens in GSC and isn't observable from the codebase.
