@@ -488,28 +488,19 @@ def _extract_buffs(text: str) -> list[dict]:
             })
             used.append(span)
 
-    move_amp_m = re.search(
-        r"\b(Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation|Echo Skill)\s+DMG\s+Amplification\b.*?\b(\d+(?:\.\d+)?)\s*%",
-        text,
-        re.I,
-    )
-    if move_amp_m:
-        move_type_map = {
-            "basic attack": "basic_attack",
-            "heavy attack": "heavy_attack",
-            "resonance skill": "resonance_skill",
-            "resonance liberation": "resonance_liberation",
-            "echo skill": "echo",
-        }
-        move_type = move_type_map.get(move_amp_m.group(1).strip().lower())
-        span = move_amp_m.span()
-        if move_type and not _overlaps(*span):
-            buffs.append({
-                "stat": "DMG Amplification",
-                "move_type": move_type,
-                "value": float(move_amp_m.group(2)),
-            })
-            used.append(span)
+    move_type_map = {
+        "basic attack": "basic_attack",
+        "heavy attack": "heavy_attack",
+        "resonance skill": "resonance_skill",
+        "resonance liberation": "resonance_liberation",
+        "echo skill": "echo",
+    }
+    # Noun form: "X% MOVETYPE DMG Amplification" (value precedes the phrase — the
+    # canonical wording, e.g. "32% Echo Skill DMG Amplification"). Run this BEFORE
+    # the verb form below: the verb form's trailing ".*?\d+%" can otherwise latch
+    # onto a number belonging to a later clause (e.g. "... Echo Skill DMG
+    # Amplification, and ignore 8% of the target's DEF" would parse 8 instead of
+    # 32, and the claimed span would also starve the DEF-ignore pass).
     move_amp_noun_m = re.search(
         r"(\d+(?:\.\d+)?)\s*%\s+"
         r"(Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation|Echo Skill)\s+DMG\s+Amplification\b",
@@ -517,13 +508,6 @@ def _extract_buffs(text: str) -> list[dict]:
         re.I,
     )
     if move_amp_noun_m:
-        move_type_map = {
-            "basic attack": "basic_attack",
-            "heavy attack": "heavy_attack",
-            "resonance skill": "resonance_skill",
-            "resonance liberation": "resonance_liberation",
-            "echo skill": "echo",
-        }
         move_type = move_type_map.get(move_amp_noun_m.group(2).strip().lower())
         span = move_amp_noun_m.span()
         if move_type and not _overlaps(*span):
@@ -531,6 +515,22 @@ def _extract_buffs(text: str) -> list[dict]:
                 "stat": "DMG Amplification",
                 "move_type": move_type,
                 "value": float(move_amp_noun_m.group(1)),
+            })
+            used.append(span)
+    # Verb / trailing-value form: "MOVETYPE DMG Amplification ... X%".
+    move_amp_m = re.search(
+        r"\b(Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation|Echo Skill)\s+DMG\s+Amplification\b.*?\b(\d+(?:\.\d+)?)\s*%",
+        text,
+        re.I,
+    )
+    if move_amp_m:
+        move_type = move_type_map.get(move_amp_m.group(1).strip().lower())
+        span = move_amp_m.span()
+        if move_type and not _overlaps(*span):
+            buffs.append({
+                "stat": "DMG Amplification",
+                "move_type": move_type,
+                "value": float(move_amp_m.group(2)),
             })
             used.append(span)
 
