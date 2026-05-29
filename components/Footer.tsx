@@ -10,6 +10,7 @@ const primaryLinks = [
 
 const supportLinks = [
     { href: '/changelog', label: 'Changelog' },
+    { href: 'https://discord.gg/puZSXRKTPC', label: 'Discord' },
     { href: '/privacy', label: 'Privacy' },
     { href: '/tos', label: 'Terms' },
     { href: 'mailto:help@wuwa.build', label: 'Contact' },
@@ -53,15 +54,20 @@ export function Footer() {
                         Site
                     </h2>
                     <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm md:grid-cols-1">
-                        {supportLinks.map(({ href, label }) => (
-                            <Link
-                                key={href}
-                                href={href}
-                                className="text-text-primary/65 no-underline transition-colors hover:text-accent"
-                            >
-                                {label}
-                            </Link>
-                        ))}
+                        {supportLinks.map(({ href, label }) => {
+                            const isExternal = href.startsWith('http') || href.startsWith('mailto');
+                            return (
+                                <Link
+                                    key={href}
+                                    href={href}
+                                    target={isExternal ? '_blank' : undefined}
+                                    rel={isExternal ? 'noopener noreferrer' : undefined}
+                                    className="text-text-primary/65 no-underline transition-colors hover:text-accent"
+                                >
+                                    {label}
+                                </Link>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
