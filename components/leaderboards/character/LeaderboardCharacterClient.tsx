@@ -483,6 +483,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
           <div className="relative">
             <LeaderboardCharacterHeader
+              characterId={characterId}
               characterName={characterName}
               characterHead={character?.head}
               characterElement={character?.element ?? undefined}

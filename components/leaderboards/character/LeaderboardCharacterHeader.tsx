@@ -14,6 +14,7 @@ import { FetterHoverCard } from '@/components/echo/FetterHoverCard';
 import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix } from '../constants';
 
 interface LeaderboardCharacterHeaderProps {
+  characterId?: string;
   characterName: string;
   characterHead?: string;
   characterElement?: string;
@@ -101,6 +102,7 @@ function renderNoteWithTooltips(note: string): React.ReactNode {
 }
 
 export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProps> = ({
+  characterId,
   characterName,
   characterHead,
   characterElement,
@@ -232,7 +234,15 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
           Leaderboards
         </Link>
         <span>/</span>
-        <span className="text-text-primary/60">{characterName}</span>
+        {characterId ? (
+          <Link href={`/characters/${characterId}`} className="transition-colors hover:text-accent">
+            {characterName}
+          </Link>
+        ) : (
+          <span className="text-text-primary/60">{characterName}</span>
+        )}
+        <span>/</span>
+        <span className="text-text-primary/60">Leaderboard</span>
       </div>
 
       <div className="flex flex-col items-center text-center">

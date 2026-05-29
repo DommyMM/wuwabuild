@@ -456,3 +456,28 @@ body {
 .seq-badge.s4 { border-color: rgba(232, 121, 249, 0.45); background: rgba(217, 70, 239, 0.15); color: #f5d0fe; }
 .seq-badge.s5 { border-color: rgba(251, 191, 36, 0.55); background: rgba(245, 158, 11, 0.2); color: #fde68a; }
 .seq-badge.s6 { border-color: rgba(248, 229, 108, 0.6); background: rgba(248, 229, 108, 0.2); color: #F8E56C; }
+
+/* Resonator directory — CSS-only element filter (no JS).
+   Active label highlight + card visibility driven by the hidden radios via :has().
+   Default state (#el-all checked) matches no hide rule, so every card stays visible
+   and crawlers always see the full link set. */
+.resonator-directory:has(#el-all:checked) label[for="el-all"],
+.resonator-directory:has(#el-Aero:checked) label[for="el-Aero"],
+.resonator-directory:has(#el-Electro:checked) label[for="el-Electro"],
+.resonator-directory:has(#el-Fusion:checked) label[for="el-Fusion"],
+.resonator-directory:has(#el-Glacio:checked) label[for="el-Glacio"],
+.resonator-directory:has(#el-Havoc:checked) label[for="el-Havoc"],
+.resonator-directory:has(#el-Spectro:checked) label[for="el-Spectro"] {
+  border-color: var(--color-accent);
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  color: var(--color-accent);
+}
+
+.resonator-directory:has(#el-Aero:checked) .resonator-card:not([data-el="Aero"]),
+.resonator-directory:has(#el-Electro:checked) .resonator-card:not([data-el="Electro"]),
+.resonator-directory:has(#el-Fusion:checked) .resonator-card:not([data-el="Fusion"]),
+.resonator-directory:has(#el-Glacio:checked) .resonator-card:not([data-el="Glacio"]),
+.resonator-directory:has(#el-Havoc:checked) .resonator-card:not([data-el="Havoc"]),
+.resonator-directory:has(#el-Spectro:checked) .resonator-card:not([data-el="Spectro"]) {
+  display: none;
+}

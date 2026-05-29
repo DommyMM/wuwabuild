@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { HomePage } from '@/components/home/HomePage';
+import { FAQS } from '@/components/home/faqs';
 import { prefetchLeaderboardOverview, prefetchBuilds } from '@/lib/lbServer';
+import { loadCharacterIndex } from '@/lib/server/ogData';
 
 export const revalidate = 300; // ISR: full page HTML cached at edge, re-rendered at most once per 5 min
 
@@ -23,39 +25,58 @@ export default async function Home() {
         totalBuilds: buildsRes?.total ?? 0,
         totalLeaderboards: overview?.length ?? 0,
     };
+    const characters = loadCharacterIndex();
+
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "WebSite",
+                "@id": "https://wuwa.build/#website",
+                "name": "WuWa Builds",
+                "url": "https://wuwa.build",
+                "publisher": { "@id": "https://wuwa.build/#organization" }
+            },
+            {
+                "@type": "Organization",
+                "@id": "https://wuwa.build/#organization",
+                "name": "WuWa Builds",
+                "url": "https://wuwa.build",
+                "logo": "https://wuwa.build/logo512.png"
+            },
+            {
+                "@type": "SoftwareApplication",
+                "name": "WuWa Builds — Wuthering Waves Build Maker",
+                "operatingSystem": "Any",
+                "applicationCategory": "GameApplication",
+                "url": "https://wuwa.build",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "USD"
+                }
+            },
+            {
+                "@type": "FAQPage",
+                "mainEntity": FAQS.map((faq) => ({
+                    "@type": "Question",
+                    "name": faq.q,
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": faq.text
+                    }
+                }))
+            }
+        ]
+    };
 
     return (
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "WebSite",
-                        "name": "WuWa Builds",
-                        "url": "https://wuwa.build"
-                    })
-                }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "SoftwareApplication",
-                        "name": "WuWa Builds | Wuthering Waves Build Creator",
-                        "operatingSystem": "Any",
-                        "applicationCategory": "GameApplication",
-                        "url": "https://wuwa.build",
-                        "offers": {
-                            "@type": "Offer",
-                            "price": "0",
-                            "priceCurrency": "USD"
-                        }
-                    })
-                }}
-            />
-            <HomePage lbStats={lbStats} />
+            <HomePage lbStats={lbStats} characters={characters} />
         </>
     );
 }

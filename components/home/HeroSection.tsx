@@ -46,6 +46,9 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
                 {/* Left — headline + CTAs */}
                 <div>
                     <h1 className="font-plus-jakarta text-[42px] md:text-7xl leading-[0.98] tracking-[-0.035em] font-medium text-text-primary">
+                        <span className="block text-xs md:text-sm font-semibold uppercase tracking-[0.22em] text-text-primary/50 mb-4">
+                            Wuthering Waves Character Builds &amp; Scanner
+                        </span>
                         Scan your stats.<br />
                         <span className="text-accent italic font-normal pr-2 md:pr-4">Rank</span>
                         your damage.
