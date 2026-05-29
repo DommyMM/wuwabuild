@@ -30,24 +30,24 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
     metadataBase: new URL('https://wuwa.build'),
     title: {
-        default: 'WuWa Builds - Wuthering Waves Build Creator',
-        template: '%s | WuWa Builds'
+        default: 'WuWaBuilds - Wuthering Waves Build Creator',
+        template: '%s | WuWaBuilds'
     },
     description: 'Create and share Wuthering Waves builds with automatic screenshot scanning, real-time stat calculations, and build management tools.',
-    keywords: ['Wuthering Waves', 'WuWa', 'wuwa builds', 'wuwa build maker', 'wuwa leaderboards', 'wuwaflex', 'showcase card', 'screenshot scanner', 'damage calculator', 'build creator', 'character builds', 'echo builds'],
-    authors: [{ name: 'WuWa Builds' }],
-    creator: 'WuWa Builds',
+    keywords: ['Wuthering Waves', 'WuWa', 'wuwa builds', 'WuWaBuilds', 'wuwa build maker', 'wuwa leaderboards', 'showcase card', 'screenshot scanner', 'damage calculator', 'build creator', 'character builds', 'echo builds'],
+    authors: [{ name: 'WuWaBuilds' }],
+    creator: 'WuWaBuilds',
     openGraph: {
         type: 'website',
         locale: 'en_US',
         url: 'https://wuwa.build',
-        siteName: 'WuWa Builds',
-        title: 'WuWa Builds - Wuthering Waves Build Creator & Showcase',
+        siteName: 'WuWaBuilds',
+        title: 'WuWaBuilds - Wuthering Waves Build Creator & Showcase',
         description: 'Create and share Wuthering Waves character build cards. Import from a screenshot, calculate echo stats and damage, and compare on global leaderboards.',
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'WuWa Builds - Wuthering Waves Build Creator & Showcase',
+        title: 'WuWaBuilds - Wuthering Waves Build Creator & Showcase',
         description: 'Create and share Wuthering Waves character build cards. Import from a screenshot, calculate echo stats and damage, and compare on global leaderboards.',
     },
     robots: {

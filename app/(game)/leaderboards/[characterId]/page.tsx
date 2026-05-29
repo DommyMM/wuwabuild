@@ -1,15 +1,16 @@
 import type { Metadata } from 'next';
 
-// Reads searchParams to determine weapon/track — must be dynamic.
+// Reads searchParams to determine weapon/track, must be dynamic.
 // Overrides the force-static default set in (game)/layout.tsx.
 export const dynamic = 'force-dynamic';
 import { redirect } from 'next/navigation';
 import { LeaderboardCharacterClient } from '@/components/leaderboards/character/LeaderboardCharacterClient';
-import { DEFAULT_LB_TRACK } from '@/components/leaderboards/constants';
+import { DEFAULT_LB_TRACK, parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeaderboardQuery, serializeLeaderboardQuery, toURLSearchParams } from '@/components/leaderboards/character/leaderboardCharacterQuery';
 import { adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
+import type { LBTrack } from '@/lib/lb';
 import { prefetchLeaderboard } from '@/lib/lbServer';
-import { loadCharacterRaw } from '@/lib/server/ogData';
+import { loadCharacterRaw, loadWeaponSummary } from '@/lib/server/ogData';
 
 interface Props {
   params: Promise<{ characterId: string }>;
@@ -29,20 +30,61 @@ function getCharacterPageCopy(characterId: string) {
   return { rawCharacter, character, characterName };
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+function getCoreLeaderboardCanonical(characterId: string, weaponId: string, trackKey: string): string {
+  const query = new URLSearchParams();
+  if (weaponId) query.set('weaponId', weaponId);
+  if (trackKey) query.set('track', trackKey);
+  const search = query.toString();
+  return search ? `/leaderboards/${characterId}?${search}` : `/leaderboards/${characterId}`;
+}
+
+function getTrackTitleParts(trackKey: string, tracks: LBTrack[]): { playstyle: string; sequence: number } {
+  const track = tracks.find((entry) => entry.key === trackKey);
+  const rawLabel = track?.label?.trim() || trackKey || 'Damage';
+  const playstyle = stripLBSeqPrefix(rawLabel).trim() || rawLabel;
+  return {
+    playstyle,
+    sequence: parseLBSeqLevel(trackKey),
+  };
+}
+
+function getLeaderboardTitle(characterName: string, trackKey: string, tracks: LBTrack[]): string {
+  const { playstyle, sequence } = getTrackTitleParts(trackKey, tracks);
+  const scope = [characterName, sequence > 0 ? `S${sequence}` : '', playstyle]
+    .filter(Boolean)
+    .join(' ');
+  return `${scope} Leaderboard Rankings`;
+}
+
+function getLeaderboardDescription(characterName: string, trackKey: string, tracks: LBTrack[], weaponId: string): string {
+  const { playstyle, sequence } = getTrackTitleParts(trackKey, tracks);
+  const weapon = weaponId ? loadWeaponSummary(weaponId) : null;
+  const sequenceText = sequence > 0 ? ` S${sequence}` : '';
+  const weaponText = weapon?.name ? ` with ${weapon.name}` : '';
+  return `See Wuthering Waves ${characterName}${sequenceText} ${playstyle} rankings${weaponText}. Compare simulated damage, echo sets, stats, and top player builds on WuWaBuilds.`;
+}
+
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { characterId } = await params;
+  const rawSearchParams = toURLSearchParams(await searchParams);
+  const parsedQuery = parseInitialLeaderboardQuery(rawSearchParams);
   const { character, characterName } = getCharacterPageCopy(characterId);
 
   if (character) {
-    const title = `${characterName} Build Rankings & Leaderboard`;
-    const description = `See the best Wuthering Waves ${characterName} builds ranked by simulated damage. Compare top player echo sets, weapon stats, and CV leaderboards.`;
+    const initialData = await prefetchLeaderboard(characterId, leaderboardSnapshotToApiQuery(parsedQuery));
+    const activeWeaponId = initialData?.activeWeaponId || parsedQuery.weaponId || initialData?.weaponIds[0] || '';
+    const activeTrack = initialData?.activeTrack || parsedQuery.track || initialData?.tracks[0]?.key || DEFAULT_LB_TRACK;
+    const tracks = initialData?.tracks ?? [];
+    const title = getLeaderboardTitle(characterName, activeTrack, tracks);
+    const description = getLeaderboardDescription(characterName, activeTrack, tracks, activeWeaponId);
+    const canonical = getCoreLeaderboardCanonical(characterId, activeWeaponId, activeTrack);
 
     return {
       title,
       description,
-      openGraph: { title, description, url: `https://wuwa.build/leaderboards/${characterId}` },
+      openGraph: { title, description, url: canonical },
       twitter: { title, description },
-      alternates: { canonical: `/leaderboards/${characterId}` },
+      alternates: { canonical },
     };
   }
 
