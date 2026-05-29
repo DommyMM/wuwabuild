@@ -465,21 +465,16 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
 }
 
 export function GameDataLoadingGate({ children }: { children: ReactNode }) {
-  const { isLoading, loadError } = useGameData();
+  const { loadError } = useGameData();
 
   if (loadError) {
     return (
-      <div className="mx-auto flex min-h-[50vh] w-full max-w-360 items-center justify-center px-4 py-10 text-center text-text-primary">
-        Failed to load game data. Please refresh and try again.
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex min-h-[50vh] w-full max-w-360 items-center justify-center px-4 py-10 text-center text-text-primary/80">
-        Loading game data...
-      </div>
+      <>
+        <div className="mx-auto mb-3 w-full max-w-360 px-4 py-3 text-sm text-red-300">
+          Failed to load game data. Please refresh and try again.
+        </div>
+        {children}
+      </>
     );
   }
 

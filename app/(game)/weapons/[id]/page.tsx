@@ -87,7 +87,7 @@ function CompactStat({
     detail?: ReactNode;
 }) {
     return (
-        <div className="rounded-md border border-white/8 bg-white/[0.025] px-3 py-3">
+        <div className="rounded-md border border-white/8 bg-white/2.5 px-3 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-text-primary/32">{label}</p>
             <p className="mt-1 font-gowun text-xl leading-none text-text-primary tabular-nums">{value}</p>
             {detail && <p className="mt-1 text-xs text-text-primary/42">{detail}</p>}
@@ -222,7 +222,7 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
                                                 Browse top builds
                                             </Link>
                                             {matchingCharacters[0] && (
-                                                <Link className="gold-glow rounded-sm border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-text-primary/82 transition-colors hover:border-accent/45 hover:text-accent" href={`/characters/${matchingCharacters[0].id}`}>
+                                                <Link className="gold-glow rounded-sm border border-white/10 bg-white/3 px-4 py-2 text-sm font-semibold text-text-primary/82 transition-colors hover:border-accent/45 hover:text-accent" href={`/characters/${matchingCharacters[0].id}`}>
                                                     Open {getI18nText(matchingCharacters[0].name)}
                                                 </Link>
                                             )}

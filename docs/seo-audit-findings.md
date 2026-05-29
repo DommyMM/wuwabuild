@@ -8,7 +8,7 @@ Audit Date: 2026-05-24 (Updated with Google Search Console & Vercel Web Analytic
 
 A cross-analysis between **Google Search Console (GSC)** and **Vercel Web Analytics** reveals a significant search visibility opportunity:
 1. **The Tool Traffic Gap:** Pages like `/import` (4.7K actual visitors) and `/edit` (3.9K actual visitors) are core product offerings used heavily by the community, yet they receive almost zero traffic from organic search (13 and 6 clicks respectively).
-2. **Competitor Conquesting ("wuwaflex"):** Search terms like `wuwaflex` and `wuwa flex` represent a high-impression search volume (~3,500 total impressions) but yield a sub-1% click-through rate (CTR), as search engines did not associate our site as a primary target for "flexing" builds.
+2. **Competitor Conquesting ("wuwaflex") — REJECTED (see 2026-05-29 update):** `wuwaflex`/`wuwa flex` carry ~3,500 impressions at sub-1% CTR, but this is **not a target**. wuwaflex is a competitor; the build-card export those searchers want is a fraction of our use case (core = scanner + leaderboards + calculator). We do not chase the brand term.
 3. **Regional Search Demands:** While the United States remains the top referrer (16%), East and Southeast Asian markets—specifically Vietnam (14%) and Japan (12%)—represent a major portion of your active player base, raising the priority of localized SEO.
 
 To address these findings, we have updated and deployed targeted metadata configurations across all core routes to capture high-intent search queries.
@@ -103,3 +103,52 @@ To capture missing impressions and raise rankings for low-CTR terms, the followi
 * **Action:** After deploying these metadata changes, log into GSC and request a re-crawl of `sitemap.xml`.
 * **Verification:** Monitor the **Pages** indexing report to ensure that `/edit`, `/import`, `/changelog`, `/privacy`, and `/tos` shift from "Discovered - currently not indexed" to "Indexed".
 * **Status:** `app/sitemap.ts` and `app/robots.ts` are in place; the re-crawl request itself happens in GSC and isn't observable from the codebase.
+
+---
+
+## 2026-05-29 Update — SSR Fix, Architecture & Roadmap
+
+### Latest traffic (Vercel, trailing 30 days)
+
+13,414 visitors (**+166%**), 86,428 page views, 37% bounce.
+
+| Page | Visitors | Notes |
+| :--- | :--- | :--- |
+| `/` | 6.3K | |
+| `/leaderboards` | 6.0K | strongest organic CTR (see above) |
+| `/builds` | 5.4K | |
+| `/import` | 5.3K | almost all non-organic (in-app/direct) |
+| `/edit` | 4.4K | almost all non-organic |
+| `/saves` | 2.3K | |
+| `/leaderboards/1108` | 1.9K | **single character board — validates per-character SEO pages** |
+
+- **Referrers:** Google 4.6K (organic is the #1 acquisition channel) · Reddit 1.2K · Bing 553 · Brave 380 · DuckDuckGo 269 · `wuwabuilds.moe` 258 (old domain still redirecting traffic in).
+- **Geo:** US 16% · Vietnam 11% · Japan 8% · Germany 5% · Philippines 4% → **~25%+ non-English demand.**
+- **Devices:** Desktop 67% / Mobile 32% (search-acquired dossier traffic skews more mobile → mobile CWV matters).
+
+### CRITICAL FIX SHIPPED — SSR content was hidden behind a client loading gate
+
+- **Problem:** every `(game)` route (including `/characters/[id]` and `/weapons/[id]`) was wrapped in `GameDataLoadingGate`, which rendered "Loading game data…" until a client-side fetch of ~7.7 MB of JSON finished. The **initial HTML served to crawlers was the placeholder, not the page** — silently undercutting every per-character/weapon SEO page despite their server-rendered content, H1s, breadcrumbs, and JSON-LD.
+- **Fix** (`contexts/GameDataContext.tsx`): the gate no longer blocks on `isLoading`; it always renders `children` and only shows a non-blocking error banner on failure. Server-rendered dossier content is now in the initial HTML.
+- **Also shipped:** `/edit` gained an `sr-only` H1 ("WuWa Build Maker"); character-leaderboard `<title>`s de-duplicated (root layout's `title.template` already appends `| WuWa Builds`, so they were doubling).
+- **Verify:** `npm run build`, then view-source (JS disabled) on a `/characters/[id]` page — the H1, stat table, and JSON-LD must be present in raw HTML.
+
+### Architecture finding — client data payload hurts CWV on ranking pages
+
+- `Characters.json` alone is **6.5 MB** (of ~7.7 MB across 8 JSON files), fetched + parsed **client-side** via the global `GameDataProvider` on *every* `(game)` route.
+- **Legitimate consumers:** `/edit` and `/leaderboards` genuinely need the full dataset (hover tooltips, live recalculation). Leave these as-is.
+- **Waste:** `/characters/[id]` and `/weapons/[id]` are server-rendered and don't need the client fetch, yet trigger the full 6.5 MB parse on the main thread — on exactly the pages we want to rank. Hurts mobile INP/LCP; Core Web Vitals is a ranking signal.
+- **Recommendation:** scope the fetch to routes that need it (lazy provider / per-route), and medium-term split `Characters.json` into a lean client *index* (id, name, element, weaponType, icon, base stats) plus on-demand per-character detail. The editor edits one character at a time and never needs all ~70 full records upfront.
+
+### Roadmap (phased)
+
+- **Phase 0 — SSR gate fix:** ✅ **SHIPPED** (this update). Gates the value of everything below.
+- **Phase 1 — Stop SEO pages triggering the 6.5 MB fetch.** CWV win on the ranking pages. Does not touch `/edit` or `/leaderboards`.
+- **Phase 2 — Internal links.** Homepage resonator directory grid (editorial style, lazy portraits, two crawlable anchors/card → `/characters/[id]` + `/leaderboards/[id]`) + leaderboard→character breadcrumb loop. Fixes near-orphaned character pages (currently only linked from weapon pages).
+- **Phase 3 — Schema + hero H1.** `FAQPage`, `Organization`, `WebSite`/`SearchAction` JSON-LD; keyword eyebrow restoring the hero's missing eyebrow pattern.
+- **Phase 4 — Leaderboard-driven prose on character pages** (+ `revalidate` ISR, low-data fallback). Unique, auto-updating data competitors can't replicate — the real lever for `[character] build` queries.
+- **Later — Split `Characters.json`** (lean index + on-demand detail); evaluate i18n (`/ja`, `/vi`) given ~25% non-English demand (heavy: `next-intl`, locale routes, hreflang, fully translated content — do not ship thin machine-translated locales).
+
+### Product-direction corrections
+
+- **"wuwaflex" conquesting is REJECTED.** wuwaflex is a competitor we don't want to emulate; the build-card export those searchers want is a fraction of the use case (core = scanner + leaderboards + calculator). Do not add "alternative" copy. The `wuwaflex` entry lingering in the `app/layout.tsx` keywords array should be removed (it's also ignored by Google regardless).

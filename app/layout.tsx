@@ -43,12 +43,12 @@ export const metadata: Metadata = {
         url: 'https://wuwa.build',
         siteName: 'WuWa Builds',
         title: 'WuWa Builds - Wuthering Waves Build Creator & Showcase',
-        description: 'Create and share Wuthering Waves character build cards. Flex your best setups with our custom build maker, automatic OCR scanner, and real-time damage calculator.',
+        description: 'Create and share Wuthering Waves character build cards. Import from a screenshot, calculate echo stats and damage, and compare on global leaderboards.',
     },
     twitter: {
         card: 'summary_large_image',
         title: 'WuWa Builds - Wuthering Waves Build Creator & Showcase',
-        description: 'Create and share Wuthering Waves character build cards. Flex your best setups with our custom build maker, automatic OCR scanner, and real-time damage calculator.',
+        description: 'Create and share Wuthering Waves character build cards. Import from a screenshot, calculate echo stats and damage, and compare on global leaderboards.',
     },
     robots: {
         index: true,
