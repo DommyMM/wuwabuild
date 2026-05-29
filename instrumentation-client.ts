@@ -5,6 +5,13 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
     api_host: '/ingest',
     ui_host: 'https://us.posthog.com',
     defaults: '2026-01-30',
-    capture_exceptions: true,
+    autocapture: false,
+    rageclick: false,
+    capture_dead_clicks: false,
+    capture_exceptions: false,
+    capture_heatmaps: false,
+    disable_session_recording: true,
+    disable_surveys: true,
+    disable_product_tours: true,
   });
 }

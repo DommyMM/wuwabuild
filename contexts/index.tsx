@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { GameDataLoadingGate, GameDataProvider } from './GameDataContext';
 import { BuildProvider } from './BuildContext';
 import { StatsProvider } from './StatsContext';
@@ -20,7 +21,17 @@ export function RootProviders({ children }: AppProvidersProps) {
   );
 }
 
+function isServerRenderedDossierPath(pathname: string | null): boolean {
+  return pathname?.startsWith('/characters/') === true || pathname?.startsWith('/weapons/') === true;
+}
+
 export function ToolProviders({ children }: AppProvidersProps) {
+  const pathname = usePathname();
+
+  if (isServerRenderedDossierPath(pathname)) {
+    return <>{children}</>;
+  }
+
   return (
     <GameDataProvider>
       <ToastProvider>

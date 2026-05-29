@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Gowun_Dodum, Plus_Jakarta_Sans, Ropa_Sans } from "next/font/google";
-import { GoogleAnalytics } from '@next/third-parties/google';
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -26,6 +26,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
     display: "swap",
     variable: "--font-plus-jakarta-next",
 });
+
+const GA_ID = "G-SP375JKDPX";
 
 export const metadata: Metadata = {
     metadataBase: new URL('https://wuwa.build'),
@@ -88,7 +90,20 @@ export default async function RootLayout({
                 </RootProviders>
                 <Analytics />
                 {process.env.NODE_ENV === "production" && (
-                    <GoogleAnalytics gaId="G-SP375JKDPX" />
+                    <>
+                        <Script
+                            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+                            strategy="lazyOnload"
+                        />
+                        <Script id="google-analytics" strategy="lazyOnload">
+                            {`
+                                window.dataLayer = window.dataLayer || [];
+                                function gtag(){dataLayer.push(arguments);}
+                                gtag('js', new Date());
+                                gtag('config', '${GA_ID}');
+                            `}
+                        </Script>
+                    </>
                 )}
             </body>
         </html>
