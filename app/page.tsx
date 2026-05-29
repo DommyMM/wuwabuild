@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { HomePage } from '@/components/home/HomePage';
 import { FAQS } from '@/components/home/faqs';
 import { prefetchLeaderboardOverview, prefetchBuilds } from '@/lib/lbServer';
-import { loadCharacterIndex } from '@/lib/server/ogData';
 
 export const revalidate = 300; // ISR: full page HTML cached at edge, re-rendered at most once per 5 min
 
@@ -25,7 +24,6 @@ export default async function Home() {
         totalBuilds: buildsRes?.total ?? 0,
         totalLeaderboards: overview?.length ?? 0,
     };
-    const characters = loadCharacterIndex();
 
     const jsonLd = {
         "@context": "https://schema.org",
@@ -76,7 +74,7 @@ export default async function Home() {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <HomePage lbStats={lbStats} characters={characters} />
+            <HomePage lbStats={lbStats} />
         </>
     );
 }
