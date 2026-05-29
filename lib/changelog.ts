@@ -14,6 +14,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-05-29',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Character leaderboard links now keep playstyle context in page titles and sharing previews.',
+            },
+            {
+                kind: 'improved',
+                text: 'Character and weapon reference pages load faster',
+            },
+            {
+                kind: 'fixed',
+                text: 'Fixed build-card set and crit-value badges being clipped when hovering stat details.',
+            },
+        ],
+    },
+    {
         date: '2026-05-21',
         changes: [
             { kind: 'improved', text: 'Echo set tooltips now show set bonuses in your selected language.' },
@@ -158,7 +175,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         title: 'WuWa Builds, rebuilt.',
         changes: [
             { kind: 'new', text: 'The whole site has been rebuilt from scratch and relaunched at wuwa.build. Ideally faster, more accurate, and more reliable.' },
-            { kind: 'new', text: 'Damage leaderboards scoped per character, weapon, and playstyle, with team comps and full move breakdowns.' },
+            { kind: 'new', text: 'Damage leaderboards scoped per character, weapon, and playstyle, with team comps and breakdowns.' },
             { kind: 'new', text: 'Rebuilt builds board with filtering by character, weapon, set, and stat.' },
             { kind: 'new', text: 'Redesigned build editor and build cards, with full language support.' },
             { kind: 'improved', text: 'Import rebuilt with a faster streaming pipeline, and you can report a bad scan in one click.' },
@@ -361,7 +378,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2024-12-22',
         changes: [
-            { kind: 'improved', text: 'More accurate echo scanning on import, including correct flat-vs-percent detection and fuzzy name matching.' },
+            { kind: 'improved', text: 'More accurate echo scanning on import, including flat-vs-percent detection and name matching.' },
         ],
     },
     {
