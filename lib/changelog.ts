@@ -1,6 +1,6 @@
 export type ChangeKind = 'new' | 'improved' | 'fixed';
 
-export interface Change {
+interface Change {
     kind: ChangeKind;
     text: string;
 }

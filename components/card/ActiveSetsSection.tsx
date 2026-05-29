@@ -35,7 +35,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   if (!hasActiveSets && !showCV) return null;
 
   return (
-    <div className="flex w-full min-w-0 gap-2 overflow-hidden pt-2 pl-4 text-sm font-semibold leading-none">
+    <div className="flex w-full min-w-0 gap-2 overflow-visible pt-2 pb-1 pl-4 text-sm font-semibold leading-none">
       {showCV && (
         <div className="flex shrink-0 items-center rounded-xl bg-black/35 p-1.5">
           <span className="rounded-md">
