@@ -385,7 +385,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                     body={(
                       <HoverCardDescription>
                         Roll Value grades how well your substats rolled. Each roll is scored
-                        against the highest value that stat can roll — a perfect roll is 100%.
+                        against the highest value that stat can roll, and a perfect roll is 100%.
                         The figure shown sums every selected roll. Use the stat pills to choose
                         which substats count.
                       </HoverCardDescription>

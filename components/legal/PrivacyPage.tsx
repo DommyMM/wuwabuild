@@ -6,7 +6,7 @@ export function PrivacyPage() {
             <h1 className="font-gowun text-accent text-2xl mb-1">Privacy Policy</h1>
             <p className="text-text-primary/70 text-sm leading-relaxed mb-8">Last updated: March 2026</p>
 
-            {/* Plain-language summary — the part that actually matters */}
+            {/* Plain-language summary */}
             <section className="bg-accent/6 border border-accent/20 rounded-md px-5 py-4 mb-10">
                 <h2 className="text-text-primary font-semibold text-sm mb-3">The short version</h2>
                 <ul className="text-text-primary/70 text-sm leading-relaxed space-y-1.5 list-disc list-inside">

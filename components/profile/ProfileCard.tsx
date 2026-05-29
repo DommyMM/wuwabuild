@@ -93,8 +93,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail }) => {
 
   // Standings fetch lives at the orchestrator level (not inside BuildProvider)
   // because the AdjustRankingButton in the action bar also needs the full board
-  // list — and the action bar sits outside the BuildProvider subtree if we want
-  // toggling rankings to not re-mount the card.
+  // action bar sits outside the BuildProvider subtree if we want toggling rankings to not re-mount the card.
   const [standingsResult, setStandingsResult] = useState<StandingsResult>({ key: '', standings: [] });
   const abortRef = useRef<AbortController | null>(null);
 

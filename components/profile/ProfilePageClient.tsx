@@ -260,7 +260,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => 
   const profileUsername = builds[0]?.owner.username || uid;
   const regionBadge = builds[0] ? resolveRegionBadge(builds[0].owner.uid) : null;
 
-  // Custom renderExpanded for profile — renders ProfileCard inside
+  // Custom renderExpanded for profile, renders ProfileCard inside
   const renderExpanded = useCallback((props: GlobalBoardRowExpandedProps) => (
     <ProfileBuildExpanded
       key={props.entry.id}
@@ -334,7 +334,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => 
                   regionPrefixes={regionPrefixes}
                   selectedSetEntries={selectedSetEntries}
                   selectedMainEntries={selectedMainEntries}
-                  // UID and username locked — not shown
+                  // UID and username locked, not shown
                   username=""
                   uid=""
                   setOptions={setOptions}

@@ -750,7 +750,7 @@ export async function listLeaderboard(
     try {
       ghostBuild = parseLeaderboardEntry(payload.ghostBuild);
     } catch {
-      // Ghost build was malformed — ignore silently.
+      // Ghost build was malformed, ignore silently.
     }
   }
 

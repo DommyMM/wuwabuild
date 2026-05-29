@@ -111,7 +111,7 @@ const Popover: React.FC<PopoverProps> = ({
       className="font-plus-jakarta flex flex-col overflow-hidden rounded-lg bg-[linear-gradient(170deg,rgba(28,24,18,0.97)_0%,rgba(10,8,6,0.97)_100%)] shadow-[0_24px_48px_rgba(0,0,0,0.6)] backdrop-blur-md"
     >
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {/* "Original forte" — opt out of the rank display, revert to default forte section */}
+        {/* OG forte, opt out of the rank display reverts*/}
         <button
           role="option"
           aria-selected={isOriginalActive}
@@ -210,7 +210,7 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const reposition = (event?: Event) => {
-      // `resize` fires with target === window, which isn't a Node — guard before calling contains.
+      // `resize` fires with target === window, which isn't a Node, guard before calling contains.
       const target = event?.target;
       if (target instanceof Node && popoverRef.current?.contains(target)) return;
       if (buttonRef.current) {

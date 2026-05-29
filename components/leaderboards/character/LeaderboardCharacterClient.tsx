@@ -148,7 +148,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     [currentQuerySnapshot],
   );
 
-  // External navigation sync — MUST be registered before the URL sync effect (effects run in order).
+  // External navigation sync MUST be registered before the URL sync effect (effects run in order).
   // When a standings deep-link changes the URL to a different weapon/track while on the same page,
   // sync weaponIndex + track from the URL and suppress the URL sync for this cycle so it doesn't
   // immediately revert the navigation back to the current state's weapon.

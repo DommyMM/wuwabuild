@@ -90,7 +90,7 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
 
             {!isDetailLoading && !detailError && detail && (
               <>
-                {/* ── ProfileCard — the hero visual (includes substat row + action bar) ── */}
+                {/* ── ProfileCard the hero visual (includes substat row + action bar) ── */}
                 <ProfileCard entry={entry} detail={detail} />
 
                 {/* ── Simulation section (standings + view in editor) ── */}

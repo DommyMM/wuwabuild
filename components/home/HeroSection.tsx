@@ -43,7 +43,7 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
     return (
         <section className="pt-6 md:py-12">
             <div className="grid grid-cols-1 md:grid-cols-[1.15fr_1fr] gap-8 md:gap-16 items-start">
-                {/* Left — headline + CTAs */}
+                {/* Left: headline + CTAs */}
                 <div>
                     <h1 className="font-plus-jakarta text-[42px] md:text-7xl leading-[0.98] tracking-[-0.035em] font-medium text-text-primary">
                         <span className="block text-xs md:text-sm font-semibold uppercase tracking-[0.22em] text-text-primary/50 mb-4">
@@ -92,7 +92,7 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
                     </div>
                 </div>
 
-                {/* Right — stats masthead */}
+                {/* Right: stats masthead */}
                 <div className="md:border-l md:border-accent/20 md:pl-10 flex flex-col gap-7">
                     <div className="text-[12px] tracking-[0.22em] uppercase text-text-primary/60">
                         By the numbers

@@ -83,7 +83,7 @@ export interface EchoCVTier {
   isMax?: boolean;
 }
 
-/** Maximum attainable echo substat CV — both crit substats at their max roll. */
+/** Maximum attainable echo substat CV, both crit substats at their max roll. */
 export const ECHO_CV_MAX = 42.0;
 
 /** Echo substat CV tiers, ordered highest → lowest. Single source of truth for

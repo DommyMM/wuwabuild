@@ -9,7 +9,7 @@ interface ProfilePageProps {
 export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
   const { uid } = await params;
   return {
-    title: `${uid}'s Profile — wuwa.build`,
+    title: `${uid}'s Profile`,
     description: `Browse Wuthering Waves builds submitted by UID ${uid}.`,
     alternates: { canonical: `/profile/${uid}` },
     robots: {
