@@ -4,7 +4,7 @@ export function TosPage() {
     return (
         <main className="max-w-360 mx-auto px-6 py-12">
             <h1 className="font-gowun text-accent text-2xl mb-1">Terms of Service</h1>
-            <p className="text-text-primary/70 text-sm leading-relaxed mb-8">Last updated: March 2026</p>
+            <p className="text-text-primary/70 text-sm leading-relaxed mb-8">Last updated: June 2026</p>
 
             {/* Plain-language summary */}
             <section className="bg-accent/6 border border-accent/20 rounded-md px-5 py-4 mb-10">
