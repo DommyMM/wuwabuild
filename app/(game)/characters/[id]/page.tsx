@@ -5,7 +5,12 @@ import path from 'path';
 import Link from 'next/link';
 import { adaptCDNCharacter } from '@/lib/character';
 import { loadCharacterRaw } from '@/lib/server/ogData';
+import { getLeaderboardInsight, formatInsightProse } from '@/lib/server/leaderboardInsight';
 import { CharacterReferenceSections } from './CharacterReferenceSections';
+
+// The leaderboard insight prose is data-driven and shifts as builds are submitted;
+// regenerate daily (the page is force-static by the (game) layout default).
+export const revalidate = 86400;
 
 type GenericDict = Record<string, unknown>;
 
@@ -118,6 +123,8 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
     }
 
     const charName = char ? char.name : '';
+    const insight = char ? await getLeaderboardInsight(id) : null;
+    const insightProse = char && insight ? formatInsightProse(charName, insight) : null;
     const weaponType = char ? char.weaponType : '';
     const element = char ? char.element : '';
     const matchingWeaponRefs = matchingWeapons.map((weapon) => ({
@@ -240,6 +247,14 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </section>
+            )}
+            {insightProse && (
+                <section className="mx-auto max-w-360 px-3 pt-4 md:px-16">
+                    <div className="rounded-xl border border-white/10 bg-background-secondary/55 p-5 md:p-6">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">Leaderboard insight</p>
+                        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-text-primary/72">{insightProse}</p>
                     </div>
                 </section>
             )}

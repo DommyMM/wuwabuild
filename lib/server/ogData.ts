@@ -21,6 +21,15 @@ function readJson(filename: string): unknown {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+function i18nEn(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && 'en' in value) {
+    const en = (value as { en?: unknown }).en;
+    return typeof en === 'string' ? en : '';
+  }
+  return '';
+}
+
 // --- Characters ---
 
 export function loadCharacterRaw(id: string): CDNCharacter | null {
@@ -73,6 +82,36 @@ function loadAllWeapons(): WeaponRecord[] {
 
 function findWeapon(id: string): WeaponRecord | undefined {
   return loadAllWeapons().find((w) => w.id != null && w.id.toString() === id);
+}
+
+/** Map of weapon id → English name, for resolving leaderboard weapon ids server-side. */
+export function loadWeaponNames(): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const weapon of loadAllWeapons()) {
+    if (weapon.id != null && weapon.name?.en) {
+      map[String(weapon.id)] = weapon.name.en;
+    }
+  }
+  return map;
+}
+
+/** Map of echo-set (fetter) id → English name. */
+export function loadFetterNames(): Record<string, string> {
+  const raw = readJson('Fetters.json');
+  const entries: unknown[] = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object'
+      ? Object.values(raw as GenericRecord)
+      : [];
+
+  const map: Record<string, string> = {};
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object' || !('id' in entry)) continue;
+    const id = String((entry as { id?: unknown }).id);
+    const name = i18nEn((entry as { name?: unknown }).name);
+    if (id && name) map[id] = name;
+  }
+  return map;
 }
 
 export function loadWeaponSummary(id: string) {

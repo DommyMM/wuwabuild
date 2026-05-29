@@ -47,7 +47,7 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
                 <div>
                     <h1 className="font-plus-jakarta text-[42px] md:text-7xl leading-[0.98] tracking-[-0.035em] font-medium text-text-primary">
                         <span className="block text-xs md:text-sm font-semibold uppercase tracking-[0.22em] text-text-primary/50 mb-4">
-                            Wuthering Waves Character Builds &amp; Scanner
+                            Wuthering Waves Character Builds &amp; Leaderboard
                         </span>
                         Scan your stats.<br />
                         <span className="text-accent italic font-normal pr-2 md:pr-4">Rank</span>
@@ -56,7 +56,7 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
 
                     <p className="mt-5 max-w-140 text-base md:text-lg leading-normal text-text-primary/65">
                         Just upload the wuwa-bot image. We scan the image, compute damage against standardized
-                        conditions, and rank your build against others.
+                        rotations, and rank your build against others.
                     </p>
 
                     <div className="mt-8 md:mt-10 flex flex-col gap-3 max-w-120">
