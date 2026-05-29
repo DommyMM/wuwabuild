@@ -11,7 +11,6 @@ export default function NotFound() {
                 src="/images/roverwhat.webp"
                 alt="Rover looking confused"
                 className="object-cover rounded-2xl"
-                fetchPriority="high"
             />
 
             <Link

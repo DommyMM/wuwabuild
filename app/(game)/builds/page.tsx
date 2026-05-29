@@ -13,6 +13,32 @@ export const metadata: Metadata = {
 
 export default async function Builds() {
   const initialData = await prefetchBuilds();
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://wuwa.build"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Builds",
+        "item": "https://wuwa.build/builds"
+      }
+    ]
+  };
 
-  return <GlobalBoardPageClient initialData={initialData} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <GlobalBoardPageClient initialData={initialData} />
+    </>
+  );
 }

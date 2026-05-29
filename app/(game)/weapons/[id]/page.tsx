@@ -158,7 +158,7 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
             {
                 "@type": "ListItem",
                 "position": 2,
-                "name": "Weapons",
+                "name": "Builds",
                 "item": "https://wuwa.build/builds"
             },
             {

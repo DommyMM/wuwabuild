@@ -152,7 +152,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
             {
                 "@type": "ListItem",
                 "position": 2,
-                "name": "Characters",
+                "name": "Builds",
                 "item": "https://wuwa.build/builds"
             },
             {
