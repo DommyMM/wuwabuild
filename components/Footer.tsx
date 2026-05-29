@@ -32,7 +32,7 @@ export function Footer() {
                 </div>
 
                 <nav aria-label="Footer navigation">
-                    <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-primary/40">
+                    <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-primary/60">
                         Tools
                     </h2>
                     <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm md:grid-cols-1">
@@ -49,7 +49,7 @@ export function Footer() {
                 </nav>
 
                 <div>
-                    <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-primary/40">
+                    <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-primary/60">
                         Site
                     </h2>
                     <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm md:grid-cols-1">
@@ -67,7 +67,7 @@ export function Footer() {
             </div>
 
             <div className="border-t border-border/70">
-                <div className="mx-auto flex max-w-360 flex-col gap-2 px-6 py-4 text-xs text-text-primary/35 md:flex-row md:items-center md:justify-between md:px-16">
+                <div className="mx-auto flex max-w-360 flex-col gap-2 px-6 py-4 text-xs text-text-primary/60 md:flex-row md:items-center md:justify-between md:px-16">
                     <span>© {new Date().getFullYear()} WuWa Builds</span>
                     <span>Game assets, names, and trademarks belong to their respective owners.</span>
                 </div>

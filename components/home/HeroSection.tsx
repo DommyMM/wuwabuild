@@ -46,7 +46,7 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
                 {/* Left: headline + CTAs */}
                 <div>
                     <h1 className="font-plus-jakarta text-[42px] md:text-7xl leading-[0.98] tracking-[-0.035em] font-medium text-text-primary">
-                        <span className="block text-xs md:text-sm font-semibold uppercase tracking-[0.22em] text-text-primary/50 mb-4">
+                        <span className="block text-xs md:text-sm font-semibold uppercase tracking-[0.22em] text-text-primary/60 mb-4">
                             Wuthering Waves Character Builds &amp; Leaderboard
                         </span>
                         Scan your stats.<br />
@@ -82,7 +82,7 @@ export function HeroSection({ totalBuilds, totalLeaderboards }: HeroSectionProps
                                     onClick={() => trackCtaClick(item.cta)}
                                     className="gold-glow px-3 md:px-4 py-3 bg-transparent border border-border text-text-primary/80 hover:text-accent hover:border-accent/45 text-left text-xs md:text-sm rounded-sm tracking-[0.01em]"
                                 >
-                                    <div className="text-[10px] tracking-[0.18em] text-text-primary/40 mb-1">
+                                    <div className="text-[10px] tracking-[0.18em] text-text-primary/60 mb-1">
                                         0{i + 2}
                                     </div>
                                     {item.label}

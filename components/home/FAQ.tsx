@@ -15,7 +15,7 @@ export function FAQ() {
         <section className="pt-14 md:pt-20">
             <div className="flex items-baseline justify-between gap-6 mb-8 md:mb-10">
                 <div>
-                    <div className="text-[11px] tracking-[0.22em] uppercase text-text-primary/50 mb-2.5">
+                    <div className="text-[11px] tracking-[0.22em] uppercase text-text-primary/60 mb-2.5">
                         Frequently asked
                     </div>
                     <h2 className="font-plus-jakarta text-3xl md:text-5xl leading-[1.05] tracking-[-0.02em] font-medium text-balance">
@@ -35,7 +35,7 @@ export function FAQ() {
                                     aria-expanded={isOpen}
                                 >
                                     <div className="flex items-baseline gap-4 min-w-0">
-                                        <span className="font-gowun text-xs text-text-primary/40 shrink-0">
+                                        <span className="font-gowun text-xs text-text-primary/60 shrink-0">
                                             0{i + 1}
                                         </span>
                                         <span

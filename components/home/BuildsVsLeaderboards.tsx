@@ -6,7 +6,7 @@ const LB_PILLS = ['Calcs damage', 'Specific weapons', 'Specific sequences'];
 export function BuildsVsLeaderboards() {
     return (
         <section className="pt-10 md:pt-14">
-            <h2 className="text-xs font-semibold text-text-primary/50 uppercase tracking-[0.22em] mb-6">
+            <h2 className="text-xs font-semibold text-text-primary/60 uppercase tracking-[0.22em] mb-6">
                 Two ways to use the website
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 border border-border">
@@ -15,7 +15,7 @@ export function BuildsVsLeaderboards() {
                         <h3 className="font-plus-jakarta text-2xl md:text-[28px] font-medium tracking-[-0.02em]">
                             Builds
                         </h3>
-                        <span className="text-xs tracking-[0.18em] uppercase text-text-primary/40">
+                        <span className="text-xs tracking-[0.18em] uppercase text-text-primary/60">
                             The archive
                         </span>
                     </div>

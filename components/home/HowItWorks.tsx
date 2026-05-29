@@ -48,7 +48,7 @@ export function HowItWorks() {
     return (
         <section className="pt-14 md:pt-20">
             <div className="mb-8 md:mb-10">
-                <div className="text-xs tracking-[0.22em] uppercase text-text-primary/50 mb-2.5">
+                <div className="text-xs tracking-[0.22em] uppercase text-text-primary/60 mb-2.5">
                     How it works
                 </div>
                 <h2 className="font-plus-jakarta text-3xl md:text-5xl leading-[1.05] tracking-[-0.02em] font-medium text-balance">
@@ -67,7 +67,7 @@ export function HowItWorks() {
                         }`}
                     >
                         <div className="font-gowun text-sm text-accent tracking-widest mb-5">
-                            {step.n} <span className="text-text-primary/25">/ 04</span>
+                            {step.n} <span className="text-text-primary/60">/ 04</span>
                         </div>
                         <div className="text-lg font-medium text-text-primary mb-2.5">
                             {step.title}
