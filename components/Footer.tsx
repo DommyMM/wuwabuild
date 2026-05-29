@@ -4,7 +4,7 @@ const primaryLinks = [
     { href: '/import', label: 'Import' },
     { href: '/builds', label: 'Builds' },
     { href: '/leaderboards', label: 'Leaderboards' },
-    { href: '/edit', label: 'Edit' },
+    { href: '/edit', label: 'Build Editor' },
     { href: '/saves', label: 'Saves' },
 ];
 

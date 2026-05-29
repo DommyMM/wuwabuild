@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { EditorProviders } from '@/contexts';
 
 export const metadata: Metadata = {
-    title: 'Wuthering Waves Build Cards',
-    description: 'Build and customize Wuthering Waves characters, then export a showcase card. Set echoes, weapons, and forte levels with live stat and damage calculation.',
+    title: 'Wuthering Waves Build Editor',
+    description: 'Use the Wuthering Waves build editor to customize characters, set echoes, weapons, and forte levels, then export a showcase card.',
     alternates: { canonical: '/edit' },
 };
 

@@ -30,7 +30,7 @@ function LiveNumber({ value }: { value: number }) {
 type SecondaryCta = 'edit' | 'builds' | 'leaderboards';
 
 const SECONDARY_CTAS: { label: string; href: string; cta: SecondaryCta }[] = [
-    { label: 'Open editor', href: '/edit', cta: 'edit' },
+    { label: 'Build editor', href: '/edit', cta: 'edit' },
     { label: 'Browse builds', href: '/builds', cta: 'builds' },
     { label: 'Leaderboards', href: '/leaderboards', cta: 'leaderboards' },
 ];

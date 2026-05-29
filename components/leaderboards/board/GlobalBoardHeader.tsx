@@ -5,7 +5,7 @@ import React from 'react';
 export const GlobalBoardHeader: React.FC = () => (
   <section className="mx-auto flex flex-col items-center py-3">
     <h1 className="text-center text-2xl md:text-4xl font-semibold tracking-wide text-accent">
-      Global Board
+      Wuthering Waves Builds
     </h1>
     <div className="my-2 h-px w-96 bg-linear-to-r from-transparent via-accent/70 to-transparent" />
       <p className="text-center text-xs md:text-base text-text-primary/75">

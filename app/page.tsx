@@ -44,7 +44,7 @@ export default async function Home() {
             },
             {
                 "@type": "SoftwareApplication",
-                "name": "WuWa Builds — Wuthering Waves Build Maker",
+                "name": "WuWa Builds — Wuthering Waves Build Editor",
                 "operatingSystem": "Any",
                 "applicationCategory": "GameApplication",
                 "url": "https://wuwa.build",

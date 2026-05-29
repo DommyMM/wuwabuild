@@ -92,7 +92,7 @@ export function HowItWorks() {
                     onClick={() => trackFlowClick('edit')}
                     className="text-sm text-text-primary/70 hover:text-accent transition-colors"
                 >
-                    Open the editor →
+                    Open Build Editor →
                 </Link>
             </div>
         </section>
