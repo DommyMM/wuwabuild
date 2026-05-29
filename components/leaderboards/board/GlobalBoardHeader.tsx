@@ -3,7 +3,7 @@
 import React from 'react';
 
 export const GlobalBoardHeader: React.FC = () => (
-  <section className="mx-auto flex flex-col items-center">
+  <section className="mx-auto flex flex-col items-center py-3">
     <h1 className="text-center text-2xl md:text-4xl font-semibold tracking-wide text-accent">
       Global Board
     </h1>
