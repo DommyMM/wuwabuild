@@ -140,14 +140,17 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                           ))
                         : overview.map((entry, rowIndex) => {
                             const character = getCharacter(entry.id);
+                            // Prefer the client name once game data has loaded
+                            // until then fall back to the server-resolved English display fields so SSR/pre-hydration HTML shows real names instead of `Character {id}`.
                             const characterName = character
                               ? formatCharacterDisplayName(character, {
                                   baseName: t(character.nameI18n ?? { en: character.name }),
                                   roverElement: undefined,
                                 })
-                              : `Character ${entry.id}`;
+                              : entry.display?.name ?? `Character ${entry.id}`;
 
-                            const element = character?.element?.toLowerCase() ?? '';
+                            const element = character?.element?.toLowerCase() || entry.display?.element || '';
+                            const headSrc = character?.head ?? entry.display?.head ?? null;
                             const totalEntries = entry.totalEntries;
 
                             const weaponTopByWeaponId = new Map(
@@ -170,9 +173,9 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                 {/* Character column */}
                                 <Link href={buildLeaderboardHref(entry.id, { track: entry.trackKey }, { defaultWeaponId, defaultTrack })} className="flex min-w-0 items-center gap-3">
                                   <div className="relative shrink-0">
-                                    {character?.head ? (
+                                    {headSrc ? (
                                       <img
-                                        src={character.head}
+                                        src={headSrc}
                                         alt={characterName}
                                         className="h-12 w-12 object-cover object-top"
                                         loading="lazy"
@@ -195,9 +198,9 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
 
                                 {/* Team column */}
                                 <div className="flex justify-center gap-1">
-                                  {character?.head ? (
+                                  {headSrc ? (
                                     <img
-                                      src={character.head}
+                                      src={headSrc}
                                       alt={characterName}
                                       title={characterName}
                                       className="h-11 w-11 object-cover object-top"

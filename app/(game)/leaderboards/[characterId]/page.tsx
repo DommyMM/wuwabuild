@@ -10,7 +10,7 @@ import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeader
 import { adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
 import type { LBTrack } from '@/lib/lb';
 import { prefetchLeaderboard } from '@/lib/lbServer';
-import { loadCharacterRaw, loadWeaponSummary } from '@/lib/server/ogData';
+import { loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
 
 interface Props {
   params: Promise<{ characterId: string }>;

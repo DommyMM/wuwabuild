@@ -62,6 +62,38 @@ export function loadCharacterSummary(id: string) {
   };
 }
 
+/**
+ * Map of character id → English display fields, for resolving leaderboard
+ * character names/element/portrait server-side so the SSR HTML ships complete
+ * instead of leaning on the client `GameDataContext` (which would flash
+ * `Character {id}` until the ~6 MB client JSON fetch lands). Built once per
+ * call from the same adapters the client uses, so values match exactly.
+ */
+export function loadCharacterDisplayMap(): Record<string, { name: string; element: string; head: string | null }> {
+  const rawData = readJson('Characters.json');
+  const entries: unknown[] = Array.isArray(rawData)
+    ? rawData
+    : rawData && typeof rawData === 'object'
+      ? Object.values(rawData as GenericRecord)
+      : [];
+
+  const map: Record<string, { name: string; element: string; head: string | null }> = {};
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object' || !('id' in entry)) continue;
+    try {
+      const char = adaptCDNCharacter(entry as CDNCharacter);
+      map[char.id] = {
+        name: formatCharacterDisplayName(char, { baseName: char.name, roverElement: undefined }),
+        element: char.element ? String(char.element).toLowerCase() : '',
+        head: char.head ?? null,
+      };
+    } catch {
+      // skip malformed character entries
+    }
+  }
+  return map;
+}
+
 // --- Weapons ---
 
 function normalizeWeaponsData(data: unknown): WeaponRecord[] {

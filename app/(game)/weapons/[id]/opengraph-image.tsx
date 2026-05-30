@@ -1,5 +1,5 @@
 import { OG_SIZE, OG_CONTENT_TYPE, renderOgCard, renderFallbackCard } from '@/lib/server/og';
-import { loadWeaponSummary } from '@/lib/server/ogData';
+import { loadWeaponSummary } from '@/lib/server/gameData';
 
 export const alt = 'Weapon – WuWa Builds';
 export const size = OG_SIZE;

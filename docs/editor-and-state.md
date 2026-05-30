@@ -9,7 +9,7 @@ This doc explains provider boundaries and editor state flow in `wuwabuilds/`.
 - Tool route providers (`app/(game)/layout.tsx` → `ToolProviders` in `contexts/index.tsx`):
   - `GameDataProvider`
   - `ToastProvider`
-  - `GameDataLoadingGate` (children only render once `GameDataContext` resolves)
+  - `GameDataLoadingGate` (always renders children so server-rendered HTML reaches crawlers; shows a non-blocking error banner on load failure, never a loading state — see `docs/seo-audit-findings.md`). Because of this, anything resolved through the client `GameDataContext` (e.g. `getCharacter`/`getWeapon`) can briefly show a fallback until the client JSON fetch lands — SSR pages that need correct names in the initial HTML should resolve them server-side (`lib/server/gameData.ts`), not via the client context.
 - Editor-level providers (`EditorProviders` in `contexts/index.tsx`, used by `/edit`, `/characters/[id]`, `/weapons/[id]`, and profile expanded cards):
   - `BuildProvider`
   - `StatsProvider`

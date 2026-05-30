@@ -522,6 +522,9 @@ export interface LBCharacterOverview {
   weaponIds: string[]; // derived from weapons array
   teamCharacterIds: string[];
   teamMembers: LBTeamMemberConfig[];
+  // Server-resolved English display fields (SSR/SEO). The client refines to the
+  // user's locale once GameDataContext loads; for `en` it's identical, so no flash.
+  display?: { name: string; element: string; head: string | null };
 }
 
 export interface LBLeaderboardEntry {

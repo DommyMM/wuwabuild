@@ -1,5 +1,6 @@
 // Server-only module, fetches directly from LB_URL with X-Internal-Key
 import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack, LBTeamMemberConfig } from './lb';
+import { loadCharacterDisplayMap } from './server/gameData';
 
 // Centralized TTL for all SSR prefetch caches (seconds).
 const PREFETCH_TTL_S = 300; // 5 minutes
@@ -144,6 +145,9 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
     const payload = await response.json() as { characters?: unknown[] };
     const rawChars = Array.isArray(payload.characters) ? payload.characters : [];
     const result: LBCharacterOverview[] = [];
+    // Resolve display names/element/portrait server-side so the SSR HTML is
+    // complete; read once and look up per row.
+    const displayMap = loadCharacterDisplayMap();
 
     for (const raw of rawChars) {
       if (!isRecord(raw)) continue;
@@ -166,8 +170,9 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
         : weapons.map((weapon) => weapon.weaponId).filter(Boolean);
       const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
       const teamMembers = parseTeamMembers(raw.teamMembers);
+      const id = typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : '');
       result.push({
-        id: typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : ''),
+        id,
         trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
         trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
         totalEntries: toFiniteNumber(raw.totalEntries),
@@ -175,6 +180,7 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
         weaponIds,
         teamCharacterIds: fallbackTeamMembers.map((member) => member.charId),
         teamMembers: teamMembers.length > 0 ? teamMembers : fallbackTeamMembers,
+        display: displayMap[id],
       });
     }
     console.log('[lbServer] prefetchLeaderboardOverview payload', {

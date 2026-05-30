@@ -1,5 +1,5 @@
 import { OG_SIZE, OG_CONTENT_TYPE, renderOgCard, renderFallbackCard } from '@/lib/server/og';
-import { loadCharacterSummary } from '@/lib/server/ogData';
+import { loadCharacterSummary } from '@/lib/server/gameData';
 
 export const alt = 'Leaderboard – WuWa Builds';
 export const size = OG_SIZE;

@@ -87,7 +87,7 @@ RootProviders (app/layout.tsx)
 
 ToolProviders (app/(game)/layout.tsx)
 └── GameDataProvider       ← 8 JSON files, client-cached after first load
-    └── ToastProvider      ← wraps GameDataLoadingGate (children only render once data resolves)
+    └── ToastProvider      ← wraps GameDataLoadingGate (always renders children for SSR/SEO; only swaps in an error banner on load failure — never a loading state)
 
 EditorProviders (nested on /edit, /characters/[id], /weapons/[id])
 └── BuildProvider          ← active build via useReducer + localStorage debounce

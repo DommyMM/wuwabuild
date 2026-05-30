@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import Link from 'next/link';
 import { adaptCDNCharacter } from '@/lib/character';
-import { loadCharacterRaw } from '@/lib/server/ogData';
+import { loadCharacterRaw } from '@/lib/server/gameData';
 import { getLeaderboardInsight, formatInsightProse } from '@/lib/server/leaderboardInsight';
 import { CharacterReferenceSections } from './CharacterReferenceSections';
 

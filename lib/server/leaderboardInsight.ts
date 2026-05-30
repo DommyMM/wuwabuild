@@ -1,6 +1,6 @@
 import 'server-only';
 import { prefetchLeaderboard } from '@/lib/lbServer';
-import { loadFetterNames, loadWeaponNames } from './ogData';
+import { loadFetterNames, loadWeaponNames } from './gameData';
 
 export interface LeaderboardInsight {
     sampleSize: number;
