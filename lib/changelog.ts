@@ -14,8 +14,25 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-05-30',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Fixed leaderboard character names briefly showing as ID numbers while the page loaded.',
+            },
+        ],
+    },
+    {
         date: '2026-05-29',
         changes: [
+            {
+                kind: 'new',
+                text: 'Phrolova leaderboards',
+            },
+            {
+                kind: 'new',
+                text: 'Added a Discord community link in the site navigation and footer.',
+            },
             {
                 kind: 'improved',
                 text: 'Character leaderboard links now keep playstyle context in page titles and sharing previews.',
@@ -28,6 +45,12 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'fixed',
                 text: 'Fixed build-card set and crit-value badges being clipped when hovering stat details.',
             },
+        ],
+    },
+    {
+        date: '2026-05-27',
+        changes: [
+            { kind: 'improved', text: 'Import detects echo elements more reliably, so fewer echoes come back with the wrong element.' },
         ],
     },
     {
