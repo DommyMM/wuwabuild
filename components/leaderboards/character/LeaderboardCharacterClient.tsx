@@ -75,6 +75,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [filterQuery, setFilterQuery] = useState('');
 
   const leaderboardSigRef = useRef(leaderboardSignature(initialData?.builds ?? [], initialData?.total ?? 0));
+  const shouldUseInitialDataRef = useRef(Boolean(initialData));
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialData?.builds ?? []);
   const [total, setTotal] = useState(() => initialData?.total ?? 0);
   const [autoExpandBuildId, setAutoExpandBuildId] = useState<string | null>(null);
@@ -239,6 +240,11 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
 
   // Fetch leaderboard data
   useEffect(() => {
+    if (shouldUseInitialDataRef.current && settledQueryKey === queryKey) {
+      shouldUseInitialDataRef.current = false;
+      return;
+    }
+
     const controller = new AbortController();
     let active = true;
 
@@ -313,7 +319,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       active = false;
       controller.abort();
     };
-  }, [activeBuildId, characterId, leaderboardQuery, page, pageSize, queryKey, track]);
+  }, [activeBuildId, characterId, leaderboardQuery, page, pageSize, queryKey, settledQueryKey, track]);
 
   // Expand / detail
   const loadBuildDetail = useCallback((buildId: string, force = false) => {

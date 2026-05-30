@@ -190,6 +190,11 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, filterSignature, pageSize, regionPrefixes.length, settledQueryKey, sort, uid, username, weaponIds.length]);
 
   useEffect(() => {
+    if (ssrData && currentQueryKey === '') {
+      writeCachedBuildList(currentQueryKey, ssrData);
+      return;
+    }
+
     const controller = new AbortController();
     let active = true;
     const cacheKey = currentQueryKey;
@@ -201,7 +206,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       setDetailLoadingById({});
       setDetailErrorById({});
       // Skip localStorage cache only for the default query when SSR data already covers it.
-      if (cachedResponse && !(initialData && currentQueryKey === '')) {
+      if (cachedResponse && !(ssrData && currentQueryKey === '')) {
         buildListSigRef.current = buildListSignature(cachedResponse.builds, cachedResponse.total);
         setBuilds(cachedResponse.builds);
         setTotal(cachedResponse.total);
@@ -252,7 +257,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       active = false;
       controller.abort();
     };
-  }, [abortAllDetailRequests, currentQueryKey, initialData, querySnapshot]);
+  }, [abortAllDetailRequests, currentQueryKey, querySnapshot, ssrData]);
 
   const loadBuildDetail = useCallback((buildId: string, force = false) => {
     const normalizedBuildId = buildId.trim();
