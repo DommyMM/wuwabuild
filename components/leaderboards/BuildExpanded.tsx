@@ -121,6 +121,9 @@ interface BuildExpandedProps {
   /** Active ER bracket on the leaderboard view. 0 = unfiltered. */
   erMin?: number;
   globalRank?: number;
+  /** RFC3339 reign start; present only on the board's current rank-1 build. */
+  reignSince?: string;
+  reignEstimated?: boolean;
   surface?: 'builds' | 'leaderboard_character';
 }
 
@@ -148,6 +151,8 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   activeBoardDamage,
   erMin = 0,
   globalRank,
+  reignSince,
+  reignEstimated,
   surface = 'builds',
 }) => {
   const router = useRouter();
@@ -421,6 +426,8 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   isExpanded={isExpanded}
                   baseDamage={activeBoardDamage}
                   globalRank={globalRank}
+                  reignSince={reignSince}
+                  reignEstimated={reignEstimated}
                   onViewInEditor={handleViewBuild}
                 />
               )}

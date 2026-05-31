@@ -63,31 +63,31 @@ const BuildTableGateOverlay: React.FC<BuildTableGateOverlayProps> = ({
       <div className="flex gap-1 text-left text-sm text-text-primary/88 md:text-base">
         <div className="flex min-w-0 flex-wrap items-end gap-1 [&>span]:self-end">
           <span>Find the</span>
-          <img src={changliIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          {changliIcon && <img src={changliIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />}
           <span>with the highest Crit Value</span>
         </div>
       </div>
       <div className="flex items-end gap-1 text-left text-sm text-text-primary/88 md:text-base">
         <div className="flex min-w-0 flex-wrap items-end gap-1 [&>span]:self-end">
           <span>Find the</span>
-          <img src={aemeathIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          {aemeathIcon && <img src={aemeathIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />}
           <span>on</span>
-          <img src={trailblazingStarIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          {trailblazingStarIcon && <img src={trailblazingStarIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />}
           <span>with the highest Crit Damage</span>
         </div>
       </div>
       <div className="flex items-end gap-1 text-left text-sm text-text-primary/88 md:text-base">
         <div className="flex min-w-0 flex-wrap items-end gap-1 [&>span]:self-end">
           <span>See how many</span>
-          <img src={zaniIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          {zaniIcon && <img src={zaniIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />}
           <span>are bricked because they don&apos;t have</span>
-          <img src={blazingJusticeIcon} alt="" className="h-6 w-6 shrink-0 object-contain opacity-90" />
+          {blazingJusticeIcon && <img src={blazingJusticeIcon} alt="" className="h-6 w-6 shrink-0 object-contain opacity-90" />}
         </div>
       </div>
       <div className="flex items-end gap-1 text-left text-sm text-text-primary/88 md:text-base">
         <div className="flex min-w-0 flex-wrap items-end gap-1 [&>span]:self-end">
           <span>Find the</span>
-          <img src={shorekeeperIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          {shorekeeperIcon && <img src={shorekeeperIcon} alt="" className="h-6 w-6 shrink-0 object-contain" />}
           <span>with the highest ATK idk lol</span>
         </div>
       </div>

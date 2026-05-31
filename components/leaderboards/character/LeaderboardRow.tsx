@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { getCVRatingColor } from '@/lib/calculations/rollValues';
 import { getLBStatCode, LBBuildDetailEntry, LBBuildEchoSummary, LBBuildRowEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortKey } from '@/lib/lb';
 import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '../constants';
-import { formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
+import { formatReignLabel, formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
 import { BuildExpanded } from '../BuildExpanded';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
@@ -88,6 +88,14 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
 
   // Rank display
   const rank = entry.globalRank;
+  const [reignLabel, setReignLabel] = useState<string | null>(null);
+  useEffect(() => {
+    if (rank === 1 && entry.reignSince) {
+      setReignLabel(formatReignLabel(entry.reignSince, entry.reignEstimated ?? false));
+    } else {
+      setReignLabel(null);
+    }
+  }, [rank, entry.reignSince, entry.reignEstimated]);
   const rankColor =
     rank === 1
       ? 'text-yellow-400 font-bold'
@@ -149,6 +157,20 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
             )}
             <span className="text-lg text-text-primary">{entry.owner.username || 'Anonymous'}</span>
           </div>
+          {reignLabel && (
+            <span
+              className="mt-1 inline-flex w-fit items-center gap-1 rounded-full border border-amber-300/40 bg-amber-400/10 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-amber-200 shadow-[0_0_12px_-4px_rgba(251,191,36,0.55)]"
+              title={
+                entry.reignEstimated
+                  ? 'Reign start estimated from when this build was posted'
+                  : entry.reignSince
+                    ? `Holding #1 since ${new Date(entry.reignSince).toLocaleDateString()}`
+                    : undefined
+              }
+            >
+              <span aria-hidden>👑</span> {reignLabel}
+            </span>
+          )}
         </div>
 
         {/* Character */}
@@ -258,6 +280,8 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         activeBoardDamage={entry.damage}
         erMin={erMin}
         globalRank={entry.globalRank}
+        reignSince={entry.reignSince}
+        reignEstimated={entry.reignEstimated}
         surface="leaderboard_character"
       />
     </div>

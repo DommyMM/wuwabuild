@@ -17,6 +17,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-05-30',
         changes: [
             {
+                kind: 'new',
+                text: 'Leaderboards now show how long the #1 build has held the top spot on each board.',
+            },
+            {
                 kind: 'fixed',
                 text: 'Fixed leaderboard character names briefly showing as ID numbers while the page loaded.',
             },

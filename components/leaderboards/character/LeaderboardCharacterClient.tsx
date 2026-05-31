@@ -18,7 +18,7 @@ import { LeaderboardResultsPanel } from './LeaderboardResultsPanel';
 import posthog from 'posthog-js';
 
 function leaderboardSignature(entries: LBLeaderboardEntry[], total: number): string {
-  return `${total}:${entries.map((e) => `${e.id}:${e.damage}:${e.globalRank}:${e.timestamp}:${e.finalCV}`).join(',')}`;
+  return `${total}:${entries.map((e) => `${e.id}:${e.damage}:${e.globalRank}:${e.timestamp}:${e.finalCV}:${e.reignSince ?? ''}`).join(',')}`;
 }
 
 interface LeaderboardCharacterClientProps {
