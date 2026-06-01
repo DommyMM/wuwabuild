@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-01',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Better distinction for Nightmare vs regular echoes based on the element badge.',
+            },
+        ],
+    },
+    {
         date: '2026-05-30',
         changes: [
             {
