@@ -23,3 +23,15 @@ export function resolveRegionBadge(uid: string | undefined): RegionBadge | null 
   const prefix = uid.trim()[0];
   return REGION_BADGES[prefix] ?? null;
 }
+
+export function formatReignHoldLabel(reignSince: string): string | null {
+  const date = new Date(reignSince);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export function formatReignSinceDate(reignSince: string): string {
+  const date = new Date(reignSince);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}

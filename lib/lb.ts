@@ -535,6 +535,10 @@ export interface LBLeaderboardEntry {
   timestamp: string;
   damage: number;
   globalRank: number;
+  /** RFC3339 start of the current rank-1 hold; only set on the #1 row of the unfiltered board. */
+  reignSince?: string;
+  /** True when reignSince was backfill-seeded from post time rather than observed live. */
+  reignEstimated?: boolean;
   stats: Record<LBStatCode, number>;
   owner: { username: string; uid: string };
   character: { id: string; level: number; roverElement?: string };
@@ -598,6 +602,8 @@ export function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
     timestamp: row.timestamp,
     damage: toFiniteNumber(raw.damage),
     globalRank: toFiniteNumber(raw.globalRank, 0),
+    reignSince: typeof raw.reignSince === 'string' ? raw.reignSince : undefined,
+    reignEstimated: raw.reignEstimated === true,
     stats: parseStatsRecord(raw),
     owner: row.owner,
     character: {
