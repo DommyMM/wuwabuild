@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Crown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
@@ -92,11 +93,12 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   const reignHoldLabel = showReignHold && entry.reignSince
     ? formatReignHoldLabel(entry.reignSince)
     : null;
+  const reignTitle = showReignHold && entry.reignSince
+    ? `Rank 1 since ${formatReignSinceDate(entry.reignSince)}.`
+    : undefined;
 
   const rankColor =
-    rank === 1
-      ? 'text-yellow-400 font-bold'
-      : rank === 2
+    rank === 2
         ? 'text-slate-300 font-bold'
         : rank === 3
           ? 'text-amber-600 font-bold'
@@ -132,8 +134,6 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         className={`relative grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 overflow-hidden text-sm transition-colors ${
           isGhost
             ? 'border-l-2 border-l-accent/60 bg-accent/6 hover:bg-accent/12'
-            : showReignHold
-              ? 'bg-[linear-gradient(90deg,rgba(251,191,36,0.14)_0%,rgba(251,191,36,0.055)_19%,rgba(12,12,14,0.24)_50%,rgba(12,12,14,0.12)_100%)] hover:bg-[linear-gradient(90deg,rgba(251,191,36,0.2)_0%,rgba(251,191,36,0.075)_22%,rgba(166,150,98,0.11)_100%)]'
             : 'odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10'
         } focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
         onClick={() => onToggleExpand(entry.id)}
@@ -143,16 +143,20 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
           onToggleExpand(entry.id);
         }}
       >
-        {showReignHold && (
-          <>
-            <span className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-amber-300/90 shadow-[0_0_18px_rgba(251,191,36,0.6)]" />
-            <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,rgba(251,191,36,0.75),rgba(251,191,36,0.18),transparent)]" />
-          </>
-        )}
-
         {/* Rank */}
-        <div className={`relative flex h-full flex-col items-center justify-center py-1 text-center ${rankColor}`}>
-          <span className={showReignHold ? 'text-lg leading-none' : ''}>{rank > 0 ? rank : '—'}</span>
+        <div className={`relative flex h-full items-center justify-center py-1 text-center ${rankColor}`}>
+          {showReignHold && reignHoldLabel && reignTitle ? (
+            <span
+              className="inline-flex translate-x-1 items-center justify-center gap-0.5 rounded border border-amber-300/50 bg-amber-400/14 px-1 py-1 text-xs leading-none text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.16)]"
+              title={reignTitle}
+              aria-label={`Rank 1, reigning ${reignHoldLabel}. ${reignTitle}`}
+            >
+              <Crown className="h-3 w-3 shrink-0 text-amber-300" aria-hidden="true" strokeWidth={3} />
+              <span className="truncate" suppressHydrationWarning>{reignHoldLabel}</span>
+            </span>
+          ) : (
+            <span>{rank > 0 ? rank : '—'}</span>
+          )}
         </div>
 
         {/* Owner */}
@@ -165,14 +169,6 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
             )}
             <span className="min-w-0 truncate text-lg text-text-primary">{entry.owner.username || 'Anonymous'}</span>
           </div>
-          {showReignHold && reignHoldLabel && entry.reignSince && (
-            <span
-              className="mt-1 block max-w-full truncate text-[10px] font-semibold leading-none tracking-wide text-amber-200/90"
-              title={`Rank 1 since ${formatReignSinceDate(entry.reignSince)}.`}
-            >
-              <span suppressHydrationWarning>{reignHoldLabel}</span>
-            </span>
-          )}
         </div>
 
         {/* Character */}

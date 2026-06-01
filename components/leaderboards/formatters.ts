@@ -27,7 +27,16 @@ export function resolveRegionBadge(uid: string | undefined): RegionBadge | null 
 export function formatReignHoldLabel(reignSince: string): string | null {
   const date = new Date(reignSince);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const now = new Date();
+  const startDay = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const currentDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const days = Math.max(0, Math.floor((currentDay - startDay) / 86_400_000));
+  if (days < 7) return null;
+  if (days >= 1000) {
+    const years = days / 365;
+    return `${years.toFixed(years >= 10 ? 0 : 1)}y`;
+  }
+  return `${days}d`;
 }
 
 export function formatReignSinceDate(reignSince: string): string {
