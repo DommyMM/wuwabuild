@@ -31,7 +31,7 @@ export function formatReignHoldLabel(reignSince: string): string | null {
   const startDay = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
   const currentDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const days = Math.max(0, Math.floor((currentDay - startDay) / 86_400_000));
-  if (days < 7) return null;
+  if (days < 7) return 'New';
   if (days >= 1000) {
     const years = days / 365;
     return `${years.toFixed(years >= 10 ? 0 : 1)}y`;

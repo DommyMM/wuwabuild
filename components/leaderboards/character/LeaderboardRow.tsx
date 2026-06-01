@@ -96,6 +96,9 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   const reignTitle = showReignHold && entry.reignSince
     ? `Rank 1 since ${formatReignSinceDate(entry.reignSince)}.`
     : undefined;
+  const reignAriaLabel = reignHoldLabel === 'New'
+    ? `Rank 1, new holder. ${reignTitle}`
+    : `Rank 1, reigning ${reignHoldLabel}. ${reignTitle}`;
 
   const rankColor =
     rank === 2
@@ -149,7 +152,7 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
             <span
               className="inline-flex translate-x-1 items-center justify-center gap-0.5 rounded border border-amber-300/50 bg-amber-400/14 px-1 py-1 text-xs leading-none text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.16)]"
               title={reignTitle}
-              aria-label={`Rank 1, reigning ${reignHoldLabel}. ${reignTitle}`}
+              aria-label={reignAriaLabel}
             >
               <Crown className="h-3 w-3 shrink-0 text-amber-300" aria-hidden="true" strokeWidth={3} />
               <span className="truncate" suppressHydrationWarning>{reignHoldLabel}</span>
