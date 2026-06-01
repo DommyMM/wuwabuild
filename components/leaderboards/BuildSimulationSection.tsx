@@ -12,7 +12,6 @@ import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades
 import { BuildStandingsTable } from './BuildStandingsTable';
 import { BuildOptimalityPanel } from './BuildOptimalityPanel';
 import { RegionBadge } from './constants';
-import { formatReignSinceDate, reignElapsedDays } from './formatters';
 
 const UPGRADE_STAT_LABELS: Record<string, string> = {
   hp: 'HP',
@@ -142,9 +141,6 @@ interface BuildSimulationSectionProps {
   isExpanded: boolean;
   baseDamage?: number;
   globalRank?: number;
-  /** RFC3339 reign start; present only on the board's current rank-1 build. */
-  reignSince?: string;
-  reignEstimated?: boolean;
   onViewInEditor?: () => void;
 }
 
@@ -161,8 +157,6 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   isExpanded,
   baseDamage,
   globalRank,
-  reignSince,
-  reignEstimated,
   onViewInEditor,
 }) => {
   const { getWeapon, getSubstatValues, statIcons, statTranslations } = useGameData();
@@ -442,33 +436,8 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const actionButtonClassName = 'flex w-full items-center justify-between rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer';
   const viewInEditorButtonClassName = actionButtonClassName.replace('justify-between', 'justify-center');
 
-  const showReign = Boolean(reignSince);
-  const reignDays = reignSince ? reignElapsedDays(reignSince) : null;
-  const reignDate = reignSince ? formatReignSinceDate(reignSince) : '';
-
   return (
     <div className="relative space-y-3 font-plus-jakarta max-w-333">
-      {/* Champion plaque: fills the left gutter beside the centered action column on the
-          rank-1 build. Decorative (pointer-events-none), absolute so it never shifts the
-          buttons, and hidden below lg where the gutter would be too tight. */}
-      {showReign && (
-        <div className="pointer-events-none absolute left-0 top-0 hidden w-52 flex-col items-center gap-1.5 rounded-2xl border border-amber-300/40 bg-linear-to-b from-amber-400/12 to-transparent px-5 py-6 text-center shadow-[0_0_30px_-10px_rgba(251,191,36,0.45)] lg:flex">
-          <span className="text-4xl leading-none drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]" aria-hidden>👑</span>
-          <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-amber-300/90">Reigning&nbsp;#1</span>
-          {reignEstimated ? (
-            <span className="text-sm font-semibold text-amber-100">Since posted</span>
-          ) : reignDays !== null && reignDays >= 1 ? (
-            <span className="leading-none">
-              <span className="text-3xl font-bold text-amber-200">{reignDays}</span>
-              <span className="ml-1 text-sm font-medium text-amber-200/70">day{reignDays === 1 ? '' : 's'}</span>
-            </span>
-          ) : (
-            <span className="text-sm font-semibold text-amber-100">Since today</span>
-          )}
-          {reignDate && <span className="mt-0.5 text-[11px] text-text-primary/55">since {reignDate}</span>}
-        </div>
-      )}
-
       {onViewInEditor && (
         <div className="mx-auto w-48">
           <button type="button" onClick={onViewInEditor} className={viewInEditorButtonClassName}>
