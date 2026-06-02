@@ -669,6 +669,10 @@ _TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
     (r"while\s+both\s+effects?\s+are\s+active",    "Passive"),
     (r"(?:targets?|enemies?)\s+with\s+spectro\s+frazzle", "Passive"),
     (r"negative\s+statuses",                       "Passive"),
+    # FB/Strain-applier weapons (Forged Dwarf Star etc.): wielder keeps the
+    # debuff up across nearly every move in their rotation, so model as Passive.
+    (r"inflicts?\s+fusion\s+burst",                "Passive"),
+    (r"inflicts?\s+tune\s+strain",                 "Passive"),
     (r"concerto\s+energy",                         "forte"),
     (r"\becho\s+skill\b",                          "echoSkill"),
     (r"\boutro\s+skill\b",                         "outro"),
@@ -1166,7 +1170,9 @@ _AMPLIFY_NOUN_RE = re.compile(
     r"(\d+(?:\.\d+)?)\s*%\s+"
     r"(All|Glacio|Fusion|Electro|Aero|Havoc|Spectro"
     r"|Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation)?"
-    r"\s*DMG\s+Amplification",
+    # Allow hyphen-joined variants like "All-DMG" used in some skill text
+    # (e.g. Aemeath outro Silent Protection: "10% All-DMG Amplification").
+    r"[\s\-]*DMG\s+Amplification",
     re.I,
 )
 # Frazzle amplify verb form: "[Element ]Frazzle DMG [of...] by X%" (allows intervening text up to 80 chars).
@@ -1485,6 +1491,87 @@ def _parse_echo_party_buffs(effect_en: str) -> list[dict]:
     return party_buffs
 
 
+def _append_unique_echo_bonus(out: list[dict], entry: dict) -> None:
+    key = (
+        entry.get("stat", ""),
+        entry.get("value", 0),
+        tuple(entry.get("characterCondition") or []),
+    )
+    for existing in out:
+        if (
+            existing.get("stat", ""),
+            existing.get("value", 0),
+            tuple(existing.get("characterCondition") or []),
+        ) == key:
+            return
+    out.append(entry)
+
+
+def _parse_echo_main_slot_bonuses(effect_en: str) -> list[dict]:
+    """Parse first-slot echo bonuses from main-slot-only description text."""
+    if not effect_en:
+        return []
+
+    bonuses: list[dict] = []
+    for sentence in _split_buff_sentences(effect_en):
+        lower = sentence.lower()
+        if not (
+            "main slot" in lower
+            or "echo equipped" in lower
+            or "equipped in their main slot" in lower
+            or "equipped in the main slot" in lower
+        ):
+            continue
+
+        for buff in _extract_buffs(sentence):
+            stat = buff.get("stat", "")
+            value = float(buff.get("value", 0) or 0)
+            if stat and value:
+                _append_unique_echo_bonus(bonuses, {"stat": stat, "value": value})
+
+    return bonuses
+
+
+def _build_self_possessive_re(char: dict) -> "re.Pattern[str] | None":
+    """Build a regex matching "<CharName>'s <Stat>" for the caster.
+
+    Used to detect self-buff sentences masquerading as party buffs. Returns None
+    when no usable English name is available.
+    """
+    name_obj = char.get("name")
+    char_name = ""
+    if isinstance(name_obj, dict):
+        char_name = (name_obj.get("en") or "").strip()
+    elif isinstance(name_obj, str):
+        char_name = name_obj.strip()
+    if not char_name:
+        return None
+
+    # Stat alternation mirrors _STAT_NAMES; intentionally permissive on whitespace
+    # and dotted abbreviations (e.g. "Crit." vs "Crit").
+    stat_alt = (
+        r"Crit\.?\s*Rate|Crit\.?\s*DMG|ATK|HP|DEF|"
+        r"Resonance\s+(?:Skill|Liberation|Heavy\s+Attack|Basic\s+Attack)\s+DMG(?:\s+Bonus)?|"
+        r"Healing\s+Bonus|Energy\s+Regen(?:eration)?|"
+        r"All[-\s]?Attribute\s+DMG(?:\s+Bonus)?|"
+        r"(?:Aero|Glacio|Fusion|Electro|Havoc|Spectro)\s+DMG(?:\s+Bonus)?"
+    )
+    # Require an increase-verb after the possessive so we only catch buff-target
+    # patterns ("Aemeath's Crit. DMG increases by 20%") and not scaling-input
+    # references ("for every 0.2% of Shorekeeper's Energy Regen, all party…").
+    increase_alt = (
+        r"increases?(?:\s+by)?|"
+        r"is\s+increased(?:\s+by)?|"
+        r"gains?|gets?|"
+        r"\+|"
+        r"by\s+\d"
+    )
+    return re.compile(
+        rf"\b{re.escape(char_name)}'s\s+(?:{stat_alt})\s+(?:{increase_alt})",
+        re.I,
+    )
+
+
 def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
     """Parse party-scoped buffs from a character's move descriptions at S0.
 
@@ -1494,6 +1581,14 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
     """
     moves = char.get("moves") or []
     party_buffs: list[dict] = []
+
+    # Build a "self possessive" regex from the caster's own English name. When a
+    # sentence has a team-scope trigger phrase ("Resonators in the team inflict …")
+    # but the actual buff target is "<CharName>'s <Stat>", the buff belongs to the
+    # caster, not the team. Example: Aemeath Between the Stars —
+    # "when Resonators in the team inflict Tune Rupture - Shifting, **Aemeath's
+    # Crit. DMG** increases by 20%, up to 3 times" — that 20% CD is a self-buff.
+    self_possessive_re = _build_self_possessive_re(char)
 
     for move in moves:
         if not isinstance(move, dict):
@@ -1519,6 +1614,21 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
             # party buffs (e.g. Mornye's CriticalProtocol ER-scaled self crit).
             for sentence in _split_buff_sentences(resolved):
                 if not any(phrase in sentence.lower() for phrase in _PARTY_SCOPE_PHRASES):
+                    continue
+
+                # Skip sentences whose buff target is the caster's own stat
+                # (e.g. "Aemeath's Crit. DMG increases"). These are self-buffs
+                # triggered by team actions, not party buffs.
+                if self_possessive_re is not None and self_possessive_re.search(sentence):
+                    continue
+
+                # Skip sentences gated on team composition or enemy class — they
+                # are not universally applicable and shouldn't auto-flow as party
+                # buffs. Example: Lupa "If there are 3 Fusion Resonators in the
+                # team, the Fusion DMG Bonus against Overlord/Calamity targets
+                # additionally increases by 10%".
+                stripped = sentence.lstrip(" -•\t").lower()
+                if stripped.startswith("if there are ") or stripped.startswith("if there is "):
                     continue
 
                 for cap_m in _RE_UP_TO_CAP.finditer(sentence):
@@ -1565,9 +1675,17 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
                             party_buffs.append({"type": "critDMG", "value": val})
                     elif stat in ("ATK", "ATK%"):
                         party_buffs.append({"type": "atkPercentage", "value": val})
+                    elif stat in (
+                        "Aero DMG", "Glacio DMG", "Fusion DMG", "Electro DMG",
+                        "Havoc DMG", "Spectro DMG", "All Attribute DMG",
+                    ):
+                        # Elemental / all-attribute DMG team buffs in stance/inherent text
+                        # (e.g. Denia Etched Colors: "All Resonators in the team gain 30% Fusion DMG Bonus").
+                        for entry in _stat_to_party_buffs(stat, val):
+                            _append_unique_party_buff(party_buffs, entry)
 
                 for entry in _extract_amplify_buffs(sentence):
-                    party_buffs.append(entry)
+                    _append_unique_party_buff(party_buffs, entry)
 
             # Explicit team-scoped elemental DMG wording like Ciaccona Solo Concert.
             for sentence in _split_buff_sentences(resolved):
@@ -1932,7 +2050,10 @@ def _build_echo_bases(
         cost = int(echo.get("cost", 0))
         raw_fetters = echo.get("fetter", []) if isinstance(echo.get("fetter"), list) else []
         raw_skill = echo.get("skill") if isinstance(echo.get("skill"), dict) else {}
-        effect_en = (raw_skill.get("description") or "").strip()
+        raw_desc = raw_skill.get("description") or ""
+        if isinstance(raw_desc, dict):
+            raw_desc = raw_desc.get("en") or ""
+        effect_en = str(raw_desc).strip()
         raw_skill_params = raw_skill.get("params") if isinstance(raw_skill, dict) else []
         effect_params: list[list[str]] = []
         if isinstance(raw_skill_params, list):
@@ -1960,7 +2081,11 @@ def _build_echo_bases(
                 cleaned = [str(c).strip() for c in cond if str(c).strip()]
                 if cleaned:
                     entry["characterCondition"] = cleaned
-            bonuses.append(entry)
+            _append_unique_echo_bonus(bonuses, entry)
+        for entry in _parse_echo_main_slot_bonuses(
+            _resolve_effect_placeholders(effect_en, [], effect_params[0] if effect_params else [])
+        ):
+            _append_unique_echo_bonus(bonuses, entry)
         out[eid] = {
             "name": name,
             "legacyId": legacy_id,
