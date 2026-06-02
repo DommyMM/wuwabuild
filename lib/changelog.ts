@@ -28,6 +28,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'new',
                 text: 'Leaderboard #1 rows now show how long the current build has held the top spot',
             },
+            {
+                kind: 'new',
+                text: 'Denia Fusion Burst leaderboards',
+            }
         ],
     },
     {
