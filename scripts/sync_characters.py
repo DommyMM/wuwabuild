@@ -163,6 +163,10 @@ OUTPUT_DIR = Path(__file__).parent.parent / "public/Data/Characters"
 # Skip test/placeholder characters
 SKIP_IDS = {9990, 9991}
 
+# Characters that do not use resonance energy. Keep them off ER-focused UI
+# defaults until the game has more cases that justify a data-driven source.
+ENERGYLESS_CHARACTER_IDS = {1608}  # Phrolova
+
 # Most characters expose a canonical waveband item at 1000<character_id>.
 # Rover variants reuse shared grouped Item ids instead of per-variant ids.
 ROVER_SEQUENCE_ITEM_IDS = {
@@ -613,7 +617,7 @@ def transform_character(
     if "tags" in result:
         # Pass raw skillTrees data before it gets simplified
         raw_skill_trees = data.get("skillTrees")
-        preferred = get_preferred_substats(result["tags"], raw_skill_trees, result.get("moves"))
+        preferred = get_preferred_substats(result["tags"], raw_skill_trees, result.get("moves"), char_id)
         if preferred:
             result["preferredStats"] = preferred
 
@@ -696,6 +700,7 @@ def get_preferred_substats(
     tags: list[dict],
     skill_trees: dict | list[dict] | None = None,
     moves: list[dict] | None = None,
+    character_id: int | str | None = None,
 ) -> list[str]:
     """
     Derive preferred substats from character tags and skillTree nodes.
@@ -705,7 +710,7 @@ def get_preferred_substats(
     2. Keep Crit Rate + Crit DMG for every character, including healers/supports
     3. Extract scaling stats from skill tree (HP/ATK/DEF from "HP+", "ATK+", "DEF+" nodes)
     4. Add damage type bonus from priority 2 tags when present
-    5. Always include Energy Regen
+    5. Include Energy Regen unless the character has no energy system
     
     Args:
         tags: List of tag dicts with id, priority, name fields
@@ -736,8 +741,13 @@ def get_preferred_substats(
     if damage_type_stat and damage_type_stat not in stats:
         stats.append(damage_type_stat)
     
-    # Step 5: Always include Energy Regen
-    if "Energy Regen" not in stats:
+    try:
+        normalized_character_id = int(character_id) if character_id is not None else None
+    except (TypeError, ValueError):
+        normalized_character_id = None
+
+    # Step 5: Include Energy Regen for characters that can use it
+    if normalized_character_id not in ENERGYLESS_CHARACTER_IDS and "Energy Regen" not in stats:
         stats.append("Energy Regen")
     
     return stats
@@ -1122,6 +1132,7 @@ def main():
                 char.get("tags") or [],
                 char.get("skillTrees"),
                 char.get("moves"),
+                char.get("id"),
             )
             existing_preferred = char.get("preferredStats")
             if preferred:

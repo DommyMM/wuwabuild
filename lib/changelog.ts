@@ -19,6 +19,14 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'new',
                 text: 'Sigrika leaderboards'
+            },
+            {
+                kind: 'fixed',
+                text: 'Migrated all old Sigrika builds who had Drunken Hero equipped because wuwa-bot returned blank images for Solsworn Cipher'
+            },
+            {
+                kind: 'fixed',
+                text: 'No ER bracekts or automatic ER substat selection for Phrolova'
             }
         ]
     },

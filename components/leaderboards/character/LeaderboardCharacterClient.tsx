@@ -149,7 +149,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     () => configTracks.find((entry) => entry.key === track),
     [configTracks, track],
   );
-  const validErBrackets = activeTrackConfig?.erBrackets?.length ? activeTrackConfig.erBrackets : [110, 120, 130, 140, 150];
+  const validErBrackets = activeTrackConfig?.erBrackets === undefined ? [110, 120, 130, 140, 150] : activeTrackConfig.erBrackets;
   const effectiveErMin = erMin === 0 || validErBrackets.includes(erMin) ? erMin : 0;
   const currentQuerySnapshot = useMemo(() => resolveLeaderboardQuerySnapshot({
     page,

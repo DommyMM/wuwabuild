@@ -507,7 +507,7 @@ def transform_character(locales: dict[str, dict]) -> dict:
         "legacyId": extract_legacy_id(icon_round, char_id),
     }
 
-    preferred = get_preferred_substats(tags, skill_trees, moves)
+    preferred = get_preferred_substats(tags, skill_trees, moves, char_id)
     if preferred:
         character["preferredStats"] = preferred
 

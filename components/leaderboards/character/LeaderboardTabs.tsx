@@ -123,9 +123,11 @@ interface ErBracketTabsProps {
 }
 
 const ErBracketTabs: React.FC<ErBracketTabsProps> = ({ brackets, erMin, onSelect }) => {
-  const resolvedBrackets = (brackets?.length ? brackets : [...DEFAULT_ER_BRACKETS]).filter((value, index, arr) => (
+  const resolvedBrackets = (brackets === undefined ? [...DEFAULT_ER_BRACKETS] : brackets).filter((value, index, arr) => (
     Number.isFinite(value) && value > 0 && arr.indexOf(value) === index
   ));
+  if (resolvedBrackets.length === 0) return null;
+
   const allBrackets = [0, ...resolvedBrackets];
 
   return (
