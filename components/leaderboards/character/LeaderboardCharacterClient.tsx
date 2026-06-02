@@ -21,6 +21,18 @@ function leaderboardSignature(entries: LBLeaderboardEntry[], total: number): str
   return `${total}:${entries.map((e) => `${e.id}:${e.damage}:${e.globalRank}:${e.timestamp}:${e.finalCV}:${e.reignSince ?? ''}:${e.reignEstimated ? '1' : '0'}`).join(',')}`;
 }
 
+function mergeGhostBuild(entries: LBLeaderboardEntry[], ghostBuild: LBLeaderboardEntry | null | undefined): LBLeaderboardEntry[] {
+  if (!ghostBuild || entries.some((entry) => entry.id === ghostBuild.id)) {
+    return entries;
+  }
+
+  const insertIdx = entries.findIndex((entry) => entry.damage < ghostBuild.damage);
+  if (insertIdx === -1) {
+    return [...entries, ghostBuild];
+  }
+  return [...entries.slice(0, insertIdx), ghostBuild, ...entries.slice(insertIdx)];
+}
+
 interface LeaderboardCharacterClientProps {
   characterId: string;
   initialData?: LBLeaderboardResponse | null;
@@ -57,9 +69,18 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [configTeamMembers, setConfigTeamMembers] = useState<LBTeamMemberConfig[]>(() => initialData?.teamMembers ?? []);
   const lastTrackedFilterSignatureRef = useRef<string | null>(null);
 
-  // State initialized from URL
-  const [page, setPage] = useState(() => initialSnapshot.page);
-  const [pageSize, setPageSize] = useState(() => initialSnapshot.pageSize);
+  const initialPage = initialData?.page ?? initialSnapshot.page;
+  const initialPageSize = initialData?.pageSize ?? initialSnapshot.pageSize;
+  const initialEntries = mergeGhostBuild(initialData?.builds ?? [], initialData?.ghostBuild);
+  const initialQuerySnapshot = {
+    ...initialSnapshot,
+    page: initialPage,
+    pageSize: initialPageSize,
+  };
+
+  // State initialized from URL, with backend page overrides applied for buildId ghost resolution.
+  const [page, setPage] = useState(() => initialPage);
+  const [pageSize, setPageSize] = useState(() => initialPageSize);
   const [sort, setSort] = useState<LBLeaderboardSortKey>(() => initialSnapshot.sort);
   const [direction, setDirection] = useState<LBSortDirection>(() => initialSnapshot.direction);
   const [weaponIndex, setWeaponIndex] = useState(() => initialWeaponIndex);
@@ -74,11 +95,15 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [erMin, setErMin] = useState<number>(() => initialSnapshot.erMin);
   const [filterQuery, setFilterQuery] = useState('');
 
-  const leaderboardSigRef = useRef(leaderboardSignature(initialData?.builds ?? [], initialData?.total ?? 0));
+  const leaderboardSigRef = useRef(leaderboardSignature(initialEntries, initialData?.total ?? 0));
   const shouldUseInitialDataRef = useRef(Boolean(initialData));
-  const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialData?.builds ?? []);
+  const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialEntries);
   const [total, setTotal] = useState(() => initialData?.total ?? 0);
-  const [autoExpandBuildId, setAutoExpandBuildId] = useState<string | null>(null);
+  const [autoExpandBuildId, setAutoExpandBuildId] = useState<string | null>(() => (
+    initialSnapshot.buildId && initialEntries.some((entry) => entry.id === initialSnapshot.buildId)
+      ? initialSnapshot.buildId
+      : null
+  ));
   // Track which buildId we've already auto-expanded, so same-page navigation to a new buildId re-triggers.
   const didDeepLinkRef = useRef<string | null>(null);
   // Used to suppress the URL sync effect for one cycle when external navigation updates weapon/track state.
@@ -88,7 +113,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     if (!initialData) return null;
     return JSON.stringify({
       characterId,
-      ...leaderboardSnapshotToApiQuery(initialSnapshot),
+      ...leaderboardSnapshotToApiQuery(initialQuerySnapshot),
     });
   });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
@@ -264,16 +289,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
 
         // Insert ghost build at the correct position by damage if present.
         // Skip if the build already appears in the regular results (e.g. deep-linked to its own page).
-        let mergedBuilds = response.builds;
-        if (response.ghostBuild && !mergedBuilds.some((b) => b.id === response.ghostBuild!.id)) {
-          const ghostDamage = response.ghostBuild.damage;
-          const insertIdx = mergedBuilds.findIndex((b) => b.damage < ghostDamage);
-          if (insertIdx === -1) {
-            mergedBuilds = [...mergedBuilds, response.ghostBuild];
-          } else {
-            mergedBuilds = [...mergedBuilds.slice(0, insertIdx), response.ghostBuild, ...mergedBuilds.slice(insertIdx)];
-          }
-        }
+        const mergedBuilds = mergeGhostBuild(response.builds, response.ghostBuild);
 
         const nextSig = leaderboardSignature(mergedBuilds, response.total);
         if (nextSig !== leaderboardSigRef.current) {
@@ -402,7 +418,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const addRegion = useCallback((value: string) => {
     setRegionPrefixes((prev) => (prev.includes(value) ? prev : [...prev, value]));
     setPage(1);
-  }, []);
+  }, [setPage, setRegionPrefixes]);
 
   const addSetFilter = useCallback((setId: number, count: number) => {
     setEchoSets((prev) => {
@@ -410,7 +426,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       return [...prev, { setId, count }];
     });
     setPage(1);
-  }, []);
+  }, [setEchoSets, setPage]);
 
   const addMainFilter = useCallback((cost: number, statType: string) => {
     setEchoMains((prev) => {
@@ -418,7 +434,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       return [...prev, { cost, statType }];
     });
     setPage(1);
-  }, []);
+  }, [setEchoMains, setPage]);
 
   const clearAllFilters = useCallback(() => {
     setRegionPrefixes([]);
@@ -429,7 +445,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     setErMin(0);
     setFilterQuery('');
     setPage(1);
-  }, []);
+  }, [setEchoMains, setEchoSets, setErMin, setFilterQuery, setPage, setRegionPrefixes, setUid, setUsername]);
 
   // Computed
   const character = characters.find((c) => c.id === characterId) ?? null;

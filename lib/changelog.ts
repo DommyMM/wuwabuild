@@ -18,6 +18,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'fixed',
+                text: 'Leaderboard deep links from standings now open the target build immediately, including ghost rows that were deduped out of the ranked list',
+            },
+            {
+                kind: 'fixed',
                 text: 'Better distinction for Nightmare vs regular echoes based on the element badge',
             },
             {
