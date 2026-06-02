@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-02',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Sigrika leaderboards'
+            }
+        ]
+    },
+    {
         date: '2026-06-01',
         changes: [
             {
