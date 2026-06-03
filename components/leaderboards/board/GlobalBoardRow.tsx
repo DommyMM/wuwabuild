@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
@@ -11,9 +12,17 @@ import { getWeaponPaths } from '@/lib/paths';
 import { ACTIVE_SORT_COLUMN_CLASS, SEQUENCE_BADGE_STYLES, SORTABLE_GROUP_GRID, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS, RegionBadge } from '../constants';
 import { formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
-import { BuildExpanded } from '../BuildExpanded';
 import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
+
+const BuildExpanded = dynamic(() => import('../BuildExpanded').then((module) => module.BuildExpanded), {
+  ssr: false,
+  loading: () => (
+    <div className="border-t border-border/50 bg-black/15 px-12 py-4 text-center text-xs text-text-primary/55">
+      Loading build details...
+    </div>
+  ),
+});
 
 export interface GlobalBoardRowExpandedProps {
   entry: LBBuildRowEntry;
@@ -47,7 +56,7 @@ interface GlobalBoardRowProps {
   showOwner?: boolean;
 }
 
-export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
+const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
   entry,
   rank,
   isExpanded,
@@ -65,40 +74,72 @@ export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
 }) => {
   const { fetters, getCharacter, getEcho, getWeapon, statIcons } = useGameData();
   const { t } = useLanguage();
+  const [hasEverExpanded, setHasEverExpanded] = useState(isExpanded);
 
-  const character = getCharacter(entry.character.id);
-  const weapon = getWeapon(entry.weapon.id);
-  const regionBadge = resolveRegionBadge(entry.owner.uid);
-  const rowBaseScaling = resolveCharacterBaseScaling(character);
-  const rowStatColumns = resolveBuildRowStatKeys(
-    rowBaseScaling,
-    character?.element,
-    character?.Bonus1,
-    sort,
-    entry.stats,
-    character?.preferredStats,
+  const character = useMemo(
+    () => getCharacter(entry.character.id),
+    [entry.character.id, getCharacter],
   );
+  const weapon = useMemo(
+    () => getWeapon(entry.weapon.id),
+    [entry.weapon.id, getWeapon],
+  );
+  const regionBadge = useMemo(
+    () => resolveRegionBadge(entry.owner.uid),
+    [entry.owner.uid],
+  );
+  const rowStatColumns = useMemo(() => {
+    const rowBaseScaling = resolveCharacterBaseScaling(character);
+    return resolveBuildRowStatKeys(
+      rowBaseScaling,
+      character?.element,
+      character?.Bonus1,
+      sort,
+      entry.stats,
+      character?.preferredStats,
+    );
+  }, [character, entry.stats, sort]);
 
-  const characterName = character
-    ? formatCharacterDisplayName(character, {
-        baseName: t(character.nameI18n ?? { en: character.name }),
-        roverElement: detail?.buildState.roverElement,
-      })
-    : entry.character.id || 'Unknown Character';
-  const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : 'Unknown Weapon';
-  const sequenceLevel = Math.max(0, Math.min(6, Math.trunc(Number(entry.sequence) || 0)));
-  const finalCvColor = getCVRatingColor(entry.cv);
+  const characterName = useMemo(() => (
+    character
+      ? formatCharacterDisplayName(character, {
+          baseName: t(character.nameI18n ?? { en: character.name }),
+          roverElement: detail?.buildState.roverElement,
+        })
+      : entry.character.id || 'Unknown Character'
+  ), [character, detail?.buildState.roverElement, entry.character.id, t]);
+  const weaponName = useMemo(
+    () => (weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : 'Unknown Weapon'),
+    [t, weapon],
+  );
+  const sequenceLevel = useMemo(
+    () => Math.max(0, Math.min(6, Math.trunc(Number(entry.sequence) || 0))),
+    [entry.sequence],
+  );
+  const finalCvColor = useMemo(() => getCVRatingColor(entry.cv), [entry.cv]);
   const isHighestCV = finalCvColor.toLowerCase() === '#ff00ff';
 
-  const activeSets = Object.entries(entry.echoSummary.sets)
-    .map(([setId, count]) => {
-      const fetter = fetters.find((f) => String(f.id) === setId);
-      const threshold = fetter?.pieceCount ?? 2;
-      return { setId, count, active: count >= threshold, icon: fetter?.icon ?? '', name: fetter ? t(fetter.name) : `Set ${setId}` };
-    })
-    .filter((s) => s.active)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 2);
+  const activeSets = useMemo(() => (
+    Object.entries(entry.echoSummary.sets)
+      .map(([setId, count]) => {
+        const fetter = fetters.find((f) => String(f.id) === setId);
+        const threshold = fetter?.pieceCount ?? 2;
+        return { setId, count, active: count >= threshold, icon: fetter?.icon ?? '', name: fetter ? t(fetter.name) : `Set ${setId}` };
+      })
+      .filter((s) => s.active)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 2)
+  ), [entry.echoSummary.sets, fetters, t]);
+
+  const translateText = useCallback(
+    (i18n: Record<string, string> | undefined, fallback: string) => t(i18n ?? { en: fallback }),
+    [t],
+  );
+  const shouldRenderExpanded = hasEverExpanded || isExpanded;
+  const handleToggleExpand = useCallback(() => {
+    setHasEverExpanded(true);
+    onToggleExpand(entry.id);
+  }, [entry.id, onToggleExpand]);
 
   return (
     <div>
@@ -107,11 +148,11 @@ export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
         tabIndex={0}
         aria-expanded={isExpanded}
         className={`grid ${tableGrid} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
-        onClick={() => onToggleExpand(entry.id)}
+        onClick={handleToggleExpand}
         onKeyDown={(event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
           event.preventDefault();
-          onToggleExpand(entry.id);
+          handleToggleExpand();
         }}
       >
         <div className="py-2 text-center text-text-primary/75">{rank}</div>
@@ -231,26 +272,32 @@ export const GlobalBoardRow: React.FC<GlobalBoardRowProps> = ({
         regionBadge,
         statIcons,
         getEcho,
-        translateText: (i18n, fallback) => t(i18n ?? { en: fallback }),
+        translateText,
         onRetryDetail,
       }) : (
-        <BuildExpanded
-          key={entry.id}
-          entry={entry}
-          detail={detail}
-          isExpanded={isExpanded}
-          isDetailLoading={isDetailLoading}
-          detailError={detailError}
-          character={character}
-          characterName={characterName}
-          regionBadge={regionBadge}
-          statIcons={statIcons}
-          getEcho={getEcho}
-          translateText={(i18n, fallback) => t(i18n ?? { en: fallback })}
-          onRetryDetail={onRetryDetail}
-          surface="builds"
-        />
+        shouldRenderExpanded && (
+          <BuildExpanded
+            key={entry.id}
+            entry={entry}
+            detail={detail}
+            isExpanded={isExpanded}
+            isDetailLoading={isDetailLoading}
+            detailError={detailError}
+            character={character}
+            characterName={characterName}
+            regionBadge={regionBadge}
+            statIcons={statIcons}
+            getEcho={getEcho}
+            translateText={translateText}
+            onRetryDetail={onRetryDetail}
+            surface="builds"
+          />
+        )
       )}
     </div>
   );
 };
+
+GlobalBoardRowComponent.displayName = 'GlobalBoardRow';
+
+export const GlobalBoardRow = React.memo(GlobalBoardRowComponent);

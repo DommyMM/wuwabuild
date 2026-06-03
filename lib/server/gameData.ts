@@ -14,11 +14,18 @@ interface WeaponRecord {
 }
 
 const DATA_DIR = path.join(process.cwd(), 'public', 'Data');
+const jsonCache = new Map<string, unknown>();
 
 function readJson(filename: string): unknown {
   const filePath = path.join(DATA_DIR, filename);
-  if (!fs.existsSync(filePath)) return null;
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  if (jsonCache.has(filePath)) return jsonCache.get(filePath) ?? null;
+  if (!fs.existsSync(filePath)) {
+    jsonCache.set(filePath, null);
+    return null;
+  }
+  const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  jsonCache.set(filePath, parsed);
+  return parsed;
 }
 
 function i18nEn(value: unknown): string {

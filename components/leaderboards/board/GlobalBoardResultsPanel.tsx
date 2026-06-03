@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
@@ -123,16 +123,21 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
 }) => {
   const { characters, fetters, statIcons, weaponList } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
-  const [isTableGateDismissed, setIsTableGateDismissed] = useState(() => {
-    if (!showTableGate) return false;
-    try {
-      const stored = localStorage.getItem('builds_gate_dismissed');
-      const today = new Date().toISOString().slice(0, 10);
-      return stored === today;
-    } catch {
-      return false;
-    }
-  });
+  const [isTableGateDismissed, setIsTableGateDismissed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!showTableGate) return;
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const stored = localStorage.getItem('builds_gate_dismissed');
+        const today = new Date().toISOString().slice(0, 10);
+        setIsTableGateDismissed(stored === today);
+      } catch {
+        setIsTableGateDismissed(false);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [showTableGate]);
 
   const cvSort: CVSortKey = (sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg') ? sort : 'finalCV';
   const isCvColumnActive = sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg';
@@ -167,7 +172,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   const statusText = showInitialSkeleton
     ? 'Loading builds...'
     : isRefreshing ? 'Updating...' : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;
-  const showBuildTableGate = showTableGate && !error && !isTableGateDismissed;
+  const showBuildTableGate = showTableGate && !error && isTableGateDismissed === false;
 
   const handleSortRequest = (nextSort: LBSortKey) => {
     if (sort === nextSort) { onToggleDirection(); return; }

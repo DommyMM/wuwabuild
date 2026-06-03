@@ -110,7 +110,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
 
   const leaderboardSigRef = useRef(leaderboardSignature(initialEntries, initialData?.total ?? 0));
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialEntries);
+  const entriesRef = useRef<LBLeaderboardEntry[]>(initialEntries);
   const [total, setTotal] = useState(() => initialData?.total ?? 0);
+  // Board-level stat columns from the backend (same four for every row on this board). Empty array → rows fall back to the per-row heuristic.
+  const [boardDisplayStats, setBoardDisplayStats] = useState<string[]>(() => initialData?.displayStats ?? []);
 
   // See DeepLink doc above. SSR already resolved the page/build via the buildId query, so an initial load
   // starts 'resolved'; a load with no initialData (rare) resolves client-side.
@@ -138,7 +141,21 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
   const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
   const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
+  const detailByIdRef = useRef<Record<string, LBBuildDetailEntry>>(detailById);
+  const detailLoadingByIdRef = useRef<Record<string, boolean>>(detailLoadingById);
   const detailControllersRef = useRef<Record<string, AbortController>>({});
+
+  useEffect(() => {
+    entriesRef.current = entries;
+  }, [entries]);
+
+  useEffect(() => {
+    detailByIdRef.current = detailById;
+  }, [detailById]);
+
+  useEffect(() => {
+    detailLoadingByIdRef.current = detailLoadingById;
+  }, [detailLoadingById]);
   const defaultWeaponId = configWeaponIds[0] ?? initialData?.weaponIds?.[0] ?? initialData?.activeWeaponId ?? '';
   const defaultTrackKey = configTracks[0]?.key ?? initialData?.tracks?.[0]?.key ?? initialData?.activeTrack ?? DEFAULT_LB_TRACK;
 
@@ -336,6 +353,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         setConfigTracks(response.tracks);
         setConfigTeamCharacterIds(response.teamCharacterIds);
         setConfigTeamMembers(response.teamMembers);
+        setBoardDisplayStats(response.displayStats);
 
         if (response.activeWeaponId) {
           const activeIndex = response.weaponIds.indexOf(response.activeWeaponId);
@@ -375,7 +393,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const loadBuildDetail = useCallback((buildId: string, force = false) => {
     const normalizedBuildId = buildId.trim();
     if (!normalizedBuildId) return;
-    if (!force && (detailById[normalizedBuildId] || detailLoadingById[normalizedBuildId])) {
+    if (!force && (detailByIdRef.current[normalizedBuildId] || detailLoadingByIdRef.current[normalizedBuildId])) {
       return;
     }
 
@@ -383,12 +401,20 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     const controller = new AbortController();
     detailControllersRef.current[normalizedBuildId] = controller;
 
-    setDetailLoadingById((prev) => ({ ...prev, [normalizedBuildId]: true }));
+    setDetailLoadingById((prev) => {
+      const next = { ...prev, [normalizedBuildId]: true };
+      detailLoadingByIdRef.current = next;
+      return next;
+    });
     setDetailErrorById((prev) => ({ ...prev, [normalizedBuildId]: null }));
 
     void getBuildById(normalizedBuildId, controller.signal)
       .then((detail) => {
-        setDetailById((prev) => ({ ...prev, [normalizedBuildId]: detail }));
+        setDetailById((prev) => {
+          const next = { ...prev, [normalizedBuildId]: detail };
+          detailByIdRef.current = next;
+          return next;
+        });
       })
       .catch((fetchError) => {
         if (controller.signal.aborted) return;
@@ -399,10 +425,14 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       })
       .finally(() => {
         if (controller.signal.aborted) return;
-        setDetailLoadingById((prev) => ({ ...prev, [normalizedBuildId]: false }));
+        setDetailLoadingById((prev) => {
+          const next = { ...prev, [normalizedBuildId]: false };
+          detailLoadingByIdRef.current = next;
+          return next;
+        });
         delete detailControllersRef.current[normalizedBuildId];
       });
-  }, [detailById, detailLoadingById]);
+  }, []);
 
   const handleToggleExpand = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -410,7 +440,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       const willExpand = !next.has(id);
       if (next.has(id)) { next.delete(id); } else { next.add(id); }
       if (willExpand) {
-        const entry = entries.find((row) => row.id === id);
+        const entry = entriesRef.current.find((row) => row.id === id);
         posthog.capture('discovery_result_expand', {
           surface: 'leaderboard_character',
           character_id: entry?.character.id ?? characterId,
@@ -419,10 +449,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       }
       return next;
     });
-    if (!detailById[id] && !detailLoadingById[id]) {
+    if (!detailByIdRef.current[id] && !detailLoadingByIdRef.current[id]) {
       loadBuildDetail(id);
     }
-  }, [characterId, detailById, detailLoadingById, entries, loadBuildDetail, track]);
+  }, [characterId, loadBuildDetail, track]);
 
   const handleRetryDetail = useCallback((id: string) => {
     loadBuildDetail(id, true);
@@ -639,6 +669,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               </div>
               <LeaderboardResultsPanel
                 entries={displayEntries}
+                displayStats={boardDisplayStats}
                 deepLinkBuildId={revealBuildId ?? ''}
                 activeWeaponId={weaponId}
                 activeTrackKey={track}

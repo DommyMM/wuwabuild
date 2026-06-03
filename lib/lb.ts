@@ -577,6 +577,13 @@ export interface LBLeaderboardResponse {
   activeWeaponId: string;
   activeTrack: string;
   erMin: number;
+  /**
+   * Backend-derived four-column stat selection for this board (same for every
+   * row). Canonical stat-sort keys, e.g. ['hp','aero_dmg','basic_attack_dmg',
+   * 'resonance_liberation_dmg']. Empty when no board reference is available —
+   * the UI then falls back to its per-row heuristic.
+   */
+  displayStats: string[];
 }
 
 interface LBSubmitBuildResult {
@@ -738,6 +745,7 @@ export async function listLeaderboard(
     activeWeaponId?: unknown;
     activeTrack?: unknown;
     erMin?: unknown;
+    displayStats?: unknown;
   };
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
   const builds: LBLeaderboardEntry[] = [];
@@ -776,6 +784,9 @@ export async function listLeaderboard(
     activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
     activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
     erMin: toFiniteNumber(payload.erMin, 0),
+    displayStats: Array.isArray(payload.displayStats)
+      ? payload.displayStats.filter((v): v is string => typeof v === 'string')
+      : [],
   };
 }
 

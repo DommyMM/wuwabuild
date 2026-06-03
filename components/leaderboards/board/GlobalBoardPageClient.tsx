@@ -35,6 +35,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   const isDefaultQuery = searchParams.toString() === '';
   const ssrData = isDefaultQuery ? initialData : null;
   const buildListSigRef = useRef(buildListSignature(ssrData?.builds ?? [], ssrData?.total ?? 0));
+  const defaultSsrCacheWrittenRef = useRef(false);
 
   const initialQuery = useMemo(
     () => parseInitialQuery(new URLSearchParams(searchParams.toString())),
@@ -56,6 +57,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
 
   const [builds, setBuilds] = useState<LBBuildRowEntry[]>(() => ssrData?.builds ?? []);
   const [total, setTotal] = useState(() => ssrData?.total ?? 0);
+  const buildsRef = useRef<LBBuildRowEntry[]>(builds);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
     // Pre-settle only when SSR data matches the current URL (default query).
     return ssrData ? '' : null;
@@ -65,7 +67,21 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
   const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
   const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
+  const detailByIdRef = useRef<Record<string, LBBuildDetailEntry>>(detailById);
+  const detailLoadingByIdRef = useRef<Record<string, boolean>>(detailLoadingById);
   const detailControllersRef = useRef<Record<string, AbortController>>({});
+
+  useEffect(() => {
+    buildsRef.current = builds;
+  }, [builds]);
+
+  useEffect(() => {
+    detailByIdRef.current = detailById;
+  }, [detailById]);
+
+  useEffect(() => {
+    detailLoadingByIdRef.current = detailLoadingById;
+  }, [detailLoadingById]);
 
   const selectedCharacters = useMemo(() => (
     characterIds.reduce<typeof characters>((acc, id) => {
@@ -190,8 +206,11 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, filterSignature, pageSize, regionPrefixes.length, settledQueryKey, sort, uid, username, weaponIds.length]);
 
   useEffect(() => {
-    if (ssrData && currentQueryKey === '') {
-      writeCachedBuildList(currentQueryKey, ssrData);
+    if (settledQueryKey === currentQueryKey) {
+      if (ssrData && currentQueryKey === '' && !defaultSsrCacheWrittenRef.current) {
+        defaultSsrCacheWrittenRef.current = true;
+        writeCachedBuildList(currentQueryKey, ssrData);
+      }
       return;
     }
 
@@ -257,12 +276,12 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       active = false;
       controller.abort();
     };
-  }, [abortAllDetailRequests, currentQueryKey, querySnapshot, ssrData]);
+  }, [abortAllDetailRequests, currentQueryKey, querySnapshot, settledQueryKey, ssrData]);
 
   const loadBuildDetail = useCallback((buildId: string, force = false) => {
     const normalizedBuildId = buildId.trim();
     if (!normalizedBuildId) return;
-    if (!force && (detailById[normalizedBuildId] || detailLoadingById[normalizedBuildId])) {
+    if (!force && (detailByIdRef.current[normalizedBuildId] || detailLoadingByIdRef.current[normalizedBuildId])) {
       return;
     }
 
@@ -270,12 +289,20 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     const controller = new AbortController();
     detailControllersRef.current[normalizedBuildId] = controller;
 
-    setDetailLoadingById((prev) => ({ ...prev, [normalizedBuildId]: true }));
+    setDetailLoadingById((prev) => {
+      const next = { ...prev, [normalizedBuildId]: true };
+      detailLoadingByIdRef.current = next;
+      return next;
+    });
     setDetailErrorById((prev) => ({ ...prev, [normalizedBuildId]: null }));
 
     void getBuildById(normalizedBuildId, controller.signal)
       .then((detail) => {
-        setDetailById((prev) => ({ ...prev, [normalizedBuildId]: detail }));
+        setDetailById((prev) => {
+          const next = { ...prev, [normalizedBuildId]: detail };
+          detailByIdRef.current = next;
+          return next;
+        });
       })
       .catch((fetchError) => {
         if (controller.signal.aborted) return;
@@ -286,10 +313,14 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       })
       .finally(() => {
         if (controller.signal.aborted) return;
-        setDetailLoadingById((prev) => ({ ...prev, [normalizedBuildId]: false }));
+        setDetailLoadingById((prev) => {
+          const next = { ...prev, [normalizedBuildId]: false };
+          detailLoadingByIdRef.current = next;
+          return next;
+        });
         delete detailControllersRef.current[normalizedBuildId];
       });
-  }, [detailById, detailLoadingById]);
+  }, []);
 
   const handleToggleExpand = useCallback((buildId: string) => {
     const normalizedBuildId = buildId.trim();
@@ -304,7 +335,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
         next.add(normalizedBuildId);
       }
       if (willExpand) {
-        const build = builds.find((entry) => entry.id === normalizedBuildId);
+        const build = buildsRef.current.find((entry) => entry.id === normalizedBuildId);
         posthog.capture('discovery_result_expand', {
           surface: 'builds',
           character_id: build?.character.id ?? null,
@@ -314,10 +345,10 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       return next;
     });
 
-    if (!detailById[normalizedBuildId] && !detailLoadingById[normalizedBuildId]) {
+    if (!detailByIdRef.current[normalizedBuildId] && !detailLoadingByIdRef.current[normalizedBuildId]) {
       loadBuildDetail(normalizedBuildId);
     }
-  }, [builds, detailById, detailLoadingById, loadBuildDetail]);
+  }, [loadBuildDetail]);
 
   const handleRetryDetail = useCallback((buildId: string) => {
     loadBuildDetail(buildId, true);

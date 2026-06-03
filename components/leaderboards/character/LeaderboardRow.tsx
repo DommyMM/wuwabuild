@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Crown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -10,9 +11,18 @@ import { getLBStatCode, LBBuildDetailEntry, LBBuildEchoSummary, LBBuildRowEntry,
 import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '../constants';
 import { formatReignHoldLabel, formatReignSinceDate, formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
-import { BuildExpanded } from '../BuildExpanded';
+import { StatSortKey } from '../types';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from '../constants';
+
+const BuildExpanded = dynamic(() => import('../BuildExpanded').then((module) => module.BuildExpanded), {
+  ssr: false,
+  loading: () => (
+    <div className="border-t border-border/50 bg-black/15 px-12 py-4 text-center text-xs text-text-primary/55">
+      Loading build details...
+    </div>
+  ),
+});
 
 interface LeaderboardRowProps {
   entry: LBLeaderboardEntry;
@@ -20,6 +30,8 @@ interface LeaderboardRowProps {
   activeWeaponId: string;
   activeTrackKey: string;
   erMin?: number;
+  /** Board-level stat columns from the backend; overrides the per-row heuristic when present. */
+  boardStatColumns?: StatSortKey[] | null;
   sort: LBLeaderboardSortKey;
   isCvColumnActive: boolean;
   isStatSortActive: boolean;
@@ -33,11 +45,12 @@ interface LeaderboardRowProps {
   rowRef?: React.Ref<HTMLDivElement>;
 }
 
-export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
+const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
   entry,
   isGhost = false,
   activeWeaponId,
   activeTrackKey,
+  boardStatColumns,
   erMin = 0,
   sort,
   isCvColumnActive,
@@ -53,39 +66,51 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
 }) => {
   const { fetters, getCharacter, getEcho, statIcons } = useGameData();
   const { t } = useLanguage();
+  const [hasEverExpanded, setHasEverExpanded] = useState(isExpanded);
 
-  const character = getCharacter(entry.character.id);
-  const regionBadge = resolveRegionBadge(entry.owner.uid);
-  const rowBaseScaling = resolveCharacterBaseScaling(character);
-  const rowStatColumns = resolveBuildRowStatKeys(
-    rowBaseScaling,
-    character?.element,
-    character?.Bonus1,
-    sort as LBSortKey,
-    entry.stats,
-    character?.preferredStats,
+  const character = useMemo(
+    () => getCharacter(entry.character.id),
+    [entry.character.id, getCharacter],
   );
+  const regionBadge = useMemo(
+    () => resolveRegionBadge(entry.owner.uid),
+    [entry.owner.uid],
+  );
+  const rowStatColumns = useMemo(() => {
+    if (boardStatColumns && boardStatColumns.length === 4) return boardStatColumns;
+    const rowBaseScaling = resolveCharacterBaseScaling(character);
+    return resolveBuildRowStatKeys(
+      rowBaseScaling,
+      character?.element,
+      character?.Bonus1,
+      sort as LBSortKey,
+      entry.stats,
+      character?.preferredStats,
+    );
+  }, [boardStatColumns, character, entry.stats, sort]);
 
-  const finalCvColor = getCVRatingColor(entry.finalCV);
+  const finalCvColor = useMemo(() => getCVRatingColor(entry.finalCV), [entry.finalCV]);
   const isHighestCV = finalCvColor.toLowerCase() === '#ff00ff';
 
   const echoSetCounts = entry.echoSummary.sets;
 
-  const computedActiveSets = Object.entries(echoSetCounts)
-    .map(([setId, count]) => {
-      const fetter = fetters.find((f) => String(f.id) === setId);
-      const threshold = fetter?.pieceCount ?? 2;
-      return {
-        setId,
-        count,
-        active: count >= threshold,
-        icon: fetter?.icon ?? '',
-        name: fetter ? t(fetter.name) : `Set ${setId}`,
-      };
-    })
-    .filter((s) => s.active)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 2);
+  const computedActiveSets = useMemo(() => (
+    Object.entries(echoSetCounts)
+      .map(([setId, count]) => {
+        const fetter = fetters.find((f) => String(f.id) === setId);
+        const threshold = fetter?.pieceCount ?? 2;
+        return {
+          setId,
+          count,
+          active: count >= threshold,
+          icon: fetter?.icon ?? '',
+          name: fetter ? t(fetter.name) : `Set ${setId}`,
+        };
+      })
+      .filter((s) => s.active)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 2)
+  ), [echoSetCounts, fetters, t]);
 
   // Rank display
   const rank = entry.globalRank;
@@ -107,26 +132,39 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
           ? 'text-amber-600 font-bold'
           : 'text-text-primary/75';
 
-  // Build minimal LBBuildRowEntry for BuildExpanded
-  const echoSummaryForExpanded: LBBuildEchoSummary = { sets: echoSetCounts, mainStats: [] };
-  const rowEntry: LBBuildRowEntry = {
-    id: entry.id,
-    owner: entry.owner,
-    character: { id: entry.character.id },
-    weapon: entry.weapon,
-    sequence: entry.sequence,
-    stats: entry.stats,
-    echoSummary: echoSummaryForExpanded,
-    cv: entry.finalCV,
-    timestamp: entry.timestamp,
-  };
+  const rowEntry = useMemo<LBBuildRowEntry>(() => {
+    const echoSummaryForExpanded: LBBuildEchoSummary = { sets: echoSetCounts, mainStats: [] };
+    return {
+      id: entry.id,
+      owner: entry.owner,
+      character: { id: entry.character.id },
+      weapon: entry.weapon,
+      sequence: entry.sequence,
+      stats: entry.stats,
+      echoSummary: echoSummaryForExpanded,
+      cv: entry.finalCV,
+      timestamp: entry.timestamp,
+    };
+  }, [echoSetCounts, entry.character.id, entry.finalCV, entry.id, entry.owner, entry.sequence, entry.stats, entry.timestamp, entry.weapon]);
 
-  const characterName = character
-    ? formatCharacterDisplayName(character, {
-        baseName: t(character.nameI18n ?? { en: character.name }),
-        roverElement: detail?.buildState.roverElement,
-      })
-    : `Character ${entry.character.id}`;
+  const characterName = useMemo(() => (
+    character
+      ? formatCharacterDisplayName(character, {
+          baseName: t(character.nameI18n ?? { en: character.name }),
+          roverElement: detail?.buildState.roverElement,
+        })
+      : `Character ${entry.character.id}`
+  ), [character, detail?.buildState.roverElement, entry.character.id, t]);
+
+  const translateText = useCallback(
+    (i18n: Record<string, string> | undefined, fallback: string) => t(i18n ?? { en: fallback }),
+    [t],
+  );
+  const shouldRenderExpanded = hasEverExpanded || isExpanded;
+  const handleToggleExpand = useCallback(() => {
+    setHasEverExpanded(true);
+    onToggleExpand(entry.id);
+  }, [entry.id, onToggleExpand]);
 
   return (
     <div ref={rowRef}>
@@ -139,11 +177,11 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
             ? 'border-l-2 border-l-accent/60 bg-accent/6 hover:bg-accent/12'
             : 'odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10'
         } focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
-        onClick={() => onToggleExpand(entry.id)}
+        onClick={handleToggleExpand}
         onKeyDown={(event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
           event.preventDefault();
-          onToggleExpand(entry.id);
+          handleToggleExpand();
         }}
       >
         {/* Rank */}
@@ -262,27 +300,33 @@ export const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         </div>
       </div>
 
-      <BuildExpanded
-        key={entry.id}
-        entry={rowEntry}
-        detail={detail}
-        isExpanded={isExpanded}
-        isDetailLoading={isDetailLoading}
-        detailError={detailError ?? null}
-        character={character}
-        characterName={characterName}
-        regionBadge={regionBadge}
-        statIcons={statIcons}
-        getEcho={getEcho}
-        translateText={(i18n, fallback) => t(i18n ?? { en: fallback })}
-        onRetryDetail={onRetryDetail}
-        activeBoardWeaponId={activeWeaponId}
-        activeTrackKey={activeTrackKey}
-        activeBoardDamage={entry.damage}
-        erMin={erMin}
-        globalRank={entry.globalRank}
-        surface="leaderboard_character"
-      />
+      {shouldRenderExpanded && (
+        <BuildExpanded
+          key={entry.id}
+          entry={rowEntry}
+          detail={detail}
+          isExpanded={isExpanded}
+          isDetailLoading={isDetailLoading}
+          detailError={detailError ?? null}
+          character={character}
+          characterName={characterName}
+          regionBadge={regionBadge}
+          statIcons={statIcons}
+          getEcho={getEcho}
+          translateText={translateText}
+          onRetryDetail={onRetryDetail}
+          activeBoardWeaponId={activeWeaponId}
+          activeTrackKey={activeTrackKey}
+          activeBoardDamage={entry.damage}
+          erMin={erMin}
+          globalRank={entry.globalRank}
+          surface="leaderboard_character"
+        />
+      )}
     </div>
   );
 };
+
+LeaderboardRowComponent.displayName = 'LeaderboardRow';
+
+export const LeaderboardRow = React.memo(LeaderboardRowComponent);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
@@ -10,6 +10,7 @@ import { getSortLabel } from '../formatters';
 import { BuildPagination } from '../BuildPagination';
 import { SortHeaderMenu, SortMenuOption } from '../SortHeaderMenu';
 import { StatSortKey } from '../types';
+import { resolveBoardDisplayColumns } from '../statColumns';
 import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from '../constants';
 import { LeaderboardRow } from './LeaderboardRow';
 
@@ -17,6 +18,8 @@ const DAMAGE_SORT_KEY: LBLeaderboardSortKey = 'damage';
 
 interface LeaderboardResultsPanelProps {
   entries: LBLeaderboardEntry[];
+  /** Backend board-level stat columns; resolved into the four row columns when complete. */
+  displayStats?: string[];
   deepLinkBuildId: string;
   activeWeaponId: string;
   activeTrackKey: string;
@@ -46,6 +49,7 @@ interface LeaderboardResultsPanelProps {
 
 export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = ({
   entries,
+  displayStats,
   deepLinkBuildId,
   activeWeaponId,
   activeTrackKey,
@@ -73,7 +77,29 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   autoExpandRowRef,
 }) => {
   const { statIcons } = useGameData();
-  const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
+
+  // Backend board columns (sort-independent, content-stable across refetches).
+  // When present they seed the header and drive the rows; otherwise the rows
+  // fall back to the per-row heuristic and the header keeps its defaults.
+  const boardColumns = useMemo(
+    () => resolveBoardDisplayColumns(displayStats, DAMAGE_SORT_KEY),
+    [displayStats],
+  );
+
+  const [statColumns, setStatColumns] = useState<StatSortKey[]>(
+    () => boardColumns ?? [...DEFAULT_STAT_COLUMNS],
+  );
+
+  // Re-seed the header columns whenever the board's columns actually change
+  // (new character/weapon/track). User column edits persist within a board.
+  useEffect(() => {
+    if (!boardColumns) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setStatColumns(boardColumns);
+    });
+    return () => { cancelled = true; };
+  }, [boardColumns]);
 
   const isDamageSort = sort === DAMAGE_SORT_KEY;
   const cvSort: CVSortKey = (sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg') ? sort : 'finalCV';
@@ -284,6 +310,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         activeWeaponId={activeWeaponId}
                         activeTrackKey={activeTrackKey}
                         erMin={erMin}
+                        boardStatColumns={boardColumns ? displayStatColumns : null}
                         sort={sort}
                         isCvColumnActive={isCvColumnActive}
                         isStatSortActive={isStatSortActive}

@@ -237,6 +237,7 @@ export async function prefetchLeaderboard(
       activeWeaponId?: unknown;
       activeTrack?: unknown;
       erMin?: unknown;
+      displayStats?: unknown;
     };
     const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
     const builds: LBLeaderboardEntry[] = [];
@@ -281,6 +282,9 @@ export async function prefetchLeaderboard(
       activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
       activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
       erMin: toFiniteNumber(payload.erMin, 0),
+      displayStats: Array.isArray(payload.displayStats)
+        ? payload.displayStats.filter((value): value is string => typeof value === 'string')
+        : [],
     };
   } catch (err) {
     console.error('[lbServer] prefetchLeaderboard failed', err);

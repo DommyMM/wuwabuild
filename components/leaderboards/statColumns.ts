@@ -136,6 +136,29 @@ function appendFallbackStatKeys(
   ELEMENT_STAT_KEYS.forEach((key) => pushUnique(keys, key));
 }
 
+const STAT_OPTION_KEY_SET: ReadonlySet<StatSortKey> = new Set(STAT_OPTION_KEYS as readonly StatSortKey[]);
+
+/**
+ * Convert the backend's board-level displayStats into the four ordered stat columns,
+ * honoring the same sort-first behavior as resolveBuildRowStatKeys.
+ * Returns null when the payload is missing/incomplete so callers fall back to the per-row heuristic.
+ */
+export function resolveBoardDisplayColumns(
+  displayStats: readonly string[] | undefined,
+  sort: string,
+): StatSortKey[] | null {
+  if (!displayStats || displayStats.length === 0) return null;
+  const valid = displayStats.filter((key): key is StatSortKey =>
+    STAT_OPTION_KEY_SET.has(key as StatSortKey));
+  if (valid.length < 4) return null;
+
+  if (STAT_OPTION_KEYS.includes(sort as LBStatSortKey)) {
+    const sortKey = sort as StatSortKey;
+    return [sortKey, ...valid.filter((key) => key !== sortKey)].slice(0, 4);
+  }
+  return valid.slice(0, 4);
+}
+
 export function resolveBuildRowStatKeys(
   baseScaling: string | undefined,
   characterElement: string | undefined,

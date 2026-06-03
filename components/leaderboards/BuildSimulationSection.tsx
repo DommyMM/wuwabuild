@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -10,8 +11,16 @@ import { getBoardOptimality, getBuildMoves, getBuildStandings, getBuildSubstatUp
 import { BuildMoveBreakdown } from './BuildMoveBreakdown';
 import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
 import { BuildStandingsTable } from './BuildStandingsTable';
-import { BuildOptimalityPanel } from './BuildOptimalityPanel';
 import { RegionBadge } from './constants';
+
+const BuildOptimalityPanel = dynamic(() => import('./BuildOptimalityPanel').then((module) => module.BuildOptimalityPanel), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded border border-border bg-background-secondary/70 p-3 text-center text-xs text-text-primary/55">
+      Loading benchmark...
+    </div>
+  ),
+});
 
 const UPGRADE_STAT_LABELS: Record<string, string> = {
   hp: 'HP',
