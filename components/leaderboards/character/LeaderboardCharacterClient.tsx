@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { getBuildById, isHealTrackKey, LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
+import { getBuildById, isHealTrackKey, LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, MAX_ITEMS_PER_PAGE } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
@@ -31,6 +31,10 @@ function mergeGhostBuild(entries: LBLeaderboardEntry[], ghostBuild: LBLeaderboar
     return [...entries, ghostBuild];
   }
   return [...entries.slice(0, insertIdx), ghostBuild, ...entries.slice(insertIdx)];
+}
+
+function sameDisplayStats(a: readonly LBStatSortKey[], b: readonly LBStatSortKey[]): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
 interface LeaderboardCharacterClientProps {
@@ -113,7 +117,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const entriesRef = useRef<LBLeaderboardEntry[]>(initialEntries);
   const [total, setTotal] = useState(() => initialData?.total ?? 0);
   // Board-level stat columns from the backend (same four for every row on this board). Empty array → rows fall back to the per-row heuristic.
-  const [boardDisplayStats, setBoardDisplayStats] = useState<string[]>(() => initialData?.displayStats ?? []);
+  const [boardDisplayStats, setBoardDisplayStats] = useState<LBStatSortKey[]>(() => initialData?.displayStats ?? []);
 
   // See DeepLink doc above. SSR already resolved the page/build via the buildId query, so an initial load
   // starts 'resolved'; a load with no initialData (rare) resolves client-side.
@@ -353,7 +357,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         setConfigTracks(response.tracks);
         setConfigTeamCharacterIds(response.teamCharacterIds);
         setConfigTeamMembers(response.teamMembers);
-        setBoardDisplayStats(response.displayStats);
+        setBoardDisplayStats((prev) => (
+          sameDisplayStats(prev, response.displayStats) ? prev : response.displayStats
+        ));
 
         if (response.activeWeaponId) {
           const activeIndex = response.weaponIds.indexOf(response.activeWeaponId);

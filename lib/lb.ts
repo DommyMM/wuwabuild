@@ -71,6 +71,10 @@ const LB_STAT_ENTRIES: LBStatEntry[] = [
   { code: 'HB', sortKey: 'healing_bonus', label: 'Healing Bonus' },
 ];
 
+const LB_STAT_SORT_KEY_SET: ReadonlySet<LBStatSortKey> = new Set(
+  LB_STAT_ENTRIES.map((entry) => entry.sortKey),
+);
+
 const LB_SORT_KEY_SET: ReadonlySet<LBSortKey> = new Set([
   'finalCV', 'timestamp', 'characterId', 'sequence',
   ...LB_STAT_ENTRIES.map((entry) => entry.sortKey),
@@ -89,6 +93,20 @@ const LB_LEADERBOARD_SORT_KEY_SET: ReadonlySet<LBLeaderboardSortKey> = new Set([
 
 export function getLBStatCode(sortKey: LBStatSortKey): LBStatCode {
   return LB_STAT_CODE_BY_SORT_KEY[sortKey];
+}
+
+export function isLBStatSortKey(value: unknown): value is LBStatSortKey {
+  return typeof value === 'string' && LB_STAT_SORT_KEY_SET.has(value as LBStatSortKey);
+}
+
+export function parseLeaderboardDisplayStats(raw: unknown): LBStatSortKey[] {
+  if (!Array.isArray(raw)) return [];
+  const result: LBStatSortKey[] = [];
+  for (const value of raw) {
+    if (!isLBStatSortKey(value) || result.includes(value)) continue;
+    result.push(value);
+  }
+  return result;
 }
 
 export function toLBApiSortKey(sort: string | undefined): string {
@@ -583,7 +601,7 @@ export interface LBLeaderboardResponse {
    * 'resonance_liberation_dmg']. Empty when no board reference is available —
    * the UI then falls back to its per-row heuristic.
    */
-  displayStats: string[];
+  displayStats: LBStatSortKey[];
 }
 
 interface LBSubmitBuildResult {
@@ -784,9 +802,7 @@ export async function listLeaderboard(
     activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
     activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
     erMin: toFiniteNumber(payload.erMin, 0),
-    displayStats: Array.isArray(payload.displayStats)
-      ? payload.displayStats.filter((v): v is string => typeof v === 'string')
-      : [],
+    displayStats: parseLeaderboardDisplayStats(payload.displayStats),
   };
 }
 

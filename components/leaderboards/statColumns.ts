@@ -1,5 +1,5 @@
 import { Character } from '@/lib/character';
-import { getLBStatCode, LBStatCode, LBStatSortKey, LBSortKey } from '@/lib/lb';
+import { getLBStatCode, LBLeaderboardSortKey, LBStatCode, LBStatSortKey, LBSortKey } from '@/lib/lb';
 import { BASE_STAT_FALLBACK_ORDER, ELEMENT_STAT_KEYS, OFFENSIVE_BONUS_KEYS, STAT_OPTION_KEYS } from './constants';
 import { StatSortKey } from './types';
 
@@ -136,20 +136,17 @@ function appendFallbackStatKeys(
   ELEMENT_STAT_KEYS.forEach((key) => pushUnique(keys, key));
 }
 
-const STAT_OPTION_KEY_SET: ReadonlySet<StatSortKey> = new Set(STAT_OPTION_KEYS as readonly StatSortKey[]);
-
 /**
  * Convert the backend's board-level displayStats into the four ordered stat columns,
  * honoring the same sort-first behavior as resolveBuildRowStatKeys.
  * Returns null when the payload is missing/incomplete so callers fall back to the per-row heuristic.
  */
 export function resolveBoardDisplayColumns(
-  displayStats: readonly string[] | undefined,
-  sort: string,
+  displayStats: readonly LBStatSortKey[] | undefined,
+  sort: LBSortKey | LBLeaderboardSortKey,
 ): StatSortKey[] | null {
   if (!displayStats || displayStats.length === 0) return null;
-  const valid = displayStats.filter((key): key is StatSortKey =>
-    STAT_OPTION_KEY_SET.has(key as StatSortKey));
+  const valid = displayStats.filter((key): key is StatSortKey => STAT_OPTION_KEYS.includes(key));
   if (valid.length < 4) return null;
 
   if (STAT_OPTION_KEYS.includes(sort as LBStatSortKey)) {

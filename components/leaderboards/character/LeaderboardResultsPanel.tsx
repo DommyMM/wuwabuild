@@ -19,7 +19,7 @@ const DAMAGE_SORT_KEY: LBLeaderboardSortKey = 'damage';
 interface LeaderboardResultsPanelProps {
   entries: LBLeaderboardEntry[];
   /** Backend board-level stat columns; resolved into the four row columns when complete. */
-  displayStats?: string[];
+  displayStats?: readonly StatSortKey[];
   deepLinkBuildId: string;
   activeWeaponId: string;
   activeTrackKey: string;

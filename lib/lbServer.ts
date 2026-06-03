@@ -1,5 +1,5 @@
 // Server-only module, fetches directly from LB_URL with X-Internal-Key
-import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack, LBTeamMemberConfig } from './lb';
+import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardDisplayStats, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack, LBTeamMemberConfig } from './lb';
 import { loadCharacterDisplayMap } from './server/gameData';
 
 // Centralized TTL for all SSR prefetch caches (seconds).
@@ -282,9 +282,7 @@ export async function prefetchLeaderboard(
       activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
       activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
       erMin: toFiniteNumber(payload.erMin, 0),
-      displayStats: Array.isArray(payload.displayStats)
-        ? payload.displayStats.filter((value): value is string => typeof value === 'string')
-        : [],
+      displayStats: parseLeaderboardDisplayStats(payload.displayStats),
     };
   } catch (err) {
     console.error('[lbServer] prefetchLeaderboard failed', err);
