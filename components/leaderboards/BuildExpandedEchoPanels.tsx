@@ -26,6 +26,7 @@ interface BuildExpandedEchoPanelsProps {
   activeSelectedSubstats: ReadonlySet<string>;
   hasSelectedSubstats: boolean;
   showHeader?: boolean;
+  showForte?: boolean;
 }
 
 function normalizeSubstatKey(type: string | null | undefined): string | null {
@@ -155,6 +156,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
   activeSelectedSubstats,
   hasSelectedSubstats,
   showHeader = true,
+  showForte = true,
 }) => {
   const { fettersByElement, getSubstatValues, getMainStatsByCost, statTranslations } = useGameData();
 
@@ -173,20 +175,22 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-1.5">
-            {FORTE_LABELS.map((label, forteIndex) => {
-              const entryForte = detail.buildState.forte?.[forteIndex];
-              const level = Number(entryForte?.[0] ?? 1);
-              return (
-                <span
-                  key={`${detail.id}-forte-${label}`}
-                  className="rounded border border-border bg-background-secondary px-2 py-1 text-[11px] font-semibold text-text-primary/85"
-                >
-                  {label} {level}
-                </span>
-              );
-            })}
-          </div>
+          {showForte && (
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
+              {FORTE_LABELS.map((label, forteIndex) => {
+                const entryForte = detail.buildState.forte?.[forteIndex];
+                const level = Number(entryForte?.[0] ?? 1);
+                return (
+                  <span
+                    key={`${detail.id}-forte-${label}`}
+                    className="rounded border border-border bg-background-secondary px-2 py-1 text-[11px] font-semibold text-text-primary/85"
+                  >
+                    {label} {level}
+                  </span>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex items-center gap-1 text-sm text-text-primary/70">
             <span>{detail.owner.username || 'Anonymous'}</span>

@@ -31,6 +31,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'No ER bracekts or automatic ER substat selection for Phrolova'
+            },
+            {
+                kind: 'improved',
+                text: 'Removed forte levels in leaderboard row expansion because it was misleading and they were all calculated at max anyways'
             }
         ]
     },

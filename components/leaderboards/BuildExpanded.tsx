@@ -31,7 +31,7 @@ const SkeletonBlock: React.FC<{ className: string }> = ({ className }) => (
   <div className={`animate-pulse rounded bg-white/8 ${className}`} />
 );
 
-const BuildExpandedSkeleton: React.FC = () => (
+const BuildExpandedSkeleton: React.FC<{ showForte?: boolean }> = ({ showForte = true }) => (
   <>
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-2">
@@ -39,11 +39,13 @@ const BuildExpandedSkeleton: React.FC = () => (
         <SkeletonBlock className="h-6 w-36" />
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-1.5">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <SkeletonBlock key={`forte-skeleton-${index}`} className="h-6 w-16 rounded" />
-        ))}
-      </div>
+      {showForte && (
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <SkeletonBlock key={`forte-skeleton-${index}`} className="h-6 w-16 rounded" />
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <SkeletonBlock className="h-4 w-24" />
@@ -307,7 +309,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           className="overflow-x-visible overflow-y-hidden border-t border-border/50 bg-black/15 tracking-wide"
         >
           <div className="mx-auto w-full max-w-330 space-y-4 px-12 pt-3">
-            {isDetailLoading && <BuildExpandedSkeleton />}
+            {isDetailLoading && <BuildExpandedSkeleton showForte={surface !== 'leaderboard_character'} />}
 
             {!isDetailLoading && detailError && (
               <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 p-3 text-sm text-red-200">
@@ -334,6 +336,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   translateText={translateText}
                   activeSelectedSubstats={activeSelectedSubstats}
                   hasSelectedSubstats={hasSelectedSubstats}
+                  showForte={surface !== 'leaderboard_character'}
                 />
 
               </>
