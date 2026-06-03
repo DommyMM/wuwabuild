@@ -14,10 +14,11 @@ export async function GET(request: NextRequest) {
   const response = await renderOgCard({
     variant: 'weapon',
     title: weapon.name,
-    subtitle: 'Weapon stats and calculator',
-    chips: [weapon.weaponType, `${weapon.rarity}★`, 'Wuthering Waves'],
+    subtitle: 'Weapon details, stats, and resonator reference',
+    chips: [weapon.weaponType, `${weapon.rarity}★`],
     artUrl: weapon.iconUrl,
     accentColor: RARITY_ACCENT[weapon.rarity],
+    artKind: 'weapon',
   });
   response.headers.set('Content-Type', OG_CONTENT_TYPE);
   response.headers.set('Cache-Control', 'public, s-maxage=604800, stale-while-revalidate=2592000');

@@ -7,7 +7,6 @@
  *   - tacet-silhouette.png        full waveform, white shape on transparent (master mask)
  *   - tacet-burst.png             cropped central burst (compact mark mask)
  *   - wave-<element>.png          full waveform tinted per element + gold
- *   - burst-gold.png              gold compact mark (brand stamp)
  *
  * Favicon / PWA icons are NOT generated here; those keep the WB monogram.
  * The tacet waveform is the OG-card identity only.
@@ -108,9 +107,6 @@ async function main() {
   for (const [k, stops] of Object.entries(PALETTES)) {
     await bake(silPath, stops, path.join(BRAND, `wave-${k}.png`));
   }
-  // 4) gold burst (brand stamp)
-  await bake(burstPath, PALETTES.gold, path.join(BRAND, 'burst-gold.png'));
-
   console.log('brand assets:', Object.keys(PALETTES).map((k) => 'wave-' + k).join(', '));
   console.log('silhouette', `${sw}x${sh}`, '· burst peakX', peakX);
 }

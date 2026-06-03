@@ -1,7 +1,8 @@
 import 'server-only';
 import fs from 'fs';
 import path from 'path';
-import { type CDNCharacter, adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
+import { type CDNCharacter, adaptCDNCharacter, formatCharacterDisplayName, isRover } from '@/lib/character';
+import { getSplashUrlCandidates } from '@/lib/splashArt';
 
 type GenericRecord = Record<string, unknown>;
 
@@ -10,7 +11,7 @@ interface WeaponRecord {
   name?: { en?: string };
   type?: { name?: { en?: string } };
   rarity?: { id?: number };
-  icon?: string;
+  icon?: string | { icon?: string; iconMiddle?: string; iconSmall?: string };
 }
 
 const DATA_DIR = path.join(process.cwd(), 'public', 'Data');
@@ -35,6 +36,17 @@ function i18nEn(value: unknown): string {
     return typeof en === 'string' ? en : '';
   }
   return '';
+}
+
+function publicAssetExists(urlPath: string): boolean {
+  if (!urlPath.startsWith('/')) return false;
+  return fs.existsSync(path.join(process.cwd(), 'public', urlPath.slice(1)));
+}
+
+function resolveCharacterSplashUrl(raw: CDNCharacter): string | null {
+  const char = adaptCDNCharacter(raw);
+  const candidates = getSplashUrlCandidates(String(raw.id), raw.legacyId ?? null, isRover(char));
+  return candidates.find(publicAssetExists) ?? null;
 }
 
 // --- Characters ---
@@ -63,6 +75,7 @@ export function loadCharacterSummary(id: string) {
     weaponType: char.weaponType,
     rarity: char.rarity ?? raw.rarity?.id ?? 5,
     bannerUrl: raw.icon?.banner ?? null,
+    splashUrl: resolveCharacterSplashUrl(raw),
     iconRoundUrl: raw.icon?.iconRound ?? null,
     elementColor: raw.element?.color ?? null,
     rarityColor: raw.rarity?.color ?? null,
@@ -123,6 +136,12 @@ function findWeapon(id: string): WeaponRecord | undefined {
   return loadAllWeapons().find((w) => w.id != null && w.id.toString() === id);
 }
 
+function getWeaponIconUrl(weapon: WeaponRecord): string | null {
+  if (!weapon.icon) return null;
+  if (typeof weapon.icon === 'string') return weapon.icon;
+  return weapon.icon.iconMiddle || weapon.icon.icon || weapon.icon.iconSmall || null;
+}
+
 /** Map of weapon id → English name, for resolving leaderboard weapon ids server-side. */
 export function loadWeaponNames(): Record<string, string> {
   const map: Record<string, string> = {};
@@ -160,6 +179,6 @@ export function loadWeaponSummary(id: string) {
     name: weapon.name.en,
     weaponType: weapon.type?.name?.en ?? 'Weapon',
     rarity: weapon.rarity?.id ?? 5,
-    iconUrl: weapon.icon ?? null,
+    iconUrl: getWeaponIconUrl(weapon),
   };
 }

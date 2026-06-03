@@ -1,7 +1,9 @@
 import 'server-only';
 import { ImageResponse } from 'next/og';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 type OgCardVariant = 'site' | 'page' | 'leaderboard-overview' | 'character' | 'weapon' | 'leaderboard';
 
@@ -17,6 +19,7 @@ interface OgCardData {
   metricLabel?: string;
   metricValue?: string;
   detailLabel?: string;
+  artKind?: 'character' | 'scene' | 'weapon';
 }
 
 export const OG_SIZE = { width: 1200, height: 630 } as const;
@@ -54,7 +57,6 @@ const FONT_URLS = {
   bold: new URL('./fonts/PlusJakartaSans-Bold.woff', import.meta.url),
   extrabold: new URL('./fonts/PlusJakartaSans-ExtraBold.woff', import.meta.url),
 };
-const BRAND_MARK_URL = new URL('./brand/burst-gold.png', import.meta.url);
 
 const ELEMENT_WAVES = new Set(['glacio', 'fusion', 'electro', 'aero', 'spectro', 'havoc', 'rover']);
 function waveKeyFor(data: OgCardData): string {
@@ -68,18 +70,6 @@ function loadWave(key: string): Promise<string> {
   let p = dataUriCache.get(k);
   if (!p) {
     p = readFile(fileURLToPath(WAVE_URLS[k]))
-      .then((buf) => `data:image/png;base64,${buf.toString('base64')}`)
-      .catch(() => '');
-    dataUriCache.set(k, p);
-  }
-  return p;
-}
-
-function loadBrandMark(): Promise<string> {
-  const k = 'brand:burst-gold';
-  let p = dataUriCache.get(k);
-  if (!p) {
-    p = readFile(fileURLToPath(BRAND_MARK_URL))
       .then((buf) => `data:image/png;base64,${buf.toString('base64')}`)
       .catch(() => '');
     dataUriCache.set(k, p);
@@ -106,7 +96,21 @@ function loadFonts() {
 }
 
 async function fetchArt(url: string | null | undefined): Promise<string | null> {
-  if (!url) return null;
+  if (!url || typeof url !== 'string') return null;
+  if (url.startsWith('/')) {
+    try {
+      const filePath = path.join(process.cwd(), 'public', url.slice(1));
+      const source = await readFile(filePath);
+      const buf = await sharp(source)
+        .resize({ width: 900, height: 900, fit: 'inside', withoutEnlargement: true })
+        .png()
+        .toBuffer();
+      if (buf.byteLength === 0) return null;
+      return `data:image/png;base64,${buf.toString('base64')}`;
+    } catch {
+      return null;
+    }
+  }
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) return null;
@@ -145,7 +149,8 @@ function Wordmark({ text, size }: { text: string; size: number }) {
         display: 'flex',
         fontSize: size,
         fontWeight: 800,
-        lineHeight: 1,
+        lineHeight: 1.18,
+        paddingBottom: Math.round(size * 0.06),
         letterSpacing: '-0.01em',
         backgroundImage: SILVER_TEXT,
         backgroundClip: 'text',
@@ -211,28 +216,6 @@ function Chip({ text, accent }: { text: string; accent: string }) {
   );
 }
 
-function BrandStamp({ mark }: { mark?: string }) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 34,
-        left: 56,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 7,
-        fontSize: 18,
-        fontWeight: 700,
-        letterSpacing: '0.01em',
-      }}
-    >
-      {mark && <img alt="" src={mark} width={21} height={21} style={{ objectFit: 'contain' }} />}
-      <span style={{ display: 'flex', color: '#f2f2f5' }}>WuWa</span>
-      <span style={{ display: 'flex', color: GOLD }}>Builds</span>
-    </div>
-  );
-}
-
 function renderImage(node: React.ReactElement, fonts: Awaited<ReturnType<typeof loadFonts>>): ImageResponse {
   return new ImageResponse(node, {
     ...OG_SIZE,
@@ -280,25 +263,15 @@ async function build(
 
   // --- entity cards with art (character / weapon / leaderboard) ---
   if (artSrc) {
-    const [wave, brandMark] = await Promise.all([loadWave(waveKeyFor(data)), loadBrandMark()]);
+    const wave = await loadWave(waveKeyFor(data));
     const waveW = 300;
     const nameSize = data.title.length > 13 ? 50 : 62;
+    const isWeapon = data.artKind === 'weapon';
+    const isScene = data.artKind === 'scene';
+    const artColumnWidth = isScene ? 600 : 510;
     return renderImage(
       <div style={{ ...base(), flexDirection: 'row', alignItems: 'stretch', justifyContent: 'flex-start' }}>
         <Vignette />
-        <BrandStamp mark={brandMark} />
-        {/* element glow on the art side */}
-        <div
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 0,
-            width: 680,
-            height: '100%',
-            display: 'flex',
-            background: `radial-gradient(60% 60% at 78% 50%, ${accent}33, transparent 70%)`,
-          }}
-        />
         {/* left text column */}
         <div
           style={{
@@ -373,34 +346,56 @@ async function build(
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: 510,
+            width: artColumnWidth,
             height: '100%',
             position: 'relative',
           }}
         >
+          {isWeapon && (
+            <div
+              style={{
+                position: 'absolute',
+                width: 310,
+                height: 310,
+                display: 'flex',
+                border: `1px solid ${accent}42`,
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.045), rgba(0,0,0,0.16))',
+                boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.035), 0 22px 48px rgba(0,0,0,0.34), 0 0 42px ${accent}16`,
+              }}
+            />
+          )}
+          {isScene && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 28,
+                width: 565,
+                height: 355,
+                display: 'flex',
+                border: `1px solid ${accent}30`,
+                background: 'rgba(0,0,0,0.22)',
+                boxShadow: '0 22px 44px rgba(0,0,0,0.32)',
+              }}
+            />
+          )}
           <div
             style={{
               position: 'absolute',
-              left: 0,
-              top: 0,
-              width: 230,
-              height: '100%',
-              display: 'flex',
-              background: 'linear-gradient(90deg, #131318 0%, rgba(19,19,24,0.92) 22%, rgba(19,19,24,0.28) 66%, transparent 100%)',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              right: 18,
+              right: isWeapon ? 105 : isScene ? 28 : 18,
               bottom: 0,
-              width: 430,
-              height: 92,
+              width: isWeapon ? 310 : isScene ? 565 : 430,
+              height: isWeapon ? 44 : 74,
               display: 'flex',
-              background: 'linear-gradient(0deg, #131318 10%, rgba(19,19,24,0.76) 42%, transparent 100%)',
+              background: 'linear-gradient(0deg, #131318 0%, rgba(19,19,24,0.58) 42%, transparent 100%)',
             }}
           />
-          <img alt="" src={artSrc} width={470} height={540} style={{ objectFit: 'contain' }} />
+          <img
+            alt=""
+            src={artSrc}
+            width={isWeapon ? 256 : isScene ? 565 : 520}
+            height={isWeapon ? 256 : isScene ? 355 : 570}
+            style={{ objectFit: isScene ? 'cover' : 'contain' }}
+          />
         </div>
       </div>,
       fonts,
@@ -409,13 +404,13 @@ async function build(
 
   // --- centered info card (no art, e.g. leaderboard overview) ---
   const wave = await loadWave(waveKeyFor(data));
-  const waveW = 360;
+  const waveW = 430;
   return renderImage(
     <div style={base()}>
       <Vignette />
       {wave && <img alt="" src={wave} width={waveW} height={Math.round(waveW / WAVE_RATIO)} style={{ marginBottom: 10 }} />}
-      <Wordmark text={data.title} size={data.title.length > 18 ? 52 : 64} />
-      <div style={{ display: 'flex', fontSize: 24, color: TEXT_MUTED, marginTop: 16, textAlign: 'center' }}>
+      <Wordmark text={data.title} size={data.title.length > 18 ? 58 : 72} />
+      <div style={{ display: 'flex', fontSize: 24, color: TEXT_MUTED, marginTop: 17, textAlign: 'center' }}>
         {data.subtitle}
       </div>
     </div>,

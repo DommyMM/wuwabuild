@@ -7,7 +7,18 @@ export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Wuthering Waves Builds',
-  description: 'Explore the best Wuthering Waves character builds. Filter by resonator, weapon, and echoes to find optimal substats, main stats, and community guides.',
+  description: 'Browse, filter, sort, and discover submitted Wuthering Waves builds by character, weapon, echoes, and stats.',
+  openGraph: {
+    title: 'Wuthering Waves Builds',
+    description: 'Browse, filter, sort, and discover submitted Wuthering Waves builds by character, weapon, echoes, and stats.',
+    url: 'https://wuwa.build/builds',
+    images: [{ url: 'https://wuwa.build/api/og/builds', width: 1200, height: 630, alt: 'Wuthering Waves Builds' }],
+  },
+  twitter: {
+    title: 'Wuthering Waves Builds',
+    description: 'Browse, filter, sort, and discover submitted Wuthering Waves builds by character, weapon, echoes, and stats.',
+    images: ['https://wuwa.build/api/og/builds'],
+  },
   alternates: { canonical: '/builds' },
 };
 

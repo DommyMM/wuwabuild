@@ -3,7 +3,18 @@ import { EditorProviders } from '@/contexts';
 
 export const metadata: Metadata = {
     title: 'Wuthering Waves Build Editor',
-    description: 'Use the Wuthering Waves build editor to customize characters, set echoes, weapons, and forte levels, then export a showcase card.',
+    description: 'Create and tune Wuthering Waves builds with editable characters, echoes, weapons, forte levels, and exportable showcase cards.',
+    openGraph: {
+        title: 'Wuthering Waves Build Editor',
+        description: 'Create and tune Wuthering Waves builds with editable characters, echoes, weapons, forte levels, and exportable showcase cards.',
+        url: 'https://wuwa.build/edit',
+        images: [{ url: 'https://wuwa.build/api/og/edit', width: 1200, height: 630, alt: 'Wuthering Waves Build Editor' }],
+    },
+    twitter: {
+        title: 'Wuthering Waves Build Editor',
+        description: 'Create and tune Wuthering Waves builds with editable characters, echoes, weapons, forte levels, and exportable showcase cards.',
+        images: ['https://wuwa.build/api/og/edit'],
+    },
     alternates: { canonical: '/edit' },
 };
 

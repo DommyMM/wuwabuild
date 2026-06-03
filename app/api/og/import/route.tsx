@@ -4,9 +4,9 @@ export const revalidate = 604800;
 
 export async function GET() {
   const response = await renderOgCard({
-    variant: 'leaderboard-overview',
-    title: 'Leaderboards',
-    subtitle: 'Compare Wuthering Waves rankings',
+    variant: 'page',
+    title: 'Import Builds',
+    subtitle: 'Scan profile images into editable builds',
     chips: [],
   });
   response.headers.set('Content-Type', OG_CONTENT_TYPE);

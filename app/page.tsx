@@ -7,10 +7,10 @@ export const revalidate = 300; // ISR: full page HTML cached at edge, re-rendere
 
 export const metadata: Metadata = {
     title: 'WuWaBuilds',
-    description: 'Build, scan, and rank Wuthering Waves characters. Import builds from a screenshot, calculate echo stats and damage, and compare on global leaderboards.',
+    description: 'Scan, build, and rank Wuthering Waves characters. Import screenshots, tune echoes and weapons, export showcase cards, and compare damage on leaderboards.',
     twitter: {
         title: 'WuWaBuilds',
-        description: 'Build, scan, and rank Wuthering Waves characters. Import builds from a screenshot, calculate echo stats and damage, and compare on global leaderboards.',
+        description: 'Scan, build, and rank Wuthering Waves characters. Import screenshots, tune echoes and weapons, export showcase cards, and compare damage on leaderboards.',
     },
     alternates: { canonical: '/' },
 };

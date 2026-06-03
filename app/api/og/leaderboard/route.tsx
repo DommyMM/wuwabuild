@@ -4,7 +4,7 @@ import { prefetchLeaderboard } from '@/lib/lbServer';
 import { OG_CONTENT_TYPE, renderFallbackCard, renderOgCard } from '@/lib/server/og';
 import { loadCharacterSummary, loadWeaponSummary } from '@/lib/server/gameData';
 
-export const revalidate = 300;
+export const revalidate = 86400;
 
 function compactNumber(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return '0';
@@ -39,27 +39,25 @@ export async function GET(request: NextRequest) {
   const activeTrack = leaderboard?.activeTrack || requestedTrack;
   const weapon = activeWeaponId ? loadWeaponSummary(activeWeaponId) : null;
   const top = leaderboard?.builds[0] ?? null;
-  const sequence = Math.max(parseLBSeqLevel(activeTrack), top?.sequence ?? 0);
+  const sequence = parseLBSeqLevel(activeTrack);
   const playstyle = resolveTrackLabel(activeTrack, leaderboard?.tracks ?? []);
+  const artUrl = character.splashUrl ?? character.bannerUrl;
 
   const response = await renderOgCard({
     variant: 'leaderboard',
     title: character.name,
-    subtitle: `${playstyle} leaderboard`,
-    chips: [
-      character.element,
-      sequence > 0 ? `S${sequence}` : character.weaponType,
-      weapon?.name ?? 'Damage rankings',
-    ],
-    artUrl: character.bannerUrl,
+    subtitle: `${playstyle} leaderboard · S${sequence}${weapon?.name ? ` · ${weapon.name}` : ''}`,
+    chips: [],
+    artUrl,
     secondaryArtUrl: weapon?.iconUrl,
     accentColor: character.elementColor ?? undefined,
     element: character.element,
-    metricLabel: top ? 'Top ranked build' : 'Global leaderboard',
-    metricValue: top ? `#${top.globalRank || 1} · ${compactNumber(top.damage)}` : undefined,
-    detailLabel: top ? 'simulated damage' : undefined,
+    artKind: character.splashUrl ? 'scene' : 'character',
+    metricLabel: top ? 'Top damage' : 'Global leaderboard',
+    metricValue: top ? compactNumber(top.damage) : undefined,
+    detailLabel: top?.owner.username ? `held by ${top.owner.username}` : undefined,
   });
   response.headers.set('Content-Type', OG_CONTENT_TYPE);
-  response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400');
+  response.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
   return response;
 }
