@@ -38,7 +38,7 @@ const subscribeToClientRender = () => () => {};
 export const SavesPageClient: React.FC = () => {
   const router = useRouter();
   const { success, error: notifyError, warning } = useToast();
-  const { characters, echoes, weaponList } = useGameData();
+  const { characters, echoes, weaponList, getEcho } = useGameData();
   const { t } = useLanguage();
   const isClient = useSyncExternalStore(subscribeToClientRender, () => true, () => false);
   const [storageRevision, setStorageRevision] = useState(0);
@@ -88,8 +88,8 @@ export const SavesPageClient: React.FC = () => {
   );
 
   const buildCVs = useMemo(() => (
-    new Map(builds.map((build) => [build.id, calculateCV(build.state.echoPanels)]))
-  ), [builds]);
+    new Map(builds.map((build) => [build.id, calculateCV(build.state.echoPanels, (panel) => getEcho(panel.id)?.cost)]))
+  ), [builds, getEcho]);
 
   const selectedCharacters = useMemo(() => (
     selectedCharacterIds.reduce<typeof characters>((acc, id) => {

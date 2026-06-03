@@ -42,7 +42,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
   const characterName = character ? t(character.nameI18n ?? { en: character.name }) : null;
   const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : null;
   const elementTintClass = character?.element ? (ELEMENT_TINT_CLASS[character.element] ?? '') : '';
-  const totalCV = calculateCV(state.echoPanels);
+  const totalCV = calculateCV(state.echoPanels, (panel) => getEcho(panel.id)?.cost);
   const filledEchoCount = state.echoPanels.filter((panel) => panel.id).length;
   const forteNodeCount = state.forte.reduce((total, [, top, middle]) => (
     total + (top ? 1 : 0) + (middle ? 1 : 0)

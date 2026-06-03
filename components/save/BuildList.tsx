@@ -117,7 +117,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
     ? t(weapon.nameI18n ?? { en: weapon.name })
     : build.state.weaponId;
   const weaponIcon = getWeaponPaths(weapon);
-  const buildCV = calculateCV(build.state.echoPanels);
+  const buildCV = calculateCV(build.state.echoPanels, (panel) => getEcho(panel.id)?.cost);
   const echoPreviewData = useMemo(() => (
     build.state.echoPanels.map((panel) => {
       const echo = panel.id ? getEcho(panel.id) : null;

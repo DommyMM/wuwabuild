@@ -254,7 +254,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
       updates,
       baseValues,
       breakdowns,
-      cv: calculateCV(echoPanels),
+      cv: calculateCV(echoPanels, (panel) => getEcho(panel.id)?.cost),
       elementCounts,
       activeSets,
     };
@@ -273,6 +273,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     sequence,
     activeSets,
     fettersByElement,
+    getEcho,
   ]);
 
   const getStatValue = useMemo(() => (stat: StatName): number => stats.values[stat] ?? 0, [stats.values]);

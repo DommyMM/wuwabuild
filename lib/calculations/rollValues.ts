@@ -51,14 +51,32 @@ export const calculateEchoSubstatCV = (panel: EchoPanelState): number => {
 };
 
 // Calculate total CV across all echo panels (substats + main stats).
-export const calculateCV = (echoPanels: EchoPanelState[]): number => {
+// Second crit 4 cost onwards subtracts the CV so only the first 4 cost gives 4
+export const calculateCV = (
+  echoPanels: EchoPanelState[],
+  getEchoCost: (panel: EchoPanelState) => number | null | undefined
+): number => {
   let cv = echoPanels.reduce((sum, panel) => sum + calculateEchoSubstatCV(panel), 0);
+
+  const fourCostCritMainCVs: number[] = [];
 
   echoPanels.forEach(panel => {
     const { type, value } = panel.stats.mainStat;
-    if (type === 'Crit Rate' && value) cv += 2 * value;
-    if (type === 'Crit DMG' && value) cv += value;
+    if (!value) return;
+
+    let mainCV = 0;
+    if (type === 'Crit Rate') mainCV = 2 * value;
+    else if (type === 'Crit DMG') mainCV = value;
+    if (mainCV === 0) return;
+
+    cv += mainCV;
+    if (getEchoCost(panel) === 4) fourCostCritMainCVs.push(mainCV);
   });
+
+  if (fourCostCritMainCVs.length > 1) {
+    const penalty = fourCostCritMainCVs.reduce((a, b) => a + b, 0) - Math.max(...fourCostCritMainCVs);
+    cv -= penalty;
+  }
 
   return cv;
 };

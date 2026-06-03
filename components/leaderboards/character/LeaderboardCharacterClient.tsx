@@ -106,6 +106,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   ));
   // Track which buildId we've already auto-expanded, so same-page navigation to a new buildId re-triggers.
   const didDeepLinkRef = useRef<string | null>(null);
+  // One-shot guard: once a deep-linked build has been resolved + expanded, stop sending its buildId to the
+  // API (the backend forces the page to wherever that build ranks). Without this, pagination snaps back.
+  const [consumedDeepLinkId, setConsumedDeepLinkId] = useState<string | null>(null);
   // Used to suppress the URL sync effect for one cycle when external navigation updates weapon/track state.
   const suppressUrlSyncRef = useRef(false);
   const prevSearchParamsRef = useRef(searchParamsString);
@@ -140,11 +143,13 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   // Clear the deep link buildId once the user navigates away from the weapon/track it was introduced on.
   const activeBuildId = useMemo(() => {
     if (!deepLinkBuildId || !buildIdContext) return undefined;
+    // Already resolved + expanded: drop it so the API stops forcing the page (and the URL drops buildId).
+    if (consumedDeepLinkId === deepLinkBuildId) return undefined;
     const ctx = buildIdContext;
     if (ctx.weaponId && weaponId !== ctx.weaponId) return undefined;
     if (ctx.track && track !== ctx.track) return undefined;
     return deepLinkBuildId;
-  }, [buildIdContext, deepLinkBuildId, track, weaponId]);
+  }, [buildIdContext, consumedDeepLinkId, deepLinkBuildId, track, weaponId]);
   const activeTrackConfig = useMemo(
     () => configTracks.find((entry) => entry.key === track),
     [configTracks, track],
@@ -403,6 +408,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   useEffect(() => {
     if (!autoExpandBuildId) return;
     if (!entries.some((e) => e.id === autoExpandBuildId)) return;
+    // The deep link has landed on its page and the build is visible — consume it so the buildId stops
+    // being sent to the API (which forces the page) and drops from the URL on the next sync.
+    setConsumedDeepLinkId(autoExpandBuildId);
     if (expandedIds.has(autoExpandBuildId)) { void Promise.resolve().then(() => setAutoExpandBuildId(null)); return; }
     const id = autoExpandBuildId;
     void Promise.resolve().then(() => {
