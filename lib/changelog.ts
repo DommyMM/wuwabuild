@@ -22,6 +22,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
+                text: 'Opening a leaderboard deep link no longer locks you to that build. You can freely change filters, sorting, and pages, and the linked build re-appears if you return to the view it was opened on'
+            },
+            {
+                kind: 'fixed',
                 text: 'Migrated all old Sigrika builds who had Drunken Hero equipped because wuwa-bot returned blank images for Solsworn Cipher'
             },
             {
