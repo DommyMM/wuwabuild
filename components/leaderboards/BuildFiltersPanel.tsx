@@ -224,7 +224,9 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     [selectedMainEntries],
   );
 
-  const normalizedQuery = filterQuery.trim().toLowerCase();
+  const trimmedFilterQuery = filterQuery.trim();
+  const normalizedQuery = trimmedFilterQuery.toLowerCase();
+  const isExactUidQuery = /^\d{9}$/.test(trimmedFilterQuery);
 
   const validSortLabels = useMemo(() => {
     const labels = new Set<string>(getAvailableSubstats());
@@ -251,27 +253,22 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const visibleItems = useMemo<VisibleFilterItem[]>(() => {
     const items: VisibleFilterItem[] = [];
 
-    if (normalizedQuery.length >= 2 && !username) {
+    if (isExactUidQuery && !uid) {
       items.push({
-        key: `username-${filterQuery.trim()}`,
-        type: 'username',
-        section: 'Search By',
-        value: filterQuery.trim(),
-        label: `Username: ${filterQuery.trim()}`,
-      });
-    }
-    if (
-      normalizedQuery.length >= 2 &&
-      !uid &&
-      /^\d+$/.test(filterQuery.trim()) &&
-      filterQuery.trim().length <= 12
-    ) {
-      items.push({
-        key: `uid-${filterQuery.trim()}`,
+        key: `uid-${trimmedFilterQuery}`,
         type: 'uid',
         section: 'Search By',
-        value: filterQuery.trim(),
-        label: `UID: ${filterQuery.trim()}`,
+        value: trimmedFilterQuery,
+        label: `UID: ${trimmedFilterQuery}`,
+      });
+    }
+    if (normalizedQuery.length >= 2 && !username) {
+      items.push({
+        key: `username-${trimmedFilterQuery}`,
+        type: 'username',
+        section: 'Search By',
+        value: trimmedFilterQuery,
+        label: `Username: ${trimmedFilterQuery}`,
       });
     }
 
@@ -385,7 +382,6 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     return items;
   }, [
     characters,
-    filterQuery,
     getMainStatsByCost,
     normalizedQuery,
     regionPrefixes,
@@ -396,6 +392,8 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     setOptions,
     statIcons,
     t,
+    trimmedFilterQuery,
+    isExactUidQuery,
     uid,
     username,
     weaponList,
