@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-03',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Echo set badges in expanded leaderboard rows now show the full sonata tooltip on hover'
+            },
+            {
+                kind: 'improved',
+                text: 'Certain characters (just cartethyia) now show all useful stats which in her case was also liberation not just basic'
+            }
+        ]
+    },
+    {
         date: '2026-06-02',
         changes: [
             {

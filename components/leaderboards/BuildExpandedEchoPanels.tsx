@@ -12,6 +12,7 @@ import { LBBuildDetailEntry } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
 import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
 import { EchoHoverCard } from '@/components/echo/EchoHoverCard';
+import { FetterHoverCard } from '@/components/echo/FetterHoverCard';
 import { HoverCard } from '@/components/ui/HoverCard';
 import { RegionBadge } from './constants';
 
@@ -261,11 +262,25 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
             >
               {fetterIcon && (
                 <div className="absolute top-0 left-1/2 z-3 -translate-x-1/2 -translate-y-1/2">
-                  <img
-                    src={fetterIcon}
-                    alt={elementType ?? ''}
-                    className="h-6 w-6 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
-                  />
+                  {fetter ? (
+                    <FetterHoverCard
+                      fetter={fetter}
+                      placement="top"
+                      triggerClassName="inline-flex cursor-pointer"
+                    >
+                      <img
+                        src={fetterIcon}
+                        alt={translateText(fetter.name as unknown as Record<string, string> | undefined, elementType ?? '')}
+                        className="h-6 w-6 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
+                      />
+                    </FetterHoverCard>
+                  ) : (
+                    <img
+                      src={fetterIcon}
+                      alt={elementType ?? ''}
+                      className="h-6 w-6 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
+                    />
+                  )}
                 </div>
               )}
 
