@@ -38,6 +38,13 @@ function getCoreLeaderboardCanonical(characterId: string, weaponId: string, trac
   return search ? `/leaderboards/${characterId}?${search}` : `/leaderboards/${characterId}`;
 }
 
+function getLeaderboardOgImageUrl(characterId: string, weaponId: string, trackKey: string): string {
+  const query = new URLSearchParams({ char: characterId });
+  if (weaponId) query.set('weaponId', weaponId);
+  if (trackKey) query.set('track', trackKey);
+  return `https://wuwa.build/api/og/leaderboard?${query.toString()}`;
+}
+
 function getTrackTitleParts(trackKey: string, tracks: LBTrack[]): { playstyle: string; sequence: number } {
   const track = tracks.find((entry) => entry.key === trackKey);
   const rawLabel = track?.label?.trim() || trackKey || 'Damage';
@@ -78,22 +85,25 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const title = getLeaderboardTitle(characterName, activeTrack, tracks);
     const description = getLeaderboardDescription(characterName, activeTrack, tracks, activeWeaponId);
     const canonical = getCoreLeaderboardCanonical(characterId, activeWeaponId, activeTrack);
+    const image = getLeaderboardOgImageUrl(characterId, activeWeaponId, activeTrack);
 
     return {
       title,
       description,
-      openGraph: { title, description, url: canonical },
-      twitter: { title, description },
+      openGraph: { title, description, url: canonical, images: [{ url: image, width: 1200, height: 630, alt: title }] },
+      twitter: { title, description, images: [image] },
       alternates: { canonical },
     };
   }
 
   const fallbackTitle = `Character Leaderboard #${characterId}`;
   const fallbackDescription = 'Global damage rankings for this Wuthering Waves character. Filter by weapon, track, echo sets, and compare setups.';
+  const fallbackImage = getLeaderboardOgImageUrl(characterId, '', DEFAULT_LB_TRACK);
   return {
     title: fallbackTitle,
     description: fallbackDescription,
-    twitter: { title: fallbackTitle, description: fallbackDescription },
+    openGraph: { title: fallbackTitle, description: fallbackDescription, images: [{ url: fallbackImage, width: 1200, height: 630, alt: fallbackTitle }] },
+    twitter: { title: fallbackTitle, description: fallbackDescription, images: [fallbackImage] },
     alternates: { canonical: `/leaderboards/${characterId}` },
   };
 }

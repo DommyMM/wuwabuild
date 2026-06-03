@@ -32,10 +32,10 @@ const GA_ID = "G-SP375JKDPX";
 export const metadata: Metadata = {
     metadataBase: new URL('https://wuwa.build'),
     title: {
-        default: 'WuWaBuilds - Wuthering Waves Build Creator',
+        default: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards',
         template: '%s | WuWaBuilds'
     },
-    description: 'Create and share Wuthering Waves builds with automatic screenshot scanning, real-time stat calculations, and build management tools.',
+    description: 'Scan, build, and rank Wuthering Waves characters with imported stats, editable builds, showcase cards, and damage leaderboards.',
     keywords: ['Wuthering Waves', 'WuWa', 'wuwa builds', 'WuWaBuilds', 'wuwa build maker', 'wuwa leaderboards', 'showcase card', 'screenshot scanner', 'damage calculator', 'build creator', 'character builds', 'echo builds'],
     authors: [{ name: 'WuWaBuilds' }],
     creator: 'WuWaBuilds',
@@ -44,13 +44,13 @@ export const metadata: Metadata = {
         locale: 'en_US',
         url: 'https://wuwa.build',
         siteName: 'WuWaBuilds',
-        title: 'WuWaBuilds - Wuthering Waves Build Creator & Showcase',
-        description: 'Create and share Wuthering Waves character build cards. Import from a screenshot, calculate echo stats and damage, and compare on global leaderboards.',
+        title: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards',
+        description: 'Scan, build, and rank Wuthering Waves characters with imported stats, editable builds, showcase cards, and damage leaderboards.',
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'WuWaBuilds - Wuthering Waves Build Creator & Showcase',
-        description: 'Create and share Wuthering Waves character build cards. Import from a screenshot, calculate echo stats and damage, and compare on global leaderboards.',
+        title: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards',
+        description: 'Scan, build, and rank Wuthering Waves characters with imported stats, editable builds, showcase cards, and damage leaderboards.',
     },
     robots: {
         index: true,

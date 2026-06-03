@@ -101,8 +101,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return {
         title,
         description,
-        openGraph: { title, description, url: `https://wuwa.build/characters/${id}` },
-        twitter: { title, description },
+        openGraph: {
+            title,
+            description,
+            url: `https://wuwa.build/characters/${id}`,
+            images: [{ url: `https://wuwa.build/api/og/character?id=${encodeURIComponent(id)}`, width: 1200, height: 630, alt: title }],
+        },
+        twitter: { title, description, images: [`https://wuwa.build/api/og/character?id=${encodeURIComponent(id)}`] },
         alternates: { canonical: `/characters/${id}` },
     };
 }

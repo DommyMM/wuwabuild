@@ -23,6 +23,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Certain characters (just cartethyia) now show all useful stats which in her case was also liberation not just basic'
+            },
+            {
+                kind: 'new',
+                text: 'New logo and Discord renders if you care lol'
             }
         ]
     },
