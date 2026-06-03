@@ -15,7 +15,9 @@ import { StatSortKey } from '../types';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from '../constants';
 
-const BuildExpanded = dynamic(() => import('../BuildExpanded').then((module) => module.BuildExpanded), {
+const loadBuildExpanded = () => import('../BuildExpanded').then((module) => module.BuildExpanded);
+
+const BuildExpanded = dynamic(loadBuildExpanded, {
   ssr: false,
   loading: () => (
     <div className="border-t border-border/50 bg-black/15 px-12 py-4 text-center text-xs text-text-primary/55">
@@ -165,6 +167,9 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
     setHasEverExpanded(true);
     onToggleExpand(entry.id);
   }, [entry.id, onToggleExpand]);
+  const preloadExpanded = useCallback(() => {
+    void loadBuildExpanded();
+  }, []);
 
   return (
     <div ref={rowRef}>
@@ -177,7 +182,10 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
             ? 'border-l-2 border-l-accent/60 bg-accent/6 hover:bg-accent/12'
             : 'odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10'
         } focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
+        onFocus={preloadExpanded}
         onClick={handleToggleExpand}
+        onPointerDown={preloadExpanded}
+        onPointerEnter={preloadExpanded}
         onKeyDown={(event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
           event.preventDefault();
@@ -321,6 +329,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
           erMin={erMin}
           globalRank={entry.globalRank}
           surface="leaderboard_character"
+          animateInitialExpand
         />
       )}
     </div>

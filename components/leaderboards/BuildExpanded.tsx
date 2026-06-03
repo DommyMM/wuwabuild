@@ -124,6 +124,7 @@ interface BuildExpandedProps {
   erMin?: number;
   globalRank?: number;
   surface?: 'builds' | 'leaderboard_character';
+  animateInitialExpand?: boolean;
 }
 
 function normalizeSubstatKey(type: string | null | undefined): string | null {
@@ -151,6 +152,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   erMin = 0,
   globalRank,
   surface = 'builds',
+  animateInitialExpand = false,
 }) => {
   const router = useRouter();
   const { getSubstatValues, statTranslations } = useGameData();
@@ -299,7 +301,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   }, [activeSelectedSubstats, detailSubstatSummary, getSubstatValues]);
 
   return (
-    <AnimatePresence initial={false}>
+    <AnimatePresence initial={animateInitialExpand}>
       {isExpanded && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
