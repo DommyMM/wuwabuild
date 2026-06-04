@@ -21,7 +21,7 @@ function findByName<T extends { name: string }>(name: string, list: T[]): T | nu
   );
 }
 
-function parseRoverInfo(rawName: string): {
+function parseRoverInfo(rawName: string, rawElement?: string): {
   isRover: boolean;
   isMale: boolean;
   roverElement: string | undefined;
@@ -29,11 +29,12 @@ function parseRoverInfo(rawName: string): {
 } {
   const isMale   = rawName.includes('(M)');
   const isFemale = rawName.includes('(F)');
-  const isRover  = isMale || isFemale;
-  const roverElement = ELEMENTS.find(el => rawName.includes(el));
+  const isRover  = isMale || isFemale || /\bRover\b/i.test(rawName);
+  const roverElement = ELEMENTS.find(el => rawElement === el) ?? ELEMENTS.find(el => rawName.includes(el));
   const baseName = rawName
     .replace(/\s*\([MF]\)\s*/g, '')
     .replace(new RegExp(`\\s*(${ELEMENTS.join('|')})\\s*`, 'g'), '')
+    .replace(/\s*:\s*/g, ' ')
     .trim();
   return { isRover, isMale, roverElement, baseName };
 }
@@ -47,16 +48,25 @@ export function convertAnalysisToSavedState(
   // Character
   const rawName = data.character?.name ?? '';
   const ocrCharacterId = data.character?.id ?? null;
-  const { isRover, isMale, roverElement, baseName } = parseRoverInfo(rawName);
+  const { isRover, isMale, roverElement, baseName } = parseRoverInfo(rawName, data.character?.element);
 
   let characterId: string | null = null;
   let roverElementState: string | undefined;
 
   if (ocrCharacterId && characters.some(c => c.id === ocrCharacterId)) {
     characterId = ocrCharacterId;
+    const character = characters.find(c => c.id === ocrCharacterId);
+    if (character?.name.startsWith('Rover')) {
+      roverElementState = roverElement ?? character.roverElementName;
+    }
   } else if (isRover) {
-    characterId = isMale ? '4' : '5';
-    roverElementState = roverElement;
+    const roverVariant = characters.find(
+      c => c.name.startsWith('Rover') &&
+        (!roverElement || c.roverElementName === roverElement) &&
+        (!isMale || c.legacyId === '4'),
+    ) ?? characters.find(c => c.name.startsWith('Rover') && (!roverElement || c.roverElementName === roverElement));
+    characterId = roverVariant?.id ?? null;
+    roverElementState = roverElement ?? roverVariant?.roverElementName;
   } else if (baseName) {
     characterId = findByName(baseName, characters)?.id ?? null;
   }

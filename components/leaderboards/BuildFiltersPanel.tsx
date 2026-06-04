@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Search, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
-import { Character, formatCharacterDisplayName } from '@/lib/character';
+import { Character, Element, formatCharacterDisplayName } from '@/lib/character';
 import { LBSortDirection, LBSortKey } from '@/lib/lb';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { toMainStatLabel, toMainStatUrlKey } from '@/lib/mainStatFilters';
@@ -40,6 +40,7 @@ type VisibleFilterItem =
       type: 'character';
       section: 'Characters';
       character: Character;
+      characterIds: string[];
       label: string;
     }
   | {
@@ -72,6 +73,14 @@ type VisibleFilterItem =
 
 type VisibleSetItem = Extract<VisibleFilterItem, { type: 'set' }>;
 type VisibleMainItem = Extract<VisibleFilterItem, { type: 'main' }>;
+type VisibleCharacterItem = Extract<VisibleFilterItem, { type: 'character' }>;
+
+interface SelectedCharacterChip {
+  key: string;
+  label: string;
+  character: Character;
+  characterIds: string[];
+}
 
 interface BuildFiltersPanelProps {
   sort: LBSortKey;
@@ -154,6 +163,20 @@ const getTypeTagLabel = (type: VisibleFilterItem['type']): string => (
   type === 'main' ? 'stats' : type
 );
 
+const ROVER_FILTER_ELEMENTS = new Set<string>([Element.Aero, Element.Spectro, Element.Havoc]);
+
+const isRoverFilterCharacter = (character: Character): boolean => (
+  character.element === Element.Rover || character.name.startsWith('Rover')
+);
+
+const getRoverFilterElement = (character: Character): Element | null => {
+  if (!isRoverFilterCharacter(character)) return null;
+  const roverElement = character.roverElementName;
+  return roverElement && ROVER_FILTER_ELEMENTS.has(roverElement) ? roverElement : null;
+};
+
+const getRoverFilterLabel = (element: Element): string => `Rover: ${element}`;
+
 export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   sort,
   direction,
@@ -223,6 +246,64 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     () => new Set(selectedMainEntries.map((entry) => `${entry.cost}-${entry.statType}`)),
     [selectedMainEntries],
   );
+  const roverCharacterGroups = useMemo(() => {
+    const groups = new Map<Element, Character[]>();
+    for (const character of characters) {
+      const roverElement = getRoverFilterElement(character);
+      if (!roverElement) continue;
+      const group = groups.get(roverElement);
+      if (group) {
+        group.push(character);
+      } else {
+        groups.set(roverElement, [character]);
+      }
+    }
+    return groups;
+  }, [characters]);
+  const selectedRoverElements = useMemo(() => {
+    const elements = new Set<Element>();
+    for (const character of selectedCharacters) {
+      const roverElement = getRoverFilterElement(character);
+      if (roverElement) elements.add(roverElement);
+    }
+    return elements;
+  }, [selectedCharacters]);
+  const selectedCharacterChips = useMemo<SelectedCharacterChip[]>(() => {
+    const chips: SelectedCharacterChip[] = [];
+    const roverChipByElement = new Map<Element, SelectedCharacterChip>();
+
+    for (const character of selectedCharacters) {
+      const roverElement = getRoverFilterElement(character);
+      if (!roverElement) {
+        chips.push({
+          key: `char-${character.id}`,
+          label: formatCharacterDisplayName(character, {
+            baseName: t(character.nameI18n ?? { en: character.name }),
+          }),
+          character,
+          characterIds: [character.id],
+        });
+        continue;
+      }
+
+      const existing = roverChipByElement.get(roverElement);
+      if (existing) {
+        existing.characterIds.push(character.id);
+        continue;
+      }
+
+      const chip: SelectedCharacterChip = {
+        key: `rover-${roverElement}`,
+        label: getRoverFilterLabel(roverElement),
+        character,
+        characterIds: [character.id],
+      };
+      roverChipByElement.set(roverElement, chip);
+      chips.push(chip);
+    }
+
+    return chips;
+  }, [selectedCharacters, t]);
 
   const trimmedFilterQuery = filterQuery.trim();
   const normalizedQuery = trimmedFilterQuery.toLowerCase();
@@ -284,24 +365,41 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
       }));
     items.push(...regionItems);
 
-    const characterItems = characters
-      .filter((character) => !selectedCharacterIds.has(character.id))
-      .map((character) => ({
+    const characterEntries: VisibleCharacterItem[] = [];
+    for (const character of characters) {
+      const roverElement = getRoverFilterElement(character);
+      if (roverElement) {
+        const roverGroup = roverCharacterGroups.get(roverElement) ?? [character];
+        if (selectedRoverElements.has(roverElement)) continue;
+        if (character.id !== roverGroup[0]?.id) continue;
+        characterEntries.push({
+          key: `character-rover-${roverElement}`,
+          type: 'character',
+          section: 'Characters',
+          character,
+          characterIds: roverGroup.map((entry) => entry.id),
+          label: getRoverFilterLabel(roverElement),
+        });
+        continue;
+      }
+
+      if (selectedCharacterIds.has(character.id)) continue;
+      characterEntries.push({
+        key: `character-${character.id}`,
+        type: 'character',
+        section: 'Characters',
         character,
+        characterIds: [character.id],
         label: formatCharacterDisplayName(character, {
           baseName: t(character.nameI18n ?? { en: character.name }),
         }),
-      }))
+      });
+    }
+
+    const characterItems = characterEntries
       .filter((entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery))
       .sort((a, b) => a.label.localeCompare(b.label))
-      .slice(0, 40)
-      .map<VisibleFilterItem>((entry) => ({
-        key: `character-${entry.character.id}`,
-        type: 'character',
-        section: 'Characters',
-        character: entry.character,
-        label: entry.label,
-      }));
+      .slice(0, 40);
     items.push(...characterItems);
 
     const weaponItems = weaponList
@@ -385,8 +483,10 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     getMainStatsByCost,
     normalizedQuery,
     regionPrefixes,
+    roverCharacterGroups,
     selectedCharacterIds,
     selectedMainKeys,
+    selectedRoverElements,
     selectedSetKeys,
     selectedWeaponIds,
     setOptions,
@@ -403,7 +503,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     if (item.type === 'username') onSetUsername(item.value);
     if (item.type === 'uid') onSetUid(item.value);
     if (item.type === 'region') onAddRegion(item.value);
-    if (item.type === 'character') onAddCharacter(item.character.id);
+    if (item.type === 'character') item.characterIds.forEach((id) => onAddCharacter(id));
     if (item.type === 'weapon') onAddWeapon(item.weapon.id);
     if (item.type === 'set') onAddSet(item.setId, item.count);
     if (item.type === 'main') onAddMain(item.cost, item.statType);
@@ -559,20 +659,16 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
             </span>
           ))}
 
-          {selectedCharacters.map((entry) => (
+          {selectedCharacterChips.map((entry) => (
             <span
-              key={`char-${entry.id}`}
+              key={entry.key}
               className="inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-text-primary"
             >
-              {entry.head ? <img src={entry.head} alt="" className="h-5 w-5 rounded-sm object-cover" /> : null}
-              <span>
-                {formatCharacterDisplayName(entry, {
-                  baseName: t(entry.nameI18n ?? { en: entry.name }),
-                })}
-              </span>
+              {entry.character.head ? <img src={entry.character.head} alt="" className="h-5 w-5 rounded-sm object-cover" /> : null}
+              <span>{entry.label}</span>
               <button
                 type="button"
-                onClick={() => onRemoveCharacter(entry.id)}
+                onClick={() => entry.characterIds.forEach((id) => onRemoveCharacter(id))}
                 className="text-text-primary/60 hover:text-text-primary"
               >
                 <X className="h-3.5 w-3.5" />
