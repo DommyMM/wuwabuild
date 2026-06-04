@@ -27,6 +27,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'new',
                 text: 'New logo and Discord embeds if you care lol'
+            },
+            {
+                kind: 'improved',
+                text: 'Tooltip explaining substat upgrades and pin first two columns'
             }
         ]
     },

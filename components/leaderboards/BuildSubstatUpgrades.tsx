@@ -1,6 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
+import { Info } from 'lucide-react';
+import { HoverTooltip } from '@/components/ui/HoverTooltip';
 
 export interface BuildUpgradeColumn {
   key: string;
@@ -68,6 +70,11 @@ function getGainColor(percentGain: number, maxPercentGain: number): string {
   return `hsl(129 73% ${lightness}%)`;
 }
 
+// Frozen "rail" of the first two columns (row labels + Original baseline).
+// Opaque so the scrolling upgrade columns tuck cleanly underneath.
+const PINNED = 'sticky z-20 bg-[#191919]';
+const ROW_DIVIDER = 'border-t border-border/45';
+
 export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
   isLoading,
   error,
@@ -89,6 +96,23 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
     (max, column) => Math.max(max, column.rankDelta),
     0,
   );
+
+  // Measure the label column's rendered width so the second pinned column
+  // (Original) sticks flush against it regardless of label length / i18n.
+  const labelColRef = useRef<HTMLTableCellElement | null>(null);
+  const [labelColWidth, setLabelColWidth] = useState(120);
+
+  useLayoutEffect(() => {
+    const el = labelColRef.current;
+    if (!el) return;
+    const measure = () => setLabelColWidth(el.getBoundingClientRect().width);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [orderedUpgradeColumns.length, hasUpgradeData, hasBaseDamage]);
+
+  const originalStyle: React.CSSProperties = { left: labelColWidth };
 
   return (
     <section className="space-y-3">
@@ -112,6 +136,33 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
             );
           })}
         </div>
+
+        <HoverTooltip
+          placement="top"
+          triggerClassName="inline-flex"
+          content={
+            <div className="max-w-xs space-y-1.5 text-left">
+              <p className="text-sm font-semibold text-text-primary">Substat upgrades</p>
+              <p className="text-xs leading-relaxed text-text-primary/72">
+                Projects the damage and rank this build would reach if you added one more
+                substat roll.
+              </p>
+              <p className="text-xs leading-relaxed text-text-primary/72">
+                <span className="font-semibold text-text-primary/88">Min / Mid / Max</span> sets the
+                quality of the simulated roll.
+              </p>
+            </div>
+          }
+        >
+          <span
+            tabIndex={0}
+            role="button"
+            aria-label="About substat upgrades"
+            className="inline-flex h-5 w-5 cursor-help items-center justify-center rounded-full text-text-primary/45 transition-colors hover:text-accent focus-visible:text-accent focus-visible:outline-none"
+          >
+            <Info className="h-3.5 w-3.5" />
+          </span>
+        </HoverTooltip>
       </div>
 
       {isLoading && (
@@ -149,13 +200,13 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
         <div className="min-w-0 w-full">
           <div className="scrollbar-thin overflow-x-auto pb-1">
             <div className="w-max min-w-full">
-              <table className="mx-auto border-collapse text-sm">
+              <table className="mx-auto border-separate border-spacing-0 text-sm">
                 <thead>
-                  <tr className="border-b border-border/55 text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
-                    <th className="min-w-30 bg-background-secondary/48 py-2 pr-4 pl-3 text-left">Substat</th>
-                    <th className="min-w-30 py-2 px-3 text-center text-accent">Original</th>
+                  <tr className="text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
+                    <th ref={labelColRef} className={`${PINNED} left-0 min-w-30 border-b border-r border-border/55 py-2 pr-4 pl-3 text-left`}>Substat</th>
+                    <th className={`${PINNED} min-w-30 border-b border-r border-border/60 py-2 px-3 text-center text-accent`} style={originalStyle}>Original</th>
                     {orderedUpgradeColumns.map((column) => (
-                      <th key={`upgrade-column-${column.key}`} className="min-w-30 py-2 px-3 text-center">
+                      <th key={`upgrade-column-${column.key}`} className="min-w-30 border-b border-border/55 py-2 px-3 text-center">
                         <div className="flex items-end justify-center gap-1">
                           {column.icon ? (
                             <img src={column.icon} alt="" className="h-3.5 w-3.5 shrink-0 object-contain" />
@@ -169,10 +220,10 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-border/45">
+                <tbody>
                   <tr>
-                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected result</th>
-                    <td className="px-3 py-2.5 text-center font-semibold text-white/92">
+                    <th className={`${PINNED} left-0 border-r border-border/55 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82`}>Projected result</th>
+                    <td className={`${PINNED} border-r border-border/60 px-3 py-2.5 text-center font-semibold text-white/92`} style={originalStyle}>
                       {formatDamage(baseDamage ?? 0)}
                     </td>
                     {orderedUpgradeColumns.map((column) => (
@@ -183,34 +234,34 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
                   </tr>
 
                   <tr>
-                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Gain over base</th>
-                    <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
+                    <th className={`${PINNED} ${ROW_DIVIDER} left-0 border-r border-border/55 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82`}>Gain over base</th>
+                    <td className={`${PINNED} ${ROW_DIVIDER} border-r border-border/60 px-3 py-2.5 text-center text-text-primary/35`} style={originalStyle}>—</td>
                     {orderedUpgradeColumns.map((column) => (
-                      <td key={`upgrade-gain-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
+                      <td key={`upgrade-gain-${column.key}`} className={`${ROW_DIVIDER} px-3 py-2.5 text-center font-semibold`} style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
                         +{formatDamage(column.gain)}
                       </td>
                     ))}
                   </tr>
 
                   <tr>
-                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">% gain over base</th>
-                    <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
+                    <th className={`${PINNED} ${ROW_DIVIDER} left-0 border-r border-border/55 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82`}>% gain over base</th>
+                    <td className={`${PINNED} ${ROW_DIVIDER} border-r border-border/60 px-3 py-2.5 text-center text-text-primary/35`} style={originalStyle}>—</td>
                     {orderedUpgradeColumns.map((column) => (
-                      <td key={`upgrade-percent-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
+                      <td key={`upgrade-percent-${column.key}`} className={`${ROW_DIVIDER} px-3 py-2.5 text-center font-semibold`} style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
                         {formatSignedPercent(column.percentGain)}
                       </td>
                     ))}
                   </tr>
 
                   <tr>
-                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Projected rank</th>
-                    <td className="px-3 py-2.5 text-center font-semibold text-white/72">
+                    <th className={`${PINNED} ${ROW_DIVIDER} left-0 border-r border-border/55 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82`}>Projected rank</th>
+                    <td className={`${PINNED} ${ROW_DIVIDER} border-r border-border/60 px-3 py-2.5 text-center font-semibold text-white/72`} style={originalStyle}>
                       {(globalRank ?? 0) > 0 ? `${globalRank!.toLocaleString()}` : '—'}
                     </td>
                     {orderedUpgradeColumns.map((column) => {
                       const color = getRankDeltaColor(column.rankDelta, maxRankDelta);
                       return (
-                        <td key={`upgrade-rank-${column.key}`} className="px-3 py-2.5 text-center font-semibold" style={{ color }}>
+                        <td key={`upgrade-rank-${column.key}`} className={`${ROW_DIVIDER} px-3 py-2.5 text-center font-semibold`} style={{ color }}>
                           {column.projectedRank > 0 ? (
                             <>
                               <span>{column.projectedRank.toLocaleString()}</span>
@@ -227,10 +278,10 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
                   </tr>
 
                   <tr>
-                    <th className="bg-background-secondary/32 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82">Added roll</th>
-                    <td className="px-3 py-2.5 text-center text-text-primary/35">—</td>
+                    <th className={`${PINNED} ${ROW_DIVIDER} left-0 border-r border-border/55 py-2.5 pr-4 pl-3 text-left font-semibold text-text-primary/82`}>Added roll</th>
+                    <td className={`${PINNED} ${ROW_DIVIDER} border-r border-border/60 px-3 py-2.5 text-center text-text-primary/35`} style={originalStyle}>—</td>
                     {orderedUpgradeColumns.map((column) => (
-                      <td key={`upgrade-roll-${column.key}`} className="px-3 py-2.5 text-center text-text-primary/78">
+                      <td key={`upgrade-roll-${column.key}`} className={`${ROW_DIVIDER} px-3 py-2.5 text-center text-text-primary/78`}>
                         {formatSignedUpgradeValue(column.rollValue, column.isPercent)}
                       </td>
                     ))}
