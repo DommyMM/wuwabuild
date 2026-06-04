@@ -14,6 +14,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-04',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Rover imports and leaderboard filters now distinguish Aero, Spectro, and Havoc by element instead of showing gender variants'
+            },
+            {
+                kind: 'fixed',
+                text: 'Migrated old Rover leaderboard builds which might have weird elements based on equipped echoes and main stats'
+            },
+            {
+                kind: 'improved',
+                text: 'Better nightmare and regular distinction as it sometimes over-considered Nightmares instead of regular'
+            }
+        ]
+    },
+    {
         date: '2026-06-03',
         changes: [
             {
