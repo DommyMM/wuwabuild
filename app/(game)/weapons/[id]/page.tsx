@@ -104,12 +104,12 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params;
     let title = 'Weapon Build Calculator - WuWaBuilds';
-    let description = 'Calculate stats and optimal resonators for this weapon on WuwaBuilds.';
+    let description = 'See stats, damage scaling, and the best resonators for this Wuthering Waves weapon on WuWaBuilds.';
 
     const weaponInfo = findWeaponById(id);
     if (weaponInfo?.name?.en) {
         title = `${weaponInfo.name.en} Stats & Calculator - Wuthering Waves`;
-        description = `Calculate exact damage scaling and stats for ${weaponInfo.name.en} in Wuthering Waves. See optimal builds across different characters on the WuWaBuilds leaderboard.`;
+        description = `See ${weaponInfo.name.en}'s stats, damage scaling, and passive in Wuthering Waves, and compare how much damage it gains over other weapons across characters on WuWaBuilds.`;
     }
 
     return {

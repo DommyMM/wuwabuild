@@ -3,16 +3,16 @@ import { ImportPageClient } from '@/components/import/ImportPageClient';
 
 export const metadata: Metadata = {
   title: 'Import Wuthering Waves Builds',
-  description: 'Upload Wuthering Waves character profile images to parse echoes, stats, weapons, and forte levels into the editor and leaderboard.',
+  description: 'Scan a wuwabot image to import echoes, stats, and weapons straight into the build editor and leaderboards',
   openGraph: {
     title: 'Import Wuthering Waves Builds',
-    description: 'Upload Wuthering Waves character profile images to parse echoes, stats, weapons, and forte levels into the editor and leaderboard.',
+    description: 'Scan a wuwabot image to import echoes, stats, and weapons straight into the build editor and leaderboards',
     url: 'https://wuwa.build/import',
     images: [{ url: 'https://wuwa.build/api/og/import', width: 1200, height: 630, alt: 'Import Wuthering Waves Builds' }],
   },
   twitter: {
     title: 'Import Wuthering Waves Builds',
-    description: 'Upload Wuthering Waves character profile images to parse echoes, stats, weapons, and forte levels into the editor and leaderboard.',
+    description: 'Scan a wuwabot image to import echoes, stats, and weapons straight into the build editor and leaderboards',
     images: ['https://wuwa.build/api/og/import'],
   },
   alternates: { canonical: '/import' },

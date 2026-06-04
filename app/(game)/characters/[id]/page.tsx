@@ -89,13 +89,13 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params;
     let title = 'Character Build Calculator - WuWaBuilds';
-    let description = 'Calculate the best builds, echoes, and stats for this character on WuwaBuilds.';
+    let description = 'Calculate the best builds, echo sets, and stats for this Wuthering Waves character on WuWaBuilds.';
 
     const rawChar = loadCharacterRaw(id);
     if (rawChar) {
         const char = adaptCDNCharacter(rawChar);
         title = `${char.name} Build, Stats & Calculator - Wuthering Waves`;
-        description = `Calculate the best builds and optimal damage for ${char.name} in Wuthering Waves. Explore top player leaderboards, weapon rankings, and simulated echo loadouts on WuWaBuilds.`;
+        description = `Build ${char.name} in Wuthering Waves and calculate optimal damage. Compare the best echo sets, stats, and weapons, plus top-player leaderboard rankings on WuWaBuilds.`;
     }
 
     return {

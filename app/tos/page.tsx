@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { TosPage } from '@/components/legal/TosPage';
 
 export const metadata: Metadata = {
-    title: 'Terms of Service · WuWa Builds',
-    description: 'Terms of Service for WuWa Builds. Read the terms and conditions for using our platform.',
+    title: 'Terms of Service',
+    description: 'Terms of Service for WuWaBuilds. Read the terms and conditions for using the site.',
     alternates: { canonical: '/tos' },
 };
 

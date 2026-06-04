@@ -68,7 +68,7 @@ function getLeaderboardDescription(characterName: string, trackKey: string, trac
   const weapon = weaponId ? loadWeaponSummary(weaponId) : null;
   const sequenceText = sequence > 0 ? ` S${sequence}` : '';
   const weaponText = weapon?.name ? ` with ${weapon.name}` : '';
-  return `See Wuthering Waves ${characterName}${sequenceText} ${playstyle} rankings${weaponText}. Compare simulated damage, echo sets, stats, and top player builds on WuWaBuilds.`;
+  return `${characterName}${sequenceText} ${playstyle} damage rankings${weaponText} in Wuthering Waves. Compare standardized damage, the best echo sets, stats, and top-player builds on WuWaBuilds.`;
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {

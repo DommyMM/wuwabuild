@@ -55,7 +55,6 @@ export async function GET(request: NextRequest) {
     artKind: character.splashUrl ? 'scene' : 'character',
     metricLabel: top ? 'Top damage' : 'Global leaderboard',
     metricValue: top ? compactNumber(top.damage) : undefined,
-    detailLabel: top?.owner.username ? `held by ${top.owner.username}` : undefined,
   });
   response.headers.set('Content-Type', OG_CONTENT_TYPE);
   response.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');

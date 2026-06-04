@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { ChangelogPage } from '@/components/changelog/ChangelogPage';
 
 export const metadata: Metadata = {
-    title: 'Changelog · WuWa Builds',
-    description: 'New features, fixes, and game data updates for WuWa Builds.',
+    title: 'Changelog',
+    description: 'New features, fixes, and Wuthering Waves game data updates for WuWaBuilds.',
     alternates: { canonical: '/changelog' },
 };
 

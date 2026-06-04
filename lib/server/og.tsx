@@ -341,62 +341,132 @@ async function build(
           )}
         </div>
         {/* right art */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: artColumnWidth,
-            height: '100%',
-            position: 'relative',
-          }}
-        >
-          {isWeapon && (
+        {isScene ? (
+          <div style={{ display: 'flex', width: artColumnWidth, height: '100%', position: 'relative' }}>
+            {/* offset echo plate — a clone of the frame for layered depth (resonance motif) */}
             <div
               style={{
                 position: 'absolute',
+                top: 156,
+                right: 66,
+                width: 522,
+                height: 358,
+                display: 'flex',
+                border: `1px solid ${accent}2e`,
+                background: 'rgba(7,7,9,0.55)',
+              }}
+            />
+            {/* framed splash */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 136,
+                right: 46,
+                width: 522,
+                height: 358,
+                display: 'flex',
+                overflow: 'hidden',
+                border: `1px solid ${accent}5c`,
+              }}
+            >
+              <img alt="" src={artSrc} width={522} height={358} style={{ objectFit: 'cover' }} />
+              {/* top edge highlight */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: 522,
+                  height: 1,
+                  display: 'flex',
+                  background: `linear-gradient(90deg, transparent, ${accent}b0, transparent)`,
+                }}
+              />
+              {/* bottom grounding gradient */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  width: 522,
+                  height: 120,
+                  display: 'flex',
+                  background: 'linear-gradient(0deg, rgba(9,9,11,0.82) 0%, rgba(9,9,11,0.22) 46%, transparent 100%)',
+                }}
+              />
+            </div>
+          </div>
+        ) : isWeapon ? (
+          <div style={{ display: 'flex', width: artColumnWidth, height: '100%', position: 'relative' }}>
+            {/* offset echo plate — clone of the frame for layered depth (resonance motif) */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 176,
+                left: 84,
                 width: 310,
                 height: 310,
                 display: 'flex',
-                border: `1px solid ${accent}42`,
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.045), rgba(0,0,0,0.16))',
-                boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.035), 0 22px 48px rgba(0,0,0,0.34), 0 0 42px ${accent}16`,
+                border: `1px solid ${accent}2e`,
+                background: 'rgba(7,7,9,0.55)',
               }}
             />
-          )}
-          {isScene && (
+            {/* framed weapon — art kept at native 256px inside a 310px matte to avoid upscaling */}
             <div
               style={{
                 position: 'absolute',
-                right: 28,
-                width: 565,
-                height: 355,
+                top: 160,
+                left: 100,
+                width: 310,
+                height: 310,
                 display: 'flex',
-                border: `1px solid ${accent}30`,
-                background: 'rgba(0,0,0,0.22)',
-                boxShadow: '0 22px 44px rgba(0,0,0,0.32)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                border: `1px solid ${accent}5c`,
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.18))',
               }}
-            />
-          )}
+            >
+              <img alt="" src={artSrc} width={256} height={256} style={{ objectFit: 'contain' }} />
+              {/* top edge highlight */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: 310,
+                  height: 1,
+                  display: 'flex',
+                  background: `linear-gradient(90deg, transparent, ${accent}b0, transparent)`,
+                }}
+              />
+            </div>
+          </div>
+        ) : (
           <div
             style={{
-              position: 'absolute',
-              right: isWeapon ? 105 : isScene ? 28 : 18,
-              bottom: 0,
-              width: isWeapon ? 310 : isScene ? 565 : 430,
-              height: isWeapon ? 44 : 74,
               display: 'flex',
-              background: 'linear-gradient(0deg, #131318 0%, rgba(19,19,24,0.58) 42%, transparent 100%)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: artColumnWidth,
+              height: '100%',
+              position: 'relative',
             }}
-          />
-          <img
-            alt=""
-            src={artSrc}
-            width={isWeapon ? 256 : isScene ? 565 : 520}
-            height={isWeapon ? 256 : isScene ? 355 : 570}
-            style={{ objectFit: isScene ? 'cover' : 'contain' }}
-          />
-        </div>
+          >
+            <div
+              style={{
+                position: 'absolute',
+                right: 18,
+                bottom: 0,
+                width: 430,
+                height: 74,
+                display: 'flex',
+                background: 'linear-gradient(0deg, #131318 0%, rgba(19,19,24,0.58) 42%, transparent 100%)',
+              }}
+            />
+            <img alt="" src={artSrc} width={520} height={570} style={{ objectFit: 'contain' }} />
+          </div>
+        )}
       </div>,
       fonts,
     );
