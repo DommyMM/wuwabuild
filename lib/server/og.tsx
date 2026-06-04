@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
 type OgCardVariant = 'site' | 'page' | 'leaderboard-overview' | 'character' | 'weapon' | 'leaderboard';
+type OgFont = { name: string; data: Buffer | ArrayBuffer; weight: 400 | 600 | 700 | 800; style: 'normal' };
 
 interface OgCardData {
   variant: OgCardVariant;
@@ -57,6 +58,10 @@ const FONT_URLS = {
   bold: new URL('./fonts/PlusJakartaSans-Bold.woff', import.meta.url),
   extrabold: new URL('./fonts/PlusJakartaSans-ExtraBold.woff', import.meta.url),
 };
+const CJK_RE = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/u;
+const HANGUL_RE = /[\uac00-\ud7af]/u;
+const KANA_RE = /[\u3040-\u30ff]/u;
+const HAN_RE = /[\u3400-\u9fff\uf900-\ufaff]/u;
 
 const ELEMENT_WAVES = new Set(['glacio', 'fusion', 'electro', 'aero', 'spectro', 'havoc', 'rover']);
 function waveKeyFor(data: OgCardData): string {
@@ -77,7 +82,7 @@ function loadWave(key: string): Promise<string> {
   return p;
 }
 
-let fontsPromise: Promise<{ name: string; data: Buffer; weight: 400 | 600 | 700 | 800; style: 'normal' }[]> | null = null;
+let fontsPromise: Promise<OgFont[]> | null = null;
 function loadFonts() {
   if (!fontsPromise) {
     fontsPromise = Promise.all([
@@ -93,6 +98,53 @@ function loadFonts() {
       .catch(() => []);
   }
   return fontsPromise;
+}
+
+const cjkFontCache = new Map<string, Promise<OgFont[]>>();
+
+function cjkFamiliesForText(text: string): string[] {
+  if (!CJK_RE.test(text)) return [];
+  const families = new Set<string>();
+  if (KANA_RE.test(text)) families.add('Noto Sans JP');
+  if (HANGUL_RE.test(text)) families.add('Noto Sans KR');
+  if (HAN_RE.test(text)) families.add('Noto Sans SC');
+  return [...families];
+}
+
+async function loadGoogleFontSubset(family: string, text: string): Promise<OgFont | null> {
+  try {
+    const cssUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@600&text=${encodeURIComponent(text)}`;
+    const css = await (
+      await fetch(cssUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal: AbortSignal.timeout(2500),
+      })
+    ).text();
+    const match = css.match(/src:\s*url\(([^)]+)\)\s*format\('(opentype|truetype)'\)/);
+    if (!match) return null;
+    const res = await fetch(match[1], { signal: AbortSignal.timeout(2500) });
+    if (!res.ok) return null;
+    const data = await res.arrayBuffer();
+    if (data.byteLength === 0) return null;
+    return { name: family, data, weight: 600, style: 'normal' };
+  } catch {
+    return null;
+  }
+}
+
+function loadCjkFonts(text: string | undefined): Promise<OgFont[]> {
+  if (!text) return Promise.resolve([]);
+  const families = cjkFamiliesForText(text);
+  if (families.length === 0) return Promise.resolve([]);
+  const cacheKey = `${families.join('|')}:${text}`;
+  let promise = cjkFontCache.get(cacheKey);
+  if (!promise) {
+    promise = Promise.all(families.map((family) => loadGoogleFontSubset(family, text))).then((fonts) =>
+      fonts.filter((font): font is OgFont => font !== null),
+    );
+    cjkFontCache.set(cacheKey, promise);
+  }
+  return promise;
 }
 
 async function fetchArt(url: string | null | undefined): Promise<string | null> {
@@ -216,7 +268,7 @@ function Chip({ text, accent }: { text: string; accent: string }) {
   );
 }
 
-function renderImage(node: React.ReactElement, fonts: Awaited<ReturnType<typeof loadFonts>>): ImageResponse {
+function renderImage(node: React.ReactElement, fonts: OgFont[]): ImageResponse {
   return new ImageResponse(node, {
     ...OG_SIZE,
     fonts: fonts.length ? fonts : undefined,
@@ -224,16 +276,18 @@ function renderImage(node: React.ReactElement, fonts: Awaited<ReturnType<typeof 
 }
 
 export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
-  const [fonts, artSrc, secondaryArtSrc] = await Promise.all([
+  const [fonts, cjkFonts, artSrc, secondaryArtSrc] = await Promise.all([
     loadFonts(),
+    loadCjkFonts(data.detailLabel),
     fetchArt(data.artUrl),
     fetchArt(data.secondaryArtUrl),
   ]);
+  const allFonts = [...fonts, ...cjkFonts];
   try {
-    return await build(data, artSrc, secondaryArtSrc, fonts);
+    return await build(data, artSrc, secondaryArtSrc, allFonts);
   } catch (error) {
     if (!artSrc) throw error;
-    return await build(data, null, secondaryArtSrc, fonts);
+    return await build(data, null, secondaryArtSrc, allFonts);
   }
 }
 
@@ -241,7 +295,7 @@ async function build(
   data: OgCardData,
   artSrc: string | null,
   secondaryArtSrc: string | null,
-  fonts: Awaited<ReturnType<typeof loadFonts>>,
+  fonts: OgFont[],
 ): Promise<ImageResponse> {
   const accent = normalizeColor(data.accentColor);
   const chips = data.chips.filter((c) => c.trim().length > 0).slice(0, 3);
@@ -309,7 +363,18 @@ async function build(
                   {data.metricValue}
                 </div>
                 {data.detailLabel && (
-                  <div style={{ display: 'flex', fontSize: 15, fontWeight: 600, color: TEXT_MUTED, marginTop: 3 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      fontFamily: CJK_RE.test(data.detailLabel)
+                        ? 'Jakarta, Noto Sans JP, Noto Sans KR, Noto Sans SC'
+                        : 'Jakarta',
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: TEXT_MUTED,
+                      marginTop: 3,
+                    }}
+                  >
                     {data.detailLabel}
                   </div>
                 )}

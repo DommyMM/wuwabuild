@@ -26,7 +26,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'new',
-                text: 'New logo and Discord renders if you care lol'
+                text: 'New logo and Discord embeds if you care lol'
             }
         ]
     },

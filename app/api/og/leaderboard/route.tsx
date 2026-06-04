@@ -16,6 +16,13 @@ function resolveTrackLabel(trackKey: string, tracks: { key: string; label: strin
   return stripLBSeqPrefix(track?.label?.trim() || trackKey || 'Damage') || 'Damage';
 }
 
+function resolveHolderLabel(owner: { username: string; uid: string } | undefined): string | undefined {
+  const username = owner?.username.trim();
+  if (username) return `held by ${username}`;
+  const uid = owner?.uid.trim();
+  return uid ? `held by UID ${uid}` : undefined;
+}
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const characterId = params.get('char')?.trim() || params.get('characterId')?.trim() || '';
@@ -55,6 +62,7 @@ export async function GET(request: NextRequest) {
     artKind: character.splashUrl ? 'scene' : 'character',
     metricLabel: top ? 'Top damage' : 'Global leaderboard',
     metricValue: top ? compactNumber(top.damage) : undefined,
+    detailLabel: top ? resolveHolderLabel(top.owner) : undefined,
   });
   response.headers.set('Content-Type', OG_CONTENT_TYPE);
   response.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
