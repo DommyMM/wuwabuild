@@ -28,7 +28,6 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 const GA_ID = "G-SP375JKDPX";
-
 export const metadata: Metadata = {
     metadataBase: new URL('https://wuwa.build'),
     title: {

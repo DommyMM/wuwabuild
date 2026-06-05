@@ -15,6 +15,7 @@ interface OgCardData {
   chips: string[];
   artUrl?: string | null;
   secondaryArtUrl?: string | null;
+  secondaryLabel?: string | null;
   accentColor?: string;
   element?: string | null;
   metricLabel?: string;
@@ -276,9 +277,10 @@ function renderImage(node: React.ReactElement, fonts: OgFont[]): ImageResponse {
 }
 
 export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
+  const cjkText = [data.detailLabel, data.secondaryLabel].filter(Boolean).join(' ');
   const [fonts, cjkFonts, artSrc, secondaryArtSrc] = await Promise.all([
     loadFonts(),
-    loadCjkFonts(data.detailLabel),
+    loadCjkFonts(cjkText),
     fetchArt(data.artUrl),
     fetchArt(data.secondaryArtUrl),
   ]);
@@ -323,6 +325,7 @@ async function build(
     const isWeapon = data.artKind === 'weapon';
     const isScene = data.artKind === 'scene';
     const artColumnWidth = isScene ? 600 : 510;
+    const subtitleSize = data.subtitle.length > 38 ? 18 : 21;
     return renderImage(
       <div style={{ ...base(), flexDirection: 'row', alignItems: 'stretch', justifyContent: 'flex-start' }}>
         <Vignette />
@@ -341,9 +344,66 @@ async function build(
           {wave && (
             <img alt="" src={wave} width={waveW} height={Math.round(waveW / WAVE_RATIO)} style={{ marginTop: 14 }} />
           )}
-          <div style={{ display: 'flex', fontSize: 21, color: TEXT_MUTED, marginTop: 15 }}>{data.subtitle}</div>
+          {/* track + sequence — a line of its own */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              maxWidth: 560,
+              fontSize: subtitleSize,
+              color: TEXT_MUTED,
+              marginTop: 15,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {data.subtitle}
+          </div>
+          {/* weapon — promoted to its own row with a larger plate */}
+          {secondaryArtSrc && data.secondaryLabel && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 13,
+                maxWidth: 560,
+                minWidth: 0,
+                marginTop: 14,
+                fontFamily: CJK_RE.test(data.secondaryLabel)
+                  ? 'Jakarta, Noto Sans JP, Noto Sans KR, Noto Sans SC'
+                  : 'Jakarta',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  width: 50,
+                  height: 50,
+                  flexShrink: 0,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 12,
+                  border: `1px solid ${accent}55`,
+                  background: 'rgba(255,255,255,0.055)',
+                }}
+              >
+                <img alt="" src={secondaryArtSrc} width={40} height={40} style={{ objectFit: 'contain' }} />
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  fontSize: 22,
+                  fontWeight: 600,
+                  color: TEXT,
+                }}
+              >
+                {data.secondaryLabel}
+              </div>
+            </div>
+          )}
           {data.metricValue && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 18 }}>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {data.metricLabel && (
                   <div
@@ -359,7 +419,7 @@ async function build(
                     {data.metricLabel}
                   </div>
                 )}
-                <div style={{ display: 'flex', fontSize: 36, fontWeight: 800, lineHeight: 1.05, color: TEXT }}>
+                <div style={{ display: 'flex', fontSize: 42, fontWeight: 800, lineHeight: 1.05, color: TEXT }}>
                   {data.metricValue}
                 </div>
                 {data.detailLabel && (
@@ -379,7 +439,7 @@ async function build(
                   </div>
                 )}
               </div>
-              {secondaryArtSrc && (
+              {secondaryArtSrc && !data.secondaryLabel && (
                 <div
                   style={{
                     display: 'flex',
@@ -412,10 +472,10 @@ async function build(
             <div
               style={{
                 position: 'absolute',
-                top: 156,
-                right: 66,
-                width: 522,
-                height: 358,
+                top: 140,
+                right: 60,
+                width: 560,
+                height: 384,
                 display: 'flex',
                 border: `1px solid ${accent}2e`,
                 background: 'rgba(7,7,9,0.55)',
@@ -425,23 +485,23 @@ async function build(
             <div
               style={{
                 position: 'absolute',
-                top: 136,
-                right: 46,
-                width: 522,
-                height: 358,
+                top: 120,
+                right: 40,
+                width: 560,
+                height: 384,
                 display: 'flex',
                 overflow: 'hidden',
                 border: `1px solid ${accent}5c`,
               }}
             >
-              <img alt="" src={artSrc} width={522} height={358} style={{ objectFit: 'cover' }} />
+              <img alt="" src={artSrc} width={560} height={384} style={{ objectFit: 'cover' }} />
               {/* top edge highlight */}
               <div
                 style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
-                  width: 522,
+                  width: 560,
                   height: 1,
                   display: 'flex',
                   background: `linear-gradient(90deg, transparent, ${accent}b0, transparent)`,
@@ -453,8 +513,8 @@ async function build(
                   position: 'absolute',
                   bottom: 0,
                   left: 0,
-                  width: 522,
-                  height: 120,
+                  width: 560,
+                  height: 128,
                   display: 'flex',
                   background: 'linear-gradient(0deg, rgba(9,9,11,0.82) 0%, rgba(9,9,11,0.22) 46%, transparent 100%)',
                 }}
@@ -467,23 +527,23 @@ async function build(
             <div
               style={{
                 position: 'absolute',
-                top: 176,
-                left: 84,
-                width: 310,
-                height: 310,
+                top: 151,
+                left: 94,
+                width: 360,
+                height: 360,
                 display: 'flex',
                 border: `1px solid ${accent}2e`,
                 background: 'rgba(7,7,9,0.55)',
               }}
             />
-            {/* framed weapon — art kept at native 256px inside a 310px matte to avoid upscaling */}
+            {/* framed weapon — art kept at native 256px inside a 360px matte to avoid upscaling */}
             <div
               style={{
                 position: 'absolute',
-                top: 160,
-                left: 100,
-                width: 310,
-                height: 310,
+                top: 135,
+                left: 110,
+                width: 360,
+                height: 360,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -499,7 +559,7 @@ async function build(
                   position: 'absolute',
                   top: 0,
                   left: 0,
-                  width: 310,
+                  width: 360,
                   height: 1,
                   display: 'flex',
                   background: `linear-gradient(90deg, transparent, ${accent}b0, transparent)`,
@@ -529,7 +589,7 @@ async function build(
                 background: 'linear-gradient(0deg, #131318 0%, rgba(19,19,24,0.58) 42%, transparent 100%)',
               }}
             />
-            <img alt="" src={artSrc} width={520} height={570} style={{ objectFit: 'contain' }} />
+            <img alt="" src={artSrc} width={540} height={592} style={{ objectFit: 'contain' }} />
           </div>
         )}
       </div>,

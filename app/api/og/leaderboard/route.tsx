@@ -53,10 +53,11 @@ export async function GET(request: NextRequest) {
   const response = await renderOgCard({
     variant: 'leaderboard',
     title: character.name,
-    subtitle: `${playstyle} leaderboard · S${sequence}${weapon?.name ? ` · ${weapon.name}` : ''}`,
+    subtitle: `${playstyle} leaderboard · S${sequence}`,
     chips: [],
     artUrl,
     secondaryArtUrl: weapon?.iconUrl,
+    secondaryLabel: weapon?.name,
     accentColor: character.elementColor ?? undefined,
     element: character.element,
     artKind: character.splashUrl ? 'scene' : 'character',
