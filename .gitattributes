@@ -1,0 +1,16 @@
+# Normalize all text files to LF in the repo and on checkout (every OS).
+# Git auto-detects binary files and leaves them untouched.
+* text=auto eol=lf
+
+# Be explicit for common binary assets so they're never normalized.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.pdf   binary

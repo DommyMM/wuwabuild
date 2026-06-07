@@ -1,4 +1,4 @@
-export function getStickyNavOffset(): number {
+function getStickyNavOffset(): number {
   const nav = document.querySelector('nav');
   if (!nav) return 16;
 
