@@ -10,6 +10,13 @@ interface TooltipPosition {
   left: number;
 }
 
+interface TooltipVisualOverflow {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
 interface HoverTooltipProps {
   content: ReactNode;
   children: ReactNode;
@@ -25,6 +32,7 @@ interface HoverTooltipProps {
   // Use this for decorations that should visually "hang" off the panel (e.g. an entity icon
   // protruding top-left). Absolute positioning is up to the caller.
   leadingNode?: ReactNode;
+  visualOverflow?: TooltipVisualOverflow;
 }
 
 const VIEWPORT_PADDING = 8;
@@ -33,6 +41,19 @@ const clamp = (value: number, min: number, max: number): number => (
   Math.min(max, Math.max(min, value))
 );
 
+const getUsableViewportTop = (): number => {
+  const nav = document.querySelector('nav');
+  if (!nav) return VIEWPORT_PADDING;
+
+  const style = window.getComputedStyle(nav);
+  if (style.position !== 'sticky' && style.position !== 'fixed') return VIEWPORT_PADDING;
+
+  const rect = nav.getBoundingClientRect();
+  if (rect.top > VIEWPORT_PADDING || rect.bottom <= VIEWPORT_PADDING) return VIEWPORT_PADDING;
+
+  return Math.max(VIEWPORT_PADDING, rect.bottom + VIEWPORT_PADDING);
+};
+
 const getCandidateOrder = (placement: TooltipPlacement): TooltipPlacement[] => {
   if (placement === 'right') return ['right', 'left', 'top', 'bottom'];
   if (placement === 'left') return ['left', 'right', 'top', 'bottom'];
@@ -40,12 +61,26 @@ const getCandidateOrder = (placement: TooltipPlacement): TooltipPlacement[] => {
   return ['bottom', 'top', 'right', 'left'];
 };
 
-const isInsideViewport = (position: TooltipPosition, tooltipRect: DOMRect): boolean => {
-  const right = position.left + tooltipRect.width;
-  const bottom = position.top + tooltipRect.height;
+const normalizeOverflow = (overflow?: TooltipVisualOverflow): Required<TooltipVisualOverflow> => ({
+  top: Math.max(0, overflow?.top ?? 0),
+  right: Math.max(0, overflow?.right ?? 0),
+  bottom: Math.max(0, overflow?.bottom ?? 0),
+  left: Math.max(0, overflow?.left ?? 0),
+});
+
+const isInsideViewport = (
+  position: TooltipPosition,
+  tooltipRect: DOMRect,
+  overflow: Required<TooltipVisualOverflow>,
+  usableTop: number
+): boolean => {
+  const left = position.left - overflow.left;
+  const top = position.top - overflow.top;
+  const right = position.left + tooltipRect.width + overflow.right;
+  const bottom = position.top + tooltipRect.height + overflow.bottom;
   return (
-    position.left >= VIEWPORT_PADDING &&
-    position.top >= VIEWPORT_PADDING &&
+    left >= VIEWPORT_PADDING &&
+    top >= usableTop &&
     right <= window.innerWidth - VIEWPORT_PADDING &&
     bottom <= window.innerHeight - VIEWPORT_PADDING
   );
@@ -94,6 +129,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   maxRisePx,
   pinViewportBottom = false,
   leadingNode,
+  visualOverflow,
 }) => {
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
@@ -131,6 +167,8 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
 
     const triggerRect = triggerEl.getBoundingClientRect();
     const tooltipRect = tooltipEl.getBoundingClientRect();
+    const overflow = normalizeOverflow(visualOverflow);
+    const usableTop = getUsableViewportTop();
 
     let resolved = getPositionForPlacement(triggerRect, tooltipRect, placement, offset);
 
@@ -138,32 +176,34 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
       const candidates = getCandidateOrder(placement);
       for (const candidate of candidates) {
         const next = getPositionForPlacement(triggerRect, tooltipRect, candidate, offset);
-        if (isInsideViewport(next, tooltipRect)) {
+        if (isInsideViewport(next, tooltipRect, overflow, usableTop)) {
           resolved = next;
           break;
         }
       }
     }
 
-    const maxLeft = Math.max(VIEWPORT_PADDING, window.innerWidth - tooltipRect.width - VIEWPORT_PADDING);
-    const maxTop = Math.max(VIEWPORT_PADDING, window.innerHeight - tooltipRect.height - VIEWPORT_PADDING);
+    const minLeft = VIEWPORT_PADDING + overflow.left;
+    const minTop = usableTop + overflow.top;
+    const maxLeft = Math.max(minLeft, window.innerWidth - tooltipRect.width - overflow.right - VIEWPORT_PADDING);
+    const maxTop = Math.max(minTop, window.innerHeight - tooltipRect.height - overflow.bottom - VIEWPORT_PADDING);
 
-    let nextTop = clamp(resolved.top, VIEWPORT_PADDING, maxTop);
+    let nextTop = clamp(resolved.top, minTop, maxTop);
     if (pinViewportBottom) {
-      nextTop = window.innerHeight - VIEWPORT_PADDING - tooltipRect.height;
-      nextTop = clamp(nextTop, VIEWPORT_PADDING, maxTop);
+      nextTop = window.innerHeight - VIEWPORT_PADDING - tooltipRect.height - overflow.bottom;
+      nextTop = clamp(nextTop, minTop, maxTop);
     }
     if (typeof maxRisePx === 'number' && Number.isFinite(maxRisePx) && maxRisePx >= 0) {
       const minTopFromTrigger = triggerRect.top - maxRisePx;
       nextTop = Math.max(nextTop, minTopFromTrigger);
-      nextTop = clamp(nextTop, VIEWPORT_PADDING, maxTop);
+      nextTop = clamp(nextTop, minTop, maxTop);
     }
 
     setPosition({
-      left: clamp(resolved.left, VIEWPORT_PADDING, maxLeft),
+      left: clamp(resolved.left, minLeft, maxLeft),
       top: nextTop,
     });
-  }, [maxRisePx, offset, pinViewportBottom, placement, strictPlacement]);
+  }, [maxRisePx, offset, pinViewportBottom, placement, strictPlacement, visualOverflow]);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -264,7 +304,7 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
         <div
           ref={tooltipRef}
           style={{ top: position.top, left: position.left, pointerEvents: 'none' }}
-          className="pointer-events-none fixed z-45"
+          className="pointer-events-none fixed z-60"
           aria-hidden="true"
         >
           <div

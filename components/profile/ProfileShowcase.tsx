@@ -18,10 +18,8 @@ interface ProfileShowcaseProps {
 const TILE_W = 184;
 const TILE_GAP = 8;
 
-// Bare percentile, scaled precision — the number is the hero, so it should read
-// cleanly whether it's 0.003 or 42.
+// Bare percentile, scaled precision the number is the hero, so it should read cleanly whether it's 0.003 or 42.
 function formatPercent(topPercent: number): string {
-  if (topPercent < 0.1) return topPercent.toFixed(3);
   if (topPercent < 1) return topPercent.toFixed(2);
   if (topPercent < 10) return topPercent.toFixed(1);
   return String(Math.round(topPercent));

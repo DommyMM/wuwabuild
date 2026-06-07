@@ -50,6 +50,7 @@ const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
 // Icon hangs outside the panel top-left (Akasha style).
 const ICON_HANG_TOP = -18;
 const ICON_HANG_LEFT = -18;
+const DEFAULT_ICON_SIZE = 96;
 // Padding-left applied to the header so it clears the icon footprint inside the panel.
 const HEADER_INDENT_CLASS = 'pl-[5.5rem]';
 
@@ -67,7 +68,7 @@ interface HoverCardIconProps {
 export const HoverCardIcon: React.FC<HoverCardIconProps> = ({
   src,
   alt = '',
-  size = 96,
+  size = DEFAULT_ICON_SIZE,
   borderClass = 'border-white/24',
   bgClass = 'bg-black/40',
   cornerBadge,
@@ -290,6 +291,10 @@ export const HoverCard: React.FC<HoverCardProps> = ({
       triggerClassName={triggerClassName}
       maxRisePx={maxRisePx}
       leadingNode={leadingNode}
+      visualOverflow={icon ? {
+        top: Math.abs(Math.min(0, ICON_HANG_TOP)),
+        left: Math.abs(Math.min(0, ICON_HANG_LEFT)),
+      } : undefined}
       content={(
         <HoverCardPanel
           icon={icon}
