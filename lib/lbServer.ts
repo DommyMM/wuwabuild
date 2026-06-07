@@ -128,22 +128,17 @@ export async function prefetchBuilds(): Promise<LBListBuildsResponse | null> {
 export interface ProfileSummary {
   username: string;
   uid: string;
-  total: number;
+  buildCount: number;
 }
 
-// Lightweight lookup for profile metadata/header
+// Reads the canonical profiles table (uid = immutable identity, username = latest
+// seen) via GET /profile/{uid}. Used for SSR metadata/header — do not derive the
+// owner from an arbitrary build row.
 export async function fetchProfileSummary(uid: string): Promise<ProfileSummary | null> {
   const trimmedUid = uid.trim();
   if (!trimmedUid) return null;
   try {
-    const params = new URLSearchParams({
-      page: '1',
-      pageSize: '1',
-      sort: 'finalCV',
-      direction: 'desc',
-      uid: trimmedUid,
-    });
-    const url = `${getLBUrl()}/build?${params.toString()}`;
+    const url = `${getLBUrl()}/profile/${encodeURIComponent(trimmedUid)}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: getInternalHeaders(),
@@ -151,20 +146,11 @@ export async function fetchProfileSummary(uid: string): Promise<ProfileSummary |
     });
     if (!response.ok) return null;
 
-    const payload = await response.json() as { builds?: unknown[]; total?: number };
-    const firstRaw = Array.isArray(payload.builds) ? payload.builds[0] : undefined;
-    let username = '';
-    if (firstRaw !== undefined) {
-      try {
-        username = parseBuildRowEntry(firstRaw).owner.username;
-      } catch {
-        // leave username empty; caller falls back to uid
-      }
-    }
+    const payload = await response.json() as { uid?: string; username?: string; buildCount?: number };
     return {
-      username,
-      uid: trimmedUid,
-      total: toFiniteNumber(payload.total, 0),
+      username: typeof payload.username === 'string' ? payload.username : '',
+      uid: typeof payload.uid === 'string' && payload.uid ? payload.uid : trimmedUid,
+      buildCount: toFiniteNumber(payload.buildCount, 0),
     };
   } catch (err) {
     console.error('[lbServer] fetchProfileSummary failed', err);

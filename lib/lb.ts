@@ -969,6 +969,24 @@ export interface LBStandingEntry {
   damage: number;
 }
 
+// Shared parse for the common standings fields, used by both the per-build and
+// profile standings endpoints (the latter extends LBStandingEntry).
+function parseStandingBase(raw: Record<string, unknown>): LBStandingEntry {
+  const teamMembers = parseTeamMembers(raw.teamMembers);
+  const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
+  return {
+    key: typeof raw.key === 'string' ? raw.key : '',
+    weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
+    trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
+    rank: toFiniteNumber(raw.rank, 0),
+    total: toFiniteNumber(raw.total, 0),
+    trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
+    teamCharacterIds: fallbackTeamMembers.map((member) => member.charId),
+    teamMembers: teamMembers.length > 0 ? teamMembers : fallbackTeamMembers,
+    damage: toFiniteNumber(raw.damage, 0),
+  };
+}
+
 export async function getBuildStandings(
   characterId: string,
   buildId: string,
@@ -991,18 +1009,44 @@ export async function getBuildStandings(
   const result: LBStandingEntry[] = [];
   for (const raw of payload.standings) {
     if (!isRecord(raw)) continue;
-    const teamMembers = parseTeamMembers(raw.teamMembers);
-    const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
+    result.push(parseStandingBase(raw));
+  }
+  return result;
+}
+
+// Profile showcase: a UID's real leaderboard placements — their best submitted
+// build per (character, weapon, sequence), on that build's own-config board.
+// Extends the per-build LBStandingEntry with which build/character produced the
+// placement and the build's sequence.
+export interface LBProfileStandingEntry extends LBStandingEntry {
+  characterId: string;
+  buildId: string;
+  sequence: number;
+}
+
+export async function getProfileStandings(
+  uid: string,
+  signal?: AbortSignal,
+): Promise<LBProfileStandingEntry[]> {
+  const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(uid)}/standings`;
+  const response = await fetch(requestUrl, { method: 'GET', signal });
+
+  if (response.status === 404) return [];
+  if (!response.ok) {
+    throw new Error(`Failed to fetch profile standings (${response.status})`);
+  }
+
+  const payload = await response.json() as { standings?: unknown };
+  if (!Array.isArray(payload.standings)) return [];
+
+  const result: LBProfileStandingEntry[] = [];
+  for (const raw of payload.standings) {
+    if (!isRecord(raw)) continue;
     result.push({
-      key: typeof raw.key === 'string' ? raw.key : '',
-      weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
-      trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
-      rank: toFiniteNumber(raw.rank, 0),
-      total: toFiniteNumber(raw.total, 0),
-      trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
-      teamCharacterIds: fallbackTeamMembers.map((member) => member.charId),
-      teamMembers: teamMembers.length > 0 ? teamMembers : fallbackTeamMembers,
-      damage: toFiniteNumber(raw.damage, 0),
+      ...parseStandingBase(raw),
+      characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
+      buildId: typeof raw.buildId === 'string' ? raw.buildId : '',
+      sequence: toFiniteNumber(raw.sequence, 0),
     });
   }
   return result;

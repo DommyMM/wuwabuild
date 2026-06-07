@@ -24,9 +24,10 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { uid } = await params;
+  const summary = await fetchProfileSummary(uid);
   return (
     <Suspense>
-      <ProfilePageClient uid={uid} />
+      <ProfilePageClient uid={uid} profileSummary={summary} />
     </Suspense>
   );
 }

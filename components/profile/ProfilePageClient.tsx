@@ -15,6 +15,7 @@ import { GlobalBoardResultsPanel } from '@/components/leaderboards/board/GlobalB
 import { GlobalBoardRowExpandedProps } from '@/components/leaderboards/board/GlobalBoardRow';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/leaderboards/types';
 import { ProfileBuildExpanded } from './ProfileBuildExpanded';
+import { ProfileShowcase } from './ProfileShowcase';
 
 // Profile table: no Owner column. Name gets the freed space (wider).
 // # | Name | Weapon | Seq | Sets | [CV + 4 stats]
@@ -28,9 +29,14 @@ function buildListSignature(builds: LBBuildRowEntry[], total: number): string {
 
 interface ProfilePageClientProps {
   uid: string;
+  profileSummary?: {
+    username: string;
+    uid: string;
+    buildCount: number;
+  } | null;
 }
 
-export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => {
+export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profileSummary }) => {
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
@@ -256,9 +262,10 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => 
     return (page - 1) * pageSize + 1;
   })();
 
-  // Profile header info derived from first loaded build
-  const profileUsername = builds[0]?.owner.username || uid;
-  const regionBadge = builds[0] ? resolveRegionBadge(builds[0].owner.uid) : null;
+  // Profile header info comes from the canonical profile row; builds are only a fallback.
+  const profileUsername = profileSummary?.username || builds[0]?.owner.username || uid;
+  const profileBuildCount = profileSummary?.buildCount ?? total;
+  const regionBadge = resolveRegionBadge(profileSummary?.uid || uid);
 
   // Custom renderExpanded for profile, renders ProfileCard inside
   const renderExpanded = useCallback((props: GlobalBoardRowExpandedProps) => (
@@ -290,30 +297,38 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid }) => 
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top_left,rgba(166,150,98,0.10),transparent_55%)]" />
           <div className="relative overflow-hidden rounded-[inherit]">
             <div className="border-b border-border/70 px-6 py-5">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-2xl font-bold text-text-primary/50 select-none">
+              <div className="flex flex-wrap items-center gap-5">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-border bg-background text-3xl font-bold text-text-primary/40 ring-1 ring-inset ring-white/5 select-none">
                   {profileUsername.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <h1 className="truncate text-3xl font-bold tracking-wide text-text-primary">{profileUsername}</h1>
                     {regionBadge && (
-                      <span className={`rounded px-2 py-0.5 text-xs font-semibold ${regionBadge.className}`}>
+                      <span className={`rounded px-2 py-0.5 text-[11px] font-semibold tracking-wider uppercase ${regionBadge.className}`}>
                         {regionBadge.label}
                       </span>
                     )}
-                    <h1 className="text-2xl font-bold tracking-wide text-text-primary">{profileUsername}</h1>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-3 text-sm text-text-primary/55">
-                    <span>UID {uid}</span>
-                    {total > 0 && (
-                      <span className="rounded-md border border-border bg-background/60 px-2 py-0.5 text-xs">
-                        {total.toLocaleString()} build{total !== 1 ? 's' : ''}
-                      </span>
-                    )}
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-text-primary/45 uppercase">
+                    <span>UID</span>
+                    <span className="font-mono tabular-nums font-normal tracking-normal text-text-primary/55 normal-case">{uid}</span>
                   </div>
                 </div>
+                {profileBuildCount > 0 && (
+                  <div className="flex shrink-0 flex-col items-end rounded-lg border border-border bg-background/50 px-4 py-2">
+                    <span className="text-2xl leading-none font-bold tabular-nums text-text-primary">
+                      {profileBuildCount.toLocaleString()}
+                    </span>
+                    <span className="mt-1 text-[11px] tracking-wider text-text-primary/45 uppercase">
+                      build{profileBuildCount !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
+
+            <ProfileShowcase uid={uid} />
 
             <div className="px-4 py-3">
               <div className="space-y-3">
