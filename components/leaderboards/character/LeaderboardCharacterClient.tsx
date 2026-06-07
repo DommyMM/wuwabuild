@@ -37,6 +37,26 @@ function sameDisplayStats(a: readonly LBStatSortKey[], b: readonly LBStatSortKey
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
+function getStickyNavOffset(): number {
+  const nav = document.querySelector('nav');
+  if (!nav) return 16;
+
+  const style = window.getComputedStyle(nav);
+  if (style.position !== 'sticky' && style.position !== 'fixed') return 16;
+
+  const rect = nav.getBoundingClientRect();
+  return Math.max(16, rect.bottom + 16);
+}
+
+function scrollToDeepLinkedRow(row: HTMLElement): void {
+  const top = window.scrollY + row.getBoundingClientRect().top - getStickyNavOffset();
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({
+    top: Math.max(0, top),
+    behavior: prefersReducedMotion ? 'auto' : 'smooth',
+  });
+}
+
 interface LeaderboardCharacterClientProps {
   characterId: string;
   initialData?: LBLeaderboardResponse | null;
@@ -477,9 +497,15 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     expandedDeepLinkRef.current = id;
     void Promise.resolve().then(() => {
       if (!expandedIds.has(id)) handleToggleExpand(id);
-      setTimeout(() => {
-        autoExpandRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 200);
+      const scroll = () => {
+        const row = autoExpandRowRef.current;
+        if (row) scrollToDeepLinkedRow(row);
+      };
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          window.setTimeout(scroll, 220);
+        });
+      });
     });
   }, [deepLink?.id, displayEntries, expandedIds, handleToggleExpand]);
 
