@@ -365,9 +365,16 @@ export function BuildProvider({
           isDirty: false,
         };
       }
-      return loadDraftFromStorage() ?? initialState;
+      return initialState;
     }
   );
+
+  useEffect(() => {
+    if (providedInitialState || !persistDraft) return;
+    const draft = loadDraftFromStorage();
+    if (!draft) return;
+    dispatch({ type: 'LOAD_STATE', payload: stripDirtyFromState(draft) });
+  }, [persistDraft, providedInitialState]);
 
   // Auto-persist to localStorage (debounced 500ms)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

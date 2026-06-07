@@ -125,6 +125,53 @@ export async function prefetchBuilds(): Promise<LBListBuildsResponse | null> {
   }
 }
 
+export interface ProfileSummary {
+  username: string;
+  uid: string;
+  total: number;
+}
+
+// Lightweight lookup for profile metadata/header
+export async function fetchProfileSummary(uid: string): Promise<ProfileSummary | null> {
+  const trimmedUid = uid.trim();
+  if (!trimmedUid) return null;
+  try {
+    const params = new URLSearchParams({
+      page: '1',
+      pageSize: '1',
+      sort: 'finalCV',
+      direction: 'desc',
+      uid: trimmedUid,
+    });
+    const url = `${getLBUrl()}/build?${params.toString()}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getInternalHeaders(),
+      next: { revalidate: PREFETCH_TTL_S },
+    });
+    if (!response.ok) return null;
+
+    const payload = await response.json() as { builds?: unknown[]; total?: number };
+    const firstRaw = Array.isArray(payload.builds) ? payload.builds[0] : undefined;
+    let username = '';
+    if (firstRaw !== undefined) {
+      try {
+        username = parseBuildRowEntry(firstRaw).owner.username;
+      } catch {
+        // leave username empty; caller falls back to uid
+      }
+    }
+    return {
+      username,
+      uid: trimmedUid,
+      total: toFiniteNumber(payload.total, 0),
+    };
+  } catch (err) {
+    console.error('[lbServer] fetchProfileSummary failed', err);
+    return null;
+  }
+}
+
 export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview[] | null> {
   try {
     const url = `${getLBUrl()}/leaderboard`;
