@@ -969,8 +969,8 @@ export interface LBStandingEntry {
   damage: number;
 }
 
-// Shared parse for the common standings fields, used by both the per-build and
-// profile standings endpoints (the latter extends LBStandingEntry).
+// Parses the common standings fields for the per-build standings endpoint.
+// (Profile standings have their own lean shape — see LBProfileStandingEntry.)
 function parseStandingBase(raw: Record<string, unknown>): LBStandingEntry {
   const teamMembers = parseTeamMembers(raw.teamMembers);
   const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
@@ -1014,14 +1014,18 @@ export async function getBuildStandings(
   return result;
 }
 
-// Profile showcase: a UID's real leaderboard placements — their best submitted
-// build per (character, weapon, sequence), on that build's own-config board.
-// Extends the per-build LBStandingEntry with which build/character produced the
-// placement and the build's sequence.
-export interface LBProfileStandingEntry extends LBStandingEntry {
+// Profile showcase: a UID's best competitive placement per character. Lean shape —
+// only what a ranking tile renders. Deliberately NOT LBStandingEntry (no team
+// members / damage); the backend emits exactly these fields.
+export interface LBProfileStandingEntry {
   characterId: string;
-  buildId: string;
+  weaponId: string;
+  trackKey: string;
+  trackLabel: string;
   sequence: number;
+  rank: number;
+  total: number;
+  buildId: string;
 }
 
 export async function getProfileStandings(
@@ -1037,16 +1041,21 @@ export async function getProfileStandings(
   }
 
   const payload = await response.json() as { standings?: unknown };
+  console.log('[LB] /profile/{uid}/standings payload', { requestUrl, uid, payload });
   if (!Array.isArray(payload.standings)) return [];
 
   const result: LBProfileStandingEntry[] = [];
   for (const raw of payload.standings) {
     if (!isRecord(raw)) continue;
     result.push({
-      ...parseStandingBase(raw),
       characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
-      buildId: typeof raw.buildId === 'string' ? raw.buildId : '',
+      weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
+      trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
+      trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
       sequence: toFiniteNumber(raw.sequence, 0),
+      rank: toFiniteNumber(raw.rank, 0),
+      total: toFiniteNumber(raw.total, 0),
+      buildId: typeof raw.buildId === 'string' ? raw.buildId : '',
     });
   }
   return result;

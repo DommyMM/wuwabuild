@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,12 +8,14 @@ import { getProfileStandings, LBProfileStandingEntry } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 import { computeTopPercent, getRankTier } from '@/lib/calculations/rankTier';
 import { stripLBSeqPrefix } from '@/components/leaderboards/constants';
+import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
 
 interface ProfileShowcaseProps {
   uid: string;
+  onFeaturedEntry?: (entry: LBProfileStandingEntry | null) => void;
 }
 
-const TILE_W = 188;
+const TILE_W = 184;
 const TILE_GAP = 8;
 
 // Bare percentile, scaled precision — the number is the hero, so it should read
@@ -31,8 +33,8 @@ function formatCount(n: number): string {
   return String(n);
 }
 
-export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid }) => {
-  const { getCharacter, getWeapon } = useGameData();
+export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeaturedEntry }) => {
+  const { getCharacter, getWeapon, statIcons } = useGameData();
   const { t } = useLanguage();
   const [state, setState] = useState<{ uid: string; entries: LBProfileStandingEntry[]; loading: boolean }>(() => ({
     uid,
@@ -58,7 +60,15 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid }) => {
   }, [uid]);
 
   const loading = state.uid !== uid || state.loading;
-  const entries = state.uid === uid ? state.entries : [];
+  const entries = useMemo(
+    () => state.uid === uid ? state.entries : [],
+    [state.entries, state.uid, uid],
+  );
+
+  useEffect(() => {
+    if (loading) return;
+    onFeaturedEntry?.(entries[0] ?? null);
+  }, [entries, loading, onFeaturedEntry]);
 
   // The condense/expand toggle is only meaningful when the tiles can't all sit
   // in a single row at the current width.
@@ -93,9 +103,9 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid }) => {
       </div>
 
       {loading ? (
-        <div className="flex gap-2 overflow-hidden">
+        <div className="flex flex-wrap gap-2 overflow-hidden max-[560px]:grid max-[560px]:grid-cols-1">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-[110px] w-[188px] shrink-0 animate-pulse rounded-md border border-border bg-background/50" />
+            <div key={i} className="h-[108px] w-[184px] shrink-0 animate-pulse rounded-md border border-border bg-background/50 max-[560px]:w-full" />
           ))}
         </div>
       ) : (
@@ -105,7 +115,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid }) => {
             className={
               condensed
                 ? 'flex flex-nowrap gap-2 overflow-x-auto pb-1.5 scrollbar-none hover:scrollbar-thin [&::-webkit-scrollbar]:h-0 hover:[&::-webkit-scrollbar]:h-1.5'
-                : 'flex flex-wrap gap-2'
+                : 'flex flex-wrap gap-2 max-[560px]:grid max-[560px]:grid-cols-1'
             }
           >
             {entries.map((entry) => {
@@ -117,13 +127,23 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid }) => {
               const tier = getRankTier(topPercent);
               const baseLabel = stripLBSeqPrefix(entry.trackLabel || entry.trackKey) || 'DMG';
               const href = `/leaderboards/${entry.characterId}?weaponId=${encodeURIComponent(entry.weaponId)}&track=${encodeURIComponent(entry.trackKey)}&buildId=${encodeURIComponent(entry.buildId)}`;
+              const atkIcon = statIcons?.ATK;
+              const mainStatIcon = weapon?.main_stat ? (statIcons?.[weapon.main_stat] ?? null) : null;
+              const weaponBadge = (
+                <span className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background/75 backdrop-blur-sm">
+                  <img src={getWeaponPaths(weapon)} alt={weaponName} className="h-8 w-8 object-contain" />
+                </span>
+              );
+              const tileClassName = condensed
+                ? 'group relative h-[108px] w-[184px] shrink-0 overflow-hidden rounded-md border border-border bg-background-secondary/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40'
+                : 'group relative h-[108px] w-[184px] shrink-0 overflow-hidden rounded-md border border-border bg-background-secondary/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 max-[560px]:w-full';
 
               return (
                 <Link
-                  key={`${entry.key}:${entry.buildId}`}
+                  key={`${entry.characterId}:${entry.buildId}`}
                   href={href}
                   title={`${characterName} · ${weaponName} · ${baseLabel}`}
-                  className="group relative h-[110px] w-[188px] shrink-0 overflow-hidden rounded-md border border-border bg-background-secondary/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40"
+                  className={tileClassName}
                 >
                   {/* Character face — right-anchored hero art, full color, faded into the card. */}
                   {character?.head && (
@@ -131,7 +151,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid }) => {
                       src={character.head}
                       alt=""
                       aria-hidden
-                      className="pointer-events-none absolute inset-y-0 right-0 h-full w-[56%] object-cover object-top transition duration-300 group-hover:scale-105 mask-[linear-gradient(to_right,transparent,black_38%)]"
+                      className="pointer-events-none absolute inset-y-0 right-0 h-full w-[56%] object-cover object-top mask-[linear-gradient(to_right,transparent,black_38%)]"
                     />
                   )}
 
@@ -144,20 +164,32 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid }) => {
                     style={{ background: tier.color, boxShadow: tier.glow ? `0 0 10px ${tier.glow}` : undefined }}
                   />
 
-                  {/* Sequence chip — solid dark pill so it never blends into the art. */}
-                  {entry.sequence > 0 && (
-                    <span className="absolute top-2 right-2 z-10 rounded-sm bg-background/90 px-1 py-px text-[9px] font-bold tracking-wide text-accent shadow-sm ring-1 ring-inset ring-accent/50 backdrop-blur-sm">
-                      S{entry.sequence}
-                    </span>
-                  )}
+                  {/* Sequence is board identity, so S0 stays visible like Akasha's C0/C6 chips. */}
+                  <span className="absolute top-2 right-2 z-10 rounded-sm bg-background/90 px-1 py-px text-[9px] font-bold tracking-wide text-accent shadow-sm ring-1 ring-inset ring-accent/50 backdrop-blur-sm">
+                    S{entry.sequence}
+                  </span>
 
                   {/* Weapon — board identity, badged over the art bottom-right. */}
-                  <span className="absolute right-2 bottom-2 z-10 flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background/75 backdrop-blur-sm">
-                    <img src={getWeaponPaths(weapon)} alt={weaponName} className="h-8 w-8 object-contain" />
+                  <span className="absolute right-2 bottom-2 z-10 flex">
+                    {weapon ? (
+                      <WeaponHoverCard
+                        placement="top"
+                        triggerClassName="flex"
+                        weapon={weapon}
+                        weaponLevel={90}
+                        weaponRank={1}
+                        scaledAtk={Math.floor(weapon.ATK * 12.5)}
+                        scaledMainStat={parseFloat((weapon.base_main * 4.5).toFixed(1))}
+                        atkIcon={atkIcon}
+                        mainStatIcon={mainStatIcon}
+                      >
+                        {weaponBadge}
+                      </WeaponHoverCard>
+                    ) : weaponBadge}
                   </span>
 
                   {/* Data column: track · percentile (hero) · absolute rank. */}
-                  <div className="relative z-10 flex h-full w-[62%] flex-col justify-between p-3">
+                  <div className="relative z-10 flex h-full w-[63%] flex-col justify-between p-3">
                     <span className="truncate text-[11px] font-bold tracking-wider text-text-primary/80 uppercase">
                       {baseLabel}
                     </span>
@@ -165,7 +197,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid }) => {
                     <div className="leading-none">
                       <span className="text-[9px] font-semibold tracking-[0.2em] text-text-primary/40 uppercase">top</span>
                       <div className="mt-0.5 flex items-baseline gap-0.5">
-                        <span className="text-[26px] font-bold tabular-nums" style={{ color: tier.color }}>
+                        <span className="text-[25px] font-bold tabular-nums" style={{ color: tier.color }}>
                           {formatPercent(topPercent)}
                         </span>
                         <span className="text-sm font-semibold" style={{ color: tier.color }}>%</span>

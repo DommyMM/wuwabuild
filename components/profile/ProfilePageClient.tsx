@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
+import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE } from '@/components/leaderboards/constants';
 import { getSortLabel, resolveRegionBadge } from '@/components/leaderboards/formatters';
@@ -38,7 +38,7 @@ interface ProfilePageClientProps {
 
 export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profileSummary }) => {
   const searchParams = useSearchParams();
-  const { characters, weaponList, fetters } = useGameData();
+  const { characters, weaponList, fetters, getCharacter } = useGameData();
   const { t } = useLanguage();
 
   const buildListSigRef = useRef(buildListSignature([], 0));
@@ -67,6 +67,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
   const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
   const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
+  const [featuredStanding, setFeaturedStanding] = useState<LBProfileStandingEntry | null>(null);
   const detailControllersRef = useRef<Record<string, AbortController>>({});
 
   const selectedCharacters = useMemo(() => (
@@ -266,6 +267,13 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const profileUsername = profileSummary?.username || builds[0]?.owner.username || uid;
   const profileBuildCount = profileSummary?.buildCount ?? total;
   const regionBadge = resolveRegionBadge(profileSummary?.uid || uid);
+  const featuredCharacter = useMemo(
+    () => getCharacter(featuredStanding?.characterId ?? builds[0]?.character.id ?? null),
+    [builds, featuredStanding, getCharacter],
+  );
+  const featuredCharacterName = featuredCharacter
+    ? t(featuredCharacter.nameI18n ?? { en: featuredCharacter.name })
+    : null;
 
   // Custom renderExpanded for profile, renders ProfileCard inside
   const renderExpanded = useCallback((props: GlobalBoardRowExpandedProps) => (
@@ -298,8 +306,21 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
           <div className="relative overflow-hidden rounded-[inherit]">
             <div className="border-b border-border/70 px-6 py-5">
               <div className="flex flex-wrap items-center gap-5">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-border bg-background text-3xl font-bold text-text-primary/40 ring-1 ring-inset ring-white/5 select-none">
-                  {profileUsername.charAt(0).toUpperCase()}
+                <div className="group relative flex h-18 w-18 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-background ring-1 ring-inset ring-white/5 select-none">
+                  {featuredCharacter?.head || featuredCharacter?.iconRound ? (
+                    <>
+                      <img
+                        src={featuredCharacter.head ?? featuredCharacter.iconRound}
+                        alt={featuredCharacterName ?? ''}
+                        className="h-full w-full object-cover object-top opacity-90 saturate-110"
+                      />
+                      <span className="pointer-events-none absolute inset-0 bg-linear-to-t from-background/45 via-transparent to-white/5" />
+                    </>
+                  ) : (
+                    <span className="text-3xl font-bold text-text-primary/40">
+                      {profileUsername.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2.5">
@@ -316,7 +337,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                   </div>
                 </div>
                 {profileBuildCount > 0 && (
-                  <div className="flex shrink-0 flex-col items-end rounded-lg border border-border bg-background/50 px-4 py-2">
+                  <div className="flex shrink-0 flex-col items-end rounded-lg border border-border bg-background/55 px-4 py-2 ring-1 ring-inset ring-white/5">
                     <span className="text-2xl leading-none font-bold tabular-nums text-text-primary">
                       {profileBuildCount.toLocaleString()}
                     </span>
@@ -328,7 +349,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
               </div>
             </div>
 
-            <ProfileShowcase uid={uid} />
+            <ProfileShowcase uid={uid} onFeaturedEntry={setFeaturedStanding} />
 
             <div className="px-4 py-3">
               <div className="space-y-3">
