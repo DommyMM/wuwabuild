@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { getBuildById, isHealTrackKey, LBBuildDetailEntry, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
+import { isHealTrackKey, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, MAX_ITEMS_PER_PAGE } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
@@ -15,6 +15,9 @@ import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeader
 import { LeaderboardCharacterHeader } from './LeaderboardCharacterHeader';
 import { LeaderboardTabs } from './LeaderboardTabs';
 import { LeaderboardResultsPanel } from './LeaderboardResultsPanel';
+import { scrollToElementBelowNav } from '../scrollToElementBelowNav';
+import { useBuildDetails } from '../useBuildDetails';
+import { useExpandedRows } from '../useExpandedRows';
 import posthog from 'posthog-js';
 
 function leaderboardSignature(entries: LBLeaderboardEntry[], total: number): string {
@@ -35,26 +38,6 @@ function mergeGhostBuild(entries: LBLeaderboardEntry[], ghostBuild: LBLeaderboar
 
 function sameDisplayStats(a: readonly LBStatSortKey[], b: readonly LBStatSortKey[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
-}
-
-function getStickyNavOffset(): number {
-  const nav = document.querySelector('nav');
-  if (!nav) return 16;
-
-  const style = window.getComputedStyle(nav);
-  if (style.position !== 'sticky' && style.position !== 'fixed') return 16;
-
-  const rect = nav.getBoundingClientRect();
-  return Math.max(16, rect.bottom + 16);
-}
-
-function scrollToDeepLinkedRow(row: HTMLElement): void {
-  const top = window.scrollY + row.getBoundingClientRect().top - getStickyNavOffset();
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  window.scrollTo({
-    top: Math.max(0, top),
-    behavior: prefersReducedMotion ? 'auto' : 'smooth',
-  });
 }
 
 interface LeaderboardCharacterClientProps {
@@ -160,26 +143,20 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     });
   });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const { expandedIds, toggleExpandedId } = useExpandedRows();
   const autoExpandRowRef = useRef<HTMLDivElement | null>(null);
-  const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
-  const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
-  const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
-  const detailByIdRef = useRef<Record<string, LBBuildDetailEntry>>(detailById);
-  const detailLoadingByIdRef = useRef<Record<string, boolean>>(detailLoadingById);
-  const detailControllersRef = useRef<Record<string, AbortController>>({});
+  const {
+    detailById,
+    detailLoadingById,
+    detailErrorById,
+    loadBuildDetail,
+    retryBuildDetail,
+  } = useBuildDetails();
 
   useEffect(() => {
     entriesRef.current = entries;
   }, [entries]);
 
-  useEffect(() => {
-    detailByIdRef.current = detailById;
-  }, [detailById]);
-
-  useEffect(() => {
-    detailLoadingByIdRef.current = detailLoadingById;
-  }, [detailLoadingById]);
   const defaultWeaponId = configWeaponIds[0] ?? initialData?.weaponIds?.[0] ?? initialData?.activeWeaponId ?? '';
   const defaultTrackKey = configTracks[0]?.key ?? initialData?.tracks?.[0]?.key ?? initialData?.activeTrack ?? DEFAULT_LB_TRACK;
 
@@ -415,79 +392,21 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     };
   }, [characterId, leaderboardQuery, page, pageSize, queryKey, resolveBuildId, settledQueryKey, track]);
 
-  // Expand / detail
-  const loadBuildDetail = useCallback((buildId: string, force = false) => {
-    const normalizedBuildId = buildId.trim();
-    if (!normalizedBuildId) return;
-    if (!force && (detailByIdRef.current[normalizedBuildId] || detailLoadingByIdRef.current[normalizedBuildId])) {
-      return;
-    }
-
-    detailControllersRef.current[normalizedBuildId]?.abort();
-    const controller = new AbortController();
-    detailControllersRef.current[normalizedBuildId] = controller;
-
-    setDetailLoadingById((prev) => {
-      const next = { ...prev, [normalizedBuildId]: true };
-      detailLoadingByIdRef.current = next;
-      return next;
-    });
-    setDetailErrorById((prev) => ({ ...prev, [normalizedBuildId]: null }));
-
-    void getBuildById(normalizedBuildId, controller.signal)
-      .then((detail) => {
-        setDetailById((prev) => {
-          const next = { ...prev, [normalizedBuildId]: detail };
-          detailByIdRef.current = next;
-          return next;
-        });
-      })
-      .catch((fetchError) => {
-        if (controller.signal.aborted) return;
-        setDetailErrorById((prev) => ({
-          ...prev,
-          [normalizedBuildId]: fetchError instanceof Error ? fetchError.message : 'Failed to load build details.',
-        }));
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return;
-        setDetailLoadingById((prev) => {
-          const next = { ...prev, [normalizedBuildId]: false };
-          detailLoadingByIdRef.current = next;
-          return next;
-        });
-        delete detailControllersRef.current[normalizedBuildId];
-      });
-  }, []);
-
   const handleToggleExpand = useCallback((id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      const willExpand = !next.has(id);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
-      if (willExpand) {
+    toggleExpandedId(id, (expandedId) => {
         const entry = entriesRef.current.find((row) => row.id === id);
         posthog.capture('discovery_result_expand', {
           surface: 'leaderboard_character',
           character_id: entry?.character.id ?? characterId,
           track_key: track,
         });
-      }
-      return next;
+      loadBuildDetail(expandedId);
     });
-    if (!detailByIdRef.current[id] && !detailLoadingByIdRef.current[id]) {
-      loadBuildDetail(id);
-    }
-  }, [characterId, loadBuildDetail, track]);
+  }, [characterId, loadBuildDetail, toggleExpandedId, track]);
 
   const handleRetryDetail = useCallback((id: string) => {
-    loadBuildDetail(id, true);
-  }, [loadBuildDetail]);
-
-  useEffect(() => (() => {
-    Object.values(detailControllersRef.current).forEach((controller) => controller.abort());
-    detailControllersRef.current = {};
-  }), []);
+    retryBuildDetail(id);
+  }, [retryBuildDetail]);
 
   // Auto-expand + scroll to a deep-linked build, exactly once per reveal, when it first appears in the rows.
   useEffect(() => {
@@ -499,7 +418,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       if (!expandedIds.has(id)) handleToggleExpand(id);
       const scroll = () => {
         const row = autoExpandRowRef.current;
-        if (row) scrollToDeepLinkedRow(row);
+        if (row) scrollToElementBelowNav(row);
       };
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => {

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBListBuildsResponse, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
+import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBListBuildsResponse, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE } from '../constants';
 import { getSortLabel } from '../formatters';
@@ -15,6 +15,8 @@ import { GlobalBoardHeader } from './GlobalBoardHeader';
 import { GlobalBoardResultsPanel } from './GlobalBoardResultsPanel';
 import { GlobalBoardRowExpandedProps } from './GlobalBoardRow';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '../types';
+import { useBuildDetails } from '../useBuildDetails';
+import { useExpandedRows } from '../useExpandedRows';
 import posthog from 'posthog-js';
 
 function buildListSignature(builds: LBBuildRowEntry[], total: number): string {
@@ -63,25 +65,19 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     return ssrData ? '' : null;
   });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
-  const [expandedBuildIds, setExpandedBuildIds] = useState<Set<string>>(new Set());
-  const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
-  const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
-  const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
-  const detailByIdRef = useRef<Record<string, LBBuildDetailEntry>>(detailById);
-  const detailLoadingByIdRef = useRef<Record<string, boolean>>(detailLoadingById);
-  const detailControllersRef = useRef<Record<string, AbortController>>({});
+  const { expandedIds: expandedBuildIds, toggleExpandedId } = useExpandedRows();
+  const {
+    detailById,
+    detailLoadingById,
+    detailErrorById,
+    loadBuildDetail,
+    retryBuildDetail,
+    resetBuildDetailRequestState,
+  } = useBuildDetails();
 
   useEffect(() => {
     buildsRef.current = builds;
   }, [builds]);
-
-  useEffect(() => {
-    detailByIdRef.current = detailById;
-  }, [detailById]);
-
-  useEffect(() => {
-    detailLoadingByIdRef.current = detailLoadingById;
-  }, [detailLoadingById]);
 
   const selectedCharacters = useMemo(() => (
     characterIds.reduce<typeof characters>((acc, id) => {
@@ -159,11 +155,6 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   const isLoading = isPendingQuery && builds.length === 0;
   const isRefreshing = isPendingQuery && builds.length > 0;
   const error = fetchError?.queryKey === currentQueryKey ? fetchError.message : null;
-  const abortAllDetailRequests = useCallback(() => {
-    Object.values(detailControllersRef.current).forEach((controller) => controller.abort());
-    detailControllersRef.current = {};
-  }, []);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const next = serializeQuery(querySnapshot);
@@ -221,9 +212,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
 
     queueMicrotask(() => {
       if (!active) return;
-      abortAllDetailRequests();
-      setDetailLoadingById({});
-      setDetailErrorById({});
+      resetBuildDetailRequestState();
       // Skip localStorage cache only for the default query when SSR data already covers it.
       if (cachedResponse && !(ssrData && currentQueryKey === '')) {
         buildListSigRef.current = buildListSignature(cachedResponse.builds, cachedResponse.total);
@@ -276,87 +265,25 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       active = false;
       controller.abort();
     };
-  }, [abortAllDetailRequests, currentQueryKey, querySnapshot, settledQueryKey, ssrData]);
-
-  const loadBuildDetail = useCallback((buildId: string, force = false) => {
-    const normalizedBuildId = buildId.trim();
-    if (!normalizedBuildId) return;
-    if (!force && (detailByIdRef.current[normalizedBuildId] || detailLoadingByIdRef.current[normalizedBuildId])) {
-      return;
-    }
-
-    detailControllersRef.current[normalizedBuildId]?.abort();
-    const controller = new AbortController();
-    detailControllersRef.current[normalizedBuildId] = controller;
-
-    setDetailLoadingById((prev) => {
-      const next = { ...prev, [normalizedBuildId]: true };
-      detailLoadingByIdRef.current = next;
-      return next;
-    });
-    setDetailErrorById((prev) => ({ ...prev, [normalizedBuildId]: null }));
-
-    void getBuildById(normalizedBuildId, controller.signal)
-      .then((detail) => {
-        setDetailById((prev) => {
-          const next = { ...prev, [normalizedBuildId]: detail };
-          detailByIdRef.current = next;
-          return next;
-        });
-      })
-      .catch((fetchError) => {
-        if (controller.signal.aborted) return;
-        setDetailErrorById((prev) => ({
-          ...prev,
-          [normalizedBuildId]: fetchError instanceof Error ? fetchError.message : 'Failed to load build details.',
-        }));
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return;
-        setDetailLoadingById((prev) => {
-          const next = { ...prev, [normalizedBuildId]: false };
-          detailLoadingByIdRef.current = next;
-          return next;
-        });
-        delete detailControllersRef.current[normalizedBuildId];
-      });
-  }, []);
+  }, [currentQueryKey, querySnapshot, resetBuildDetailRequestState, settledQueryKey, ssrData]);
 
   const handleToggleExpand = useCallback((buildId: string) => {
     const normalizedBuildId = buildId.trim();
     if (!normalizedBuildId) return;
-
-    setExpandedBuildIds((prev) => {
-      const next = new Set(prev);
-      const willExpand = !next.has(normalizedBuildId);
-      if (next.has(normalizedBuildId)) {
-        next.delete(normalizedBuildId);
-      } else {
-        next.add(normalizedBuildId);
-      }
-      if (willExpand) {
+    toggleExpandedId(normalizedBuildId, (id) => {
         const build = buildsRef.current.find((entry) => entry.id === normalizedBuildId);
         posthog.capture('discovery_result_expand', {
           surface: 'builds',
           character_id: build?.character.id ?? null,
           track_key: null,
         });
-      }
-      return next;
+      loadBuildDetail(id);
     });
-
-    if (!detailByIdRef.current[normalizedBuildId] && !detailLoadingByIdRef.current[normalizedBuildId]) {
-      loadBuildDetail(normalizedBuildId);
-    }
-  }, [loadBuildDetail]);
+  }, [loadBuildDetail, toggleExpandedId]);
 
   const handleRetryDetail = useCallback((buildId: string) => {
-    loadBuildDetail(buildId, true);
-  }, [loadBuildDetail]);
-
-  useEffect(() => (() => {
-    abortAllDetailRequests();
-  }), [abortAllDetailRequests]);
+    retryBuildDetail(buildId);
+  }, [retryBuildDetail]);
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
 

@@ -8,12 +8,12 @@ For full technical context, see [AGENTS.md](./AGENTS.md).
 
 ---
 
-## Status Snapshot (March 28, 2026)
+## Status Snapshot (June 7, 2026)
 
 - Core routes: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`, `/profile/[uid]`, `/characters/[id]`, `/weapons/[id]`, `/changelog`, `/tos`, `/privacy`.
-- **Home (`/`)** uses ISR (`revalidate = 300`) and server-prefetched LB stats. **`/leaderboards/[characterId]`** is `force-dynamic`: it server-prefetches the first board payload, canonicalizes the incoming query string against the returned weapon/track config and `redirect()`s to it, then keeps URL state in sync on the client. **`/builds`** and **`/leaderboards`** fetch list data on the client via `/api/lb/*`.
+- **Home (`/`)** uses ISR (`revalidate = 300`) and server-prefetched LB stats. **`/builds`** is `force-static` with a server-prefetched default build page, then client-side query changes/revalidation go through `/api/lb/*`. **`/leaderboards/[characterId]`** is `force-dynamic`: it server-prefetches the first board payload, canonicalizes the incoming query string against the returned weapon/track config and `redirect()`s to it, then keeps URL state in sync on the client. **`/leaderboards`** prefetches overview data server-side and also keeps an overview cache on the client.
 - `/import` OCR flow is live with leaderboard upload and screenshot-backed scan issue reports.
-- Build expansion shows move breakdown, substat upgrade tiers, and leaderboard standings across all weapon × track boards.
+- Build expansion shows move breakdown, substat upgrade tiers, and leaderboard standings across all weapon × track boards. `/builds`, `/profile/[uid]`, and `/leaderboards/[characterId]` share row expansion/detail-loading primitives, while the character leaderboard keeps its own damage-board, dedupe, and ghost-build semantics.
 - Root layout includes Vercel Analytics, Google Analytics in production, and PostHog initialization via `instrumentation-client.ts`.
 - Leaderboard API is the Go service documented in [`../lb/AGENTS.md`](../lb/AGENTS.md).
 
@@ -24,7 +24,7 @@ For full technical context, see [AGENTS.md](./AGENTS.md).
 - **Build Editor** (`/edit`) — Full character build creator with real-time stat calculations, drag-to-reposition splash art, weapon rank passives, forte node bonuses, echo set summaries, CV tiers, and downloadable build card export.
 - **OCR Import** (`/import`) — Upload a 1920×1080 screenshot; frontend crops into regions and sends each in parallel to the OCR backend. Supports character, weapon, echoes, forte, sequences, watermark extraction, and inline OCR issue reporting with screenshot-backed diagnostics.
 - **Build Browser** (`/builds`) — Paginated build listing with filters (character, weapon, echo sets, echo mains, UID/username search) and sort by CV, damage, timestamp, or individual stats.
-- **Profiles** (`/profile/[uid]`) — Player-centric history view for all public leaderboard builds under one UID.
+- **Profiles** (`/profile/[uid]`) — Player-centric history view for all public leaderboard builds under one UID, backed by `/profile/{uid}` metadata and `/profile/{uid}/builds` rows from the LB service.
 - **Local Saves** (`/saves`) — Save builds to localStorage with auto-migration from legacy save formats.
 - **Multi-Language** — 10 languages: English, Japanese, Korean, Chinese (Simplified/Traditional), German, Spanish, French, Thai, Ukrainian.
 
@@ -58,10 +58,12 @@ EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
 ### API Integration
 
 - **Leaderboard**: client code calls the generic Next `/api/lb/*` proxy, which forwards any LB child path to the Go LB with `X-Internal-Key`.
+- **Leaderboard SSR prefetch**: server components use `lib/lbServer.ts` to call `LB_URL` directly with `X-Internal-Key` and `next: { revalidate: 300 }`; client components must not import `lbServer.ts`.
 - **OCR**: `/api/ocr` proxies to `API_URL` (production typically points at `https://ocr.wuwabuilds.moe`) with `X-OCR-Region`, plus `X-Internal-Key` and forwarded client IP when configured.
 - **Build submission**: `POST /build` is wired — `/import` sends canonical `buildState` when the `Upload to Leaderboard` toggle is enabled.
 - **Training image upload**: `/import` can upload the full screenshot to R2 through `POST /api/upload-training`.
 - **OCR issue reporting**: `/import` can submit screenshot-linked JSON reports to R2 via `POST /api/report-ocr-issue` for manual review.
+- **Production console stripping**: `next.config.ts` removes `console.log` and similar calls in production, while preserving `console.error` and `console.warn`.
 
 ---
 

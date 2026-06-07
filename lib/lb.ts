@@ -431,10 +431,7 @@ function resolveLBBaseUrl(): string {
   return LB_PROXY_BASE;
 }
 
-export async function listBuilds(
-  query: LBListBuildsQuery = {},
-  signal?: AbortSignal,
-): Promise<LBListBuildsResponse> {
+function buildBuildListSearchParams(query: LBListBuildsQuery, includeOwnerFilters: boolean): URLSearchParams {
   const params = new URLSearchParams();
   const pageSize = clampPageSize(query.pageSize);
   params.set('page', String(query.page ?? 1));
@@ -444,11 +441,13 @@ export async function listBuilds(
 
   appendStringParams(params, 'characterId', query.characterIds);
   appendStringParams(params, 'weaponId', query.weaponIds);
-  if (query.uid) {
-    params.set('uid', query.uid);
-  }
-  if (query.username) {
-    params.set('username', query.username);
+  if (includeOwnerFilters) {
+    if (query.uid) {
+      params.set('uid', query.uid);
+    }
+    if (query.username) {
+      params.set('username', query.username);
+    }
   }
   appendStringParams(params, 'region', query.regionPrefixes);
   const echoSets = serializeEchoSetFilters(query.echoSets);
@@ -460,19 +459,17 @@ export async function listBuilds(
     params.set('echoMains', echoMains);
   }
 
-  const requestUrl = `${resolveLBBaseUrl()}/build?${params.toString()}`;
-  const response = await fetch(requestUrl, {
-    method: 'GET',
-    signal,
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch builds (${response.status})`);
-  }
+  return params;
+}
 
-  const payload = await response.json() as LBListBuildsResponseRaw;
+function parseBuildListResponsePayload(
+  payload: LBListBuildsResponseRaw,
+  fallbackPage: number,
+  fallbackPageSize: number,
+): LBListBuildsResponse {
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
   const builds: LBBuildRowEntry[] = [];
-  
+
   for (const raw of rawBuilds) {
     try {
       builds.push(parseBuildRowEntry(raw));
@@ -485,22 +482,54 @@ export async function listBuilds(
     }
   }
 
-  console.log('[LB] /build compact rows payload', {
-    requestUrl,
-    query,
-    total: toFiniteNumber(payload.total, 0),
-    page: toFiniteNumber(payload.page, query.page ?? 1),
-    pageSize: toFiniteNumber(payload.pageSize, pageSize),
-    droppedRows: Math.max(0, rawBuilds.length - builds.length),
-    builds: builds
-  });
-
   return {
     builds,
     total: toFiniteNumber(payload.total, 0),
-    page: toFiniteNumber(payload.page, query.page ?? 1),
-    pageSize: toFiniteNumber(payload.pageSize, pageSize),
+    page: toFiniteNumber(payload.page, fallbackPage),
+    pageSize: toFiniteNumber(payload.pageSize, fallbackPageSize),
   };
+}
+
+export async function listBuilds(
+  query: LBListBuildsQuery = {},
+  signal?: AbortSignal,
+): Promise<LBListBuildsResponse> {
+  const params = buildBuildListSearchParams(query, true);
+  const pageSize = clampPageSize(query.pageSize);
+
+  const requestUrl = `${resolveLBBaseUrl()}/build?${params.toString()}`;
+  const response = await fetch(requestUrl, {
+    method: 'GET',
+    signal,
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch builds (${response.status})`);
+  }
+
+  const payload = await response.json() as LBListBuildsResponseRaw;
+  return parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
+}
+
+export async function listProfileBuilds(
+  uid: string,
+  query: Omit<LBListBuildsQuery, 'uid' | 'username'> = {},
+  signal?: AbortSignal,
+): Promise<LBListBuildsResponse> {
+  const trimmedUid = uid.trim();
+  if (!trimmedUid) {
+    throw new Error('Profile uid is required.');
+  }
+
+  const params = buildBuildListSearchParams(query, false);
+  const pageSize = clampPageSize(query.pageSize);
+  const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(trimmedUid)}/builds?${params.toString()}`;
+  const response = await fetch(requestUrl, { method: 'GET', signal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch profile builds (${response.status})`);
+  }
+
+  const payload = await response.json() as LBListBuildsResponseRaw;
+  return parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
 }
 
 // Leaderboard types

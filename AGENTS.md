@@ -47,7 +47,7 @@ User-facing changes from the `wuwa-lb` and `backend` repos belong here too — t
 | Edit the leaderboard overview (/leaderboards) | `components/leaderboards/overview/`                       |
 | Edit per-character leaderboard pages          | `components/leaderboards/character/`                      |
 | Edit the shared expansion panel               | `components/leaderboards/BuildExpanded.tsx`               |
-| Edit leaderboard constants / shared helpers   | `components/leaderboards/constants.ts`, `queryHelpers.ts` |
+| Edit leaderboard constants / shared helpers   | `components/leaderboards/constants.ts`, `queryHelpers.ts`, `useBuildDetails.ts`, `useExpandedRows.ts`, `scrollToElementBelowNav.ts` |
 | Understand SSR prefetch / silent revalidation | `lib/lbServer.ts`                                         |
 | Edit LB API fetch functions                   | `lib/lb.ts`                                               |
 | Edit stat calculations / game data loading    | `lib/calculations/`, `contexts/GameDataContext.tsx`       |

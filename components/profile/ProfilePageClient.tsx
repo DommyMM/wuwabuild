@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getBuildById, LBBuildDetailEntry, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
+import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, listProfileBuilds } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE } from '@/components/leaderboards/constants';
 import { getSortLabel, resolveRegionBadge } from '@/components/leaderboards/formatters';
@@ -13,6 +13,8 @@ import { readCachedBuildList, writeCachedBuildList } from '@/components/leaderbo
 import { BuildFiltersPanel } from '@/components/leaderboards/BuildFiltersPanel';
 import { GlobalBoardResultsPanel } from '@/components/leaderboards/board/GlobalBoardResultsPanel';
 import { GlobalBoardRowExpandedProps } from '@/components/leaderboards/board/GlobalBoardRow';
+import { useBuildDetails } from '@/components/leaderboards/useBuildDetails';
+import { useExpandedRows } from '@/components/leaderboards/useExpandedRows';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/leaderboards/types';
 import { ProfileBuildExpanded } from './ProfileBuildExpanded';
 import { ProfileShowcase } from './ProfileShowcase';
@@ -63,12 +65,16 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const [total, setTotal] = useState(0);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
-  const [expandedBuildIds, setExpandedBuildIds] = useState<Set<string>>(new Set());
-  const [detailById, setDetailById] = useState<Record<string, LBBuildDetailEntry>>({});
-  const [detailLoadingById, setDetailLoadingById] = useState<Record<string, boolean>>({});
-  const [detailErrorById, setDetailErrorById] = useState<Record<string, string | null>>({});
+  const { expandedIds: expandedBuildIds, toggleExpandedId, hasExpandedRows } = useExpandedRows();
+  const {
+    detailById,
+    detailLoadingById,
+    detailErrorById,
+    loadBuildDetail,
+    retryBuildDetail,
+    resetBuildDetailRequestState,
+  } = useBuildDetails();
   const [featuredStanding, setFeaturedStanding] = useState<LBProfileStandingEntry | null>(null);
-  const detailControllersRef = useRef<Record<string, AbortController>>({});
 
   const selectedCharacters = useMemo(() => (
     characterIds.reduce<typeof characters>((acc, id) => {
@@ -136,11 +142,6 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const isRefreshing = isPendingQuery && builds.length > 0;
   const error = fetchError?.queryKey === currentQueryKey ? fetchError.message : null;
 
-  const abortAllDetailRequests = useCallback(() => {
-    Object.values(detailControllersRef.current).forEach((ctrl) => ctrl.abort());
-    detailControllersRef.current = {};
-  }, []);
-
   // Sync URL without uid param in query (uid lives in path)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -158,9 +159,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
 
     queueMicrotask(() => {
       if (!active) return;
-      abortAllDetailRequests();
-      setDetailLoadingById({});
-      setDetailErrorById({});
+      resetBuildDetailRequestState();
       if (cachedResponse) {
         buildListSigRef.current = buildListSignature(cachedResponse.builds, cachedResponse.total);
         setBuilds(cachedResponse.builds);
@@ -168,7 +167,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       }
     });
 
-    listBuilds({
+    listProfileBuilds(uid, {
       page: querySnapshot.page,
       pageSize: querySnapshot.pageSize,
       sort: querySnapshot.sort,
@@ -176,7 +175,6 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       characterIds: querySnapshot.characterIds,
       weaponIds: querySnapshot.weaponIds,
       regionPrefixes: querySnapshot.regionPrefixes,
-      uid,
       echoSets: querySnapshot.echoSets,
       echoMains: querySnapshot.echoMains,
     }, controller.signal)
@@ -208,55 +206,20 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       active = false;
       controller.abort();
     };
-  }, [abortAllDetailRequests, currentQueryKey, querySnapshot, uid]);
-
-  const loadBuildDetail = useCallback((buildId: string, force = false) => {
-    const id = buildId.trim();
-    if (!id) return;
-    if (!force && (detailById[id] || detailLoadingById[id])) return;
-
-    detailControllersRef.current[id]?.abort();
-    const controller = new AbortController();
-    detailControllersRef.current[id] = controller;
-
-    setDetailLoadingById((prev) => ({ ...prev, [id]: true }));
-    setDetailErrorById((prev) => ({ ...prev, [id]: null }));
-
-    void getBuildById(id, controller.signal)
-      .then((detail) => { setDetailById((prev) => ({ ...prev, [id]: detail })); })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        setDetailErrorById((prev) => ({
-          ...prev,
-          [id]: err instanceof Error ? err.message : 'Failed to load build details.',
-        }));
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return;
-        setDetailLoadingById((prev) => ({ ...prev, [id]: false }));
-        delete detailControllersRef.current[id];
-      });
-  }, [detailById, detailLoadingById]);
+  }, [currentQueryKey, querySnapshot, resetBuildDetailRequestState, uid]);
 
   const handleToggleExpand = useCallback((buildId: string) => {
     const id = buildId.trim();
     if (!id) return;
-    setExpandedBuildIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-    if (!detailById[id] && !detailLoadingById[id]) loadBuildDetail(id);
-  }, [detailById, detailLoadingById, loadBuildDetail]);
+    toggleExpandedId(id, loadBuildDetail);
+  }, [loadBuildDetail, toggleExpandedId]);
 
   const handleRetryDetail = useCallback((buildId: string) => {
-    loadBuildDetail(buildId, true);
-  }, [loadBuildDetail]);
-
-  useEffect(() => (() => { abortAllDetailRequests(); }), [abortAllDetailRequests]);
+    retryBuildDetail(buildId);
+  }, [retryBuildDetail]);
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
-  const hasExpandedBuild = expandedBuildIds.size > 0;
+  const hasExpandedBuild = hasExpandedRows;
   const rankStart = (() => {
     if (total <= 0) return 1;
     if (page === normalizedPageCount) return Math.max(1, total - builds.length + 1);
