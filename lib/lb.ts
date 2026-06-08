@@ -507,7 +507,15 @@ export async function listBuilds(
   }
 
   const payload = await response.json() as LBListBuildsResponseRaw;
-  return parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
+  const parsed = parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
+  console.log('[LB] build list fetch', {
+    requestUrl,
+    total: parsed.total,
+    page: parsed.page,
+    pageSize: parsed.pageSize,
+    rows: parsed.builds.length,
+  });
+  return parsed;
 }
 
 export async function listProfileBuilds(

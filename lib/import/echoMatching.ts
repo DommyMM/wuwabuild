@@ -1,6 +1,20 @@
 import type { Echo, EchoPanelState, ElementType } from '@/lib/echo';
 import type { EchoOCRData } from './types';
 
+const FETTER_ID_BY_ELEMENT: Partial<Record<ElementType, number>> = {
+  Glacio: 1,
+  Fusion: 2,
+  Electro: 3,
+  Aero: 4,
+  Spectro: 5,
+  Havoc: 6,
+};
+
+const EXTRA_OCR_SET_IDS_BY_ECHO_ID: Record<string, ReadonlySet<number>> = {
+  // Hecate can be selected from weekly challenge boxes on the six elemental sets.
+  '60000855': new Set([1, 2, 3, 4, 5, 6]),
+};
+
 export interface GameDataArgs {
   echoes: Echo[];
 }
@@ -53,9 +67,14 @@ export function matchEchoData(
   // Element, backend already validated; fall back to echo's first available element
   let selectedElement: ElementType | null = null;
   const ocrElement = ocrData.element;
+  let resolvedSetId: number | null = null;
   if (ocrElement && ocrElement !== 'Unknown') {
     const el = ocrElement as ElementType;
-    selectedElement = echo.elements.includes(el) ? el : (echo.elements[0] ?? null);
+    const ocrSetId = FETTER_ID_BY_ELEMENT[el] ?? null;
+    const isKnownElement = echo.elements.includes(el);
+    const isExtraLegalSet = ocrSetId !== null && EXTRA_OCR_SET_IDS_BY_ECHO_ID[echo.id]?.has(ocrSetId);
+    selectedElement = isKnownElement || isExtraLegalSet ? el : (echo.elements[0] ?? null);
+    resolvedSetId = isKnownElement || isExtraLegalSet ? ocrSetId : null;
   } else {
     selectedElement = echo.elements[0] ?? null;
   }
@@ -75,6 +94,7 @@ export function matchEchoData(
     id: echo.id,
     level: 25,
     selectedElement,
+    resolvedSetId,
     stats: {
       mainStat: { type: mainStatType, value: mainStatValue },
       subStats,

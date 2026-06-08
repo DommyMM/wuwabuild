@@ -65,6 +65,7 @@ export interface EchoPanelState {
   id: string | null;
   level: number;
   selectedElement: ElementType | null;
+  resolvedSetId?: number | null;
   stats: {
     mainStat: { type: string | null; value: number | null };
     subStats: Array<{ type: string | null; value: number | null }>;

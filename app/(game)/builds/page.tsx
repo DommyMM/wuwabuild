@@ -22,8 +22,16 @@ export const metadata: Metadata = {
   alternates: { canonical: '/builds' },
 };
 
-export default async function Builds() {
-  const initialData = await prefetchBuilds();
+interface BuildsPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function Builds({ searchParams }: BuildsPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const hasScopedQuery = Object.values(resolvedSearchParams).some((value) => (
+    Array.isArray(value) ? value.length > 0 : typeof value === 'string' && value.length > 0
+  ));
+  const initialData = hasScopedQuery ? null : await prefetchBuilds();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

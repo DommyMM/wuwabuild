@@ -146,6 +146,7 @@ function normalizeEchoPanels(rawPanels: unknown): EchoPanelState[] {
     return {
       ...defaultPanel,
       ...panel,
+      resolvedSetId: typeof panel.resolvedSetId === 'number' ? panel.resolvedSetId : null,
       stats: {
         mainStat: { ...defaultPanel.stats.mainStat, ...(rawMainStat ?? {}) },
         subStats,

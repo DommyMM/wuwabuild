@@ -105,13 +105,13 @@ export async function prefetchBuilds(): Promise<LBListBuildsResponse | null> {
         // skip malformed rows
       }
     }
-    console.log('[lbServer] prefetchBuilds payload', {
+    console.log('[LB] build list fetch', {
       url,
       total: toFiniteNumber(payload.total, 0),
       page: toFiniteNumber(payload.page, 1),
       pageSize: toFiniteNumber(payload.pageSize, 12),
+      rows: builds.length,
       droppedRows: Math.max(0, rawBuilds.length - builds.length),
-      payload,
     });
     return {
       builds,
