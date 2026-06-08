@@ -27,6 +27,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         ]
     },
     {
+        date: '2026-06-07',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Fixed tooltip detection cos sometimes the image on it went out of the screen'
+            }
+        ]
+    },
+    {
         date: '2026-06-04',
         changes: [
             {
