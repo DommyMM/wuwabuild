@@ -20,6 +20,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'fixed',
                 text: 'Hecate imports from weekly challenge set boxes now keep their scanned Sonata set on leaderboard submissions'
             },
+            {
+                kind: 'fixed',
+                text: 'Fixed weapon rounding to use actual decimal (16.05 instead of 16.1) for more accurate numbers'
+            }
         ]
     },
     {

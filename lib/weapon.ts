@@ -119,8 +119,7 @@ const STAT_NAME_MAP: Record<string, string> = {
 //  isRatio=true:  0.081 → 8.1   (multiply by 100)
 //  isRatio=false: 1080  → 10.8  (divide by 100)
 function convertStatValue(value: number, isRatio: boolean): number {
-  const raw = isRatio ? value * 100 : value / 100;
-  return Math.round(raw * 10) / 10; // round to 1 decimal
+  return isRatio ? value * 100 : value / 100;
 }
 
 export const adaptCDNWeapon = (cdn: CDNWeapon): Weapon => ({

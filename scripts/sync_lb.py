@@ -1982,7 +1982,9 @@ def _build_weapon_bases(
         second = (w.get("stats") or {}).get("second", {})
         main_stat, base_main = _weapon_secondary_stat(second)
         main_stat = MAIN_STAT_NORMALIZE.get(main_stat, main_stat)
-        base_main_lv1 = round(base_main, 1)
+        # Keep weapon secondary precision for level scaling. Rounding the level-1
+        # value before applying STAT_CURVE changes final HP/ATK/DEF by dozens.
+        base_main_lv1 = round(base_main, 6)
 
         effect_en = (w.get("effect") or {}).get("en", "")
         params_r1 = _params_r1(w)
