@@ -306,6 +306,8 @@ _STAT_NAMES: list[tuple[str, str]] = [
     ("Spectro DMG",  r"Spectro DMG(?:\s+Bonus)?"),
     # "all Attribute DMG" / "Attribute DMG" → generic all-element bonus
     ("All Attribute DMG", r"(?:[Aa]ll[-\s])?[Aa]ttribute DMG(?:\s+Bonus)?"),
+    # Generic "DMG Boost" (e.g. Bell-Borne Geochelone's team-wide 10% DMG Boost)
+    ("DMG Boost", r"DMG Boost"),
     # Base stats
     ("Crit Rate",     r"Crit\.?\s*Rate"),
     ("Crit DMG",      r"Crit\.?\s*DMG"),
@@ -537,6 +539,13 @@ def _extract_buffs(text: str) -> list[dict]:
     # Pass B – "X% StatName" (value precedes stat)
     for pct_m in _RE_PCT.finditer(text):
         val = float(pct_m.group(1))
+        # A deal-verb directly before the value means combat damage, not a stat
+        # buff (e.g. Rebecca's turret "dealing 2.5% Electro DMG each hit").
+        # Buff phrasings never put the value right after the verb ("deal 15%
+        # more Havoc DMG" fails the stat match anyway because of "more").
+        before = text[max(0, pct_m.start() - 16):pct_m.start()]
+        if re.search(r"\bdeal(?:s|ing|t)?\s+$", before, re.I):
+            continue
         after_start = pct_m.end()
         after = text[after_start:after_start + 70].lstrip()
         after = re.sub(r"^(?:additional|extra)\s+", "", after, flags=re.I)
@@ -547,6 +556,21 @@ def _extract_buffs(text: str) -> list[dict]:
             if not _overlaps(pct_m.start(), span_end):
                 buffs.append({"stat": stat, "value": val})
                 used.append((pct_m.start(), span_end))
+                # Compound clause "X% StatA and StatB": the value distributes
+                # over both stats (e.g. Adam Smasher 1pc "grants 35% Basic
+                # Attack DMG Bonus and Heavy Attack DMG Bonus"). Only fires
+                # when StatB carries no value of its own — "20% ATK and 10%
+                # Crit Rate" fails the stat match after "and".
+                stat_pos = text.find(stat_m.group(0), after_start)
+                if stat_pos >= 0:
+                    cont_start = stat_pos + len(stat_m.group(0))
+                    and_m = re.match(r"\s+and\s+", text[cont_start:])
+                    if and_m:
+                        stat2_start = cont_start + and_m.end()
+                        stat2_m = _STAT_RE.match(text[stat2_start:])
+                        if stat2_m and not _overlaps(stat2_start, stat2_start + stat2_m.end()):
+                            buffs.append({"stat": _stat_name_for_match(stat2_m), "value": val})
+                            used.append((cont_start, stat2_start + stat2_m.end()))
 
     # Pass C - "ignore(s) X% of the target's DEF".
     def_ignore_m = re.search(
@@ -1126,6 +1150,7 @@ _PARTY_SCOPE_PHRASES = [
 # Echo active skill party phrases (superset of _PARTY_SCOPE_PHRASES).
 _ECHO_PARTY_SCOPE_PHRASES = _PARTY_SCOPE_PHRASES + [
     "all team members",
+    "current team members",
     "next character",
     "next resonator",
 ]
@@ -1310,7 +1335,7 @@ def _stat_to_party_buffs(stat: str, value: float) -> list[dict]:
         return [{"type": "critDMG", "value": value}]
     if stat in ("ATK", "ATK%"):
         return [{"type": "atkPercentage", "value": value}]
-    if stat == "All Attribute DMG":
+    if stat in ("All Attribute DMG", "DMG Boost"):
         return [{"type": "elementalDMG", "value": value}]
     if stat in ("Aero DMG", "Glacio DMG", "Fusion DMG", "Electro DMG", "Havoc DMG", "Spectro DMG"):
         return [{"type": "elementalDMG", "element": stat.replace(" DMG", ""), "value": value}]
@@ -1376,6 +1401,31 @@ def _extract_team_debuff_buffs(text: str) -> list[dict]:
     return out
 
 
+_SELF_SCOPE_RE = re.compile(
+    r"\b(?:to|for)\s+the\s+wielder\b|\bwielder'?s\b|\bwielder\s+gains?\b", re.I,
+)
+
+
+def _self_scoped_clause_buffs(sentence: str) -> list[dict]:
+    """Collect buffs from sub-clauses explicitly scoped to the wielder.
+
+    A party-scoped sentence can mix self and team clauses, e.g. Skull Thrasher:
+    "Inflicting Hack - Shifting grants 12% Basic Attack DMG Bonus to the
+    wielder for 14s, and increases the ATK of Resonators in the team by 24%".
+    The wielder clause's stats must not be attributed to the party.
+    """
+    excluded: list[dict] = []
+    for clause in re.split(r",\s+(?:and\s+)?|;\s*", sentence):
+        lower = clause.lower()
+        if not _SELF_SCOPE_RE.search(clause):
+            continue
+        if any(p in lower for p in _PARTY_SCOPE_PHRASES):
+            continue
+        for b in _extract_buffs(clause):
+            excluded.extend(_stat_to_party_buffs(b["stat"], b["value"]))
+    return excluded
+
+
 def _parse_party_scoped_buffs(text: str) -> list[dict]:
     out: list[dict] = []
     for sentence in _split_buff_sentences(text):
@@ -1383,6 +1433,7 @@ def _parse_party_scoped_buffs(text: str) -> list[dict]:
         if not any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES):
             continue
         emitted_types: set[tuple[str, str, str]] = set()
+        self_scoped = _self_scoped_clause_buffs(sentence)
 
         for cap_m in _RE_UP_TO_CAP.finditer(sentence):
             cap_val = float(cap_m.group(1))
@@ -1418,6 +1469,9 @@ def _parse_party_scoped_buffs(text: str) -> list[dict]:
             for entry in _stat_to_party_buffs(b["stat"], b["value"]):
                 key = (entry.get("type", ""), entry.get("element", ""), entry.get("move_type", ""))
                 if key in emitted_types:
+                    continue
+                if entry in self_scoped:
+                    self_scoped.remove(entry)
                     continue
                 _append_unique_party_buff(out, entry)
 
