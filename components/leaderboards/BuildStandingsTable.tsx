@@ -12,10 +12,15 @@ interface BuildStandingsTableProps {
   standingsError: string | null;
   characterId: string;
   characterName: string;
-  buildId: string;
+  /** Deep-links the board to this build when set. Omitted for transient/ghost
+   *  builds (e.g. the editor's rank simulation), which have no stored id. */
+  buildId?: string;
   hasBoardContext: boolean;
   activeWeaponId: string;
   activeTrackKey: string;
+  /** Horizontal alignment of the table. Defaults to centered (leaderboard use);
+   *  the editor's rank simulation passes "left" so it sits in its column. */
+  align?: 'center' | 'left';
 }
 
 export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
@@ -28,12 +33,14 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
   hasBoardContext,
   activeWeaponId,
   activeTrackKey,
+  align = 'center',
 }) => {
   const { getWeapon, getCharacter } = useGameData();
+  const alignClass = align === 'left' ? '' : 'mx-auto';
 
   if (standingsLoading) {
     return (
-      <div className="mx-auto w-fit min-w-96 space-y-1.5">
+      <div className={`${alignClass} w-fit min-w-96 space-y-1.5`}>
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={`standings-skel-${i}`} className="grid animate-pulse grid-cols-[5rem_4rem_9rem_6rem_7rem_5rem] gap-3 py-2">
             {Array.from({ length: 6 }).map((__, j) => (
@@ -55,7 +62,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
   }
 
   return (
-    <table className="mx-auto border-collapse text-sm">
+    <table className={`${alignClass} border-collapse text-sm`}>
       <thead>
         <tr className="border-b border-border/55 text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
           <th className="min-w-20 bg-background-secondary/48 py-2 pr-4 pl-3 text-left">Rank</th>
@@ -78,7 +85,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
             standingEntry.weaponId === activeWeaponId &&
             standingEntry.trackKey === activeTrackKey;
 
-          const boardHref = `/leaderboards/${encodeURIComponent(characterId)}?weaponId=${encodeURIComponent(standingEntry.weaponId)}&track=${encodeURIComponent(standingEntry.trackKey)}&buildId=${encodeURIComponent(buildId)}`;
+          const boardHref = `/leaderboards/${encodeURIComponent(characterId)}?weaponId=${encodeURIComponent(standingEntry.weaponId)}&track=${encodeURIComponent(standingEntry.trackKey)}${buildId ? `&buildId=${encodeURIComponent(buildId)}` : ''}`;
 
           const mainChar = getCharacter(characterId);
           const supportMembers: LBTeamMemberConfig[] = standingEntry.teamMembers.length > 0

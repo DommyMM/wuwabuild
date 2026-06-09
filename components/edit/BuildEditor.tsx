@@ -27,6 +27,7 @@ import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
 import { BuildCardOptions, CardOptions } from './BuildCardOptions';
 import { BuildCard } from './BuildCard';
+import { SimulateRankPanel } from './SimulateRankPanel';
 import { BuildCardActionPanel } from './BuildCardActionPanel';
 import { CardScaler } from './CardScaler';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
@@ -709,6 +710,10 @@ export const BuildEditor: React.FC = () => {
               </>
             )}
       </div>
+
+      {/* Rank Simulation — on-demand theoretical rank for the current build, never submitted */}
+      <SimulateRankPanel />
+
       <SaveBuildModal
         key={`${isSaveModalOpen ? 'open' : 'closed'}-${state.characterId}`}
         isOpen={isSaveModalOpen}

@@ -17,6 +17,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-06-08',
         changes: [
             {
+                kind: 'new',
+                text: 'Leaderboard preview in the editor to see where any build would rank on any resonator'
+            },
+            {
                 kind: 'fixed',
                 text: 'Hecate imports from weekly challenge set boxes now keep their scanned Sonata set on leaderboard submissions'
             },

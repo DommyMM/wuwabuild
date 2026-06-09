@@ -1051,6 +1051,71 @@ export async function getBuildStandings(
   return result;
 }
 
+// One board in a simulate response: where a transient (never-submitted) build
+// would rank on that weapon × track. Carries the sequence breakpoint + precomputed
+// topPercent so the editor's RankModule can render it directly.
+export interface LBSimulateBoard {
+  key: string;
+  weaponId: string;
+  trackKey: string;
+  sequence: number;
+  trackLabel: string;
+  rank: number;
+  total: number;
+  topPercent: number;
+  damage: number;
+  teamCharacterIds: string[];
+  teamMembers: LBTeamMemberConfig[];
+}
+
+// fetchSimulateRanks posts an editor build to POST /leaderboard/{characterId}/simulate
+// and returns where it would rank across every board of that character. Read-only:
+// the build is never submitted. Server normalizes to a fair ceiling (max level +
+// forte), so weapon/level/forte/sequence in buildState do not affect the result —
+// only characterId, roverElement, and echoPanels do.
+export async function fetchSimulateRanks(
+  characterId: string,
+  buildState: SavedState,
+  signal?: AbortSignal,
+): Promise<LBSimulateBoard[]> {
+  const requestUrl = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}/simulate`;
+  const response = await fetch(requestUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ buildState }),
+    signal,
+  });
+
+  if (response.status === 404) return [];
+  if (!response.ok) {
+    throw new Error(`Failed to simulate ranks (${response.status})`);
+  }
+
+  const payload = await response.json() as { boards?: unknown };
+  if (!Array.isArray(payload.boards)) return [];
+
+  const result: LBSimulateBoard[] = [];
+  for (const raw of payload.boards) {
+    if (!isRecord(raw)) continue;
+    const teamMembers = parseTeamMembers(raw.teamMembers);
+    const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
+    result.push({
+      key: typeof raw.key === 'string' ? raw.key : '',
+      weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
+      trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
+      sequence: toFiniteNumber(raw.sequence, 0),
+      trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
+      rank: toFiniteNumber(raw.rank, 0),
+      total: toFiniteNumber(raw.total, 0),
+      topPercent: toFiniteNumber(raw.topPercent, 0),
+      damage: toFiniteNumber(raw.damage, 0),
+      teamCharacterIds: fallbackTeamMembers.map((member) => member.charId),
+      teamMembers: teamMembers.length > 0 ? teamMembers : fallbackTeamMembers,
+    });
+  }
+  return result;
+}
+
 // Profile showcase: a UID's best competitive placement per character. Lean shape —
 // only what a ranking tile renders. Deliberately NOT LBStandingEntry (no team
 // members / damage); the backend emits exactly these fields.
