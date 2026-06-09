@@ -290,7 +290,7 @@ python sync_all.py --dry-run --pretty      # Preview end-to-end pipeline
 ### Echo Icon Templates (Backend OCR)
 
 ```bash
-python download_echo_icons.py                      # Download missing ID-named image templates
+python download_echo_icons.py                      # Download/convert missing ID-named WebP templates
 python download_echo_icons.py --clean              # Remove legacy non-ID files, then download missing
 python download_echo_icons.py --clean --force      # Full refresh
 python download_echo_icons.py --dry-run            # Preview cleanup + missing downloads

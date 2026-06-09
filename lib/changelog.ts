@@ -84,6 +84,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Tooltip explaining substat upgrades and pin first two columns'
+            },
+            {
+                kind: 'improved',
+                text: 'Searching exactly 9 digits treats it as a UID and brings that player to the top'
             }
         ]
     },
@@ -109,6 +113,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Removed forte levels in leaderboard row expansion because it was misleading and they were all calculated at max anyways'
+            },
+            {
+                kind: 'fixed',
+                text: 'Build card CV correctly deducts again when more than one 4-cost echo has a crit main stat'
             }
         ]
     },

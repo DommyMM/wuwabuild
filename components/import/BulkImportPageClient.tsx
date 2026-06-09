@@ -11,6 +11,7 @@ import { submitBuild } from '@/lib/lb';
 import { AlertTriangle, CheckCircle2, FolderOpen, Loader2, Pause, Play, RotateCcw, UploadCloud, XCircle } from 'lucide-react';
 
 type BulkStatus = 'pending' | 'processing' | 'submitted' | 'skipped' | 'failed';
+type BulkSavedState = ReturnType<typeof convertAnalysisToSavedState>;
 
 interface BulkItem {
   id: string;
@@ -30,6 +31,10 @@ interface Counters {
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const REGION_KEYS = Object.keys(IMPORT_REGIONS) as RegionKey[];
+const BACKFILL_WEAPON_DEFAULTS: Record<string, { id: string; name: string }> = {
+  '1308': { id: '21030066', name: 'Skull Thrasher' },
+  '1511': { id: '21030056', name: 'Spectral Trigger' },
+};
 
 function createInitialCounters(total: number): Counters {
   return {
@@ -49,6 +54,28 @@ function fileKey(file: File) {
 
 function applyLimit(items: BulkItem[], limit: number | null) {
   return limit && limit > 0 ? items.slice(0, limit) : items;
+}
+
+function prepareBulkSubmitState(savedState: BulkSavedState): { buildState: BulkSavedState; warnings: string[] } {
+  const warnings: string[] = [];
+  const trimmedUid = savedState.watermark.uid.trim();
+  const defaultWeapon = savedState.characterId ? BACKFILL_WEAPON_DEFAULTS[savedState.characterId] : undefined;
+  let buildState = savedState;
+
+  if (!savedState.weaponId && defaultWeapon) {
+    buildState = { ...buildState, weaponId: defaultWeapon.id };
+    warnings.push(`weapon fallback: ${defaultWeapon.name}`);
+  } else if (!savedState.weaponId) {
+    warnings.push('missing weapon');
+  }
+
+  if (!trimmedUid) {
+    buildState = { ...buildState, watermark: { ...buildState.watermark, uid: '0' } };
+    warnings.push('UID 0 fallback');
+  }
+  if (trimmedUid === '0') warnings.push('UID 0');
+
+  return { buildState, warnings };
 }
 
 function normalizeFiles(fileList: FileList | File[]) {
@@ -179,17 +206,17 @@ export function BulkImportPageClient() {
         echoes: gameData.echoes,
       });
 
-      const trimmedUid = savedState.watermark.uid.trim();
-      if (!savedState.characterId || !savedState.weaponId || !trimmedUid || trimmedUid === '0') {
-        setItem(item.id, { status: 'skipped', message: 'Missing character, weapon, or UID' });
+      if (!savedState.characterId) {
+        setItem(item.id, { status: 'skipped', message: 'Missing character' });
         addCounter({ processed: 1, skipped: 1 });
         return;
       }
 
-      const result = await submitBuild(savedState);
+      const { buildState, warnings } = prepareBulkSubmitState(savedState);
+      const result = await submitBuild(buildState);
       setItem(item.id, {
         status: 'submitted',
-        message: `${result.action}${result.damageComputed ? '' : ' without damage calc'}`,
+        message: `${result.action}${result.damageComputed ? '' : ' without damage calc'}${warnings.length ? ` (${warnings.join(', ')})` : ''}`,
       });
       addCounter({
         processed: 1,
