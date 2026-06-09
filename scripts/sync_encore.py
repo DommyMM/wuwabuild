@@ -1,8 +1,11 @@
 """
 Sync game data from Encore API into the existing public/Data JSON shapes.
 
-Encore is now the default source for sync_all.py. The older Wuthery scripts stay
-available for --wuthery validation and fallback.
+Run via `sync_all.py --encore` (Wuthery remains sync_all's default source), or
+directly for targeted delta syncs: `--merge` with `--character-ids/--weapon-ids/
+--echo-ids`, or `--new-only` to pull the IDs from Encore's /new endpoint.
+Re-fetched entities replace their stored rows, so --merge also refreshes
+existing entries. See docs/sync-sources.md.
 """
 
 from __future__ import annotations

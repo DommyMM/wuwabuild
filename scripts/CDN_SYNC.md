@@ -23,7 +23,7 @@ wuwabuilds/
 │   ├── sync_encore.py        # Combined characters/weapons/echoes/fetters sync via Encore API (sync_all --encore)
 │   ├── stat_translations.py  # Stat i18n + icon URL sync -> Stats.json
 │   ├── sync_backend.py       # Transform public/Data -> ../backend/Data OCR schema
-│   ├── download_echo_icons.py # Download backend echo templates as {id}.png
+│   ├── download_echo_icons.py # Download backend echo templates as {id}.{png|webp}
 │   ├── download_character_icons.py / download_weapon_icons.py # On-demand icon refresh helpers
 │   ├── migrate_r2_png_to_jpg.py # One-off R2 maintenance script
 │   ├── sync_all.py           # Run full frontend + backend + LB pipeline (--encore for Encore source)
@@ -44,7 +44,7 @@ wuwabuilds/
     ├── Weapons.json          # Backend OCR weapon mapping data
     ├── Echoes.json           # Backend OCR echo mapping data
     ├── EchoStats.json        # Backend OCR echo stat matching data
-    └── Echoes/*.png          # Backend echo icon templates keyed by CDN ID
+    └── Echoes/*.{png,webp}   # Backend echo icon templates keyed by CDN ID
 └── ../lb/internal/calc/
     ├── data/
     │   ├── character_bases.json
@@ -290,7 +290,7 @@ python sync_all.py --dry-run --pretty      # Preview end-to-end pipeline
 ### Echo Icon Templates (Backend OCR)
 
 ```bash
-python download_echo_icons.py                      # Download missing ID-named PNG templates
+python download_echo_icons.py                      # Download missing ID-named image templates
 python download_echo_icons.py --clean              # Remove legacy non-ID files, then download missing
 python download_echo_icons.py --clean --force      # Full refresh
 python download_echo_icons.py --dry-run            # Preview cleanup + missing downloads
