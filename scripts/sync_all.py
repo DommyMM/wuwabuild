@@ -23,6 +23,8 @@ def main() -> int:
     parser.add_argument("--encore", action="store_true", help="Use experimental Encore API sync instead of Wuthery CDN")
     parser.add_argument("--skip-echo-icons", action="store_true", help="Skip backend echo template refresh for Encore")
     parser.add_argument("--force-echo-icons", action="store_true", help="Refresh existing backend echo templates for Encore")
+    parser.add_argument("--skip-element-icons", action="store_true", help="Skip backend element template refresh from Encore")
+    parser.add_argument("--force-element-icons", action="store_true", help="Refresh existing backend element templates from Encore")
     args, rest = parser.parse_known_args()
 
     common_flags = []
@@ -55,7 +57,14 @@ def main() -> int:
             ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py"), *common_flags]),
             ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py"), *common_flags, *pretty_flags]),
         ]
+    backend_icon_flags = []
+    if args.skip_element_icons:
+        backend_icon_flags.append("--skip-element-icons")
+    if args.force_element_icons:
+        backend_icon_flags.append("--force-element-icons")
     for name, cmd in scripts:
+        if name == "Backend":
+            cmd.extend(backend_icon_flags)
         if not args.encore:
             cmd.extend(passthrough)
         print(f"\n--- Sync {name} ---")

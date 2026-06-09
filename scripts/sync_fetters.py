@@ -86,13 +86,16 @@ def build_piece_effect(piece_count: int, fetter: dict, config_fetter: dict | Non
     }
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Sync fetter data from Wuthery CDN")
-    parser.add_argument("--dry-run", action="store_true", help="Print output without writing")
-    parser.add_argument("--pretty",  action="store_true", help="Pretty-print JSON")
-    args = parser.parse_args()
+def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
+    """Fetch the three localization-index files and build the Fetters.json list.
 
-    session = requests.Session()
+    Exposed so the Encore pipeline (`sync_encore.py`) can reuse Wuthery's
+    structured fetter data: Encore's echo FetterGroups carry the set bonus only
+    as free text, with no structured AddProp/pieceCount, so the 2pc/3pc damage
+    bonuses must come from this localization index. It is a small, reliable
+    3-file fetch (not the flaky large-parallel pattern Encore otherwise avoids).
+    """
+    session = session or requests.Session()
 
     print("Fetching PhantomFetters.json ...")
     fetters_raw: list[dict] = session.get(FETTERS_URL, timeout=30).json()
@@ -166,6 +169,16 @@ def main():
         output.append(entry)
 
     output.sort(key=lambda e: e["id"])
+    return output
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Sync fetter data from Wuthery CDN")
+    parser.add_argument("--dry-run", action="store_true", help="Print output without writing")
+    parser.add_argument("--pretty",  action="store_true", help="Pretty-print JSON")
+    args = parser.parse_args()
+
+    output = fetch_and_build()
 
     json_kwargs = (
         {"indent": 2, "ensure_ascii": False}

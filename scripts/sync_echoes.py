@@ -37,6 +37,9 @@ STAT_PATTERNS = [
     (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Heavy Attack DMG Bonus", re.I), "Heavy Attack DMG Bonus"),
     (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Energy Regen", re.I), "Energy Regen"),
     (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Healing Bonus", re.I), "Healing Bonus"),
+    # Reversed phrasing, e.g. Adam Smasher: "their Crit. Rate is increased by {4}".
+    (re.compile(r"Crit\.?\s*Rate\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), "Crit Rate"),
+    (re.compile(r"Crit\.?\s*DMG\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), "Crit DMG"),
 ]
 
 
@@ -53,6 +56,14 @@ def _extract_character_condition(desc: str, match_start: int, match_end: int) ->
     sentence = _get_sentence_window(desc, match_start, match_end)
     if not sentence:
         return None
+
+    # Pattern: "When Lucy or Rebecca has this Echo equipped ..." (named characters
+    # only — generic "the Resonator with/who has this Echo equipped" is no condition).
+    has_match = re.search(r"\bWhen\s+([A-Z].*?)\s+(?:has|have)\s+this\s+Echo\s+equipped", sentence)
+    if has_match and "resonator" not in has_match.group(1).lower():
+        conditions = [t.strip() for t in re.split(r"\s+or\s+|,", has_match.group(1)) if t.strip()]
+        if conditions:
+            return conditions
 
     # Pattern: "... main slot by Aemeath ..."
     by_match = re.search(r"\bby\s+([A-Z][A-Za-z]+)\b", sentence)

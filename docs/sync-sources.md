@@ -88,10 +88,14 @@ Everything we currently sync is reachable from Encore. The mapping isn't always 
 
 ### Caveats
 
-- **Skill-tree IDs can differ** between sources. For current Phrolova data both now use `585`–`592`, but treat this as non-contractual. The frontend keys forte display through `coordinate`/`parentNodes`/`name`, not raw node IDs.
-- **`valueText` for forte nodes** is not directly returned. Today Wuthery gives `["1.20%"]`; Encore embeds the value inside `PropertyNodeDescribe` (`"Crit. Rate increased by 1.20%."`) — easy to extract with the same regex pipeline already used elsewhere in `sync_characters.py`.
-- **Skill/chain description markup** uses HTML-ish `<span>`/`<br>` plus occasional game tags. Frontend `stripGameMarkup` already handles generic HTML tags; backend chain-bonus parsing should keep using generic `<[^>]+>` stripping.
-- **Image paths may be mixed**: detail payloads often return absolute `.webp` URLs, while some nested fields return raw `/Game/Aki/...` paths. The prototype resolves raw paths through `https://api.encore.moe/resource/Data<path>` and preserves `.webp`.
+- **Forte node `coordinate`/`parentNodes` are derived, not read.** Encore's `SkillTree[]` array order is inconsistent (some characters list the outer/coordinate-2 group first, others the inner/coordinate-1 group first) and the nodes carry no positional metadata. `transform_skill_trees` sorts the 8 nodes by `Id`: the four lowest-Id nodes are coordinate 1 / branches `[1,2,3,6]`, the four highest are coordinate 2 / branches `[9,10,11,12]`. This reproduces Wuthery's `coordinate`/`parentNodes` for every character (verified across all 53). `skillTrees[].value[].Id` is aligned to Wuthery's canonical stat IDs in `STAT_ID_BY_NODE_NAME`.
+- **`valueText` for forte nodes** is not directly returned. Today Wuthery gives `["1.20%"]`; Encore embeds the value inside `PropertyNodeDescribe` (`"Crit. Rate increased by 1.20%."`) — extracted with the same regex pipeline used elsewhere in `sync_characters.py`.
+- **Chain bonuses parse from inline values.** Wuthery descriptions keep `{0}` placeholders (the bonus value lives in `param[]`); Encore pre-substitutes the value into the text and strips the newlines/spacing Wuthery preserves. `parse_chain_bonus` now accepts either a `{N}` placeholder or an inline literal, splits sentences on a period followed by an uppercase letter (so Encore's run-together clauses separate), and only treats a *preceding* same-line clause as a scoping conditional. Both sources yield the same 18 sequence bonuses across 14 characters.
+- **Rover gender variants.** Encore exposes two IDs per Rover element (Aero `1406`+`1408`, Spectro `1501`+`1502`, Havoc `1604`+`1605`) but attaches `SkillTree`/`Skills` to only one; the sibling returns them empty. `sync_encore.py` `_backfill_rover_skill_data` copies `skillTrees`/`skillIcons`/`moves` from the populated sibling (the M/F kits are identical) and re-derives `preferredStats`. Each variant keeps its own name/icon/`legacyId`/chains/stats/tags.
+- **Move sub-value names differ but stay LB-compatible.** Encore spells some sub-values differently (added attack-category prefixes, `Mid-air` vs `Mid-Air`, and a few renames such as Hiyuki's `Blade Liberation Base DMG` vs Wuthery's `(0 Snowforged Blade)`). The LB's `FindMoveValue` is a case-insensitive *substring* match, so prefixes/casing don't matter; only genuine renames need attention. Across all 21 LB character configs only `hiyuki.go` had affected lookups — its three lookups now list both source spellings via a local fallback helper (level-10 values are identical across sources). Where multipliers themselves differ (e.g. Hiyuki's mid-air stages), Encore carries the current rebalanced values; the local Wuthery cache is stale.
+- **Skill/chain description markup** uses HTML-ish `<span>`/`<br>` plus occasional game tags. Frontend `stripGameMarkup` already handles generic HTML tags; backend chain-bonus parsing keeps using generic `<[^>]+>` stripping.
+- **Image paths may be mixed**: detail payloads often return absolute `.webp` URLs, while some nested fields return raw `/Game/Aki/...` paths. Raw paths resolve through `https://api.encore.moe/resource/Data<path>` and preserve `.webp`.
+- **Not consumed downstream, so left as-is:** `stats.DamageChangeNormalSkill` (Encore reports a real value, Wuthery zeroes it — no LB reference), the Tune Break passive name (blank in Encore), and `skins[].color` (Encore returns `{}`; the frontend's `isAlternateSkinVariant` tolerates it and keys on icons).
 
 ## Character Prototype
 
@@ -104,28 +108,55 @@ py scripts/sync_characters_encore.py --id 1608 --output public/Data/Characters.e
 
 A combined `scripts/sync_encore.py` extends the prototype to cover characters, weapons, echoes, and fetters in one run, and is what `sync_all.py --encore` invokes (see [`scripts/CDN_SYNC.md`](../scripts/CDN_SYNC.md)). The Wuthery scripts remain the default pipeline.
 
-Validation on 2026-04-30 for `1608`:
+Validation:
 
-- Exact match for `id`, `legacyId`, `stats`, `preferredStats`, skill-tree node IDs/order/coordinates/parent nodes/names/valueText, move count, and chain count.
+- Per-node parity (keyed on `coordinate`/`parentNodes`) for forte `skillTrees` — name, stat `Id`, `IsRatio`, `valueText` — across all 53 shared characters; `preferredStats` matches too. Array *order* differs (Encore's `SkillTree[]` order is arbitrary), but no consumer keys on order.
+- Move sets match by `(type, name)`; the same 18 chain bonuses parse from both sources.
 - Expected diffs for image URLs (`files.wuthery.com/d/GameData/...png` vs `api.encore.moe/resource/Data/Game/Aki/...webp`) and text payloads (Wuthery placeholder templates vs Encore HTML-ish text with values already substituted).
-- Encore still has no `uk`; the prototype keeps the `uk` key and fills it with `""` for compatibility.
+- Encore exposes characters the cached Wuthery `Characters.json` may lag on (e.g. Lucilla `1109`, Rebecca `1308`, Lucy `1511`) — the freshness win in practice.
+- Encore still has no `uk`; the transform keeps the `uk` key and fills it with `""` for compatibility.
+
+## Field Coverage — Weapons
+
+`sync_encore.py` reproduces the `Weapons.json` shape exactly. Validated against the cached Wuthery output: weapon passive bonuses, `stats` attribute/`isRatio`, and `legacyId` all match (Encore tracks one weapon ahead — the freshness win).
+
+| `Weapons.json` field | Encore source |
+|---|---|
+| `id` / `name` | `ItemId` / `WeaponName` |
+| `type` (id/name/icon) | `WeaponType` / `WeaponTypeName` / `TypeIcon` |
+| `rarity` | `QualityId` |
+| `icon` | `Icon` / `IconMiddle` / `IconSmall` |
+| `effect` (template) | `Desc` with `<span>`-wrapped values **rewritten to `{i}` placeholders** (see below) |
+| `effectName` | `ResonName` |
+| `params` (R1–R5 per placeholder) | `DescParams[].ArrayString` |
+| `stats.first` / `stats.second` | `FirstPropId` / `SecondPropId` via `PROP_ID_TO_ATTR` (IDs `7,8,9,11,10002,10007,10010` → Atk/Crit/CritDamage/EnergyEfficiency/LifeMax/Atk/Def) |
+| `legacyId` | resolved by name through `legacyWeapons.json` (same as Wuthery) |
+| `unconditionalPassiveBonuses` | `extract_unconditional_passive_bonuses` on the placeholder-rewritten effect |
+
+**Placeholder rewrite (weapons):** Encore pre-substitutes values and wraps each `DescParams` value-group (slash-joined R1–R5) in a `<span>`. `_weapon_effect_to_placeholders` replaces each span with `{i}` (matched by span content to its `DescParams` index), restoring the template that `extract_unconditional_passive_bonuses` and `sync_lb`'s per-rank resolver (`_resolve_effect_placeholders`) expect.
 
 ## Field Coverage — Echoes
 
+`sync_encore.py` reproduces the `Echoes.json` shape. Validated against Wuthery: per-echo `bonuses` (30 echoes), `cost`, and `legacyId` all match, and `phantomIcon` merges to the same 35.
+
 | `Echoes.json` field | Encore source |
 |---|---|
-| `id` | `ItemId` in detail, or Wuthery-style item ID derived from rarity rows |
-| `monsterId` / lookup ID | Encore list/detail `Id` / `MonsterId` |
-| `name` | list `Name` / detail `MonsterName` |
-| `cost`, `rarity` | `Rarity`, `PhantomType` |
-| `element` | `Element.Id` |
-| `fetter` (FetterGroup IDs) | `FetterGroups[].Id` |
-| `icon` | `Icon` |
-| `phantomIcon` | merge logic same as today, applied across `phantomsList` results |
-| `bonuses` (first-panel) | `Skill.DamageList[]` (skill description templates resolved) |
-| `skill.description`, `skill.params` | `Skill` object |
+| `id` | detail `ItemId` |
+| `name` | detail `MonsterName` (i18n) |
+| `cost` | `MainProp.RandGroupId` → `{501: 4, 502: 3, 503: 1}` (Encore exposes no direct cost; the main-stat pool is cost-specific — `Rarity` is **not** sufficient, e.g. Rarity 2 spans cost 3 and 4) |
+| `element` | `ElementType` |
+| `fetter` (FetterGroup IDs) | `FetterGroup` |
+| `icon` | `Icon` (absolute `.webp`; frontend `toImageUrl` passes absolute URLs through) |
+| `phantomIcon` | `Phantom: X` skins merged onto base `X`, with the same name normalization Wuthery uses (`Nightmare ` → `Nightmare: `, ` - ` → `: `) |
+| `bonuses` (first-panel) | `extract_main_slot_bonuses` on the placeholder-rewritten description (values are level-independent) |
+| `skill.description` (i18n) | `Skill.DescriptionEx` rewritten to `{i}` placeholders (see below) |
+| `skill.params` | `Skill.LevelDescStrArray` |
 
-The `FetterGroups[].Fetters[]` payload embedded in each echo is sufficient on its own — the separate `PhantomFetterGroups.json` / `PhantomFetters.json` localization-index fetches that today drive `sync_fetters.py` may become unnecessary if we sync from Encore.
+**Placeholder rewrite (echoes):** Encore pre-substitutes the **max-level** values (`LevelDescStrArray[-1]`) and uses `<br>` where Wuthery uses newlines. `_echo_desc_to_placeholders` converts `<br>`→`\n` and replaces each value with its `{i}` index — assigning placeholders in text order while consuming each value's indices in index order, so repeated/out-of-order values (e.g. Nightmare echoes that bracket the main-slot bonus with the same multiplier) map correctly. This keeps `extract_main_slot_bonuses` source-agnostic and lets `sync_lb` re-resolve at the level it wants (it resolves with `params[0]`); without it, level-dependent echo party-buffs would use the wrong magnitude.
+
+**Known Encore echo gap:** `Cuddle Wuddle` (cost 3) and `Lottie Lost` (cost 1) — the cute Somnoire-event echoes — are classified `PhantomType: 2` / `QualityId: 2` in Encore and so fall outside the `PhantomType==1 && QualityId==5` filter. `Cuddle Wuddle` has a 5-star `Phantom: Cuddle Wuddle` *skin* (ItemId `601…`) but no 5-star base; `Lottie Lost` has no 5-star entry at all. Result: Encore yields 161 base echoes vs Wuthery's 162 (net of the new `Reminiscence - Nightmare: Adam Smasher`). If these two are needed they must be backfilled from Wuthery — they cannot be sourced from Encore as canonical echoes.
+
+**Fetters stay on Wuthery.** Encore's echo `FetterGroups` carry the set bonus only as free text, with no structured `AddProp`/`pieceCount`, so the LB-critical 2pc/3pc stat bonuses cannot be derived reliably from them (the value encoding differs per stat — elemental DMG `+10%` → `value: 100, isRatio: false`; `ATK +10%` → `value: 10, isRatio: true`). Sonata sets are a small, stable dataset served by Wuthery as three localization-index files (`PhantomFetters.json` / `PhantomFetterGroups.json` / `ConfigDBParsed/PhantomFetter.json`) — a cheap, reliable fetch, not the flaky large-parallel pattern. So `sync_encore.py`'s `sync_fetters` reuses Wuthery's `fetch_and_build()`; the result is byte-identical to the default pipeline's `Fetters.json` (`addProp`/`pieceCount` verified equal).
 
 ### Echo ID and Localization Notes
 
@@ -143,6 +174,57 @@ Current behavior in `sync_echoes.py`: Wuthery remains the primary source. If a 5
 ## Strategy
 
 Two reasonable shapes:
+
+### 3.4 Delta Sync Path
+
+For patch catch-up, prefer a targeted Encore merge over a full 13-language
+full sync. Encore's individual requests are fast, but large nested fan-out
+(`entities x 13 languages`) triggers server-side throttling. The observed
+diagnostic shape was:
+
+```text
+1 lang request: ~0.26s
+1 character x13 parallel languages: ~10s
+12 characters with high outer concurrency: 50s+
+```
+
+The current script supports a small merge mode:
+
+```powershell
+py scripts\sync_encore.py --merge --only all `
+  --character-ids 1109,1308,1511 `
+  --weapon-ids 21030056,21030066,21050086 `
+  --echo-ids 6000201,6010195,6020059 `
+  --workers 2 --lang-workers 2 --skip-echo-icons
+```
+
+The same path can be driven by Encore's `/new` endpoint:
+
+```powershell
+py scripts\sync_encore.py --new-only --only all --workers 2 --lang-workers 2 --skip-echo-icons
+```
+
+On 2026-06-09, the explicit 3.4 delta command completed in about 14s and
+produced:
+
+```text
+Characters.json: 56  (adds Lucilla 1109, Rebecca 1308, Lucy 1511)
+Weapons.json:    118 (adds Spectral Trigger 21030056, Skull Thrasher 21030066, Freeze Frame 21050086)
+Echoes.json:     163 (adds Reminiscence - Nightmare: Adam Smasher as item 60002015)
+Fetters.json:    31  (appends Encore-only group 32, Shadow of Shattered Dreams)
+```
+
+Then run the downstream generated data steps:
+
+```powershell
+py scripts\sync_backend.py
+py scripts\sync_lb.py
+```
+
+`sync_backend.py` refreshes backend element templates from Encore
+`Echo[].FetterGroups[].Icon`, so set group `32 -> Adam` gets
+`backend/Data/Elements/Adam.webp`. The backend loader accepts both PNG and WebP,
+but the current local template set is WebP-only for elements.
 
 ### Option A — Dual-mode with fallback (recommended)
 

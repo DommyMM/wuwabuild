@@ -25,6 +25,9 @@ from cdn_config import CDN_BASE
 LEGACY_ID_PATTERN = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI\.png")
 NUMBER_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 NON_PARAM_BRACE_TOKEN_PATTERN = re.compile(r"\{(?!\d+\})[^{}]+\}")
+# Platform-input tokens like {Cus:Ipt,Touch=Tap PC=Press Gamepad=Press}: keep the
+# PC label ("Press") instead of dropping the verb from the sentence.
+INPUT_TOKEN_PATTERN = re.compile(r"\{Cus:Ipt[^{}]*?PC=([^,}\s]+)[^{}]*\}", re.IGNORECASE)
 SIZE_TAG_PATTERN = re.compile(r"</?size(?:=[^>]+)?>", re.IGNORECASE)
 TEXT_ENTRY_TAG_PATTERN = re.compile(r"</?te\b[^>]*>", re.IGNORECASE)
 SAP_TAG_PATTERN = re.compile(r"</?SapTag[^>]*>", re.IGNORECASE)
@@ -33,23 +36,23 @@ SAP_TAG_PATTERN = re.compile(r"</?SapTag[^>]*>", re.IGNORECASE)
 # Maps game description text patterns to our StatName values.
 # More-specific patterns must appear before shorter overlapping ones.
 _CHAIN_STAT_PATTERNS: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"Resonance\s+Skill\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Resonance Skill DMG Bonus'),
-    (re.compile(r"Resonance\s+Liberation\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), 'Resonance Liberation DMG Bonus'),
-    (re.compile(r"Basic\s+Attack\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),       'Basic Attack DMG Bonus'),
-    (re.compile(r"Heavy\s+Attack\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),       'Heavy Attack DMG Bonus'),
-    (re.compile(r"Aero\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),     'Aero DMG'),
-    (re.compile(r"Glacio\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Glacio DMG'),
-    (re.compile(r"Fusion\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Fusion DMG'),
-    (re.compile(r"Electro\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),  'Electro DMG'),
-    (re.compile(r"Havoc\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),    'Havoc DMG'),
-    (re.compile(r"Spectro\s+DMG\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),  'Spectro DMG'),
-    (re.compile(r"Crit[.]\s+Rate\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),  'Crit Rate'),
-    (re.compile(r"Crit[.]\s+DMG\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Crit DMG'),
-    (re.compile(r"Energy\s+Regen\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),   'Energy Regen'),
-    (re.compile(r"Healing\s+Bonus\s+is\s+increased\s+by\s+\{(\d+)\}", re.I),  'Healing Bonus'),
-    (re.compile(r"\bATK\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), 'ATK%'),
-    (re.compile(r"\bHP\s+is\s+increased\s+by\s+\{(\d+)\}",  re.I), 'HP%'),
-    (re.compile(r"\bDEF\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), 'DEF%'),
+    (re.compile(r"Resonance\s+Skill\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),   'Resonance Skill DMG Bonus'),
+    (re.compile(r"Resonance\s+Liberation\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I), 'Resonance Liberation DMG Bonus'),
+    (re.compile(r"Basic\s+Attack\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),       'Basic Attack DMG Bonus'),
+    (re.compile(r"Heavy\s+Attack\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),       'Heavy Attack DMG Bonus'),
+    (re.compile(r"Aero\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),     'Aero DMG'),
+    (re.compile(r"Glacio\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),   'Glacio DMG'),
+    (re.compile(r"Fusion\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),   'Fusion DMG'),
+    (re.compile(r"Electro\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),  'Electro DMG'),
+    (re.compile(r"Havoc\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),    'Havoc DMG'),
+    (re.compile(r"Spectro\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),  'Spectro DMG'),
+    (re.compile(r"Crit[.]\s+Rate\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),  'Crit Rate'),
+    (re.compile(r"Crit[.]\s+DMG\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),   'Crit DMG'),
+    (re.compile(r"Energy\s+Regen\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),   'Energy Regen'),
+    (re.compile(r"Healing\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),  'Healing Bonus'),
+    (re.compile(r"\bATK\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I), 'ATK%'),
+    (re.compile(r"\bHP\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)",  re.I), 'HP%'),
+    (re.compile(r"\bDEF\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I), 'DEF%'),
 ]
 
 _CHAIN_CONDITIONAL_RE = re.compile(
@@ -99,7 +102,12 @@ def _chain_split_sentences(text: str) -> list[tuple[str, str]]:
         restored_line = line
         for original, ph in _PROTECT_PAIRS:
             restored_line = restored_line.replace(ph, original)
-        for part in re.split(r'\.(?=\s|$)', line):
+        # Split on a sentence-ending period: one followed by whitespace, end of
+        # line, or directly by an uppercase letter. The trailing-uppercase case
+        # handles Encore descriptions, which strip the spacing/newlines Wuthery
+        # keeps (e.g. "...by 30%.When performing..."). The "Crit. Rate"/"Crit. DMG"
+        # stat names are protected above, so they are never split here.
+        for part in re.split(r'\.(?=\s|$|[A-Z])', line):
             s = part.strip()
             if s:
                 for original, ph in _PROTECT_PAIRS:
@@ -126,19 +134,40 @@ def parse_chain_bonus(desc_en: str, params: list[str]) -> dict | None:
             # Check the isolated sentence for conditional keywords.
             if _CHAIN_CONDITIONAL_RE.search(before) or _CHAIN_CONDITIONAL_RE.search(after):
                 break  # sentence is conditional and we skip it
-            # Also check the full original line: a preceding sentence on the
-            # same line may carry a conditional that scopes the stat boost
-            # (e.g. "At 2 stacks of X, ... {1}. Crit. DMG is increased by {2}.")
-            if original_line != sentence and _CHAIN_CONDITIONAL_RE.search(original_line):
-                break
-            param_idx = int(m.group(1))
-            if param_idx >= len(params):
-                break
-            value = _parse_param_value(params[param_idx])
+            # A preceding sentence on the same line may carry a conditional that
+            # scopes the stat boost (e.g. "At 2 stacks of X, ... {1}. Crit. DMG is
+            # increased by {2}."). Only the text *before* this sentence matters —
+            # checking the whole line would wrongly reject bonuses followed by
+            # unrelated conditional clauses, which is how Encore (single-line,
+            # newline-stripped descriptions) lays out every chain.
+            if original_line != sentence:
+                line_prefix = original_line[:original_line.find(sentence)]
+                if line_prefix and _CHAIN_CONDITIONAL_RE.search(line_prefix):
+                    break
+            # The captured token is either a Wuthery-style param placeholder ("{0}")
+            # or an inline literal value ("40", "12.5") as emitted by Encore, which
+            # pre-substitutes its descriptions. Resolve both to a numeric value.
+            value = _resolve_chain_bonus_token(m.group(1), params)
             if value is None:
                 break
             return {'stat': stat_name, 'value': int(value) if value == int(value) else value}
     return None
+
+
+def _resolve_chain_bonus_token(token: str, params: list[str]) -> float | None:
+    """Resolve a captured bonus token to a number.
+
+    "{0}" → params[0] (Wuthery placeholder form); a bare number → itself
+    (Encore inline-substituted form). Returns None when unresolvable.
+    """
+    token = token.strip()
+    placeholder = re.fullmatch(r'\{(\d+)\}', token)
+    if placeholder:
+        param_idx = int(placeholder.group(1))
+        if param_idx >= len(params):
+            return None
+        return _parse_param_value(params[param_idx])
+    return _parse_param_value(token)
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Character"
@@ -835,7 +864,8 @@ def _sanitize_game_text(value: str) -> str:
     """Remove control tokens like {Cus:Ipt,...} while keeping numeric placeholders."""
     if not value:
         return ""
-    cleaned = NON_PARAM_BRACE_TOKEN_PATTERN.sub("", value)
+    cleaned = INPUT_TOKEN_PATTERN.sub(r"\1", value)
+    cleaned = NON_PARAM_BRACE_TOKEN_PATTERN.sub("", cleaned)
     cleaned = SIZE_TAG_PATTERN.sub("", cleaned)
     cleaned = TEXT_ENTRY_TAG_PATTERN.sub("", cleaned)
     cleaned = SAP_TAG_PATTERN.sub("", cleaned)

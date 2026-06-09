@@ -12,10 +12,18 @@ from pathlib import Path
 import json
 import shutil
 import argparse
+from urllib.parse import urlparse
+
+try:
+    import requests
+except ImportError:
+    requests = None
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 FRONTEND_DATA = SCRIPTS_DIR.parent / "public" / "Data"
 BACKEND_DATA = SCRIPTS_DIR.parent.parent / "backend" / "Data"
+BACKEND_ELEMENTS = BACKEND_DATA / "Elements"
+ENCORE_ECHO_LIST_URL = "https://api-v2.encore.moe/api/en/echo"
 
 # Maps echo fetter IDs (raw numbers in Echoes.json) → sonata set names (backend format)
 FETTER_MAP: dict[int, str] = {
@@ -26,8 +34,63 @@ FETTER_MAP: dict[int, str] = {
     18: "Flaming",     19: "Dream",       20: "Crown",       21: "Law",
     22: "Flamewing",   23: "Thread",      24: "Pact",        25: "Halo",
     26: "Rite",        27: "Trailblazing", 28: "Chromatic",  29: "Sound",
-    30: "QuietSnow",   31: "Memories",
+    30: "QuietSnow",   31: "Memories",    32: "Adam",
 }
+
+
+def _encore_fetter_groups() -> dict[int, dict]:
+    if requests is None:
+        raise RuntimeError("requests is required to refresh Encore element templates")
+    session = requests.Session()
+    session.headers.update({"User-Agent": "wuwabuilds-backend-sync/1.0"})
+    resp = session.get(ENCORE_ECHO_LIST_URL, timeout=45)
+    resp.raise_for_status()
+    data = resp.json()
+    rows = data.get("Echo") if isinstance(data, dict) else data
+    groups: dict[int, dict] = {}
+    for echo in rows or []:
+        for group in echo.get("FetterGroups") or []:
+            group_id = group.get("Id")
+            icon = group.get("Icon")
+            if isinstance(group_id, int) and isinstance(icon, str) and icon:
+                groups.setdefault(group_id, group)
+    return groups
+
+
+def sync_element_templates(dry_run: bool, force: bool) -> int:
+    if not BACKEND_ELEMENTS.exists():
+        print(f"  Element templates: skipped; missing {BACKEND_ELEMENTS}")
+        return 0
+    groups = _encore_fetter_groups()
+    downloaded = 0
+    missing: list[int] = []
+    session = requests.Session()
+    session.headers.update({"User-Agent": "wuwabuilds-backend-sync/1.0"})
+
+    for group_id, backend_name in FETTER_MAP.items():
+        group = groups.get(group_id)
+        if not group:
+            missing.append(group_id)
+            continue
+        url = group.get("Icon")
+        suffix = Path(urlparse(url).path).suffix or ".webp"
+        dest = BACKEND_ELEMENTS / f"{backend_name}{suffix}"
+        if dest.exists() and not force:
+            continue
+        if dry_run:
+            print(f"  Element template: would fetch {backend_name} <- {url}")
+            downloaded += 1
+            continue
+        resp = session.get(url, timeout=30)
+        resp.raise_for_status()
+        dest.write_bytes(resp.content)
+        downloaded += 1
+        print(f"  Element template: {backend_name}{suffix}")
+
+    if missing:
+        print(f"  WARNING: Encore did not return fetter group IDs: {missing}")
+    print(f"  Element templates: {downloaded} {'would be refreshed' if dry_run else 'refreshed'} from Encore")
+    return downloaded
 
 def sync_characters(dry_run: bool) -> int:
     data = json.loads((FRONTEND_DATA / "Characters.json").read_text(encoding="utf-8"))
@@ -98,6 +161,8 @@ def copy_unchanged(filename: str, dry_run: bool) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sync backend Data/ from frontend public/Data/")
     parser.add_argument("--dry-run", action="store_true", help="Preview only, no writes")
+    parser.add_argument("--skip-element-icons", action="store_true", help="Skip backend element template refresh from Encore")
+    parser.add_argument("--force-element-icons", action="store_true", help="Refresh existing backend element templates")
     args = parser.parse_args()
 
     if not FRONTEND_DATA.exists():
@@ -113,6 +178,8 @@ def main() -> int:
     sync_weapons(args.dry_run)
     sync_echoes(args.dry_run)
     copy_unchanged("EchoStats.json", args.dry_run)
+    if not args.skip_element_icons:
+        sync_element_templates(args.dry_run, args.force_element_icons)
     print("Backend sync complete." if not args.dry_run else "Dry run complete, nothing written.")
     return 0
 

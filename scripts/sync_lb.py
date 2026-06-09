@@ -86,7 +86,7 @@ FETTER_ID_TO_SET_KEY = {
     13: "Empyrean", 14: "Tidebreaking", 16: "Gust", 17: "Windward", 18: "Flaming",
     19: "Dream", 20: "Crown", 21: "Law", 22: "Flamewing", 23: "Thread", 24: "Pact",
     25: "Halo", 26: "Rite", 27: "Trailblazing", 28: "Chromatic", 29: "Sound",
-    30: "QuietSnow", 31: "Memories",
+    30: "QuietSnow", 31: "Memories", 32: "Adam",
 }
 
 
@@ -1507,6 +1507,26 @@ def _append_unique_echo_bonus(out: list[dict], entry: dict) -> None:
     out.append(entry)
 
 
+def _extract_echo_character_condition(sentence: str) -> list[str] | None:
+    """Detect character-restricted main-slot bonuses (mirrors sync_echoes).
+
+    e.g. "When Lucy or Rebecca has this Echo equipped in the main slot, their
+    Crit Rate is increased by 15%" or "When Resonator: Aero or Cartethyia equips
+    this Echo". Generic "the Resonator with this Echo equipped" is no condition.
+    """
+    has_match = re.search(r"\bWhen\s+([A-Z].*?)\s+(?:has|have)\s+this\s+Echo\s+equipped", sentence)
+    if has_match and "resonator" not in has_match.group(1).lower():
+        tokens = [t.strip() for t in re.split(r"\s+or\s+|,", has_match.group(1)) if t.strip()]
+        if tokens:
+            return tokens
+    resonator_match = re.search(r"\bResonator:\s*([^.]+?)\s+equips\b", sentence, re.I)
+    if resonator_match:
+        tokens = [t.strip() for t in re.split(r"\s+or\s+|,", resonator_match.group(1)) if t.strip()]
+        if tokens:
+            return tokens
+    return None
+
+
 def _parse_echo_main_slot_bonuses(effect_en: str) -> list[dict]:
     """Parse first-slot echo bonuses from main-slot-only description text."""
     if not effect_en:
@@ -1523,11 +1543,15 @@ def _parse_echo_main_slot_bonuses(effect_en: str) -> list[dict]:
         ):
             continue
 
+        condition = _extract_echo_character_condition(sentence)
         for buff in _extract_buffs(sentence):
             stat = buff.get("stat", "")
             value = float(buff.get("value", 0) or 0)
             if stat and value:
-                _append_unique_echo_bonus(bonuses, {"stat": stat, "value": value})
+                entry: dict = {"stat": stat, "value": value}
+                if condition:
+                    entry["characterCondition"] = condition
+                _append_unique_echo_bonus(bonuses, entry)
 
     return bonuses
 

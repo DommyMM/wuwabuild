@@ -1,6 +1,7 @@
 """
-Download echo icon PNGs from Wuthery CDN and save them to backend/Data/Echoes/
-using the CDN id as the filename (e.g. 60000425.png).
+Download echo icon templates from synced Echoes.json and save them to
+backend/Data/Echoes/ using the CDN item id as the filename (e.g. 60000425.png
+or 60002015.webp).
 
 Why IDs, not English names:
   - No special-character issues (colons, etc.) on any OS
@@ -9,7 +10,7 @@ Why IDs, not English names:
   - IDs are stable; names can theoretically change
 
 First-time setup: clear the existing English-named templates before running.
-  rm backend/Data/Echoes/*.png   (or use --clean below)
+  rm backend/Data/Echoes/*.{png,webp}   (or use --clean below)
 
 Usage:
     python download_echo_icons.py              # Download missing only
@@ -22,6 +23,7 @@ import json
 import re
 import argparse
 import urllib.request
+from urllib.parse import urlparse
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from cdn_config import CDN_BASE
@@ -31,7 +33,8 @@ ECHOES_JSON = SCRIPTS_DIR.parent / "public" / "Data" / "Echoes.json"
 ICONS_DIR   = SCRIPTS_DIR.parent.parent / "backend" / "Data" / "Echoes"
 MAX_WORKERS = 16
 
-_ID_RE = re.compile(r"^\d+$")  # pure numeric filename → already an ID-named file
+_ID_RE = re.compile(r"^\d+$")  # pure numeric filename -> already an ID-named file
+_SUPPORTED_EXTS = {".png", ".webp", ".jpg", ".jpeg"}
 
 
 def is_legacy_file(path: Path) -> bool:
@@ -39,11 +42,35 @@ def is_legacy_file(path: Path) -> bool:
     return not _ID_RE.match(path.stem)
 
 
+def icon_url(raw_path: str) -> str:
+    if raw_path.startswith(("http://", "https://")):
+        return raw_path
+    if raw_path.startswith("/d/"):
+        return CDN_BASE + raw_path
+    return CDN_BASE + raw_path
+
+
+def icon_ext(raw_path: str) -> str:
+    suffix = Path(urlparse(raw_path).path).suffix.lower()
+    return suffix if suffix in _SUPPORTED_EXTS else ".png"
+
+
+def existing_template(echo_id: str) -> Path | None:
+    for suffix in _SUPPORTED_EXTS:
+        path = ICONS_DIR / f"{echo_id}{suffix}"
+        if path.exists():
+            return path
+    return None
+
+
 def download_icon(echo_id: str, icon_path: str, dest: Path, force: bool) -> tuple[str, str]:
-    if dest.exists() and not force:
+    existing = existing_template(echo_id)
+    if existing and not force:
         return echo_id, "skipped"
-    url = CDN_BASE + icon_path
+    url = icon_url(icon_path)
     try:
+        if force and existing and existing != dest:
+            existing.unlink()
         req = urllib.request.Request(url, headers={"User-Agent": "wuwabuilds-backend/1.0"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             dest.write_bytes(resp.read())
@@ -70,7 +97,10 @@ def main() -> int:
 
     # Optionally remove old English-named files
     if args.clean or args.dry_run:
-        legacy = [p for p in ICONS_DIR.glob("*.png") if is_legacy_file(p)]
+        legacy = [
+            p for p in ICONS_DIR.iterdir()
+            if p.is_file() and p.suffix.lower() in _SUPPORTED_EXTS and is_legacy_file(p)
+        ]
         if legacy:
             print(f"{'[DRY RUN] ' if args.dry_run else ''}Removing {len(legacy)} legacy English-named templates:")
             for p in legacy:
@@ -87,13 +117,13 @@ def main() -> int:
         if not icon_rel:
             print(f"  WARNING: No icon path for id={echo_id} ({echo['name']['en']!r}), skipping")
             continue
-        tasks.append((echo_id, icon_rel, ICONS_DIR / f"{echo_id}.png"))
+        tasks.append((echo_id, icon_rel, ICONS_DIR / f"{echo_id}{icon_ext(icon_rel)}"))
 
     if args.dry_run:
-        missing = sum(1 for _, _, dest in tasks if not dest.exists())
+        missing = sum(1 for echo_id, _, _ in tasks if not existing_template(echo_id))
         print(f"\n[DRY RUN] {len(tasks)} echoes total, {missing} missing → {ICONS_DIR}")
         for echo_id, _, dest in tasks:
-            if not dest.exists():
+            if not existing_template(echo_id):
                 echo_name = next(e["name"]["en"] for e in echoes if str(e["id"]) == echo_id)
                 print(f"  [missing] {dest.name}  ({echo_name})")
         return 0

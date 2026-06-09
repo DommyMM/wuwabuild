@@ -123,8 +123,14 @@ SKILL_ICON_TYPE_KEYS = {
     "Forte Circuit": "circuit",
 }
 
-PARENT_NODES_BY_INDEX = [1, 2, 3, 6, 9, 10, 11, 12]
-COORDINATE_BY_INDEX = [1, 1, 1, 1, 2, 2, 2, 2]
+# Forte stat nodes map to coordinate/parentNodes by sorting on node Id: the four
+# lowest-Id nodes are the inner (coordinate 1) nodes for branches [1, 2, 3, 6];
+# the four highest-Id nodes are the outer (coordinate 2) nodes for branches
+# [9, 10, 11, 12]. This invariant reproduces Wuthery's coordinate/parentNodes for
+# every character — Encore's SkillTree array order is itself inconsistent (some
+# characters list the outer group first, others the inner group).
+FORTE_INNER_PARENTS = [1, 2, 3, 6]
+FORTE_OUTER_PARENTS = [9, 10, 11, 12]
 
 STAT_NAME_MAP = {
     "HP": "Life",
@@ -136,6 +142,9 @@ STAT_NAME_MAP = {
     "Tune Break Boost": "DamageChangeNormalSkill",
 }
 
+# (stat_id, is_ratio, divisor) per forte node name. The stat IDs are aligned to
+# Wuthery's canonical forte value IDs so skillTrees[].value[].Id matches across
+# sources. Ratio stats (HP/ATK/DEF) store a fraction; the rest store value*100.
 STAT_ID_BY_NODE_NAME = {
     "Crit. Rate+": (8, False, 100),
     "Crit. Rate Up": (8, False, 100),
@@ -143,24 +152,24 @@ STAT_ID_BY_NODE_NAME = {
     "Crit. DMG Up": (9, False, 100),
     "ATK+": (10007, True, 10000),
     "ATK Up": (10007, True, 10000),
-    "HP+": (10005, True, 10000),
-    "HP Up": (10005, True, 10000),
-    "DEF+": (10006, True, 10000),
-    "DEF Up": (10006, True, 10000),
-    "Healing Bonus+": (26, False, 100),
-    "Healing Bonus Up": (26, False, 100),
+    "HP+": (10002, True, 10000),
+    "HP Up": (10002, True, 10000),
+    "DEF+": (10010, True, 10000),
+    "DEF Up": (10010, True, 10000),
+    "Healing Bonus+": (35, False, 100),
+    "Healing Bonus Up": (35, False, 100),
     "Aero DMG Bonus+": (25, False, 100),
     "Aero DMG Bonus Up": (25, False, 100),
-    "Glacio DMG Bonus+": (21, False, 100),
-    "Glacio DMG Bonus Up": (21, False, 100),
-    "Fusion DMG Bonus+": (22, False, 100),
-    "Fusion DMG Bonus Up": (22, False, 100),
-    "Electro DMG Bonus+": (23, False, 100),
-    "Electro DMG Bonus Up": (23, False, 100),
-    "Havoc DMG Bonus+": (24, False, 100),
-    "Havoc DMG Bonus Up": (24, False, 100),
-    "Spectro DMG Bonus+": (27, False, 100),
-    "Spectro DMG Bonus Up": (27, False, 100),
+    "Glacio DMG Bonus+": (22, False, 100),
+    "Glacio DMG Bonus Up": (22, False, 100),
+    "Fusion DMG Bonus+": (23, False, 100),
+    "Fusion DMG Bonus Up": (23, False, 100),
+    "Electro DMG Bonus+": (24, False, 100),
+    "Electro DMG Bonus Up": (24, False, 100),
+    "Havoc DMG Bonus+": (27, False, 100),
+    "Havoc DMG Bonus Up": (27, False, 100),
+    "Spectro DMG Bonus+": (26, False, 100),
+    "Spectro DMG Bonus Up": (26, False, 100),
 }
 
 VALUE_TEXT_RE = re.compile(r"(-?\d+(?:\.\d+)?)%")
@@ -301,16 +310,20 @@ def node_value_from_description(name: str, description: str) -> tuple[list[dict]
 
 
 def transform_skill_trees(en: dict) -> list[dict]:
+    raw = [node for node in (en.get("SkillTree") or []) if isinstance(node, dict)]
+    raw.sort(key=lambda node: (node.get("Id") is None, node.get("Id") or 0))
     nodes: list[dict] = []
-    for index, node in enumerate(en.get("SkillTree") or []):
-        if index >= len(PARENT_NODES_BY_INDEX) or not isinstance(node, dict):
-            continue
+    for index, node in enumerate(raw[:8]):
+        if index < 4:
+            coordinate, parent = 1, FORTE_INNER_PARENTS[index]
+        else:
+            coordinate, parent = 2, FORTE_OUTER_PARENTS[index - 4]
         name = node.get("PropertyNodeTitle", "")
         value, value_text = node_value_from_description(name, node.get("PropertyNodeDescribe", ""))
         nodes.append({
             "id": node.get("Id"),
-            "coordinate": COORDINATE_BY_INDEX[index],
-            "parentNodes": [PARENT_NODES_BY_INDEX[index]],
+            "coordinate": coordinate,
+            "parentNodes": [parent],
             "name": name,
             "icon": asset_url(node.get("PropertyNodeIcon", "")),
             "value": value,
