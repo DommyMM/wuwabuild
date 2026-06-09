@@ -20,6 +20,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'new',
                 text: 'Cyberpunk collab and scanner up, back-scanned appropriately for all submitted images'
+            },
+            {
+                kind: 'new',
+                text: 'Lucy and Rebecca leaderboards too, though wuwabot currently has no weapon image for them'
             }
         ]
     },
