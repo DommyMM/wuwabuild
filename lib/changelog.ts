@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-09',
+        patch: '3.4',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Cyberpunk collab and scanner up, back-scanned appropriately for all submitted images'
+            }
+        ]
+    },
+    {
         date: '2026-06-08',
         changes: [
             {

@@ -103,14 +103,15 @@ export const ELEMENT_SETS = {
   'Chromatic': 'Chromatic Foam',
   'Sound': 'Sound of True Name',
   'QuietSnow': 'Wishes of Quiet Snowfall',
-  'Memories': 'Reel of Spliced Memories'
+  'Memories': 'Reel of Spliced Memories',
+  'Adam': 'Shadow of Shattered Dreams'
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
 export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
   'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
   'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward' | 'Flaming' | 'Dream' | 'Crown' | 'Law' | 'Flamewing' |
-  'Thread' | 'Pact' | 'Halo' | 'Rite' | 'Trailblazing' | 'Chromatic' | 'Sound' | 'QuietSnow' | 'Memories';
+  'Thread' | 'Pact' | 'Halo' | 'Rite' | 'Trailblazing' | 'Chromatic' | 'Sound' | 'QuietSnow' | 'Memories' | 'Adam';
 
 // Fetter ID → ElementType mapping (from Phantom repo analysis)
 export const FETTER_MAP: Record<number, ElementType> = {
@@ -145,6 +146,7 @@ export const FETTER_MAP: Record<number, ElementType> = {
   29: 'Sound',
   30: 'QuietSnow',
   31: 'Memories',
+  32: 'Adam',
 };
 
 const ENCORE_RESOURCE_BASE = 'https://api.encore.moe/resource/Data';
