@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { DiscordHandle } from '@/components/ui/DiscordHandle';
 
 export const LeaderboardOverviewHeader: React.FC = () => (
   <div className="flex flex-col items-center py-3 text-center">
@@ -13,7 +12,16 @@ export const LeaderboardOverviewHeader: React.FC = () => (
       Characters and weapons are all standardized to the same conditions, only your echoes change between builds <br />
       Switch weapons and playstyles to see how each setup stacks up across the same board. <br />
       All levels and forte are maxed, and weapons are R1 for 5 stars, R5 for 4 stars <br />
-      If you have any suggestions, <DiscordHandle label="message me" /> on Discord.
+      If you have any suggestions, ask in the{' '}
+      <a
+        href="https://discord.gg/puZSXRKTPC"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-accent hover:text-accent-hover underline underline-offset-2"
+      >
+        Discord
+      </a>
+      .
     </p>
   </div>
 );

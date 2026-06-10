@@ -24,6 +24,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'new',
                 text: 'Lucy and Rebecca leaderboards too, though wuwabot currently has no weapon image for them'
+            },
+            {
+                kind: 'improved',
+                text: 'New home page. Search any player by UID or username right from the landing, see the top boards and their record holders, and a rotating showcase puts each character\'s record run over their splash art'
             }
         ]
     },

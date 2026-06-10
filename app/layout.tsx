@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Gowun_Dodum, Plus_Jakarta_Sans, Ropa_Sans } from "next/font/google";
+import { Gowun_Dodum, Plus_Jakarta_Sans, Ropa_Sans, Spline_Sans_Mono } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { Navigation } from "@/components/Navigation";
@@ -25,6 +25,12 @@ const plusJakartaSans = Plus_Jakarta_Sans({
     subsets: ["latin"],
     display: "swap",
     variable: "--font-plus-jakarta-next",
+});
+
+const splineSansMono = Spline_Sans_Mono({
+    subsets: ["latin"],
+    display: "swap",
+    variable: "--font-spline-mono-next",
 });
 
 const GA_ID = "G-SP375JKDPX";
@@ -77,7 +83,7 @@ export default async function RootLayout({
     return (
         <html
             lang="en"
-            className={`${ropaSans.variable} ${gowunDodum.variable} ${plusJakartaSans.variable}`}
+            className={`${ropaSans.variable} ${gowunDodum.variable} ${plusJakartaSans.variable} ${splineSansMono.variable}`}
         >
             <body className="flex min-h-screen flex-col bg-background text-text-primary">
                 <RootProviders>

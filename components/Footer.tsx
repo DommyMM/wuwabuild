@@ -28,7 +28,18 @@ export function Footer() {
                         WuWaBuilds
                     </Link>
                     <p className="mt-2 max-w-96 text-sm leading-relaxed text-text-primary/55">
-                        Build cards, imports, and leaderboards for Wuthering Waves. Independent fan tool, unaffiliated with Kuro Games.
+                        Build cards, imports, and damage leaderboards for Wuthering Waves.
+                        Independent fan tool made by one person, unaffiliated with Kuro Games.
+                        Records refresh every five minutes. Bugs, requests, and complaints go to the{' '}
+                        <a
+                            href="https://discord.gg/puZSXRKTPC"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-accent hover:text-accent-hover transition-colors"
+                        >
+                            Discord
+                        </a>
+                        .
                     </p>
                 </div>
 

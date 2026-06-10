@@ -45,8 +45,10 @@ Current init settings:
 #### `home_cta_click`
 - Purpose: track which homepage CTA users choose.
 - Properties:
-  - `cta`: `import` | `edit` | `builds` | `leaderboards`
-  - `section`: `hero` | `how_it_works`
+  - `cta`: `import` | `edit` | `builds` | `leaderboards` | `profile` | `changelog`
+  - `section`: `hero` | `search` | `boards_index` | `news` | `guide`
+  - `character_id`: string (only on links tied to a specific character: board index rows, the hero record panel)
+- Note: `section: search` fires when the profile search navigates to a profile (submit or result click).
 
 ### Import and OCR Flow
 

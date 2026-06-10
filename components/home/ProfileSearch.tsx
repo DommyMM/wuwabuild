@@ -1,0 +1,148 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import posthog from 'posthog-js';
+
+interface ProfileMatch {
+    uid: string;
+    username: string;
+    server: string;
+    buildCount: number;
+}
+
+interface SearchResults {
+    forQuery: string;
+    matches: ProfileMatch[];
+}
+
+/** Enka-style entry point: type a UID or username, land on the profile. */
+export function ProfileSearch() {
+    const router = useRouter();
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState<SearchResults>({ forQuery: '', matches: [] });
+    const [open, setOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const requestSeq = useRef(0);
+
+    useEffect(() => {
+        const q = query.trim();
+        if (q.length < 2) return;
+        const seq = ++requestSeq.current;
+        const timer = setTimeout(() => {
+            fetch(`/api/lb/profile?q=${encodeURIComponent(q)}&limit=6`)
+                .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`${res.status}`))))
+                .then((payload: { profiles?: unknown[] }) => {
+                    if (seq !== requestSeq.current) return;
+                    const profiles = Array.isArray(payload.profiles) ? payload.profiles : [];
+                    const matches = profiles
+                        .map((raw) => {
+                            const p = raw as Partial<ProfileMatch>;
+                            return {
+                                uid: typeof p.uid === 'string' ? p.uid : '',
+                                username: typeof p.username === 'string' ? p.username : '',
+                                server: typeof p.server === 'string' ? p.server : '',
+                                buildCount: typeof p.buildCount === 'number' ? p.buildCount : 0,
+                            };
+                        })
+                        .filter((p) => p.uid);
+                    setResults({ forQuery: q, matches });
+                })
+                .catch(() => {
+                    if (seq !== requestSeq.current) return;
+                    setResults({ forQuery: q, matches: [] });
+                });
+        }, 250);
+        return () => clearTimeout(timer);
+    }, [query]);
+
+    useEffect(() => {
+        const onPointerDown = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onPointerDown);
+        return () => document.removeEventListener('mousedown', onPointerDown);
+    }, []);
+
+    const trimmed = query.trim();
+    // Results are only valid for the query they were fetched for; anything else means a fetch is in flight.
+    const searching = trimmed.length >= 2 && results.forQuery !== trimmed;
+    const matches = results.forQuery === trimmed ? results.matches : [];
+    const showPanel = open && trimmed.length >= 2;
+
+    const go = (uid: string) => {
+        posthog.capture('home_cta_click', { cta: 'profile', section: 'search' });
+        router.push(`/profile/${uid}`);
+    };
+
+    const onSubmit = (event: React.FormEvent) => {
+        event.preventDefault();
+        if (/^\d{9,10}$/.test(trimmed)) {
+            go(trimmed);
+            return;
+        }
+        if (matches[0]) go(matches[0].uid);
+    };
+
+    return (
+        <div ref={containerRef} className="relative w-full max-w-105">
+            <form onSubmit={onSubmit}>
+                <div className="flex items-center gap-2 rounded-full border border-accent/40 bg-background-secondary/80 backdrop-blur-sm pl-5 pr-2 py-2 transition-shadow focus-within:border-accent/70 focus-within:shadow-[0_0_24px_-4px_rgba(166,150,98,0.45)]">
+                    <input
+                        type="text"
+                        value={query}
+                        onChange={(event) => {
+                            setQuery(event.target.value);
+                            setOpen(true);
+                        }}
+                        onFocus={() => setOpen(true)}
+                        placeholder="Enter UID or username..."
+                        aria-label="Search players by UID or username"
+                        className="min-w-0 flex-1 bg-transparent text-[15px] text-text-primary placeholder:text-text-primary/40 outline-none"
+                    />
+                    <button
+                        type="submit"
+                        aria-label="Search"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-background transition-colors hover:bg-accent-hover cursor-pointer"
+                    >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+                            <path d="M5 12h14m0 0l-6-6m6 6l-6 6" />
+                        </svg>
+                    </button>
+                </div>
+            </form>
+
+            {showPanel && (
+                <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-lg border border-border bg-background-secondary shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+                    {matches.length > 0 ? (
+                        <ul>
+                            {matches.map((match) => (
+                                <li key={match.uid} className="border-b border-border/50 last:border-b-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => go(match.uid)}
+                                        className="flex w-full items-baseline justify-between gap-3 px-4 py-2.5 text-left transition-colors hover:bg-accent/8 cursor-pointer"
+                                    >
+                                        <span className="min-w-0 truncate text-[15px] text-text-primary">
+                                            {match.username || 'Anonymous'}
+                                        </span>
+                                        <span className="shrink-0 font-mono text-[11px] text-text-primary/45 tabular-nums">
+                                            {match.uid}
+                                            {match.buildCount > 0 ? ` · ${match.buildCount} ${match.buildCount === 1 ? 'build' : 'builds'}` : ''}
+                                        </span>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="px-4 py-3 text-sm text-text-primary/50">
+                            {searching ? 'Searching...' : 'No players found. Import a build and yours will be here.'}
+                        </p>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}

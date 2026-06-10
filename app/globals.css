@@ -22,6 +22,7 @@
   --font-ropa: var(--font-ropa-next), sans-serif;
   --font-gowun: var(--font-gowun-next), sans-serif;
   --font-plus-jakarta: var(--font-plus-jakarta-next), sans-serif;
+  --font-mono: var(--font-spline-mono-next), ui-monospace, monospace;
 }
 
 /* Base Styles */
@@ -379,6 +380,21 @@ body {
 }
 
 /* Home page primitives */
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-rise {
+  animation: hero-rise 0.55s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise {
+    animation: none;
+  }
+}
+
 @keyframes pulse-dot {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }

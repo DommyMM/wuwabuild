@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
-import { DiscordHandle } from '@/components/ui/DiscordHandle';
 
 export interface FaqItem {
-    /** Question text — used verbatim for both the accordion and FAQPage schema. */
+    /** Question text, used verbatim for both the rendered FAQ and the FAQPage schema. */
     q: string;
     /** Rendered answer (may contain links). */
     a: ReactNode;
@@ -40,10 +39,18 @@ export const FAQS: FaqItem[] = [
         q: 'When is <character> getting added to Leaderboards?',
         a: (
             <>
-                Whenever I feel like it. Hit up <DiscordHandle label="message me" /> on Discord to
-                request a character or share the details.
+                Whenever I feel like it. Ask in the{' '}
+                <a
+                    href="https://discord.gg/puZSXRKTPC"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:text-accent-hover underline underline-offset-2"
+                >
+                    Discord
+                </a>{' '}
+                to request a character or share the details.
             </>
         ),
-        text: 'Whenever I feel like it. Message me on Discord to request a character or share the details.',
+        text: 'Whenever I feel like it. Ask in the Discord to request a character or share the details.',
     },
 ];

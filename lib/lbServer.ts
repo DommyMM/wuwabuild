@@ -72,12 +72,14 @@ function getInternalHeaders(): Record<string, string> {
   return { 'X-Internal-Key': key };
 }
 
-export async function prefetchBuilds(): Promise<LBListBuildsResponse | null> {
+export async function prefetchBuilds(
+  sort: 'finalCV' | 'timestamp' = 'finalCV',
+): Promise<LBListBuildsResponse | null> {
   try {
     const params = new URLSearchParams({
       page: '1',
       pageSize: '12',
-      sort: 'finalCV',
+      sort,
       direction: 'desc',
     });
     const url = `${getLBUrl()}/build?${params.toString()}`;

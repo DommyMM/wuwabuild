@@ -27,12 +27,13 @@ Glacio `#41AEFB` · Fusion `#F0744E` · Electro `#B46BFF` · Aero `#55FFB5` · S
 - `Ropa Sans` — default UI
 - `Gowun Dodum` — numbers and stat emphasis (live counters, leaderboard values)
 - `Plus Jakarta Sans` — occasional display
+- `Spline Sans Mono` (`font-mono`) — timestamps, counts, tags, colophon meta; the "patch notes" register
 
 **Motion**: uses the `motion` library. Subtle fades and slides, no bouncy/spring-heavy animation. Gold glow shadows on hover (`rgba(166,150,98,0.35)`) are a signature.
 
 ## Pages
 
-- **Home (`/`)** — landing surface. Hero with live stats (builds submitted, active leaderboards), tagline, four CTAs (Import / Editor / Browse / Leaderboards), carousel of recent builds, "How it works" explainer, FAQ, footer. Currently a single centered 5xl column.
+- **Home (`/`)** — landing surface, rebuilt 2026-06 on the Enka/Akasha model (tool-first, art-backed, personality contained in the updates log). Hero: a rotating showcase (6.5s crossfade, pause on hover, reduced-motion aware) of each character's record run, splash art dimmed into the dark with an element-tinted glow plus a "Highest damage" record panel (character, track, weapon, damage, owner, reign) linking to the board; the tagline (canonical SEO h1, see `seo-audit-findings.md` Phase 3), an Enka-style UID/username search pill (hits `GET /profile?q=` through the `/api/lb` proxy), and quick links. Body: "Top boards." (8 most contested, deduped to one board per character) beside "# updates" (latest changelog entries verbatim, header links to `/changelog`, same kind chips). Then "How to use." + the FAQ printed flat. No home-specific footer; the global `Footer.tsx` carries the colophon info. Community contact is always the Discord server invite, never DM handles. Headlines are sentence-case-with-period. No em dashes anywhere in site copy (owner preference).
 - **Editor (`/edit`, `/characters/[id]`, `/weapons/[id]`)** — dense form-based build editor. Not a redesign target.
 - **Import (`/import`)** — drag-drop screenshot OCR flow.
 - **Builds (`/builds`)** — global leaderboard table across all characters.
@@ -49,4 +50,6 @@ Glacio `#41AEFB` · Fusion `#F0744E` · Electro `#B46BFF` · Aero `#55FFB5` · S
 
 ## What I'm asking for
 
-Rework of the **home page** (`/`). The current version is functional but visually flat — one centered column, four similar-weight CTAs, stats tucked above the fold. I want something with stronger hierarchy and personality while respecting the palette and tone above.
+Rework of the **home page** (`/`). The previous version was functional but visually flat — one centered column, four similar-weight CTAs, stats tucked above the fold. I wanted something with stronger hierarchy and personality while respecting the palette and tone above.
+
+**Status: shipped 2026-06-09 after three passes.** Pass one ("The Record Office": ticker, showcase cards, corner ticks) read like a template. Pass two (all prose, full board index, submissions wire) overcorrected into quirky, the board list was too long and the wire had no purpose. Pass three landed on the Enka/Akasha model: show the site instead of describing it. Game art and a working search carry the wow, the boards and news log carry the data and voice, the guide explains the rest. Lessons recorded for future surfaces: distinctiveness here comes from the game's art, the live data, and the maintainer's voice in the news log, not from decor or from explaining everything in words. Also: no em dashes in anything written for the site.
