@@ -17,8 +17,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-06-10',
         changes: [
             {
-                kind: 'improved',
-                text: 'Profile card rank strip reads clearer: bigger playstyle label next to the board weapon, sequence and ER bracket underneath, and teammate sequence badges and gear now sit on the portraits instead of floating around them'
+                kind: 'new',
+                text: 'New home page. Search any player by UID or username right from the landing, aggregated by uid for now'
             },
             {
                 kind: 'improved',
@@ -41,10 +41,6 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'new',
                 text: 'Lucy and Rebecca leaderboards too, though wuwabot currently has no weapon image for them'
-            },
-            {
-                kind: 'improved',
-                text: 'New home page. Search any player by UID or username right from the landing, aggregated by uid for now'
             }
         ]
     },
