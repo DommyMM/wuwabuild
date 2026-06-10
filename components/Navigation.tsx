@@ -2,13 +2,35 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { ProfileSearch } from './home/ProfileSearch';
 
 export function Navigation() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isLookupOpen, setIsLookupOpen] = useState(false);
+    const lookupRef = useRef<HTMLDivElement>(null);
+
+    // Close the lookup popover on outside click and after navigating.
+    useEffect(() => {
+        if (!isLookupOpen) return;
+        const onPointerDown = (event: MouseEvent) => {
+            if (lookupRef.current && !lookupRef.current.contains(event.target as Node)) {
+                setIsLookupOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onPointerDown);
+        return () => document.removeEventListener('mousedown', onPointerDown);
+    }, [isLookupOpen]);
+
+    // Close the popover when navigating (render-time state adjustment, not an effect).
+    const [lookupPathname, setLookupPathname] = useState(pathname);
+    if (lookupPathname !== pathname) {
+        setLookupPathname(pathname);
+        setIsLookupOpen(false);
+    }
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -18,6 +40,12 @@ export function Navigation() {
     }, []);
 
     const closeSidebar = () => setIsOpen(false);
+
+    const focusHomeProfileSearch = () => {
+        const input = document.querySelector<HTMLInputElement>('#home-profile-search input');
+        input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.setTimeout(() => input?.focus(), 180);
+    };
 
     // Prevent body scroll when sidebar is open
     useEffect(() => {
@@ -33,14 +61,23 @@ export function Navigation() {
 
     const isActive = (path: string) => {
         if (path === '/') return pathname === '/';
+        // /profiles also owns the individual /profile/[uid] pages.
+        if (path === '/profiles') return pathname.startsWith('/profile');
         return pathname.startsWith(path);
     };
 
+    // Profile lookup is the navbar search icon, not a text link; the /profiles
+    // directory stays reachable via the popover and footer.
     const navLinks = [
         { href: '/import', label: 'Import' },
+        { href: '/profiles', label: 'Profiles' },
         { href: '/builds', label: 'Builds' },
         { href: '/leaderboards', label: 'Leaderboards' },
         { href: '/edit', label: 'Build Editor' },
+    ];
+
+    const sidebarLinks = [
+        ...navLinks,
         { href: '/saves', label: 'Saves' },
     ];
 
@@ -89,6 +126,49 @@ export function Navigation() {
 
                     {/* Toolbar Portal Target - BuildEditor buttons appear here on scroll */}
                     <div id="nav-toolbar-portal" className="flex items-center" />
+
+                    {/* Profile lookup - search any player from any page */}
+                    <div ref={lookupRef} className="relative flex items-center">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (pathname === '/') {
+                                    setIsLookupOpen(false);
+                                    focusHomeProfileSearch();
+                                    return;
+                                }
+                                setIsLookupOpen((v) => !v);
+                            }}
+                            aria-label="Look up a player profile"
+                            aria-expanded={isLookupOpen}
+                            className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg transition-colors ${
+                                isLookupOpen || isActive('/profiles')
+                                    ? 'text-accent bg-accent/10'
+                                    : 'text-text-primary hover:text-accent hover:bg-accent/8'
+                            }`}
+                            title="Profile lookup"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                                <circle cx="11" cy="11" r="7" />
+                                <path d="M21 21l-4.35-4.35" />
+                            </svg>
+                        </button>
+
+                        {isLookupOpen && (
+                            <div className="absolute right-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] rounded-lg border border-border bg-background-secondary p-3 shadow-[0_24px_48px_rgba(0,0,0,0.6)]">
+                                <ProfileSearch surface="nav" autoFocus />
+                                <div className="mt-2.5 flex justify-end border-t border-border/60 pt-2">
+                                    <Link
+                                        href="/profiles"
+                                        onClick={() => setIsLookupOpen(false)}
+                                        className="text-xs text-text-primary/55 transition-colors hover:text-accent"
+                                    >
+                                        All profiles →
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Discord Link - Desktop */}
                     <a
@@ -162,7 +242,7 @@ export function Navigation() {
                         {/* Navigation Section */}
                         <div className="px-4 py-2">
                             <div className="flex flex-col gap-1">
-                                {navLinks.map(({ href, label }) => (
+                                {sidebarLinks.map(({ href, label }) => (
                                     <Link
                                         key={href}
                                         href={href}

@@ -48,7 +48,7 @@ Current init settings:
   - `cta`: `import` | `edit` | `builds` | `leaderboards` | `profile` | `changelog`
   - `section`: `hero` | `search` | `boards_index` | `news` | `guide`
   - `character_id`: string (only on links tied to a specific character: board index rows, the hero record panel)
-- Note: `section: search` fires when the profile search navigates to a profile (submit or result click).
+- Note: `section: search` fires when the profile search navigates to a profile (submit, result click, or recent click). It carries an extra `surface` property (`home` | `profiles` | `nav`) since the search box also lives on `/profiles` and in the navbar lookup popover.
 
 ### Import and OCR Flow
 

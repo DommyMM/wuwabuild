@@ -41,10 +41,10 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
     const active = slides[index] ?? null;
 
     return (
-        <section className="relative overflow-hidden border-b border-border">
+        <section className="relative overflow-visible border-b border-border">
             {/* Rotating splash art of each character's record holder */}
             {slides.length > 0 && (
-                <div className="absolute inset-0" aria-hidden>
+                <div className="absolute inset-0 overflow-hidden" aria-hidden>
                     {slides.map((slide, i) => {
                         const glowRgb = ELEMENT_GLOW_RGB[slide.element];
                         return (
@@ -77,21 +77,21 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                         Wuthering Waves Character Builds &amp; Leaderboard
                     </span>
                     <span className="block text-[38px] md:text-6xl leading-[1.04] tracking-[-0.03em]">
-                        Scan your stats.<br />
-                        <span className="text-accent italic font-normal">Rank</span> your damage.
+                        Scan your stats<br />
+                        <span className="text-accent italic font-normal">Rank</span> your damage
                     </span>
                 </h1>
 
                 <p className="mt-5 max-w-xl text-base md:text-lg leading-normal text-text-primary/65">
-                    Search any player, or import your own build from a wuwa-bot screenshot.
+                    Search any player, or import your own build from a wuwa-bot screenshot
                     {totalBuilds > 0 && (
                         <span className="block mt-1 font-mono text-xs text-text-primary/45 tabular-nums">
-                            {totalBuilds.toLocaleString('en-US')} builds on file across {totalLeaderboards} boards.
+                            {totalBuilds.toLocaleString('en-US')} builds across {totalLeaderboards} boards
                         </span>
                     )}
                 </p>
 
-                <div className="mt-7">
+                <div id="home-profile-search" className="mt-7 scroll-mt-24">
                     <ProfileSearch />
                 </div>
 

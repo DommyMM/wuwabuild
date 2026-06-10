@@ -15,7 +15,7 @@ const STEPS: { title: string; desc: React.ReactNode }[] = [
                 >
                     Discord bot
                 </a>
-                . Don&apos;t crop, screenshot, or resize.
+                . Do NOT crop, screenshot, or resize.
             </>
         ),
     },
@@ -39,17 +39,28 @@ const STEPS: { title: string; desc: React.ReactNode }[] = [
                 <HomeLink href="/edit" cta="edit" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
                     editor
                 </HomeLink>{' '}
-                to download a card image of the full build and stats.
+                or {' '}
+                <HomeLink href="/profiles" cta="edit" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
+                    profiles
+                </HomeLink>{' '}
+                page to view and download the build card.
             </>
         ),
     },
     {
         title: 'See where you rank',
-        desc: 'Damage is computed on a standardized rotation, so the boards compare builds, not teams.',
+        desc: (
+            <>
+                Visit the {' '}
+                <HomeLink href="/leaderboards" cta="import" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
+                    leaderboards
+                </HomeLink>{' '}
+                to compare damage in standardized rotations against other players.
+            </>
+        ),
     },
 ];
 
-/** Enka-style guide panel: how to use, then the questions, all visible. */
 export function Guide() {
     return (
         <section>

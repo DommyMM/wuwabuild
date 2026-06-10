@@ -1,7 +1,10 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Star } from 'lucide-react';
+import { getPinnedProfilesSnapshot, getProfilesServerSnapshot, recordProfileVisit, subscribeProfileHistory, togglePinnedProfile } from '@/lib/profileHistory';
+import { ProfileSwitcher } from './ProfileSwitcher';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, listProfileBuilds } from '@/lib/lb';
@@ -238,6 +241,20 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     ? t(featuredCharacter.nameI18n ?? { en: featuredCharacter.name })
     : null;
 
+  // Record real profile visits so search recents and /profiles can offer them
+  // back for quick re-access. Best-effort localStorage write, no state.
+  const hasRealProfile = Boolean(profileSummary?.username) || builds.length > 0;
+  const featuredHead = featuredCharacter?.head ?? featuredCharacter?.iconRound ?? null;
+  useEffect(() => {
+    if (!hasRealProfile || !uid) return;
+    recordProfileVisit({ uid, username: profileUsername, head: featuredHead });
+  }, [featuredHead, hasRealProfile, profileUsername, uid]);
+
+  // Device-local pins (unverified bookmarks, never sent anywhere), read via
+  // external store so toggling re-renders without hydration drift.
+  const pinnedProfiles = useSyncExternalStore(subscribeProfileHistory, getPinnedProfilesSnapshot, getProfilesServerSnapshot);
+  const isPinned = pinnedProfiles.some((entry) => entry.uid === uid);
+
   // Custom renderExpanded for profile, renders ProfileCard inside
   const renderExpanded = useCallback((props: GlobalBoardRowExpandedProps) => (
     <ProfileBuildExpanded
@@ -260,11 +277,12 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   return (
     <main className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
       <div
-        className={`mx-auto w-full space-y-4 p-3 px-0 transition-[max-width] duration-300 ease-out md:p-5 ${
+        className={`mx-auto w-full p-3 px-0 transition-[max-width] duration-300 ease-out md:p-5 ${
           hasExpandedBuild ? PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS : PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS
         }`}
       >
-        <section className="relative overflow-visible rounded-xl border border-border bg-background-secondary">
+        <ProfileSwitcher currentUid={uid} />
+        <section className="relative overflow-visible rounded-b-xl rounded-t-lg border border-border bg-background-secondary">
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top_left,rgba(166,150,98,0.10),transparent_55%)]" />
           <div className="relative overflow-hidden rounded-[inherit]">
             <div className="border-b border-border/70 px-6 py-5">
@@ -299,16 +317,32 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                     <span className="font-mono tabular-nums font-normal tracking-normal text-text-primary/55 normal-case">{uid}</span>
                   </div>
                 </div>
-                {profileBuildCount > 0 && (
-                  <div className="flex shrink-0 flex-col items-end rounded-lg border border-border bg-background/55 px-4 py-2 ring-1 ring-inset ring-white/5">
-                    <span className="text-2xl leading-none font-bold tabular-nums text-text-primary">
-                      {profileBuildCount.toLocaleString()}
-                    </span>
-                    <span className="mt-1 text-[11px] tracking-wider text-text-primary/45 uppercase">
-                      build{profileBuildCount !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                )}
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => togglePinnedProfile({ uid, username: profileUsername, head: featuredHead })}
+                    title={isPinned ? 'Unpin profile (saved on this device only)' : 'Pin profile (saved on this device only)'}
+                    aria-label={isPinned ? 'Unpin profile' : 'Pin profile'}
+                    aria-pressed={isPinned}
+                    className={`grid h-10 w-10 cursor-pointer place-items-center rounded-lg border transition-colors ${
+                      isPinned
+                        ? 'border-accent/45 bg-accent/10 text-accent hover:border-accent/70 hover:bg-accent/15'
+                        : 'border-border bg-background/45 text-text-primary/55 hover:border-accent/40 hover:text-accent'
+                    }`}
+                  >
+                    <Star size={15} className={isPinned ? 'fill-current' : ''} aria-hidden />
+                  </button>
+                  {profileBuildCount > 0 && (
+                    <div className="flex flex-col items-end rounded-lg border border-border bg-background/55 px-4 py-2 ring-1 ring-inset ring-white/5">
+                      <span className="text-2xl leading-none font-bold tabular-nums text-text-primary">
+                        {profileBuildCount.toLocaleString()}
+                      </span>
+                      <span className="mt-1 text-[11px] tracking-wider text-text-primary/45 uppercase">
+                        build{profileBuildCount !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

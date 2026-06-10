@@ -1,51 +1,108 @@
-// Client-side profile visit history + "this is me" pin, the job Akasha's
-// profile tabs do, surfaced through search recents and /profiles instead of
-// persistent chrome. localStorage only; nothing here touches the backend.
+// Client-side profile history: recently opened profiles plus starred pins.
+// Powers the profile switcher strip, search recents, and the /profiles
+// directory. localStorage only: nothing here is verified, sent to the
+// backend, or visible to anyone else.
 
-export interface RecentProfile {
+export interface StoredProfile {
   uid: string;
   username: string;
-  /** Featured character portrait at visit time, for the recents list. */
+  /** Featured character portrait at save time. */
   head?: string | null;
-  visitedAt: number;
+  savedAt: number;
 }
 
 const RECENTS_KEY = 'wuwabuilds_recent_profiles';
-const MY_UID_KEY = 'wuwabuilds_my_uid';
-const MAX_RECENTS = 8;
+const PINNED_KEY = 'wuwabuilds_pinned_profiles';
+/** Cap for both pinned and recent lists. */
+const MAX_PROFILES = 8;
 
 const hasStorage = (): boolean => typeof window !== 'undefined' && Boolean(window.localStorage);
 
-export function getRecentProfiles(): RecentProfile[] {
-  if (!hasStorage()) return [];
+const listeners = new Set<() => void>();
+const emit = () => listeners.forEach((listener) => listener());
+
+/** Subscribe to any profile-history change (recents or pins). */
+export function subscribeProfileHistory(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function parseProfiles(raw: string | null, cap: number): StoredProfile[] {
+  if (!raw) return [];
   try {
-    const raw = window.localStorage.getItem(RECENTS_KEY);
-    if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .filter((entry): entry is RecentProfile => (
+      .filter((entry): entry is StoredProfile => (
         Boolean(entry) && typeof entry === 'object' &&
-        typeof (entry as RecentProfile).uid === 'string' && (entry as RecentProfile).uid.length > 0 &&
-        typeof (entry as RecentProfile).username === 'string'
+        typeof (entry as StoredProfile).uid === 'string' && (entry as StoredProfile).uid.length > 0 &&
+        typeof (entry as StoredProfile).username === 'string'
       ))
-      .slice(0, MAX_RECENTS);
+      .slice(0, cap);
   } catch {
     return [];
   }
 }
 
-export function recordProfileVisit(profile: { uid: string; username: string; head?: string | null }): void {
-  if (!hasStorage() || !profile.uid) return;
+function readProfiles(key: string, cap: number): StoredProfile[] {
+  if (!hasStorage()) return [];
   try {
-    const next: RecentProfile[] = [
-      { uid: profile.uid, username: profile.username, head: profile.head ?? null, visitedAt: Date.now() },
-      ...getRecentProfiles().filter((entry) => entry.uid !== profile.uid),
-    ].slice(0, MAX_RECENTS);
-    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+    return parseProfiles(window.localStorage.getItem(key), cap);
+  } catch {
+    return [];
+  }
+}
+
+function writeProfiles(key: string, profiles: StoredProfile[]): void {
+  if (!hasStorage()) return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(profiles));
   } catch {
     // Quota or privacy mode; history is best-effort.
   }
+  emit();
+}
+
+// Cached snapshots for useSyncExternalStore (stable reference per raw value).
+const EMPTY: StoredProfile[] = [];
+
+function makeSnapshot(key: string, cap: number): () => StoredProfile[] {
+  let cacheRaw: string | null = null;
+  let cache: StoredProfile[] = EMPTY;
+  return () => {
+    if (!hasStorage()) return EMPTY;
+    let raw: string | null = null;
+    try {
+      raw = window.localStorage.getItem(key);
+    } catch {
+      return EMPTY;
+    }
+    if (raw !== cacheRaw) {
+      cacheRaw = raw;
+      cache = parseProfiles(raw, cap);
+    }
+    return cache;
+  };
+}
+
+export const getRecentProfilesSnapshot = makeSnapshot(RECENTS_KEY, MAX_PROFILES);
+export const getPinnedProfilesSnapshot = makeSnapshot(PINNED_KEY, MAX_PROFILES);
+export const getProfilesServerSnapshot = (): StoredProfile[] => EMPTY;
+
+export function getRecentProfiles(): StoredProfile[] {
+  return readProfiles(RECENTS_KEY, MAX_PROFILES);
+}
+
+export function getPinnedProfiles(): StoredProfile[] {
+  return readProfiles(PINNED_KEY, MAX_PROFILES);
+}
+
+export function recordProfileVisit(profile: { uid: string; username: string; head?: string | null }): void {
+  if (!profile.uid) return;
+  writeProfiles(RECENTS_KEY, [
+    { uid: profile.uid, username: profile.username, head: profile.head ?? null, savedAt: Date.now() },
+    ...getRecentProfiles().filter((entry) => entry.uid !== profile.uid),
+  ].slice(0, MAX_PROFILES));
 }
 
 export function clearRecentProfiles(): void {
@@ -55,38 +112,24 @@ export function clearRecentProfiles(): void {
   } catch {
     // best-effort
   }
+  emit();
 }
 
-// "This is me" pin, exposed as an external store so components re-render on
-// toggle without setState-in-effect hydration dances.
-const myUidListeners = new Set<() => void>();
-
-export function subscribeMyUid(listener: () => void): () => void {
-  myUidListeners.add(listener);
-  return () => myUidListeners.delete(listener);
+/** Remove one profile from recents. Pins are left alone. */
+export function removeRecentProfile(uid: string): void {
+  if (!uid) return;
+  writeProfiles(RECENTS_KEY, getRecentProfiles().filter((entry) => entry.uid !== uid));
 }
 
-export function getMyUid(): string | null {
-  if (!hasStorage()) return null;
-  try {
-    return window.localStorage.getItem(MY_UID_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export const getMyUidServerSnapshot = (): string | null => null;
-
-export function setMyUid(uid: string | null): void {
-  if (!hasStorage()) return;
-  try {
-    if (uid) {
-      window.localStorage.setItem(MY_UID_KEY, uid);
-    } else {
-      window.localStorage.removeItem(MY_UID_KEY);
-    }
-  } catch {
-    // best-effort
-  }
-  myUidListeners.forEach((listener) => listener());
+/** Pin or unpin a profile. Pins are device-local bookmarks, newest first. */
+export function togglePinnedProfile(profile: { uid: string; username: string; head?: string | null }): void {
+  if (!profile.uid) return;
+  const pinned = getPinnedProfiles();
+  const exists = pinned.some((entry) => entry.uid === profile.uid);
+  writeProfiles(PINNED_KEY, exists
+    ? pinned.filter((entry) => entry.uid !== profile.uid)
+    : [
+        { uid: profile.uid, username: profile.username, head: profile.head ?? null, savedAt: Date.now() },
+        ...pinned,
+      ].slice(0, MAX_PROFILES));
 }

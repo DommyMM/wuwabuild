@@ -22,15 +22,19 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'improved',
-                text: 'Profile cards now use the character splash art by default, same as the editor card'
+                text: 'Profile cards now use the character splash art by default'
             },
             {
                 kind: 'improved',
-                text: 'The wuwa.build watermark moved onto the splash corner of the card'
+                text: 'The wuwa.build watermark moved onto the splash corner'
             },
             {
                 kind: 'new',
-                text: 'Profile build rows now have the full breakdown bench from the leaderboards: move breakdown, substat upgrades, leaderboard rank, and theoretical bench, all following whichever board the rank picker selects'
+                text: 'Profile build rows now have the full breakdown bench from the leaderboards, controlled by the rank selector'
+            },
+            {
+                kind: 'new',
+                text: 'Player lookup cleaner and shows past accounts'
             }
         ]
     },

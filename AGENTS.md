@@ -71,6 +71,7 @@ User-facing changes from the `wuwa-lb` and `backend` repos belong here too — t
 | `/characters/[id]`             | `app/(game)/characters/[id]/page.tsx`              | `components/edit/*`, `components/card/*`       |
 | `/weapons/[id]`                | `app/(game)/weapons/[id]/page.tsx`                 | same as character-seeded editor                |
 | `/profile/[uid]`               | `app/(game)/profile/[uid]/page.tsx`                | `components/profile/*`                         |
+| `/profiles`                    | `app/profiles/page.tsx`                            | `components/profile/ProfilesLanding.tsx`       |
 | `/tos`                         | `app/tos/page.tsx`                                 | `components/legal/*`                           |
 | `/privacy`                     | `app/privacy/page.tsx`                             | `components/legal/*`                           |
 | `/changelog`                   | `app/changelog/page.tsx`                           | `components/changelog/*`                       |
