@@ -33,7 +33,7 @@ import { CardScaler } from './CardScaler';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { getSplashArtTransform, getSplashUrlCandidates } from '@/lib/splashArt';
+import { getSplashUrlCandidates, resolveSplashCardArt } from '@/lib/splashArt';
 import posthog from 'posthog-js';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -72,15 +72,6 @@ const getImageNaturalHeight = async (file: File): Promise<number> => {
   }
 };
 
-const getImageNaturalHeightFromUrl = async (url: string): Promise<number> => (
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img.naturalHeight || img.height || 0);
-    img.onerror = () => reject(new Error('Failed to load image metadata.'));
-    img.src = url;
-  })
-);
-
 const readFileAsDataUrl = (file: File): Promise<string> => (
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -97,38 +88,6 @@ const createDefaultArtState = (characterId: string | null): CharacterArtState =>
   sourceMode: 'default',
   customUrl: null,
 });
-
-const resolveSplashArt = async (
-  characterId: string,
-  legacyId: string | null,
-  isRover: boolean,
-): Promise<{ url: string; transform: CardArtTransform } | null> => {
-  const splashCandidates = getSplashUrlCandidates(characterId, legacyId, isRover);
-
-  for (const candidate of splashCandidates) {
-    try {
-      const naturalHeight = await getImageNaturalHeightFromUrl(candidate);
-      let autoScale = MIN_ART_ZOOM;
-      if (naturalHeight > 0 && naturalHeight < MIN_CUSTOM_IMAGE_HEIGHT) {
-        autoScale = Math.min(
-          MAX_ART_ZOOM,
-          Number((MIN_CUSTOM_IMAGE_HEIGHT / naturalHeight).toFixed(2))
-        );
-      }
-
-      const configuredTransform = getSplashArtTransform(characterId);
-
-      return {
-        url: candidate,
-        transform: configuredTransform ?? { x: 0, y: 0, scale: autoScale },
-      };
-    } catch {
-      // Try next fallback candidate.
-    }
-  }
-
-  return null;
-};
 
 export const BuildEditor: React.FC = () => {
   const router = useRouter();
@@ -218,7 +177,7 @@ export const BuildEditor: React.FC = () => {
     let cancelled = false;
     const characterKey = state.characterId;
 
-    resolveSplashArt(
+    resolveSplashCardArt(
       String(selected.character.id),
       selected.character.legacyId ?? null,
       selected.isRover,
@@ -426,7 +385,7 @@ export const BuildEditor: React.FC = () => {
       return;
     }
 
-    const splash = await resolveSplashArt(
+    const splash = await resolveSplashCardArt(
       String(characterId),
       selected.character.legacyId ?? null,
       selected.isRover

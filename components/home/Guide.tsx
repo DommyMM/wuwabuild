@@ -6,7 +6,7 @@ const STEPS: { title: string; desc: React.ReactNode }[] = [
         title: 'Grab the wuwa-bot image',
         desc: (
             <>
-                From the{' '}
+                Download or copy directly from the{' '}
                 <a
                     href="https://discord.com/channels/963760374543450182/1323199091072569479"
                     target="_blank"
@@ -15,7 +15,7 @@ const STEPS: { title: string; desc: React.ReactNode }[] = [
                 >
                     Discord bot
                 </a>
-                . Download or copy it directly, no cropping or screenshotting.
+                . Don&apos;t crop, screenshot, or resize.
             </>
         ),
     },
@@ -23,7 +23,7 @@ const STEPS: { title: string; desc: React.ReactNode }[] = [
         title: 'Drop it on Import',
         desc: (
             <>
-                The scan runs automatically on{' '}
+                Upload it to {' '}
                 <HomeLink href="/import" cta="import" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
                     Import
                 </HomeLink>

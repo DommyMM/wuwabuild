@@ -1,198 +1,87 @@
-# Build Card v2 — Rank-Surfacing Profile Card
+# Build Card — Current Spec
 
-**Status:** Phase 1 shipped — `ProfileCard.tsx` reuses the editor's `BuildCard` via the `forteSection` slot, injecting `TalentPills` + `RankModule`. Phase 2 (row-level `bestRank` / `allRanks` payload) and Phase 3 (RV ranking) still pending.
-**Owner:** frontend.
-**Related:** [docs/https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html](https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html) (visual reference), [docs/leaderboards.md](leaderboards.md), [lb/docs/api-behaviors.md](../../lb/docs/api-behaviors.md).
+The shareable card rendered on `/edit` (editor card) and on profile build rows (profile card). One skeleton, two variants. The profile variant's rank module is the product differentiator: competitor cards (wuwaflex) are pure aesthetics with no verified rank.
 
-## Problem
+Last full revision: 2026-06-10. Earlier phased plans ("Build Card v2") are superseded; surviving backlog items are listed at the bottom.
 
-The current build card ([components/edit/BuildCard.tsx](../components/edit/BuildCard.tsx)) is the same artifact in `/edit`, `/characters/[id]`, `/weapons/[id]`, and inside every expanded row on `/profile/[uid]` (via [components/profile/ProfileCard.tsx](../components/profile/ProfileCard.tsx)). It is editorial — splash, sequence rail, forte node grid, stat list, echoes — but it never surfaces the one number that decides whether a build is good: **its rank on a leaderboard**. The forte node grid, by contrast, is canonical but rarely the reason anyone shares the card.
+## Skeleton
 
-Build Card v2 swaps those priorities for the *profile* surface only — the editor card is untouched.
+`components/edit/BuildCard.tsx` is the single card frame. Both surfaces render it; the only structural difference is the `forteSection` slot:
 
-## Decision summary
+| Surface | Orchestrator | `forteSection` slot |
+|---|---|---|
+| Editor (`/edit`) | `components/edit/BuildEditor.tsx` | default `<ForteCardSection/>` (full node grid, hover-reactive) |
+| Profile build row | `components/profile/ProfileCard.tsx` | `<ProfileRankSection/>` = `<TalentPills/>` + `<RankModule/>` |
 
-Drop the forte node grid on profile cards. Replace it with a **Rank module** (tier letter, scope chips, TOP %, #/total, computed-damage or RV score). Collapse forte to a 5-pill talent row above the weapon block. Add **roll-quartile pips** to every echo substat. Add a full-width **RV aggregate bar** below the five echoes.
-
-Splash, sequence rail, weapon block, right-rail stat list, CV/sonata pill, and echo-card chrome all stay. The editor's `BuildCard` is unchanged — `/edit` keeps the full forte input.
-
-All visual decisions, including the triptych audit of WaveMate / current / akasha references, the module-by-module decision matrix, the annotated wireframe at 1280×720 (real canvas 2400×1080), and four module mocks (rank, talent pills, echo + dots, RV bar), live in [https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html](https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html). Read it open in a browser before editing components — measurements there are authoritative.
-
-## Layout
-
-The card splits into **two siblings** stacked vertically inside `build-card-frame`:
-
-1. **Upper card** — `aspect-[2.4/1]`, contains splash + sequence rail + mid column (name/weapon/talents/rank/sonata) + stats column. Top corners rounded. Same width-to-height ratio as the editor's `BuildCard`.
-2. **Echo strip** — sibling below the upper card. Bottom corners rounded. Auto height (~240px). Reuses the same `BgCg/T_Bg1_UI.png` backdrop + the same tint/bloom/gradient overlays as the upper card so the seam reads as one continuous surface.
-
-Lifting echoes out of the aspect-lock buys the upper card ~35% more vertical room (since echoes are no longer eating into the 2.4/1 height). That's what makes room for the rank module's team strip + loadout icons without crushing anything above.
+Layout inside the frame (aspect 2.4/1 upper card, echo strip below):
 
 ```
-┌───────────────┬──┬───────────────────────────┬───────────────┐
-│               │  │  03  char header          │               │
-│               │  │  04  weapon               │               │
-│   01 splash   │02│  05  talent pills [NEW]   │  08 stat list │
-│   (880×1080)  │seq│  06  RANK MODULE [NEW]   │   (528×755)   │
-│               │  │  07  CV + sonata pill     │               │
-│               │  │                            │               │
-├───────────────┴──┴────────────────────────────┴───────────────┤
-│  09 echo row (5-up, 1410×240) — substats gain roll pips        │
-│  10 RV aggregate bar (1410×65) [NEW]                          │
-└────────────────────────────────────────────────────────────────┘
++---------------+--+---------------------------+---------------+
+|               |  |  char header (NameGroup)  |               |
+|   character   |se|  weapon (WeaponGroup)     |   stat list   |
+|   art panel   |q.|  forteSection slot        |  (StatsTable) |
+|               |  |  CV + sonata (ActiveSets) |               |
++---------------+--+---------------------------+---------------+
+|  echo row, 5-up (EchoSection)                                |
++---------------------------------------------------------------+
 ```
 
-Center column slots `04`+`05`+`06`+`07` exactly replace the old `WeaponGroup` + `ForteCardSection` + `ActiveSetsSection` stack. Talent pills + rank module = the swap.
+Module map:
 
-## Module map → files
-
-| # | Module | Status | Code |
-|---|---|---|---|
-| 01 | Splash | keep | [components/card/CharacterPanel.tsx](../components/card/CharacterPanel.tsx) |
-| 02 | Sequence rail | keep | [components/card/SequenceStrip.tsx](../components/card/SequenceStrip.tsx) |
-| 03 | Char header | keep | [components/card/NameGroup.tsx](../components/card/NameGroup.tsx) |
-| 04 | Weapon block | keep — minor: R chip inline with Lv | [components/card/WeaponGroup.tsx](../components/card/WeaponGroup.tsx) |
-| 05 | Talent pill row | shipped | [components/card/TalentPills.tsx](../components/card/TalentPills.tsx) |
-| 06 | Rank module | shipped | [components/card/RankModule.tsx](../components/card/RankModule.tsx) |
-| 07 | CV + sonata pill | keep — compress to one row | [components/card/ActiveSetsSection.tsx](../components/card/ActiveSetsSection.tsx) |
-| 08 | Stat list | keep | [components/card/StatsTableSection.tsx](../components/card/StatsTableSection.tsx) |
-| 09 | Echo cards | keep as-is | [components/card/EchoSection.tsx](../components/card/EchoSection.tsx) |
-| 10 | RV aggregate bar | not in card | lives under the card in [ProfileBuildExpanded.tsx](../components/profile/ProfileBuildExpanded.tsx) — duplicating it inside the frame just stacks the same data twice |
-
-Assembly: `components/profile/ProfileCard.tsx` orchestrates the variant. `BuildCard` exposes a `forteSection` prop that profile cards fill with `<TalentPills/>` + `<RankModule/>`; the editor leaves it unset and renders the default `<ForteCardSection/>`.
-
-## Talent pill row
-
-Replaces the old 5×3 forte node grid on the *card only*. The full forte tree stays in `/edit`.
-
-```
-[NA-icon 10] [SK-icon 10] [FC-icon 10] [LB-icon 10] [IN-icon 10]
-```
-
-- Pill: 26px tall (`h-6.5`), `pr-1.5 pl-0.5`, 1px border (max-level pills tint `border-accent/35`).
-- Skill icon: 20×20 (`h-5 w-5`), pulled from `character.skillIcons[skillKey]` with the same key map ForteCardSection uses (`normal-attack`, `skill`, `circuit`, `liberation`, `intro`). Falls back to `character.elementIcon` then to the 2-letter glyph if neither resolves.
-- Level: Gowun 13px tabular `--text-primary` (max → `--accent-hover`).
-- Background: `bg-black/35` so the colored icons read against the card's atmospheric backdrop.
-
-## Rank module
-
-Surface chrome matches the echo cards so the rank module reads as part of the same family: `linear-gradient(170deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 28%, rgba(0,0,0,0.44) 100%)` with inset hairline + bottom-shadow, 1px `border-amber-300/45`, `rounded-xl`, `px-4 py-3`.
-
-```
-┌────────────────────────────────────────────────────┐
-│  HYPERCARRY                                        │
-│                                                    │
-│  #19  / 994                             1,233,878  │
-└────────────────────────────────────────────────────┘
-```
-
-Anatomy:
-
-| Element | Spec |
+| Module | Code |
 |---|---|
-| Track kicker | Ropa 10px, 0.22em tracking, all-caps, `--text-primary/55` |
-| Rank number | `font-gowun 700 30px` tabular, **colored by percentile tier**. Color is the only quality signal — no separate TOP % text. |
-| Tier color map | TOP ≤ 1% `--gold-hi` (glow) · ≤ 10% silver `#C4C7CB` · ≤ 25% bronze `#B7895C` · ≤ 50% `--text-primary/65` · else `--text-primary/40` |
-| Total | `font-gowun 14px` tabular `--text-primary/40` ("/ 994") |
-| Damage value | `font-gowun 700 22px` tabular `--text-primary` — no kicker (number alone is unambiguous as damage) |
+| Art panel | [components/card/CharacterPanel.tsx](../components/card/CharacterPanel.tsx) |
+| Sequence rail | [components/card/SequenceStrip.tsx](../components/card/SequenceStrip.tsx) |
+| Char header | [components/card/NameGroup.tsx](../components/card/NameGroup.tsx) |
+| Weapon block | [components/card/WeaponGroup.tsx](../components/card/WeaponGroup.tsx) |
+| Forte grid (editor) | [components/card/ForteCardSection.tsx](../components/card/ForteCardSection.tsx) |
+| Talent pills (profile) | [components/card/TalentPills.tsx](../components/card/TalentPills.tsx) |
+| Rank module (profile) | [components/card/RankModule.tsx](../components/card/RankModule.tsx) |
+| CV + sonata | [components/card/ActiveSetsSection.tsx](../components/card/ActiveSetsSection.tsx) |
+| Stat list | [components/card/StatsTableSection.tsx](../components/card/StatsTableSection.tsx) |
+| Echo cards | [components/card/EchoSection.tsx](../components/card/EchoSection.tsx) |
 
-Dropped vs the original mock: the big tier letter, weapon chip, sequence chip, ER-bracket chip, in-card board picker, the `DMG ▾ / RV ▾` mode toggle, **and the TOP %% text**. Color alone now carries the percentile signal — `#19` in gold reads "top 1%" without spending screen real estate on the literal number.
+## Art panel
 
-Board switching belongs to a future bottom menu bar on the profile row.
+The panel art defaults to the character's **splash** (the full illustration, like the reference bot cards), resolved client-side by `resolveSplashCardArt` in [lib/splashArt.ts](../lib/splashArt.ts): walks local `/images/splash/` URL candidates, applies the per-character `SPLASH_ART_TRANSFORMS` framing offset (or an auto-scale for short images), and falls back to the banner cutout when no splash file exists. **Both the editor and profile cards share this resolver and behavior**; the editor additionally lets the user toggle splash off (`splashDisabledIds`), upload custom art, and drag/zoom it (`CardArtTransform`, persisted per character while editing). On the profile card, removing the art opts that character out for the session and the banner sticks.
 
-### Single-row rank module
+Rover splash candidates try legacy-id and gendered filenames first; see `getSplashUrlCandidates`.
 
-Everything sits on **one horizontal row**. No damage number (akasha doesn't show it either; the percentile + rank# pair already tells the story). Order: rank → percentile → [auto spacer] → team → track+weapon pill.
+## Rank module (profile cards)
+
+An 80px strip, three groups separated by spacing (no divider lines), reading grade then board then conditions:
 
 ```
-#19 / 994   TOP 1.91%                    [👤][👤][👤]  [⚔ HYPERCARRY]
+TOP              [wpn]  HYPERCARRY      [head]  [head]
+2.18%                   [S6] 110% ER     S2      S0
+#35 / 1.6k                              [icons] [icons]
 ```
 
-- Module: `flex items-center gap-3 rounded-xl border border-amber-300/45 px-3 py-2`, same echo-card-style backdrop.
-- **Rank number**: `font-gowun 700 22px`, color tinted by percentile tier (gold/silver/bronze/neutral) using `getRankTier`.
-- **Total**: `/ 994` at `text-primary/40` 11px.
-- **TOP %**: `font-gowun 14px text-accent` with a 9px `TOP` kicker.
-- **Team avatars**: 36×36 (`h-9 w-9`), `rounded-lg`, pushed right with `ml-auto`. Lead gets `border-accent` + inset gold glow; supports `border-white/14`.
-- **Sequence badge**: top-right when > 0, `text-[10px] font-bold px-1.5 py-px`, color from [LB_SEQ_BADGE_COLORS](../components/leaderboards/constants.ts).
-- **Per-portrait loadout strip**: 3 tiny icons (12×12) bleeding off the bottom of each portrait (`-bottom-1 left-1/2 -translate-x-1/2`) when standings populates `weaponId/echoId/setId`. Absolute positioning keeps the module flat — single-row height stays 36px regardless of whether icons are present.
-- **Track + weapon pill**: small bordered chip on the right, weapon icon + uppercase track label. Replaces both the in-card weapon chip and the kicker-style track label from earlier drafts.
+| Group | Contents | Spec |
+|---|---|---|
+| Grade | `TOP` kicker, percentile, `#rank / total` | Percentile `font-gowun 700 25px` in tier color with glow, the only quality signal on the card. Total abbreviates at five digits (`formatTotal`: "1.6k", "95.7k") so the line survives boards growing 100x. Percentile stays the hero because it scales; absolute rank decays in meaning as boards grow. |
+| Board | Weapon icon (hover card on web), track label, sequence pill + ER bracket underneath | Track label Ropa 13px / 0.08em / `text-primary/90`, the second-strongest text in the module, on its own row because future track labels have unknown length. `S{n}` pill below it (`LB_SEQ_BADGE_COLORS`), always shown since S0 vs S2 vs S6 changes what the rank means; `{n}% ER` joins that row when the board is ER-bracketed. |
+| Conditions | Support avatars (lead omitted), corner S badges, up to 3 loadout icons each | Badges and gear sit ON the portrait: the S badge is inset at the top-right with a solid dark backing ring (translucent tier tints dissolve into bright character art otherwise), and the 16px loadout icons overlap the portrait's bottom edge. Gear hangs off the avatar, not off the module, keeping the stack compact and clear of the container border. Legibility survives export (2.67x upsample). |
 
-Team built in `ProfileCard.activeTeam` from `selected.character` (lead, `isLead: true`) + `canonicalStanding.teamMembers` (supports). Backend `TeamMemberConfig` ([lb/internal/calc/buffs.go:360](../../lb/internal/calc/buffs.go#L360)) supports gear fields, but populating them is a per-character `chars/*.go` concern — for characters whose config only specifies `charId` + `sequence`, the loadout strip is empty.
+Tier colors (`lib/calculations/rankTier.ts`): S = gold w/ glow at top 1%, A = silver at 10%, B = bronze at 25%, then neutral steps. Revisit the S threshold if boards reach six figures.
+
+Deliberately absent: **damage**. Cross-board damage is incomparable (a 9M S6 hypercarry next to a 1.6M S0 run reads as an error, not a flex); the tier-colored percentile is the normalized score. Akasha's card reaches the same conclusion. `RankBoard.damage` stays in the type for non-card consumers.
 
 ### Canonical board
 
-The card always shows the rank for the **equipped weapon**: `standings.find(s => s.weaponId === state.weaponId)`, falling back to the first ranked standing if no match exists. Without this anchor, standings sorted by rank ascending will surface phantom boards — the build's `damage_map` carries values for every weapon variant the LB tracks, so the build "ranks" on weapons it never equipped.
+The card always shows the rank for the **equipped weapon**: `standings.find(s => s.weaponId === state.weaponId)`, falling back to the first ranked standing. Without this anchor, standings sorted by rank ascending surface phantom boards, because `damage_map` carries values for every weapon variant the LB tracks. `AdjustRankingButton` in the action bar switches the active board; the RV substat summary row renders below the card in `ProfileBuildExpanded`, not inside the frame (one readout, not two).
 
-## Echo cards
+## Export
 
-Unchanged. Existing tier-color underline + CV badge tested well in v1 and aren't worth swapping for the akasha pip translation — too much visual noise inside the new card's already-busy lower half. `getSubstatTierIndex` is kept in [lib/calculations/substatTiers.ts](../lib/calculations/substatTiers.ts) as a small helper for any future indicator, but no consumer wires it today.
-
-## RV aggregate bar — kept under the card, not inside it
-
-The substat summary already renders below the card in [ProfileBuildExpanded.tsx:213-260](../components/profile/ProfileBuildExpanded.tsx#L213-L260) (`LB_SUMMARY_ROW`) and is interactive — pills filter the RV calc. Lifting it into the card frame just stacks the same readout twice. Decision: one or the other, not both. The existing row stays in `ProfileBuildExpanded`.
-
-If we ever want a static read-only twin inside the card, the deleted `RVBar.tsx` from commit `8510498` is the starting point — but only re-introduce when there's a clear use case (e.g. shareable static export of the card image).
+`html-to-image` `toBlob` with `pixelRatio = EXPORT_CARD_WIDTH / FIXED_CARD_PREVIEW_WIDTH` (3840 / 1440 = 2.67). The card lays out at a fixed 1440px regardless of viewport (`CardScaler` shrinks the preview visually). The profile download wraps the card and the substat row in one capture. Implication for design: anything legible at the 1440 preview is more than legible in the file; optimize hierarchy for the Discord-embed first glance, not for export pixel size.
 
 ## Data flow
 
-### Phase 1 — frontend only (this PR)
+- Profile standings fetch on row expand via `/leaderboard/{characterId}/build/{buildId}/standings` (one request, all boards). `ProfileCard` owns the fetch so the action bar can switch boards without remounting the card.
+- The editor's "where would this rank" lives **under** the card (`SimulateRankPanel`, on-demand `POST /leaderboard/{characterId}/simulate`), keeping the editor export clean of unverified ranks.
 
-Per-row rank fetched **lazily on row expand** via the existing `/leaderboard/{characterId}/build/{buildId}/standings` endpoint ([lib/lb.ts:936](../lib/lb.ts#L936)). Rank module renders a skeleton until standings resolve, then picks the standing matching the equipped weapon. No board switching inside the card — when needed, a future bottom menu bar on the profile row will let users browse alternate boards.
+## Backlog (carried over)
 
-RV mode is parked. The `DMG ▾ / RV ▾` toggle, mode persistence, and `calculateOverallRV` wiring were all removed from the card surface — re-introduce only when the backend provides an RV-ranked index (Phase 3 below).
-
-### Phase 2 — rank on row
-
-Extend `/profile/{uid}/builds` row payload ([lb/internal/api/convert.go](../../lb/internal/api/convert.go)) with:
-
-```jsonc
-"bestRank": {
-  "rank": 125, "total": 4220, "topPercent": 2.96, "tier": "A",
-  "weaponId": "21050026", "sequence": 0,
-  "trackKey": "dps", "trackLabel": "Quickswap",
-  "erBracket": 120, "damage": 1532212
-},
-"allRanks": [ /* every board this build qualifies for, same shape */ ]
-```
-
-No new compute — same join the standings endpoint already runs, batched per profile page.
-
-### Phase 3 — RV ranking
-
-- New `preferred_rv` column on builds (per-character preferred-stat RV%), populated on submit.
-- Index `(character_id, preferred_rv DESC)`.
-- Row field `rvRank: { rank, total, topPercent, rv }`.
-
-Toggle wires to this when in RV mode.
-
-## Decisions
-
-| # | Decision | Notes |
-|---|---|---|
-| Q1 | Default rank scope = **best of all eligible boards** | User can switch via the board picker dropdown |
-| Q2 | Tier palette = **S gold / A silver / B bronze / C–D neutral** | One accent rule preserved; non-S tiers neutralize |
-| Q3 | Radar chart = **skip in v2** | Right-rail stat list + breakdowns already do the job |
-| Q4 | Forte tree on `/edit` = **keep full grid in editor, pills on card only** | Editor needs forte input for damage calc |
-| Q5 | Priority stat source = **curated per character** (matches leaderboard scope) | `character.preferredStats`, fall back to `DEFAULT_PREFERRED_STATS` |
-| Q6 | CV vs RV = **both** | CV pill stays in slot 07; RV total in the new bar |
-| Q7 | Roll pip mechanic = **quartile** (not roll count) | Reuses `getSubstatTierColor`; 4 pips for visual parity with akasha |
-| Q8 | No-rank empty state = **"Not ranked — submit to a board" CTA** in the same surface | Same gradient frame, dim tier-letter slot |
-| Q9 | Rank-mode default = **Damage** | Dropdown persists per session in `localStorage` |
-| Q10 | RV-mode empty state = **fall through to local RV display** | Until Phase 3, RV mode shows score only, no rank |
-
-## Out of scope
-
-- Editor card redesign (`/edit` and friends stay on v1).
-- Team comp portraits (no team data on the profile pipeline yet).
-- Radar/spider chart (parked — Q3).
-- Mobile-specific layout (responsive collapse to be designed in Phase 1.5 once the desktop frame lands).
-- New backend ranking endpoints — covered by Phase 2/3 plans, not blocking v2 launch.
-
-## Implementation order (Phase 1)
-
-1. `RankModule` shell + skeleton state, wired to existing `getBuildStandings`. *(shipped — `components/card/RankModule.tsx`)*
-2. `TalentPills` row. *(shipped — `components/card/TalentPills.tsx`)*
-3. `EchoSection` `rollIndicator='pips'` mode. *(see `EchoSection` props in `components/card/EchoSection.tsx`)*
-4. `RVBar` — parked; RV aggregate lives in `ProfileBuildExpanded` row, not inside the card.
-5. `ProfileCard` assembly (replaces the old `LeaderboardCard` shim).
-6. Wire `character.preferredStats` curated list (define for current top characters; default for the rest).
-7. Visual QA against `https://api.anthropic.com/v1/design/h/2A-ed4D_T0v6zDeLzlqt4A?open_file=Build+Card+v2+-+Rank+Plan.html` at 1× canvas.
+- **Rank on row payload**: extend `/profile/{uid}/builds` rows with `bestRank` / `allRanks` so profile grids can rank-sort without N standings calls.
+- **RV ranking**: `preferred_rv` column + index, `rvRank` row field; the card stays damage-rank only until then.
+- Open call: whether the editor card should ever show the *simulated* rank module on its export. Today it does not, by design (verified ranks only on shareable cards).

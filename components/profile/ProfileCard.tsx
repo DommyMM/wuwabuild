@@ -14,8 +14,10 @@ import {
   MAX_ART_ZOOM,
   MIN_ART_ZOOM,
 } from '@/lib/cardArt';
+import { isRover } from '@/lib/character';
 import { getBuildStandings, LBBuildDetailEntry, LBBuildRowEntry, LBStandingEntry } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
+import { resolveSplashCardArt } from '@/lib/splashArt';
 import { SavedState } from '@/lib/build';
 import { parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { BuildCard } from '@/components/edit/BuildCard';
@@ -130,6 +132,31 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail }) => {
     return () => controller.abort();
   }, [characterId, entry.id, standingsRequestKey]);
 
+  // Default the panel art to the character's splash, matching the editor card.
+  // Removing the art opts this card out so the banner fallback sticks.
+  const splashOptOutRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!characterRef || !characterId) return;
+    if (splashOptOutRef.current.has(characterId)) return;
+    if (artSourceMode !== 'default' || customArtUrl) return;
+
+    let cancelled = false;
+    resolveSplashCardArt(
+      String(characterRef.id),
+      characterRef.legacyId ?? null,
+      isRover(characterRef),
+    ).then((splash) => {
+      if (cancelled || !splash) return;
+      setCustomArtUrl(splash.url);
+      setArtSourceMode('splash');
+      setArtTransform(splash.transform);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [artSourceMode, characterId, characterRef, customArtUrl]);
+
   const availableBoards = useMemo<RankBoard[]>(() => {
     return standings
       .filter((s) => s.rank > 0 && s.total > 0)
@@ -185,10 +212,11 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail }) => {
     });
   }, []);
   const handleRemoveCustomArt = useCallback(() => {
+    if (characterId) splashOptOutRef.current.add(characterId);
     setCustomArtUrl(null);
     setArtSourceMode('default');
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
-  }, []);
+  }, [characterId]);
 
   const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {

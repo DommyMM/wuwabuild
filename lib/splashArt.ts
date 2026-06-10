@@ -58,6 +58,52 @@ export const getSplashUrlCandidates = (
   return Array.from(new Set(candidates));
 };
 
-export const getSplashArtTransform = (characterId: string): CardArtTransform | null => (
+const getSplashArtTransform = (characterId: string): CardArtTransform | null => (
   SPLASH_ART_TRANSFORMS[characterId] ?? null
 );
+
+const MIN_SPLASH_IMAGE_HEIGHT = 600;
+const MIN_SPLASH_ZOOM = 1;
+const MAX_SPLASH_ZOOM = 4;
+
+const getImageNaturalHeightFromUrl = async (url: string): Promise<number> => (
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img.naturalHeight || img.height || 0);
+    img.onerror = () => reject(new Error('Failed to load image metadata.'));
+    img.src = url;
+  })
+);
+
+/**
+ * Browser-side splash resolution for the build card: walks the URL candidates,
+ * returns the first that loads plus its card transform (configured per
+ * character, or auto-scaled for short source images). Null when the character
+ * has no local splash. Shared by the editor and profile cards so both render
+ * the same art.
+ */
+export const resolveSplashCardArt = async (
+  characterId: string,
+  legacyId: string | null,
+  isRover: boolean,
+): Promise<{ url: string; transform: CardArtTransform } | null> => {
+  for (const candidate of getSplashUrlCandidates(characterId, legacyId, isRover)) {
+    try {
+      const naturalHeight = await getImageNaturalHeightFromUrl(candidate);
+      let autoScale = MIN_SPLASH_ZOOM;
+      if (naturalHeight > 0 && naturalHeight < MIN_SPLASH_IMAGE_HEIGHT) {
+        autoScale = Math.min(
+          MAX_SPLASH_ZOOM,
+          Number((MIN_SPLASH_IMAGE_HEIGHT / naturalHeight).toFixed(2)),
+        );
+      }
+      return {
+        url: candidate,
+        transform: getSplashArtTransform(characterId) ?? { x: 0, y: 0, scale: autoScale },
+      };
+    } catch {
+      // Try next fallback candidate.
+    }
+  }
+  return null;
+};

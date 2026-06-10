@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-10',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Profile card rank strip reads clearer: bigger playstyle label next to the board weapon, sequence and ER bracket underneath, and teammate sequence badges and gear now sit on the portraits instead of floating around them'
+            },
+            {
+                kind: 'improved',
+                text: 'Profile cards now use the character splash art by default, same as the editor card'
+            }
+        ]
+    },
+    {
         date: '2026-06-09',
         patch: '3.4',
         changes: [

@@ -61,13 +61,13 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                                 <img
                                     src={slide.splashUrl}
                                     alt=""
-                                    className="absolute bottom-0 right-0 h-full w-auto max-w-none object-contain object-bottom opacity-35 md:opacity-60 [mask-image:linear-gradient(to_left,rgba(0,0,0,1)_45%,transparent_95%)]"
+                                    className="absolute bottom-0 right-0 h-full w-auto max-w-none object-contain object-bottom opacity-35 md:opacity-60 mask-[linear-gradient(to_left,rgba(0,0,0,1)_45%,transparent_95%)]"
                                     loading={i === 0 ? 'eager' : 'lazy'}
                                 />
                             </div>
                         );
                     })}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/15 to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-background via-background/15 to-transparent" />
                 </div>
             )}
 

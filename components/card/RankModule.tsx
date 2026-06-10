@@ -47,6 +47,13 @@ interface RankModuleProps {
 }
 
 const formatNumber = (value: number): string => Math.round(value).toLocaleString();
+// Board totals abbreviate at five digits so the line survives boards growing 100x.
+const formatTotal = (value: number): string => {
+  if (value < 10_000) return formatNumber(value);
+  const thousands = value / 1000;
+  const text = thousands >= 100 ? Math.round(thousands).toString() : thousands.toFixed(1).replace(/\.0$/, '');
+  return `${text}k`;
+};
 // Precision scaled to real granularity (largest board ~2k builds → ~0.05% steps).
 const formatPct = (value: number): string => {
   if (value < 0.01) return '<0.01';
@@ -58,33 +65,35 @@ const cleanBoardTrackLabel = (board: RankBoard): string => (
   stripLBSeqPrefix(board.trackLabel || board.trackKey).replace(/\s+S\d+$/u, '')
 );
 
+// Badges and gear sit ON the portrait (inset corner badge, icons overlapping the
+// bottom edge) so the support unit stays compact and nothing fights the module border.
 const SupportAvatar: React.FC<{ member: RankTeamMember }> = ({ member }) => (
-  <div className="flex flex-col items-center gap-0.5">
-    <div
-      role="img"
-      aria-label={member.name}
-      title={member.name}
-      className="relative h-11 w-11 rounded-lg border border-white/16 bg-black/45 bg-cover bg-center bg-no-repeat shadow-[0_4px_12px_rgba(0,0,0,0.4)]"
-      style={member.head ? { backgroundImage: `url("${member.head}")` } : undefined}
-    >
-      {member.sequence > 0 && (
-        <span
-          className={`absolute -top-1.5 -right-1.5 rounded-full border px-1 py-0.5 text-[9px] leading-none font-bold tracking-wide shadow-[0_2px_6px_rgba(0,0,0,0.55)] ${LB_SEQ_BADGE_COLORS[member.sequence]}`}
-          aria-label={`Sequence ${member.sequence}`}
-        >
+  <div
+    role="img"
+    aria-label={member.name}
+    title={member.name}
+    className="relative h-11 w-11 rounded-lg border border-white/16 bg-black/45 bg-cover bg-center bg-no-repeat shadow-[0_4px_12px_rgba(0,0,0,0.4)]"
+    style={member.head ? { backgroundImage: `url("${member.head}")` } : undefined}
+  >
+    {member.sequence > 0 && (
+      <span
+        className="absolute -top-1 -right-1 rounded-full bg-[#0d1017]/95 shadow-[0_2px_6px_rgba(0,0,0,0.55)]"
+        aria-label={`Sequence ${member.sequence}`}
+      >
+        <span className={`block rounded-full border px-1 py-0.5 text-[9px] leading-none font-bold tracking-wide ${LB_SEQ_BADGE_COLORS[member.sequence]}`}>
           S{member.sequence}
         </span>
-      )}
-    </div>
+      </span>
+    )}
     {member.loadoutIcons.length > 0 && (
-      <div className="flex items-center gap-0.5">
+      <div className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-0.5">
         {member.loadoutIcons.slice(0, 3).map((icon) => {
           const trigger = (
             <div
               role="img"
               aria-label={icon.label}
               title={icon.label}
-              className="h-4.5 w-4.5 rounded-[4px] border border-white/12 bg-black/70 bg-cover bg-center bg-no-repeat"
+              className="h-4 w-4 rounded-[4px] border border-white/14 bg-black/80 bg-cover bg-center bg-no-repeat shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
               style={{ backgroundImage: `url("${icon.src}")` }}
             />
           );
@@ -126,13 +135,13 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
 
   return (
     <div
-      className="relative flex h-20 w-fit max-w-100 items-stretch gap-2 overflow-visible rounded-lg border border-white/15 py-1.5 pr-3.5 pl-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_1px_0_0_rgba(255,255,255,0.07),0_8px_18px_rgba(0,0,0,0.34)]"
+      className="relative flex h-20 w-fit max-w-105 items-stretch gap-2.5 overflow-visible rounded-lg border border-white/15 py-1.5 pr-3.5 pl-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_1px_0_0_rgba(255,255,255,0.07),0_8px_18px_rgba(0,0,0,0.34)]"
       style={{
         background:
           'linear-gradient(150deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 38%, rgba(0,0,0,0.46) 100%)',
       }}
     >
-      {/* Tier-tinted glow bloom behind the hero number — reinforces the tier-colored percentile. */}
+      {/* Tier-tinted glow bloom behind the hero number, reinforcing the tier-colored percentile. */}
       {rankGlow && !loading && board && (
         <span
           className="pointer-events-none absolute top-1/2 left-4 h-14 w-14 -translate-y-1/2 rounded-full opacity-36 blur-2xl"
@@ -140,7 +149,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
         />
       )}
 
-      {/* Hero: percentile (tier color) + absolute rank. */}
+      {/* Zone 1, the grade: percentile (tier color) + absolute rank. */}
       <div className="relative flex w-20 shrink-0 flex-col justify-center">
         {empty ? (
           <span className="font-gowun text-[18px] font-bold text-text-primary/30">Not ranked</span>
@@ -154,7 +163,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
                 className="font-gowun text-[25px] leading-none font-bold tabular-nums"
                 style={{ color: rankColor, textShadow: rankGlow ? `0 0 16px ${rankGlow}` : undefined }}
               >
-                {loading || !board ? '—' : formatPct(board.topPercent)}
+                {loading || !board ? '-' : formatPct(board.topPercent)}
               </span>
               {!loading && board && (
                 <span className="font-gowun text-sm leading-none font-bold" style={{ color: rankColor }}>
@@ -167,16 +176,16 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
                 <span className="text-[14px] leading-none font-bold text-text-primary/90">
                   #{formatNumber(board.rank)}
                 </span>
-                <span className="text-[10px] text-text-primary/40">/ {formatNumber(board.total)}</span>
+                <span className="text-[10px] text-text-primary/40">/ {formatTotal(board.total)}</span>
               </div>
             )}
           </>
         )}
       </div>
 
-      {/* Board identity: weapon + track, so the rank stays attached to its board. */}
+      {/* Board identity: weapon + promoted track, sequence (and ER bracket) underneath. */}
       {!empty && (
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
           {boardWeapon && boardWeaponTrigger ? (
             <WeaponHoverCard
               placement="top"
@@ -193,14 +202,19 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
             </WeaponHoverCard>
           ) : boardWeaponTrigger}
           {board && !loading && (
-            <div className="flex min-w-0 flex-col gap-1">
-              <span className="truncate font-ropa text-[11px] leading-none tracking-[0.18em] text-text-primary/72 uppercase">
+            <div className="flex min-w-0 flex-col justify-center gap-1.5">
+              <span className="truncate font-ropa text-[13px] leading-none tracking-[0.08em] text-text-primary/90 uppercase">
                 {cleanBoardTrackLabel(board)}
               </span>
               <div className="flex items-center gap-1.5">
                 <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] leading-none font-bold tracking-wide ${boardSeqClass}`}>
                   S{board.sequence}
                 </span>
+                {(board.erBracket ?? 0) > 0 && (
+                  <span className="font-ropa text-[10px] leading-none tracking-[0.12em] text-text-primary/45 uppercase">
+                    {board.erBracket}% ER
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -209,7 +223,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
 
       {/* Supports for the active board (lead omitted). */}
       {supports.length > 0 && (
-        <div className="ml-1 flex shrink-0 items-center gap-2">
+        <div className="ml-1 flex shrink-0 items-center gap-3">
           {supports.map((member) => (
             <SupportAvatar key={member.id} member={member} />
           ))}

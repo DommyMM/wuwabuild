@@ -104,7 +104,6 @@ export function BoardIndex({ records }: BoardIndexProps) {
                 >
                     Discord
                 </a>{' '}
-                and make the case.
             </p>
         </section>
     );
