@@ -23,6 +23,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Profile cards now use the character splash art by default, same as the editor card'
+            },
+            {
+                kind: 'improved',
+                text: 'The wuwa.build watermark moved onto the splash corner of the card'
             }
         ]
     },
@@ -40,7 +44,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'improved',
-                text: 'New home page. Search any player by UID or username right from the landing, see the top boards and their record holders, and a rotating showcase puts each character\'s record run over their splash art'
+                text: 'New home page. Search any player by UID or username right from the landing, aggregated by uid for now'
             }
         ]
     },

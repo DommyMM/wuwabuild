@@ -108,7 +108,7 @@ const Popover: React.FC<PopoverProps> = ({
       ref={popoverRef}
       role="listbox"
       style={style}
-      className="font-plus-jakarta flex flex-col overflow-hidden rounded-lg bg-[linear-gradient(170deg,rgba(28,24,18,0.97)_0%,rgba(10,8,6,0.97)_100%)] shadow-[0_24px_48px_rgba(0,0,0,0.6)] backdrop-blur-md"
+      className="font-plus-jakarta flex flex-col overflow-hidden rounded-lg border border-border bg-background-secondary/97 shadow-[0_24px_48px_rgba(0,0,0,0.6)] backdrop-blur-md"
     >
       <div className="min-h-0 flex-1 overflow-y-auto">
         {/* OG forte, opt out of the rank display reverts*/}
@@ -117,7 +117,7 @@ const Popover: React.FC<PopoverProps> = ({
           aria-selected={isOriginalActive}
           onClick={() => { onSelect(NO_RANKING_KEY); onClose(); }}
           className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
-            isOriginalActive ? 'bg-amber-300/10' : 'hover:bg-white/4'
+            isOriginalActive ? 'bg-accent/10' : 'hover:bg-accent/6'
           }`}
         >
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-primary/40">
@@ -129,10 +129,10 @@ const Popover: React.FC<PopoverProps> = ({
               Hide ranking
             </span>
           </div>
-          {isOriginalActive && <Check size={12} className="shrink-0 text-amber-300" />}
+          {isOriginalActive && <Check size={12} className="shrink-0 text-accent-hover" />}
         </button>
 
-        {sorted.length > 0 && <div className="h-px bg-white/6" />}
+        {sorted.length > 0 && <div className="h-px bg-border/70" />}
 
         {sorted.map((b) => {
           const isActive = b.key === activeKey;
@@ -145,7 +145,7 @@ const Popover: React.FC<PopoverProps> = ({
               aria-selected={isActive}
               onClick={() => { onSelect(b.key); onClose(); }}
               className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
-                isActive ? 'bg-amber-300/10' : 'hover:bg-white/4'
+                isActive ? 'bg-accent/10' : 'hover:bg-accent/6'
               }`}
             >
               {b.weaponIcon && (
@@ -178,7 +178,7 @@ const Popover: React.FC<PopoverProps> = ({
                   #{formatNumber(b.rank)} / {formatNumber(b.total)}
                 </span>
               </div>
-              {isActive && <Check size={12} className="shrink-0 text-amber-300" />}
+              {isActive && <Check size={12} className="shrink-0 text-accent-hover" />}
             </button>
           );
         })}
@@ -236,7 +236,7 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
         onClick={() => setIsOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className="flex cursor-pointer items-center gap-2 rounded-lg bg-background-secondary px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background-secondary px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
         {showOriginalForte ? (
           <span className="text-text-primary/80">Original forte</span>

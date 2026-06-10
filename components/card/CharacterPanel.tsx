@@ -196,17 +196,23 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
         </div>
       )}
 
-      {showArtSource && (
-        <div className="absolute bottom-3 left-3 z-30 rounded-xl border border-white/16 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.6)_55%,rgba(0,0,0,0.82)_100%)] px-2.5 py-1.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_3px_12px_rgba(0,0,0,0.42)]">
-          <input
-            type="text"
-            value={artSource}
-            onChange={e => onArtSourceChange(e.target.value)}
-            size={Math.max(1, artSource.length)}
-            className="bg-transparent text-sm italic text-white/70 focus:outline-none"
-          />
+      {/* Bottom-left stack: optional art credit above the site mark */}
+      <div className="absolute bottom-3 left-3 z-30 flex flex-col items-start gap-1.5">
+        {showArtSource && (
+          <div className="rounded-xl border border-white/16 bg-[linear-gradient(180deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.6)_55%,rgba(0,0,0,0.82)_100%)] px-2.5 py-1.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_3px_12px_rgba(0,0,0,0.42)]">
+            <input
+              type="text"
+              value={artSource}
+              onChange={e => onArtSourceChange(e.target.value)}
+              size={Math.max(1, artSource.length)}
+              className="bg-transparent text-sm italic text-white/70 focus:outline-none"
+            />
+          </div>
+        )}
+        <div className="text-[11px] font-semibold leading-none tracking-[0.14em] text-white/75 lowercase [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+          wuwa<span className="text-accent-hover">.build</span>
         </div>
-      )}
+      </div>
 
       {/* Character banner */}
       <div className="absolute inset-0 z-20 pointer-events-none flex items-end justify-center overflow-hidden">

@@ -59,8 +59,8 @@ TOP              [wpn]  HYPERCARRY      [head]  [head]
 
 | Group | Contents | Spec |
 |---|---|---|
-| Grade | `TOP` kicker, percentile, `#rank / total` | Percentile `font-gowun 700 25px` in tier color with glow, the only quality signal on the card. Total abbreviates at five digits (`formatTotal`: "1.6k", "95.7k") so the line survives boards growing 100x. Percentile stays the hero because it scales; absolute rank decays in meaning as boards grow. |
-| Board | Weapon icon (hover card on web), track label, sequence pill + ER bracket underneath | Track label Ropa 13px / 0.08em / `text-primary/90`, the second-strongest text in the module, on its own row because future track labels have unknown length. `S{n}` pill below it (`LB_SEQ_BADGE_COLORS`), always shown since S0 vs S2 vs S6 changes what the rank means; `{n}% ER` joins that row when the board is ER-bracketed. |
+| Grade | `TOP` kicker, percentile, `#rank / total` | Percentile `font-gowun 700 25px` in tier color with glow, the only quality signal on the card. Total abbreviates at five digits (`formatTotal`: "1.6k", "95.7k") so the line survives boards growing 100x. Percentile stays the hero at every rank (a podium "#1 hero" variant was tried 2026-06-10 and reverted by owner preference). |
+| Board | Weapon icon (hover card on web), track label, sequence pill + ER bracket underneath | Track label Ropa 13px / 0.08em / `text-primary/90`, the second-strongest text in the module, on its own row because future track labels have unknown length. `S{n}` pill below it (`LB_SEQ_BADGE_COLORS`), always shown since S0 vs S2 vs S6 changes what the rank means; `{n}% ER` joins that row when the board is ER-bracketed. A soft cluster backdrop behind the board group was also tried and reverted; keep the board zone chrome-free. |
 | Conditions | Support avatars (lead omitted), corner S badges, up to 3 loadout icons each | Badges and gear sit ON the portrait: the S badge is inset at the top-right with a solid dark backing ring (translucent tier tints dissolve into bright character art otherwise), and the 16px loadout icons overlap the portrait's bottom edge. Gear hangs off the avatar, not off the module, keeping the stack compact and clear of the container border. Legibility survives export (2.67x upsample). |
 
 Tier colors (`lib/calculations/rankTier.ts`): S = gold w/ glow at top 1%, A = silver at 10%, B = bronze at 25%, then neutral steps. Revisit the S threshold if boards reach six figures.
@@ -73,7 +73,9 @@ The card always shows the rank for the **equipped weapon**: `standings.find(s =>
 
 ## Export
 
-`html-to-image` `toBlob` with `pixelRatio = EXPORT_CARD_WIDTH / FIXED_CARD_PREVIEW_WIDTH` (3840 / 1440 = 2.67). The card lays out at a fixed 1440px regardless of viewport (`CardScaler` shrinks the preview visually). The profile download wraps the card and the substat row in one capture. Implication for design: anything legible at the 1440 preview is more than legible in the file; optimize hierarchy for the Discord-embed first glance, not for export pixel size.
+`html-to-image` `toBlob` with `pixelRatio = EXPORT_CARD_WIDTH / FIXED_CARD_PREVIEW_WIDTH` (3840 / 1440 = 2.67). The card lays out at a fixed 1440px regardless of viewport (`CardScaler` shrinks the preview visually). The profile download wraps the card and the substat row in one capture; the substat pills render bare over the PNG's transparent band (a backdrop strip was tried 2026-06-10 and reverted by owner preference). Implication for design: anything legible at the 1440 preview is more than legible in the file; optimize hierarchy for the Discord-embed first glance, not for export pixel size.
+
+The site mark ("wuwa.build") is bare shadowed text pinned bottom-left of the splash panel (`CharacterPanel`), stacked under the optional art-credit input in the editor. Shared cards are the distribution loop; keep the mark legible at embed size.
 
 ## Data flow
 
