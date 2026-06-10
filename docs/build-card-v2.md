@@ -79,7 +79,7 @@ The site mark ("wuwa.build") is bare shadowed text pinned bottom-left of the spl
 
 ## Data flow
 
-- Profile standings fetch on row expand via `/leaderboard/{characterId}/build/{buildId}/standings` (one request, all boards). `ProfileCard` owns the fetch so the action bar can switch boards without remounting the card.
+- Profile standings fetch on row expand via `/leaderboard/{characterId}/build/{buildId}/standings` (one request, all boards). `ProfileCard` owns the fetch so the action bar can switch boards without remounting the card. It reports the picked board upward (`onActiveBoardChange`), and `ProfileBuildExpanded` feeds that board (weapon, track, damage, rank) into the shared `BuildSimulationSection`, so the full leaderboard bench (move breakdown, substat upgrades, standings table, theoretical bench) renders under the card and always analyzes the board the rank module is showing.
 - The editor's "where would this rank" lives **under** the card (`SimulateRankPanel`, on-demand `POST /leaderboard/{characterId}/simulate`), keeping the editor export clean of unverified ranks.
 
 ## Backlog (carried over)

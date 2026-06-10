@@ -37,6 +37,8 @@ const EXPORT_CARD_WIDTH = 3840;
 interface ProfileCardProps {
   entry: LBBuildRowEntry;
   detail: LBBuildDetailEntry;
+  /** Reports the board currently shown by the rank module (picker-driven), null when hidden. */
+  onActiveBoardChange?: (board: RankBoard | null) => void;
 }
 
 interface StandingsResult {
@@ -71,7 +73,7 @@ const readFileAsDataUrl = (file: File): Promise<string> => (
   })
 );
 
-export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail }) => {
+export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiveBoardChange }) => {
   const { error: toastError } = useToast();
   const { getWeapon, getCharacter } = useGameData();
   const { t } = useLanguage();
@@ -198,6 +200,12 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail }) => {
     // Default = lowest top% (most impressive ranking) across all variants.
     return [...availableBoards].sort((a, b) => a.topPercent - b.topPercent)[0];
   }, [showOriginalForte, availableBoards, selectedStandingKey]);
+
+  // Let the expansion shell mirror the picker, so the breakdown bench below the
+  // card always analyzes the same board the rank module is showing.
+  useEffect(() => {
+    onActiveBoardChange?.(activeBoard);
+  }, [activeBoard, onActiveBoardChange]);
 
   const handleToggleArtEditMode = useCallback(() => setIsArtEditMode((v) => !v), []);
   const handleResetArtTransform = useCallback(() => setArtTransform(DEFAULT_CARD_ART_TRANSFORM), []);

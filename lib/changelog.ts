@@ -27,6 +27,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'The wuwa.build watermark moved onto the splash corner of the card'
+            },
+            {
+                kind: 'new',
+                text: 'Profile build rows now have the full breakdown bench from the leaderboards: move breakdown, substat upgrades, leaderboard rank, and theoretical bench, all following whichever board the rank picker selects'
             }
         ]
     },

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
@@ -9,6 +9,7 @@ import { Character } from '@/lib/character';
 import { Echo } from '@/lib/echo';
 import { RegionBadge } from '@/components/leaderboards/constants';
 import { BuildSimulationSection } from '@/components/leaderboards/BuildSimulationSection';
+import { RankBoard } from '@/components/card/RankModule';
 import { ProfileCard } from './ProfileCard';
 import posthog from 'posthog-js';
 
@@ -25,10 +26,6 @@ interface ProfileBuildExpandedProps {
   getEcho: (id: string | null) => Echo | null;
   translateText: (i18n: Record<string, string> | undefined, fallback: string) => string;
   onRetryDetail: (buildId: string) => void;
-  globalRank?: number;
-  damage?: number;
-  activeTrackKey?: string;
-  activeWeaponId?: string;
 }
 
 export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
@@ -41,12 +38,11 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
   characterName,
   regionBadge,
   onRetryDetail,
-  globalRank,
-  damage,
-  activeTrackKey,
-  activeWeaponId,
 }) => {
   const router = useRouter();
+  // Mirrors the card's board picker so the bench below analyzes the same board
+  // the rank module is showing. Null while "Original forte" or unranked.
+  const [activeBoard, setActiveBoard] = useState<RankBoard | null>(null);
 
   const handleViewBuild = () => {
     if (!detail) return;
@@ -91,9 +87,9 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
             {!isDetailLoading && !detailError && detail && (
               <>
                 {/* ── ProfileCard the hero visual (includes substat row + action bar) ── */}
-                <ProfileCard entry={entry} detail={detail} />
+                <ProfileCard entry={entry} detail={detail} onActiveBoardChange={setActiveBoard} />
 
-                {/* ── Simulation section (standings + view in editor) ── */}
+                {/* ── Full breakdown bench (same as the boards), scoped to the picked board ── */}
                 <BuildSimulationSection
                   buildId={detail.id}
                   buildDetail={detail}
@@ -101,11 +97,11 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
                   characterId={detail.buildState.characterId ?? ''}
                   characterName={characterName}
                   regionBadge={regionBadge}
-                  activeWeaponId={activeWeaponId ?? ''}
-                  activeTrackKey={activeTrackKey ?? ''}
+                  activeWeaponId={activeBoard?.weaponId ?? ''}
+                  activeTrackKey={activeBoard?.trackKey ?? ''}
                   isExpanded={isExpanded}
-                  baseDamage={damage}
-                  globalRank={globalRank}
+                  baseDamage={activeBoard?.damage}
+                  globalRank={activeBoard?.rank}
                   onViewInEditor={handleViewBuild}
                 />
               </>
