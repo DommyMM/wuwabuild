@@ -178,6 +178,7 @@ def main() -> int:
     sync_weapons(args.dry_run)
     sync_echoes(args.dry_run)
     copy_unchanged("EchoStats.json", args.dry_run)
+    copy_unchanged("Stats.json", args.dry_run)
     if not args.skip_element_icons:
         sync_element_templates(args.dry_run, args.force_element_icons)
     print("Backend sync complete." if not args.dry_run else "Dry run complete, nothing written.")
