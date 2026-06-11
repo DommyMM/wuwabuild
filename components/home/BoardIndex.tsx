@@ -6,7 +6,8 @@ interface BoardIndexProps {
     records: HomeBoardRecord[];
 }
 
-const VISIBLE_BOARDS = 8;
+// 9 rows at 60px lines this column up with the NewsLog window (max-h-[544px]) next door.
+const VISIBLE_BOARDS = 9;
 
 /**
  * The most contested boards at a glance, one per character so the list shows

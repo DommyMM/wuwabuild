@@ -1,5 +1,5 @@
-// Browser-side API endpoint resolution.
-// All browser API traffic goes to the Cloudflare Worker gateway
+// Shared API endpoint resolution.
+// Browser and SSR traffic both go through the configured Cloudflare Worker gateway.
 
 const LB_DEFAULT = 'http://localhost:8080';
 const OCR_DEFAULT = 'http://localhost:5000';
@@ -10,7 +10,7 @@ function base(value: string | undefined, fallback: string): string {
   return v || fallback;
 }
 
-/** Base URL for all browser LB requests (reads and writes). */
+/** Base URL for all LB requests (reads and writes). */
 export const LB_API_BASE = base(process.env.NEXT_PUBLIC_LB_URL, LB_DEFAULT);
 
 const OCR_BASE = base(process.env.NEXT_PUBLIC_OCR_URL, OCR_DEFAULT);

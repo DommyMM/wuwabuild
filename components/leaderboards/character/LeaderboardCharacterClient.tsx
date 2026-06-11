@@ -21,7 +21,7 @@ import { useExpandedRows } from '../useExpandedRows';
 import posthog from 'posthog-js';
 
 function leaderboardSignature(entries: LBLeaderboardEntry[], total: number): string {
-  return `${total}:${entries.map((e) => `${e.id}:${e.damage}:${e.globalRank}:${e.timestamp}:${e.finalCV}:${e.reignSince ?? ''}:${e.reignEstimated ? '1' : '0'}`).join(',')}`;
+  return `${total}:${entries.map((e) => `${e.id}:${e.damage}:${e.globalRank}:${e.timestamp}:${e.finalCV}:${e.reignSince ?? ''}`).join(',')}`;
 }
 
 function mergeGhostBuild(entries: LBLeaderboardEntry[], ghostBuild: LBLeaderboardEntry | null | undefined): LBLeaderboardEntry[] {

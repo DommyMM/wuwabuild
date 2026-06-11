@@ -17,12 +17,15 @@ export interface HomeBoardRecord {
     topOwner: string;
     /** Weapon holding the board record, used to resolve weapon display and the matching #1 row. */
     topWeaponId: string;
+    /** RFC3339 start of the selected weapon's current rank-1 hold; empty when unknown. */
+    topReignSince: string;
     isHeal: boolean;
 }
 
 /** One hero showcase slide: a character's record run over their splash art. */
 export interface HomeHeroSlide {
     characterId: string;
+    trackKey: string;
     href: string;
     name: string;
     element: string;

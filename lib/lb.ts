@@ -547,6 +547,8 @@ export interface LBWeaponTop {
   weaponId: string;
   damage: number;
   owner: { username: string; uid: string };
+  /** RFC3339 start of the current rank-1 hold for this weapon/track board. */
+  reignSince: string;
 }
 
 export interface LBTeamMemberConfig {
@@ -593,8 +595,6 @@ export interface LBLeaderboardEntry {
   globalRank: number;
   /** RFC3339 start of the current rank-1 hold; only set on the #1 row of the unfiltered board. */
   reignSince?: string;
-  /** True when reignSince was backfill-seeded from post time rather than observed live. */
-  reignEstimated?: boolean;
   stats: Record<LBStatCode, number>;
   owner: { username: string; uid: string };
   character: { id: string; level: number; roverElement?: string };
@@ -666,7 +666,6 @@ export function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
     damage: toFiniteNumber(raw.damage),
     globalRank: toFiniteNumber(raw.globalRank, 0),
     reignSince: typeof raw.reignSince === 'string' ? raw.reignSince : undefined,
-    reignEstimated: raw.reignEstimated === true,
     stats: parseStatsRecord(raw),
     owner: row.owner,
     character: {
@@ -758,6 +757,7 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
             username: typeof owner.username === 'string' ? owner.username : '',
             uid: typeof owner.uid === 'string' ? owner.uid : '',
           },
+          reignSince: typeof w.reignSince === 'string' ? w.reignSince : '',
         };
       });
     result.push({

@@ -1,5 +1,6 @@
 // Server-only module: SSR prefetch against the LB API via the Cloudflare gateway
 import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardDisplayStats, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack, LBTeamMemberConfig } from './lb';
+import { LB_API_BASE } from './apiEndpoints';
 import { loadCharacterDisplayMap } from './server/gameData';
 
 // Centralized TTL for all SSR prefetch caches (seconds).
@@ -56,12 +57,6 @@ function parseTeamCharacterSpecs(raw: unknown): LBTeamMemberConfig[] {
     .filter((member) => member.charId.length > 0);
 }
 
-// SSR prefetch goes through the same Cloudflare Worker gateway as the browser
-function getLBUrl(): string {
-  const url = process.env.NEXT_PUBLIC_LB_URL?.trim() || 'http://localhost:8080';
-  return url.replace(/\/$/, '');
-}
-
 export async function prefetchBuilds(
   sort: 'finalCV' | 'timestamp' = 'finalCV',
 ): Promise<LBListBuildsResponse | null> {
@@ -72,7 +67,7 @@ export async function prefetchBuilds(
       sort,
       direction: 'desc',
     });
-    const url = `${getLBUrl()}/build?${params.toString()}`;
+    const url = `${LB_API_BASE}/build?${params.toString()}`;
     const response = await fetch(url, {
       method: 'GET',
       next: { revalidate: PREFETCH_TTL_S },
@@ -129,7 +124,7 @@ export async function fetchProfileSummary(uid: string): Promise<ProfileSummary |
   const trimmedUid = uid.trim();
   if (!trimmedUid) return null;
   try {
-    const url = `${getLBUrl()}/profile/${encodeURIComponent(trimmedUid)}`;
+    const url = `${LB_API_BASE}/profile/${encodeURIComponent(trimmedUid)}`;
     const response = await fetch(url, {
       method: 'GET',
       next: { revalidate: PREFETCH_TTL_S },
@@ -150,7 +145,7 @@ export async function fetchProfileSummary(uid: string): Promise<ProfileSummary |
 
 export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview[] | null> {
   try {
-    const url = `${getLBUrl()}/leaderboard`;
+    const url = `${LB_API_BASE}/leaderboard`;
     const response = await fetch(url, {
       method: 'GET',
       next: { revalidate: PREFETCH_TTL_S },
@@ -185,6 +180,7 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
               username: typeof owner.username === 'string' ? owner.username : '',
               uid: typeof owner.uid === 'string' ? owner.uid : '',
             },
+            reignSince: typeof w.reignSince === 'string' ? w.reignSince : '',
           };
         });
       const weaponIds = Array.isArray(raw.weaponIds)
@@ -229,7 +225,7 @@ export async function prefetchLeaderboard(
       direction: 'desc',
       ...query,
     });
-    const url = `${getLBUrl()}/leaderboard/${encodeURIComponent(characterId)}?${params.toString()}`;
+    const url = `${LB_API_BASE}/leaderboard/${encodeURIComponent(characterId)}?${params.toString()}`;
     const response = await fetch(url, {
       method: 'GET',
       next: { revalidate: PREFETCH_TTL_S },

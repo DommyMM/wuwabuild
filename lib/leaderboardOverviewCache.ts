@@ -29,7 +29,8 @@ function isWeaponTop(value: unknown): boolean {
     isFiniteNumber(candidate.damage) &&
     !!candidate.owner &&
     typeof candidate.owner.username === 'string' &&
-    typeof candidate.owner.uid === 'string'
+    typeof candidate.owner.uid === 'string' &&
+    typeof candidate.reignSince === 'string'
   );
 }
 

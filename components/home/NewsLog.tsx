@@ -19,7 +19,9 @@ function formatDate(iso: string): string {
 
 /** The akasha-news of this site: latest changelog entries verbatim, the maintainer's voice intact. */
 export function NewsLog() {
-    const entries = CHANGELOG.slice(0, 3);
+    // More than the window can show; the overflow fades out so the column height stays
+    // fixed at LOG_WINDOW regardless of how wordy recent entries are.
+    const entries = CHANGELOG.slice(0, 5);
     if (entries.length === 0) return null;
 
     return (
@@ -38,7 +40,8 @@ export function NewsLog() {
                 <span className="font-mono text-[11px] text-text-primary/40">from the changelog</span>
             </div>
 
-            <div className="border-t border-border pt-5 flex flex-col gap-7">
+            {/* Height budget pairs with BoardIndex (VISIBLE_BOARDS 60px rows): 544 + header + link ≈ 9 rows + header + footer. */}
+            <div className="border-t border-border pt-5 flex flex-col gap-7 max-h-[544px] overflow-hidden mask-[linear-gradient(to_bottom,black_78%,transparent)]">
                 {entries.map((entry) => (
                     <article key={entry.date}>
                         <div className="flex items-baseline gap-3 mb-2.5">

@@ -28,6 +28,8 @@ const ELEMENT_GLOW_RGB: Record<string, string> = {
 export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
     const [index, setIndex] = useState(0);
     const [paused, setPaused] = useState(false);
+    const prevIndex = slides.length > 0 ? (index - 1 + slides.length) % slides.length : 0;
+    const nextIndex = slides.length > 0 ? (index + 1) % slides.length : 0;
 
     useEffect(() => {
         if (slides.length < 2 || paused) return;
@@ -36,7 +38,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
             setIndex((current) => (current + 1) % slides.length);
         }, ROTATE_MS);
         return () => clearInterval(timer);
-    }, [slides.length, paused, index]);
+    }, [slides.length, paused]);
 
     const active = slides[index] ?? null;
 
@@ -49,7 +51,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                         const glowRgb = ELEMENT_GLOW_RGB[slide.element];
                         return (
                             <div
-                                key={`${slide.characterId}:${slide.trackLabel}`}
+                                key={`${slide.characterId}:${slide.trackKey}`}
                                 className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === index ? 'opacity-100' : 'opacity-0'}`}
                             >
                                 {glowRgb && (
@@ -58,12 +60,14 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                                         style={{ background: `radial-gradient(700px 520px at 76% 55%, rgba(${glowRgb}, 0.13), transparent 70%)` }}
                                     />
                                 )}
-                                <img
-                                    src={slide.splashUrl}
-                                    alt=""
-                                    className="absolute bottom-0 right-0 h-full w-auto max-w-none object-contain object-bottom opacity-35 md:opacity-60 mask-[linear-gradient(to_left,rgba(0,0,0,1)_45%,transparent_95%)]"
-                                    loading={i === 0 ? 'eager' : 'lazy'}
-                                />
+                                {(i === prevIndex || i === index || i === nextIndex) && (
+                                    <img
+                                        src={slide.splashUrl}
+                                        alt=""
+                                        className="absolute bottom-0 right-0 h-full w-auto max-w-none object-contain object-bottom opacity-35 md:opacity-60 mask-[linear-gradient(to_left,rgba(0,0,0,1)_45%,transparent_95%)]"
+                                        loading={i === 0 ? 'eager' : 'lazy'}
+                                    />
+                                )}
                             </div>
                         );
                     })}
@@ -133,7 +137,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                         onMouseLeave={() => setPaused(false)}
                     >
                         <HomeLink
-                            key={`${active.characterId}:${active.trackLabel}`}
+                            key={`${active.characterId}:${active.trackKey}`}
                             href={active.href}
                             cta="leaderboards"
                             section="hero"
@@ -195,18 +199,26 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                         </HomeLink>
 
                         {slides.length > 1 && (
-                            <div className="mt-2.5 flex justify-end gap-1.5">
-                                {slides.map((slide, i) => (
-                                    <button
-                                        key={`${slide.characterId}:${slide.trackLabel}`}
-                                        type="button"
-                                        onClick={() => setIndex(i)}
-                                        aria-label={`Show ${slide.name} record`}
-                                        className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                                            i === index ? 'w-5 bg-accent' : 'w-1.5 bg-text-primary/25 hover:bg-text-primary/45'
-                                        }`}
-                                    />
-                                ))}
+                            <div className="mt-2.5 flex items-center justify-end gap-3 font-mono text-[11px] text-text-primary/45 tabular-nums">
+                                <button
+                                    type="button"
+                                    onClick={() => setIndex((current) => (current - 1 + slides.length) % slides.length)}
+                                    aria-label="Previous record"
+                                    className="px-1 cursor-pointer transition-colors hover:text-accent"
+                                >
+                                    ←
+                                </button>
+                                <span aria-live="polite">
+                                    {String(index + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setIndex((current) => (current + 1) % slides.length)}
+                                    aria-label="Next record"
+                                    className="px-1 cursor-pointer transition-colors hover:text-accent"
+                                >
+                                    →
+                                </button>
                             </div>
                         )}
                     </div>

@@ -5,12 +5,10 @@ import type { HomeBoardRecord, HomeHeroSlide } from '@/components/home/types';
 import { buildLeaderboardHref } from '@/components/leaderboards/character/leaderboardCharacterQuery';
 import { parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { isHealTrackKey } from '@/lib/lb';
-import { prefetchLeaderboardOverview, prefetchBuilds, prefetchLeaderboard } from '@/lib/lbServer';
+import { prefetchLeaderboardOverview, prefetchBuilds } from '@/lib/lbServer';
 import { loadCharacterSummary, loadWeaponSummary } from '@/lib/server/gameData';
 
 export const revalidate = 300; // ISR: full page HTML cached at edge, re-rendered at most once per 5 min
-
-const MAX_HERO_SLIDES = 6;
 
 export const metadata: Metadata = {
     title: { absolute: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards' },
@@ -23,29 +21,38 @@ export const metadata: Metadata = {
     alternates: { canonical: '/' },
 };
 
-function reignLabelFor(reignSince: string | undefined, estimated: boolean): string | null {
+function reignLabelFor(reignSince: string): string | null {
     if (!reignSince) return null;
     const since = Date.parse(reignSince);
     if (!Number.isFinite(since)) return null;
     const days = Math.floor((Date.now() - since) / 86_400_000);
-    if (days < 1) return estimated ? null : 'took #1 today';
-    const dayWord = days === 1 ? 'day' : 'days';
-    return estimated ? `#1 for about ${days} ${dayWord}` : `#1 for ${days} ${dayWord}`;
+    if (days < 1) return 'took #1 today';
+    return `#1 for ${days} ${days === 1 ? 'day' : 'days'}`;
 }
 
-/** Resolve one showcase slide: splash art, weapon display, and the board's #1 row for reign info. */
-async function resolveHeroSlide(record: HomeBoardRecord): Promise<HomeHeroSlide | null> {
+/** Deterministic shuffle so the hero lineup reorders once per ISR window, not per request. */
+function shuffleSeeded<T>(items: T[], seed: number): T[] {
+    const arr = [...items];
+    let s = seed >>> 0;
+    const rand = () => {
+        s = (s * 1664525 + 1013904223) >>> 0;
+        return s / 4294967296;
+    };
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+/** Resolve one showcase slide from the overview payload plus local display data. */
+function resolveHeroSlide(record: HomeBoardRecord): HomeHeroSlide | null {
     const splashUrl = loadCharacterSummary(record.characterId)?.splashUrl ?? null;
     if (!splashUrl) return null;
     const weapon = record.topWeaponId ? loadWeaponSummary(record.topWeaponId) : null;
-    const detail = await prefetchLeaderboard(record.characterId, {
-        track: record.trackKey,
-        weaponId: record.topWeaponId || undefined,
-        pageSize: 5,
-    });
-    const top = detail?.builds.find((entry) => entry.globalRank === 1) ?? null;
     return {
         characterId: record.characterId,
+        trackKey: record.trackKey,
         href: record.href,
         name: record.name,
         element: record.element,
@@ -54,9 +61,9 @@ async function resolveHeroSlide(record: HomeBoardRecord): Promise<HomeHeroSlide 
         splashUrl,
         weaponName: weapon?.name ?? '',
         weaponIcon: weapon?.iconUrl ?? null,
-        damage: top && top.damage > 0 ? top.damage : record.topDamage,
-        owner: top?.owner.username || record.topOwner,
-        reignLabel: top ? reignLabelFor(top.reignSince, top.reignEstimated ?? false) : null,
+        damage: record.topDamage,
+        owner: record.topOwner,
+        reignLabel: reignLabelFor(record.topReignSince),
     };
 }
 
@@ -71,7 +78,7 @@ export default async function Home() {
     };
 
     const records: HomeBoardRecord[] = (overview ?? []).map((entry) => {
-        let top: { weaponId: string; damage: number; owner: { username: string } } | null = null;
+        let top: { weaponId: string; damage: number; owner: { username: string }; reignSince: string } | null = null;
         for (const weapon of entry.weapons) {
             if (weapon.damage > 0 && (!top || weapon.damage > top.damage)) top = weapon;
         }
@@ -91,26 +98,19 @@ export default async function Home() {
             topDamage: top?.damage ?? 0,
             topOwner: top?.owner.username ?? '',
             topWeaponId: top?.weaponId ?? '',
+            topReignSince: top?.reignSince ?? '',
             isHeal: isHealTrackKey(entry.trackKey),
         };
     });
 
-    // Hero showcase: each character's single biggest run (heal scores aren't damage, so they sit out),
-    // most contested characters first, capped and filtered to those with local splash art.
-    const bestByCharacter = new Map<string, HomeBoardRecord>();
-    for (const record of records) {
-        if (record.isHeal || record.topDamage <= 0) continue;
-        const current = bestByCharacter.get(record.characterId);
-        if (!current || record.topDamage > current.topDamage) {
-            bestByCharacter.set(record.characterId, record);
-        }
-    }
-    const slideCandidates = [...bestByCharacter.values()]
-        .sort((a, b) => b.totalEntries - a.totalEntries)
-        .slice(0, MAX_HERO_SLIDES + 2);
-    const slides = (await Promise.all(slideCandidates.map(resolveHeroSlide)))
-        .filter((slide): slide is HomeHeroSlide => slide !== null)
-        .slice(0, MAX_HERO_SLIDES);
+    // Hero showcase rotates board-level records so lower-sequence tracks can appear too.
+    const slideCandidates = shuffleSeeded(
+        records.filter((record) => !record.isHeal && record.topDamage > 0),
+        // eslint-disable-next-line react-hooks/purity -- Server-rendered ISR seed; HTML is cached for the matching revalidate window.
+        Math.floor(Date.now() / (revalidate * 1000)),
+    );
+    const slides = slideCandidates.map(resolveHeroSlide)
+        .filter((slide): slide is HomeHeroSlide => slide !== null);
 
     const jsonLd = {
         "@context": "https://schema.org",
