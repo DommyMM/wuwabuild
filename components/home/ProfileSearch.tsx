@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
-import { Star } from 'lucide-react';
 import { resolveRegionBadge } from '@/components/leaderboards/formatters';
 import { getPinnedProfiles, getRecentProfiles, StoredProfile } from '@/lib/profileHistory';
 import { LB_API_BASE } from '@/lib/apiEndpoints';
@@ -165,17 +164,20 @@ export function ProfileSearch({ surface = 'home', autoFocus = false, showSavedPr
                                         <button
                                             type="button"
                                             onClick={() => go(recent.uid)}
-                                            className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-accent/8 cursor-pointer"
+                                            className={`relative flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-accent/8 cursor-pointer ${recent.isPinned ? 'bg-accent/4' : ''}`}
                                         >
+                                            {/* Starred rows signal with an accent edge (same vocabulary as the
+                                                ranking tiles' tier edge) so names stay aligned across rows. */}
+                                            {recent.isPinned && (
+                                                <span className="absolute inset-y-0 left-0 w-0.5 bg-accent/80" aria-hidden />
+                                            )}
                                             {recent.head ? (
                                                 <img src={recent.head} alt="" className="h-7 w-7 shrink-0 rounded object-cover object-top" loading="lazy" />
                                             ) : (
                                                 <span className="h-7 w-7 shrink-0 rounded bg-border/30" aria-hidden />
                                             )}
                                             <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-[15px] text-text-primary">
-                                                {recent.isPinned && (
-                                                    <Star size={11} className="shrink-0 fill-accent text-accent/80" aria-label="Pinned" />
-                                                )}
+                                                {recent.isPinned && <span className="sr-only">Starred</span>}
                                                 <span className="min-w-0 truncate">{recent.username || 'Anonymous'}</span>
                                             </span>
                                             {badge && (

@@ -101,7 +101,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
       </div>
 
       {loading ? (
-        <div className="flex flex-wrap gap-2 overflow-hidden max-[560px]:grid max-[560px]:grid-cols-1">
+        <div className="flex flex-wrap gap-2 overflow-hidden max-[560px]:grid max-[560px]:grid-cols-2">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="h-[108px] w-[184px] shrink-0 animate-pulse rounded-md border border-border bg-background/50 max-[560px]:w-full" />
           ))}
@@ -113,7 +113,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
             className={
               condensed
                 ? 'flex flex-nowrap gap-2 overflow-x-auto pb-1.5 scrollbar-none hover:scrollbar-thin [&::-webkit-scrollbar]:h-0 hover:[&::-webkit-scrollbar]:h-1.5'
-                : 'flex flex-wrap gap-2 max-[560px]:grid max-[560px]:grid-cols-1'
+                : 'flex flex-wrap gap-2 max-[560px]:grid max-[560px]:grid-cols-2'
             }
           >
             {entries.map((entry) => {

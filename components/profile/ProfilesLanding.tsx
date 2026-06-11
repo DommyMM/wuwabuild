@@ -62,7 +62,7 @@ export function ProfilesLanding() {
         Search by UID or username. Star a profile to pin it
       </p>
 
-      <div className="mt-8">
+      <div id="profiles-page-search" className="mt-8 scroll-mt-24">
         <ProfileSearch surface="profiles" showSavedProfiles={false} />
       </div>
 

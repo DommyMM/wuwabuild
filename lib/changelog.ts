@@ -22,11 +22,15 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
-                text: 'Fix shattered dream showing as 2p, and crowding sets render'
+                text: 'Fix shattered dream showing as 2p, and crowding sets'
             },
             {
                 kind: 'improved',
                 text: 'Recalculated lupa boards to be more accurate'
+            },
+            {
+                kind: 'fixed',
+                text: 'Home page and profile search should look better on mobile'
             }
         ]
     },

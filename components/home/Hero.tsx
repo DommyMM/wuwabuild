@@ -56,15 +56,15 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                             >
                                 {glowRgb && (
                                     <div
-                                        className="absolute inset-0"
-                                        style={{ background: `radial-gradient(700px 520px at 76% 55%, rgba(${glowRgb}, 0.13), transparent 70%)` }}
+                                        className="absolute inset-0 max-md:[--hero-glow-x:50%]"
+                                        style={{ background: `radial-gradient(700px 520px at var(--hero-glow-x,76%) 55%, rgba(${glowRgb}, 0.13), transparent 70%)` }}
                                     />
                                 )}
                                 {(i === prevIndex || i === index || i === nextIndex) && (
                                     <img
                                         src={slide.splashUrl}
                                         alt=""
-                                        className="absolute bottom-0 right-0 h-full w-auto max-w-none object-contain object-bottom opacity-35 md:opacity-60 mask-[linear-gradient(to_left,rgba(0,0,0,1)_45%,transparent_95%)]"
+                                        className="absolute bottom-0 left-1/2 -translate-x-1/2 h-full w-auto max-w-none object-contain object-bottom opacity-35 md:left-auto md:right-0 md:translate-x-0 md:opacity-60 md:mask-[linear-gradient(to_left,rgba(0,0,0,1)_45%,transparent_95%)]"
                                         loading={i === 0 ? 'eager' : 'lazy'}
                                     />
                                 )}
@@ -75,9 +75,9 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                 </div>
             )}
 
-            <div className="relative mx-auto max-w-260 px-6 md:px-10 py-16 md:py-24">
+            <div className="relative mx-auto max-w-260 px-6 md:px-10 py-12 md:py-24">
                 <h1 className="font-plus-jakarta font-medium text-text-primary max-w-3xl">
-                    <span className="block text-xs md:text-sm font-semibold uppercase tracking-[0.22em] text-text-primary/55 mb-4">
+                    <span className="block text-[10px] md:text-sm font-semibold uppercase tracking-[0.18em] md:tracking-[0.22em] text-text-primary/55 mb-4">
                         Wuthering Waves Character Builds &amp; Leaderboard
                     </span>
                     <span className="block text-[38px] md:text-6xl leading-[1.04] tracking-[-0.03em]">
@@ -99,7 +99,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                     <ProfileSearch />
                 </div>
 
-                <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+                <div className="mt-6 flex items-center gap-5 md:gap-6">
                     <HomeLink
                         href="/import"
                         cta="import"
@@ -111,28 +111,30 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                         </svg>
                         Import a build
                     </HomeLink>
-                    <HomeLink
-                        href="/leaderboards"
-                        cta="leaderboards"
-                        section="hero"
-                        className="text-sm text-text-primary/70 transition-colors hover:text-accent"
-                    >
-                        Leaderboards →
-                    </HomeLink>
-                    <HomeLink
-                        href="/builds"
-                        cta="builds"
-                        section="hero"
-                        className="text-sm text-text-primary/70 transition-colors hover:text-accent"
-                    >
-                        All builds →
-                    </HomeLink>
+                    <div className="flex flex-col gap-y-1.5 md:flex-row md:items-center md:gap-x-6">
+                        <HomeLink
+                            href="/leaderboards"
+                            cta="leaderboards"
+                            section="hero"
+                            className="text-sm text-text-primary/70 transition-colors hover:text-accent"
+                        >
+                            Leaderboards →
+                        </HomeLink>
+                        <HomeLink
+                            href="/builds"
+                            cta="builds"
+                            section="hero"
+                            className="text-sm text-text-primary/70 transition-colors hover:text-accent"
+                        >
+                            All builds →
+                        </HomeLink>
+                    </div>
                 </div>
 
                 {/* Record panel for the active slide */}
                 {active && (
                     <div
-                        className="mt-10 max-w-95 md:absolute md:bottom-6 md:right-6 md:mt-0 md:w-90"
+                        className="mt-8 max-w-95 md:absolute md:bottom-6 md:right-6 md:mt-0 md:w-90"
                         onMouseEnter={() => setPaused(true)}
                         onMouseLeave={() => setPaused(false)}
                     >

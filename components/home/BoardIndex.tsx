@@ -28,7 +28,7 @@ export function BoardIndex({ records }: BoardIndexProps) {
         <section>
             <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 mb-5">
                 <h2 className="font-plus-jakarta text-xl md:text-2xl font-medium tracking-[-0.01em]">
-                    Top boards.
+                    Top boards
                 </h2>
                 <HomeLink
                     href="/leaderboards"

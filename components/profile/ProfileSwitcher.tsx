@@ -65,9 +65,6 @@ export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
                 )}
                 <span className="min-w-0">
                   <span className="flex min-w-0 items-center gap-1.5">
-                    {entry.isPinned && (
-                      <Star size={10} className="shrink-0 fill-accent text-accent" aria-label="Pinned" />
-                    )}
                     <span className="max-w-32 truncate text-sm leading-tight">{entry.username || entry.uid}</span>
                   </span>
                   <span className="mt-0.5 flex items-center gap-1.5">
@@ -82,7 +79,16 @@ export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
                   </span>
                 </span>
               </Link>
-              {!entry.isPinned && (
+              {/* Starred tabs trade the close button for a star, browser-style:
+                  starred means it stays, so there is nothing to close. */}
+              {entry.isPinned ? (
+                <span
+                  className="mr-1 grid h-6 w-6 shrink-0 place-items-center text-accent"
+                  title="Starred profile"
+                >
+                  <Star size={11} className="fill-current" aria-label="Starred" />
+                </span>
+              ) : (
                 <button
                   type="button"
                   onClick={() => removeRecentProfile(entry.uid)}

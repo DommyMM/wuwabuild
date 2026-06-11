@@ -41,9 +41,19 @@ export function Navigation() {
 
     const closeSidebar = () => setIsOpen(false);
 
-    const focusHomeProfileSearch = () => {
-        const input = document.querySelector<HTMLInputElement>('#home-profile-search input');
+    // Pages with their own search bar: the nav icon hands off to it instead of
+    // opening the popover.
+    const onPageSearchSelector: Record<string, string> = {
+        '/': '#home-profile-search input',
+        '/profiles': '#profiles-page-search input',
+    };
+
+    const focusOnPageSearch = (selector: string) => {
+        const input = document.querySelector<HTMLInputElement>(selector);
         input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // On mobile /profiles the bar already sits at the top of the page;
+        // focusing would pop the keyboard, so reveal it closed instead.
+        if (isMobile && pathname === '/profiles') return;
         window.setTimeout(() => input?.focus(), 180);
     };
 
@@ -127,14 +137,18 @@ export function Navigation() {
                     {/* Toolbar Portal Target - BuildEditor buttons appear here on scroll */}
                     <div id="nav-toolbar-portal" className="flex items-center" />
 
-                    {/* Profile lookup - search any player from any page */}
-                    <div ref={lookupRef} className="relative flex items-center">
+                    {/* Profile lookup - search any player from any page.
+                        On mobile the wrapper is static so the popover anchors to the
+                        sticky nav itself and spans the viewport instead of hanging
+                        off-screen from the mid-bar button. */}
+                    <div ref={lookupRef} className="max-md:static relative flex items-center">
                         <button
                             type="button"
                             onClick={() => {
-                                if (pathname === '/') {
+                                const selector = onPageSearchSelector[pathname];
+                                if (selector) {
                                     setIsLookupOpen(false);
-                                    focusHomeProfileSearch();
+                                    focusOnPageSearch(selector);
                                     return;
                                 }
                                 setIsLookupOpen((v) => !v);
@@ -155,7 +169,7 @@ export function Navigation() {
                         </button>
 
                         {isLookupOpen && (
-                            <div className="absolute right-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] rounded-lg border border-border bg-background-secondary p-3 shadow-[0_24px_48px_rgba(0,0,0,0.6)]">
+                            <div className="absolute top-full z-50 mt-2 max-md:left-3 max-md:right-3 md:right-0 md:w-96 rounded-lg border border-border bg-background-secondary p-3 shadow-[0_24px_48px_rgba(0,0,0,0.6)]">
                                 <ProfileSearch surface="nav" autoFocus />
                                 <div className="mt-2.5 flex justify-end border-t border-border/60 pt-2">
                                     <Link
