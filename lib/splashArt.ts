@@ -5,6 +5,7 @@ const SPLASH_EXTENSIONS = ['webp', 'jpg', 'png'] as const;
 const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1105': { x: -40, y: 0, scale: 1.1 },
   '1108': { x: -80, y: 0, scale: 1.05 },
+  '1109': { x: -125, y: 10, scale: 1.1 },
   '1205': { x: 52, y: 124, scale: 1.4 },
   '1207': { x: -70, y: 0, scale: 1 },
   '1208': { x: -100, y: 0, scale: 1 },
@@ -14,6 +15,7 @@ const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1302': { x: 0, y: 0, scale: 1.15 },
   '1305': { x: -80, y: 0, scale: 1.1 },
   '1306': { x: -110, y: 0, scale: 1 },
+  '1308': { x: -150, y: 0, scale: 1 },
   '1404': { x: -90, y: 0, scale: 1 },
   '1407': { x: -70, y: 20, scale: 1.15 },
   '1409': { x: -164, y: -2, scale: 1 },
@@ -24,6 +26,7 @@ const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1508': { x: -180, y: 0, scale: 1 },
   '1509': { x: -90, y: 0, scale: 1 },
   '1510': { x: -130, y: 0, scale: 1.1 },
+  '1511': { x: -210, y: 0, scale: 1.05 },
   '1606': { x: -110, y: 0, scale: 1.1 },
   '1607': { x: -144, y: 0, scale: 1.1 },
 };
