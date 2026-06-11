@@ -24,6 +24,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'fixed',
                 text: 'Fix shattered dream showing as 2p, and crowding sets render'
             },
+            {
+                kind: 'improved',
+                text: 'Recalculated lupa boards to be more accurate'
+            }
         ]
     },
     {
