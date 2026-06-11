@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { HomeLink } from './HomeLink';
 import { ProfileSearch } from './ProfileSearch';
 import { LB_SEQ_BADGE_COLORS } from '../leaderboards/constants';
+import { getHeroSplashOffset } from '@/lib/splashArt';
 import type { HomeHeroSlide } from './types';
 
 interface HeroProps {
@@ -13,6 +14,9 @@ interface HeroProps {
 }
 
 const ROTATE_MS = 6500;
+// Scan-line wipe duration — must stay in sync between the clip reveals and
+// the sweeping line, so all of them read it from here via inline styles.
+const SCAN_MS = 500;
 
 // Element glow tints behind the splash art (element colors belong to gameplay data, and the art is gameplay).
 const ELEMENT_GLOW_RGB: Record<string, string> = {
@@ -28,17 +32,32 @@ const ELEMENT_GLOW_RGB: Record<string, string> = {
 export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
     const [index, setIndex] = useState(0);
     const [paused, setPaused] = useState(false);
+    // Bumps every time the countdown (re)arms so the timer hairline restarts
+    // in sync with it — on slide change and on hover release alike. 0 means
+    // rotation never armed (single slide / reduced motion), so no hairline.
+    const [cycle, setCycle] = useState(0);
+    // The record being scanned out: held under the incoming slide for the
+    // wipe's duration so the sweep replaces content instead of fading it.
+    const [leaving, setLeaving] = useState<HomeHeroSlide | null>(null);
     const prevIndex = slides.length > 0 ? (index - 1 + slides.length) % slides.length : 0;
     const nextIndex = slides.length > 0 ? (index + 1) % slides.length : 0;
 
     useEffect(() => {
         if (slides.length < 2 || paused) return;
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        const timer = setInterval(() => {
-            setIndex((current) => (current + 1) % slides.length);
+        setCycle((current) => current + 1);
+        const timer = setTimeout(() => {
+            setLeaving(slides[index] ?? null);
+            setIndex((index + 1) % slides.length);
         }, ROTATE_MS);
-        return () => clearInterval(timer);
-    }, [slides.length, paused]);
+        return () => clearTimeout(timer);
+    }, [slides, paused, index]);
+
+    useEffect(() => {
+        if (!leaving) return;
+        const timer = setTimeout(() => setLeaving(null), SCAN_MS);
+        return () => clearTimeout(timer);
+    }, [leaving]);
 
     const active = slides[index] ?? null;
 
@@ -49,10 +68,12 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                 <div className="absolute inset-0 overflow-hidden" aria-hidden>
                     {slides.map((slide, i) => {
                         const glowRgb = ELEMENT_GLOW_RGB[slide.element];
+                        const offset = getHeroSplashOffset(slide.characterId);
                         return (
                             <div
                                 key={`${slide.characterId}:${slide.trackKey}`}
-                                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === index ? 'opacity-100' : 'opacity-0'}`}
+                                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === index ? 'hero-settle opacity-100' : 'opacity-0'}`}
+                                style={{ animationDuration: `${ROTATE_MS}ms` }}
                             >
                                 {glowRgb && (
                                     <div
@@ -60,11 +81,15 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                                         style={{ background: `radial-gradient(700px 520px at var(--hero-glow-x,76%) 55%, rgba(${glowRgb}, 0.13), transparent 70%)` }}
                                     />
                                 )}
+                                {/* Mobile shows a center slice of the full-height art, so it reuses the
+                                    per-character card offsets (as % of the image's own width) to keep the
+                                    character centered. Desktop stays right-anchored. */}
                                 {(i === prevIndex || i === index || i === nextIndex) && (
                                     <img
                                         src={slide.splashUrl}
                                         alt=""
-                                        className="absolute bottom-0 left-1/2 -translate-x-1/2 h-full w-auto max-w-none object-contain object-bottom opacity-35 md:left-auto md:right-0 md:translate-x-0 md:opacity-60 md:mask-[linear-gradient(to_left,rgba(0,0,0,1)_45%,transparent_95%)]"
+                                        className="absolute bottom-0 left-1/2 h-full w-auto max-w-none origin-bottom object-contain object-bottom opacity-35 max-md:transform-[translateX(calc(-50%+var(--splash-x,0%)))_scale(var(--splash-s,1))] md:left-auto md:right-0 md:opacity-60 md:mask-[linear-gradient(to_left,rgba(0,0,0,1)_45%,transparent_95%)]"
+                                        style={offset ? { '--splash-x': `${offset.xPct}%`, '--splash-s': offset.scale } as React.CSSProperties : undefined}
                                         loading={i === 0 ? 'eager' : 'lazy'}
                                     />
                                 )}
@@ -139,93 +164,118 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                         onMouseLeave={() => setPaused(false)}
                     >
                         <HomeLink
-                            key={`${active.characterId}:${active.trackKey}`}
                             href={active.href}
                             cta="leaderboards"
                             section="hero"
                             characterId={active.characterId}
-                            className="hero-rise group block overflow-hidden rounded-lg border border-border bg-background-secondary/75 backdrop-blur-sm px-4 py-3.5 transition-colors hover:border-accent/40"
+                            className="group relative block overflow-hidden rounded-lg border border-border bg-background-secondary/75 backdrop-blur-sm transition-colors hover:border-accent/40"
                         >
-                            <div className="flex items-baseline justify-between gap-3">
-                                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-primary/45">
-                                    Highest damage
+                            {/* Countdown hairline (charge): fills over the slide duration, freezes
+                                while hovered (rotation is paused), restarts when the countdown
+                                rearms. Its end-of-cycle spike hands off to the scan below. */}
+                            {cycle > 0 && (
+                                <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5" aria-hidden>
+                                    <span
+                                        key={cycle}
+                                        className={`hero-timer block h-full w-full origin-left bg-accent ${paused ? '[animation-play-state:paused]' : ''}`}
+                                        style={{ animationDuration: `${ROTATE_MS}ms` }}
+                                    />
                                 </span>
-                                {active.reignLabel && (
-                                    <span className="font-mono text-[10px] text-accent/80 tabular-nums">
-                                        {active.reignLabel}
-                                    </span>
-                                )}
-                            </div>
+                            )}
 
-                            <div className="mt-1.5 flex items-center gap-2 min-w-0">
-                                <span className={`truncate text-lg font-semibold leading-tight ${active.element ? `char-sig ${active.element}` : 'text-text-primary'}`}>
-                                    {active.name}
-                                </span>
-                                {active.seqLevel > 0 && (
-                                    <span className={`shrink-0 rounded border px-1 py-0.5 text-[10px] font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[active.seqLevel]}`}>
-                                        S{active.seqLevel}
-                                    </span>
-                                )}
-                                {active.trackLabel && (
-                                    <span className="shrink-0 text-xs text-text-primary/50">
-                                        {active.trackLabel}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="mt-2 flex items-end justify-between gap-3">
-                                <div className="min-w-0">
-                                    <div className="font-gowun text-[26px] leading-none text-accent tabular-nums">
-                                        {Math.round(active.damage).toLocaleString('en-US')}
+                            {/* The shell never remounts; records swap inside it via a scan-line
+                                wipe (discharge) — the leaving record holds in place while the next
+                                is revealed left-to-right behind the sweep. */}
+                            <div className="relative">
+                                {leaving && (
+                                    <div
+                                        key={`out:${leaving.characterId}:${leaving.trackKey}`}
+                                        className="hero-scan-out pointer-events-none absolute inset-0 overflow-hidden"
+                                        style={{ animationDuration: `${SCAN_MS}ms` }}
+                                        aria-hidden
+                                    >
+                                        <RecordSlideContent slide={leaving} />
                                     </div>
-                                    <div className="mt-1.5 truncate font-mono text-[10px] text-text-primary/50">
-                                        by {active.owner || 'Anonymous'} ↗
-                                    </div>
+                                )}
+                                <div
+                                    key={`${active.characterId}:${active.trackKey}`}
+                                    className="hero-scan-in relative"
+                                    style={{ animationDuration: `${SCAN_MS}ms` }}
+                                >
+                                    <RecordSlideContent slide={active} />
                                 </div>
-                                {active.weaponIcon && (
-                                    <div className="flex shrink-0 items-center gap-2">
-                                        <img
-                                            src={active.weaponIcon}
-                                            alt=""
-                                            className="h-10 w-10 object-contain"
-                                            loading="lazy"
-                                        />
-                                        {active.weaponName && (
-                                            <span className="hidden sm:block max-w-28 text-right text-xs leading-tight text-text-primary/55">
-                                                {active.weaponName}
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
+                                <span
+                                    key={`scan:${active.characterId}:${active.trackKey}`}
+                                    className="hero-scan-line"
+                                    style={{ animationDuration: `${SCAN_MS}ms` }}
+                                    aria-hidden
+                                />
                             </div>
                         </HomeLink>
-
-                        {slides.length > 1 && (
-                            <div className="mt-2.5 flex items-center justify-end gap-3 font-mono text-[11px] text-text-primary/45 tabular-nums">
-                                <button
-                                    type="button"
-                                    onClick={() => setIndex((current) => (current - 1 + slides.length) % slides.length)}
-                                    aria-label="Previous record"
-                                    className="px-1 cursor-pointer transition-colors hover:text-accent"
-                                >
-                                    ←
-                                </button>
-                                <span aria-live="polite">
-                                    {String(index + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => setIndex((current) => (current + 1) % slides.length)}
-                                    aria-label="Next record"
-                                    className="px-1 cursor-pointer transition-colors hover:text-accent"
-                                >
-                                    →
-                                </button>
-                            </div>
-                        )}
                     </div>
                 )}
             </div>
         </section>
+    );
+}
+
+/* Inner record rows, padding included, so the leaving and incoming copies
+   stack pixel-identically and the clip reveal tracks the card's full width. */
+function RecordSlideContent({ slide }: { slide: HomeHeroSlide }) {
+    return (
+        <div className="px-4 py-3.5">
+            <div className="flex items-baseline justify-between gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-primary/45">
+                    Highest damage
+                </span>
+                {slide.reignLabel && (
+                    <span className="font-mono text-[10px] text-accent/80 tabular-nums">
+                        {slide.reignLabel}
+                    </span>
+                )}
+            </div>
+
+            <div className="mt-1.5 flex items-center gap-2 min-w-0">
+                <span className={`truncate text-lg font-semibold leading-tight ${slide.element ? `char-sig ${slide.element}` : 'text-text-primary'}`}>
+                    {slide.name}
+                </span>
+                {slide.seqLevel > 0 && (
+                    <span className={`shrink-0 rounded border px-1 py-0.5 text-[10px] font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[slide.seqLevel]}`}>
+                        S{slide.seqLevel}
+                    </span>
+                )}
+                {slide.trackLabel && (
+                    <span className="shrink-0 text-xs text-text-primary/50">
+                        {slide.trackLabel}
+                    </span>
+                )}
+            </div>
+
+            <div className="mt-2 flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                    <div className="font-gowun text-[26px] leading-none text-accent tabular-nums">
+                        {Math.round(slide.damage).toLocaleString('en-US')}
+                    </div>
+                    <div className="mt-1.5 truncate font-mono text-[10px] text-text-primary/50">
+                        by {slide.owner || 'Anonymous'} ↗
+                    </div>
+                </div>
+                {slide.weaponIcon && (
+                    <div className="flex shrink-0 items-center gap-2">
+                        <img
+                            src={slide.weaponIcon}
+                            alt=""
+                            className="h-10 w-10 object-contain"
+                            loading="lazy"
+                        />
+                        {slide.weaponName && (
+                            <span className="hidden sm:block max-w-28 text-right text-xs leading-tight text-text-primary/55">
+                                {slide.weaponName}
+                            </span>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }

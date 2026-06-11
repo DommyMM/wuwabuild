@@ -65,6 +65,25 @@ const getSplashArtTransform = (characterId: string): CardArtTransform | null => 
   SPLASH_ART_TRANSFORMS[characterId] ?? null
 );
 
+const SPLASH_REF_HEIGHT = 600;
+const SPLASH_REF_WIDTH = SPLASH_REF_HEIGHT * (16 / 9);
+
+/**
+ * Per-character centering for other full-height, center-anchored splash
+ * renders (home hero on mobile). Converts the card-tuned pixel offset into a
+ * percentage of the image's own width so it holds at any render height.
+ */
+export const getHeroSplashOffset = (
+  characterId: string,
+): { xPct: number; scale: number } | null => {
+  const transform = SPLASH_ART_TRANSFORMS[characterId];
+  if (!transform) return null;
+  return {
+    xPct: Number(((transform.x / SPLASH_REF_WIDTH) * 100).toFixed(2)),
+    scale: transform.scale,
+  };
+};
+
 const MIN_SPLASH_IMAGE_HEIGHT = 600;
 const MIN_SPLASH_ZOOM = 1;
 const MAX_SPLASH_ZOOM = 4;
