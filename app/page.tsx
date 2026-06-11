@@ -16,6 +16,7 @@ export const metadata: Metadata = {
     title: { absolute: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards' },
     description: 'Scan, build, and rank Wuthering Waves characters. Import screenshots, view builds, compare damage on leaderboards, and export showcase cards.',
     twitter: {
+        card: 'summary_large_image',
         title: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards',
         description: 'Scan, build, and rank Wuthering Waves characters. Import screenshots, view builds, compare damage on leaderboards, and export showcase cards',
     },

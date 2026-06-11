@@ -35,6 +35,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'new',
                 text: 'Player lookup cleaner and shows past accounts'
+            },
+            {
+                kind: 'improved',
+                text: 'Faster standings and leaderboard queries'
             }
         ]
     },
