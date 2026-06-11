@@ -46,8 +46,10 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // The controller is only an unmount flag; the shared fetch itself is not
+    // abortable (see getProfileStandings).
     const controller = new AbortController();
-    getProfileStandings(uid, controller.signal)
+    getProfileStandings(uid)
       .then((result) => {
         if (!controller.signal.aborted) setState({ uid, entries: result, loading: false });
       })

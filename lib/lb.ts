@@ -1131,10 +1131,12 @@ export interface LBProfileStandingEntry {
 
 const profileStandingsCache = new Map<string, Promise<LBProfileStandingEntry[]>>();
 
-export async function getProfileStandings(
-  uid: string,
-  signal?: AbortSignal,
-): Promise<LBProfileStandingEntry[]> {
+// The in-flight promise is shared by every caller for that uid, so the fetch
+// deliberately takes no AbortSignal: binding one caller's signal would let its
+// unmount reject the promise for everyone else (the profiles -> profile nav
+// mounts the showcase effect twice, and the second run was inheriting the
+// first run's aborted fetch). Callers gate their own setState on unmount.
+export async function getProfileStandings(uid: string): Promise<LBProfileStandingEntry[]> {
   const cacheKey = uid.trim();
   if (!cacheKey) return [];
 
@@ -1143,7 +1145,7 @@ export async function getProfileStandings(
     promise = (async () => {
       try {
         const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(uid)}/standings`;
-        const response = await fetch(requestUrl, { method: 'GET', signal });
+        const response = await fetch(requestUrl, { method: 'GET' });
 
         if (response.status === 404) return [];
         if (!response.ok) {
