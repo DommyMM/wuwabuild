@@ -54,7 +54,7 @@ type VisibleFilterItem =
       key: string;
       type: 'set';
       section: 'Echo Sets';
-      subSection: '2p Sets' | '3p Sets' | '5p Sets';
+      subSection: '1p Sets' | '2p Sets' | '3p Sets' | '5p Sets';
       setId: number;
       count: number;
       label: string;
@@ -74,6 +74,7 @@ type VisibleFilterItem =
 type VisibleSetItem = Extract<VisibleFilterItem, { type: 'set' }>;
 type VisibleMainItem = Extract<VisibleFilterItem, { type: 'main' }>;
 type VisibleCharacterItem = Extract<VisibleFilterItem, { type: 'character' }>;
+type SetSubSection = VisibleSetItem['subSection'];
 
 interface SelectedCharacterChip {
   key: string;
@@ -135,7 +136,8 @@ const getRegionLabel = (value: string): string => (
   REGION_OPTIONS.find((entry) => entry.value === value)?.label ?? value
 );
 
-const getSetSubSection = (count: number): '2p Sets' | '3p Sets' | '5p Sets' => {
+const getSetSubSection = (count: number): SetSubSection => {
+  if (count === 1) return '1p Sets';
   if (count === 3) return '3p Sets';
   if (count === 5) return '5p Sets';
   return '2p Sets';
@@ -153,10 +155,11 @@ const getCostOrder = (label: '4 Cost' | '3 Cost' | '1 Cost'): number => {
   return 2;
 };
 
-const getPieceOrder = (label: '2p Sets' | '3p Sets' | '5p Sets'): number => {
-  if (label === '2p Sets') return 0;
-  if (label === '3p Sets') return 1;
-  return 2;
+const getPieceOrder = (label: SetSubSection): number => {
+  if (label === '1p Sets') return 0;
+  if (label === '2p Sets') return 1;
+  if (label === '3p Sets') return 2;
+  return 3;
 };
 
 const getTypeTagLabel = (type: VisibleFilterItem['type']): string => (
@@ -422,7 +425,11 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
 
     const setItems: VisibleSetItem[] = [];
     for (const setOption of setOptions) {
-      const counts = setOption.pieceCount === 3 ? [3] : [2, 5];
+      const counts = setOption.pieceCount === 1
+        ? [1]
+        : setOption.pieceCount === 3
+          ? [3]
+          : [2, 5];
       for (const count of counts) {
         const key = `${count}-${setOption.id}`;
         if (selectedSetKeys.has(key)) continue;

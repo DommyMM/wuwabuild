@@ -111,7 +111,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
       })
       .filter((s) => s.active)
       .sort((a, b) => b.count - a.count)
-      .slice(0, 2)
+      .slice(0, 3)
   ), [echoSetCounts, fetters, t]);
 
   // Rank display
@@ -221,7 +221,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
         </div>
 
         {/* Character */}
-        <div className="flex items-center gap-2 py-2">
+        <div className="flex items-center gap-1.5 py-2">
           {character?.head ? (
             <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" loading="lazy" />
           ) : (

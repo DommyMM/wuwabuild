@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-11',
+        changes: [
+            {
+                kind: 'new',
+                text: '3.4 char splash arts'
+            },
+            {
+                kind: 'fixed',
+                text: 'Fix shattered dream showing as 2p, and crowding sets render'
+            },
+        ]
+    },
+    {
         date: '2026-06-10',
         changes: [
             {

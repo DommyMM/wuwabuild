@@ -120,7 +120,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
           return (
             <div
               key={i}
-              className="relative flex flex-1 rounded-xl border overflow-hidden border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
+              className="relative flex flex-1 overflow-hidden rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
               style={{ borderColor: `${frameBorderColor}b3` }}
             >
               {/* Top-left stack: CV badge */}
@@ -151,7 +151,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                     <div className="pointer-events-none absolute inset-0 border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.24),0_0_16px_rgba(110,255,255,0.45)]" />
                   )}
                 </div>
-                <div className="relative mb-1 h-px w-1/2 bg-[linear-gradient(90deg,rgba(255,255,255,0.20)_0%,rgba(255,255,255,0.09)_55%,rgba(255,255,255,0)_100%)]">
+                <div className="relative mb-1 h-px w-1/2">
                   {fetterIcon && (
                     <img
                       src={fetterIcon}

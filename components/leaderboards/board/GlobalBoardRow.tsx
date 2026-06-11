@@ -130,7 +130,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
       })
       .filter((s) => s.active)
       .sort((a, b) => b.count - a.count)
-      .slice(0, 2)
+      .slice(0, 3)
   ), [entry.echoSummary.sets, fetters, t]);
 
   const translateText = useCallback(
@@ -178,7 +178,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
           </div>
         )}
 
-        <div className="flex items-center gap-2 py-2">
+        <div className="flex items-center gap-1.5 py-2">
           {character?.head ? (
             <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" />
           ) : (
@@ -213,7 +213,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
             activeSets.map((setEntry) => (
               <div key={setEntry.setId} className="flex items-end gap-0.5">
                 {setEntry.icon ? (
-                  <img src={setEntry.icon} alt="" className="h-7 w-7" />
+                  <img src={setEntry.icon} alt="" title={setEntry.name} className="h-7 w-7" />
                 ) : (
                   <div className="h-8 w-8" />
                 )}
