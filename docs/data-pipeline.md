@@ -6,8 +6,8 @@ This doc consolidates OCR flow, sync scripts, env vars, and day-to-day commands 
 
 1. User uploads screenshot.
 2. Frontend crops fixed OCR regions.
-3. Crops are sent in parallel through `/api/ocr` with region headers.
-4. Next proxy forwards to OCR backend.
+3. Crops are sent in parallel to the OCR gateway (`ocr.wuwa.build/api/ocr`) with region headers.
+4. The Cloudflare Worker injects the internal key and forwards to the OCR backend.
 5. OCR payloads are converted into saved build state.
 6. Optional leaderboard upload submits canonical build payload.
 7. Optional full-image upload goes through `/api/upload-training` and stores a hash-deduped JPG in R2.
@@ -34,12 +34,12 @@ See `scripts/CDN_SYNC.md` for script-level flags and details. For the trade-offs
 
 ## Environment Variables
 
-Required:
-- `LB_URL`
-- `API_URL`
-- `INTERNAL_API_KEY`
+All API traffic goes through the Cloudflare Worker gateway (private sibling `gateway/` repo), which
+holds `X-Internal-Key`. Defaults target localhost for dev; production sets the
+gateway hostnames:
 
-Optional:
+- `NEXT_PUBLIC_LB_URL` — browser and SSR LB calls; prod `https://api.wuwa.build`, defaults to `http://localhost:8080`
+- `NEXT_PUBLIC_OCR_URL` — browser OCR calls; prod `https://ocr.wuwa.build`, defaults to `http://localhost:5000`
 - `NEXT_PUBLIC_POSTHOG_KEY`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `R2_ACCESS_KEY_ID`

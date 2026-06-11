@@ -1,4 +1,4 @@
-// Server-only module, fetches directly from LB_URL with X-Internal-Key
+// Server-only module: SSR prefetch against the LB API via the Cloudflare gateway
 import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardDisplayStats, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack, LBTeamMemberConfig } from './lb';
 import { loadCharacterDisplayMap } from './server/gameData';
 
@@ -56,20 +56,10 @@ function parseTeamCharacterSpecs(raw: unknown): LBTeamMemberConfig[] {
     .filter((member) => member.charId.length > 0);
 }
 
+// SSR prefetch goes through the same Cloudflare Worker gateway as the browser
 function getLBUrl(): string {
-  const url = process.env.LB_URL?.trim();
-  if (!url) {
-    throw new Error('LB_URL is not configured.');
-  }
+  const url = process.env.NEXT_PUBLIC_LB_URL?.trim() || 'http://localhost:8080';
   return url.replace(/\/$/, '');
-}
-
-function getInternalHeaders(): Record<string, string> {
-  const key = process.env.INTERNAL_API_KEY?.trim();
-  if (!key) {
-    throw new Error('INTERNAL_API_KEY is not configured.');
-  }
-  return { 'X-Internal-Key': key };
 }
 
 export async function prefetchBuilds(
@@ -85,7 +75,6 @@ export async function prefetchBuilds(
     const url = `${getLBUrl()}/build?${params.toString()}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: getInternalHeaders(),
       next: { revalidate: PREFETCH_TTL_S },
     });
     if (!response.ok) {
@@ -143,7 +132,6 @@ export async function fetchProfileSummary(uid: string): Promise<ProfileSummary |
     const url = `${getLBUrl()}/profile/${encodeURIComponent(trimmedUid)}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: getInternalHeaders(),
       next: { revalidate: PREFETCH_TTL_S },
     });
     if (!response.ok) return null;
@@ -165,7 +153,6 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
     const url = `${getLBUrl()}/leaderboard`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: getInternalHeaders(),
       next: { revalidate: PREFETCH_TTL_S },
     });
     if (!response.ok) {
@@ -245,7 +232,6 @@ export async function prefetchLeaderboard(
     const url = `${getLBUrl()}/leaderboard/${encodeURIComponent(characterId)}?${params.toString()}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: getInternalHeaders(),
       next: { revalidate: PREFETCH_TTL_S },
     });
     if (!response.ok) {

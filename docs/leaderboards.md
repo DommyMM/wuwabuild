@@ -17,7 +17,7 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 ## Fetch Model
 
 - **`/`** — server component prefetches overview + global build stats via `lbServer.ts` (ISR on the page).
-- **`/builds`** — `force-static`. Server component prefetches the default build query through `lbServer.ts`; the client uses that payload only when the URL has no search params. Query changes, non-default initial URLs, and revalidation fetch through `/api/lb/*`, with a small localStorage cache keyed by serialized query.
+- **`/builds`** — `force-static`. Server component prefetches the default build query through `lbServer.ts`; the client uses that payload only when the URL has no search params. Query changes, non-default initial URLs, and revalidation fetch the gateway (`api.wuwa.build`) directly, with a small localStorage cache keyed by serialized query.
 - **`/leaderboards`** — server component prefetches overview data through `lbServer.ts`; the client overview cache (`leaderboardOverviewCache.ts`) avoids redundant fetches across mounts.
 - **`/leaderboards/[characterId]`** — `force-dynamic`. Server prefetches the first board payload via `lbServer.ts`, canonicalizes the incoming query string against the returned weapon/track config, and `redirect()`s when the URL doesn't match. The payload is passed to the client as `initialData`.
 - **`/profile/[uid]`** — server component fetches profile metadata through `fetchProfileSummary()`. Build rows are fetched client-side from `/profile/{uid}/builds`, which returns the same compact row shape as `/build` but is scoped by route UID in the LB service.

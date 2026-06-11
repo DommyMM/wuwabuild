@@ -2,7 +2,8 @@ import { DEFAULT_FORTE, ForteState, SavedState } from '@/lib/build';
 import { EchoPanelState } from '@/lib/echo';
 import { toMainStatApiValue } from '@/lib/mainStatFilters';
 
-const LB_PROXY_BASE = '/api/lb';
+import { LB_API_BASE } from '@/lib/apiEndpoints';
+
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 100;
 
@@ -428,7 +429,7 @@ function parseUpgradeTierSet(raw: unknown): LBSubstatUpgradeTierSet | null {
 }
 
 function resolveLBBaseUrl(): string {
-  return LB_PROXY_BASE;
+  return LB_API_BASE;
 }
 
 function buildBuildListSearchParams(query: LBListBuildsQuery, includeOwnerFilters: boolean): URLSearchParams {
@@ -1116,9 +1117,7 @@ export async function fetchSimulateRanks(
   return result;
 }
 
-// Profile showcase: a UID's best competitive placement per character. Lean shape —
-// only what a ranking tile renders. Deliberately NOT LBStandingEntry (no team
-// members / damage); the backend emits exactly these fields.
+// Profile showcase: a UID's best competitive placement per character. Deliberately NOT LBStandingEntry 
 export interface LBProfileStandingEntry {
   characterId: string;
   weaponId: string;
@@ -1130,37 +1129,53 @@ export interface LBProfileStandingEntry {
   buildId: string;
 }
 
+const profileStandingsCache = new Map<string, Promise<LBProfileStandingEntry[]>>();
+
 export async function getProfileStandings(
   uid: string,
   signal?: AbortSignal,
 ): Promise<LBProfileStandingEntry[]> {
-  const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(uid)}/standings`;
-  const response = await fetch(requestUrl, { method: 'GET', signal });
+  const cacheKey = uid.trim();
+  if (!cacheKey) return [];
 
-  if (response.status === 404) return [];
-  if (!response.ok) {
-    throw new Error(`Failed to fetch profile standings (${response.status})`);
+  let promise = profileStandingsCache.get(cacheKey);
+  if (!promise) {
+    promise = (async () => {
+      try {
+        const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(uid)}/standings`;
+        const response = await fetch(requestUrl, { method: 'GET', signal });
+
+        if (response.status === 404) return [];
+        if (!response.ok) {
+          throw new Error(`Failed to fetch profile standings (${response.status})`);
+        }
+
+        const payload = await response.json() as { standings?: unknown };
+        console.log('[LB] /profile/{uid}/standings payload', { requestUrl, uid, payload });
+        if (!Array.isArray(payload.standings)) return [];
+
+        const result: LBProfileStandingEntry[] = [];
+        for (const raw of payload.standings) {
+          if (!isRecord(raw)) continue;
+          result.push({
+            characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
+            weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
+            trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
+            trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
+            sequence: toFiniteNumber(raw.sequence, 0),
+            rank: toFiniteNumber(raw.rank, 0),
+            total: toFiniteNumber(raw.total, 0),
+            buildId: typeof raw.buildId === 'string' ? raw.buildId : '',
+          });
+        }
+        return result;
+      } finally {
+        profileStandingsCache.delete(cacheKey);
+      }
+    })();
+    profileStandingsCache.set(cacheKey, promise);
   }
-
-  const payload = await response.json() as { standings?: unknown };
-  console.log('[LB] /profile/{uid}/standings payload', { requestUrl, uid, payload });
-  if (!Array.isArray(payload.standings)) return [];
-
-  const result: LBProfileStandingEntry[] = [];
-  for (const raw of payload.standings) {
-    if (!isRecord(raw)) continue;
-    result.push({
-      characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
-      weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
-      trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
-      trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
-      sequence: toFiniteNumber(raw.sequence, 0),
-      rank: toFiniteNumber(raw.rank, 0),
-      total: toFiniteNumber(raw.total, 0),
-      buildId: typeof raw.buildId === 'string' ? raw.buildId : '',
-    });
-  }
-  return result;
+  return promise;
 }
 
 // Board optimality types

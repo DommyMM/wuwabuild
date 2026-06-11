@@ -9,6 +9,7 @@ import { encodeImageFileAsJpegBase64, loadImage } from '@/lib/import/cropImage';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { submitBuild } from '@/lib/lb';
 import { loadDraftBuild, saveBuild, saveDraftBuild } from '@/lib/storage';
+import { OCR_HEALTH_URL } from '@/lib/apiEndpoints';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
@@ -43,7 +44,7 @@ export function ImportPageClient() {
   const [reportReason, setReportReason] = useState<OcrIssueReason>('manual_report');
 
   // Silent wake-up ping so Railway auto-starts the server if sleeping
-  useEffect(() => { fetch('/api/ocr').catch(() => {}); }, []);
+  useEffect(() => { fetch(OCR_HEALTH_URL).catch(() => {}); }, []);
 
   const uploadTrainingImage = async (file: File) => {
     try {

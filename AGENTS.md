@@ -115,12 +115,16 @@ These are the easy-to-violate rules. Behavior context lives in the docs.
 
 Copy `.env.example` to `.env` for local development (never commit secrets). See `docs/data-pipeline.md` for the full list and notes.
 
+All API traffic (browser and SSR) goes through the Cloudflare Worker gateway (private sibling
+`gateway/` repo, not part of this codebase) riding `api.wuwa.build` / `ocr.wuwa.build`. The Worker holds
+`X-Internal-Key`; no secret lives on Vercel. Defaults target localhost for dev;
+production sets the gateway hostnames explicitly.
+
 ```
-LB_URL                     # server-only, used by /api/lb/* proxy
-API_URL                    # server-only, used by /api/ocr proxy (defaults to localhost in dev)
-INTERNAL_API_KEY           # shared secret for LB + OCR proxies
+NEXT_PUBLIC_LB_URL         # prod: https://api.wuwa.build (browser + SSR); defaults to http://localhost:8080
+NEXT_PUBLIC_OCR_URL        # prod: https://ocr.wuwa.build (browser); defaults to http://localhost:5000
 NEXT_PUBLIC_POSTHOG_KEY    # optional
-CLOUDFLARE_ACCOUNT_ID      # optional, R2 screenshot/report storage
+CLOUDFLARE_ACCOUNT_ID      # optional, R2 screenshot/report storage (/api/report-ocr-issue, /api/upload-training)
 R2_ACCESS_KEY_ID
 R2_SECRET_ACCESS_KEY
 R2_BUCKET_NAME

@@ -6,6 +6,7 @@ import type { RegionKey } from '@/lib/import/regions';
 import { IMPORT_REGIONS } from '@/lib/import/regions';
 import { loadImage, cropImageToRegion } from '@/lib/import/cropImage';
 import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
+import { OCR_POST_URL } from '@/lib/apiEndpoints';
 import type { RegionStatus } from '@/lib/import/report';
 
 interface UseOcrImportReturn {
@@ -59,7 +60,7 @@ export function useOcrImport(): UseOcrImportReturn {
       const tasks = regions.map(async ([key, region]) => {
         const base64 = await cropImageToRegion(img, region);
         const attempt = async () => {
-          const res = await fetch('/api/ocr', {
+          const res = await fetch(OCR_POST_URL, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

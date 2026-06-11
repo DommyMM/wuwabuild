@@ -6,6 +6,7 @@ import { loadImage, cropImageToRegion } from '@/lib/import/cropImage';
 import { IMPORT_REGIONS, type RegionKey } from '@/lib/import/regions';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
+import { OCR_POST_URL } from '@/lib/apiEndpoints';
 import type { AnalysisData } from '@/lib/import/types';
 import { submitBuild } from '@/lib/lb';
 import { AlertTriangle, CheckCircle2, FolderOpen, Loader2, Pause, Play, RotateCcw, UploadCloud, XCircle } from 'lucide-react';
@@ -100,7 +101,7 @@ function normalizeFiles(fileList: FileList | File[]) {
 
 async function postRegion(file: File, image: HTMLImageElement, regionKey: RegionKey) {
   const base64 = await cropImageToRegion(image, IMPORT_REGIONS[regionKey]);
-  const response = await fetch('/api/ocr', {
+  const response = await fetch(OCR_POST_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

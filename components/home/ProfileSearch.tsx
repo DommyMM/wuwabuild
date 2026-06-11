@@ -6,6 +6,7 @@ import posthog from 'posthog-js';
 import { Star } from 'lucide-react';
 import { resolveRegionBadge } from '@/components/leaderboards/formatters';
 import { getPinnedProfiles, getRecentProfiles, StoredProfile } from '@/lib/profileHistory';
+import { LB_API_BASE } from '@/lib/apiEndpoints';
 
 interface ProfileMatch {
     uid: string;
@@ -48,7 +49,7 @@ export function ProfileSearch({ surface = 'home', autoFocus = false, showSavedPr
         if (q.length < 2) return;
         const seq = ++requestSeq.current;
         const timer = setTimeout(() => {
-            fetch(`/api/lb/profile?q=${encodeURIComponent(q)}&limit=6`)
+            fetch(`${LB_API_BASE}/profile?q=${encodeURIComponent(q)}&limit=6`)
                 .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`${res.status}`))))
                 .then((payload: { profiles?: unknown[] }) => {
                     if (seq !== requestSeq.current) return;
