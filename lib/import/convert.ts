@@ -12,6 +12,12 @@ interface ConvertArgs extends GameDataArgs {
 }
 
 const ELEMENTS = ['Aero', 'Spectro', 'Havoc', 'Glacio', 'Fusion', 'Electro'] as const;
+const LEGEND_OF_DRUNKEN_HERO_ID = '21040094';
+
+export const IMPORT_WEAPON_FALLBACKS: Record<string, { id: string; name: string }> = {
+  '1308': { id: '21030066', name: 'Skull Thrasher' },
+  '1511': { id: '21030056', name: 'Spectral Trigger' },
+};
 
 function findByName<T extends { name: string }>(name: string, list: T[]): T | null {
   return (
@@ -19,6 +25,16 @@ function findByName<T extends { name: string }>(name: string, list: T[]): T | nu
     list.find(x => x.name.toLowerCase() === name.toLowerCase()) ??
     null
   );
+}
+
+function shouldApplyWeaponFallback(data: AnalysisData, characterId: string): boolean {
+  if (!IMPORT_WEAPON_FALLBACKS[characterId]) return false;
+
+  const rawName = data.weapon?.name?.trim() ?? '';
+  const rawId = data.weapon?.id?.trim() ?? '';
+  if (!rawName && !rawId) return true;
+
+  return rawId === LEGEND_OF_DRUNKEN_HERO_ID || rawName.toLowerCase() === 'legend of drunken hero';
 }
 
 function parseRoverInfo(rawName: string, rawElement?: string): {
@@ -88,6 +104,9 @@ export function convertAnalysisToSavedState(
         weaponId = findByName(data.weapon.name, weaponList)?.id ?? null;
       }
     }
+  }
+  if (!weaponId && characterId && shouldApplyWeaponFallback(data, characterId)) {
+    weaponId = IMPORT_WEAPON_FALLBACKS[characterId].id;
   }
 
   // Forte

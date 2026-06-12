@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { loadImage, cropImageToRegion } from '@/lib/import/cropImage';
 import { IMPORT_REGIONS, type RegionKey } from '@/lib/import/regions';
-import { convertAnalysisToSavedState } from '@/lib/import/convert';
+import { convertAnalysisToSavedState, IMPORT_WEAPON_FALLBACKS } from '@/lib/import/convert';
 import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
 import { OCR_POST_URL } from '@/lib/apiEndpoints';
 import type { AnalysisData } from '@/lib/import/types';
@@ -32,11 +32,6 @@ interface Counters {
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const REGION_KEYS = Object.keys(IMPORT_REGIONS) as RegionKey[];
-const BACKFILL_WEAPON_DEFAULTS: Record<string, { id: string; name: string }> = {
-  '1308': { id: '21030066', name: 'Skull Thrasher' },
-  '1511': { id: '21030056', name: 'Spectral Trigger' },
-};
-
 function createInitialCounters(total: number): Counters {
   return {
     total,
@@ -60,7 +55,7 @@ function applyLimit(items: BulkItem[], limit: number | null) {
 function prepareBulkSubmitState(savedState: BulkSavedState): { buildState: BulkSavedState; warnings: string[] } {
   const warnings: string[] = [];
   const trimmedUid = savedState.watermark.uid.trim();
-  const defaultWeapon = savedState.characterId ? BACKFILL_WEAPON_DEFAULTS[savedState.characterId] : undefined;
+  const defaultWeapon = savedState.characterId ? IMPORT_WEAPON_FALLBACKS[savedState.characterId] : undefined;
   let buildState = savedState;
 
   if (!savedState.weaponId && defaultWeapon) {
