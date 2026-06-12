@@ -8,7 +8,7 @@ import { isHealTrackKey } from '@/lib/lb';
 import { prefetchLeaderboardOverview, prefetchBuilds } from '@/lib/lbServer';
 import { loadCharacterSummary, loadWeaponSummary } from '@/lib/server/gameData';
 
-export const revalidate = 300; // ISR: full page HTML cached at edge, re-rendered at most once per 5 min
+export const revalidate = 600; // ISR: full page HTML cached at edge, re-rendered at most once per 10 min
 
 export const metadata: Metadata = {
     title: { absolute: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards' },

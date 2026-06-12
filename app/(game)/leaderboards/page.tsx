@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { LeaderboardOverviewClient } from '@/components/leaderboards/overview/LeaderboardOverviewClient';
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 
-export const revalidate = 300;
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'Wuthering Waves Leaderboards',

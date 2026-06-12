@@ -31,6 +31,14 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Home page and profile search should look better on mobile'
+            },
+            {
+                kind: 'fixed',
+                text: 'Fixed leaderboard standings inconsistency where rank shows a worse number because of deduped better builds'
+            },
+            {
+                kind: 'new',
+                text: 'S6 zani lol i forgot why i did not have it before',
             }
         ]
     },

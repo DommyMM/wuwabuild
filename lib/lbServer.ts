@@ -3,8 +3,9 @@ import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEn
 import { LB_API_BASE } from './apiEndpoints';
 import { loadCharacterDisplayMap } from './server/gameData';
 
-// Centralized TTL for all SSR prefetch caches (seconds).
-const PREFETCH_TTL_S = 300; // 5 minutes
+// Centralized TTLs for SSR prefetch caches (seconds).
+const PREFETCH_TTL_S = 300; // 5 minutes for character boards and build/profile reads.
+const OVERVIEW_PREFETCH_TTL_S = 600; // 10 minutes for aggregate overview/reign surfaces.
 
 function parseTracks(raw: unknown): LBTrack[] {
   if (!Array.isArray(raw)) return [];
@@ -148,7 +149,7 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
     const url = `${LB_API_BASE}/leaderboard`;
     const response = await fetch(url, {
       method: 'GET',
-      next: { revalidate: PREFETCH_TTL_S },
+      next: { revalidate: OVERVIEW_PREFETCH_TTL_S },
     });
     if (!response.ok) {
       console.error('[lbServer] prefetchLeaderboardOverview non-OK response', {
