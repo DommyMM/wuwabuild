@@ -37,7 +37,7 @@ export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
   return (
     <nav aria-label="Pinned and recently opened profiles" className="relative">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-accent/25 to-transparent" />
-      <div className="scrollbar-thin ml-4 flex items-end gap-1 overflow-x-auto pr-4 pt-1 [--scrollbar-height:2px] md:ml-5 md:pr-5">
+      <div className="scrollbar-thin ml-4 flex items-end gap-2.5 overflow-x-auto pr-4 pt-1 [--scrollbar-height:2px] md:ml-5 md:pr-5">
         {entries.map((entry) => {
           const isCurrent = entry.uid === currentUid;
           const badge = resolveRegionBadge(entry.uid);

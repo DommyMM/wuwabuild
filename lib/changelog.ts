@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-12',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Profile tabs switching positions if you click one fixed'
+            }
+        ]
+    },
+    {
         date: '2026-06-11',
         changes: [
             {

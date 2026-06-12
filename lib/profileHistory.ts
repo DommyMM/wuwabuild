@@ -99,10 +99,17 @@ export function getPinnedProfiles(): StoredProfile[] {
 
 export function recordProfileVisit(profile: { uid: string; username: string; head?: string | null }): void {
   if (!profile.uid) return;
-  writeProfiles(RECENTS_KEY, [
-    { uid: profile.uid, username: profile.username, head: profile.head ?? null, savedAt: Date.now() },
-    ...getRecentProfiles().filter((entry) => entry.uid !== profile.uid),
-  ].slice(0, MAX_PROFILES));
+  const recents = getRecentProfiles();
+  const nextEntry = { uid: profile.uid, username: profile.username, head: profile.head ?? null, savedAt: Date.now() };
+  const existingIndex = recents.findIndex((entry) => entry.uid === profile.uid);
+
+  if (existingIndex >= 0) {
+    recents[existingIndex] = nextEntry;
+    writeProfiles(RECENTS_KEY, recents);
+    return;
+  }
+
+  writeProfiles(RECENTS_KEY, [...recents, nextEntry].slice(-MAX_PROFILES));
 }
 
 export function clearRecentProfiles(): void {
