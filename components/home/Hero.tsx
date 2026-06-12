@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { HomeLink } from './HomeLink';
 import { ProfileSearch } from './ProfileSearch';
 import { LB_SEQ_BADGE_COLORS } from '../leaderboards/constants';
@@ -14,6 +14,16 @@ interface HeroProps {
 }
 
 const ROTATE_MS = 6500;
+// prefers-reduced-motion as an external store: SSR assumes reduced (no
+// hairline in the server markup), the client snapshot corrects it on hydration.
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+function subscribeReducedMotion(onChange: () => void) {
+    const query = window.matchMedia(REDUCED_MOTION_QUERY);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+}
+const getReducedMotion = () => window.matchMedia(REDUCED_MOTION_QUERY).matches;
+const getReducedMotionServer = () => true;
 // Scan-line wipe duration — must stay in sync between the clip reveals and
 // the sweeping line, so all of them read it from here via inline styles.
 const SCAN_MS = 500;
@@ -32,26 +42,25 @@ const ELEMENT_GLOW_RGB: Record<string, string> = {
 export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
     const [index, setIndex] = useState(0);
     const [paused, setPaused] = useState(false);
-    // Bumps every time the countdown (re)arms so the timer hairline restarts
-    // in sync with it — on slide change and on hover release alike. 0 means
-    // rotation never armed (single slide / reduced motion), so no hairline.
-    const [cycle, setCycle] = useState(0);
+    // Bumps on hover release so the timer hairline remounts and restarts in
+    // sync with the rearmed countdown; slide changes restart it via index.
+    const [resumes, setResumes] = useState(0);
     // The record being scanned out: held under the incoming slide for the
     // wipe's duration so the sweep replaces content instead of fading it.
     const [leaving, setLeaving] = useState<HomeHeroSlide | null>(null);
+    const reducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getReducedMotionServer);
+    const rotates = slides.length >= 2 && !reducedMotion;
     const prevIndex = slides.length > 0 ? (index - 1 + slides.length) % slides.length : 0;
     const nextIndex = slides.length > 0 ? (index + 1) % slides.length : 0;
 
     useEffect(() => {
-        if (slides.length < 2 || paused) return;
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        setCycle((current) => current + 1);
+        if (!rotates || paused) return;
         const timer = setTimeout(() => {
             setLeaving(slides[index] ?? null);
             setIndex((index + 1) % slides.length);
         }, ROTATE_MS);
         return () => clearTimeout(timer);
-    }, [slides, paused, index]);
+    }, [slides, rotates, paused, index]);
 
     useEffect(() => {
         if (!leaving) return;
@@ -161,7 +170,10 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                     <div
                         className="mt-8 max-w-95 md:absolute md:bottom-6 md:right-6 md:mt-0 md:w-90"
                         onMouseEnter={() => setPaused(true)}
-                        onMouseLeave={() => setPaused(false)}
+                        onMouseLeave={() => {
+                            setPaused(false);
+                            setResumes((current) => current + 1);
+                        }}
                     >
                         <HomeLink
                             href={active.href}
@@ -173,10 +185,10 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                             {/* Countdown hairline (charge): fills over the slide duration, freezes
                                 while hovered (rotation is paused), restarts when the countdown
                                 rearms. Its end-of-cycle spike hands off to the scan below. */}
-                            {cycle > 0 && (
+                            {rotates && (
                                 <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5" aria-hidden>
                                     <span
-                                        key={cycle}
+                                        key={`${index}:${resumes}`}
                                         className={`hero-timer block h-full w-full origin-left bg-accent ${paused ? '[animation-play-state:paused]' : ''}`}
                                         style={{ animationDuration: `${ROTATE_MS}ms` }}
                                     />
