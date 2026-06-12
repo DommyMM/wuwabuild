@@ -95,7 +95,7 @@ export function ImportUploader({ onFile, onInvalidFile }: ImportUploaderProps) {
       <div className="w-full">
         <p className="text-xs text-text-primary/40 mb-2">Example Image</p>
         <Image
-          src="/images/discord.png"
+          src="/images/discord.webp"
           alt="Example wuwa-bot screenshot"
           width={1286}
           height={1080}
