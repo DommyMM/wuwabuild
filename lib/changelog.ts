@@ -39,6 +39,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'new',
                 text: 'S6 zani lol i forgot why i did not have it before',
+            },
+            {
+                kind: 'improved',
+                text: 'Forte in profile cards have hover cards to show skill information'
             }
         ]
     },
