@@ -5,6 +5,7 @@ import type { AnalysisData, EchoOCRData } from '@/lib/import/types';
 import type { RegionKey } from '@/lib/import/regions';
 import type { RegionStatus } from '@/lib/import/report';
 import { useGameData } from '@/contexts/GameDataContext';
+import { resolveImportWeaponFallback } from '@/lib/import/convert';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
@@ -142,7 +143,15 @@ export function ImportResults({
   const fortePending = progress.forte === 'pending';
 
   const charObj = char?.name ? getCharacterByName(char.name) : null;
-  const weaponObj = weapon?.name ? (weaponList.find(w => w.name === weapon.name) ?? null) : null;
+  // Mirror convert's signature-weapon fallback so the preview shows what will
+  // actually be submitted, not the blank weapon the OCR returns when unreadable.
+  const weaponFallback = resolveImportWeaponFallback(data, charObj?.id ?? char?.id ?? null);
+  const weaponName = weaponFallback?.name ?? weapon?.name ?? null;
+  const weaponObj = weaponFallback
+    ? (weaponList.find(w => w.id === weaponFallback.id) ?? null)
+    : weapon?.name
+      ? (weaponList.find(w => w.name === weapon.name) ?? null)
+      : null;
 
   return (
     <div className="w-full mx-auto flex flex-col gap-4 sm:gap-6">
@@ -212,14 +221,14 @@ export function ImportResults({
             <>
               <div className="min-w-0">
                 <p className="text-xs text-text-primary/50 mb-1">Weapon</p>
-                <p className="font-semibold text-text-primary truncate">{weapon?.name ?? '—'}</p>
+                <p className="font-semibold text-text-primary truncate">{weaponName ?? '—'}</p>
                 <p className="text-sm text-accent">Lv. {weapon?.level ?? '?'}</p>
               </div>
               {weaponObj && (
                 <ImageWithSkeleton
                   key={weaponObj.name}
                   src={getWeaponPaths(weaponObj)}
-                  alt={weapon?.name ?? ''}
+                  alt={weaponName ?? ''}
                   imgClassName="w-12 h-12 object-contain shrink-0"
                   skeletonClassName="w-12 h-12 shrink-0 rounded"
                 />

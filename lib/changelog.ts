@@ -31,6 +31,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Hiyuki leaderboard now uses Lucilla, lower damage but more accurate'
+            },
+            {
+                kind: 'improved',
+                text: 'Imports for new characters whose weapon cannot be read now fall back to the signature weapon'
             }
         ]
     },

@@ -12,11 +12,11 @@ interface ConvertArgs extends GameDataArgs {
 }
 
 const ELEMENTS = ['Aero', 'Spectro', 'Havoc', 'Glacio', 'Fusion', 'Electro'] as const;
-const LEGEND_OF_DRUNKEN_HERO_ID = '21040094';
 
 export const IMPORT_WEAPON_FALLBACKS: Record<string, { id: string; name: string }> = {
-  '1308': { id: '21030066', name: 'Skull Thrasher' },
-  '1511': { id: '21030056', name: 'Spectral Trigger' },
+  '1109': { id: '21050086', name: 'Freeze Frame' },       // Lucilla
+  '1308': { id: '21030066', name: 'Skull Thrasher' },     // Rebecca
+  '1511': { id: '21030056', name: 'Spectral Trigger' },   // Lucy
 };
 
 function findByName<T extends { name: string }>(name: string, list: T[]): T | null {
@@ -30,11 +30,20 @@ function findByName<T extends { name: string }>(name: string, list: T[]): T | nu
 function shouldApplyWeaponFallback(data: AnalysisData, characterId: string): boolean {
   if (!IMPORT_WEAPON_FALLBACKS[characterId]) return false;
 
+  // The OCR backend reports an unreadable weapon as empty (blank name and id).
   const rawName = data.weapon?.name?.trim() ?? '';
   const rawId = data.weapon?.id?.trim() ?? '';
-  if (!rawName && !rawId) return true;
+  return !rawName && !rawId;
+}
 
-  return rawId === LEGEND_OF_DRUNKEN_HERO_ID || rawName.toLowerCase() === 'legend of drunken hero';
+// The weapon the import will actually submit for this character, when OCR
+// couldn't read it (empty name/id). Returns null when the OCR weapon should stand
+export function resolveImportWeaponFallback(
+  data: AnalysisData,
+  characterId: string | null,
+): { id: string; name: string } | null {
+  if (!characterId || !shouldApplyWeaponFallback(data, characterId)) return null;
+  return IMPORT_WEAPON_FALLBACKS[characterId];
 }
 
 function parseRoverInfo(rawName: string, rawElement?: string): {
