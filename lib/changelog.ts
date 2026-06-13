@@ -30,7 +30,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'improved',
-                text: 'Hiyuki leaderboard now uses Lucilla, not much changed overall though'
+                text: 'Hiyuki leaderboard now uses Lucilla, lower damage but more accurate'
             }
         ]
     },
