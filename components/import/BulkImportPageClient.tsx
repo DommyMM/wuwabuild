@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { loadImage, cropImageToRegion } from '@/lib/import/cropImage';
 import { IMPORT_REGIONS, type RegionKey } from '@/lib/import/regions';
-import { convertAnalysisToSavedState, IMPORT_WEAPON_FALLBACKS } from '@/lib/import/convert';
+import { convertAnalysisToSavedState, resolveImportWeaponFallback } from '@/lib/import/convert';
 import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
 import { OCR_POST_URL } from '@/lib/apiEndpoints';
 import type { AnalysisData } from '@/lib/import/types';
@@ -52,15 +52,54 @@ function applyLimit(items: BulkItem[], limit: number | null) {
   return limit && limit > 0 ? items.slice(0, limit) : items;
 }
 
-function prepareBulkSubmitState(savedState: BulkSavedState): { buildState: BulkSavedState; warnings: string[] } {
+// File mtimes are stamped to the R2 upload date by sync_r2.py, so lastModified
+// is a reliable "uploaded on" timestamp for date-window reruns.
+function toDateInput(ms: number): string {
+  const date = new Date(ms);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function dateRangeBounds(fromStr: string, toStr: string): { from: number | null; to: number | null } {
+  const parse = (value: string, endOfDay: boolean): number | null => {
+    if (!value) return null;
+    const [year, month, day] = value.split('-').map(Number);
+    if (!year || !month || !day) return null;
+    // endOfDay rolls to the next midnight so the `to` day is fully inclusive.
+    return new Date(year, month - 1, day + (endOfDay ? 1 : 0)).getTime();
+  };
+  return { from: parse(fromStr, false), to: parse(toStr, true) };
+}
+
+function matchesDateRange(lastModified: number, fromStr: string, toStr: string): boolean {
+  const { from, to } = dateRangeBounds(fromStr, toStr);
+  if (from !== null && lastModified < from) return false;
+  if (to !== null && lastModified >= to) return false;
+  return true;
+}
+
+function filterByDate(items: BulkItem[], fromStr: string, toStr: string) {
+  if (!fromStr && !toStr) return items;
+  return items.filter(item => matchesDateRange(item.file.lastModified, fromStr, toStr));
+}
+
+function prepareBulkSubmitState(
+  savedState: BulkSavedState,
+  data: AnalysisData,
+): { buildState: BulkSavedState; warnings: string[] } {
   const warnings: string[] = [];
   const trimmedUid = savedState.watermark.uid.trim();
-  const defaultWeapon = savedState.characterId ? IMPORT_WEAPON_FALLBACKS[savedState.characterId] : undefined;
   let buildState = savedState;
 
-  if (!savedState.weaponId && defaultWeapon) {
-    buildState = { ...buildState, weaponId: defaultWeapon.id };
-    warnings.push(`weapon fallback: ${defaultWeapon.name}`);
+  // convert() already fills the signature weapon when the OCR weapon is empty;
+  // mirror that decision here to surface it in the per-item message (and as an
+  // idempotent safety net) instead of submitting the fallback silently.
+  const fallback = resolveImportWeaponFallback(data, savedState.characterId);
+  if (fallback) {
+    if (!buildState.weaponId) buildState = { ...buildState, weaponId: fallback.id };
+    warnings.push(`weapon fallback: ${fallback.name}`);
   } else if (!savedState.weaponId) {
     warnings.push('missing weapon');
   }
@@ -120,6 +159,8 @@ export function BulkImportPageClient() {
   const [counters, setCounters] = useState<Counters>(() => createInitialCounters(0));
   const [imageConcurrency, setImageConcurrency] = useState(2);
   const [selectionLimit, setSelectionLimit] = useState<number | null>(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const stopRef = useRef(false);
@@ -139,6 +180,25 @@ export function BulkImportPageClient() {
     [items],
   );
 
+  const loadedSpan = useMemo(() => {
+    if (allItems.length === 0) return null;
+    let min = Infinity;
+    let max = -Infinity;
+    for (const item of allItems) {
+      const time = item.file.lastModified;
+      if (time < min) min = time;
+      if (time > max) max = time;
+    }
+    return { min, max };
+  }, [allItems]);
+
+  // Count matching the date window before the limit is applied, so the UI can
+  // show "N match dates · M queued" honestly.
+  const dateMatchCount = useMemo(
+    () => filterByDate(allItems, dateFrom, dateTo).length,
+    [allItems, dateFrom, dateTo],
+  );
+
   const setItem = (id: string, patch: Partial<BulkItem>) => {
     setItems(current => current.map(item => item.id === id ? { ...item, ...patch } : item));
   };
@@ -154,11 +214,16 @@ export function BulkImportPageClient() {
     }));
   };
 
-  const handleFiles = (fileList: FileList | null) => {
-    if (!fileList) return;
-    const nextItems = normalizeFiles(fileList);
-    const queuedItems = applyLimit(nextItems, selectionLimit);
-    setAllItems(nextItems);
+  // Single source of truth for the queue: date window first, then limit.
+  const buildQueue = (
+    source: BulkItem[],
+    limit: number | null,
+    from: string,
+    to: string,
+  ) => applyLimit(filterByDate(source, from, to), limit);
+
+  const commitQueue = (source: BulkItem[], limit: number | null, from: string, to: string) => {
+    const queuedItems = buildQueue(source, limit, from, to);
     setItems(queuedItems);
     setCounters(createInitialCounters(queuedItems.length));
     setIsPaused(false);
@@ -166,15 +231,23 @@ export function BulkImportPageClient() {
     stopRef.current = false;
   };
 
-  const applyQueuedLimit = (limit: number | null) => {
+  const handleFiles = (fileList: FileList | null) => {
+    if (!fileList) return;
+    const nextItems = normalizeFiles(fileList);
+    setAllItems(nextItems);
+    commitQueue(nextItems, selectionLimit, dateFrom, dateTo);
+  };
+
+  // Re-derive the queue from any subset of changed selection controls.
+  const applySelection = (next: { limit?: number | null; from?: string; to?: string }) => {
     if (isRunning) return;
-    setSelectionLimit(limit);
-    const queuedItems = applyLimit(allItems, limit);
-    setItems(queuedItems);
-    setCounters(createInitialCounters(queuedItems.length));
-    setIsPaused(false);
-    pauseRef.current = false;
-    stopRef.current = false;
+    const limit = next.limit !== undefined ? next.limit : selectionLimit;
+    const from = next.from !== undefined ? next.from : dateFrom;
+    const to = next.to !== undefined ? next.to : dateTo;
+    if (next.limit !== undefined) setSelectionLimit(limit);
+    if (next.from !== undefined) setDateFrom(from);
+    if (next.to !== undefined) setDateTo(to);
+    commitQueue(allItems, limit, from, to);
   };
 
   const processOne = async (item: BulkItem) => {
@@ -208,7 +281,7 @@ export function BulkImportPageClient() {
         return;
       }
 
-      const { buildState, warnings } = prepareBulkSubmitState(savedState);
+      const { buildState, warnings } = prepareBulkSubmitState(savedState, analysisData);
       const result = await submitBuild(buildState);
       setItem(item.id, {
         status: 'submitted',
@@ -259,6 +332,9 @@ export function BulkImportPageClient() {
     pauseRef.current = false;
     setAllItems([]);
     setItems([]);
+    setSelectionLimit(null);
+    setDateFrom('');
+    setDateTo('');
     setCounters(createInitialCounters(0));
     setIsRunning(false);
     setIsPaused(false);
@@ -303,6 +379,49 @@ export function BulkImportPageClient() {
           </div>
         </div>
 
+        {/* Date window — file mtime == R2 upload date, so this is "uploaded between". */}
+        <div className="flex flex-col gap-3 rounded-md border border-border bg-surface/40 p-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 text-xs text-text-secondary">
+              Uploaded from
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                disabled={isRunning || allItems.length === 0}
+                onChange={event => applySelection({ from: event.target.value })}
+                className="rounded-md border border-border bg-surface px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-text-secondary">
+              Uploaded to
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                disabled={isRunning || allItems.length === 0}
+                onChange={event => applySelection({ to: event.target.value })}
+                className="rounded-md border border-border bg-surface px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </label>
+            <button
+              type="button"
+              disabled={isRunning || (!dateFrom && !dateTo)}
+              onClick={() => applySelection({ from: '', to: '' })}
+              className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Clear dates
+            </button>
+            {loadedSpan && (
+              <span className="text-xs text-text-secondary">
+                {dateFrom || dateTo
+                  ? `${dateMatchCount} of ${allItems.length} match`
+                  : `loaded span ${toDateInput(loadedSpan.min)} → ${toDateInput(loadedSpan.max)}`}
+              </span>
+            )}
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-text-secondary">
             Limit
@@ -315,7 +434,7 @@ export function BulkImportPageClient() {
               disabled={isRunning}
               onChange={event => {
                 const value = event.target.value.trim();
-                setSelectionLimit(value ? Math.max(1, Math.min(10000, Number(value) || 1)) : null);
+                applySelection({ limit: value ? Math.max(1, Math.min(10000, Number(value) || 1)) : null });
               }}
               className="w-20 rounded-md border border-border bg-surface px-2 py-1 text-text-primary"
             />
@@ -323,7 +442,7 @@ export function BulkImportPageClient() {
           <button
             type="button"
             disabled={isRunning}
-            onClick={() => applyQueuedLimit(null)}
+            onClick={() => applySelection({ limit: null })}
             className="rounded-md border border-border bg-surface px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             All
@@ -331,18 +450,10 @@ export function BulkImportPageClient() {
           <button
             type="button"
             disabled={isRunning}
-            onClick={() => applyQueuedLimit(100)}
+            onClick={() => applySelection({ limit: 100 })}
             className="rounded-md border border-border bg-surface px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             100
-          </button>
-          <button
-            type="button"
-            disabled={isRunning || allItems.length === 0}
-            onClick={() => applyQueuedLimit(selectionLimit)}
-            className="rounded-md border border-border bg-surface px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Apply limit
           </button>
           <label className="flex items-center gap-2 text-sm text-text-secondary">
             Image workers
@@ -404,7 +515,11 @@ export function BulkImportPageClient() {
         </div>
         <div className="flex justify-between text-xs text-text-secondary">
           <span>{progress}% complete</span>
-          <span>{pendingCount} pending · {items.length} queued / {allItems.length} loaded · {selectionLimit ? `first ${selectionLimit}` : 'all'} selected</span>
+          <span>
+            {pendingCount} pending · {items.length} queued / {allItems.length} loaded
+            {(dateFrom || dateTo) && ` · ${dateFrom || '…'} → ${dateTo || '…'}`}
+            {' · '}{selectionLimit ? `first ${selectionLimit}` : 'no limit'}
+          </span>
         </div>
       </section>
 
@@ -415,17 +530,21 @@ export function BulkImportPageClient() {
       ) : (
         <>
           <section className="overflow-hidden rounded-md border border-border">
-            <div className="grid grid-cols-[120px_1fr_160px] border-b border-border bg-surface px-3 py-2 text-xs font-medium uppercase text-text-secondary">
+            <div className="grid grid-cols-[120px_1fr_96px_160px] border-b border-border bg-surface px-3 py-2 text-xs font-medium uppercase text-text-secondary">
               <span>Status</span>
               <span>File</span>
+              <span>Uploaded</span>
               <span>Result</span>
             </div>
             <div className="max-h-[420px] overflow-auto">
               {recentRows.map(item => (
-                <div key={item.id} className="grid grid-cols-[120px_1fr_160px] gap-3 border-b border-border/60 px-3 py-2 text-sm last:border-b-0">
+                <div key={item.id} className="grid grid-cols-[120px_1fr_96px_160px] gap-3 border-b border-border/60 px-3 py-2 text-sm last:border-b-0">
                   <StatusBadge status={item.status} />
                   <span className="truncate text-text-primary" title={(item.file as File & { webkitRelativePath?: string }).webkitRelativePath || item.file.name}>
                     {(item.file as File & { webkitRelativePath?: string }).webkitRelativePath || item.file.name}
+                  </span>
+                  <span className="truncate text-text-secondary" title={new Date(item.file.lastModified).toLocaleString()}>
+                    {toDateInput(item.file.lastModified)}
                   </span>
                   <span className="truncate text-text-secondary" title={item.message}>{item.message}</span>
                 </div>
