@@ -23,6 +23,14 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Calcharo leaderboards and s2 supports on all leaderboards at s6'
+            },
+            {
+                kind: 'new',
+                text: 'Lucilla is out with her leaderboard too'
+            },
+            {
+                kind: 'improved',
+                text: 'Hiyuki leaderboard now uses Lucilla, not much changed overall though'
             }
         ]
     },
