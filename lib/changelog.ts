@@ -19,6 +19,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Profile tabs switching positions if you click one fixed'
+            },
+            {
+                kind: 'fixed',
+                text: 'Calcharo leaderboards and s2 supports on all leaderboards at s6'
             }
         ]
     },
