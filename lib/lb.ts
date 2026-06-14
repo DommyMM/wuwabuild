@@ -1351,14 +1351,19 @@ function parseSubmitBuildResult(raw: unknown): LBSubmitBuildResult {
 
 export async function submitBuild(
   buildState: SavedState,
+  options: { sourceImageKey?: string | null } = {},
   signal?: AbortSignal,
 ): Promise<LBSubmitBuildResult> {
+  const sourceImageKey = options.sourceImageKey?.trim();
   const response = await fetch(`${resolveLBBaseUrl()}/build`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ buildState }),
+    body: JSON.stringify({
+      buildState,
+      ...(sourceImageKey ? { sourceImageKey } : {}),
+    }),
     signal,
   });
 

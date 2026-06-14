@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -38,6 +38,7 @@ export function ImportPageClient() {
   const [draftBuildState, setDraftBuildState] = useState<SavedState | null>(() => loadDraftBuild());
   const [selectedFile, setSelectedFile]       = useState<File | null>(null);
   const [trainingImageKey, setTrainingImageKey] = useState<string | null>(null);
+  const trainingImageKeyRef = useRef<string | null>(null);
   const [lastImportWatermark, setLastImportWatermark] = useState<{ username: string; uid: string } | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
@@ -56,6 +57,7 @@ export function ImportPageClient() {
       });
       const payload = await res.json() as { success?: boolean; key?: string };
       if (payload.success && typeof payload.key === 'string') {
+        trainingImageKeyRef.current = payload.key;
         setTrainingImageKey(payload.key);
       }
     } catch {
@@ -67,6 +69,7 @@ export function ImportPageClient() {
     setValidationError(null);
     setLbUploadError(null);
     setSelectedFile(f);
+    trainingImageKeyRef.current = null;
     setTrainingImageKey(null);
     setLastImportWatermark(null);
 
@@ -125,6 +128,7 @@ export function ImportPageClient() {
     setValidationError(null);
     setLbUploadError(null);
     setSelectedFile(null);
+    trainingImageKeyRef.current = null;
     setTrainingImageKey(null);
     setLastImportWatermark(null);
     setPendingWm(null);
@@ -183,6 +187,7 @@ export function ImportPageClient() {
         reason,
         damage_computed: damageComputed ?? false,
         character_id: importedState.characterId ?? null,
+        has_source_image_key: Boolean(trainingImageKey),
       });
     };
     if (!uploadToLb) {
@@ -203,7 +208,8 @@ export function ImportPageClient() {
     }
 
     try {
-      const result = await submitBuild(importedState);
+      const sourceImageKey = trainingImageKeyRef.current || trainingImageKey;
+      const result = await submitBuild(importedState, { sourceImageKey });
       const actionLabel = result.action === 'created' ? 'created' : 'updated';
 
       success(`Leaderboard entry ${actionLabel}.`);

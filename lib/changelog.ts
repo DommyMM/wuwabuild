@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-14',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Fixed Dream of the Lost echo set bonus sometimes incorrectly applying to characters with non-zero max Resonance Energy'
+            },
+            {
+                kind: 'fixed',
+                text: 'Leaderboard standings now show ranks against all submitted builds while keeping per-player deduped rank positions'
+            }
+        ]
+    },
+    {
         date: '2026-06-13',
         changes: [
             {

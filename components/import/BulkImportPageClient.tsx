@@ -47,6 +47,12 @@ function fileKey(file: File) {
   return `${relativePath || file.name}:${file.size}:${file.lastModified}`;
 }
 
+function sourceImageKeyForFile(file: File): string | null {
+  const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
+  const key = (relativePath || file.name).replace(/\\/g, '/').split('/').pop()?.trim();
+  return key || null;
+}
+
 function applyLimit(items: BulkItem[], limit: number | null) {
   return limit && limit > 0 ? items.slice(0, limit) : items;
 }
@@ -297,7 +303,7 @@ export function BulkImportPageClient() {
       }
 
       const { buildState, warnings } = prepareBulkSubmitState(savedState, analysisData);
-      const result = await submitBuild(buildState);
+      const result = await submitBuild(buildState, { sourceImageKey: sourceImageKeyForFile(item.file) });
       setItem(item.id, {
         status: 'submitted',
         message: `${result.action}${result.damageComputed ? '' : ' without damage calc'}${warnings.length ? ` (${warnings.join(', ')})` : ''}${timingMessage ? ` · ${timingMessage}` : ''}`,
