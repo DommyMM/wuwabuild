@@ -11,7 +11,7 @@ For full technical context, see [AGENTS.md](./AGENTS.md).
 ## Status Snapshot (June 7, 2026)
 
 - Core routes: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`, `/profile/[uid]`, `/characters/[id]`, `/weapons/[id]`, `/changelog`, `/tos`, `/privacy`.
-- **Home (`/`)** uses ISR (`revalidate = 300`) and server-prefetched LB stats. **`/builds`** is `force-static` with a server-prefetched default build page, then client-side query changes/revalidation go through `/api/lb/*`. **`/leaderboards/[characterId]`** is `force-dynamic`: it server-prefetches the first board payload, canonicalizes the incoming query string against the returned weapon/track config and `redirect()`s to it, then keeps URL state in sync on the client. **`/leaderboards`** prefetches overview data server-side and also keeps an overview cache on the client.
+- **Home (`/`)** uses ISR (`revalidate = 300`) and server-prefetched LB stats. **`/builds`** is `force-static` with a server-prefetched default build page, then client-side query changes/revalidation go through the LB gateway. **`/leaderboards/[characterId]`** is `force-dynamic`: it server-prefetches the first board payload, canonicalizes the incoming query string against the returned weapon/track config and `redirect()`s to it, then keeps URL state in sync on the client. **`/leaderboards`** prefetches overview data server-side and also keeps an overview cache on the client.
 - `/import` OCR flow is live with leaderboard upload and screenshot-backed scan issue reports.
 - Build expansion shows move breakdown, substat upgrade tiers, and leaderboard standings across all weapon × track boards. `/builds`, `/profile/[uid]`, and `/leaderboards/[characterId]` share row expansion/detail-loading primitives, while the character leaderboard keeps its own damage-board, dedupe, and ghost-build semantics.
 - Root layout includes Vercel Analytics, Google Analytics in production, and PostHog initialization via `instrumentation-client.ts`.
@@ -22,7 +22,7 @@ For full technical context, see [AGENTS.md](./AGENTS.md).
 ## Features
 
 - **Build Editor** (`/edit`) — Full character build creator with real-time stat calculations, drag-to-reposition splash art, weapon rank passives, forte node bonuses, echo set summaries, CV tiers, and downloadable build card export.
-- **OCR Import** (`/import`) — Upload a 1920×1080 screenshot; frontend crops into regions and sends each in parallel to the OCR backend. Supports character, weapon, echoes, forte, sequences, watermark extraction, and inline OCR issue reporting with screenshot-backed diagnostics.
+- **OCR Import** (`/import`) — Upload a 1920×1080 screenshot; the frontend posts the original image to the OCR backend and streams per-region results back as they finish. Supports character, weapon, echoes, forte, sequences, watermark extraction, and inline OCR issue reporting with screenshot-backed diagnostics.
 - **Build Browser** (`/builds`) — Paginated build listing with filters (character, weapon, echo sets, echo mains, UID/username search) and sort by CV, damage, timestamp, or individual stats.
 - **Profiles** (`/profile/[uid]`) — Player-centric history view for all public leaderboard builds under one UID, backed by `/profile/{uid}` metadata and `/profile/{uid}/builds` rows from the LB service.
 - **Local Saves** (`/saves`) — Save builds to localStorage with auto-migration from legacy save formats.
@@ -57,9 +57,9 @@ EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
 
 ### API Integration
 
-- **Leaderboard**: client code calls the generic Next `/api/lb/*` proxy, which forwards any LB child path to the Go LB with `X-Internal-Key`.
-- **Leaderboard SSR prefetch**: server components use `lib/lbServer.ts` to call `LB_URL` directly with `X-Internal-Key` and `next: { revalidate: 300 }`; client components must not import `lbServer.ts`.
-- **OCR**: `/api/ocr` proxies to `API_URL` (production typically points at `https://ocr.wuwabuilds.moe`) with `X-OCR-Region`, plus `X-Internal-Key` and forwarded client IP when configured.
+- **Leaderboard**: browser and SSR calls use `NEXT_PUBLIC_LB_URL`, which points at the Cloudflare gateway (`api.wuwa.build` in production). The Worker injects `X-Internal-Key` before forwarding to Railway.
+- **Leaderboard SSR prefetch**: server components use `lib/lbServer.ts` with `next: { revalidate: 300 }`; client components must not import `lbServer.ts`.
+- **OCR**: browser code posts the original image to `NEXT_PUBLIC_OCR_URL/api/ocr` (`ocr.wuwa.build` in production). The endpoint always streams `application/x-ndjson`; `/import` uses region events for live progress, while `/bulk-import` reads the final `done` payload.
 - **Build submission**: `POST /build` is wired — `/import` sends canonical `buildState` when the `Upload to Leaderboard` toggle is enabled.
 - **Training image upload**: `/import` can upload the full screenshot to R2 through `POST /api/upload-training`.
 - **OCR issue reporting**: `/import` can submit screenshot-linked JSON reports to R2 via `POST /api/report-ocr-issue` for manual review.
@@ -97,9 +97,8 @@ Use `.env.example` as a template for local `.env` (not committed).
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `LB_URL` | Yes | Server-side Go leaderboard backend URL used by the `/api/lb/*` proxy |
-| `API_URL` | Yes | Server-side OCR backend base URL (dev default in code is `http://localhost:5000`) |
-| `INTERNAL_API_KEY` | Yes | Shared secret used by the `/api/ocr` and `/api/lb/*` proxies |
+| `NEXT_PUBLIC_LB_URL` | Yes in prod | Cloudflare gateway origin for leaderboard reads/writes; local default is `http://localhost:8080` |
+| `NEXT_PUBLIC_OCR_URL` | Yes in prod | Cloudflare gateway origin for OCR; local default is `http://localhost:5000` |
 | `NEXT_PUBLIC_POSTHOG_KEY` | No | PostHog analytics key |
 | `CLOUDFLARE_ACCOUNT_ID` | No | R2 config for import screenshot storage and OCR issue reports |
 | `R2_ACCESS_KEY_ID` | No | R2 credentials |
@@ -111,13 +110,19 @@ Use `.env.example` as a template for local `.env` (not committed).
 ## OCR Import Flow
 
 1. Frontend receives a 1920×1080 screenshot from the user.
-2. Crops into independent regions (character, weapon, forte, sequences, watermark, echo1–echo5) using fixed coordinates in `lib/import/regions.ts`.
-3. Posts each region in parallel to `/api/ocr` with `X-OCR-Region` header.
-4. The Next proxy forwards the request to the OCR backend and, when `INTERNAL_API_KEY` is set, includes the shared key plus the original client IP for backend rate limiting.
-5. Backend returns ID-enriched OCR payloads.
-6. Frontend converts analysis to `SavedState` and loads into the editor.
+2. Posts the original file as `multipart/form-data` to `NEXT_PUBLIC_OCR_URL/api/ocr`.
+3. The backend streams `meta`, per-`region`, and final `done` events keyed by `character`, `watermark`, `forte`, `sequences`, `weapon`, and `echo1`–`echo5`.
+4. The Cloudflare Worker injects the internal key, forwards client IP, and passes the streaming body through from Railway.
+5. Backend decodes once, crops server-side, fans recognition out through its worker pool, and returns ID-enriched OCR payloads.
+6. Frontend updates the results UI as each region event arrives, then converts the final analysis to `SavedState` and loads into the editor.
 7. Optional: fire-and-forget full screenshot upload to R2 through `/api/upload-training`, storing a hash-deduped root-level `<hash>.jpg` object.
 8. Users can report scan problems from `/import`; report JSON is stored in the same bucket under `reports/YYYY/MM/DD/<reportId>.json` and linked back to the uploaded screenshot key.
+
+Blank weapon panels are a known export issue for some newer characters. The OCR
+backend should report those as an empty weapon, and `lib/import/convert.ts`
+fills the signature weapon fallback only for those explicit character IDs
+(Lucilla, Rebecca, Lucy). This fallback is part of the import contract; a wrong
+non-empty OCR weapon should not be overwritten.
 
 ---
 
@@ -141,7 +146,7 @@ wuwabuilds/
 │   │   ├── leaderboards/    # Leaderboards (/leaderboards, /leaderboards/[characterId])
 │   │   ├── characters/      # Character-seeded editor routes (/characters/[id])
 │   │   └── weapons/         # Weapon-seeded editor routes (/weapons/[id])
-│   └── api/                 # API routes (lb proxy, ocr proxy, upload-training, report-ocr-issue)
+│   └── api/                 # API routes (upload-training, report-ocr-issue, app-local helpers)
 ├── contexts/                # React Context providers
 ├── components/              # Components by feature area
 │   ├── leaderboards/        # All leaderboard + build browser components
@@ -164,7 +169,7 @@ wuwabuilds/
 │   ├── calculations/        # Stats/CV, echo stats, weapon passives, set summaries, roll values, substat tiers, rank tier
 │   ├── constants/           # Stat mappings, set bonuses, CDN URLs, skill branches, stat hover/bonuses, disabled entries
 │   ├── data/                # Legacy ID mappings for migration (legacyEchoes/legacyWeapons JSON)
-│   ├── import/              # OCR → SavedState conversion, crop regions, echo matching, issue reports
+│   ├── import/              # OCR → SavedState conversion, result keys, echo matching, issue reports
 │   ├── server/              # Server-only helpers (R2 storage, OG image data)
 │   └── text/                # Localized game text rendering
 ├── public/Data/             # Game data JSON (Characters, Weapons, Echoes, Stats, Curves, Fetters)

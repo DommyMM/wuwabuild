@@ -1,8 +1,3 @@
-export interface ImportRegion {
-  x1: number; x2: number;
-  y1: number; y2: number;
-}
-
 export interface EchoOCRData {
   name: { name: string; id: string; confidence: number };
   main: { name: string; value: string };

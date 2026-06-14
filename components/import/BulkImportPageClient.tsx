@@ -5,6 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { loadImage } from '@/lib/import/cropImage';
 import { convertAnalysisToSavedState, resolveImportWeaponFallback } from '@/lib/import/convert';
 import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
+import { readOcrStreamResponse } from '@/lib/import/ocrStream';
 import { OCR_POST_URL } from '@/lib/apiEndpoints';
 import type { AnalysisData } from '@/lib/import/types';
 import { submitBuild } from '@/lib/lb';
@@ -131,13 +132,6 @@ function normalizeFiles(fileList: FileList | File[]) {
   }));
 }
 
-interface FullOcrResponse {
-  success?: boolean;
-  error?: string;
-  analysis?: AnalysisData;
-  timings?: Record<string, unknown>;
-}
-
 async function postImage(file: File) {
   const formData = new FormData();
   formData.append('image', file, file.name || 'card.jpg');
@@ -151,7 +145,7 @@ async function postImage(file: File) {
     throw new Error(`OCR failed (${response.status}) for ${file.name}`);
   }
 
-  const payload = await response.json() as FullOcrResponse;
+  const payload = await readOcrStreamResponse(response);
   return {
     analysisData: unwrapOcrAnalysisPayload(payload, `OCR for ${file.name}`) as AnalysisData,
     timings: payload.timings,
