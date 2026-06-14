@@ -15,7 +15,7 @@ export const LB_API_BASE = base(process.env.NEXT_PUBLIC_LB_URL, LB_DEFAULT);
 
 const OCR_BASE = base(process.env.NEXT_PUBLIC_OCR_URL, OCR_DEFAULT);
 
-/** OCR analyze endpoint (POST, JSON body + X-OCR-Region header). */
+/** OCR analyze endpoint (POST original image as FormData/raw bytes). */
 export const OCR_POST_URL = `${OCR_BASE}/api/ocr`;
 
 /** OCR health-check endpoint (GET; also wakes a sleeping Railway service). */

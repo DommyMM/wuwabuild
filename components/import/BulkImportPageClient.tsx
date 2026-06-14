@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { loadImage, cropImageToRegion } from '@/lib/import/cropImage';
-import { IMPORT_REGIONS, type RegionKey } from '@/lib/import/regions';
+import { loadImage } from '@/lib/import/cropImage';
 import { convertAnalysisToSavedState, resolveImportWeaponFallback } from '@/lib/import/convert';
 import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
 import { OCR_POST_URL } from '@/lib/apiEndpoints';
@@ -31,7 +30,6 @@ interface Counters {
 }
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const REGION_KEYS = Object.keys(IMPORT_REGIONS) as RegionKey[];
 function createInitialCounters(total: number): Counters {
   return {
     total,
@@ -133,23 +131,42 @@ function normalizeFiles(fileList: FileList | File[]) {
   }));
 }
 
-async function postRegion(file: File, image: HTMLImageElement, regionKey: RegionKey) {
-  const base64 = await cropImageToRegion(image, IMPORT_REGIONS[regionKey]);
+interface FullOcrResponse {
+  success?: boolean;
+  error?: string;
+  analysis?: AnalysisData;
+  timings?: Record<string, unknown>;
+}
+
+async function postImage(file: File) {
+  const formData = new FormData();
+  formData.append('image', file, file.name || 'card.jpg');
+
   const response = await fetch(OCR_POST_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-OCR-Region': regionKey,
-    },
-    body: JSON.stringify({ image: base64 }),
+    body: formData,
   });
 
   if (!response.ok) {
-    throw new Error(`${regionKey} OCR failed (${response.status}) for ${file.name}`);
+    throw new Error(`OCR failed (${response.status}) for ${file.name}`);
   }
 
-  const payload = await response.json();
-  return unwrapOcrAnalysisPayload(payload, `${regionKey} OCR for ${file.name}`);
+  const payload = await response.json() as FullOcrResponse;
+  return {
+    analysisData: unwrapOcrAnalysisPayload(payload, `OCR for ${file.name}`) as AnalysisData,
+    timings: payload.timings,
+  };
+}
+
+function formatTiming(timings: Record<string, unknown> | undefined) {
+  const total = typeof timings?.wallMs === 'number' ? timings.wallMs : timings?.totalMs;
+  const recognition = timings?.recognitionWallMs;
+  if (typeof total !== 'number') return '';
+  const pieces = [`ocr ${(total / 1000).toFixed(2)}s`];
+  if (typeof recognition === 'number') {
+    pieces.push(`rec ${(recognition / 1000).toFixed(2)}s`);
+  }
+  return pieces.join(', ');
 }
 
 export function BulkImportPageClient() {
@@ -157,7 +174,7 @@ export function BulkImportPageClient() {
   const [allItems, setAllItems] = useState<BulkItem[]>([]);
   const [items, setItems] = useState<BulkItem[]>([]);
   const [counters, setCounters] = useState<Counters>(() => createInitialCounters(0));
-  const [imageConcurrency, setImageConcurrency] = useState(2);
+  const [imageConcurrency, setImageConcurrency] = useState(1);
   const [selectionLimit, setSelectionLimit] = useState<number | null>(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -264,10 +281,11 @@ export function BulkImportPageClient() {
         return;
       }
 
-      const analysisEntries = await Promise.all(
-        REGION_KEYS.map(async regionKey => [regionKey, await postRegion(item.file, image, regionKey)] as const),
-      );
-      const analysisData = Object.fromEntries(analysisEntries) as AnalysisData;
+      const { analysisData, timings } = await postImage(item.file);
+      const timingMessage = formatTiming(timings);
+      if (timings) {
+        console.info('Bulk OCR timings', item.file.name, timings);
+      }
 
       const savedState = convertAnalysisToSavedState(analysisData, {
         characters: gameData.characters,
@@ -276,7 +294,10 @@ export function BulkImportPageClient() {
       });
 
       if (!savedState.characterId) {
-        setItem(item.id, { status: 'skipped', message: 'Missing character' });
+        setItem(item.id, {
+          status: 'skipped',
+          message: `Missing character${timingMessage ? ` · ${timingMessage}` : ''}`,
+        });
         addCounter({ processed: 1, skipped: 1 });
         return;
       }
@@ -285,7 +306,7 @@ export function BulkImportPageClient() {
       const result = await submitBuild(buildState);
       setItem(item.id, {
         status: 'submitted',
-        message: `${result.action}${result.damageComputed ? '' : ' without damage calc'}${warnings.length ? ` (${warnings.join(', ')})` : ''}`,
+        message: `${result.action}${result.damageComputed ? '' : ' without damage calc'}${warnings.length ? ` (${warnings.join(', ')})` : ''}${timingMessage ? ` · ${timingMessage}` : ''}`,
       });
       addCounter({
         processed: 1,

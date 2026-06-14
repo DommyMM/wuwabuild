@@ -4,7 +4,6 @@ import { useState, useCallback } from 'react';
 import type { AnalysisData } from '@/lib/import/types';
 import type { RegionKey } from '@/lib/import/regions';
 import { IMPORT_REGIONS } from '@/lib/import/regions';
-import { loadImage, cropImageToRegion } from '@/lib/import/cropImage';
 import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
 import { OCR_POST_URL } from '@/lib/apiEndpoints';
 import type { RegionStatus } from '@/lib/import/report';
@@ -26,11 +25,21 @@ interface OcrProcessSummary {
   hasWeapon: boolean;
   hasUid: boolean;
   characterId: string | null;
+  timings?: Record<string, unknown>;
 }
 
 const INITIAL_PROGRESS = Object.fromEntries(
   Object.keys(IMPORT_REGIONS).map(k => [k, 'pending' as RegionStatus])
 ) as Record<RegionKey, RegionStatus>;
+
+interface FullOcrResponse {
+  success?: boolean;
+  error?: string;
+  analysis?: AnalysisData;
+  progress?: Partial<Record<RegionKey, RegionStatus>>;
+  timings?: Record<string, unknown>;
+  trainingImageKey?: string | null;
+}
 
 export function useOcrImport(): UseOcrImportReturn {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -51,46 +60,43 @@ export function useOcrImport(): UseOcrImportReturn {
     setIsProcessing(true);
     let nextAnalysisData: AnalysisData = {};
     let nextProgress: Record<RegionKey, RegionStatus> = INITIAL_PROGRESS;
+    let timings: Record<string, unknown> | undefined;
 
     try {
-      const img = await loadImage(file);
-      const regions = Object.entries(IMPORT_REGIONS) as [RegionKey, typeof IMPORT_REGIONS[RegionKey]][];
+      const formData = new FormData();
+      formData.append('image', file, file.name || 'card.jpg');
 
-      // Crop all regions and fire OCR in parallel
-      const tasks = regions.map(async ([key, region]) => {
-        const base64 = await cropImageToRegion(img, region);
-        const attempt = async () => {
-          const res = await fetch(OCR_POST_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-OCR-Region': key,
-            },
-            body: JSON.stringify({ image: base64 }),
-          });
-          if (!res.ok) throw new Error(`OCR failed for ${key}: ${res.status}`);
-          return res.json();
-        };
+      const attempt = async () => {
+        const res = await fetch(OCR_POST_URL, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!res.ok) throw new Error(`OCR failed: ${res.status}`);
+        return res.json() as Promise<FullOcrResponse>;
+      };
 
-        try {
-          let data: unknown;
-          try {
-            data = await attempt();
-          } catch {
-            data = await attempt(); // one automatic retry
-          }
-          const analysis = unwrapOcrAnalysisPayload(data, `${key} OCR`);
-          nextProgress = { ...nextProgress, [key]: 'done' };
-          nextAnalysisData = { ...nextAnalysisData, [key]: analysis };
-          setProgress(nextProgress);
-          setAnalysisData(nextAnalysisData);
-        } catch {
-          nextProgress = { ...nextProgress, [key]: 'error' };
-          setProgress(nextProgress);
-        }
-      });
+      let data: FullOcrResponse;
+      try {
+        data = await attempt();
+      } catch {
+        data = await attempt(); // one automatic retry
+      }
 
-      await Promise.all(tasks);
+      nextAnalysisData = unwrapOcrAnalysisPayload(data, 'OCR') as AnalysisData;
+      timings = data.timings;
+      nextProgress = Object.fromEntries(
+        (Object.keys(IMPORT_REGIONS) as RegionKey[]).map((key) => {
+          const status = data.progress?.[key] ?? (nextAnalysisData[key] ? 'done' : 'error');
+          return [key, status];
+        }),
+      ) as Record<RegionKey, RegionStatus>;
+
+      setProgress(nextProgress);
+      setAnalysisData(nextAnalysisData);
+
+      if (timings) {
+        console.info('OCR timings', timings);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process image');
     } finally {
@@ -112,6 +118,7 @@ export function useOcrImport(): UseOcrImportReturn {
       hasWeapon: Boolean(nextAnalysisData.weapon),
       hasUid: Number.isFinite(uidNumber) && uidNumber > 0,
       characterId: characterData?.id ?? null,
+      timings,
     };
   }, [reset]);
 

@@ -104,6 +104,7 @@ export function ImportPageClient() {
         has_weapon: summary.hasWeapon,
         has_uid: summary.hasUid,
         character_id: summary.characterId,
+        timings: summary.timings ?? null,
       });
     }).catch((err) => {
       posthog.captureException(err);
