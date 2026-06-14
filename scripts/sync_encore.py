@@ -16,7 +16,6 @@ import json
 import re
 import sys
 import time
-import urllib.request
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -48,7 +47,6 @@ from sync_echoes import extract_main_slot_bonuses  # noqa: E402
 from sync_fetters import fetch_and_build as build_wuthery_fetters  # noqa: E402
 
 DATA_DIR = SCRIPTS_DIR.parent / "public" / "Data"
-BACKEND_ECHO_ICONS_DIR = SCRIPTS_DIR.parent.parent / "backend" / "Data" / "Echoes"
 
 STAT_LABELS = {
     "Atk": {"en": "ATK", "de": "ANG", "es": "ATQ", "fr": "ATQ", "ja": "攻撃力", "ko": "공격력", "th": "ATK", "uk": "ATK", "zh-Hans": "攻击", "zh-Hant": "攻擊"},
@@ -726,37 +724,6 @@ def _build_encore_fetter_from_group(group_id: int, group_by_lang: dict[str, dict
     }
 
 
-def sync_echo_icon_pngs(args: argparse.Namespace, echoes: list[dict]) -> None:
-    if args.skip_echo_icons:
-        return
-    if not BACKEND_ECHO_ICONS_DIR.exists():
-        print(f"Skipping echo icon templates; missing {BACKEND_ECHO_ICONS_DIR}")
-        return
-    try:
-        from PIL import Image
-    except ImportError:
-        print("Skipping echo icon PNG conversion; install Pillow to convert Encore WebP templates.")
-        return
-    print(f"Refreshing backend echo templates from Encore images -> {BACKEND_ECHO_ICONS_DIR}")
-    BACKEND_ECHO_ICONS_DIR.mkdir(parents=True, exist_ok=True)
-    for echo in echoes:
-        echo_id = str(echo.get("id"))
-        url = echo.get("icon")
-        dest = BACKEND_ECHO_ICONS_DIR / f"{echo_id}.png"
-        if not echo_id or not isinstance(url, str):
-            continue
-        if dest.exists() and not args.force_echo_icons:
-            continue
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "wuwabuilds-backend/1.0"})
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                with Image.open(resp) as im:
-                    im.convert("RGBA").save(dest, "PNG")
-            print(f"  icon {echo_id}")
-        except Exception as exc:
-            print(f"  ERROR icon {echo_id}: {exc}")
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sync public/Data from Encore API")
     parser.add_argument("--id", type=int, default=None, help="Single entity ID for selected single-kind syncs")
@@ -770,23 +737,18 @@ def main() -> int:
     parser.add_argument("--lang-workers", type=int, default=13, help="Parallel per-language requests for one entity")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--pretty", action="store_true")
-    parser.add_argument("--skip-echo-icons", action="store_true")
-    parser.add_argument("--force-echo-icons", action="store_true")
     args = parser.parse_args()
     if args.new_only:
         args.merge = True
 
-    echoes: list[dict] = []
     if args.only in {"all", "characters"}:
         sync_characters(args)
     if args.only in {"all", "weapons"}:
         sync_weapons(args)
     if args.only in {"all", "echoes"}:
-        echoes = sync_echoes(args)
+        sync_echoes(args)
     if args.only in {"all", "fetters"}:
         sync_fetters(args)
-    if args.only in {"all", "echoes"} and echoes and not args.dry_run:
-        sync_echo_icon_pngs(args, echoes)
     return 0
 
 

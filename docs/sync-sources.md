@@ -201,13 +201,13 @@ py scripts\sync_encore.py --merge --only all `
   --character-ids 1109,1308,1511 `
   --weapon-ids 21030056,21030066,21050086 `
   --echo-ids 6000201,6010195,6020059 `
-  --workers 2 --lang-workers 2 --skip-echo-icons
+  --workers 2 --lang-workers 2
 ```
 
 The same path can be driven by Encore's `/new` endpoint:
 
 ```powershell
-py scripts\sync_encore.py --new-only --only all --workers 2 --lang-workers 2 --skip-echo-icons
+py scripts\sync_encore.py --new-only --only all --workers 2 --lang-workers 2
 ```
 
 On 2026-06-09, the explicit 3.4 delta command completed in about 14s and
@@ -227,10 +227,14 @@ py scripts\sync_backend.py
 py scripts\sync_lb.py
 ```
 
-`sync_backend.py` refreshes backend element templates from Encore
-`Echo[].FetterGroups[].Icon`, so set group `32 -> Adam` gets
-`backend/Data/Elements/Adam.webp`. The backend loader accepts both PNG and WebP,
-but the current local template set is WebP-only for elements.
+`sync_backend.py` is the single source of truth for `backend/Data`: it writes the OCR
+JSON schema and fetches every SIFT template as id-keyed WebP. Characters (Encore
+`FormationRoleCard` splash), weapons (Encore `Icon`), and elements (Encore
+`Echo[].FetterGroups[].Icon`, so set group `32 -> Adam` gets `backend/Data/Elements/Adam.webp`)
+come straight from Encore; echo icons follow the icon URL in the synced
+`public/Data/Echoes.json` (Encore WebP passed through, a Wuthery PNG fallback re-encoded).
+Each set has a `--skip-*-icons` / `--force-*-icons` flag. The character/weapon loader reads
+WebP only; element/echo loaders accept PNG or WebP.
 
 ### Option A — Dual-mode with fallback (recommended)
 

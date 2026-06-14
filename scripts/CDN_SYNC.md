@@ -22,9 +22,7 @@ wuwabuilds/
 │   ├── sync_fetters.py       # Sonata/element set sync (Python, Wuthery LocalizationIndex)
 │   ├── sync_encore.py        # Combined characters/weapons/echoes/fetters sync via Encore API (sync_all --encore)
 │   ├── stat_translations.py  # Stat i18n + icon URL sync -> Stats.json
-│   ├── sync_backend.py       # Transform public/Data -> ../backend/Data OCR schema
-│   ├── download_echo_icons.py # Download backend echo templates as {id}.{png|webp}
-│   ├── download_character_icons.py / download_weapon_icons.py # On-demand icon refresh helpers
+│   ├── sync_backend.py       # Single source of truth for ../backend/Data: OCR JSON schema + all SIFT templates (elements/characters/weapons/echoes), id-keyed WebP
 │   ├── migrate_r2_png_to_jpg.py # One-off R2 maintenance script
 │   ├── sync_all.py           # Run full frontend + backend + LB pipeline (--encore for Encore source)
 │   └── CDN_SYNC.md           # This file
@@ -75,7 +73,7 @@ wuwabuilds/
 6. `sync_backend.py`
 7. `sync_lb.py`
 
-With `--encore`, steps 1-4 collapse into a single `sync_encore.py` invocation; `stat_translations.py`, `sync_backend.py`, and `sync_lb.py` still run as the final three steps. `--skip-echo-icons` / `--force-echo-icons` pass through to the Encore step.
+With `--encore`, steps 1-4 collapse into a single `sync_encore.py` invocation; `stat_translations.py`, `sync_backend.py`, and `sync_lb.py` still run as the final three steps. The backend template flags (`--skip-*-icons` / `--force-*-icons` for elements/characters/weapons/echoes) all route to `sync_backend.py`.
 
 Pass-through flags: `--dry-run`, `--pretty` (plus unknown extra args are forwarded to each script).
 
@@ -287,13 +285,20 @@ python sync_all.py                         # Run end-to-end pipeline
 python sync_all.py --dry-run --pretty      # Preview end-to-end pipeline
 ```
 
-### Echo Icon Templates (Backend OCR)
+### Backend SIFT Templates (Backend OCR)
+
+`sync_backend.py` fetches all backend match templates as id-keyed WebP, alongside the
+JSON transform. Characters (Encore FormationRoleCard splash), weapons (Encore Icon), and
+elements (Encore FetterGroup icons) come straight from Encore; echo icons follow the
+icon URL in the already-synced `public/Data/Echoes.json` (Encore WebP passed through, a
+Wuthery PNG fallback re-encoded). Each set has a `--skip-*` / `--force-*` flag.
 
 ```bash
-python download_echo_icons.py                      # Download/convert missing ID-named WebP templates
-python download_echo_icons.py --clean              # Remove legacy non-ID files, then download missing
-python download_echo_icons.py --clean --force      # Full refresh
-python download_echo_icons.py --dry-run            # Preview cleanup + missing downloads
+python sync_backend.py                             # JSON + download any missing templates
+python sync_backend.py --force-echo-icons          # Re-fetch all echo templates
+python sync_backend.py --force-character-icons --force-weapon-icons  # Re-fetch char + weapon templates
+python sync_backend.py --skip-element-icons --skip-character-icons --skip-weapon-icons --skip-echo-icons  # JSON only
+python sync_backend.py --dry-run                   # Preview JSON + per-set missing counts
 ```
 
 ## Stat Scaling
@@ -458,7 +463,7 @@ python sync_echoes.py --fetch --dry-run --pretty  # Preview
 python sync_echoes.py --fetch --id 60000425       # Single phantom from CDN
 python sync_all.py                                # Full pipeline: frontend data + backend + lb generation
 python sync_all.py --dry-run --pretty             # Preview full pipeline
-python download_echo_icons.py --clean --force     # Refresh backend echo templates by CDN ID
+python sync_backend.py --force-echo-icons         # Refresh backend echo templates by CDN ID
 ```
 
 Skipped: `phantomType 2` (cosmetic unlock items), `rarity < 5`, `type`, `attributes` (generic equip text), `obtainedDescription`, redundant skill sub-fields (`id`, `cd`, `simplyDescription`).

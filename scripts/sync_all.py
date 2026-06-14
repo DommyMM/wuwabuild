@@ -21,10 +21,16 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Preview only (no writes)")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output")
     parser.add_argument("--encore", action="store_true", help="Use experimental Encore API sync instead of Wuthery CDN")
-    parser.add_argument("--skip-echo-icons", action="store_true", help="Skip backend echo template refresh for Encore")
-    parser.add_argument("--force-echo-icons", action="store_true", help="Refresh existing backend echo templates for Encore")
-    parser.add_argument("--skip-element-icons", action="store_true", help="Skip backend element template refresh from Encore")
-    parser.add_argument("--force-element-icons", action="store_true", help="Refresh existing backend element templates from Encore")
+    # Backend template refresh controls (all routed to sync_backend.py, which is the
+    # single source of truth for backend Data/ templates).
+    parser.add_argument("--skip-element-icons", action="store_true", help="Skip backend element template refresh")
+    parser.add_argument("--force-element-icons", action="store_true", help="Refresh existing backend element templates")
+    parser.add_argument("--skip-character-icons", action="store_true", help="Skip backend character splash templates")
+    parser.add_argument("--force-character-icons", action="store_true", help="Refresh existing backend character templates")
+    parser.add_argument("--skip-weapon-icons", action="store_true", help="Skip backend weapon icon templates")
+    parser.add_argument("--force-weapon-icons", action="store_true", help="Refresh existing backend weapon templates")
+    parser.add_argument("--skip-echo-icons", action="store_true", help="Skip backend echo icon templates")
+    parser.add_argument("--force-echo-icons", action="store_true", help="Refresh existing backend echo templates")
     args, rest = parser.parse_known_args()
 
     common_flags = []
@@ -47,21 +53,22 @@ def main() -> int:
         ]
     else:
         encore_flags = [*common_flags, *pretty_flags, *rest]
-        if args.skip_echo_icons:
-            encore_flags.append("--skip-echo-icons")
-        if args.force_echo_icons:
-            encore_flags.append("--force-echo-icons")
         scripts = [
             ("Encore Data", [sys.executable, str(scripts_dir / "sync_encore.py"), *encore_flags]),
             ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py"), *common_flags, *pretty_flags, *rest]),
             ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py"), *common_flags]),
             ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py"), *common_flags, *pretty_flags]),
         ]
-    backend_icon_flags = []
-    if args.skip_element_icons:
-        backend_icon_flags.append("--skip-element-icons")
-    if args.force_element_icons:
-        backend_icon_flags.append("--force-element-icons")
+    backend_icon_flags = [
+        "--" + flag.replace("_", "-")
+        for flag in (
+            "skip_element_icons", "force_element_icons",
+            "skip_character_icons", "force_character_icons",
+            "skip_weapon_icons", "force_weapon_icons",
+            "skip_echo_icons", "force_echo_icons",
+        )
+        if getattr(args, flag)
+    ]
     for name, cmd in scripts:
         if name == "Backend":
             cmd.extend(backend_icon_flags)

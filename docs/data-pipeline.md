@@ -21,13 +21,13 @@ Run from `scripts/`:
 py sync_all.py                                # Default Wuthery pipeline
 py sync_all.py --encore                       # Same pipeline, Encore API source via sync_encore.py
 py sync_lb.py --weapons-only
-py download_echo_icons.py --clean --force
+py sync_backend.py --force-echo-icons              # Refresh backend echo SIFT templates by CDN ID
 py sync_characters_encore.py --id 1608 --compare   # One-character diff prototype
 ```
 
 Primary outputs include:
 - `public/Data/*.json`
-- backend data outputs
+- backend data outputs: `sync_backend.py` is the single source of truth for `backend/Data` — the OCR JSON schema plus every SIFT template (elements/characters/weapons/echoes) as id-keyed WebP (`--skip-*-icons` / `--force-*-icons` per set)
 - leaderboard calc data outputs
 
 See `scripts/CDN_SYNC.md` for script-level flags and details. For the trade-offs between Wuthery's CDN and the alternative `encore.moe` API (and the dual-mode/fallback strategy), see `sync-sources.md`.
