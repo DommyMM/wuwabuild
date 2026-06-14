@@ -51,12 +51,16 @@ const deduplicateRovers = (chars: Character[]): Character[] => {
 interface CharacterSelectorProps {
   className?: string;
   inline?: boolean;
+  /** Tighter trigger (smaller portrait + name, dropdown caret) for use inside a
+   *  control strip rather than as a standalone hero chip. */
+  compact?: boolean;
   onSelect?: (character: Character) => void;
 }
 
 export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   className = '',
   inline = false,
+  compact = false,
   onSelect,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -271,9 +275,9 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     <>
       <button
         onClick={() => setIsModalOpen(true)}
-        className={`group flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background p-2 transition-colors hover:border-text-primary/30 ${className}`}
+        className={`group flex cursor-pointer items-center rounded-lg border border-border bg-background transition-colors hover:border-text-primary/30 ${compact ? 'gap-2 p-1.5 pr-2.5' : 'gap-2 p-2'} ${className}`}
       >
-        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+        <div className={`relative shrink-0 overflow-hidden rounded-full ${compact ? 'h-7 w-7' : 'h-10 w-10'}`}>
           <img
             src={selected?.iconRound ?? FALLBACK_FACE}
             alt={selected ? t(selected.nameI18n) : 'Select Resonator'}
@@ -281,9 +285,23 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           />
         </div>
 
-        <span className={`text-2xl font-medium ${selected ? `char-sig ${selected.element.toLowerCase()}` : 'text-text-primary/50'}`}>
+        <span className={`font-medium ${compact ? 'text-base' : 'text-2xl'} ${selected ? `char-sig ${selected.element.toLowerCase()}` : 'text-text-primary/50'}`}>
           {selected ? t(selected.nameI18n) : 'Select Resonator'}
         </span>
+
+        {compact && (
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="ml-auto h-3.5 w-3.5 shrink-0 text-text-primary/35 transition-colors group-hover:text-text-primary/60"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        )}
       </button>
 
       <Modal
