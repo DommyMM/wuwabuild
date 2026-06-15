@@ -23,6 +23,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Leaderboard standings now show ranks against all submitted builds while keeping per-player deduped rank positions'
+            },
+            {
+                kind: 'fixed',
+                text: 'S6 on a bunch of other characters I forgot about like Jinhsi, Changli, Camellya etc'
             }
         ]
     },
