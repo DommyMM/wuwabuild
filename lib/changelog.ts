@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-16',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Fixed leaderboard deep-links flip-flopping and jumping when you open one build then click another on the same board'
+            }
+        ]
+    },
+    {
         date: '2026-06-15',
         changes: [
             {

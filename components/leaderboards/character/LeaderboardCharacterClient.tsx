@@ -214,17 +214,22 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
 
   // Capture a deep link that arrives via client navigation (a standings click on the same route).
   // MUST be registered before the URL sync effect (effects run in order) so suppressing it prevents the
-  // URL sync from immediately reverting the weapon/track the click navigated to.
+  // URL sync from immediately reverting the buildId / weapon / track the click navigated to.
   useEffect(() => {
     const urlBuildId = initialSnapshot.buildId;
     if (!urlBuildId || deepLink?.id === urlBuildId) return;
-    // A fresh build to reveal: start a resolving fetch and adopt the weapon/track from the URL. Suppress
-    // one URL-sync cycle (set synchronously) so it doesn't revert before the deferred state updates apply.
+    // A fresh build to reveal: start a resolving fetch and adopt the weapon/track from the URL.
     const urlWeaponId = initialSnapshot.weaponId;
     const urlTrack = initialSnapshot.track;
     const stateWeaponId = configWeaponIds[weaponIndex] ?? '';
     const syncWeaponTrack = urlWeaponId !== stateWeaponId || urlTrack !== track;
-    if (syncWeaponTrack) suppressUrlSyncRef.current = true;
+    // Suppress one URL-sync cycle (set synchronously) for ANY fresh deep-link capture, not only ones that
+    // also change weapon/track. The URL already carries the new buildId, so there is nothing for the sync
+    // effect to contribute this commit — and if it runs it does so with the *previous* deepLink id
+    // (revealBuildId) and replaces the URL back to it. That stale write then ping-pongs against this
+    // capture, most visibly when the old and new builds share a weapon+track board (same-board dupes),
+    // where the weapon/track guard below would otherwise leave the sync effect un-suppressed.
+    suppressUrlSyncRef.current = true;
     const idx = urlWeaponId ? configWeaponIds.indexOf(urlWeaponId) : -1;
     let cancelled = false;
     queueMicrotask(() => {
