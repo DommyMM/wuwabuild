@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-15',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Swapped Hiyuki back to Lynae cos Lucilla team is more chafe damage which does not care about substats',
+            }
+        ]
+    },
+    {
         date: '2026-06-14',
         changes: [
             {
