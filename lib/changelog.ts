@@ -23,6 +23,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Swapped Hiyuki back to Lynae cos Lucilla team is more chafe damage which does not care about substats',
+            },
+            {
+                kind: 'fixed',
+                text: 'Fixed OCR bug where it would sometimes misread the set because it icon matched before color matching'
             }
         ]
     },

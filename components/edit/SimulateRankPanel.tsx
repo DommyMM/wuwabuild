@@ -135,7 +135,7 @@ export const SimulateRankPanel: React.FC = () => {
       return <p className="text-sm text-text-primary/45">No ranked builds here yet, you’d place #1.</p>;
     }
     if (noBoard) {
-      return <p className="text-sm text-text-primary/45">No leaderboard exists for this resonator yet.</p>;
+      return <p className="text-sm text-text-primary/45">No leaderboard exists for this resonator</p>;
     }
     return (
       <p className="text-sm text-text-primary/45">
