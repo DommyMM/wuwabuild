@@ -18,6 +18,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'fixed',
+                text: 'Lucy S3 no longer adds 100% Crit DMG to her build stats, that bonus only applies to her Override move',
+            },
+            {
+                kind: 'fixed',
                 text: 'Swapped Hiyuki back to Lynae cos Lucilla team is more chafe damage which does not care about substats',
             }
         ]

@@ -63,6 +63,17 @@ _CHAIN_CONDITIONAL_RE = re.compile(
     re.IGNORECASE,
 )
 
+# A stat increase scoped to a specific move's "DMG Multiplier" buffs only that
+# move, not the character's panel stat (e.g. Lucy S3: "The DMG Multiplier of
+# Override ... is increased by 50%, and its Crit. DMG is increased by 100%." —
+# the +100% applies to Override's crit, not Lucy's Crit. DMG stat). The "DMG
+# Multiplier" antecedent and the possessive "its"/"their" anaphora that refers
+# back to it are the tells; reject so it is never recorded as a flat bonus.
+_CHAIN_MOVE_SCOPED_RE = re.compile(
+    r'\bDMG\s+Multiplier\b|\b(?:its|their)\s*$',
+    re.IGNORECASE,
+)
+
 _MARKUP_RE = re.compile(r'<[^>]+>')
 # Stat names with internal periods that would be split by a naive sentence splitter.
 _PROTECT_PAIRS = [('Crit. Rate', 'CRIT_RATE_PH'), ('Crit. DMG', 'CRIT_DMG_PH')]
@@ -134,6 +145,10 @@ def parse_chain_bonus(desc_en: str, params: list[str]) -> dict | None:
             # Check the isolated sentence for conditional keywords.
             if _CHAIN_CONDITIONAL_RE.search(before) or _CHAIN_CONDITIONAL_RE.search(after):
                 break  # sentence is conditional and we skip it
+            # Reject increases scoped to a move's DMG Multiplier (anaphoric
+            # "its Crit. DMG" etc.) rather than the character's panel stat.
+            if _CHAIN_MOVE_SCOPED_RE.search(before):
+                break
             # A preceding sentence on the same line may carry a conditional that
             # scopes the stat boost (e.g. "At 2 stacks of X, ... {1}. Crit. DMG is
             # increased by {2}."). Only the text *before* this sentence matters —
