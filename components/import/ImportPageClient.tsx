@@ -100,7 +100,7 @@ export function ImportPageClient() {
         warning(`Scan finished with ${summary.failedRegionsCount} unread section(s). Review the build before importing.`);
       }
       if (summary.unsupportedLanguage) {
-        warning('This screenshot looks non-English, only English cards are supported for now');
+        warning('Non-English card detected, please re-upload');
         posthog.capture('import_non_english', { character_id: summary.characterId });
       }
       posthog.capture('ocr_complete', {
@@ -432,7 +432,7 @@ export function ImportPageClient() {
         {unsupportedLanguage && (
           <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
             This screenshot looks like a non-English card. Import only reads English screenshots for now,
-            so the stats below are likely wrong. Switch the game/wuwa-bot to English and re-grab the card.
+            please switch wuwa-bot to the English language and reupload.
           </div>
         )}
 
