@@ -13,6 +13,7 @@ interface UseOcrImportReturn {
   progress: Record<RegionKey, RegionStatus>;
   analysisData: AnalysisData;
   error: string | null;
+  unsupportedLanguage: boolean;
   processImage: (file: File) => Promise<OcrProcessSummary>;
   reset: () => void;
 }
@@ -27,6 +28,7 @@ interface OcrProcessSummary {
   characterId: string | null;
   timings?: Record<string, unknown>;
   trainingImageKey?: string | null;
+  unsupportedLanguage: boolean;
 }
 
 const INITIAL_PROGRESS = Object.fromEntries(
@@ -38,12 +40,14 @@ export function useOcrImport(): UseOcrImportReturn {
   const [progress, setProgress]         = useState<Record<RegionKey, RegionStatus>>(INITIAL_PROGRESS);
   const [analysisData, setAnalysisData] = useState<AnalysisData>({});
   const [error, setError]               = useState<string | null>(null);
+  const [unsupportedLanguage, setUnsupportedLanguage] = useState(false);
 
   const reset = useCallback(() => {
     setIsProcessing(false);
     setProgress(INITIAL_PROGRESS);
     setAnalysisData({});
     setError(null);
+    setUnsupportedLanguage(false);
   }, []);
 
   const processImage = useCallback(async (file: File): Promise<OcrProcessSummary> => {
@@ -54,6 +58,7 @@ export function useOcrImport(): UseOcrImportReturn {
     let nextProgress: Record<RegionKey, RegionStatus> = INITIAL_PROGRESS;
     let timings: Record<string, unknown> | undefined;
     let trainingImageKey: string | null | undefined;
+    let isUnsupportedLanguage = false;
 
     try {
       const attempt = async () => {
@@ -100,6 +105,8 @@ export function useOcrImport(): UseOcrImportReturn {
       nextAnalysisData = unwrapOcrAnalysisPayload(data, 'OCR') as AnalysisData;
       timings = data.timings;
       trainingImageKey = data.trainingImageKey;
+      isUnsupportedLanguage = Boolean(data.unsupportedLanguage);
+      setUnsupportedLanguage(isUnsupportedLanguage);
       nextProgress = Object.fromEntries(
         IMPORT_REGION_KEYS.map((key) => {
           const status = data.progress?.[key] ?? (nextAnalysisData[key] ? 'done' : 'error');
@@ -142,8 +149,9 @@ export function useOcrImport(): UseOcrImportReturn {
       characterId: characterData?.id ?? null,
       timings,
       trainingImageKey,
+      unsupportedLanguage: isUnsupportedLanguage,
     };
   }, [reset]);
 
-  return { isProcessing, progress, analysisData, error, processImage, reset };
+  return { isProcessing, progress, analysisData, error, unsupportedLanguage, processImage, reset };
 }

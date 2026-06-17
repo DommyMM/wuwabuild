@@ -27,7 +27,7 @@ export function ImportPageClient() {
   const router = useRouter();
   const gameData = useGameData();
   const { success, error: notifyError, warning, info } = useToast();
-  const { isProcessing, progress, analysisData, error, processImage, reset } = useOcrImport();
+  const { isProcessing, progress, analysisData, error, unsupportedLanguage, processImage, reset } = useOcrImport();
 
   const [step, setStep]                       = useState<ImportStep>('upload');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -99,6 +99,10 @@ export function ImportPageClient() {
       if (summary.failedRegionsCount > 0) {
         warning(`Scan finished with ${summary.failedRegionsCount} unread section(s). Review the build before importing.`);
       }
+      if (summary.unsupportedLanguage) {
+        warning('This screenshot looks non-English, only English cards are supported for now');
+        posthog.capture('import_non_english', { character_id: summary.characterId });
+      }
       posthog.capture('ocr_complete', {
         duration_ms: summary.durationMs,
         failed_regions_count: summary.failedRegionsCount,
@@ -107,6 +111,7 @@ export function ImportPageClient() {
         has_weapon: summary.hasWeapon,
         has_uid: summary.hasUid,
         character_id: summary.characterId,
+        unsupported_language: summary.unsupportedLanguage,
         timings: summary.timings ?? null,
       });
     }).catch((err) => {
@@ -420,6 +425,14 @@ export function ImportPageClient() {
                 Report this issue
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Non-English screenshot: import only supports English cards for now */}
+        {unsupportedLanguage && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+            This screenshot looks like a non-English card. Import only reads English screenshots for now,
+            so the stats below are likely wrong. Switch the game/wuwa-bot to English and re-grab the card.
           </div>
         )}
 

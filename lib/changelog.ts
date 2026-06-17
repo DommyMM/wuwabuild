@@ -19,6 +19,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Fixed leaderboard deep-links flip-flopping and jumping when you open one build then click another on the same board'
+            },
+            {
+                kind: 'improved',
+                text: 'Import now tells you when a screenshot is not English instead of silently importing a non-English build'
             }
         ]
     },

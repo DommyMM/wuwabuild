@@ -9,6 +9,8 @@ export interface FullOcrResponse {
   progress?: Partial<Record<RegionKey, RegionStatus>>;
   timings?: Record<string, unknown>;
   trainingImageKey?: string | null;
+  /** Backend flag: the card looks like a real build card but its substat names are not English. */
+  unsupportedLanguage?: boolean;
 }
 
 export type OcrStreamEvent =
