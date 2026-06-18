@@ -567,6 +567,21 @@ export interface LBTrack {
   erBrackets?: number[];
 }
 
+/** One support's full resolved buff contribution on a board (kit + weapon + sonata
+ * set + echo + sequence tiers), as label → value (percent unless flat ATK/HP/DEF). */
+export interface LBTeamSupportBuff {
+  charId: string;
+  seq: number;
+  buffs: Record<string, number>;
+}
+
+/** Team buff contribution to the on-field carry on a board: per-support breakdown
+ * plus the merged total. Empty (`{}` / `[]`) on solo boards. */
+export interface LBTeamBuffs {
+  total: Record<string, number>;
+  bySupport: LBTeamSupportBuff[];
+}
+
 export function isHealTrackKey(trackKey: string | null | undefined): boolean {
   return typeof trackKey === 'string' && trackKey.startsWith('heal_');
 }
@@ -630,6 +645,8 @@ export interface LBLeaderboardResponse {
   tracks: LBTrack[];
   teamCharacterIds: string[];
   teamMembers: LBTeamMemberConfig[];
+  /** Resolved team buff contributions for the active board (per-support + total). */
+  teamBuffs: LBTeamBuffs;
   activeWeaponId: string;
   activeTrack: string;
   erMin: number;
@@ -730,6 +747,32 @@ function parseTeamMembers(raw: unknown): LBTeamMemberConfig[] {
     .filter((member) => member.charId.length > 0);
 }
 
+function parseBuffMap(raw: unknown): Record<string, number> {
+  if (!isRecord(raw)) return {};
+  const out: Record<string, number> = {};
+  for (const [label, value] of Object.entries(raw)) {
+    if (typeof value === 'number' && Number.isFinite(value) && value !== 0) {
+      out[label] = value;
+    }
+  }
+  return out;
+}
+
+export function parseTeamBuffs(raw: unknown): LBTeamBuffs {
+  if (!isRecord(raw)) return { total: {}, bySupport: [] };
+  const bySupport = Array.isArray(raw.bySupport)
+    ? raw.bySupport
+        .filter(isRecord)
+        .map((s) => ({
+          charId: typeof s.charId === 'string' ? s.charId : '',
+          seq: typeof s.seq === 'number' && Number.isFinite(s.seq) ? s.seq : 0,
+          buffs: parseBuffMap(s.buffs),
+        }))
+        .filter((s) => s.charId.length > 0)
+    : [];
+  return { total: parseBuffMap(raw.total), bySupport };
+}
+
 export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBCharacterOverview[]> {
   const requestUrl = `${resolveLBBaseUrl()}/leaderboard`;
   const response = await fetch(requestUrl, { method: 'GET', signal });
@@ -798,6 +841,7 @@ export async function listLeaderboard(
     tracks?: unknown;
     teamCharacterIds?: unknown[];
     teamMembers?: unknown[];
+    teamBuffs?: unknown;
     activeWeaponId?: unknown;
     activeTrack?: unknown;
     erMin?: unknown;
@@ -837,6 +881,7 @@ export async function listLeaderboard(
     tracks: parseTracks(payload.tracks),
     teamCharacterIds: Array.isArray(payload.teamCharacterIds) ? payload.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
     teamMembers: parseTeamMembers(payload.teamMembers),
+    teamBuffs: parseTeamBuffs(payload.teamBuffs),
     activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
     activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
     erMin: toFiniteNumber(payload.erMin, 0),

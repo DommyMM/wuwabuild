@@ -1,5 +1,5 @@
 // Server-only module: SSR prefetch against the LB API via the Cloudflare gateway
-import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardDisplayStats, parseLeaderboardEntry, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack, LBTeamMemberConfig } from './lb';
+import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardDisplayStats, parseLeaderboardEntry, parseTeamBuffs, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse, LBTrack, LBTeamMemberConfig } from './lb';
 import { LB_API_BASE } from './apiEndpoints';
 import { loadCharacterDisplayMap } from './server/gameData';
 
@@ -252,6 +252,7 @@ export async function prefetchLeaderboard(
       tracks?: unknown;
       teamCharacterIds?: unknown[];
       teamMembers?: unknown[];
+      teamBuffs?: unknown;
       activeWeaponId?: unknown;
       activeTrack?: unknown;
       erMin?: unknown;
@@ -297,6 +298,7 @@ export async function prefetchLeaderboard(
         ? payload.teamCharacterIds.filter((v): v is string => typeof v === 'string')
         : [],
       teamMembers: parseTeamMembers(payload.teamMembers),
+      teamBuffs: parseTeamBuffs(payload.teamBuffs),
       activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
       activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
       erMin: toFiniteNumber(payload.erMin, 0),

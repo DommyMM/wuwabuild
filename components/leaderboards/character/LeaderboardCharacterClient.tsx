@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { isHealTrackKey, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
+import { isHealTrackKey, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, MAX_ITEMS_PER_PAGE } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
@@ -89,6 +89,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [configTracks, setConfigTracks] = useState<LBTrack[]>(() => initialData?.tracks ?? []);
   const [configTeamCharacterIds, setConfigTeamCharacterIds] = useState<string[]>(() => initialData?.teamCharacterIds ?? []);
   const [configTeamMembers, setConfigTeamMembers] = useState<LBTeamMemberConfig[]>(() => initialData?.teamMembers ?? []);
+  const [configTeamBuffs, setConfigTeamBuffs] = useState<LBTeamBuffs>(() => initialData?.teamBuffs ?? { total: {}, bySupport: [] });
   const lastTrackedFilterSignatureRef = useRef<string | null>(null);
 
   const initialPage = initialData?.page ?? initialSnapshot.page;
@@ -359,6 +360,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         setConfigTracks(response.tracks);
         setConfigTeamCharacterIds(response.teamCharacterIds);
         setConfigTeamMembers(response.teamMembers);
+        setConfigTeamBuffs(response.teamBuffs);
         setBoardDisplayStats((prev) => (
           sameDisplayStats(prev, response.displayStats) ? prev : response.displayStats
         ));
@@ -530,6 +532,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               characterElement={character?.element ?? undefined}
               teamCharacterIds={configTeamCharacterIds}
               teamMembers={configTeamMembers}
+              teamBuffs={configTeamBuffs}
               activeWeaponId={weaponId}
               activeTrackKey={track}
               activeTrackLabel={activeTrackConfig?.label}

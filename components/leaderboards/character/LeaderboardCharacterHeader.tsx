@@ -2,10 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
+import { HoverCard, HoverCardBonusList, HoverCardDescription } from '@/components/ui/HoverCard';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LBTeamMemberConfig } from '@/lib/lb';
+import { LBTeamBuffs, LBTeamMemberConfig } from '@/lib/lb';
 import { CDNFetter } from '@/lib/echo';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
@@ -20,10 +20,39 @@ interface LeaderboardCharacterHeaderProps {
   characterElement?: string;
   teamCharacterIds?: string[];
   teamMembers?: LBTeamMemberConfig[];
+  teamBuffs?: LBTeamBuffs;
   activeWeaponId?: string;
   activeTrackKey?: string;
   activeTrackLabel?: string;
   activeTrackNote?: string;
+}
+
+// Priority order for the buff tooltip; unlisted labels (DMG%, Amplify%, RES PEN%,
+// element-scoped, etc.) sort after these, then alphabetically.
+const BUFF_LABEL_ORDER = [
+  'Crit DMG', 'Crit Rate', 'ATK%', 'ATK', 'HP%', 'HP', 'DEF%', 'DEF',
+  'DMG Multiplier', 'DEF Ignore', 'DEF Reduction',
+];
+const FLAT_BUFF_LABELS = new Set(['ATK', 'HP', 'DEF']);
+
+// formatBuffEntries renders a backend buff map (label → value) as ordered
+// { name, value } rows. Labels already carry a "%" where the value is a percent
+// of a stat; everything except flat ATK/HP/DEF is a percent, so append "%".
+function formatBuffEntries(buffs: Record<string, number>): { name: string; value: string }[] {
+  return Object.entries(buffs)
+    .sort(([a], [b]) => {
+      const ia = BUFF_LABEL_ORDER.indexOf(a);
+      const ib = BUFF_LABEL_ORDER.indexOf(b);
+      const pa = ia === -1 ? BUFF_LABEL_ORDER.length : ia;
+      const pb = ib === -1 ? BUFF_LABEL_ORDER.length : ib;
+      return pa !== pb ? pa - pb : a.localeCompare(b);
+    })
+    .map(([label, value]) => {
+      const rounded = Math.round(value * 10) / 10;
+      const sign = value >= 0 ? '+' : '';
+      const unit = FLAT_BUFF_LABELS.has(label) ? '' : '%';
+      return { name: label.replace(/%$/u, ''), value: `${sign}${rounded}${unit}` };
+    });
 }
 
 interface LoadoutIcon {
@@ -108,6 +137,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
   characterElement,
   teamCharacterIds = [],
   teamMembers = [],
+  teamBuffs,
   activeWeaponId,
   activeTrackKey,
   activeTrackLabel,
@@ -121,6 +151,42 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     statIcons,
   } = useGameData();
   const { t } = useLanguage();
+
+  // charId → that support's resolved buff contribution on this board.
+  const buffsByCharId = React.useMemo(() => {
+    const map = new Map<string, { name: string; value: string }[]>();
+    for (const s of teamBuffs?.bySupport ?? []) {
+      map.set(s.charId, formatBuffEntries(s.buffs));
+    }
+    return map;
+  }, [teamBuffs]);
+  const totalBuffEntries = React.useMemo(
+    () => formatBuffEntries(teamBuffs?.total ?? {}),
+    [teamBuffs],
+  );
+
+  // Wrap a portrait in a buff tooltip; returns the node unchanged when there are
+  // no buffs to show (e.g. solo boards, or a support with no resolved buffs).
+  const wrapBuffHover = (
+    node: React.ReactNode,
+    title: string,
+    subtitle: string,
+    entries: { name: string; value: string }[],
+  ): React.ReactNode => {
+    if (entries.length === 0) return node;
+    return (
+      <HoverCard
+        placement="bottom"
+        title={title}
+        subtitle={subtitle}
+        body={<HoverCardBonusList items={entries} />}
+        width="md"
+        triggerClassName="inline-flex cursor-help"
+      >
+        {node}
+      </HoverCard>
+    );
+  };
 
   const seqLevel = activeTrackKey ? parseLBSeqLevel(activeTrackKey) : 0;
   const cleanTrackLabel = activeTrackLabel ? stripLBSeqPrefix(activeTrackLabel) : null;
@@ -215,6 +281,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
       name: character ? t(character.nameI18n ?? { en: character.name }) : member.charId,
       sequence: member.sequence ?? 0,
       loadoutIcons,
+      buffEntries: buffsByCharId.get(member.charId) ?? [],
     };
   });
 
@@ -264,48 +331,58 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
 
         <div className="mt-2 flex w-full max-w-5xl flex-wrap items-start justify-center gap-8 md:gap-10">
           <div className="flex flex-col items-center">
-            <div className="h-25 w-25 rounded-3xl border border-white/12 bg-black/16 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
-              {characterHead ? (
-                <div
-                  role="img"
-                  aria-label={characterName}
-                  className="h-full w-full rounded-[inherit] bg-cover bg-center bg-no-repeat"
-                  style={{ backgroundImage: `url("${characterHead}")` }}
-                />
-              ) : (
-                <div className="h-full w-full rounded-[inherit] bg-background-secondary/80" />
-              )}
-            </div>
+            {wrapBuffHover(
+              <div className="h-25 w-25 rounded-3xl border border-white/12 bg-black/16 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+                {characterHead ? (
+                  <div
+                    role="img"
+                    aria-label={characterName}
+                    className="h-full w-full rounded-[inherit] bg-cover bg-center bg-no-repeat"
+                    style={{ backgroundImage: `url("${characterHead}")` }}
+                  />
+                ) : (
+                  <div className="h-full w-full rounded-[inherit] bg-background-secondary/80" />
+                )}
+              </div>,
+              characterName,
+              'Team Buff Total',
+              totalBuffEntries,
+            )}
             <LoadoutIconRow icons={leadLoadoutIcons} keyPrefix="lead" />
           </div>
 
           {supportMembers.map((member) => {
             return (
               <div key={member.id} className="flex flex-col items-center">
-                <div className="relative h-25 w-25 rounded-3xl border border-white/12 bg-black/16 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
-                  {member.head ? (
-                    <div
-                      role="img"
-                      aria-label={member.name}
-                      className="h-full w-full rounded-[inherit] bg-cover bg-center bg-no-repeat"
-                      style={{ backgroundImage: `url("${member.head}")` }}
-                    />
-                  ) : (
-                    <div className="h-full w-full rounded-[inherit] bg-background-secondary/80" />
-                  )}
-                  {member.sequence > 0 && (
-                    <span
-                      aria-label={`Sequence ${member.sequence}`}
-                      className="absolute -right-1.5 -top-1.5 rounded-full bg-black/80 shadow-[0_2px_8px_rgba(0,0,0,0.55)] backdrop-blur-sm"
-                    >
+                {wrapBuffHover(
+                  <div className="relative h-25 w-25 rounded-3xl border border-white/12 bg-black/16 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+                    {member.head ? (
+                      <div
+                        role="img"
+                        aria-label={member.name}
+                        className="h-full w-full rounded-[inherit] bg-cover bg-center bg-no-repeat"
+                        style={{ backgroundImage: `url("${member.head}")` }}
+                      />
+                    ) : (
+                      <div className="h-full w-full rounded-[inherit] bg-background-secondary/80" />
+                    )}
+                    {member.sequence > 0 && (
                       <span
-                        className={`block rounded-full border px-2 py-0.5 text-[11px] font-bold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[member.sequence]}`}
+                        aria-label={`Sequence ${member.sequence}`}
+                        className="absolute -right-1.5 -top-1.5 rounded-full bg-black/80 shadow-[0_2px_8px_rgba(0,0,0,0.55)] backdrop-blur-sm"
                       >
-                        S{member.sequence}
+                        <span
+                          className={`block rounded-full border px-2 py-0.5 text-[11px] font-bold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[member.sequence]}`}
+                        >
+                          S{member.sequence}
+                        </span>
                       </span>
-                    </span>
-                  )}
-                </div>
+                    )}
+                  </div>,
+                  member.name,
+                  member.sequence > 0 ? `S${member.sequence} · Team Buffs` : 'Team Buffs',
+                  member.buffEntries,
+                )}
                 <LoadoutIconRow icons={member.loadoutIcons} keyPrefix={member.id} />
               </div>
             );

@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-17',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Show full buffs when you hover over character faces in the leaderbaord headers'
+            },
+            {
+                kind: 'fixed',
+                text: 'S2 supports for all S6 leaderboards'
+            }
+        ]
+    },
+    {
         date: '2026-06-16',
         changes: [
             {
