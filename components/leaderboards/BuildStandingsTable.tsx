@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useGameData } from '@/contexts/GameDataContext';
 import { LBStandingEntry, LBTeamMemberConfig } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
+import { ITEMS_PER_PAGE } from './constants';
+import { buildLeaderboardHref } from './character/leaderboardCharacterQuery';
 
 interface BuildStandingsTableProps {
   standings: LBStandingEntry[] | null;
@@ -85,7 +87,12 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
             standingEntry.weaponId === activeWeaponId &&
             standingEntry.trackKey === activeTrackKey;
 
-          const boardHref = `/leaderboards/${encodeURIComponent(characterId)}?weaponId=${encodeURIComponent(standingEntry.weaponId)}&track=${encodeURIComponent(standingEntry.trackKey)}${buildId ? `&buildId=${encodeURIComponent(buildId)}` : ''}`;
+          const boardHref = buildLeaderboardHref(characterId, {
+            page: Math.max(1, Math.ceil(standingEntry.rank / ITEMS_PER_PAGE)),
+            weaponId: standingEntry.weaponId,
+            track: standingEntry.trackKey,
+            buildId,
+          });
 
           const mainChar = getCharacter(characterId);
           const supportMembers: LBTeamMemberConfig[] = standingEntry.teamMembers.length > 0

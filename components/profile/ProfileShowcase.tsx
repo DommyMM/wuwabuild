@@ -7,7 +7,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getProfileStandings, LBProfileStandingEntry } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 import { computeTopPercent, getRankTier } from '@/lib/calculations/rankTier';
-import { stripLBSeqPrefix } from '@/components/leaderboards/constants';
+import { ITEMS_PER_PAGE, stripLBSeqPrefix } from '@/components/leaderboards/constants';
+import { buildLeaderboardHref } from '@/components/leaderboards/character/leaderboardCharacterQuery';
 import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
 
 interface ProfileShowcaseProps {
@@ -126,7 +127,12 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
               const topPercent = computeTopPercent(entry.rank, entry.total);
               const tier = getRankTier(topPercent);
               const baseLabel = stripLBSeqPrefix(entry.trackLabel || entry.trackKey) || 'DMG';
-              const href = `/leaderboards/${entry.characterId}?weaponId=${encodeURIComponent(entry.weaponId)}&track=${encodeURIComponent(entry.trackKey)}&buildId=${encodeURIComponent(entry.buildId)}`;
+              const href = buildLeaderboardHref(entry.characterId, {
+                page: Math.max(1, Math.ceil(entry.rank / ITEMS_PER_PAGE)),
+                weaponId: entry.weaponId,
+                track: entry.trackKey,
+                buildId: entry.buildId,
+              });
               const atkIcon = statIcons?.ATK;
               const mainStatIcon = weapon?.main_stat ? (statIcons?.[weapon.main_stat] ?? null) : null;
               const weaponBadge = (

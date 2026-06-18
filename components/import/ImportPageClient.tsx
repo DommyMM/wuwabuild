@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -17,11 +17,23 @@ import { ReportIssueModal } from './ReportIssueModal';
 import type { AnalysisData } from '@/lib/import/types';
 import type { SavedState } from '@/lib/build';
 import { getDefaultReportReason, type OcrIssueReason } from '@/lib/import/report';
-import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { AlertTriangle, ExternalLink, RotateCcw } from 'lucide-react';
 import posthog from 'posthog-js';
 import Link from 'next/link';
+import { DEFAULT_LB_TRACK } from '@/components/leaderboards/constants';
+import { buildLeaderboardHref } from '@/components/leaderboards/character/leaderboardCharacterQuery';
+import { validateImportedEchoPanels } from '@/lib/import/validateEchoPanels';
 
 type ImportStep = 'upload' | 'results';
+
+const ILLEGAL_ECHO_UPLOAD_MESSAGE =
+  'Import saved locally, but leaderboard upload was skipped. OCR may have misread one or more echo stats, such as a duplicate substat or wrong set assignment.';
+
+const formatIllegalEchoUploadError = (detail?: string) => (
+  'OCR may have misread one or more echo stats (e.g. a duplicate substat or wrong set assignment). ' +
+  `${detail ? `${detail} ` : ''}` +
+  'The build was saved locally for manual correction but was not submitted to the leaderboard.'
+);
 
 export function ImportPageClient() {
   const router = useRouter();
@@ -43,6 +55,7 @@ export function ImportPageClient() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportReason, setReportReason] = useState<OcrIssueReason>('manual_report');
+  const preflightSignatureRef = useRef<string | null>(null);
 
   // Silent wake-up ping so Railway auto-starts the server if sleeping
   useEffect(() => { fetch(OCR_HEALTH_URL).catch(() => {}); }, []);
@@ -72,6 +85,7 @@ export function ImportPageClient() {
     trainingImageKeyRef.current = null;
     setTrainingImageKey(null);
     setLastImportWatermark(null);
+    preflightSignatureRef.current = null;
 
     const img = await loadImage(f);
     if (img.naturalWidth !== 1920 || img.naturalHeight !== 1080) {
@@ -137,11 +151,12 @@ export function ImportPageClient() {
     setTrainingImageKey(null);
     setLastImportWatermark(null);
     setPendingWm(null);
+    preflightSignatureRef.current = null;
     setIsReportModalOpen(false);
     setReportReason('manual_report');
   };
 
-  const buildImportedState = (wm: { username: string; uid: string }) => {
+  const buildImportedState = useCallback((wm: { username: string; uid: string }) => {
     const mergedData: AnalysisData = {
       ...analysisData,
       watermark: { username: wm.username, uid: Number(wm.uid) || 0 },
@@ -152,7 +167,7 @@ export function ImportPageClient() {
       weapons:    gameData.weapons,
       echoes:     gameData.echoes,
     });
-  };
+  }, [analysisData, gameData.characters, gameData.echoes, gameData.weapons]);
 
   const getImportedCharacterName = (importedState: SavedState) => (
     gameData.getCharacter(importedState.characterId)?.name ??
@@ -160,12 +175,12 @@ export function ImportPageClient() {
     'Imported Build'
   );
 
-  const getActiveWatermark = () => (
+  const getActiveWatermark = useCallback(() => (
     lastImportWatermark ?? {
       username: analysisData.watermark?.username ?? '',
       uid: String(analysisData.watermark?.uid ?? ''),
     }
-  );
+  ), [analysisData.watermark?.uid, analysisData.watermark?.username, lastImportWatermark]);
 
   const getReportImportedState = () => {
     const activeWatermark = getActiveWatermark();
@@ -185,7 +200,17 @@ export function ImportPageClient() {
     setIsReportModalOpen(true);
   };
 
-  const uploadImportedState = async (importedState: SavedState) => {
+  const getLeaderboardHref = (importedState: SavedState, buildId?: string) => {
+    if (!importedState.characterId) return '/leaderboards';
+
+    return buildLeaderboardHref(importedState.characterId, {
+      weaponId: importedState.weaponId || undefined,
+      track: DEFAULT_LB_TRACK,
+      buildId,
+    });
+  };
+
+  const uploadImportedState = async (importedState: SavedState): Promise<string | null> => {
     const captureSubmitResult = (result: 'created' | 'updated' | 'warning' | 'skipped' | 'error', reason: string, damageComputed?: boolean) => {
       posthog.capture('leaderboard_submit_result', {
         result,
@@ -197,19 +222,25 @@ export function ImportPageClient() {
     };
     if (!uploadToLb) {
       captureSubmitResult('skipped', 'upload_disabled');
-      return;
+      return null;
+    }
+
+    if (lbUploadError) {
+      warning(ILLEGAL_ECHO_UPLOAD_MESSAGE, 12000);
+      captureSubmitResult('skipped', 'client_echo_preflight');
+      return null;
     }
 
     if (!importedState.characterId || !importedState.weaponId) {
       warning('Leaderboard skipped: character or weapon was not recognized.');
       captureSubmitResult('skipped', 'missing_character_or_weapon');
-      return;
+      return null;
     }
 
     if (!importedState.watermark.uid.trim()) {
       warning('Leaderboard skipped: UID is required.');
       captureSubmitResult('skipped', 'uid_missing');
-      return;
+      return null;
     }
 
     try {
@@ -222,21 +253,77 @@ export function ImportPageClient() {
       if (!result.damageComputed) {
         info('Saved without fresh damage data for this character.');
       }
+      return result.id || null;
     } catch (err) {
       posthog.captureException(err);
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('illegal echo')) {
-        setLbUploadError(
-          'OCR may have misread one or more echo stats (e.g. a duplicate substat or wrong set assignment). ' +
-          'The build was loaded to the editor for manual correction but was not submitted to the leaderboard.'
-        );
+        setLbUploadError(formatIllegalEchoUploadError());
+        warning(ILLEGAL_ECHO_UPLOAD_MESSAGE, 12000);
         captureSubmitResult('error', 'illegal_echo');
       } else {
         notifyError(msg ? `Leaderboard upload failed: ${msg}` : 'Leaderboard upload failed.');
         captureSubmitResult('error', 'submit_failed');
       }
+      return null;
     }
   };
+
+  useEffect(() => {
+    if (step !== 'results' || isProcessing || !uploadToLb) return;
+    if (!analysisData.character && !analysisData.echo1 && !analysisData.echo2 && !analysisData.echo3 && !analysisData.echo4 && !analysisData.echo5) return;
+
+    const signature = JSON.stringify({
+      character: analysisData.character ?? null,
+      weapon: analysisData.weapon ?? null,
+      echoes: [analysisData.echo1, analysisData.echo2, analysisData.echo3, analysisData.echo4, analysisData.echo5],
+      watermark: analysisData.watermark ?? null,
+    });
+    if (preflightSignatureRef.current === signature) return;
+    preflightSignatureRef.current = signature;
+    let cancelled = false;
+
+    try {
+      const importedState = buildImportedState(getActiveWatermark());
+      const violations = validateImportedEchoPanels({
+        echoPanels: importedState.echoPanels,
+        getEcho: gameData.getEcho,
+        getMainStatsByCost: gameData.getMainStatsByCost,
+        getSubstatValues: gameData.getSubstatValues,
+      });
+      if (violations.length > 0) {
+        const detail = violations[0];
+        queueMicrotask(() => {
+          if (!cancelled) setLbUploadError(formatIllegalEchoUploadError(detail));
+        });
+        posthog.capture('leaderboard_submit_result', {
+          result: 'skipped',
+          reason: 'client_echo_preflight',
+          character_id: importedState.characterId ?? null,
+          violation_count: violations.length,
+          first_violation: detail,
+        });
+      } else {
+        queueMicrotask(() => {
+          if (!cancelled) setLbUploadError(null);
+        });
+      }
+    } catch {
+      // Incomplete OCR results are handled by the regular import validation path.
+    }
+
+    return () => { cancelled = true; };
+  }, [
+    analysisData,
+    buildImportedState,
+    gameData.getEcho,
+    gameData.getMainStatsByCost,
+    gameData.getSubstatValues,
+    getActiveWatermark,
+    isProcessing,
+    step,
+    uploadToLb,
+  ]);
 
   const doImport = async (wm: { username: string; uid: string }) => {
     const importedState = buildImportedState(wm);
@@ -288,6 +375,30 @@ export function ImportPageClient() {
     } catch (err) {
       posthog.captureException(err);
       notifyError(err instanceof Error ? err.message : 'Failed to save imported build.');
+    } finally {
+      if (shouldUpload) setIsSubmitting(false);
+    }
+  };
+
+  const goToImportedLeaderboard = async (wm: { username: string; uid: string }) => {
+    const importedState = buildImportedState(wm);
+    const shouldUpload = uploadToLb;
+
+    try {
+      if (shouldUpload) setIsSubmitting(true);
+      const buildId = await uploadImportedState(importedState);
+      saveDraftBuild(importedState);
+      setDraftBuildState(importedState);
+      posthog.capture('import_complete', {
+        action: 'go_to_leaderboard',
+        character_id: importedState.characterId,
+        uploaded_to_lb: shouldUpload,
+        has_build_id: Boolean(buildId),
+      });
+      router.push(getLeaderboardHref(importedState, buildId ?? undefined));
+    } catch (err) {
+      posthog.captureException(err);
+      notifyError(err instanceof Error ? err.message : 'Failed to open leaderboard.');
     } finally {
       if (shouldUpload) setIsSubmitting(false);
     }
@@ -395,7 +506,10 @@ export function ImportPageClient() {
                   type="checkbox"
                   checked={uploadToLb}
                   disabled={isSubmitting}
-                  onChange={e => setUploadToLb(e.target.checked)}
+                  onChange={e => {
+                    setUploadToLb(e.target.checked);
+                    preflightSignatureRef.current = null;
+                  }}
                   className="w-4 h-4 accent-(--color-accent) cursor-pointer"
                 />
                 <span className="text-sm text-text-primary/70">Upload to Leaderboard</span>
@@ -451,7 +565,7 @@ export function ImportPageClient() {
         )}
 
         {/* LB upload error: illegal echo data from OCR misread */}
-        {lbUploadError && (
+        {uploadToLb && lbUploadError && (
           <div className="mb-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-400">
             <span className="font-medium">Leaderboard upload skipped.</span>{' '}
             {lbUploadError}
@@ -494,12 +608,12 @@ export function ImportPageClient() {
             <span className="font-medium text-text-primary">
               {gameData.getCharacter(draftBuildState?.characterId ?? null)?.name ?? 'a build'}
             </span>{' '}
-            loaded. You can overwrite it, or save this import as a build to the{' '}
+            loaded. You can overwrite it, save it, or jump straight to the{' '}
             <Link
-              href="/saves"
+              href={draftBuildState?.characterId ? `/leaderboards/${draftBuildState.characterId}` : '/leaderboards'}
               className="text-accent underline underline-offset-2 transition-colors hover:text-accent-hover"
             >
-              Saves page
+              leaderboard
             </Link>
             .
           </>
@@ -509,11 +623,23 @@ export function ImportPageClient() {
             <button
               onClick={async () => {
                 if (!pendingWm) return;
+                await goToImportedLeaderboard(pendingWm);
+                setPendingWm(null);
+              }}
+              disabled={isSubmitting}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Go to Leaderboard
+            </button>
+            <button
+              onClick={async () => {
+                if (!pendingWm) return;
                 await saveImportToSaves(pendingWm);
                 setPendingWm(null);
               }}
               disabled={isSubmitting}
-              className="w-full rounded-xl bg-accent py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover"
+              className="w-full rounded-xl border border-border py-2 text-sm font-semibold text-text-primary/70 transition-colors hover:border-text-primary/30 hover:text-text-primary"
             >
               Save Build
             </button>

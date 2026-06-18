@@ -23,6 +23,14 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'S2 supports for all S6 leaderboards'
+            },
+            {
+                kind: 'improved',
+                text: 'Import can directly lead to leaderboard now'
+            },
+            {
+                kind: 'fixed',
+                text: 'Import leaderboard upload warnings now stay visible after you continue to edit, saves, or leaderboards'
             }
         ]
     },
