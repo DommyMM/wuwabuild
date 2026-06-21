@@ -12,13 +12,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { useResolvedLeaderboardLink } from '@/hooks/useResolvedLeaderboardLink';
-import {
-  DEFAULT_CARD_ART_TRANSFORM,
-  MAX_ART_ZOOM,
-  MIN_ART_ZOOM,
-  CardArtSourceMode,
-  CardArtTransform,
-} from '@/lib/cardArt';
+import { DEFAULT_CARD_ART_TRANSFORM, MAX_ART_ZOOM, MIN_ART_ZOOM, CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
 import { CharacterSelector } from '@/components/character/CharacterSelector';
 import { SequenceSelector } from '@/components/character/SequenceSelector';
 import { WeaponSelector } from '@/components/weapon/WeaponSelector';
@@ -33,7 +27,7 @@ import { CardScaler } from './CardScaler';
 import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { getSplashUrlCandidates, resolveSplashCardArt } from '@/lib/splashArt';
+import { getSplashUrlCandidates, logSplashArtTransform, resolveSplashCardArt, SplashArtVariant } from '@/lib/splashArt';
 import posthog from 'posthog-js';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -49,6 +43,7 @@ type CharacterArtState = {
   transform: CardArtTransform;
   sourceMode: CardArtSourceMode;
   customUrl: string | null;
+  splashVariant: SplashArtVariant;
 };
 
 const ROVER_ELEMENT_ACTIVE_CLASS: Record<RoverElement, string> = {
@@ -87,6 +82,7 @@ const createDefaultArtState = (characterId: string | null): CharacterArtState =>
   transform: DEFAULT_CARD_ART_TRANSFORM,
   sourceMode: 'default',
   customUrl: null,
+  splashVariant: 'normal',
 });
 
 export const BuildEditor: React.FC = () => {
@@ -143,6 +139,11 @@ export const BuildEditor: React.FC = () => {
   const isSplashArtActive = useMemo(() => {
     return selected ? artSourceMode === 'splash' && Boolean(customArtUrl) : false;
   }, [artSourceMode, customArtUrl, selected]);
+  const selectedSkinIds = useMemo(
+    () => selected?.character.skins?.map((skin) => skin.id) ?? [],
+    [selected?.character.skins],
+  );
+  const selectedSplashVariant: SplashArtVariant = cardOptions.useAltSkin && selectedSkinIds.length > 0 ? 'skin' : 'normal';
   const portalTarget = typeof document === 'undefined' ? null : document.getElementById('nav-toolbar-portal');
 
   const setArtTransform = useCallback((next: React.SetStateAction<CardArtTransform>) => {
@@ -154,6 +155,23 @@ export const BuildEditor: React.FC = () => {
       };
     });
   }, [state.characterId]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    if (!isArtEditMode || artSourceMode !== 'splash' || !state.characterId) return;
+
+    const timer = window.setTimeout(() => {
+      logSplashArtTransform(state.characterId!, activeArtState.splashVariant, artTransform);
+    }, 200);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    activeArtState.splashVariant,
+    artSourceMode,
+    artTransform,
+    isArtEditMode,
+    state.characterId,
+  ]);
 
   const clearArtState = useCallback(() => {
     customArtBlobRef.current = null;
@@ -172,7 +190,9 @@ export const BuildEditor: React.FC = () => {
   useEffect(() => {
     if (!selected || !state.characterId) return;
     if (splashDisabledIds.has(state.characterId)) return;
-    if (activeArtState.sourceMode !== 'default' || activeArtState.customUrl) return;
+    const shouldSwapSplashVariant = activeArtState.sourceMode === 'splash'
+      && activeArtState.splashVariant !== selectedSplashVariant;
+    if ((activeArtState.sourceMode !== 'default' || activeArtState.customUrl) && !shouldSwapSplashVariant) return;
 
     let cancelled = false;
     const characterKey = state.characterId;
@@ -181,15 +201,19 @@ export const BuildEditor: React.FC = () => {
       String(selected.character.id),
       selected.character.legacyId ?? null,
       selected.isRover,
+      { variant: selectedSplashVariant },
     ).then((splash) => {
       if (cancelled || !splash) return;
       customArtBlobRef.current = null;
       setArtState((prev) => {
         const current = prev.ownerCharacterId === characterKey ? prev : createDefaultArtState(characterKey);
-        if (current.sourceMode !== 'default' || current.customUrl) return prev;
+        const isCurrentSplashVariant = current.sourceMode === 'splash'
+          && current.splashVariant !== selectedSplashVariant;
+        if ((current.sourceMode !== 'default' || current.customUrl) && !isCurrentSplashVariant) return prev;
         return {
           ...current,
           customUrl: splash.url,
+          splashVariant: selectedSplashVariant,
           sourceMode: 'splash',
           transform: splash.transform,
         };
@@ -199,7 +223,16 @@ export const BuildEditor: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeArtState.customUrl, activeArtState.sourceMode, selected, splashDisabledIds, state.characterId]);
+  }, [
+    activeArtState.customUrl,
+    activeArtState.sourceMode,
+    activeArtState.splashVariant,
+    selected,
+    selectedSkinIds,
+    selectedSplashVariant,
+    splashDisabledIds,
+    state.characterId,
+  ]);
 
   // Reset weapon when switching to a character with a different weapon type
   useEffect(() => {
@@ -360,6 +393,7 @@ export const BuildEditor: React.FC = () => {
       customUrl: dataUrl,
       isEditMode: activeArtState.isEditMode,
       ownerCharacterId: state.characterId,
+      splashVariant: 'normal',
       sourceMode: 'custom',
       transform: { x: 0, y: 0, scale: autoScale },
     });
@@ -388,7 +422,8 @@ export const BuildEditor: React.FC = () => {
     const splash = await resolveSplashCardArt(
       String(characterId),
       selected.character.legacyId ?? null,
-      selected.isRover
+      selected.isRover,
+      { variant: selectedSplashVariant },
     );
 
     if (!splash) {
@@ -396,7 +431,8 @@ export const BuildEditor: React.FC = () => {
       console.error('Splash image load failed. Tried:', getSplashUrlCandidates(
         String(characterId),
         selected.character.legacyId ?? null,
-        selected.isRover
+        selected.isRover,
+        { variant: selectedSplashVariant },
       ));
       return;
     }
@@ -411,14 +447,39 @@ export const BuildEditor: React.FC = () => {
       customUrl: splash.url,
       isEditMode: true,
       ownerCharacterId: stateCharacterId,
+      splashVariant: selectedSplashVariant,
       sourceMode: 'splash',
       transform: splash.transform,
     });
-  }, [activeArtState.sourceMode, clearArtState, selected, state.characterId, toastError]);
+  }, [
+    activeArtState.sourceMode,
+    clearArtState,
+    selected,
+    selectedSplashVariant,
+    state.characterId,
+    toastError,
+  ]);
 
-  const handleResetArtTransform = useCallback(() => {
+  const handleResetArtTransform = useCallback(async () => {
+    if (artSourceMode === 'splash' && selected) {
+      const splash = await resolveSplashCardArt(
+        String(selected.character.id),
+        selected.character.legacyId ?? null,
+        selected.isRover,
+        { variant: activeArtState.splashVariant },
+      );
+      if (splash) {
+        setArtTransform(splash.transform);
+        return;
+      }
+    }
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
-  }, [setArtTransform]);
+  }, [
+    activeArtState.splashVariant,
+    artSourceMode,
+    selected,
+    setArtTransform,
+  ]);
 
   const handleNudgeArt = useCallback((dx: number, dy: number) => {
     setArtTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));

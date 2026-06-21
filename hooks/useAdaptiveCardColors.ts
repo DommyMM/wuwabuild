@@ -19,12 +19,10 @@ export interface AdaptiveCardColors {
 const PANEL_WIDTH = 432;
 const PANEL_HEIGHT = 600;
 
-const SAMPLE_POINTS = [
-  { x: 0.78, y: 0.16, weight: 0.85 },
-  { x: 0.9, y: 0.32, weight: 1.15 },
-  { x: 0.86, y: 0.5, weight: 1.35 },
-  { x: 0.78, y: 0.68, weight: 1.1 },
-  { x: 0.62, y: 0.84, weight: 0.9 },
+const SAMPLE_BANDS = [
+  { x: 0.06, y: 0.06, width: 0.88, height: 0.22, weight: 0.85 },
+  { x: 0.06, y: 0.34, width: 0.88, height: 0.26, weight: 1.35 },
+  { x: 0.06, y: 0.68, width: 0.88, height: 0.24, weight: 1.05 },
 ] as const;
 
 const CHANNEL_HEX = 2;
@@ -206,26 +204,28 @@ const sampleImage = async (
 
   drawRenderedPanelArt(ctx, image, transform);
 
-  const samples = SAMPLE_POINTS.map((point) => {
-    const x = Math.round(PANEL_WIDTH * point.x);
-    const y = Math.round(PANEL_HEIGHT * point.y);
+  const samples = SAMPLE_BANDS.map((band) => {
+    const x = Math.round(PANEL_WIDTH * band.x);
+    const y = Math.round(PANEL_HEIGHT * band.y);
+    const width = Math.round(PANEL_WIDTH * band.width);
+    const height = Math.round(PANEL_HEIGHT * band.height);
     const swatch = ctx.getImageData(
-      Math.max(0, x - 10),
-      Math.max(0, y - 18),
-      21,
-      37,
+      x,
+      y,
+      Math.min(width, PANEL_WIDTH - x),
+      Math.min(height, PANEL_HEIGHT - y),
     );
     return {
       color: averagePixels(swatch.data, fallback),
-      weight: point.weight,
+      weight: band.weight,
     };
   });
 
   return toColorSet(fallbackHex, {
     primary: weightedAverage(samples, fallback),
     top: samples[0]?.color ?? fallback,
-    middle: samples[2]?.color ?? fallback,
-    bottom: samples[4]?.color ?? fallback,
+    middle: samples[1]?.color ?? fallback,
+    bottom: samples[2]?.color ?? fallback,
   });
 };
 

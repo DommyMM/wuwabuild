@@ -43,7 +43,9 @@ Module map:
 
 ## Art panel
 
-The panel art defaults to the character's **splash** (the full illustration, like the reference bot cards), resolved client-side by `resolveSplashCardArt` in [lib/splashArt.ts](../lib/splashArt.ts): walks local `/images/splash/` URL candidates, applies the per-character `SPLASH_ART_TRANSFORMS` framing offset (or an auto-scale for short images), and falls back to the banner cutout when no splash file exists. **Both the editor and profile cards share this resolver and behavior**; the editor additionally lets the user toggle splash off (`splashDisabledIds`), upload custom art, and drag/zoom it (`CardArtTransform`, persisted per character while editing). On the profile card, removing the art opts that character out for the session and the banner sticks.
+The panel art defaults to the character's **splash** (the full illustration, like the reference bot cards), resolved client-side by `resolveSplashCardArt` in [lib/splashArt.ts](../lib/splashArt.ts): walks local `/images/splash/` URL candidates, applies the per-character `SPLASH_ART_TRANSFORMS` framing offset (or an auto-scale for short images), and falls back to the banner cutout when no splash file exists. **Both the editor and profile cards share this resolver and behavior**; the editor additionally lets the user toggle splash off (`splashDisabledIds`), switch normal/skin variants for characters with skins, upload custom art, and drag/zoom it (`CardArtTransform`, persisted per character while editing). On the profile card, removing the art opts that character out for the session and the banner sticks.
+
+Normal splash files use the character id stem as WebP, e.g. `1107.webp`. Skin splash files use the same stem with `-skin`, e.g. `1107-skin.webp`. Rover uses the shared `Rover.webp` and optional `Rover-skin.webp`. If a skin splash is missing, the resolver falls back to the normal splash before falling back to the banner cutout.
 
 Rover splash candidates try legacy-id and gendered filenames first; see `getSplashUrlCandidates`.
 

@@ -83,14 +83,32 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({
       <div className="col-span-4 flex min-w-0 flex-col gap-1.5 md:col-auto">
         <span className={LABEL_BASE}>{hasSkin ? 'Skin' : 'Art Source'}</span>
         {hasSkin ? (
-          <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-2">
-            <input
-              type="checkbox"
-              checked={useAltSkin}
-              onChange={e => setUseAltSkin(e.target.checked)}
-              className="h-4 w-4 accent-accent"
-            />
-          </label>
+          <div className="grid h-[38px] grid-cols-2 overflow-hidden rounded-md border border-border bg-background-secondary p-0.5 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setUseAltSkin(false)}
+              aria-pressed={!useAltSkin}
+              className={`rounded-[4px] px-2 transition-colors ${
+                !useAltSkin
+                  ? 'bg-accent text-background'
+                  : 'text-text-primary/55 hover:text-text-primary/85'
+              }`}
+            >
+              Normal
+            </button>
+            <button
+              type="button"
+              onClick={() => setUseAltSkin(true)}
+              aria-pressed={useAltSkin}
+              className={`rounded-[4px] px-2 transition-colors ${
+                useAltSkin
+                  ? 'bg-accent text-background'
+                  : 'text-text-primary/55 hover:text-text-primary/85'
+              }`}
+            >
+              Skin
+            </button>
+          </div>
         ) : (
           <input
             type="text"

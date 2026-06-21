@@ -18,7 +18,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
+                text: 'Build cards can switch splash art between normal and skin variants when a skin splash exists (and added a bunch of missing splashes)'
+            },
+            {
+                kind: 'improved',
                 text: 'Build card background colors now adapt to the current splash or custom art'
+            },
+            {
+                kind: 'fixed',
+                text: 'Fixed import sometimes sliding echo substat values onto the wrong row when Resonance Skill or Liberation DMG Bonus wrapped weirdly'
             }
         ]
     },
