@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -20,15 +20,15 @@ const formatTopPct = (rank: number, total: number): string => {
 /**
  * Editor-side "where would this build rank" console. A collapsed-by-default
  * disclosure that lives under the card (so the shareable export stays clean) and
- * never submits anything — pure read. Runs on demand (the Simulate button / first
- * expand) and automatically when the resonator changes, but never on every echo
- * edit, so there's no per-keystroke polling.
+ * never submits anything — pure read. Runs only from the Simulate button, so
+ * opening the editor, expanding the panel, swapping resonators, and echo edits do
+ * not issue leaderboard requests.
  *
  * Expanded, it splits into a summary rail (the headline best placement + the
- * resonator swap + Re-simulate) and the full per-board standings table. Swapping
- * the resonator carries echoes over via SET_CHARACTER, so the same farmed set can
- * be ranked on any character — owned or not — normalized to a fair ceiling
- * (max level + forte).
+ * resonator swap + Simulate/Re-simulate) and the full per-board standings table.
+ * Swapping the resonator carries echoes over via SET_CHARACTER, so the same
+ * farmed set can be ranked on any character — owned or not — normalized to a fair
+ * ceiling (max level + forte), but it still waits for explicit user action.
  */
 export const SimulateRankPanel: React.FC = () => {
   const { state } = useBuild();
@@ -63,15 +63,6 @@ export const SimulateRankPanel: React.FC = () => {
     standings.reduce<LBStandingEntry | null>((acc, s) => (!acc || s.rank < acc.rank ? s : acc), null)
   ), [standings]);
 
-  // Swapping the resonator is a deliberate, discrete action (unlike typing), so we
-  // auto-run for it — that's the compare loop. Echo edits stay manual (Re-simulate).
-  const prevCharIdRef = useRef(state.characterId);
-  useEffect(() => {
-    if (prevCharIdRef.current === state.characterId) return;
-    prevCharIdRef.current = state.characterId;
-    if (canRun) run();
-  }, [state.characterId, canRun, run]);
-
   if (!selected) return null;
 
   const characterId = selected.character.id;
@@ -79,24 +70,24 @@ export const SimulateRankPanel: React.FC = () => {
   const buttonLabel = loading ? 'Simulating…' : hasResult ? 'Re-simulate' : 'Simulate rank';
   const noBoard = hasResult && boards.length === 0;
   const wouldBeFirst = hasResult && boards.length > 0 && standings.length === 0;
-  const hasStandings = standings.length > 0;
+  const visibleStandings = stale ? [] : standings;
+  const visibleBest = stale ? null : best;
+  const hasStandings = visibleStandings.length > 0;
 
-  // Expanding implies you want the rank, so prime it on the first open.
   const toggle = () => {
-    setExpanded((open) => {
-      const next = !open;
-      if (next && canRun && !hasResult && !loading) run();
-      return next;
-    });
+    setExpanded((open) => !open);
   };
 
   const renderRailSummary = () => {
     if (loading && !hasStandings) {
       return <p className="text-sm text-text-primary/45">Simulating…</p>;
     }
-    if (best) {
-      const weapon = getWeapon(best.weaponId);
-      const weaponName = weapon?.name ?? best.weaponId;
+    if (stale && hasResult) {
+      return <p className="text-sm text-amber-200/80">Build changed. Re-simulate to refresh the rank.</p>;
+    }
+    if (visibleBest) {
+      const weapon = getWeapon(visibleBest.weaponId);
+      const weaponName = weapon?.name ?? visibleBest.weaponId;
       const weaponIcon = weapon ? getWeaponPaths(weapon) : null;
       return (
         <div className="flex flex-col gap-2">
@@ -105,11 +96,11 @@ export const SimulateRankPanel: React.FC = () => {
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="font-bold text-3xl leading-none tabular-nums text-accent">
-              #{best.rank.toLocaleString()}
+              #{visibleBest.rank.toLocaleString()}
             </span>
-            <span className="text-xs text-text-primary/40">of {best.total.toLocaleString()}</span>
+            <span className="text-xs text-text-primary/40">of {visibleBest.total.toLocaleString()}</span>
           </div>
-          <span className="text-xs font-medium text-text-primary/60">{formatTopPct(best.rank, best.total)}</span>
+          <span className="text-xs font-medium text-text-primary/60">{formatTopPct(visibleBest.rank, visibleBest.total)}</span>
           <div className="mt-1 flex items-center gap-2">
             {weaponIcon ? (
               <img src={weaponIcon} alt={weaponName} className="h-7 w-7 shrink-0 object-contain" />
@@ -118,11 +109,11 @@ export const SimulateRankPanel: React.FC = () => {
             )}
             <div className="min-w-0 leading-tight">
               <div className="truncate text-xs font-medium text-text-primary/80">{weaponName}</div>
-              <div className="truncate text-[11px] text-text-primary/45">{best.trackLabel}</div>
+              <div className="truncate text-[11px] text-text-primary/45">{visibleBest.trackLabel}</div>
             </div>
           </div>
           <span className="text-xs font-semibold tabular-nums text-accent/90">
-            {Math.round(best.damage).toLocaleString()}{' '}
+            {Math.round(visibleBest.damage).toLocaleString()}{' '}
             <span className="font-normal text-text-primary/40">dmg</span>
           </span>
         </div>
@@ -166,7 +157,7 @@ export const SimulateRankPanel: React.FC = () => {
       return (
         <div className="overflow-x-auto">
           <BuildStandingsTable
-            standings={standings}
+            standings={visibleStandings}
             standingsLoading={false}
             standingsError={null}
             characterId={characterId}
@@ -215,10 +206,10 @@ export const SimulateRankPanel: React.FC = () => {
           {!expanded && (
             <span className="flex min-w-0 items-center gap-2 text-sm text-text-primary/55">
               <span className="truncate">{characterName}</span>
-              {best && (
+              {visibleBest && (
                 <span className="hidden shrink-0 items-center gap-2 text-xs tabular-nums text-text-primary/35 sm:flex">
                   <span className="h-3 w-px bg-border" />
-                  #{best.rank.toLocaleString()} · {formatTopPct(best.rank, best.total)}
+                  #{visibleBest.rank.toLocaleString()} · {formatTopPct(visibleBest.rank, visibleBest.total)}
                 </span>
               )}
             </span>
