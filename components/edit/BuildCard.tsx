@@ -17,7 +17,9 @@ import { NameGroup } from '@/components/card/NameGroup';
 import { WeaponGroup } from '@/components/card/WeaponGroup';
 import { CardArtSourceMode, CardArtTransform } from '@/lib/cardArt';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
-import { ELEMENT_BLOOM, ELEMENT_COLOR, ELEMENT_TINT } from '@/lib/elementVisuals';
+import { ELEMENT_COLOR, ELEMENT_TINT } from '@/lib/elementVisuals';
+import { getAlternateSkin } from '@/lib/character';
+import { useAdaptiveCardColors } from '@/hooks/useAdaptiveCardColors';
 
 interface BuildCardProps {
   useAltSkin?: boolean;
@@ -38,7 +40,14 @@ interface BuildCardProps {
 }
 
 type ElementCardStyle = CSSProperties & Record<
-  '--card-element' | '--card-element-soft' | '--card-element-faint' | '--card-element-glow' | '--card-element-edge',
+  | '--card-element'
+  | '--card-element-soft'
+  | '--card-element-faint'
+  | '--card-element-glow'
+  | '--card-element-edge'
+  | '--card-art-top'
+  | '--card-art-middle'
+  | '--card-art-bottom',
   string
 >;
 
@@ -69,15 +78,21 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   const tintClass = selected?.element
     ? (ELEMENT_TINT[selected.element] ?? 'from-transparent via-transparent to-transparent')
     : 'from-transparent via-transparent to-transparent';
-  const bloomClass = selected?.element ? (ELEMENT_BLOOM[selected.element] ?? '') : '';
   const elementColor = selected?.element ? (ELEMENT_COLOR[selected.element] ?? '#ffffff') : '#ffffff';
+  const altBanner = selected ? getAlternateSkin(selected.character)?.icon.banner : null;
+  const baseArtUrl = selected ? (useAltSkin && altBanner ? altBanner : selected.banner) : null;
+  const adaptiveArtUrl = artSourceMode !== 'default' && customArtUrl ? customArtUrl : baseArtUrl;
+  const adaptiveColors = useAdaptiveCardColors(adaptiveArtUrl, artTransform, elementColor);
   const elementCardStyle = useMemo<ElementCardStyle>(() => ({
-    '--card-element': elementColor,
-    '--card-element-soft': `${elementColor}20`,
-    '--card-element-faint': `${elementColor}0d`,
-    '--card-element-glow': `${elementColor}30`,
-    '--card-element-edge': `${elementColor}40`,
-  }), [elementColor]);
+    '--card-element': adaptiveColors.primary,
+    '--card-element-soft': adaptiveColors.soft,
+    '--card-element-faint': adaptiveColors.faint,
+    '--card-element-glow': adaptiveColors.glow,
+    '--card-element-edge': adaptiveColors.edge,
+    '--card-art-top': adaptiveColors.top,
+    '--card-art-middle': adaptiveColors.middle,
+    '--card-art-bottom': adaptiveColors.bottom,
+  }), [adaptiveColors]);
 
   const weaponAtkIcon = statIcons?.['ATK'];
   const weaponMainIcon = weapon?.main_stat ? statIcons?.[weapon.main_stat] ?? null : null;
@@ -110,9 +125,10 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
             {/* Background overlays inside the fixed-ratio frame */}
             <div className="pointer-events-none absolute inset-0 z-0">
               <div className="absolute inset-0 bg-black/10" />
+              <div className="build-card-art-wash absolute inset-0" />
               <div className="build-card-element-wash absolute inset-0" />
-              <div className={`absolute inset-0 bg-linear-to-b ${tintClass}`} />
-              <div className={`absolute inset-0 mix-blend-screen ${bloomClass}`} />
+              <div className="build-card-tone-gradient absolute inset-0" />
+              <div className="build-card-tone-bloom absolute inset-0" />
               <div className="build-card-depth-mask absolute inset-0" />
               <div className="build-card-edge-light absolute inset-0" />
             </div>

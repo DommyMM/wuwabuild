@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-21',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Build card background colors now adapt to the current splash or custom art'
+            }
+        ]
+    },
+    {
         date: '2026-06-17',
         changes: [
             {
