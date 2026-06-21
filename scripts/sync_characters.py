@@ -199,6 +199,13 @@ CDN_PATH_FIXUPS = {
         "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_xigelika_UI.png",
     "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Feixue_UI.png":
         "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_FeiXue_UI.png",
+    "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Luosela_UI.png":
+        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_luosela_UI.png",
+    "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Libeika_UI.png":
+        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_LiBeiKa_UI.png",
+    "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Luxi_UI.png":
+        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_luxi_UI.png"
+    
 }
 
 # Output directory relative to this script
@@ -209,7 +216,7 @@ SKIP_IDS = {9990, 9991}
 
 # Characters that do not use resonance energy. Keep them off ER-focused UI
 # defaults until the game has more cases that justify a data-driven source.
-ENERGYLESS_CHARACTER_IDS = {1608}  # Phrolova
+ENERGYLESS_CHARACTER_IDS = {1608, 1109}  # Phrolova, Lucilla
 
 # Most characters expose a canonical waveband item at 1000<character_id>.
 # Rover variants reuse shared grouped Item ids instead of per-variant ids.
