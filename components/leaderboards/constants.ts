@@ -128,7 +128,7 @@ export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set<LBSortKey>([
 
 // Table Layout
 
-export const TABLE_GRID = 'grid-cols-[48px_160px_160px_72px_72px_88px_minmax(0,1fr)]';
+export const TABLE_GRID = 'grid-cols-[48px_160px_140px_72px_72px_108px_minmax(0,1fr)]';
 export const SORTABLE_GROUP_GRID = 'grid-cols-[172px_repeat(4,minmax(120px,1fr))]';
 export const TABLE_ROW_HEIGHT_CLASS = 'min-h-[53px]';
 export const PAGE_SKIP = 10;
@@ -150,7 +150,7 @@ export const SEQUENCE_BADGE_STYLES = [
 ] as const;
 
 // # | Owner | Character | Sets | [CV+Stats+Damage]
-export const LB_TABLE_GRID = 'grid-cols-[48px_178px_172px_94px_minmax(0,1fr)]';
+export const LB_TABLE_GRID = 'grid-cols-[48px_178px_154px_112px_minmax(0,1fr)]';
 export const LB_SORTABLE_GROUP_GRID = 'grid-cols-[172px_repeat(4,121px)_minmax(140px,1fr)]';
 export const DEFAULT_LB_SORT = 'damage';
 export const DEFAULT_LB_TRACK = 's0';
