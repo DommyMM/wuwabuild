@@ -31,6 +31,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Fixed import sometimes sliding echo substat values onto the wrong row when Resonance Skill or Liberation DMG Bonus wrapped weirdly'
+            },
+            {
+                kind: 'fixed',
+                text: 'Hecate echoes now show actual chosen element (from box) not just Empyrean'
             }
         ]
     },

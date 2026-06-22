@@ -110,7 +110,8 @@ export function StatsProvider({ children }: StatsProviderProps) {
       if (!panel.id) return;
       const echo = getEcho(panel.id);
       if (!echo) return;
-      const element = echo.elements.length === 1 ? echo.elements[0] : panel.selectedElement;
+      // Stored selection wins over the echo's intrinsic element so box echoes like Hecate work
+      const element = panel.selectedElement ?? echo.elements[0] ?? null;
       if (element) {
         const echoSetKey = `${element}:${echo.id}`;
         if (usedEchoSetPieces.has(echoSetKey)) return;

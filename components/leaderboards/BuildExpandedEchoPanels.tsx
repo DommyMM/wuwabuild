@@ -235,7 +235,8 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
             return Boolean(key && sub.value !== null);
           });
 
-          const elementType = echo ? (echo.elements.length === 1 ? echo.elements[0] : panel.selectedElement) : null;
+          // Trust the backend stored element
+          const elementType = echo ? (panel.selectedElement ?? echo.elements[0] ?? null) : null;
           const fetter = elementType ? fettersByElement[elementType] : null;
           const fetterIcon = fetter?.icon ?? fetter?.fetterIcon ?? null;
 
