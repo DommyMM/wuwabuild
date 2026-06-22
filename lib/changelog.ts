@@ -17,6 +17,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-06-21',
         changes: [
             {
+                kind: 'new',
+                text: 'Click a player name on any leaderboard to jump straight to their profile'
+            },
+            {
                 kind: 'improved',
                 text: 'Build cards can switch splash art between normal and skin variants when a skin splash exists (and added a bunch of missing splashes)'
             },

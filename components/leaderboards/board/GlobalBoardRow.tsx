@@ -14,6 +14,7 @@ import { formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
 import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
+import { OwnerProfileLink } from '../OwnerProfileLink';
 
 const loadBuildExpanded = () => import('../BuildExpanded').then((module) => module.BuildExpanded);
 
@@ -166,15 +167,12 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
         <div className="py-2 text-center text-text-primary/75">{rank}</div>
 
         {showOwner && (
-          <div className="py-2">
-            <div className="flex items-center gap-2">
-              {regionBadge && (
-                <span className={`rounded px-2 py-1 text-xs font-semibold tracking-wide ${regionBadge.className}`}>
-                  {regionBadge.label}
-                </span>
-              )}
-              <span className="text-lg text-text-primary">{entry.owner.username || 'Anonymous'}</span>
-            </div>
+          <div className="min-w-0 py-2">
+            <OwnerProfileLink
+              uid={entry.owner.uid}
+              username={entry.owner.username}
+              regionBadge={regionBadge}
+            />
           </div>
         )}
 

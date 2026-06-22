@@ -14,6 +14,7 @@ import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statCol
 import { StatSortKey } from '../types';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from '../constants';
+import { OwnerProfileLink } from '../OwnerProfileLink';
 
 const loadBuildExpanded = () => import('../BuildExpanded').then((module) => module.BuildExpanded);
 
@@ -209,15 +210,12 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
         </div>
 
         {/* Owner */}
-        <div className="py-2">
-          <div className="flex items-center gap-2">
-            {regionBadge && (
-              <span className={`rounded px-2 py-1 text-xs font-semibold tracking-wide ${regionBadge.className}`}>
-                {regionBadge.label}
-              </span>
-            )}
-            <span className="min-w-0 truncate text-lg text-text-primary">{entry.owner.username || 'Anonymous'}</span>
-          </div>
+        <div className="min-w-0 py-2">
+          <OwnerProfileLink
+            uid={entry.owner.uid}
+            username={entry.owner.username}
+            regionBadge={regionBadge}
+          />
         </div>
 
         {/* Character */}
