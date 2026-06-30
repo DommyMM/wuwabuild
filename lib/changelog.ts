@@ -18,6 +18,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'fixed',
+                text: 'Mornye and Shorekeeper build stat highlights now prioritize Resonance Liberation for their nuke damage'
+            },
+            {
+                kind: 'fixed',
                 text: 'Luuk board out and Rite of Gilded Revelation triggers more accurately'
             }
         ]

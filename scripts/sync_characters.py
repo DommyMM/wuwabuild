@@ -668,7 +668,7 @@ def transform_character(
     if "tags" in result:
         # Pass raw skillTrees data before it gets simplified
         raw_skill_trees = data.get("skillTrees")
-        preferred = get_preferred_substats(result["tags"], raw_skill_trees, result.get("moves"), char_id)
+        preferred = get_preferred_substats(result["tags"], raw_skill_trees, result.get("moves"), char_id, result.get("chains"))
         if preferred:
             result["preferredStats"] = preferred
 
@@ -696,6 +696,20 @@ def _extract_damage_type_from_tags(tags: list[dict]) -> str | None:
     return None
 
 
+def _has_support_healer_tag(tags: list[dict]) -> bool:
+    for tag in tags or []:
+        tag_name = _get_i18n_en(tag.get("name"))
+        if re.search(r"\b(?:support|healer)\b", tag_name, re.IGNORECASE):
+            return True
+    return False
+
+
+def _get_i18n_en(value: Any) -> str:
+    if isinstance(value, dict):
+        return str(value.get("en", "") or "")
+    return str(value or "")
+
+
 def _collect_move_damage_type_counts(moves: Any) -> dict[str, int]:
     counts = {damage_type: 0 for damage_type in DAMAGE_TYPE_TEXT_TO_SUBSTAT}
     if not isinstance(moves, list):
@@ -703,7 +717,11 @@ def _collect_move_damage_type_counts(moves: Any) -> dict[str, int]:
 
     patterns = {
         damage_type: re.compile(
-            rf"(?:considered(?:\s+as)?|counts?\s+as|is)\s+{re.escape(damage_type)}\b",
+            (
+                rf"(?:considered(?:\s+as)?|counts?\s+as|is"
+                rf"{'|dealing|deals' if damage_type == 'Resonance Liberation DMG' else ''})"
+                rf"\s+{re.escape(damage_type)}\b"
+            ),
             re.IGNORECASE,
         )
         for damage_type in DAMAGE_TYPE_TEXT_TO_SUBSTAT
@@ -713,12 +731,7 @@ def _collect_move_damage_type_counts(moves: Any) -> dict[str, int]:
         if not isinstance(move, dict):
             continue
 
-        description = move.get("description")
-        if isinstance(description, dict):
-            text = description.get("en", "")
-        else:
-            text = str(description or "")
-
+        text = _get_i18n_en(move.get("description"))
         clean = _strip_game_markup_for_matching(text)
         if not clean:
             continue
@@ -729,8 +742,116 @@ def _collect_move_damage_type_counts(moves: Any) -> dict[str, int]:
     return counts
 
 
-def _infer_damage_type_from_moves(moves: Any) -> str | None:
+def _sentence_mentions_damage_boost(sentence: str) -> bool:
+    return bool(re.search(r"\b(?:DMG\s+Multiplier|deals?\s+\{?\d+[^.]*\bmore\s+DMG)\b", sentence, re.IGNORECASE))
+
+
+def _sentence_mentions_damage_type(sentence: str, damage_type: str) -> bool:
+    label = damage_type.removesuffix(" DMG")
+    return bool(re.search(rf"\b{re.escape(label)}\b", sentence, re.IGNORECASE))
+
+
+def _sentence_has_chain_damage_type_evidence(sentence: str, damage_type: str) -> bool:
+    if not _sentence_mentions_damage_type(sentence, damage_type):
+        return False
+    if re.search(r"\bDMG\s+Multiplier\b", sentence, re.IGNORECASE):
+        return True
+    if damage_type == "Resonance Liberation DMG" and re.search(r"\bdeals?\s+\{?\d+[^.]*\bmore\s+DMG\b", sentence, re.IGNORECASE):
+        return True
+    return False
+
+
+def _extract_chain_damage_action_names(sentence: str) -> list[str]:
+    action_names: list[str] = []
+    patterns = [
+        r"\bDMG\s+Multiplier\s+of\s+"
+        r"(?:(?:Intro\s+Skill|Resonance\s+Skill|Resonance\s+Liberation|Basic\s+Attack|Heavy\s+Attack)\s*[-:–—]?\s*)?"
+        r"([^.\n]+?)\s+is\s+increased\b",
+        r"\bIncrease\s+the\s+DMG\s+Multiplier\s+of\s+"
+        r"(?:(?:Intro\s+Skill|Resonance\s+Skill|Resonance\s+Liberation|Basic\s+Attack|Heavy\s+Attack)\s*[-:–—]?\s*)?"
+        r"([^.\n]+?)\s+by\b",
+    ]
+    for pattern in patterns:
+        for match in re.finditer(pattern, sentence, re.IGNORECASE):
+            action_name = re.sub(r"\s+", " ", match.group(1)).strip(" -:–—\t")
+            if action_name:
+                action_names.append(action_name)
+    return action_names
+
+
+def _count_damage_types_near_action(moves: Any, action_name: str) -> dict[str, int]:
+    counts = {damage_type: 0 for damage_type in DAMAGE_TYPE_TEXT_TO_SUBSTAT}
+    if not action_name or not isinstance(moves, list):
+        return counts
+
+    explicit_patterns = {
+        damage_type: re.compile(
+            (
+                rf"(?:considered(?:\s+as)?|counts?\s+as|is"
+                rf"{'|dealing|deals' if damage_type == 'Resonance Liberation DMG' else ''})"
+                rf"\s+{re.escape(damage_type)}\b"
+            ),
+            re.IGNORECASE,
+        )
+        for damage_type in DAMAGE_TYPE_TEXT_TO_SUBSTAT
+    }
+
+    action_pattern = re.compile(re.escape(action_name), re.IGNORECASE)
+    for move in moves:
+        if not isinstance(move, dict):
+            continue
+
+        text = _strip_game_markup_for_matching(_get_i18n_en(move.get("description")))
+        if not text:
+            continue
+
+        match = action_pattern.search(text)
+        if not match:
+            continue
+
+        section = text[match.start():match.start() + 800]
+        for damage_type, pattern in explicit_patterns.items():
+            counts[damage_type] += len(pattern.findall(section))
+
+    return counts
+
+
+def _collect_chain_damage_type_counts(chains: Any, moves: Any, use_chain_evidence: bool) -> dict[str, int]:
+    counts = {damage_type: 0 for damage_type in DAMAGE_TYPE_TEXT_TO_SUBSTAT}
+    if not use_chain_evidence or not isinstance(chains, list):
+        return counts
+
+    for chain in chains:
+        if not isinstance(chain, dict):
+            continue
+
+        clean = _strip_game_markup_for_matching(_get_i18n_en(chain.get("description")))
+        if not clean:
+            continue
+
+        for sentence in re.split(r"(?<=[.!?])\s+|\n+", clean):
+            sentence = sentence.strip()
+            if not sentence or not _sentence_mentions_damage_boost(sentence):
+                continue
+
+            for damage_type in DAMAGE_TYPE_TEXT_TO_SUBSTAT:
+                if _sentence_has_chain_damage_type_evidence(sentence, damage_type):
+                    counts[damage_type] += 1
+
+            for action_name in _extract_chain_damage_action_names(sentence):
+                nearby_counts = _count_damage_types_near_action(moves, action_name)
+                for damage_type, count in nearby_counts.items():
+                    counts[damage_type] += count
+
+    return counts
+
+
+def _infer_damage_type_from_moves(moves: Any, chains: Any = None, use_chain_evidence: bool = False) -> str | None:
     counts = _collect_move_damage_type_counts(moves)
+    chain_counts = _collect_chain_damage_type_counts(chains, moves, use_chain_evidence)
+    for damage_type, count in chain_counts.items():
+        counts[damage_type] += count
+
     ranked = sorted(
         ((count, damage_type) for damage_type, count in counts.items() if count > 0),
         reverse=True,
@@ -752,6 +873,7 @@ def get_preferred_substats(
     skill_trees: dict | list[dict] | None = None,
     moves: list[dict] | None = None,
     character_id: int | str | None = None,
+    chains: list[dict] | None = None,
 ) -> list[str]:
     """
     Derive preferred substats from character tags and skillTree nodes.
@@ -776,7 +898,10 @@ def get_preferred_substats(
     stats = []
     damage_type = None
 
-    damage_type = _extract_damage_type_from_tags(tags) or _infer_damage_type_from_moves(moves)
+    damage_type = (
+        _extract_damage_type_from_tags(tags)
+        or _infer_damage_type_from_moves(moves, chains, use_chain_evidence=_has_support_healer_tag(tags))
+    )
     
     # Step 1: Add crits by default
     stats.extend(["Crit Rate", "Crit DMG"])
@@ -1185,6 +1310,7 @@ def main():
                 char.get("skillTrees"),
                 char.get("moves"),
                 char.get("id"),
+                char.get("chains"),
             )
             existing_preferred = char.get("preferredStats")
             if preferred:

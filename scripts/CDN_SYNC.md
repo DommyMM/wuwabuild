@@ -191,6 +191,8 @@ The `preferredStats` field is derived automatically from character tags and skil
    - Tag ID 5 → "Heavy Attack DMG Bonus"
    - Tag ID 6 → "Resonance Skill DMG Bonus"
    - Tag ID 7 → "Resonance Liberation DMG Bonus"
+   - If no priority 2 tag exists, the sync falls back to explicit English kit text like "considered Heavy Attack DMG" or "dealing Resonance Liberation DMG"
+   - For support/healer kits, sequence-chain text can reinforce named nuke actions, such as Mornye's `Resonance Liberation - Critical Protocol` and Shorekeeper's `Discernment`
 5. **Energy Regen:** Always included for all characters
 
 **Examples:**
