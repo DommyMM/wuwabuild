@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-06-30',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Luuk board out and Rite of Gilded Revelation triggers more accurately'
+            }
+        ]
+    },
+    {
         date: '2026-06-21',
         changes: [
             {
