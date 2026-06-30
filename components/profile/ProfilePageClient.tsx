@@ -21,6 +21,7 @@ import { useExpandedRows } from '@/components/leaderboards/useExpandedRows';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/leaderboards/types';
 import { ProfileBuildExpanded } from './ProfileBuildExpanded';
 import { ProfileShowcase } from './ProfileShowcase';
+import { ProfileEchoes } from './ProfileEchoes';
 
 // Profile table: no Owner column. Name gets the freed space (wider).
 // # | Name | Weapon | Seq | Sets | [CV + 4 stats]
@@ -441,6 +442,8 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
             </div>
           </div>
         </section>
+
+        <ProfileEchoes uid={uid} />
       </div>
     </main>
   );

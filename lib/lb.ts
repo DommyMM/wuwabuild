@@ -541,6 +541,185 @@ export async function listProfileBuilds(
   return parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
 }
 
+// Profile echo inventory -----------------------------------------------------
+// Backed by GET /profile/{uid}/echoes. Sort keys map 1:1 to the backend
+// echoSortClause whitelist: cv/cost/mainStatValue/timestamp plus any substat
+// stat key (snake_case, e.g. crit_dmg) which sorts by that sub_* column.
+
+export type LBEchoSortKey =
+  | 'cv'
+  | 'cost'
+  | 'mainStatValue'
+  | 'timestamp'
+  | 'crit_rate'
+  | 'crit_dmg'
+  | 'atk'
+  | 'atk_pct'
+  | 'hp'
+  | 'hp_pct'
+  | 'def'
+  | 'def_pct'
+  | 'energy_regen'
+  | 'healing_bonus'
+  | 'aero_dmg'
+  | 'glacio_dmg'
+  | 'fusion_dmg'
+  | 'electro_dmg'
+  | 'havoc_dmg'
+  | 'spectro_dmg'
+  | 'basic_attack_dmg'
+  | 'heavy_attack_dmg'
+  | 'resonance_liberation_dmg'
+  | 'resonance_skill_dmg';
+
+// panelData round-trips the stored echo panel; shape matches EchoPanelState
+// minus resolvedSetId (which lives in the denormalized activeSetId column).
+export interface LBEchoPanel {
+  id: string | null;
+  level: number;
+  phantom: boolean;
+  selectedElement: string | null;
+  stats: {
+    mainStat: { type: string | null; value: number | null };
+    subStats: Array<{ type: string | null; value: number | null }>;
+  };
+}
+
+export interface LBEcho {
+  echoKey: string;
+  echoId: string;
+  cost: number;
+  selectedElement: string;
+  activeSetId: string;
+  mainStatType: string;
+  mainStatValue: number;
+  substats: Record<string, number>;
+  cv: number;
+  usageCount: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  panel: LBEchoPanel | null;
+}
+
+export interface LBEchoListResponse {
+  uid: string;
+  echoes: LBEcho[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface LBEchoListQuery {
+  page?: number;
+  pageSize?: number;
+  sort?: LBEchoSortKey;
+  direction?: LBSortDirection;
+  costs?: number[];
+  setIds?: string[];
+  mainStatTypes?: string[];
+}
+
+function parseEchoPanel(raw: unknown): LBEchoPanel | null {
+  if (!isRecord(raw)) return null;
+  const stats = isRecord(raw.stats) ? raw.stats : null;
+  const mainStat = stats && isRecord(stats.mainStat) ? stats.mainStat : null;
+  const subStatsRaw = stats && Array.isArray(stats.subStats) ? stats.subStats : [];
+  return {
+    id: typeof raw.id === 'string' ? raw.id : null,
+    level: toFiniteNumber(raw.level, 0),
+    phantom: raw.phantom === true,
+    selectedElement: typeof raw.selectedElement === 'string' && raw.selectedElement !== '' ? raw.selectedElement : null,
+    stats: {
+      mainStat: {
+        type: mainStat && typeof mainStat.type === 'string' ? mainStat.type : null,
+        value: mainStat && Number.isFinite(Number(mainStat.value)) ? Number(mainStat.value) : null,
+      },
+      subStats: subStatsRaw.map((sub) => ({
+        type: isRecord(sub) && typeof sub.type === 'string' ? sub.type : null,
+        value: isRecord(sub) && Number.isFinite(Number(sub.value)) ? Number(sub.value) : null,
+      })),
+    },
+  };
+}
+
+function parseEchoEntry(raw: unknown): LBEcho {
+  if (!isRecord(raw)) throw new Error('echo row is not an object');
+  const echoId = typeof raw.echoId === 'string' ? raw.echoId : '';
+  if (!echoId) throw new Error('echo row missing echoId');
+
+  const substats: Record<string, number> = {};
+  if (isRecord(raw.substats)) {
+    for (const [key, value] of Object.entries(raw.substats)) {
+      const num = Number(value);
+      if (Number.isFinite(num) && num !== 0) substats[key] = num;
+    }
+  }
+
+  return {
+    echoKey: typeof raw.echoKey === 'string' ? raw.echoKey : '',
+    echoId,
+    cost: toFiniteNumber(raw.cost, 0),
+    selectedElement: typeof raw.selectedElement === 'string' ? raw.selectedElement : '',
+    activeSetId: typeof raw.activeSetId === 'string' ? raw.activeSetId : '',
+    mainStatType: typeof raw.mainStatType === 'string' ? raw.mainStatType : '',
+    mainStatValue: toFiniteNumber(raw.mainStatValue, 0),
+    substats,
+    cv: toFiniteNumber(raw.cv, 0),
+    usageCount: toFiniteNumber(raw.usageCount, 0),
+    firstSeenAt: typeof raw.firstSeenAt === 'string' ? raw.firstSeenAt : '',
+    lastSeenAt: typeof raw.lastSeenAt === 'string' ? raw.lastSeenAt : '',
+    panel: parseEchoPanel(raw.panelData),
+  };
+}
+
+export async function listProfileEchoes(
+  uid: string,
+  query: LBEchoListQuery = {},
+  signal?: AbortSignal,
+): Promise<LBEchoListResponse> {
+  const trimmedUid = uid.trim();
+  if (!trimmedUid) {
+    throw new Error('Profile uid is required.');
+  }
+
+  const pageSize = clampPageSize(query.pageSize);
+  const params = new URLSearchParams();
+  params.set('page', String(query.page ?? 1));
+  params.set('pageSize', String(pageSize));
+  params.set('sort', query.sort ?? 'cv');
+  params.set('direction', query.direction ?? 'desc');
+  for (const cost of query.costs ?? []) params.append('cost', String(cost));
+  for (const setId of query.setIds ?? []) if (setId) params.append('setId', setId);
+  for (const main of query.mainStatTypes ?? []) if (main) params.append('mainStatType', main);
+
+  const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(trimmedUid)}/echoes?${params.toString()}`;
+  const response = await fetch(requestUrl, { method: 'GET', signal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch profile echoes (${response.status})`);
+  }
+
+  const payload: unknown = await response.json();
+  const rawEchoes = isRecord(payload) && Array.isArray(payload.echoes) ? payload.echoes : [];
+  const echoes: LBEcho[] = [];
+  for (const raw of rawEchoes) {
+    try {
+      echoes.push(parseEchoEntry(raw));
+    } catch (error) {
+      console.warn('[LB] dropped malformed echo row', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return {
+    uid: trimmedUid,
+    echoes,
+    total: isRecord(payload) ? toFiniteNumber(payload.total, echoes.length) : echoes.length,
+    page: isRecord(payload) ? toFiniteNumber(payload.page, query.page ?? 1) : (query.page ?? 1),
+    pageSize: isRecord(payload) ? toFiniteNumber(payload.pageSize, pageSize) : pageSize,
+  };
+}
+
 // Leaderboard types
 
 export interface LBWeaponTop {
