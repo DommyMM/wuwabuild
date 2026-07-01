@@ -1,5 +1,5 @@
 import { SavedBuild, SavedState, ForteState, ForteEntry, createDefaultSavedState } from '@/lib/build';
-import { ELEMENT_SETS, ElementType } from '@/lib/echo';
+import { ELEMENT_SETS, ElementType, setIdForElement } from '@/lib/echo';
 
 const LEGACY_SAVED_BUILDS_STORAGE_KEY = 'saved_builds';
 
@@ -352,7 +352,7 @@ function normalizeEchoPanels(rawPanels: unknown, maps: LegacyIdMaps, compressed:
       ...defaultPanel,
       id: mappedId,
       level: toInteger(compressed ? rawPanel.l : rawPanel.level, defaultPanel.level),
-      selectedElement: decodeLegacyElement(compressed ? rawPanel.s : rawPanel.selectedElement),
+      resolvedSetId: setIdForElement(decodeLegacyElement(compressed ? rawPanel.s : rawPanel.selectedElement)),
       stats: normalizePanelStats(rawPanel, compressed),
       phantom: (compressed ? rawPanel.p : rawPanel.phantom) === true || (sourceId?.includes('_') ?? false),
     };

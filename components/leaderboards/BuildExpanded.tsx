@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
+import { calculateSelectedStatsRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
 import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
@@ -297,7 +297,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
       }
     }
 
-    return calculateOverallRV(selectedMap, getSubstatValues);
+    return calculateSelectedStatsRV(selectedMap, getSubstatValues);
   }, [activeSelectedSubstats, detailSubstatSummary, getSubstatValues]);
 
   return (

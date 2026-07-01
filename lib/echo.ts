@@ -48,6 +48,7 @@ export interface Echo {
   legacyId?: string;
   cost: number;
   elements: ElementType[];
+  fetterIds: number[];   // legal fetter set ids, parallel to elements (from CDN fetter)
 
   // CDN-native fields
   nameI18n?: I18nString;
@@ -64,8 +65,7 @@ export interface Echo {
 export interface EchoPanelState {
   id: string | null;
   level: number;
-  selectedElement: ElementType | null;
-  resolvedSetId?: number | null;
+  resolvedSetId: number | null;
   stats: {
     mainStat: { type: string | null; value: number | null };
     subStats: Array<{ type: string | null; value: number | null }>;
@@ -149,6 +149,36 @@ export const FETTER_MAP: Record<number, ElementType> = {
   32: 'Adam',
 };
 
+export const SET_ID_BY_ELEMENT = Object.fromEntries(
+  Object.entries(FETTER_MAP).map(([id, element]) => [element, Number(id)])
+) as Record<ElementType, number>;
+
+export const elementForSetId = (setId: number | null | undefined): ElementType | null => (
+  typeof setId === 'number' ? FETTER_MAP[setId] ?? null : null
+);
+
+export const setIdForElement = (element: ElementType | null | undefined): number | null => (
+  element ? SET_ID_BY_ELEMENT[element] ?? null : null
+);
+
+export const defaultSetIdForEcho = (echo: Echo | null | undefined): number | null => (
+  setIdForElement(echo?.elements[0] ?? null)
+);
+
+export const activeElementForPanel = (
+  panel: Pick<EchoPanelState, 'resolvedSetId'>,
+  echo: Echo | null | undefined
+): ElementType | null => (
+  elementForSetId(panel.resolvedSetId) ?? echo?.elements[0] ?? null
+);
+
+export const activeSetIdForPanel = (
+  panel: Pick<EchoPanelState, 'resolvedSetId'>,
+  echo: Echo | null | undefined
+): number | null => (
+  panel.resolvedSetId ?? defaultSetIdForEcho(echo)
+);
+
 const ENCORE_RESOURCE_BASE = 'https://api.encore.moe/resource/Data';
 
 const toImageUrl = (rawPath: string): string => {
@@ -168,6 +198,7 @@ export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
   elements: cdn.fetter
     .map(id => FETTER_MAP[id])
     .filter((el): el is ElementType => el !== undefined),
+  fetterIds: cdn.fetter.filter(id => FETTER_MAP[id] !== undefined),
 
   // CDN-native fields
   nameI18n: cdn.name,

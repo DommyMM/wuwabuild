@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { EchoPanelState } from '@/lib/echo';
+import { activeElementForPanel, EchoPanelState } from '@/lib/echo';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -86,7 +86,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
           }
 
           // Trust the stored backend stored element.
-          const elementType = panel.selectedElement ?? echo.elements[0] ?? null;
+          const elementType = activeElementForPanel(panel, echo);
           const fetter = elementType ? fettersByElement[elementType] : null;
           const echoName = echo.nameI18n ? t(echo.nameI18n) : echo.name;
           const fetterIcon = fetter?.icon ?? fetter?.fetterIcon ?? null;

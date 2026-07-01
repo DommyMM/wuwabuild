@@ -89,7 +89,7 @@ const createDefaultEchoStats = () => ({
 export const createDefaultEchoPanelState = (): EchoPanelState => ({
   id: null,
   level: 0,
-  selectedElement: null,
+  resolvedSetId: null,
   stats: createDefaultEchoStats(),
   phantom: false
 });

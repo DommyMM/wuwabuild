@@ -1,4 +1,4 @@
-import { Echo, EchoPanelState, ElementType } from '@/lib/echo';
+import { activeElementForPanel, Echo, EchoPanelState, ElementType } from '@/lib/echo';
 
 interface BuildSetCount {
   element: ElementType;
@@ -20,10 +20,7 @@ export function getBuildSetCounts(
     const echo = getEcho(panel.id);
     if (!echo) continue;
 
-    const element =
-      echo.elements.length === 1
-        ? echo.elements[0]
-        : panel.selectedElement ?? echo.elements[0] ?? null;
+    const element = activeElementForPanel(panel, echo);
 
     if (!element) continue;
 

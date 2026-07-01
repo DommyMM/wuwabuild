@@ -5,7 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { EchoSelector } from './EchoSelector';
 import { MainStatSelector, SubstatsList } from './StatSelector';
-import { Echo, ElementType, ELEMENT_SETS, EchoPanelState } from '@/lib/echo';
+import { Echo, ELEMENT_SETS, EchoPanelState, activeElementForPanel, defaultSetIdForEcho, setIdForElement } from '@/lib/echo';
 import { hasPhantomVariant } from '@/lib/constants/statBonuses';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { X } from 'lucide-react';
@@ -76,7 +76,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
     clearEchoPanel,
     setEchoMainStat,
     setEchoSubStat,
-    setEchoElement,
+    setEchoSetId,
     setEchoLevel,
     setEchoPhantom
   } = useBuild();
@@ -91,13 +91,13 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
     return echo ? hasPhantomVariant(echo) : false;
   }, [echo]);
 
-  const activeElement = panelState.selectedElement ?? echo?.elements[0] ?? null;
+  const activeElement = activeElementForPanel(panelState, echo);
 
 
   // Handle echo selection
   const handleEchoSelect = useCallback((selectedEcho: Echo) => {
     // Set the echo and auto-select first element if multi-element
-    const defaultElement = selectedEcho.elements.length > 0 ? selectedEcho.elements[0] as ElementType : null;
+    const defaultSetId = defaultSetIdForEcho(selectedEcho);
 
     // Get main stats for this cost to auto-select first main stat
     const mainStats = getMainStatsByCost(selectedEcho.cost);
@@ -109,7 +109,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
 
     setEchoPanel(index, {
       id: selectedEcho.id,
-      selectedElement: defaultElement,
+      resolvedSetId: defaultSetId,
       stats: {
         mainStat: { type: defaultMainStat, value: defaultMainStatValue },
         subStats: panelState.stats.subStats
@@ -216,7 +216,7 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
                     return (
                       <button
                         key={el}
-                        onClick={() => setEchoElement(index, el)}
+                        onClick={() => setEchoSetId(index, setIdForElement(el))}
                         title={label}
                         aria-label={`Select ${label}`}
                         className={`flex h-8 w-8 items-center justify-center rounded-md border transition-all ${

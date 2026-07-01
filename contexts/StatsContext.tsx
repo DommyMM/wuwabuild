@@ -4,7 +4,7 @@ import { createContext, useContext, useMemo, ReactNode } from 'react';
 import { useGameData } from './GameDataContext';
 import { useBuild } from './BuildContext';
 import { StatName, BaseStatName, BASE_STATS, CALCULABLE_STATS, getPercentVariant } from '@/lib/constants/statMappings';
-import { ELEMENT_SETS, ElementType } from '@/lib/echo';
+import { activeElementForPanel, ELEMENT_SETS, ElementType } from '@/lib/echo';
 import { calculateCV } from '@/lib/calculations/rollValues';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
 import { calculateForteBonus } from '@/lib/calculations/stats';
@@ -110,8 +110,8 @@ export function StatsProvider({ children }: StatsProviderProps) {
       if (!panel.id) return;
       const echo = getEcho(panel.id);
       if (!echo) return;
-      // Stored selection wins over the echo's intrinsic element so box echoes like Hecate work
-      const element = panel.selectedElement ?? echo.elements[0] ?? null;
+      // Stored set ID wins over the echo's intrinsic set so box echoes like Hecate work.
+      const element = activeElementForPanel(panel, echo);
       if (element) {
         const echoSetKey = `${element}:${echo.id}`;
         if (usedEchoSetPieces.has(echoSetKey)) return;

@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
-import { calculateOverallRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
+import { calculateSelectedStatsRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
 import {
   LB_SUMMARY_ICON,
@@ -132,7 +132,7 @@ export const SubstatSummaryRow: React.FC = () => {
     for (const s of detailSubstatSummary) {
       if (activeSelectedSubstats.has(s.type)) selectedMap.set(s.type, { total: s.total, count: s.count });
     }
-    return calculateOverallRV(selectedMap, getSubstatValues);
+    return calculateSelectedStatsRV(selectedMap, getSubstatValues);
   }, [activeSelectedSubstats, detailSubstatSummary, getSubstatValues]);
 
   if (detailSubstatSummary.length === 0) return null;

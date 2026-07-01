@@ -7,7 +7,7 @@ This is the single source of truth for the backend's Data/ directory. It does tw
    uses for OCR name matching (Characters/Weapons/Echoes.json), and copy the stat files.
 2. Fetch every SIFT/template asset the backend matches against, all keyed by CDN id and
    saved as WebP:
-     - Elements   -> backend/Data/Elements/<name>.webp   (Encore FetterGroup icons)
+     - Elements   -> backend/Data/Elements/<id>.webp     (Encore FetterGroup icons)
      - Characters -> backend/Data/Characters/<id>.webp    (Encore FormationRoleCard splash)
      - Weapons    -> backend/Data/Weapons/<id>.webp       (Encore weapon Icon)
      - Echoes     -> backend/Data/Echoes/<id>.webp        (public/Data icon URL, re-encoded)
@@ -57,17 +57,13 @@ UA = {"User-Agent": "wuwabuilds-backend-sync/1.0"}
 ICON_WORKERS = 16
 WEBP_QUALITY = 95
 
-# Maps echo fetter IDs (raw numbers in Echoes.json) → sonata set names (backend format)
-FETTER_MAP: dict[int, str] = {
-    1: "Glacio",       2: "Fusion",       3: "Electro",      4: "Aero",
-    5: "Spectro",      6: "Havoc",        7: "Healing",      8: "ER",
-    9: "Attack",       10: "Frosty",      11: "Radiance",    12: "Midnight",
-    13: "Empyrean",    14: "Tidebreaking", 16: "Gust",       17: "Windward",
-    18: "Flaming",     19: "Dream",       20: "Crown",       21: "Law",
-    22: "Flamewing",   23: "Thread",      24: "Pact",        25: "Halo",
-    26: "Rite",        27: "Trailblazing", 28: "Chromatic",  29: "Sound",
-    30: "QuietSnow",   31: "Memories",    32: "Adam",
-}
+# Valid fetter set ids (raw numbers from Encore). Filters echo["fetter"] and drives
+# the element-icon fetch. The backend data path is id-native; human-readable set
+# names live only in the frontend FETTER_MAP + backend SET_NAME_BY_ID (logs).
+FETTER_IDS: frozenset[int] = frozenset({
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21,
+    22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+})
 
 
 # --- Shared download helpers --------------------------------------------------
@@ -177,14 +173,14 @@ def sync_element_templates(dry_run: bool, force: bool) -> int:
     groups = _encore_fetter_groups()
     tasks: list[tuple[str, str, Path]] = []
     missing: list[int] = []
-    for group_id, backend_name in FETTER_MAP.items():
+    for group_id in sorted(FETTER_IDS):
         group = groups.get(group_id)
         if not group:
             missing.append(group_id)
             continue
         url = group.get("Icon")
         suffix = Path(urlparse(url).path).suffix or ".webp"
-        tasks.append((backend_name, url, BACKEND_ELEMENTS / f"{backend_name}{suffix}"))
+        tasks.append((str(group_id), url, BACKEND_ELEMENTS / f"{group_id}{suffix}"))
     if missing:
         print(f"  WARNING: Encore did not return fetter group IDs: {missing}")
     if dry_run:
@@ -316,12 +312,12 @@ def sync_echoes(dry_run: bool) -> int:
     out = []
     for echo in data:
         echo_id = str(echo["id"])
-        elements = [FETTER_MAP[fid] for fid in echo.get("fetter", []) if fid in FETTER_MAP]
+        set_ids = [fid for fid in echo.get("fetter", []) if fid in FETTER_IDS]
         out.append({
             "name": echo["name"].get("en") or echo_id,
             "id": echo_id,  # Always CDN ID, match what _load_from_cdn uses
             "cost": echo["cost"],
-            "elements": elements,
+            "setIds": set_ids,
         })
     if not dry_run:
         (BACKEND_DATA / "Echoes.json").write_text(

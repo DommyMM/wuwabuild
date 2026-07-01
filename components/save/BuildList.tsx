@@ -7,7 +7,7 @@ import { SavedBuild } from '@/lib/build';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/rollValues';
-import { ELEMENT_SETS } from '@/lib/echo';
+import { activeElementForPanel, ELEMENT_SETS } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { EchoStatPreview } from '@/components/echo/EchoStatPreview';
@@ -121,7 +121,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
   const echoPreviewData = useMemo(() => (
     build.state.echoPanels.map((panel) => {
       const echo = panel.id ? getEcho(panel.id) : null;
-      const echoElement = panel.selectedElement ?? echo?.elements?.[0];
+      const echoElement = activeElementForPanel(panel, echo);
       return {
         panel,
         echo,

@@ -1,14 +1,5 @@
-import type { Echo, EchoPanelState, ElementType } from '@/lib/echo';
+import type { Echo, EchoPanelState } from '@/lib/echo';
 import type { EchoOCRData } from './types';
-
-const FETTER_ID_BY_ELEMENT: Partial<Record<ElementType, number>> = {
-  Glacio: 1,
-  Fusion: 2,
-  Electro: 3,
-  Aero: 4,
-  Spectro: 5,
-  Havoc: 6,
-};
 
 const EXTRA_OCR_SET_IDS_BY_ECHO_ID: Record<string, ReadonlySet<number>> = {
   // Hecate can be selected from weekly challenge boxes on the six elemental sets.
@@ -64,20 +55,15 @@ export function matchEchoData(
 
   if (!echo) return null;
 
-  // Element, backend already validated; fall back to echo's first available element
-  let selectedElement: ElementType | null = null;
-  const ocrElement = ocrData.element;
-  let resolvedSetId: number | null = null;
-  if (ocrElement && ocrElement !== 'Unknown') {
-    const el = ocrElement as ElementType;
-    const ocrSetId = FETTER_ID_BY_ELEMENT[el] ?? null;
-    const isKnownElement = echo.elements.includes(el);
-    const isExtraLegalSet = ocrSetId !== null && EXTRA_OCR_SET_IDS_BY_ECHO_ID[echo.id]?.has(ocrSetId);
-    selectedElement = isKnownElement || isExtraLegalSet ? el : (echo.elements[0] ?? null);
-    resolvedSetId = isKnownElement || isExtraLegalSet ? ocrSetId : null;
-  } else {
-    selectedElement = echo.elements[0] ?? null;
-  }
+  // Set id — backend resolves the fetter id directly. Accept it when it's one of
+  // the echo's legal sets (or a weekly-box extra, e.g. Hecate); otherwise fall
+  // back to the echo's first legal set.
+  const ocrSetId = typeof ocrData.setId === 'number' ? ocrData.setId : null;
+  const fallbackSetId = echo.fetterIds[0] ?? null;
+  const ocrSetIdLegal =
+    ocrSetId !== null &&
+    (echo.fetterIds.includes(ocrSetId) || (EXTRA_OCR_SET_IDS_BY_ECHO_ID[echo.id]?.has(ocrSetId) ?? false));
+  const resolvedSetId: number | null = ocrSetIdLegal ? ocrSetId : fallbackSetId;
 
   // Main stat names are canonical from backend OCR output.
   const mainStatType  = normalizeStatName(ocrData.main?.name);
@@ -93,7 +79,6 @@ export function matchEchoData(
   return {
     id: echo.id,
     level: 25,
-    selectedElement,
     resolvedSetId,
     stats: {
       mainStat: { type: mainStatType, value: mainStatValue },

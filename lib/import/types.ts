@@ -3,6 +3,7 @@ export interface EchoOCRData {
   main: { name: string; value: string };
   substats: Array<{ name: string; value: string }>;
   element: string;
+  setId?: number | null;
 }
 
 export interface AnalysisData {

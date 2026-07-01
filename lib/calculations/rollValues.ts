@@ -1,16 +1,110 @@
 import { EchoPanelState } from '@/lib/echo';
 
-// Calculate overall RV for selected substats.
-//
-// Formula: average over stat types of (avgRollValue / maxRollValue).
-// Each selected stat type is weighted equally, 3x Crit Rate rolls don't
-// outweigh 1x Crit DMG roll just because you have more of them. Both stats
-// contribute one equal "slot" to the average.
-//
-// Result: 0–100% where 100% = every stat's average roll was the max-tier value.
-export function calculateOverallRV(
+export const ECHO_SUBSTAT_CV_MAX = 42;
+export const BUILD_SUBSTAT_CV_MAX = ECHO_SUBSTAT_CV_MAX * 5;
+export const MAX_FOUR_COST_CRIT_MAIN_CV = 44;
+
+export interface QualityTier {
+  label: string;
+  minPct: number;
+  color: string;
+  bgColor?: string;
+  isMax?: boolean;
+}
+
+export const QUALITY_TIERS: readonly QualityTier[] = [
+  { label: 'MAX', minPct: 100, color: '#CC0000', bgColor: 'rgba(255,255,255,0.95)', isMax: true },
+  { label: 'Perfect', minPct: 94.8, color: '#FF00FF' },
+  { label: 'Excellent', minPct: 85.7, color: '#00FFFF' },
+  { label: 'High', minPct: 76.2, color: '#00FF00' },
+  { label: 'Decent', minPct: 66.7, color: '#E6B800' },
+  { label: 'Passable', minPct: 60, color: '#FF8C00' },
+  { label: 'Bad', minPct: 0, color: '#888888' },
+];
+
+interface SubstatLike {
+  type: string | null;
+  value: number | null;
+}
+
+interface EchoMainSummary {
+  cost: number;
+  statType: string;
+}
+
+export const getQualityTier = (pct: number): QualityTier => {
+  const normalized = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
+  return QUALITY_TIERS.find((tier) => normalized >= tier.minPct) ?? QUALITY_TIERS[QUALITY_TIERS.length - 1];
+};
+
+export const getQualityTierStyle = (pct: number): QualityTier => {
+  const tier = getQualityTier(pct);
+  return { ...tier };
+};
+
+const pctOf = (value: number, max: number): number => {
+  if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0) return 0;
+  return Math.max(0, Math.min(100, (value / max) * 100));
+};
+
+const critCV = (statType: string | null | undefined, value: number | null | undefined): number => {
+  if (value == null) return 0;
+  switch ((statType ?? '').trim()) {
+    case 'Crit Rate':
+    case 'Crit. Rate':
+      return Number(value) * 2;
+    case 'Crit DMG':
+    case 'Crit. DMG':
+      return Number(value);
+    default:
+      return 0;
+  }
+};
+
+export const calculateSubstatQuality = (
+  statType: string | null | undefined,
+  value: number | null | undefined,
+  getSubstatValues: (stat: string) => number[] | null,
+): number => {
+  if (!statType || value == null) return 0;
+  const buckets = getSubstatValues(statType);
+  if (!buckets || buckets.length === 0) return 0;
+  const max = Math.max(...buckets);
+  if (max <= 0) return 0;
+  return Math.max(0, Number(value) / max);
+};
+
+// Full-sheet echo RV: missing substat lines count as zero because echo levels
+// deterministically unlock all five lines at max level.
+export function calculateEchoRV(
+  subStats: ReadonlyArray<SubstatLike>,
+  getSubstatValues: (stat: string) => number[] | null,
+): number {
+  const sum = subStats.reduce(
+    (total, sub) => total + calculateSubstatQuality(sub.type, sub.value, getSubstatValues),
+    0,
+  );
+  return (sum / 5) * 100;
+}
+
+export function calculateBuildRV(
+  echoPanels: ReadonlyArray<EchoPanelState>,
+  getSubstatValues: (stat: string) => number[] | null,
+): number {
+  const sum = echoPanels.reduce((buildTotal, panel) => (
+    buildTotal + panel.stats.subStats.reduce(
+      (echoTotal, sub) => echoTotal + calculateSubstatQuality(sub.type, sub.value, getSubstatValues),
+      0,
+    )
+  ), 0);
+  return (sum / 25) * 100;
+}
+
+// Preferred-stat RV answers a different question from full-sheet RV:
+// "How good are the selected/relevant stat types that appeared?"
+export function calculateSelectedStatsRV(
   selectedSubstats: Map<string, { total: number; count: number }>,
-  getSubstatValues: (stat: string) => number[] | null
+  getSubstatValues: (stat: string) => number[] | null,
 ): number {
   if (selectedSubstats.size === 0) return 0;
 
@@ -18,142 +112,73 @@ export function calculateOverallRV(
   let validStatCount = 0;
 
   for (const [statType, { total, count }] of selectedSubstats.entries()) {
-    const substatValues = getSubstatValues(statType);
-    if (!substatValues || substatValues.length === 0) continue;
-    const maxRoll = Math.max(...substatValues);
-    if (maxRoll === 0 || count === 0) continue;
-    const avgRoll = total / count;
-    sumStatQuality += avgRoll / maxRoll;
+    if (count === 0) continue;
+    const quality = calculateSubstatQuality(statType, total / count, getSubstatValues);
+    if (quality === 0) continue;
+    sumStatQuality += quality;
     validStatCount += 1;
   }
 
-  if (validStatCount === 0) return 0;
-  return (sumStatQuality / validStatCount) * 100;
+  return validStatCount === 0 ? 0 : (sumStatQuality / validStatCount) * 100;
 }
 
-// Default preferred substats for RV calculation
-export const DEFAULT_PREFERRED_STATS = ["Crit Rate", "Crit DMG", "Energy Regen"];
+export const DEFAULT_PREFERRED_STATS = ['Crit Rate', 'Crit DMG', 'Energy Regen'];
 
-// --- CV (Crit Value) calculations ---
+// Individual echo CV is substats only. Main stats are deterministic and are not
+// part of single-echo roll quality.
+export const calculateEchoSubstatCV = (panel: EchoPanelState): number => (
+  panel.stats.subStats.reduce((sum, stat) => sum + critCV(stat.type, stat.value), 0)
+);
 
-// Calculate individual echo CV from substats only (no main stat).
-// CV = 2 * Crit Rate + Crit DMG
-export const calculateEchoSubstatCV = (panel: EchoPanelState): number => {
-  let critRate = 0;
-  let critDmg = 0;
-
-  panel.stats.subStats.forEach(stat => {
-    if (stat.type === 'Crit Rate' && stat.value) critRate += stat.value;
-    if (stat.type === 'Crit DMG' && stat.value) critDmg += stat.value;
-  });
-
-  return 2 * critRate + critDmg;
-};
-
-// Calculate total CV across all echo panels (substats + main stats).
-// Second crit 4 cost onwards subtracts the CV so only the first 4 cost gives 4
+// Total build CV keeps the existing WuwaBuilds value model: all echo substat CV
+// plus the best 4-cost crit main only. Extra 4-cost crit mains are penalized.
 export const calculateCV = (
   echoPanels: EchoPanelState[],
-  getEchoCost: (panel: EchoPanelState) => number | null | undefined
+  getEchoCost: (panel: EchoPanelState) => number | null | undefined,
 ): number => {
   let cv = echoPanels.reduce((sum, panel) => sum + calculateEchoSubstatCV(panel), 0);
-
   const fourCostCritMainCVs: number[] = [];
 
-  echoPanels.forEach(panel => {
-    const { type, value } = panel.stats.mainStat;
-    if (!value) return;
-
-    let mainCV = 0;
-    if (type === 'Crit Rate') mainCV = 2 * value;
-    else if (type === 'Crit DMG') mainCV = value;
+  echoPanels.forEach((panel) => {
+    const mainCV = critCV(panel.stats.mainStat.type, panel.stats.mainStat.value);
     if (mainCV === 0) return;
-
     cv += mainCV;
     if (getEchoCost(panel) === 4) fourCostCritMainCVs.push(mainCV);
   });
 
   if (fourCostCritMainCVs.length > 1) {
-    const penalty = fourCostCritMainCVs.reduce((a, b) => a + b, 0) - Math.max(...fourCostCritMainCVs);
-    cv -= penalty;
+    cv -= fourCostCritMainCVs.reduce((a, b) => a + b, 0) - Math.max(...fourCostCritMainCVs);
   }
 
   return cv;
 };
 
-// Per-echo CV tier (substats only)
-// Combined range: 25.2 (both min) → 42.0 (both max), median ≈ 33.6
-// Passable floor = 25.2 (minimum double-crit: both substats at lowest roll).
-// Below means single or no crit
-//
-//   Perfect   ≥ 39.8  ~  5 %  of double-crit combinations
-//   Excellent ≥ 36.0  ~ 28 %
-//   High      ≥ 32.0  ~ 34 %
-//   Decent    ≥ 28.0  ~ 22 %
-//   Passable  ≥ 25.2   ~ 11 %  (minimum double-crit)
-//   Bad        < 25.2          (single-crit or no crit)
-export interface EchoCVTier {
-  label: string;
-  /** Inclusive CV lower bound for this tier. */
-  min: number;
-  color: string;    // hex for badge text and border tint
-  bgColor?: string; // override background (e.g., inverted badge for MAX)
-  isMax?: boolean;
-}
+export const calculateAllowedCritMainCV = (
+  mainStats: ReadonlyArray<EchoMainSummary> | null | undefined,
+): number => (
+  (mainStats ?? []).some((main) => main.cost === 4 && critCV(main.statType, MAX_FOUR_COST_CRIT_MAIN_CV) > 0)
+    ? MAX_FOUR_COST_CRIT_MAIN_CV
+    : 0
+);
 
-/** Maximum attainable echo substat CV, both crit substats at their max roll. */
-const ECHO_CV_MAX = 42.0;
+export const calculateBuildSubstatCV = (
+  finalCV: number,
+  mainStats: ReadonlyArray<EchoMainSummary> | null | undefined,
+): number => Math.max(0, Number(finalCV) - calculateAllowedCritMainCV(mainStats));
 
-/** Echo substat CV tiers, ordered highest → lowest. Single source of truth for
- *  the thresholds, labels and colors used by getEchoCVTierStyle and the CV bar. */
-export const ECHO_CV_TIERS: readonly EchoCVTier[] = [
-  { label: 'MAX',       min: ECHO_CV_MAX, color: '#CC0000', bgColor: 'rgba(255,255,255,0.95)', isMax: true },
-  { label: 'Perfect',   min: 39.8,        color: '#FF00FF' },
-  { label: 'Excellent', min: 36.0,        color: '#00FFFF' },
-  { label: 'High',      min: 32.0,        color: '#00FF00' },
-  { label: 'Decent',    min: 28.0,        color: '#E6B800' },
-  { label: 'Passable',  min: 25.2,        color: '#FF8C00' },
-  { label: 'Bad',       min: 0,           color: '#888888' },
-];
+export const getEchoCVTierStyle = (cv: number): QualityTier => getQualityTierStyle(pctOf(cv, ECHO_SUBSTAT_CV_MAX));
 
-interface EchoCVTierStyle {
-  color: string;
-  bgColor?: string;
-  label: string;
-  isMax?: boolean;
-}
-
-export const getEchoCVTierStyle = (cv: number): EchoCVTierStyle => {
-  const tier = ECHO_CV_TIERS.find((entry) => cv >= entry.min)
-    ?? ECHO_CV_TIERS[ECHO_CV_TIERS.length - 1];
-  return { color: tier.color, bgColor: tier.bgColor, label: tier.label, isMax: tier.isMax };
-};
-
-// Use CV-tier tint for the card frame, but keep weak echoes on the default amber
-// so they still read as normal items instead of disabled states.
 export const getEchoCVFrameColor = (cv: number): string => {
   const tier = getEchoCVTierStyle(cv);
   return tier.label === 'Bad' ? '#fbbf24' : tier.color;
 };
 
-const CV_RATINGS = {
-  IMPOSSIBLE: 254,      // theoretical max: 5 * 42 + 44
-  PERFECT: 240,         // 5 * 39.8 + 44 ≈ 243
-  EXCELLENT: 224,        // 5 * 36.0 + 44
-  GREAT: 204,            // 5 * 32.0 + 44
-  GOOD: 184,             // 5 * 28.0 + 44 
-  AVERAGE: 170,          // 5 * 25.2 + 44 (min double-crit)
-  BELOW_AVERAGE: 140,    // below min double-crit
-} as const;
+export const getBuildCVTierStyle = (
+  finalCV: number,
+  mainStats: ReadonlyArray<EchoMainSummary> | null | undefined,
+): QualityTier => getQualityTierStyle(pctOf(calculateBuildSubstatCV(finalCV, mainStats), BUILD_SUBSTAT_CV_MAX));
 
-// Get CV rating color for display.
-export const getCVRatingColor = (cv: number): string => {
-  if (cv >= CV_RATINGS.IMPOSSIBLE) return '#CC0000';     // Impossible → deep red (theoretical max)
-  if (cv >= CV_RATINGS.PERFECT) return '#FF00FF';        // Perfect → hot pink (echo "Perfect")
-  if (cv >= CV_RATINGS.EXCELLENT) return '#00FFFF';      // Excellent → cyan (echo "Excellent")
-  if (cv >= CV_RATINGS.GREAT) return '#00FF00';          // Great → green (echo "High")
-  if (cv >= CV_RATINGS.GOOD) return '#00FF00';           // Good → green (echo "High")
-  if (cv >= CV_RATINGS.AVERAGE) return '#E6B800';        // Average → gold (echo "Decent")
-  if (cv >= CV_RATINGS.BELOW_AVERAGE) return '#FF8C00';  // Below Average → orange (echo "Passable")
-  return '#666666';                                      // Needs Work → darker gray
-};
+export const getBuildCVRatingColor = (
+  finalCV: number,
+  mainStats: ReadonlyArray<EchoMainSummary> | null | undefined,
+): string => getBuildCVTierStyle(finalCV, mainStats).color;

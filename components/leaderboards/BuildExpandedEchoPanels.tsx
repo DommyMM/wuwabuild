@@ -2,12 +2,12 @@
 
 import React from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { calculateEchoSubstatCV, ECHO_CV_TIERS, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
+import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle, QUALITY_TIERS } from '@/lib/calculations/rollValues';
 import { getSubstatTierInfo } from '@/lib/calculations/substatTiers';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { FORTE_LABELS } from '@/lib/constants/skillBranches';
 import { Character } from '@/lib/character';
-import { Echo } from '@/lib/echo';
+import { activeElementForPanel, Echo } from '@/lib/echo';
 import { LBBuildDetailEntry } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
 import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
@@ -108,7 +108,7 @@ const SubstatRollBar: React.FC<{
 
 // Echo CV plotted on its quality-tier ladder; the build's tier is enlarged.
 const EchoCVBar: React.FC<{ cv: number }> = ({ cv }) => {
-  const tiers = ECHO_CV_TIERS.slice().reverse(); // low → high
+  const tiers = QUALITY_TIERS.slice().reverse(); // low -> high
   const currentLabel = getEchoCVTierStyle(cv).label;
   const currentIndex = tiers.findIndex((tier) => tier.label === currentLabel);
   const valueText = cv.toFixed(1);
@@ -235,8 +235,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
             return Boolean(key && sub.value !== null);
           });
 
-          // Trust the backend stored element
-          const elementType = echo ? (panel.selectedElement ?? echo.elements[0] ?? null) : null;
+          const elementType = echo ? activeElementForPanel(panel, echo) : null;
           const fetter = elementType ? fettersByElement[elementType] : null;
           const fetterIcon = fetter?.icon ?? fetter?.fetterIcon ?? null;
 

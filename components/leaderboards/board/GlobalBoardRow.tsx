@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { getCVRatingColor } from '@/lib/calculations/rollValues';
+import { getBuildCVRatingColor } from '@/lib/calculations/rollValues';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { getLBStatCode, LBBuildDetailEntry, LBBuildRowEntry, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
@@ -119,7 +119,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
     () => Math.max(0, Math.min(6, Math.trunc(Number(entry.sequence) || 0))),
     [entry.sequence],
   );
-  const finalCvColor = useMemo(() => getCVRatingColor(entry.cv), [entry.cv]);
+  const finalCvColor = useMemo(() => getBuildCVRatingColor(entry.cv, entry.echoSummary.mainStats), [entry.cv, entry.echoSummary.mainStats]);
   const isHighestCV = finalCvColor.toLowerCase() === '#ff00ff';
 
   const activeSets = useMemo(() => (

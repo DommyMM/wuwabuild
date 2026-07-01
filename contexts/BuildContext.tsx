@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef, ReactNode } from 'react';
-import { EchoPanelState, ElementType } from '@/lib/echo';
+import { EchoPanelState, ElementType, setIdForElement } from '@/lib/echo';
 import {
   SavedState,
   WatermarkState,
@@ -73,7 +73,7 @@ interface BuildContextType {
   clearEchoPanel: (index: number) => void;
   setEchoMainStat: (index: number, type: string | null, value: number | null) => void;
   setEchoSubStat: (index: number, subIndex: number, type: string | null, value: number | null) => void;
-  setEchoElement: (index: number, element: ElementType | null) => void;
+  setEchoSetId: (index: number, setId: number | null) => void;
   setEchoLevel: (index: number, level: number) => void;
   setEchoPhantom: (index: number, phantom: boolean) => void;
 
@@ -143,10 +143,12 @@ function normalizeEchoPanels(rawPanels: unknown): EchoPanelState[] {
       ? defaultPanel.stats.subStats.map((baseSub, si) => ({ ...baseSub, ...(rawSubStats[si] ?? {}) }))
       : defaultPanel.stats.subStats;
 
+    const legacySelectedElement = (panel as Partial<EchoPanelState> & { selectedElement?: ElementType | null }).selectedElement;
+
     return {
       ...defaultPanel,
       ...panel,
-      resolvedSetId: typeof panel.resolvedSetId === 'number' ? panel.resolvedSetId : null,
+      resolvedSetId: typeof panel.resolvedSetId === 'number' ? panel.resolvedSetId : setIdForElement(legacySelectedElement),
       stats: {
         mainStat: { ...defaultPanel.stats.mainStat, ...(rawMainStat ?? {}) },
         subStats,
@@ -460,8 +462,8 @@ export function BuildProvider({
     });
   }, [state.echoPanels]);
 
-  const setEchoElement = useCallback((index: number, element: ElementType | null) => {
-    dispatch({ type: 'SET_ECHO_PANEL', payload: { index, panel: { selectedElement: element } } });
+  const setEchoSetId = useCallback((index: number, setId: number | null) => {
+    dispatch({ type: 'SET_ECHO_PANEL', payload: { index, panel: { resolvedSetId: setId } } });
   }, []);
 
   const setEchoLevel = useCallback((index: number, level: number) => {
@@ -534,7 +536,7 @@ export function BuildProvider({
     clearEchoPanel,
     setEchoMainStat,
     setEchoSubStat,
-    setEchoElement,
+    setEchoSetId,
     setEchoLevel,
     setEchoPhantom,
     setForte,
@@ -562,7 +564,7 @@ export function BuildProvider({
     clearEchoPanel,
     setEchoMainStat,
     setEchoSubStat,
-    setEchoElement,
+    setEchoSetId,
     setEchoLevel,
     setEchoPhantom,
     setForte,

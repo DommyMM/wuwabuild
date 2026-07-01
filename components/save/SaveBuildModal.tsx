@@ -9,7 +9,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SavedBuild } from '@/lib/build';
 import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/rollValues';
-import { ELEMENT_SETS } from '@/lib/echo';
+import { activeElementForPanel, ELEMENT_SETS } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths } from '@/lib/paths';
 import { ELEMENT_TINT_CLASS } from '@/lib/elementVisuals';
@@ -51,7 +51,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
   const echoSummaries = React.useMemo(() => (
     state.echoPanels.map((panel, index) => {
       const echo = panel.id ? getEcho(panel.id) : null;
-      const echoElement = panel.selectedElement ?? echo?.elements?.[0];
+      const echoElement = activeElementForPanel(panel, echo);
       const fetter = echoElement ? getFetterByElement(echoElement) : null;
       return {
         key: `${panel.id ?? 'empty'}-${index}`,

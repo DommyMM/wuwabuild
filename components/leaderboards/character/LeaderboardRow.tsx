@@ -6,7 +6,7 @@ import { Crown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { getCVRatingColor } from '@/lib/calculations/rollValues';
+import { getBuildCVRatingColor } from '@/lib/calculations/rollValues';
 import { getLBStatCode, LBBuildDetailEntry, LBBuildEchoSummary, LBBuildRowEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortKey } from '@/lib/lb';
 import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '../constants';
 import { formatReignHoldLabel, formatReignSinceDate, formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
@@ -92,7 +92,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
     );
   }, [boardStatColumns, character, entry.stats, sort]);
 
-  const finalCvColor = useMemo(() => getCVRatingColor(entry.finalCV), [entry.finalCV]);
+  const finalCvColor = useMemo(() => getBuildCVRatingColor(entry.finalCV, entry.echoSummary.mainStats), [entry.echoSummary.mainStats, entry.finalCV]);
   const isHighestCV = finalCvColor.toLowerCase() === '#ff00ff';
 
   const echoSetCounts = entry.echoSummary.sets;
@@ -136,7 +136,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
           : 'text-text-primary/75';
 
   const rowEntry = useMemo<LBBuildRowEntry>(() => {
-    const echoSummaryForExpanded: LBBuildEchoSummary = { sets: echoSetCounts, mainStats: [] };
+    const echoSummaryForExpanded: LBBuildEchoSummary = { sets: echoSetCounts, mainStats: entry.echoSummary.mainStats };
     return {
       id: entry.id,
       owner: entry.owner,
@@ -148,7 +148,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
       cv: entry.finalCV,
       timestamp: entry.timestamp,
     };
-  }, [echoSetCounts, entry.character.id, entry.finalCV, entry.id, entry.owner, entry.sequence, entry.stats, entry.timestamp, entry.weapon]);
+  }, [echoSetCounts, entry.character.id, entry.echoSummary.mainStats, entry.finalCV, entry.id, entry.owner, entry.sequence, entry.stats, entry.timestamp, entry.weapon]);
 
   const characterName = useMemo(() => (
     character

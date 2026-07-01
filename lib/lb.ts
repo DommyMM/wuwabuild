@@ -91,7 +91,7 @@ const LB_SORT_KEY_SET: ReadonlySet<LBSortKey> = new Set([
 
 const LB_STAT_CODE_BY_SORT_KEY: Record<LBStatSortKey, LBStatCode> = Object.fromEntries(
   LB_STAT_ENTRIES.map((entry) => [entry.sortKey, entry.code]),
- ) as Record<LBStatSortKey, LBStatCode>;
+) as Record<LBStatSortKey, LBStatCode>;
 
 const LB_LEADERBOARD_SORT_KEY_SET: ReadonlySet<LBLeaderboardSortKey> = new Set([
   'finalCV',
@@ -583,11 +583,12 @@ export async function listProfileBuilds(
 
 // Profile echo inventory -----------------------------------------------------
 // Backed by GET /profile/{uid}/echoes. Sort keys map 1:1 to the backend
-// echoSortClause whitelist: cv/cost/mainStatValue/timestamp plus any substat
+// echoSortClause whitelist: cv/rv/cost/mainStatValue/timestamp plus any substat
 // stat key (snake_case, e.g. crit_dmg) which sorts by that sub_* column.
 
 export type LBEchoSortKey =
   | 'cv'
+  | 'rv'
   | 'cost'
   | 'mainStatValue'
   | 'timestamp'
@@ -612,13 +613,12 @@ export type LBEchoSortKey =
   | 'resonance_liberation_dmg'
   | 'resonance_skill_dmg';
 
-// panelData round-trips the stored echo panel; shape matches EchoPanelState
-// minus resolvedSetId (which lives in the denormalized activeSetId column).
+// panelData round-trips the stored echo panel; shape matches EchoPanelState.
 export interface LBEchoPanel {
   id: string | null;
   level: number;
   phantom: boolean;
-  selectedElement: string | null;
+  resolvedSetId: number | null;
   stats: {
     mainStat: { type: string | null; value: number | null };
     subStats: Array<{ type: string | null; value: number | null }>;
@@ -629,12 +629,12 @@ export interface LBEcho {
   echoKey: string;
   echoId: string;
   cost: number;
-  selectedElement: string;
   activeSetId: string;
   mainStatType: string;
   mainStatValue: number;
   substats: Record<string, number>;
   cv: number;
+  rv: number;
   usageCount: number;
   firstSeenAt: string;
   lastSeenAt: string;
@@ -668,7 +668,7 @@ function parseEchoPanel(raw: unknown): LBEchoPanel | null {
     id: typeof raw.id === 'string' ? raw.id : null,
     level: toFiniteNumber(raw.level, 0),
     phantom: raw.phantom === true,
-    selectedElement: typeof raw.selectedElement === 'string' && raw.selectedElement !== '' ? raw.selectedElement : null,
+    resolvedSetId: typeof raw.resolvedSetId === 'number' ? raw.resolvedSetId : null,
     stats: {
       mainStat: {
         type: mainStat && typeof mainStat.type === 'string' ? mainStat.type : null,
@@ -699,12 +699,12 @@ function parseEchoEntry(raw: unknown): LBEcho {
     echoKey: typeof raw.echoKey === 'string' ? raw.echoKey : '',
     echoId,
     cost: toFiniteNumber(raw.cost, 0),
-    selectedElement: typeof raw.selectedElement === 'string' ? raw.selectedElement : '',
     activeSetId: typeof raw.activeSetId === 'string' ? raw.activeSetId : '',
     mainStatType: typeof raw.mainStatType === 'string' ? raw.mainStatType : '',
     mainStatValue: toFiniteNumber(raw.mainStatValue, 0),
     substats,
     cv: toFiniteNumber(raw.cv, 0),
+    rv: toFiniteNumber(raw.rv, 0),
     usageCount: toFiniteNumber(raw.usageCount, 0),
     firstSeenAt: typeof raw.firstSeenAt === 'string' ? raw.firstSeenAt : '',
     lastSeenAt: typeof raw.lastSeenAt === 'string' ? raw.lastSeenAt : '',
@@ -1488,7 +1488,7 @@ function parseOptimalityEchoPanel(raw: unknown): EchoPanelState | null {
   return {
     id: typeof raw.id === 'string' ? raw.id : null,
     level: typeof raw.level === 'number' ? raw.level : 25,
-    selectedElement: typeof raw.selectedElement === 'string' && raw.selectedElement !== '' ? raw.selectedElement as EchoPanelState['selectedElement'] : null,
+    resolvedSetId: typeof raw.resolvedSetId === 'number' ? raw.resolvedSetId : null,
     phantom: typeof raw.phantom === 'boolean' ? raw.phantom : false,
     stats: {
       mainStat: {

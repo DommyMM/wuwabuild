@@ -1,4 +1,5 @@
-import type { Echo, EchoPanelState, ElementType } from '@/lib/echo';
+import { setIdForElement } from '@/lib/echo';
+import type { Echo, EchoPanelState } from '@/lib/echo';
 
 interface ValidateImportedEchoPanelsArgs {
   echoPanels: EchoPanelState[];
@@ -7,9 +8,9 @@ interface ValidateImportedEchoPanelsArgs {
   getSubstatValues: (stat: string) => number[] | null;
 }
 
-const EXTRA_VALID_SET_ELEMENTS: Record<string, ElementType[]> = {
+const EXTRA_VALID_SET_IDS: Record<string, number[]> = {
   // Hecate can roll any elemental set in-game, but CDN only lists Empyrean.
-  '60000855': ['Glacio', 'Fusion', 'Electro', 'Aero', 'Spectro', 'Havoc'],
+  '60000855': [1, 2, 3, 4, 5, 6],
 };
 
 function isCloseToAllowedRoll(value: number, allowedValues: number[]): boolean {
@@ -33,11 +34,14 @@ export function validateImportedEchoPanels({
       return;
     }
 
-    const selectedElement = panel.selectedElement;
-    if (selectedElement) {
-      const extraElements = EXTRA_VALID_SET_ELEMENTS[echo.id] ?? [];
-      if (!echo.elements.includes(selectedElement) && !extraElements.includes(selectedElement)) {
-        violations.push(`Echo ${index + 1}: ${echo.name} cannot use the ${selectedElement} set.`);
+    const selectedSetId = panel.resolvedSetId;
+    if (selectedSetId) {
+      const validSetIds = new Set([
+        ...echo.elements.map((element) => setIdForElement(element)).filter((id): id is number => id !== null),
+        ...(EXTRA_VALID_SET_IDS[echo.id] ?? []),
+      ]);
+      if (!validSetIds.has(selectedSetId)) {
+        violations.push(`Echo ${index + 1}: ${echo.name} cannot use set ${selectedSetId}.`);
       }
     }
 
