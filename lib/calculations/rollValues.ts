@@ -1,8 +1,8 @@
 import { EchoPanelState } from '@/lib/echo';
 
-export const ECHO_SUBSTAT_CV_MAX = 42;
-export const BUILD_SUBSTAT_CV_MAX = ECHO_SUBSTAT_CV_MAX * 5;
-export const MAX_FOUR_COST_CRIT_MAIN_CV = 44;
+const ECHO_SUBSTAT_CV_MAX = 42;
+const BUILD_SUBSTAT_CV_MAX = ECHO_SUBSTAT_CV_MAX * 5;
+const MAX_FOUR_COST_CRIT_MAIN_CV = 44;
 
 export interface QualityTier {
   label: string;
@@ -61,7 +61,7 @@ const critCV = (statType: string | null | undefined, value: number | null | unde
   }
 };
 
-export const calculateSubstatQuality = (
+const calculateSubstatQuality = (
   statType: string | null | undefined,
   value: number | null | undefined,
   getSubstatValues: (stat: string) => number[] | null,
@@ -85,19 +85,6 @@ export function calculateEchoRV(
     0,
   );
   return (sum / 5) * 100;
-}
-
-export function calculateBuildRV(
-  echoPanels: ReadonlyArray<EchoPanelState>,
-  getSubstatValues: (stat: string) => number[] | null,
-): number {
-  const sum = echoPanels.reduce((buildTotal, panel) => (
-    buildTotal + panel.stats.subStats.reduce(
-      (echoTotal, sub) => echoTotal + calculateSubstatQuality(sub.type, sub.value, getSubstatValues),
-      0,
-    )
-  ), 0);
-  return (sum / 25) * 100;
 }
 
 // Preferred-stat RV answers a different question from full-sheet RV:
@@ -153,7 +140,7 @@ export const calculateCV = (
   return cv;
 };
 
-export const calculateAllowedCritMainCV = (
+const calculateAllowedCritMainCV = (
   mainStats: ReadonlyArray<EchoMainSummary> | null | undefined,
 ): number => (
   (mainStats ?? []).some((main) => main.cost === 4 && critCV(main.statType, MAX_FOUR_COST_CRIT_MAIN_CV) > 0)
@@ -161,7 +148,7 @@ export const calculateAllowedCritMainCV = (
     : 0
 );
 
-export const calculateBuildSubstatCV = (
+const calculateBuildSubstatCV = (
   finalCV: number,
   mainStats: ReadonlyArray<EchoMainSummary> | null | undefined,
 ): number => Math.max(0, Number(finalCV) - calculateAllowedCritMainCV(mainStats));
@@ -173,7 +160,7 @@ export const getEchoCVFrameColor = (cv: number): string => {
   return tier.label === 'Bad' ? '#fbbf24' : tier.color;
 };
 
-export const getBuildCVTierStyle = (
+const getBuildCVTierStyle = (
   finalCV: number,
   mainStats: ReadonlyArray<EchoMainSummary> | null | undefined,
 ): QualityTier => getQualityTierStyle(pctOf(calculateBuildSubstatCV(finalCV, mainStats), BUILD_SUBSTAT_CV_MAX));

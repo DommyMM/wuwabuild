@@ -13,7 +13,7 @@ interface ConvertArgs extends GameDataArgs {
 
 const ELEMENTS = ['Aero', 'Spectro', 'Havoc', 'Glacio', 'Fusion', 'Electro'] as const;
 
-export const IMPORT_WEAPON_FALLBACKS: Record<string, { id: string; name: string }> = {
+const IMPORT_WEAPON_FALLBACKS: Record<string, { id: string; name: string }> = {
   '1109': { id: '21050086', name: 'Freeze Frame' },       // Lucilla
   '1308': { id: '21030066', name: 'Skull Thrasher' },     // Rebecca
   '1511': { id: '21030056', name: 'Spectral Trigger' },   // Lucy

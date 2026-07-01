@@ -79,7 +79,6 @@ export const LB_STAT_ENTRIES: readonly LBStatEntry[] = [
 const LB_STAT_SORT_KEY_SET: ReadonlySet<LBStatSortKey> = new Set(
   LB_STAT_ENTRIES.map((entry) => entry.sortKey),
 );
-export const LB_STAT_SORT_KEYS = LB_STAT_ENTRIES.map((entry) => entry.sortKey);
 export const LB_ECHO_SUBSTAT_SORT_KEYS = LB_STAT_ENTRIES
   .filter((entry) => entry.echoSubstat)
   .map((entry) => entry.sortKey);
@@ -104,7 +103,7 @@ export function getLBStatCode(sortKey: LBStatSortKey): LBStatCode {
   return LB_STAT_CODE_BY_SORT_KEY[sortKey];
 }
 
-export function isLBStatSortKey(value: unknown): value is LBStatSortKey {
+function isLBStatSortKey(value: unknown): value is LBStatSortKey {
   return typeof value === 'string' && LB_STAT_SORT_KEY_SET.has(value as LBStatSortKey);
 }
 
@@ -614,7 +613,7 @@ export type LBEchoSortKey =
   | 'resonance_skill_dmg';
 
 // panelData round-trips the stored echo panel; shape matches EchoPanelState.
-export interface LBEchoPanel {
+interface LBEchoPanel {
   id: string | null;
   level: number;
   phantom: boolean;
@@ -788,7 +787,7 @@ export interface LBTrack {
 
 /** One support's full resolved buff contribution on a board (kit + weapon + sonata
  * set + echo + sequence tiers), as label → value (percent unless flat ATK/HP/DEF). */
-export interface LBTeamSupportBuff {
+interface LBTeamSupportBuff {
   charId: string;
   seq: number;
   buffs: Record<string, number>;

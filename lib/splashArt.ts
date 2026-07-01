@@ -78,7 +78,7 @@ export const getSplashUrlCandidates = (
   return Array.from(new Set(candidates));
 };
 
-export const getSplashArtTransformKey = (
+const getSplashArtTransformKey = (
   characterId: string,
   variant: SplashArtVariant = 'normal',
 ): string => (variant === 'skin' ? `${characterId}${SKIN_SPLASH_SUFFIX}` : characterId);

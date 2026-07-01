@@ -13,7 +13,7 @@ export interface FullOcrResponse {
   unsupportedLanguage?: boolean;
 }
 
-export type OcrStreamEvent =
+type OcrStreamEvent =
   | {
       type: 'meta';
       image?: { width: number; height: number; bytes: number };
@@ -41,7 +41,7 @@ interface OcrStreamHandlers {
 
 const REGION_KEY_SET = new Set<string>(IMPORT_REGION_KEYS);
 
-export function isRegionKey(value: unknown): value is RegionKey {
+function isRegionKey(value: unknown): value is RegionKey {
   return typeof value === 'string' && REGION_KEY_SET.has(value);
 }
 

@@ -149,11 +149,11 @@ export const FETTER_MAP: Record<number, ElementType> = {
   32: 'Adam',
 };
 
-export const SET_ID_BY_ELEMENT = Object.fromEntries(
+const SET_ID_BY_ELEMENT = Object.fromEntries(
   Object.entries(FETTER_MAP).map(([id, element]) => [element, Number(id)])
 ) as Record<ElementType, number>;
 
-export const elementForSetId = (setId: number | null | undefined): ElementType | null => (
+const elementForSetId = (setId: number | null | undefined): ElementType | null => (
   typeof setId === 'number' ? FETTER_MAP[setId] ?? null : null
 );
 
@@ -170,13 +170,6 @@ export const activeElementForPanel = (
   echo: Echo | null | undefined
 ): ElementType | null => (
   elementForSetId(panel.resolvedSetId) ?? echo?.elements[0] ?? null
-);
-
-export const activeSetIdForPanel = (
-  panel: Pick<EchoPanelState, 'resolvedSetId'>,
-  echo: Echo | null | undefined
-): number | null => (
-  panel.resolvedSetId ?? defaultSetIdForEcho(echo)
 );
 
 const ENCORE_RESOURCE_BASE = 'https://api.encore.moe/resource/Data';

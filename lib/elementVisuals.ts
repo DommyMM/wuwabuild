@@ -24,15 +24,6 @@ export const ELEMENT_TINT: Record<string, string> = {
   Fusion: 'from-fusion/26 via-fusion/11 to-transparent',
 };
 
-export const ELEMENT_BLOOM: Record<string, string> = {
-  Aero: 'bg-[radial-gradient(120%_90%_at_50%_8%,rgba(85,255,181,0.28)_0%,rgba(85,255,181,0.08)_40%,transparent_78%)]',
-  Havoc: 'bg-[radial-gradient(120%_90%_at_50%_8%,rgba(230,73,166,0.3)_0%,rgba(230,73,166,0.09)_40%,transparent_78%)]',
-  Spectro: 'bg-[radial-gradient(120%_90%_at_50%_8%,rgba(248,229,108,0.27)_0%,rgba(248,229,108,0.09)_40%,transparent_78%)]',
-  Glacio: 'bg-[radial-gradient(120%_90%_at_50%_8%,rgba(65,174,251,0.26)_0%,rgba(65,174,251,0.08)_40%,transparent_78%)]',
-  Electro: 'bg-[radial-gradient(120%_90%_at_50%_8%,rgba(180,107,255,0.28)_0%,rgba(180,107,255,0.09)_40%,transparent_78%)]',
-  Fusion: 'bg-[radial-gradient(120%_90%_at_50%_8%,rgba(240,116,78,0.28)_0%,rgba(240,116,78,0.09)_40%,transparent_78%)]',
-};
-
 export const ELEMENT_TINT_CLASS: Record<string, string> = {
   Aero: 'bg-[radial-gradient(100%_70%_at_5%_0%,rgba(85,255,181,0.11)_0%,transparent_62%)]',
   Havoc: 'bg-[radial-gradient(100%_70%_at_5%_0%,rgba(230,73,166,0.12)_0%,transparent_62%)]',
