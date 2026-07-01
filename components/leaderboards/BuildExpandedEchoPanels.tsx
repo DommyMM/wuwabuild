@@ -50,7 +50,7 @@ const StatHoverRow: React.FC<{ label: string; children: React.ReactNode }> = ({ 
 
 // Discrete bar of every possible roll for a substat, tinted by quality tier.
 // The roll this build landed is enlarged, brightened and labelled.
-const SubstatRollBar: React.FC<{
+export const SubstatRollBar: React.FC<{
   rollValues: number[];
   currentValue: number;
   isPercent: boolean;
@@ -106,12 +106,11 @@ const SubstatRollBar: React.FC<{
   );
 };
 
-// Echo CV plotted on its quality-tier ladder; the build's tier is enlarged.
-const EchoCVBar: React.FC<{ cv: number }> = ({ cv }) => {
+// A value plotted on the shared quality-tier ladder; the landed tier is enlarged.
+// CV and RV both grade on QUALITY_TIERS, so the ladder only needs the tier label.
+export const QualityTierBar: React.FC<{ currentLabel: string; valueText: string }> = ({ currentLabel, valueText }) => {
   const tiers = QUALITY_TIERS.slice().reverse(); // low -> high
-  const currentLabel = getEchoCVTierStyle(cv).label;
   const currentIndex = tiers.findIndex((tier) => tier.label === currentLabel);
-  const valueText = cv.toFixed(1);
 
   return (
     <div>
@@ -145,6 +144,11 @@ const EchoCVBar: React.FC<{ cv: number }> = ({ cv }) => {
     </div>
   );
 };
+
+// Echo CV plotted on its quality-tier ladder; the build's tier is enlarged.
+export const EchoCVBar: React.FC<{ cv: number }> = ({ cv }) => (
+  <QualityTierBar currentLabel={getEchoCVTierStyle(cv).label} valueText={cv.toFixed(1)} />
+);
 
 export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = ({
   detail,

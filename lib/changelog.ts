@@ -21,6 +21,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 text: 'Profile page shows all the echoes you have with filters, sorting, substats-only CV, and full-sheet RV'
             },
             {
+                kind: 'new',
+                text: 'Detailed echo breakdown and links to builds using it'
+            },
+            {
                 kind: 'improved',
                 text: 'Leaderboard CV colors now grade echo substat quality consistently whether or not the build uses a crit 4-cost main stat'
             }

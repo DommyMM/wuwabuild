@@ -6,12 +6,13 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getLBStatLabel, getLBStatSortKeyForLabel, isLBEchoSubstatSortKey, LBEcho, LB_ECHO_SUBSTAT_SORT_KEYS, LBEchoSortKey, LBSortDirection, LBSortKey, LBStatSortKey, listProfileEchoes } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
-import { calculateEchoRV, getEchoCVTierStyle, getQualityTierStyle } from '@/lib/calculations/rollValues';
+import { calculateEchoRV, getEchoCVTierStyle, getEchoRVTierStyle } from '@/lib/calculations/rollValues';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { BuildPagination } from '@/components/leaderboards/BuildPagination';
 import { SortHeaderMenu, SortMenuOption } from '@/components/leaderboards/SortHeaderMenu';
 import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '@/components/leaderboards/constants';
+import { EchoInventoryDetail } from './EchoInventoryDetail';
 
 const PAGE_SIZE = 20;
 const ECHO_COSTS = [4, 3, 1] as const;
@@ -53,9 +54,11 @@ function echoNameSizeClass(name: string): string {
 
 interface ProfileEchoesProps {
   uid: string;
+  /** Surface a build in the profile's builds table above (expand + scroll). */
+  onOpenBuild: (buildId: string, characterId: string) => void;
 }
 
-export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
+export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }) => {
   const { getEcho, getMainStatsByCost, getSubstatValues, fetters, statIcons } = useGameData();
   const { t } = useLanguage();
 
@@ -65,6 +68,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
   const [costs, setCosts] = useState<number[]>([]);
   const [setIds, setSetIds] = useState<string[]>([]);
   const [mainStatTypes, setMainStatTypes] = useState<string[]>([]);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const [echoes, setEchoes] = useState<LBEcho[]>([]);
   const [total, setTotal] = useState(0);
@@ -234,7 +238,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                         type="button"
                         onClick={sortByCV}
                         title="Sort by Crit Value"
-                        className={`flex items-center justify-between gap-2 leading-tight transition-[color,font-size] duration-200 ${
+                        className={`group flex items-center justify-between gap-2 leading-tight transition-[color,font-size] duration-200 ${
                           rvFocus ? 'text-xs' : 'text-lg'
                         } ${
                           isCvActive
@@ -245,24 +249,32 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                         }`}
                       >
                         <span>Crit Value</span>
-                        {isCvActive && (
-                          <ChevronDown className={`${rvFocus ? 'h-3 w-3' : 'h-3.5 w-3.5'} shrink-0 transition-transform duration-300 ${direction === 'asc' ? 'rotate-180' : ''}`} />
-                        )}
+                        <ChevronDown
+                          className={`${rvFocus ? 'h-3 w-3' : 'h-3.5 w-3.5'} shrink-0 transition-all duration-200 ${
+                            isCvActive
+                              ? `opacity-100 ${direction === 'asc' ? 'rotate-180' : ''}`
+                              : 'opacity-0 group-hover:opacity-45'
+                          }`}
+                        />
                       </button>
                       <button
                         type="button"
                         onClick={sortByRV}
                         title="Sort by Roll Value"
-                        className={`flex items-center justify-between gap-2 leading-tight transition-[color,font-size] duration-200 ${
+                        className={`group flex items-center justify-between gap-2 leading-tight transition-[color,font-size] duration-200 ${
                           rvFocus ? 'text-lg' : 'text-xs'
                         } ${
                           isRvActive ? 'text-accent' : 'text-text-primary/45 hover:text-text-primary/75'
                         }`}
                       >
                         <span>Roll Value</span>
-                        {isRvActive && (
-                          <ChevronDown className={`${rvFocus ? 'h-3.5 w-3.5' : 'h-3 w-3'} shrink-0 transition-transform duration-300 ${direction === 'asc' ? 'rotate-180' : ''}`} />
-                        )}
+                        <ChevronDown
+                          className={`${rvFocus ? 'h-3.5 w-3.5' : 'h-3 w-3'} shrink-0 transition-all duration-200 ${
+                            isRvActive
+                              ? `opacity-100 ${direction === 'asc' ? 'rotate-180' : ''}`
+                              : 'opacity-0 group-hover:opacity-45'
+                          }`}
+                        />
                       </button>
                     </div>
                   </div>
@@ -350,7 +362,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                       const mainIcon = echo.mainStatType ? statIconFor(statIcons, echo.mainStatType) : '';
                       const subs = (echo.panel?.stats.subStats ?? []).filter((s) => s.type && s.value != null);
                       const rv = echo.rv > 0 ? echo.rv : calculateEchoRV(subs, getSubstatValues);
-                      const rvStyle = rv > 0 ? getQualityTierStyle(rv) : null;
+                      const rvStyle = rv > 0 ? getEchoRVTierStyle(rv) : null;
                       const displaySubs = isSubstatSortActive
                         ? [
                             {
@@ -373,10 +385,16 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                             value: sub.value,
                           }));
 
+                      const isExpanded = expandedKey === echo.echoKey;
+                      const toggleExpand = () => setExpandedKey((k) => (k === echo.echoKey ? null : echo.echoKey));
                       return (
+                        <div key={echo.echoKey}>
                         <div
-                          key={echo.echoKey}
-                          className={`grid ${ECHO_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10`}
+                          role="button"
+                          tabIndex={0}
+                          onClick={toggleExpand}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(); } }}
+                          className={`grid ${ECHO_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 ${isExpanded ? 'bg-accent/12' : ''}`}
                         >
                           <div className="py-2 text-center text-text-primary/75">{rankStart + index}</div>
 
@@ -485,6 +503,8 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                               );
                             })}
                           </div>
+                        </div>
+                        {isExpanded && <EchoInventoryDetail echo={echo} uid={uid} onOpenBuild={onOpenBuild} />}
                         </div>
                       );
                     })}

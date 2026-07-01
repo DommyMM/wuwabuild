@@ -18,6 +18,7 @@ import { GlobalBoardResultsPanel } from '@/components/leaderboards/board/GlobalB
 import { GlobalBoardRowExpandedProps } from '@/components/leaderboards/board/GlobalBoardRow';
 import { useBuildDetails } from '@/components/leaderboards/useBuildDetails';
 import { useExpandedRows } from '@/components/leaderboards/useExpandedRows';
+import { scrollToElementBelowNav } from '@/components/leaderboards/scrollToElementBelowNav';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/leaderboards/types';
 import { ProfileBuildExpanded } from './ProfileBuildExpanded';
 import { ProfileShowcase } from './ProfileShowcase';
@@ -221,6 +222,48 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const handleRetryDetail = useCallback((buildId: string) => {
     retryBuildDetail(buildId);
   }, [retryBuildDetail]);
+
+  // Deep link from the echo inventory's "Equipped by" strip: surface the build
+  // in this page's own table instead of leaving the profile.
+  const pendingOpenBuildRef = useRef<string | null>(null);
+
+  const scrollToBuildRow = useCallback((buildId: string) => {
+    const scroll = () => {
+      const row = document.querySelector<HTMLElement>(`[data-build-id="${buildId}"]`);
+      if (row) scrollToElementBelowNav(row);
+    };
+    // Two frames + the expansion's animation window, so the row has its final position.
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        window.setTimeout(scroll, 240);
+      });
+    });
+  }, []);
+
+  const handleOpenBuild = useCallback((buildId: string, characterId: string) => {
+    if (builds.some((b) => b.id === buildId)) {
+      if (!expandedBuildIds.has(buildId)) handleToggleExpand(buildId);
+      scrollToBuildRow(buildId);
+      return;
+    }
+    // Not on the current page: narrow the table to that character so the build
+    // lands on page 1, then expand it once the refreshed list contains it.
+    pendingOpenBuildRef.current = buildId;
+    setCharacterIds([characterId]);
+    setWeaponIds([]);
+    setRegionPrefixes([]);
+    setEchoSets([]);
+    setEchoMains([]);
+    setPage(1);
+  }, [builds, expandedBuildIds, handleToggleExpand, scrollToBuildRow]);
+
+  useEffect(() => {
+    const id = pendingOpenBuildRef.current;
+    if (!id || !builds.some((b) => b.id === id)) return;
+    pendingOpenBuildRef.current = null;
+    if (!expandedBuildIds.has(id)) handleToggleExpand(id);
+    scrollToBuildRow(id);
+  }, [builds, expandedBuildIds, handleToggleExpand, scrollToBuildRow]);
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
   const hasExpandedBuild = hasExpandedRows;
@@ -443,7 +486,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
           </div>
         </section>
 
-        <ProfileEchoes uid={uid} />
+        <ProfileEchoes uid={uid} onOpenBuild={handleOpenBuild} />
       </div>
     </main>
   );

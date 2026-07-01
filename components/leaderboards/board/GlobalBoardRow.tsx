@@ -148,7 +148,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
   }, [renderExpanded]);
 
   return (
-    <div>
+    <div data-build-id={entry.id}>
       <div
         role="button"
         tabIndex={0}

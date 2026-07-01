@@ -35,7 +35,7 @@ const DMG_PROP_ID_TO_COLOR: Record<number, string> = {
 
 // A sonata set's accent color comes from its damage-element bonus, if it has one.
 // Utility sets (Energy Regen, Healing, ATK%) have no element color → undefined.
-const getFetterElementColor = (fetter: CDNFetter): string | undefined => {
+export const getFetterElementColor = (fetter: CDNFetter): string | undefined => {
   const propGroups: Array<Array<{ id: number }>> = [];
   for (const effect of Object.values(fetter.pieceEffects ?? {})) {
     if (Array.isArray(effect.addProp)) propGroups.push(effect.addProp);

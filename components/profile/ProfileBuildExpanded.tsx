@@ -1,17 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
-import { saveDraftBuild } from '@/lib/storage';
 import { Character } from '@/lib/character';
 import { Echo } from '@/lib/echo';
 import { RegionBadge } from '@/components/leaderboards/constants';
 import { BuildSimulationSection } from '@/components/leaderboards/BuildSimulationSection';
 import { RankBoard } from '@/components/card/RankModule';
 import { ProfileCard } from './ProfileCard';
-import posthog from 'posthog-js';
 
 interface ProfileBuildExpandedProps {
   entry: LBBuildRowEntry;
@@ -39,19 +36,9 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
   regionBadge,
   onRetryDetail,
 }) => {
-  const router = useRouter();
   // Mirrors the card's board picker so the bench below analyzes the same board
   // the rank module is showing. Null while "Original forte" or unranked.
   const [activeBoard, setActiveBoard] = useState<RankBoard | null>(null);
-
-  const handleViewBuild = () => {
-    if (!detail) return;
-    posthog.capture('profile_open_in_editor_click', {
-      character_id: detail.buildState.characterId ?? null,
-    });
-    saveDraftBuild(detail.buildState);
-    router.push('/edit');
-  };
 
   return (
     <AnimatePresence initial={false}>
@@ -102,7 +89,6 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
                   isExpanded={isExpanded}
                   baseDamage={activeBoard?.damage}
                   globalRank={activeBoard?.rank}
-                  onViewInEditor={handleViewBuild}
                 />
               </>
             )}

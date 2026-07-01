@@ -155,6 +155,20 @@ const calculateBuildSubstatCV = (
 
 export const getEchoCVTierStyle = (cv: number): QualityTier => getQualityTierStyle(pctOf(cv, ECHO_SUBSTAT_CV_MAX));
 
+// RV averages all five substat lines against their max roll, so reaching a given
+// percentile is rarer than the same CV percentile — grade RV one quality tier more
+// generously (e.g. a "High"/green CV band shows as "Excellent"/cyan for RV). The MAX
+// glow still requires a literal 100 (every line maxed); a genuinely low RV stays Bad.
+export const getEchoRVTierStyle = (rv: number): QualityTier => {
+  const normalized = Math.max(0, Math.min(100, Number.isFinite(rv) ? rv : 0));
+  if (normalized >= 100) return { ...QUALITY_TIERS[0] };
+  const lastIdx = QUALITY_TIERS.length - 1;
+  const baseIdx = QUALITY_TIERS.findIndex((tier) => normalized >= tier.minPct);
+  const idx = baseIdx < 0 ? lastIdx : baseIdx;
+  const bumpedIdx = idx === lastIdx ? lastIdx : Math.max(1, idx - 1);
+  return { ...QUALITY_TIERS[bumpedIdx] };
+};
+
 export const getEchoCVFrameColor = (cv: number): string => {
   const tier = getEchoCVTierStyle(cv);
   return tier.label === 'Bad' ? '#fbbf24' : tier.color;

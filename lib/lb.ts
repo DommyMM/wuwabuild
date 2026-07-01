@@ -759,6 +759,68 @@ export async function listProfileEchoes(
   };
 }
 
+// One build that equips a given echo, for the profile echo "used by" strip.
+export interface LBEchoUsage {
+  buildId: string;
+  slotIndex: number;
+  characterId: string;
+  weaponId: string;
+  cv: number;
+  sequence: number;
+  saved: boolean;
+  /** Echo main-stat summary of the whole build, so CV grades on the right scale. */
+  mainStats: Array<{ cost: number; statType: string }>;
+}
+
+function parseEchoUsage(raw: unknown): LBEchoUsage | null {
+  if (!isRecord(raw)) return null;
+  const buildId = typeof raw.buildId === 'string' ? raw.buildId : '';
+  if (!buildId) return null;
+  return {
+    buildId,
+    slotIndex: toFiniteNumber(raw.slotIndex, 0),
+    characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
+    weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
+    cv: toFiniteNumber(raw.cv, 0),
+    sequence: toFiniteNumber(raw.sequence, 0),
+    saved: raw.saved === true,
+    mainStats: Array.isArray(raw.mainStats)
+      ? raw.mainStats
+        .filter(isRecord)
+        .map((entry) => ({
+          cost: toFiniteNumber(entry.cost, 0),
+          statType: typeof entry.statType === 'string' ? entry.statType : '',
+        }))
+      : [],
+  };
+}
+
+// Lazily fetch which builds use one echo (by echo_key), for the inventory
+// expansion "used by" strip. Ordered most-impressive CV first by the API.
+export async function getEchoUsages(
+  uid: string,
+  echoKey: string,
+  signal?: AbortSignal,
+): Promise<LBEchoUsage[]> {
+  const trimmedUid = uid.trim();
+  if (!trimmedUid || !echoKey) return [];
+
+  const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(trimmedUid)}/echoes/${encodeURIComponent(echoKey)}/usages`;
+  const response = await fetch(requestUrl, { method: 'GET', signal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch echo usages (${response.status})`);
+  }
+
+  const payload: unknown = await response.json();
+  const rawUsages = isRecord(payload) && Array.isArray(payload.usages) ? payload.usages : [];
+  const usages: LBEchoUsage[] = [];
+  for (const raw of rawUsages) {
+    const parsed = parseEchoUsage(raw);
+    if (parsed) usages.push(parsed);
+  }
+  return usages;
+}
+
 // Leaderboard types
 
 export interface LBWeaponTop {
