@@ -167,8 +167,8 @@ export const SortHeaderMenu: React.FC<SortHeaderMenuProps> = ({
               }}
               className={`flex w-full items-center justify-between gap-2 border-b border-border px-3 py-1.5 text-left text-[15px] transition-colors last:border-b-0 ${
                 isSelected
-                  ? 'border-l-2 border-l-accent bg-black/35 text-accent'
-                  : 'border-l-2 border-l-transparent text-text-primary hover:border-l-border hover:bg-background hover:text-text-primary/95'
+                  ? 'border-l-2 border-l-amber-300 bg-amber-400/14 text-amber-100'
+                  : 'border-l-2 border-l-transparent text-text-primary hover:border-l-amber-300/70 hover:bg-amber-400/10 hover:text-amber-50'
               }`}
             >
               <span className="flex items-center gap-2">

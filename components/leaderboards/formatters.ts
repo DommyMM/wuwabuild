@@ -1,5 +1,9 @@
-import { LBSortKey } from '@/lib/lb';
-import { PERCENT_STAT_KEYS, REGION_BADGES, RegionBadge, SORT_OPTIONS } from './constants';
+import { isLBPercentStatSortKey, LBSortKey } from '@/lib/lb';
+import { REGION_BADGES, RegionBadge } from './constants';
+
+// getSortLabel lives in lib/lb as getLBSortLabel (the single label source);
+// re-exported here for the leaderboard components that import it from formatters.
+export { getLBSortLabel as getSortLabel } from '@/lib/lb';
 
 export function formatFlatStat(value: number): string {
   return Number(value).toFixed(0);
@@ -9,12 +13,8 @@ export function formatPercentStat(value: number): string {
   return `${Number(value).toFixed(1).replace(/\.0$/, '')}%`;
 }
 
-export function getSortLabel(key: LBSortKey): string {
-  return SORT_OPTIONS.find((option) => option.key === key)?.label ?? key;
-}
-
 export function formatStatByKey(key: LBSortKey, value: number): string {
-  if (PERCENT_STAT_KEYS.has(key)) return `${Number(value).toFixed(1)}%`;
+  if (isLBPercentStatSortKey(key)) return `${Number(value).toFixed(1)}%`;
   return formatFlatStat(value);
 }
 

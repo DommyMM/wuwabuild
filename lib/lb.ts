@@ -1,6 +1,7 @@
 import { DEFAULT_FORTE, ForteState, SavedState } from '@/lib/build';
 import { EchoPanelState } from '@/lib/echo';
 import { toMainStatApiValue } from '@/lib/mainStatFilters';
+import { isPercentStat } from '@/lib/constants/statMappings';
 
 import { LB_API_BASE } from '@/lib/apiEndpoints';
 
@@ -43,38 +44,45 @@ export type LBLeaderboardSortKey = Exclude<LBSortKey, 'characterId'> | 'damage';
 
 export type LBSortDirection = 'asc' | 'desc';
 
-interface LBStatEntry {
+export interface LBStatEntry {
   code: LBStatCode;
   sortKey: LBStatSortKey;
   label: string;
+  echoSubstat?: boolean;
 }
 
-const LB_STAT_ENTRIES: LBStatEntry[] = [
-  { code: 'A', sortKey: 'atk', label: 'ATK' },
-  { code: 'H', sortKey: 'hp', label: 'HP' },
-  { code: 'D', sortKey: 'def', label: 'DEF' },
-  { code: 'A%', sortKey: 'atk_pct', label: 'ATK%' },
-  { code: 'H%', sortKey: 'hp_pct', label: 'HP%' },
-  { code: 'D%', sortKey: 'def_pct', label: 'DEF%' },
-  { code: 'ER', sortKey: 'energy_regen', label: 'Energy Regen' },
-  { code: 'CR', sortKey: 'crit_rate', label: 'Crit Rate' },
-  { code: 'CD', sortKey: 'crit_dmg', label: 'Crit DMG' },
+// Percent is not stored here: it derives from the single base-stat rule (only
+// the flat ATK/HP/DEF are non-percent). See isLBPercentStatSortKey.
+export const LB_STAT_ENTRIES: readonly LBStatEntry[] = [
+  { code: 'A', sortKey: 'atk', label: 'ATK', echoSubstat: true },
+  { code: 'H', sortKey: 'hp', label: 'HP', echoSubstat: true },
+  { code: 'D', sortKey: 'def', label: 'DEF', echoSubstat: true },
+  { code: 'A%', sortKey: 'atk_pct', label: 'ATK%', echoSubstat: true },
+  { code: 'H%', sortKey: 'hp_pct', label: 'HP%', echoSubstat: true },
+  { code: 'D%', sortKey: 'def_pct', label: 'DEF%', echoSubstat: true },
+  { code: 'ER', sortKey: 'energy_regen', label: 'Energy Regen', echoSubstat: true },
+  { code: 'CR', sortKey: 'crit_rate', label: 'Crit Rate', echoSubstat: true },
+  { code: 'CD', sortKey: 'crit_dmg', label: 'Crit DMG', echoSubstat: true },
   { code: 'AD', sortKey: 'aero_dmg', label: 'Aero DMG' },
   { code: 'GD', sortKey: 'glacio_dmg', label: 'Glacio DMG' },
   { code: 'FD', sortKey: 'fusion_dmg', label: 'Fusion DMG' },
   { code: 'ED', sortKey: 'electro_dmg', label: 'Electro DMG' },
   { code: 'HD', sortKey: 'havoc_dmg', label: 'Havoc DMG' },
   { code: 'SD', sortKey: 'spectro_dmg', label: 'Spectro DMG' },
-  { code: 'BA', sortKey: 'basic_attack_dmg', label: 'Basic Attack DMG Bonus' },
-  { code: 'HA', sortKey: 'heavy_attack_dmg', label: 'Heavy Attack DMG Bonus' },
-  { code: 'RS', sortKey: 'resonance_skill_dmg', label: 'Resonance Skill DMG Bonus' },
-  { code: 'RL', sortKey: 'resonance_liberation_dmg', label: 'Resonance Liberation DMG Bonus' },
+  { code: 'BA', sortKey: 'basic_attack_dmg', label: 'Basic Attack DMG Bonus', echoSubstat: true },
+  { code: 'HA', sortKey: 'heavy_attack_dmg', label: 'Heavy Attack DMG Bonus', echoSubstat: true },
+  { code: 'RS', sortKey: 'resonance_skill_dmg', label: 'Resonance Skill DMG Bonus', echoSubstat: true },
+  { code: 'RL', sortKey: 'resonance_liberation_dmg', label: 'Resonance Liberation DMG Bonus', echoSubstat: true },
   { code: 'HB', sortKey: 'healing_bonus', label: 'Healing Bonus' },
 ];
 
 const LB_STAT_SORT_KEY_SET: ReadonlySet<LBStatSortKey> = new Set(
   LB_STAT_ENTRIES.map((entry) => entry.sortKey),
 );
+export const LB_STAT_SORT_KEYS = LB_STAT_ENTRIES.map((entry) => entry.sortKey);
+export const LB_ECHO_SUBSTAT_SORT_KEYS = LB_STAT_ENTRIES
+  .filter((entry) => entry.echoSubstat)
+  .map((entry) => entry.sortKey);
 
 const LB_SORT_KEY_SET: ReadonlySet<LBSortKey> = new Set([
   'finalCV', 'timestamp', 'characterId', 'sequence',
@@ -96,8 +104,40 @@ export function getLBStatCode(sortKey: LBStatSortKey): LBStatCode {
   return LB_STAT_CODE_BY_SORT_KEY[sortKey];
 }
 
-function isLBStatSortKey(value: unknown): value is LBStatSortKey {
+export function isLBStatSortKey(value: unknown): value is LBStatSortKey {
   return typeof value === 'string' && LB_STAT_SORT_KEY_SET.has(value as LBStatSortKey);
+}
+
+export function isLBEchoSubstatSortKey(value: unknown): value is LBStatSortKey {
+  return typeof value === 'string' && LB_ECHO_SUBSTAT_SORT_KEYS.includes(value as LBStatSortKey);
+}
+
+export function getLBStatLabel(sortKey: LBStatSortKey): string {
+  return LB_STAT_ENTRIES.find((entry) => entry.sortKey === sortKey)?.label ?? sortKey;
+}
+
+export function getLBStatSortKeyForLabel(label: string | null | undefined): LBStatSortKey | null {
+  if (!label) return null;
+  return LB_STAT_ENTRIES.find((entry) => entry.label === label)?.sortKey ?? null;
+}
+
+// Single source for sort-key display labels: stat keys resolve through the
+// registry, the non-stat keys (CV/date/sequence/character) are named here.
+export function getLBSortLabel(sortKey: LBSortKey): string {
+  if (isLBStatSortKey(sortKey)) return getLBStatLabel(sortKey);
+  switch (sortKey) {
+    case 'finalCV': return 'Crit Value';
+    case 'sequence': return 'Sequence';
+    case 'timestamp': return 'Date';
+    default: return sortKey;
+  }
+}
+
+// Percent derives from the single base-stat rule (isPercentStat): only the flat
+// base stats (ATK/HP/DEF) are non-percent; every other stat is a percent.
+export function isLBPercentStatSortKey(sortKey: LBSortKey | LBLeaderboardSortKey | LBStatSortKey): boolean {
+  if (!isLBStatSortKey(sortKey)) return false;
+  return isPercentStat(getLBStatLabel(sortKey));
 }
 
 export function parseLeaderboardDisplayStats(raw: unknown): LBStatSortKey[] {

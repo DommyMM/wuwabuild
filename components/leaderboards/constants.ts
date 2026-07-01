@@ -1,4 +1,6 @@
-import { LBSortDirection, LBSortKey, LBStatSortKey } from '@/lib/lb';
+import { getLBSortLabel, isLBPercentStatSortKey, LB_STAT_ENTRIES, LBSortDirection, LBSortKey, LBStatSortKey } from '@/lib/lb';
+
+const LB_STAT_LABEL_BY_CODE = new Map(LB_STAT_ENTRIES.map((entry) => [entry.code, entry.label]));
 
 export const ITEMS_PER_PAGE = 12;
 export const MAX_ITEMS_PER_PAGE = 100;
@@ -22,44 +24,33 @@ export const REGION_OPTIONS = [
   { label: 'SEA', value: '9' }
 ] as const;
 
-export const MAIN_STAT_OPTIONS = [
-  { code: 'CR', label: 'Crit Rate' },
-  { code: 'CD', label: 'Crit DMG' },
-  { code: 'A%', label: 'ATK%' },
-  { code: 'H%', label: 'HP%' },
-  { code: 'D%', label: 'DEF%' },
-  { code: 'ER', label: 'Energy Regen' },
-  { code: 'AD', label: 'Aero DMG' },
-  { code: 'GD', label: 'Glacio DMG' },
-  { code: 'FD', label: 'Fusion DMG' },
-  { code: 'ED', label: 'Electro DMG' },
-  { code: 'HD', label: 'Havoc DMG' },
-  { code: 'SD', label: 'Spectro DMG' },
-  { code: 'HB', label: 'Healing Bonus' },
-] as const;
+// Curated main-stat filter order; labels come from the registry (by code).
+export const MAIN_STAT_OPTIONS = (['CR', 'CD', 'A%', 'H%', 'D%', 'ER', 'AD', 'GD', 'FD', 'ED', 'HD', 'SD', 'HB'] as const)
+  .map((code) => ({ code, label: LB_STAT_LABEL_BY_CODE.get(code) ?? code }));
 
-export const SORT_OPTIONS: Array<{ key: LBSortKey; label: string }> = [
-  { key: 'finalCV', label: 'Crit Value' },
-  { key: 'sequence', label: 'Sequence' },
-  { key: 'timestamp', label: 'Date' },
-  { key: 'crit_rate', label: 'Crit Rate' },
-  { key: 'crit_dmg', label: 'Crit DMG' },
-  { key: 'atk', label: 'ATK' },
-  { key: 'hp', label: 'HP' },
-  { key: 'def', label: 'DEF' },
-  { key: 'energy_regen', label: 'Energy Regen' },
-  { key: 'healing_bonus', label: 'Healing Bonus' },
-  { key: 'basic_attack_dmg', label: 'Basic Attack DMG Bonus' },
-  { key: 'heavy_attack_dmg', label: 'Heavy Attack DMG Bonus' },
-  { key: 'resonance_skill_dmg', label: 'Resonance Skill DMG Bonus' },
-  { key: 'resonance_liberation_dmg', label: 'Resonance Liberation DMG Bonus' },
-  { key: 'aero_dmg', label: 'Aero DMG' },
-  { key: 'glacio_dmg', label: 'Glacio DMG' },
-  { key: 'fusion_dmg', label: 'Fusion DMG' },
-  { key: 'electro_dmg', label: 'Electro DMG' },
-  { key: 'havoc_dmg', label: 'Havoc DMG' },
-  { key: 'spectro_dmg', label: 'Spectro DMG' },
-];
+// Curated sort-menu order; labels come from the single source (getLBSortLabel).
+export const SORT_OPTIONS: Array<{ key: LBSortKey; label: string }> = ([
+  'finalCV',
+  'sequence',
+  'timestamp',
+  'crit_rate',
+  'crit_dmg',
+  'atk',
+  'hp',
+  'def',
+  'energy_regen',
+  'healing_bonus',
+  'basic_attack_dmg',
+  'heavy_attack_dmg',
+  'resonance_skill_dmg',
+  'resonance_liberation_dmg',
+  'aero_dmg',
+  'glacio_dmg',
+  'fusion_dmg',
+  'electro_dmg',
+  'havoc_dmg',
+  'spectro_dmg',
+] as LBSortKey[]).map((key) => ({ key, label: getLBSortLabel(key) }));
 
 // Regions
 
@@ -109,22 +100,9 @@ export const BASE_STAT_FALLBACK_ORDER: readonly LBStatSortKey[] = ['atk', 'hp', 
 export const ELEMENT_STAT_KEYS: readonly LBStatSortKey[] = ['aero_dmg', 'glacio_dmg', 'fusion_dmg', 'electro_dmg', 'havoc_dmg', 'spectro_dmg'];
 export const OFFENSIVE_BONUS_KEYS: readonly LBStatSortKey[] = ['basic_attack_dmg', 'heavy_attack_dmg', 'resonance_skill_dmg', 'resonance_liberation_dmg'];
 
-export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set<LBSortKey>([
-  'crit_rate',
-  'crit_dmg',
-  'energy_regen',
-  'healing_bonus',
-  'aero_dmg',
-  'glacio_dmg',
-  'fusion_dmg',
-  'electro_dmg',
-  'havoc_dmg',
-  'spectro_dmg',
-  'basic_attack_dmg',
-  'heavy_attack_dmg',
-  'resonance_skill_dmg',
-  'resonance_liberation_dmg',
-]);
+export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set(
+  LB_STAT_ENTRIES.filter((entry) => isLBPercentStatSortKey(entry.sortKey)).map((entry) => entry.sortKey),
+);
 
 // Table Layout
 
@@ -189,4 +167,3 @@ export function parseLBSeqLevel(trackKey: string): number {
 export function stripLBSeqPrefix(label: string): string {
   return label.replace(/^S\d+\s+/, '');
 }
-

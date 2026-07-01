@@ -4,24 +4,36 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LBEcho, LBEchoSortKey, LBSortDirection, listProfileEchoes } from '@/lib/lb';
+import { getLBStatLabel, getLBStatSortKeyForLabel, isLBEchoSubstatSortKey, LBEcho, LB_ECHO_SUBSTAT_SORT_KEYS, LBEchoSortKey, LBSortDirection, LBSortKey, LBStatSortKey, listProfileEchoes } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
 import { getEchoCVTierStyle } from '@/lib/calculations/rollValues';
-import { getSubstatTierInfo } from '@/lib/calculations/substatTiers';
+import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { BuildPagination } from '@/components/leaderboards/BuildPagination';
+import { SortHeaderMenu, SortMenuOption } from '@/components/leaderboards/SortHeaderMenu';
 import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '@/components/leaderboards/constants';
 
 const PAGE_SIZE = 20;
 const ECHO_COSTS = [4, 3, 1] as const;
 
-// # | Name (echo art + set badge + name) | Main Stat | [CV + 5 substat slots]
-// Name flexes to absorb the table's leftover width; the substat group sizes to
-// its own content (max-content) so the slack never reaches the substat columns.
-const ECHO_TABLE_GRID = 'grid-cols-[48px_minmax(296px,1fr)_72px_max-content]';
-// CV 132 + five fixed 120px substat columns (no fr, so they never grow).
-const ECHO_STAT_GROUP_GRID = 'grid-cols-[132px_repeat(5,120px)]';
-const ECHO_STAT_GROUP_MIN_W = '';
+// # | Name (echo art + set badge + name) | Main Stat | [CV + 5 flexed substats]
+const ECHO_TABLE_GRID = 'grid-cols-[48px_384px_96px_minmax(0,1fr)]';
+const ECHO_STAT_GROUP_GRID = 'grid-cols-[120px_repeat(5,minmax(0,1fr))]';
+const ECHO_STAT_GROUP_MIN_W = 'min-w-[640px]';
+
+const SUBSTAT_COLUMN_KEYS = LB_ECHO_SUBSTAT_SORT_KEYS;
+
+function keyLabel(key: LBStatSortKey): string {
+  return getLBStatLabel(key);
+}
+
+function keyIcon(icons: Record<string, string> | null, key: LBStatSortKey): string {
+  return statIconFor(icons, getLBStatLabel(key));
+}
+
+function statSortKey(stat: string | null | undefined): LBEchoSortKey | null {
+  return getLBStatSortKeyForLabel(stat);
+}
 
 function statIconFor(icons: Record<string, string> | null, stat: string): string {
   return icons?.[stat] ?? icons?.[stat.replace('%', '')] ?? '';
@@ -32,12 +44,21 @@ function formatStatValue(stat: string | null | undefined, value: number | null |
   return isPercentStat(stat) ? `${Number(value).toFixed(1)}%` : String(Math.round(Number(value)));
 }
 
+// Most echo names fit at 18px in the name column; the rare long "Nightmare:" /
+// "Reminiscence:" derivatives (p99 ~36, max 46 chars) step down a size or two so
+// they stay fully readable instead of truncating.
+function echoNameSizeClass(name: string): string {
+  if (name.length > 34) return 'text-sm';
+  if (name.length > 27) return 'text-base';
+  return 'text-lg';
+}
+
 interface ProfileEchoesProps {
   uid: string;
 }
 
 export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
-  const { getEcho, getSubstatValues, getMainStatsByCost, fetters, statIcons } = useGameData();
+  const { getEcho, getMainStatsByCost, fetters, statIcons } = useGameData();
   const { t } = useLanguage();
 
   const [page, setPage] = useState(1);
@@ -52,9 +73,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
   const [settledKey, setSettledKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Loading is derived from whether the in-flight query matches the last
-  // settled one, so the effect never calls setState synchronously (mirrors
-  // ProfilePageClient's settledQueryKey pattern).
+  // Loading is derived from whether the in-flight query matches the last settled one, so the effect never calls setState synchronously
   const queryKey = useMemo(
     () => JSON.stringify({ uid, page, sort, direction, costs, setIds, mainStatTypes }),
     [uid, page, sort, direction, costs, setIds, mainStatTypes],
@@ -80,6 +99,12 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
     }
     return Array.from(seen);
   }, [getMainStatsByCost]);
+
+  // SortHeaderMenu is typed for the builds board, echo sort keys are superset string union
+  const substatOptions = useMemo<SortMenuOption[]>(
+    () => SUBSTAT_COLUMN_KEYS.map((key) => ({ key: key as unknown as LBSortKey, label: keyLabel(key), icon: keyIcon(statIcons, key) })),
+    [statIcons],
+  );
 
   const isCvActive = sort === 'cv';
 
@@ -118,6 +143,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
       ? `${rankStart}-${rankStart + echoes.length - 1} of ${total.toLocaleString()}`
       : '0 echoes';
   const hasFilters = costs.length > 0 || setIds.length > 0 || mainStatTypes.length > 0;
+  const isSubstatSortActive = isLBEchoSubstatSortKey(sort);
 
   const handleSort = (key: LBEchoSortKey) => {
     setPage(1);
@@ -127,6 +153,13 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
     }
     setSort(key);
   };
+
+  // Pick a substat to sort by from a hover menu. While active, the selected
+  // stat pins to the first substat cell and the rest stay in positional order.
+  const selectSubstatSort = (key: LBEchoSortKey) => {
+    handleSort(key);
+  };
+  const sortByCV = () => handleSort('cv');
 
   const addCost = (cost: number) => { setPage(1); setCosts((prev) => (prev.includes(cost) ? prev : [...prev, cost])); };
   const removeCost = (cost: number) => { setPage(1); setCosts((prev) => prev.filter((c) => c !== cost)); };
@@ -142,7 +175,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
   const clearFilters = () => { setPage(1); setCosts([]); setSetIds([]); setMainStatTypes([]); };
 
   return (
-    <section className="relative mt-3 overflow-visible rounded-xl border border-border bg-background-secondary">
+    <section className="relative mt-8 overflow-visible rounded-xl border border-border bg-background-secondary">
       <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top_left,rgba(166,150,98,0.10),transparent_55%)]" />
       <div className="relative rounded-[inherit] px-4 py-4">
         {/* Header */}
@@ -194,7 +227,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                   <div className="flex self-stretch">
                     <button
                       type="button"
-                      onClick={() => handleSort('cv')}
+                      onClick={sortByCV}
                       className={`flex h-full w-full items-center justify-between gap-2 border-t-2 px-4 py-2 text-lg transition-colors ${
                         isCvActive
                           ? 'border-accent/85 bg-black/35 text-accent'
@@ -207,12 +240,49 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                       )}
                     </button>
                   </div>
-                  {/* Substat headers stay empty: the columns render each echo's own subs. */}
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={`echo-head-sub-${i}`} className="flex items-center self-stretch px-4 py-2">
-                      <span className="h-px w-full bg-border/45" />
+                  {/* Substat sort headers: placeholder lines until a stat is picked,
+                      then the selected stat pins across the substat header area. */}
+                  {isSubstatSortActive ? (
+                    <div className="col-span-5 self-stretch flex items-stretch">
+                      <SortHeaderMenu
+                        menuId="echo-sort-sub-pinned"
+                        label={keyLabel(sort as LBStatSortKey)}
+                        active
+                        direction={direction}
+                        options={substatOptions}
+                        selectedKey={sort as unknown as LBSortKey}
+                        onHeaderSort={() => handleSort(sort)}
+                        onSelectOption={(key) => selectSubstatSort(key as unknown as LBEchoSortKey)}
+                        icon={keyIcon(statIcons, sort as LBStatSortKey)}
+                        showActive
+                        naturalMenuWidth
+                        textSizeClass="text-lg"
+                        iconSizeClass="h-5 w-5"
+                        triggerWrapperClassName="rounded-tr-lg"
+                      />
                     </div>
-                  ))}
+                  ) : (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <div key={`echo-head-sub-${i}`} className="self-stretch">
+                        <SortHeaderMenu
+                          menuId={`echo-sort-sub-${i}`}
+                          label=""
+                          active={false}
+                          direction={direction}
+                          options={substatOptions}
+                          selectedKey={sort as unknown as LBSortKey}
+                          alignMenuRight={i === 4}
+                          onHeaderSort={() => undefined}
+                          onSelectOption={(key) => selectSubstatSort(key as unknown as LBEchoSortKey)}
+                          icon=""
+                          showPlaceholderLine
+                          showActive
+                          naturalMenuWidth
+                          triggerWrapperClassName={i === 4 ? 'rounded-tr-lg' : ''}
+                        />
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -224,7 +294,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                       <div key={i} className={`grid ${ECHO_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 odd:bg-background/30 even:bg-background-secondary/20`}>
                         <div className="mx-auto h-3 w-5 animate-pulse rounded bg-background-secondary/80" />
                         <div className="flex items-center gap-2 py-2 pl-3">
-                          <div className="h-9 w-9 animate-pulse rounded bg-background-secondary/80" />
+                          <div className="h-10 w-10 animate-pulse rounded bg-background-secondary/80" />
                           <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
                         </div>
                         <div className="h-3.5 w-14 animate-pulse rounded bg-background-secondary/80" />
@@ -247,12 +317,33 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                 ) : (
                   <div className="divide-y divide-border/60">
                     {echoes.map((echo, index) => {
-                      const meta = getEcho(echo.echoId);
-                      const echoName = meta ? t(meta.nameI18n ?? { en: meta.name }) : echo.echoId;
+                      const echoMeta = getEcho(echo.echoId);
+                      const echoName = echoMeta ? t(echoMeta.nameI18n ?? { en: echoMeta.name }) : echo.echoId;
                       const cvStyle = echo.cv > 0 ? getEchoCVTierStyle(echo.cv) : null;
                       const set = setById.get(echo.activeSetId);
                       const mainIcon = echo.mainStatType ? statIconFor(statIcons, echo.mainStatType) : '';
                       const subs = (echo.panel?.stats.subStats ?? []).filter((s) => s.type && s.value != null);
+                      const displaySubs = isSubstatSortActive
+                        ? [
+                            {
+                              key: `pinned-${sort}`,
+                              type: getLBStatLabel(sort as LBStatSortKey),
+                              value: echo.substats[sort] ?? null,
+                            },
+                            ...subs
+                              .filter((sub) => statSortKey(sub.type) !== sort)
+                              .map((sub, slot) => ({
+                                key: `slot-${slot}-${sub.type}`,
+                                type: sub.type,
+                                value: sub.value,
+                              }))
+                              .slice(0, 4),
+                          ]
+                        : subs.slice(0, 5).map((sub, slot) => ({
+                            key: `slot-${slot}-${sub.type}`,
+                            type: sub.type,
+                            value: sub.value,
+                          }));
 
                       return (
                         <div
@@ -262,12 +353,12 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                           <div className="py-2 text-center text-text-primary/75">{rankStart + index}</div>
 
                           {/* Name: echo art with set badge + name */}
-                          <div className="flex min-w-0 items-center gap-2 py-2 pl-3">
-                            <div className="relative h-9 w-9 shrink-0">
-                              <div className="h-9 w-9 overflow-hidden rounded bg-background/60">
-                                {meta && (
+                          <div className="flex min-w-0 items-center gap-2 py-1.5 pl-3">
+                            <div className="relative h-10 w-10 shrink-0">
+                              <div className="h-10 w-10 overflow-hidden rounded bg-background/60">
+                                {echoMeta && (
                                   <img
-                                    src={getEchoPaths(meta, echo.panel?.phantom ?? false)}
+                                    src={getEchoPaths(echoMeta, echo.panel?.phantom ?? false)}
                                     alt={echoName}
                                     className="h-full w-full object-cover"
                                   />
@@ -282,17 +373,22 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                                 />
                               )}
                             </div>
-                            <span className="truncate text-base text-text-primary">{echoName}</span>
+                            <span className={`truncate leading-none text-text-primary ${echoNameSizeClass(echoName)}`} title={echoName}>{echoName}</span>
                           </div>
 
-                          {/* Main stat */}
+                          {/* Main stat: bigger, with element-tinted icon like the build rows */}
                           <div className="flex min-w-0 items-center gap-1.5 py-2">
                             {mainIcon ? (
-                              <img src={mainIcon} alt="" className="h-5 w-5 shrink-0 object-contain" />
+                              <img
+                                src={mainIcon}
+                                alt=""
+                                className="h-5 w-5 shrink-0 object-contain"
+                                style={ELEMENT_ICON_FILTERS[echo.mainStatType] ? { filter: ELEMENT_ICON_FILTERS[echo.mainStatType] } : undefined}
+                              />
                             ) : (
                               <span className="h-5 w-5 shrink-0 rounded bg-white/10" />
                             )}
-                            <span className="truncate text-base font-semibold text-text-primary/90">
+                            <span className="truncate text-lg text-text-primary/90">
                               {formatStatValue(echo.mainStatType, echo.mainStatValue)}
                             </span>
                           </div>
@@ -305,17 +401,20 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                                   className={`tabular-nums ${cvStyle?.isMax ? 'cv-glow' : ''}`}
                                   style={cvStyle && !cvStyle.isMax ? { color: cvStyle.color } : undefined}
                                 >
-                                  {echo.cv.toFixed(1)}
+                                  {echo.cv.toFixed(1)} CV
                                 </span>
                               </div>
                             </div>
 
                             {Array.from({ length: 5 }).map((_, slot) => {
-                              const sub = subs[slot];
+                              const sub = displaySubs[slot];
                               if (!sub?.type || sub.value == null) {
                                 return (
-                                  <div key={`${echo.echoKey}-sub-${slot}`} className="self-stretch">
-                                    <div className="flex h-full items-center px-4 py-2 text-lg">
+                                  <div
+                                    key={`${echo.echoKey}-sub-${slot}`}
+                                    className={`self-stretch ${isSubstatSortActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}
+                                  >
+                                    <div className={`flex h-full items-center px-4 py-2 text-lg ${isSubstatSortActive && slot > 0 ? 'opacity-50' : ''}`}>
                                       <span className="text-text-primary/20">—</span>
                                     </div>
                                   </div>
@@ -323,16 +422,18 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid }) => {
                               }
                               const type = sub.type;
                               const icon = statIconFor(statIcons, type);
-                              const tier = getSubstatTierInfo(Number(sub.value), getSubstatValues(type));
                               return (
-                                <div key={`${echo.echoKey}-sub-${slot}`} className="self-stretch">
-                                  <div className="flex h-full items-center gap-2 px-4 py-2 text-lg">
+                                <div
+                                  key={`${echo.echoKey}-${sub.key}-${slot}`}
+                                  className={`self-stretch ${isSubstatSortActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}
+                                >
+                                  <div className={`flex h-full items-center gap-2 px-4 py-2 text-lg ${isSubstatSortActive && slot > 0 ? 'opacity-50' : ''}`}>
                                     {icon ? (
                                       <img src={icon} alt="" className="h-5 w-5 shrink-0 object-contain" />
                                     ) : (
                                       <span className="h-5 w-5 shrink-0 rounded bg-white/10" />
                                     )}
-                                    <span className="tabular-nums" style={tier ? { color: tier.color } : undefined}>
+                                    <span className="tabular-nums text-text-primary/90">
                                       {formatStatValue(type, sub.value)}
                                     </span>
                                   </div>

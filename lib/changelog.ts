@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-01',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Profile page shows all the echoes you have with the filters/sorting'
+            }
+        ]
+    },
+    {
         date: '2026-06-30',
         changes: [
             {
