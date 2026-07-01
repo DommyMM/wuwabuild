@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getEchoUsages, LBEcho, LBEchoUsage } from '@/lib/lb';
@@ -18,7 +18,7 @@ import { getFetterElementColor } from '@/components/echo/EchoHoverCard';
 interface EchoInventoryDetailProps {
   echo: LBEcho;
   uid: string;
-  /** Surface a build in the profile's own builds table (expand + scroll) instead of leaving the page. */
+  isExpanded: boolean;
   onOpenBuild: (buildId: string, characterId: string) => void;
 }
 
@@ -120,7 +120,8 @@ const EquippedByStrip: React.FC<{
 // with the art and sonata on the left, and a stat ledger on the right where
 // each substat carries its roll ladder and tier-colored value, footed by CV/RV
 // graded on the shared quality ladder. Fixed width, centered in the band.
-export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, uid, onOpenBuild }) => {
+// Expands/collapses with the same height animation as the build rows.
+export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, uid, isExpanded, onOpenBuild }) => {
   const { getEcho, getSubstatValues, statIcons, statTranslations, fetters } = useGameData();
   const { t } = useLanguage();
 
@@ -149,13 +150,17 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
   const phantom = echo.panel?.phantom ?? false;
 
   return (
-    <div className="border-t border-border/50 bg-black/15 px-4 py-4">
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22, ease: 'easeOut' }}
-        className={`mx-auto w-full ${skillTemplate ? 'max-w-6xl' : 'max-w-5xl'}`}
-      >
+    <AnimatePresence initial={false}>
+      {isExpanded && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.22, ease: 'easeInOut' }}
+          className="overflow-x-visible overflow-y-hidden border-t border-border/50 bg-black/15"
+        >
+          <div className="px-4 py-4">
+            <div className={`mx-auto w-full ${skillTemplate ? 'max-w-6xl' : 'max-w-5xl'}`}>
         <div
           className="relative overflow-hidden rounded-xl border bg-[linear-gradient(170deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.04)_30%,rgba(0,0,0,0.46)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.35)]"
           style={{ borderColor: `${cvFrame}b3` }}
@@ -308,7 +313,7 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
             {skillTemplate && (
               <div className="w-full shrink-0 border-t border-white/8 p-4 md:w-72 md:border-t-0 md:border-l">
                 <div className={`mb-2 ${EYEBROW_CLASS}`}>Echo Skill</div>
-                <div className="scrollbar-thin max-h-56 overflow-y-auto pr-1 text-xs leading-relaxed whitespace-pre-line text-text-primary/80 [--scrollbar-width:4px]">
+                <div className="scrollbar-thin max-h-56 overflow-y-auto pr-1 text-sm leading-relaxed whitespace-pre-line text-text-primary/80 [--scrollbar-width:4px]">
                   {renderGameTemplateWithHighlights({
                     template: skillTemplate,
                     getParamValue: (index) => skillParams[index] ?? null,
@@ -320,7 +325,10 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
             )}
           </div>
         </div>
-      </motion.div>
-    </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

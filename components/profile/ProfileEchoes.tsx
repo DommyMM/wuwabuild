@@ -504,7 +504,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
                             })}
                           </div>
                         </div>
-                        {isExpanded && <EchoInventoryDetail echo={echo} uid={uid} onOpenBuild={onOpenBuild} />}
+                        <EchoInventoryDetail echo={echo} uid={uid} isExpanded={isExpanded} onOpenBuild={onOpenBuild} />
                         </div>
                       );
                     })}
