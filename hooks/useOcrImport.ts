@@ -29,6 +29,7 @@ interface OcrProcessSummary {
   timings?: Record<string, unknown>;
   trainingImageKey?: string | null;
   unsupportedLanguage: boolean;
+  analysisData: AnalysisData;
 }
 
 const INITIAL_PROGRESS = Object.fromEntries(
@@ -150,6 +151,7 @@ export function useOcrImport(): UseOcrImportReturn {
       timings,
       trainingImageKey,
       unsupportedLanguage: isUnsupportedLanguage,
+      analysisData: nextAnalysisData,
     };
   }, [reset]);
 

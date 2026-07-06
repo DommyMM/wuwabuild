@@ -77,6 +77,14 @@ Current init settings:
   - `has_uid`: boolean
   - `character_id`: string | null
 
+#### `build_image_link`
+- Purpose: outcome of the fire-and-forget `POST /build/link-image` call after a scan (screenshot ↔ build row attachment).
+- Properties:
+  - `linked`: boolean
+  - `method`: `echoHash` | `panels` | null
+  - `reason`: `already_linked` | `no_match` | `ambiguous` | null
+  - `character_id`: string | null
+
 #### `leaderboard_submit_result`
 - Purpose: final outcome of leaderboard submission attempt.
 - Properties:

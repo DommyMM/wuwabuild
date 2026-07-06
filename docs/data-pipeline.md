@@ -11,7 +11,8 @@ This doc consolidates OCR flow, sync scripts, env vars, and day-to-day commands 
 5. OCR payloads are converted into saved build state.
 6. Optional leaderboard upload submits canonical build payload.
 7. Optional full-image upload goes through `/api/upload-training` and stores a hash-deduped JPG in R2.
-8. OCR issue reports are written through `/api/report-ocr-issue` and can either reference an existing uploaded image or upload one inline first.
+8. Once OCR and the training upload both finish, the raw (pre-edit) scan state plus the R2 key are sent fire-and-forget to `POST /build/link-image` so the LB service can attach the screenshot to the existing build row with that exact echo content (fill-only; independent of whether the user imports or submits). See lb `docs/image-linking.md`.
+9. OCR issue reports are written through `/api/report-ocr-issue` and can either reference an existing uploaded image or upload one inline first.
 
 ## Data Sync Scripts
 

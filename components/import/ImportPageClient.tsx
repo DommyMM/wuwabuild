@@ -7,7 +7,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
 import { encodeImageFileAsJpegBase64, loadImage } from '@/lib/import/cropImage';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
-import { submitBuild } from '@/lib/lb';
+import { linkBuildImage, submitBuild } from '@/lib/lb';
 import { loadDraftBuild, saveBuild, saveDraftBuild } from '@/lib/storage';
 import { OCR_HEALTH_URL } from '@/lib/apiEndpoints';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -60,7 +60,7 @@ export function ImportPageClient() {
   // Silent wake-up ping so Railway auto-starts the server if sleeping
   useEffect(() => { fetch(OCR_HEALTH_URL).catch(() => {}); }, []);
 
-  const uploadTrainingImage = async (file: File) => {
+  const uploadTrainingImage = async (file: File): Promise<string | null> => {
     try {
       const image = await encodeImageFileAsJpegBase64(file);
       const res = await fetch('/api/upload-training', {
@@ -72,9 +72,40 @@ export function ImportPageClient() {
       if (payload.success && typeof payload.key === 'string') {
         trainingImageKeyRef.current = payload.key;
         setTrainingImageKey(payload.key);
+        return payload.key;
       }
     } catch {
       // Best-effort only; OCR should still continue.
+    }
+    return null;
+  };
+
+  // Passive image linking: hand the LB service the raw scan plus the
+  // screenshot's R2 key so it can attach the image to the build row with this
+  // exact echo content. Fill-only server-side and independent of whether the
+  // user goes on to import or submit.
+  const linkScannedImage = async (scan: AnalysisData, sourceImageKey: string) => {
+    try {
+      const rawState = convertAnalysisToSavedState({
+        ...scan,
+        watermark: {
+          username: scan.watermark?.username ?? '',
+          uid: Number(scan.watermark?.uid) || 0,
+        },
+      }, {
+        characters: gameData.characters,
+        weapons:    gameData.weapons,
+        echoes:     gameData.echoes,
+      });
+      const result = await linkBuildImage(rawState, sourceImageKey);
+      posthog.capture('build_image_link', {
+        linked: result.linked,
+        method: result.method ?? null,
+        reason: result.reason ?? null,
+        character_id: rawState.characterId ?? null,
+      });
+    } catch {
+      // Best-effort only; linking never affects the import flow.
     }
   };
 
@@ -108,8 +139,8 @@ export function ImportPageClient() {
     });
     reset();
     setStep('results');
-    void uploadTrainingImage(f);
-    void processImage(f).then((summary) => {
+    const uploadPromise = uploadTrainingImage(f);
+    void processImage(f).then(async (summary) => {
       if (summary.failedRegionsCount > 0) {
         warning(`Scan finished with ${summary.failedRegionsCount} unread section(s). Review the build before importing.`);
       }
@@ -128,6 +159,10 @@ export function ImportPageClient() {
         unsupported_language: summary.unsupportedLanguage,
         timings: summary.timings ?? null,
       });
+      const sourceImageKey = (await uploadPromise) ?? trainingImageKeyRef.current;
+      if (sourceImageKey && !summary.unsupportedLanguage && summary.hasCharacter && summary.hasWeapon) {
+        void linkScannedImage(summary.analysisData, sourceImageKey);
+      }
     }).catch((err) => {
       posthog.captureException(err);
     });

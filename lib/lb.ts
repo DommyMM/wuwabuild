@@ -1708,3 +1708,40 @@ export async function submitBuild(
   const payload = await response.json();
   return parseSubmitBuildResult(payload);
 }
+
+export interface LBLinkBuildImageResult {
+  linked: boolean;
+  buildId?: string;
+  method?: string;
+  reason?: string;
+}
+
+// Fire-and-forget after a scan: asks the LB service to attach the screenshot's
+// R2 key to the existing build row with that exact echo content. Fill-only and
+// idempotent server-side; no build is ever created.
+export async function linkBuildImage(
+  buildState: SavedState,
+  sourceImageKey: string,
+  signal?: AbortSignal,
+): Promise<LBLinkBuildImageResult> {
+  const response = await fetch(`${resolveLBBaseUrl()}/build/link-image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ sourceImageKey, buildState }),
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to link build image (${response.status})`);
+  }
+
+  const raw = await response.json() as Record<string, unknown>;
+  return {
+    linked: Boolean(raw.linked),
+    buildId: typeof raw.buildId === 'string' ? raw.buildId : undefined,
+    method: typeof raw.method === 'string' ? raw.method : undefined,
+    reason: typeof raw.reason === 'string' ? raw.reason : undefined,
+  };
+}
