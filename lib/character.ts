@@ -189,20 +189,38 @@ export const hasAlternateSkin = (
 export const isRover = (character: Character): boolean =>
   character.name.startsWith("Rover");
 
-const ROVER_GENDER_BY_LEGACY_ID: Record<string, 'M' | 'F'> = {
-  '4': 'M',
-  '5': 'F',
+// Gender is not a field anywhere in the CDN data so we code it here
+const ROVER_GENDER_BY_ID: Record<string, 'M' | 'F'> = {
+  '1406': 'M', '1501': 'M', '1605': 'M',
+  '1408': 'F', '1502': 'F', '1604': 'F',
 };
 
-const getRoverGenderTag = (legacyId?: string): 'M' | 'F' | undefined => (
-  legacyId ? ROVER_GENDER_BY_LEGACY_ID[legacyId] : undefined
+export const getRoverGender = (id?: string): 'M' | 'F' | undefined => (
+  id ? ROVER_GENDER_BY_ID[id] : undefined
 );
 
-type CharacterDisplayInput = Pick<Character, 'name' | 'element' | 'legacyId' | 'roverElementName'>;
+// Exact Rover variant for a gender + element, falling back to any variant of
+// that element when the gendered one is missing from the data.
+export function findRoverVariant(
+  characters: Character[],
+  options: { element?: string; gender?: 'M' | 'F' } = {},
+): Character | undefined {
+  const { element, gender } = options;
+  return characters.find(
+    (c) => isRover(c) &&
+      (!element || c.roverElementName === element) &&
+      (!gender || getRoverGender(c.id) === gender),
+  ) ?? characters.find(
+    (c) => isRover(c) && (!element || c.roverElementName === element),
+  );
+}
+
+type CharacterDisplayInput = Pick<Character, 'id' | 'name' | 'element' | 'roverElementName'>;
 
 interface CharacterDisplayOptions {
   baseName?: string;
   roverElement?: string | null;
+  showRoverElement?: boolean;
 }
 
 const isRoverCharacter = (character: CharacterDisplayInput): boolean =>
@@ -215,8 +233,10 @@ export const formatCharacterDisplayName = (
   const baseName = options.baseName ?? character.name;
   if (!isRoverCharacter(character)) return baseName;
 
-  const gender = getRoverGenderTag(character.legacyId);
-  const roverElement = options.roverElement ?? character.roverElementName;
+  const gender = getRoverGender(character.id);
+  const roverElement = options.showRoverElement === false
+    ? null
+    : options.roverElement ?? character.roverElementName;
   const normalizedElement = (
     typeof roverElement === 'string' &&
     roverElement.trim().length > 0 &&

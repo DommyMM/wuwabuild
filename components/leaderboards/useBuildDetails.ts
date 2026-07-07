@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useGameData } from '@/contexts/GameDataContext';
+import { isRover } from '@/lib/character';
 import { getBuildById, LBBuildDetailEntry } from '@/lib/lb';
 
 type DetailErrorMap = Record<string, string | null>;
@@ -8,6 +10,7 @@ type DetailLoadingMap = Record<string, boolean>;
 type DetailMap = Record<string, LBBuildDetailEntry>;
 
 export function useBuildDetails() {
+  const { getCharacter } = useGameData();
   const [detailById, setDetailById] = useState<DetailMap>({});
   const [detailLoadingById, setDetailLoadingById] = useState<DetailLoadingMap>({});
   const [detailErrorById, setDetailErrorById] = useState<DetailErrorMap>({});
@@ -35,6 +38,22 @@ export function useBuildDetails() {
     detailLoadingByIdRef.current = {};
   }, [abortAllBuildDetailRequests]);
 
+  // The row's character id is the authoritative Rover identity; historical
+  // buildState JSON may carry a stale element, so expanded rows and editor
+  // handoff re-derive both fields from the character data.
+  const normalizeRoverDetail = useCallback((detail: LBBuildDetailEntry): LBBuildDetailEntry => {
+    const character = getCharacter(detail.character.id);
+    if (!character || !isRover(character) || !character.roverElementName) return detail;
+    return {
+      ...detail,
+      buildState: {
+        ...detail.buildState,
+        characterId: detail.character.id,
+        roverElement: character.roverElementName,
+      },
+    };
+  }, [getCharacter]);
+
   const loadBuildDetail = useCallback((buildId: string, force = false) => {
     const normalizedBuildId = buildId.trim();
     if (!normalizedBuildId) return;
@@ -55,8 +74,9 @@ export function useBuildDetails() {
 
     void getBuildById(normalizedBuildId, controller.signal)
       .then((detail) => {
+        const normalized = normalizeRoverDetail(detail);
         setDetailById((prev) => {
-          const next = { ...prev, [normalizedBuildId]: detail };
+          const next = { ...prev, [normalizedBuildId]: normalized };
           detailByIdRef.current = next;
           return next;
         });
@@ -77,7 +97,7 @@ export function useBuildDetails() {
         });
         delete detailControllersRef.current[normalizedBuildId];
       });
-  }, []);
+  }, [normalizeRoverDetail]);
 
   const retryBuildDetail = useCallback((buildId: string) => {
     loadBuildDetail(buildId, true);

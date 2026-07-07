@@ -59,7 +59,7 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 `/builds`, `/profile/[uid]`, and `/leaderboards/[characterId]` share:
 
 - `useExpandedRows()` for expanded row ids and pure toggle behavior
-- `useBuildDetails()` for detail fetches, request aborts, retry state, and per-build detail caching
+- `useBuildDetails()` for detail fetches, request aborts, retry state, and per-build detail caching. It also normalizes Rover identity: the row's `character.id` is authoritative, so `buildState.characterId`/`roverElement` are re-derived from character data (`roverElementName`) before the detail is cached — historical build JSON may carry a stale element.
 
 On row expansion, frontend may fetch:
 - move breakdown

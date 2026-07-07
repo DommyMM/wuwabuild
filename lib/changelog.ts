@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-07',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Rover card better import on element detection'
+            },
+            {
+                kind: 'improved',
+                text: 'Rover leaderboard rows now use shorter gender labels while filters stay grouped by element'
+            }
+        ]
+    },
+    {
         date: '2026-07-01',
         changes: [
             {

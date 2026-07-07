@@ -107,10 +107,10 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
     character
       ? formatCharacterDisplayName(character, {
           baseName: t(character.nameI18n ?? { en: character.name }),
-          roverElement: detail?.buildState.roverElement,
+          showRoverElement: false,
         })
       : entry.character.id || 'Unknown Character'
-  ), [character, detail?.buildState.roverElement, entry.character.id, t]);
+  ), [character, entry.character.id, t]);
   const weaponName = useMemo(
     () => (weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : 'Unknown Weapon'),
     [t, weapon],

@@ -6,7 +6,7 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { Modal } from '@/components/ui/Modal';
-import { Character, Element } from '@/lib/character';
+import { Character, Element, findRoverVariant, getRoverGender } from '@/lib/character';
 import { ELEMENT_CHIP_ACTIVE, ELEMENT_BG } from '@/lib/elementVisuals';
 import { DISABLED_CHARACTER_IDS } from '@/lib/constants/disabledEntries';
 
@@ -36,12 +36,12 @@ const getHeadUrl = (character: Character | null): string => {
   return character.iconRound.replace(/HeadCircle256/g, 'Head256');
 };
 
-// Keep one Rover per gender (legacyId 4=male, 5=female)
+// Keep one Rover per gender
 const deduplicateRovers = (chars: Character[]): Character[] => {
   const seen = new Set<string>();
   return chars.filter((c) => {
     if (c.element !== Element.Rover) return true;
-    const gender = c.legacyId ?? c.id;
+    const gender = getRoverGender(c.id) ?? c.id;
     if (seen.has(gender)) return false;
     seen.add(gender);
     return true;
@@ -105,11 +105,10 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
       setCharacterLevel(1);
       if (character.element === Element.Rover) {
         // Find the Spectro variant matching this gender so characterId and roverElement stay in sync
-        const spectroVariant = characters.find(
-          c => c.element === Element.Rover &&
-            c.legacyId === character.legacyId &&
-            c.roverElementName === 'Spectro',
-        );
+        const spectroVariant = findRoverVariant(characters, {
+          element: 'Spectro',
+          gender: getRoverGender(character.id),
+        });
         setCharacter(spectroVariant?.id ?? character.id, 'Spectro');
       } else {
         setCharacter(character.id);

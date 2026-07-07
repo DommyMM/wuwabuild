@@ -154,10 +154,10 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
     character
       ? formatCharacterDisplayName(character, {
           baseName: t(character.nameI18n ?? { en: character.name }),
-          roverElement: detail?.buildState.roverElement,
+          showRoverElement: false,
         })
       : `Character ${entry.character.id}`
-  ), [character, detail?.buildState.roverElement, entry.character.id, t]);
+  ), [character, entry.character.id, t]);
 
   const translateText = useCallback(
     (i18n: Record<string, string> | undefined, fallback: string) => t(i18n ?? { en: fallback }),

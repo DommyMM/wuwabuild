@@ -1,4 +1,4 @@
-import type { Character } from '@/lib/character';
+import { findRoverVariant, getRoverGender, type Character } from '@/lib/character';
 import type { Weapon, WeaponType } from '@/lib/weapon';
 import type { EchoPanelState } from '@/lib/echo';
 import type { SavedState, ForteState } from '@/lib/build';
@@ -48,20 +48,19 @@ export function resolveImportWeaponFallback(
 
 function parseRoverInfo(rawName: string, rawElement?: string): {
   isRover: boolean;
-  isMale: boolean;
+  gender: 'M' | 'F' | undefined;
   roverElement: string | undefined;
   baseName: string;
 } {
-  const isMale   = rawName.includes('(M)');
-  const isFemale = rawName.includes('(F)');
-  const isRover  = isMale || isFemale || /\bRover\b/i.test(rawName);
+  const gender = rawName.includes('(M)') ? 'M' : rawName.includes('(F)') ? 'F' : undefined;
+  const isRover  = gender !== undefined || /\bRover\b/i.test(rawName);
   const roverElement = ELEMENTS.find(el => rawElement === el) ?? ELEMENTS.find(el => rawName.includes(el));
   const baseName = rawName
     .replace(/\s*\([MF]\)\s*/g, '')
     .replace(new RegExp(`\\s*(${ELEMENTS.join('|')})\\s*`, 'g'), '')
     .replace(/\s*:\s*/g, ' ')
     .trim();
-  return { isRover, isMale, roverElement, baseName };
+  return { isRover, gender, roverElement, baseName };
 }
 
 export function convertAnalysisToSavedState(
@@ -73,23 +72,26 @@ export function convertAnalysisToSavedState(
   // Character
   const rawName = data.character?.name ?? '';
   const ocrCharacterId = data.character?.id ?? null;
-  const { isRover, isMale, roverElement, baseName } = parseRoverInfo(rawName, data.character?.element);
+  const { isRover, gender, roverElement, baseName } = parseRoverInfo(rawName, data.character?.element);
 
   let characterId: string | null = null;
   let roverElementState: string | undefined;
 
   if (ocrCharacterId && characters.some(c => c.id === ocrCharacterId)) {
-    characterId = ocrCharacterId;
     const character = characters.find(c => c.id === ocrCharacterId);
     if (character?.name.startsWith('Rover')) {
+      // Re-pair the OCR id with the reported element within the same gender, so
+      // a mismatched id + element never reaches the saved state.
       roverElementState = roverElement ?? character.roverElementName;
+      characterId = findRoverVariant(characters, {
+        element: roverElementState,
+        gender: getRoverGender(character.id),
+      })?.id ?? ocrCharacterId;
+    } else {
+      characterId = ocrCharacterId;
     }
   } else if (isRover) {
-    const roverVariant = characters.find(
-      c => c.name.startsWith('Rover') &&
-        (!roverElement || c.roverElementName === roverElement) &&
-        (!isMale || c.legacyId === '4'),
-    ) ?? characters.find(c => c.name.startsWith('Rover') && (!roverElement || c.roverElementName === roverElement));
+    const roverVariant = findRoverVariant(characters, { element: roverElement, gender });
     characterId = roverVariant?.id ?? null;
     roverElementState = roverElement ?? roverVariant?.roverElementName;
   } else if (baseName) {
