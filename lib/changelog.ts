@@ -23,6 +23,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Rover leaderboard rows now use shorter gender labels while filters stay grouped by element'
+            },
+            {
+                kind: 'fixed',
+                text: 'Adjusted Crit median values to be 7.5 and 15 based on official probabilities from devs'
             }
         ]
     },
