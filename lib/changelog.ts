@@ -18,15 +18,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'new',
-                text: 'Leaderboards now rank by Score: rotation damage scaled to how well your Energy Regen meets each board\'s target, with ER bracket tabs removed in favor of a tinted ER column and a move breakdown row showing exactly how much scaling was applied. Hiyuki\'s S6 board also now models her expert 4-Iai rotation'
-            },
-            {
-                kind: 'fixed',
-                text: 'Rover card better import on element detection'
+                text: 'Rank now considers ER breakpoints for all leaderboards, and says score not damage'
             },
             {
                 kind: 'improved',
-                text: 'Rover leaderboard rows now use shorter gender labels while filters stay grouped by element'
+                text: 'Hiyuki fixed Glacio Bite and 4 Iai on S6'
+            },
+            {
+                kind: 'fixed',
+                text: 'Rover card better import on element detection and gender labels in builds'
             },
             {
                 kind: 'fixed',

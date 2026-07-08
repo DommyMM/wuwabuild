@@ -52,6 +52,14 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
                     S{level}
                   </span>
                 )}
+                {typeof track.erTarget === 'number' && track.erTarget > 0 && (
+                  <span
+                    className="rounded-full border border-sky-300/40 bg-sky-400/10 px-2 py-0.5 text-xs font-semibold leading-none tracking-wide text-sky-200"
+                    title={`Full Score requires ${track.erTarget}% Energy Regen on this board`}
+                  >
+                    ER {track.erTarget}%
+                  </span>
+                )}
               </div>
             </button>
           );

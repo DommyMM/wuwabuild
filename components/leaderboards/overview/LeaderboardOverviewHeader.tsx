@@ -12,6 +12,7 @@ export const LeaderboardOverviewHeader: React.FC = () => (
       Characters and weapons are all standardized to the same conditions, only your echoes change between builds <br />
       Switch weapons and playstyles to see how each setup stacks up across the same board. <br />
       All levels and forte are maxed, and weapons are R1 for 5 stars, R5 for 4 stars <br />
+      If a build is under the target ER, it is penalized proportionately<br />
       If you have any suggestions, ask in the{' '}
       <a
         href="https://discord.gg/puZSXRKTPC"
