@@ -1,9 +1,9 @@
 const SUBSTAT_ROLL_TIER_COLORS = [
+  '#A65A17',
   '#FF8C00',
-  '#FF8C00',
+  '#B8860B',
   '#E6B800',
-  '#E6B800',
-  '#00FF00',
+  '#4CAF50',
   '#00FFFF',
   '#FF00FF',
   '#CC0000',
