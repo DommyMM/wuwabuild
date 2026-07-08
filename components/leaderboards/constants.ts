@@ -31,7 +31,6 @@ export const MAIN_STAT_OPTIONS = (['CR', 'CD', 'A%', 'H%', 'D%', 'ER', 'AD', 'GD
 // Curated sort-menu order; labels come from the single source (getLBSortLabel).
 export const SORT_OPTIONS: Array<{ key: LBSortKey; label: string }> = ([
   'finalCV',
-  'sequence',
   'timestamp',
   'crit_rate',
   'crit_dmg',

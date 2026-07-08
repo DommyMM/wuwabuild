@@ -7,7 +7,6 @@ import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
 import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from '../constants';
 import { getSortLabel } from '../formatters';
-import { ChevronDown } from 'lucide-react';
 import { BuildPagination } from '../BuildPagination';
 import { GlobalBoardRow, GlobalBoardRowExpandedProps } from './GlobalBoardRow';
 import { SortHeaderMenu, SortMenuOption } from '../SortHeaderMenu';
@@ -204,18 +203,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                 {showOwner && <div className="py-2">Owner</div>}
                 <div className="py-2">Name</div>
                 <div className="py-2" aria-hidden="true" />
-                <div className="py-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSortRequest('sequence')}
-                    className={`flex items-center gap-1 text-left transition-colors hover:text-text-primary ${sort === 'sequence' ? 'text-text-primary' : 'text-text-primary/70'}`}
-                  >
-                    Sequences
-                    {sort === 'sequence' && (
-                      <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${direction === 'asc' ? 'rotate-180' : ''}`} />
-                    )}
-                  </button>
-                </div>
+                <div className="py-2 text-text-primary/70">Sequences</div>
                 <div className="py-2">Sets</div>
                 <div className={`grid ${SORTABLE_GROUP_GRID} min-w-[652px] self-stretch gap-0`}>
                   <div className="self-stretch">
