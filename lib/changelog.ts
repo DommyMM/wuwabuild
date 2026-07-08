@@ -27,6 +27,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Adjusted Crit median values to be 7.5 and 15 based on official probabilities from devs, including substat upgrade projections'
+            },
+            {
+                kind: 'improved',
+                text: 'Echo substat roll colors now use the same roll-position scale for every stat, with red reserved for max rolls'
             }
         ]
     },

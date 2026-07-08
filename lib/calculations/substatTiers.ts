@@ -1,53 +1,89 @@
-import { getQualityTier } from '@/lib/calculations/rollValues';
+const SUBSTAT_ROLL_TIER_COLORS = [
+  '#FF8C00',
+  '#FF8C00',
+  '#E6B800',
+  '#E6B800',
+  '#00FF00',
+  '#00FFFF',
+  '#FF00FF',
+  '#CC0000',
+] as const;
 
-const maxRoll = (rollValues: number[] | null | undefined): number | null => {
-  if (!Array.isArray(rollValues) || rollValues.length === 0) return null;
-  const max = Math.max(...rollValues.filter((value) => Number.isFinite(value)));
-  return Number.isFinite(max) && max > 0 ? max : null;
-};
+const SUBSTAT_ROLL_TIER_LABELS = [
+  'Low',
+  'Low',
+  'Decent',
+  'Decent',
+  'High',
+  'Excellent',
+  'Perfect',
+  'MAX',
+] as const;
+
+const toFiniteSortedValues = (rollValues: number[] | null | undefined): number[] => (
+  Array.isArray(rollValues)
+    ? rollValues.filter((value) => Number.isFinite(value)).slice().sort((a, b) => a - b)
+    : []
+);
 
 const getSubstatTierIndex = (
   value: number,
   rollValues: number[] | null | undefined,
-): 1 | 2 | 3 | 4 | 5 | 6 | 7 | null => {
-  const max = maxRoll(rollValues);
-  if (max == null) return null;
-  const tier = getQualityTier((Number(value) / max) * 100);
-  switch (tier.label) {
-    case 'MAX': return 7;
-    case 'Perfect': return 6;
-    case 'Excellent': return 5;
-    case 'High': return 4;
-    case 'Decent': return 3;
-    case 'Passable': return 2;
-    default: return 1;
-  }
+): number | null => {
+  const sorted = toFiniteSortedValues(rollValues);
+  if (sorted.length === 0) return null;
+
+  let closestIndex = 0;
+  let bestDelta = Infinity;
+  sorted.forEach((rollValue, index) => {
+    const delta = Math.abs(rollValue - value);
+    if (delta < bestDelta) {
+      bestDelta = delta;
+      closestIndex = index;
+    }
+  });
+
+  if (sorted.length === 1) return SUBSTAT_ROLL_TIER_COLORS.length;
+  return Math.round((closestIndex / (sorted.length - 1)) * (SUBSTAT_ROLL_TIER_COLORS.length - 1)) + 1;
 };
 
-export const getSubstatTierColor = (
-  _statType: string,
-  value: number,
-  rollValues: number[] | null | undefined,
-): string | null => {
-  const max = maxRoll(rollValues);
-  if (max == null) return null;
-  return getQualityTier((Number(value) / max) * 100).color;
+const getRollTierColor = (index: number): string | null => {
+  if (!Number.isInteger(index)) return null;
+  return SUBSTAT_ROLL_TIER_COLORS[index - 1] ?? null;
+};
+
+const getRollTierLabel = (index: number): string | null => {
+  if (!Number.isInteger(index)) return null;
+  return SUBSTAT_ROLL_TIER_LABELS[index - 1] ?? null;
 };
 
 export interface SubstatTierInfo {
-  index: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  index: number;
   label: string;
   color: string;
+  isMax: boolean;
 }
 
 export const getSubstatTierInfo = (
   value: number,
   rollValues: number[] | null | undefined,
 ): SubstatTierInfo | null => {
-  const max = maxRoll(rollValues);
-  if (max == null) return null;
-  const tier = getQualityTier((Number(value) / max) * 100);
   const index = getSubstatTierIndex(value, rollValues);
   if (index == null) return null;
-  return { index, label: tier.label, color: tier.color };
+  const color = getRollTierColor(index);
+  const label = getRollTierLabel(index);
+  if (!color || !label) return null;
+
+  return {
+    index,
+    label,
+    color,
+    isMax: index === SUBSTAT_ROLL_TIER_COLORS.length,
+  };
 };
+
+export const getSubstatTierColor = (
+  _statType: string,
+  value: number,
+  rollValues: number[] | null | undefined,
+): string | null => getSubstatTierInfo(value, rollValues)?.color ?? null;
