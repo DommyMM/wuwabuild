@@ -135,7 +135,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
 
   return (
     <div
-      className="relative flex h-20 w-fit max-w-105 items-stretch gap-2.5 overflow-visible rounded-lg border border-white/15 py-1.5 pr-3.5 pl-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_1px_0_0_rgba(255,255,255,0.07),0_8px_18px_rgba(0,0,0,0.34)]"
+      className="relative flex h-22.5 w-fit max-w-105 items-stretch gap-2.5 overflow-visible rounded-lg border border-white/15 py-2.5 pr-3.5 pl-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_1px_0_0_rgba(255,255,255,0.07),0_8px_18px_rgba(0,0,0,0.34)]"
       style={{
         background:
           'linear-gradient(150deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 38%, rgba(0,0,0,0.46) 100%)',

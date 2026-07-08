@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-08',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Profile build cards now show the original forte grid instead of a not-ranked module when a build has no competitive rank'
+            },
+        ]
+    },
+    {
         date: '2026-07-07',
         changes: [
             {

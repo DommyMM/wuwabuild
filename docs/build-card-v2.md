@@ -11,7 +11,7 @@ Last full revision: 2026-06-10. Earlier phased plans ("Build Card v2") are super
 | Surface | Orchestrator | `forteSection` slot |
 |---|---|---|
 | Editor (`/edit`) | `components/edit/BuildEditor.tsx` | default `<ForteCardSection/>` (full node grid, hover-reactive) |
-| Profile build row | `components/profile/ProfileCard.tsx` | `<ProfileRankSection/>` = `<TalentPills/>` + `<RankModule/>` |
+| Profile build row | `components/profile/ProfileCard.tsx` | `<ProfileRankSection/>` = `<TalentPills/>` + `<RankModule/>`; falls back to default `<ForteCardSection/>` when the build has no competitive rank |
 
 Layout inside the frame (aspect 2.4/1 upper card, echo strip below):
 
@@ -51,7 +51,7 @@ Rover splash candidates try legacy-id and gendered filenames first; see `getSpla
 
 ## Rank module (profile cards)
 
-An 80px strip, three groups separated by spacing (no divider lines), reading grade then board then conditions:
+A 90px strip, three groups separated by spacing (no divider lines), reading grade then board then conditions:
 
 ```
 TOP              [wpn]  HYPERCARRY      [head]  [head]
@@ -67,6 +67,8 @@ TOP              [wpn]  HYPERCARRY      [head]  [head]
 
 Tier colors (`lib/calculations/rankTier.ts`): S = gold w/ glow at top 1%, A = silver at 10%, B = bronze at 25%, then neutral steps. Revisit the S threshold if boards reach six figures.
 
+Profile cards wrap the rank strip with `TalentPills` above it: `26px` talent pills + `8px` gap + `90px` `RankModule` = `124px` layout height. The default `ForteCardSection` is also `124px` by layout math (`28 + 2 + 28 + 6 + 52 + 8`), with the rotated skill diamond visually overflowing a few more pixels.
+
 Deliberately absent: **damage**. Cross-board damage is incomparable (a 9M S6 hypercarry next to a 1.6M S0 run reads as an error, not a flex); the tier-colored percentile is the normalized score. Akasha's card reaches the same conclusion. `RankBoard.damage` stays in the type for non-card consumers.
 
 ### Canonical board
@@ -81,7 +83,7 @@ The site mark ("wuwa.build") is bare shadowed text pinned bottom-left of the spl
 
 ## Data flow
 
-- Profile standings fetch on row expand via `/leaderboard/{characterId}/build/{buildId}/standings` (one request, all boards). `ProfileCard` owns the fetch so the action bar can switch boards without remounting the card. It reports the picked board upward (`onActiveBoardChange`), and `ProfileBuildExpanded` feeds that board (weapon, track, damage, rank) into the shared `BuildSimulationSection`, so the full leaderboard bench (move breakdown, substat upgrades, standings table, theoretical bench) renders under the card and always analyzes the board the rank module is showing.
+- Profile standings fetch on row expand via `/leaderboard/{characterId}/build/{buildId}/standings` (one request, all boards). `ProfileCard` owns the fetch so the action bar can switch boards without remounting the card. It reports the picked board upward (`onActiveBoardChange`), and `ProfileBuildExpanded` feeds that board (weapon, track, damage, rank) into the shared `BuildSimulationSection`, so the full leaderboard bench (move breakdown, substat upgrades, standings table, theoretical bench) renders under the card. When "Original forte" hides the rank module, the bench still defaults to the equipped weapon's best board, falling back to the best board overall.
 - The editor's "where would this rank" lives **under** the card (`SimulateRankPanel`, on-demand `POST /leaderboard/{characterId}/simulate`), keeping the editor export clean of unverified ranks.
 
 ## Backlog (carried over)

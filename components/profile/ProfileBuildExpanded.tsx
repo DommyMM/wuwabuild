@@ -36,8 +36,9 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
   regionBadge,
   onRetryDetail,
 }) => {
-  // Mirrors the card's board picker so the bench below analyzes the same board
-  // the rank module is showing. Null while "Original forte" or unranked.
+  // Mirrors the card's board picker for ranked cards. When "Original forte" is
+  // selected, ProfileCard still reports an equipped/best fallback board so the
+  // bench remains usable while the card itself shows the original forte grid.
   const [activeBoard, setActiveBoard] = useState<RankBoard | null>(null);
 
   return (

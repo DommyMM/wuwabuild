@@ -7,13 +7,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
 import { computeTopPercent, getRankTier } from '@/lib/calculations/rankTier';
-import {
-  CardArtSourceMode,
-  CardArtTransform,
-  DEFAULT_CARD_ART_TRANSFORM,
-  MAX_ART_ZOOM,
-  MIN_ART_ZOOM,
-} from '@/lib/cardArt';
+import { CardArtSourceMode, CardArtTransform, DEFAULT_CARD_ART_TRANSFORM, MAX_ART_ZOOM, MIN_ART_ZOOM } from '@/lib/cardArt';
 import { isRover } from '@/lib/character';
 import { getBuildStandings, LBBuildDetailEntry, LBBuildRowEntry, LBStandingEntry } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
@@ -37,7 +31,7 @@ const EXPORT_CARD_WIDTH = 3840;
 interface ProfileCardProps {
   entry: LBBuildRowEntry;
   detail: LBBuildDetailEntry;
-  /** Reports the board currently shown by the rank module (picker-driven), null when hidden. */
+  /** Reports the board the expanded bench should analyze. May differ when ranking is hidden. */
   onActiveBoardChange?: (board: RankBoard | null) => void;
 }
 
@@ -49,6 +43,12 @@ interface StandingsResult {
 const buildStandingKey = (s: LBStandingEntry): string => (
   s.key && s.key.length > 0 ? s.key : `${s.weaponId}:${s.trackKey}`
 );
+
+const pickDefaultBoard = (boards: RankBoard[], equippedWeaponId?: string): RankBoard | null => {
+  if (boards.length === 0) return null;
+  const sorted = [...boards].sort((a, b) => a.topPercent - b.topPercent);
+  return sorted.find((board) => board.weaponId === equippedWeaponId) ?? sorted[0] ?? null;
+};
 
 const getImageNaturalHeight = async (file: File): Promise<number> => {
   const objectUrl = URL.createObjectURL(file);
@@ -189,6 +189,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
   }, [standings, getWeapon, t, entry.sequence]);
 
   const showOriginalForte = selectedStandingKey === NO_RANKING_KEY;
+  const showProfileRankSection = !showOriginalForte && (standingsLoading || availableBoards.length > 0);
 
   const activeBoard = useMemo<RankBoard | null>(() => {
     if (showOriginalForte) return null;
@@ -197,15 +198,20 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
       const match = availableBoards.find((b) => b.key === selectedStandingKey);
       if (match) return match;
     }
-    // Default = lowest top% (most impressive ranking) across all variants.
-    return [...availableBoards].sort((a, b) => a.topPercent - b.topPercent)[0];
-  }, [showOriginalForte, availableBoards, selectedStandingKey]);
+    // Default to the equipped weapon's best board so card and bench stay anchored
+    // to the build, then fall back to the best placement overall.
+    return pickDefaultBoard(availableBoards, equippedWeaponId);
+  }, [showOriginalForte, availableBoards, selectedStandingKey, equippedWeaponId]);
 
-  // Let the expansion shell mirror the picker, so the breakdown bench below the
-  // card always analyzes the same board the rank module is showing.
+  const analysisBoard = useMemo<RankBoard | null>(() => (
+    activeBoard ?? pickDefaultBoard(availableBoards, equippedWeaponId)
+  ), [activeBoard, availableBoards, equippedWeaponId]);
+
+  // Let the expansion shell mirror the picker for ranked cards. When the user
+  // hides ranking for original forte, keep the bench on an equipped/best board.
   useEffect(() => {
-    onActiveBoardChange?.(activeBoard);
-  }, [activeBoard, onActiveBoardChange]);
+    onActiveBoardChange?.(analysisBoard);
+  }, [analysisBoard, onActiveBoardChange]);
 
   const handleToggleArtEditMode = useCallback(() => setIsArtEditMode((v) => !v), []);
   const handleResetArtTransform = useCallback(() => setArtTransform(DEFAULT_CARD_ART_TRANSFORM), []);
@@ -322,14 +328,14 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
               isArtEditMode={isArtEditMode}
               onCustomArtUpload={handleCustomArtUpload}
               onArtTransformChange={setArtTransform}
-              forteSection={showOriginalForte ? undefined : (
+              forteSection={showProfileRankSection ? (
                 <ProfileRankSection
                   availableBoards={availableBoards}
                   activeBoard={activeBoard}
                   standings={standings}
                   standingsLoading={standingsLoading}
                 />
-              )}
+              ) : undefined}
             />
             <SubstatSummaryRow />
           </div>
