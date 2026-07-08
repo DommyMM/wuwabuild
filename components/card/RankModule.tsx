@@ -135,11 +135,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
 
   return (
     <div
-      className="relative flex h-22.5 w-fit max-w-105 items-stretch gap-2.5 overflow-visible rounded-lg border border-white/15 py-2.5 pr-3.5 pl-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_1px_0_0_rgba(255,255,255,0.07),0_8px_18px_rgba(0,0,0,0.34)]"
-      style={{
-        background:
-          'linear-gradient(150deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 38%, rgba(0,0,0,0.46) 100%)',
-      }}
+      className="relative flex h-22.5 w-fit max-w-105 items-stretch gap-2.5 overflow-visible rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] py-2.5 pr-3.5 pl-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
     >
       {/* Tier-tinted glow bloom behind the hero number, reinforcing the tier-colored percentile. */}
       {rankGlow && !loading && board && (

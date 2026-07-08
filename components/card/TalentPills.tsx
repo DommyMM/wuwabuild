@@ -78,8 +78,8 @@ export const TalentPills: React.FC<TalentPillsProps> = ({ character, forte, maxL
 
         const pill = (
           <div
-            className={`inline-flex h-6.5 items-center gap-1 border bg-black/35 pr-1.5 pl-0.5 ${
-              isMax ? 'border-accent/35' : 'border-white/12'
+            className={`inline-flex h-6.5 items-center gap-1 rounded-md border bg-black/35 pr-1.5 pl-0.5 ${
+              isMax ? 'border-amber-300/55' : 'border-white/12'
             }`}
           >
             {icon ? (
@@ -95,7 +95,7 @@ export const TalentPills: React.FC<TalentPillsProps> = ({ character, forte, maxL
             )}
             <span
               className={`font-gowun text-[13px] leading-none tabular-nums ${
-                isMax ? 'text-accent-hover' : 'text-text-primary'
+                isMax ? 'text-amber-200' : 'text-text-primary'
               }`}
             >
               {level}
