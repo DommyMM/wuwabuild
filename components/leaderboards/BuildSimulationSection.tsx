@@ -71,6 +71,27 @@ type OrderedUpgradeColumn = BuildUpgradeColumn & {
   showRankDelta: boolean;
 };
 
+function getWeightedMedianRollValue(probabilities: Array<[number, number]> | null): number | null {
+  if (!probabilities || probabilities.length === 0) return null;
+
+  const validRolls = probabilities.filter(([value, probability]) => (
+    Number.isFinite(value) && Number.isFinite(probability) && probability > 0
+  ));
+  const totalProbability = validRolls.reduce((total, [, probability]) => total + probability, 0);
+  if (totalProbability <= 0) return null;
+
+  const threshold = totalProbability / 2;
+  let cumulative = 0;
+  for (const [value, probability] of validRolls) {
+    cumulative += probability;
+    if (cumulative >= threshold) {
+      return value;
+    }
+  }
+
+  return validRolls[validRolls.length - 1]?.[0] ?? null;
+}
+
 function formatTrackLabel(trackKey: string): string {
   return trackKey
     .split('_')
@@ -82,10 +103,16 @@ function formatTrackLabel(trackKey: string): string {
     .join(' ');
 }
 
-function getTierRollValue(values: number[] | null, tier: UpgradeTierKey): number | null {
+function getTierRollValue(
+  values: number[] | null,
+  tier: UpgradeTierKey,
+  probabilities?: Array<[number, number]> | null,
+): number | null {
   if (!values || values.length === 0) return null;
   if (tier === 'min') return values[0] ?? null;
   if (tier === 'max') return values[values.length - 1] ?? null;
+  const weightedMedian = getWeightedMedianRollValue(probabilities ?? null);
+  if (weightedMedian != null) return weightedMedian;
   return values[Math.max(0, Math.floor((values.length - 1) / 2))] ?? null;
 }
 
@@ -168,7 +195,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   globalRank,
   onViewInEditor,
 }) => {
-  const { getWeapon, getSubstatValues, statIcons, statTranslations } = useGameData();
+  const { getWeapon, getSubstatValues, getSubstatRollProbabilities, statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
   const moveControllerRef = useRef<AbortController | null>(null);
   const upgradeControllerRef = useRef<AbortController | null>(null);
@@ -414,7 +441,11 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
         const label = UPGRADE_STAT_LABELS[key] ?? key;
         const isPercent = !FLAT_UPGRADE_STATS.has(key);
         const icon = statIcons?.[label] ?? statIcons?.[label.replace('%', '')] ?? '';
-        const rollValue = getTierRollValue(getSubstatValues(label), selectedUpgradeTier) ?? 0;
+        const rollValue = getTierRollValue(
+          getSubstatValues(label),
+          selectedUpgradeTier,
+          getSubstatRollProbabilities(label),
+        ) ?? 0;
         const percentGain = gain > 0 ? (gain / (baseDamage ?? 1)) * 100 : 0;
         const projectedRank = tierRankMap[key] ?? 0;
         const rankDelta = showUpgradeRankDelta ? ((globalRank ?? 0) - projectedRank) : 0;
@@ -435,7 +466,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
         };
       })
       .filter((column) => column.gain > 0);
-  }, [activeUpgrades, baseDamage, getSubstatValues, globalRank, selectedUpgradeTier, showUpgradeRankDelta, statIcons, statTranslations, t]);
+  }, [activeUpgrades, baseDamage, getSubstatRollProbabilities, getSubstatValues, globalRank, selectedUpgradeTier, showUpgradeRankDelta, statIcons, statTranslations, t]);
 
   const orderedUpgradeColumns = useMemo(
     () => canonicalUpgradeSort(upgradeColumns, statTranslations),

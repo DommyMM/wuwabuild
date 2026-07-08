@@ -26,7 +26,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
-                text: 'Adjusted Crit median values to be 7.5 and 15 based on official probabilities from devs'
+                text: 'Adjusted Crit median values to be 7.5 and 15 based on official probabilities from devs, including substat upgrade projections'
             }
         ]
     },

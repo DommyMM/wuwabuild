@@ -19,6 +19,10 @@ interface SubstatData {
   [statName: string]: number[];
 }
 
+interface SubstatRollProbabilityData {
+  [statName: string]: Array<[number, number]>;
+}
+
 // Raw JSON shape as loaded from files/fetch, exported for use in layout.tsx
 interface RawGameData {
   characters: unknown;
@@ -39,6 +43,7 @@ interface GameDataState {
   weaponList: Weapon[];
   mainStats: MainStatData | null;
   substats: SubstatData | null;
+  substatRollProbabilities: SubstatRollProbabilityData | null;
   statTranslations: Record<string, Record<string, string>> | null;
   statIcons: Record<string, string> | null;
   fetters: CDNFetter[];
@@ -67,6 +72,7 @@ interface GameDataContextType extends GameDataState {
   calculateMainStatValue: (min: number, max: number, level: number) => number;
 
   getSubstatValues: (stat: string) => number[] | null;
+  getSubstatRollProbabilities: (stat: string) => Array<[number, number]> | null;
   getLowestSubstatValue: (stat: string) => number | null;
   getAvailableSubstats: () => string[];
 
@@ -83,6 +89,7 @@ const emptyState: GameDataState = {
   weaponList: [],
   mainStats: null,
   substats: null,
+  substatRollProbabilities: null,
   statTranslations: null,
   statIcons: null,
   fetters: [],
@@ -145,6 +152,7 @@ function processRawGameData(raw: RawGameData): GameDataState {
 
   const echoStatsRaw = raw.echoStats as {
     subStats?: SubstatData;
+    subStatRollProbabilities?: SubstatRollProbabilityData;
     mainStats?: { [key: string]: { [statName: string]: [number, number] } };
     defaultMainStats?: { [key: string]: [string, number, number] };
   } | null;
@@ -170,6 +178,7 @@ function processRawGameData(raw: RawGameData): GameDataState {
     weaponList,
     mainStats: normalizedMainStats,
     substats: echoStatsRaw?.subStats ?? null,
+    substatRollProbabilities: echoStatsRaw?.subStatRollProbabilities ?? null,
     statTranslations,
     statIcons,
     fetters,
@@ -360,6 +369,10 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     return state.substats?.[stat] ?? null;
   }, [state.substats]);
 
+  const getSubstatRollProbabilities = useCallback((stat: string): Array<[number, number]> | null => {
+    return state.substatRollProbabilities?.[stat] ?? null;
+  }, [state.substatRollProbabilities]);
+
   const getLowestSubstatValue = useCallback((stat: string): number | null => {
     return state.substats?.[stat]?.[0] ?? null;
   }, [state.substats]);
@@ -429,6 +442,7 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     getMainStatsByCost,
     calculateMainStatValue,
     getSubstatValues,
+    getSubstatRollProbabilities,
     getLowestSubstatValue,
     getAvailableSubstats,
     scaleCharacterStat,
@@ -450,6 +464,7 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     getMainStatsByCost,
     calculateMainStatValue,
     getSubstatValues,
+    getSubstatRollProbabilities,
     getLowestSubstatValue,
     getAvailableSubstats,
     scaleCharacterStat,
