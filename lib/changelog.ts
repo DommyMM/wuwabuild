@@ -17,6 +17,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-07-08',
         changes: [
             {
+                kind: 'improved',
+                text: 'Player lookup opens inline in the navbar as a single panel, with a keyboard shortcut to open (Ctrl or ⌘ + K) and arrow-key navigation'
+            },
+            {
                 kind: 'fixed',
                 text: 'Profile build cards now show the original forte grid instead of a not-ranked module when a build has no competitive rank'
             },

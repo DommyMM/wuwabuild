@@ -2,9 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ProfileSearch } from './home/ProfileSearch';
+
+// Pages with their own search bar: the nav icon (and ⌘/Ctrl+K) hand off to it
+// instead of opening the popover.
+const ON_PAGE_SEARCH_SELECTOR: Record<string, string> = {
+    '/': '#home-profile-search input',
+    '/profiles': '#profiles-page-search input',
+};
 
 export function Navigation() {
     const pathname = usePathname();
@@ -41,21 +48,35 @@ export function Navigation() {
 
     const closeSidebar = () => setIsOpen(false);
 
-    // Pages with their own search bar: the nav icon hands off to it instead of
-    // opening the popover.
-    const onPageSearchSelector: Record<string, string> = {
-        '/': '#home-profile-search input',
-        '/profiles': '#profiles-page-search input',
-    };
-
-    const focusOnPageSearch = (selector: string) => {
+    const focusOnPageSearch = useCallback((selector: string) => {
         const input = document.querySelector<HTMLInputElement>(selector);
         input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         // On mobile /profiles the bar already sits at the top of the page;
         // focusing would pop the keyboard, so reveal it closed instead.
         if (isMobile && pathname === '/profiles') return;
         window.setTimeout(() => input?.focus(), 180);
-    };
+    }, [isMobile, pathname]);
+
+    // Ctrl/⌘+K jumps to profile search: the on-page bar where one exists,
+    // otherwise the navbar popover. Esc closes the popover.
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if ((event.key === 'k' || event.key === 'K') && (event.metaKey || event.ctrlKey)) {
+                event.preventDefault();
+                const selector = ON_PAGE_SEARCH_SELECTOR[pathname];
+                if (selector) {
+                    setIsLookupOpen(false);
+                    focusOnPageSearch(selector);
+                    return;
+                }
+                setIsLookupOpen((v) => !v);
+            } else if (event.key === 'Escape') {
+                setIsLookupOpen(false);
+            }
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [pathname, focusOnPageSearch]);
 
     // Prevent body scroll when sidebar is open
     useEffect(() => {
@@ -137,15 +158,16 @@ export function Navigation() {
                     {/* Toolbar Portal Target - BuildEditor buttons appear here on scroll */}
                     <div id="nav-toolbar-portal" className="flex items-center" />
 
-                    {/* Profile lookup - search any player from any page.
-                        On mobile the wrapper is static so the popover anchors to the
-                        sticky nav itself and spans the viewport instead of hanging
-                        off-screen from the mid-bar button. */}
-                    <div ref={lookupRef} className="max-md:static relative flex items-center">
+                    {/* Profile lookup - search any player from any page. On desktop the
+                        wrapper is a positioned, stretched anchor so the input can spawn
+                        inline where the icon sits and results drop flush below the nav;
+                        on mobile it's static so the drawer anchors to the nav and spans
+                        the viewport. */}
+                    <div ref={lookupRef} className="flex items-center md:relative md:self-stretch">
                         <button
                             type="button"
                             onClick={() => {
-                                const selector = onPageSearchSelector[pathname];
+                                const selector = ON_PAGE_SEARCH_SELECTOR[pathname];
                                 if (selector) {
                                     setIsLookupOpen(false);
                                     focusOnPageSearch(selector);
@@ -159,7 +181,7 @@ export function Navigation() {
                                 isLookupOpen || isActive('/profiles')
                                     ? 'text-accent bg-accent/10'
                                     : 'text-text-primary hover:text-accent hover:bg-accent/8'
-                            }`}
+                            } ${isLookupOpen ? 'md:invisible' : ''}`}
                             title="Profile lookup"
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -169,18 +191,23 @@ export function Navigation() {
                         </button>
 
                         {isLookupOpen && (
-                            <div className="absolute top-full z-50 mt-2 max-md:left-3 max-md:right-3 md:right-0 md:w-96 rounded-lg border border-border bg-background-secondary p-3 shadow-[0_24px_48px_rgba(0,0,0,0.6)]">
-                                <ProfileSearch surface="nav" autoFocus />
-                                <div className="mt-2.5 flex justify-end border-t border-border/60 pt-2">
-                                    <Link
-                                        href="/profiles"
-                                        onClick={() => setIsLookupOpen(false)}
-                                        className="text-xs text-text-primary/55 transition-colors hover:text-accent"
-                                    >
-                                        All profiles →
-                                    </Link>
+                            isMobile ? (
+                                <div className="absolute left-3 right-3 top-full z-50 overflow-hidden rounded-b-lg border border-t-0 border-border bg-background-secondary shadow-[0_24px_48px_rgba(0,0,0,0.6)] transition-colors focus-within:border-accent/50">
+                                    <ProfileSearch
+                                        surface="nav"
+                                        variant="panel"
+                                        autoFocus
+                                        onRequestClose={() => setIsLookupOpen(false)}
+                                    />
                                 </div>
-                            </div>
+                            ) : (
+                                <ProfileSearch
+                                    surface="nav"
+                                    variant="inline"
+                                    autoFocus
+                                    onRequestClose={() => setIsLookupOpen(false)}
+                                />
+                            )
                         )}
                     </div>
 
