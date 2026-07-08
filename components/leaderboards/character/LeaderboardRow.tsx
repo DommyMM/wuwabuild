@@ -32,7 +32,8 @@ interface LeaderboardRowProps {
   isGhost?: boolean;
   activeWeaponId: string;
   activeTrackKey: string;
-  erMin?: number;
+  /** Active track's ER target; tints the ER stat cell and enables the raw damage tooltip. */
+  erTarget?: number;
   /** Board-level stat columns from the backend; overrides the per-row heuristic when present. */
   boardStatColumns?: StatSortKey[] | null;
   sort: LBLeaderboardSortKey;
@@ -54,7 +55,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
   activeWeaponId,
   activeTrackKey,
   boardStatColumns,
-  erMin = 0,
+  erTarget = 0,
   sort,
   isCvColumnActive,
   isStatSortActive,
@@ -117,7 +118,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
 
   // Rank display
   const rank = entry.globalRank;
-  const showReignHold = rank === 1 && !isGhost && erMin === 0 && Boolean(entry.reignSince);
+  const showReignHold = rank === 1 && !isGhost && Boolean(entry.reignSince);
   const reignHoldLabel = showReignHold && entry.reignSince
     ? formatReignHoldLabel(entry.reignSince)
     : null;
@@ -270,6 +271,19 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
             const icon = statIcons?.[label] ?? '';
             const iconFilter = ELEMENT_ICON_FILTERS[label];
             const shouldDimRowStat = isStatSortActive && statIndex > 0;
+            // ER vs the board target: at/above = met (green), below = score-scaled (red).
+            const isErColumn = columnKey === 'energy_regen' && erTarget > 0;
+            const erMet = isErColumn && value >= erTarget;
+            const erValueClass = isErColumn
+              ? erMet
+                ? 'text-emerald-300/90'
+                : 'text-rose-300/90'
+              : '';
+            const erTitle = isErColumn
+              ? erMet
+                ? `Meets the ${erTarget}% ER target, full score.`
+                : `Below the ${erTarget}% ER target, score scaled by ER/${erTarget}.`
+              : undefined;
             return (
               <div
                 key={`${entry.id}-${columnKey}-${statIndex}`}
@@ -277,7 +291,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
                   isStatSortActive ? ACTIVE_SORT_COLUMN_CLASS : sort === columnKey ? ACTIVE_SORT_COLUMN_CLASS : ''
                 }`}
               >
-                <div className={`flex h-full items-center gap-2 py-2 px-4 text-lg text-text-primary ${shouldDimRowStat ? 'opacity-50' : ''}`}>
+                <div className={`flex h-full items-center gap-2 py-2 px-4 text-lg text-text-primary ${shouldDimRowStat ? 'opacity-50' : ''}`} title={erTitle}>
                   {icon ? (
                     <img
                       src={icon}
@@ -289,7 +303,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
                   ) : (
                     <span className="inline-block h-5 w-5 shrink-0 rounded bg-border" />
                   )}
-                  <span>{formatStatByKey(columnKey, value)}</span>
+                  <span className={erValueClass}>{formatStatByKey(columnKey, value)}</span>
                 </div>
               </div>
             );
@@ -324,7 +338,6 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
           activeBoardWeaponId={activeWeaponId}
           activeTrackKey={activeTrackKey}
           activeBoardDamage={entry.damage}
-          erMin={erMin}
           globalRank={entry.globalRank}
           surface="leaderboard_character"
           animateInitialExpand

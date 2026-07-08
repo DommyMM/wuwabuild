@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { isHealTrackKey } from '@/lib/lb';
 import { getCachedLeaderboardOverview, primeLeaderboardOverviewCache, readCachedLeaderboardOverview } from '@/lib/leaderboardOverviewCache';
 import { buildLeaderboardHref } from '../character/leaderboardCharacterQuery';
 import { LBCharacterOverview } from '@/lib/lb';
@@ -22,10 +21,9 @@ function overviewSignature(entries: LBCharacterOverview[]): string {
   ).join(',');
 }
 
-function formatOverviewMetric(value: number, trackKey: string): string {
+function formatOverviewMetric(value: number): string {
   if (value <= 0) return 'No data';
-  const suffix = isHealTrackKey(trackKey) ? 'Score' : 'Damage';
-  return `${Math.round(value).toLocaleString()} ${suffix}`;
+  return `${Math.round(value).toLocaleString()} Score`;
 }
 
 interface LeaderboardOverviewClientProps {
@@ -272,7 +270,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                         <div className="relative min-w-0 flex-1">
                                               {hasTopDamage ? (
                                             <div className="text-sm font-semibold leading-tight text-text-primary">
-                                              {formatOverviewMetric(top?.damage ?? 0, entry.trackKey)}
+                                              {formatOverviewMetric(top?.damage ?? 0)}
                                             </div>
                                           ) : (
                                             <div className="text-sm font-medium text-text-primary/35">Open board</div>

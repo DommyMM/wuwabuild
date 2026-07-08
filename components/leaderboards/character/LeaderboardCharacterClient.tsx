@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { isHealTrackKey, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
+import { LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, MAX_ITEMS_PER_PAGE } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
@@ -113,7 +113,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => initialSnapshot.regionPrefixes);
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialSnapshot.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialSnapshot.echoMains);
-  const [erMin, setErMin] = useState<number>(() => initialSnapshot.erMin);
   const [filterQuery, setFilterQuery] = useState('');
 
   const leaderboardSigRef = useRef(leaderboardSignature(initialEntries, initialData?.total ?? 0));
@@ -170,8 +169,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     () => configTracks.find((entry) => entry.key === track),
     [configTracks, track],
   );
-  const validErBrackets = activeTrackConfig?.erBrackets === undefined ? [110, 120, 130, 140, 150] : activeTrackConfig.erBrackets;
-  const effectiveErMin = erMin === 0 || validErBrackets.includes(erMin) ? erMin : 0;
+  // Active track's ER target: scores are damage × min(1, ER/target); 0 = no requirement.
+  const erTarget = activeTrackConfig?.erTarget ?? 0;
   // The query snapshot is buildId-free: buildId is a transient command, not part of the view state.
   const currentQuerySnapshot = useMemo(() => resolveLeaderboardQuerySnapshot({
     page,
@@ -185,11 +184,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     regionPrefixes,
     echoSets,
     echoMains,
-    erMin: effectiveErMin,
   }, {
     defaultWeaponId,
     defaultTrack: defaultTrackKey,
-  }), [defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, effectiveErMin, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
+  }), [defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
   const leaderboardQuery = useMemo(
     () => leaderboardSnapshotToApiQuery(currentQuerySnapshot),
     [currentQuerySnapshot],
@@ -296,8 +294,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     sort,
     direction,
     pageSize,
-    erMin: effectiveErMin,
-  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sort, direction, pageSize, effectiveErMin]);
+  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sort, direction, pageSize]);
 
   useEffect(() => {
     if (!settledQueryKey) return;
@@ -314,12 +311,11 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       has_username_search: username.trim().length > 0,
       echo_set_count: echoSets.length,
       echo_main_count: echoMains.length,
-      er_min: effectiveErMin || null,
       sort,
       direction,
       page_size: pageSize,
     });
-  }, [characterId, direction, echoMains.length, echoSets.length, effectiveErMin, filterSignature, pageSize, queryKey, regionPrefixes.length, settledQueryKey, sort, track, uid, username, weaponId]);
+  }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, settledQueryKey, sort, track, uid, username, weaponId]);
 
   // Fetch leaderboard data. Runs when the view changes (queryKey) or a fresh deep link needs resolving.
   useEffect(() => {
@@ -463,10 +459,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     setUsername('');
     setEchoSets([]);
     setEchoMains([]);
-    setErMin(0);
     setFilterQuery('');
     setPage(1);
-  }, [setEchoMains, setEchoSets, setErMin, setFilterQuery, setPage, setRegionPrefixes, setUid, setUsername]);
+  }, [setEchoMains, setEchoSets, setFilterQuery, setPage, setRegionPrefixes, setUid, setUsername]);
 
   // Computed
   const character = characters.find((c) => c.id === characterId) ?? null;
@@ -507,12 +502,11 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     uid.trim().length > 0 ||
     username.trim().length > 0 ||
     echoSets.length > 0 ||
-    echoMains.length > 0 ||
-    effectiveErMin > 0
+    echoMains.length > 0
   );
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
-  const activeMetricLabel = isHealTrackKey(track) ? 'Score' : 'Damage';
+  const activeMetricLabel = 'Score';
   const rankStart = (() => {
     if (total <= 0) return 1;
     if (page === normalizedPageCount) return Math.max(1, total - displayEntries.length + 1);
@@ -563,18 +557,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                     tab_kind: 'track',
                   });
                   setTrack(trackKey);
-                  setPage(1);
-                }}
-                erMin={effectiveErMin}
-                onSelectErMin={(value) => {
-                  posthog.capture('leaderboard_tab_change', {
-                    character_id: characterId,
-                    weapon_id: weaponId || null,
-                    track_key: track,
-                    tab_kind: 'er_bracket',
-                    er_min: value,
-                  });
-                  setErMin(value);
                   setPage(1);
                 }}
               />
@@ -632,7 +614,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 deepLinkBuildId={revealBuildId ?? ''}
                 activeWeaponId={weaponId}
                 activeTrackKey={track}
-                erMin={effectiveErMin}
+                erTarget={erTarget}
                 metricLabel={activeMetricLabel}
                 expandedIds={expandedIds}
                 detailById={detailById}

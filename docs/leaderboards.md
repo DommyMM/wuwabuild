@@ -38,6 +38,12 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 - Row identity for leaderboard entries is `entry.id + ":" + entry.trackKey`.
 - In frontend rendering, treat `globalRank > 0` as a showable competitive rank and `globalRank === 0` as "do not show rank" (ghost rows and browse-only rows both land here).
 
+## Score / ER Target
+
+- `entry.damage` is the board Score: rotation damage × `min(1, ER / track.erTarget)`. There is no separate "unfiltered" vs "bracketed" board anymore — one ranked list per weapon/track, ER-scaled in place. The old ER bracket tabs (`?erMin=`) are gone.
+- `LBTrack.erTarget` (0/absent = no ER requirement) drives the ER stat cell tint in `LeaderboardRow` (green at/above target, red below). Score is the only ranked/displayed metric — there is no raw (pre-ER-scaling) damage view; the per-move breakdown's "ER Scaling (x%/y% = ×z)" row is where a curious player can see the scaling applied.
+- Reigns and dedup are no longer conditioned on an `erMin` state; `showReignHold` in `LeaderboardRow` only checks rank/ghost.
+
 ## Competitive vs Browse Behavior
 
 - Competitive mode:

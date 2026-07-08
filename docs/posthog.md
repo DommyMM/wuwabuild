@@ -172,7 +172,6 @@ Current init settings:
   - `has_username_search`: boolean
   - `echo_set_count`: number
   - `echo_main_count`: number
-  - `er_min`: number | null (leaderboard surface only)
   - `sort`: sort key
   - `direction`: `asc` | `desc`
   - `page_size`: number

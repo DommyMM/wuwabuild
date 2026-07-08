@@ -16,11 +16,7 @@ function parseTracks(raw: unknown): LBTrack[] {
       key: typeof track.key === 'string' ? track.key : '',
       label: typeof track.label === 'string' ? track.label : '',
       note: typeof track.note === 'string' ? track.note : undefined,
-      erBrackets: Array.isArray(track.erBrackets)
-        ? track.erBrackets
-          .map((value) => toFiniteNumber(value, 0))
-          .filter((value) => Number.isFinite(value) && value > 0)
-        : undefined,
+      erTarget: toFiniteNumber(track.erTarget, 0) > 0 ? toFiniteNumber(track.erTarget, 0) : undefined,
     }))
     .filter((track) => track.key.length > 0);
 }
@@ -255,7 +251,7 @@ export async function prefetchLeaderboard(
       teamBuffs?: unknown;
       activeWeaponId?: unknown;
       activeTrack?: unknown;
-      erMin?: unknown;
+      erTarget?: unknown;
       displayStats?: unknown;
     };
     const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
@@ -301,7 +297,7 @@ export async function prefetchLeaderboard(
       teamBuffs: parseTeamBuffs(payload.teamBuffs),
       activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
       activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
-      erMin: toFiniteNumber(payload.erMin, 0),
+      erTarget: toFiniteNumber(payload.erTarget, 0),
       displayStats: parseLeaderboardDisplayStats(payload.displayStats),
     };
   } catch (err) {

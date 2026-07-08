@@ -239,7 +239,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
       <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-text-primary/25">
         <span className="w-18 shrink-0">Tier</span>
         <span className="flex-1" />
-        <span className="w-16 shrink-0 text-right">Damage</span>
+        <span className="w-16 shrink-0 text-right">Score</span>
         {hasCurrent && <span className="w-12 shrink-0 text-right">Yours</span>}
         {!hasCurrent && <span className="w-12 shrink-0" />}
       </div>
@@ -288,7 +288,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
       </div>
 
       <div className="font-ropa tracking-wide">
-        <div className="mx-auto w-full max-w-330 space-y-4 px-12 pt-1">
+        <div className="mx-auto w-full max-w-330 space-y-4 px-12 pt-2.5">
           <BuildExpandedEchoPanels
             detail={syntheticDetail}
             character={character}

@@ -12,7 +12,9 @@ Common terms used by the frontend and leaderboard backend.
 
 ## Leaderboard Terms
 
-- **`damage_map`**: Flat backend map `<weaponId>_<sequenceKey>` -> total damage.
+- **`damage_map`**: Flat backend map `<weaponId>_<sequenceKey>` -> Score.
+- **Score**: The ranked board value — rotation damage × `min(1, ER / erTarget)`. Equals raw damage on boards without an `erTarget` or once ER meets it.
+- **`erTarget`**: Per-track minimum Energy Regen the board expects (`LBTrack.erTarget`). Absent/0 = no ER requirement. Replaces the old ER bracket tabs — there is no longer a separate filtered view, the score itself scales.
 - **`calculations`**: Per-weapon detailed output (`stats`, `moves`, `upgrades`).
 - **`globalRank`** (for `/leaderboard/{characterId}` rows):
   - Always returned in responses.

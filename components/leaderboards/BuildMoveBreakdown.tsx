@@ -476,7 +476,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
             <div className="mx-auto max-w-[420px] rounded-lg border border-border/45 bg-background-secondary/24 px-4 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/42">
-                Total Damage
+                Total Score
               </div>
               <div className="mt-1 text-xl font-semibold text-white/92">{formatDamage(totalDamage)}</div>
               <div className="mt-1 text-xs text-text-primary/48">

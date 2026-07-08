@@ -72,7 +72,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
           <th className="min-w-36 py-2 px-3 text-left">Weapon</th>
           <th className="min-w-24 py-2 px-3 text-left">Team</th>
           <th className="min-w-28 py-2 px-3 text-left">Board</th>
-          <th className="min-w-20 py-2 pl-3 pr-3 text-right">Damage</th>
+          <th className="min-w-20 py-2 pl-3 pr-3 text-right">Score</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-border/45">

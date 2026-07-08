@@ -47,7 +47,7 @@ function getLeaderboardOgImageUrl(characterId: string, weaponId: string, trackKe
 
 function getTrackTitleParts(trackKey: string, tracks: LBTrack[]): { playstyle: string; sequence: number } {
   const track = tracks.find((entry) => entry.key === trackKey);
-  const rawLabel = track?.label?.trim() || trackKey || 'Damage';
+  const rawLabel = track?.label?.trim() || trackKey || 'Score';
   const playstyle = stripLBSeqPrefix(rawLabel).trim() || rawLabel;
   return {
     playstyle,

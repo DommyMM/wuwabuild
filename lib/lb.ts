@@ -844,7 +844,8 @@ export interface LBTrack {
   key: string;
   label: string;
   note?: string;
-  erBrackets?: number[];
+  /** Board ER target: score = damage × min(1, ER/target). Absent = no ER requirement. */
+  erTarget?: number;
 }
 
 /** One support's full resolved buff contribution on a board (kit + weapon + sonata
@@ -886,9 +887,10 @@ export interface LBLeaderboardEntry {
   cvPenalty: number;
   finalCV: number;
   timestamp: string;
+  /** Board Score: rotation damage × min(1, ER/erTarget). */
   damage: number;
   globalRank: number;
-  /** RFC3339 start of the current rank-1 hold; only set on the #1 row of the unfiltered board. */
+  /** RFC3339 start of the current rank-1 hold; only set on the #1 row of the board. */
   reignSince?: string;
   stats: Record<LBStatCode, number>;
   owner: { username: string; uid: string };
@@ -911,8 +913,6 @@ export interface LBLeaderboardQuery {
   echoMains?: LBEchoMainFilter[];
   track?: string;
   buildId?: string;
-  /** Minimum Energy Regen threshold (e.g. 110 = 110%+). 0 = no filter. */
-  erMin?: number;
 }
 
 export interface LBLeaderboardResponse {
@@ -929,7 +929,8 @@ export interface LBLeaderboardResponse {
   teamBuffs: LBTeamBuffs;
   activeWeaponId: string;
   activeTrack: string;
-  erMin: number;
+  /** Active track's ER target (0 = no requirement). Scores are damage × min(1, ER/target). */
+  erTarget: number;
   /**
    * Backend-derived four-column stat selection for this board (same for every
    * row). Canonical stat-sort keys, e.g. ['hp','aero_dmg','basic_attack_dmg',
@@ -985,11 +986,7 @@ function parseTracks(raw: unknown): LBTrack[] {
       key: typeof track.key === 'string' ? track.key : '',
       label: typeof track.label === 'string' ? track.label : '',
       note: typeof track.note === 'string' ? track.note : undefined,
-      erBrackets: Array.isArray(track.erBrackets)
-        ? track.erBrackets
-          .map((value) => toFiniteNumber(value, 0))
-          .filter((value) => Number.isFinite(value) && value > 0)
-        : undefined,
+      erTarget: toFiniteNumber(track.erTarget, 0) > 0 ? toFiniteNumber(track.erTarget, 0) : undefined,
     }))
     .filter((track) => track.key.length > 0);
 }
@@ -1124,7 +1121,7 @@ export async function listLeaderboard(
     teamBuffs?: unknown;
     activeWeaponId?: unknown;
     activeTrack?: unknown;
-    erMin?: unknown;
+    erTarget?: unknown;
     displayStats?: unknown;
   };
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
@@ -1164,7 +1161,7 @@ export async function listLeaderboard(
     teamBuffs: parseTeamBuffs(payload.teamBuffs),
     activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
     activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
-    erMin: toFiniteNumber(payload.erMin, 0),
+    erTarget: toFiniteNumber(payload.erTarget, 0),
     displayStats: parseLeaderboardDisplayStats(payload.displayStats),
   };
 }
@@ -1181,7 +1178,6 @@ export function buildLeaderboardSearchParams(query: LBLeaderboardQuery): URLSear
   if (query.uid) params.set('uid', query.uid);
   if (query.username) params.set('username', query.username);
   if (query.buildId) params.set('buildId', query.buildId);
-  if (query.erMin) params.set('erMin', String(query.erMin));
   appendStringParams(params, 'region', query.regionPrefixes);
   const leaderboardEchoSets = serializeEchoSetFilters(query.echoSets);
   if (leaderboardEchoSets) params.set('echoSets', leaderboardEchoSets);
@@ -1523,8 +1519,8 @@ export interface LBBoardOptimality {
   characterId: string;
   weaponId: string;
   sequence: string;
-  /** ER bracket the bundle was generated under. 0 means the unfiltered "All" benchmark. */
-  erMin: number;
+  /** Track ER target the reference is generated at (0 = no requirement). */
+  erTarget: number;
   configVersion: string;
   characterLevel: number;
   weaponLevel: number;
@@ -1621,12 +1617,10 @@ export async function getBoardOptimality(
   weaponId: string,
   sequence: string,
   buildId?: string,
-  erMin?: number,
   signal?: AbortSignal,
 ): Promise<LBBoardOptimality | null> {
   const params = new URLSearchParams();
   if (buildId) params.set('buildId', buildId);
-  if (erMin && erMin > 0) params.set('erMin', String(Math.trunc(erMin)));
   const query = params.toString();
   const base = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}/optimality/${encodeURIComponent(weaponId)}/${encodeURIComponent(sequence)}`;
   const url = query ? `${base}?${query}` : base;
@@ -1640,7 +1634,7 @@ export async function getBoardOptimality(
     characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
     weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
     sequence: typeof raw.sequence === 'string' ? raw.sequence : '',
-    erMin: toFiniteNumber(raw.erMin, 0),
+    erTarget: toFiniteNumber(raw.erTarget, 0),
     configVersion: typeof raw.configVersion === 'string' ? raw.configVersion : '',
     characterLevel: toFiniteNumber(raw.characterLevel, 90),
     weaponLevel: toFiniteNumber(raw.weaponLevel, 90),

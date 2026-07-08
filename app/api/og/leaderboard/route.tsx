@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     accentColor: character.elementColor ?? undefined,
     element: character.element,
     artKind: character.splashUrl ? 'scene' : 'character',
-    metricLabel: top ? 'Top damage' : 'Global leaderboard',
+    metricLabel: top ? 'Top score' : 'Global leaderboard',
     metricValue: top ? compactNumber(top.damage) : undefined,
     detailLabel: top ? resolveHolderLabel(top.owner) : undefined,
   });

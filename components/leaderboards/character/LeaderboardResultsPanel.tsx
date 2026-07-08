@@ -23,7 +23,8 @@ interface LeaderboardResultsPanelProps {
   deepLinkBuildId: string;
   activeWeaponId: string;
   activeTrackKey: string;
-  erMin?: number;
+  /** Active track's ER target; drives the ER stat cell tint. */
+  erTarget?: number;
   metricLabel: string;
   expandedIds: Set<string>;
   detailById: Record<string, LBBuildDetailEntry>;
@@ -53,7 +54,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   deepLinkBuildId,
   activeWeaponId,
   activeTrackKey,
-  erMin = 0,
+  erTarget = 0,
   metricLabel,
   expandedIds,
   detailById,
@@ -309,7 +310,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         isGhost={entry.globalRank === 0 && entry.id === deepLinkBuildId}
                         activeWeaponId={activeWeaponId}
                         activeTrackKey={activeTrackKey}
-                        erMin={erMin}
+                        erTarget={erTarget}
                         boardStatColumns={boardColumns ? displayStatColumns : null}
                         sort={sort}
                         isCvColumnActive={isCvColumnActive}

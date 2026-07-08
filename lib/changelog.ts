@@ -17,6 +17,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-07-07',
         changes: [
             {
+                kind: 'new',
+                text: 'Leaderboards now rank by Score: rotation damage scaled to how well your Energy Regen meets each board\'s target, with ER bracket tabs removed in favor of a tinted ER column and a move breakdown row showing exactly how much scaling was applied. Hiyuki\'s S6 board also now models her expert 4-Iai rotation'
+            },
+            {
                 kind: 'fixed',
                 text: 'Rover card better import on element detection'
             },
@@ -143,6 +147,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2026-06-14',
         changes: [
+            {
+                kind: 'improved',
+                text: 'Rank simulation now opens into a clearer panel with a best-placement summary, top-percent readout, weapon context, and full per-board standings'
+            },
             {
                 kind: 'fixed',
                 text: 'Fixed Dream of the Lost echo set bonus sometimes incorrectly applying to characters with non-zero max Resonance Energy'
@@ -288,6 +296,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-06-07',
         changes: [
             {
+                kind: 'improved',
+                text: 'Opening a shared leaderboard build link now scrolls the expanded build into view automatically'
+            },
+            {
                 kind: 'fixed',
                 text: 'Fixed tooltip detection cos sometimes the image on it went out of the screen'
             }
@@ -430,6 +442,12 @@ export const CHANGELOG: ChangelogEntry[] = [
         ],
     },
     {
+        date: '2026-05-25',
+        changes: [
+            { kind: 'improved', text: 'Character and weapon reference pages now have cleaner stat sections with level-scaling controls' },
+        ],
+    },
+    {
         date: '2026-05-21',
         changes: [
             { kind: 'improved', text: 'Echo set tooltips now show set bonuses in your selected language' },
@@ -449,6 +467,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2026-05-15',
         changes: [
+            { kind: 'improved', text: 'Profile build cards were redesigned with a compact rank module, team loadout, talent pills, and cleaner echo presentation' },
             { kind: 'improved', text: 'Cleaner, more consistent hover cards and tooltips throughout the site' },
             { kind: 'fixed', text: 'Import no longer stalls when OCR cannot read a screenshot. It reports the failure and moves on' },
         ],
@@ -518,9 +537,22 @@ export const CHANGELOG: ChangelogEntry[] = [
         ],
     },
     {
+        date: '2026-04-04',
+        changes: [
+            { kind: 'improved', text: 'Leaderboard move breakdowns now show each move type and element, making damage sources easier to read' },
+        ],
+    },
+    {
         date: '2026-04-03',
         changes: [
             { kind: 'improved', text: 'More reliable echo element detection on import, especially for sets that are hard to tell apart by color' },
+        ],
+    },
+    {
+        date: '2026-03-29',
+        changes: [
+            { kind: 'fixed', text: 'Fixed Mornye buffs incorrectly adding 80% Crit Rate and 160% Crit DMG to affected leaderboard calculations' },
+            { kind: 'fixed', text: 'Fixed a duplicate-row issue when a deep-linked leaderboard build also appeared in the normal results' },
         ],
     },
     {
@@ -528,6 +560,12 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             { kind: 'new', text: 'Energy regen brackets split builds by ER so support and healer builds rank fairly' },
             { kind: 'improved', text: 'Leaderboards can now be sorted by sequence level' },
+        ],
+    },
+    {
+        date: '2026-03-26',
+        changes: [
+            { kind: 'improved', text: 'Expanded leaderboard rows now use shared echo panels with clearer roll colors, clickable tier details, and derived stat views' },
         ],
     },
     {
@@ -552,6 +590,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2026-03-17',
         changes: [
+            { kind: 'improved', text: 'Homepage redesigned with clearer entry points for editing, importing, browsing builds, and viewing leaderboards' },
             { kind: 'improved', text: 'Builds are now deduplicated per player. Your best build holds the rank, and weaker duplicates become linkable ghost builds' },
         ],
     },
@@ -559,6 +598,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-03-16',
         changes: [
             { kind: 'new', text: 'Healer leaderboards, with dedicated healing-based scoring' },
+            { kind: 'improved', text: 'Shared leaderboard build links now open the exact row and page for that build' },
             { kind: 'improved', text: 'Leaderboard tracks now show playstyle notes, and ranking handles crit-fishing more accurately' },
         ],
     },
