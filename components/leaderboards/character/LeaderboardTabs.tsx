@@ -50,20 +50,12 @@ interface TrackTabsProps {
 }
 
 const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) => {
-  // ER pills belong on tabs only when they distinguish tabs from each other.
-  // If all tracks share one target, surface it once below the group instead.
-  const { sharedTarget, showPerTabER } = useMemo(() => {
-    const targets = tracks
-      .map((t) => t.erTarget)
-      .filter((v): v is number => typeof v === 'number' && v > 0);
-    const unique = new Set(targets);
-    const allTracksHaveTarget = targets.length === tracks.length;
-
-    if (unique.size === 1 && allTracksHaveTarget) {
-      return { sharedTarget: targets[0], showPerTabER: false };
-    }
-    return { sharedTarget: null, showPerTabER: unique.size > 0 };
-  }, [tracks]);
+  // ER is a scoring rule for the active board, not selector chrome.
+  // Surface it once below the playstyle group and leave the tabs to identify choices.
+  const activeErTarget = useMemo(() => {
+    const target = tracks.find((track) => track.key === activeTrack)?.erTarget;
+    return typeof target === 'number' && target > 0 ? target : 0;
+  }, [activeTrack, tracks]);
 
   if (tracks.length <= 1) {
     // Still surface the scoring rule even without a track choice to make.
@@ -84,8 +76,6 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
           const badgeColors =
             LB_SEQ_BADGE_COLORS[level] || 'border-accent/55 bg-accent/10 text-accent';
           const label = stripLBSeqPrefix(track.label);
-          const erTarget = typeof track.erTarget === 'number' && track.erTarget > 0 ? track.erTarget : 0;
-          const hasOwnER = showPerTabER && erTarget > 0;
 
           return (
             <button
@@ -109,20 +99,12 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
                     S{level}
                   </span>
                 )}
-                {hasOwnER && (
-                  <span
-                    className={ER_PILL}
-                    title={`Scores below ${formatErTarget(erTarget)}% Energy Regen are penalized proportionately on this board`}
-                  >
-                    ER &ge; {formatErTarget(erTarget)}%
-                  </span>
-                )}
               </div>
             </button>
           );
         })}
       </div>
-      {sharedTarget !== null && <SharedERRule erTarget={sharedTarget} />}
+      {activeErTarget > 0 && <SharedERRule erTarget={activeErTarget} />}
     </div>
   );
 };
