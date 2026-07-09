@@ -1,5 +1,5 @@
 import { normalizeLBSortKey, toLBApiSortKey } from '@/lib/lb';
-import { parsePositiveInt, parseCSV, parseEchoSetCSV, parseEchoMainCSV } from '../queryHelpers';
+import { parsePositiveInt, parseCSV, parseEchoSetCSV, parseEchoMainCSV, parseSequences, parseStatThresholds, serializeStatThresholds } from '../queryHelpers';
 import { clampItemsPerPage, DEFAULT_DIRECTION, DEFAULT_PAGE, DEFAULT_SORT, ITEMS_PER_PAGE } from '../constants';
 import { QuerySnapshot } from '../types';
 
@@ -25,6 +25,8 @@ export function parseInitialQuery(searchParams: URLSearchParams): QuerySnapshot 
     uid: searchParams.get('uid') ?? '',
     echoSets: parseEchoSetCSV(searchParams.get('sets')),
     echoMains: parseEchoMainCSV(searchParams.get('mains')),
+    sequences: parseSequences(searchParams.get('seq')),
+    statFilters: parseStatThresholds(searchParams.get('stats')),
   };
 }
 
@@ -45,5 +47,7 @@ export function serializeQuery(snapshot: QuerySnapshot): string {
   if (snapshot.echoMains.length) {
     params.set('mains', snapshot.echoMains.map((entry) => `${entry.cost}-${entry.statType}`).join('.'));
   }
+  if (snapshot.sequences.length) params.set('seq', snapshot.sequences.join(','));
+  if (snapshot.statFilters.length) params.set('stats', serializeStatThresholds(snapshot.statFilters));
   return params.toString();
 }

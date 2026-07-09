@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBStatThreshold, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
-import { clampItemsPerPage, DEFAULT_SCORING, MAX_ITEMS_PER_PAGE, ScoringMode } from '../constants';
+import { clampItemsPerPage, DEFAULT_SCORING, MAX_ITEMS_PER_PAGE, normalizeSequences, ScoringMode } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from '../types';
 import { DEFAULT_LB_TRACK } from '../constants';
@@ -113,8 +113,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => initialSnapshot.regionPrefixes);
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialSnapshot.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialSnapshot.echoMains);
-  const [seqMin, setSeqMin] = useState<number | null>(() => initialSnapshot.seqMin);
-  const [seqMax, setSeqMax] = useState<number | null>(() => initialSnapshot.seqMax);
+  const [sequences, setSequences] = useState<number[]>(() => initialSnapshot.sequences);
   const [statFilters, setStatFilters] = useState<LBStatThreshold[]>(() => initialSnapshot.statFilters);
   const [filterQuery, setFilterQuery] = useState('');
   // Scoring lens (client-side view mode over the same board): 'adjusted' = canonical
@@ -191,13 +190,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     regionPrefixes,
     echoSets,
     echoMains,
-    seqMin,
-    seqMax,
+    sequences,
     statFilters,
   }, {
     defaultWeaponId,
     defaultTrack: defaultTrackKey,
-  }), [defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, seqMax, seqMin, sort, statFilters, track, uid, username, weaponId]);
+  }), [defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sequences, sort, statFilters, track, uid, username, weaponId]);
   const leaderboardQuery = useMemo(
     () => ({
       ...leaderboardSnapshotToApiQuery(currentQuerySnapshot),
@@ -304,13 +302,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     regionPrefixes,
     echoSets,
     echoMains,
-    seqMin,
-    seqMax,
+    sequences,
     statFilters,
     sort,
     direction,
     pageSize,
-  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, seqMin, seqMax, statFilters, sort, direction, pageSize]);
+  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sequences, statFilters, sort, direction, pageSize]);
 
   useEffect(() => {
     if (!settledQueryKey) return;
@@ -327,13 +324,13 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       has_username_search: username.trim().length > 0,
       echo_set_count: echoSets.length,
       echo_main_count: echoMains.length,
-      seq_active: seqMin !== null || seqMax !== null,
+      seq_count: sequences.length,
       stat_filter_count: statFilters.length,
       sort,
       direction,
       page_size: pageSize,
     });
-  }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, seqMax, seqMin, settledQueryKey, sort, statFilters.length, track, uid, username, weaponId]);
+  }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, sequences.length, settledQueryKey, sort, statFilters.length, track, uid, username, weaponId]);
 
   // Fetch leaderboard data. Runs when the view changes (queryKey) or a fresh deep link needs resolving.
   useEffect(() => {
@@ -471,17 +468,19 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     setPage(1);
   }, [setEchoMains, setPage]);
 
-  const setSequence = useCallback((min: number | null, max: number | null) => {
-    setSeqMin(min);
-    setSeqMax(max);
+  const toggleSequence = useCallback((level: number) => {
+    setSequences((prev) => (
+      prev.includes(level)
+        ? prev.filter((entry) => entry !== level)
+        : normalizeSequences([...prev, level])
+    ));
     setPage(1);
-  }, [setSeqMin, setSeqMax, setPage]);
+  }, [setPage, setSequences]);
 
   const clearSequence = useCallback(() => {
-    setSeqMin(null);
-    setSeqMax(null);
+    setSequences([]);
     setPage(1);
-  }, [setSeqMin, setSeqMax, setPage]);
+  }, [setPage, setSequences]);
 
   const addStatFilter = useCallback((filter: LBStatThreshold) => {
     setStatFilters((prev) => {
@@ -507,12 +506,11 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     setUsername('');
     setEchoSets([]);
     setEchoMains([]);
-    setSeqMin(null);
-    setSeqMax(null);
+    setSequences([]);
     setStatFilters([]);
     setFilterQuery('');
     setPage(1);
-  }, [setEchoMains, setEchoSets, setFilterQuery, setPage, setRegionPrefixes, setSeqMax, setSeqMin, setStatFilters, setUid, setUsername]);
+  }, [setEchoMains, setEchoSets, setFilterQuery, setPage, setRegionPrefixes, setSequences, setStatFilters, setUid, setUsername]);
 
   // Computed
   const character = characters.find((c) => c.id === characterId) ?? null;
@@ -554,8 +552,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     username.trim().length > 0 ||
     echoSets.length > 0 ||
     echoMains.length > 0 ||
-    seqMin !== null ||
-    seqMax !== null ||
+    sequences.length > 0 ||
     statFilters.length > 0
   );
 
@@ -643,8 +640,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                   regionPrefixes={regionPrefixes}
                   selectedSetEntries={selectedSetEntries}
                   selectedMainEntries={selectedMainEntries}
-                  seqMin={seqMin}
-                  seqMax={seqMax}
+                  sequences={sequences}
                   statFilters={statFilters}
                   username={username}
                   uid={uid}
@@ -664,7 +660,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                   onRemoveRegion={(value) => { setRegionPrefixes((prev) => prev.filter((r) => r !== value)); setPage(1); }}
                   onRemoveSetEntry={(index) => { setEchoSets((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
                   onRemoveMainEntry={(index) => { setEchoMains((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
-                  onSetSequence={setSequence}
+                  onToggleSequence={toggleSequence}
                   onClearSequence={clearSequence}
                   onAddStatFilter={addStatFilter}
                   onRemoveStatFilter={removeStatFilter}
@@ -674,7 +670,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                     if (uid) { setUid(''); setPage(1); return; }
                     if (username) { setUsername(''); setPage(1); return; }
                     if (statFilters.length > 0) { setStatFilters((prev) => prev.slice(0, -1)); setPage(1); return; }
-                    if (seqMin !== null || seqMax !== null) { setSeqMin(null); setSeqMax(null); setPage(1); return; }
+                    if (sequences.length > 0) { setSequences([]); setPage(1); return; }
                     if (echoMains.length > 0) { setEchoMains((prev) => prev.slice(0, -1)); setPage(1); return; }
                     if (echoSets.length > 0) { setEchoSets((prev) => prev.slice(0, -1)); setPage(1); return; }
                     if (regionPrefixes.length > 0) { setRegionPrefixes((prev) => prev.slice(0, -1)); setPage(1); }

@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Search, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Plus, Search, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Character, Element, formatCharacterDisplayName } from '@/lib/character';
-import { LBSortDirection, LBSortKey } from '@/lib/lb';
+import { getLBStatCode, getLBStatLabel, isLBPercentStatSortKey, LBSortDirection, LBSortKey, LBStatFilterOp, LBStatSortKey, LBStatThreshold } from '@/lib/lb';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { toMainStatLabel, toMainStatUrlKey } from '@/lib/mainStatFilters';
 import { getWeaponPaths } from '@/lib/paths';
 import { Weapon } from '@/lib/weapon';
-import { MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE, REGION_OPTIONS, SORT_OPTIONS } from './constants';
+import { MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE, REGION_OPTIONS, SEQUENCE_LEVELS, SEQUENCE_TOGGLE_COLORS, sequenceChipSummary, SORT_OPTIONS, STAT_FILTER_OPTION_KEYS } from './constants';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from './types';
 
 type VisibleFilterItem =
@@ -99,6 +99,8 @@ interface BuildFiltersPanelProps {
   regionPrefixes: string[];
   selectedSetEntries: SelectedSetEntry[];
   selectedMainEntries: SelectedMainEntry[];
+  sequences: number[];
+  statFilters: LBStatThreshold[];
   username: string;
   uid: string;
   setOptions: SetOption[];
@@ -117,6 +119,10 @@ interface BuildFiltersPanelProps {
   onRemoveRegion: (value: string) => void;
   onRemoveSetEntry: (index: number) => void;
   onRemoveMainEntry: (index: number) => void;
+  onToggleSequence: (level: number) => void;
+  onClearSequence: () => void;
+  onAddStatFilter: (filter: LBStatThreshold) => void;
+  onRemoveStatFilter: (index: number) => void;
   onClearUsername: () => void;
   onClearUid: () => void;
   onBackspaceRemove: () => void;
@@ -180,6 +186,54 @@ const getRoverFilterElement = (character: Character): Element | null => {
 
 const getRoverFilterLabel = (element: Element): string => `Rover: ${element}`;
 
+const OP_SYMBOL: Record<LBStatFilterOp, string> = { gte: '≥', lte: '≤' };
+
+/** Chip/label text for one stat threshold, e.g. "Crit Rate ≥ 70%" or "ATK ≥ 2500". */
+const statThresholdLabel = (filter: LBStatThreshold): string => {
+  const suffix = isLBPercentStatSortKey(filter.stat) ? '%' : '';
+  return `${getLBStatLabel(filter.stat)} ${OP_SYMBOL[filter.op]} ${filter.value}${suffix}`;
+};
+
+// Section header inside the filter dropdown (matches the categorical section rows).
+const dropdownSectionHeaderClass = 'border-b border-border/60 bg-background-secondary px-3 py-2 text-xs font-semibold uppercase tracking-wide text-accent';
+
+// Resolves a typed query to a stat-threshold option, so typing a stat name (or its
+// code, e.g. "er") prefills the builder. Needs ≥2 chars to avoid noisy single-letter hits.
+function matchStatByQuery(query: string): LBStatSortKey | null {
+  if (query.length < 2) return null;
+  for (const key of STAT_FILTER_OPTION_KEYS) {
+    if (getLBStatCode(key).toLowerCase() === query) return key;
+  }
+  for (const key of STAT_FILTER_OPTION_KEYS) {
+    if (getLBStatLabel(key).toLowerCase().includes(query)) return key;
+  }
+  return null;
+}
+
+// Closes a popover on Escape or a pointer-down outside its container. `setOpen` is
+// a stable useState dispatch, so the listeners re-bind only when open state flips.
+function useOutsideDismiss(
+  ref: React.RefObject<HTMLDivElement | null>,
+  isOpen: boolean,
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>,
+): void {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [ref, isOpen, setOpen]);
+}
+
 export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   sort,
   direction,
@@ -196,6 +250,8 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   regionPrefixes,
   selectedSetEntries,
   selectedMainEntries,
+  sequences,
+  statFilters,
   username,
   uid,
   setOptions,
@@ -214,6 +270,10 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   onRemoveRegion,
   onRemoveSetEntry,
   onRemoveMainEntry,
+  onToggleSequence,
+  onClearSequence,
+  onAddStatFilter,
+  onRemoveStatFilter,
   onClearUsername,
   onClearUid,
   onBackspaceRemove,
@@ -228,10 +288,24 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     return [...new Set(presets)].sort((a, b) => a - b);
   }, [maxPageSize]);
   const pageSizeMenuRef = useRef<HTMLDivElement | null>(null);
+  const filterAreaRef = useRef<HTMLDivElement | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPageSizeMenuOpen, setIsPageSizeMenuOpen] = useState(false);
+  const [statBuilderKey, setStatBuilderKey] = useState<LBStatSortKey>('energy_regen');
+  const [statBuilderOp, setStatBuilderOp] = useState<LBStatFilterOp>('gte');
+  const [statBuilderValue, setStatBuilderValue] = useState('');
+  // Once the user picks a stat manually, stop mirroring the typed query into the builder.
+  const [statBuilderTouched, setStatBuilderTouched] = useState(false);
   const [isFilterMode, setIsFilterMode] = useState(false);
   const [activeItemIndex, setActiveItemIndex] = useState(-1);
+
+  // The dropdown hosts interactive controls (stat builder inputs), so it closes on a
+  // pointer-down outside the whole filter area / Escape — not on the search input's blur.
+  useOutsideDismiss(filterAreaRef, isDropdownOpen, setIsDropdownOpen);
+
+  const sequenceSet = useMemo(() => new Set(sequences), [sequences]);
+  const sequenceActive = sequences.length > 0;
+  const sequenceChipText = sequenceChipSummary(sequences);
 
   const selectedCharacterIds = useMemo(
     () => new Set(selectedCharacters.map((entry) => entry.id)),
@@ -311,6 +385,30 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const trimmedFilterQuery = filterQuery.trim();
   const normalizedQuery = trimmedFilterQuery.toLowerCase();
   const isExactUidQuery = /^\d{9}$/.test(trimmedFilterQuery);
+
+  // Structured-filter sections appear when the query is empty or clearly targets them,
+  // so a plain username/UID search doesn't surface the sequence toggles / stat builder.
+  const statQueryMatch = matchStatByQuery(normalizedQuery);
+  const showStatSection = normalizedQuery === '' || statQueryMatch !== null;
+  const showSequenceSection = normalizedQuery === '' || /^s\d?$/.test(normalizedQuery) || normalizedQuery.startsWith('seq');
+
+  // Typed stat names/codes temporarily prefill the builder until the user picks a stat manually.
+  const effectiveStatBuilderKey = !statBuilderTouched && statQueryMatch ? statQueryMatch : statBuilderKey;
+  const statBuilderIsPercent = isLBPercentStatSortKey(effectiveStatBuilderKey);
+  const parsedStatValue = Number(statBuilderValue);
+  const canAddStatFilter = statBuilderValue.trim() !== '' && Number.isFinite(parsedStatValue) && parsedStatValue >= 0;
+
+  const commitStatFilter = () => {
+    if (!canAddStatFilter) return;
+    onAddStatFilter({ stat: effectiveStatBuilderKey, op: statBuilderOp, value: parsedStatValue });
+    setStatBuilderValue('');
+    setStatBuilderTouched(false);
+  };
+
+  const handleFilterQueryChange = (value: string) => {
+    if (value.trim() === '') setStatBuilderTouched(false);
+    onFilterQueryChange(value);
+  };
 
   const validSortLabels = useMemo(() => {
     const labels = new Set<string>(getAvailableSubstats());
@@ -514,7 +612,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     if (item.type === 'weapon') onAddWeapon(item.weapon.id);
     if (item.type === 'set') onAddSet(item.setId, item.count);
     if (item.type === 'main') onAddMain(item.cost, item.statType);
-    onFilterQueryChange('');
+    handleFilterQueryChange('');
   };
 
   const normalizedActiveItemIndex = useMemo(() => {
@@ -587,7 +685,10 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
           <div ref={pageSizeMenuRef} className="relative">
             <button
               type="button"
-              onClick={() => setIsPageSizeMenuOpen((prev) => !prev)}
+              onClick={() => {
+                setIsPageSizeMenuOpen((prev) => !prev);
+                setIsDropdownOpen(false);
+              }}
               className={`inline-flex min-w-30 items-center justify-between gap-2 border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none ${
                 isPageSizeMenuOpen
                   ? 'rounded-t-lg rounded-b-none border-accent/70 bg-black/35 text-accent'
@@ -648,7 +749,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
         </div>
       </div>
 
-      <div className="relative">
+      <div ref={filterAreaRef} className="relative">
         <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-border bg-background px-2 py-2">
           {regionPrefixes.map((value) => (
             <span
@@ -737,6 +838,31 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
             );
           })}
 
+          {sequenceChipText && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-violet-400/45 bg-violet-500/12 px-2 py-1 text-xs text-violet-200">
+              {sequenceChipText}
+              <button type="button" onClick={onClearSequence} aria-label="Remove card sequence filter">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          )}
+
+          {statFilters.map((filter, index) => (
+            <span
+              key={`stat-chip-${filter.stat}-${filter.op}-${index}`}
+              className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent"
+            >
+              {statThresholdLabel(filter)}
+              <button
+                type="button"
+                onClick={() => onRemoveStatFilter(index)}
+                aria-label={`Remove ${statThresholdLabel(filter)}`}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+
           {username && (
             <span className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent">
               Username: {username}
@@ -758,7 +884,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
             <Search className="pointer-events-none absolute left-1 top-1/2 h-4 w-4 -translate-y-1/2 text-text-primary/45" />
             <input
               value={filterQuery}
-              onChange={(event) => onFilterQueryChange(event.target.value)}
+              onChange={(event) => handleFilterQueryChange(event.target.value)}
               onFocus={() => {
                 setIsDropdownOpen(true);
                 setIsFilterMode(true);
@@ -773,10 +899,6 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                   setActiveItemIndex((prev) => (prev >= 0 ? prev : 0));
                 }
               }}
-              onBlur={() => window.setTimeout(() => {
-                setIsDropdownOpen(false);
-                setIsFilterMode(false);
-              }, 120)}
               onKeyDown={(event) => {
                 if (event.key === 'Backspace' && !filterQuery.trim()) {
                   onBackspaceRemove();
@@ -812,8 +934,103 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
           </div>
         </div>
 
-        {isDropdownOpen && visibleItems.length > 0 && (
+        {isDropdownOpen && (showStatSection || showSequenceSection || visibleItems.length > 0) && (
           <div className="scrollbar-thin absolute left-0 right-0 z-30 max-h-132 overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
+            {showStatSection && (
+              <div>
+                <div className={dropdownSectionHeaderClass}>Stat Threshold</div>
+                <div className="border-b border-border/60 px-3 py-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={effectiveStatBuilderKey}
+                      onChange={(event) => { setStatBuilderKey(event.target.value as LBStatSortKey); setStatBuilderTouched(true); }}
+                      aria-label="Stat"
+                      className="min-w-0 flex-1 appearance-none rounded-md border border-border bg-background py-1.5 pl-2 pr-6 text-xs text-text-primary focus:border-accent/60 focus:outline-none"
+                    >
+                      {STAT_FILTER_OPTION_KEYS.map((key) => (
+                        <option key={key} value={key}>{getLBStatLabel(key)}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={statBuilderOp}
+                      onChange={(event) => setStatBuilderOp(event.target.value as LBStatFilterOp)}
+                      aria-label="Comparison"
+                      className="appearance-none rounded-md border border-border bg-background py-1.5 pl-2 pr-5 text-xs text-text-primary focus:border-accent/60 focus:outline-none"
+                    >
+                      <option value="gte">≥</option>
+                      <option value="lte">≤</option>
+                    </select>
+                    <div className="relative w-20 shrink-0">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={statBuilderValue}
+                        onChange={(event) => setStatBuilderValue(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') { event.preventDefault(); commitStatFilter(); }
+                        }}
+                        placeholder="0"
+                        aria-label="Threshold value"
+                        className={`w-full rounded-md border border-border bg-background py-1.5 pl-2 ${statBuilderIsPercent ? 'pr-5' : 'pr-2'} text-xs text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none`}
+                      />
+                      {statBuilderIsPercent && (
+                        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-xs text-text-primary/45">%</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={commitStatFilter}
+                      disabled={!canAddStatFilter}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-accent/45 bg-accent/10 px-2.5 py-1.5 text-xs font-medium text-accent transition-colors hover:border-accent/70 hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-text-primary/45">Type a stat (e.g. “ER”, “Crit Rate”) to jump to it. Rules combine with AND.</p>
+                </div>
+              </div>
+            )}
+
+            {showSequenceSection && (
+              <div>
+                <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-background-secondary px-3 py-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-accent">Card Sequence</span>
+                  {sequenceActive && (
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={onClearSequence}
+                      className="text-xs font-medium text-text-primary/55 transition-colors hover:text-text-primary"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5 border-b border-border/60 px-3 py-2.5">
+                  {SEQUENCE_LEVELS.map((level) => {
+                    const selected = sequenceSet.has(level);
+                    return (
+                      <button
+                        key={`seq-${level}`}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => onToggleSequence(level)}
+                        aria-pressed={selected}
+                        className={`inline-flex h-8 min-w-11 items-center justify-center rounded-md border px-2 text-xs font-semibold transition-colors ${
+                          selected
+                            ? SEQUENCE_TOGGLE_COLORS[level] ?? 'border-accent/55 bg-accent/15 text-accent'
+                            : 'border-border bg-background text-text-primary/55 hover:border-accent/45 hover:text-text-primary'
+                        }`}
+                      >
+                        S{level}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {visibleItems.map((item, index) => {
               const previous = index > 0 ? visibleItems[index - 1] : null;
               const showSection = index === 0 || previous?.section !== item.section;

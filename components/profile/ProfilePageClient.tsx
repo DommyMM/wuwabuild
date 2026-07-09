@@ -7,9 +7,9 @@ import { getPinnedProfilesSnapshot, getProfilesServerSnapshot, recordProfileVisi
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, listProfileBuilds } from '@/lib/lb';
+import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, LBStatThreshold, listProfileBuilds } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
-import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE } from '@/components/leaderboards/constants';
+import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE, normalizeSequences } from '@/components/leaderboards/constants';
 import { getSortLabel, resolveRegionBadge } from '@/components/leaderboards/formatters';
 import { parseInitialQuery, serializeQuery } from '@/components/leaderboards/board/globalBoardQuery';
 import { readCachedBuildList, writeCachedBuildList } from '@/components/leaderboards/board/globalBoardCache';
@@ -64,6 +64,8 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => initialQuery.regionPrefixes);
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialQuery.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialQuery.echoMains);
+  const [sequences, setSequences] = useState<number[]>(() => initialQuery.sequences);
+  const [statFilters, setStatFilters] = useState<LBStatThreshold[]>(() => initialQuery.statFilters);
   const [filterQuery, setFilterQuery] = useState('');
 
   const [builds, setBuilds] = useState<LBBuildRowEntry[]>([]);
@@ -124,7 +126,9 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     weaponIds.length > 0 ||
     regionPrefixes.length > 0 ||
     echoSets.length > 0 ||
-    echoMains.length > 0
+    echoMains.length > 0 ||
+    sequences.length > 0 ||
+    statFilters.length > 0
   );
 
   const querySnapshot = useMemo<QuerySnapshot>(() => ({
@@ -139,7 +143,9 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     uid,
     echoSets,
     echoMains,
-  }), [characterIds, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, uid, weaponIds]);
+    sequences,
+    statFilters,
+  }), [characterIds, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sequences, sort, statFilters, uid, weaponIds]);
 
   const currentQueryKey = useMemo(() => serializeQuery(querySnapshot), [querySnapshot]);
   const isPendingQuery = settledQueryKey !== currentQueryKey;
@@ -182,6 +188,8 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       regionPrefixes: querySnapshot.regionPrefixes,
       echoSets: querySnapshot.echoSets,
       echoMains: querySnapshot.echoMains,
+      sequences: querySnapshot.sequences,
+      statFilters: querySnapshot.statFilters,
     }, controller.signal)
       .then((response) => {
         if (!active) return;
@@ -254,6 +262,8 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     setRegionPrefixes([]);
     setEchoSets([]);
     setEchoMains([]);
+    setSequences([]);
+    setStatFilters([]);
     setPage(1);
   }, [builds, expandedBuildIds, handleToggleExpand, scrollToBuildRow]);
 
@@ -411,6 +421,8 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                   regionPrefixes={regionPrefixes}
                   selectedSetEntries={selectedSetEntries}
                   selectedMainEntries={selectedMainEntries}
+                  sequences={sequences}
+                  statFilters={statFilters}
                   // UID and username locked, not shown
                   username=""
                   uid=""
@@ -436,9 +448,29 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                   onRemoveRegion={(r) => { setRegionPrefixes((prev) => prev.filter((p) => p !== r)); setPage(1); }}
                   onRemoveSetEntry={(i) => { setEchoSets((prev) => prev.filter((_, idx) => idx !== i)); setPage(1); }}
                   onRemoveMainEntry={(i) => { setEchoMains((prev) => prev.filter((_, idx) => idx !== i)); setPage(1); }}
+                  onToggleSequence={(level) => {
+                    setSequences((prev) => (
+                      prev.includes(level)
+                        ? prev.filter((entry) => entry !== level)
+                        : normalizeSequences([...prev, level])
+                    ));
+                    setPage(1);
+                  }}
+                  onClearSequence={() => { setSequences([]); setPage(1); }}
+                  onAddStatFilter={(filter) => {
+                    setStatFilters((prev) => {
+                      const existing = prev.findIndex((e) => e.stat === filter.stat && e.op === filter.op);
+                      if (existing >= 0) { const next = [...prev]; next[existing] = filter; return next; }
+                      return [...prev, filter];
+                    });
+                    setPage(1);
+                  }}
+                  onRemoveStatFilter={(i) => { setStatFilters((prev) => prev.filter((_, idx) => idx !== i)); setPage(1); }}
                   onClearUsername={() => {}}
                   onClearUid={() => {}}
                   onBackspaceRemove={() => {
+                    if (statFilters.length > 0) { setStatFilters((prev) => prev.slice(0, -1)); setPage(1); return; }
+                    if (sequences.length > 0) { setSequences([]); setPage(1); return; }
                     if (echoMains.length > 0) { setEchoMains((prev) => prev.slice(0, -1)); setPage(1); return; }
                     if (echoSets.length > 0) { setEchoSets((prev) => prev.slice(0, -1)); setPage(1); return; }
                     if (weaponIds.length > 0) { setWeaponIds((prev) => prev.slice(0, -1)); setPage(1); return; }
@@ -447,7 +479,9 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                   }}
                   onClearAllFilters={() => {
                     setCharacterIds([]); setWeaponIds([]); setRegionPrefixes([]);
-                    setEchoSets([]); setEchoMains([]); setFilterQuery(''); setPage(DEFAULT_PAGE);
+                    setEchoSets([]); setEchoMains([]);
+                    setSequences([]); setStatFilters([]);
+                    setFilterQuery(''); setPage(DEFAULT_PAGE);
                   }}
                   onPageSizeChange={(value) => { setPageSize(clampItemsPerPage(value)); setPage(1); }}
                   />

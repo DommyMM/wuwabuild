@@ -4,9 +4,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBListBuildsResponse, LBSortDirection, LBSortKey, listBuilds } from '@/lib/lb';
+import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBListBuildsResponse, LBSortDirection, LBSortKey, LBStatThreshold, listBuilds } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
-import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE } from '../constants';
+import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE, normalizeSequences } from '../constants';
 import { getSortLabel } from '../formatters';
 import { parseInitialQuery, serializeQuery } from './globalBoardQuery';
 import { readCachedBuildList, writeCachedBuildList } from './globalBoardCache';
@@ -55,6 +55,8 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   const [uid, setUid] = useState<string>(() => initialQuery.uid.trim());
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialQuery.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialQuery.echoMains);
+  const [sequences, setSequences] = useState<number[]>(() => initialQuery.sequences);
+  const [statFilters, setStatFilters] = useState<LBStatThreshold[]>(() => initialQuery.statFilters);
   const [filterQuery, setFilterQuery] = useState('');
 
   const [builds, setBuilds] = useState<LBBuildRowEntry[]>(() => ssrData?.builds ?? []);
@@ -134,7 +136,9 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     username.trim().length > 0 ||
     uid.trim().length > 0 ||
     echoSets.length > 0 ||
-    echoMains.length > 0
+    echoMains.length > 0 ||
+    sequences.length > 0 ||
+    statFilters.length > 0
   );
 
   const querySnapshot = useMemo<QuerySnapshot>(() => ({
@@ -149,7 +153,9 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     uid,
     echoSets,
     echoMains,
-  }), [characterIds, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, uid, username, weaponIds]);
+    sequences,
+    statFilters,
+  }), [characterIds, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sequences, sort, statFilters, uid, username, weaponIds]);
   const currentQueryKey = useMemo(() => serializeQuery(querySnapshot), [querySnapshot]);
   const isPendingQuery = settledQueryKey !== currentQueryKey;
   const isLoading = isPendingQuery && builds.length === 0;
@@ -171,10 +177,12 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     uid: uid.trim(),
     echoSets,
     echoMains,
+    sequences,
+    statFilters,
     sort,
     direction,
     pageSize,
-  }), [characterIds, weaponIds, regionPrefixes, username, uid, echoSets, echoMains, sort, direction, pageSize]);
+  }), [characterIds, weaponIds, regionPrefixes, username, uid, echoSets, echoMains, sequences, statFilters, sort, direction, pageSize]);
 
   useEffect(() => {
     if (!settledQueryKey) return;
@@ -190,11 +198,13 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       has_username_search: username.trim().length > 0,
       echo_set_count: echoSets.length,
       echo_main_count: echoMains.length,
+      seq_count: sequences.length,
+      stat_filter_count: statFilters.length,
       sort,
       direction,
       page_size: pageSize,
     });
-  }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, filterSignature, pageSize, regionPrefixes.length, settledQueryKey, sort, uid, username, weaponIds.length]);
+  }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, filterSignature, pageSize, regionPrefixes.length, sequences.length, settledQueryKey, sort, statFilters.length, uid, username, weaponIds.length]);
 
   useEffect(() => {
     if (settledQueryKey === currentQueryKey) {
@@ -233,6 +243,8 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       uid: querySnapshot.uid || undefined,
       echoSets: querySnapshot.echoSets,
       echoMains: querySnapshot.echoMains,
+      sequences: querySnapshot.sequences,
+      statFilters: querySnapshot.statFilters,
     }, controller.signal)
       .then((response) => {
         if (!active) return;
@@ -322,6 +334,38 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     setPage(1);
   }, []);
 
+  const toggleSequence = useCallback((level: number) => {
+    setSequences((prev) => (
+      prev.includes(level)
+        ? prev.filter((entry) => entry !== level)
+        : normalizeSequences([...prev, level])
+    ));
+    setPage(1);
+  }, []);
+
+  const clearSequence = useCallback(() => {
+    setSequences([]);
+    setPage(1);
+  }, []);
+
+  const addStatFilter = useCallback((filter: LBStatThreshold) => {
+    setStatFilters((prev) => {
+      const existing = prev.findIndex((entry) => entry.stat === filter.stat && entry.op === filter.op);
+      if (existing >= 0) {
+        const next = [...prev];
+        next[existing] = filter;
+        return next;
+      }
+      return [...prev, filter];
+    });
+    setPage(1);
+  }, []);
+
+  const removeStatFilter = useCallback((index: number) => {
+    setStatFilters((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+    setPage(1);
+  }, []);
+
   const clearAllFilters = useCallback(() => {
     setCharacterIds([]);
     setWeaponIds([]);
@@ -330,6 +374,8 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     setUid('');
     setEchoSets([]);
     setEchoMains([]);
+    setSequences([]);
+    setStatFilters([]);
     setFilterQuery('');
     setPage(DEFAULT_PAGE);
   }, []);
@@ -367,6 +413,8 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
                   regionPrefixes={regionPrefixes}
                   selectedSetEntries={selectedSetEntries}
                   selectedMainEntries={selectedMainEntries}
+                  sequences={sequences}
+                  statFilters={statFilters}
                   username={username}
                   uid={uid}
                   setOptions={setOptions}
@@ -412,6 +460,10 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
                     setEchoMains((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
                     setPage(1);
                   }}
+                  onToggleSequence={toggleSequence}
+                  onClearSequence={clearSequence}
+                  onAddStatFilter={addStatFilter}
+                  onRemoveStatFilter={removeStatFilter}
                   onClearUsername={() => {
                     setUsername('');
                     setPage(1);
@@ -428,6 +480,16 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
                     }
                     if (username) {
                       setUsername('');
+                      setPage(1);
+                      return;
+                    }
+                    if (statFilters.length > 0) {
+                      setStatFilters((prev) => prev.slice(0, -1));
+                      setPage(1);
+                      return;
+                    }
+                    if (sequences.length > 0) {
+                      setSequences([]);
                       setPage(1);
                       return;
                     }

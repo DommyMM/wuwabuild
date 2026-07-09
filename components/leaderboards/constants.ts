@@ -112,40 +112,42 @@ export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set(
 // Structured build filters (Card Sequence + Stat Thresholds) --------------------
 
 export const MAX_SEQUENCE = 6;
+export const SEQUENCE_LEVELS = [0, 1, 2, 3, 4, 5, 6] as const;
 
-export type SequencePreset = {
-  /** Stable id used for radio selection; not serialized (min/max are). */
-  key: string;
-  label: string;
-  min: number | null;
-  max: number | null;
-};
-
-// Curated "Card Sequence" presets. A single constraint is active at a time; the
-// chip label is derived from min/max (see sequenceChipLabel), not stored here.
-export const SEQUENCE_PRESETS: readonly SequencePreset[] = [
-  { key: 's0', label: 'S0 only', min: 0, max: 0 },
-  { key: 's1plus', label: 'S1+', min: 1, max: null },
-  { key: 's2plus', label: 'S2+', min: 2, max: null },
-  { key: 'lte1', label: '≤ S1', min: null, max: 1 },
-  { key: 's6', label: 'S6 only', min: 6, max: 6 },
+// Selected-state color per sequence level (S0 neutral → S6 spectro), mirroring the
+// table badge ramp in LB_SEQ_BADGE_COLORS.
+export const SEQUENCE_TOGGLE_COLORS: readonly string[] = [
+  'border-slate-400/50 bg-slate-500/20 text-slate-100',
+  'border-cyan-400/50 bg-cyan-500/20 text-cyan-100',
+  'border-blue-400/50 bg-blue-500/20 text-blue-100',
+  'border-violet-400/50 bg-violet-500/20 text-violet-100',
+  'border-fuchsia-400/50 bg-fuchsia-500/20 text-fuchsia-100',
+  'border-amber-400/55 bg-amber-500/25 text-amber-100',
+  'border-spectro/60 bg-spectro/25 text-spectro',
 ];
 
-/** Match an active seqMin/seqMax pair back to a preset key, for radio highlighting. */
-export function matchSequencePreset(min: number | null, max: number | null): string | null {
-  return SEQUENCE_PRESETS.find((preset) => preset.min === min && preset.max === max)?.key ?? null;
+/** Sorted, de-duped, in-range (0–MAX_SEQUENCE) copy of a selected-levels list. */
+export function normalizeSequences(levels: Iterable<number>): number[] {
+  return [...new Set(levels)]
+    .filter((n) => Number.isInteger(n) && n >= 0 && n <= MAX_SEQUENCE)
+    .sort((a, b) => a - b);
 }
 
-/** Chip text for the active card-sequence constraint, or null when unset. */
-export function sequenceChipLabel(min: number | null, max: number | null): string | null {
-  const hasMin = typeof min === 'number';
-  const hasMax = typeof max === 'number';
-  if (!hasMin && !hasMax) return null;
-  if (hasMin && hasMax) {
-    return min === max ? `Card Sequence = S${min}` : `Card Sequence S${min}–S${max}`;
+/**
+ * Compact chip text for the selected card-sequence set, or null when empty.
+ * Collapses contiguous runs to ≥/≤/range for the common cases, else lists them.
+ */
+export function sequenceChipSummary(levels: number[]): string | null {
+  const sorted = normalizeSequences(levels);
+  if (sorted.length === 0) return null;
+  if (sorted.length === 1) return `Seq = S${sorted[0]}`;
+  const contiguous = sorted.every((value, i) => i === 0 || value === sorted[i - 1] + 1);
+  if (contiguous) {
+    if (sorted[sorted.length - 1] === MAX_SEQUENCE) return `Seq ≥ S${sorted[0]}`;
+    if (sorted[0] === 0) return `Seq ≤ S${sorted[sorted.length - 1]}`;
+    return `Seq S${sorted[0]}–S${sorted[sorted.length - 1]}`;
   }
-  if (hasMin) return `Card Sequence ≥ S${min}`;
-  return `Card Sequence ≤ S${max}`;
+  return `Seq: ${sorted.map((n) => `S${n}`).join(' · ')}`;
 }
 
 // Stat-threshold builder options: every stored/board stat that can carry a

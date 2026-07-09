@@ -1,6 +1,6 @@
 import { clampItemsPerPage, ITEMS_PER_PAGE } from '../constants';
-import { LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardQuery, LBLeaderboardSortKey, LBSortDirection, LBTrack, normalizeLBLeaderboardSortKey, toLBApiSortKey } from '@/lib/lb';
-import { parsePositiveInt, parseCSV, parseEchoSetCSV, parseEchoMainCSV } from '../queryHelpers';
+import { LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardQuery, LBLeaderboardSortKey, LBSortDirection, LBStatThreshold, LBTrack, normalizeLBLeaderboardSortKey, toLBApiSortKey } from '@/lib/lb';
+import { parsePositiveInt, parseCSV, parseEchoSetCSV, parseEchoMainCSV, parseSequences, parseStatThresholds, serializeStatThresholds } from '../queryHelpers';
 import { DEFAULT_LB_SORT, DEFAULT_LB_TRACK } from '../constants';
 
 interface LeaderboardQuerySnapshot {
@@ -15,6 +15,8 @@ interface LeaderboardQuerySnapshot {
   regionPrefixes: string[];
   echoSets: LBEchoSetFilter[];
   echoMains: LBEchoMainFilter[];
+  sequences: number[];
+  statFilters: LBStatThreshold[];
   /** Deep-link: auto-expand this build. Sent to API for ghost build resolution. */
   buildId: string;
 }
@@ -92,6 +94,8 @@ export function resolveLeaderboardQuerySnapshot(
     regionPrefixes: snapshot.regionPrefixes?.map((entry) => entry.trim()).filter(Boolean) ?? [],
     echoSets: snapshot.echoSets ?? [],
     echoMains: snapshot.echoMains ?? [],
+    sequences: snapshot.sequences ?? [],
+    statFilters: snapshot.statFilters ?? [],
     buildId: snapshot.buildId?.trim() ?? '',
   };
 }
@@ -120,6 +124,8 @@ export function parseInitialLeaderboardQuery(
     regionPrefixes: parseCSV(searchParams.get('regions')),
     echoSets: parseEchoSetCSV(searchParams.get('sets')),
     echoMains: parseEchoMainCSV(searchParams.get('mains')),
+    sequences: parseSequences(searchParams.get('seq')),
+    statFilters: parseStatThresholds(searchParams.get('stats')),
   }, {
     defaultPage,
     defaultPageSize,
@@ -157,6 +163,8 @@ export function serializeLeaderboardQuery(
   if (resolved.echoMains.length) {
     params.set('mains', resolved.echoMains.map((entry) => `${entry.cost}-${entry.statType}`).join('.'));
   }
+  if (resolved.sequences.length) params.set('seq', resolved.sequences.join(','));
+  if (resolved.statFilters.length) params.set('stats', serializeStatThresholds(resolved.statFilters));
   return params.toString();
 }
 
@@ -186,6 +194,8 @@ export function leaderboardSnapshotToApiQuery(
     regionPrefixes: resolved.regionPrefixes.length ? resolved.regionPrefixes : undefined,
     echoSets: resolved.echoSets.length ? resolved.echoSets : undefined,
     echoMains: resolved.echoMains.length ? resolved.echoMains : undefined,
+    sequences: resolved.sequences.length ? resolved.sequences : undefined,
+    statFilters: resolved.statFilters.length ? resolved.statFilters : undefined,
     buildId: resolved.buildId || undefined,
   };
 }

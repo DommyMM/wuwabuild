@@ -24,6 +24,14 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'fixed',
                 text: 'Profile build cards now show the original forte grid instead of a not-ranked module when a build has no competitive rank'
             },
+            {
+                kind: 'improved',
+                text: 'Character leaderboards now split ER-adjusted score vs raw damage'
+            },
+            {
+                kind: 'new',
+                text: 'Added search-dropdown filters for arbitrary sequence picks and stat breakpoint thresholds on builds, leaderboards, and profiles'
+            }
         ]
     },
     {

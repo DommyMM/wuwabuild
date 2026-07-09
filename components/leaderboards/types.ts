@@ -1,4 +1,4 @@
-import { LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey } from '@/lib/lb';
+import { LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey, LBStatThreshold } from '@/lib/lb';
 import { STAT_OPTION_KEYS } from './constants';
 
 // All sort keys that are sortable stats (excludes finalCV, timestamp, characterId, CR, CD)
@@ -16,6 +16,8 @@ export type QuerySnapshot = {
   uid: string;
   echoSets: LBEchoSetFilter[];
   echoMains: LBEchoMainFilter[];
+  sequences: number[];
+  statFilters: LBStatThreshold[];
 };
 
 export type SetOption = {

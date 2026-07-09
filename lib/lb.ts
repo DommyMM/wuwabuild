@@ -201,18 +201,18 @@ function serializeEchoMainFilters(filters: LBEchoMainFilter[] | undefined): stri
 }
 
 // Appends structured build filters shared by /build and /leaderboard: a card-sequence
-// range (seqMin/seqMax) and repeated stat thresholds (`stat=<sortKey>:<op>:<value>`).
+// level set (`seq=0,4,6`, matches builds whose sequence ∈ set) and compact stat
+// thresholds (`stats=<sortKey>:<op>:<value>.<sortKey>:<op>:<value>`).
 function appendBuildFilterParams(
   params: URLSearchParams,
-  query: { seqMin?: number; seqMax?: number; statFilters?: LBStatThreshold[] },
+  query: { sequences?: number[]; statFilters?: LBStatThreshold[] },
 ): void {
-  if (Number.isFinite(query.seqMin)) params.set('seqMin', String(query.seqMin));
-  if (Number.isFinite(query.seqMax)) params.set('seqMax', String(query.seqMax));
-  for (const filter of query.statFilters ?? []) {
-    if (!isLBStatSortKey(filter.stat) || !Number.isFinite(filter.value)) continue;
-    if (filter.op !== 'gte' && filter.op !== 'lte') continue;
-    params.append('stat', `${filter.stat}:${filter.op}:${filter.value}`);
-  }
+  const sequences = (query.sequences ?? []).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+  if (sequences.length) params.set('seq', sequences.join(','));
+  const statFilters = (query.statFilters ?? [])
+    .filter((filter) => isLBStatSortKey(filter.stat) && Number.isFinite(filter.value) && (filter.op === 'gte' || filter.op === 'lte'))
+    .map((filter) => `${filter.stat}:${filter.op}:${filter.value}`);
+  if (statFilters.length) params.set('stats', statFilters.join('.'));
 }
 
 export interface LBEchoSetFilter {
@@ -227,7 +227,7 @@ export interface LBEchoMainFilter {
 
 export type LBStatFilterOp = 'gte' | 'lte';
 
-/** A single "stat ≥/≤ value" threshold. Serialized as `stat=<sortKey>:<op>:<value>`. */
+/** A single "stat ≥/≤ value" threshold. Serialized inside compact `stats=` CSV-ish query data. */
 export interface LBStatThreshold {
   stat: LBStatSortKey;
   op: LBStatFilterOp;
@@ -246,8 +246,7 @@ interface LBListBuildsQuery {
   regionPrefixes?: string[];
   echoSets?: LBEchoSetFilter[];
   echoMains?: LBEchoMainFilter[];
-  seqMin?: number;
-  seqMax?: number;
+  sequences?: number[];
   statFilters?: LBStatThreshold[];
 }
 
@@ -939,8 +938,7 @@ export interface LBLeaderboardQuery {
   regionPrefixes?: string[];
   echoSets?: LBEchoSetFilter[];
   echoMains?: LBEchoMainFilter[];
-  seqMin?: number;
-  seqMax?: number;
+  sequences?: number[];
   statFilters?: LBStatThreshold[];
   track?: string;
   buildId?: string;
