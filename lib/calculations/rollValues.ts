@@ -32,12 +32,12 @@ interface EchoMainSummary {
   statType: string;
 }
 
-export const getQualityTier = (pct: number): QualityTier => {
+const getQualityTier = (pct: number): QualityTier => {
   const normalized = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
   return QUALITY_TIERS.find((tier) => normalized >= tier.minPct) ?? QUALITY_TIERS[QUALITY_TIERS.length - 1];
 };
 
-export const getQualityTierStyle = (pct: number): QualityTier => {
+const getQualityTierStyle = (pct: number): QualityTier => {
   const tier = getQualityTier(pct);
   return { ...tier };
 };

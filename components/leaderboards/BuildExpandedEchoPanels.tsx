@@ -146,7 +146,7 @@ export const QualityTierBar: React.FC<{ currentLabel: string; valueText: string 
 };
 
 // Echo CV plotted on its quality-tier ladder; the build's tier is enlarged.
-export const EchoCVBar: React.FC<{ cv: number }> = ({ cv }) => (
+const EchoCVBar: React.FC<{ cv: number }> = ({ cv }) => (
   <QualityTierBar currentLabel={getEchoCVTierStyle(cv).label} valueText={cv.toFixed(1)} />
 );
 

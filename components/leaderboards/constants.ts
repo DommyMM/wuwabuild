@@ -111,7 +111,7 @@ export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set(
 
 // Structured build filters (Card Sequence + Stat Thresholds) --------------------
 
-export const MAX_SEQUENCE = 6;
+const MAX_SEQUENCE = 6;
 export const SEQUENCE_LEVELS = [0, 1, 2, 3, 4, 5, 6] as const;
 
 // Selected-state color per sequence level (S0 neutral → S6 spectro), mirroring the
@@ -135,19 +135,11 @@ export function normalizeSequences(levels: Iterable<number>): number[] {
 
 /**
  * Compact chip text for the selected card-sequence set, or null when empty.
- * Collapses contiguous runs to ≥/≤/range for the common cases, else lists them.
  */
 export function sequenceChipSummary(levels: number[]): string | null {
   const sorted = normalizeSequences(levels);
   if (sorted.length === 0) return null;
-  if (sorted.length === 1) return `Seq = S${sorted[0]}`;
-  const contiguous = sorted.every((value, i) => i === 0 || value === sorted[i - 1] + 1);
-  if (contiguous) {
-    if (sorted[sorted.length - 1] === MAX_SEQUENCE) return `Seq ≥ S${sorted[0]}`;
-    if (sorted[0] === 0) return `Seq ≤ S${sorted[sorted.length - 1]}`;
-    return `Seq S${sorted[0]}–S${sorted[sorted.length - 1]}`;
-  }
-  return `Seq: ${sorted.map((n) => `S${n}`).join(' · ')}`;
+  return `Seq: ${sorted.map((n) => `S${n}`).join(', ')}`;
 }
 
 // Stat-threshold builder options: every stored/board stat that can carry a

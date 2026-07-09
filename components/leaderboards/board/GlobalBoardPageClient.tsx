@@ -343,6 +343,11 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     setPage(1);
   }, []);
 
+  const setSequenceLevels = useCallback((levels: number[]) => {
+    setSequences(normalizeSequences(levels));
+    setPage(1);
+  }, []);
+
   const clearSequence = useCallback(() => {
     setSequences([]);
     setPage(1);
@@ -460,6 +465,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
                     setEchoMains((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
                     setPage(1);
                   }}
+                  onSetSequences={setSequenceLevels}
                   onToggleSequence={toggleSequence}
                   onClearSequence={clearSequence}
                   onAddStatFilter={addStatFilter}

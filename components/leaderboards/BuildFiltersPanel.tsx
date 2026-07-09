@@ -83,6 +83,11 @@ interface SelectedCharacterChip {
   characterIds: string[];
 }
 
+type StatRequirementDraft = {
+  op: LBStatFilterOp;
+  value: string;
+};
+
 interface BuildFiltersPanelProps {
   sort: LBSortKey;
   direction: LBSortDirection;
@@ -119,6 +124,7 @@ interface BuildFiltersPanelProps {
   onRemoveRegion: (value: string) => void;
   onRemoveSetEntry: (index: number) => void;
   onRemoveMainEntry: (index: number) => void;
+  onSetSequences: (levels: number[]) => void;
   onToggleSequence: (level: number) => void;
   onClearSequence: () => void;
   onAddStatFilter: (filter: LBStatThreshold) => void;
@@ -270,6 +276,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   onRemoveRegion,
   onRemoveSetEntry,
   onRemoveMainEntry,
+  onSetSequences,
   onToggleSequence,
   onClearSequence,
   onAddStatFilter,
@@ -291,11 +298,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const filterAreaRef = useRef<HTMLDivElement | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPageSizeMenuOpen, setIsPageSizeMenuOpen] = useState(false);
-  const [statBuilderKey, setStatBuilderKey] = useState<LBStatSortKey>('energy_regen');
-  const [statBuilderOp, setStatBuilderOp] = useState<LBStatFilterOp>('gte');
-  const [statBuilderValue, setStatBuilderValue] = useState('');
-  // Once the user picks a stat manually, stop mirroring the typed query into the builder.
-  const [statBuilderTouched, setStatBuilderTouched] = useState(false);
+  const [statDrafts, setStatDrafts] = useState<Partial<Record<LBStatSortKey, StatRequirementDraft>>>({});
   const [isFilterMode, setIsFilterMode] = useState(false);
   const [activeItemIndex, setActiveItemIndex] = useState(-1);
 
@@ -391,23 +394,33 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const statQueryMatch = matchStatByQuery(normalizedQuery);
   const showStatSection = normalizedQuery === '' || statQueryMatch !== null;
   const showSequenceSection = normalizedQuery === '' || /^s\d?$/.test(normalizedQuery) || normalizedQuery.startsWith('seq');
+  const pinStatSection = normalizedQuery !== '' && statQueryMatch !== null;
 
-  // Typed stat names/codes temporarily prefill the builder until the user picks a stat manually.
-  const effectiveStatBuilderKey = !statBuilderTouched && statQueryMatch ? statQueryMatch : statBuilderKey;
-  const statBuilderIsPercent = isLBPercentStatSortKey(effectiveStatBuilderKey);
-  const parsedStatValue = Number(statBuilderValue);
-  const canAddStatFilter = statBuilderValue.trim() !== '' && Number.isFinite(parsedStatValue) && parsedStatValue >= 0;
-
-  const commitStatFilter = () => {
-    if (!canAddStatFilter) return;
-    onAddStatFilter({ stat: effectiveStatBuilderKey, op: statBuilderOp, value: parsedStatValue });
-    setStatBuilderValue('');
-    setStatBuilderTouched(false);
-  };
+  const visibleStatOptions = useMemo(() => {
+    if (!normalizedQuery || !showStatSection) return STAT_FILTER_OPTION_KEYS;
+    const matched = STAT_FILTER_OPTION_KEYS.filter((key) => (
+      getLBStatCode(key).toLowerCase().includes(normalizedQuery) ||
+      getLBStatLabel(key).toLowerCase().includes(normalizedQuery)
+    ));
+    return matched.length > 0 ? matched : STAT_FILTER_OPTION_KEYS;
+  }, [normalizedQuery, showStatSection]);
 
   const handleFilterQueryChange = (value: string) => {
-    if (value.trim() === '') setStatBuilderTouched(false);
     onFilterQueryChange(value);
+  };
+
+  const updateStatDraft = (key: LBStatSortKey, patch: Partial<StatRequirementDraft>) => {
+    setStatDrafts((prev) => {
+      const current = prev[key] ?? { op: 'gte', value: '0' };
+      return { ...prev, [key]: { ...current, ...patch } };
+    });
+  };
+
+  const addStatRequirement = (key: LBStatSortKey) => {
+    const draft = statDrafts[key] ?? { op: 'gte', value: '0' };
+    const value = Number(draft.value);
+    if (!Number.isFinite(value) || value < 0) return;
+    onAddStatFilter({ stat: key, op: draft.op, value });
   };
 
   const validSortLabels = useMemo(() => {
@@ -433,10 +446,10 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   }, [sort, validSortLabels]);
 
   const visibleItems = useMemo<VisibleFilterItem[]>(() => {
-    const items: VisibleFilterItem[] = [];
+    const searchItems: VisibleFilterItem[] = [];
 
     if (isExactUidQuery && !uid) {
-      items.push({
+      searchItems.push({
         key: `uid-${trimmedFilterQuery}`,
         type: 'uid',
         section: 'Search By',
@@ -445,7 +458,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
       });
     }
     if (normalizedQuery.length >= 2 && !username) {
-      items.push({
+      searchItems.push({
         key: `username-${trimmedFilterQuery}`,
         type: 'username',
         section: 'Search By',
@@ -464,7 +477,6 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
         value: region.value,
         label: region.label,
       }));
-    items.push(...regionItems);
 
     const characterEntries: VisibleCharacterItem[] = [];
     for (const character of characters) {
@@ -501,7 +513,6 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
       .filter((entry) => !normalizedQuery || entry.label.toLowerCase().includes(normalizedQuery))
       .sort((a, b) => a.label.localeCompare(b.label))
       .slice(0, 40);
-    items.push(...characterItems);
 
     const weaponItems = weaponList
       .filter((weapon) => !selectedWeaponIds.has(weapon.id))
@@ -519,7 +530,6 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
         weapon: entry.weapon,
         label: entry.label,
       }));
-    items.push(...weaponItems);
 
     const setItems: VisibleSetItem[] = [];
     for (const setOption of setOptions) {
@@ -550,7 +560,6 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
       if (pieceDiff !== 0) return pieceDiff;
       return a.label.localeCompare(b.label);
     });
-    items.push(...setItems.slice(0, 80));
 
     const mainItems: VisibleMainItem[] = [];
     for (const cost of [4, 3, 1]) {
@@ -580,9 +589,15 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
       if (orderDiff !== 0) return orderDiff;
       return a.label.localeCompare(b.label);
     });
-    items.push(...mainItems.slice(0, 80));
 
-    return items;
+    return [
+      ...characterItems,
+      ...weaponItems,
+      ...searchItems,
+      ...regionItems,
+      ...setItems.slice(0, 80),
+      ...mainItems.slice(0, 80),
+    ];
   }, [
     characters,
     getMainStatsByCost,
@@ -935,102 +950,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
         </div>
 
         {isDropdownOpen && (showStatSection || showSequenceSection || visibleItems.length > 0) && (
-          <div className="scrollbar-thin absolute left-0 right-0 z-30 max-h-132 overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
-            {showStatSection && (
-              <div>
-                <div className={dropdownSectionHeaderClass}>Stat Threshold</div>
-                <div className="border-b border-border/60 px-3 py-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <select
-                      value={effectiveStatBuilderKey}
-                      onChange={(event) => { setStatBuilderKey(event.target.value as LBStatSortKey); setStatBuilderTouched(true); }}
-                      aria-label="Stat"
-                      className="min-w-0 flex-1 appearance-none rounded-md border border-border bg-background py-1.5 pl-2 pr-6 text-xs text-text-primary focus:border-accent/60 focus:outline-none"
-                    >
-                      {STAT_FILTER_OPTION_KEYS.map((key) => (
-                        <option key={key} value={key}>{getLBStatLabel(key)}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={statBuilderOp}
-                      onChange={(event) => setStatBuilderOp(event.target.value as LBStatFilterOp)}
-                      aria-label="Comparison"
-                      className="appearance-none rounded-md border border-border bg-background py-1.5 pl-2 pr-5 text-xs text-text-primary focus:border-accent/60 focus:outline-none"
-                    >
-                      <option value="gte">≥</option>
-                      <option value="lte">≤</option>
-                    </select>
-                    <div className="relative w-20 shrink-0">
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        value={statBuilderValue}
-                        onChange={(event) => setStatBuilderValue(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') { event.preventDefault(); commitStatFilter(); }
-                        }}
-                        placeholder="0"
-                        aria-label="Threshold value"
-                        className={`w-full rounded-md border border-border bg-background py-1.5 pl-2 ${statBuilderIsPercent ? 'pr-5' : 'pr-2'} text-xs text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none`}
-                      />
-                      {statBuilderIsPercent && (
-                        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-xs text-text-primary/45">%</span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={commitStatFilter}
-                      disabled={!canAddStatFilter}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-accent/45 bg-accent/10 px-2.5 py-1.5 text-xs font-medium text-accent transition-colors hover:border-accent/70 hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-45"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add
-                    </button>
-                  </div>
-                  <p className="mt-1.5 text-[11px] text-text-primary/45">Type a stat (e.g. “ER”, “Crit Rate”) to jump to it. Rules combine with AND.</p>
-                </div>
-              </div>
-            )}
-
-            {showSequenceSection && (
-              <div>
-                <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-background-secondary px-3 py-2">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-accent">Card Sequence</span>
-                  {sequenceActive && (
-                    <button
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={onClearSequence}
-                      className="text-xs font-medium text-text-primary/55 transition-colors hover:text-text-primary"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5 border-b border-border/60 px-3 py-2.5">
-                  {SEQUENCE_LEVELS.map((level) => {
-                    const selected = sequenceSet.has(level);
-                    return (
-                      <button
-                        key={`seq-${level}`}
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => onToggleSequence(level)}
-                        aria-pressed={selected}
-                        className={`inline-flex h-8 min-w-11 items-center justify-center rounded-md border px-2 text-xs font-semibold transition-colors ${
-                          selected
-                            ? SEQUENCE_TOGGLE_COLORS[level] ?? 'border-accent/55 bg-accent/15 text-accent'
-                            : 'border-border bg-background text-text-primary/55 hover:border-accent/45 hover:text-text-primary'
-                        }`}
-                      >
-                        S{level}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
+          <div className="scrollbar-thin absolute left-0 right-0 z-30 flex max-h-132 flex-col overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
             {visibleItems.map((item, index) => {
               const previous = index > 0 ? visibleItems[index - 1] : null;
               const showSection = index === 0 || previous?.section !== item.section;
@@ -1125,6 +1045,126 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                 </React.Fragment>
               );
             })}
+
+            {showSequenceSection && (
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-background-secondary px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-accent">Card Sequence</span>
+                    <span className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-text-primary/55">
+                      {sequenceActive ? `${sequences.length} selected` : 'All sequences'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {[
+                      { label: 'All', levels: [] },
+                      { label: 'S0 only', levels: [0] },
+                      { label: 'S2-S6', levels: [2, 3, 4, 5, 6] },
+                      { label: 'S6 only', levels: [6] },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => onSetSequences(preset.levels)}
+                        className="rounded border border-border bg-background px-2 py-1 text-[11px] font-medium text-text-primary/60 transition-colors hover:border-accent/45 hover:text-text-primary"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5 border-b border-border/60 px-3 py-2.5">
+                  {SEQUENCE_LEVELS.map((level) => {
+                    const selected = sequenceSet.has(level);
+                    return (
+                      <button
+                        key={`seq-${level}`}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => onToggleSequence(level)}
+                        aria-pressed={selected}
+                        className={`inline-flex h-8 min-w-11 items-center justify-center rounded-md border px-2 text-xs font-semibold transition-colors ${
+                          selected
+                            ? SEQUENCE_TOGGLE_COLORS[level] ?? 'border-accent/55 bg-accent/15 text-accent'
+                            : 'border-border bg-background text-text-primary/55 hover:border-accent/45 hover:text-text-primary'
+                        }`}
+                      >
+                        S{level}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {showStatSection && (
+              <div className={pinStatSection ? 'order-first' : undefined}>
+                <div className={dropdownSectionHeaderClass}>Stat Requirements</div>
+                <div className="divide-y divide-border/55 border-b border-border/60">
+                  {visibleStatOptions.map((key) => {
+                    const draft = statDrafts[key] ?? { op: 'gte', value: '0' };
+                    const value = draft.value;
+                    const parsedValue = Number(value);
+                    const canAdd = value.trim() !== '' && Number.isFinite(parsedValue) && parsedValue >= 0;
+                    const isPercent = isLBPercentStatSortKey(key);
+
+                    return (
+                      <div key={key} className="grid min-h-11 grid-cols-[minmax(9rem,1fr)_auto_6rem_auto] items-center gap-2 px-3 py-1.5">
+                        <div className="min-w-0 truncate text-xs font-semibold text-text-primary">
+                          {getLBStatLabel(key)}
+                        </div>
+                        <div className="inline-flex h-8 shrink-0 items-center overflow-hidden rounded-md border border-border bg-background p-0.5">
+                          {(['gte', 'lte'] as const).map((op) => (
+                            <button
+                              key={op}
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => updateStatDraft(key, { op })}
+                              aria-pressed={draft.op === op}
+                              aria-label={op === 'gte' ? `At least ${getLBStatLabel(key)}` : `At most ${getLBStatLabel(key)}`}
+                              className={`h-7 min-w-7 rounded px-2 text-xs font-semibold leading-none transition-colors ${
+                                draft.op === op
+                                  ? 'bg-accent/18 text-accent'
+                                  : 'text-text-primary/55 hover:text-text-primary'
+                              }`}
+                            >
+                              {OP_SYMBOL[op]}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={value}
+                            onChange={(event) => updateStatDraft(key, { value: event.target.value })}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') { event.preventDefault(); addStatRequirement(key); }
+                            }}
+                            aria-label={`${getLBStatLabel(key)} threshold value`}
+                            className={`h-8 w-full rounded-md border border-border bg-background pl-2 ${isPercent ? 'pr-5' : 'pr-2'} text-xs leading-none text-text-primary placeholder:text-text-primary/40 focus:border-accent/60 focus:outline-none`}
+                          />
+                          {isPercent && (
+                            <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-xs text-text-primary/45">%</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => addStatRequirement(key)}
+                          disabled={!canAdd}
+                          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-accent/45 bg-accent/10 px-2.5 text-xs font-medium text-accent transition-colors hover:border-accent/70 hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Add
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

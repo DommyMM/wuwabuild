@@ -448,6 +448,10 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                   onRemoveRegion={(r) => { setRegionPrefixes((prev) => prev.filter((p) => p !== r)); setPage(1); }}
                   onRemoveSetEntry={(i) => { setEchoSets((prev) => prev.filter((_, idx) => idx !== i)); setPage(1); }}
                   onRemoveMainEntry={(i) => { setEchoMains((prev) => prev.filter((_, idx) => idx !== i)); setPage(1); }}
+                  onSetSequences={(levels) => {
+                    setSequences(normalizeSequences(levels));
+                    setPage(1);
+                  }}
                   onToggleSequence={(level) => {
                     setSequences((prev) => (
                       prev.includes(level)

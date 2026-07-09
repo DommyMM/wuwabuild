@@ -72,7 +72,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
     <div className={alignClass ? `${alignClass} w-fit` : 'w-fit'}>
       {showScoreContext && (
         <p className="mb-2 text-center text-xs leading-snug text-text-primary/45">
-          Cross-board rank uses Score. Damage mode only changes the opened board&apos;s raw metric.
+          The standings shows ER-adjusted ranks. The raw damage view is cosmetic
         </p>
       )}
       <table className="border-collapse text-sm">
