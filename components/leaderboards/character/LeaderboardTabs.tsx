@@ -5,7 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LBTrack } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
-import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix } from '../constants';
+import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix, ScoringMode } from '../constants';
 
 const BASE_GLASS_CARD =
   'group relative overflow-hidden rounded-xl border px-3 py-2.5 shadow-[0_3px_12px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40';
@@ -16,8 +16,18 @@ const ACTIVE_GOLD_CARD =
 const CARD_SHEEN =
   'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_46%)] opacity-55 transition-opacity duration-200 group-hover:opacity-75';
 
-const ER_PILL =
-  'rounded-full border border-sky-300/40 bg-sky-400/10 px-2 py-0.5 text-xs font-semibold leading-none tracking-wide text-sky-200';
+// Compact bracket-row buttons (the old ER-bracket treatment): lighter than the
+// board selector cards, so Scoring reads as a metric lens instead of a board.
+const SCORING_SEGMENT =
+  'relative inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold leading-none tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60';
+const SCORING_SEGMENT_ACTIVE =
+  'border-amber-300/45 bg-[linear-gradient(180deg,rgba(251,191,36,0.15)_0%,rgba(251,191,36,0.07)_100%)] text-amber-50 shadow-[0_2px_10px_rgba(0,0,0,0.25)]';
+const SCORING_SEGMENT_IDLE =
+  'border-border/75 bg-black/20 text-text-primary/60 hover:border-accent/30 hover:text-text-primary/85';
+const SCORING_DEFAULT_BADGE =
+  'rounded-full border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em]';
+const SCORING_DEFAULT_BADGE_ACTIVE = 'border-amber-200/25 bg-black/20 text-amber-100/70';
+const SCORING_DEFAULT_BADGE_IDLE = 'border-border/50 bg-black/15 text-text-primary/35';
 
 function formatErTarget(erTarget: number): string {
   return Number.isInteger(erTarget) ? String(erTarget) : erTarget.toFixed(1).replace(/\.0$/u, '');
@@ -29,19 +39,49 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </div>
 );
 
-const SharedERRule: React.FC<{ erTarget: number }> = ({ erTarget }) => (
-  <div className="flex justify-center">
-    <div
-      className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-lg border border-sky-300/20 bg-sky-400/8 px-2.5 py-1 sm:rounded-full sm:pl-1.5 sm:pr-3"
-      title={`Scores below ${formatErTarget(erTarget)}% Energy Regen are penalized proportionately on this board`}
-    >
-      <span className={ER_PILL}>ER &ge; {formatErTarget(erTarget)}%</span>
-      <span className="text-center text-xs leading-snug text-text-primary/55 sm:text-left sm:leading-none">
-        Scores below {formatErTarget(erTarget)}% Energy Regen are penalized proportionately
-      </span>
+// The board's metric lens, as its own labeled row (like Playstyle / Weapon,
+// mirroring the old ER-bracket row). Score is the canonical ER-adjusted ranking;
+// Damage is the raw rotation-damage lens over the same board. The ER detail lives
+// in the native title tooltip so the buttons stay clean.
+const ScoringRow: React.FC<{
+  erTarget: number;
+  scoring: ScoringMode;
+  onSelect: (mode: ScoringMode) => void;
+}> = ({ erTarget, scoring, onSelect }) => {
+  const isRaw = scoring === 'raw';
+  const scoreTitle = `Score: default ER-adjusted ranking. Builds below ${formatErTarget(erTarget)}% ER are scaled down.`;
+  const damageTitle = 'Damage: raw rotation damage before ER scaling. ER still shows, but does not lower this value.';
+  return (
+    <div className="space-y-2">
+      <SectionLabel>Scoring</SectionLabel>
+      <div className="flex flex-wrap items-center justify-center gap-2.5" role="group" aria-label="Scoring mode">
+        <button
+          type="button"
+          aria-pressed={!isRaw}
+          aria-label={scoreTitle}
+          title={scoreTitle}
+          onClick={() => onSelect('adjusted')}
+          className={`${SCORING_SEGMENT} ${!isRaw ? SCORING_SEGMENT_ACTIVE : SCORING_SEGMENT_IDLE}`}
+        >
+          <span>Score</span>
+          <span className={`${SCORING_DEFAULT_BADGE} ${!isRaw ? SCORING_DEFAULT_BADGE_ACTIVE : SCORING_DEFAULT_BADGE_IDLE}`}>
+            Default
+          </span>
+        </button>
+        <button
+          type="button"
+          aria-pressed={isRaw}
+          aria-label={damageTitle}
+          title={damageTitle}
+          onClick={() => onSelect('raw')}
+          className={`${SCORING_SEGMENT} ${isRaw ? SCORING_SEGMENT_ACTIVE : SCORING_SEGMENT_IDLE}`}
+        >
+          Damage
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 interface TrackTabsProps {
   tracks: LBTrack[];
@@ -50,21 +90,8 @@ interface TrackTabsProps {
 }
 
 const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) => {
-  // ER is a scoring rule for the active board, not selector chrome.
-  // Surface it once below the playstyle group and leave the tabs to identify choices.
-  const activeErTarget = useMemo(() => {
-    const target = tracks.find((track) => track.key === activeTrack)?.erTarget;
-    return typeof target === 'number' && target > 0 ? target : 0;
-  }, [activeTrack, tracks]);
-
-  if (tracks.length <= 1) {
-    // Still surface the scoring rule even without a track choice to make.
-    const only = tracks[0];
-    if (only && typeof only.erTarget === 'number' && only.erTarget > 0) {
-      return <SharedERRule erTarget={only.erTarget} />;
-    }
-    return null;
-  }
+  // Playstyle (sequence track) selector. A single track is no choice to make.
+  if (tracks.length <= 1) return null;
 
   return (
     <div className="space-y-2">
@@ -104,7 +131,6 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
           );
         })}
       </div>
-      {activeErTarget > 0 && <SharedERRule erTarget={activeErTarget} />}
     </div>
   );
 };
@@ -170,6 +196,8 @@ interface LeaderboardTabsProps {
   tracks: LBTrack[];
   activeTrack: string;
   onSelectTrack: (trackKey: string) => void;
+  scoring: ScoringMode;
+  onSelectScoring: (mode: ScoringMode) => void;
 }
 
 export const LeaderboardTabs: React.FC<LeaderboardTabsProps> = ({
@@ -179,11 +207,23 @@ export const LeaderboardTabs: React.FC<LeaderboardTabsProps> = ({
   tracks,
   activeTrack,
   onSelectTrack,
+  scoring,
+  onSelectScoring,
 }) => {
+  // Active board's ER target drives whether the Scoring row is offered (0 = no ER
+  // requirement, so Raw ≡ Score and there is nothing to toggle).
+  const activeErTarget = useMemo(() => {
+    const target = tracks.find((track) => track.key === activeTrack)?.erTarget;
+    return typeof target === 'number' && target > 0 ? target : 0;
+  }, [activeTrack, tracks]);
+
   return (
     <div className="space-y-4">
       <TrackTabs tracks={tracks} activeTrack={activeTrack} onSelect={onSelectTrack} />
       <WeaponTabs weaponIds={weaponIds} weaponIndex={weaponIndex} onSelect={onSelectWeapon} />
+      {activeErTarget > 0 && (
+        <ScoringRow erTarget={activeErTarget} scoring={scoring} onSelect={onSelectScoring} />
+      )}
     </div>
   );
 };

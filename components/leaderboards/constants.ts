@@ -16,6 +16,12 @@ export const DEFAULT_PAGE = 1;
 export const DEFAULT_SORT: LBSortKey = 'finalCV';
 export const DEFAULT_DIRECTION: LBSortDirection = 'desc';
 
+// Board scoring lens (character leaderboard). 'adjusted' = canonical ER-scaled
+// Score (default, surfaced). 'raw' = pure rotation damage, ER shown but not
+// scored. Raw is a view mode over the same board, not a separate board.
+export type ScoringMode = 'adjusted' | 'raw';
+export const DEFAULT_SCORING: ScoringMode = 'adjusted';
+
 export const REGION_OPTIONS = [
   { label: 'CN', value: '1' },
   { label: 'NA', value: '5' },
@@ -102,6 +108,55 @@ export const OFFENSIVE_BONUS_KEYS: readonly LBStatSortKey[] = ['basic_attack_dmg
 export const PERCENT_STAT_KEYS: ReadonlySet<LBSortKey> = new Set(
   LB_STAT_ENTRIES.filter((entry) => isLBPercentStatSortKey(entry.sortKey)).map((entry) => entry.sortKey),
 );
+
+// Structured build filters (Card Sequence + Stat Thresholds) --------------------
+
+export const MAX_SEQUENCE = 6;
+
+export type SequencePreset = {
+  /** Stable id used for radio selection; not serialized (min/max are). */
+  key: string;
+  label: string;
+  min: number | null;
+  max: number | null;
+};
+
+// Curated "Card Sequence" presets. A single constraint is active at a time; the
+// chip label is derived from min/max (see sequenceChipLabel), not stored here.
+export const SEQUENCE_PRESETS: readonly SequencePreset[] = [
+  { key: 's0', label: 'S0 only', min: 0, max: 0 },
+  { key: 's1plus', label: 'S1+', min: 1, max: null },
+  { key: 's2plus', label: 'S2+', min: 2, max: null },
+  { key: 'lte1', label: '≤ S1', min: null, max: 1 },
+  { key: 's6', label: 'S6 only', min: 6, max: 6 },
+];
+
+/** Match an active seqMin/seqMax pair back to a preset key, for radio highlighting. */
+export function matchSequencePreset(min: number | null, max: number | null): string | null {
+  return SEQUENCE_PRESETS.find((preset) => preset.min === min && preset.max === max)?.key ?? null;
+}
+
+/** Chip text for the active card-sequence constraint, or null when unset. */
+export function sequenceChipLabel(min: number | null, max: number | null): string | null {
+  const hasMin = typeof min === 'number';
+  const hasMax = typeof max === 'number';
+  if (!hasMin && !hasMax) return null;
+  if (hasMin && hasMax) {
+    return min === max ? `Card Sequence = S${min}` : `Card Sequence S${min}–S${max}`;
+  }
+  if (hasMin) return `Card Sequence ≥ S${min}`;
+  return `Card Sequence ≤ S${max}`;
+}
+
+// Stat-threshold builder options: every stored/board stat that can carry a
+// numeric floor/ceiling, ordered crit → base → bonuses → element.
+export const STAT_FILTER_OPTION_KEYS: readonly LBStatSortKey[] = [
+  'crit_rate', 'crit_dmg',
+  'atk', 'atk_pct', 'hp', 'hp_pct', 'def', 'def_pct',
+  'energy_regen', 'healing_bonus',
+  'basic_attack_dmg', 'heavy_attack_dmg', 'resonance_skill_dmg', 'resonance_liberation_dmg',
+  'aero_dmg', 'glacio_dmg', 'fusion_dmg', 'electro_dmg', 'havoc_dmg', 'spectro_dmg',
+];
 
 // Table Layout
 

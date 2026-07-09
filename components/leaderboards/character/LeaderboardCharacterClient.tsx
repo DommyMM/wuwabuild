@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
+import { LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBStatThreshold, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
-import { clampItemsPerPage, MAX_ITEMS_PER_PAGE } from '../constants';
+import { clampItemsPerPage, DEFAULT_SCORING, MAX_ITEMS_PER_PAGE, ScoringMode } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from '../types';
 import { DEFAULT_LB_TRACK } from '../constants';
@@ -113,7 +113,14 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [regionPrefixes, setRegionPrefixes] = useState<string[]>(() => initialSnapshot.regionPrefixes);
   const [echoSets, setEchoSets] = useState<LBEchoSetFilter[]>(() => initialSnapshot.echoSets);
   const [echoMains, setEchoMains] = useState<LBEchoMainFilter[]>(() => initialSnapshot.echoMains);
+  const [seqMin, setSeqMin] = useState<number | null>(() => initialSnapshot.seqMin);
+  const [seqMax, setSeqMax] = useState<number | null>(() => initialSnapshot.seqMax);
+  const [statFilters, setStatFilters] = useState<LBStatThreshold[]>(() => initialSnapshot.statFilters);
   const [filterQuery, setFilterQuery] = useState('');
+  // Scoring lens (client-side view mode over the same board): 'adjusted' = canonical
+  // ER-scaled Score, 'raw' = pure damage. Raw re-sorts the visible page client-side;
+  // cross-page raw ranking is a backend sort=raw follow-up.
+  const [scoring, setScoring] = useState<ScoringMode>(DEFAULT_SCORING);
 
   const leaderboardSigRef = useRef(leaderboardSignature(initialEntries, initialData?.total ?? 0));
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialEntries);
@@ -184,13 +191,19 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     regionPrefixes,
     echoSets,
     echoMains,
+    seqMin,
+    seqMax,
+    statFilters,
   }, {
     defaultWeaponId,
     defaultTrack: defaultTrackKey,
-  }), [defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sort, track, uid, username, weaponId]);
+  }), [defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, seqMax, seqMin, sort, statFilters, track, uid, username, weaponId]);
   const leaderboardQuery = useMemo(
-    () => leaderboardSnapshotToApiQuery(currentQuerySnapshot),
-    [currentQuerySnapshot],
+    () => ({
+      ...leaderboardSnapshotToApiQuery(currentQuerySnapshot),
+      scoring: scoring === 'raw' ? ('raw' as const) : undefined,
+    }),
+    [currentQuerySnapshot, scoring],
   );
 
   // Serialized "view" (everything except the deep-link buildId): used to anchor the reveal and to re-pin
@@ -291,10 +304,13 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     regionPrefixes,
     echoSets,
     echoMains,
+    seqMin,
+    seqMax,
+    statFilters,
     sort,
     direction,
     pageSize,
-  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sort, direction, pageSize]);
+  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, seqMin, seqMax, statFilters, sort, direction, pageSize]);
 
   useEffect(() => {
     if (!settledQueryKey) return;
@@ -311,11 +327,13 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       has_username_search: username.trim().length > 0,
       echo_set_count: echoSets.length,
       echo_main_count: echoMains.length,
+      seq_active: seqMin !== null || seqMax !== null,
+      stat_filter_count: statFilters.length,
       sort,
       direction,
       page_size: pageSize,
     });
-  }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, settledQueryKey, sort, track, uid, username, weaponId]);
+  }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, seqMax, seqMin, settledQueryKey, sort, statFilters.length, track, uid, username, weaponId]);
 
   // Fetch leaderboard data. Runs when the view changes (queryKey) or a fresh deep link needs resolving.
   useEffect(() => {
@@ -453,15 +471,48 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     setPage(1);
   }, [setEchoMains, setPage]);
 
+  const setSequence = useCallback((min: number | null, max: number | null) => {
+    setSeqMin(min);
+    setSeqMax(max);
+    setPage(1);
+  }, [setSeqMin, setSeqMax, setPage]);
+
+  const clearSequence = useCallback(() => {
+    setSeqMin(null);
+    setSeqMax(null);
+    setPage(1);
+  }, [setSeqMin, setSeqMax, setPage]);
+
+  const addStatFilter = useCallback((filter: LBStatThreshold) => {
+    setStatFilters((prev) => {
+      const existing = prev.findIndex((entry) => entry.stat === filter.stat && entry.op === filter.op);
+      if (existing >= 0) {
+        const next = [...prev];
+        next[existing] = filter;
+        return next;
+      }
+      return [...prev, filter];
+    });
+    setPage(1);
+  }, [setStatFilters, setPage]);
+
+  const removeStatFilter = useCallback((index: number) => {
+    setStatFilters((prev) => prev.filter((_, i) => i !== index));
+    setPage(1);
+  }, [setStatFilters, setPage]);
+
   const clearAllFilters = useCallback(() => {
     setRegionPrefixes([]);
     setUid('');
     setUsername('');
     setEchoSets([]);
     setEchoMains([]);
+    setSeqMin(null);
+    setSeqMax(null);
+    setStatFilters([]);
     setFilterQuery('');
     setPage(1);
-  }, [setEchoMains, setEchoSets, setFilterQuery, setPage, setRegionPrefixes, setUid, setUsername]);
+  }, [setEchoMains, setEchoSets, setFilterQuery, setPage, setRegionPrefixes, setSeqMax, setSeqMin, setStatFilters, setUid, setUsername]);
 
   // Computed
   const character = characters.find((c) => c.id === characterId) ?? null;
@@ -502,11 +553,14 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     uid.trim().length > 0 ||
     username.trim().length > 0 ||
     echoSets.length > 0 ||
-    echoMains.length > 0
+    echoMains.length > 0 ||
+    seqMin !== null ||
+    seqMax !== null ||
+    statFilters.length > 0
   );
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
-  const activeMetricLabel = 'Score';
+  const activeMetricLabel = scoring === 'raw' ? 'Damage' : 'Score';
   const rankStart = (() => {
     if (total <= 0) return 1;
     if (page === normalizedPageCount) return Math.max(1, total - displayEntries.length + 1);
@@ -559,6 +613,18 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                   setTrack(trackKey);
                   setPage(1);
                 }}
+                scoring={scoring}
+                onSelectScoring={(mode) => {
+                  posthog.capture('leaderboard_tab_change', {
+                    character_id: characterId,
+                    weapon_id: weaponId || null,
+                    track_key: track,
+                    tab_kind: 'scoring',
+                    scoring: mode,
+                  });
+                  setScoring(mode);
+                  setPage(1);
+                }}
               />
               <div className="relative z-40">
                 <BuildFiltersPanel
@@ -577,6 +643,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                   regionPrefixes={regionPrefixes}
                   selectedSetEntries={selectedSetEntries}
                   selectedMainEntries={selectedMainEntries}
+                  seqMin={seqMin}
+                  seqMax={seqMax}
+                  statFilters={statFilters}
                   username={username}
                   uid={uid}
                   setOptions={setOptions}
@@ -595,11 +664,17 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                   onRemoveRegion={(value) => { setRegionPrefixes((prev) => prev.filter((r) => r !== value)); setPage(1); }}
                   onRemoveSetEntry={(index) => { setEchoSets((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
                   onRemoveMainEntry={(index) => { setEchoMains((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
+                  onSetSequence={setSequence}
+                  onClearSequence={clearSequence}
+                  onAddStatFilter={addStatFilter}
+                  onRemoveStatFilter={removeStatFilter}
                   onClearUsername={() => { setUsername(''); setPage(1); }}
                   onClearUid={() => { setUid(''); setPage(1); }}
                   onBackspaceRemove={() => {
                     if (uid) { setUid(''); setPage(1); return; }
                     if (username) { setUsername(''); setPage(1); return; }
+                    if (statFilters.length > 0) { setStatFilters((prev) => prev.slice(0, -1)); setPage(1); return; }
+                    if (seqMin !== null || seqMax !== null) { setSeqMin(null); setSeqMax(null); setPage(1); return; }
                     if (echoMains.length > 0) { setEchoMains((prev) => prev.slice(0, -1)); setPage(1); return; }
                     if (echoSets.length > 0) { setEchoSets((prev) => prev.slice(0, -1)); setPage(1); return; }
                     if (regionPrefixes.length > 0) { setRegionPrefixes((prev) => prev.slice(0, -1)); setPage(1); }
@@ -615,6 +690,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 activeWeaponId={weaponId}
                 activeTrackKey={track}
                 erTarget={erTarget}
+                scoring={scoring}
                 metricLabel={activeMetricLabel}
                 expandedIds={expandedIds}
                 detailById={detailById}

@@ -34,6 +34,8 @@ interface LeaderboardRowProps {
   activeTrackKey: string;
   /** Active track's ER target; tints the ER stat cell and enables the raw damage tooltip. */
   erTarget?: number;
+  /** Whether ER is scored on the current view. Raw mode passes false to neutralize the ER tint. */
+  erScored?: boolean;
   /** Board-level stat columns from the backend; overrides the per-row heuristic when present. */
   boardStatColumns?: StatSortKey[] | null;
   sort: LBLeaderboardSortKey;
@@ -56,6 +58,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
   activeTrackKey,
   boardStatColumns,
   erTarget = 0,
+  erScored = true,
   sort,
   isCvColumnActive,
   isStatSortActive,
@@ -272,7 +275,8 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
             const iconFilter = ELEMENT_ICON_FILTERS[label];
             const shouldDimRowStat = isStatSortActive && statIndex > 0;
             // ER vs the board target: at/above = met (green), below = score-scaled (red).
-            const isErColumn = columnKey === 'energy_regen' && erTarget > 0;
+            // In Raw mode ER is not scored, so the tint is suppressed (ER reads as a plain stat).
+            const isErColumn = columnKey === 'energy_regen' && erTarget > 0 && erScored;
             const erMet = isErColumn && value >= erTarget;
             const erValueClass = isErColumn
               ? erMet

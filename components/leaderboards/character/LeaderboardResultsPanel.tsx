@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortDirection } from '@/lib/lb';
-import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, STAT_OPTION_KEYS, TABLE_ROW_HEIGHT_CLASS } from '../constants';
+import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, ScoringMode, STAT_OPTION_KEYS, TABLE_ROW_HEIGHT_CLASS } from '../constants';
 import { getSortLabel } from '../formatters';
 import { BuildPagination } from '../BuildPagination';
 import { SortHeaderMenu, SortMenuOption } from '../SortHeaderMenu';
@@ -25,6 +25,8 @@ interface LeaderboardResultsPanelProps {
   activeTrackKey: string;
   /** Active track's ER target; drives the ER stat cell tint. */
   erTarget?: number;
+  /** Board scoring lens. 'raw' re-values/re-ranks the visible page by pure damage. */
+  scoring?: ScoringMode;
   metricLabel: string;
   expandedIds: Set<string>;
   detailById: Record<string, LBBuildDetailEntry>;
@@ -55,6 +57,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   activeWeaponId,
   activeTrackKey,
   erTarget = 0,
+  scoring = 'adjusted',
   metricLabel,
   expandedIds,
   detailById,
@@ -106,6 +109,11 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   const cvSort: CVSortKey = (sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg') ? sort : 'finalCV';
   const isCvColumnActive = sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg';
   const isStatSortActive = STAT_OPTION_KEYS.includes(sort as StatSortKey);
+
+  // Raw lens: the backend (scoring=raw) already returns rows ordered, ranked, and
+  // valued by pure rotation damage, so the panel only drops the ER cell tint (ER
+  // is shown but not scored). erTarget === 0 boards have no penalty, so raw ≡ Score.
+  const isRawMode = scoring === 'raw' && erTarget > 0;
 
   const statOptions = useMemo<SortMenuOption[]>(() => (
     STAT_OPTION_KEYS.map((key) => {
@@ -311,6 +319,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         activeWeaponId={activeWeaponId}
                         activeTrackKey={activeTrackKey}
                         erTarget={erTarget}
+                        erScored={!isRawMode}
                         boardStatColumns={boardColumns ? displayStatColumns : null}
                         sort={sort}
                         isCvColumnActive={isCvColumnActive}

@@ -103,7 +103,7 @@ export function getLBStatCode(sortKey: LBStatSortKey): LBStatCode {
   return LB_STAT_CODE_BY_SORT_KEY[sortKey];
 }
 
-function isLBStatSortKey(value: unknown): value is LBStatSortKey {
+export function isLBStatSortKey(value: unknown): value is LBStatSortKey {
   return typeof value === 'string' && LB_STAT_SORT_KEY_SET.has(value as LBStatSortKey);
 }
 
@@ -200,6 +200,21 @@ function serializeEchoMainFilters(filters: LBEchoMainFilter[] | undefined): stri
   return filters.map((entry) => `${entry.cost}-${toMainStatApiValue(entry.statType)}`).join('.');
 }
 
+// Appends structured build filters shared by /build and /leaderboard: a card-sequence
+// range (seqMin/seqMax) and repeated stat thresholds (`stat=<sortKey>:<op>:<value>`).
+function appendBuildFilterParams(
+  params: URLSearchParams,
+  query: { seqMin?: number; seqMax?: number; statFilters?: LBStatThreshold[] },
+): void {
+  if (Number.isFinite(query.seqMin)) params.set('seqMin', String(query.seqMin));
+  if (Number.isFinite(query.seqMax)) params.set('seqMax', String(query.seqMax));
+  for (const filter of query.statFilters ?? []) {
+    if (!isLBStatSortKey(filter.stat) || !Number.isFinite(filter.value)) continue;
+    if (filter.op !== 'gte' && filter.op !== 'lte') continue;
+    params.append('stat', `${filter.stat}:${filter.op}:${filter.value}`);
+  }
+}
+
 export interface LBEchoSetFilter {
   count: number;
   setId: number;
@@ -208,6 +223,15 @@ export interface LBEchoSetFilter {
 export interface LBEchoMainFilter {
   cost: number;
   statType: string;
+}
+
+export type LBStatFilterOp = 'gte' | 'lte';
+
+/** A single "stat ≥/≤ value" threshold. Serialized as `stat=<sortKey>:<op>:<value>`. */
+export interface LBStatThreshold {
+  stat: LBStatSortKey;
+  op: LBStatFilterOp;
+  value: number;
 }
 
 interface LBListBuildsQuery {
@@ -222,6 +246,9 @@ interface LBListBuildsQuery {
   regionPrefixes?: string[];
   echoSets?: LBEchoSetFilter[];
   echoMains?: LBEchoMainFilter[];
+  seqMin?: number;
+  seqMax?: number;
+  statFilters?: LBStatThreshold[];
 }
 
 interface LBBuildOwner {
@@ -498,6 +525,7 @@ function buildBuildListSearchParams(query: LBListBuildsQuery, includeOwnerFilter
   if (echoMains) {
     params.set('echoMains', echoMains);
   }
+  appendBuildFilterParams(params, query);
 
   return params;
 }
@@ -911,8 +939,13 @@ export interface LBLeaderboardQuery {
   regionPrefixes?: string[];
   echoSets?: LBEchoSetFilter[];
   echoMains?: LBEchoMainFilter[];
+  seqMin?: number;
+  seqMax?: number;
+  statFilters?: LBStatThreshold[];
   track?: string;
   buildId?: string;
+  /** Scoring lens. 'raw' ranks the board by pure rotation damage (ER shown, not scored). */
+  scoring?: 'adjusted' | 'raw';
 }
 
 export interface LBLeaderboardResponse {
@@ -1178,11 +1211,13 @@ export function buildLeaderboardSearchParams(query: LBLeaderboardQuery): URLSear
   if (query.uid) params.set('uid', query.uid);
   if (query.username) params.set('username', query.username);
   if (query.buildId) params.set('buildId', query.buildId);
+  if (query.scoring === 'raw') params.set('scoring', 'raw');
   appendStringParams(params, 'region', query.regionPrefixes);
   const leaderboardEchoSets = serializeEchoSetFilters(query.echoSets);
   if (leaderboardEchoSets) params.set('echoSets', leaderboardEchoSets);
   const leaderboardEchoMains = serializeEchoMainFilters(query.echoMains);
   if (leaderboardEchoMains) params.set('echoMains', leaderboardEchoMains);
+  appendBuildFilterParams(params, query);
   return params;
 }
 
