@@ -10,7 +10,7 @@ import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { toMainStatLabel, toMainStatUrlKey } from '@/lib/mainStatFilters';
 import { getWeaponPaths } from '@/lib/paths';
 import { Weapon } from '@/lib/weapon';
-import { MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE, REGION_OPTIONS, SEQUENCE_LEVELS, SEQUENCE_TOGGLE_COLORS, sequenceChipSummary, SORT_OPTIONS, STAT_FILTER_OPTION_KEYS } from './constants';
+import { MAIN_STAT_OPTIONS, MAX_ITEMS_PER_PAGE, REGION_OPTIONS, SEQUENCE_LEVELS, SEQUENCE_TOGGLE_COLORS, sequenceChipSummary, SORT_OPTIONS, STAT_OPTION_KEYS } from './constants';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from './types';
 
 type VisibleFilterItem =
@@ -207,10 +207,10 @@ const dropdownSectionHeaderClass = 'border-b border-border/60 bg-background-seco
 // code, e.g. "er") prefills the builder. Needs ≥2 chars to avoid noisy single-letter hits.
 function matchStatByQuery(query: string): LBStatSortKey | null {
   if (query.length < 2) return null;
-  for (const key of STAT_FILTER_OPTION_KEYS) {
+  for (const key of STAT_OPTION_KEYS) {
     if (getLBStatCode(key).toLowerCase() === query) return key;
   }
-  for (const key of STAT_FILTER_OPTION_KEYS) {
+  for (const key of STAT_OPTION_KEYS) {
     if (getLBStatLabel(key).toLowerCase().includes(query)) return key;
   }
   return null;
@@ -397,12 +397,12 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const pinStatSection = normalizedQuery !== '' && statQueryMatch !== null;
 
   const visibleStatOptions = useMemo(() => {
-    if (!normalizedQuery || !showStatSection) return STAT_FILTER_OPTION_KEYS;
-    const matched = STAT_FILTER_OPTION_KEYS.filter((key) => (
+    if (!normalizedQuery || !showStatSection) return STAT_OPTION_KEYS;
+    const matched = STAT_OPTION_KEYS.filter((key) => (
       getLBStatCode(key).toLowerCase().includes(normalizedQuery) ||
       getLBStatLabel(key).toLowerCase().includes(normalizedQuery)
     ));
-    return matched.length > 0 ? matched : STAT_FILTER_OPTION_KEYS;
+    return matched.length > 0 ? matched : STAT_OPTION_KEYS;
   }, [normalizedQuery, showStatSection]);
 
   const handleFilterQueryChange = (value: string) => {

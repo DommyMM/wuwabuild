@@ -1,6 +1,6 @@
-import { isLBStatSortKey, LBEchoMainFilter, LBEchoSetFilter, LBStatThreshold } from '@/lib/lb';
+import { LBEchoMainFilter, LBEchoSetFilter, LBStatThreshold } from '@/lib/lb';
 import { toMainStatUrlKey } from '@/lib/mainStatFilters';
-import { normalizeSequences } from './constants';
+import { normalizeSequences, STAT_OPTION_KEYS } from './constants';
 
 export function parsePositiveInt(value: string | null, fallback: number): number {
   const parsed = Number.parseInt(value ?? '', 10);
@@ -63,7 +63,7 @@ export function parseStatThresholds(value: string | null): LBStatThreshold[] {
     .split('.')
     .map((entry) => {
       const [stat, op, rawValue] = entry.split(':');
-      if (!isLBStatSortKey(stat)) return null;
+      if (!STAT_OPTION_KEYS.includes(stat as (typeof STAT_OPTION_KEYS)[number])) return null;
       if (op !== 'gte' && op !== 'lte') return null;
       const num = Number(rawValue);
       if (!Number.isFinite(num)) return null;
@@ -74,5 +74,8 @@ export function parseStatThresholds(value: string | null): LBStatThreshold[] {
 
 /** Serialize stat thresholds into the dot-joined URL form used by parseStatThresholds. */
 export function serializeStatThresholds(filters: LBStatThreshold[]): string {
-  return filters.map((entry) => `${entry.stat}:${entry.op}:${entry.value}`).join('.');
+  return filters
+    .filter((entry) => STAT_OPTION_KEYS.includes(entry.stat as (typeof STAT_OPTION_KEYS)[number]))
+    .map((entry) => `${entry.stat}:${entry.op}:${entry.value}`)
+    .join('.');
 }

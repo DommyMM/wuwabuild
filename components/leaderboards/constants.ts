@@ -142,16 +142,6 @@ export function sequenceChipSummary(levels: number[]): string | null {
   return `Seq: ${sorted.map((n) => `S${n}`).join(', ')}`;
 }
 
-// Stat-threshold builder options: every stored/board stat that can carry a
-// numeric floor/ceiling, ordered crit → base → bonuses → element.
-export const STAT_FILTER_OPTION_KEYS: readonly LBStatSortKey[] = [
-  'crit_rate', 'crit_dmg',
-  'atk', 'atk_pct', 'hp', 'hp_pct', 'def', 'def_pct',
-  'energy_regen', 'healing_bonus',
-  'basic_attack_dmg', 'heavy_attack_dmg', 'resonance_skill_dmg', 'resonance_liberation_dmg',
-  'aero_dmg', 'glacio_dmg', 'fusion_dmg', 'electro_dmg', 'havoc_dmg', 'spectro_dmg',
-];
-
 // Table Layout
 
 export const TABLE_GRID = 'grid-cols-[48px_160px_140px_72px_72px_108px_minmax(0,1fr)]';
