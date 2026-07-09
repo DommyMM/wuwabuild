@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-09',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Raw Damage leaderboard mode is now shareable in the URL, and expanded build tools clarify which projections still use Score'
+            }
+        ]
+    },
+    {
         date: '2026-07-08',
         changes: [
             {

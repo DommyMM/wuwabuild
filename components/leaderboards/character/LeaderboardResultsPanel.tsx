@@ -320,6 +320,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         activeTrackKey={activeTrackKey}
                         erTarget={erTarget}
                         erScored={!isRawMode}
+                        scoring={scoring}
                         boardStatColumns={boardColumns ? displayStatColumns : null}
                         sort={sort}
                         isCvColumnActive={isCvColumnActive}

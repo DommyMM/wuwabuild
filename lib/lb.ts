@@ -307,6 +307,11 @@ export interface LBSubstatUpgradeTierSet {
   minRank: Record<string, number>;
   medianRank: Record<string, number>;
   maxRank: Record<string, number>;
+  /** Canonical Score for the current board, returned by the upgrades endpoint. */
+  baseDamage?: number;
+  /** Canonical Score rank for the current board, when visible/projectable. */
+  currentRank?: number;
+  currentRankVisible?: boolean;
 }
 
 interface LBListBuildsResponseRaw {
@@ -914,7 +919,7 @@ export interface LBLeaderboardEntry {
   cvPenalty: number;
   finalCV: number;
   timestamp: string;
-  /** Board Score: rotation damage × min(1, ER/erTarget). */
+  /** Active board metric: Score by default, or raw Damage when scoring=raw. */
   damage: number;
   globalRank: number;
   /** RFC3339 start of the current rank-1 hold; only set on the #1 row of the board. */
@@ -1336,8 +1341,20 @@ export async function getBuildSubstatUpgrades(
     throw new Error(`Failed to fetch substat upgrades (${response.status})`);
   }
 
-  const payload = await response.json() as { weaponId?: unknown; track?: unknown; tiers?: unknown };
+  const payload = await response.json() as {
+    weaponId?: unknown;
+    track?: unknown;
+    baseDamage?: unknown;
+    currentRank?: unknown;
+    currentRankVisible?: unknown;
+    tiers?: unknown;
+  };
   const parsed = parseUpgradeTierSet(payload.tiers);
+  if (parsed) {
+    parsed.baseDamage = toFiniteNumber(payload.baseDamage, 0);
+    parsed.currentRank = toFiniteNumber(payload.currentRank, 0);
+    parsed.currentRankVisible = Boolean(payload.currentRankVisible);
+  }
 
   console.log('[LB] /build/{id}/substat-upgrades payload', {
     requestUrl,

@@ -119,7 +119,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   // Scoring lens (client-side view mode over the same board): 'adjusted' = canonical
   // ER-scaled Score, 'raw' = pure damage. Raw re-sorts the visible page client-side;
   // cross-page raw ranking is a backend sort=raw follow-up.
-  const [scoring, setScoring] = useState<ScoringMode>(DEFAULT_SCORING);
+  const [scoring, setScoring] = useState<ScoringMode>(() => initialSnapshot.scoring ?? DEFAULT_SCORING);
 
   const leaderboardSigRef = useRef(leaderboardSignature(initialEntries, initialData?.total ?? 0));
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialEntries);
@@ -192,16 +192,14 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     echoMains,
     sequences,
     statFilters,
+    scoring,
   }, {
     defaultWeaponId,
     defaultTrack: defaultTrackKey,
-  }), [defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sequences, sort, statFilters, track, uid, username, weaponId]);
+  }), [defaultTrackKey, defaultWeaponId, direction, echoMains, echoSets, page, pageSize, regionPrefixes, scoring, sequences, sort, statFilters, track, uid, username, weaponId]);
   const leaderboardQuery = useMemo(
-    () => ({
-      ...leaderboardSnapshotToApiQuery(currentQuerySnapshot),
-      scoring: scoring === 'raw' ? ('raw' as const) : undefined,
-    }),
-    [currentQuerySnapshot, scoring],
+    () => leaderboardSnapshotToApiQuery(currentQuerySnapshot),
+    [currentQuerySnapshot],
   );
 
   // Serialized "view" (everything except the deep-link buildId): used to anchor the reveal and to re-pin
@@ -304,10 +302,11 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     echoMains,
     sequences,
     statFilters,
+    scoring,
     sort,
     direction,
     pageSize,
-  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sequences, statFilters, sort, direction, pageSize]);
+  }), [characterId, weaponId, track, uid, username, regionPrefixes, echoSets, echoMains, sequences, statFilters, scoring, sort, direction, pageSize]);
 
   useEffect(() => {
     if (!settledQueryKey) return;
@@ -326,11 +325,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       echo_main_count: echoMains.length,
       seq_count: sequences.length,
       stat_filter_count: statFilters.length,
+      scoring,
       sort,
       direction,
       page_size: pageSize,
     });
-  }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, sequences.length, settledQueryKey, sort, statFilters.length, track, uid, username, weaponId]);
+  }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, scoring, sequences.length, settledQueryKey, sort, statFilters.length, track, uid, username, weaponId]);
 
   // Fetch leaderboard data. Runs when the view changes (queryKey) or a fresh deep link needs resolving.
   useEffect(() => {
@@ -474,6 +474,11 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         ? prev.filter((entry) => entry !== level)
         : normalizeSequences([...prev, level])
     ));
+    setPage(1);
+  }, [setPage, setSequences]);
+
+  const setSequenceLevels = useCallback((levels: number[]) => {
+    setSequences(normalizeSequences(levels));
     setPage(1);
   }, [setPage, setSequences]);
 
@@ -660,6 +665,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                   onRemoveRegion={(value) => { setRegionPrefixes((prev) => prev.filter((r) => r !== value)); setPage(1); }}
                   onRemoveSetEntry={(index) => { setEchoSets((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
                   onRemoveMainEntry={(index) => { setEchoMains((prev) => prev.filter((_, i) => i !== index)); setPage(1); }}
+                  onSetSequences={setSequenceLevels}
                   onToggleSequence={toggleSequence}
                   onClearSequence={clearSequence}
                   onAddStatFilter={addStatFilter}

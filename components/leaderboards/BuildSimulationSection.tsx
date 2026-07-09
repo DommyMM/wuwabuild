@@ -11,7 +11,7 @@ import { getBoardOptimality, getBuildMoves, getBuildStandings, getBuildSubstatUp
 import { BuildMoveBreakdown } from './BuildMoveBreakdown';
 import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
 import { BuildStandingsTable } from './BuildStandingsTable';
-import { RegionBadge } from './constants';
+import { RegionBadge, ScoringMode } from './constants';
 
 const BuildOptimalityPanel = dynamic(() => import('./BuildOptimalityPanel').then((module) => module.BuildOptimalityPanel), {
   ssr: false,
@@ -175,6 +175,7 @@ interface BuildSimulationSectionProps {
   isExpanded: boolean;
   baseDamage?: number;
   globalRank?: number;
+  currentScoring?: ScoringMode;
   onViewInEditor?: () => void;
 }
 
@@ -190,6 +191,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   isExpanded,
   baseDamage,
   globalRank,
+  currentScoring = 'adjusted',
   onViewInEditor,
 }) => {
   const { getWeapon, getSubstatValues, getSubstatRollProbabilities, statIcons, statTranslations } = useGameData();
@@ -235,7 +237,17 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const shouldLoadMoves = isExpanded && isMovesOpen;
   const shouldLoadUpgrades = isExpanded && isUpgradesOpen;
   const shouldLoadOptimality = isExpanded && isOptimalityOpen && hasBoardContext;
-  const showUpgradeRankDelta = (globalRank ?? 0) > 0;
+  const scoreBaseDamage = activeUpgrades?.baseDamage && activeUpgrades.baseDamage > 0
+    ? activeUpgrades.baseDamage
+    : currentScoring === 'raw'
+      ? undefined
+      : baseDamage;
+  const scoreGlobalRank = activeUpgrades?.currentRank && activeUpgrades.currentRank > 0
+    ? activeUpgrades.currentRank
+    : currentScoring === 'raw'
+      ? undefined
+      : globalRank;
+  const showUpgradeRankDelta = (scoreGlobalRank ?? 0) > 0;
 
   const loadMoves = useCallback((controller: AbortController) => {
     setLoadingMoveKeys((prev) => ({ ...prev, [moveKey]: true }));
@@ -422,7 +434,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   }, [activeUpgrades, statIcons, statTranslations, t]);
 
   const upgradeColumns = useMemo<OrderedUpgradeColumn[]>(() => {
-    if (!activeUpgrades || !Number.isFinite(baseDamage) || (baseDamage ?? 0) <= 0) {
+    if (!activeUpgrades || !Number.isFinite(scoreBaseDamage) || (scoreBaseDamage ?? 0) <= 0) {
       return [];
     }
 
@@ -443,9 +455,9 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           selectedUpgradeTier,
           getSubstatRollProbabilities(label),
         ) ?? 0;
-        const percentGain = gain > 0 ? (gain / (baseDamage ?? 1)) * 100 : 0;
+        const percentGain = gain > 0 ? (gain / (scoreBaseDamage ?? 1)) * 100 : 0;
         const projectedRank = tierRankMap[key] ?? 0;
-        const rankDelta = showUpgradeRankDelta ? ((globalRank ?? 0) - projectedRank) : 0;
+        const rankDelta = showUpgradeRankDelta ? ((scoreGlobalRank ?? 0) - projectedRank) : 0;
 
         return {
           key,
@@ -454,7 +466,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           icon,
           rollValue,
           gain,
-          result: (baseDamage ?? 0) + gain,
+          result: (scoreBaseDamage ?? 0) + gain,
           percentGain,
           isPercent,
           projectedRank,
@@ -463,7 +475,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
         };
       })
       .filter((column) => column.gain > 0);
-  }, [activeUpgrades, baseDamage, getSubstatRollProbabilities, getSubstatValues, globalRank, selectedUpgradeTier, showUpgradeRankDelta, statIcons, statTranslations, t]);
+  }, [activeUpgrades, getSubstatRollProbabilities, getSubstatValues, scoreBaseDamage, scoreGlobalRank, selectedUpgradeTier, showUpgradeRankDelta, statIcons, statTranslations, t]);
 
   const orderedUpgradeColumns = useMemo(
     () => canonicalUpgradeSort(upgradeColumns, statTranslations),
@@ -520,19 +532,26 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           </div>
 
           {isUpgradesOpen && (
-            <BuildSubstatUpgrades
-              isLoading={upgradesLoading}
-              error={upgradesError}
-              hasUpgradeData={upgradeRows.length > 0}
-              hasBaseDamage={Boolean(baseDamage)}
-              baseDamage={baseDamage}
-              globalRank={globalRank}
-              showRankDelta={showUpgradeRankDelta}
-              tierOptions={UPGRADE_TIER_OPTIONS}
-              selectedTier={selectedUpgradeTier}
-              onSelectTier={(tier) => setSelectedUpgradeTier(tier as UpgradeTierKey)}
-              orderedUpgradeColumns={orderedUpgradeColumns}
-            />
+            <div className="space-y-2">
+              {currentScoring === 'raw' && (
+                <p className="text-center text-xs leading-snug text-text-primary/45">
+                  Substat projections use Score, matching official ranks and upgrade deltas.
+                </p>
+              )}
+              <BuildSubstatUpgrades
+                isLoading={upgradesLoading}
+                error={upgradesError}
+                hasUpgradeData={upgradeRows.length > 0}
+                hasBaseDamage={Boolean(scoreBaseDamage)}
+                baseDamage={scoreBaseDamage}
+                globalRank={scoreGlobalRank}
+                showRankDelta={showUpgradeRankDelta}
+                tierOptions={UPGRADE_TIER_OPTIONS}
+                selectedTier={selectedUpgradeTier}
+                onSelectTier={(tier) => setSelectedUpgradeTier(tier as UpgradeTierKey)}
+                orderedUpgradeColumns={orderedUpgradeColumns}
+              />
+            </div>
           )}
         </>
       )}
@@ -561,6 +580,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
             hasBoardContext={hasBoardContext}
             activeWeaponId={activeWeaponId}
             activeTrackKey={activeTrackKey}
+            currentScoring={currentScoring}
           />
         </section>
       )}
@@ -585,7 +605,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               data={optimality}
               loading={optimalityLoading}
               error={optimalityError}
-              baseDamage={baseDamage}
+              baseDamage={scoreBaseDamage}
               buildDetail={buildDetail}
               character={character}
               characterName={characterName}

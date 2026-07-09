@@ -1,4 +1,4 @@
-import { clampItemsPerPage, ITEMS_PER_PAGE } from '../constants';
+import { clampItemsPerPage, DEFAULT_SCORING, ITEMS_PER_PAGE, ScoringMode } from '../constants';
 import { LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardQuery, LBLeaderboardSortKey, LBSortDirection, LBStatThreshold, LBTrack, normalizeLBLeaderboardSortKey, toLBApiSortKey } from '@/lib/lb';
 import { parsePositiveInt, parseCSV, parseEchoSetCSV, parseEchoMainCSV, parseSequences, parseStatThresholds, serializeStatThresholds } from '../queryHelpers';
 import { DEFAULT_LB_SORT, DEFAULT_LB_TRACK } from '../constants';
@@ -17,6 +17,7 @@ interface LeaderboardQuerySnapshot {
   echoMains: LBEchoMainFilter[];
   sequences: number[];
   statFilters: LBStatThreshold[];
+  scoring: ScoringMode;
   /** Deep-link: auto-expand this build. Sent to API for ghost build resolution. */
   buildId: string;
 }
@@ -71,6 +72,10 @@ function resolveTrackKey(
   return defaultTrack;
 }
 
+function resolveScoringMode(value: string | null | undefined): ScoringMode {
+  return value === 'raw' ? 'raw' : DEFAULT_SCORING;
+}
+
 export function resolveLeaderboardQuerySnapshot(
   snapshot: Partial<LeaderboardQuerySnapshot>,
   defaults: LeaderboardQueryDefaults = {},
@@ -96,6 +101,7 @@ export function resolveLeaderboardQuerySnapshot(
     echoMains: snapshot.echoMains ?? [],
     sequences: snapshot.sequences ?? [],
     statFilters: snapshot.statFilters ?? [],
+    scoring: resolveScoringMode(snapshot.scoring),
     buildId: snapshot.buildId?.trim() ?? '',
   };
 }
@@ -126,6 +132,7 @@ export function parseInitialLeaderboardQuery(
     echoMains: parseEchoMainCSV(searchParams.get('mains')),
     sequences: parseSequences(searchParams.get('seq')),
     statFilters: parseStatThresholds(searchParams.get('stats')),
+    scoring: resolveScoringMode(searchParams.get('scoring')),
   }, {
     defaultPage,
     defaultPageSize,
@@ -165,6 +172,7 @@ export function serializeLeaderboardQuery(
   }
   if (resolved.sequences.length) params.set('seq', resolved.sequences.join(','));
   if (resolved.statFilters.length) params.set('stats', serializeStatThresholds(resolved.statFilters));
+  if (resolved.scoring === 'raw') params.set('scoring', 'raw');
   return params.toString();
 }
 
@@ -196,6 +204,7 @@ export function leaderboardSnapshotToApiQuery(
     echoMains: resolved.echoMains.length ? resolved.echoMains : undefined,
     sequences: resolved.sequences.length ? resolved.sequences : undefined,
     statFilters: resolved.statFilters.length ? resolved.statFilters : undefined,
+    scoring: resolved.scoring === 'raw' ? 'raw' : undefined,
     buildId: resolved.buildId || undefined,
   };
 }

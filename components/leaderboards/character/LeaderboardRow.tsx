@@ -8,7 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { getBuildCVRatingColor } from '@/lib/calculations/rollValues';
 import { getLBStatCode, LBBuildDetailEntry, LBBuildEchoSummary, LBBuildRowEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortKey } from '@/lib/lb';
-import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '../constants';
+import { ACTIVE_SORT_COLUMN_CLASS, ScoringMode, TABLE_ROW_HEIGHT_CLASS } from '../constants';
 import { formatReignHoldLabel, formatReignSinceDate, formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
 import { StatSortKey } from '../types';
@@ -36,6 +36,8 @@ interface LeaderboardRowProps {
   erTarget?: number;
   /** Whether ER is scored on the current view. Raw mode passes false to neutralize the ER tint. */
   erScored?: boolean;
+  /** Current leaderboard metric lens; standings remain canonical Score but can explain that context. */
+  scoring?: ScoringMode;
   /** Board-level stat columns from the backend; overrides the per-row heuristic when present. */
   boardStatColumns?: StatSortKey[] | null;
   sort: LBLeaderboardSortKey;
@@ -59,6 +61,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
   boardStatColumns,
   erTarget = 0,
   erScored = true,
+  scoring = 'adjusted',
   sort,
   isCvColumnActive,
   isStatSortActive,
@@ -343,6 +346,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
           activeTrackKey={activeTrackKey}
           activeBoardDamage={entry.damage}
           globalRank={entry.globalRank}
+          currentScoring={scoring}
           surface="leaderboard_character"
           animateInitialExpand
         />

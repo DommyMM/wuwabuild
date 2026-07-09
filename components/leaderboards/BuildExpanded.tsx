@@ -11,7 +11,7 @@ import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { saveDraftBuild } from '@/lib/storage';
 import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
-import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL, RegionBadge } from './constants';
+import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL, RegionBadge, ScoringMode } from './constants';
 import { formatFlatStat, formatPercentStat } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
@@ -121,6 +121,7 @@ interface BuildExpandedProps {
   activeTrackKey?: string;
   activeBoardDamage?: number;
   globalRank?: number;
+  currentScoring?: ScoringMode;
   surface?: 'builds' | 'leaderboard_character';
   animateInitialExpand?: boolean;
 }
@@ -148,6 +149,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   activeTrackKey,
   activeBoardDamage,
   globalRank,
+  currentScoring = 'adjusted',
   surface = 'builds',
   animateInitialExpand = false,
 }) => {
@@ -422,6 +424,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   isExpanded={isExpanded}
                   baseDamage={activeBoardDamage}
                   globalRank={globalRank}
+                  currentScoring={currentScoring}
                   onViewInEditor={handleViewBuild}
                 />
               )}

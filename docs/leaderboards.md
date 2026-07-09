@@ -43,6 +43,8 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 
 - `entry.damage` is the board Score: rotation damage × `min(1, ER / track.erTarget)`. There is no separate "unfiltered" vs "bracketed" board anymore — one ranked list per weapon/track, ER-scaled in place. The old ER bracket tabs (`?erMin=`) are gone.
 - `LBTrack.erTarget` (0/absent = no ER requirement) drives the ER stat cell tint in `LeaderboardRow` (green at/above target, red below). Character boards expose two metric lenses: `Score` is the default ER-adjusted value, while `Damage` is the raw pre-ER-scaling lens. Raw damage is derived from Score and the row's ER value; it is not stored separately.
+- Raw mode is shareable as `?scoring=raw`; default Score mode omits `scoring` from the URL. `entry.damage` follows the active lens on character-board rows.
+- Build standings (`/leaderboard/{characterId}/build/{buildId}/standings`), substat upgrade projections, and benchmark comparisons remain canonical Score rankings/calculations. When shown from a raw Damage page, the UI keeps `Score` labels or context notes instead of implying raw cross-board ranks.
 - Reigns and dedup are no longer conditioned on an `erMin` state; `showReignHold` in `LeaderboardRow` only checks rank/ghost.
 
 ## Competitive vs Browse Behavior

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useGameData } from '@/contexts/GameDataContext';
 import { LBStandingEntry, LBTeamMemberConfig } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
-import { ITEMS_PER_PAGE } from './constants';
+import { ITEMS_PER_PAGE, ScoringMode } from './constants';
 import { buildLeaderboardHref } from './character/leaderboardCharacterQuery';
 
 interface BuildStandingsTableProps {
@@ -20,6 +20,8 @@ interface BuildStandingsTableProps {
   hasBoardContext: boolean;
   activeWeaponId: string;
   activeTrackKey: string;
+  /** Current surrounding page lens. Standings data itself remains canonical Score. */
+  currentScoring?: ScoringMode;
   /** Horizontal alignment of the table. Defaults to centered (leaderboard use);
    *  the editor's rank simulation passes "left" so it sits in its column. */
   align?: 'center' | 'left';
@@ -35,6 +37,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
   hasBoardContext,
   activeWeaponId,
   activeTrackKey,
+  currentScoring = 'adjusted',
   align = 'center',
 }) => {
   const { getWeapon, getCharacter } = useGameData();
@@ -63,8 +66,16 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
     return <p className="text-center text-xs text-text-primary/40">This build isn&apos;t on any leaderboard yet.</p>;
   }
 
+  const showScoreContext = currentScoring === 'raw';
+
   return (
-    <table className={`${alignClass} border-collapse text-sm`}>
+    <div className={alignClass ? `${alignClass} w-fit` : 'w-fit'}>
+      {showScoreContext && (
+        <p className="mb-2 text-center text-xs leading-snug text-text-primary/45">
+          Cross-board rank uses Score. Damage mode only changes the opened board&apos;s raw metric.
+        </p>
+      )}
+      <table className="border-collapse text-sm">
       <thead>
         <tr className="border-b border-border/55 text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
           <th className="min-w-20 bg-background-secondary/48 py-2 pr-4 pl-3 text-left">Rank</th>
@@ -150,6 +161,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
           );
         })}
       </tbody>
-    </table>
+      </table>
+    </div>
   );
 };
