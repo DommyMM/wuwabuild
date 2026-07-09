@@ -12,10 +12,15 @@ interface SequenceStripProps {
   sequence: number;
   element: string;
   characterName?: I18nString;
+  /**
+   * Overlay variant renders on top of the character art (CharacterPanel), so
+   * every node gets a solid dark backing to survive arbitrary custom art.
+   */
+  overlay?: boolean;
 }
 
 export const SequenceStrip: React.FC<SequenceStripProps> = ({
-  chains, sequence, element, characterName,
+  chains, sequence, element, characterName, overlay = false,
 }) => {
   const { t } = useLanguage();
   const color = ELEMENT_COLOR[element] ?? '#ffffff';
@@ -26,7 +31,13 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
   };
 
   return (
-    <div className="flex pt-4 h-full w-11.5 shrink-0 flex-col items-center gap-2 mx-3">
+    <div
+      className={
+        overlay
+          ? 'flex shrink-0 flex-col items-center gap-1.5'
+          : 'flex pt-4 h-full w-11.5 shrink-0 flex-col items-center gap-2 mx-3'
+      }
+    >
       {[0, 1, 2, 3, 4, 5].map((i) => {
         const chain = chains[i];
         const active = i < sequence;
@@ -35,15 +46,17 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
 
         const trigger = (
           <div
-            className={`relative flex h-11.5 w-11.5 items-center justify-center rounded-full border transition-all duration-300 ${
-              active ? 'opacity-100' : 'opacity-40 grayscale'
-            }`}
+            className={`relative flex items-center justify-center rounded-full border transition-all duration-300 ${
+              overlay ? 'h-10 w-10' : 'h-11.5 w-11.5'
+            } ${active ? 'opacity-100' : overlay ? 'opacity-55 grayscale' : 'opacity-40 grayscale'}`}
             style={{
               borderColor: active ? `${color}90` : 'rgba(255,255,255,0.15)',
-              backgroundColor: active ? `${color}15` : 'rgba(0,0,0,0.4)',
+              backgroundColor: overlay
+                ? 'rgba(8,10,14,0.55)'
+                : active ? `${color}15` : 'rgba(0,0,0,0.4)',
               boxShadow: active
                 ? `0 0 10px ${color}30, inset 0 0 8px ${color}15`
-                : 'none',
+                : overlay ? '0 2px 8px rgba(0,0,0,0.45)' : 'none',
             }}
           >
             {chain?.icon && (

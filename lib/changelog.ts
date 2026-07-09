@@ -19,6 +19,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Raw Damage leaderboard mode is now shareable in the URL, and expanded build tools clarify which projections still use Score'
+            },
+            {
+                kind: 'improved',
+                text: 'Weapon rankings on the leaderboard overview now show how long each build has been rank one'
             }
         ]
     },

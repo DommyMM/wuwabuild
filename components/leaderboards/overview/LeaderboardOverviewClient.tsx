@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { Crown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
@@ -9,6 +10,7 @@ import { getCachedLeaderboardOverview, primeLeaderboardOverviewCache, readCached
 import { buildLeaderboardHref } from '../character/leaderboardCharacterQuery';
 import { LBCharacterOverview } from '@/lib/lb';
 import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix } from '../constants';
+import { formatReignHoldLabel, formatReignSinceDate } from '../formatters';
 import { getWeaponPaths } from '@/lib/paths';
 import { LeaderboardOverviewHeader } from './LeaderboardOverviewHeader';
 
@@ -23,7 +25,7 @@ function overviewSignature(entries: LBCharacterOverview[]): string {
 
 function formatOverviewMetric(value: number): string {
   if (value <= 0) return 'No data';
-  return `${Math.round(value).toLocaleString()} Score`;
+  return Math.round(value).toLocaleString();
 }
 
 interface LeaderboardOverviewClientProps {
@@ -96,7 +98,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                 <div className="w-max min-w-full">
                   <div className="overflow-hidden rounded-lg border border-border bg-background/70">
                     {/* Header matches LeaderboardResultsPanel style */}
-                    <div className={`grid ${OVERVIEW_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-base text-text-primary`}>
+                    <div className={`grid ${OVERVIEW_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 px-3 text-base text-text-primary`}>
                       <div className="py-2 text-center text-text-primary/55">#</div>
                       <div className="py-2 text-text-primary/70">Leaderboard</div>
                       <div className="py-2 text-center text-text-primary/70">Team</div>
@@ -244,6 +246,12 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                     const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
                                     const ownerLabel = top?.owner.username || 'Anonymous';
                                     const hasTopDamage = Boolean(top && top.damage > 0);
+                                    const reignHoldLabel = hasTopDamage && top?.reignSince
+                                      ? formatReignHoldLabel(top.reignSince)
+                                      : null;
+                                    const chipTitle = reignHoldLabel && top?.reignSince
+                                      ? `${weaponName} · Rank 1 since ${formatReignSinceDate(top.reignSince)}`
+                                      : weaponName;
 
                                     return (
                                       <Link
@@ -252,8 +260,8 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                           defaultWeaponId,
                                           defaultTrack,
                                         })}
-                                        title={weaponName}
-                                        className="group relative flex min-w-[128px] flex-1 basis-[140px] items-center gap-2.5 overflow-hidden rounded-lg border border-accent/15 bg-black/20 px-2.5 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-all hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+                                        title={chipTitle}
+                                        className="group relative flex min-w-[128px] flex-1 basis-[140px] items-center gap-2.5 overflow-hidden rounded-lg border border-accent/15 bg-black/20 px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-all hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
                                       >
                                         {/* Glassmorphic inner highlight */}
                                         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06)_0%,transparent_50%)] opacity-70 transition-opacity group-hover:opacity-100" />
@@ -267,17 +275,25 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                         ) : (
                                           <div className="h-10 w-10 shrink-0 rounded bg-border/30" />
                                         )}
-                                        <div className="relative min-w-0 flex-1">
-                                              {hasTopDamage ? (
-                                            <div className="text-sm font-semibold leading-tight text-text-primary">
-                                              {formatOverviewMetric(top?.damage ?? 0)}
+                                        <div className="relative flex min-w-0 flex-1 items-center gap-2">
+                                          <div className="min-w-0 flex-1">
+                                            {hasTopDamage ? (
+                                              <div className="text-sm font-semibold leading-tight text-text-primary tabular-nums">
+                                                {formatOverviewMetric(top?.damage ?? 0)}
+                                              </div>
+                                            ) : (
+                                              <div className="text-sm font-medium text-text-primary/35">Open board</div>
+                                            )}
+                                            <div className="mt-0.5 truncate text-xs text-text-primary/50">
+                                              {hasTopDamage ? ownerLabel : 'No top run yet'}
                                             </div>
-                                          ) : (
-                                            <div className="text-sm font-medium text-text-primary/35">Open board</div>
-                                          )}
-                                          <div className="mt-0.5 truncate text-[11px] text-text-primary/50">
-                                            {hasTopDamage ? ownerLabel : 'No top run yet'}
                                           </div>
+                                          {reignHoldLabel && (
+                                            <span className="flex shrink-0 flex-col items-center gap-1 text-[13px] leading-none text-amber-200/75">
+                                              <Crown className="h-3.5 w-3.5 text-amber-300/90" aria-hidden="true" strokeWidth={3} />
+                                              <span suppressHydrationWarning>{reignHoldLabel}</span>
+                                            </span>
+                                          )}
                                         </div>
                                       </Link>
                                     );
