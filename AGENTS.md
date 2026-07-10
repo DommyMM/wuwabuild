@@ -113,7 +113,7 @@ These are the easy-to-violate rules. Behavior context lives in the docs.
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` for local development (never commit secrets). See `docs/data-pipeline.md` for the full list and notes.
+Set variables in a local `.env` for development (never commit secrets). See `docs/data-pipeline.md` for the full list and notes.
 
 All API traffic (browser and SSR) goes through the Cloudflare Worker gateway (private sibling
 `gateway/` repo, not part of this codebase) riding `api.wuwa.build` / `ocr.wuwa.build`. The Worker holds

@@ -93,7 +93,7 @@ Runs ESLint and `tsc --noEmit`. `npm run build` runs the same `lint` step before
 
 ## Environment Variables
 
-Use `.env.example` as a template for local `.env` (not committed).
+Set these in a local `.env` (not committed).
 
 | Variable | Required | Description |
 |----------|----------|-------------|
