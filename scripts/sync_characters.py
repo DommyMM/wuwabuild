@@ -55,6 +55,23 @@ _CHAIN_STAT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\bDEF\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I), 'DEF%'),
 ]
 
+# Reverse-phrasing patterns ("Increase[s] <stat> by <val>") used ONLY for
+# inherent skills — e.g. Cantarella's "Cure" ("Increase Healing Bonus by 20%.").
+# Chains deliberately stay forward-only so party-scoped clauses like "increases
+# all allies' ATK by ..." are never mistaken for the wielder's panel stat;
+# inherents guard against that via the shared conditional filter (team/nearby/
+# allies keywords are all in _CHAIN_CONDITIONAL_RE) and are limited to the
+# self-buff stats inherents actually grant unconditionally.
+_INHERENT_REVERSE_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"Increases?\s+Healing\s+Bonus\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I), 'Healing Bonus'),
+    (re.compile(r"Increases?\s+Energy\s+Regen\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)",   re.I), 'Energy Regen'),
+    (re.compile(r"Increases?\s+Crit[.]\s+Rate\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)",   re.I), 'Crit Rate'),
+    (re.compile(r"Increases?\s+Crit[.]\s+DMG\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)",    re.I), 'Crit DMG'),
+]
+
+# Inherent skills accept both the forward chain patterns and the reverse forms.
+_INHERENT_BONUS_PATTERNS = _CHAIN_STAT_PATTERNS + _INHERENT_REVERSE_PATTERNS
+
 _CHAIN_CONDITIONAL_RE = re.compile(
     r'\b(?:when|after|upon|if|while|during|casting|triggers?|stacks?'
     r'|consumes?|consuming|cooldown|entering|teammates?|team\s+members?'
@@ -132,11 +149,16 @@ def _parse_param_value(param_str: str) -> float | None:
     return float(m.group(1)) if m else None
 
 
-def parse_chain_bonus(desc_en: str, params: list[str]) -> dict | None:
-    """Return {stat, value} for an unconditional passive stat bonus, or None."""
+def _match_stat_bonus(desc_en: str, params: list[str], patterns) -> dict | None:
+    """Return {stat, value} for the first unconditional stat clause, or None.
+
+    Shared core for chain (forward-only) and inherent (forward + reverse)
+    parsing: splits into sentences, matches the given patterns, and rejects any
+    clause carrying a conditional/temporal/move-scoped qualifier.
+    """
     clean = _chain_strip_markup(desc_en)
     for sentence, original_line in _chain_split_sentences(clean):
-        for pattern, stat_name in _CHAIN_STAT_PATTERNS:
+        for pattern, stat_name in patterns:
             m = pattern.search(sentence)
             if not m:
                 continue
@@ -167,6 +189,34 @@ def parse_chain_bonus(desc_en: str, params: list[str]) -> dict | None:
                 break
             return {'stat': stat_name, 'value': int(value) if value == int(value) else value}
     return None
+
+
+def parse_chain_bonus(desc_en: str, params: list[str]) -> dict | None:
+    """Return {stat, value} for an unconditional passive stat bonus, or None."""
+    return _match_stat_bonus(desc_en, params, _CHAIN_STAT_PATTERNS)
+
+
+def parse_inherent_bonuses(moves: list[dict] | None) -> list[dict]:
+    """Parse always-on stat bonuses from a character's inherent skills (type=4).
+
+    Inherent passives such as Mornye's "Blueprint" ("Mornye's Energy Regen is
+    increased by 10%.") and Cantarella's "Cure" ("Increase Healing Bonus by
+    20%.") grant a flat, unconditional panel stat that behaves like a base-stat
+    change — the frontend/lb otherwise never read these. Reuses the chain
+    conditional guards so triggered/timed/stacked inherents (Jiyan, Yinlin,
+    Zhezhi, …) are correctly excluded.
+    """
+    out: list[dict] = []
+    for move in moves or []:
+        if not isinstance(move, dict) or move.get("type") != 4:
+            continue
+        desc_field = move.get("description")
+        desc_en = desc_field.get("en", "") if isinstance(desc_field, dict) else str(desc_field or "")
+        params = move.get("descriptionParams") or []
+        bonus = _match_stat_bonus(desc_en, params, _INHERENT_BONUS_PATTERNS)
+        if bonus and bonus not in out:
+            out.append(bonus)
+    return out
 
 
 def _resolve_chain_bonus_token(token: str, params: list[str]) -> float | None:
@@ -658,6 +708,11 @@ def transform_character(
     moves = _extract_moves_frontend(data, description_param_map or {})
     if moves:
         result["moves"] = moves
+
+    # Always-on inherent-skill (type=4) stat bonuses, e.g. Mornye Energy Regen +10%.
+    inherent_bonuses = parse_inherent_bonuses(moves)
+    if inherent_bonuses:
+        result["inherentBonuses"] = inherent_bonuses
 
     # Add legacyId extracted from iconRound URL for backwards compatibility
     legacy_id = extract_legacy_id(data)
@@ -1292,6 +1347,7 @@ def main():
         with open(combined_path, encoding="utf-8") as f:
             characters = json.load(f)
         total = 0
+        inherent_total = 0
         preferred_updates = 0
         for char in characters:
             _resanitize_existing_character_text_fields(char)
@@ -1304,6 +1360,12 @@ def main():
                 if bonus:
                     chain["bonus"] = bonus
                     total += 1
+
+            char.pop("inherentBonuses", None)
+            inherent_bonuses = parse_inherent_bonuses(char.get("moves"))
+            if inherent_bonuses:
+                char["inherentBonuses"] = inherent_bonuses
+                inherent_total += len(inherent_bonuses)
 
             preferred = get_preferred_substats(
                 char.get("tags") or [],
@@ -1323,9 +1385,9 @@ def main():
         if not args.dry_run:
             with open(combined_path, "w", encoding="utf-8") as f:
                 json.dump(characters, f, separators=(",", ":"), ensure_ascii=False)
-            print(f"Embedded {total} sequence bonuses and refreshed {preferred_updates} preferred stat sets → {combined_path}")
+            print(f"Embedded {total} sequence bonuses, {inherent_total} inherent bonuses and refreshed {preferred_updates} preferred stat sets → {combined_path}")
         else:
-            print(f"[dry-run] Would embed {total} sequence bonuses and refresh {preferred_updates} preferred stat sets")
+            print(f"[dry-run] Would embed {total} sequence bonuses, {inherent_total} inherent bonuses and refresh {preferred_updates} preferred stat sets")
         return 0
 
     raw_characters = fetch_cdn_characters(single_id=args.id, workers=args.workers)

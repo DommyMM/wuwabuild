@@ -100,6 +100,14 @@ export interface CDNCharacter {
   moves?: CDNMoveEntry[];
   sequenceIcon?: string;
   preferredStats?: string[];
+  inherentBonuses?: InherentBonus[]; // always-on stat bonuses from inherent skills (type=4), parsed at sync time
+}
+
+// Unconditional panel-stat bonus granted by an inherent skill (e.g. Mornye
+// Energy Regen +10%). Parsed at sync time; applied always-on, like a base stat.
+export interface InherentBonus {
+  stat: string;
+  value: number;
 }
 
 // CDN weapon ID -> WeaponType mapping
@@ -162,6 +170,7 @@ export interface Character {
   sequenceIcon?: string; // Canonical center waveband art from grouped Item data
   roverElementName?: Element; // For Rover's element selection (Aero | Spectro | Havoc)
   preferredStats?: string[]; // Ordered list of preferred substats for RV calculation
+  inherentBonuses?: InherentBonus[]; // always-on stat bonuses from inherent skills (type=4)
 }
 
 type CharacterSkin = CDNCharacter['skins'][number];
@@ -360,6 +369,7 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     preferredStats: Array.isArray(cdn.preferredStats)
       ? cdn.preferredStats.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
       : undefined,
+    inherentBonuses: cdn.inherentBonuses,
     roverElementName: isRoverChar ? (ELEMENT_ID_MAP[cdn.element.id] ?? Element.Spectro) : undefined,
   };
 };

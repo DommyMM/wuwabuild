@@ -159,6 +159,9 @@ export function StatsProvider({ children }: StatsProviderProps) {
     });
 
     const seqBonuses = getSequenceBonuses(character);
+    // Always-on inherent-skill bonuses (e.g. Mornye Energy Regen +10%). Unlike
+    // sequence bonuses these have no gate — they apply like a base-stat change.
+    const inherentBonuses = character.inherentBonuses ?? [];
     // For Rover, override element DMG bonus with the user's selected element
     const isRoverChar = isRover(character);
     const bonus1Stat = isRoverChar && roverElement && character.Bonus1.endsWith(' DMG')
@@ -202,6 +205,10 @@ export function StatsProvider({ children }: StatsProviderProps) {
 
         percent += activeSetBonuses.reduce((sum, b) => b.stat === percentVariant ? sum + b.value : sum, 0);
 
+        inherentBonuses.forEach(bonus => {
+          if (bonus.stat === percentVariant) percent += bonus.value;
+        });
+
         if (character.Bonus2 === stat) percent += forteBonus.bonus2Total;
 
         result.value = Math.round(result.baseValue * (1 + percent / 100)) + flat + echoDefault;
@@ -239,6 +246,10 @@ export function StatsProvider({ children }: StatsProviderProps) {
 
         seqBonuses.forEach(bonus => {
           if (bonus.stat === stat && sequence >= bonus.minSequence) result.update += bonus.value;
+        });
+
+        inherentBonuses.forEach(bonus => {
+          if (bonus.stat === stat) result.update += bonus.value;
         });
 
         result.value = Number((result.baseValue + result.update).toFixed(1));

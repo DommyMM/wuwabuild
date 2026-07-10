@@ -1126,6 +1126,21 @@ def _extract_sequence_bonuses(char: dict) -> list[dict]:
     return bonuses
 
 
+def _extract_inherent_bonuses(char: dict) -> list[dict]:
+    """Always-on inherent-skill stat bonuses parsed into Characters.json by
+    sync_characters.parse_inherent_bonuses (e.g. Mornye Energy Regen +10%).
+    Passed through verbatim; canonical stat names already match applyStatString.
+    """
+    raw = char.get("inherentBonuses")
+    if not isinstance(raw, list):
+        return []
+    out: list[dict] = []
+    for bonus in raw:
+        if isinstance(bonus, dict) and bonus.get("stat") and bonus.get("value") is not None:
+            out.append({"stat": bonus["stat"], "value": float(bonus["value"])})
+    return out
+
+
 def _skip_sequence_bonus(char: dict, chain: dict, index: int, bonus: dict) -> bool:
     """Drop chain.bonus entries whose value disagrees with the chain's first param.
 
@@ -1960,12 +1975,13 @@ def _build_character_bases(
 
         forte_nodes = _extract_forte_nodes(char)
         sequence_bonuses = _extract_sequence_bonuses(char)
+        inherent_bonuses = _extract_inherent_bonuses(char)
         chains = _extract_chains_lb(char)
         moves = _extract_moves_lb(char)
         party_buffs_s0 = _parse_char_kit_party_buffs(char)
         self_buffs_s0 = _parse_char_inherent_self_buffs(char)
 
-        out[cdn_id] = {
+        entry = {
             "name": name,
             "element": element,
             "weaponType": weapon_type,
@@ -1986,6 +2002,10 @@ def _build_character_bases(
                 "Resonance Skill DMG Bonus": 0, "Resonance Liberation DMG Bonus": 0,
             },
         }
+        # Only emit when present — keeps the field off the ~60 characters without one.
+        if inherent_bonuses:
+            entry["inherent_bonuses"] = inherent_bonuses
+        out[cdn_id] = entry
 
     out = {k: out[k] for k in sorted(out, key=lambda x: int(x))}
     return out

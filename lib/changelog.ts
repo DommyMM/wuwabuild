@@ -24,6 +24,18 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Echo artwork on build and profile cards now shows echo skill and Sonata details on hover'
+            },
+            {
+                kind: 'fixed',
+                text: 'Fixed some old builds (last year) having strange main stat numbers visually'
+            },
+            {
+                kind: 'fixed',
+                text: 'Fixed Mornye innate not giving 10 ER'
+            },
+            {
+                kind: 'fixed',
+                text: 'Fixed Cantarella innate not giving 20% Healing Bonus'
             }
         ]
     },
