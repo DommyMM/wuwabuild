@@ -13,6 +13,7 @@ import { getEchoPaths } from '@/lib/paths';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { isRover } from '@/lib/character';
 import { matchesEchoBonusCondition } from '@/lib/constants/statBonuses';
+import { EchoHoverCard } from '@/components/echo/EchoHoverCard';
 
 interface EchoSectionProps {
   echoPanels: EchoPanelState[];
@@ -141,7 +142,12 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
               </div>
               {/* Echo image and misc */}
               <div className="flex w-2/3 flex-col overflow-hidden">
-                <div className="relative rounded-sm">
+                <EchoHoverCard
+                  echo={echo}
+                  resolvedFetter={fetter}
+                  placement="top"
+                  triggerClassName="relative block cursor-help rounded-sm"
+                >
                   <img
                     src={getEchoPaths(echo, panel.phantom)}
                     alt={echoName}
@@ -151,7 +157,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                   {firstEchoBonusHoverMatch && (
                     <div className="pointer-events-none absolute inset-0 border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.24),0_0_16px_rgba(110,255,255,0.45)]" />
                   )}
-                </div>
+                </EchoHoverCard>
                 <div className="relative mb-1 h-px w-1/2">
                   {fetterIcon && (
                     <img

@@ -20,6 +20,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'new',
                 text: 'New patch content'
+            },
+            {
+                kind: 'fixed',
+                text: 'Echo artwork on build and profile cards now shows echo skill and Sonata details on hover'
             }
         ]
     },
