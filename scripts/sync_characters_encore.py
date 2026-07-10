@@ -443,20 +443,20 @@ def transform_moves(locales: dict[str, dict]) -> list[dict]:
 
 def transform_skins(en: dict) -> list[dict]:
     skins: list[dict] = []
-    base_round = en.get("RoleHeadIconCircle", "")
-    base_banner = en.get("FormationRoleCard") or en.get("Card") or ""
+    base_round_url = asset_url(en.get("RoleHeadIconCircle", ""))
+    base_banner_url = asset_url(en.get("FormationRoleCard") or en.get("Card") or "")
     for skin in en.get("Skins") or []:
         if not isinstance(skin, dict):
             continue
-        icon_round = skin.get("RoleHeadIconLarge") or skin.get("RoleHeadIcon") or base_round
-        banner = skin.get("FormationRoleCard") or skin.get("Card") or ""
-        if icon_round == base_round and banner == base_banner:
+        icon_round_url = asset_url(skin.get("RoleHeadIconLarge") or skin.get("RoleHeadIcon") or "")
+        banner_url = asset_url(skin.get("FormationRoleCard") or skin.get("Card") or "")
+        if banner_url == base_banner_url:
             continue
         skins.append({
             "id": skin.get("Id"),
             "icon": {
-                "iconRound": asset_url(icon_round),
-                "banner": asset_url(banner),
+                "iconRound": icon_round_url,
+                "banner": banner_url,
             },
             "color": {},
         })

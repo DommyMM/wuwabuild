@@ -16,6 +16,7 @@ const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1107-skin': { x: -240, y: 70, scale: 1.15 },
   '1108': { x: -80, y: 0, scale: 1.05 },
   '1109': { x: -125, y: 10, scale: 1.1 },
+  '1110': { x: -145, y: 0, scale: 1.05 },
   '1203': { x: -20, y: 0, scale: 1 },
   '1205': { x: 52, y: 124, scale: 1.4 },
   '1205-skin': { x: -185, y: 105, scale: 1.3 },
@@ -51,6 +52,7 @@ const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1603': { x: 10, y: 0, scale: 1.05 },
   '1606': { x: -110, y: 0, scale: 1.1 },
   '1607': { x: -144, y: 0, scale: 1.1 },
+  '1610': { x: -90, y: 0, scale: 1 },
 };
 
 export const getSplashUrlCandidates = (
