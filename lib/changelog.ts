@@ -15,12 +15,7 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2026-07-10',
-        patch: '3.5',
         changes: [
-            {
-                kind: 'new',
-                text: 'New patch content'
-            },
             {
                 kind: 'fixed',
                 text: 'Echo artwork on build and profile cards now shows echo skill and Sonata details on hover'
