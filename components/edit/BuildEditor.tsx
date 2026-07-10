@@ -49,6 +49,7 @@ type CharacterArtState = {
 const ROVER_ELEMENT_ACTIVE_CLASS: Record<RoverElement, string> = {
   Spectro: 'bg-spectro/30 border-spectro/70 text-spectro',
   Aero: 'bg-aero/30 border-aero/70 text-aero',
+  Electro: 'bg-electro/30 border-electro/70 text-electro',
   Havoc: 'bg-havoc/30 border-havoc/70 text-havoc',
 };
 

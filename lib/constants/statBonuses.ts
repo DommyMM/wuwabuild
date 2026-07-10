@@ -2,7 +2,7 @@ import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
 import { StatName } from '@/lib/constants/statMappings';
 
-export const ROVER_ELEMENTS = ['Spectro', 'Aero', 'Havoc'] as const;
+export const ROVER_ELEMENTS = ['Spectro', 'Aero', 'Electro', 'Havoc'] as const;
 const ROVER_ELEMENT_SET = new Set<string>(ROVER_ELEMENTS);
 
 // Checks whether an echo's characterCondition list matches the current character.

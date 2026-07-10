@@ -191,8 +191,8 @@ export const isRover = (character: Character): boolean =>
 
 // Gender is not a field anywhere in the CDN data so we code it here
 const ROVER_GENDER_BY_ID: Record<string, 'M' | 'F'> = {
-  '1406': 'M', '1501': 'M', '1605': 'M',
-  '1408': 'F', '1502': 'F', '1604': 'F',
+  '1309': 'M', '1406': 'M', '1501': 'M', '1605': 'M',
+  '1310': 'F', '1408': 'F', '1502': 'F', '1604': 'F',
 };
 
 export const getRoverGender = (id?: string): 'M' | 'F' | undefined => (

@@ -6,6 +6,7 @@ import { useBuild } from '@/contexts/BuildContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { Modal } from '@/components/ui/Modal';
+import { OverflowMarquee } from '@/components/ui/OverflowMarquee';
 import { Character, Element, findRoverVariant, getRoverGender } from '@/lib/character';
 import { ELEMENT_CHIP_ACTIVE, ELEMENT_BG } from '@/lib/elementVisuals';
 import { DISABLED_CHARACTER_IDS } from '@/lib/constants/disabledEntries';
@@ -219,6 +220,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
                   selected?.character.legacyId === character.legacyId);
               const isRover = character.element === Element.Rover;
               const rarity = character.rarity ?? 4;
+              const characterName = t(character.nameI18n ?? { en: character.name });
 
               return (
                 <button
@@ -240,7 +242,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
                   <div className="relative aspect-square w-full overflow-hidden">
                     <img
                       src={getHeadUrl(character)}
-                      alt={t(character.nameI18n ?? { en: character.name })}
+                      alt={characterName}
                       className="h-full w-full object-cover"
                     />
                   </div>
@@ -249,9 +251,15 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
                   <div className={`h-0.5 w-full ${isRover ? 'bg-rover/40' : rarity === 5 ? 'bg-rarity-5/40' : 'bg-rarity-4/40'}`} />
 
                   {/* Name */}
-                  <span className="max-w-full truncate px-1.5 py-1 text-center text-sm leading-tight text-text-primary/80 group-hover:text-text-primary">
-                    {t(character.nameI18n ?? { en: character.name })}
-                  </span>
+                  <div className="w-full min-w-0 px-1.5 py-1 text-center" title={characterName}>
+                    <OverflowMarquee
+                      text={characterName}
+                      speed={18}
+                      startOverflowPx={1}
+                      stopOverflowPx={0}
+                      textClassName="text-sm leading-tight text-text-primary/80 group-hover:text-text-primary"
+                    />
+                  </div>
                 </button>
               );
             })}
