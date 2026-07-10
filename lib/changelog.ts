@@ -25,7 +25,20 @@ export const CHANGELOG: ChangelogEntry[] = [
     },
     {
         date: '2026-07-09',
+        patch: '3.5',
         changes: [
+            {
+                kind: 'new',
+                text: 'Yangyang and the echoes are out'
+            },
+            {
+                kind: 'improved',
+                text: 'Profile echo details have a cleaner layout and first-seen date'
+            },
+            {
+                kind: 'improved',
+                text: 'Expanded profile build cards now show their original upload date'
+            },
             {
                 kind: 'improved',
                 text: 'Raw Damage leaderboard mode is now shareable in the URL, and expanded build tools clarify which projections still use Score'

@@ -39,8 +39,14 @@ export function formatReignHoldLabel(reignSince: string): string | null {
   return `${days}d`;
 }
 
-export function formatReignSinceDate(reignSince: string): string {
-  const date = new Date(reignSince);
-  if (Number.isNaN(date.getTime())) return '';
+// Locale short date ("Mar 4, 2026") from an RFC3339 timestamp, or null when unparseable.
+export function formatDateLabel(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+export function formatReignSinceDate(reignSince: string): string {
+  return formatDateLabel(reignSince) ?? '';
 }

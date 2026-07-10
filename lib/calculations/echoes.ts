@@ -3,7 +3,7 @@ import { StatName } from '@/lib/constants/statMappings';
 
 // Calculate the default stat value for an echo based on its cost and level.
 // 4-cost and 3-cost echoes provide ATK, 1-cost echoes provide HP.
-const calculateEchoDefaultStat = (cost: number, level: number): number => {
+export const calculateEchoDefaultStat = (cost: number, level: number): number => {
   const normalLevels = Math.floor(level - Math.floor(level / 5));
   const bonusLevels = Math.floor(level / 5);
 

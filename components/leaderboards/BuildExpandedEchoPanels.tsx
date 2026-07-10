@@ -49,12 +49,14 @@ const StatHoverRow: React.FC<{ label: string; children: React.ReactNode }> = ({ 
 );
 
 // Discrete bar of every possible roll for a substat, tinted by quality tier.
-// The roll this build landed is enlarged, brightened and labelled.
+// The roll this build landed is enlarged, brightened and labelled. Pass
+// showValueLabel={false} where the value already renders next to the bar.
 export const SubstatRollBar: React.FC<{
   rollValues: number[];
   currentValue: number;
   isPercent: boolean;
-}> = ({ rollValues, currentValue, isPercent }) => {
+  showValueLabel?: boolean;
+}> = ({ rollValues, currentValue, isPercent, showValueLabel = true }) => {
   const sorted = rollValues.filter((value) => Number.isFinite(value)).slice().sort((a, b) => a - b);
   if (sorted.length < 2) {
     return <span className="text-sm font-semibold text-white/90">{formatStatRoll(currentValue, isPercent)}</span>;
@@ -75,17 +77,19 @@ export const SubstatRollBar: React.FC<{
 
   return (
     <div>
-      <div className="flex items-end gap-0.5">
-        {sorted.map((value, index) => (
-          <span
-            key={index}
-            className="min-w-0 flex-1 text-center text-xs font-bold leading-none tabular-nums"
-            style={{ color: index === currentIndex ? currentColor : 'transparent' }}
-          >
-            {formatStatRoll(value, isPercent)}
-          </span>
-        ))}
-      </div>
+      {showValueLabel && (
+        <div className="flex items-end gap-0.5">
+          {sorted.map((value, index) => (
+            <span
+              key={index}
+              className="min-w-0 flex-1 text-center text-xs font-bold leading-none tabular-nums"
+              style={{ color: index === currentIndex ? currentColor : 'transparent' }}
+            >
+              {formatStatRoll(value, isPercent)}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="mt-1 flex items-end gap-0.5">
         {sorted.map((value, index) => {
           const isCurrent = index === currentIndex;

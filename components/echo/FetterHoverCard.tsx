@@ -25,13 +25,15 @@ type PieceTooltipModel = {
   effect: FetterPieceEffect;
 };
 
-const formatBonusValue = (value: number): string => (
+export const formatFetterBonusValue = (value: number): string => (
   Number.isInteger(value)
     ? String(Math.trunc(value))
     : value.toFixed(1).replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0+$/u, '')
 );
 
-const getPieceModels = (fetter: CDNFetter): PieceTooltipModel[] => {
+// Piece-effect entries for a set (2pc/5pc, or the single 3pc tier), sorted by
+// piece count. Shared with surfaces that inline the set text (echo inventory).
+export const getFetterPieceModels = (fetter: CDNFetter): PieceTooltipModel[] => {
   const entries: PieceTooltipModel[] = [];
   const pieceEffects = fetter.pieceEffects ?? {};
   for (const [pieceCountText, pieceEffect] of Object.entries(pieceEffects)) {
@@ -72,7 +74,7 @@ export const FetterHoverCard: React.FC<FetterHoverCardProps> = ({
 }) => {
   const { t } = useLanguage();
   const { statTranslations } = useGameData();
-  const pieceModels = getPieceModels(fetter);
+  const pieceModels = getFetterPieceModels(fetter);
 
   const icon = (
     <HoverCardIcon
@@ -102,7 +104,7 @@ export const FetterHoverCard: React.FC<FetterHoverCardProps> = ({
               <HoverCardBonusList
                 items={pieceBonuses.map((bonus) => ({
                   name: statTranslations?.[bonus.stat] ? t(statTranslations[bonus.stat]) : bonus.stat,
-                  value: formatBonusValue(bonus.value),
+                  value: formatFetterBonusValue(bonus.value),
                   prefix: '+',
                 }))}
               />

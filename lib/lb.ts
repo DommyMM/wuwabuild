@@ -103,7 +103,7 @@ export function getLBStatCode(sortKey: LBStatSortKey): LBStatCode {
   return LB_STAT_CODE_BY_SORT_KEY[sortKey];
 }
 
-export function isLBStatSortKey(value: unknown): value is LBStatSortKey {
+function isLBStatSortKey(value: unknown): value is LBStatSortKey {
   return typeof value === 'string' && LB_STAT_SORT_KEY_SET.has(value as LBStatSortKey);
 }
 

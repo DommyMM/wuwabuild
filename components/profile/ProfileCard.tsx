@@ -14,6 +14,7 @@ import { getWeaponPaths } from '@/lib/paths';
 import { resolveSplashCardArt } from '@/lib/splashArt';
 import { SavedState } from '@/lib/build';
 import { parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
+import { formatDateLabel } from '@/components/leaderboards/formatters';
 import { BuildCard } from '@/components/edit/BuildCard';
 import { CardActionBar } from '@/components/card/CardActionBar';
 import { RankBoard } from '@/components/card/RankModule';
@@ -113,6 +114,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
     ? t(characterRef.nameI18n ?? { en: characterRef.name })
     : characterId ?? 'build';
   const equippedWeaponId = detail.buildState.weaponId ?? entry.weapon.id ?? undefined;
+  const uploadedLabel = formatDateLabel(entry.timestamp);
 
   useEffect(() => {
     if (!characterId || !entry.id) return;
@@ -353,13 +355,26 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
             onResetArtTransform={handleResetArtTransform}
             onRemoveCustomArt={handleRemoveCustomArt}
             extraActions={
-              <AdjustRankingButton
-                availableBoards={availableBoards}
-                activeBoard={activeBoard}
-                showOriginalForte={showOriginalForte}
-                equippedWeaponId={equippedWeaponId}
-                onSelect={setSelectedStandingKey}
-              />
+              <>
+                <AdjustRankingButton
+                  availableBoards={availableBoards}
+                  activeBoard={activeBoard}
+                  showOriginalForte={showOriginalForte}
+                  equippedWeaponId={equippedWeaponId}
+                  onSelect={setSelectedStandingKey}
+                />
+                {uploadedLabel && (
+                  <span
+                    className="ml-auto font-ropa text-[11px] uppercase tracking-[0.14em] text-text-primary/50"
+                    title={`First uploaded ${uploadedLabel}. Re-submitting the same build keeps this date.`}
+                  >
+                    Uploaded{' '}
+                    <time dateTime={entry.timestamp} className="text-text-primary/70">
+                      {uploadedLabel}
+                    </time>
+                  </span>
+                )}
+              </>
             }
           />
         </div>

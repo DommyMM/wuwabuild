@@ -6,13 +6,16 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getEchoUsages, LBEcho, LBEchoUsage } from '@/lib/lb';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
-import { calculateEchoRV, getBuildCVRatingColor, getEchoCVFrameColor, getEchoCVTierStyle, getEchoRVTierStyle } from '@/lib/calculations/rollValues';
+import { calculateEchoDefaultStat } from '@/lib/calculations/echoes';
+import { calculateEchoRV, getBuildCVRatingColor, getEchoCVTierStyle, getEchoRVTierStyle } from '@/lib/calculations/rollValues';
 import { getSubstatTierInfo } from '@/lib/calculations/substatTiers';
 import { isPercentStat } from '@/lib/constants/statMappings';
+import { getSetBonusesFromPieceEffect } from '@/lib/constants/setBonuses';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
-import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
+import { renderGameTemplateWithHighlights, resolveFetterPieceDescription } from '@/lib/text/gameText';
+import { formatDateLabel } from '@/components/leaderboards/formatters';
 import { QualityTierBar, SubstatRollBar } from '@/components/leaderboards/BuildExpandedEchoPanels';
-import { FetterHoverCard } from '@/components/echo/FetterHoverCard';
+import { formatFetterBonusValue, getFetterPieceModels } from '@/components/echo/FetterHoverCard';
 import { getFetterElementColor } from '@/components/echo/EchoHoverCard';
 
 interface EchoInventoryDetailProps {
@@ -31,7 +34,7 @@ function formatStatValue(stat: string | null | undefined, value: number | null |
   return isPercentStat(stat) ? `${Number(value).toFixed(1)}%` : String(Math.round(Number(value)));
 }
 
-const EYEBROW_CLASS = 'font-ropa text-[10px] leading-none uppercase tracking-[0.18em] text-text-primary/50';
+const EYEBROW_CLASS = 'font-ropa text-[11px] leading-none uppercase tracking-[0.14em] text-text-primary/60';
 
 // Lazy "Equipped by" strip, phrased like the in-game panel: which of this
 // player's builds equip this echo. Mounts only when a row is expanded, so the
@@ -116,11 +119,9 @@ const EquippedByStrip: React.FC<{
   );
 };
 
-// Row expansion styled after the in-game echo detail panel: an identity card
-// with the art and sonata on the left, and a stat ledger on the right where
-// each substat carries its roll ladder and tier-colored value, footed by CV/RV
-// graded on the shared quality ladder. Fixed width, centered in the band.
-// Expands/collapses with the same height animation as the build rows.
+// Row expansion styled after an in-game appraisal panel: artwork and Sonata on
+// the left, identity and rolled stats in the primary column, and quality/context
+// in the right rail. Expands/collapses with the same animation as build rows.
 export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, uid, isExpanded, onOpenBuild }) => {
   const { getEcho, getSubstatValues, statIcons, statTranslations, fetters } = useGameData();
   const { t } = useLanguage();
@@ -138,16 +139,23 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
   const set = fetterById.get(echo.activeSetId);
   const setName = set ? t(set.name) : '';
   const setElementColor = set ? getFetterElementColor(set) : undefined;
+  const pieceModels = set ? getFetterPieceModels(set) : [];
   const skillTemplate = echoMeta?.skill?.description ? t(echoMeta.skill.description) : '';
   const skillParams = echoMeta?.skill?.params?.[0] ?? [];
   const mainIcon = echo.mainStatType ? statIconFor(statIcons, echo.mainStatType) : '';
-  const cvFrame = getEchoCVFrameColor(echo.cv);
   const cvTier = getEchoCVTierStyle(echo.cv);
   const subs = (echo.panel?.stats.subStats ?? []).filter((s) => s.type && s.value != null);
   const rv = echo.rv > 0 ? echo.rv : calculateEchoRV(subs, getSubstatValues);
   const rvTier = getEchoRVTierStyle(rv);
   const level = echo.panel?.level ?? 25;
   const phantom = echo.panel?.phantom ?? false;
+  // Fixed stat every echo of this cost grants at this level (4/3-cost flat ATK,
+  // 1-cost flat HP), additive with the rolled main stat and substats.
+  const baseStatType = echo.cost === 1 ? 'HP' : echo.cost === 3 || echo.cost === 4 ? 'ATK' : null;
+  const baseStatValue = baseStatType ? calculateEchoDefaultStat(echo.cost, level) : 0;
+  const baseIcon = baseStatType ? statIconFor(statIcons, baseStatType) : '';
+  const firstSeenLabel = formatDateLabel(echo.firstSeenAt);
+  const lastSeenLabel = formatDateLabel(echo.lastSeenAt);
 
   return (
     <AnimatePresence initial={false}>
@@ -160,72 +168,109 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
           className="overflow-x-visible overflow-y-hidden border-t border-border/50 bg-black/15"
         >
           <div className="px-4 py-4">
-            <div className={`mx-auto w-full ${skillTemplate ? 'max-w-6xl' : 'max-w-5xl'}`}>
+            <div className="mx-auto w-full max-w-[1320px]">
         <div
-          className="relative overflow-hidden rounded-xl border bg-[linear-gradient(170deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.04)_30%,rgba(0,0,0,0.46)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.35)]"
-          style={{ borderColor: `${cvFrame}b3` }}
+          className="relative overflow-hidden rounded-xl border border-white/12 bg-[linear-gradient(170deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.035)_34%,rgba(0,0,0,0.46)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.35)]"
         >
           <div className="flex flex-col md:flex-row">
-            {/* Identity card: art backdrop, gold name, cost, sonata, equipped-by. */}
-            <div className="relative w-full shrink-0 overflow-hidden md:w-75">
-              {echoMeta && (
-                <img
-                  src={getEchoPaths(echoMeta, phantom)}
-                  alt=""
-                  aria-hidden
-                  className="absolute inset-0 h-full w-full object-cover object-top opacity-90 mask-[linear-gradient(to_right,black_55%,transparent_100%)]"
-                />
-              )}
-              {/* Scrim keeps the lower half readable, like the in-game card fading its art out. */}
-              <span aria-hidden className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" />
+            {/* Artwork and Sonata form one visual/elemental rail; identity metadata
+                lives with the stat ledger where there is more horizontal room. */}
+            <div className="relative flex w-full shrink-0 flex-col md:w-80">
+              <div className="relative flex h-52 shrink-0 items-center justify-center overflow-hidden">
+                {echoMeta && (
+                  <>
+                    <img
+                      src={getEchoPaths(echoMeta, phantom)}
+                      alt=""
+                      aria-hidden
+                      className="absolute inset-0 h-full w-full scale-125 object-cover opacity-45 blur-xl saturate-125"
+                    />
+                    {/* Framed portrait plate: the square asset reads deliberate with
+                        a ring instead of floating hard-edged over the blur. */}
+                    <img
+                      src={getEchoPaths(echoMeta, phantom)}
+                      alt=""
+                      aria-hidden
+                      className="relative z-1 my-2 h-[calc(100%-1rem)] rounded-xl object-contain shadow-[0_10px_18px_rgba(0,0,0,0.65)] ring-1 ring-white/12"
+                    />
+                  </>
+                )}
+                {/* Bottom fade blends the art into the card surface below. */}
+                <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-2 h-10 bg-linear-to-t from-black/60 to-transparent" />
+              </div>
 
-              <div className="relative flex h-full min-h-55 flex-col p-4">
-                <div
-                  className="font-gowun text-xl leading-tight font-bold text-amber-200 drop-shadow-[0_2px_5px_rgba(0,0,0,0.95)]"
-                  title={echoName}
-                >
+              <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
+                {set && (
+                  <div>
+                    <div className={`mb-1.5 ${EYEBROW_CLASS}`}>Sonata Effect</div>
+                    <div
+                      className="flex min-w-0 items-center gap-2 rounded-md border bg-black/70 px-2 py-1.5"
+                      style={{ borderColor: setElementColor ?? 'rgba(255,255,255,0.14)' }}
+                    >
+                      {set.icon && <img src={set.icon} alt="" className="h-5 w-5 shrink-0 object-contain" />}
+                      <span className="truncate text-sm font-medium text-accent">{setName}</span>
+                    </div>
+                    {/* Inline 2pc/5pc text (same models the hover card renders). */}
+                    <div className="mt-1.5 space-y-1.5">
+                      {pieceModels.map(({ pieceCount, effect }) => {
+                        const bonuses = getSetBonusesFromPieceEffect(effect);
+                        const renderBonuses = bonuses.length > 0 && (effect.buffIds?.length ?? 0) === 0;
+                        const { renderedParts } = resolveFetterPieceDescription(effect, {
+                          descriptionTemplate: t(effect.effectDescription),
+                        });
+                        return (
+                          <div
+                            key={`${set.id}-${pieceCount}`}
+                            className="rounded-md bg-black/45 px-2.5 py-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                          >
+                            <div className={`mb-1 ${EYEBROW_CLASS}`}>{pieceCount}-Piece</div>
+                            {renderBonuses ? (
+                              <div className="space-y-0.5">
+                                {bonuses.map((bonus) => (
+                                  <p key={bonus.stat} className="text-xs leading-relaxed text-text-primary/80">
+                                    {statLabel(bonus.stat)}{' '}
+                                    <span className="font-semibold text-cyan-200">+{formatFetterBonusValue(bonus.value)}%</span>
+                                  </p>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs leading-relaxed whitespace-pre-line text-text-primary/80">{renderedParts}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Identity and stats share the primary reading column. This keeps the
+                name close to the values that define the individual echo. */}
+            <div className="flex min-w-0 flex-1 flex-col border-t border-white/8 p-5 md:border-t-0 md:border-l">
+              {/* Single-line header: truncating name with the level/cost chips
+                  pinned at the row end so the name never wraps. */}
+              <div className="mb-4 flex min-w-0 items-center gap-3 border-b border-white/8 pb-3.5">
+                <div className="min-w-0 flex-1 truncate font-gowun text-xl leading-tight font-semibold text-text-primary" title={echoName}>
                   {echoName}
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span className="rounded bg-black/70 px-1.5 py-1 font-gowun text-xs leading-none font-bold tabular-nums text-amber-200">
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="rounded bg-white/8 px-1.5 py-1 font-gowun text-xs leading-none font-semibold tabular-nums text-text-primary/85 ring-1 ring-white/8">
                     +{level}
                   </span>
-                  <span className="rounded bg-black/70 px-1.5 py-1 font-ropa text-[10px] leading-none uppercase tracking-[0.18em] text-amber-200/85">
+                  <span className="rounded bg-white/6 px-1.5 py-1 font-ropa text-[10px] leading-none uppercase tracking-[0.14em] text-text-primary/65 ring-1 ring-white/8">
                     {echo.cost} Cost
                   </span>
                   {phantom && (
-                    <span className="rounded bg-black/70 px-1.5 py-1 text-[10px] leading-none font-semibold text-cyan-300">
+                    <span className="rounded bg-cyan-300/8 px-1.5 py-1 text-[10px] leading-none font-semibold text-cyan-200 ring-1 ring-cyan-200/15">
                       Phantom
                     </span>
                   )}
                 </div>
-
-                <div className="flex-1" />
-
-                {set && (
-                  <div className="mb-3">
-                    <div className={`mb-1.5 ${EYEBROW_CLASS}`}>Sonata Effect</div>
-                    <FetterHoverCard fetter={set} placement="top" triggerClassName="inline-flex max-w-full cursor-pointer">
-                      <span
-                        className="flex min-w-0 items-center gap-2 rounded-md border bg-black/70 px-2 py-1.5"
-                        style={{ borderColor: setElementColor ?? 'rgba(255,255,255,0.14)' }}
-                      >
-                        {set.icon && <img src={set.icon} alt="" className="h-5 w-5 shrink-0 object-contain" />}
-                        <span className="truncate text-sm font-medium text-accent">{setName}</span>
-                      </span>
-                    </FetterHoverCard>
-                  </div>
-                )}
-
-                <EquippedByStrip uid={uid} echoKey={echo.echoKey} usageCount={Number(echo.usageCount)} onOpenBuild={onOpenBuild} />
               </div>
-            </div>
 
-            {/* Stat ledger: bright main band, then substat rows carrying their
-                roll ladder mid-row with the tier-colored value right-aligned. */}
-            <div className="min-w-0 flex-1 border-t border-white/8 p-4 md:border-t-0 md:border-l">
               {echo.mainStatType && (
-                <div className="flex items-center justify-between gap-3 rounded-md bg-white/10 px-3 py-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]">
+                <div className="flex items-center justify-between gap-3 rounded-md bg-white/10 px-3 py-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]">
                   <span className="flex min-w-0 items-center gap-2">
                     {mainIcon ? (
                       <img
@@ -245,7 +290,31 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
                 </div>
               )}
 
-              <div className="mt-2 space-y-1">
+              {/* Fixed base stat band: quieter than the main stat because it never
+                  rolls — every echo of this cost carries the same value at this level. */}
+              {baseStatType && baseStatValue > 0 && (
+                <div
+                  className="mt-1.5 flex items-center justify-between gap-3 rounded-md bg-white/4 px-3 py-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                  title={`Every ${echo.cost}-cost echo grants this fixed flat ${baseStatType} at +${level}, on top of its rolled main stat and substats.`}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    {baseIcon ? (
+                      <img src={baseIcon} alt="" className="h-5 w-5 shrink-0 object-contain opacity-80" />
+                    ) : (
+                      <span className="h-5 w-5 shrink-0 rounded bg-white/10" />
+                    )}
+                    <span className="truncate text-sm font-semibold text-text-primary/75">{statLabel(baseStatType)}</span>
+                    <span className="rounded bg-white/8 px-1.5 py-0.5 font-ropa text-[9px] leading-none uppercase tracking-[0.18em] text-text-primary/50">
+                      Base
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-lg font-bold tabular-nums text-text-primary/80">
+                    {formatStatValue(baseStatType, baseStatValue)}
+                  </span>
+                </div>
+              )}
+
+              <div className="mt-3 space-y-1.5">
                 {subs.map((sub, i) => {
                   const type = sub.type as string;
                   const icon = statIconFor(statIcons, type);
@@ -254,7 +323,7 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
                   return (
                     <div
                       key={`${echo.echoKey}-detail-sub-${i}`}
-                      className="flex items-center gap-2.5 rounded-sm bg-black/35 py-1 pr-3 pl-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                      className="flex items-center gap-2.5 rounded-sm bg-black/35 py-1.5 pr-3 pl-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
                     >
                       {icon ? (
                         <img src={icon} alt="" className="h-4.5 w-4.5 shrink-0 object-contain" />
@@ -263,10 +332,12 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
                       )}
                       <span className="min-w-0 flex-1 truncate text-sm text-text-primary/75" title={label}>{label}</span>
                       <div className="w-44 shrink-0 sm:w-52">
+                        {/* Value already renders tier-colored at the row end. */}
                         <SubstatRollBar
                           rollValues={getSubstatValues(type) ?? []}
                           currentValue={Number(sub.value)}
                           isPercent={isPercentStat(type)}
+                          showValueLabel={false}
                         />
                       </div>
                       <span
@@ -280,49 +351,52 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
                 })}
               </div>
 
-              {/* Grade footer: CV and RV side by side on the shared quality ladder. */}
-              <div className="mt-3 grid grid-cols-2 gap-x-6 border-t border-white/8 pt-2.5">
+            </div>
+
+            {/* Appraisal and provenance stay secondary to the identity/stat column. */}
+            <div className="flex w-full shrink-0 flex-col border-t border-white/8 p-5 md:w-76 md:border-t-0 md:border-l">
+              {/* The tier bar already floats the value over the active cell, so
+                  the header row carries the label only. */}
+              <div className="shrink-0 space-y-3">
                 <div>
-                  <div className="mb-1 flex items-baseline justify-between">
-                    <span className={EYEBROW_CLASS}>Crit Value</span>
-                    <span
-                      className={`text-sm font-bold tabular-nums ${cvTier.isMax ? 'cv-glow' : ''}`}
-                      style={cvTier.isMax ? undefined : { color: cvTier.color }}
-                    >
-                      {echo.cv.toFixed(1)}
-                    </span>
-                  </div>
+                  <div className={`mb-1 ${EYEBROW_CLASS}`}>Crit Value</div>
                   <QualityTierBar currentLabel={cvTier.label} valueText={echo.cv.toFixed(1)} />
                 </div>
                 <div>
-                  <div className="mb-1 flex items-baseline justify-between">
-                    <span className={EYEBROW_CLASS}>Roll Value</span>
-                    <span
-                      className={`text-sm font-bold tabular-nums ${rvTier.isMax ? 'cv-glow' : ''}`}
-                      style={rvTier.isMax ? undefined : { color: rvTier.color }}
-                    >
-                      {rv.toFixed(0)}%
-                    </span>
-                  </div>
+                  <div className={`mb-1 ${EYEBROW_CLASS}`}>Roll Value</div>
                   <QualityTierBar currentLabel={rvTier.label} valueText={`${rv.toFixed(0)}%`} />
                 </div>
               </div>
-            </div>
 
-            {/* Echo skill: the in-game panel's description text, params at level 1. */}
-            {skillTemplate && (
-              <div className="w-full shrink-0 border-t border-white/8 p-4 md:w-72 md:border-t-0 md:border-l">
-                <div className={`mb-2 ${EYEBROW_CLASS}`}>Echo Skill</div>
-                <div className="scrollbar-thin max-h-56 overflow-y-auto pr-1 text-sm leading-relaxed whitespace-pre-line text-text-primary/80 [--scrollbar-width:4px]">
-                  {renderGameTemplateWithHighlights({
-                    template: skillTemplate,
-                    getParamValue: (index) => skillParams[index] ?? null,
-                    highlightClassName: 'text-cyan-200 font-semibold',
-                    keepUnknownPlaceholders: true,
-                  })}
+              {skillTemplate && (
+                <div className="mt-4 border-t border-white/8 pt-4">
+                  <div className={`mb-2 ${EYEBROW_CLASS}`}>Echo Skill</div>
+                  <div className="scrollbar-thin max-h-48 overflow-y-auto pr-1 text-sm leading-relaxed whitespace-pre-line text-text-primary/80 [--scrollbar-width:4px]">
+                    {renderGameTemplateWithHighlights({
+                      template: skillTemplate,
+                      getParamValue: (index) => skillParams[index] ?? null,
+                      highlightClassName: 'text-cyan-200 font-semibold',
+                      keepUnknownPlaceholders: true,
+                    })}
+                  </div>
                 </div>
+              )}
+
+              <div className="mt-4 shrink-0 border-t border-white/8 pt-3">
+                <EquippedByStrip uid={uid} echoKey={echo.echoKey} usageCount={Number(echo.usageCount)} onOpenBuild={onOpenBuild} />
               </div>
-            )}
+
+              {/* Sighting date: echo identity is content-based (echo_key), so this
+                  is the upload date of the first build carrying this exact echo. */}
+              {firstSeenLabel && (
+                <div
+                  className="mt-3 shrink-0 font-ropa text-[10px] leading-none uppercase tracking-[0.14em] text-text-primary/45"
+                  title={`First seen in an upload ${firstSeenLabel}${lastSeenLabel && lastSeenLabel !== firstSeenLabel ? `, last seen ${lastSeenLabel}` : ''}.`}
+                >
+                  Added <span className="text-text-primary/60">{firstSeenLabel}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
             </div>
