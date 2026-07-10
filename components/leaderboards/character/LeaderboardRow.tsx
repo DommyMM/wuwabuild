@@ -226,13 +226,15 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
         </div>
 
         {/* Character */}
-        <div className="flex items-center gap-1.5 py-2">
+        <div className="flex min-w-0 items-center gap-1.5 py-2">
           {character?.head ? (
             <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" loading="lazy" />
           ) : (
             <div className="h-9 w-9 bg-border" />
           )}
-          <span className="text-lg font-semibold text-text-primary">{characterName}</span>
+          <span className="line-clamp-2 min-w-0 text-lg font-semibold leading-tight text-text-primary" title={characterName}>
+            {characterName}
+          </span>
         </div>
 
         {/* Echo sets */}

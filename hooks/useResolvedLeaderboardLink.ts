@@ -15,6 +15,11 @@ interface ResolvedLeaderboardLink {
   defaultWeaponId: string;
 }
 
+export interface ResolvedLeaderboardLinkState {
+  link: ResolvedLeaderboardLink | null;
+  isLoading: boolean;
+}
+
 interface ResolveLeaderboardLinkOptions {
   characterId?: string | null;
   weaponId?: string | null;
@@ -128,6 +133,12 @@ function resolveLeaderboardLink(
 export function useResolvedLeaderboardLink(
   opts: ResolveLeaderboardLinkOptions,
 ): ResolvedLeaderboardLink | null {
+  return useResolvedLeaderboardLinkState(opts).link;
+}
+
+export function useResolvedLeaderboardLinkState(
+  opts: ResolveLeaderboardLinkOptions,
+): ResolvedLeaderboardLinkState {
   const [overview, setOverview] = useState<LBCharacterOverview[] | null>(() => readCachedLeaderboardOverview());
 
   useEffect(() => {
@@ -151,7 +162,7 @@ export function useResolvedLeaderboardLink(
   }, []);
 
   return useMemo(() => {
-    if (!overview) return null;
-    return resolveLeaderboardLink(overview, opts);
+    if (!overview) return { link: null, isLoading: true };
+    return { link: resolveLeaderboardLink(overview, opts), isLoading: false };
   }, [overview, opts]);
 }

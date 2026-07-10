@@ -18,6 +18,18 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'fixed',
+                text: 'Imports for characters without a leaderboard now open the uploaded build on its profile instead of leading to an empty leaderboard'
+            },
+            {
+                kind: 'fixed',
+                text: 'Long character variant names now wrap into evenly spaced compact leaderboard rows'
+            },
+            {
+                kind: 'improved',
+                text: 'Build imports now upload screenshots once and attach confirmed source images more reliably'
+            },
+            {
+                kind: 'fixed',
                 text: 'Echo artwork on build and profile cards now shows echo skill and Sonata details on hover'
             },
             {

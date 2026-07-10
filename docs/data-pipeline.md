@@ -4,6 +4,8 @@ This doc consolidates OCR flow, sync scripts, env vars, and day-to-day commands 
 
 ## OCR Import Flow
 
+After a successful submission, the import confirmation resolves the character against the cached leaderboard overview. Characters with a board open the submitted leaderboard row; characters without one open the owner's profile with `buildId` so the exact uploaded build is expanded. The destination action waits for overview resolution rather than offering a known-empty leaderboard route.
+
 1. User uploads screenshot.
 2. Frontend crops fixed OCR regions.
 3. Crops are sent in parallel to the OCR gateway (`ocr.wuwa.build/api/ocr`) with region headers.

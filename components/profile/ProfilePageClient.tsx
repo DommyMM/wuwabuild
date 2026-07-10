@@ -7,7 +7,7 @@ import { getPinnedProfilesSnapshot, getProfilesServerSnapshot, recordProfileVisi
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, LBStatThreshold, listProfileBuilds } from '@/lib/lb';
+import { getBuildById, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, LBStatThreshold, listProfileBuilds } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE, normalizeSequences } from '@/components/leaderboards/constants';
 import { getSortLabel, resolveRegionBadge } from '@/components/leaderboards/formatters';
@@ -54,6 +54,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     () => parseInitialQuery(new URLSearchParams(searchParams.toString())),
     [searchParams],
   );
+  const linkedBuildId = searchParams.get('buildId')?.trim() ?? '';
 
   const [page, setPage] = useState<number>(() => initialQuery.page);
   const [pageSize, setPageSize] = useState<number>(() => clampItemsPerPage(initialQuery.pageSize));
@@ -156,11 +157,13 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   // Sync URL without uid param in query (uid lives in path)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const withoutUid = serializeQuery({ ...querySnapshot, uid: '' });
+    const params = new URLSearchParams(serializeQuery({ ...querySnapshot, uid: '' }));
+    if (linkedBuildId) params.set('buildId', linkedBuildId);
+    const withoutUid = params.toString();
     const currentSearch = window.location.search.replace(/^\?/, '');
     if (currentSearch === withoutUid) return;
     window.history.replaceState(null, '', withoutUid ? `/profile/${uid}?${withoutUid}` : `/profile/${uid}`);
-  }, [querySnapshot, uid]);
+  }, [linkedBuildId, querySnapshot, uid]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -234,6 +237,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   // Deep link from the echo inventory's "Equipped by" strip: surface the build
   // in this page's own table instead of leaving the profile.
   const pendingOpenBuildRef = useRef<string | null>(null);
+  const openedLinkedBuildRef = useRef('');
 
   const scrollToBuildRow = useCallback((buildId: string) => {
     const scroll = () => {
@@ -247,6 +251,29 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       });
     });
   }, []);
+
+  useEffect(() => {
+    if (!linkedBuildId || !settledQueryKey || openedLinkedBuildRef.current === linkedBuildId) return;
+    const controller = new AbortController();
+    let active = true;
+
+    void getBuildById(linkedBuildId, controller.signal)
+      .then((linkedBuild) => {
+        if (!active || linkedBuild.owner.uid !== uid) return;
+        openedLinkedBuildRef.current = linkedBuild.id;
+        setBuilds((current) => current.some((build) => build.id === linkedBuild.id)
+          ? current
+          : [linkedBuild, ...current]);
+        if (!expandedBuildIds.has(linkedBuild.id)) handleToggleExpand(linkedBuild.id);
+        scrollToBuildRow(linkedBuild.id);
+      })
+      .catch(() => { /* The normal profile remains usable if the deep link is stale. */ });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [expandedBuildIds, handleToggleExpand, linkedBuildId, scrollToBuildRow, settledQueryKey, uid]);
 
   const handleOpenBuild = useCallback((buildId: string, characterId: string) => {
     if (builds.some((b) => b.id === buildId)) {

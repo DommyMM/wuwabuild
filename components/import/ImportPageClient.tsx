@@ -19,10 +19,8 @@ import type { SavedState } from '@/lib/build';
 import { getDefaultReportReason, type OcrIssueReason } from '@/lib/import/report';
 import { AlertTriangle, ExternalLink, RotateCcw } from 'lucide-react';
 import posthog from 'posthog-js';
-import Link from 'next/link';
-import { DEFAULT_LB_TRACK } from '@/components/leaderboards/constants';
-import { buildLeaderboardHref } from '@/components/leaderboards/character/leaderboardCharacterQuery';
 import { validateImportedEchoPanels } from '@/lib/import/validateEchoPanels';
+import { useResolvedLeaderboardLinkState } from '@/hooks/useResolvedLeaderboardLink';
 
 type ImportStep = 'upload' | 'results';
 
@@ -226,6 +224,14 @@ export function ImportPageClient() {
     }
   };
 
+  const importedPreviewState = getReportImportedState();
+  const { link: importedLeaderboardLink, isLoading: isLeaderboardAvailabilityLoading } = useResolvedLeaderboardLinkState({
+    characterId: importedPreviewState?.characterId,
+    weaponId: importedPreviewState?.weaponId,
+    sequence: importedPreviewState?.sequence,
+    getWeapon: gameData.getWeapon,
+  });
+
   const openReportModal = (reason: OcrIssueReason = getDefaultReportReason({
     validationError,
     ocrError: error,
@@ -233,16 +239,6 @@ export function ImportPageClient() {
   })) => {
     setReportReason(reason);
     setIsReportModalOpen(true);
-  };
-
-  const getLeaderboardHref = (importedState: SavedState, buildId?: string) => {
-    if (!importedState.characterId) return '/leaderboards';
-
-    return buildLeaderboardHref(importedState.characterId, {
-      weaponId: importedState.weaponId || undefined,
-      track: DEFAULT_LB_TRACK,
-      buildId,
-    });
   };
 
   const uploadImportedState = async (importedState: SavedState): Promise<string | null> => {
@@ -415,7 +411,7 @@ export function ImportPageClient() {
     }
   };
 
-  const goToImportedLeaderboard = async (wm: { username: string; uid: string }) => {
+  const goToImportedDestination = async (wm: { username: string; uid: string }) => {
     const importedState = buildImportedState(wm);
     const shouldUpload = uploadToLb;
 
@@ -425,15 +421,23 @@ export function ImportPageClient() {
       saveDraftBuild(importedState);
       setDraftBuildState(importedState);
       posthog.capture('import_complete', {
-        action: 'go_to_leaderboard',
+        action: importedLeaderboardLink ? 'go_to_leaderboard' : 'go_to_profile_build',
         character_id: importedState.characterId,
         uploaded_to_lb: shouldUpload,
         has_build_id: Boolean(buildId),
       });
-      router.push(getLeaderboardHref(importedState, buildId ?? undefined));
+      if (importedLeaderboardLink) {
+        const separator = importedLeaderboardLink.href.includes('?') ? '&' : '?';
+        router.push(buildId
+          ? `${importedLeaderboardLink.href}${separator}buildId=${encodeURIComponent(buildId)}`
+          : importedLeaderboardLink.href);
+      } else {
+        const profileHref = `/profile/${encodeURIComponent(importedState.watermark.uid)}`;
+        router.push(buildId ? `${profileHref}?buildId=${encodeURIComponent(buildId)}` : profileHref);
+      }
     } catch (err) {
       posthog.captureException(err);
-      notifyError(err instanceof Error ? err.message : 'Failed to open leaderboard.');
+      notifyError(err instanceof Error ? err.message : 'Failed to open imported build.');
     } finally {
       if (shouldUpload) setIsSubmitting(false);
     }
@@ -643,14 +647,7 @@ export function ImportPageClient() {
             <span className="font-medium text-text-primary">
               {gameData.getCharacter(draftBuildState?.characterId ?? null)?.name ?? 'a build'}
             </span>{' '}
-            loaded. You can overwrite it, save it, or jump straight to the{' '}
-            <Link
-              href={draftBuildState?.characterId ? `/leaderboards/${draftBuildState.characterId}` : '/leaderboards'}
-              className="text-accent underline underline-offset-2 transition-colors hover:text-accent-hover"
-            >
-              leaderboard
-            </Link>
-            .
+            loaded. You can overwrite it, save it, or open the imported build after uploading.
           </>
         }
         actions={(
@@ -658,14 +655,14 @@ export function ImportPageClient() {
             <button
               onClick={async () => {
                 if (!pendingWm) return;
-                await goToImportedLeaderboard(pendingWm);
+                await goToImportedDestination(pendingWm);
                 setPendingWm(null);
               }}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLeaderboardAvailabilityLoading}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover"
             >
               <ExternalLink className="h-4 w-4" />
-              Go to Leaderboard
+              {importedLeaderboardLink ? 'Go to Leaderboard' : 'View on Profile'}
             </button>
             <button
               onClick={async () => {

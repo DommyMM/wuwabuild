@@ -96,7 +96,7 @@ Current init settings:
 #### `import_complete`
 - Purpose: import flow ended in a concrete output.
 - Properties:
-  - `action`: `load_to_editor` | `save_to_saves`
+  - `action`: `load_to_editor` | `save_to_saves` | `go_to_leaderboard` | `go_to_profile_build`
   - `character_id`: string | null
   - `uploaded_to_lb`: boolean
 
