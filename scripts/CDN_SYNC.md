@@ -1,14 +1,16 @@
 # CDN Data Sync System
 
-This system syncs game data from Wuthery's CDN to keep character/weapon/echo data up-to-date.
+This system syncs game data from Wuthery by default, with Encore available as a faster early-patch source when Wuthery is still catching up.
 
-For the comparison with the alternative `encore.moe` API (different host, different schema, faster + more reliable but per-language fan-out) and the dual-mode/fallback strategy, see [`../docs/sync-sources.md`](../docs/sync-sources.md). The OpenAPI spec is vendored at [`encore_api.json`](encore_api.json).
+For the comparison with the alternative `encore.moe` API (different host, different schema, faster + more reliable but per-language fan-out) and the dual-source catch-up strategy, see [`../docs/sync-sources.md`](../docs/sync-sources.md). The OpenAPI spec is vendored at [`encore_api.json`](encore_api.json).
 
-## Data Source
+## Data Sources
 
-- **CDN Base**: `https://files.wuthery.com`
-- **List API**: `POST /api/fs/list` (AList/OpenList server)
-- **Download**: `GET /d/GameData/Grouped/{Character,Weapon}/{id}.json`
+- **Encore API Base**: `https://api-v2.encore.moe/api`
+- **Encore Resources**: `https://api.encore.moe/resource/Data`
+- **Legacy Wuthery CDN Base**: `https://files.wuthery.com`
+- **Legacy List API**: `POST /api/fs/list` (AList/OpenList server)
+- **Legacy Download**: `GET /d/GameData/Grouped/{Character,Weapon}/{id}.json`
 
 ## Architecture
 
@@ -20,11 +22,11 @@ wuwabuilds/
 │   ├── sync_weapons.py       # Weapon sync (Python, Wuthery CDN API)
 │   ├── sync_echoes.py        # Echo sync (Python, Wuthery Grouped/Phantom, with Encore name fallback)
 │   ├── sync_fetters.py       # Sonata/element set sync (Python, Wuthery LocalizationIndex)
-│   ├── sync_encore.py        # Combined characters/weapons/echoes/fetters sync via Encore API (sync_all --encore)
+│   ├── sync_encore.py        # Combined characters/weapons/echoes/fetters sync via Encore API (--encore)
 │   ├── stat_translations.py  # Stat i18n + icon URL sync -> Stats.json
 │   ├── sync_backend.py       # Single source of truth for ../backend/Data: OCR JSON schema + all SIFT templates (elements/characters/weapons/echoes), id-keyed WebP
 │   ├── migrate_r2_png_to_jpg.py # One-off R2 maintenance script
-│   ├── sync_all.py           # Run full frontend + backend + LB pipeline (--encore for Encore source)
+│   ├── sync_all.py           # Run full frontend + backend + LB pipeline (--encore for early patch catch-up)
 │   └── CDN_SYNC.md           # This file
 ├── public/Data/
 │   ├── Characters.json       # Combined character data
@@ -63,7 +65,7 @@ wuwabuilds/
 
 ## Full Pipeline (`sync_all.py`)
 
-`sync_all.py` runs the full frontend + backend + LB data pipeline. The default path uses the Wuthery CDN:
+`sync_all.py` runs the full frontend + backend + LB data pipeline. The default path uses Wuthery:
 
 1. `sync_characters.py --fetch`
 2. `sync_weapons.py --fetch`
@@ -73,7 +75,8 @@ wuwabuilds/
 6. `sync_backend.py`
 7. `sync_lb.py`
 
-With `--encore`, steps 1-4 collapse into a single `sync_encore.py` invocation; `stat_translations.py`, `sync_backend.py`, and `sync_lb.py` still run as the final three steps. The backend template flags (`--skip-*-icons` / `--force-*-icons` for elements/characters/weapons/echoes) all route to `sync_backend.py`.
+With `--encore`, the four source-fetch steps collapse into `sync_encore.py`, then
+`stat_translations.py`, `sync_backend.py`, and `sync_lb.py` still run as the final three steps. The backend template flags (`--skip-*-icons` / `--force-*-icons` for elements/characters/weapons/echoes) all route to `sync_backend.py`.
 
 Pass-through flags: `--dry-run`, `--pretty` (plus unknown extra args are forwarded to each script).
 

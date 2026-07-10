@@ -104,14 +104,18 @@ export const ELEMENT_SETS = {
   'Sound': 'Sound of True Name',
   'QuietSnow': 'Wishes of Quiet Snowfall',
   'Memories': 'Reel of Spliced Memories',
-  'Adam': 'Shadow of Shattered Dreams'
+  'Adam': 'Shadow of Shattered Dreams',
+  'Feathered': 'Song of Feathered Trace',
+  'EvilPurge': 'Heart of Evil\'s Purge',
+  'Nether': 'Lamp of Nether Road',
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
 export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
   'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
   'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward' | 'Flaming' | 'Dream' | 'Crown' | 'Law' | 'Flamewing' |
-  'Thread' | 'Pact' | 'Halo' | 'Rite' | 'Trailblazing' | 'Chromatic' | 'Sound' | 'QuietSnow' | 'Memories' | 'Adam';
+  'Thread' | 'Pact' | 'Halo' | 'Rite' | 'Trailblazing' | 'Chromatic' | 'Sound' | 'QuietSnow' | 'Memories' |
+  'Adam' | 'Feathered' | 'EvilPurge' | 'Nether';
 
 // Fetter ID → ElementType mapping (from Phantom repo analysis)
 export const FETTER_MAP: Record<number, ElementType> = {
@@ -147,6 +151,9 @@ export const FETTER_MAP: Record<number, ElementType> = {
   30: 'QuietSnow',
   31: 'Memories',
   32: 'Adam',
+  33: 'Feathered',
+  34: 'EvilPurge',
+  35: 'Nether',
 };
 
 const SET_ID_BY_ELEMENT = Object.fromEntries(

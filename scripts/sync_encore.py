@@ -1,7 +1,7 @@
 """
 Sync game data from Encore API into the existing public/Data JSON shapes.
 
-Run via `sync_all.py --encore` (Wuthery remains sync_all's default source), or
+Run via `sync_all.py --encore`, or
 directly for targeted delta syncs: `--merge` with `--character-ids/--weapon-ids/
 --echo-ids`, or `--new-only` to pull the IDs from Encore's /new endpoint.
 Re-fetched entities replace their stored rows, so --merge also refreshes
@@ -47,6 +47,14 @@ from sync_echoes import extract_main_slot_bonuses  # noqa: E402
 from sync_fetters import fetch_and_build as build_wuthery_fetters  # noqa: E402
 
 DATA_DIR = SCRIPTS_DIR.parent / "public" / "Data"
+
+ENCORE_FETTER_ADD_PROPS: dict[int, dict[str, list[dict[str, Any]]]] = {
+    # Temporary bridge for 3.5 Encore-only sets. Wuthery carries structured AddProp
+    # for fetters, but can lag new patches; synthesize just the stable 2pc stat.
+    33: {"2": [{"id": 11, "value": 100, "isRatio": False}]},    # Energy Regen +10%
+    34: {"2": [{"id": 25, "value": 100, "isRatio": False}]},    # Aero DMG +10%
+    35: {"2": [{"id": 10002, "value": 10, "isRatio": True}]},   # HP +10%
+}
 
 STAT_LABELS = {
     "Atk": {"en": "ATK", "de": "ANG", "es": "ATQ", "fr": "ATQ", "ja": "攻撃力", "ko": "공격력", "th": "ATK", "uk": "ATK", "zh-Hans": "攻击", "zh-Hant": "攻擊"},
@@ -687,10 +695,11 @@ def _build_encore_fetter_from_group(group_id: int, group_by_lang: dict[str, dict
         piece_key = str(int(fetter.get("Key") or index + 1))
         desc = i18n(group_by_lang, lambda data, i=index: fetter_desc(data, i))
         effect_text = substituted_en[index] if index < len(substituted_en) else desc.get("en", "")
+        add_prop = copy.deepcopy(ENCORE_FETTER_ADD_PROPS.get(group_id, {}).get(piece_key, []))
         piece_effects[piece_key] = {
             "pieceCount": int(piece_key),
             "fetterId": fetter.get("Id"),
-            "addProp": [],
+            "addProp": add_prop,
             "buffIds": [],
             "effectDescription": desc,
             "effectDescriptionParam": _params_from_text(effect_text),

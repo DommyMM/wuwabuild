@@ -17,6 +17,7 @@ const PROP_ID_TO_STAT: Record<number, StatName> = {
   26: 'Spectro DMG',
   27: 'Havoc DMG',
   35: 'Healing Bonus',
+  10002: 'HP%',
   10007: 'ATK%',
 };
 

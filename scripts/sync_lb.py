@@ -86,7 +86,8 @@ FETTER_ID_TO_SET_KEY = {
     13: "Empyrean", 14: "Tidebreaking", 16: "Gust", 17: "Windward", 18: "Flaming",
     19: "Dream", 20: "Crown", 21: "Law", 22: "Flamewing", 23: "Thread", 24: "Pact",
     25: "Halo", 26: "Rite", 27: "Trailblazing", 28: "Chromatic", 29: "Sound",
-    30: "QuietSnow", 31: "Memories", 32: "Adam",
+    30: "QuietSnow", 31: "Memories", 32: "Adam", 33: "Feathered",
+    34: "EvilPurge", 35: "Nether",
 }
 
 
@@ -332,14 +333,14 @@ _STAT_RE = _build_stat_regex()
 _RE_PCT       = re.compile(r"(\d+(?:\.\d+)?)\s*%")
 _RE_DURATION  = re.compile(
     r"(?:"
-    r"(?:lasting\s+for|for|lasts?|each\s+stack\s+lasts?)\s+(\d+(?:\.\d+)?)"
+    r"(?:lasting\s+for|lasting|for|lasts?|each\s+stack\s+lasts?)\s+(\d+(?:\.\d+)?)"
     r"(?:\s*%?\s*s\b|(?=\s*[,.]|\s*$))"
     r"|"
     r"(\d+(?:\.\d+)?)\s*%?\s*s?\s+(?:after|upon|while|during|within)\b"
     r")",
     re.I
 )
-_RE_STACKS    = re.compile(r"stack(?:ing|s)?\s+up\s+to\s+(\d+)(?:\s+times?)?", re.I)
+_RE_STACKS    = re.compile(r"stack(?:ing|s)?\s+up\s+to\s+(\d+)(?:\s+times?)?|max\s+(\d+)\s+stacks?", re.I)
 _RE_PER_STACK = re.compile(r"(\d+(?:\.\d+)?)\s*%\s+every\s+\d", re.I)  # "5% every 1.5s"
 
 _ELEMENT_AMP_TO_CODE = {
@@ -539,6 +540,16 @@ def _extract_buffs(text: str) -> list[dict]:
     # Pass B – "X% StatName" (value precedes stat)
     for pct_m in _RE_PCT.finditer(text):
         val = float(pct_m.group(1))
+        increase_after = text[pct_m.end():pct_m.end() + 90].lstrip()
+        increase_m = re.match(r"(?:increase|increased)\s+in\s+", increase_after, re.I)
+        if increase_m:
+            stat_m = _STAT_RE.match(increase_after[increase_m.end():])
+            if stat_m:
+                span_end = pct_m.end() + len(text[pct_m.end():pct_m.end() + 90]) - len(increase_after) + increase_m.end() + stat_m.end()
+                if not _overlaps(pct_m.start(), span_end):
+                    buffs.append({"stat": _stat_name_for_match(stat_m), "value": val})
+                    used.append((pct_m.start(), span_end))
+                    continue
         # A deal-verb directly before the value means combat damage, not a stat
         # buff (e.g. Rebecca's turret "dealing 2.5% Electro DMG each hit").
         # Buff phrasings never put the value right after the verb ("deal 15%
@@ -591,6 +602,14 @@ def _extract_buffs(text: str) -> list[dict]:
     # B (not A) is the buffed stat.
     for stat_m in _STAT_RE.finditer(text):
         stat = _stat_name_for_match(stat_m)
+        immediate = text[stat_m.end():stat_m.end() + 24]
+        immediate_m = re.match(r"\s+(?:Bonus\s+)?(\d+(?:\.\d+)?)\s*%", immediate, re.I)
+        if immediate_m:
+            span_end = stat_m.end() + immediate_m.end()
+            if not _overlaps(stat_m.start(), span_end):
+                buffs.append({"stat": stat, "value": float(immediate_m.group(1))})
+                used.append((stat_m.start(), span_end))
+                continue
         after = text[stat_m.end():stat_m.end() + 80]
         pct_m = re.search(
             r"(?:\+\s*|by\s+|increases?\s+by\s+)(\d+(?:\.\d+)?)\s*%",
@@ -628,6 +647,10 @@ def _extract_duration(text: str) -> float | None:
         return None
     value = m.group(1) or m.group(2)
     return float(value) if value else None
+
+
+def _stack_count(match: re.Match[str]) -> int:
+    return int(match.group(1) or match.group(2))
 
 
 def _extract_trigger(text: str) -> str:
@@ -854,6 +877,7 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
     if not effect_en:
         return []
 
+    effect_en = re.sub(r"<br\s*/?>", ". ", effect_en, flags=re.I)
     effect_en = _MARKUP_RE.sub("", effect_en)
     effect_en = re.sub(r"\{[^}]+\}", "", effect_en)
 
@@ -880,7 +904,7 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
         if _META_RE.match(s):
             m = _RE_STACKS.search(s)
             if m:
-                global_stacks = int(m.group(1))
+                global_stacks = _stack_count(m)
             d = _extract_duration(s)
             if d is not None:
                 global_duration = d
@@ -895,6 +919,7 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
     results: list[dict] = []
 
     for sentence in sentences:
+        lower_sentence = sentence.lower()
         # Extract trigger first so we can filter out threshold-condition
         # values that appear in the trigger clause but aren't actual buffs
         # (e.g. "Reaching 250% Energy Regen" → 250 should not be a buff).
@@ -905,10 +930,13 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
             # DMG taken is Amplified..." In those cases, inherit the prior
             # trigger window instead of dropping the second clause as passive.
             trigger = str(results[-1].get("trigger", "") or "")
-        buffs = [
-            b for b in _extract_buffs(sentence)
-            if trigger == "" or b["stat"] not in trigger
-        ]
+        if "for every" in lower_sentence and any(phrase in lower_sentence for phrase in _PARTY_SCOPE_PHRASES):
+            buffs = []
+        else:
+            buffs = [
+                b for b in _extract_buffs(sentence)
+                if trigger == "" or b["stat"] not in trigger
+            ]
         if not buffs:
             continue
 
@@ -920,7 +948,7 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
 
         entry: dict = {"trigger": trigger, "buffs": buffs, "duration": duration}
         if stacks_m:
-            entry["max_stacks"] = int(stacks_m.group(1))
+            entry["max_stacks"] = _stack_count(stacks_m)
             entry["per_stack"] = True  # "stacking up to N times" always means accumulate
         elif per_stack_m and global_stacks > 0:
             # Stacking info was in a separate meta-sentence; attach it here.
@@ -1323,6 +1351,8 @@ def _append_unique_party_buff(out: list[dict], entry: dict) -> None:
 
 
 def _split_buff_sentences(text: str) -> list[str]:
+    text = re.sub(r"<br\s*/?>", ". ", text, flags=re.I)
+    text = _MARKUP_RE.sub("", text)
     text = re.sub(r"\bCrit\.\s+", "Crit ", text)
     text = re.sub(r"\bRegen\.\s+", "Regen ", text)
     return [s.strip() for s in re.split(r"(?:\.\s+|\.\n+|\n+)", text) if s.strip()]
@@ -1437,6 +1467,15 @@ def _parse_party_scoped_buffs(text: str) -> list[dict]:
 
         for cap_m in _RE_UP_TO_CAP.finditer(sentence):
             cap_val = float(cap_m.group(1))
+            scaling_clause = sentence[max(0, cap_m.start() - 140):cap_m.end()]
+            scaling_m = re.search(r"increase\s+in\s+(.+?)\s+to\s+.*?\bfor\s+every\b", scaling_clause, re.I)
+            if scaling_m:
+                stat_m = _STAT_RE.match(scaling_m.group(1).strip())
+                if stat_m:
+                    for entry in _stat_to_party_buffs(_stat_name_for_match(stat_m), cap_val):
+                        _append_unique_party_buff(out, entry)
+                        emitted_types.add((entry.get("type", ""), entry.get("element", ""), entry.get("move_type", "")))
+                    continue
             after_cap = sentence[cap_m.end():cap_m.end() + 60].lstrip()
             stat_m = _STAT_RE.match(after_cap)
             if stat_m:

@@ -184,14 +184,14 @@ Run from `wuwabuilds/scripts/`:
 
 ```bash
 py sync_all.py                                # Full pipeline: frontend Data + backend Data + LB calc data
-py sync_all.py --encore                       # Same pipeline using the experimental Encore API source
+py sync_all.py --encore                       # Faster early-patch merge from Encore
 py sync_lb.py --weapons-only                  # Regenerate LB weapon bases only
 py sync_backend.py --force-echo-icons         # Refresh backend echo SIFT templates by CDN ID
 ```
 
-`sync_all.py` (default Wuthery path) runs `sync_characters`, `sync_weapons`, `sync_echoes`, `sync_fetters`,
-`stat_translations`, `sync_backend`, and `sync_lb` in sequence. With `--encore` it runs `sync_encore.py`
-in place of the four per-entity scripts, then the same `stat_translations` / `sync_backend` / `sync_lb`.
+`sync_all.py` defaults to the Wuthery per-entity scripts (`sync_characters`, `sync_weapons`,
+`sync_echoes`, `sync_fetters`), then runs the same `stat_translations` / `sync_backend` / `sync_lb`
+tail. Use `--encore` when Wuthery is lagging a new patch and we need Encore's faster `/new` feed.
 `sync_backend` is the single source of truth for `backend/Data`: the OCR JSON schema plus every SIFT
 template (elements/characters/weapons/echoes) as id-keyed WebP, gated by `--skip-*-icons` / `--force-*-icons`.
 See [`scripts/CDN_SYNC.md`](./scripts/CDN_SYNC.md) for per-script flags and outputs and

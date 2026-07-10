@@ -1,14 +1,14 @@
 # Sync Data Sources — Wuthery vs Encore
 
-Game-data sync (characters, weapons, echoes, fetters) currently fetches from **Wuthery's CDN** (an AList/OpenList file server in front of grouped JSON dumps). This doc captures what we know about an alternative source — **encore.moe's API v2** — and the trade-offs that motivate dual-mode/fallback support.
+Game-data sync (characters, weapons, echoes, fetters) still defaults to **Wuthery's CDN** (an AList/OpenList file server in front of grouped JSON dumps). **encore.moe's API v2** remains the faster early-patch source when Wuthery is still catching up.
 
 The script-level reference is [`scripts/CDN_SYNC.md`](../scripts/CDN_SYNC.md). This file is the *why*; that file is the *how*.
 
 ## TL;DR
 
-- Wuthery is one polyglot JSON per entity (all 14 languages in a single file) but slow and flaky — list calls take 10–17s and parallel fetches drop connections mid-stream.
+- Wuthery is one polyglot JSON per entity (all 14 languages in a single file) but slow, flaky, and can lag current patches — list calls take 10–17s and parallel fetches drop connections mid-stream.
 - Encore is a real REST API: tiny per-language responses, ~200–400ms per call, no observed flakiness, exposes a `/new` changelog endpoint with `GameVer` / `ResVer` / list of newly-added IDs.
-- Both sources track the same game version today (3.3.0, character 1608 Phrolova, weapon 21050104). The premise that one is "more up to date" hasn't held up in measurements — it's about reliability and speed, not freshness.
+- Earlier measurements had both sources on the same game version, but newer patch catch-up has favored Encore. Keep Wuthery as the default source and use Encore for targeted catch-up when freshness matters.
 - Schemas differ enough that we need a transformer layer; field coverage on Encore is a superset of what we currently consume.
 - Wuthery can still have per-field localization gaps even when it has the new entity. Example: echo item `60001995` has blank `name.en` in Wuthery, while Encore exposes the English name through its echo list/detail keyed by `MonsterId`.
 
@@ -30,7 +30,7 @@ Wuthery's reliability problem is the headline finding. Encore's per-language fan
 
 ## Source Endpoints
 
-### Wuthery (current)
+### Wuthery (default)
 
 ```
 Base:     https://files.wuthery.com
@@ -40,7 +40,7 @@ LocIdx:   GET  /d/GameData/Grouped/LocalizationIndex/{PhantomFetterGroups|Phanto
 Images:   served at /d/<UE asset path>.png
 ```
 
-### Encore (alternative)
+### Encore (early-patch catch-up)
 
 ```
 Base v2:  https://api-v2.encore.moe/api      (Nuxt backend)
@@ -106,7 +106,7 @@ py scripts/sync_characters_encore.py --id 1608 --compare
 py scripts/sync_characters_encore.py --id 1608 --output public/Data/Characters.encore.1608.json --pretty
 ```
 
-A combined `scripts/sync_encore.py` extends the prototype to cover characters, weapons, echoes, and fetters in one run, and is what `sync_all.py --encore` invokes (see [`scripts/CDN_SYNC.md`](../scripts/CDN_SYNC.md)). The Wuthery scripts remain the default pipeline.
+A combined `scripts/sync_encore.py` extends the prototype to cover characters, weapons, echoes, and fetters in one run, and is what `sync_all.py --encore` invokes when Wuthery lags a patch (see [`scripts/CDN_SYNC.md`](../scripts/CDN_SYNC.md)). The Wuthery scripts remain the default path.
 
 Validation:
 
@@ -162,7 +162,7 @@ Validation:
 
 **Known Encore echo gap:** `Cuddle Wuddle` (cost 3) and `Lottie Lost` (cost 1) — the cute Somnoire-event echoes — are classified `PhantomType: 2` / `QualityId: 2` in Encore and so fall outside the `PhantomType==1 && QualityId==5` filter. `Cuddle Wuddle` has a 5-star `Phantom: Cuddle Wuddle` *skin* (ItemId `601…`) but no 5-star base; `Lottie Lost` has no 5-star entry at all. Result: Encore yields 161 base echoes vs Wuthery's 162 (net of the new `Reminiscence - Nightmare: Adam Smasher`). If these two are needed they must be backfilled from Wuthery — they cannot be sourced from Encore as canonical echoes.
 
-**Fetters stay on Wuthery.** Encore's echo `FetterGroups` carry the set bonus only as free text, with no structured `AddProp`/`pieceCount`, so the LB-critical 2pc/3pc stat bonuses cannot be derived reliably from them (the value encoding differs per stat — elemental DMG `+10%` → `value: 100, isRatio: false`; `ATK +10%` → `value: 10, isRatio: true`). Sonata sets are a small, stable dataset served by Wuthery as three localization-index files (`PhantomFetters.json` / `PhantomFetterGroups.json` / `ConfigDBParsed/PhantomFetter.json`) — a cheap, reliable fetch, not the flaky large-parallel pattern. So `sync_encore.py`'s `sync_fetters` reuses Wuthery's `fetch_and_build()`; the result is byte-identical to the default pipeline's `Fetters.json` (`addProp`/`pieceCount` verified equal).
+**Fetters prefer Wuthery structure.** Encore's echo `FetterGroups` carry the set bonus mostly as free text, with no structured `AddProp`/`pieceCount`, so the LB-critical 2pc/3pc stat bonuses should come from Wuthery whenever available. Sonata sets are a small, stable dataset served by Wuthery as three localization-index files (`PhantomFetters.json` / `PhantomFetterGroups.json` / `ConfigDBParsed/PhantomFetter.json`) — a cheap, reliable fetch, not the flaky large-parallel pattern. `sync_encore.py` therefore starts with Wuthery's `fetch_and_build()` and only appends Encore-only groups while Wuthery is behind; those temporary groups may carry small hand-synthesized `AddProp` entries for stable 2pc stats until Wuthery catches up.
 
 ### Echo ID and Localization Notes
 
@@ -175,7 +175,7 @@ Wuthery's `Grouped/Phantom` rows are item/rarity rows. For the new Voidborne Con
 - Encore's echo list has `Id: 6000199`, `Name: "Reminiscence: Threnodian - Voidborne Construct"`.
 - Encore's echo detail at `/api/en/echo/6000199` has `ItemId: 60001995`, `MonsterId: 6000199`, and `MonsterName: "Reminiscence: Threnodian - Voidborne Construct"`.
 
-Current behavior in `sync_echoes.py`: Wuthery remains the primary source. If a 5-star Wuthery echo has no English name, the script fetches Encore's English echo list and fills the missing name by matching Wuthery `monsterId` to Encore list `Id`. This is source-derived fallback, not a per-ID hardcode.
+Current behavior in the legacy `sync_echoes.py` path: Wuthery remains that script's primary source. If a 5-star Wuthery echo has no English name, the script fetches Encore's English echo list and fills the missing name by matching Wuthery `monsterId` to Encore list `Id`. This is source-derived fallback, not a per-ID hardcode.
 
 ## Strategy
 

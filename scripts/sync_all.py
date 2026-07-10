@@ -3,7 +3,7 @@ Run all sync scripts with default options.
 
 Fetches characters, weapons, echoes, fetters (element/sonata sets), and stat
 translations and writes them to public/Data. Wuthery is the default source;
-pass --encore to run the experimental Encore API sync path.
+pass --encore to use Encore's faster early-patch sync path.
 Also generates backend OCR data and LB constants.
 Pass-through flags (e.g. --dry-run, --pretty) apply to all scripts.
 """
@@ -20,7 +20,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run all CDN sync scripts")
     parser.add_argument("--dry-run", action="store_true", help="Preview only (no writes)")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output")
-    parser.add_argument("--encore", action="store_true", help="Use experimental Encore API sync instead of Wuthery CDN")
+    parser.add_argument("--encore", action="store_true", help="Use Encore API sync instead of the default Wuthery CDN path")
+    parser.add_argument("--wuthery", action="store_true", help="Use Wuthery CDN sync (default; retained for compatibility)")
     # Backend template refresh controls (all routed to sync_backend.py, which is the
     # single source of truth for backend Data/ templates).
     parser.add_argument("--skip-element-icons", action="store_true", help="Skip backend element template refresh")
@@ -41,7 +42,9 @@ def main() -> int:
         pretty_flags.append("--pretty")
     passthrough = [*common_flags, *pretty_flags, *rest]
 
-    if not args.encore:
+    use_encore = args.encore and not args.wuthery
+
+    if not use_encore:
         scripts = [
             ("Characters", [sys.executable, str(scripts_dir / "sync_characters.py"), "--fetch"]),
             ("Weapons",    [sys.executable, str(scripts_dir / "sync_weapons.py"), "--fetch"]),
@@ -55,7 +58,7 @@ def main() -> int:
         encore_flags = [*common_flags, *pretty_flags, *rest]
         scripts = [
             ("Encore Data", [sys.executable, str(scripts_dir / "sync_encore.py"), *encore_flags]),
-            ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py"), *common_flags, *pretty_flags, *rest]),
+            ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py"), *common_flags, *pretty_flags]),
             ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py"), *common_flags]),
             ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py"), *common_flags, *pretty_flags]),
         ]
@@ -72,7 +75,7 @@ def main() -> int:
     for name, cmd in scripts:
         if name == "Backend":
             cmd.extend(backend_icon_flags)
-        if not args.encore:
+        if not use_encore:
             cmd.extend(passthrough)
         print(f"\n--- Sync {name} ---")
         r = subprocess.run(cmd, cwd=scripts_dir)
