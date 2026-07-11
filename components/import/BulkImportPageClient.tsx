@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { loadImage } from '@/lib/import/cropImage';
+import { loadImage } from '@/lib/import/imageFile';
 import { convertAnalysisToSavedState, resolveImportWeaponFallback } from '@/lib/import/convert';
 import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
 import { readOcrStreamResponse } from '@/lib/import/ocrStream';
 import { OCR_POST_URL } from '@/lib/apiEndpoints';
 import type { AnalysisData } from '@/lib/import/types';
 import { submitBuild } from '@/lib/lb';
+import { canonicalScanIdOrNull, canonicalSourceImageKeyOrNull, MAX_OCR_IMAGE_BYTES } from '@/lib/ingestIdentity';
 import { AlertTriangle, CheckCircle2, FolderOpen, Loader2, Pause, Play, RotateCcw, UploadCloud, XCircle } from 'lucide-react';
 
 type BulkStatus = 'pending' | 'processing' | 'submitted' | 'skipped' | 'failed';
@@ -30,7 +31,41 @@ interface Counters {
   failed: number;
 }
 
-const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png']);
+const BULK_OCR_STARTS_PER_WINDOW = 10;
+const BULK_OCR_WINDOW_MS = 60_250;
+const bulkOcrStartTimes: number[] = [];
+let bulkOcrGate: Promise<void> = Promise.resolve();
+
+function wait(ms: number): Promise<void> {
+  return new Promise(resolve => window.setTimeout(resolve, ms));
+}
+
+// Serialize admission across all local workers so increasing image concurrency
+// cannot create a burst that the public per-IP gateway will reject.
+async function acquireBulkOcrSlot(): Promise<void> {
+  let release!: () => void;
+  const previous = bulkOcrGate;
+  bulkOcrGate = new Promise<void>(resolve => { release = resolve; });
+  await previous;
+
+  try {
+    while (true) {
+      const now = Date.now();
+      while (bulkOcrStartTimes.length > 0 && bulkOcrStartTimes[0] <= now - BULK_OCR_WINDOW_MS) {
+        bulkOcrStartTimes.shift();
+      }
+      if (bulkOcrStartTimes.length < BULK_OCR_STARTS_PER_WINDOW) {
+        bulkOcrStartTimes.push(now);
+        return;
+      }
+      await wait(Math.max(250, bulkOcrStartTimes[0] + BULK_OCR_WINDOW_MS - now));
+    }
+  } finally {
+    release();
+  }
+}
+
 function createInitialCounters(total: number): Counters {
   return {
     total,
@@ -45,12 +80,6 @@ function createInitialCounters(total: number): Counters {
 function fileKey(file: File) {
   const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
   return `${relativePath || file.name}:${file.size}:${file.lastModified}`;
-}
-
-function sourceImageKeyForFile(file: File): string | null {
-  const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
-  const key = (relativePath || file.name).replace(/\\/g, '/').split('/').pop()?.trim();
-  return key || null;
 }
 
 function applyLimit(items: BulkItem[], limit: number | null) {
@@ -121,7 +150,7 @@ function prepareBulkSubmitState(
 function normalizeFiles(fileList: FileList | File[]) {
   const seen = new Set<string>();
   const files = Array.from(fileList)
-    .filter(file => ACCEPTED_IMAGE_TYPES.has(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name))
+    .filter(file => ACCEPTED_IMAGE_TYPES.has(file.type) || /\.(jpe?g|png)$/i.test(file.name))
     .filter(file => {
       const key = fileKey(file);
       if (seen.has(key)) return false;
@@ -139,15 +168,31 @@ function normalizeFiles(fileList: FileList | File[]) {
 }
 
 async function postImage(file: File) {
-  const formData = new FormData();
-  formData.append('image', file, file.name || 'card.jpg');
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await acquireBulkOcrSlot();
+    const formData = new FormData();
+    formData.append('image', file, file.name || 'card.jpg');
+    response = await fetch(OCR_POST_URL, {
+      method: 'POST',
+      body: formData,
+    });
+    if (response.status !== 429) break;
 
-  const response = await fetch(OCR_POST_URL, {
-    method: 'POST',
-    body: formData,
-  });
+    await response.body?.cancel();
+    const retryAfterSeconds = Number(response.headers.get('retry-after'));
+    await wait(Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+      ? retryAfterSeconds * 1000
+      : BULK_OCR_WINDOW_MS);
+  }
 
+  if (!response) {
+    throw new Error(`OCR did not start for ${file.name}`);
+  }
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error(`OCR rate limit remained busy for ${file.name}`);
+    }
     throw new Error(`OCR failed (${response.status}) for ${file.name}`);
   }
 
@@ -155,6 +200,8 @@ async function postImage(file: File) {
   return {
     analysisData: unwrapOcrAnalysisPayload(payload, `OCR for ${file.name}`) as AnalysisData,
     timings: payload.timings,
+    sourceImageKey: canonicalSourceImageKeyOrNull(payload.trainingImageKey),
+    scanId: canonicalScanIdOrNull(payload.scanId),
   };
 }
 
@@ -271,6 +318,14 @@ export function BulkImportPageClient() {
     setItem(item.id, { status: 'processing', message: 'OCR running' });
 
     try {
+      if (item.file.size > MAX_OCR_IMAGE_BYTES) {
+        setItem(item.id, {
+          status: 'skipped',
+          message: 'Skipped: image exceeds 5 MiB',
+        });
+        addCounter({ processed: 1, skipped: 1 });
+        return;
+      }
       const image = await loadImage(item.file);
       if (image.naturalWidth !== 1920 || image.naturalHeight !== 1080) {
         setItem(item.id, {
@@ -281,7 +336,7 @@ export function BulkImportPageClient() {
         return;
       }
 
-      const { analysisData, timings } = await postImage(item.file);
+      const { analysisData, timings, sourceImageKey, scanId } = await postImage(item.file);
       const timingMessage = formatTiming(timings);
       if (timings) {
         console.info('Bulk OCR timings', item.file.name, timings);
@@ -303,7 +358,7 @@ export function BulkImportPageClient() {
       }
 
       const { buildState, warnings } = prepareBulkSubmitState(savedState, analysisData);
-      const result = await submitBuild(buildState, { sourceImageKey: sourceImageKeyForFile(item.file) });
+      const result = await submitBuild(buildState, { sourceImageKey, scanId });
       setItem(item.id, {
         status: 'submitted',
         message: `${result.action}${result.damageComputed ? '' : ' without damage calc'}${warnings.length ? ` (${warnings.join(', ')})` : ''}${timingMessage ? ` · ${timingMessage}` : ''}`,
@@ -372,6 +427,9 @@ export function BulkImportPageClient() {
             <p className="mt-1 text-sm text-text-secondary">
               Local batch OCR and leaderboard submit for exported build screenshots.
             </p>
+            <p className="mt-1 text-xs text-text-secondary">
+              Requests are automatically paced to the public OCR limit of 10 starts per minute per IP.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary hover:bg-surface-hover">
@@ -380,7 +438,7 @@ export function BulkImportPageClient() {
               <input
                 type="file"
                 multiple
-                accept="image/*"
+                accept=".jpg,.jpeg,.png"
                 className="hidden"
                 onChange={event => handleFiles(event.target.files)}
                 {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
@@ -392,7 +450,7 @@ export function BulkImportPageClient() {
               <input
                 type="file"
                 multiple
-                accept="image/*"
+                accept=".jpg,.jpeg,.png"
                 className="hidden"
                 onChange={event => handleFiles(event.target.files)}
               />

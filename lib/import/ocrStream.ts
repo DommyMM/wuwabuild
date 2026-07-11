@@ -5,10 +5,15 @@ import type { RegionStatus } from './report';
 export interface FullOcrResponse {
   success?: boolean;
   error?: string;
+  scanId?: string;
   analysis?: AnalysisData;
   progress?: Partial<Record<RegionKey, RegionStatus>>;
   timings?: Record<string, unknown>;
   trainingImageKey?: string | null;
+  storage?: {
+    result?: 'stored' | 'already_present' | 'failed' | 'timed_out' | 'disabled';
+    elapsedMs?: number;
+  };
   /** Backend flag: the card looks like a real build card but its substat names are not English. */
   unsupportedLanguage?: boolean;
 }
@@ -16,11 +21,17 @@ export interface FullOcrResponse {
 type OcrStreamEvent =
   | {
       type: 'meta';
-      image?: { width: number; height: number; bytes: number };
-      trainingImageKey?: string | null;
+      scanId?: string;
+      image?: {
+        width: number;
+        height: number;
+        bytes: number;
+        mediaType: 'image/jpeg' | 'image/png';
+      };
     }
   | {
       type: 'region';
+      scanId?: string;
       region: RegionKey;
       status: RegionStatus;
       analysis?: unknown;
@@ -31,6 +42,7 @@ type OcrStreamEvent =
   | {
       type: 'error';
       success?: false;
+      scanId?: string;
       error?: string;
     };
 

@@ -2,6 +2,7 @@ import { DEFAULT_FORTE, ForteState, SavedState } from '@/lib/build';
 import { EchoPanelState } from '@/lib/echo';
 import { toMainStatApiValue } from '@/lib/mainStatFilters';
 import { isPercentStat } from '@/lib/constants/statMappings';
+import { canonicalScanIdOrNull, canonicalSourceImageKeyOrNull } from '@/lib/ingestIdentity';
 
 import { LB_API_BASE } from '@/lib/apiEndpoints';
 
@@ -549,7 +550,6 @@ function parseBuildListResponsePayload(
       console.warn('[LB] dropped malformed build row', {
         buildId: isRecord(raw) ? raw.id : undefined,
         error: error instanceof Error ? error.message : String(error),
-        raw,
       });
     }
   }
@@ -579,15 +579,7 @@ export async function listBuilds(
   }
 
   const payload = await response.json() as LBListBuildsResponseRaw;
-  const parsed = parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
-  console.log('[LB] build list fetch', {
-    requestUrl,
-    total: parsed.total,
-    page: parsed.page,
-    pageSize: parsed.pageSize,
-    rows: parsed.builds.length,
-  });
-  return parsed;
+  return parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
 }
 
 export async function listProfileBuilds(
@@ -617,44 +609,12 @@ export async function listProfileBuilds(
 // echoSortClause whitelist: cv/rv/cost/mainStatValue/timestamp plus any substat
 // stat key (snake_case, e.g. crit_dmg) which sorts by that sub_* column.
 
-export type LBEchoSortKey =
+export type LBEchoSortKey = LBStatSortKey
   | 'cv'
   | 'rv'
   | 'cost'
   | 'mainStatValue'
-  | 'timestamp'
-  | 'crit_rate'
-  | 'crit_dmg'
-  | 'atk'
-  | 'atk_pct'
-  | 'hp'
-  | 'hp_pct'
-  | 'def'
-  | 'def_pct'
-  | 'energy_regen'
-  | 'healing_bonus'
-  | 'aero_dmg'
-  | 'glacio_dmg'
-  | 'fusion_dmg'
-  | 'electro_dmg'
-  | 'havoc_dmg'
-  | 'spectro_dmg'
-  | 'basic_attack_dmg'
-  | 'heavy_attack_dmg'
-  | 'resonance_liberation_dmg'
-  | 'resonance_skill_dmg';
-
-// panelData round-trips the stored echo panel; shape matches EchoPanelState.
-interface LBEchoPanel {
-  id: string | null;
-  level: number;
-  phantom: boolean;
-  resolvedSetId: number | null;
-  stats: {
-    mainStat: { type: string | null; value: number | null };
-    subStats: Array<{ type: string | null; value: number | null }>;
-  };
-}
+  | 'timestamp';
 
 export interface LBEcho {
   echoKey: string;
@@ -669,7 +629,7 @@ export interface LBEcho {
   usageCount: number;
   firstSeenAt: string;
   lastSeenAt: string;
-  panel: LBEchoPanel | null;
+  panel: EchoPanelState | null;
 }
 
 export interface LBEchoListResponse {
@@ -690,7 +650,7 @@ export interface LBEchoListQuery {
   mainStatTypes?: string[];
 }
 
-function parseEchoPanel(raw: unknown): LBEchoPanel | null {
+function parseEchoPanel(raw: unknown): EchoPanelState | null {
   if (!isRecord(raw)) return null;
   const stats = isRecord(raw.stats) ? raw.stats : null;
   const mainStat = stats && isRecord(stats.mainStat) ? stats.mainStat : null;
@@ -1013,7 +973,7 @@ export function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
   };
 }
 
-function parseTracks(raw: unknown): LBTrack[] {
+export function parseTracks(raw: unknown): LBTrack[] {
   if (!Array.isArray(raw)) return [];
 
   return raw
@@ -1060,6 +1020,19 @@ function parseTeamMembers(raw: unknown): LBTeamMemberConfig[] {
     .filter((member) => member.charId.length > 0);
 }
 
+export function resolveTeamConfiguration(
+  teamMembersRaw: unknown,
+  teamCharacterIdsRaw: unknown,
+): { teamCharacterIds: string[]; teamMembers: LBTeamMemberConfig[] } {
+  const richMembers = parseTeamMembers(teamMembersRaw);
+  const fallbackMembers = parseTeamCharacterSpecs(teamCharacterIdsRaw);
+  const teamMembers = richMembers.length > 0 ? richMembers : fallbackMembers;
+  return {
+    teamCharacterIds: teamMembers.map((member) => member.charId),
+    teamMembers,
+  };
+}
+
 function parseBuffMap(raw: unknown): Record<string, number> {
   if (!isRecord(raw)) return {};
   const out: Record<string, number> = {};
@@ -1100,8 +1073,7 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
   for (const raw of rawChars) {
     if (!isRecord(raw)) continue;
     const rawWeapons = Array.isArray(raw.weapons) ? raw.weapons : [];
-    const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
-    const teamMembers = parseTeamMembers(raw.teamMembers);
+    const team = resolveTeamConfiguration(raw.teamMembers, raw.teamCharacterIds);
     const weapons: LBWeaponTop[] = rawWeapons
       .filter(isRecord)
       .map((w) => {
@@ -1123,8 +1095,8 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
       totalEntries: toFiniteNumber(raw.totalEntries),
       weapons,
       weaponIds: weapons.map((w) => w.weaponId).filter(Boolean),
-      teamCharacterIds: fallbackTeamMembers.map((member) => member.charId),
-      teamMembers: teamMembers.length > 0 ? teamMembers : fallbackTeamMembers,
+      teamCharacterIds: team.teamCharacterIds,
+      teamMembers: team.teamMembers,
     });
   }
 
@@ -1170,7 +1142,6 @@ export async function listLeaderboard(
       console.warn('[LB] dropped malformed leaderboard row', {
         buildId: isRecord(raw) ? raw._id : undefined,
         error: error instanceof Error ? error.message : String(error),
-        raw,
       });
     }
   }
@@ -1184,6 +1155,8 @@ export async function listLeaderboard(
     }
   }
 
+  const team = resolveTeamConfiguration(payload.teamMembers, payload.teamCharacterIds);
+
   return {
     builds,
     ghostBuild,
@@ -1192,8 +1165,8 @@ export async function listLeaderboard(
     pageSize: toFiniteNumber(payload.pageSize, pageSize),
     weaponIds: Array.isArray(payload.weaponIds) ? (payload.weaponIds as unknown[]).filter((v): v is string => typeof v === 'string') : [],
     tracks: parseTracks(payload.tracks),
-    teamCharacterIds: Array.isArray(payload.teamCharacterIds) ? payload.teamCharacterIds.filter((v): v is string => typeof v === 'string') : [],
-    teamMembers: parseTeamMembers(payload.teamMembers),
+    teamCharacterIds: team.teamCharacterIds,
+    teamMembers: team.teamMembers,
     teamBuffs: parseTeamBuffs(payload.teamBuffs),
     activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
     activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
@@ -1242,14 +1215,7 @@ export async function getBuildById(buildId: string, signal?: AbortSignal): Promi
   }
 
   const payload = await response.json();
-  const detail = parseBuildDetailEntry(payload);
-
-  console.log('[LB] /build/{id} detail payload', {
-    requestUrl,
-    payload: payload
-  });
-
-  return detail;
+  return parseBuildDetailEntry(payload);
 }
 
 export async function getBuildMoves(
@@ -1265,19 +1231,6 @@ export async function getBuildMoves(
   });
 
   if (response.status === 404) {
-    let payload: unknown = null;
-    try {
-      payload = await response.json();
-    } catch {
-      // Ignore malformed error bodies for debug logging.
-    }
-    console.warn('[LB] /build/{id}/moves payload (404)', {
-      requestUrl,
-      buildId,
-      weaponId,
-      trackKey,
-      payload,
-    });
     return [];
   }
   if (!response.ok) {
@@ -1299,13 +1252,6 @@ export async function getBuildMoves(
       }))
       .filter((entry) => entry.name.length > 0 || entry.damage > 0);
   }
-  console.log('[LB] /build/{id}/moves payload', {
-    requestUrl,
-    buildId,
-    weaponId,
-    trackKey,
-    payload,
-  });
   return parsed;
 }
 
@@ -1322,19 +1268,6 @@ export async function getBuildSubstatUpgrades(
   });
 
   if (response.status === 404) {
-    let payload: unknown = null;
-    try {
-      payload = await response.json();
-    } catch {
-      // Ignore malformed error bodies for debug logging.
-    }
-    console.warn('[LB] /build/{id}/substat-upgrades payload (404)', {
-      requestUrl,
-      buildId,
-      weaponId,
-      trackKey,
-      payload,
-    });
     return null;
   }
   if (!response.ok) {
@@ -1356,13 +1289,6 @@ export async function getBuildSubstatUpgrades(
     parsed.currentRankVisible = Boolean(payload.currentRankVisible);
   }
 
-  console.log('[LB] /build/{id}/substat-upgrades payload', {
-    requestUrl,
-    buildId,
-    weaponId,
-    trackKey,
-    payload,
-  });
   return parsed;
 }
 
@@ -1381,8 +1307,7 @@ export interface LBStandingEntry {
 // Parses the common standings fields for the per-build standings endpoint.
 // (Profile standings have their own lean shape — see LBProfileStandingEntry.)
 function parseStandingBase(raw: Record<string, unknown>): LBStandingEntry {
-  const teamMembers = parseTeamMembers(raw.teamMembers);
-  const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
+  const team = resolveTeamConfiguration(raw.teamMembers, raw.teamCharacterIds);
   return {
     key: typeof raw.key === 'string' ? raw.key : '',
     weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
@@ -1390,8 +1315,8 @@ function parseStandingBase(raw: Record<string, unknown>): LBStandingEntry {
     rank: toFiniteNumber(raw.rank, 0),
     total: toFiniteNumber(raw.total, 0),
     trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
-    teamCharacterIds: fallbackTeamMembers.map((member) => member.charId),
-    teamMembers: teamMembers.length > 0 ? teamMembers : fallbackTeamMembers,
+    teamCharacterIds: team.teamCharacterIds,
+    teamMembers: team.teamMembers,
     damage: toFiniteNumber(raw.damage, 0),
   };
 }
@@ -1412,7 +1337,6 @@ export async function getBuildStandings(
   }
 
   const payload = await response.json() as { standings?: unknown };
-  console.log('[LB] /leaderboard/{id}/build/{id}/standings payload', { requestUrl, characterId, buildId, payload });
   if (!Array.isArray(payload.standings)) return [];
 
   const result: LBStandingEntry[] = [];
@@ -1469,8 +1393,7 @@ export async function fetchSimulateRanks(
   const result: LBSimulateBoard[] = [];
   for (const raw of payload.boards) {
     if (!isRecord(raw)) continue;
-    const teamMembers = parseTeamMembers(raw.teamMembers);
-    const fallbackTeamMembers = parseTeamCharacterSpecs(raw.teamCharacterIds);
+    const team = resolveTeamConfiguration(raw.teamMembers, raw.teamCharacterIds);
     result.push({
       key: typeof raw.key === 'string' ? raw.key : '',
       weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
@@ -1481,8 +1404,8 @@ export async function fetchSimulateRanks(
       total: toFiniteNumber(raw.total, 0),
       topPercent: toFiniteNumber(raw.topPercent, 0),
       damage: toFiniteNumber(raw.damage, 0),
-      teamCharacterIds: fallbackTeamMembers.map((member) => member.charId),
-      teamMembers: teamMembers.length > 0 ? teamMembers : fallbackTeamMembers,
+      teamCharacterIds: team.teamCharacterIds,
+      teamMembers: team.teamMembers,
     });
   }
   return result;
@@ -1515,7 +1438,7 @@ export async function getProfileStandings(uid: string): Promise<LBProfileStandin
   if (!promise) {
     promise = (async () => {
       try {
-        const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(uid)}/standings`;
+        const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(cacheKey)}/standings`;
         const response = await fetch(requestUrl, { method: 'GET' });
 
         if (response.status === 404) return [];
@@ -1524,7 +1447,6 @@ export async function getProfileStandings(uid: string): Promise<LBProfileStandin
         }
 
         const payload = await response.json() as { standings?: unknown };
-        console.log('[LB] /profile/{uid}/standings payload', { requestUrl, uid, payload });
         if (!Array.isArray(payload.standings)) return [];
 
         const result: LBProfileStandingEntry[] = [];
@@ -1720,10 +1642,19 @@ function parseSubmitBuildResult(raw: unknown): LBSubmitBuildResult {
 
 export async function submitBuild(
   buildState: SavedState,
-  options: { sourceImageKey?: string | null } = {},
+  options: { sourceImageKey?: string | null; scanId?: string | null } = {},
   signal?: AbortSignal,
 ): Promise<LBSubmitBuildResult> {
-  const sourceImageKey = options.sourceImageKey?.trim();
+  const rawSourceImageKey = options.sourceImageKey?.trim();
+  const sourceImageKey = canonicalSourceImageKeyOrNull(rawSourceImageKey);
+  if (rawSourceImageKey && !sourceImageKey) {
+    throw new Error('Source image key is not canonical.');
+  }
+  const rawScanId = options.scanId?.trim();
+  const scanId = canonicalScanIdOrNull(rawScanId);
+  if (rawScanId && !scanId) {
+    throw new Error('OCR scan ID is malformed.');
+  }
   const response = await fetch(`${resolveLBBaseUrl()}/build`, {
     method: 'POST',
     headers: {
@@ -1732,6 +1663,7 @@ export async function submitBuild(
     body: JSON.stringify({
       buildState,
       ...(sourceImageKey ? { sourceImageKey } : {}),
+      ...(scanId ? { scanId } : {}),
     }),
     signal,
   });
@@ -1766,14 +1698,29 @@ export interface LBLinkBuildImageResult {
 export async function linkBuildImage(
   buildState: SavedState,
   sourceImageKey: string,
+  scanId?: string | null,
   signal?: AbortSignal,
 ): Promise<LBLinkBuildImageResult> {
+  const canonicalKey = canonicalSourceImageKeyOrNull(sourceImageKey);
+  if (!canonicalKey) {
+    throw new Error('Source image key is not canonical.');
+  }
+  const rawScanId = scanId?.trim();
+  const canonicalScanId = canonicalScanIdOrNull(rawScanId);
+  if (rawScanId && !canonicalScanId) {
+    throw new Error('OCR scan ID is malformed.');
+  }
+
   const response = await fetch(`${resolveLBBaseUrl()}/build/link-image`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ sourceImageKey, buildState }),
+    body: JSON.stringify({
+      sourceImageKey: canonicalKey,
+      buildState,
+      ...(canonicalScanId ? { scanId: canonicalScanId } : {}),
+    }),
     signal,
   });
 

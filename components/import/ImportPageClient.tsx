@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
-import { encodeImageFileAsJpegBase64, loadImage } from '@/lib/import/cropImage';
+import { encodeImageFileAsBase64, loadImage } from '@/lib/import/imageFile';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { linkBuildImage, submitBuild } from '@/lib/lb';
+import { MAX_OCR_IMAGE_BYTES } from '@/lib/ingestIdentity';
 import { loadDraftBuild, saveBuild, saveDraftBuild } from '@/lib/storage';
 import { OCR_HEALTH_URL } from '@/lib/apiEndpoints';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -47,8 +48,8 @@ export function ImportPageClient() {
   const [pendingWm, setPendingWm]             = useState<{ username: string; uid: string } | null>(null);
   const [draftBuildState, setDraftBuildState] = useState<SavedState | null>(() => loadDraftBuild());
   const [selectedFile, setSelectedFile]       = useState<File | null>(null);
-  const [trainingImageKey, setTrainingImageKey] = useState<string | null>(null);
-  const trainingImageKeyRef = useRef<string | null>(null);
+  const [sourceImageKey, setSourceImageKey] = useState<string | null>(null);
+  const [scanId, setScanId] = useState<string | null>(null);
   const [lastImportWatermark, setLastImportWatermark] = useState<{ username: string; uid: string } | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
@@ -58,31 +59,15 @@ export function ImportPageClient() {
   // Silent wake-up ping so Railway auto-starts the server if sleeping
   useEffect(() => { fetch(OCR_HEALTH_URL).catch(() => {}); }, []);
 
-  const uploadTrainingImage = async (file: File): Promise<string | null> => {
-    try {
-      const image = await encodeImageFileAsJpegBase64(file);
-      const res = await fetch('/api/upload-training', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image }),
-      });
-      const payload = await res.json() as { success?: boolean; key?: string };
-      if (payload.success && typeof payload.key === 'string') {
-        trainingImageKeyRef.current = payload.key;
-        setTrainingImageKey(payload.key);
-        return payload.key;
-      }
-    } catch {
-      // Best-effort only; OCR should still continue.
-    }
-    return null;
-  };
-
   // Passive image linking: hand the LB service the raw scan plus the
   // screenshot's R2 key so it can attach the image to the build row with this
   // exact echo content. Fill-only server-side and independent of whether the
   // user goes on to import or submit.
-  const linkScannedImage = async (scan: AnalysisData, sourceImageKey: string) => {
+  const linkScannedImage = async (
+    scan: AnalysisData,
+    sourceImageKey: string,
+    correlationScanId: string | null,
+  ) => {
     try {
       const rawState = convertAnalysisToSavedState({
         ...scan,
@@ -95,13 +80,17 @@ export function ImportPageClient() {
         weapons:    gameData.weapons,
         echoes:     gameData.echoes,
       });
-      const result = await linkBuildImage(rawState, sourceImageKey);
-      posthog.capture('build_image_link', {
-        linked: result.linked,
-        method: result.method ?? null,
-        reason: result.reason ?? null,
-        character_id: rawState.characterId ?? null,
-      });
+      const result = await linkBuildImage(rawState, sourceImageKey, correlationScanId);
+      // Expected misses and already-linked rows are routine, not useful analytics.
+      if ((result.linked && result.reason !== 'already_linked') || result.reason === 'ambiguous') {
+        posthog.capture('build_image_link', {
+          linked: result.linked,
+          method: result.method ?? null,
+          reason: result.reason ?? null,
+          character_id: rawState.characterId ?? null,
+          scan_id: correlationScanId,
+        });
+      }
     } catch {
       // Best-effort only; linking never affects the import flow.
     }
@@ -110,11 +99,24 @@ export function ImportPageClient() {
   const handleFile = async (f: File, method: 'drop' | 'browse' | 'paste') => {
     setValidationError(null);
     setLbUploadError(null);
-    setSelectedFile(f);
-    trainingImageKeyRef.current = null;
-    setTrainingImageKey(null);
+    setSelectedFile(null);
+    setSourceImageKey(null);
+    setScanId(null);
     setLastImportWatermark(null);
     preflightSignatureRef.current = null;
+    if (f.size > MAX_OCR_IMAGE_BYTES) {
+      const errorMsg = 'Image exceeds the 5 MiB upload limit.';
+      setValidationError(errorMsg);
+      setSelectedFile(null);
+      notifyError(errorMsg);
+      posthog.capture('import_validation_fail', {
+        reason: 'file_too_large',
+        file_size: f.size,
+        max_file_size: MAX_OCR_IMAGE_BYTES,
+      });
+      return;
+    }
+    setSelectedFile(f);
 
     const img = await loadImage(f);
     if (img.naturalWidth !== 1920 || img.naturalHeight !== 1080) {
@@ -137,8 +139,10 @@ export function ImportPageClient() {
     });
     reset();
     setStep('results');
-    const uploadPromise = uploadTrainingImage(f);
-    void processImage(f).then(async (summary) => {
+    void processImage(f).then((summary) => {
+      const confirmedSourceImageKey = summary.trainingImageKey ?? null;
+      setSourceImageKey(confirmedSourceImageKey);
+      setScanId(summary.scanId);
       if (summary.failedRegionsCount > 0) {
         warning(`Scan finished with ${summary.failedRegionsCount} unread section(s). Review the build before importing.`);
       }
@@ -155,11 +159,14 @@ export function ImportPageClient() {
         has_uid: summary.hasUid,
         character_id: summary.characterId,
         unsupported_language: summary.unsupportedLanguage,
+        has_source_image_key: Boolean(confirmedSourceImageKey),
+        scan_id: summary.scanId,
+        r2_result: summary.storage?.result ?? null,
+        r2_ms: summary.storage?.elapsedMs ?? null,
         timings: summary.timings ?? null,
       });
-      const sourceImageKey = (await uploadPromise) ?? trainingImageKeyRef.current;
-      if (sourceImageKey && !summary.unsupportedLanguage && summary.hasCharacter && summary.hasWeapon) {
-        void linkScannedImage(summary.analysisData, sourceImageKey);
+      if (confirmedSourceImageKey && !summary.unsupportedLanguage && summary.hasCharacter && summary.hasWeapon) {
+        void linkScannedImage(summary.analysisData, confirmedSourceImageKey, summary.scanId);
       }
     }).catch((err) => {
       posthog.captureException(err);
@@ -180,8 +187,8 @@ export function ImportPageClient() {
     setValidationError(null);
     setLbUploadError(null);
     setSelectedFile(null);
-    trainingImageKeyRef.current = null;
-    setTrainingImageKey(null);
+    setSourceImageKey(null);
+    setScanId(null);
     setLastImportWatermark(null);
     setPendingWm(null);
     preflightSignatureRef.current = null;
@@ -248,7 +255,8 @@ export function ImportPageClient() {
         reason,
         damage_computed: damageComputed ?? false,
         character_id: importedState.characterId ?? null,
-        has_source_image_key: Boolean(trainingImageKey),
+        has_source_image_key: Boolean(sourceImageKey),
+        scan_id: scanId,
       });
     };
     if (!uploadToLb) {
@@ -275,8 +283,7 @@ export function ImportPageClient() {
     }
 
     try {
-      const sourceImageKey = trainingImageKeyRef.current || trainingImageKey;
-      const result = await submitBuild(importedState, { sourceImageKey });
+      const result = await submitBuild(importedState, { sourceImageKey, scanId });
       const actionLabel = result.action === 'created' ? 'created' : 'updated';
 
       success(`Leaderboard entry ${actionLabel}.`);
@@ -369,6 +376,8 @@ export function ImportPageClient() {
         action: 'load_to_editor',
         character_id: importedState.characterId,
         uploaded_to_lb: shouldUpload,
+        has_source_image_key: Boolean(sourceImageKey),
+        scan_id: scanId,
       });
       router.push('/edit');
     } catch (err) {
@@ -400,6 +409,8 @@ export function ImportPageClient() {
         action: 'save_to_saves',
         character_id: importedState.characterId,
         uploaded_to_lb: shouldUpload,
+        has_source_image_key: Boolean(sourceImageKey),
+        scan_id: scanId,
       });
       success(`Saved "${saved.name}".`);
       router.push('/saves');
@@ -425,6 +436,8 @@ export function ImportPageClient() {
         character_id: importedState.characterId,
         uploaded_to_lb: shouldUpload,
         has_build_id: Boolean(buildId),
+        has_source_image_key: Boolean(sourceImageKey),
+        scan_id: scanId,
       });
       if (importedLeaderboardLink) {
         const separator = importedLeaderboardLink.href.includes('?') ? '&' : '?';
@@ -457,12 +470,12 @@ export function ImportPageClient() {
       const activeWatermark = getActiveWatermark();
       let fallbackImage: string | undefined;
 
-      if (!trainingImageKey) {
+      if (!sourceImageKey) {
         if (!selectedFile) {
           notifyError('No screenshot is available to attach to this report.');
           return;
         }
-        fallbackImage = await encodeImageFileAsJpegBase64(selectedFile);
+        fallbackImage = await encodeImageFileAsBase64(selectedFile);
       }
 
       setIsSubmittingReport(true);
@@ -474,7 +487,8 @@ export function ImportPageClient() {
           note,
           route: '/import',
           reason: reportReason,
-          trainingImageKey: trainingImageKey ?? undefined,
+          scanId: scanId ?? undefined,
+          trainingImageKey: sourceImageKey ?? undefined,
           image: fallbackImage,
           progress,
           analysisData,
@@ -497,15 +511,16 @@ export function ImportPageClient() {
         throw new Error(payload.reason || 'Failed to submit issue report.');
       }
 
-      if (!trainingImageKey && typeof payload.trainingImageKey === 'string' && payload.trainingImageKey) {
-        setTrainingImageKey(payload.trainingImageKey);
+      if (!sourceImageKey && typeof payload.trainingImageKey === 'string' && payload.trainingImageKey) {
+        setSourceImageKey(payload.trainingImageKey);
       }
 
       posthog.capture('ocr_issue_report_submit', {
         reason: reportReason,
         has_note: note.trim().length > 0,
-        has_training_image_key: Boolean(trainingImageKey || payload.trainingImageKey),
+        has_training_image_key: Boolean(sourceImageKey || payload.trainingImageKey),
         character_id: getReportImportedState()?.characterId ?? null,
+        scan_id: scanId,
       });
       success('Report submitted. Thanks.');
       setIsReportModalOpen(false);
@@ -555,7 +570,7 @@ export function ImportPageClient() {
               </label>
               <button
                 onClick={handleReset}
-                disabled={isSubmitting}
+                disabled={isProcessing || isSubmitting}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-text-primary/60 hover:text-text-primary hover:bg-background-secondary border border-border transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />

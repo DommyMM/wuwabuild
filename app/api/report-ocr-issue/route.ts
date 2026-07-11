@@ -1,10 +1,12 @@
 import { buildReportObjectKey, isR2Configured, putJsonObject, uploadTrainingImage } from '@/lib/server/r2';
 import type { OcrIssueReason } from '@/lib/import/report';
+import { canonicalScanIdOrNull, canonicalSourceImageKeyOrNull } from '@/lib/ingestIdentity';
 
 interface ReportRequestBody {
   note?: string;
   route?: string;
   reason?: string;
+  scanId?: string;
   trainingImageKey?: string;
   image?: string;
   progress?: Record<string, string>;
@@ -54,16 +56,27 @@ export async function POST(req: Request) {
     if (!isProgressRecord(body.progress)) {
       return Response.json({ success: false, reason: 'invalid progress' }, { status: 400 });
     }
-    if (!body.trainingImageKey && !body.image) {
+    const providedScanId = typeof body.scanId === 'string' ? body.scanId.trim() : '';
+    const scanId = canonicalScanIdOrNull(providedScanId);
+    if (providedScanId && !scanId) {
+      return Response.json({ success: false, reason: 'invalid scan ID' }, { status: 400 });
+    }
+    const providedImageKey = typeof body.trainingImageKey === 'string'
+      ? body.trainingImageKey.trim()
+      : '';
+    const confirmedImageKey = canonicalSourceImageKeyOrNull(providedImageKey);
+    if (providedImageKey && !confirmedImageKey) {
+      return Response.json({ success: false, reason: 'invalid image reference' }, { status: 400 });
+    }
+    const fallbackImage = typeof body.image === 'string' && body.image ? body.image : '';
+    if (!confirmedImageKey && !fallbackImage) {
       return Response.json({ success: false, reason: 'missing image reference' }, { status: 400 });
     }
 
-    let trainingImageKey = typeof body.trainingImageKey === 'string' && body.trainingImageKey.trim()
-      ? body.trainingImageKey.trim()
-      : '';
+    let trainingImageKey = confirmedImageKey ?? '';
 
-    if (!trainingImageKey && body.image) {
-      const uploadResult = await uploadTrainingImage(body.image);
+    if (!trainingImageKey && fallbackImage) {
+      const uploadResult = await uploadTrainingImage(fallbackImage);
       if (!uploadResult.success || !uploadResult.key) {
         return Response.json(
           { success: false, reason: uploadResult.reason ?? 'failed to upload image' },
@@ -82,6 +95,7 @@ export async function POST(req: Request) {
       reportId,
       createdAt,
       source: 'import',
+      scanId,
       reason,
       note: typeof body.note === 'string' ? body.note.trim() : '',
       trainingImageKey: trainingImageKey || null,

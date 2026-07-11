@@ -6,15 +6,21 @@ This doc consolidates OCR flow, sync scripts, env vars, and day-to-day commands 
 
 After a successful submission, the import confirmation resolves the character against the cached leaderboard overview. Characters with a board open the submitted leaderboard row; characters without one open the owner's profile with `buildId` so the exact uploaded build is expanded. The destination action waits for overview resolution rather than offering a known-empty leaderboard route.
 
-1. User uploads screenshot.
-2. Frontend crops fixed OCR regions.
-3. Crops are sent in parallel to the OCR gateway (`ocr.wuwa.build/api/ocr`) with region headers.
-4. The Cloudflare Worker injects the internal key and forwards to the OCR backend.
-5. OCR payloads are converted into saved build state.
-6. Optional leaderboard upload submits canonical build payload.
-7. Optional full-image upload goes through `/api/upload-training` and stores a hash-deduped JPG in R2.
-8. Once OCR and the training upload both finish, the raw (pre-edit) scan state plus the R2 key are sent fire-and-forget to `POST /build/link-image` so the LB service can attach the screenshot to the existing build row with that exact echo content (fill-only; independent of whether the user imports or submits). See lb `docs/image-linking.md`.
-9. OCR issue reports are written through `/api/report-ocr-issue` and can either reference an existing uploaded image or upload one inline first.
+1. The browser validates the selected JPEG/PNG size (5 MiB maximum) and dimensions, then sends the original `File` once as the existing multipart OCR request.
+2. The Cloudflare gateway injects the internal key and streams that request to the OCR backend.
+3. The backend detects the media type from magic bytes and hashes the exact bytes into the canonical root R2 key `<64 lowercase SHA-256 hex>.<jpg|png>`.
+4. R2 persistence starts concurrently with region recognition, while NDJSON region progress continues streaming to the browser.
+5. The final `done` event carries `scanId`, storage diagnostics, and `trainingImageKey` only when R2 confirmed the object was stored or already present. An R2 failure leaves the key null without failing usable OCR.
+6. OCR analysis is converted into saved build state. A confirmed key and the same canonical `scanId` are also sent fire-and-forget to `POST /build/link-image` for fill-only historical matching. Expected misses are silent. See lb `docs/image-linking.md`.
+7. Optional leaderboard submission sends the canonical build payload, confirmed `sourceImageKey`, and `scanId` together. There is no independent image promise for submit to race.
+8. OCR issue reports reference the confirmed key. If storage failed, submitting a report can explicitly upload the original bytes through `/api/report-ocr-issue` before writing its JSON report.
+
+`/api/upload-training` remains a rollback transport only. It is not called by normal imports. Both it and the issue-report fallback preserve JPEG/PNG bytes and emit the same root-level 64-hex key contract; no normal import uses canvas recompression or Base64.
+
+The operational bulk-import page uses the same endpoint and automatically
+paces all local workers to the public 10-starts-per-minute/IP budget. A 429
+honors `Retry-After` and retries with a fresh admission slot instead of losing
+the queue item.
 
 ## Data Sync Scripts
 
@@ -44,10 +50,10 @@ gateway hostnames:
 - `NEXT_PUBLIC_LB_URL` — browser and SSR LB calls; prod `https://api.wuwa.build`, defaults to `http://localhost:8080`
 - `NEXT_PUBLIC_OCR_URL` — browser OCR calls; prod `https://ocr.wuwa.build`, defaults to `http://localhost:5000`
 - `NEXT_PUBLIC_POSTHOG_KEY`
-- `CLOUDFLARE_ACCOUNT_ID`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
-- `R2_BUCKET_NAME`
+- `CLOUDFLARE_ACCOUNT_ID` — server-only, retained for issue-report and rollback uploads
+- `R2_ACCESS_KEY_ID` — server-only, retained for issue-report and rollback uploads
+- `R2_SECRET_ACCESS_KEY` — server-only, retained for issue-report and rollback uploads
+- `R2_BUCKET_NAME` — server-only, retained for issue-report and rollback uploads
 
 ## Frontend Commands
 

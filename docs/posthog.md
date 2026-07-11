@@ -67,7 +67,7 @@ Current init settings:
   - `height`: number (only for bad dimensions)
 
 #### `ocr_complete`
-- Purpose: OCR pipeline completed with quality diagnostics.
+- Purpose: OCR and its concurrent source-image persistence completed with quality diagnostics.
 - Properties:
   - `duration_ms`: number
   - `failed_regions_count`: number
@@ -76,14 +76,22 @@ Current init settings:
   - `has_weapon`: boolean
   - `has_uid`: boolean
   - `character_id`: string | null
+  - `unsupported_language`: boolean
+  - `has_source_image_key`: boolean (true only for a backend-confirmed R2 object)
+  - `scan_id`: string | null
+  - `r2_result`: `stored` | `already_present` | `failed` | `timed_out` | `disabled` | null
+  - `r2_ms`: number | null
+  - `timings`: backend timing object | null
 
 #### `build_image_link`
-- Purpose: outcome of the fire-and-forget `POST /build/link-image` call after a scan (screenshot ↔ build row attachment).
+- Purpose: meaningful outcome of the fire-and-forget historical `POST /build/link-image` call after a scan (screenshot ↔ existing build row attachment).
+- Emission rule: capture actual writes and ambiguous matches only. Expected fresh-scan misses and already-linked rows are silent.
 - Properties:
   - `linked`: boolean
   - `method`: `echoHash` | `panels` | null
-  - `reason`: `already_linked` | `no_match` | `ambiguous` | null
+  - `reason`: `ambiguous` | null
   - `character_id`: string | null
+  - `scan_id`: string | null
 
 #### `leaderboard_submit_result`
 - Purpose: final outcome of leaderboard submission attempt.
@@ -92,6 +100,8 @@ Current init settings:
   - `reason`: string
   - `damage_computed`: boolean
   - `character_id`: string | null
+  - `has_source_image_key`: boolean
+  - `scan_id`: string | null
 
 #### `import_complete`
 - Purpose: import flow ended in a concrete output.
@@ -99,6 +109,8 @@ Current init settings:
   - `action`: `load_to_editor` | `save_to_saves` | `go_to_leaderboard` | `go_to_profile_build`
   - `character_id`: string | null
   - `uploaded_to_lb`: boolean
+  - `has_source_image_key`: boolean
+  - `scan_id`: string | null
 
 #### `ocr_issue_report_submit`
 - Purpose: OCR issue report submitted.
@@ -107,6 +119,7 @@ Current init settings:
   - `has_note`: boolean
   - `has_training_image_key`: boolean
   - `character_id`: string | null
+  - `scan_id`: string | null
 
 ### Editor Outcomes
 

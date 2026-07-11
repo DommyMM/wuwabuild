@@ -7,6 +7,7 @@ import { unwrapOcrAnalysisPayload } from '@/lib/import/ocrPayload';
 import { readOcrStreamResponse, type FullOcrResponse } from '@/lib/import/ocrStream';
 import { OCR_POST_URL } from '@/lib/apiEndpoints';
 import type { RegionStatus } from '@/lib/import/report';
+import { canonicalScanIdOrNull, canonicalSourceImageKeyOrNull } from '@/lib/ingestIdentity';
 
 interface UseOcrImportReturn {
   isProcessing: boolean;
@@ -20,6 +21,7 @@ interface UseOcrImportReturn {
 
 interface OcrProcessSummary {
   durationMs: number;
+  scanId: string | null;
   failedRegions: RegionKey[];
   failedRegionsCount: number;
   hasCharacter: boolean;
@@ -27,7 +29,8 @@ interface OcrProcessSummary {
   hasUid: boolean;
   characterId: string | null;
   timings?: Record<string, unknown>;
-  trainingImageKey?: string | null;
+  trainingImageKey: string | null;
+  storage?: FullOcrResponse['storage'];
   unsupportedLanguage: boolean;
   analysisData: AnalysisData;
 }
@@ -35,6 +38,13 @@ interface OcrProcessSummary {
 const INITIAL_PROGRESS = Object.fromEntries(
   IMPORT_REGION_KEYS.map(k => [k, 'pending' as RegionStatus])
 ) as Record<RegionKey, RegionStatus>;
+
+class OcrHttpError extends Error {
+  constructor(readonly status: number) {
+    super(`OCR failed: ${status}`);
+    this.name = 'OcrHttpError';
+  }
+}
 
 export function useOcrImport(): UseOcrImportReturn {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -58,7 +68,9 @@ export function useOcrImport(): UseOcrImportReturn {
     let nextAnalysisData: AnalysisData = {};
     let nextProgress: Record<RegionKey, RegionStatus> = INITIAL_PROGRESS;
     let timings: Record<string, unknown> | undefined;
-    let trainingImageKey: string | null | undefined;
+    let trainingImageKey: string | null = null;
+    let scanId: string | null = null;
+    let storage: FullOcrResponse['storage'];
     let isUnsupportedLanguage = false;
 
     try {
@@ -70,7 +82,7 @@ export function useOcrImport(): UseOcrImportReturn {
           method: 'POST',
           body: formData,
         });
-        if (!res.ok) throw new Error(`OCR failed: ${res.status}`);
+        if (!res.ok) throw new OcrHttpError(res.status);
         return readOcrStreamResponse(res, {
           onRegion: (event) => {
             const progress = {
@@ -95,7 +107,13 @@ export function useOcrImport(): UseOcrImportReturn {
       let data: FullOcrResponse;
       try {
         data = await attempt();
-      } catch {
+      } catch (firstError) {
+        // Retrying a deterministic client rejection (especially 413/429)
+        // only burns another edge attempt. Keep the one retry for network and
+        // transient upstream failures.
+        if (firstError instanceof OcrHttpError && firstError.status < 500) {
+          throw firstError;
+        }
         nextAnalysisData = {};
         nextProgress = INITIAL_PROGRESS;
         setAnalysisData(nextAnalysisData);
@@ -105,7 +123,15 @@ export function useOcrImport(): UseOcrImportReturn {
 
       nextAnalysisData = unwrapOcrAnalysisPayload(data, 'OCR') as AnalysisData;
       timings = data.timings;
-      trainingImageKey = data.trainingImageKey;
+      scanId = canonicalScanIdOrNull(data.scanId);
+      if (data.scanId != null && !scanId) {
+        console.warn('OCR returned a non-canonical scan ID; ignoring it.');
+      }
+      storage = data.storage;
+      trainingImageKey = canonicalSourceImageKeyOrNull(data.trainingImageKey);
+      if (data.trainingImageKey != null && !trainingImageKey) {
+        console.warn('OCR returned a non-canonical source image key; ignoring it.');
+      }
       isUnsupportedLanguage = Boolean(data.unsupportedLanguage);
       setUnsupportedLanguage(isUnsupportedLanguage);
       nextProgress = Object.fromEntries(
@@ -142,6 +168,7 @@ export function useOcrImport(): UseOcrImportReturn {
 
     return {
       durationMs: Date.now() - startedAt,
+      scanId,
       failedRegions,
       failedRegionsCount: failedRegions.length,
       hasCharacter: Boolean(characterData?.id || characterData),
@@ -150,6 +177,7 @@ export function useOcrImport(): UseOcrImportReturn {
       characterId: characterData?.id ?? null,
       timings,
       trainingImageKey,
+      storage,
       unsupportedLanguage: isUnsupportedLanguage,
       analysisData: nextAnalysisData,
     };
