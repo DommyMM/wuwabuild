@@ -164,15 +164,18 @@ export function useOcrImport(): UseOcrImportReturn {
       .map(([key]) => key);
     const watermarkData = nextAnalysisData.watermark as { uid?: number | string } | undefined;
     const uidNumber = Number(watermarkData?.uid ?? 0);
-    const characterData = nextAnalysisData.character as { id?: string } | undefined;
+    const characterData = nextAnalysisData.character as { id?: string; name?: string } | undefined;
+    const weaponData = nextAnalysisData.weapon as { id?: string; name?: string } | undefined;
+    const hasCharacter = Boolean(characterData?.id?.trim() || characterData?.name?.trim());
+    const hasWeapon = Boolean(weaponData?.id?.trim() || weaponData?.name?.trim());
 
     return {
       durationMs: Date.now() - startedAt,
       scanId,
       failedRegions,
       failedRegionsCount: failedRegions.length,
-      hasCharacter: Boolean(characterData?.id || characterData),
-      hasWeapon: Boolean(nextAnalysisData.weapon),
+      hasCharacter,
+      hasWeapon,
       hasUid: Number.isFinite(uidNumber) && uidNumber > 0,
       characterId: characterData?.id ?? null,
       timings,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useReducer } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -201,6 +201,7 @@ function sanitizeDuration(duration?: number): number {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(toastReducer, { visible: [], queue: [] });
+  const shouldReduceMotion = useReducedMotion();
   const toastCounter = useRef(0);
   const timeoutIdsRef = useRef<Map<string, number>>(new Map());
 
@@ -313,13 +314,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               return (
                 <motion.li
                   key={toast.id}
-                  layout
-                  initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                  layout={!shouldReduceMotion}
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 16, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                  transition={{ type: 'spring', stiffness: 520, damping: 36, mass: 0.7 }}
+                  exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.98 }}
+                  transition={shouldReduceMotion
+                    ? { duration: 0 }
+                    : { type: 'spring', stiffness: 520, damping: 36, mass: 0.7 }}
                   onMouseEnter={() => pauseToastById(toast.id)}
                   onMouseLeave={() => resumeToastById(toast.id)}
+                  onFocusCapture={() => pauseToastById(toast.id)}
+                  onBlurCapture={() => resumeToastById(toast.id)}
                   role={toast.type === 'error' ? 'alert' : 'status'}
                   className={`pointer-events-auto relative overflow-hidden rounded-lg border backdrop-blur-md ${styles.container}`}
                 >
@@ -333,7 +338,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                     </p>
                     <button
                       onClick={() => dismissToast(toast.id)}
-                      className="-mr-1 rounded-md p-1.5 text-current/65 transition-colors hover:bg-white/10 hover:text-current"
+                      className="-mr-1 rounded-md p-1.5 text-current/65 transition-colors hover:bg-white/10 hover:text-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/70"
                       aria-label="Dismiss notification"
                     >
                       <X size={14} />

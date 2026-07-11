@@ -248,6 +248,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     }, controller.signal)
       .then((response) => {
         if (!active) return;
+        setFetchError(null);
         const nextPageCount = Math.max(1, Math.ceil(response.total / querySnapshot.pageSize));
         if (querySnapshot.page > nextPageCount) {
           setPage(nextPageCount);
@@ -278,6 +279,11 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       controller.abort();
     };
   }, [currentQueryKey, querySnapshot, resetBuildDetailRequestState, settledQueryKey, ssrData]);
+
+  const retryCurrentQuery = useCallback(() => {
+    setFetchError(null);
+    setSettledQueryKey(null);
+  }, []);
 
   const handleToggleExpand = useCallback((buildId: string) => {
     const normalizedBuildId = buildId.trim();
@@ -547,6 +553,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
                   isLoading={isLoading}
                   isRefreshing={isRefreshing}
                   error={error}
+                  onRetry={retryCurrentQuery}
                   sort={sort}
                   direction={direction}
                   onSortChange={(nextSort) => {

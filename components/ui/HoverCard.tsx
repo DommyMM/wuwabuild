@@ -54,6 +54,15 @@ const DEFAULT_ICON_SIZE = 96;
 // Padding-left applied to the header so it clears the icon footprint inside the panel.
 const HEADER_INDENT_CLASS = 'pl-[5.5rem]';
 
+const getAccessibleText = (node: ReactNode): string => {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(getAccessibleText).filter(Boolean).join(' ');
+  if (React.isValidElement<{ children?: ReactNode }>(node)) {
+    return getAccessibleText(node.props.children);
+  }
+  return '';
+};
+
 interface HoverCardIconProps {
   src?: string | null;
   alt?: string;
@@ -285,6 +294,7 @@ export const HoverCard: React.FC<HoverCardProps> = ({
 
   return (
     <HoverTooltip
+      ariaLabel={getAccessibleText(title) || undefined}
       placement={placement}
       strictPlacement={strictPlacement}
       disabled={disabled}

@@ -61,10 +61,12 @@ Current init settings:
 #### `import_validation_fail`
 - Purpose: user input fails before OCR.
 - Properties:
-  - `reason`: `bad_dimensions` | `bad_file_type`
+  - `reason`: `bad_dimensions` | `bad_file_type` | `file_too_large` | `decode_failed`
   - `file_type`: string | null
   - `width`: number (only for bad dimensions)
   - `height`: number (only for bad dimensions)
+  - `file_size`: number (only when the file is too large)
+  - `max_file_size`: number (only when the file is too large)
 
 #### `ocr_complete`
 - Purpose: OCR and its concurrent source-image persistence completed with quality diagnostics.

@@ -307,7 +307,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     };
   }, [expandedBuildIds, handleToggleExpand, revealBuildId, scrollToBuildRow, settledQueryKey, uid]);
 
-  const handleOpenBuild = useCallback((buildId: string, _characterId: string) => {
+  const handleOpenBuild = useCallback((buildId: string) => {
     if (builds.some((b) => b.id === buildId)) {
       if (!expandedBuildIds.has(buildId)) handleToggleExpand(buildId);
       scrollToBuildRow(buildId);

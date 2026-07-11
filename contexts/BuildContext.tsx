@@ -11,8 +11,8 @@ import {
   DEFAULT_WATERMARK,
 } from '@/lib/build';
 import { createDefaultEchoPanelState } from '@/lib/calculations/echoes';
-import { DRAFT_BUILD_STORAGE_KEY } from '@/lib/storage';
-import { getLocalStorageItem, removeLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
+import { DRAFT_BUILD_STORAGE_KEY, loadDraftBuild } from '@/lib/storage';
+import { removeLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
 
 interface BuildState {
   characterId: string | null;
@@ -107,26 +107,6 @@ const initialState: BuildState = {
   isDirty: false
 };
 
-// Migrate old nodeStates+forteLevels into a ForteState array.
-function migrateToForteArray(raw: Record<string, unknown>): ForteState {
-  // Already new format
-  if (Array.isArray(raw.forte) && raw.forte.length === 5) {
-    return raw.forte as ForteState;
-  }
-
-  const ns = (raw.nodeStates ?? {}) as Record<string, Record<string, boolean>>;
-  const fl = (raw.forteLevels ?? {}) as Record<string, number>;
-
-  const keys = ['normal-attack', 'skill', 'circuit', 'liberation', 'intro'];
-  const trees = ['tree1', 'tree2', 'tree3', 'tree4', 'tree5'];
-
-  return keys.map((key, i) => [
-    fl[key] ?? 1,
-    ns[trees[i]]?.top ?? false,
-    ns[trees[i]]?.middle ?? false,
-  ] as ForteEntry) as ForteState;
-}
-
 function normalizeEchoPanels(rawPanels: unknown): EchoPanelState[] {
   const defaults = Array(5).fill(null).map(() => createDefaultEchoPanelState());
   if (!Array.isArray(rawPanels)) return defaults;
@@ -157,48 +137,17 @@ function normalizeEchoPanels(rawPanels: unknown): EchoPanelState[] {
   });
 }
 
-// Read draft from localStorage synchronously (avoids flicker).
+// Parse a persisted draft. The provider restores it after hydration so the
+// server and first client render stay aligned.
 function loadDraftFromStorage(): BuildState | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = getLocalStorageItem(DRAFT_BUILD_STORAGE_KEY);
-    if (!raw) return null;
-    const saved = JSON.parse(raw);
-    if (!saved) return null;
-
-    // Handle legacy nested shape (characterState / weaponState)
-    if (saved.characterState) {
-      const cs = saved.characterState;
-      const ws = saved.weaponState ?? {};
-      return {
-        characterId: cs.id ?? null,
-        characterLevel: parseInt(cs.level) || 1,
-        roverElement: cs.element,
-        sequence: saved.currentSequence ?? 0,
-        weaponId: ws.id ?? null,
-        weaponLevel: ws.level ?? 1,
-        weaponRank: ws.rank ?? 1,
-        forte: migrateToForteArray(saved),
-        echoPanels: normalizeEchoPanels(saved.echoPanels),
-        watermark: saved.watermark ?? { ...DEFAULT_WATERMARK },
-        isDirty: false,
-      };
-    }
-
-    // New flat shape
-    if (saved.characterId !== undefined) {
-      return {
-        ...saved,
-        forte: migrateToForteArray(saved),
-        echoPanels: normalizeEchoPanels(saved.echoPanels),
-        isDirty: false,
-      };
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
+  const saved = loadDraftBuild();
+  if (!saved) return null;
+  return {
+    ...saved,
+    echoPanels: normalizeEchoPanels(saved.echoPanels),
+    watermark: { ...DEFAULT_WATERMARK, ...saved.watermark },
+    isDirty: false,
+  };
 }
 
 function stripDirtyFromState(state: BuildState): SavedState {
@@ -249,10 +198,17 @@ function buildReducer(state: BuildState, action: BuildAction): BuildState {
     case 'REORDER_ECHO_PANELS': {
       const newPanels = [...state.echoPanels];
       const { from, to } = action.payload;
-      // Swap the two panels directly instead of shifting
-      const temp = newPanels[from];
-      newPanels[from] = newPanels[to];
-      newPanels[to] = temp;
+      if (
+        from === to ||
+        from < 0 ||
+        to < 0 ||
+        from >= newPanels.length ||
+        to >= newPanels.length
+      ) {
+        return state;
+      }
+      const [movedPanel] = newPanels.splice(from, 1);
+      newPanels.splice(to, 0, movedPanel);
       return { ...state, echoPanels: newPanels, isDirty: true };
     }
 

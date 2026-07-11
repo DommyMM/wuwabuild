@@ -19,6 +19,10 @@ export function Navigation() {
     const [isMobile, setIsMobile] = useState(false);
     const [isLookupOpen, setIsLookupOpen] = useState(false);
     const lookupRef = useRef<HTMLDivElement>(null);
+    const menuButtonRef = useRef<HTMLButtonElement>(null);
+    const sidebarRef = useRef<HTMLDivElement>(null);
+    const backdropRef = useRef<HTMLDivElement>(null);
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
 
     // Close the lookup popover on outside click and after navigating.
     useEffect(() => {
@@ -40,13 +44,17 @@ export function Navigation() {
     }
 
     useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        const checkMobile = () => {
+            const nextIsMobile = window.innerWidth < 768;
+            setIsMobile(nextIsMobile);
+            if (!nextIsMobile) setIsOpen(false);
+        };
         checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    const closeSidebar = () => setIsOpen(false);
+    const closeSidebar = useCallback(() => setIsOpen(false), []);
 
     const focusOnPageSearch = useCallback((selector: string) => {
         const input = document.querySelector<HTMLInputElement>(selector);
@@ -78,17 +86,77 @@ export function Navigation() {
         return () => document.removeEventListener('keydown', onKey);
     }, [pathname, focusOnPageSearch]);
 
-    // Prevent body scroll when sidebar is open
+    // Treat the mobile drawer as a modal: contain focus, make the page inert,
+    // preserve scroll state, and return focus to the menu button on close.
     useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
-        return () => {
-            document.body.style.overflow = '';
+        if (!isOpen || !isMobile || !sidebarRef.current) return;
+
+        const sidebar = sidebarRef.current;
+        const backdrop = backdropRef.current;
+        const menuButton = menuButtonRef.current;
+        const previousOverflow = document.body.style.overflow;
+        const pageElements = Array.from(document.body.children)
+            .filter((element): element is HTMLElement => element instanceof HTMLElement)
+            .filter((element) => !element.contains(sidebar) && (!backdrop || !element.contains(backdrop)))
+            .map((element) => ({
+                element,
+                inert: element.inert,
+                ariaHidden: element.getAttribute('aria-hidden'),
+            }));
+
+        closeButtonRef.current?.focus({ preventScroll: true });
+        document.body.style.overflow = 'hidden';
+        pageElements.forEach(({ element }) => {
+            element.inert = true;
+            element.setAttribute('aria-hidden', 'true');
+        });
+
+        const focusableSelector = [
+            'a[href]',
+            'button:not([disabled])',
+            'input:not([disabled])',
+            'select:not([disabled])',
+            'textarea:not([disabled])',
+            '[tabindex]:not([tabindex="-1"])',
+        ].join(',');
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeSidebar();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+
+            const focusable = Array.from(sidebar.querySelectorAll<HTMLElement>(focusableSelector))
+                .filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
+            if (focusable.length === 0) {
+                event.preventDefault();
+                sidebar.focus();
+                return;
+            }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
         };
-    }, [isOpen]);
+        document.addEventListener('keydown', onKeyDown);
+
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = previousOverflow;
+            pageElements.forEach(({ element, inert, ariaHidden }) => {
+                element.inert = inert;
+                if (ariaHidden === null) element.removeAttribute('aria-hidden');
+                else element.setAttribute('aria-hidden', ariaHidden);
+            });
+            menuButton?.focus();
+        };
+    }, [closeSidebar, isMobile, isOpen]);
 
     const isActive = (path: string) => {
         if (path === '/') return pathname === '/';
@@ -242,9 +310,12 @@ export function Navigation() {
 
                     {/* Burger Button */}
                     <button
+                        ref={menuButtonRef}
                         onClick={() => setIsOpen(true)}
                         className="md:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 bg-transparent border-none cursor-pointer"
                         aria-label="Open menu"
+                        aria-controls="mobile-navigation-drawer"
+                        aria-expanded={isOpen}
                     >
                         <span className="w-6 h-0.5 bg-text-primary rounded-full transition-all" />
                         <span className="w-6 h-0.5 bg-text-primary rounded-full transition-all" />
@@ -258,19 +329,30 @@ export function Navigation() {
                 <>
                     {/* Backdrop */}
                     <div
+                        ref={backdropRef}
                         className={`fixed inset-0 bg-black/70 z-100 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                         onClick={() => setIsOpen(false)}
+                        aria-hidden="true"
                     />
 
                     {/* Sidebar */}
                     <div
-                        className={`fixed top-0 right-0 h-full w-64 bg-background-secondary z-101 transform transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                        ref={sidebarRef}
+                        id="mobile-navigation-drawer"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Site navigation"
+                        aria-hidden={!isOpen}
+                        inert={!isOpen}
+                        tabIndex={-1}
+                        className={`fixed top-0 right-0 h-full w-64 overscroll-contain bg-background-secondary z-101 transform transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
                     >
                         {/* Close Button */}
                         <div className="flex justify-end p-4">
                             <button
+                                ref={closeButtonRef}
                                 onClick={() => setIsOpen(false)}
-                                className="w-10 h-10 flex items-center justify-center text-text-primary hover:text-accent transition-colors bg-transparent border-none cursor-pointer"
+                                className="w-10 h-10 flex items-center justify-center text-text-primary hover:text-accent transition-colors bg-transparent border-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                                 aria-label="Close menu"
                             >
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

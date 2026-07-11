@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import fs from 'fs';
 import path from 'path';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { adaptCDNCharacter } from '@/lib/character';
 import { loadCharacterRaw } from '@/lib/server/gameData';
 import { getLeaderboardInsight, formatInsightProse } from '@/lib/server/leaderboardInsight';
@@ -116,7 +117,8 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
     const { id } = await params;
 
     const rawChar = loadCharacterRaw(id);
-    const char = rawChar ? adaptCDNCharacter(rawChar) : null;
+    if (!rawChar) notFound();
+    const char = adaptCDNCharacter(rawChar);
     let matchingWeapons: GenericDict[] = [];
 
     if (rawChar && char) {

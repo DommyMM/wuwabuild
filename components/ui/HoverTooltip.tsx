@@ -1,6 +1,15 @@
 'use client';
 
-import React, { ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 
 type TooltipPlacement = 'right' | 'left' | 'top' | 'bottom';
@@ -20,6 +29,7 @@ interface TooltipVisualOverflow {
 interface HoverTooltipProps {
   content: ReactNode;
   children: ReactNode;
+  ariaLabel?: string;
   placement?: TooltipPlacement;
   strictPlacement?: boolean;
   offset?: number;
@@ -35,7 +45,32 @@ interface HoverTooltipProps {
   visualOverflow?: TooltipVisualOverflow;
 }
 
+type TooltipTriggerProps = React.HTMLAttributes<HTMLElement> & {
+  disabled?: boolean;
+  href?: string;
+  type?: string;
+};
+
 const VIEWPORT_PADDING = 8;
+
+const NATIVE_FOCUSABLE_ELEMENTS = new Set([
+  'button',
+  'select',
+  'textarea',
+  'summary',
+]);
+
+const isFocusableTrigger = (element: React.ReactElement<TooltipTriggerProps>): boolean => {
+  const { contentEditable, disabled, href, tabIndex, type } = element.props;
+  if (disabled || (typeof tabIndex === 'number' && tabIndex < 0)) return false;
+  if (typeof tabIndex === 'number') return true;
+  if (contentEditable === true || contentEditable === 'true') return true;
+
+  if (typeof element.type !== 'string') return Boolean(href);
+  if ((element.type === 'a' || element.type === 'area') && href) return true;
+  if (element.type === 'input') return type !== 'hidden';
+  return NATIVE_FOCUSABLE_ELEMENTS.has(element.type);
+};
 
 const clamp = (value: number, min: number, max: number): number => (
   Math.min(max, Math.max(min, value))
@@ -120,6 +155,7 @@ const getPositionForPlacement = (
 export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   content,
   children,
+  ariaLabel,
   placement = 'right',
   strictPlacement = false,
   offset = 10,
@@ -134,9 +170,12 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const pointerInsideRef = useRef(false);
+  const focusWithinRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0 });
   const [showBottomArrow, setShowBottomArrow] = useState(false);
+  const tooltipId = useId();
 
   const hasContent = useMemo(() => {
     if (content === null || content === undefined) return false;
@@ -145,6 +184,29 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   }, [content]);
 
   const shouldShow = !disabled && hasContent;
+
+  const handleMouseEnter = useCallback(() => {
+    pointerInsideRef.current = true;
+    setIsOpen(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    pointerInsideRef.current = false;
+    if (!focusWithinRef.current) setIsOpen(false);
+  }, []);
+
+  const handleFocusCapture = useCallback(() => {
+    focusWithinRef.current = true;
+    setIsOpen(true);
+  }, []);
+
+  const handleBlurCapture = useCallback((event: React.FocusEvent<HTMLDivElement>) => {
+    const nextTarget = event.relatedTarget;
+    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) return;
+
+    focusWithinRef.current = false;
+    if (!pointerInsideRef.current) setIsOpen(false);
+  }, []);
 
   const updateScrollHint = useCallback(() => {
     const scrollEl = scrollRef.current;
@@ -214,7 +276,11 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
     if (!isOpen) return;
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
+      if (event.key !== 'Escape') return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      setIsOpen(false);
     };
 
     const handleViewportChange = () => {
@@ -223,12 +289,12 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
 
     window.addEventListener('resize', handleViewportChange);
     window.addEventListener('scroll', handleViewportChange, true);
-    window.addEventListener('keydown', handleEscape);
+    window.addEventListener('keydown', handleEscape, true);
 
     return () => {
       window.removeEventListener('resize', handleViewportChange);
       window.removeEventListener('scroll', handleViewportChange, true);
-      window.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('keydown', handleEscape, true);
     };
   }, [isOpen, updatePosition]);
 
@@ -286,6 +352,37 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
     };
   }, [isOpen, updateScrollHint]);
 
+  const triggerElement = React.isValidElement<TooltipTriggerProps>(children)
+    && children.type !== React.Fragment
+    ? children
+    : null;
+  const usesHiddenInput = triggerElement?.type === 'input' && triggerElement.props.type === 'hidden';
+  const hasNegativeTabIndex = typeof triggerElement?.props.tabIndex === 'number'
+    && triggerElement.props.tabIndex < 0;
+  const canAttachToChild = Boolean(
+    triggerElement
+    && !triggerElement.props.disabled
+    && triggerElement.props['aria-hidden'] !== true
+    && triggerElement.props['aria-hidden'] !== 'true'
+    && !hasNegativeTabIndex
+    && !usesHiddenInput
+    && (
+      typeof triggerElement.type === 'string'
+      || typeof triggerElement.props.tabIndex === 'number'
+      || Boolean(triggerElement.props.href)
+    )
+  );
+  const shouldFocusWrapper = !canAttachToChild;
+  const triggerDescribedBy = isOpen
+    ? [triggerElement?.props['aria-describedby'], tooltipId].filter(Boolean).join(' ')
+    : triggerElement?.props['aria-describedby'];
+  const triggerNode = triggerElement && canAttachToChild
+    ? React.cloneElement(triggerElement, {
+      'aria-describedby': triggerDescribedBy,
+      tabIndex: isFocusableTrigger(triggerElement) ? triggerElement.props.tabIndex : 0,
+    })
+    : children;
+
   if (!shouldShow) {
     return <>{children}</>;
   }
@@ -295,17 +392,26 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
       <div
         ref={triggerRef}
         className={triggerClassName || 'inline-flex'}
-        onMouseEnter={() => setIsOpen(true)}
-        onMouseLeave={() => setIsOpen(false)}
+        tabIndex={shouldFocusWrapper ? 0 : undefined}
+        aria-label={shouldFocusWrapper
+          ? ariaLabel ?? triggerElement?.props['aria-label'] ?? (typeof children === 'string' ? children : undefined)
+          : undefined}
+        aria-labelledby={shouldFocusWrapper ? triggerElement?.props['aria-labelledby'] : undefined}
+        aria-describedby={shouldFocusWrapper && isOpen ? tooltipId : undefined}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onFocusCapture={handleFocusCapture}
+        onBlurCapture={handleBlurCapture}
       >
-        {children}
+        {triggerNode}
       </div>
       {isOpen && typeof document !== 'undefined' && createPortal(
         <div
+          id={tooltipId}
           ref={tooltipRef}
+          role="tooltip"
           style={{ top: position.top, left: position.left, pointerEvents: 'none' }}
           className="pointer-events-none fixed z-60"
-          aria-hidden="true"
         >
           <div
             className={`relative max-h-[90vh] max-w-xl overflow-hidden rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${tooltipClassName}`}

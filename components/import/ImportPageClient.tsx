@@ -118,7 +118,20 @@ export function ImportPageClient() {
     }
     setSelectedFile(f);
 
-    const img = await loadImage(f);
+    let img: HTMLImageElement;
+    try {
+      img = await loadImage(f);
+    } catch {
+      const errorMsg = 'The selected file could not be decoded as an image. Try downloading it again.';
+      setSelectedFile(null);
+      setValidationError(errorMsg);
+      notifyError(errorMsg);
+      posthog.capture('import_validation_fail', {
+        reason: 'decode_failed',
+        file_type: f.type || null,
+      });
+      return;
+    }
     if (img.naturalWidth !== 1920 || img.naturalHeight !== 1080) {
       const errorMsg = `Image should be 1920×1080, got ${img.naturalWidth}×${img.naturalHeight}. ` +
         `For best results, download the image from Discord instead of screenshotting`;

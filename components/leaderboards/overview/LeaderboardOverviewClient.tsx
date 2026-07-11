@@ -80,7 +80,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
   const showSkeleton = fetchState.isLoading;
 
   return (
-    <main className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
+    <div className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
       <div className="mx-auto w-full max-w-360 space-y-4 p-3 px-0 md:p-5">
         <section className="relative overflow-visible rounded-xl border border-border bg-background-secondary px-4 py-2">
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
@@ -319,6 +319,6 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
           </div>
         </section>
       </div>
-    </main>
+    </div>
   );
 };

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import fs from 'fs';
 import path from 'path';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { CDNCharacter } from '@/lib/character';
 import { WeaponReferenceSections } from './WeaponReferenceSections';
 
@@ -130,6 +131,7 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
     const { id } = await params;
 
     const weaponInfo = findWeaponById(id);
+    if (!weaponInfo) notFound();
     let wepName = '';
     let typeName = '';
     let matchingCharacters: CDNCharacter[] = [];

@@ -40,7 +40,7 @@ const STEPS: { title: string; desc: React.ReactNode }[] = [
                     editor
                 </HomeLink>{' '}
                 or {' '}
-                <HomeLink href="/profiles" cta="edit" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
+                <HomeLink href="/profiles" cta="profile" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
                     profiles
                 </HomeLink>{' '}
                 page to view and download the build card.
@@ -52,7 +52,7 @@ const STEPS: { title: string; desc: React.ReactNode }[] = [
         desc: (
             <>
                 Visit the {' '}
-                <HomeLink href="/leaderboards" cta="import" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
+                <HomeLink href="/leaderboards" cta="leaderboards" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
                     leaderboards
                 </HomeLink>{' '}
                 to compare damage in standardized rotations against other players.

@@ -334,7 +334,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
 
   // Fetch leaderboard data. Runs when the view changes (queryKey) or a fresh deep link needs resolving.
   useEffect(() => {
-    const needFetch = settledQueryKey !== queryKey || Boolean(resolveBuildId);
+    const shouldResolveDeepLink = Boolean(resolveBuildId) && fetchError?.queryKey !== queryKey;
+    const needFetch = settledQueryKey !== queryKey || shouldResolveDeepLink;
     if (!needFetch) return;
 
     const controller = new AbortController();
@@ -350,6 +351,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     )
       .then((response) => {
         if (!active) return;
+        setFetchError(null);
 
         // If page was overridden by backend for ghost resolution, sync it.
         if (response.page !== page) setPage(response.page);
@@ -408,7 +410,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       active = false;
       controller.abort();
     };
-  }, [characterId, leaderboardQuery, page, pageSize, queryKey, resolveBuildId, settledQueryKey, track]);
+  }, [characterId, fetchError?.queryKey, leaderboardQuery, page, pageSize, queryKey, resolveBuildId, settledQueryKey, track]);
+
+  const retryCurrentQuery = useCallback(() => {
+    setFetchError(null);
+    setSettledQueryKey(null);
+  }, []);
 
   const handleToggleExpand = useCallback((id: string) => {
     toggleExpandedId(id, (expandedId) => {
@@ -706,6 +713,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 isLoading={isLoading}
                 isRefreshing={isRefreshing}
                 error={error}
+                onRetry={retryCurrentQuery}
                 sort={sort}
                 direction={direction}
                 onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}

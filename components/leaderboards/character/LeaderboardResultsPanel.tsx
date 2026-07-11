@@ -40,6 +40,7 @@ interface LeaderboardResultsPanelProps {
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
+  onRetry: () => void;
   sort: LBLeaderboardSortKey;
   direction: LBSortDirection;
   onSortChange: (sort: LBLeaderboardSortKey) => void;
@@ -71,6 +72,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   isLoading,
   isRefreshing,
   error,
+  onRetry,
   sort,
   direction,
   onSortChange,
@@ -155,8 +157,15 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   return (
     <section>
       {error && (
-        <div className="mb-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-300">
-          Failed to load leaderboard: {error}
+        <div role="alert" className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-300">
+          <span>Failed to load leaderboard: {error}</span>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="rounded-md border border-red-300/40 px-2.5 py-1 font-semibold text-red-100 transition-colors hover:bg-red-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
+          >
+            Retry
+          </button>
         </div>
       )}
 

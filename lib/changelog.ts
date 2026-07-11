@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-11',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Yangyang Xuanling leaderboards out'
+            }
+        ]
+    },
+    {
         date: '2026-07-10',
         changes: [
             {
@@ -47,6 +56,22 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Fixed Cantarella innate not giving 20% Healing Bonus'
+            },
+            {
+                kind: 'improved',
+                text: 'Hover details, notifications, and the mobile menu now work more reliably with keyboard navigation and reduced-motion settings'
+            },
+            {
+                kind: 'fixed',
+                text: 'Leaderboard loading errors now include a working retry instead of leaving the current view stuck'
+            },
+            {
+                kind: 'fixed',
+                text: 'Dragging an Echo across multiple slots now preserves the intended order'
+            },
+            {
+                kind: 'fixed',
+                text: 'Unreadable image files now show a clear import error instead of silently stopping the upload flow'
             }
         ]
     },

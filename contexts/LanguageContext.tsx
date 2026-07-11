@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import type { I18nString } from '@/lib/character';
 import { getLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
 
@@ -54,6 +54,10 @@ const getInitialLanguage = (): LanguageCode => {
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const [language, setLanguageState] = useState<LanguageCode>(getInitialLanguage);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const setLanguage = useCallback((lang: LanguageCode) => {
     setLanguageState(lang);

@@ -1,5 +1,3 @@
-'use client';
-
 import { BuildEditor } from '@/components/edit/BuildEditor';
 
 export default function EditPage() {
