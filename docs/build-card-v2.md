@@ -77,7 +77,7 @@ The card always shows the rank for the **equipped weapon**: `standings.find(s =>
 
 ## Export
 
-`html-to-image` `toBlob` with `pixelRatio = EXPORT_CARD_WIDTH / FIXED_CARD_PREVIEW_WIDTH` (3840 / 1440 = 2.67). The card lays out at a fixed 1440px regardless of viewport (`CardScaler` shrinks the preview visually). The profile download wraps the card and the substat row in one capture; the substat pills render bare over the PNG's transparent band (a backdrop strip was tried 2026-06-10 and reverted by owner preference). Implication for design: anything legible at the 1440 preview is more than legible in the file; optimize hierarchy for the Discord-embed first glance, not for export pixel size.
+`downloadBuildCard` in `lib/buildCardExport.ts` uses `html-to-image` to capture a canvas with `pixelRatio = BUILD_CARD_EXPORT_WIDTH / BUILD_CARD_DESIGN_WIDTH` (3840 / 1440 = 2.67). It encodes high-quality WebP at the full export resolution and verifies the returned MIME type, falling back to PNG when the browser cannot encode WebP. The card lays out at a fixed 1440px regardless of viewport (`CardScaler` shrinks the preview visually). The profile download wraps the card and the substat row in one capture; the substat pills render bare over the image's transparent band (a backdrop strip was tried 2026-06-10 and reverted by owner preference). Implication for design: anything legible at the 1440 preview is more than legible in the file; optimize hierarchy for the Discord-embed first glance, not for export pixel size.
 
 The site mark ("wuwa.build") is bare shadowed text pinned bottom-left of the splash panel (`CharacterPanel`), stacked under the optional art-credit input in the editor. Shared cards are the distribution loop; keep the mark legible at embed size.
 

@@ -136,6 +136,9 @@ Current init settings:
 - Properties:
   - `character_id`: string | null
   - `character_name`: string | null
+  - `format`: `webp` | `png`
+  - `byte_size`: number
+  - `export_width`: number
   - `weapon_id`: string | null
   - `sequence`: number
 
@@ -153,6 +156,9 @@ Current init settings:
   - `character_id`: string | null
   - `character_name`: string | null
   - `build_id`: string
+  - `format`: `webp` | `png`
+  - `byte_size`: number
+  - `export_width`: number
 
 #### `leaderboard_open_from_editor`
 - Purpose: user opens ranking page from editor.

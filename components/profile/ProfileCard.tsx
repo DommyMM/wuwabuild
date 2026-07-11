@@ -21,14 +21,12 @@ import { RankBoard } from '@/components/card/RankModule';
 import { ProfileRankSection } from './ProfileRankSection';
 import { SubstatSummaryRow } from './SubstatSummaryRow';
 import { AdjustRankingButton, NO_RANKING_KEY } from './AdjustRankingButton';
+import { BUILD_CARD_EXPORT_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
 import posthog from 'posthog-js';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MIN_CUSTOM_IMAGE_HEIGHT = 600;
-const FIXED_CARD_PREVIEW_WIDTH = 1440;
-const EXPORT_CARD_WIDTH = 3840;
-
 interface ProfileCardProps {
   entry: LBBuildRowEntry;
   detail: LBBuildDetailEntry;
@@ -269,40 +267,23 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
     setIsDownloading(true);
     setIsArtEditMode(false);
 
-    const { toBlob } = await import('html-to-image');
-    const pixelRatio = EXPORT_CARD_WIDTH / FIXED_CARD_PREVIEW_WIDTH;
-
     try {
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-
-      const exportBlob = await toBlob(cardRef.current, {
-        cacheBust: true,
-        pixelRatio,
-        style: {
-          maxWidth: `${FIXED_CARD_PREVIEW_WIDTH}px`,
-          minWidth: `${FIXED_CARD_PREVIEW_WIDTH}px`,
-          width: `${FIXED_CARD_PREVIEW_WIDTH}px`,
-        },
-        width: FIXED_CARD_PREVIEW_WIDTH,
-      });
-      if (!exportBlob) throw new Error('Card export returned an empty blob.');
-
       const charSlug = characterName.replace(/\s+/g, '-');
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0];
       const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
 
-      const url = URL.createObjectURL(exportBlob);
-      const link = document.createElement('a');
-      link.download = `${charSlug}_${dateStr}_${timeStr}.png`;
-      link.href = url;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      const result = await downloadBuildCard(
+        cardRef.current,
+        `${charSlug}_${dateStr}_${timeStr}`,
+      );
       posthog.capture('profile_card_download', {
+        byte_size: result.blob.size,
         character_id: characterId,
         character_name: characterName,
         build_id: entry.id,
+        export_width: BUILD_CARD_EXPORT_WIDTH,
+        format: result.format,
       });
     } catch (e) {
       posthog.captureException(e);

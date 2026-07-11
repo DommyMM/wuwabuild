@@ -28,14 +28,17 @@ import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getSplashUrlCandidates, logSplashArtTransform, resolveSplashCardArt, SplashArtVariant } from '@/lib/splashArt';
+import {
+  BUILD_CARD_DESIGN_HEIGHT,
+  BUILD_CARD_DESIGN_WIDTH,
+  BUILD_CARD_EXPORT_WIDTH,
+  downloadBuildCard,
+} from '@/lib/buildCardExport';
 import posthog from 'posthog-js';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MIN_CUSTOM_IMAGE_HEIGHT = 600;
-const FIXED_CARD_PREVIEW_WIDTH = 1440;
-const FIXED_CARD_PREVIEW_HEIGHT = FIXED_CARD_PREVIEW_WIDTH / 2.4;
-const EXPORT_CARD_WIDTH = 3840;
 type RoverElement = (typeof ROVER_ELEMENTS)[number];
 type CharacterArtState = {
   ownerCharacterId: string | null;
@@ -271,31 +274,7 @@ export const BuildEditor: React.FC = () => {
       return { ...current, isEditMode: false };
     });
 
-    const pixelRatio = EXPORT_CARD_WIDTH / FIXED_CARD_PREVIEW_WIDTH;
-
     try {
-      const { toBlob } = await import('html-to-image');
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      await new Promise(resolve => requestAnimationFrame(resolve));
-
-      const exportBlob = await toBlob(cardRef.current, {
-        cacheBust: true,
-        height: FIXED_CARD_PREVIEW_HEIGHT,
-        pixelRatio,
-        style: {
-          height: `${FIXED_CARD_PREVIEW_HEIGHT}px`,
-          maxHeight: `${FIXED_CARD_PREVIEW_HEIGHT}px`,
-          maxWidth: `${FIXED_CARD_PREVIEW_WIDTH}px`,
-          minHeight: `${FIXED_CARD_PREVIEW_HEIGHT}px`,
-          minWidth: `${FIXED_CARD_PREVIEW_WIDTH}px`,
-          width: `${FIXED_CARD_PREVIEW_WIDTH}px`,
-        },
-        width: FIXED_CARD_PREVIEW_WIDTH,
-      });
-      if (!exportBlob) {
-        throw new Error('Card export returned an empty blob.');
-      }
-      const link = document.createElement('a');
       const charName = selected?.character.name?.replace(/\s+/g, '-') || 'build';
 
       // Format: YYYY-MM-DD_HH-mm-ss (ISO-like, easy to read/sort)
@@ -303,14 +282,17 @@ export const BuildEditor: React.FC = () => {
       const dateStr = now.toISOString().split('T')[0];
       const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
 
-      const url = URL.createObjectURL(exportBlob);
-      link.download = `${charName}_${dateStr}_${timeStr}.png`;
-      link.href = url;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      const result = await downloadBuildCard(
+        cardRef.current,
+        `${charName}_${dateStr}_${timeStr}`,
+        { height: BUILD_CARD_DESIGN_HEIGHT },
+      );
       posthog.capture('build_card_download', {
+        byte_size: result.blob.size,
         character_id: state.characterId,
         character_name: selected?.character.name ?? null,
+        export_width: BUILD_CARD_EXPORT_WIDTH,
+        format: result.format,
         weapon_id: state.weaponId,
         sequence: state.sequence,
       });
@@ -678,7 +660,7 @@ export const BuildEditor: React.FC = () => {
                 <div className="min-w-0 pt-4 md:pt-0">
                   {isPhoneViewport ? (
                     <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
-                      <div style={{ width: FIXED_CARD_PREVIEW_WIDTH, minWidth: FIXED_CARD_PREVIEW_WIDTH }}>
+                      <div style={{ width: BUILD_CARD_DESIGN_WIDTH, minWidth: BUILD_CARD_DESIGN_WIDTH }}>
                         <BuildCard
                           ref={cardRef}
                           useAltSkin={cardOptions.useAltSkin}
@@ -697,8 +679,8 @@ export const BuildEditor: React.FC = () => {
                     <CardScaler
                       ref={cardRef}
                       className="pt-0"
-                      designHeight={FIXED_CARD_PREVIEW_HEIGHT}
-                      designWidth={FIXED_CARD_PREVIEW_WIDTH}
+                      designHeight={BUILD_CARD_DESIGN_HEIGHT}
+                      designWidth={BUILD_CARD_DESIGN_WIDTH}
                     >
                         <BuildCard
                           useAltSkin={cardOptions.useAltSkin}

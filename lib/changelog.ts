@@ -39,6 +39,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Echo editing and local save filtering now avoid unnecessary background work'
+            },
+            {
+                kind: 'improved',
+                text: 'Build and Profile Cards now use WebP for smaller file sizes'
             }
         ]
     },
