@@ -23,9 +23,12 @@ interface GlobalBoardResultsPanelProps {
   pageCount: number;
   pageSize: number;
   rankStart: number;
+  /** Id of a row injected client-side (deep link / cross-link) outside its real sorted position. */
+  ghostBuildId?: string | null;
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
+  onRetry: () => void;
   sort: LBSortKey;
   direction: LBSortDirection;
   onSortChange: (sort: LBSortKey) => void;
@@ -105,9 +108,11 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   pageCount,
   pageSize,
   rankStart,
+  ghostBuildId = null,
   isLoading,
   isRefreshing,
   error,
+  onRetry,
   sort,
   direction,
   onSortChange,
@@ -188,8 +193,15 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   return (
     <section className="relative">
       {error && (
-        <div className="mb-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-300">
-          Failed to load leaderboard data: {error}
+        <div role="alert" className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-300">
+          <span>Failed to load leaderboard data: {error}</span>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="rounded-md border border-red-300/40 px-2.5 py-1 font-semibold text-red-100 transition-colors hover:bg-red-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -355,6 +367,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                           key={entry.id}
                           entry={entry}
                           rank={rankStart + index}
+                          isGhost={ghostBuildId != null && entry.id === ghostBuildId}
                           isExpanded={expandedBuildIds.has(entry.id)}
                           detail={detailById[entry.id]}
                           isDetailLoading={detailLoadingById[entry.id] ?? false}

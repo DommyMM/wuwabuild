@@ -54,7 +54,13 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     () => parseInitialQuery(new URLSearchParams(searchParams.toString())),
     [searchParams],
   );
-  const linkedBuildId = searchParams.get('buildId')?.trim() ?? '';
+  // `?buildId=` is a transient one-shot "reveal this build" command (post-import deep link),
+  // not persistent view state — kept as local state (not re-derived from searchParams) so it
+  // can be cleared once consumed instead of sticking in the URL across every later query change.
+  const [revealBuildId, setRevealBuildId] = useState<string>(() => searchParams.get('buildId')?.trim() ?? '');
+  // Id of a build injected client-side outside its real sorted position (deep link or the
+  // echo inventory's "Equipped by" cross-link). Suppresses the fake rank instead of showing one.
+  const [ghostBuildId, setGhostBuildId] = useState<string | null>(null);
 
   const [page, setPage] = useState<number>(() => initialQuery.page);
   const [pageSize, setPageSize] = useState<number>(() => clampItemsPerPage(initialQuery.pageSize));
@@ -70,6 +76,8 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const [filterQuery, setFilterQuery] = useState('');
 
   const [builds, setBuilds] = useState<LBBuildRowEntry[]>([]);
+  const buildsRef = useRef<LBBuildRowEntry[]>([]);
+  useEffect(() => { buildsRef.current = builds; }, [builds]);
   const [total, setTotal] = useState(0);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
@@ -158,12 +166,27 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(serializeQuery({ ...querySnapshot, uid: '' }));
-    if (linkedBuildId) params.set('buildId', linkedBuildId);
+    if (revealBuildId) params.set('buildId', revealBuildId);
     const withoutUid = params.toString();
     const currentSearch = window.location.search.replace(/^\?/, '');
     if (currentSearch === withoutUid) return;
     window.history.replaceState(null, '', withoutUid ? `/profile/${uid}?${withoutUid}` : `/profile/${uid}`);
-  }, [linkedBuildId, querySnapshot, uid]);
+  }, [revealBuildId, querySnapshot, uid]);
+
+  // Drop the reveal once the user moves off the view it arrived on (sort/filter/page change) —
+  // the injected row won't survive the next natural refetch anyway, so stop lying in the URL too.
+  const revealHomeQueryKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (revealBuildId && revealHomeQueryKeyRef.current === null) {
+      revealHomeQueryKeyRef.current = currentQueryKey;
+    }
+  }, [revealBuildId, currentQueryKey]);
+  useEffect(() => {
+    if (!revealBuildId || revealHomeQueryKeyRef.current === null) return;
+    if (currentQueryKey === revealHomeQueryKeyRef.current) return;
+    setRevealBuildId('');
+    setGhostBuildId(null);
+  }, [currentQueryKey, revealBuildId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -224,6 +247,11 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     };
   }, [currentQueryKey, querySnapshot, resetBuildDetailRequestState, uid]);
 
+  const retryCurrentQuery = useCallback(() => {
+    setFetchError(null);
+    setSettledQueryKey(null);
+  }, []);
+
   const handleToggleExpand = useCallback((buildId: string) => {
     const id = buildId.trim();
     if (!id) return;
@@ -236,7 +264,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
 
   // Deep link from the echo inventory's "Equipped by" strip: surface the build
   // in this page's own table instead of leaving the profile.
-  const pendingOpenBuildRef = useRef<string | null>(null);
+  const openBuildControllerRef = useRef<AbortController | null>(null);
   const openedLinkedBuildRef = useRef('');
 
   const scrollToBuildRow = useCallback((buildId: string) => {
@@ -253,17 +281,21 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   }, []);
 
   useEffect(() => {
-    if (!linkedBuildId || !settledQueryKey || openedLinkedBuildRef.current === linkedBuildId) return;
+    if (!revealBuildId || !settledQueryKey || openedLinkedBuildRef.current === revealBuildId) return;
     const controller = new AbortController();
     let active = true;
 
-    void getBuildById(linkedBuildId, controller.signal)
+    void getBuildById(revealBuildId, controller.signal)
       .then((linkedBuild) => {
         if (!active || linkedBuild.owner.uid !== uid) return;
         openedLinkedBuildRef.current = linkedBuild.id;
-        setBuilds((current) => current.some((build) => build.id === linkedBuild.id)
-          ? current
-          : [linkedBuild, ...current]);
+        const alreadyOnPage = buildsRef.current.some((build) => build.id === linkedBuild.id);
+        if (!alreadyOnPage) {
+          setBuilds((current) => current.some((build) => build.id === linkedBuild.id)
+            ? current
+            : [linkedBuild, ...current]);
+          setGhostBuildId(linkedBuild.id);
+        }
         if (!expandedBuildIds.has(linkedBuild.id)) handleToggleExpand(linkedBuild.id);
         scrollToBuildRow(linkedBuild.id);
       })
@@ -273,34 +305,37 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       active = false;
       controller.abort();
     };
-  }, [expandedBuildIds, handleToggleExpand, linkedBuildId, scrollToBuildRow, settledQueryKey, uid]);
+  }, [expandedBuildIds, handleToggleExpand, revealBuildId, scrollToBuildRow, settledQueryKey, uid]);
 
-  const handleOpenBuild = useCallback((buildId: string, characterId: string) => {
+  const handleOpenBuild = useCallback((buildId: string, _characterId: string) => {
     if (builds.some((b) => b.id === buildId)) {
       if (!expandedBuildIds.has(buildId)) handleToggleExpand(buildId);
       scrollToBuildRow(buildId);
       return;
     }
-    // Not on the current page: narrow the table to that character so the build
-    // lands on page 1, then expand it once the refreshed list contains it.
-    pendingOpenBuildRef.current = buildId;
-    setCharacterIds([characterId]);
-    setWeaponIds([]);
-    setRegionPrefixes([]);
-    setEchoSets([]);
-    setEchoMains([]);
-    setSequences([]);
-    setStatFilters([]);
-    setPage(1);
-  }, [builds, expandedBuildIds, handleToggleExpand, scrollToBuildRow]);
 
-  useEffect(() => {
-    const id = pendingOpenBuildRef.current;
-    if (!id || !builds.some((b) => b.id === id)) return;
-    pendingOpenBuildRef.current = null;
-    if (!expandedBuildIds.has(id)) handleToggleExpand(id);
-    scrollToBuildRow(id);
-  }, [builds, expandedBuildIds, handleToggleExpand, scrollToBuildRow]);
+    // The equipped build may live on any filtered page. Resolve the exact
+    // authorized row instead of assuming a character filter will put it on page 1.
+    openBuildControllerRef.current?.abort();
+    const controller = new AbortController();
+    openBuildControllerRef.current = controller;
+    void getBuildById(buildId, controller.signal)
+      .then((resolvedBuild) => {
+        if (controller.signal.aborted || resolvedBuild.owner.uid !== uid) return;
+        setBuilds((current) => current.some((build) => build.id === resolvedBuild.id)
+          ? current
+          : [resolvedBuild, ...current]);
+        setGhostBuildId(resolvedBuild.id);
+        if (!expandedBuildIds.has(resolvedBuild.id)) handleToggleExpand(resolvedBuild.id);
+        scrollToBuildRow(resolvedBuild.id);
+      })
+      .catch(() => { /* Keep the current profile usable if the equipped build is stale. */ })
+      .finally(() => {
+        if (openBuildControllerRef.current === controller) openBuildControllerRef.current = null;
+      });
+  }, [builds, expandedBuildIds, handleToggleExpand, scrollToBuildRow, uid]);
+
+  useEffect(() => () => openBuildControllerRef.current?.abort(), []);
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
   const hasExpandedBuild = hasExpandedRows;
@@ -530,9 +565,11 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                     pageCount={normalizedPageCount}
                     pageSize={pageSize}
                     rankStart={rankStart}
+                    ghostBuildId={ghostBuildId}
                     isLoading={isLoading}
                     isRefreshing={isRefreshing}
                     error={error}
+                    onRetry={retryCurrentQuery}
                     sort={sort}
                     direction={direction}
                     onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
