@@ -18,31 +18,11 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'new',
-                text: 'Yangyang Xuanling leaderboards out'
-            },
-            {
-                kind: 'new',
-                text: 'Danjin solo + subdps boards out'
+                text: 'Yangyang Xuanling and Danjin leaderboards out'
             },
             {
                 kind: 'fixed',
-                text: 'ER scaling no longer draws a broken overlapping slice in move breakdowns; the penalty now shows as its own modifier row, a raw damage → score summary, and a ring around the chart'
-            },
-            {
-                kind: 'fixed',
-                text: 'Profile build deep links no longer shift the displayed ranks or page range'
-            },
-            {
-                kind: 'fixed',
-                text: 'Expanded leaderboard tools now stop after a failed request and provide a manual retry'
-            },
-            {
-                kind: 'improved',
-                text: 'Opening a leaderboard build now warns before replacing an existing editor draft'
-            },
-            {
-                kind: 'improved',
-                text: 'Echo editing and local save filtering now avoid unnecessary background work'
+                text: 'ER penalty moved out of pie chart to be better visualized in move breakdowns'
             },
             {
                 kind: 'improved',
@@ -66,10 +46,6 @@ export const CHANGELOG: ChangelogEntry[] = [
                 text: 'Long character variant names now wrap into evenly spaced compact leaderboard rows'
             },
             {
-                kind: 'improved',
-                text: 'Build imports now upload screenshots once and attach confirmed source images more reliably'
-            },
-            {
                 kind: 'fixed',
                 text: 'Echo artwork on build and profile cards now shows echo skill and Sonata details on hover'
             },
@@ -79,23 +55,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
-                text: 'Fixed Mornye innate not giving 10 ER'
-            },
-            {
-                kind: 'fixed',
-                text: 'Fixed Cantarella innate not giving 20% Healing Bonus'
-            },
-            {
-                kind: 'improved',
-                text: 'Hover details, notifications, and the mobile menu now work more reliably with keyboard navigation and reduced-motion settings'
-            },
-            {
-                kind: 'fixed',
-                text: 'Leaderboard loading errors now include a working retry instead of leaving the current view stuck'
-            },
-            {
-                kind: 'fixed',
-                text: 'Dragging an Echo across multiple slots now preserves the intended order'
+                text: 'Fixed Mornye and Canterella innates not giving respective stats'
             },
             {
                 kind: 'fixed',
@@ -109,7 +69,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'new',
-                text: 'Yangyang and the echoes are out'
+                text: 'New patch content out'
             },
             {
                 kind: 'improved',
