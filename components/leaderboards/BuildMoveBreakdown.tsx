@@ -23,6 +23,9 @@ const CHART_COLORS = [
   '#90be6d',
 ];
 
+const RING_RADIUS = 139;
+const RING_WIDTH = 5;
+
 type ProcessedHit = {
   name: string;
   damage: number;
@@ -36,6 +39,23 @@ type ProcessedMove = {
   elemType?: string;
   moveTypes?: string[];
   hits: ProcessedHit[];
+};
+
+// Global score adjustments (e.g. "ER Scaling (108% / 115% = ×0.94)") arrive from
+// the API as synthetic moves with negative damage. They scale the whole rotation,
+// so they are not part of the pie — they render as a ring, a score equation, and
+// a footer row instead.
+type ProcessedModifier = {
+  name: string;
+  damage: number;
+  percentage: number;
+};
+
+type ProcessedBreakdown = {
+  moves: ProcessedMove[];
+  modifiers: ProcessedModifier[];
+  rawDamage: number;
+  totalScore: number;
 };
 
 type PieSegment = {
@@ -133,6 +153,23 @@ function formatDamage(value: number): string {
   return Math.round(value).toLocaleString();
 }
 
+function formatSignedDamage(value: number): string {
+  const rounded = Math.round(value);
+  if (rounded < 0) return `−${Math.abs(rounded).toLocaleString()}`;
+  return rounded.toLocaleString();
+}
+
+function formatSignedPercent(value: number): string {
+  return value < 0 ? `−${formatPercentStat(Math.abs(value))}` : formatPercentStat(value);
+}
+
+// "ER Scaling (108% / 115% = ×0.94)" → "ER Scaling ×0.94" for the score card.
+function compactModifierLabel(name: string): string {
+  const base = name.split(' (')[0]?.trim() || name;
+  const factor = name.match(/×[\d.]+/)?.[0];
+  return factor ? `${base} ${factor}` : base;
+}
+
 function polarToCartesian(cx: number, cy: number, radius: number, angle: number) {
   const radians = ((angle - 90) * Math.PI) / 180;
   return {
@@ -160,7 +197,16 @@ function describePieSlice(cx: number, cy: number, radius: number, startAngle: nu
   ].join(' ');
 }
 
-function processMoves(moves: LBMoveEntry[]): ProcessedMove[] {
+function describeRingArc(cx: number, cy: number, radius: number, startAngle: number, endAngle: number) {
+  const safeEndAngle = Math.min(endAngle, startAngle + 359.6);
+  const start = polarToCartesian(cx, cy, radius, startAngle);
+  const end = polarToCartesian(cx, cy, radius, safeEndAngle);
+  const largeArcFlag = safeEndAngle - startAngle > 180 ? 1 : 0;
+
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
+}
+
+function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
   const grouped = new Map<string, { damage: number; hits: Map<string, number>; elemType?: string; moveTypes?: string[] }>();
 
   for (const move of moves) {
@@ -178,29 +224,44 @@ function processMoves(moves: LBMoveEntry[]): ProcessedMove[] {
     grouped.set(key, existing);
   }
 
-  const totalDamage = Array.from(grouped.values()).reduce((sum, move) => sum + move.damage, 0);
-  if (totalDamage <= 0) return [];
+  const entries = Array.from(grouped.entries());
+  const rawDamage = entries.reduce((sum, [, move]) => (move.damage > 0 ? sum + move.damage : sum), 0);
+  if (rawDamage <= 0) return { moves: [], modifiers: [], rawDamage: 0, totalScore: 0 };
 
-  return Array.from(grouped.entries())
+  const processedMoves = entries
+    .filter(([, move]) => move.damage >= 0)
     .map(([name, move]) => {
       const hits = Array.from(move.hits.entries())
         .map(([hitName, damage]) => ({
           name: hitName,
           damage,
-          percentage: (damage / totalDamage) * 100,
+          percentage: (damage / rawDamage) * 100,
         }))
         .sort((a, b) => b.damage - a.damage);
 
       return {
         name,
         damage: move.damage,
-        percentage: (move.damage / totalDamage) * 100,
+        percentage: (move.damage / rawDamage) * 100,
         elemType: move.elemType,
         moveTypes: move.moveTypes,
         hits,
       };
     })
     .sort((a, b) => b.damage - a.damage);
+
+  const modifiers = entries
+    .filter(([, move]) => move.damage < 0)
+    .map(([name, move]) => ({
+      name,
+      damage: move.damage,
+      percentage: (move.damage / rawDamage) * 100,
+    }))
+    .sort((a, b) => a.damage - b.damage);
+
+  const totalScore = entries.reduce((sum, [, move]) => sum + move.damage, 0);
+
+  return { moves: processedMoves, modifiers, rawDamage, totalScore };
 }
 
 function buildPieSegments(moves: ProcessedMove[], activeMoveIndex: number | null): PieSegment[] {
@@ -260,15 +321,13 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 }) => {
   const [activeMoveIndex, setActiveMoveIndex] = useState<number | null>(null);
   const [activeHitKey, setActiveHitKey] = useState<string | null>(null);
+  const [modifierActive, setModifierActive] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const chartRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
 
-  const processedMoves = useMemo(() => processMoves(moves), [moves]);
-  const totalDamage = useMemo(
-    () => processedMoves.reduce((sum, move) => sum + move.damage, 0),
-    [processedMoves],
-  );
+  const breakdown = useMemo(() => processMoves(moves), [moves]);
+  const processedMoves = breakdown.moves;
   const totalHits = useMemo(
     () => processedMoves.reduce((sum, move) => sum + move.hits.length, 0),
     [processedMoves],
@@ -277,6 +336,23 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     () => buildPieSegments(processedMoves, activeMoveIndex),
     [activeMoveIndex, processedMoves],
   );
+  const ring = useMemo(() => {
+    if (breakdown.modifiers.length === 0 || breakdown.rawDamage <= 0) return null;
+    const modifierDamage = breakdown.modifiers.reduce((sum, modifier) => sum + modifier.damage, 0);
+    const retainedFactor = clamp((breakdown.rawDamage + modifierDamage) / breakdown.rawDamage, 0, 1);
+    const retainedAngle = retainedFactor * 360;
+    const anchor = getSliceTooltipAnchor(retainedAngle, 360, RING_RADIUS);
+
+    return {
+      retainedPath: retainedAngle > 1 ? describeRingArc(150, 150, RING_RADIUS, 0, retainedAngle) : null,
+      lostPath: describeRingArc(150, 150, RING_RADIUS, retainedAngle, 360),
+      title: breakdown.modifiers.length === 1 ? breakdown.modifiers[0].name : 'Score Modifiers',
+      damage: modifierDamage,
+      percentage: (modifierDamage / breakdown.rawDamage) * 100,
+      tooltipAnchorX: anchor.x,
+      tooltipAnchorY: anchor.y,
+    };
+  }, [breakdown]);
   const activeHitSegment = useMemo(() => {
     if (activeMoveIndex === null || activeHitKey === null) return null;
     const segment = pieSegments[activeMoveIndex];
@@ -396,13 +472,14 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       key={segment.key}
                       d={segment.path}
                       fill={segment.color}
-                      opacity={segment.opacity}
+                      opacity={modifierActive ? 0.4 : segment.opacity}
                       stroke="rgba(19,18,18,0.65)"
                       strokeWidth="1.2"
                       className="cursor-pointer transition-opacity duration-150"
                       onMouseEnter={(event) => {
                         setActiveMoveIndex(segment.moveIndex);
                         setActiveHitKey(null);
+                        setModifierActive(false);
                         if (move) {
                           setTooltipFromEvent(event, {
                             title: move.name,
@@ -441,6 +518,64 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     className="drop-shadow-[0_0_12px_rgba(0,0,0,0.28)]"
                   />
                 )}
+                {ring && (
+                  <g>
+                    <circle
+                      cx="150"
+                      cy="150"
+                      r={RING_RADIUS}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.05)"
+                      strokeWidth={RING_WIDTH}
+                    />
+                    {ring.retainedPath && (
+                      <path
+                        d={ring.retainedPath}
+                        fill="none"
+                        stroke="rgba(166,150,98,0.5)"
+                        strokeWidth={RING_WIDTH}
+                        strokeLinecap="round"
+                      />
+                    )}
+                    <path
+                      d={ring.lostPath}
+                      fill="none"
+                      stroke={modifierActive ? 'rgba(248,113,113,1)' : 'rgba(248,113,113,0.7)'}
+                      strokeWidth={modifierActive ? RING_WIDTH + 1.5 : RING_WIDTH}
+                      strokeDasharray="2.5 3.5"
+                      className="transition-all duration-150"
+                    />
+                    <path
+                      d={ring.lostPath}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth={16}
+                      pointerEvents="stroke"
+                      className="cursor-pointer"
+                      onMouseEnter={(event) => {
+                        setModifierActive(true);
+                        setActiveMoveIndex(null);
+                        setActiveHitKey(null);
+                        setTooltipFromEvent(event, {
+                          title: ring.title,
+                          damage: ring.damage,
+                          percentage: ring.percentage,
+                        });
+                      }}
+                      onMouseMove={(event) => {
+                        setTooltipFromEvent(event, {
+                          title: ring.title,
+                          damage: ring.damage,
+                          percentage: ring.percentage,
+                        });
+                      }}
+                      onMouseLeave={() => {
+                        setModifierActive(false);
+                        setTooltip(null);
+                      }}
+                    />
+                  </g>
+                )}
               </svg>
 
               {tooltip && (
@@ -472,8 +607,10 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     </div>
                   )}
                   <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-base font-semibold text-accent">{formatDamage(tooltip.damage)}</span>
-                    <span className="text-xs text-text-primary/74">[{formatPercentStat(tooltip.percentage)}]</span>
+                    <span className={`text-base font-semibold ${tooltip.damage < 0 ? 'text-red-300' : 'text-accent'}`}>
+                      {formatSignedDamage(tooltip.damage)}
+                    </span>
+                    <span className="text-xs text-text-primary/74">[{formatSignedPercent(tooltip.percentage)}]</span>
                   </div>
                 </div>
               )}
@@ -483,7 +620,21 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/42">
                 Total Score
               </div>
-              <div className="mt-1 text-xl font-semibold text-white/92">{formatDamage(totalDamage)}</div>
+              {breakdown.modifiers.length > 0 && (
+                <div className="mt-2 space-y-1 border-b border-border/50 pb-2">
+                  <div className="flex items-baseline justify-between gap-3 text-xs">
+                    <span className="text-text-primary/55">Raw Damage</span>
+                    <span className="font-medium text-white/80">{formatDamage(breakdown.rawDamage)}</span>
+                  </div>
+                  {breakdown.modifiers.map((modifier) => (
+                    <div key={`equation-${modifier.name}`} className="flex items-baseline justify-between gap-3 text-xs">
+                      <span className="truncate text-red-300/80">{compactModifierLabel(modifier.name)}</span>
+                      <span className="shrink-0 font-medium text-red-300/95">{formatSignedDamage(modifier.damage)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="mt-1 text-xl font-semibold text-white/92">{formatDamage(breakdown.totalScore)}</div>
               <div className="mt-1 text-xs text-text-primary/48">
                 {processedMoves.length} moves • {totalHits} hits
               </div>
@@ -492,7 +643,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
           <div className="space-y-2">
             {processedMoves.map((move, moveIndex) => {
-              const isMoveActive = activeMoveIndex === null || activeMoveIndex === moveIndex;
+              const isMoveActive = !modifierActive && (activeMoveIndex === null || activeMoveIndex === moveIndex);
               const color = CHART_COLORS[moveIndex % CHART_COLORS.length];
               const segment = pieSegments[moveIndex];
 
@@ -507,6 +658,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                   onMouseEnter={() => {
                     setActiveMoveIndex(moveIndex);
                     setActiveHitKey(null);
+                    setModifierActive(false);
                     if (segment) {
                       setTooltipFromAnchor(segment.tooltipAnchorX, segment.tooltipAnchorY, {
                         title: move.name,
@@ -604,6 +756,51 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                 </article>
               );
             })}
+
+            {breakdown.modifiers.map((modifier) => (
+              <article
+                key={`modifier-${modifier.name}`}
+                className={`rounded-lg border border-dashed px-3 py-2.5 transition-colors ${
+                  modifierActive
+                    ? 'border-red-400/50 bg-red-500/10'
+                    : activeMoveIndex !== null
+                      ? 'border-red-400/20 bg-red-500/4 opacity-55'
+                      : 'border-red-400/30 bg-red-500/5'
+                }`}
+                onMouseEnter={() => {
+                  setModifierActive(true);
+                  setActiveMoveIndex(null);
+                  setActiveHitKey(null);
+                  if (ring) {
+                    setTooltipFromAnchor(ring.tooltipAnchorX, ring.tooltipAnchorY, {
+                      title: modifier.name,
+                      damage: modifier.damage,
+                      percentage: modifier.percentage,
+                    });
+                  }
+                }}
+                onMouseLeave={() => {
+                  setModifierActive(false);
+                  setTooltip(null);
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="mt-1 h-3.5 w-3.5 shrink-0 rounded-sm border border-dashed border-red-300/70" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <div className="truncate text-sm font-semibold text-red-200/92">{modifier.name}</div>
+                      <div className="shrink-0 text-sm font-semibold text-red-300">{formatSignedDamage(modifier.damage)}</div>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <span className="rounded border border-red-300/25 bg-red-500/10 px-1.5 py-px text-[10px] leading-4 text-red-200/70">
+                        Score Modifier
+                      </span>
+                      <div className="text-xs text-red-200/60">{formatSignedPercent(modifier.percentage)}</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       )}

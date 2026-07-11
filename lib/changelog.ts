@@ -26,6 +26,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
+                text: 'ER scaling no longer draws a broken overlapping slice in move breakdowns; the penalty now shows as its own modifier row, a raw damage → score summary, and a ring around the chart'
+            },
+            {
+                kind: 'fixed',
                 text: 'Profile build deep links no longer shift the displayed ranks or page range'
             },
             {
