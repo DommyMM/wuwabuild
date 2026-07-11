@@ -17,6 +17,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-07-10',
         changes: [
             {
+                kind: 'new',
+                text: 'Added Chisa and Lynae skin options to the build editor'
+            },
+            {
                 kind: 'fixed',
                 text: 'Imports for characters without a leaderboard now open the uploaded build on its profile instead of leading to an empty leaderboard'
             },
