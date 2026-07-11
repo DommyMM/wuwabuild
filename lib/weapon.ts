@@ -145,9 +145,20 @@ export const adaptCDNWeapon = (cdn: CDNWeapon): Weapon => ({
   mainStatI18n: cdn.stats.second.name,
 });
 
-export const validateCDNWeapon = (w: CDNWeapon): boolean => (
+export const validateCDNWeapon = (value: unknown): value is CDNWeapon => {
+  if (!value || typeof value !== 'object') return false;
+  const w = value as Partial<CDNWeapon>;
+  return (
   typeof w.id === 'number' &&
   typeof w.name?.en === 'string' &&
   w.name.en.length > 0 &&
-  w.stats?.first?.value > 0
-);
+  typeof w.type?.id === 'number' &&
+  typeof w.rarity?.id === 'number' &&
+  typeof w.icon?.icon === 'string' &&
+  typeof w.stats?.first?.value === 'number' &&
+  w.stats.first.value > 0 &&
+  typeof w.stats?.second?.attribute === 'string' &&
+  typeof w.stats.second.value === 'number' &&
+  typeof w.stats.second.isRatio === 'boolean'
+  );
+};

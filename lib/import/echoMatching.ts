@@ -6,6 +6,11 @@ const EXTRA_OCR_SET_IDS_BY_ECHO_ID: Record<string, ReadonlySet<number>> = {
   '60000855': new Set([1, 2, 3, 4, 5, 6]),
 };
 
+export function isEchoSetIdLegal(echo: Echo, setId: number): boolean {
+  return echo.fetterIds.includes(setId)
+    || (EXTRA_OCR_SET_IDS_BY_ECHO_ID[echo.id]?.has(setId) ?? false);
+}
+
 export interface GameDataArgs {
   echoes: Echo[];
 }
@@ -27,7 +32,11 @@ export function matchEchoData(
 ): EchoPanelState | null {
   const { echoes } = gameData;
 
-  let phantom = false;
+  let rawName = ocrData.name.name.trim();
+  const phantom = rawName.startsWith('Phantom ');
+  if (phantom) {
+    rawName = rawName.slice('Phantom '.length);
+  }
 
   // ID lookup (primary, backend provides CDN id directly)
   const echoId = ocrData.name.id;
@@ -35,11 +44,6 @@ export function matchEchoData(
 
   // Name-based fallback (handles Phantom prefix, Nightmare prefix, etc.)
   if (!echo) {
-    let rawName = ocrData.name.name.trim();
-    if (rawName.startsWith('Phantom ')) {
-      phantom = true;
-      rawName = rawName.slice('Phantom '.length);
-    }
     echo =
       echoes.find(e => e.name === rawName) ??
       echoes.find(e => e.name.toLowerCase() === rawName.toLowerCase()) ??
@@ -62,7 +66,7 @@ export function matchEchoData(
   const fallbackSetId = echo.fetterIds[0] ?? null;
   const ocrSetIdLegal =
     ocrSetId !== null &&
-    (echo.fetterIds.includes(ocrSetId) || (EXTRA_OCR_SET_IDS_BY_ECHO_ID[echo.id]?.has(ocrSetId) ?? false));
+    isEchoSetIdLegal(echo, ocrSetId);
   const resolvedSetId: number | null = ocrSetIdLegal ? ocrSetId : fallbackSetId;
 
   // Main stat names are canonical from backend OCR output.

@@ -105,7 +105,7 @@ export interface CDNCharacter {
 
 // Unconditional panel-stat bonus granted by an inherent skill (e.g. Mornye
 // Energy Regen +10%). Parsed at sync time; applied always-on, like a base stat.
-export interface InherentBonus {
+interface InherentBonus {
   stat: string;
   value: number;
 }
@@ -374,12 +374,22 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
   };
 };
 
-export const validateCDNCharacter = (char: CDNCharacter): boolean => {
+export const validateCDNCharacter = (value: unknown): value is CDNCharacter => {
+  if (!value || typeof value !== 'object') return false;
+  const char = value as Partial<CDNCharacter>;
   return (
     typeof char.id === 'number' &&
     typeof char.legacyId === 'string' &&
-    char.stats?.Life > 0 &&
-    char.stats?.Atk > 0 &&
-    char.stats?.Def > 0
+    typeof char.name?.en === 'string' &&
+    typeof char.rarity?.id === 'number' &&
+    typeof char.weapon?.id === 'number' &&
+    typeof char.element?.id === 'number' &&
+    typeof char.icon?.iconRound === 'string' &&
+    typeof char.icon?.banner === 'string' &&
+    Array.isArray(char.skins) &&
+    Array.isArray(char.tags) &&
+    typeof char.stats?.Life === 'number' && char.stats.Life > 0 &&
+    typeof char.stats?.Atk === 'number' && char.stats.Atk > 0 &&
+    typeof char.stats?.Def === 'number' && char.stats.Def > 0
   );
 };

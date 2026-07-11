@@ -1,6 +1,6 @@
 import 'server-only';
 import { prefetchLeaderboard } from '@/lib/lbServer';
-import { loadFetterNames, loadWeaponNames } from './gameData';
+import { loadFetterSummaries, loadWeaponNames } from './gameData';
 
 export interface LeaderboardInsight {
     sampleSize: number;
@@ -37,7 +37,7 @@ export async function getLeaderboardInsight(characterId: string): Promise<Leader
     if (builds.length < MIN_SAMPLE) return null;
 
     const weaponNames = loadWeaponNames();
-    const fetterNames = loadFetterNames();
+    const fetters = loadFetterSummaries();
 
     // Most common weapon (players keep their own weapon even on a weapon-scoped board).
     const weaponCounts: Record<string, number> = {};
@@ -47,19 +47,21 @@ export async function getLeaderboardInsight(characterId: string): Promise<Leader
     }
     const topWeapon = mostCommon(weaponCounts);
 
-    // Most common dominant echo set (a set worn at 5 pieces).
+    // Most common dominant active echo set. Activation thresholds come from
+    // Fetters.json because modern sets can activate at 1, 2, or 3 pieces.
     const setCounts: Record<string, number> = {};
     for (const b of builds) {
         const sets = b.echoSummary?.sets ?? {};
         let domId: string | null = null;
         let domCount = 0;
         for (const [setId, count] of Object.entries(sets)) {
-            if (count > domCount) {
+            const activationCount = fetters[setId]?.pieceCount ?? 5;
+            if (count >= activationCount && count > domCount) {
                 domCount = count;
                 domId = setId;
             }
         }
-        if (domId && domCount >= 5) setCounts[domId] = (setCounts[domId] ?? 0) + 1;
+        if (domId) setCounts[domId] = (setCounts[domId] ?? 0) + 1;
     }
     const topSet = mostCommon(setCounts);
 
@@ -68,7 +70,12 @@ export async function getLeaderboardInsight(characterId: string): Promise<Leader
         .map((b) => b.finalCV || b.cv)
         .filter((n) => Number.isFinite(n) && n > 0)
         .sort((a, b) => a - b);
-    const medianCv = cvs.length ? Math.round(cvs[Math.floor(cvs.length / 2)]) : 0;
+    const middle = Math.floor(cvs.length / 2);
+    const medianCv = cvs.length === 0
+        ? 0
+        : Math.round(cvs.length % 2 === 1
+            ? cvs[middle]
+            : (cvs[middle - 1] + cvs[middle]) / 2);
 
     // Peak simulated damage (0 for healing/score tracks)
     const peakDamage = Math.max(0, ...builds.map((b) => b.damage || 0));
@@ -77,7 +84,7 @@ export async function getLeaderboardInsight(characterId: string): Promise<Leader
         sampleSize: builds.length,
         topWeaponName: topWeapon ? weaponNames[topWeapon.key] ?? null : null,
         topWeaponPct: topWeapon ? Math.round((topWeapon.count / builds.length) * 100) : 0,
-        topSetName: topSet ? fetterNames[topSet.key] ?? null : null,
+        topSetName: topSet ? fetters[topSet.key]?.name ?? null : null,
         medianCv,
         peakDamage,
     };

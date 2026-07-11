@@ -1,7 +1,12 @@
 'use client';
 
 function canUseStorage(): boolean {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  if (typeof window === 'undefined') return false;
+  try {
+    return typeof window.localStorage !== 'undefined';
+  } catch {
+    return false;
+  }
 }
 
 export function getLocalStorageItem(key: string): string | null {

@@ -27,6 +27,7 @@ import unicodedata
 _MARKUP_RE = re.compile(r"<[^>]+>")
 from pathlib import Path
 from typing import Any
+from cdn_config import write_bytes_atomic, write_json_atomic
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPTS_DIR.parent / "public" / "Data"
@@ -195,12 +196,12 @@ def _write_json(path: Path, data: Any, dry_run: bool, pretty: bool = False) -> N
     if dry_run:
         print(f"[DRY RUN] Would write {path}")
         return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if pretty:
-        payload = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True)
-    else:
-        payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-    path.write_text(payload, encoding="utf-8")
+    json_kwargs = (
+        {"ensure_ascii": False, "indent": 2, "sort_keys": True}
+        if pretty
+        else {"ensure_ascii": False, "separators": (",", ":"), "sort_keys": True}
+    )
+    write_json_atomic(path, data, **json_kwargs)
     print(f"Wrote {path}")
 
 
@@ -208,8 +209,7 @@ def _copy_file(src: Path, dst: Path, dry_run: bool) -> None:
     if dry_run:
         print(f"[DRY RUN] Would copy {src} -> {dst}")
         return
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+    write_bytes_atomic(dst, src.read_bytes())
     print(f"Copied {src} -> {dst}")
 
 

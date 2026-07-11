@@ -1,9 +1,9 @@
 """
-Migrate R2 bucket: download all images, convert to JPEG q90, re-upload.
+Maintenance helper: copy supported R2 images to JPEG q90 keys.
 
 Usage:
-  python scripts/migrate_r2_png_to_jpg.py --dry-run   # Downloads + converts locally only
-  python scripts/migrate_r2_png_to_jpg.py             # Downloads + converts + migrates R2
+  python scripts/migrate_r2_png_to_jpg.py             # Safe preview: local download/conversion only
+  python scripts/migrate_r2_png_to_jpg.py --apply     # Upload JPEG copies; originals are preserved
 
 Requires:
   pip install boto3 python-dotenv Pillow
@@ -28,16 +28,46 @@ LOCAL_DIR = REPO_ROOT / "r2-backup"
 
 load_dotenv(FRONTEND_DIR / ".env")
 
-BUCKET = os.environ["R2_BUCKET_NAME"]
-ACCOUNT_ID = os.environ["CLOUDFLARE_ACCOUNT_ID"]
-ACCESS_KEY = os.environ["R2_ACCESS_KEY_ID"]
-SECRET_KEY = os.environ["R2_SECRET_ACCESS_KEY"]
+BUCKET = os.environ.get("R2_BUCKET_NAME")
+ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
+ACCESS_KEY = os.environ.get("R2_ACCESS_KEY_ID")
+SECRET_KEY = os.environ.get("R2_SECRET_ACCESS_KEY")
 
 WORKERS = 40
 JPEG_QUALITY = 90
+SUPPORTED_IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+
+
+def local_path_for_key(key: str) -> Path:
+    """Resolve an object key below LOCAL_DIR, rejecting path traversal."""
+    root = LOCAL_DIR.resolve()
+    candidate = (root / key).resolve()
+    if not candidate.is_relative_to(root):
+        raise ValueError(f"Unsafe object key escapes the backup directory: {key!r}")
+    return candidate
+
+
+def is_supported_image_key(key: str) -> bool:
+    return Path(key).suffix.lower() in SUPPORTED_IMAGE_SUFFIXES
+
+
+def jpeg_key_for(key: str) -> str:
+    return key.rsplit(".", 1)[0] + ".jpg"
 
 
 def get_s3_client():
+    missing = [
+        name
+        for name, value in (
+            ("R2_BUCKET_NAME", BUCKET),
+            ("CLOUDFLARE_ACCOUNT_ID", ACCOUNT_ID),
+            ("R2_ACCESS_KEY_ID", ACCESS_KEY),
+            ("R2_SECRET_ACCESS_KEY", SECRET_KEY),
+        )
+        if not value
+    ]
+    if missing:
+        raise RuntimeError(f"Missing required R2 environment variables: {', '.join(missing)}")
     return boto3.client(
         "s3",
         endpoint_url=f"https://{ACCOUNT_ID}.r2.cloudflarestorage.com",
@@ -76,7 +106,7 @@ def list_all_keys(s3) -> list[str]:
 
 def download_object(key: str) -> dict:
     """Download-only mode: save raw bytes as-is, always overwrite."""
-    local_path = LOCAL_DIR / key
+    local_path = local_path_for_key(key)
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
     s3 = get_s3_client()
@@ -87,8 +117,16 @@ def download_object(key: str) -> dict:
 
 
 def process_object(key: str, dry_run: bool) -> dict:
-    new_key = key.rsplit(".", 1)[0] + ".jpg"
-    local_path = LOCAL_DIR / new_key
+    if not is_supported_image_key(key):
+        return {
+            "key": key,
+            "new_key": key,
+            "status": "unsupported",
+            "original_kb": 0.0,
+            "final_kb": 0.0,
+        }
+    new_key = jpeg_key_for(key)
+    local_path = local_path_for_key(new_key)
 
     # Skip entirely if already processed locally
     if key.endswith(".jpg") and local_path.exists():
@@ -130,8 +168,9 @@ def process_object(key: str, dry_run: bool) -> dict:
             Body=jpeg_data,
             ContentType="image/jpeg",
         )
-        if new_key != key:
-            s3.delete_object(Bucket=BUCKET, Key=key)
+        # Preserve the original. Deleting/rewriting keys requires a coordinated
+        # reference migration for reports and database rows and is intentionally
+        # outside this maintenance helper.
 
     return {
         "key": key,
@@ -170,8 +209,24 @@ def migrate(dry_run: bool):
     print("=== DRY RUN ===\n" if dry_run else "=== LIVE RUN ===\n")
 
     s3 = get_s3_client()
-    keys = list_all_keys(s3)
-    print(f"Found {len(keys)} objects in '{BUCKET}'\n")
+    all_keys = list_all_keys(s3)
+    supported_keys = [key for key in all_keys if is_supported_image_key(key)]
+    key_set = set(all_keys)
+    conflicts = [
+        key
+        for key in supported_keys
+        if jpeg_key_for(key) != key and jpeg_key_for(key) in key_set
+    ]
+    keys = [key for key in supported_keys if key not in set(conflicts)]
+    print(
+        f"Found {len(keys)} supported images in '{BUCKET}' "
+        f"({len(all_keys) - len(supported_keys)} non-image objects excluded, "
+        f"{len(conflicts)} target-key conflicts skipped)\n"
+    )
+    if conflicts:
+        print("Conflicting source keys (existing .jpg target preserved):")
+        for key in conflicts:
+            print(f"  {key} -> {jpeg_key_for(key)}")
 
     migrated = 0
     already_jpg = 0
@@ -224,13 +279,18 @@ Done!
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--dry-run", action="store_true", help="Download + convert locally only"
+        "--apply", action="store_true", help="Upload JPEG copies (original keys are preserved)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Deprecated compatibility alias for the default safe preview"
     )
     parser.add_argument(
         "--download-only", action="store_true", help="Download raw files as-is, always overwrite"
     )
     args = parser.parse_args()
+    if args.apply and args.dry_run:
+        parser.error("--apply and --dry-run are mutually exclusive")
     if args.download_only:
         download_all()
     else:
-        migrate(args.dry_run)
+        migrate(dry_run=not args.apply)

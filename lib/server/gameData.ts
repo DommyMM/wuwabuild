@@ -153,8 +153,8 @@ export function loadWeaponNames(): Record<string, string> {
   return map;
 }
 
-/** Map of echo-set (fetter) id → English name. */
-export function loadFetterNames(): Record<string, string> {
+/** Map of echo-set (fetter) id → display metadata used by server-rendered insights. */
+export function loadFetterSummaries(): Record<string, { name: string; pieceCount: number }> {
   const raw = readJson('Fetters.json');
   const entries: unknown[] = Array.isArray(raw)
     ? raw
@@ -162,14 +162,20 @@ export function loadFetterNames(): Record<string, string> {
       ? Object.values(raw as GenericRecord)
       : [];
 
-  const map: Record<string, string> = {};
+  const map: Record<string, { name: string; pieceCount: number }> = {};
   for (const entry of entries) {
     if (!entry || typeof entry !== 'object' || !('id' in entry)) continue;
     const id = String((entry as { id?: unknown }).id);
     const name = i18nEn((entry as { name?: unknown }).name);
-    if (id && name) map[id] = name;
+    const pieceCount = toPositiveInteger((entry as { pieceCount?: unknown }).pieceCount, 5);
+    if (id && name) map[id] = { name, pieceCount };
   }
   return map;
+}
+
+function toPositiveInteger(value: unknown, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 export function loadWeaponSummary(id: string) {

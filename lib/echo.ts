@@ -111,11 +111,7 @@ export const ELEMENT_SETS = {
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
-export type ElementType = 'Aero' | 'ER' | 'Electro' | 'Spectro' | 'Glacio' |
-  'Attack' | 'Fusion' | 'Havoc' | 'Healing' | 'Empyrean' | 'Frosty' | 'Midnight' |
-  'Radiance' | 'Tidebreaking' | 'Gust' | 'Windward' | 'Flaming' | 'Dream' | 'Crown' | 'Law' | 'Flamewing' |
-  'Thread' | 'Pact' | 'Halo' | 'Rite' | 'Trailblazing' | 'Chromatic' | 'Sound' | 'QuietSnow' | 'Memories' |
-  'Adam' | 'Feathered' | 'EvilPurge' | 'Nether';
+export type ElementType = keyof typeof ELEMENT_SETS;
 
 // Fetter ID → ElementType mapping (from Phantom repo analysis)
 export const FETTER_MAP: Record<number, ElementType> = {
@@ -216,11 +212,15 @@ export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
     : undefined,
 });
 
-export const validateCDNEcho = (echo: CDNEcho): boolean => {
+export const validateCDNEcho = (value: unknown): value is CDNEcho => {
+  if (!value || typeof value !== 'object') return false;
+  const echo = value as Partial<CDNEcho>;
   return (
     typeof echo.id === 'number' &&
     typeof echo.name?.en === 'string' &&
     typeof echo.cost === 'number' &&
-    Array.isArray(echo.fetter)
+    Array.isArray(echo.fetter) &&
+    echo.fetter.every((id) => typeof id === 'number') &&
+    typeof echo.icon === 'string'
   );
 };

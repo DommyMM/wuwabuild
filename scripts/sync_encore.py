@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import functools
 import json
 import re
 import sys
@@ -26,11 +27,11 @@ import requests
 SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
+from cdn_config import merge_records_by_id, write_json_atomic  # noqa: E402
 from sync_characters import get_preferred_substats  # noqa: E402
 from sync_characters_encore import (  # noqa: E402
     ENCORE_API_BASE,
     ENCORE_LANGS,
-    ENCORE_RESOURCE_BASE,
     LANGS,
     RARITY_COLORS,
     asset_url,
@@ -41,6 +42,7 @@ from sync_characters_encore import (  # noqa: E402
 from sync_weapons import (  # noqa: E402
     _load_legacy_weapon_name_index,
     _resolve_legacy_weapon_id,
+    dedupe_semantic_weapon_aliases,
     extract_unconditional_passive_bonuses,
 )
 from sync_echoes import extract_main_slot_bonuses  # noqa: E402
@@ -92,8 +94,7 @@ def _write_json(path: Path, data: Any, dry_run: bool, pretty: bool) -> None:
     if dry_run:
         print(f"[DRY RUN] Would write {path}")
         return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, **_json_kwargs(pretty)), encoding="utf-8")
+    write_json_atomic(path, data, **_json_kwargs(pretty))
     print(f"Wrote {path} ({len(data) if isinstance(data, list) else 'object'})")
 
 
@@ -103,17 +104,21 @@ def _load_json(path: Path, default: Any) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _merge_by_id(path: Path, incoming: list[dict], dry_run: bool, pretty: bool, sort_key) -> list[dict]:
+def _merge_by_id(
+    path: Path,
+    incoming: list[dict],
+    dry_run: bool,
+    pretty: bool,
+    sort_key,
+    normalize=None,
+) -> list[dict]:
     existing = _load_json(path, [])
-    by_id = {
-        str(row.get("id")): row
-        for row in existing
-        if isinstance(row, dict) and row.get("id") is not None
-    }
-    for row in incoming:
-        if isinstance(row, dict) and row.get("id") is not None:
-            by_id[str(row["id"])] = row
-    merged = sorted(by_id.values(), key=sort_key)
+    if not isinstance(existing, list):
+        raise ValueError(f"Expected a JSON array in {path}")
+    merged = merge_records_by_id(existing, incoming)
+    if normalize is not None:
+        merged = normalize(merged)
+    merged.sort(key=sort_key)
     _write_json(path, merged, dry_run, pretty)
     return merged
 
@@ -161,6 +166,7 @@ def _parse_ids(raw: str | None) -> list[int]:
     return [int(part.strip()) for part in raw.split(",") if part.strip()]
 
 
+@functools.lru_cache(maxsize=1)
 def _new_payload() -> dict:
     data = _get(requests.Session(), "en", "new")
     rows = data.get("_list") if isinstance(data, dict) else data
@@ -368,7 +374,11 @@ def sync_weapons(args: argparse.Namespace) -> list[dict]:
     print(f"Fetching {len(ids)} Encore weapons...")
     weapons: list[dict] = []
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        futures = {pool.submit(_fetch_locales, f"weapon/{wid}", 13): wid for wid in ids}
+        language_workers = min(args.lang_workers, len(ENCORE_LANGS))
+        futures = {
+            pool.submit(_fetch_locales, f"weapon/{wid}", language_workers): wid
+            for wid in ids
+        }
         for future in as_completed(futures):
             wid = futures[future]
             weapon = _transform_weapon(future.result(), legacy_index)
@@ -382,8 +392,10 @@ def sync_weapons(args: argparse.Namespace) -> list[dict]:
             args.dry_run,
             args.pretty,
             lambda w: w.get("name", {}).get("en", ""),
+            dedupe_semantic_weapon_aliases,
         )
     else:
+        weapons = dedupe_semantic_weapon_aliases(weapons)
         weapons.sort(key=lambda w: w.get("name", {}).get("en", ""))
         _write_json(DATA_DIR / "Weapons.json", weapons, args.dry_run, args.pretty)
     return weapons
@@ -496,14 +508,21 @@ def sync_echoes(args: argparse.Namespace) -> list[dict]:
         ids = _list_ids("echo", "Echo")
     print(f"Fetching {len(ids)} Encore echoes...")
     existing_echoes = _load_json(DATA_DIR / "Echoes.json", []) if args.merge else []
-    echoes_by_name: dict[str, dict] = {
-        str(echo.get("name", {}).get("en") or ""): echo
+    if not isinstance(existing_echoes, list):
+        raise ValueError(f"Expected a JSON array in {DATA_DIR / 'Echoes.json'}")
+    existing_by_id = {
+        str(echo.get("id")): echo
         for echo in existing_echoes
-        if isinstance(echo, dict) and isinstance(echo.get("name"), dict)
+        if isinstance(echo, dict) and echo.get("id") is not None
     }
+    incoming_by_id: dict[str, dict] = {}
     phantom_skins: list[dict] = []
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        futures = {pool.submit(_fetch_locales, f"echo/{eid}", 13): eid for eid in ids}
+        language_workers = min(args.lang_workers, len(ENCORE_LANGS))
+        futures = {
+            pool.submit(_fetch_locales, f"echo/{eid}", language_workers): eid
+            for eid in ids
+        }
         for future in as_completed(futures):
             eid = futures[future]
             locales = future.result()
@@ -519,11 +538,20 @@ def sync_echoes(args: argparse.Namespace) -> list[dict]:
                 # Re-fetched echoes replace the stored entry (so --merge --echo-ids
                 # refreshes data), but keep a previously merged phantom skin icon
                 # when this run doesn't also fetch the skin.
-                previous = echoes_by_name.get(name_en)
+                echo_id = str(echo.get("id"))
+                previous = existing_by_id.get(echo_id)
                 if previous and previous.get("phantomIcon") and not echo.get("phantomIcon"):
                     echo["phantomIcon"] = previous["phantomIcon"]
-                echoes_by_name[name_en] = echo
+                incoming_by_id[echo_id] = echo
                 print(f"  echo {eid}")
+
+    combined_by_id = dict(existing_by_id)
+    combined_by_id.update(incoming_by_id)
+    echoes_by_name: dict[str, dict] = {
+        str(echo.get("name", {}).get("en") or ""): echo
+        for echo in combined_by_id.values()
+        if isinstance(echo.get("name"), dict)
+    }
     orphaned = 0
     for skin in phantom_skins:
         base_name = str(skin.get("MonsterName") or "")[len("Phantom: "):]
@@ -735,10 +763,19 @@ def _build_encore_fetter_from_group(group_id: int, group_by_lang: dict[str, dict
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sync public/Data from Encore API")
-    parser.add_argument("--id", type=int, default=None, help="Single entity ID for selected single-kind syncs")
+    parser.add_argument(
+        "--id",
+        type=int,
+        default=None,
+        help="Single entity ID; requires --only characters, weapons, or echoes and merges safely",
+    )
     parser.add_argument("--only", choices=["all", "characters", "weapons", "echoes", "fetters"], default="all")
     parser.add_argument("--new-only", action="store_true", help="Fetch IDs from Encore /new and merge them into existing JSON")
-    parser.add_argument("--merge", action="store_true", help="Merge selected IDs into existing JSON instead of replacing the file")
+    parser.add_argument(
+        "--merge",
+        action="store_true",
+        help="Merge a full selected feed into existing JSON; explicit ID selections always merge",
+    )
     parser.add_argument("--character-ids", default="", help="Comma-separated Encore character IDs to fetch")
     parser.add_argument("--weapon-ids", default="", help="Comma-separated Encore weapon IDs to fetch")
     parser.add_argument("--echo-ids", default="", help="Comma-separated Encore echo IDs to fetch")
@@ -747,6 +784,24 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args()
+    if args.workers < 1 or args.lang_workers < 1:
+        parser.error("--workers and --lang-workers must both be at least 1")
+    if args.id is not None and args.only not in {"characters", "weapons", "echoes"}:
+        parser.error("--id requires --only characters, --only weapons, or --only echoes")
+
+    explicit_ids = {
+        "characters": bool(_parse_ids(args.character_ids)),
+        "weapons": bool(_parse_ids(args.weapon_ids)),
+        "echoes": bool(_parse_ids(args.echo_ids)),
+    }
+    if args.only != "all":
+        mismatched = [kind for kind, present in explicit_ids.items() if present and kind != args.only]
+        if mismatched:
+            parser.error(
+                f"--only {args.only} cannot be combined with IDs for: {', '.join(mismatched)}"
+            )
+    if args.id is not None or any(explicit_ids.values()):
+        args.merge = True
     if args.new_only:
         args.merge = True
 

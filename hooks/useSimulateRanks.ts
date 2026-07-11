@@ -42,11 +42,6 @@ export function useSimulateRanks(state: BuildLike, enabled: boolean): SimulateRa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
-  // Latest state, read at run time. Updated in an effect (never during render).
-  const stateRef = useRef(state);
-  useEffect(() => {
-    stateRef.current = state;
-  });
   const abortRef = useRef<AbortController | null>(null);
 
   const characterId = state.characterId;
@@ -54,7 +49,8 @@ export function useSimulateRanks(state: BuildLike, enabled: boolean): SimulateRa
   const canRun = enabled && Boolean(characterId) && hasEchoes;
 
   const run = useCallback(() => {
-    const snapshot = stateRef.current;
+    if (!enabled) return;
+    const snapshot = state;
     const cid = snapshot.characterId;
     if (!cid || !snapshot.echoPanels.some((panel) => Boolean(panel.id))) return;
 
@@ -70,21 +66,45 @@ export function useSimulateRanks(state: BuildLike, enabled: boolean): SimulateRa
 
     fetchSimulateRanks(cid, saved as unknown as SavedState, controller.signal)
       .then((boards) => {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted) {
+          if (abortRef.current === controller) {
+            abortRef.current = null;
+            setLoading(false);
+          }
+          return;
+        }
         setResult({ sig, boards });
+        if (abortRef.current === controller) abortRef.current = null;
         setLoading(false);
       })
       .catch(() => {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted) {
+          if (abortRef.current === controller) {
+            abortRef.current = null;
+            setLoading(false);
+          }
+          return;
+        }
         setError(true);
+        if (abortRef.current === controller) abortRef.current = null;
         setLoading(false);
       });
-  }, []);
+  }, [enabled, state]);
+
+  useEffect(() => {
+    if (enabled) return;
+    abortRef.current?.abort();
+  }, [enabled]);
 
   // Abort any in-flight request on unmount.
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => () => {
+    const controller = abortRef.current;
+    abortRef.current = null;
+    controller?.abort();
+  }, []);
 
-  const stale = canRun && result !== null && result.sig !== signatureOf(state);
+  const currentSignature = signatureOf(state);
+  const stale = canRun && result !== null && result.sig !== currentSignature;
 
   return {
     boards: result?.boards ?? [],

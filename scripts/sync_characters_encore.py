@@ -27,6 +27,7 @@ from sync_characters import (
     _sanitize_i18n_value,
     get_preferred_substats,
     parse_chain_bonus,
+    parse_inherent_bonuses,
 )
 
 ENCORE_API_BASE = "https://api-v2.encore.moe/api"
@@ -443,7 +444,6 @@ def transform_moves(locales: dict[str, dict]) -> list[dict]:
 
 def transform_skins(en: dict) -> list[dict]:
     skins: list[dict] = []
-    base_round_url = asset_url(en.get("RoleHeadIconCircle", ""))
     base_banner_url = asset_url(en.get("FormationRoleCard") or en.get("Card") or "")
     for skin in en.get("Skins") or []:
         if not isinstance(skin, dict):
@@ -523,6 +523,10 @@ def transform_character(locales: dict[str, dict]) -> dict:
     preferred = get_preferred_substats(tags, skill_trees, moves, char_id)
     if preferred:
         character["preferredStats"] = preferred
+
+    inherent_bonuses = parse_inherent_bonuses(moves)
+    if inherent_bonuses:
+        character["inherentBonuses"] = inherent_bonuses
 
     sequence_icon = get_sequence_icon(en)
     if sequence_icon:

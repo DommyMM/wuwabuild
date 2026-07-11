@@ -2,7 +2,7 @@
 
 This system syncs game data from Wuthery by default, with Encore available as a faster early-patch source when Wuthery is still catching up.
 
-For the comparison with the alternative `encore.moe` API (different host, different schema, faster + more reliable but per-language fan-out) and the dual-source catch-up strategy, see [`../docs/sync-sources.md`](../docs/sync-sources.md). The OpenAPI spec is vendored at [`encore_api.json`](encore_api.json).
+For the comparison with the alternative `encore.moe` API (different host, different schema, faster + more reliable but per-language fan-out) and the dual-source catch-up strategy, see [`../docs/sync-sources.md`](../docs/sync-sources.md).
 
 ## Data Sources
 
@@ -23,9 +23,11 @@ wuwabuilds/
 │   ├── sync_echoes.py        # Echo sync (Python, Wuthery Grouped/Phantom, with Encore name fallback)
 │   ├── sync_fetters.py       # Sonata/element set sync (Python, Wuthery LocalizationIndex)
 │   ├── sync_encore.py        # Combined characters/weapons/echoes/fetters sync via Encore API (--encore)
+│   ├── sync_lb.py            # Generate LB calculator data from the canonical frontend JSON
 │   ├── stat_translations.py  # Stat i18n + icon URL sync -> Stats.json
+│   ├── cdn_config.py         # Shared retry, merge, and atomic-write helpers
 │   ├── sync_backend.py       # Single source of truth for ../backend/Data: OCR JSON schema + all SIFT templates (elements/characters/weapons/echoes), id-keyed WebP
-│   ├── migrate_r2_png_to_jpg.py # One-off R2 maintenance script
+│   ├── migrate_r2_png_to_jpg.py # Quarantined R2 copy-migration helper (preview by default)
 │   ├── sync_all.py           # Run full frontend + backend + LB pipeline (--encore for early patch catch-up)
 │   └── CDN_SYNC.md           # This file
 ├── public/Data/
@@ -52,10 +54,8 @@ wuwabuilds/
     │   ├── echo_bases.json
     │   ├── fetter_bases.json
     │   ├── echo_stats.json
-    │   ├── id_maps.json
     │   ├── character_curve.json
     │   └── level_curve.json
-    └── weapon_buffs_gen.go
 ```
 
 > **Terminology note:** The CDN calls these "PhantomFetters" / "PhantomFetterGroups" internally.
@@ -78,7 +78,9 @@ wuwabuilds/
 With `--encore`, the four source-fetch steps collapse into `sync_encore.py`, then
 `stat_translations.py`, `sync_backend.py`, and `sync_lb.py` still run as the final three steps. The backend template flags (`--skip-*-icons` / `--force-*-icons` for elements/characters/weapons/echoes) all route to `sync_backend.py`.
 
-Pass-through flags: `--dry-run`, `--pretty` (plus unknown extra args are forwarded to each script).
+`sync_all.py` accepts only its declared flags and routes `--dry-run` / `--pretty` only to child CLIs that support them. Unknown flags fail before any child process runs.
+
+The sync environment requires `requests`. Backend template refresh additionally needs `opencv-python` and `numpy` when a non-WebP source must be re-encoded. The quarantined R2 maintenance helper requires `boto3`, `python-dotenv`, and Pillow.
 
 ### LB generation behavior
 
@@ -102,7 +104,7 @@ Each character JSON includes by default:
 | `tags` | Role tags (DPS, Support, etc.) |
 | `skillTrees` | Forte stat nodes (English-only, see below) |
 | `skillIcons` | Skill icon URLs keyed by type (see below) |
-| `chains` | Resonance chains / sequences (English-only, see below) |
+| `chains` | Localized resonance chains / sequences (see below) |
 | `preferredStats` | Recommended echo substats for this character (see below) |
 | `legacyId` | Old sequential ID extracted from iconRound URL |
 
@@ -159,13 +161,13 @@ This **replaces** the old `paths.ts` approach of constructing skill icon URLs fr
 
 ### chains (Resonance Chains / Sequences)
 
-The `chains` field is a flat array of 6 resonance chain entries (S1–S6), English-only:
+The `chains` field is a flat array of 6 localized resonance chain entries (S1–S6):
 
 ```json
 {
   "id": 271,
-  "name": "Gilded Glimmer of the First Dawn",
-  "description": "In <color=Highlight>...",
+  "name": { "en": "Gilded Glimmer of the First Dawn", "...": "..." },
+  "description": { "en": "In <color=Highlight>...", "...": "..." },
   "icon": "https://files.wuthery.com/d/.../T_IconDevice_AimisiM1_UI.png",
   "param": ["20%", "4", "300%", "10", "1"]
 }
@@ -201,8 +203,8 @@ The `preferredStats` field is derived automatically from character tags and skil
 **Examples:**
 
 - **DPS (Changli):** `["Crit Rate", "Crit DMG", "ATK", "Resonance Skill DMG Bonus", "Energy Regen"]`
-- **HP Healer (Shorekeeper):** `["HP", "Energy Regen"]` (no crits, HP scaling from skill tree)
-- **ATK Healer (Verina):** `["ATK", "Energy Regen"]` (no crits, ATK scaling from skill tree)
+- **HP Healer (Shorekeeper):** `["Crit Rate", "Crit DMG", "HP", "Resonance Liberation DMG Bonus", "Energy Regen"]`
+- **ATK Healer (Verina):** `["Crit Rate", "Crit DMG", "ATK", "Energy Regen"]`
 
 **Note:** Only substats are included. Main-stat-only stats (Elemental DMG, Healing Bonus) are automatically filtered out.
 
@@ -232,7 +234,7 @@ const statIcon = character.skillTrees[0].icon; // Forte node stat icon
 ```bash
 python sync_characters.py --fetch                     # Sync all → Characters.json (default)
 python sync_characters.py --fetch --individual        # Write per-character files instead
-python sync_characters.py --fetch --id 1205           # Sync single character
+python sync_characters.py --fetch --id 1205           # Fetch one and merge it into Characters.json
 python sync_characters.py --fetch --workers 20        # Explicit fetch parallelism
 python sync_characters.py --fetch --dry-run --pretty  # Preview
 python sync_characters.py --fetch --include-skills    # Include full skill multiplier data
@@ -247,7 +249,7 @@ python sync_characters_encore.py --id 1608 --output ../public/Data/Characters.en
 ```bash
 python sync_weapons.py --fetch                        # Sync all → Weapons.json (default)
 python sync_weapons.py --fetch --individual           # Write per-weapon files instead
-python sync_weapons.py --fetch --id 21010015          # Sync single weapon
+python sync_weapons.py --fetch --id 21010015          # Fetch one and merge it into Weapons.json
 python sync_weapons.py --fetch --workers 20           # Explicit fetch parallelism
 python sync_weapons.py --fetch --dry-run --pretty     # Preview
 ```
@@ -256,7 +258,7 @@ python sync_weapons.py --fetch --dry-run --pretty     # Preview
 
 ```bash
 python sync_echoes.py --fetch                        # Sync all → Echoes.json
-python sync_echoes.py --fetch --id 60000425         # Sync single echo ID
+python sync_echoes.py --fetch --id 60000425         # Fetch one and merge it into Echoes.json
 python sync_echoes.py --fetch --workers 20          # Explicit fetch parallelism
 python sync_echoes.py --fetch --dry-run --pretty    # Preview
 ```
@@ -322,7 +324,7 @@ The CDN's `statsLevel` field is redundant - our LevelCurve scaling matches it ex
 |-------|-----------|
 | Character face (circle) | `icon.iconRound` |
 | Character card/banner | `icon.banner` |
-| Alt skin banner | `skins[1].icon.banner` (if exists) |
+| Alt skin banner | the entry selected from `skins[].icon.banner` (default duplicate skins are pruned) |
 | Element icon (round) | `element.icon["1"]` |
 | Element icon (shine) | `element.icon["7"]` |
 | Forte stat node icon | `skillTrees[n].icon` |
@@ -374,8 +376,8 @@ Each echo JSON includes:
 | `cost` | Echo cost (1, 3, or 4) |
 | `fetter` | Raw fetter IDs — frontend maps to sonata set names |
 | `element` | Raw element numbers — frontend maps to names |
-| `icon` | Raw `/d/` full-size icon path — frontend prepends CDN base |
-| `phantomIcon` | Phantom skin full-size icon path, if skin exists |
+| `icon` | Full-size icon, either a Wuthery `/d/` path or an absolute Encore resource URL |
+| `phantomIcon` | Phantom skin icon in the same mixed path/URL format, if a skin exists |
 | `bonuses` | First-panel (main slot) stat bonuses, if any |
 
 Skill payload (always included):
@@ -400,7 +402,7 @@ Echo data is fetched from the CDN **Grouped/Phantom** folder (same list + parall
 
 Matching: Strip "Phantom: " prefix and match by English name, with normalization for inconsistencies ("Phantom: Nightmare Crownless" → "Nightmare: Crownless", "Phantom: Twin Nova - Collapsar Blade" → "Twin Nova: Collapsar Blade").
 
-**Current result**: 35 phantom skins merged, 1 orphaned cosmetic row (`Phantom: Kronaclaw`).
+The sync prints the current merged/orphaned counts; these change as the upstream catalog grows.
 
 ### Filtering & Result
 
@@ -409,7 +411,7 @@ Matching: Strip "Phantom: " prefix and match by English name, with normalization
 - Deduplicated by English name
 - Phantom skins merged into base echoes
 
-**Current result**: 162 unique echoes (39 cost-4, 51 cost-3, 72 cost-1), 35 with phantom skins.
+The sync prints the current unique/cost/phantom counts instead of pinning a quickly stale snapshot here.
 
 ### Fetter → Sonata Set Mapping
 
@@ -427,6 +429,8 @@ The `fetter` array in each Phantom file maps to sonata set names. These are kept
 | 8 | ER | 19 | Dream | 28 | Chromatic |
 | 9 | Attack | 20 | Crown | 29 | Sound |
 | 10 | Frosty | 30 | QuietSnow | 31 | Memories |
+| 32 | Adam | 33 | Feathered | 34 | EvilPurge |
+| 35 | Nether |  |  |  |  |
 
 No fetter 15 exists (gap in numbering).
 
@@ -446,7 +450,7 @@ The `element` array uses numeric IDs for the monster's innate element. Kept as r
 
 ### Main-Slot Bonuses (Auto-Extracted)
 
-29 echoes have first-panel bonuses, extracted from skill description templates like:
+Eligible echoes have first-panel bonuses extracted from skill description templates like:
 ```
 "The Resonator with this Echo equipped in their main slot gains {1} Fusion DMG Bonus and {2} Resonance Skill DMG Bonus."
 ```
@@ -455,9 +459,7 @@ The `{N}` placeholders are resolved from `skill.levelDescriptionStrArray[0].Arra
 
 ### Echo Icon URLs
 
-`icon` and `phantomIcon` are raw `/d/` full-size paths — frontend prepends CDN base URL.
-
-All paths are raw `/d/` paths — frontend prepends CDN base URL.
+`icon` and `phantomIcon` may be Wuthery `/d/` paths or absolute Encore URLs. The frontend resolver preserves absolute URLs and prepends the Wuthery base only to relative `/d/` paths.
 
 ### Usage
 
@@ -465,7 +467,7 @@ All paths are raw `/d/` paths — frontend prepends CDN base URL.
 # From wuwabuilds/scripts:
 python sync_echoes.py --fetch                     # Sync from CDN → public/Data/Echoes.json
 python sync_echoes.py --fetch --dry-run --pretty  # Preview
-python sync_echoes.py --fetch --id 60000425       # Single phantom from CDN
+python sync_echoes.py --fetch --id 60000425       # Fetch one and merge it into Echoes.json
 python sync_all.py                                # Full pipeline: frontend data + backend + lb generation
 python sync_all.py --dry-run --pretty             # Preview full pipeline
 python sync_backend.py --force-echo-icons         # Refresh backend echo templates by CDN ID
@@ -475,8 +477,8 @@ Skipped: `phantomType 2` (cosmetic unlock items), `rarity < 5`, `type`, `attribu
 
 ## What Gets Synced — Fetters (Sonata/Element Sets)
 
-**Source files:** `PhantomFetterGroups.json` (30 set groups) + `PhantomFetters.json` (57 individual tier entries)
-**Output:** `public/Data/Fetters.json` (one entry per sonata set, 30 total)
+**Source files:** `PhantomFetterGroups.json` + `PhantomFetters.json` (counts grow with game patches)
+**Output:** `public/Data/Fetters.json` (one entry per sonata set)
 
 Each entry in Fetters.json represents one complete sonata/element set (e.g., Freezing Frost, Molten Rift).
 The `id` matches what the echo's `fetter[]` array contains and what `FETTER_MAP` in `lib/echo.ts` keys on.
@@ -487,7 +489,7 @@ The `id` matches what the echo's `fetter[]` array contains and what `FETTER_MAP`
 | `name` | Set name in all languages (e.g., `{"en": "Freezing Frost", "de": "Eisiger Frost", ...}`) |
 | `icon` | Direct CDN URL for the set icon — use this in UI, replaces the old `SET_NAME_MAP` in `paths.ts` |
 | `color` | `RRGGBBAA` color string from the CDN (currently `FFFFFF00` for all sets — not used in UI) |
-| `pieceCount` | Smallest activation count: `2` for standard sets, `3` for 3-piece-only sets |
+| `pieceCount` | Smallest activation count (currently 1, 2, or 3 depending on the set) |
 | `fetterId` | ID of the corresponding `PhantomFetter` entry for this tier |
 | `addProp` | Stat bonus(es) for activating this set tier — `[{ id, value, isRatio }]` |
 | `buffIds` | Associated buff IDs (informational) |

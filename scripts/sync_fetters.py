@@ -6,7 +6,7 @@ then merges them into one file keyed by FetterGroup ID (the same IDs used in Ech
 
 The smallest piece-count tier is still exposed in top-level fields for backward
 compatibility (2-piece for most sets, 3-piece for 3-piece-only sets), and all
-available tiers are also exposed under `pieceEffects` (e.g. both 2 and 5).
+    available tiers are also exposed under `pieceEffects` (for example 1, 2, 3, or 5).
 
 Output shape per entry:
   {
@@ -14,7 +14,7 @@ Output shape per entry:
     "name":      { "en": ..., "de": ..., ... },
     "icon":      "https://files.wuthery.com/d/...",
     "color":     "RRGGBBAA",
-    "pieceCount": 2,                 -- 2 for standard sets, 3 for 3-piece-only sets
+    "pieceCount": 2,                 -- smallest activation tier (currently 1, 2, or 3)
     "fetterId":  <PhantomFetter.Id>,
     "addProp":   [{ "id": 22, "value": 10, "isRatio": false }],
     "buffIds":   [],
@@ -37,7 +37,7 @@ Usage:
 import json
 import argparse
 from pathlib import Path
-from cdn_config import CDN_BASE
+from cdn_config import CDN_BASE, request_json_with_retry, write_json_atomic
 
 try:
     import requests
@@ -71,7 +71,7 @@ def normalise_prop(prop: dict) -> dict:
 
 
 def build_piece_effect(piece_count: int, fetter: dict, config_fetter: dict | None) -> dict:
-    """Build one piece-tier payload (2/3/5) from a PhantomFetter row."""
+    """Build one activation-tier payload from a PhantomFetter row."""
     effect_description_param = config_fetter.get("EffectDescriptionParam", []) if isinstance(config_fetter, dict) else []
     if not isinstance(effect_description_param, list):
         effect_description_param = []
@@ -98,15 +98,25 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
     session = session or requests.Session()
 
     print("Fetching PhantomFetters.json ...")
-    fetters_raw: list[dict] = session.get(FETTERS_URL, timeout=30).json()
+    fetters_raw = request_json_with_retry(session, "get", FETTERS_URL)
+    if not isinstance(fetters_raw, list):
+        raise ValueError("Unexpected PhantomFetters payload; expected a list")
     print(f"  {len(fetters_raw)} fetter entries")
 
     print("Fetching PhantomFetterGroups.json ...")
-    groups_raw: list[dict] = session.get(GROUPS_URL, timeout=30).json()
+    groups_raw = request_json_with_retry(session, "get", GROUPS_URL)
+    if not isinstance(groups_raw, list):
+        raise ValueError("Unexpected PhantomFetterGroups payload; expected a list")
     print(f"  {len(groups_raw)} fetter groups")
 
     print("Fetching ConfigDBParsed/PhantomFetter.json ...")
-    fetters_config_raw: list[dict] = session.get(FETTERS_CONFIG_URL, timeout=30).json()
+    fetters_config_raw = request_json_with_retry(
+        session,
+        "get",
+        FETTERS_CONFIG_URL,
+    )
+    if not isinstance(fetters_config_raw, list):
+        raise ValueError("Unexpected PhantomFetter config payload; expected a list")
     print(f"  {len(fetters_config_raw)} config fetter entries")
 
     # Index individual fetter entries by their Id
@@ -191,9 +201,7 @@ def main():
         print(f"\n(dry-run) {len(output)} groups, not written")
         return
 
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT, "w", encoding="utf-8") as f:
-        json.dump(output, f, **json_kwargs)
+    write_json_atomic(OUTPUT, output, **json_kwargs)
 
     size_kb = OUTPUT.stat().st_size / 1024
     print(f"\nWrote {OUTPUT} [{size_kb:.1f} KB], {len(output)} fetter groups")

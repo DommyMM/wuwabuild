@@ -41,7 +41,6 @@ type BuildAction =
   | { type: 'REORDER_ECHO_PANELS'; payload: { from: number; to: number } }
   | { type: 'CLEAR_ECHO_PANEL'; payload: number }
   | { type: 'SET_FORTE'; payload: ForteState }
-  | { type: 'SET_FORTE_COLUMN'; payload: { col: number; entry: ForteEntry } }
   | { type: 'SET_FORTE_LEVEL'; payload: { col: number; level: number } }
   | { type: 'SET_FORTE_NODE'; payload: { col: number; pos: 'top' | 'middle'; active: boolean } }
   | { type: 'MAX_ALL_FORTES' }
@@ -265,13 +264,6 @@ function buildReducer(state: BuildState, action: BuildAction): BuildState {
 
     case 'SET_FORTE':
       return { ...state, forte: action.payload, isDirty: true };
-
-    case 'SET_FORTE_COLUMN':
-      return {
-        ...state,
-        forte: updateForteCol(state.forte, action.payload.col, () => action.payload.entry),
-        isDirty: true,
-      };
 
     case 'SET_FORTE_LEVEL':
       return {

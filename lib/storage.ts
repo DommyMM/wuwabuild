@@ -65,17 +65,9 @@ function migrateSavedState(raw: Record<string, unknown>): SavedState {
 }
 
 
- // Simple compression using base64 encoding with run-length encoding.
- // For more advanced compression, consider using lz-string library.
-function compress(data: string): string {
-  try {
-    // Use built-in compression if available (modern browsers)
-    return btoa(encodeURIComponent(data));
-  } catch {
-    return data;
-  }
-}
-
+// Legacy releases stored URI-encoded JSON as base64. Keep read compatibility,
+// but write plain JSON: the old encoding expanded saves instead of compressing
+// them and therefore reached localStorage quotas sooner.
 function decompress(data: string): string {
   try {
     // Check if data looks like base64
@@ -121,24 +113,16 @@ export function loadBuilds(): SavedBuilds {
   }
 }
 
-// Save all builds to localStorage with compression.
+// Save all builds as plain JSON. loadBuilds still reads the legacy base64 shape.
 function saveBuilds(data: SavedBuilds): void {
   if (typeof window === 'undefined') return;
 
   try {
     const json = JSON.stringify(data);
-    const compressed = compress(json);
-    localStorage.setItem(SAVED_BUILDS_STORAGE_KEY, compressed);
+    localStorage.setItem(SAVED_BUILDS_STORAGE_KEY, json);
   } catch (error) {
     console.error('Error saving builds to localStorage:', error);
-
-    // If compression fails, try saving uncompressed
-    try {
-      localStorage.setItem(SAVED_BUILDS_STORAGE_KEY, JSON.stringify(data));
-    } catch (innerError) {
-      console.error('Error saving uncompressed data:', innerError);
-      throw new Error('Failed to save build. Storage may be full.');
-    }
+    throw new Error('Failed to save build. Storage may be full.');
   }
 }
 

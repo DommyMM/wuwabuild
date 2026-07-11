@@ -18,6 +18,9 @@ export interface AdaptiveCardColors {
 
 const PANEL_WIDTH = 432;
 const PANEL_HEIGHT = 600;
+const SAMPLE_DEBOUNCE_MS = 120;
+const SAMPLE_CACHE_LIMIT = 32;
+const sampleCache = new Map<string, Promise<AdaptiveCardColors>>();
 
 const SAMPLE_BANDS = [
   { x: 0.06, y: 0.06, width: 0.88, height: 0.22, weight: 0.85 },
@@ -229,31 +232,65 @@ const sampleImage = async (
   });
 };
 
+const sampleImageCached = (
+  key: string,
+  load: () => Promise<AdaptiveCardColors>,
+): Promise<AdaptiveCardColors> => {
+  const cached = sampleCache.get(key);
+  if (cached) {
+    sampleCache.delete(key);
+    sampleCache.set(key, cached);
+    return cached;
+  }
+
+  if (sampleCache.size >= SAMPLE_CACHE_LIMIT) {
+    const oldestKey = sampleCache.keys().next().value;
+    if (oldestKey) sampleCache.delete(oldestKey);
+  }
+
+  const promise = load();
+  sampleCache.set(key, promise);
+  void promise.catch(() => {
+    if (sampleCache.get(key) === promise) sampleCache.delete(key);
+  });
+  return promise;
+};
+
 export const useAdaptiveCardColors = (
   artUrl: string | null,
   transform: CardArtTransform,
   fallbackHex: string,
 ): AdaptiveCardColors => {
   const fallbackColors = useMemo(() => toColorSet(fallbackHex), [fallbackHex]);
-  const sampleKey = `${artUrl ?? 'none'}:${fallbackHex}:${transform.x}:${transform.y}:${transform.scale}`;
+  const { x, y, scale } = transform;
+  const sampleKey = `${artUrl ?? 'none'}:${fallbackHex}:${x}:${y}:${scale}`;
   const [sampled, setSampled] = useState<{ key: string; colors: AdaptiveCardColors } | null>(null);
 
   useEffect(() => {
     if (!artUrl) return;
 
     let cancelled = false;
-    sampleImage(artUrl, transform, fallbackHex)
-      .then((next) => {
-        if (!cancelled) setSampled({ key: sampleKey, colors: next });
-      })
-      .catch(() => {
-        if (!cancelled) setSampled(null);
-      });
+    // Art transforms can update every pointer-move while dragging. Wait for a
+    // short idle window so color sampling does not reload and scan the image on
+    // every frame, then reuse settled transforms across remounts.
+    const timeoutId = window.setTimeout(() => {
+      void sampleImageCached(
+        sampleKey,
+        () => sampleImage(artUrl, { x, y, scale }, fallbackHex),
+      )
+        .then((next) => {
+          if (!cancelled) setSampled({ key: sampleKey, colors: next });
+        })
+        .catch(() => {
+          if (!cancelled) setSampled(null);
+        });
+    }, SAMPLE_DEBOUNCE_MS);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
     };
-  }, [artUrl, fallbackHex, sampleKey, transform]);
+  }, [artUrl, fallbackHex, sampleKey, scale, x, y]);
 
   return sampled?.key === sampleKey ? sampled.colors : fallbackColors;
 };

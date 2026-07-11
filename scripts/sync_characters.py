@@ -18,7 +18,12 @@ import re
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from cdn_config import CDN_BASE
+from cdn_config import (
+    CDN_BASE,
+    merge_records_by_id,
+    request_json_with_retry,
+    write_json_atomic,
+)
 
 # Regex to extract legacy ID from iconRound URL
 # e.g. "T_IconRoleHeadCircle256_26_UI.png" -> 26
@@ -588,19 +593,14 @@ def get_sequence_item_id(data: dict) -> int | None:
 def _fetch_sequence_icon(session: Any, item_id: int) -> tuple[int, str | None]:
     url = f"{CDN_ITEM_DOWNLOAD_BASE}/{item_id}.json"
     try:
-        resp = session.get(url, timeout=30)
-        if resp.status_code != 200:
-            print(f"  Failed sequence item {item_id}: HTTP {resp.status_code}")
-            return (item_id, None)
-
-        data = resp.json()
+        data = request_json_with_retry(session, "get", url)
         icon_data = data.get("icon", {}) if isinstance(data, dict) else {}
         icon = icon_data.get("icon", "") if isinstance(icon_data, dict) else ""
         if isinstance(icon, str) and icon.startswith("/d/"):
             icon = f"{CDN_BASE}{icon}"
         return (item_id, icon if isinstance(icon, str) and icon else None)
     except Exception as e:
-        print(f"  Error sequence item {item_id}: {e}")
+        print(f"  Failed sequence item {item_id} after retries: {e}")
         return (item_id, None)
 
 
@@ -628,12 +628,21 @@ def fetch_sequence_icons(raw_characters: list[dict], workers: int | None = None)
     print(f"Fetching {len(item_ids)} canonical sequence icons with {actual_workers} threads...")
 
     item_icon_map: dict[int, str] = {}
+    failed: list[int] = []
     with ThreadPoolExecutor(max_workers=actual_workers) as pool:
         futures = {pool.submit(_fetch_sequence_icon, session, item_id): item_id for item_id in item_ids}
         for future in as_completed(futures):
             item_id, icon = future.result()
             if icon:
                 item_icon_map[item_id] = icon
+            else:
+                failed.append(item_id)
+
+    if failed:
+        raise RuntimeError(
+            "Failed to resolve canonical sequence icons; refusing to write partial "
+            f"character data. Item IDs: {', '.join(str(value) for value in sorted(failed))}"
+        )
 
     return {
         char_id: item_icon_map[item_id]
@@ -1047,7 +1056,7 @@ def _extract_skill_tree_substats(skill_trees: dict | list[dict] | None) -> list[
                 found_stats.add(stat_name)
                 break
     
-    return list(found_stats)
+    return [stat for stat in ("HP", "ATK", "DEF") if stat in found_stats]
 
 
 def _round2(value: float) -> float:
@@ -1198,16 +1207,20 @@ def fetch_skill_description_params() -> dict[int, list[str]]:
         return {}
 
     try:
-        response = requests.get(CDN_SKILL_CONFIG_URL, timeout=45)
-        response.raise_for_status()
-        payload = response.json()
+        payload = request_json_with_retry(
+            requests,
+            "get",
+            CDN_SKILL_CONFIG_URL,
+            timeout=45,
+        )
     except Exception as error:
-        print(f"Warning: failed to fetch skill config ({error}); move descriptions may keep placeholders.")
-        return {}
+        raise RuntimeError(
+            "Failed to fetch skill config; refusing to write character data with "
+            "incomplete move parameters."
+        ) from error
 
     if not isinstance(payload, list):
-        print("Warning: unexpected Skill.json payload shape; move descriptions may keep placeholders.")
-        return {}
+        raise ValueError("Unexpected Skill.json payload shape; expected a list")
 
     result: dict[int, list[str]] = {}
     for row in payload:
@@ -1233,14 +1246,12 @@ def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
     """Fetch a single character JSON from CDN. Returns (filename, data_or_None)."""
     url = f"{CDN_DOWNLOAD_BASE}/{filename}"
     try:
-        resp = session.get(url, timeout=30)
-        if resp.status_code == 200:
-            return (filename, resp.json())
-        else:
-            print(f"  Failed {filename}: HTTP {resp.status_code}")
-            return (filename, None)
+        data = request_json_with_retry(session, "get", url)
+        if not isinstance(data, dict):
+            raise ValueError(f"expected an object, got {type(data).__name__}")
+        return (filename, data)
     except Exception as e:
-        print(f"  Error {filename}: {e}")
+        print(f"  Failed {filename} after retries: {e}")
         return (filename, None)
 
 
@@ -1263,24 +1274,23 @@ def fetch_cdn_characters(single_id: str | None = None, workers: int | None = Non
         url = f"{CDN_DOWNLOAD_BASE}/{single_id}.json"
         print(f"Fetching {url}")
         try:
-            resp = session.get(url, timeout=30)
-            if resp.status_code == 200:
-                return [resp.json()]
-            else:
-                print(f"Failed to fetch {single_id}: HTTP {resp.status_code}")
+            data = request_json_with_retry(session, "get", url)
+            if not isinstance(data, dict):
+                raise ValueError(f"expected an object, got {type(data).__name__}")
+            return [data]
         except Exception as e:
-            print(f"Error fetching {single_id}: {e}")
+            print(f"Failed to fetch {single_id} after retries: {e}")
         return []
 
     print("Listing characters from CDN...")
     try:
-        list_resp = session.post(
+        list_data = request_json_with_retry(
+            session,
+            "post",
             CDN_LIST_API,
             json={"path": "/GameData/Grouped/Character"},
             headers={"Content-Type": "application/json"},
-            timeout=30
         )
-        list_data = list_resp.json()
 
         if list_data.get("code") != 200:
             print(f"List API error: {list_data.get('message')}")
@@ -1293,6 +1303,7 @@ def fetch_cdn_characters(single_id: str | None = None, workers: int | None = Non
         print(f"Found {len(json_files)} character files, fetching with {actual_workers} threads...")
 
         characters = []
+        failed: list[str] = []
         with ThreadPoolExecutor(max_workers=actual_workers) as pool:
             futures = {pool.submit(_fetch_one, session, f): f for f in json_files}
             for future in as_completed(futures):
@@ -1300,6 +1311,15 @@ def fetch_cdn_characters(single_id: str | None = None, workers: int | None = Non
                 if data:
                     characters.append(data)
                     print(f"  Fetched {filename}")
+                else:
+                    failed.append(filename)
+
+        if failed:
+            print(
+                f"ERROR: fetched only {len(characters)}/{len(json_files)} character files; "
+                f"refusing to replace Characters.json. Failed: {', '.join(sorted(failed))}"
+            )
+            return []
 
         return characters
 
@@ -1383,14 +1403,21 @@ def main():
                 preferred_updates += 1
                 char.pop("preferredStats", None)
         if not args.dry_run:
-            with open(combined_path, "w", encoding="utf-8") as f:
-                json.dump(characters, f, separators=(",", ":"), ensure_ascii=False)
+            write_json_atomic(
+                combined_path,
+                characters,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            )
             print(f"Embedded {total} sequence bonuses, {inherent_total} inherent bonuses and refreshed {preferred_updates} preferred stat sets → {combined_path}")
         else:
             print(f"[dry-run] Would embed {total} sequence bonuses, {inherent_total} inherent bonuses and refresh {preferred_updates} preferred stat sets")
         return 0
 
     raw_characters = fetch_cdn_characters(single_id=args.id, workers=args.workers)
+    if not raw_characters:
+        print("No complete character data to save")
+        return 1
     description_param_map = fetch_skill_description_params()
     sequence_icon_map = fetch_sequence_icons(raw_characters, workers=args.workers)
 
@@ -1411,6 +1438,25 @@ def main():
         return 1
 
     characters.sort(key=lambda c: c.get("name", {}).get("en", ""))
+
+    combined_path = args.output.parent / "Characters.json"
+    combined_characters = characters
+    if args.id and not args.individual:
+        if not combined_path.exists():
+            parser.error(
+                f"Cannot merge character {args.id}: {combined_path} does not exist. "
+                "Run a full sync first or use --individual."
+            )
+        with combined_path.open(encoding="utf-8") as handle:
+            existing = json.load(handle)
+        if not isinstance(existing, list):
+            parser.error(f"Expected a JSON array in {combined_path}")
+        combined_characters = merge_records_by_id(existing, characters)
+        combined_characters.sort(key=lambda c: c.get("name", {}).get("en", ""))
+        print(
+            f"Single-character mode: merging {args.id} into the "
+            f"{len(existing)}-record canonical file"
+        )
 
     json_kwargs = (
         {"indent": 2, "ensure_ascii": False}
@@ -1437,21 +1483,17 @@ def main():
                 char_id = char["id"]
                 en_name = char.get("name", {}).get("en", str(char_id))
                 output_path = args.output / f"{char_id}.json"
-                with open(output_path, "w", encoding="utf-8") as f:
-                    json.dump(char, f, **json_kwargs)
+                write_json_atomic(output_path, char, **json_kwargs)
                 size_kb = output_path.stat().st_size / 1024
                 print(f"  Saved {output_path.name} ({en_name}) [{size_kb:.1f}KB]")
 
             print(f"\nDone: {len(characters)} characters → {args.output}")
         else:
             # Default: combined Characters.json
-            combined_path = args.output.parent / "Characters.json"
-            combined_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(combined_path, "w", encoding="utf-8") as f:
-                json.dump(characters, f, **json_kwargs)
+            write_json_atomic(combined_path, combined_characters, **json_kwargs)
             size_kb = combined_path.stat().st_size / 1024
-            print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(characters)} characters)")
-            print(f"\nDone: {len(characters)} characters → {combined_path}")
+            print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(combined_characters)} characters)")
+            print(f"\nDone: {len(combined_characters)} characters → {combined_path}")
 
     return 0
 

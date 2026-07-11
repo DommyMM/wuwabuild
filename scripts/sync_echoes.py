@@ -16,7 +16,7 @@ import argparse
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from cdn_config import CDN_BASE
+from cdn_config import CDN_BASE, request_json_with_retry, write_json_atomic
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Phantom"
@@ -119,15 +119,22 @@ def fetch_encore_echo_name_index() -> dict[int, str]:
     try:
         import requests
     except ImportError:
-        return {}
+        raise RuntimeError("requests is required for the Encore name fallback")
 
     try:
-        resp = requests.get(ENCORE_ECHO_LIST_API, timeout=30)
-        resp.raise_for_status()
-        payload = resp.json()
+        payload = request_json_with_retry(
+            requests,
+            "get",
+            ENCORE_ECHO_LIST_API,
+        )
     except Exception as exc:
-        print(f"  Warning: failed to fetch Encore echo-name fallback: {exc}")
-        return {}
+        raise RuntimeError(
+            "Failed to fetch the required Encore echo-name fallback; refusing "
+            "to write echoes with blank names"
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise ValueError("Unexpected Encore echo-name payload; expected an object")
 
     out: dict[int, str] = {}
     for item in payload.get("Echo", []):
@@ -179,12 +186,12 @@ def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
     """Fetch a single phantom JSON from CDN."""
     url = f"{CDN_DOWNLOAD_BASE}/{filename}"
     try:
-        resp = session.get(url, timeout=30)
-        if resp.status_code == 200:
-            return (filename, resp.json())
-        print(f"  Failed {filename}: HTTP {resp.status_code}")
+        data = request_json_with_retry(session, "get", url)
+        if not isinstance(data, dict):
+            raise ValueError(f"expected an object, got {type(data).__name__}")
+        return (filename, data)
     except Exception as e:
-        print(f"  Error {filename}: {e}")
+        print(f"  Failed {filename} after retries: {e}")
     return (filename, None)
 
 
@@ -202,23 +209,23 @@ def fetch_cdn_echoes(single_id: str | None = None, workers: int | None = None) -
         url = f"{CDN_DOWNLOAD_BASE}/{single_id}.json"
         print(f"Fetching {url}")
         try:
-            resp = session.get(url, timeout=30)
-            if resp.status_code == 200:
-                return [resp.json()]
-            print(f"Failed: HTTP {resp.status_code}")
+            data = request_json_with_retry(session, "get", url)
+            if not isinstance(data, dict):
+                raise ValueError(f"expected an object, got {type(data).__name__}")
+            return [data]
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Failed to fetch {single_id} after retries: {e}")
         return []
 
     print("Listing Phantom from CDN...")
     try:
-        list_resp = session.post(
+        list_data = request_json_with_retry(
+            session,
+            "post",
             CDN_LIST_API,
             json={"path": "/GameData/Grouped/Phantom"},
             headers={"Content-Type": "application/json"},
-            timeout=30,
         )
-        list_data = list_resp.json()
         if list_data.get("code") != 200:
             print(f"List API error: {list_data.get('message')}")
             return []
@@ -229,6 +236,7 @@ def fetch_cdn_echoes(single_id: str | None = None, workers: int | None = None) -
         print(f"Found {len(json_files)} phantom files, fetching with {actual_workers} threads...")
 
         raw_list = []
+        failed: list[str] = []
         with ThreadPoolExecutor(max_workers=actual_workers) as pool:
             futures = {pool.submit(_fetch_one, session, f): f for f in json_files}
             for future in as_completed(futures):
@@ -236,17 +244,33 @@ def fetch_cdn_echoes(single_id: str | None = None, workers: int | None = None) -
                 if data:
                     raw_list.append(data)
                     print(f"  Fetched {filename}")
+                else:
+                    failed.append(filename)
+        if failed:
+            print(
+                f"ERROR: fetched only {len(raw_list)}/{len(json_files)} echo files; "
+                f"refusing to replace Echoes.json. Failed: {', '.join(sorted(failed))}"
+            )
+            return []
         return raw_list
     except Exception as e:
         print(f"Error listing CDN: {e}")
     return []
 
 
-def _process_raw_list(raw_list: list[dict]) -> tuple[list[dict], dict]:
-    """Filter, dedupe, merge phantom skins; return (echoes, stats)."""
-    base_echoes: dict[str, dict] = {}
+def _process_raw_list(
+    raw_list: list[dict],
+    existing_echoes: list[dict] | None = None,
+) -> tuple[list[dict], dict]:
+    """Filter, deterministically dedupe, and merge base/phantom echoes."""
+    base_echoes: dict[str, dict] = {
+        str(echo.get("name", {}).get("en") or ""): echo
+        for echo in existing_echoes or []
+        if isinstance(echo, dict) and isinstance(echo.get("name"), dict)
+    }
     phantom_skins: list[dict] = []
     skipped_cosmetic = skipped_rarity = duplicates = 0
+    names_seen_this_run: set[str] = set()
     needs_name_fallback = any(
         raw.get("phantomType") == 1
         and raw.get("rarity", {}).get("id") == 5
@@ -255,7 +279,13 @@ def _process_raw_list(raw_list: list[dict]) -> tuple[list[dict], dict]:
     )
     encore_names = fetch_encore_echo_name_index() if needs_name_fallback else {}
 
-    for raw in raw_list:
+    def raw_sort_key(raw: dict) -> tuple[int, str]:
+        try:
+            return (int(raw.get("id")), "")
+        except (TypeError, ValueError):
+            return (2**63 - 1, str(raw.get("id") or ""))
+
+    for raw in sorted(raw_list, key=raw_sort_key):
         if raw.get("phantomType") != 1:
             skipped_cosmetic += 1
             continue
@@ -266,10 +296,16 @@ def _process_raw_list(raw_list: list[dict]) -> tuple[list[dict], dict]:
         if name_en.startswith("Phantom: "):
             phantom_skins.append(raw)
             continue
-        if name_en in base_echoes:
+        if name_en in names_seen_this_run:
             duplicates += 1
             continue
-        base_echoes[name_en] = transform_echo(raw, encore_names)
+        transformed = transform_echo(raw, encore_names)
+        transformed_id = str(transformed.get("id"))
+        for old_name, old_echo in list(base_echoes.items()):
+            if old_name != name_en and str(old_echo.get("id")) == transformed_id:
+                del base_echoes[old_name]
+        base_echoes[name_en] = transformed
+        names_seen_this_run.add(name_en)
 
     merged = orphaned = 0
     for skin in phantom_skins:
@@ -334,8 +370,24 @@ def main() -> int:
         print("No phantom data to process")
         return 1
 
+    existing_echoes: list[dict] | None = None
+    if args.id:
+        if not OUTPUT_FILE.exists():
+            parser.error(
+                f"Cannot merge echo {args.id}: {OUTPUT_FILE} does not exist. "
+                "Run a full sync first."
+            )
+        with OUTPUT_FILE.open(encoding="utf-8") as handle:
+            existing_echoes = json.load(handle)
+        if not isinstance(existing_echoes, list):
+            parser.error(f"Expected a JSON array in {OUTPUT_FILE}")
+        print(
+            f"Single-echo mode: merging {args.id} into the "
+            f"{len(existing_echoes)}-record canonical file"
+        )
+
     print(f"\nProcessing {len(raw_list)} raw phantom entries...")
-    echoes, stats = _process_raw_list(raw_list)
+    echoes, stats = _process_raw_list(raw_list, existing_echoes)
 
     s = stats
     print("\nResults:")
@@ -356,10 +408,8 @@ def main() -> int:
             if e.get("bonuses"):
                 print(f"  {e['name']['en']} (cost {e['cost']}): {e['bonuses']}")
     else:
-        OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
         kwargs = {"indent": 2, "ensure_ascii": False} if args.pretty else {"separators": (",", ":"), "ensure_ascii": False}
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            json.dump(echoes, f, **kwargs)
+        write_json_atomic(OUTPUT_FILE, echoes, **kwargs)
         print(f"\nWrote {len(echoes)} echoes to {OUTPUT_FILE}")
     return 0
 

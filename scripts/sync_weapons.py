@@ -18,7 +18,12 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from cdn_config import CDN_BASE
+from cdn_config import (
+    CDN_BASE,
+    merge_records_by_id,
+    request_json_with_retry,
+    write_json_atomic,
+)
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Weapon"
@@ -298,20 +303,68 @@ def transform_weapon(data: dict, schema: dict, legacy_name_index: dict[str, list
     return output
 
 
+def _semantic_weapon_fingerprint(weapon: dict) -> tuple[Any, ...]:
+    """Fields that identify one playable weapon despite source alias rows."""
+    stats = weapon.get("stats") or {}
+    first = stats.get("first") or {}
+    second = stats.get("second") or {}
+    icon = weapon.get("icon") or {}
+    effect = weapon.get("effect") or {}
+    return (
+        (weapon.get("name") or {}).get("en"),
+        ((weapon.get("type") or {}).get("name") or {}).get("en"),
+        (weapon.get("rarity") or {}).get("id"),
+        icon.get("icon") if isinstance(icon, dict) else icon,
+        effect.get("en") if isinstance(effect, dict) else effect,
+        first.get("attribute"),
+        first.get("value"),
+        second.get("attribute"),
+        second.get("value"),
+        second.get("isRatio"),
+        json.dumps(weapon.get("params") or {}, sort_keys=True, ensure_ascii=False),
+        json.dumps(
+            weapon.get("unconditionalPassiveBonuses") or {},
+            sort_keys=True,
+            ensure_ascii=False,
+        ),
+    )
+
+
+def dedupe_semantic_weapon_aliases(weapons: list[dict]) -> list[dict]:
+    """Drop an alias row when its canonical legacy-ID row is equivalent."""
+    by_current_id = {str(weapon.get("id")): weapon for weapon in weapons}
+    kept: list[dict] = []
+    for weapon in weapons:
+        current_id = str(weapon.get("id"))
+        legacy_id = str(weapon.get("legacyId") or current_id)
+        canonical = by_current_id.get(legacy_id)
+        if (
+            canonical is not None
+            and current_id != legacy_id
+            and _semantic_weapon_fingerprint(weapon)
+            == _semantic_weapon_fingerprint(canonical)
+        ):
+            print(
+                f"  Skipped semantic weapon alias {current_id} "
+                f"({(weapon.get('name') or {}).get('en', '?')}); canonical ID {legacy_id}"
+            )
+            continue
+        kept.append(weapon)
+    return kept
+
+
 # --- CDN fetch ---
 
 def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
     """Fetch a single weapon JSON from CDN."""
     url = f"{CDN_DOWNLOAD_BASE}/{filename}"
     try:
-        resp = session.get(url, timeout=30)
-        if resp.status_code == 200:
-            return (filename, resp.json())
-        else:
-            print(f"  Failed {filename}: HTTP {resp.status_code}")
-            return (filename, None)
+        data = request_json_with_retry(session, "get", url)
+        if not isinstance(data, dict):
+            raise ValueError(f"expected an object, got {type(data).__name__}")
+        return (filename, data)
     except Exception as e:
-        print(f"  Error {filename}: {e}")
+        print(f"  Failed {filename} after retries: {e}")
         return (filename, None)
 
 
@@ -329,24 +382,23 @@ def fetch_cdn_weapons(single_id: str = None, workers: int | None = None) -> list
         url = f"{CDN_DOWNLOAD_BASE}/{single_id}.json"
         print(f"Fetching {url}")
         try:
-            resp = session.get(url, timeout=30)
-            if resp.status_code == 200:
-                return [resp.json()]
-            else:
-                print(f"Failed to fetch {single_id}: HTTP {resp.status_code}")
+            data = request_json_with_retry(session, "get", url)
+            if not isinstance(data, dict):
+                raise ValueError(f"expected an object, got {type(data).__name__}")
+            return [data]
         except Exception as e:
-            print(f"Error fetching {single_id}: {e}")
+            print(f"Failed to fetch {single_id} after retries: {e}")
         return []
 
     print("Listing weapons from CDN...")
     try:
-        list_resp = session.post(
+        list_data = request_json_with_retry(
+            session,
+            "post",
             CDN_LIST_API,
             json={"path": "/GameData/Grouped/Weapon"},
             headers={"Content-Type": "application/json"},
-            timeout=30,
         )
-        list_data = list_resp.json()
 
         if list_data.get("code") != 200:
             print(f"List API error: {list_data.get('message')}")
@@ -359,6 +411,7 @@ def fetch_cdn_weapons(single_id: str = None, workers: int | None = None) -> list
         print(f"Found {len(json_files)} weapon files, fetching with {actual_workers} threads...")
 
         weapons = []
+        failed: list[str] = []
         with ThreadPoolExecutor(max_workers=actual_workers) as pool:
             futures = {pool.submit(_fetch_one, session, f): f for f in json_files}
             for future in as_completed(futures):
@@ -366,6 +419,15 @@ def fetch_cdn_weapons(single_id: str = None, workers: int | None = None) -> list
                 if data:
                     weapons.append(data)
                     print(f"  Fetched {filename}")
+                else:
+                    failed.append(filename)
+
+        if failed:
+            print(
+                f"ERROR: fetched only {len(weapons)}/{len(json_files)} weapon files; "
+                f"refusing to replace Weapons.json. Failed: {', '.join(sorted(failed))}"
+            )
+            return []
 
         return weapons
 
@@ -422,6 +484,7 @@ def main():
             skipped += 1
 
     weapons.sort(key=lambda w: w.get("name", {}).get("en", ""))
+    weapons = dedupe_semantic_weapon_aliases(weapons)
     print(f"Transformed {len(weapons)} weapons ({skipped} skipped)")
 
     if not weapons:
@@ -433,6 +496,26 @@ def main():
         if args.pretty
         else {"separators": (",", ":"), "ensure_ascii": False}
     )
+
+    combined_path = args.output.parent / "Weapons.json"
+    combined_weapons = weapons
+    if args.id and not args.individual:
+        if not combined_path.exists():
+            parser.error(
+                f"Cannot merge weapon {args.id}: {combined_path} does not exist. "
+                "Run a full sync first or use --individual."
+            )
+        with combined_path.open(encoding="utf-8") as handle:
+            existing = json.load(handle)
+        if not isinstance(existing, list):
+            parser.error(f"Expected a JSON array in {combined_path}")
+        combined_weapons = merge_records_by_id(existing, weapons)
+        combined_weapons = dedupe_semantic_weapon_aliases(combined_weapons)
+        combined_weapons.sort(key=lambda w: w.get("name", {}).get("en", ""))
+        print(
+            f"Single-weapon mode: merging {args.id} into the "
+            f"{len(existing)}-record canonical file"
+        )
 
     if args.dry_run:
         for weapon in weapons:
@@ -452,21 +535,17 @@ def main():
             wid = weapon["id"]
             en_name = weapon.get("name", {}).get("en", str(wid))
             output_path = args.output / f"{wid}.json"
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(weapon, f, **json_kwargs)
+            write_json_atomic(output_path, weapon, **json_kwargs)
             size_kb = output_path.stat().st_size / 1024
             print(f"  Saved {output_path.name} ({en_name}) [{size_kb:.1f}KB]")
         print(f"\nDone: {len(weapons)} weapons → {args.output}")
 
     else:
         # Default: combined Weapons.json
-        combined_path = args.output.parent / "Weapons.json"
-        combined_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(combined_path, "w", encoding="utf-8") as f:
-            json.dump(weapons, f, **json_kwargs)
+        write_json_atomic(combined_path, combined_weapons, **json_kwargs)
         size_kb = combined_path.stat().st_size / 1024
-        print(f"  Saved Weapons.json [{size_kb:.1f}KB] ({len(weapons)} weapons)")
-        print(f"\nDone: {len(weapons)} weapons → {combined_path}")
+        print(f"  Saved Weapons.json [{size_kb:.1f}KB] ({len(combined_weapons)} weapons)")
+        print(f"\nDone: {len(combined_weapons)} weapons → {combined_path}")
 
     return 0
 

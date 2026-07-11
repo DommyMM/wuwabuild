@@ -18,7 +18,7 @@ Usage:
 import json
 import argparse
 from pathlib import Path
-from cdn_config import CDN_BASE
+from cdn_config import CDN_BASE, request_json_with_retry, write_json_atomic
 
 try:
     import requests
@@ -97,7 +97,9 @@ def main():
     session = requests.Session()
 
     print("Fetching PropertyIndexs.json ...")
-    props_raw: list[dict] = session.get(PROPERTY_INDEXS_URL, timeout=30).json()
+    props_raw = request_json_with_retry(session, "get", PROPERTY_INDEXS_URL)
+    if not isinstance(props_raw, list):
+        raise ValueError("Unexpected PropertyIndexs payload; expected a list")
     print(f"  {len(props_raw)} property entries")
 
     # Index by Name.en, prefer IsShow=True entries when names collide (e.g. HP appears twice)
@@ -143,9 +145,7 @@ def main():
         print(f"\n(dry-run) {len(output)} stats, not written")
         return
 
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT, "w", encoding="utf-8") as f:
-        json.dump(output, f, **json_kwargs)
+    write_json_atomic(OUTPUT, output, **json_kwargs)
 
     size_kb = OUTPUT.stat().st_size / 1024
     print(f"\nWrote {OUTPUT} [{size_kb:.1f} KB], {len(output)} stat entries")

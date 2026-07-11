@@ -139,6 +139,7 @@ export function useResolvedLeaderboardLink(
 export function useResolvedLeaderboardLinkState(
   opts: ResolveLeaderboardLinkOptions,
 ): ResolvedLeaderboardLinkState {
+  const { characterId, weaponId, sequence, getWeapon } = opts;
   const [overview, setOverview] = useState<LBCharacterOverview[] | null>(() => readCachedLeaderboardOverview());
 
   useEffect(() => {
@@ -163,6 +164,9 @@ export function useResolvedLeaderboardLinkState(
 
   return useMemo(() => {
     if (!overview) return { link: null, isLoading: true };
-    return { link: resolveLeaderboardLink(overview, opts), isLoading: false };
-  }, [overview, opts]);
+    return {
+      link: resolveLeaderboardLink(overview, { characterId, weaponId, sequence, getWeapon }),
+      isLoading: false,
+    };
+  }, [characterId, getWeapon, overview, sequence, weaponId]);
 }

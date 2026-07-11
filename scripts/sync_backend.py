@@ -23,13 +23,18 @@ Run after the data syncs (or just use sync_all.py, which calls this). Per-asset
 
 from pathlib import Path
 import json
-import shutil
+import os
 import argparse
 import urllib.request
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 
-from cdn_config import CDN_BASE
+from cdn_config import (
+    CDN_BASE,
+    request_json_with_retry,
+    write_bytes_atomic,
+    write_json_atomic,
+)
 
 try:
     import requests
@@ -57,23 +62,33 @@ UA = {"User-Agent": "wuwabuilds-backend-sync/1.0"}
 ICON_WORKERS = 16
 WEBP_QUALITY = 95
 
-# Valid fetter set ids (raw numbers from Encore). Filters echo["fetter"] and drives
-# the element-icon fetch. The backend data path is id-native; human-readable set
-# names live only in the frontend FETTER_MAP + backend SET_NAME_BY_ID (logs).
-FETTER_IDS: frozenset[int] = frozenset({
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21,
-    22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
-})
-
-
 # --- Shared download helpers --------------------------------------------------
 
 def _encore_json(url: str):
     if requests is None:
         raise RuntimeError("requests is required to fetch Encore data")
-    resp = requests.get(url, headers=UA, timeout=45)
-    resp.raise_for_status()
-    return resp.json()
+    return request_json_with_retry(
+        requests,
+        "get",
+        url,
+        headers=UA,
+        timeout=45,
+    )
+
+
+def _frontend_fetter_ids() -> frozenset[int]:
+    path = FRONTEND_DATA / "Fetters.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise ValueError(f"Expected a JSON array in {path}")
+    ids = {
+        int(row["id"])
+        for row in payload
+        if isinstance(row, dict) and row.get("id") is not None
+    }
+    if not ids:
+        raise ValueError(f"No fetter IDs found in {path}")
+    return frozenset(ids)
 
 
 def _encore_rows(payload) -> list:
@@ -106,15 +121,20 @@ def _save_webp(raw: bytes, dest: Path, reencode: bool) -> None:
     re-encodes via OpenCV.
     """
     if not reencode:
-        dest.write_bytes(raw)
+        write_bytes_atomic(dest, raw)
         return
     if cv2 is None or np is None:
         raise RuntimeError("cv2 + numpy required to re-encode non-WebP source to WebP")
     img = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
     if img is None:
         raise RuntimeError("could not decode downloaded image")
-    if not cv2.imwrite(str(dest), img, [cv2.IMWRITE_WEBP_QUALITY, WEBP_QUALITY]):
-        raise RuntimeError("could not write WebP")
+    temp_path = dest.with_name(f".{dest.stem}.{os.getpid()}.tmp.webp")
+    try:
+        if not cv2.imwrite(str(temp_path), img, [cv2.IMWRITE_WEBP_QUALITY, WEBP_QUALITY]):
+            raise RuntimeError("could not write WebP")
+        os.replace(temp_path, dest)
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 def _download_icons(tasks: list[tuple[str, str, Path]], force: bool, reencode, label: str) -> int:
@@ -148,6 +168,8 @@ def _download_icons(tasks: list[tuple[str, str, Path]], force: bool, reencode, l
             else:
                 downloaded += 1
     print(f"  {label}: {downloaded} downloaded, {skipped} skipped, {errors} errors")
+    if errors:
+        raise RuntimeError(f"{label}: {errors} download(s) failed")
     return downloaded
 
 
@@ -167,13 +189,10 @@ def _encore_fetter_groups() -> dict[int, dict]:
 
 
 def sync_element_templates(dry_run: bool, force: bool) -> int:
-    if not BACKEND_ELEMENTS.exists():
-        print(f"  Element icons: skipped; missing {BACKEND_ELEMENTS}")
-        return 0
     groups = _encore_fetter_groups()
     tasks: list[tuple[str, str, Path]] = []
     missing: list[int] = []
-    for group_id in sorted(FETTER_IDS):
+    for group_id in sorted(_frontend_fetter_ids()):
         group = groups.get(group_id)
         if not group:
             missing.append(group_id)
@@ -182,11 +201,12 @@ def sync_element_templates(dry_run: bool, force: bool) -> int:
         suffix = Path(urlparse(url).path).suffix or ".webp"
         tasks.append((str(group_id), url, BACKEND_ELEMENTS / f"{group_id}{suffix}"))
     if missing:
-        print(f"  WARNING: Encore did not return fetter group IDs: {missing}")
+        raise RuntimeError(f"Encore did not return fetter group IDs: {missing}")
     if dry_run:
         n = sum(1 for _, _, d in tasks if force or not d.exists())
         print(f"  Element icons: {n}/{len(tasks)} to refresh -> {BACKEND_ELEMENTS}")
         return n
+    BACKEND_ELEMENTS.mkdir(parents=True, exist_ok=True)
     # Element source URLs may be non-WebP; write through in their native suffix (the
     # element loader accepts png+webp). No re-encode to avoid a hard cv2 dependency here.
     return _download_icons(tasks, force, reencode=False, label="Element icons")
@@ -195,7 +215,6 @@ def sync_element_templates(dry_run: bool, force: bool) -> int:
 # --- Character / weapon / echo SIFT templates ---------------------------------
 
 def sync_character_icons(dry_run: bool, force: bool) -> int:
-    BACKEND_CHARACTERS.mkdir(parents=True, exist_ok=True)
     ids = [str(c.get("Id", "")).strip() for c in _encore_rows(_encore_json(f"{ENCORE_API}/character"))]
     ids = [i for i in ids if i]
     # Each splash URL is a per-character detail call, so resolve only the ids we need.
@@ -203,6 +222,7 @@ def sync_character_icons(dry_run: bool, force: bool) -> int:
     if dry_run:
         print(f"  Character icons: {len(needed)}/{len(ids)} to fetch -> {BACKEND_CHARACTERS}")
         return len(needed)
+    BACKEND_CHARACTERS.mkdir(parents=True, exist_ok=True)
     if not needed:
         print(f"  Character icons: all {len(ids)} present")
         return 0
@@ -225,12 +245,11 @@ def sync_character_icons(dry_run: bool, force: bool) -> int:
             else:
                 missing_url.append(cid)
     if missing_url:
-        print(f"    WARNING: no splash URL for ids: {missing_url}")
+        raise RuntimeError(f"No character splash URL for ids: {missing_url}")
     return _download_icons(tasks, force, reencode=False, label="Character icons")
 
 
 def sync_weapon_icons(dry_run: bool, force: bool) -> int:
-    BACKEND_WEAPONS.mkdir(parents=True, exist_ok=True)
     rows = _encore_rows(_encore_json(f"{ENCORE_API}/weapon"))
     tasks: list[tuple[str, str, Path]] = []
     for weapon in rows:
@@ -242,6 +261,7 @@ def sync_weapon_icons(dry_run: bool, force: bool) -> int:
         n = sum(1 for _, _, d in tasks if force or not d.exists())
         print(f"  Weapon icons: {n}/{len(tasks)} to fetch -> {BACKEND_WEAPONS}")
         return n
+    BACKEND_WEAPONS.mkdir(parents=True, exist_ok=True)
     return _download_icons(tasks, force, reencode=False, label="Weapon icons")
 
 
@@ -250,7 +270,6 @@ def _echo_icon_url(raw: str) -> str:
 
 
 def sync_echo_icons(dry_run: bool, force: bool) -> int:
-    BACKEND_ECHOES.mkdir(parents=True, exist_ok=True)
     echoes = json.loads((FRONTEND_DATA / "Echoes.json").read_text(encoding="utf-8"))
     tasks: list[tuple[str, str, Path]] = []
     for echo in echoes:
@@ -262,6 +281,7 @@ def sync_echo_icons(dry_run: bool, force: bool) -> int:
         n = sum(1 for _, _, d in tasks if force or not d.exists())
         print(f"  Echo icons: {n}/{len(tasks)} to fetch -> {BACKEND_ECHOES}")
         return n
+    BACKEND_ECHOES.mkdir(parents=True, exist_ok=True)
     # Encore icon URLs are WebP (passed through); only a non-WebP Wuthery fallback needs cv2.
     return _download_icons(tasks, force, reencode="auto", label="Echo icons")
 
@@ -280,8 +300,10 @@ def sync_characters(dry_run: bool) -> int:
             "weaponType": char["weapon"]["name"]["en"],
         })
     if not dry_run:
-        (BACKEND_DATA / "Characters.json").write_text(
-            json.dumps(out, ensure_ascii=False), encoding="utf-8"
+        write_json_atomic(
+            BACKEND_DATA / "Characters.json",
+            out,
+            ensure_ascii=False,
         )
     print(f"  Characters: {len(out)} entries")
     return len(out)
@@ -299,8 +321,10 @@ def sync_weapons(dry_run: bool) -> int:
             "id": str(weapon["id"]),
         })
     if not dry_run:
-        (BACKEND_DATA / "Weapons.json").write_text(
-            json.dumps(grouped, ensure_ascii=False), encoding="utf-8"
+        write_json_atomic(
+            BACKEND_DATA / "Weapons.json",
+            grouped,
+            ensure_ascii=False,
         )
     total = sum(len(v) for v in grouped.values())
     print(f"  Weapons: {total} entries across {len(grouped)} types ({list(grouped.keys())})")
@@ -310,9 +334,10 @@ def sync_weapons(dry_run: bool) -> int:
 def sync_echoes(dry_run: bool) -> int:
     data = json.loads((FRONTEND_DATA / "Echoes.json").read_text(encoding="utf-8"))
     out = []
+    valid_fetter_ids = _frontend_fetter_ids()
     for echo in data:
         echo_id = str(echo["id"])
-        set_ids = [fid for fid in echo.get("fetter", []) if fid in FETTER_IDS]
+        set_ids = [fid for fid in echo.get("fetter", []) if fid in valid_fetter_ids]
         out.append({
             "name": echo["name"].get("en") or echo_id,
             "id": echo_id,  # Always CDN ID, match what _load_from_cdn uses
@@ -320,8 +345,10 @@ def sync_echoes(dry_run: bool) -> int:
             "setIds": set_ids,
         })
     if not dry_run:
-        (BACKEND_DATA / "Echoes.json").write_text(
-            json.dumps(out, ensure_ascii=False), encoding="utf-8"
+        write_json_atomic(
+            BACKEND_DATA / "Echoes.json",
+            out,
+            ensure_ascii=False,
         )
     print(f"  Echoes: {len(out)} entries")
     return len(out)
@@ -330,7 +357,7 @@ def sync_echoes(dry_run: bool) -> int:
 def copy_unchanged(filename: str, dry_run: bool) -> None:
     src = FRONTEND_DATA / filename
     if not dry_run:
-        shutil.copy2(src, BACKEND_DATA / filename)
+        write_bytes_atomic(BACKEND_DATA / filename, src.read_bytes())
     print(f"  {filename}: copied unchanged")
 
 
@@ -357,22 +384,26 @@ def main() -> int:
 
     print(f"{'[DRY RUN] ' if args.dry_run else ''}Syncing backend Data/ from frontend public/Data/ + Encore")
 
-    # 1. JSON shapes the backend matches names against.
-    sync_characters(args.dry_run)
-    sync_weapons(args.dry_run)
-    sync_echoes(args.dry_run)
-    copy_unchanged("EchoStats.json", args.dry_run)
-    copy_unchanged("Stats.json", args.dry_run)
+    try:
+        # 1. JSON shapes the backend matches names against.
+        sync_characters(args.dry_run)
+        sync_weapons(args.dry_run)
+        sync_echoes(args.dry_run)
+        copy_unchanged("EchoStats.json", args.dry_run)
+        copy_unchanged("Stats.json", args.dry_run)
 
-    # 2. SIFT/template assets (all id-keyed WebP).
-    if not args.skip_element_icons:
-        sync_element_templates(args.dry_run, args.force_element_icons)
-    if not args.skip_character_icons:
-        sync_character_icons(args.dry_run, args.force_character_icons)
-    if not args.skip_weapon_icons:
-        sync_weapon_icons(args.dry_run, args.force_weapon_icons)
-    if not args.skip_echo_icons:
-        sync_echo_icons(args.dry_run, args.force_echo_icons)
+        # 2. SIFT/template assets (all id-keyed WebP).
+        if not args.skip_element_icons:
+            sync_element_templates(args.dry_run, args.force_element_icons)
+        if not args.skip_character_icons:
+            sync_character_icons(args.dry_run, args.force_character_icons)
+        if not args.skip_weapon_icons:
+            sync_weapon_icons(args.dry_run, args.force_weapon_icons)
+        if not args.skip_echo_icons:
+            sync_echo_icons(args.dry_run, args.force_echo_icons)
+    except Exception as error:
+        print(f"ERROR: Backend sync failed: {error}")
+        return 1
 
     print("Backend sync complete." if not args.dry_run else "Dry run complete, nothing written.")
     return 0

@@ -36,8 +36,11 @@ function parseProfiles(raw: string | null, cap: number): StoredProfile[] {
       .filter((entry): entry is StoredProfile => (
         Boolean(entry) && typeof entry === 'object' &&
         typeof (entry as StoredProfile).uid === 'string' && (entry as StoredProfile).uid.length > 0 &&
-        typeof (entry as StoredProfile).username === 'string'
+        typeof (entry as StoredProfile).username === 'string' &&
+        typeof (entry as StoredProfile).savedAt === 'number' &&
+        Number.isFinite((entry as StoredProfile).savedAt)
       ))
+      .sort((a, b) => b.savedAt - a.savedAt)
       .slice(0, cap);
   } catch {
     return [];
@@ -101,15 +104,10 @@ export function recordProfileVisit(profile: { uid: string; username: string; hea
   if (!profile.uid) return;
   const recents = getRecentProfiles();
   const nextEntry = { uid: profile.uid, username: profile.username, head: profile.head ?? null, savedAt: Date.now() };
-  const existingIndex = recents.findIndex((entry) => entry.uid === profile.uid);
-
-  if (existingIndex >= 0) {
-    recents[existingIndex] = nextEntry;
-    writeProfiles(RECENTS_KEY, recents);
-    return;
-  }
-
-  writeProfiles(RECENTS_KEY, [...recents, nextEntry].slice(-MAX_PROFILES));
+  writeProfiles(RECENTS_KEY, [
+    nextEntry,
+    ...recents.filter((entry) => entry.uid !== profile.uid),
+  ].slice(0, MAX_PROFILES));
 }
 
 export function clearRecentProfiles(): void {

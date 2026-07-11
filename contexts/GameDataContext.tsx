@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Character, adaptCDNCharacter, validateCDNCharacter } from '@/lib/character';
-import { Weapon, WeaponType, CDNWeapon, adaptCDNWeapon, validateCDNWeapon } from '@/lib/weapon';
-import { Echo, CDNEcho, CDNFetter, COST_SECTIONS, adaptCDNEcho, validateCDNEcho, ElementType, FETTER_MAP } from '@/lib/echo';
+import { Weapon, WeaponType, adaptCDNWeapon, validateCDNWeapon } from '@/lib/weapon';
+import { Echo, CDNFetter, COST_SECTIONS, adaptCDNEcho, validateCDNEcho, ElementType, FETTER_MAP } from '@/lib/echo';
 import { CharacterCurve, LevelCurves } from '@/lib/calculations/stats';
 
 interface MainStatData {
@@ -23,7 +23,7 @@ interface SubstatRollProbabilityData {
   [statName: string]: Array<[number, number]>;
 }
 
-// Raw JSON shape as loaded from files/fetch, exported for use in layout.tsx
+// Raw JSON shape loaded from the public data files.
 interface RawGameData {
   characters: unknown;
   echoes: unknown;
@@ -109,19 +109,22 @@ function processRawGameData(raw: RawGameData): GameDataState {
     : [];
 
   // Process echoes
-  const cdnEchoes: CDNEcho[] = Array.isArray(raw.echoes) ? raw.echoes : [];
+  const cdnEchoes: unknown[] = Array.isArray(raw.echoes) ? raw.echoes : [];
   const echoes: Echo[] = cdnEchoes.filter(validateCDNEcho).map(adaptCDNEcho);
-  const echoesByCost: Record<number, Echo[]> = {};
+  const echoesByCost: Record<number, Echo[]> = Object.fromEntries(
+    COST_SECTIONS.map((cost) => [cost, [] as Echo[]]),
+  );
+  for (const echo of echoes) {
+    echoesByCost[echo.cost]?.push(echo);
+  }
   COST_SECTIONS.forEach(cost => {
-    echoesByCost[cost] = echoes
-      .filter(echo => echo.cost === cost)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    echoesByCost[cost].sort((a, b) => a.name.localeCompare(b.name));
   });
 
   // Process weapons
   const weaponMap = new Map<WeaponType, Weapon[]>();
   const weaponList: Weapon[] = [];
-  const cdnWeapons: CDNWeapon[] = Array.isArray(raw.weapons) ? raw.weapons : [];
+  const cdnWeapons: unknown[] = Array.isArray(raw.weapons) ? raw.weapons : [];
   for (const w of cdnWeapons) {
     if (!validateCDNWeapon(w)) continue;
     const weapon = adaptCDNWeapon(w);
@@ -144,9 +147,10 @@ function processRawGameData(raw: RawGameData): GameDataState {
   // Index fetters by element
   const fetters: CDNFetter[] = Array.isArray(raw.fetters) ? raw.fetters : [];
   const fettersByElement: Partial<Record<ElementType, CDNFetter>> = {};
+  const fettersById = new Map(fetters.map((fetter) => [fetter.id, fetter]));
   for (const [groupIdStr, elementType] of Object.entries(FETTER_MAP)) {
     const groupId = Number(groupIdStr);
-    const fetter = fetters.find(f => f.id === groupId);
+    const fetter = fettersById.get(groupId);
     if (fetter) fettersByElement[elementType as ElementType] = fetter;
   }
 
@@ -315,33 +319,70 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
     };
   }, []);
 
-  const getCharacter = useCallback((id: string | null): Character | null => {
-    if (!id) return null;
-    return state.characters.find(c => c.id === id) ?? null;
+  const characterIndices = useMemo(() => {
+    const byId = new Map<string, Character>();
+    const byLegacyId = new Map<string, Character>();
+    const byName = new Map<string, Character>();
+    for (const character of state.characters) {
+      byId.set(character.id, character);
+      if (character.legacyId && !byLegacyId.has(character.legacyId)) {
+        byLegacyId.set(character.legacyId, character);
+      }
+      if (!byName.has(character.name)) {
+        byName.set(character.name, character);
+      }
+    }
+    return { byId, byLegacyId, byName };
   }, [state.characters]);
 
+  const echoIndices = useMemo(() => {
+    const byId = new Map<string, Echo>();
+    const byLegacyId = new Map<string, Echo>();
+    const byName = new Map<string, Echo>();
+    for (const echo of state.echoes) {
+      byId.set(echo.id, echo);
+      if (echo.legacyId && !byLegacyId.has(echo.legacyId)) {
+        byLegacyId.set(echo.legacyId, echo);
+      }
+      if (!byName.has(echo.name)) {
+        byName.set(echo.name, echo);
+      }
+    }
+    return { byId, byLegacyId, byName };
+  }, [state.echoes]);
+
+  const weaponsById = useMemo(
+    () => new Map(state.weaponList.map((weapon) => [weapon.id, weapon])),
+    [state.weaponList],
+  );
+
+  const getCharacter = useCallback((id: string | null): Character | null => {
+    if (!id) return null;
+    return characterIndices.byId.get(id) ?? null;
+  }, [characterIndices]);
+
   const getCharacterByName = useCallback((name: string): Character | null => {
-    return state.characters.find(c => c.name === name) ?? null;
-  }, [state.characters]);
+    return characterIndices.byName.get(name) ?? null;
+  }, [characterIndices]);
 
   const getCharacterByLegacyId = useCallback((legacyId: string | null): Character | null => {
     if (!legacyId) return null;
-    return state.characters.find((character) => character.legacyId === legacyId) ?? null;
-  }, [state.characters]);
+    return characterIndices.byLegacyId.get(legacyId) ?? null;
+  }, [characterIndices]);
 
   const getEcho = useCallback((id: string | null): Echo | null => {
     if (!id) return null;
-    return state.echoes.find((echo) => echo.id === id) ?? null;
-  }, [state.echoes]);
+    return echoIndices.byId.get(id) ?? null;
+  }, [echoIndices]);
 
   const getEchoByName = useCallback((name: string): Echo | null => {
-    return state.echoes.find(e => e.name === name) ?? null;
-  }, [state.echoes]);
+    return echoIndices.byName.get(name) ?? null;
+  }, [echoIndices]);
 
   const getEchoByLegacyId = useCallback((legacyId: string | null): Echo | null => {
     if (!legacyId) return null;
-    return state.echoes.find((echo) => echo.legacyId === legacyId) ?? null;
-  }, [state.echoes]);
+    return echoIndices.byLegacyId.get(legacyId) ?? null;
+  }, [echoIndices]);
 
   const getFetterByElement = useCallback((element: ElementType): CDNFetter | undefined => {
     return state.fettersByElement[element];
@@ -349,8 +390,8 @@ export function GameDataProvider({ children }: GameDataProviderProps) {
 
   const getWeapon = useCallback((id: string | null): Weapon | null => {
     if (!id) return null;
-    return state.weaponList.find(w => w.id === id) ?? null;
-  }, [state.weaponList]);
+    return weaponsById.get(id) ?? null;
+  }, [weaponsById]);
 
   const getWeaponsByType = useCallback((type: WeaponType): Weapon[] => {
     return state.weapons.get(type) ?? [];
