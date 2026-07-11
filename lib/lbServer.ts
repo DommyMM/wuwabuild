@@ -1,6 +1,6 @@
 // Server-only module: SSR prefetch against the LB API via the Cloudflare gateway
 import 'server-only';
-import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardDisplayStats, parseLeaderboardEntry, parseTeamBuffs, parseTracks, resolveTeamConfiguration, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBWeaponTop, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse } from './lb';
+import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardDisplayStats, parseLeaderboardEntry, parseLeaderboardOverviewPayload, parseTeamBuffs, parseTracks, resolveTeamConfiguration, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse } from './lb';
 import { LB_API_BASE } from './apiEndpoints';
 import { loadCharacterDisplayMap } from './server/gameData';
 
@@ -98,48 +98,11 @@ export async function prefetchLeaderboardOverview(): Promise<LBCharacterOverview
       return null;
     }
 
-    const payload = await response.json() as { characters?: unknown[] };
-    const rawChars = Array.isArray(payload.characters) ? payload.characters : [];
-    const result: LBCharacterOverview[] = [];
+    const result = parseLeaderboardOverviewPayload(await response.json());
     // Resolve display names/element/portrait server-side so the SSR HTML is
     // complete; read once and look up per row.
     const displayMap = loadCharacterDisplayMap();
-
-    for (const raw of rawChars) {
-      if (!isRecord(raw)) continue;
-      const rawWeapons = Array.isArray(raw.weapons) ? raw.weapons : [];
-      const weapons: LBWeaponTop[] = rawWeapons
-        .filter(isRecord)
-        .map((w) => {
-          const owner = isRecord(w.owner) ? w.owner : {};
-          return {
-            weaponId: typeof w.weaponId === 'string' ? w.weaponId : '',
-            damage: toFiniteNumber(w.damage),
-            owner: {
-              username: typeof owner.username === 'string' ? owner.username : '',
-              uid: typeof owner.uid === 'string' ? owner.uid : '',
-            },
-            reignSince: typeof w.reignSince === 'string' ? w.reignSince : '',
-          };
-        });
-      const weaponIds = Array.isArray(raw.weaponIds)
-        ? raw.weaponIds.filter((v): v is string => typeof v === 'string')
-        : weapons.map((weapon) => weapon.weaponId).filter(Boolean);
-      const team = resolveTeamConfiguration(raw.teamMembers, raw.teamCharacterIds);
-      const id = typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : '');
-      result.push({
-        id,
-        trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
-        trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
-        totalEntries: toFiniteNumber(raw.totalEntries),
-        weapons,
-        weaponIds,
-        teamCharacterIds: team.teamCharacterIds,
-        teamMembers: team.teamMembers,
-        display: displayMap[id],
-      });
-    }
-    return result;
+    return result.map((entry) => ({ ...entry, display: displayMap[entry.id] }));
   } catch (err) {
     console.error('[lbServer] prefetchLeaderboardOverview failed', err);
     return null;

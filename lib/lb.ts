@@ -815,7 +815,7 @@ export async function getEchoUsages(
 
 // Leaderboard types
 
-export interface LBWeaponTop {
+interface LBWeaponTop {
   weaponId: string;
   damage: number;
   owner: { username: string; uid: string };
@@ -865,7 +865,8 @@ export interface LBCharacterOverview {
   trackLabel: string;
   totalEntries: number;
   weapons: LBWeaponTop[];
-  weaponIds: string[]; // derived from weapons array
+  /** Configured board weapons; can include a weapon that has no rank-1 row yet. */
+  weaponIds: string[];
   teamCharacterIds: string[];
   teamMembers: LBTeamMemberConfig[];
   // Server-resolved English display fields (SSR/SEO). The client refines to the
@@ -1059,15 +1060,8 @@ export function parseTeamBuffs(raw: unknown): LBTeamBuffs {
   return { total: parseBuffMap(raw.total), bySupport };
 }
 
-export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBCharacterOverview[]> {
-  const requestUrl = `${resolveLBBaseUrl()}/leaderboard`;
-  const response = await fetch(requestUrl, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch leaderboard overview (${response.status})`);
-  }
-
-  const payload = await response.json() as { characters?: unknown[] };
-  const rawChars = Array.isArray(payload.characters) ? payload.characters : [];
+export function parseLeaderboardOverviewPayload(payload: unknown): LBCharacterOverview[] {
+  const rawChars = isRecord(payload) && Array.isArray(payload.characters) ? payload.characters : [];
   const result: LBCharacterOverview[] = [];
 
   for (const raw of rawChars) {
@@ -1087,20 +1081,42 @@ export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBC
           },
           reignSince: typeof w.reignSince === 'string' ? w.reignSince : '',
         };
-      });
+      })
+      .filter((weapon) => weapon.weaponId.length > 0);
+    const configuredWeaponIds = Array.isArray(raw.weaponIds)
+      ? Array.from(new Set(raw.weaponIds
+          .filter((value): value is string => typeof value === 'string')
+          .map((value) => value.trim())
+          .filter(Boolean)))
+      : [];
+    const weaponIds = configuredWeaponIds.length > 0
+      ? configuredWeaponIds
+      : Array.from(new Set(weapons.map((weapon) => weapon.weaponId)));
+    const id = typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : '');
+    if (!id) continue;
     result.push({
-      id: typeof raw._id === 'string' ? raw._id : (typeof raw.id === 'string' ? raw.id : ''),
+      id,
       trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
       trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
       totalEntries: toFiniteNumber(raw.totalEntries),
       weapons,
-      weaponIds: weapons.map((w) => w.weaponId).filter(Boolean),
+      weaponIds,
       teamCharacterIds: team.teamCharacterIds,
       teamMembers: team.teamMembers,
     });
   }
 
   return result;
+}
+
+export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBCharacterOverview[]> {
+  const requestUrl = `${resolveLBBaseUrl()}/leaderboard`;
+  const response = await fetch(requestUrl, { method: 'GET', signal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch leaderboard overview (${response.status})`);
+  }
+
+  return parseLeaderboardOverviewPayload(await response.json());
 }
 
 export async function listLeaderboard(

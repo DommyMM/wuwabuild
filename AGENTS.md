@@ -2,7 +2,7 @@
 
 Next.js App Router build editor and damage leaderboard at [wuwa.build](https://wuwa.build).
 
-**Stack**: Next.js 16 · React 19 · TypeScript 5 · Tailwind v4 · Motion (`motion` on npm)
+**Stack**: Next.js 16 · React 19 · TypeScript 6 · Tailwind v4 · Motion (`motion` on npm)
 
 For leaderboard service details see the **wuwa-lb** repo `AGENTS.md`.
 

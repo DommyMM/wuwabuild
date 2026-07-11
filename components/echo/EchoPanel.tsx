@@ -296,12 +296,14 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
       </div>
 
       {/* Echo Selector Modal */}
-      <EchoSelector
-        isOpen={isSelectorOpen}
-        onClose={() => setIsSelectorOpen(false)}
-        onSelect={handleEchoSelect}
-        selectedEchoId={panelState.id}
-      />
+      {isSelectorOpen && (
+        <EchoSelector
+          isOpen
+          onClose={() => setIsSelectorOpen(false)}
+          onSelect={handleEchoSelect}
+          selectedEchoId={panelState.id}
+        />
+      )}
     </>
   );
 };

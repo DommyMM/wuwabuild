@@ -25,6 +25,7 @@ interface TierOption {
 interface BuildSubstatUpgradesProps {
   isLoading: boolean;
   error: string | null;
+  onRetry: () => void;
   hasUpgradeData: boolean;
   hasBaseDamage: boolean;
   baseDamage?: number;
@@ -78,6 +79,7 @@ const ROW_DIVIDER = 'border-t border-border/45';
 export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
   isLoading,
   error,
+  onRetry,
   hasUpgradeData,
   hasBaseDamage,
   baseDamage,
@@ -179,8 +181,11 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
       )}
 
       {!isLoading && error && (
-        <div className="rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-          {error}
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          <span>{error}</span>
+          <button type="button" onClick={onRetry} className="rounded border border-red-300/50 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-300/10">
+            Retry
+          </button>
         </div>
       )}
 

@@ -322,9 +322,21 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       });
   }, [activeTrackKey, activeWeaponId, buildId, characterId, optimalityKey]);
 
+  const retryMoves = useCallback(() => {
+    setMoveErrorsByKey((prev) => ({ ...prev, [moveKey]: null }));
+  }, [moveKey]);
+
+  const retryUpgrades = useCallback(() => {
+    setUpgradeErrorsByKey((prev) => ({ ...prev, [upgradeKey]: null }));
+  }, [upgradeKey]);
+
+  const retryOptimality = useCallback(() => {
+    setOptimalityErrorsByKey((prev) => ({ ...prev, [optimalityKey]: null }));
+  }, [optimalityKey]);
+
   useEffect(() => {
     if (!shouldLoadMoves || !hasBoardContext) return;
-    if (hasCacheKey(movesByKey, moveKey) || loadingMoveKeys[moveKey]) return;
+    if (hasCacheKey(movesByKey, moveKey) || loadingMoveKeys[moveKey] || moveErrorsByKey[moveKey]) return;
 
     moveControllerRef.current?.abort();
     const controller = new AbortController();
@@ -333,11 +345,11 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       if (controller.signal.aborted) return;
       loadMoves(controller);
     });
-  }, [hasBoardContext, loadMoves, loadingMoveKeys, moveKey, movesByKey, shouldLoadMoves]);
+  }, [hasBoardContext, loadMoves, loadingMoveKeys, moveErrorsByKey, moveKey, movesByKey, shouldLoadMoves]);
 
   useEffect(() => {
     if (!shouldLoadUpgrades || !buildId) return;
-    if (hasCacheKey(upgradesByKey, upgradeKey) || loadingUpgradeKeys[upgradeKey]) return;
+    if (hasCacheKey(upgradesByKey, upgradeKey) || loadingUpgradeKeys[upgradeKey] || upgradeErrorsByKey[upgradeKey]) return;
 
     upgradeControllerRef.current?.abort();
     const controller = new AbortController();
@@ -346,11 +358,11 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       if (controller.signal.aborted) return;
       loadUpgrades(controller);
     });
-  }, [buildId, loadUpgrades, loadingUpgradeKeys, shouldLoadUpgrades, upgradeKey, upgradesByKey]);
+  }, [buildId, loadUpgrades, loadingUpgradeKeys, shouldLoadUpgrades, upgradeErrorsByKey, upgradeKey, upgradesByKey]);
 
   useEffect(() => {
     if (!shouldLoadOptimality) return;
-    if (hasCacheKey(optimalityByKey, optimalityKey) || loadingOptimalityKeys[optimalityKey]) return;
+    if (hasCacheKey(optimalityByKey, optimalityKey) || loadingOptimalityKeys[optimalityKey] || optimalityErrorsByKey[optimalityKey]) return;
 
     optimalityControllerRef.current?.abort();
     const controller = new AbortController();
@@ -359,7 +371,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       if (controller.signal.aborted) return;
       loadOptimality(controller);
     });
-  }, [loadOptimality, loadingOptimalityKeys, optimalityByKey, optimalityKey, shouldLoadOptimality]);
+  }, [loadOptimality, loadingOptimalityKeys, optimalityByKey, optimalityErrorsByKey, optimalityKey, shouldLoadOptimality]);
 
   const loadStandings = useCallback((controller: AbortController) => {
     setStandingsLoading(true);
@@ -385,11 +397,15 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       });
   }, [characterId, buildId]);
 
+  const retryStandings = useCallback(() => {
+    setStandingsError(null);
+  }, []);
+
   useEffect(() => {
     if (!isExpanded || !isStandingsOpen || !characterId || !buildId) return;
     // Use the ref (not standingsLoading state) as the in-flight guard so this effect
     // doesn't re-run when standingsLoading changes and abort its own in-flight request.
-    if (standings !== null || standingsControllerRef.current) return;
+    if (standings !== null || standingsControllerRef.current || standingsError) return;
 
     const controller = new AbortController();
     standingsControllerRef.current = controller;
@@ -398,7 +414,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       loadStandings(controller);
     });
     return () => { controller.abort(); };
-  }, [isExpanded, isStandingsOpen, characterId, buildId, loadStandings, standings]);
+  }, [isExpanded, isStandingsOpen, characterId, buildId, loadStandings, standings, standingsError]);
 
   useEffect(() => (() => {
     moveControllerRef.current?.abort();
@@ -515,6 +531,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               isLoading={isMoveLoading}
               error={moveError}
               moves={moves}
+              onRetry={retryMoves}
             />
           )}
 
@@ -550,6 +567,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
                 selectedTier={selectedUpgradeTier}
                 onSelectTier={(tier) => setSelectedUpgradeTier(tier as UpgradeTierKey)}
                 orderedUpgradeColumns={orderedUpgradeColumns}
+                onRetry={retryUpgrades}
               />
             </div>
           )}
@@ -581,6 +599,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
             activeWeaponId={activeWeaponId}
             activeTrackKey={activeTrackKey}
             currentScoring={currentScoring}
+            onRetry={retryStandings}
           />
         </section>
       )}
@@ -610,6 +629,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               character={character}
               characterName={characterName}
               regionBadge={regionBadge}
+              onRetry={retryOptimality}
             />
           )}
         </>

@@ -2,6 +2,15 @@ import { LBEchoMainFilter, LBEchoSetFilter, LBStatThreshold } from '@/lib/lb';
 import { toMainStatUrlKey } from '@/lib/mainStatFilters';
 import { normalizeSequences, STAT_OPTION_KEYS } from './constants';
 
+/**
+ * Compare normalized API rows by their complete rendered payload. Partial
+ * signatures can miss owner/profile/stat changes and leave a successfully
+ * revalidated table showing stale data.
+ */
+export function createRowsSignature<T>(rows: readonly T[], total: number): string {
+  return JSON.stringify({ total, rows });
+}
+
 export function parsePositiveInt(value: string | null, fallback: number): number {
   const parsed = Number.parseInt(value ?? '', 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;

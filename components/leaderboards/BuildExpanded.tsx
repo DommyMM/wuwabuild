@@ -9,7 +9,8 @@ import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
 import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
-import { saveDraftBuild } from '@/lib/storage';
+import { loadDraftBuild, saveDraftBuild } from '@/lib/storage';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
 import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL, RegionBadge, ScoringMode } from './constants';
 import { formatFlatStat, formatPercentStat } from './formatters';
@@ -157,8 +158,9 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   const { getSubstatValues, statTranslations } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
+  const [isReplaceDraftOpen, setIsReplaceDraftOpen] = useState(false);
 
-  const handleViewBuild = () => {
+  const openBuildInEditor = () => {
     if (!detail) return;
     posthog.capture('discovery_open_in_editor_click', {
       surface,
@@ -168,6 +170,20 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     });
     saveDraftBuild(detail.buildState);
     router.push('/edit');
+  };
+
+  const handleViewBuild = () => {
+    if (!detail) return;
+    const currentDraft = loadDraftBuild();
+    const wouldReplaceDraft = Boolean(
+      currentDraft?.characterId
+      && JSON.stringify(currentDraft) !== JSON.stringify(detail.buildState),
+    );
+    if (wouldReplaceDraft) {
+      setIsReplaceDraftOpen(true);
+      return;
+    }
+    openBuildInEditor();
   };
 
 
@@ -300,8 +316,9 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   }, [activeSelectedSubstats, detailSubstatSummary, getSubstatValues]);
 
   return (
-    <AnimatePresence initial={animateInitialExpand}>
-      {isExpanded && (
+    <>
+      <AnimatePresence initial={animateInitialExpand}>
+        {isExpanded && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
@@ -431,7 +448,21 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
             </div>
           )}
         </motion.div>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+      <ConfirmDialog
+        isOpen={isReplaceDraftOpen}
+        onClose={() => setIsReplaceDraftOpen(false)}
+        onConfirm={() => {
+          setIsReplaceDraftOpen(false);
+          openBuildInEditor();
+        }}
+        title="Replace editor draft?"
+        description="Opening this build will replace the build currently loaded in the editor."
+        cancelLabel="Keep Draft"
+        confirmLabel="Replace & Open"
+        confirmTone="destructive"
+      />
+    </>
   );
 };

@@ -16,20 +16,20 @@ export const BuildPagination: React.FC<BuildPaginationProps> = ({ page, pageCoun
     <div />
     <div className="justify-self-center flex items-start gap-2 text-text-primary/75 my-4 md:my-2">
       <div className="flex flex-col items-center gap-1">
-        <button type="button" onClick={() => onPageChange(1)} disabled={page <= 1} className={PAGINATION_BUTTON_CLASS}>
-          <ChevronFirst className="h-4 w-4" />
+        <button type="button" aria-label="First page" onClick={() => onPageChange(1)} disabled={page <= 1} className={PAGINATION_BUTTON_CLASS}>
+          <ChevronFirst className="h-4 w-4" aria-hidden="true" />
         </button>
         <span className="text-xs leading-none">first</span>
       </div>
       <div className="flex flex-col items-center gap-1">
-        <button type="button" onClick={() => onPageChange(Math.max(1, page - PAGE_SKIP))} disabled={page <= 1} className={PAGINATION_BUTTON_CLASS}>
-          <ChevronsLeft className="h-4 w-4" />
+        <button type="button" aria-label={`Back ${PAGE_SKIP} pages`} onClick={() => onPageChange(Math.max(1, page - PAGE_SKIP))} disabled={page <= 1} className={PAGINATION_BUTTON_CLASS}>
+          <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
         </button>
         <span className="text-xs leading-none">skip</span>
       </div>
       <div className="flex flex-col items-center gap-1">
-        <button type="button" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page <= 1} className={PAGINATION_BUTTON_CLASS}>
-          <ChevronLeft className="h-4 w-4" />
+        <button type="button" aria-label="Previous page" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page <= 1} className={PAGINATION_BUTTON_CLASS}>
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </button>
         <span className="text-xs leading-none">back</span>
       </div>
@@ -38,20 +38,20 @@ export const BuildPagination: React.FC<BuildPaginationProps> = ({ page, pageCoun
         <span className="text-xs leading-none">page</span>
       </div>
       <div className="flex flex-col items-center gap-1">
-        <button type="button" onClick={() => onPageChange(Math.min(pageCount, page + 1))} disabled={page >= pageCount} className={PAGINATION_BUTTON_CLASS}>
-          <ChevronRight className="h-4 w-4" />
+        <button type="button" aria-label="Next page" onClick={() => onPageChange(Math.min(pageCount, page + 1))} disabled={page >= pageCount} className={PAGINATION_BUTTON_CLASS}>
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </button>
         <span className="text-xs leading-none">next</span>
       </div>
       <div className="flex flex-col items-center gap-1">
-        <button type="button" onClick={() => onPageChange(Math.min(pageCount, page + PAGE_SKIP))} disabled={page >= pageCount} className={PAGINATION_BUTTON_CLASS}>
-          <ChevronsRight className="h-4 w-4" />
+        <button type="button" aria-label={`Forward ${PAGE_SKIP} pages`} onClick={() => onPageChange(Math.min(pageCount, page + PAGE_SKIP))} disabled={page >= pageCount} className={PAGINATION_BUTTON_CLASS}>
+          <ChevronsRight className="h-4 w-4" aria-hidden="true" />
         </button>
         <span className="text-xs leading-none">skip</span>
       </div>
       <div className="flex flex-col items-center gap-1">
-        <button type="button" onClick={() => onPageChange(pageCount)} disabled={page >= pageCount} className={PAGINATION_BUTTON_CLASS}>
-          <ChevronLast className="h-4 w-4" />
+        <button type="button" aria-label="Last page" onClick={() => onPageChange(pageCount)} disabled={page >= pageCount} className={PAGINATION_BUTTON_CLASS}>
+          <ChevronLast className="h-4 w-4" aria-hidden="true" />
         </button>
         <span className="text-xs leading-none">last</span>
       </div>

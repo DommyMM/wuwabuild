@@ -19,6 +19,7 @@ import { GlobalBoardRowExpandedProps } from '@/components/leaderboards/board/Glo
 import { useBuildDetails } from '@/components/leaderboards/useBuildDetails';
 import { useExpandedRows } from '@/components/leaderboards/useExpandedRows';
 import { scrollToElementBelowNav } from '@/components/leaderboards/scrollToElementBelowNav';
+import { createRowsSignature } from '@/components/leaderboards/queryHelpers';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/leaderboards/types';
 import { ProfileBuildExpanded } from './ProfileBuildExpanded';
 import { ProfileShowcase } from './ProfileShowcase';
@@ -29,10 +30,6 @@ import { ProfileEchoes } from './ProfileEchoes';
 const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_72px_80px_88px_minmax(0,1fr)]';
 const PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS = 'max-w-360';
 const PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS = 'max-w-[1620px]';
-
-function buildListSignature(builds: LBBuildRowEntry[], total: number): string {
-  return `${total}:${builds.map((b) => `${b.id}:${b.cv}:${b.timestamp}:${b.weapon.id}`).join(',')}`;
-}
 
 interface ProfilePageClientProps {
   uid: string;
@@ -48,7 +45,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const { characters, weaponList, fetters, getCharacter } = useGameData();
   const { t } = useLanguage();
 
-  const buildListSigRef = useRef(buildListSignature([], 0));
+  const buildListSigRef = useRef(createRowsSignature<LBBuildRowEntry>([], 0));
 
   const initialQuery = useMemo(
     () => parseInitialQuery(new URLSearchParams(searchParams.toString())),
@@ -81,6 +78,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const [total, setTotal] = useState(0);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
+  const [requestRevision, setRequestRevision] = useState(0);
   const { expandedIds: expandedBuildIds, toggleExpandedId, hasExpandedRows } = useExpandedRows();
   const {
     detailById,
@@ -198,7 +196,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       if (!active) return;
       resetBuildDetailRequestState();
       if (cachedResponse) {
-        buildListSigRef.current = buildListSignature(cachedResponse.builds, cachedResponse.total);
+        buildListSigRef.current = createRowsSignature(cachedResponse.builds, cachedResponse.total);
         setBuilds(cachedResponse.builds);
         setTotal(cachedResponse.total);
       }
@@ -219,9 +217,10 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     }, controller.signal)
       .then((response) => {
         if (!active) return;
+        setFetchError((current) => current?.queryKey === currentQueryKey ? null : current);
         const nextPageCount = Math.max(1, Math.ceil(response.total / querySnapshot.pageSize));
         if (querySnapshot.page > nextPageCount) setPage(nextPageCount);
-        const nextSig = buildListSignature(response.builds, response.total);
+        const nextSig = createRowsSignature(response.builds, response.total);
         if (nextSig !== buildListSigRef.current) {
           buildListSigRef.current = nextSig;
           setBuilds(response.builds);
@@ -245,11 +244,12 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       active = false;
       controller.abort();
     };
-  }, [currentQueryKey, querySnapshot, resetBuildDetailRequestState, uid]);
+  }, [currentQueryKey, querySnapshot, requestRevision, resetBuildDetailRequestState, uid]);
 
   const retryCurrentQuery = useCallback(() => {
     setFetchError(null);
     setSettledQueryKey(null);
+    setRequestRevision((current) => current + 1);
   }, []);
 
   const handleToggleExpand = useCallback((buildId: string) => {
@@ -339,9 +339,12 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
   const hasExpandedBuild = hasExpandedRows;
+  const realBuildCount = ghostBuildId
+    ? builds.filter((build) => build.id !== ghostBuildId).length
+    : builds.length;
   const rankStart = (() => {
     if (total <= 0) return 1;
-    if (page === normalizedPageCount) return Math.max(1, total - builds.length + 1);
+    if (page === normalizedPageCount) return Math.max(1, total - realBuildCount + 1);
     return (page - 1) * pageSize + 1;
   })();
 

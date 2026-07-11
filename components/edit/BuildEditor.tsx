@@ -271,11 +271,10 @@ export const BuildEditor: React.FC = () => {
       return { ...current, isEditMode: false };
     });
 
-    const { toBlob } = await import('html-to-image');
-
     const pixelRatio = EXPORT_CARD_WIDTH / FIXED_CARD_PREVIEW_WIDTH;
 
     try {
+      const { toBlob } = await import('html-to-image');
       await new Promise(resolve => requestAnimationFrame(resolve));
       await new Promise(resolve => requestAnimationFrame(resolve));
 

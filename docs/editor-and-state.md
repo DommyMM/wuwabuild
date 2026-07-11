@@ -34,6 +34,8 @@ This doc explains provider boundaries and editor state flow in `wuwabuilds/`.
 4. UI sections consume derived and raw state.
 5. Draft is persisted locally for recovery.
 
+Flows that open a discovered/imported build in the editor must check the current draft before replacing it. If a different character build is already loaded, confirm the replacement first; read-only profile card renderers never persist their temporary state.
+
 ## Route Shapes
 
 - `/edit`, `/characters/[id]`, `/weapons/[id]`:

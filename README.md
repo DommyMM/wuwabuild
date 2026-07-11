@@ -2,15 +2,15 @@
 
 Next.js App Router frontend for [wuwa.build](https://wuwa.build), a Wuthering Waves build creator and leaderboard.
 
-**Stack**: Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · Motion (`motion` on npm)
+**Stack**: Next.js 16 · React 19 · TypeScript 6 · Tailwind CSS 4 · Motion (`motion` on npm)
 
 For full technical context, see [AGENTS.md](./AGENTS.md).
 
 ---
 
-## Status Snapshot (June 7, 2026)
+## Status Snapshot (July 11, 2026)
 
-- Core routes: `/`, `/edit`, `/import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`, `/profile/[uid]`, `/characters/[id]`, `/weapons/[id]`, `/changelog`, `/tos`, `/privacy`.
+- Core routes: `/`, `/edit`, `/import`, `/bulk-import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`, `/profile/[uid]`, `/profiles`, `/characters/[id]`, `/weapons/[id]`, `/changelog`, `/tos`, `/privacy`.
 - **Home (`/`)** uses ISR (`revalidate = 300`) and server-prefetched LB stats. **`/builds`** is `force-static` with a server-prefetched default build page, then client-side query changes/revalidation go through the LB gateway. **`/leaderboards/[characterId]`** is `force-dynamic`: it server-prefetches the first board payload, canonicalizes the incoming query string against the returned weapon/track config and `redirect()`s to it, then keeps URL state in sync on the client. **`/leaderboards`** prefetches overview data server-side and also keeps an overview cache on the client.
 - `/import` OCR flow is live with leaderboard upload and screenshot-backed scan issue reports.
 - Build expansion shows move breakdown, substat upgrade tiers, and leaderboard standings across all weapon × track boards. `/builds`, `/profile/[uid]`, and `/leaderboards/[characterId]` share row expansion/detail-loading primitives, while the character leaderboard keeps its own damage-board, dedupe, and ghost-build semantics.
@@ -134,6 +134,7 @@ wuwabuilds/
 │   ├── page.tsx             # Home (/)
 │   ├── layout.tsx           # Root layout (Navigation + RootProviders)
 │   ├── changelog/           # Public changelog (/changelog)
+│   ├── profiles/            # Profile search/history landing (/profiles)
 │   ├── tos/                 # Terms of service
 │   ├── privacy/             # Privacy policy
 │   ├── (game)/              # Route group for pages that need game-data providers
@@ -141,6 +142,7 @@ wuwabuilds/
 │   │   ├── builds/          # Build browser (/builds)
 │   │   ├── edit/            # Build editor (/edit)
 │   │   ├── import/          # OCR import (/import)
+│   │   ├── bulk-import/     # Batch OCR import (/bulk-import)
 │   │   ├── saves/           # Local saves (/saves)
 │   │   ├── profile/         # Player profile (/profile/[uid])
 │   │   ├── leaderboards/    # Leaderboards (/leaderboards, /leaderboards/[characterId])

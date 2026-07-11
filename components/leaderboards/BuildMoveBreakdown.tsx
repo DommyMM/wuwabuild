@@ -249,12 +249,14 @@ interface BuildMoveBreakdownProps {
   isLoading: boolean;
   error: string | null;
   moves: LBMoveEntry[];
+  onRetry: () => void;
 }
 
 export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   isLoading,
   error,
   moves,
+  onRetry,
 }) => {
   const [activeMoveIndex, setActiveMoveIndex] = useState<number | null>(null);
   const [activeHitKey, setActiveHitKey] = useState<string | null>(null);
@@ -367,8 +369,11 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
       )}
 
       {!isLoading && error && (
-        <div className="rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-          {error}
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          <span>{error}</span>
+          <button type="button" onClick={onRetry} className="rounded border border-red-300/50 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-300/10">
+            Retry
+          </button>
         </div>
       )}
 

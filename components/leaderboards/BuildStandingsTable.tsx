@@ -12,6 +12,7 @@ interface BuildStandingsTableProps {
   standings: LBStandingEntry[] | null;
   standingsLoading: boolean;
   standingsError: string | null;
+  onRetry?: () => void;
   characterId: string;
   characterName: string;
   /** Deep-links the board to this build when set. Omitted for transient/ghost
@@ -31,6 +32,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
   standings,
   standingsLoading,
   standingsError,
+  onRetry,
   characterId,
   characterName,
   buildId,
@@ -58,7 +60,16 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
   }
 
   if (standingsError) {
-    return <p className="text-center text-xs text-text-primary/40">{standingsError}</p>;
+    return (
+      <div className="flex items-center justify-center gap-2 text-xs text-text-primary/55">
+        <span>{standingsError}</span>
+        {onRetry && (
+          <button type="button" onClick={onRetry} className="rounded border border-border px-2 py-1 font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary">
+            Retry
+          </button>
+        )}
+      </div>
+    );
   }
 
   if (!standings) return null;

@@ -18,9 +18,9 @@ import { LeaderboardOverviewHeader } from './LeaderboardOverviewHeader';
 const OVERVIEW_GRID = 'grid-cols-[44px_280px_144px_76px_1fr]';
 
 function overviewSignature(entries: LBCharacterOverview[]): string {
-  return entries.map((e) =>
-    `${e.id}:${e.trackKey}:${e.totalEntries}:${e.teamMembers.map((m) => `${m.charId}:${m.sequence ?? 0}`).join('+')}:${e.weapons.map((w) => `${w.weaponId}=${Math.round(w.damage)}`).join('|')}`
-  ).join(',');
+  // `display` is an SSR-only locale fallback. Everything else is rendered and
+  // must participate so owner/reign/config changes are not discarded as stale.
+  return JSON.stringify(entries, (key, value) => (key === 'display' ? undefined : value));
 }
 
 function formatOverviewMetric(value: number): string {

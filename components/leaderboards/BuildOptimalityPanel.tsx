@@ -106,6 +106,7 @@ interface BuildOptimalityPanelProps {
   data: LBBoardOptimality | null;
   loading: boolean;
   error: string | null;
+  onRetry: () => void;
   baseDamage?: number;
   buildDetail: LBBuildDetailEntry;
   character: Character | null;
@@ -117,6 +118,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
   data,
   loading,
   error,
+  onRetry,
   baseDamage,
   buildDetail,
   character,
@@ -204,8 +206,11 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
 
   if (error) {
     return (
-      <div className="rounded-lg border border-border/40 bg-background-secondary/20 px-3 py-2 text-[11px] text-text-primary/40">
-        {error}
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/35 bg-red-500/8 px-3 py-2 text-[11px] text-red-200/80">
+        <span>{error}</span>
+        <button type="button" onClick={onRetry} className="rounded border border-red-300/40 px-2 py-1 font-semibold text-red-100 transition-colors hover:bg-red-300/10">
+          Retry
+        </button>
       </div>
     );
   }

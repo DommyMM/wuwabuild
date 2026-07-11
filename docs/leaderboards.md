@@ -18,11 +18,11 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 
 - **`/`** — server component prefetches overview + global build stats via `lbServer.ts` (ISR on the page).
 - **`/builds`** — `force-static`. Server component prefetches the default build query through `lbServer.ts`; the client uses that payload only when the URL has no search params. Query changes, non-default initial URLs, and revalidation fetch the gateway (`api.wuwa.build`) directly, with a small localStorage cache keyed by serialized query.
-- **`/leaderboards`** — server component prefetches overview data through `lbServer.ts`; the client overview cache (`leaderboardOverviewCache.ts`) avoids redundant fetches across mounts. Overview/reign surfaces intentionally use a longer 10-minute cache window than character boards.
-- **`/leaderboards/[characterId]`** — `force-dynamic`. Server prefetches the first board payload via `lbServer.ts`, canonicalizes the incoming query string against the returned weapon/track config, and `redirect()`s when the URL doesn't match. The payload is passed to the client as `initialData`.
+- **`/leaderboards`** — server component prefetches overview data through `lbServer.ts`; the client overview cache (`leaderboardOverviewCache.ts`) avoids redundant fetches across mounts. Server and client use the same overview parser, and `weaponIds` is the configured board list (including a weapon with no rank-1 row yet), while `weapons` contains the available rank-1 summaries. Overview/reign surfaces intentionally use a longer 10-minute cache window than character boards.
+- **`/leaderboards/[characterId]`** — `force-dynamic`. The route validates the character before contacting LB and returns the real not-found page for unknown IDs. For valid characters, the server prefetches the first board payload via `lbServer.ts`, canonicalizes the incoming query string against the returned weapon/track config, and `redirect()`s when the URL doesn't match. The payload is passed to the client as `initialData`.
 - **`/profile/[uid]`** — server component fetches profile metadata through `fetchProfileSummary()`. Build rows are fetched client-side from `/profile/{uid}/builds`, which returns the same compact row shape as `/build` but is scoped by route UID in the LB service.
 - Prefetch always calls LB through the configured LB gateway. Character-board/build/profile prefetches are cached via `next: { revalidate: 300 }` (5 minutes), while overview/reign prefetches use `next: { revalidate: 600 }` (10 minutes). See `PREFETCH_TTL_S` and `OVERVIEW_PREFETCH_TTL_S` in `lbServer.ts`.
-- Where revalidation exists, client fetches after mount; signature checks can skip `setState` when nothing effectively changed.
+- Where revalidation exists, client fetches after mount; signature checks cover the complete normalized row payload so owner, stat, equipment, reign, and configuration changes are not discarded as unchanged.
 
 ## Query State Model
 
@@ -62,6 +62,7 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
   - Backend returns a `ghostBuild`.
   - Frontend inserts it at its computed damage position.
   - No competitive rank is shown for that row (`globalRank === 0`).
+- Profile deep links can also inject a build outside its natural filtered/sorted page. That row is display-only: it does not increment real-row ranks, page ranges, or totals.
 
 ## Build Expansion
 
@@ -81,6 +82,9 @@ The simulation section requires parent row context such as:
 - `damage`
 
 Expansion fetches are intentionally on-demand. The list view does not eagerly hydrate build details.
+Failed expansion requests remain in an error state until the user chooses **Retry**; they must not automatically loop while a panel stays open.
+
+Opening a discovered build in `/edit` writes it to the draft key. If a different editor draft already exists, the expansion panel confirms replacement before writing it.
 
 The shared hooks only cover generic row state. Domain semantics stay separate:
 

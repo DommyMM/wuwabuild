@@ -1,9 +1,5 @@
 import type { Metadata } from 'next';
-
-// Reads searchParams to determine weapon/track, must be dynamic.
-// Overrides the force-static default set in (game)/layout.tsx.
-export const dynamic = 'force-dynamic';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { LeaderboardCharacterClient } from '@/components/leaderboards/character/LeaderboardCharacterClient';
 import { DEFAULT_LB_TRACK, parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeaderboardQuery, serializeLeaderboardQuery, toURLSearchParams } from '@/components/leaderboards/character/leaderboardCharacterQuery';
@@ -11,6 +7,10 @@ import { adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
 import type { LBTrack } from '@/lib/lb';
 import { prefetchLeaderboard } from '@/lib/lbServer';
 import { loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
+
+// Reads searchParams to determine weapon/track, must be dynamic.
+// Overrides the force-static default set in (game)/layout.tsx.
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ characterId: string }>;
@@ -76,35 +76,23 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const rawSearchParams = toURLSearchParams(await searchParams);
   const parsedQuery = parseInitialLeaderboardQuery(rawSearchParams);
   const { character, characterName } = getCharacterPageCopy(characterId);
+  if (!character) notFound();
 
-  if (character) {
-    const initialData = await prefetchLeaderboard(characterId, leaderboardSnapshotToApiQuery(parsedQuery));
-    const activeWeaponId = initialData?.activeWeaponId || parsedQuery.weaponId || initialData?.weaponIds[0] || '';
-    const activeTrack = initialData?.activeTrack || parsedQuery.track || initialData?.tracks[0]?.key || DEFAULT_LB_TRACK;
-    const tracks = initialData?.tracks ?? [];
-    const title = getLeaderboardTitle(characterName, activeTrack, tracks);
-    const description = getLeaderboardDescription(characterName, activeTrack, tracks, activeWeaponId);
-    const canonical = getCoreLeaderboardCanonical(characterId, activeWeaponId, activeTrack);
-    const image = getLeaderboardOgImageUrl(characterId, activeWeaponId, activeTrack);
+  const initialData = await prefetchLeaderboard(characterId, leaderboardSnapshotToApiQuery(parsedQuery));
+  const activeWeaponId = initialData?.activeWeaponId || parsedQuery.weaponId || initialData?.weaponIds[0] || '';
+  const activeTrack = initialData?.activeTrack || parsedQuery.track || initialData?.tracks[0]?.key || DEFAULT_LB_TRACK;
+  const tracks = initialData?.tracks ?? [];
+  const title = getLeaderboardTitle(characterName, activeTrack, tracks);
+  const description = getLeaderboardDescription(characterName, activeTrack, tracks, activeWeaponId);
+  const canonical = getCoreLeaderboardCanonical(characterId, activeWeaponId, activeTrack);
+  const image = getLeaderboardOgImageUrl(characterId, activeWeaponId, activeTrack);
 
-    return {
-      title,
-      description,
-      openGraph: { title, description, url: canonical, images: [{ url: image, width: 1200, height: 630, alt: title }] },
-      twitter: { title, description, images: [image] },
-      alternates: { canonical },
-    };
-  }
-
-  const fallbackTitle = `Character Leaderboard #${characterId}`;
-  const fallbackDescription = 'Global damage rankings for this Wuthering Waves character. Filter by weapon, track, echo sets, and compare setups.';
-  const fallbackImage = getLeaderboardOgImageUrl(characterId, '', DEFAULT_LB_TRACK);
   return {
-    title: fallbackTitle,
-    description: fallbackDescription,
-    openGraph: { title: fallbackTitle, description: fallbackDescription, images: [{ url: fallbackImage, width: 1200, height: 630, alt: fallbackTitle }] },
-    twitter: { title: fallbackTitle, description: fallbackDescription, images: [fallbackImage] },
-    alternates: { canonical: `/leaderboards/${characterId}` },
+    title,
+    description,
+    openGraph: { title, description, url: canonical, images: [{ url: image, width: 1200, height: 630, alt: title }] },
+    twitter: { title, description, images: [image] },
+    alternates: { canonical },
   };
 }
 
@@ -112,7 +100,8 @@ export default async function CharacterLeaderboardPage({ params, searchParams }:
   const { characterId } = await params;
   const rawSearchParams = toURLSearchParams(await searchParams);
   const parsedQuery = parseInitialLeaderboardQuery(rawSearchParams);
-  const { characterName } = getCharacterPageCopy(characterId);
+  const { character, characterName } = getCharacterPageCopy(characterId);
+  if (!character) notFound();
 
   const initialData = await prefetchLeaderboard(characterId, leaderboardSnapshotToApiQuery(parsedQuery));
 

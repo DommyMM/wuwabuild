@@ -18,11 +18,8 @@ import { LeaderboardResultsPanel } from './LeaderboardResultsPanel';
 import { scrollToElementBelowNav } from '../scrollToElementBelowNav';
 import { useBuildDetails } from '../useBuildDetails';
 import { useExpandedRows } from '../useExpandedRows';
+import { createRowsSignature } from '../queryHelpers';
 import posthog from 'posthog-js';
-
-function leaderboardSignature(entries: LBLeaderboardEntry[], total: number): string {
-  return `${total}:${entries.map((e) => `${e.id}:${e.damage}:${e.globalRank}:${e.timestamp}:${e.finalCV}:${e.reignSince ?? ''}`).join(',')}`;
-}
 
 function mergeGhostBuild(entries: LBLeaderboardEntry[], ghostBuild: LBLeaderboardEntry | null | undefined): LBLeaderboardEntry[] {
   if (!ghostBuild || entries.some((entry) => entry.id === ghostBuild.id)) {
@@ -121,7 +118,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   // cross-page raw ranking is a backend sort=raw follow-up.
   const [scoring, setScoring] = useState<ScoringMode>(() => initialSnapshot.scoring ?? DEFAULT_SCORING);
 
-  const leaderboardSigRef = useRef(leaderboardSignature(initialEntries, initialData?.total ?? 0));
+  const leaderboardSigRef = useRef(createRowsSignature(initialEntries, initialData?.total ?? 0));
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialEntries);
   const entriesRef = useRef<LBLeaderboardEntry[]>(initialEntries);
   const [total, setTotal] = useState(() => initialData?.total ?? 0);
@@ -363,7 +360,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         // Skip if the build already appears in the regular results (e.g. deep-linked to its own page).
         const mergedBuilds = mergeGhostBuild(response.builds, response.ghostBuild);
 
-        const nextSig = leaderboardSignature(mergedBuilds, response.total);
+        const nextSig = createRowsSignature(mergedBuilds, response.total);
         if (nextSig !== leaderboardSigRef.current) {
           leaderboardSigRef.current = nextSig;
           setEntries(mergedBuilds);

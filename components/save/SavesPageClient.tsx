@@ -59,10 +59,12 @@ export const SavesPageClient: React.FC = () => {
   const [pendingDeleteBuild, setPendingDeleteBuild] = useState<SavedBuild | null>(null);
   const itemsPerPage = 10;
   const sortTimerRef = useRef<number | null>(null);
-  const builds = isClient && storageRevision >= 0 ? loadBuilds().builds : EMPTY_BUILDS;
-  const legacySummary = isClient && storageRevision >= 0
-    ? getLegacySavesSummaryFromStorage()
-    : STORAGE_SUMMARY_FALLBACK;
+  const storageSnapshot = useMemo(() => ({
+    revision: storageRevision,
+    builds: isClient ? loadBuilds().builds : EMPTY_BUILDS,
+    legacySummary: isClient ? getLegacySavesSummaryFromStorage() : STORAGE_SUMMARY_FALLBACK,
+  }), [isClient, storageRevision]);
+  const { builds, legacySummary } = storageSnapshot;
   const isLoaded = isClient;
   const hostname = isClient ? window.location.hostname : null;
   const isLegacyDomain = hostname === 'wuwabuilds.moe' || hostname === 'www.wuwabuilds.moe';

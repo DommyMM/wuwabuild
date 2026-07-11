@@ -19,6 +19,26 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'new',
                 text: 'Yangyang Xuanling leaderboards out'
+            },
+            {
+                kind: 'new',
+                text: 'Danjin solo + subdps boards out'
+            },
+            {
+                kind: 'fixed',
+                text: 'Profile build deep links no longer shift the displayed ranks or page range'
+            },
+            {
+                kind: 'fixed',
+                text: 'Expanded leaderboard tools now stop after a failed request and provide a manual retry'
+            },
+            {
+                kind: 'improved',
+                text: 'Opening a leaderboard build now warns before replacing an existing editor draft'
+            },
+            {
+                kind: 'improved',
+                text: 'Echo editing and local save filtering now avoid unnecessary background work'
             }
         ]
     },

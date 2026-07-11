@@ -17,11 +17,8 @@ import { GlobalBoardRowExpandedProps } from './GlobalBoardRow';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '../types';
 import { useBuildDetails } from '../useBuildDetails';
 import { useExpandedRows } from '../useExpandedRows';
+import { createRowsSignature } from '../queryHelpers';
 import posthog from 'posthog-js';
-
-function buildListSignature(builds: LBBuildRowEntry[], total: number): string {
-  return `${total}:${builds.map((b) => `${b.id}:${b.cv}:${b.timestamp}:${b.weapon.id}`).join(',')}`;
-}
 
 interface GlobalBoardPageClientProps {
   initialData?: LBListBuildsResponse | null;
@@ -36,7 +33,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   // initialData is always the default query result. Only use it when the URL has no params.
   const isDefaultQuery = searchParams.toString() === '';
   const ssrData = isDefaultQuery ? initialData : null;
-  const buildListSigRef = useRef(buildListSignature(ssrData?.builds ?? [], ssrData?.total ?? 0));
+  const buildListSigRef = useRef(createRowsSignature(ssrData?.builds ?? [], ssrData?.total ?? 0));
   const defaultSsrCacheWrittenRef = useRef(false);
 
   const initialQuery = useMemo(
@@ -225,7 +222,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       resetBuildDetailRequestState();
       // Skip localStorage cache only for the default query when SSR data already covers it.
       if (cachedResponse && !(ssrData && currentQueryKey === '')) {
-        buildListSigRef.current = buildListSignature(cachedResponse.builds, cachedResponse.total);
+        buildListSigRef.current = createRowsSignature(cachedResponse.builds, cachedResponse.total);
         setBuilds(cachedResponse.builds);
         setTotal(cachedResponse.total);
       }
@@ -254,7 +251,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
           setPage(nextPageCount);
         }
         // Diff check: skip setState if data hasn't changed (avoids re-render on silent revalidation).
-        const nextSig = buildListSignature(response.builds, response.total);
+        const nextSig = createRowsSignature(response.builds, response.total);
         if (nextSig !== buildListSigRef.current) {
           buildListSigRef.current = nextSig;
           setBuilds(response.builds);
