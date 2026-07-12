@@ -61,8 +61,8 @@ EditorProviders (nested on `/edit`, `/characters/[id]`, `/weapons/[id]`)
 - **Leaderboard SSR prefetch**: server components use `lib/lbServer.ts` with `next: { revalidate: 300 }`; client components must not import `lbServer.ts`.
 - **OCR**: browser code posts the original image to `NEXT_PUBLIC_OCR_URL/api/ocr` (`ocr.wuwa.build` in production). The endpoint always streams `application/x-ndjson`; `/import` uses region events for live progress, while `/bulk-import` reads the final `done` payload.
 - **Build submission**: `POST /build` is wired — `/import` sends canonical `buildState` when the `Upload to Leaderboard` toggle is enabled.
-- **Training image upload**: `/import` can upload the full screenshot to R2 through `POST /api/upload-training`.
-- **OCR issue reporting**: `/import` can submit screenshot-linked JSON reports to R2 via `POST /api/report-ocr-issue` for manual review.
+- **OCR image persistence**: the OCR backend stores the original screenshot once and returns its confirmed content-addressed key.
+- **OCR issue reporting**: `/import` sends bounded multipart reports through the gateway to backend-owned `POST /api/report-ocr-issue`; the original file is attached only when OCR storage failed.
 - **Production console stripping**: `next.config.ts` removes `console.log` and similar calls in production, while preserving `console.error` and `console.warn`.
 
 ---
@@ -100,10 +100,6 @@ Set these in a local `.env` (not committed).
 | `NEXT_PUBLIC_LB_URL` | Yes in prod | Cloudflare gateway origin for leaderboard reads/writes; local default is `http://localhost:8080` |
 | `NEXT_PUBLIC_OCR_URL` | Yes in prod | Cloudflare gateway origin for OCR; local default is `http://localhost:5000` |
 | `NEXT_PUBLIC_POSTHOG_KEY` | No | PostHog analytics key |
-| `CLOUDFLARE_ACCOUNT_ID` | No | R2 config for import screenshot storage and OCR issue reports |
-| `R2_ACCESS_KEY_ID` | No | R2 credentials |
-| `R2_SECRET_ACCESS_KEY` | No | R2 credentials |
-| `R2_BUCKET_NAME` | No | R2 bucket name |
 
 ---
 
@@ -115,8 +111,8 @@ Set these in a local `.env` (not committed).
 4. The Cloudflare Worker injects the internal key, forwards client IP, and passes the streaming body through from Railway.
 5. Backend decodes once, crops server-side, fans recognition out through its worker pool, and returns ID-enriched OCR payloads.
 6. Frontend updates the results UI as each region event arrives, then converts the final analysis to `SavedState` and loads into the editor.
-7. Optional: fire-and-forget full screenshot upload to R2 through `/api/upload-training`, storing a hash-deduped root-level `<hash>.jpg` object.
-8. Users can report scan problems from `/import`; report JSON is stored in the same bucket under `reports/YYYY/MM/DD/<reportId>.json` and linked back to the uploaded screenshot key.
+7. Backend-owned R2 persistence stores the exact screenshot bytes once under a hash-deduped root-level key and confirms that key only in the final event.
+8. Users can report scan problems from `/import`; the gateway forwards bounded multipart metadata and, only when needed, the original screenshot fallback to the backend. Report JSON is stored under `reports/YYYY/MM/DD/<reportId>.json` and linked to the confirmed image key.
 
 Blank weapon panels are a known export issue for some newer characters. The OCR
 backend should report those as an empty weapon, and `lib/import/convert.ts`
@@ -148,7 +144,7 @@ wuwabuilds/
 │   │   ├── leaderboards/    # Leaderboards (/leaderboards, /leaderboards/[characterId])
 │   │   ├── characters/      # Character-seeded editor routes (/characters/[id])
 │   │   └── weapons/         # Weapon-seeded editor routes (/weapons/[id])
-│   └── api/                 # API routes (upload-training, report-ocr-issue, app-local helpers)
+│   └── api/                 # App-local Open Graph image routes
 ├── contexts/                # React Context providers
 ├── components/              # Components by feature area
 │   ├── leaderboards/        # All leaderboard + build browser components

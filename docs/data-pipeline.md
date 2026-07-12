@@ -13,9 +13,9 @@ After a successful submission, the import confirmation resolves the character ag
 5. The final `done` event carries `scanId`, storage diagnostics, and `trainingImageKey` only when R2 confirmed the object was stored or already present. An R2 failure leaves the key null without failing usable OCR.
 6. OCR analysis is converted into saved build state. A confirmed key and the same canonical `scanId` are also sent fire-and-forget to `POST /build/link-image` for fill-only historical matching. Expected misses are silent. See lb `docs/image-linking.md`.
 7. Optional leaderboard submission sends the canonical build payload, confirmed `sourceImageKey`, and `scanId` together. There is no independent image promise for submit to race.
-8. OCR issue reports reference the confirmed key. If storage failed, submitting a report can explicitly upload the original bytes through `/api/report-ocr-issue` before writing its JSON report.
+8. OCR issue reports go through the same gateway to backend-owned `POST /api/report-ocr-issue`. The browser sends bounded report JSON as one multipart field. It references the confirmed key without re-uploading the screenshot; if storage failed, the optional image field carries the original `File` bytes for the backend to identify, deduplicate, and store before writing the report.
 
-`/api/upload-training` remains a rollback transport only. It is not called by normal imports. Both it and the issue-report fallback preserve JPEG/PNG bytes and emit the same root-level 64-hex key contract; no normal import uses canvas recompression or Base64.
+The frontend has no R2 credentials or storage routes. Normal OCR and the explicit report fallback both preserve the original JPEG/PNG bytes and use the same root-level 64-hex key contract; no path uses canvas recompression or Base64.
 
 The operational bulk-import page uses the same endpoint and automatically
 paces all local workers to the public 10-starts-per-minute/IP budget. A 429
@@ -50,10 +50,6 @@ gateway hostnames:
 - `NEXT_PUBLIC_LB_URL` — browser and SSR LB calls; prod `https://api.wuwa.build`, defaults to `http://localhost:8080`
 - `NEXT_PUBLIC_OCR_URL` — browser OCR calls; prod `https://ocr.wuwa.build`, defaults to `http://localhost:5000`
 - `NEXT_PUBLIC_POSTHOG_KEY`
-- `CLOUDFLARE_ACCOUNT_ID` — server-only, retained for issue-report and rollback uploads
-- `R2_ACCESS_KEY_ID` — server-only, retained for issue-report and rollback uploads
-- `R2_SECRET_ACCESS_KEY` — server-only, retained for issue-report and rollback uploads
-- `R2_BUCKET_NAME` — server-only, retained for issue-report and rollback uploads
 
 ## Frontend Commands
 
@@ -71,4 +67,4 @@ npm run lint
 
 - Keep server-only env usage inside server boundaries and API routes.
 - Do not import server-only LB helpers into client components.
-- R2-backed OCR issue reporting should fail closed when storage is not configured; the import flow itself should still remain usable.
+- Backend-owned OCR issue reporting fails closed when storage is unavailable; the import flow itself remains usable.

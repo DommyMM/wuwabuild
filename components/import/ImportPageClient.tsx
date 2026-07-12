@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useOcrImport } from '@/hooks/useOcrImport';
-import { encodeImageFileAsBase64, loadImage } from '@/lib/import/imageFile';
+import { loadImage } from '@/lib/import/imageFile';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { linkBuildImage, submitBuild } from '@/lib/lb';
 import { MAX_OCR_IMAGE_BYTES } from '@/lib/ingestIdentity';
 import { loadDraftBuild, saveBuild, saveDraftBuild } from '@/lib/storage';
-import { OCR_HEALTH_URL } from '@/lib/apiEndpoints';
+import { OCR_HEALTH_URL, OCR_REPORT_URL } from '@/lib/apiEndpoints';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
@@ -22,6 +22,7 @@ import { AlertTriangle, ExternalLink, RotateCcw } from 'lucide-react';
 import posthog from 'posthog-js';
 import { validateImportedEchoPanels } from '@/lib/import/validateEchoPanels';
 import { useResolvedLeaderboardLinkState } from '@/hooks/useResolvedLeaderboardLink';
+import { buildOcrIssueReportForm } from '@/lib/import/issueReport';
 
 type ImportStep = 'upload' | 'results';
 
@@ -481,42 +482,42 @@ export function ImportPageClient() {
   const submitIssueReport = async (note: string) => {
     try {
       const activeWatermark = getActiveWatermark();
-      let fallbackImage: string | undefined;
+      let fallbackImage: File | null = null;
 
       if (!sourceImageKey) {
         if (!selectedFile) {
           notifyError('No screenshot is available to attach to this report.');
           return;
         }
-        fallbackImage = await encodeImageFileAsBase64(selectedFile);
+        fallbackImage = selectedFile;
       }
 
       setIsSubmittingReport(true);
 
-      const res = await fetch('/api/report-ocr-issue', {
+      const reportBody = buildOcrIssueReportForm({
+        note,
+        route: '/import',
+        reason: reportReason,
+        scanId: scanId ?? undefined,
+        trainingImageKey: sourceImageKey ?? undefined,
+        progress,
+        analysisData,
+        importedState: getReportImportedState() ?? undefined,
+        validationError,
+        ocrError: error,
+        lbUploadError,
+        uploadToLb,
+        watermark: activeWatermark,
+        client: {
+          url: window.location.href,
+          userAgent: navigator.userAgent,
+          submittedAt: new Date().toISOString(),
+        },
+      }, fallbackImage);
+
+      const res = await fetch(OCR_REPORT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          note,
-          route: '/import',
-          reason: reportReason,
-          scanId: scanId ?? undefined,
-          trainingImageKey: sourceImageKey ?? undefined,
-          image: fallbackImage,
-          progress,
-          analysisData,
-          importedState: getReportImportedState() ?? undefined,
-          validationError,
-          ocrError: error,
-          lbUploadError,
-          uploadToLb,
-          watermark: activeWatermark,
-          client: {
-            url: window.location.href,
-            userAgent: navigator.userAgent,
-            submittedAt: new Date().toISOString(),
-          },
-        }),
+        body: reportBody,
       });
 
       const payload = await res.json() as { success?: boolean; reason?: string; trainingImageKey?: string | null };

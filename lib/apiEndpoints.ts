@@ -18,5 +18,8 @@ const OCR_BASE = base(process.env.NEXT_PUBLIC_OCR_URL, OCR_DEFAULT);
 /** OCR analyze endpoint (POST original image as FormData/raw bytes). */
 export const OCR_POST_URL = `${OCR_BASE}/api/ocr`;
 
+/** OCR issue-report endpoint (POST metadata + optional original image as FormData). */
+export const OCR_REPORT_URL = `${OCR_BASE}/api/report-ocr-issue`;
+
 /** OCR health-check endpoint (GET; also wakes a sleeping Railway service). */
 export const OCR_HEALTH_URL = `${OCR_BASE}/health`;

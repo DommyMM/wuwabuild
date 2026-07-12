@@ -21,8 +21,8 @@ export const CHANGELOG: ChangelogEntry[] = [
                 text: 'Yangyang Xuanling and Danjin leaderboards out'
             },
             {
-                kind: 'fixed',
-                text: 'ER penalty moved out of pie chart to be better visualized in move breakdowns'
+                kind: 'improved',
+                text: 'Move breakdowns now show score bonuses and the ER penalty in the Total Score summary and as a ring around the pie chart, instead of distorting the pie itself, so move percentages reflect actual damage dealt'
             },
             {
                 kind: 'improved',

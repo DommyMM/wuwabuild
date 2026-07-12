@@ -124,10 +124,6 @@ production sets the gateway hostnames explicitly.
 NEXT_PUBLIC_LB_URL         # prod: https://api.wuwa.build (browser + SSR); defaults to http://localhost:8080
 NEXT_PUBLIC_OCR_URL        # prod: https://ocr.wuwa.build (browser); defaults to http://localhost:5000
 NEXT_PUBLIC_POSTHOG_KEY    # optional
-CLOUDFLARE_ACCOUNT_ID      # optional, R2 screenshot/report storage (/api/report-ocr-issue, /api/upload-training)
-R2_ACCESS_KEY_ID
-R2_SECRET_ACCESS_KEY
-R2_BUCKET_NAME
 ```
 
 ---
