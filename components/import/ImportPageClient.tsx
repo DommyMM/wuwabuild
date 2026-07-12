@@ -536,7 +536,7 @@ export function ImportPageClient() {
         character_id: getReportImportedState()?.characterId ?? null,
         scan_id: scanId,
       });
-      success('Report submitted. Thanks.');
+      success('Reported.');
       setIsReportModalOpen(false);
     } catch (err) {
       posthog.captureException(err);
