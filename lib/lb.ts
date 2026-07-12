@@ -298,6 +298,7 @@ export interface LBMoveEntry {
   damage: number;
   elemType?: string;
   moveTypes?: string[];
+  modifier?: boolean;
   hits: LBMoveHitEntry[];
 }
 
@@ -308,9 +309,7 @@ export interface LBSubstatUpgradeTierSet {
   minRank: Record<string, number>;
   medianRank: Record<string, number>;
   maxRank: Record<string, number>;
-  /** Canonical Score for the current board, returned by the upgrades endpoint. */
   baseDamage?: number;
-  /** Canonical Score rank for the current board, when visible/projectable. */
   currentRank?: number;
   currentRankVisible?: boolean;
 }
@@ -471,6 +470,7 @@ function parseMoveEntry(raw: unknown): LBMoveEntry | null {
     damage: toFiniteNumber(raw.damage, 0),
     elemType: typeof raw.elemType === 'string' ? raw.elemType : undefined,
     moveTypes: moveTypes && moveTypes.length > 0 ? moveTypes : undefined,
+    modifier: raw.modifier === true ? true : undefined,
     hits,
   };
 }
@@ -864,13 +864,10 @@ export interface LBCharacterOverview {
   trackKey: string;
   trackLabel: string;
   totalEntries: number;
-  weapons: LBWeaponTop[];
-  /** Configured board weapons; can include a weapon that has no rank-1 row yet. */
+  weapons: LBWeaponTop[]; // Configured board weapons; can include a weapon that has no rank-1 row yet
   weaponIds: string[];
   teamCharacterIds: string[];
-  teamMembers: LBTeamMemberConfig[];
-  // Server-resolved English display fields (SSR/SEO). The client refines to the
-  // user's locale once GameDataContext loads; for `en` it's identical, so no flash.
+  teamMembers: LBTeamMemberConfig[]; // Server-resolved English display fields (SSR/SEO)
   display?: { name: string; element: string; head: string | null };
 }
 
@@ -880,11 +877,9 @@ export interface LBLeaderboardEntry {
   cvPenalty: number;
   finalCV: number;
   timestamp: string;
-  /** Active board metric: Score by default, or raw Damage when scoring=raw. */
   damage: number;
   globalRank: number;
-  /** RFC3339 start of the current rank-1 hold; only set on the #1 row of the board. */
-  reignSince?: string;
+  reignSince?: string;    // RFC3339 start of the current rank-1 hold; only set on the #1 row of the board
   stats: Record<LBStatCode, number>;
   owner: { username: string; uid: string };
   character: { id: string; level: number; roverElement?: string };
@@ -908,7 +903,6 @@ export interface LBLeaderboardQuery {
   statFilters?: LBStatThreshold[];
   track?: string;
   buildId?: string;
-  /** Scoring lens. 'raw' ranks the board by pure rotation damage (ER shown, not scored). */
   scoring?: 'adjusted' | 'raw';
 }
 
@@ -922,19 +916,11 @@ export interface LBLeaderboardResponse {
   tracks: LBTrack[];
   teamCharacterIds: string[];
   teamMembers: LBTeamMemberConfig[];
-  /** Resolved team buff contributions for the active board (per-support + total). */
   teamBuffs: LBTeamBuffs;
   activeWeaponId: string;
   activeTrack: string;
-  /** Active track's ER target (0 = no requirement). Scores are damage × min(1, ER/target). */
-  erTarget: number;
-  /**
-   * Backend-derived four-column stat selection for this board (same for every
-   * row). Canonical stat-sort keys, e.g. ['hp','aero_dmg','basic_attack_dmg',
-   * 'resonance_liberation_dmg']. Empty when no board reference is available —
-   * the UI then falls back to its per-row heuristic.
-   */
-  displayStats: LBStatSortKey[];
+  erTarget: number;   // Scores are damage × min(1, ER/target)
+  displayStats: LBStatSortKey[];  // Canonical stat-sort keys, e.g. ['hp','aero_dmg','basic_attack_dmg','resonance_liberation_dmg']. Empty when no board reference is available
 }
 
 interface LBSubmitBuildResult {
