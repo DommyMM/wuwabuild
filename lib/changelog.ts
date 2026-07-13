@@ -18,6 +18,14 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
+                text: 'Imports no longer wait behind a slow screenshot backup after OCR finishes'
+            },
+            {
+                kind: 'improved',
+                text: 'Imports now reject unsupported or visibly invalid build-card layouts before OCR and leaderboard submission'
+            },
+            {
+                kind: 'improved',
                 text: 'Build and profile cards now use a cleaner echo roll layout, while profile RV selections highlight the matching rolls on profile cards'
             },
             {

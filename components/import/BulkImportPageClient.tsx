@@ -200,7 +200,7 @@ async function postImage(file: File) {
   return {
     analysisData: unwrapOcrAnalysisPayload(payload, `OCR for ${file.name}`) as AnalysisData,
     timings: payload.timings,
-    sourceImageKey: canonicalSourceImageKeyOrNull(payload.trainingImageKey),
+    sourceImageKey: canonicalSourceImageKeyOrNull(payload.sourceImageKey ?? payload.trainingImageKey),
     scanId: canonicalScanIdOrNull(payload.scanId),
   };
 }

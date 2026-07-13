@@ -9,9 +9,12 @@ export interface FullOcrResponse {
   analysis?: AnalysisData;
   progress?: Partial<Record<RegionKey, RegionStatus>>;
   timings?: Record<string, unknown>;
+  /** Deterministic SHA-256 object key; storage may still be pending. */
+  sourceImageKey?: string | null;
+  /** R2-confirmed object key, reserved for operations that require existence. */
   trainingImageKey?: string | null;
   storage?: {
-    result?: 'stored' | 'already_present' | 'failed' | 'timed_out' | 'disabled';
+    result?: 'stored' | 'already_present' | 'pending' | 'failed' | 'timed_out' | 'disabled';
     elapsedMs?: number;
   };
   /** Backend flag: the card looks like a real build card but its substat names are not English. */
@@ -22,6 +25,7 @@ type OcrStreamEvent =
   | {
       type: 'meta';
       scanId?: string;
+      sourceImageKey?: string | null;
       image?: {
         width: number;
         height: number;

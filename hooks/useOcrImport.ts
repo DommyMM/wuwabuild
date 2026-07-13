@@ -29,6 +29,7 @@ interface OcrProcessSummary {
   hasUid: boolean;
   characterId: string | null;
   timings?: Record<string, unknown>;
+  sourceImageKey: string | null;
   trainingImageKey: string | null;
   storage?: FullOcrResponse['storage'];
   unsupportedLanguage: boolean;
@@ -68,6 +69,7 @@ export function useOcrImport(): UseOcrImportReturn {
     let nextAnalysisData: AnalysisData = {};
     let nextProgress: Record<RegionKey, RegionStatus> = INITIAL_PROGRESS;
     let timings: Record<string, unknown> | undefined;
+    let sourceImageKey: string | null = null;
     let trainingImageKey: string | null = null;
     let scanId: string | null = null;
     let storage: FullOcrResponse['storage'];
@@ -128,6 +130,10 @@ export function useOcrImport(): UseOcrImportReturn {
         console.warn('OCR returned a non-canonical scan ID; ignoring it.');
       }
       storage = data.storage;
+      sourceImageKey = canonicalSourceImageKeyOrNull(data.sourceImageKey);
+      if (data.sourceImageKey != null && !sourceImageKey) {
+        console.warn('OCR returned a non-canonical optimistic source image key; ignoring it.');
+      }
       trainingImageKey = canonicalSourceImageKeyOrNull(data.trainingImageKey);
       if (data.trainingImageKey != null && !trainingImageKey) {
         console.warn('OCR returned a non-canonical source image key; ignoring it.');
@@ -179,6 +185,7 @@ export function useOcrImport(): UseOcrImportReturn {
       hasUid: Number.isFinite(uidNumber) && uidNumber > 0,
       characterId: characterData?.id ?? null,
       timings,
+      sourceImageKey,
       trainingImageKey,
       storage,
       unsupportedLanguage: isUnsupportedLanguage,

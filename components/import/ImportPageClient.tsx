@@ -50,6 +50,7 @@ export function ImportPageClient() {
   const [draftBuildState, setDraftBuildState] = useState<SavedState | null>(() => loadDraftBuild());
   const [selectedFile, setSelectedFile]       = useState<File | null>(null);
   const [sourceImageKey, setSourceImageKey] = useState<string | null>(null);
+  const [confirmedTrainingImageKey, setConfirmedTrainingImageKey] = useState<string | null>(null);
   const [scanId, setScanId] = useState<string | null>(null);
   const [lastImportWatermark, setLastImportWatermark] = useState<{ username: string; uid: string } | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -102,6 +103,7 @@ export function ImportPageClient() {
     setLbUploadError(null);
     setSelectedFile(null);
     setSourceImageKey(null);
+    setConfirmedTrainingImageKey(null);
     setScanId(null);
     setLastImportWatermark(null);
     preflightSignatureRef.current = null;
@@ -154,8 +156,9 @@ export function ImportPageClient() {
     reset();
     setStep('results');
     void processImage(f).then((summary) => {
-      const confirmedSourceImageKey = summary.trainingImageKey ?? null;
-      setSourceImageKey(confirmedSourceImageKey);
+      const optimisticSourceImageKey = summary.sourceImageKey ?? summary.trainingImageKey ?? null;
+      setSourceImageKey(optimisticSourceImageKey);
+      setConfirmedTrainingImageKey(summary.trainingImageKey ?? null);
       setScanId(summary.scanId);
       if (summary.failedRegionsCount > 0) {
         warning(`Scan finished with ${summary.failedRegionsCount} unread section(s). Review the build before importing.`);
@@ -173,14 +176,15 @@ export function ImportPageClient() {
         has_uid: summary.hasUid,
         character_id: summary.characterId,
         unsupported_language: summary.unsupportedLanguage,
-        has_source_image_key: Boolean(confirmedSourceImageKey),
+        has_source_image_key: Boolean(optimisticSourceImageKey),
+        has_confirmed_training_image_key: Boolean(summary.trainingImageKey),
         scan_id: summary.scanId,
         r2_result: summary.storage?.result ?? null,
         r2_ms: summary.storage?.elapsedMs ?? null,
         timings: summary.timings ?? null,
       });
-      if (confirmedSourceImageKey && !summary.unsupportedLanguage && summary.hasCharacter && summary.hasWeapon) {
-        void linkScannedImage(summary.analysisData, confirmedSourceImageKey, summary.scanId);
+      if (optimisticSourceImageKey && !summary.unsupportedLanguage && summary.hasCharacter && summary.hasWeapon) {
+        void linkScannedImage(summary.analysisData, optimisticSourceImageKey, summary.scanId);
       }
     }).catch((err) => {
       posthog.captureException(err);
@@ -202,6 +206,7 @@ export function ImportPageClient() {
     setLbUploadError(null);
     setSelectedFile(null);
     setSourceImageKey(null);
+    setConfirmedTrainingImageKey(null);
     setScanId(null);
     setLastImportWatermark(null);
     setPendingWm(null);
@@ -484,7 +489,7 @@ export function ImportPageClient() {
       const activeWatermark = getActiveWatermark();
       let fallbackImage: File | null = null;
 
-      if (!sourceImageKey) {
+      if (!confirmedTrainingImageKey) {
         if (!selectedFile) {
           notifyError('No screenshot is available to attach to this report.');
           return;
@@ -499,7 +504,7 @@ export function ImportPageClient() {
         route: '/import',
         reason: reportReason,
         scanId: scanId ?? undefined,
-        trainingImageKey: sourceImageKey ?? undefined,
+        trainingImageKey: confirmedTrainingImageKey ?? undefined,
         progress,
         analysisData,
         importedState: getReportImportedState() ?? undefined,
@@ -525,14 +530,15 @@ export function ImportPageClient() {
         throw new Error(payload.reason || 'Failed to submit issue report.');
       }
 
-      if (!sourceImageKey && typeof payload.trainingImageKey === 'string' && payload.trainingImageKey) {
-        setSourceImageKey(payload.trainingImageKey);
+      if (!confirmedTrainingImageKey && typeof payload.trainingImageKey === 'string' && payload.trainingImageKey) {
+        setConfirmedTrainingImageKey(payload.trainingImageKey);
+        if (!sourceImageKey) setSourceImageKey(payload.trainingImageKey);
       }
 
       posthog.capture('ocr_issue_report_submit', {
         reason: reportReason,
         has_note: note.trim().length > 0,
-        has_training_image_key: Boolean(sourceImageKey || payload.trainingImageKey),
+        has_training_image_key: Boolean(confirmedTrainingImageKey || payload.trainingImageKey),
         character_id: getReportImportedState()?.characterId ?? null,
         scan_id: scanId,
       });

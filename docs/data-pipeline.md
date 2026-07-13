@@ -8,14 +8,14 @@ After a successful submission, the import confirmation resolves the character ag
 
 1. The browser validates the selected JPEG/PNG size (5 MiB maximum) and dimensions, then sends the original `File` once as the existing multipart OCR request.
 2. The Cloudflare gateway injects the internal key and streams that request to the OCR backend.
-3. The backend detects the media type from magic bytes and hashes the exact bytes into the canonical root R2 key `<64 lowercase SHA-256 hex>.<jpg|png>`.
-4. R2 persistence starts concurrently with region recognition, while NDJSON region progress continues streaming to the browser.
-5. The final `done` event carries `scanId`, storage diagnostics, and `trainingImageKey` only when R2 confirmed the object was stored or already present. An R2 failure leaves the key null without failing usable OCR.
-6. OCR analysis is converted into saved build state. A confirmed key and the same canonical `scanId` are also sent fire-and-forget to `POST /build/link-image` for fill-only historical matching. Expected misses are silent. See lb `docs/image-linking.md`.
-7. Optional leaderboard submission sends the canonical build payload, confirmed `sourceImageKey`, and `scanId` together. There is no independent image promise for submit to race.
-8. OCR issue reports go through the same gateway to backend-owned `POST /api/report-ocr-issue`. The browser sends bounded report JSON as one multipart field. It references the confirmed key without re-uploading the screenshot; if storage failed, the optional image field carries the original `File` bytes for the backend to identify, deduplicate, and store before writing the report.
+3. The backend detects the media type from magic bytes, hashes the exact bytes into the canonical root R2 key `<64 lowercase SHA-256 hex>.<jpg|png>`, and runs the fixed upload-time card-layout integrity guard. High-confidence wrong-layout or manipulated inputs are rejected before R2 storage and OCR.
+4. For accepted cards, R2 persistence starts concurrently with region recognition, while NDJSON region progress continues streaming to the browser.
+5. `meta.sourceImageKey` and `done.sourceImageKey` carry the deterministic SHA-256 object name immediately. If OCR finishes before R2, `done.storage.result` is `pending` and the retained backend upload continues without holding the UI open. `trainingImageKey` remains non-null only when R2 already confirmed the object.
+6. OCR analysis is converted into saved build state. The optimistic source key and canonical `scanId` are sent fire-and-forget to `POST /build/link-image` for fill-only historical matching. A later re-upload of identical bytes heals the same content-addressed key. Expected misses are silent. See lb `docs/image-linking.md`.
+7. Optional leaderboard submission sends the canonical build payload, optimistic `sourceImageKey`, and `scanId` together.
+8. OCR issue reports go through the same gateway to backend-owned `POST /api/report-ocr-issue`. They deliberately use only the confirmed `trainingImageKey`; while storage is pending or failed, the original `File` is sent so the report cannot reference a missing object.
 
-The frontend has no R2 credentials or storage routes. Normal OCR and the explicit report fallback both preserve the original JPEG/PNG bytes and use the same root-level 64-hex key contract; no path uses canvas recompression or Base64.
+The frontend has no R2 credentials or storage routes. Accepted OCR images and the explicit report fallback both preserve the original JPEG/PNG bytes and use the same root-level 64-hex key contract; no path uses canvas recompression or Base64.
 
 The operational bulk-import page uses the same endpoint and automatically
 paces all local workers to the public 10-starts-per-minute/IP budget. A 429

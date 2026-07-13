@@ -69,7 +69,7 @@ Current init settings:
   - `max_file_size`: number (only when the file is too large)
 
 #### `ocr_complete`
-- Purpose: OCR and its concurrent source-image persistence completed with quality diagnostics.
+- Purpose: OCR completed and its concurrent source-image persistence was resolved or left running with quality diagnostics.
 - Properties:
   - `duration_ms`: number
   - `failed_regions_count`: number
@@ -79,9 +79,10 @@ Current init settings:
   - `has_uid`: boolean
   - `character_id`: string | null
   - `unsupported_language`: boolean
-  - `has_source_image_key`: boolean (true only for a backend-confirmed R2 object)
+  - `has_source_image_key`: boolean (deterministic optimistic key available for build provenance)
+  - `has_confirmed_training_image_key`: boolean (R2 already confirmed the object)
   - `scan_id`: string | null
-  - `r2_result`: `stored` | `already_present` | `failed` | `timed_out` | `disabled` | null
+  - `r2_result`: `stored` | `already_present` | `pending` | `failed` | `timed_out` | `disabled` | null
   - `r2_ms`: number | null
   - `timings`: backend timing object | null
 
