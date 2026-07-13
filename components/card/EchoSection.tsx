@@ -98,9 +98,13 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
           : null;
         // The main stat is not part of the substat selection, so it only ever reacts to hover.
         const mainHoverKey = normalizeStatHoverKey(mainStatType);
-        const mainVisuals = getEchoChipVisuals(
+        const mainState = (
           !hasActiveHover ? 'plain' : (mainHoverKey && activeHoverStat === mainHoverKey) ? 'hovered' : 'shaded'
         );
+        const mainVisuals = getEchoChipVisuals(mainState);
+        const mainPlateClassName = mainState === 'plain'
+          ? 'bg-black/75 opacity-100'
+          : mainVisuals.className;
 
         const substats = panel.stats.subStats.filter(
           (sub) => Boolean(sub.type?.trim()) && sub.value != null
@@ -150,8 +154,8 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
 
             {/* Content layer is click-through so the echo hover behind it stays reachable;
                 individual chips re-enable pointer events. */}
-            <div className="pointer-events-none relative z-2 flex h-full">
-              <div className="flex flex-col items-start justify-between p-2">
+            <div className="pointer-events-none relative z-2 flex h-full justify-between">
+              <div className="flex min-w-0 flex-col items-start justify-between p-2">
                 {showCV && cvTier ? (
                   <HoverCard
                     placement="top"
@@ -174,11 +178,34 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                   </HoverCard>
                 ) : <span />}
 
+                {fetterIcon && (fetter ? (
+                  <FetterHoverCard
+                    fetter={fetter}
+                    placement="top"
+                    triggerClassName="pointer-events-auto inline-flex cursor-help"
+                  >
+                    <img
+                      src={fetterIcon}
+                      alt={fetter.name ? t(fetter.name) : (elementType ?? '')}
+                      className="h-6 w-6 object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+                    />
+                  </FetterHoverCard>
+                ) : (
+                  <img
+                    src={fetterIcon}
+                    alt={elementType ?? ''}
+                    className="h-6 w-6 object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+                  />
+                ))}
+              </div>
+
+              {/* Main stat heads the roll column; the five substats stay bottom-aligned. */}
+              <div className="flex min-w-0 flex-col justify-between p-2">
                 {mainStatType && mainStatValue != null && (
                   <HoverCard
                     placement="top"
                     width="sm"
-                    triggerClassName="pointer-events-auto inline-flex cursor-help"
+                    triggerClassName="pointer-events-auto inline-flex max-w-full shrink-0 self-end cursor-help"
                     title={mainStatLabel || mainStatType}
                     subtitle="Echo main stat"
                     body={
@@ -196,7 +223,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                     }
                   >
                     <div
-                      className={`flex max-w-full items-center gap-1 rounded-md px-1.5 py-1 transition-all duration-200 ${mainVisuals.className}`}
+                      className={`flex max-w-full items-center gap-1 rounded-md border border-white/10 px-1.5 py-1 leading-none transition-all duration-200 ${mainPlateClassName}`}
                       style={mainVisuals.style}
                       onMouseEnter={() => onHoverStatChange?.(mainHoverKey)}
                       onMouseLeave={() => onHoverStatChange?.(null)}
@@ -209,7 +236,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                           style={mainStatIconFilter ? { filter: mainStatIconFilter } : undefined}
                         />
                       )}
-                      <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                      <span className="inline-flex h-4 items-center whitespace-nowrap text-sm font-semibold leading-none tabular-nums text-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                         {isMainPercent
                           ? `${mainStatValue.toFixed(1)}%`
                           : Math.round(mainStatValue).toLocaleString()}
@@ -217,55 +244,27 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                     </div>
                   </HoverCard>
                 )}
-              </div>
 
-              {/* Sonata caps the roll column; the five rows then distribute through
-                  the remaining height so the final roll lands level with main stat. */}
-              <div className="flex min-w-0 w-1/2 flex-col p-2">
-                <div className="flex h-5 shrink-0 justify-end">
-                  {fetterIcon && (fetter ? (
-                    <FetterHoverCard
-                      fetter={fetter}
-                      placement="top"
-                      triggerClassName="pointer-events-auto inline-flex cursor-help"
-                    >
-                      <img
-                        src={fetterIcon}
-                        alt={fetter.name ? t(fetter.name) : (elementType ?? '')}
-                        className="h-5 w-5 object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
-                      />
-                    </FetterHoverCard>
-                  ) : (
-                    <img
-                      src={fetterIcon}
-                      alt={elementType ?? ''}
-                      className="h-5 w-5 object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+                {Array.from({ length: 5 }).map((_, si) => {
+                  const sub = substats[si];
+                  if (!sub?.type || sub.value == null) {
+                    return <div key={si} className="h-5 w-full" />;
+                  }
+
+                  const subType = sub.type.trim();
+                  const subHoverKey = normalizeStatHoverKey(subType);
+
+                  return (
+                    <EchoSubstatChip
+                      key={si}
+                      statType={subType}
+                      value={sub.value}
+                      state={chipStateFor(subType, subHoverKey)}
+                      showRollQuality={showRollQuality}
+                      onHoverChange={(isHovering) => onHoverStatChange?.(isHovering ? subHoverKey : null)}
                     />
-                  ))}
-                </div>
-
-                <div className="flex min-h-0 flex-1 flex-col justify-between gap-1 pt-1.5">
-                  {Array.from({ length: 5 }).map((_, si) => {
-                    const sub = substats[si];
-                    if (!sub?.type || sub.value == null) {
-                      return <div key={si} className="h-5 w-full" />;
-                    }
-
-                    const subType = sub.type.trim();
-                    const subHoverKey = normalizeStatHoverKey(subType);
-
-                    return (
-                      <EchoSubstatChip
-                        key={si}
-                        statType={subType}
-                        value={sub.value}
-                        state={chipStateFor(subType, subHoverKey)}
-                        showRollQuality={showRollQuality}
-                        onHoverChange={(isHovering) => onHoverStatChange?.(isHovering ? subHoverKey : null)}
-                      />
-                    );
-                  })}
-                </div>
+                  );
+                })}
               </div>
             </div>
           </div>

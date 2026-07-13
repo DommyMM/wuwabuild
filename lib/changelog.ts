@@ -18,7 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
-                text: 'Profile build cards now use a cleaner echo roll layout and highlight the substats selected in the RV summary'
+                text: 'Build and profile cards now use a cleaner echo roll layout, while profile RV selections highlight the matching rolls on profile cards'
             }
         ]
     },

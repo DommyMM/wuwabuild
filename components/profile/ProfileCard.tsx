@@ -22,41 +22,12 @@ import { ProfileRankSection } from './ProfileRankSection';
 import { SubstatSummaryRow } from './SubstatSummaryRow';
 import { AdjustRankingButton, NO_RANKING_KEY } from './AdjustRankingButton';
 import { BUILD_CARD_EXPORT_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
-import { DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
-import { BASE_STATS } from '@/lib/constants/statMappings';
+import { DEFAULT_PREFERRED_STATS, getAvailablePreferredSubstats } from '@/lib/calculations/rollValues';
 import posthog from 'posthog-js';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MIN_CUSTOM_IMAGE_HEIGHT = 600;
-const BASE_STATS_SET = new Set<string>(BASE_STATS);
-
-const getBasePercentVariant = (stat: string): string | null => {
-  if (BASE_STATS_SET.has(stat)) return `${stat}%`;
-  if (stat.endsWith('%') && BASE_STATS_SET.has(stat.slice(0, -1))) return stat.slice(0, -1);
-  return null;
-};
-
-const getAvailablePreferredSubstats = (
-  echoPanels: SavedState['echoPanels'],
-  preferredStats: readonly string[],
-): Set<string> => {
-  const rolled = new Set<string>();
-  for (const panel of echoPanels) {
-    for (const substat of panel.stats.subStats) {
-      const key = substat.type?.trim();
-      if (key && substat.value !== null) rolled.add(key);
-    }
-  }
-
-  const selected = new Set<string>();
-  for (const stat of preferredStats) {
-    if (rolled.has(stat)) selected.add(stat);
-    const variant = getBasePercentVariant(stat);
-    if (variant && rolled.has(variant)) selected.add(variant);
-  }
-  return selected;
-};
 interface ProfileCardProps {
   entry: LBBuildRowEntry;
   detail: LBBuildDetailEntry;

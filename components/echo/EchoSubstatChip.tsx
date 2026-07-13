@@ -45,7 +45,7 @@ interface ChipVisuals {
   showsTierColor: boolean;
 }
 
-const PLAIN_PLATE = 'bg-black/60 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]';
+const PLAIN_PLATE = 'bg-black/50 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]';
 
 export function getEchoChipVisuals(state: EchoChipState): ChipVisuals {
   switch (state) {
@@ -53,7 +53,7 @@ export function getEchoChipVisuals(state: EchoChipState): ChipVisuals {
       return {
         className: 'opacity-100',
         style: {
-          backgroundColor: 'rgba(255, 215, 0, 0.15)',
+          backgroundColor: 'rgba(255, 215, 0, 0.2)',
           boxShadow: '0 0 2px rgba(255, 215, 0, 0.30)',
         },
         iconClassName: 'brightness-125',
@@ -61,7 +61,7 @@ export function getEchoChipVisuals(state: EchoChipState): ChipVisuals {
       };
     case 'muted':
       return {
-        className: `${PLAIN_PLATE} opacity-55`,
+        className: `${PLAIN_PLATE} opacity-70`,
         style: {},
         iconClassName: '',
         showsTierColor: true,
@@ -94,7 +94,7 @@ export function getEchoChipVisuals(state: EchoChipState): ChipVisuals {
 }
 
 const SIZE_CLASS = {
-  sm: { row: 'gap-1 px-1.5 py-0.75 text-sm', icon: 'h-4 w-4' },
+  sm: { row: 'gap-1 px-1.5 py-1 text-[13px]', icon: 'h-3. w-3.5' },
   md: { row: 'gap-1 px-1.5 py-1.5 text-base', icon: 'h-4.5 w-4.5' },
 } as const;
 
@@ -153,7 +153,7 @@ export const EchoSubstatChip: React.FC<EchoSubstatChipProps> = ({
       )}
     >
       <div
-        className={`flex w-full items-center justify-start rounded-sm font-semibold leading-none transition-all duration-200 ${sizeClass.row} ${visuals.className}`}
+        className={`flex w-full items-center rounded-sm font-semibold leading-none transition-all duration-200 ${sizeClass.row} ${visuals.className}`}
         style={{ ...(tierInfo ? { color: tierInfo.color } : {}), ...visuals.style }}
         onMouseEnter={onHoverChange ? () => onHoverChange(true) : undefined}
         onMouseLeave={onHoverChange ? () => onHoverChange(false) : undefined}
@@ -167,7 +167,7 @@ export const EchoSubstatChip: React.FC<EchoSubstatChipProps> = ({
         ) : (
           <span className={`${sizeClass.icon} shrink-0 rounded bg-white/18`} />
         )}
-        <span className="tabular-nums text-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+        <span className="inline-flex h-3.5 items-center leading-none tabular-nums text-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
           {isPercent ? `${value.toFixed(1)}%` : Math.round(value)}
         </span>
       </div>
