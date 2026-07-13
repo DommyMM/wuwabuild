@@ -25,22 +25,6 @@ export const NameGroup: React.FC<NameGroupProps> = ({
       </div>
       <div className="flex items-center gap-2">
         <span className="text-3xl text-white">Lv.{characterLevel}/90</span>
-        <div className="flex items-center">
-          {selected.character.elementIcon && (
-            <img
-              src={selected.character.elementIcon}
-              alt={selected.element}
-              className="h-8 w-8 object-contain"
-            />
-          )}
-          {selected.character.roleIcon && (
-            <img
-              src={selected.character.roleIcon}
-              alt={`${selected.character.Role} role`}
-              className="h-8 w-8 object-contain"
-            />
-          )}
-        </div>
       </div>
     </div>
   );

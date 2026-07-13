@@ -90,7 +90,7 @@ export const BuildEditor: React.FC = () => {
   const actionBarRef = useRef<HTMLDivElement>(null);
   const [isPhoneViewport, setIsPhoneViewport] = useState(false);
 
-  const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: false, showCV: true, useAltSkin: false });
+  const [cardOptions, setCardOptions] = useState<CardOptions>({ source: '', showRollQuality: true, showCV: true, useAltSkin: true });
   const [isCardGenerated, setIsCardGenerated] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);

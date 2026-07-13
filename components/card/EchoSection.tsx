@@ -126,7 +126,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
         const frameBorderColor = getEchoCVFrameColor(echoCV);
 
         return (
-          <div key={i} className={PANEL_CLASS} style={{ borderColor: `${frameBorderColor}b3` }}>
+          <div key={i} className={PANEL_CLASS} style={showCV ? { borderColor: `${frameBorderColor}b3` } : undefined}>
             {/* Artwork sizes itself off the panel height and fades out under the substat column. */}
             <div className="absolute inset-y-0 left-0 z-0">
               <img
