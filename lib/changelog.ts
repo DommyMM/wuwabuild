@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-13',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Fixed damage type conversions across Aemeath, Hiyuki, Sigrika, Galbrena, and Changli'
+            }
+        ]
+    },
+    {
         date: '2026-07-12',
         changes: [
             {
