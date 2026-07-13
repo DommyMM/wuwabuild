@@ -19,6 +19,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Build and profile cards now use a cleaner echo roll layout, while profile RV selections highlight the matching rolls on profile cards'
+            },
+            {
+                kind: 'fixed',
+                text: "Fixed Rebecca damage being inflated from parsing bug"
             }
         ]
     },
