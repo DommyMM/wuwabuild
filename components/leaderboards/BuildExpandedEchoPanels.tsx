@@ -2,9 +2,10 @@
 
 import React from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle, QUALITY_TIERS } from '@/lib/calculations/rollValues';
+import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { getSubstatTierInfo } from '@/lib/calculations/substatTiers';
 import { isPercentStat } from '@/lib/constants/statMappings';
+import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { FORTE_LABELS } from '@/lib/constants/skillBranches';
 import { Character } from '@/lib/character';
 import { activeElementForPanel, Echo } from '@/lib/echo';
@@ -13,6 +14,7 @@ import { getEchoPaths } from '@/lib/paths';
 import { ECHO_IMAGE_FADE_STYLE } from '@/components/card/EchoSection';
 import { EchoHoverCard } from '@/components/echo/EchoHoverCard';
 import { FetterHoverCard } from '@/components/echo/FetterHoverCard';
+import { EchoCVBar, formatStatRoll, StatHoverRow, SubstatRollBar } from '@/components/echo/StatTierBars';
 import { HoverCard } from '@/components/ui/HoverCard';
 import { RegionBadge } from './constants';
 
@@ -35,124 +37,6 @@ function normalizeSubstatKey(type: string | null | undefined): string | null {
   const trimmed = type.trim();
   return trimmed.length > 0 ? trimmed : null;
 }
-
-function formatStatRoll(value: number, isPercent: boolean): string {
-  return isPercent ? `${Number(value).toFixed(1)}%` : String(Math.round(Number(value)));
-}
-
-// A label/value pair used inside hover tooltip bodies on the echo panels.
-const StatHoverRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="flex items-baseline justify-between gap-4">
-    <span className="text-xs font-semibold uppercase tracking-wide text-white/55">{label}</span>
-    <span className="text-sm font-semibold text-white/90">{children}</span>
-  </div>
-);
-
-// Discrete bar of every possible roll for a substat, tinted by quality tier.
-// The roll this build landed is enlarged, brightened and labelled. Pass
-// showValueLabel={false} where the value already renders next to the bar.
-export const SubstatRollBar: React.FC<{
-  rollValues: number[];
-  currentValue: number;
-  isPercent: boolean;
-  showValueLabel?: boolean;
-}> = ({ rollValues, currentValue, isPercent, showValueLabel = true }) => {
-  const sorted = rollValues.filter((value) => Number.isFinite(value)).slice().sort((a, b) => a - b);
-  if (sorted.length < 2) {
-    return <span className="text-sm font-semibold text-white/90">{formatStatRoll(currentValue, isPercent)}</span>;
-  }
-
-  let currentIndex = 0;
-  let bestDelta = Infinity;
-  sorted.forEach((value, index) => {
-    const delta = Math.abs(value - currentValue);
-    if (delta < bestDelta) {
-      bestDelta = delta;
-      currentIndex = index;
-    }
-  });
-
-  const tierColors = sorted.map((value) => getSubstatTierInfo(value, sorted)?.color ?? '#888888');
-  const currentColor = tierColors[currentIndex];
-
-  return (
-    <div>
-      {showValueLabel && (
-        <div className="flex items-end gap-0.5">
-          {sorted.map((value, index) => (
-            <span
-              key={index}
-              className="min-w-0 flex-1 text-center text-xs font-bold leading-none tabular-nums"
-              style={{ color: index === currentIndex ? currentColor : 'transparent' }}
-            >
-              {formatStatRoll(value, isPercent)}
-            </span>
-          ))}
-        </div>
-      )}
-      <div className="mt-1 flex items-end gap-0.5">
-        {sorted.map((value, index) => {
-          const isCurrent = index === currentIndex;
-          return (
-            <div
-              key={index}
-              className="min-w-0 flex-1 rounded-[2px]"
-              style={{
-                backgroundColor: tierColors[index],
-                height: isCurrent ? 18 : 7,
-                opacity: isCurrent ? 1 : 0.4,
-              }}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// A value plotted on the shared quality-tier ladder; the landed tier is enlarged.
-// CV and RV both grade on QUALITY_TIERS, so the ladder only needs the tier label.
-export const QualityTierBar: React.FC<{ currentLabel: string; valueText: string }> = ({ currentLabel, valueText }) => {
-  const tiers = QUALITY_TIERS.slice().reverse(); // low -> high
-  const currentIndex = tiers.findIndex((tier) => tier.label === currentLabel);
-
-  return (
-    <div>
-      <div className="flex items-end gap-0.5">
-        {tiers.map((tier, index) => (
-          <span
-            key={tier.label}
-            className="min-w-0 flex-1 text-center text-xs font-bold leading-none tabular-nums"
-            style={{ color: index === currentIndex ? tier.color : 'transparent' }}
-          >
-            {valueText}
-          </span>
-        ))}
-      </div>
-      <div className="mt-1 flex items-end gap-0.5">
-        {tiers.map((tier, index) => {
-          const isCurrent = index === currentIndex;
-          return (
-            <div
-              key={tier.label}
-              className="min-w-0 flex-1 rounded-[2px]"
-              style={{
-                backgroundColor: tier.color,
-                height: isCurrent ? 18 : 7,
-                opacity: isCurrent ? 1 : 0.4,
-              }}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// Echo CV plotted on its quality-tier ladder; the build's tier is enlarged.
-const EchoCVBar: React.FC<{ cv: number }> = ({ cv }) => (
-  <QualityTierBar currentLabel={getEchoCVTierStyle(cv).label} valueText={cv.toFixed(1)} />
-);
 
 export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = ({
   detail,
@@ -228,6 +112,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
           const mainStatIcon = mainStatType
             ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')] ?? '')
             : '';
+          const mainStatIconFilter = mainStatType ? ELEMENT_ICON_FILTERS[mainStatType] : undefined;
           const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
           const mainStatLabel = mainStatType
             ? (statTranslations?.[mainStatType]
@@ -355,7 +240,12 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                     >
                       <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/75 px-2 py-1">
                         {mainStatIcon ? (
-                          <img src={mainStatIcon} alt="" className="h-5 w-5 object-contain" />
+                          <img
+                            src={mainStatIcon}
+                            alt=""
+                            className="h-5 w-5 object-contain"
+                            style={mainStatIconFilter ? { filter: mainStatIconFilter } : undefined}
+                          />
                         ) : (
                           <span className="h-5 w-5 rounded bg-white/18" />
                         )}
@@ -384,18 +274,12 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                     const isMatchedSelection = hasSelectedSubstats && activeSelectedSubstats.has(subType);
                     const isDimmed = hasSelectedSubstats && !isMatchedSelection;
 
-                    const tierStyle: React.CSSProperties | undefined = tierInfo ? {
-                      color: tierInfo.color,
-                    } : undefined;
-
-                    const selectedStyle: React.CSSProperties | undefined = isMatchedSelection ? {
-                      backgroundColor: 'rgba(255, 215, 0, 0.15)',
-                      boxShadow: '0 0 2px rgba(255, 215, 0, 0.30)',
-                    } : undefined;
-
                     const combinedStyle: React.CSSProperties = {
-                      ...(tierStyle ?? {}),
-                      ...(selectedStyle ?? {}),
+                      ...(tierInfo ? { color: tierInfo.color } : {}),
+                      ...(isMatchedSelection ? {
+                        backgroundColor: 'rgba(255, 215, 0, 0.15)',
+                        boxShadow: '0 0 2px rgba(255, 215, 0, 0.30)',
+                      } : {}),
                     };
 
                     const subLabel = statTranslations?.[subType]

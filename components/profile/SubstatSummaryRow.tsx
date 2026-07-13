@@ -1,19 +1,11 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
-import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
-import { calculateSelectedStatsRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
+import { calculateSelectedStatsRV } from '@/lib/calculations/rollValues';
 import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
-import {
-  LB_SUMMARY_ICON,
-  LB_SUMMARY_ICON_EMPTY,
-  LB_SUMMARY_PILL,
-  LB_SUMMARY_ROW,
-  LB_SUMMARY_RV,
-  LB_SUMMARY_VAL,
-} from '@/components/leaderboards/constants';
+import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL } from '@/components/leaderboards/constants';
 import { formatFlatStat, formatPercentStat } from '@/components/leaderboards/formatters';
 
 const BASE_STATS_SET = new Set<string>(BASE_STATS);
@@ -26,47 +18,31 @@ type SubstatSummaryEntry = {
   isPercent: boolean;
 };
 
-function getBasePercentVariant(stat: string): string | null {
-  if (BASE_STATS_SET.has(stat)) return `${stat}%`;
-  if (stat.endsWith('%') && BASE_STATS_SET.has(stat.slice(0, -1))) return stat.slice(0, -1);
-  return null;
+interface SubstatSummaryRowProps {
+  selectedSubstats: ReadonlySet<string>;
+  onToggleSubstat: (type: string) => void;
 }
 
 function normalizeSubstatKey(type: string | null | undefined): string | null {
-  if (!type) return null;
-  const trimmed = type.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  const trimmed = type?.trim();
+  return trimmed ? trimmed : null;
 }
 
 /**
  * Renders the per-stat substat tally pills + total RV. Lives inside the BuildProvider
  * scope so it reads `state.echoPanels` directly. Designed to sit inside the cardRef
  * capture area so it gets included in the downloaded PNG (Akasha-style).
+ *
+ * The owning profile card passes the same selection to this row and the echo panels,
+ * so the interaction stays local to the one surface that exposes these controls.
  */
-export const SubstatSummaryRow: React.FC = () => {
+export const SubstatSummaryRow: React.FC<SubstatSummaryRowProps> = ({
+  selectedSubstats,
+  onToggleSubstat,
+}) => {
   const { state } = useBuild();
-  const selected = useSelectedCharacter();
   const { getSubstatValues, statTranslations, statIcons } = useGameData();
-  const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
-  const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
-
-  const autoSelectedSubstats = useMemo(() => {
-    const preferredStats = selected?.character.preferredStats ?? DEFAULT_PREFERRED_STATS;
-    const availableStats = new Set<string>();
-    for (const panel of state.echoPanels) {
-      for (const sub of panel.stats.subStats) {
-        const key = normalizeSubstatKey(sub.type);
-        if (key && sub.value !== null) availableStats.add(key);
-      }
-    }
-    const toSelect = new Set<string>();
-    for (const stat of preferredStats) {
-      if (availableStats.has(stat)) toSelect.add(stat);
-      const variant = getBasePercentVariant(stat);
-      if (variant && availableStats.has(variant)) toSelect.add(variant);
-    }
-    return toSelect;
-  }, [state.echoPanels, selected]);
+  const hasSelectedSubstats = selectedSubstats.size > 0;
 
   const detailSubstatSummary = useMemo<SubstatSummaryEntry[]>(() => {
     const map = new Map<string, SubstatSummaryEntry>();
@@ -105,42 +81,27 @@ export const SubstatSummaryRow: React.FC = () => {
     return [...crits, ...rest, ...flats].map((key) => map.get(key)!);
   }, [state.echoPanels, statIcons, statTranslations]);
 
-  const activeSelectedSubstats = hasManuallyInteracted ? selectedSubstats : autoSelectedSubstats;
-  const hasSelectedSubstats = activeSelectedSubstats.size > 0;
-
-  const toggleSubstat = (type: string) => {
-    const key = normalizeSubstatKey(type);
-    if (!key) return;
-    setHasManuallyInteracted(true);
-    setSelectedSubstats((prev) => {
-      const base = hasManuallyInteracted ? prev : autoSelectedSubstats;
-      const next = new Set(base);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  };
-
   const totalSelectedRolls = useMemo(() => (
     detailSubstatSummary
-      .filter((s) => activeSelectedSubstats.has(s.type))
+      .filter((s) => selectedSubstats.has(s.type))
       .reduce((sum, s) => sum + s.count, 0)
-  ), [activeSelectedSubstats, detailSubstatSummary]);
+  ), [selectedSubstats, detailSubstatSummary]);
 
   const overallRV = useMemo(() => {
-    if (activeSelectedSubstats.size === 0 || detailSubstatSummary.length === 0) return 0;
+    if (selectedSubstats.size === 0 || detailSubstatSummary.length === 0) return 0;
     const selectedMap = new Map<string, { total: number; count: number }>();
     for (const s of detailSubstatSummary) {
-      if (activeSelectedSubstats.has(s.type)) selectedMap.set(s.type, { total: s.total, count: s.count });
+      if (selectedSubstats.has(s.type)) selectedMap.set(s.type, { total: s.total, count: s.count });
     }
     return calculateSelectedStatsRV(selectedMap, getSubstatValues);
-  }, [activeSelectedSubstats, detailSubstatSummary, getSubstatValues]);
+  }, [selectedSubstats, detailSubstatSummary, getSubstatValues]);
 
   if (detailSubstatSummary.length === 0) return null;
 
   return (
     <div className={LB_SUMMARY_ROW}>
       {detailSubstatSummary.map((summary) => {
-        const isSelected = activeSelectedSubstats.has(summary.type);
+        const isSelected = selectedSubstats.has(summary.type);
         const isDimmed = hasSelectedSubstats && !isSelected;
         const totalText = summary.isPercent
           ? formatPercentStat(summary.total)
@@ -150,7 +111,7 @@ export const SubstatSummaryRow: React.FC = () => {
             key={`summary-${summary.type}`}
             type="button"
             aria-pressed={isSelected}
-            onClick={() => toggleSubstat(summary.type)}
+            onClick={() => onToggleSubstat(summary.type)}
             className={`${LB_SUMMARY_PILL} ${
               isSelected
                 ? 'border-amber-300/75 opacity-100'

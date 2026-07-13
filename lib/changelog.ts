@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-12',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Profile build cards now use a cleaner echo roll layout and highlight the substats selected in the RV summary'
+            }
+        ]
+    },
+    {
         date: '2026-07-11',
         changes: [
             {

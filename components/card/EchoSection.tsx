@@ -8,12 +8,16 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { calculateEchoSubstatCV, getEchoCVFrameColor, getEchoCVTierStyle } from '@/lib/calculations/rollValues';
-import { getSubstatTierColor } from '@/lib/calculations/substatTiers';
 import { getEchoPaths } from '@/lib/paths';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { isRover } from '@/lib/character';
 import { matchesEchoBonusCondition } from '@/lib/constants/statBonuses';
+import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { EchoHoverCard } from '@/components/echo/EchoHoverCard';
+import { FetterHoverCard } from '@/components/echo/FetterHoverCard';
+import { EchoSubstatChip, getEchoChipVisuals, resolveEchoChipState } from '@/components/echo/EchoSubstatChip';
+import { EchoCVBar, formatStatRoll, StatHoverRow } from '@/components/echo/StatTierBars';
+import { HoverCard } from '@/components/ui/HoverCard';
 
 interface EchoSectionProps {
   echoPanels: EchoPanelState[];
@@ -21,6 +25,7 @@ interface EchoSectionProps {
   showRollQuality?: boolean;
   activeHoverStat?: StatHoverKey | null;
   onHoverStatChange?: (next: StatHoverKey | null) => void;
+  selectedSubstats?: ReadonlySet<string>;
 }
 
 export const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
@@ -32,204 +37,240 @@ export const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
   WebkitMaskSize: '100% 100%',
 };
 
+const PANEL_CLASS =
+  'relative min-w-0 flex-1 overflow-hidden rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200';
+
 export const EchoSection: React.FC<EchoSectionProps> = ({
   echoPanels,
   showCV = true,
   showRollQuality = true,
   activeHoverStat = null,
   onHoverStatChange,
+  selectedSubstats,
 }) => {
-  const { getEcho, fettersByElement, statIcons, getSubstatValues } = useGameData();
+  const { getEcho, fettersByElement, statIcons, statTranslations, getMainStatsByCost } = useGameData();
   const { state } = useBuild();
   const { t } = useLanguage();
   const selected = useSelectedCharacter();
   const hasActiveHover = Boolean(activeHoverStat);
+  const hasSelection = Boolean(selectedSubstats?.size);
   const characterName = selected?.character.name;
   const isRoverCharacter = selected ? isRover(selected.character) : false;
 
-  const getPillInteractionClass = (hoverKey: StatHoverKey | null): string => {
-    if (!hasActiveHover) return '';
-    if (hoverKey && activeHoverStat === hoverKey) {
-      return 'opacity-100 ring-1 ring-white/34 shadow-[0_0_10px_rgba(255,255,255,0.22)]';
-    }
-    return 'opacity-45';
-  };
-
-  const getPillInteractionStyle = (
-    hoverKey: StatHoverKey | null,
-    baseStyle?: React.CSSProperties
-  ): React.CSSProperties | undefined => {
-    if (!hasActiveHover) return baseStyle;
-    if (hoverKey && activeHoverStat === hoverKey) return baseStyle;
-
-    return {
-      ...baseStyle,
-      boxShadow: 'inset 0 0 0 999px rgba(0,0,0,0.18)',
-      filter: 'blur(0.2px) saturate(0.8) brightness(0.86)',
-    };
-  };
+  const chipStateFor = (statType: string | null, hoverKey: StatHoverKey | null) => resolveEchoChipState({
+    hasHover: hasActiveHover,
+    isHoverMatch: Boolean(hoverKey && activeHoverStat === hoverKey),
+    hasSelection,
+    isSelected: Boolean(statType && selectedSubstats?.has(statType)),
+  });
 
   return (
     <div className="flex min-h-0 flex-1 gap-2 p-4 pt-3">
-      {/* Echo cards row */}
       {echoPanels.map((panel, i) => {
-          const echo = panel.id ? getEcho(panel.id) : null;
+        const echo = panel.id ? getEcho(panel.id) : null;
 
-          if (!echo) {
-            return (
-              <div
-                key={i}
-                className="relative flex h-full flex-1 items-center justify-center overflow-hidden rounded-2xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07),inset_0_-14px_24px_rgba(0,0,0,0.16),0_8px_16px_rgba(0,0,0,0.35)]"
-              >
-                <div className="h-7 w-7 rounded-full border-2 border-dashed border-white/20" />
-              </div>
-            );
-          }
-
-          // Trust the stored backend stored element.
-          const elementType = activeElementForPanel(panel, echo);
-          const fetter = elementType ? fettersByElement[elementType] : null;
-          const echoName = echo.nameI18n ? t(echo.nameI18n) : echo.name;
-          const fetterIcon = fetter?.icon ?? fetter?.fetterIcon ?? null;
-
-          const mainStatType = panel.stats.mainStat.type?.trim() || null;
-          const mainStatValue = panel.stats.mainStat.value;
-          const mainStatIcon = mainStatType
-            ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')])
-            : null;
-          const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
-          const mainHoverKey = normalizeStatHoverKey(mainStatType);
-
-          const substats = panel.stats.subStats.filter(
-            (sub) => Boolean(sub.type?.trim()) && sub.value != null
-          );
-          const firstEchoBonusHoverMatch = i === 0 && Boolean(activeHoverStat) && (echo.bonuses?.some((bonus) => {
-            const bonusHoverKey = normalizeStatHoverKey(bonus.stat);
-            if (!bonusHoverKey || bonusHoverKey !== activeHoverStat) return false;
-
-            return matchesEchoBonusCondition(
-              bonus.characterCondition,
-              characterName,
-              isRoverCharacter,
-              state.roverElement
-            );
-          }) ?? false);
-
-          const echoCV = calculateEchoSubstatCV(panel);
-          const cvTier = echoCV > 0 ? getEchoCVTierStyle(echoCV) : null;
-          const frameBorderColor = getEchoCVFrameColor(echoCV);
-
+        if (!echo) {
           return (
-            <div
-              key={i}
-              className="relative flex flex-1 overflow-hidden rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
-              style={{ borderColor: `${frameBorderColor}b3` }}
+            <div key={i} className={`${PANEL_CLASS} flex items-center justify-center`}>
+              <div className="h-7 w-7 rounded-full border-2 border-dashed border-white/20" />
+            </div>
+          );
+        }
+
+        // Trust the stored backend element.
+        const elementType = activeElementForPanel(panel, echo);
+        const fetter = elementType ? fettersByElement[elementType] : null;
+        const echoName = echo.nameI18n ? t(echo.nameI18n) : echo.name;
+        const fetterIcon = fetter?.icon ?? fetter?.fetterIcon ?? null;
+
+        const mainStatType = panel.stats.mainStat.type?.trim() || null;
+        const mainStatValue = panel.stats.mainStat.value;
+        const mainStatIcon = mainStatType
+          ? (statIcons?.[mainStatType] ?? statIcons?.[mainStatType.replace('%', '')])
+          : null;
+        const mainStatIconFilter = mainStatType ? ELEMENT_ICON_FILTERS[mainStatType] : undefined;
+        const isMainPercent = mainStatType ? isPercentStat(mainStatType) : false;
+        const mainStatLabel = mainStatType
+          ? (statTranslations?.[mainStatType] ? t(statTranslations[mainStatType]) : mainStatType)
+          : '';
+        const mainStatRange: [number, number] | null = mainStatType
+          ? (getMainStatsByCost(echo.cost ?? null)[mainStatType] ?? null)
+          : null;
+        // The main stat is not part of the substat selection, so it only ever reacts to hover.
+        const mainHoverKey = normalizeStatHoverKey(mainStatType);
+        const mainVisuals = getEchoChipVisuals(
+          !hasActiveHover ? 'plain' : (mainHoverKey && activeHoverStat === mainHoverKey) ? 'hovered' : 'shaded'
+        );
+
+        const substats = panel.stats.subStats.filter(
+          (sub) => Boolean(sub.type?.trim()) && sub.value != null
+        );
+        const firstEchoBonusHoverMatch = i === 0 && hasActiveHover && (echo.bonuses?.some((bonus) => {
+          const bonusHoverKey = normalizeStatHoverKey(bonus.stat);
+          if (!bonusHoverKey || bonusHoverKey !== activeHoverStat) return false;
+
+          return matchesEchoBonusCondition(
+            bonus.characterCondition,
+            characterName,
+            isRoverCharacter,
+            state.roverElement
+          );
+        }) ?? false);
+
+        const echoCV = calculateEchoSubstatCV(panel);
+        const cvTier = echoCV > 0 ? getEchoCVTierStyle(echoCV) : null;
+        const frameBorderColor = getEchoCVFrameColor(echoCV);
+
+        return (
+          <div key={i} className={PANEL_CLASS} style={{ borderColor: `${frameBorderColor}b3` }}>
+            {/* Artwork sizes itself off the panel height and fades out under the substat column. */}
+            <div className="absolute inset-y-0 left-0 z-0">
+              <img
+                src={getEchoPaths(echo, panel.phantom)}
+                alt={echoName}
+                className={`h-full w-auto max-w-none object-cover transition-all duration-200 ${
+                  firstEchoBonusHoverMatch ? 'brightness-110 saturate-110' : ''
+                }`}
+                style={ECHO_IMAGE_FADE_STYLE}
+              />
+              {firstEchoBonusHoverMatch && (
+                <div className="pointer-events-none absolute inset-0 border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.24),0_0_16px_rgba(110,255,255,0.45)]" />
+              )}
+            </div>
+
+            {/* Echo identity hover sits beneath the content layer, over the artwork half. */}
+            <EchoHoverCard
+              echo={echo}
+              resolvedFetter={fetter}
+              placement="top"
+              triggerClassName="absolute inset-y-0 left-0 z-1 w-1/2 cursor-help"
             >
-              {/* Top-left stack: CV badge */}
-              <div className="absolute top-1 left-1 z-10 flex flex-col items-start gap-1">
-                {showCV && cvTier && (
-                  <div
-                    className="flex items-center rounded-md border px-2 py-1"
-                    style={{
-                      borderColor: `${cvTier.color}66`,
-                      color: cvTier.color,
-                      backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
-                    }}
+              <span aria-hidden className="block h-full w-full" />
+            </EchoHoverCard>
+
+            {/* Content layer is click-through so the echo hover behind it stays reachable;
+                individual chips re-enable pointer events. */}
+            <div className="pointer-events-none relative z-2 flex h-full">
+              <div className="flex flex-col items-start justify-between p-2">
+                {showCV && cvTier ? (
+                  <HoverCard
+                    placement="top"
+                    width="md"
+                    triggerClassName="pointer-events-auto inline-flex cursor-pointer"
+                    title="Crit Value"
+                    subtitle="2 × Crit Rate + Crit DMG"
+                    body={<EchoCVBar cv={echoCV} />}
                   >
-                    <span className="whitespace-nowrap text-xs font-bold leading-none">{echoCV.toFixed(1)} CV</span>
-                  </div>
-                )}
-              </div>
-              {/* Echo image and misc */}
-              <div className="flex w-2/3 flex-col overflow-hidden">
-                <EchoHoverCard
-                  echo={echo}
-                  resolvedFetter={fetter}
-                  placement="top"
-                  triggerClassName="relative block cursor-help rounded-sm"
-                >
-                  <img
-                    src={getEchoPaths(echo, panel.phantom)}
-                    alt={echoName}
-                    className={`w-full h-auto transition-all duration-200 ${firstEchoBonusHoverMatch ? 'brightness-110 saturate-110' : ''}`}
-                    style={ECHO_IMAGE_FADE_STYLE}
-                  />
-                  {firstEchoBonusHoverMatch && (
-                    <div className="pointer-events-none absolute inset-0 border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.24),0_0_16px_rgba(110,255,255,0.45)]" />
-                  )}
-                </EchoHoverCard>
-                <div className="relative mb-1 h-px w-1/2">
-                  {fetterIcon && (
-                    <img
-                      src={fetterIcon}
-                      alt={elementType ?? ''}
-                      className="absolute left-full top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
-                    />
-                  )}
-                </div>
-                {/* Main Stat */}
-                <div className="flex p-2">
-                  {mainStatType && mainStatValue != null && (
                     <div
-                      className={`flex items-center gap-1 rounded-lg border border-white/10 bg-black/55 px-1.5 py-0.5 transition-all duration-200 ${getPillInteractionClass(mainHoverKey)}`}
-                      style={getPillInteractionStyle(mainHoverKey)}
-                      onMouseEnter={mainHoverKey ? () => onHoverStatChange?.(mainHoverKey) : undefined}
-                      onMouseLeave={mainHoverKey ? () => onHoverStatChange?.(null) : undefined}
+                      className="flex items-center rounded-md border px-2 py-1"
+                      style={{
+                        borderColor: `${cvTier.color}66`,
+                        color: cvTier.color,
+                        backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
+                      }}
+                    >
+                      <span className="text-xs font-bold leading-tight">{echoCV.toFixed(1)} CV</span>
+                    </div>
+                  </HoverCard>
+                ) : <span />}
+
+                {mainStatType && mainStatValue != null && (
+                  <HoverCard
+                    placement="top"
+                    width="sm"
+                    triggerClassName="pointer-events-auto inline-flex cursor-help"
+                    title={mainStatLabel || mainStatType}
+                    subtitle="Echo main stat"
+                    body={
+                      mainStatRange ? (
+                        <StatHoverRow label="Range">
+                          {`${formatStatRoll(mainStatRange[0], isMainPercent)} – ${formatStatRoll(mainStatRange[1], isMainPercent)}`}
+                        </StatHoverRow>
+                      ) : (
+                        <StatHoverRow label="Value">
+                          {isMainPercent
+                            ? `${mainStatValue.toFixed(1)}%`
+                            : Math.round(mainStatValue).toLocaleString()}
+                        </StatHoverRow>
+                      )
+                    }
+                  >
+                    <div
+                      className={`flex max-w-full items-center gap-1 rounded-md px-1.5 py-1 transition-all duration-200 ${mainVisuals.className}`}
+                      style={mainVisuals.style}
+                      onMouseEnter={() => onHoverStatChange?.(mainHoverKey)}
+                      onMouseLeave={() => onHoverStatChange?.(null)}
                     >
                       {mainStatIcon && (
-                        <img src={mainStatIcon} alt={mainStatType} className="h-4 w-4 object-contain" />
+                        <img
+                          src={mainStatIcon}
+                          alt={mainStatType}
+                          className={`h-4 w-4 shrink-0 object-contain ${mainVisuals.iconClassName}`}
+                          style={mainStatIconFilter ? { filter: mainStatIconFilter } : undefined}
+                        />
                       )}
-                      <span className="text-sm font-semibold">
+                      <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                         {isMainPercent
                           ? `${mainStatValue.toFixed(1)}%`
                           : Math.round(mainStatValue).toLocaleString()}
                       </span>
                     </div>
-                  )}
+                  </HoverCard>
+                )}
+              </div>
+
+              {/* Sonata caps the roll column; the five rows then distribute through
+                  the remaining height so the final roll lands level with main stat. */}
+              <div className="flex min-w-0 w-1/2 flex-col p-2">
+                <div className="flex h-5 shrink-0 justify-end">
+                  {fetterIcon && (fetter ? (
+                    <FetterHoverCard
+                      fetter={fetter}
+                      placement="top"
+                      triggerClassName="pointer-events-auto inline-flex cursor-help"
+                    >
+                      <img
+                        src={fetterIcon}
+                        alt={fetter.name ? t(fetter.name) : (elementType ?? '')}
+                        className="h-5 w-5 object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+                      />
+                    </FetterHoverCard>
+                  ) : (
+                    <img
+                      src={fetterIcon}
+                      alt={elementType ?? ''}
+                      className="h-5 w-5 object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+                    />
+                  ))}
+                </div>
+
+                <div className="flex min-h-0 flex-1 flex-col justify-between gap-1 pt-1.5">
+                  {Array.from({ length: 5 }).map((_, si) => {
+                    const sub = substats[si];
+                    if (!sub?.type || sub.value == null) {
+                      return <div key={si} className="h-5 w-full" />;
+                    }
+
+                    const subType = sub.type.trim();
+                    const subHoverKey = normalizeStatHoverKey(subType);
+
+                    return (
+                      <EchoSubstatChip
+                        key={si}
+                        statType={subType}
+                        value={sub.value}
+                        state={chipStateFor(subType, subHoverKey)}
+                        showRollQuality={showRollQuality}
+                        onHoverChange={(isHovering) => onHoverStatChange?.(isHovering ? subHoverKey : null)}
+                      />
+                    );
+                  })}
                 </div>
               </div>
-
-              {/* Echo substats */}
-              <div className="flex flex-col items-start justify-between py-3 -ml-5">
-                {Array.from({ length: 5 }).map((_, si) => {
-                  const sub = substats[si];
-                  if (!sub?.type || sub.value == null) {
-                    return <div key={si} className="h-5" />;
-                  }
-
-                  const subType = sub.type.trim();
-                  const isSubPercent = isPercentStat(subType);
-                  const subIcon = statIcons?.[subType] ?? statIcons?.[subType.replace('%', '')];
-                  const tierColor = showRollQuality
-                    ? getSubstatTierColor(subType, sub.value, getSubstatValues(subType))
-                    : null;
-                  const subHoverKey = normalizeStatHoverKey(subType);
-                  const baseStyle = tierColor ? {
-                    backgroundColor: `${tierColor}18`,
-                    borderBottom: `1px solid ${tierColor}80`,
-                  } : undefined;
-
-                  return (
-                    <div
-                      key={si}
-                      className={`flex items-center gap-1 rounded-sm px-1 py-0.5 transition-all duration-200 ${getPillInteractionClass(subHoverKey)}`}
-                      style={getPillInteractionStyle(subHoverKey, baseStyle)}
-                      onMouseEnter={subHoverKey ? () => onHoverStatChange?.(subHoverKey) : undefined}
-                      onMouseLeave={subHoverKey ? () => onHoverStatChange?.(null) : undefined}
-                    >
-                      {subIcon && (
-                        <img src={subIcon} alt={subType} className="h-4.5 w-4.5 object-contain" />
-                      )}
-                      <span className="text-sm leading-none font-semibold">
-                        {isSubPercent ? `${sub.value.toFixed(1)}%` : Math.round(sub.value)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
-          );
-        })}
+          </div>
+        );
+      })}
     </div>
   );
 };

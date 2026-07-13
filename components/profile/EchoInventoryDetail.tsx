@@ -14,7 +14,7 @@ import { getSetBonusesFromPieceEffect } from '@/lib/constants/setBonuses';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { renderGameTemplateWithHighlights, resolveFetterPieceDescription } from '@/lib/text/gameText';
 import { formatDateLabel } from '@/components/leaderboards/formatters';
-import { QualityTierBar, SubstatRollBar } from '@/components/leaderboards/BuildExpandedEchoPanels';
+import { QualityTierBar, SubstatRollBar } from '@/components/echo/StatTierBars';
 import { formatFetterBonusValue, getFetterPieceModels } from '@/components/echo/FetterHoverCard';
 import { getFetterElementColor } from '@/components/echo/EchoHoverCard';
 

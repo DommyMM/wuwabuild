@@ -22,11 +22,41 @@ import { ProfileRankSection } from './ProfileRankSection';
 import { SubstatSummaryRow } from './SubstatSummaryRow';
 import { AdjustRankingButton, NO_RANKING_KEY } from './AdjustRankingButton';
 import { BUILD_CARD_EXPORT_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
+import { DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
+import { BASE_STATS } from '@/lib/constants/statMappings';
 import posthog from 'posthog-js';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MIN_CUSTOM_IMAGE_HEIGHT = 600;
+const BASE_STATS_SET = new Set<string>(BASE_STATS);
+
+const getBasePercentVariant = (stat: string): string | null => {
+  if (BASE_STATS_SET.has(stat)) return `${stat}%`;
+  if (stat.endsWith('%') && BASE_STATS_SET.has(stat.slice(0, -1))) return stat.slice(0, -1);
+  return null;
+};
+
+const getAvailablePreferredSubstats = (
+  echoPanels: SavedState['echoPanels'],
+  preferredStats: readonly string[],
+): Set<string> => {
+  const rolled = new Set<string>();
+  for (const panel of echoPanels) {
+    for (const substat of panel.stats.subStats) {
+      const key = substat.type?.trim();
+      if (key && substat.value !== null) rolled.add(key);
+    }
+  }
+
+  const selected = new Set<string>();
+  for (const stat of preferredStats) {
+    if (rolled.has(stat)) selected.add(stat);
+    const variant = getBasePercentVariant(stat);
+    if (variant && rolled.has(variant)) selected.add(variant);
+  }
+  return selected;
+};
 interface ProfileCardProps {
   entry: LBBuildRowEntry;
   detail: LBBuildDetailEntry;
@@ -93,6 +123,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
   const [isArtEditMode, setIsArtEditMode] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedStandingKey, setSelectedStandingKey] = useState<string | null>(null);
+  const [manualSubstatSelection, setManualSubstatSelection] = useState<Set<string> | null>(null);
 
   // Standings fetch lives at the orchestrator level (not inside BuildProvider)
   // because the AdjustRankingButton in the action bar also needs the full board
@@ -108,6 +139,24 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
   );
   const standingsLoading = Boolean(standingsRequestKey && standingsResult.key !== standingsRequestKey);
   const characterRef = getCharacter(characterId);
+  const automaticSubstatSelection = useMemo(
+    () => getAvailablePreferredSubstats(
+      initialState.echoPanels,
+      characterRef?.preferredStats ?? DEFAULT_PREFERRED_STATS,
+    ),
+    [characterRef?.preferredStats, initialState.echoPanels],
+  );
+  const selectedSubstats = manualSubstatSelection ?? automaticSubstatSelection;
+  const toggleSubstat = useCallback((type: string) => {
+    const key = type.trim();
+    if (!key) return;
+    setManualSubstatSelection((current) => {
+      const next = new Set(current ?? automaticSubstatSelection);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, [automaticSubstatSelection]);
   const characterName = characterRef
     ? t(characterRef.nameI18n ?? { en: characterRef.name })
     : characterId ?? 'build';
@@ -298,66 +347,70 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
     <BuildProvider initialState={initialState} persistDraft={false}>
       <StatsProvider>
         <div className="flex flex-col gap-3">
-          {/* The cardRef wraps both the card AND the substat row so the download
-              captures them together (Akasha-style). */}
-          <div ref={cardRef} className="flex flex-col gap-3">
-            <BuildCard
-              useAltSkin={false}
-              showCV
-              showRollQuality
+            {/* The cardRef wraps both the card AND the substat row so the download
+                captures them together (Akasha-style). */}
+            <div ref={cardRef} className="flex flex-col gap-3">
+              <BuildCard
+                useAltSkin={false}
+                showCV
+                showRollQuality
+                artTransform={artTransform}
+                artSourceMode={artSourceMode}
+                customArtUrl={customArtUrl}
+                isArtEditMode={isArtEditMode}
+                onCustomArtUpload={handleCustomArtUpload}
+                onArtTransformChange={setArtTransform}
+                selectedSubstats={selectedSubstats}
+                forteSection={showProfileRankSection ? (
+                  <ProfileRankSection
+                    availableBoards={availableBoards}
+                    activeBoard={activeBoard}
+                    standings={standings}
+                    standingsLoading={standingsLoading}
+                  />
+                ) : undefined}
+              />
+              <SubstatSummaryRow
+                selectedSubstats={selectedSubstats}
+                onToggleSubstat={toggleSubstat}
+              />
+            </div>
+
+            <CardActionBar
+              className="flex flex-col"
+              isArtEditMode={isArtEditMode}
+              onToggleArtEditMode={handleToggleArtEditMode}
+              isDownloading={isDownloading}
+              onDownload={handleDownload}
               artTransform={artTransform}
               artSourceMode={artSourceMode}
-              customArtUrl={customArtUrl}
-              isArtEditMode={isArtEditMode}
-              onCustomArtUpload={handleCustomArtUpload}
-              onArtTransformChange={setArtTransform}
-              forteSection={showProfileRankSection ? (
-                <ProfileRankSection
-                  availableBoards={availableBoards}
-                  activeBoard={activeBoard}
-                  standings={standings}
-                  standingsLoading={standingsLoading}
-                />
-              ) : undefined}
+              onZoom={handleZoom}
+              onNudge={handleNudge}
+              onResetArtTransform={handleResetArtTransform}
+              onRemoveCustomArt={handleRemoveCustomArt}
+              extraActions={
+                <>
+                  <AdjustRankingButton
+                    availableBoards={availableBoards}
+                    activeBoard={activeBoard}
+                    showOriginalForte={showOriginalForte}
+                    equippedWeaponId={equippedWeaponId}
+                    onSelect={setSelectedStandingKey}
+                  />
+                  {uploadedLabel && (
+                    <span
+                      className="ml-auto font-ropa text-[11px] uppercase tracking-[0.14em] text-text-primary/50"
+                      title={`First uploaded ${uploadedLabel}. Re-submitting the same build keeps this date.`}
+                    >
+                      Uploaded{' '}
+                      <time dateTime={entry.timestamp} className="text-text-primary/70">
+                        {uploadedLabel}
+                      </time>
+                    </span>
+                  )}
+                </>
+              }
             />
-            <SubstatSummaryRow />
-          </div>
-
-          <CardActionBar
-            className="flex flex-col"
-            isArtEditMode={isArtEditMode}
-            onToggleArtEditMode={handleToggleArtEditMode}
-            isDownloading={isDownloading}
-            onDownload={handleDownload}
-            artTransform={artTransform}
-            artSourceMode={artSourceMode}
-            onZoom={handleZoom}
-            onNudge={handleNudge}
-            onResetArtTransform={handleResetArtTransform}
-            onRemoveCustomArt={handleRemoveCustomArt}
-            extraActions={
-              <>
-                <AdjustRankingButton
-                  availableBoards={availableBoards}
-                  activeBoard={activeBoard}
-                  showOriginalForte={showOriginalForte}
-                  equippedWeaponId={equippedWeaponId}
-                  onSelect={setSelectedStandingKey}
-                />
-                {uploadedLabel && (
-                  <span
-                    className="ml-auto font-ropa text-[11px] uppercase tracking-[0.14em] text-text-primary/50"
-                    title={`First uploaded ${uploadedLabel}. Re-submitting the same build keeps this date.`}
-                  >
-                    Uploaded{' '}
-                    <time dateTime={entry.timestamp} className="text-text-primary/70">
-                      {uploadedLabel}
-                    </time>
-                  </span>
-                )}
-              </>
-            }
-          />
         </div>
       </StatsProvider>
     </BuildProvider>

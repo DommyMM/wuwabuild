@@ -31,6 +31,7 @@ interface BuildCardProps {
   isArtEditMode: boolean;
   onCustomArtUpload: (file: File) => void;
   onArtTransformChange: (next: CardArtTransform) => void;
+  selectedSubstats?: ReadonlySet<string>;
   /**
    * Replaces the default <ForteCardSection> slot. Profile cards pass
    * <TalentPills/> + <RankModule/> here so they share the same overall card
@@ -62,6 +63,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   isArtEditMode,
   onCustomArtUpload,
   onArtTransformChange,
+  selectedSubstats,
   forteSection,
 }, ref) => {
   const selected = useSelectedCharacter();
@@ -152,7 +154,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
               />
 
               {/* Right side: name/weapon/forte + stats + echoes */}
-              <div className="flex flex-col w-full">
+              <div className="flex min-w-0 flex-1 flex-col">
                 <div className="flex">
                   <div className="flex w-120 shrink-0 flex-col pt-4 gap-1">
                     <div className="flex gap-4">
@@ -230,6 +232,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                   showRollQuality={showRollQuality}
                   activeHoverStat={activeHoverStat}
                   onHoverStatChange={setActiveHoverStat}
+                  selectedSubstats={selectedSubstats}
                 />
               </div>
             </div>
