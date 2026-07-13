@@ -2,13 +2,7 @@
 
 import React from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Minus, Pencil, RotateCcw, Trash2, Trophy } from 'lucide-react';
-import {
-  ART_ZOOM_STEP,
-  CardArtSourceMode,
-  CardArtTransform,
-  MAX_ART_ZOOM,
-  MIN_ART_ZOOM,
-} from '@/lib/cardArt';
+import { ART_ZOOM_STEP, CardArtSourceMode, CardArtTransform, MAX_ART_ZOOM, MIN_ART_ZOOM } from '@/lib/cardArt';
 
 const ART_NUDGE_STEP = 12;
 

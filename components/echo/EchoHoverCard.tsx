@@ -5,13 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Echo, CDNFetter } from '@/lib/echo';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
-import {
-  HoverCard,
-  HoverCardIcon,
-  HoverCardSection,
-  HoverCardDescription,
-  HoverCardChipModel,
-} from '@/components/ui/HoverCard';
+import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription, HoverCardChipModel } from '@/components/ui/HoverCard';
 
 interface EchoHoverCardProps {
   children: ReactNode;

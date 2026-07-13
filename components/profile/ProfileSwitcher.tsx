@@ -4,14 +4,7 @@ import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 import { Star, X } from 'lucide-react';
 import { resolveRegionBadge } from '@/components/leaderboards/formatters';
-import {
-  getPinnedProfilesSnapshot,
-  getProfilesServerSnapshot,
-  getRecentProfilesSnapshot,
-  removeRecentProfile,
-  StoredProfile,
-  subscribeProfileHistory,
-} from '@/lib/profileHistory';
+import { getPinnedProfilesSnapshot, getProfilesServerSnapshot, getRecentProfilesSnapshot, removeRecentProfile, StoredProfile, subscribeProfileHistory } from '@/lib/profileHistory';
 
 interface ProfileSwitcherProps {
   currentUid: string;

@@ -3,13 +3,7 @@
 import React from 'react';
 import { ForteState } from '@/lib/build';
 import { Character, I18nString } from '@/lib/character';
-import {
-  HoverCard,
-  HoverCardIcon,
-  HoverCardSection,
-  HoverCardDescription,
-  HoverCardChipModel,
-} from '@/components/ui/HoverCard';
+import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription, HoverCardChipModel } from '@/components/ui/HoverCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { resolveGameTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
 
@@ -183,4 +177,3 @@ export const TalentPills: React.FC<TalentPillsProps> = ({ character, forte, maxL
     </div>
   );
 };
-

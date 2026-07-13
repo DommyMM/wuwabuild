@@ -5,12 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Weapon } from '@/lib/weapon';
 import { RARITY_ACCENTS } from '@/components/weapon/rarityStyles';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
-import {
-  HoverCard,
-  HoverCardIcon,
-  HoverCardSection,
-  HoverCardDescription,
-} from '@/components/ui/HoverCard';
+import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription } from '@/components/ui/HoverCard';
 
 interface WeaponHoverCardProps {
   children: ReactNode;

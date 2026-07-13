@@ -28,12 +28,7 @@ import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getSplashUrlCandidates, logSplashArtTransform, resolveSplashCardArt, SplashArtVariant } from '@/lib/splashArt';
-import {
-  BUILD_CARD_DESIGN_HEIGHT,
-  BUILD_CARD_DESIGN_WIDTH,
-  BUILD_CARD_EXPORT_WIDTH,
-  downloadBuildCard,
-} from '@/lib/buildCardExport';
+import { BUILD_CARD_DESIGN_HEIGHT, BUILD_CARD_DESIGN_WIDTH, BUILD_CARD_EXPORT_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
 import posthog from 'posthog-js';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);

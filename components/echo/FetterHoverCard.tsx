@@ -6,12 +6,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { CDNFetter } from '@/lib/echo';
 import { getSetBonusesFromPieceEffect } from '@/lib/constants/setBonuses';
 import { FetterPieceEffect, resolveFetterPieceDescription } from '@/lib/text/gameText';
-import {
-  HoverCard,
-  HoverCardIcon,
-  HoverCardSection,
-  HoverCardBonusList,
-} from '@/components/ui/HoverCard';
+import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardBonusList } from '@/components/ui/HoverCard';
 
 interface FetterHoverCardProps {
   children: ReactNode;

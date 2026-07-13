@@ -2,14 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef, ReactNode } from 'react';
 import { EchoPanelState, ElementType, setIdForElement } from '@/lib/echo';
-import {
-  SavedState,
-  WatermarkState,
-  ForteState,
-  ForteEntry,
-  DEFAULT_FORTE,
-  DEFAULT_WATERMARK,
-} from '@/lib/build';
+import { SavedState, WatermarkState, ForteState, ForteEntry, DEFAULT_FORTE, DEFAULT_WATERMARK } from '@/lib/build';
 import { createDefaultEchoPanelState } from '@/lib/calculations/echoes';
 import { DRAFT_BUILD_STORAGE_KEY, loadDraftBuild } from '@/lib/storage';
 import { removeLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';

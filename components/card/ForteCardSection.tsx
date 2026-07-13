@@ -1,13 +1,7 @@
 'use client';
 
 import React, { ReactNode } from 'react';
-import {
-  HoverCard,
-  HoverCardIcon,
-  HoverCardSection,
-  HoverCardDescription,
-  HoverCardChipModel,
-} from '@/components/ui/HoverCard';
+import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription, HoverCardChipModel } from '@/components/ui/HoverCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Character, I18nString } from '@/lib/character';
 import { ForteState } from '@/lib/build';
