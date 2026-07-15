@@ -34,7 +34,9 @@ This doc explains provider boundaries and editor state flow in `wuwabuilds/`.
 4. UI sections consume derived and raw state.
 5. Draft is persisted locally for recovery.
 
-Flows that open a discovered/imported build in the editor must check the current draft before replacing it. If a different character build is already loaded, confirm the replacement first; read-only profile card renderers never persist their temporary state.
+Flows that open a discovered build in the editor must check the current draft before replacing it. If a different character build is already loaded, confirm the replacement first (see `BuildExpanded`'s replace-draft dialog); read-only profile card renderers never persist their temporary state.
+
+The import flow is the exception: it replaces the draft without prompting. `saveDraftBuild` records a content-hash baseline on every programmatic load (import, saves, leaderboard "open in editor"), while manual editing in `/edit` writes the draft key directly and leaves the baseline stale. When an import displaces a draft whose content drifted from the baseline (manual work), it auto-snapshots that draft into local saves first (`snapshotBuildToSaves`, deduped by content hash), then opens a completion dialog over the scan results with leaderboard/profile/editor destinations instead of redirecting into `/edit`.
 
 ## Route Shapes
 

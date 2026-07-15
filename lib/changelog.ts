@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-14',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Importing a build now uploads right away and ends with direct links to leaderboards or your profile'
+            },
+            {
+                kind: 'improved',
+                text: 'Character leaderboards now note that rankings show each player\'s best build, with all other uploads kept on their profile'
+            }
+        ]
+    },
+    {
         date: '2026-07-13',
         changes: [
             {

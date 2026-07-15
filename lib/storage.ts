@@ -4,6 +4,7 @@ import { convertLegacyBuilds, LegacyIdMaps } from '@/lib/legacyMigration';
 // Storage keys
 const SAVED_BUILDS_STORAGE_KEY = 'wuwabuilds_saves';
 export const DRAFT_BUILD_STORAGE_KEY = 'wuwa_draft_build';
+const DRAFT_BASELINE_HASH_KEY = 'wuwa_draft_baseline_hash';
 const CURRENT_VERSION = '2.0.0';
 const IDENTITY_LEGACY_MAPS: LegacyIdMaps = {
   characterIds: new Map(),
@@ -142,15 +143,73 @@ export function loadDraftBuild(): SavedState | null {
   }
 }
 
+// Serialize with recursively sorted keys so content hashes stay stable across
+// objects assembled in different key orders (import convert vs editor reducer).
+function stableStringify(value: unknown): string {
+  if (value === undefined) return 'null';
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record).filter((key) => record[key] !== undefined).sort();
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(',')}}`;
+}
+
+// djb2 over the migrated, canonically serialized state.
+function hashSavedState(state: SavedState): string {
+  const json = stableStringify(migrateSavedState(state as unknown as Record<string, unknown>));
+  let hash = 5381;
+  for (let i = 0; i < json.length; i++) {
+    hash = ((hash << 5) + hash + json.charCodeAt(i)) | 0;
+  }
+  return hash.toString(36);
+}
+
 export function saveDraftBuild(state: SavedState): void {
   if (typeof window === 'undefined') {
     return;
   }
 
-  localStorage.setItem(
-    DRAFT_BUILD_STORAGE_KEY,
-    JSON.stringify(migrateSavedState(state as unknown as Record<string, unknown>))
-  );
+  const migrated = migrateSavedState(state as unknown as Record<string, unknown>);
+  localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(migrated));
+
+  // Baseline for edit detection: programmatic draft loads (import, saves,
+  // leaderboard "open in editor") all come through here, while manual editing
+  // in /edit writes the draft key directly from BuildContext. A draft whose
+  // content drifted from this baseline therefore carries manual edits.
+  try {
+    localStorage.setItem(DRAFT_BASELINE_HASH_KEY, hashSavedState(migrated));
+  } catch {
+    // Non-critical: a missing baseline just means the draft counts as edited.
+  }
+}
+
+// True when the draft's content no longer matches the last programmatic load,
+// i.e. the user hand-edited it in /edit. A missing baseline (hand-built draft,
+// clients from before the marker existed) counts as edited so replacement
+// flows err toward preserving it.
+export function isDraftBuildEdited(draft: SavedState): boolean {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const baseline = localStorage.getItem(DRAFT_BASELINE_HASH_KEY);
+    if (!baseline) return true;
+    return hashSavedState(draft) !== baseline;
+  } catch {
+    return false;
+  }
+}
+
+// Auto-save a displaced draft into saves unless an identical build is already
+// stored. Returns the created save, or null when skipped as a duplicate.
+export function snapshotBuildToSaves(state: SavedState, name: string): SavedBuild | null {
+  const contentHash = hashSavedState(state);
+  const existing = loadBuilds();
+  if (existing.builds.some((build) => hashSavedState(build.state) === contentHash)) {
+    return null;
+  }
+
+  return saveBuild({ name, state });
 }
 
 // Save a new build or update existing build.

@@ -9,22 +9,30 @@ import { loadImage } from '@/lib/import/imageFile';
 import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { linkBuildImage, submitBuild } from '@/lib/lb';
 import { MAX_OCR_IMAGE_BYTES } from '@/lib/ingestIdentity';
-import { loadDraftBuild, saveBuild, saveDraftBuild } from '@/lib/storage';
+import { isDraftBuildEdited, loadDraftBuild, saveBuild, saveDraftBuild, snapshotBuildToSaves } from '@/lib/storage';
 import { OCR_HEALTH_URL, OCR_REPORT_URL } from '@/lib/apiEndpoints';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults } from './ImportResults';
+import { ImportComplete, type ImportDestination } from './ImportComplete';
 import { ReportIssueModal } from './ReportIssueModal';
 import type { AnalysisData } from '@/lib/import/types';
 import type { SavedState } from '@/lib/build';
 import { getDefaultReportReason, type OcrIssueReason } from '@/lib/import/report';
-import { AlertTriangle, ExternalLink, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import posthog from 'posthog-js';
 import { validateImportedEchoPanels } from '@/lib/import/validateEchoPanels';
 import { useResolvedLeaderboardLinkState } from '@/hooks/useResolvedLeaderboardLink';
 import { buildOcrIssueReportForm } from '@/lib/import/issueReport';
 
 type ImportStep = 'upload' | 'results';
+
+/** Settled leaderboard outcome of one import, driving the completion panel. */
+interface ImportOutcome {
+  uploaded: boolean;
+  buildId: string | null;
+  lbAction: 'created' | 'updated' | null;
+  localReason: string | null;
+}
 
 const ILLEGAL_ECHO_UPLOAD_MESSAGE =
   'Import saved locally, but leaderboard upload was skipped. OCR may have misread one or more echo stats, such as a duplicate substat or wrong set assignment.';
@@ -34,6 +42,11 @@ const formatIllegalEchoUploadError = (detail?: string) => (
   `${detail ? `${detail} ` : ''}` +
   'The build was saved locally for manual correction but was not submitted to the leaderboard.'
 );
+
+const formatSaveStamp = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+};
 
 export function ImportPageClient() {
   const router = useRouter();
@@ -46,7 +59,9 @@ export function ImportPageClient() {
   const [lbUploadError, setLbUploadError]     = useState<string | null>(null);
   const [uploadToLb, setUploadToLb]           = useState(true);
   const [isSubmitting, setIsSubmitting]       = useState(false);
-  const [pendingWm, setPendingWm]             = useState<{ username: string; uid: string } | null>(null);
+  const [importOutcome, setImportOutcome]     = useState<ImportOutcome | null>(null);
+  const [completedState, setCompletedState]   = useState<SavedState | null>(null);
+  const [savedCopyName, setSavedCopyName]     = useState<string | null>(null);
   const [draftBuildState, setDraftBuildState] = useState<SavedState | null>(() => loadDraftBuild());
   const [selectedFile, setSelectedFile]       = useState<File | null>(null);
   const [sourceImageKey, setSourceImageKey] = useState<string | null>(null);
@@ -209,7 +224,9 @@ export function ImportPageClient() {
     setConfirmedTrainingImageKey(null);
     setScanId(null);
     setLastImportWatermark(null);
-    setPendingWm(null);
+    setImportOutcome(null);
+    setCompletedState(null);
+    setSavedCopyName(null);
     preflightSignatureRef.current = null;
     setIsReportModalOpen(false);
     setReportReason('manual_report');
@@ -251,10 +268,11 @@ export function ImportPageClient() {
   };
 
   const importedPreviewState = getReportImportedState();
+  const linkSourceState = completedState ?? importedPreviewState;
   const { link: importedLeaderboardLink, isLoading: isLeaderboardAvailabilityLoading } = useResolvedLeaderboardLinkState({
-    characterId: importedPreviewState?.characterId,
-    weaponId: importedPreviewState?.weaponId,
-    sequence: importedPreviewState?.sequence,
+    characterId: linkSourceState?.characterId,
+    weaponId: linkSourceState?.weaponId,
+    sequence: linkSourceState?.sequence,
     getWeapon: gameData.getWeapon,
   });
 
@@ -267,7 +285,7 @@ export function ImportPageClient() {
     setIsReportModalOpen(true);
   };
 
-  const uploadImportedState = async (importedState: SavedState): Promise<string | null> => {
+  const uploadImportedState = async (importedState: SavedState): Promise<ImportOutcome> => {
     const captureSubmitResult = (result: 'created' | 'updated' | 'warning' | 'skipped' | 'error', reason: string, damageComputed?: boolean) => {
       posthog.capture('leaderboard_submit_result', {
         result,
@@ -278,39 +296,45 @@ export function ImportPageClient() {
         scan_id: scanId,
       });
     };
+    const skipped = (localReason: string): ImportOutcome => ({
+      uploaded: false,
+      buildId: null,
+      lbAction: null,
+      localReason,
+    });
+
     if (!uploadToLb) {
       captureSubmitResult('skipped', 'upload_disabled');
-      return null;
+      return skipped('Leaderboard upload was turned off.');
     }
 
     if (lbUploadError) {
       warning(ILLEGAL_ECHO_UPLOAD_MESSAGE, 12000);
       captureSubmitResult('skipped', 'client_echo_preflight');
-      return null;
+      return skipped('Leaderboard upload was skipped, check the notice above.');
     }
 
     if (!importedState.characterId || !importedState.weaponId) {
       warning('Leaderboard skipped: character or weapon was not recognized.');
       captureSubmitResult('skipped', 'missing_character_or_weapon');
-      return null;
+      return skipped('Character or weapon was not recognized, so the leaderboard was skipped.');
     }
 
     if (!importedState.watermark.uid.trim()) {
       warning('Leaderboard skipped: UID is required.');
       captureSubmitResult('skipped', 'uid_missing');
-      return null;
+      return skipped('A UID is required for the leaderboard, so the upload was skipped.');
     }
 
     try {
       const result = await submitBuild(importedState, { sourceImageKey, scanId });
-      const actionLabel = result.action === 'created' ? 'created' : 'updated';
+      const lbAction = result.action === 'created' ? 'created' : 'updated';
 
-      success(`Leaderboard entry ${actionLabel}.`);
-      captureSubmitResult(result.action === 'created' ? 'created' : 'updated', 'success', result.damageComputed);
+      captureSubmitResult(lbAction, 'success', result.damageComputed);
       if (!result.damageComputed) {
         info('Saved without fresh damage data for this character.');
       }
-      return result.id || null;
+      return { uploaded: true, buildId: result.id || null, lbAction, localReason: null };
     } catch (err) {
       posthog.captureException(err);
       const msg = err instanceof Error ? err.message : '';
@@ -318,11 +342,11 @@ export function ImportPageClient() {
         setLbUploadError(formatIllegalEchoUploadError());
         warning(ILLEGAL_ECHO_UPLOAD_MESSAGE, 12000);
         captureSubmitResult('error', 'illegal_echo');
-      } else {
-        notifyError(msg ? `Leaderboard upload failed: ${msg}` : 'Leaderboard upload failed.');
-        captureSubmitResult('error', 'submit_failed');
+        return skipped('Leaderboard upload was skipped, check the notice above.');
       }
-      return null;
+      notifyError(msg ? `Leaderboard upload failed: ${msg}` : 'Leaderboard upload failed.');
+      captureSubmitResult('error', 'submit_failed');
+      return skipped('Leaderboard upload failed.');
     }
   };
 
@@ -382,105 +406,115 @@ export function ImportPageClient() {
     uploadToLb,
   ]);
 
-  const doImport = async (wm: { username: string; uid: string }) => {
-    const importedState = buildImportedState(wm);
-    const shouldUpload = uploadToLb;
+  // Import = upload immediately (when enabled), then land on the completion
+  // panel. The draft slot is claimed without prompting: a draft carrying
+  // manual /edit work is auto-snapshotted into saves first, so nothing is lost.
+  const handleImport = async (wm: { username: string; uid: string }) => {
+    setLastImportWatermark(wm);
 
+    let importedState: SavedState;
     try {
-      if (shouldUpload) setIsSubmitting(true);
-      await uploadImportedState(importedState);
+      importedState = buildImportedState(wm);
+    } catch (err) {
+      posthog.captureException(err);
+      notifyError(err instanceof Error ? err.message : 'Failed to import build.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const outcome = await uploadImportedState(importedState);
+
+      try {
+        const displacedDraft = loadDraftBuild();
+        if (displacedDraft?.characterId && isDraftBuildEdited(displacedDraft)) {
+          const displacedName = gameData.getCharacter(displacedDraft.characterId)?.name ?? 'Draft';
+          const snapshot = snapshotBuildToSaves(displacedDraft, `${displacedName} Draft ${formatSaveStamp()}`);
+          if (snapshot) info(`Your edited ${displacedName} draft was saved to Saves.`);
+        }
+      } catch {
+        // Snapshot is best-effort; never block the import on it.
+      }
+
       saveDraftBuild(importedState);
       setDraftBuildState(importedState);
+      setCompletedState(importedState);
+      setImportOutcome(outcome);
+      setSavedCopyName(null);
       posthog.capture('import_complete', {
-        action: 'load_to_editor',
         character_id: importedState.characterId,
-        uploaded_to_lb: shouldUpload,
+        uploaded_to_lb: outcome.uploaded,
+        lb_action: outcome.lbAction,
         has_source_image_key: Boolean(sourceImageKey),
         scan_id: scanId,
       });
-      router.push('/edit');
     } catch (err) {
       posthog.captureException(err);
       notifyError(err instanceof Error ? err.message : 'Failed to import build.');
     } finally {
-      if (shouldUpload) setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-  const saveImportToSaves = async (wm: { username: string; uid: string }) => {
-    const importedState = buildImportedState(wm);
-    const shouldUpload = uploadToLb;
+  const appendBuildId = (href: string, buildId: string | null) => {
+    if (!buildId) return href;
+    const separator = href.includes('?') ? '&' : '?';
+    return `${href}${separator}buildId=${encodeURIComponent(buildId)}`;
+  };
 
+  const completedUid = completedState?.watermark.uid.trim() ?? '';
+  const completedLeaderboardHref = importedLeaderboardLink
+    ? appendBuildId(importedLeaderboardLink.href, importOutcome?.buildId ?? null)
+    : null;
+  const completedProfileHref = completedUid
+    ? appendBuildId(`/profile/${encodeURIComponent(completedUid)}`, importOutcome?.buildId ?? null)
+    : null;
+
+  const captureDestinationClick = (destination: ImportDestination | 'import_another' | 'save_copy') => {
+    posthog.capture('import_destination_click', {
+      destination,
+      character_id: completedState?.characterId ?? null,
+      uploaded_to_lb: importOutcome?.uploaded ?? false,
+    });
+  };
+
+  const handleDestinationClick = (destination: ImportDestination) => {
+    const href = destination === 'leaderboard'
+      ? completedLeaderboardHref
+      : destination === 'profile'
+        ? completedProfileHref
+        : '/edit';
+    if (!href) return;
+    captureDestinationClick(destination);
+    router.push(href);
+  };
+
+  const handleImportAnother = () => {
+    captureDestinationClick('import_another');
+    handleReset();
+  };
+
+  // Closing the completion dialog returns to the scan results; the upload
+  // already happened, so re-importing just updates the same entry.
+  const handleDismissComplete = () => {
+    setImportOutcome(null);
+    setCompletedState(null);
+    setSavedCopyName(null);
+  };
+
+  const handleSaveCopy = () => {
+    if (!completedState) return;
     try {
-      if (shouldUpload) setIsSubmitting(true);
-      const characterName = getImportedCharacterName(importedState);
-
-      const now = new Date();
-      const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
       const saved = saveBuild({
-        name: `${characterName} Import ${stamp}`,
-        state: importedState,
+        name: `${getImportedCharacterName(completedState)} Import ${formatSaveStamp()}`,
+        state: completedState,
       });
-
-      await uploadImportedState(importedState);
-      posthog.capture('import_complete', {
-        action: 'save_to_saves',
-        character_id: importedState.characterId,
-        uploaded_to_lb: shouldUpload,
-        has_source_image_key: Boolean(sourceImageKey),
-        scan_id: scanId,
-      });
+      setSavedCopyName(saved.name);
+      captureDestinationClick('save_copy');
       success(`Saved "${saved.name}".`);
-      router.push('/saves');
     } catch (err) {
       posthog.captureException(err);
       notifyError(err instanceof Error ? err.message : 'Failed to save imported build.');
-    } finally {
-      if (shouldUpload) setIsSubmitting(false);
-    }
-  };
-
-  const goToImportedDestination = async (wm: { username: string; uid: string }) => {
-    const importedState = buildImportedState(wm);
-    const shouldUpload = uploadToLb;
-
-    try {
-      if (shouldUpload) setIsSubmitting(true);
-      const buildId = await uploadImportedState(importedState);
-      saveDraftBuild(importedState);
-      setDraftBuildState(importedState);
-      posthog.capture('import_complete', {
-        action: importedLeaderboardLink ? 'go_to_leaderboard' : 'go_to_profile_build',
-        character_id: importedState.characterId,
-        uploaded_to_lb: shouldUpload,
-        has_build_id: Boolean(buildId),
-        has_source_image_key: Boolean(sourceImageKey),
-        scan_id: scanId,
-      });
-      if (importedLeaderboardLink) {
-        const separator = importedLeaderboardLink.href.includes('?') ? '&' : '?';
-        router.push(buildId
-          ? `${importedLeaderboardLink.href}${separator}buildId=${encodeURIComponent(buildId)}`
-          : importedLeaderboardLink.href);
-      } else {
-        const profileHref = `/profile/${encodeURIComponent(importedState.watermark.uid)}`;
-        router.push(buildId ? `${profileHref}?buildId=${encodeURIComponent(buildId)}` : profileHref);
-      }
-    } catch (err) {
-      posthog.captureException(err);
-      notifyError(err instanceof Error ? err.message : 'Failed to open imported build.');
-    } finally {
-      if (shouldUpload) setIsSubmitting(false);
-    }
-  };
-
-  const handleImport = (wm: { username: string; uid: string }) => {
-    setLastImportWatermark(wm);
-    if (draftBuildState?.characterId) {
-      setPendingWm(wm); // show confirmation modal
-    } else {
-      void doImport(wm);
     }
   };
 
@@ -662,77 +696,32 @@ export function ImportPageClient() {
             data={analysisData}
             isProcessing={isProcessing}
             isSubmitting={isSubmitting}
+            uploadToLb={uploadToLb}
             progress={progress}
-            onImport={handleImport}
+            onImport={(wm) => { void handleImport(wm); }}
             onReportIssue={() => openReportModal()}
           />
         )}
 
       </div>
 
-      {/* Override confirmation modal */}
-      <ConfirmDialog
-        isOpen={Boolean(pendingWm)}
-        onClose={() => setPendingWm(null)}
-        title="Replace current build?"
-        icon={<AlertTriangle className="h-5 w-5" />}
-        description={
-          <>
-            You have{' '}
-            <span className="font-medium text-text-primary">
-              {gameData.getCharacter(draftBuildState?.characterId ?? null)?.name ?? 'a build'}
-            </span>{' '}
-            loaded. You can overwrite it, save it, or open the imported build after uploading.
-          </>
-        }
-        actions={(
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={async () => {
-                if (!pendingWm) return;
-                await goToImportedDestination(pendingWm);
-                setPendingWm(null);
-              }}
-              disabled={isSubmitting || isLeaderboardAvailabilityLoading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover"
-            >
-              <ExternalLink className="h-4 w-4" />
-              {importedLeaderboardLink ? 'Go to Leaderboard' : 'View on Profile'}
-            </button>
-            <button
-              onClick={async () => {
-                if (!pendingWm) return;
-                await saveImportToSaves(pendingWm);
-                setPendingWm(null);
-              }}
-              disabled={isSubmitting}
-              className="w-full rounded-xl border border-border py-2 text-sm font-semibold text-text-primary/70 transition-colors hover:border-text-primary/30 hover:text-text-primary"
-            >
-              Save Build
-            </button>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setPendingWm(null)}
-                disabled={isSubmitting}
-                className="w-full rounded-xl border border-border py-2 text-sm font-semibold text-text-primary/70 transition-colors hover:border-text-primary/30 hover:text-text-primary"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  if (!pendingWm) return;
-                  await doImport(pendingWm);
-                  setPendingWm(null);
-                }}
-                disabled={isSubmitting}
-                className="w-full rounded-xl border border-red-500/45 bg-red-500/15 py-2 text-sm font-semibold text-red-300 transition-colors hover:border-red-500/70 hover:bg-red-500/25"
-              >
-                Override Current
-              </button>
-            </div>
-          </div>
-        )}
-      />
+      {importOutcome && completedState && (
+        <ImportComplete
+          isOpen
+          onClose={handleDismissComplete}
+          characterName={getImportedCharacterName(completedState)}
+          uploaded={importOutcome.uploaded}
+          lbAction={importOutcome.lbAction}
+          localReason={importOutcome.localReason}
+          leaderboardHref={completedLeaderboardHref}
+          isLeaderboardLinkLoading={isLeaderboardAvailabilityLoading}
+          profileHref={completedProfileHref}
+          savedCopyName={savedCopyName}
+          onNavigate={handleDestinationClick}
+          onImportAnother={handleImportAnother}
+          onSaveCopy={handleSaveCopy}
+        />
+      )}
 
       <ReportIssueModal
         key={`${isReportModalOpen ? 'open' : 'closed'}-${reportReason}`}

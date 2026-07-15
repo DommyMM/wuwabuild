@@ -16,6 +16,7 @@ interface ImportResultsProps {
   data: AnalysisData;
   isProcessing: boolean;
   isSubmitting?: boolean;
+  uploadToLb?: boolean;
   progress: Record<RegionKey, RegionStatus>;
   onImport: (watermarkOverride: { username: string; uid: string }) => void;
   onReportIssue?: () => void;
@@ -116,6 +117,7 @@ export function ImportResults({
   data,
   isProcessing,
   isSubmitting = false,
+  uploadToLb = true,
   progress,
   onImport,
   onReportIssue,
@@ -346,7 +348,11 @@ export function ImportResults({
               : 'bg-border text-text-primary/30 cursor-not-allowed',
           ].join(' ')}
         >
-          {isProcessing ? 'Processing…' : isSubmitting ? 'Uploading…' : 'Import Build'}
+          {isProcessing
+            ? 'Processing…'
+            : isSubmitting
+              ? (uploadToLb ? 'Uploading…' : 'Importing…')
+              : (uploadToLb ? 'Import & Upload' : 'Import Locally')}
         </button>
 
         <button

@@ -107,13 +107,20 @@ Current init settings:
   - `scan_id`: string | null
 
 #### `import_complete`
-- Purpose: import flow ended in a concrete output.
+- Purpose: import finished (leaderboard outcome settled, draft claimed) and the completion dialog is shown. Fires before the user picks a destination.
 - Properties:
-  - `action`: `load_to_editor` | `save_to_saves` | `go_to_leaderboard` | `go_to_profile_build`
   - `character_id`: string | null
-  - `uploaded_to_lb`: boolean
+  - `uploaded_to_lb`: boolean (leaderboard submit succeeded)
+  - `lb_action`: `created` | `updated` | null
   - `has_source_image_key`: boolean
   - `scan_id`: string | null
+
+#### `import_destination_click`
+- Purpose: destination chosen on the post-import completion dialog.
+- Properties:
+  - `destination`: `leaderboard` | `profile` | `editor` | `import_another` | `save_copy`
+  - `character_id`: string | null
+  - `uploaded_to_lb`: boolean
 
 #### `ocr_issue_report_submit`
 - Purpose: OCR issue report submitted.

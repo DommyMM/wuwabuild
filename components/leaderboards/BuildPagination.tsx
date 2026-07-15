@@ -8,12 +8,16 @@ interface BuildPaginationProps {
   page: number;
   pageCount: number;
   statusText: string;
+  /** Optional muted caption mirroring statusText on the left side. */
+  leftText?: string;
   onPageChange: (page: number) => void;
 }
 
-export const BuildPagination: React.FC<BuildPaginationProps> = ({ page, pageCount, statusText, onPageChange }) => (
+export const BuildPagination: React.FC<BuildPaginationProps> = ({ page, pageCount, statusText, leftText, onPageChange }) => (
   <div className="grid grid-cols-[1fr_auto_1fr] items-start">
-    <div />
+    <div className="justify-self-start self-start text-left text-xs text-text-primary/50">
+      {leftText}
+    </div>
     <div className="justify-self-center flex items-start gap-2 text-text-primary/75 my-4 md:my-2">
       <div className="flex flex-col items-center gap-1">
         <button type="button" aria-label="First page" onClick={() => onPageChange(1)} disabled={page <= 1} className={PAGINATION_BUTTON_CLASS}>

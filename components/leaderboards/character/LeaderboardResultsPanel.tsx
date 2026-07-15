@@ -18,14 +18,11 @@ const DAMAGE_SORT_KEY: LBLeaderboardSortKey = 'damage';
 
 interface LeaderboardResultsPanelProps {
   entries: LBLeaderboardEntry[];
-  /** Backend board-level stat columns; resolved into the four row columns when complete. */
   displayStats?: readonly StatSortKey[];
   deepLinkBuildId: string;
   activeWeaponId: string;
   activeTrackKey: string;
-  /** Active track's ER target; drives the ER stat cell tint. */
   erTarget?: number;
-  /** Board scoring lens. 'raw' re-values/re-ranks the visible page by pure damage. */
   scoring?: ScoringMode;
   metricLabel: string;
   expandedIds: Set<string>;
@@ -360,7 +357,13 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
         </div>
       </div>
 
-      <BuildPagination page={page} pageCount={pageCount} statusText={statusText} onPageChange={onPageChange} />
+      <BuildPagination
+        page={page}
+        pageCount={pageCount}
+        statusText={statusText}
+        leftText="Rankings show each player's best build. Other uploads stay on their profile."
+        onPageChange={onPageChange}
+      />
     </section>
   );
 };
