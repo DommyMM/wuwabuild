@@ -3,7 +3,10 @@ import { GlobalBoardPageClient } from '@/components/leaderboards/board/GlobalBoa
 import { prefetchBuilds } from '@/lib/lbServer';
 
 export const dynamic = 'force-static';
-export const revalidate = 300;
+// Matches the LB service's cacheList window (s-maxage=120) and the client-side
+// globalBoardCache TTL, so the prerendered HTML is never staler than the data a
+// client fetch would return for the same board.
+export const revalidate = 120;
 
 export const metadata: Metadata = {
   title: 'Wuthering Waves Builds',

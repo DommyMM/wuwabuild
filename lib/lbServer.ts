@@ -4,9 +4,13 @@ import { buildLeaderboardSearchParams, toFiniteNumber, parseBuildListResponsePay
 import { LB_API_BASE } from './apiEndpoints';
 import { loadCharacterDisplayMap } from './server/gameData';
 
-// Centralized TTLs for SSR prefetch caches (seconds).
-const PREFETCH_TTL_S = 300; // 5 minutes for character boards and build/profile reads.
-const OVERVIEW_PREFETCH_TTL_S = 600; // 10 minutes for aggregate overview/reign surfaces.
+// SSR prefetch TTLs (seconds). These mirror the `s-maxage` the LB service emits
+// for the same resource (`cachePolicy` in lb `internal/api/helpers.go`), so a
+// board has one staleness answer at every layer rather than one per cache.
+// Diverging from lb here just means SSR visitors silently see older data than
+// client-side fetches of the same endpoint.
+const PREFETCH_TTL_S = 120; // lb cacheList: /build, /leaderboard/{id}, /profile/{uid}.
+const OVERVIEW_PREFETCH_TTL_S = 600; // lb cacheOverview: aggregate overview/reign surfaces.
 
 export async function prefetchBuilds(
   sort: 'finalCV' | 'timestamp' = 'finalCV',

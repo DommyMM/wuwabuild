@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
         // Game data JSONs — only change on deployment, cache aggressively.
         // s-maxage: CDN holds for 1 year, busted automatically on Vercel deploy.
         // max-age: browser holds for 1 hour (covers tab reuse without re-downloading).
+        // stale-while-revalidate is deliberate here and must not be removed to
+        // "match" the LB service: these routes are served by Vercel, which does
+        // not implement proxy-revalidate, so s-maxage + swr is valid and is
+        // Vercel's own documented pattern. Cloudflare (which fronts api.wuwa.build)
+        // does the opposite, which is why lb emits no swr. See lb/docs/api-behaviors.md.
         source: '/Data/:file*.json',
         headers: [
           {
