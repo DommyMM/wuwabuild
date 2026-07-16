@@ -1,6 +1,6 @@
 // Server-only module: SSR prefetch against the LB API via the Cloudflare gateway
 import 'server-only';
-import { buildLeaderboardSearchParams, isRecord, toFiniteNumber, parseBuildRowEntry, parseLeaderboardDisplayStats, parseLeaderboardEntry, parseLeaderboardOverviewPayload, parseTeamBuffs, parseTracks, resolveTeamConfiguration, LBBuildRowEntry, LBListBuildsResponse, LBCharacterOverview, LBLeaderboardEntry, LBLeaderboardQuery, LBLeaderboardResponse } from './lb';
+import { buildLeaderboardSearchParams, toFiniteNumber, parseBuildListResponsePayload, parseLeaderboardOverviewPayload, parseLeaderboardResponsePayload, LBListBuildsResponse, LBListBuildsResponseRaw, LBCharacterOverview, LBLeaderboardQuery, LBLeaderboardResponse, LBLeaderboardResponseRaw } from './lb';
 import { LB_API_BASE } from './apiEndpoints';
 import { loadCharacterDisplayMap } from './server/gameData';
 
@@ -30,22 +30,8 @@ export async function prefetchBuilds(
       return null;
     }
 
-    const payload = await response.json() as { builds?: unknown[]; total?: number; page?: number; pageSize?: number };
-    const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
-    const builds: LBBuildRowEntry[] = [];
-    for (const raw of rawBuilds) {
-      try {
-        builds.push(parseBuildRowEntry(raw));
-      } catch {
-        // skip malformed rows
-      }
-    }
-    return {
-      builds,
-      total: toFiniteNumber(payload.total, 0),
-      page: toFiniteNumber(payload.page, 1),
-      pageSize: toFiniteNumber(payload.pageSize, 12),
-    };
+    const payload = await response.json() as LBListBuildsResponseRaw;
+    return parseBuildListResponsePayload(payload, 1, 12);
   } catch (err) {
     console.error('[lbServer] prefetchBuilds failed', err);
     return null;
@@ -134,57 +120,8 @@ export async function prefetchLeaderboard(
       return null;
     }
 
-    const payload = await response.json() as {
-      builds?: unknown[];
-      ghostBuild?: unknown;
-      total?: number;
-      page?: number;
-      pageSize?: number;
-      weaponIds?: unknown[];
-      tracks?: unknown;
-      teamCharacterIds?: unknown[];
-      teamMembers?: unknown[];
-      teamBuffs?: unknown;
-      activeWeaponId?: unknown;
-      activeTrack?: unknown;
-      erTarget?: unknown;
-      displayStats?: unknown;
-    };
-    const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
-    const builds: LBLeaderboardEntry[] = [];
-    for (const raw of rawBuilds) {
-      try {
-        builds.push(parseLeaderboardEntry(raw));
-      } catch {
-        // skip malformed rows
-      }
-    }
-
-    let ghostBuild: LBLeaderboardEntry | null = null;
-    if (isRecord(payload.ghostBuild)) {
-      try { ghostBuild = parseLeaderboardEntry(payload.ghostBuild); } catch { /* ignore */ }
-    }
-
-    const team = resolveTeamConfiguration(payload.teamMembers, payload.teamCharacterIds);
-
-    return {
-      builds,
-      ghostBuild,
-      total: toFiniteNumber(payload.total, 0),
-      page: toFiniteNumber(payload.page, 1),
-      pageSize: toFiniteNumber(payload.pageSize, 12),
-      weaponIds: Array.isArray(payload.weaponIds)
-        ? (payload.weaponIds as unknown[]).filter((v): v is string => typeof v === 'string')
-        : [],
-      tracks: parseTracks(payload.tracks),
-      teamCharacterIds: team.teamCharacterIds,
-      teamMembers: team.teamMembers,
-      teamBuffs: parseTeamBuffs(payload.teamBuffs),
-      activeWeaponId: typeof payload.activeWeaponId === 'string' ? payload.activeWeaponId : '',
-      activeTrack: typeof payload.activeTrack === 'string' ? payload.activeTrack : '',
-      erTarget: toFiniteNumber(payload.erTarget, 0),
-      displayStats: parseLeaderboardDisplayStats(payload.displayStats),
-    };
+    const payload = await response.json() as LBLeaderboardResponseRaw;
+    return parseLeaderboardResponsePayload(payload, 1, 12);
   } catch (err) {
     console.error('[lbServer] prefetchLeaderboard failed', err);
     return null;

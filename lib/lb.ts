@@ -140,7 +140,7 @@ export function isLBPercentStatSortKey(sortKey: LBSortKey | LBLeaderboardSortKey
   return isPercentStat(getLBStatLabel(sortKey));
 }
 
-export function parseLeaderboardDisplayStats(raw: unknown): LBStatSortKey[] {
+function parseLeaderboardDisplayStats(raw: unknown): LBStatSortKey[] {
   if (!Array.isArray(raw)) return [];
   const result: LBStatSortKey[] = [];
   for (const value of raw) {
@@ -314,7 +314,7 @@ export interface LBSubstatUpgradeTierSet {
   currentRankVisible?: boolean;
 }
 
-interface LBListBuildsResponseRaw {
+export interface LBListBuildsResponseRaw {
   builds?: unknown[];
   total?: number;
   page?: number;
@@ -328,7 +328,7 @@ export interface LBListBuildsResponse {
   pageSize: number;
 }
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
@@ -380,7 +380,7 @@ function parseStatsRecord(raw: Record<string, unknown>): Record<LBStatCode, numb
   };
 }
 
-export function parseBuildRowEntry(raw: unknown): LBBuildRowEntry {
+function parseBuildRowEntry(raw: unknown): LBBuildRowEntry {
   if (!isRecord(raw)) {
     throw new Error('LB row payload is malformed.');
   }
@@ -499,8 +499,31 @@ function parseUpgradeTierSet(raw: unknown): LBSubstatUpgradeTierSet | null {
   return { min, median, max, minRank, medianRank, maxRank };
 }
 
-function resolveLBBaseUrl(): string {
-  return LB_API_BASE;
+// Shared LB API request core. Prefixes the gateway base URL and throws a
+// labeled `${label} (${status})` error on a non-OK response, except for
+// statuses listed in `allow` (returned to the caller to handle, e.g. 404 →
+// empty result). All LB fetches in this module go through here so error
+// messages and base-URL handling stay uniform.
+async function lbFetch(
+  path: string,
+  { label, allow, ...init }: RequestInit & { label: string; allow?: readonly number[] },
+): Promise<Response> {
+  const response = await fetch(`${LB_API_BASE}${path}`, init);
+  if (!response.ok && !allow?.includes(response.status)) {
+    throw new Error(`${label} (${response.status})`);
+  }
+  return response;
+}
+
+// Convenience wrapper for the common GET → JSON case. Callers narrow the
+// payload (default `unknown`) with the parse helpers below.
+async function lbGetJSON<T = unknown>(
+  path: string,
+  label: string,
+  signal?: AbortSignal,
+): Promise<T> {
+  const response = await lbFetch(path, { method: 'GET', signal, label });
+  return response.json() as Promise<T>;
 }
 
 function buildBuildListSearchParams(query: LBListBuildsQuery, includeOwnerFilters: boolean): URLSearchParams {
@@ -535,7 +558,7 @@ function buildBuildListSearchParams(query: LBListBuildsQuery, includeOwnerFilter
   return params;
 }
 
-function parseBuildListResponsePayload(
+export function parseBuildListResponsePayload(
   payload: LBListBuildsResponseRaw,
   fallbackPage: number,
   fallbackPageSize: number,
@@ -569,16 +592,11 @@ export async function listBuilds(
   const params = buildBuildListSearchParams(query, true);
   const pageSize = clampPageSize(query.pageSize);
 
-  const requestUrl = `${resolveLBBaseUrl()}/build?${params.toString()}`;
-  const response = await fetch(requestUrl, {
-    method: 'GET',
+  const payload = await lbGetJSON<LBListBuildsResponseRaw>(
+    `/build?${params.toString()}`,
+    'Failed to fetch builds',
     signal,
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch builds (${response.status})`);
-  }
-
-  const payload = await response.json() as LBListBuildsResponseRaw;
+  );
   return parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
 }
 
@@ -594,13 +612,11 @@ export async function listProfileBuilds(
 
   const params = buildBuildListSearchParams(query, false);
   const pageSize = clampPageSize(query.pageSize);
-  const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(trimmedUid)}/builds?${params.toString()}`;
-  const response = await fetch(requestUrl, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch profile builds (${response.status})`);
-  }
-
-  const payload = await response.json() as LBListBuildsResponseRaw;
+  const payload = await lbGetJSON<LBListBuildsResponseRaw>(
+    `/profile/${encodeURIComponent(trimmedUid)}/builds?${params.toString()}`,
+    'Failed to fetch profile builds',
+    signal,
+  );
   return parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
 }
 
@@ -723,13 +739,11 @@ export async function listProfileEchoes(
   for (const setId of query.setIds ?? []) if (setId) params.append('setId', setId);
   for (const main of query.mainStatTypes ?? []) if (main) params.append('mainStatType', main);
 
-  const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(trimmedUid)}/echoes?${params.toString()}`;
-  const response = await fetch(requestUrl, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch profile echoes (${response.status})`);
-  }
-
-  const payload: unknown = await response.json();
+  const payload = await lbGetJSON(
+    `/profile/${encodeURIComponent(trimmedUid)}/echoes?${params.toString()}`,
+    'Failed to fetch profile echoes',
+    signal,
+  );
   const rawEchoes = isRecord(payload) && Array.isArray(payload.echoes) ? payload.echoes : [];
   const echoes: LBEcho[] = [];
   for (const raw of rawEchoes) {
@@ -797,13 +811,11 @@ export async function getEchoUsages(
   const trimmedUid = uid.trim();
   if (!trimmedUid || !echoKey) return [];
 
-  const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(trimmedUid)}/echoes/${encodeURIComponent(echoKey)}/usages`;
-  const response = await fetch(requestUrl, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch echo usages (${response.status})`);
-  }
-
-  const payload: unknown = await response.json();
+  const payload = await lbGetJSON(
+    `/profile/${encodeURIComponent(trimmedUid)}/echoes/${encodeURIComponent(echoKey)}/usages`,
+    'Failed to fetch echo usages',
+    signal,
+  );
   const rawUsages = isRecord(payload) && Array.isArray(payload.usages) ? payload.usages : [];
   const usages: LBEchoUsage[] = [];
   for (const raw of rawUsages) {
@@ -931,7 +943,7 @@ interface LBSubmitBuildResult {
   warnings: string[];
 }
 
-export function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
+function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
   if (!isRecord(raw)) {
     throw new Error('LB leaderboard row payload is malformed.');
   }
@@ -960,7 +972,7 @@ export function parseLeaderboardEntry(raw: unknown): LBLeaderboardEntry {
   };
 }
 
-export function parseTracks(raw: unknown): LBTrack[] {
+function parseTracks(raw: unknown): LBTrack[] {
   if (!Array.isArray(raw)) return [];
 
   return raw
@@ -1007,7 +1019,7 @@ function parseTeamMembers(raw: unknown): LBTeamMemberConfig[] {
     .filter((member) => member.charId.length > 0);
 }
 
-export function resolveTeamConfiguration(
+function resolveTeamConfiguration(
   teamMembersRaw: unknown,
   teamCharacterIdsRaw: unknown,
 ): { teamCharacterIds: string[]; teamMembers: LBTeamMemberConfig[] } {
@@ -1031,7 +1043,7 @@ function parseBuffMap(raw: unknown): Record<string, number> {
   return out;
 }
 
-export function parseTeamBuffs(raw: unknown): LBTeamBuffs {
+function parseTeamBuffs(raw: unknown): LBTeamBuffs {
   if (!isRecord(raw)) return { total: {}, bySupport: [] };
   const bySupport = Array.isArray(raw.bySupport)
     ? raw.bySupport
@@ -1096,44 +1108,36 @@ export function parseLeaderboardOverviewPayload(payload: unknown): LBCharacterOv
 }
 
 export async function listLeaderboardOverview(signal?: AbortSignal): Promise<LBCharacterOverview[]> {
-  const requestUrl = `${resolveLBBaseUrl()}/leaderboard`;
-  const response = await fetch(requestUrl, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch leaderboard overview (${response.status})`);
-  }
-
-  return parseLeaderboardOverviewPayload(await response.json());
+  const payload = await lbGetJSON('/leaderboard', 'Failed to fetch leaderboard overview', signal);
+  return parseLeaderboardOverviewPayload(payload);
 }
 
-export async function listLeaderboard(
-  characterId: string,
-  query: LBLeaderboardQuery,
-  signal?: AbortSignal,
-): Promise<LBLeaderboardResponse> {
-  const params = buildLeaderboardSearchParams(query);
-  const pageSize = clampPageSize(query.pageSize);
-  const requestUrl = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}?${params.toString()}`;
-  const response = await fetch(requestUrl, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch leaderboard (${response.status})`);
-  }
+export interface LBLeaderboardResponseRaw {
+  builds?: unknown[];
+  ghostBuild?: unknown;
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  weaponIds?: unknown[];
+  tracks?: unknown;
+  teamCharacterIds?: unknown[];
+  teamMembers?: unknown[];
+  teamBuffs?: unknown;
+  activeWeaponId?: unknown;
+  activeTrack?: unknown;
+  erTarget?: unknown;
+  displayStats?: unknown;
+}
 
-  const payload = await response.json() as {
-    builds?: unknown[];
-    ghostBuild?: unknown;
-    total?: number;
-    page?: number;
-    pageSize?: number;
-    weaponIds?: unknown[];
-    tracks?: unknown;
-    teamCharacterIds?: unknown[];
-    teamMembers?: unknown[];
-    teamBuffs?: unknown;
-    activeWeaponId?: unknown;
-    activeTrack?: unknown;
-    erTarget?: unknown;
-    displayStats?: unknown;
-  };
+// Shared leaderboard payload → typed response mapping. Used by both the client
+// fetch (`listLeaderboard`, signal + throw) and the SSR prefetch
+// (`prefetchLeaderboard`, revalidate + return null), so only the transport
+// wrapper differs between the two.
+export function parseLeaderboardResponsePayload(
+  payload: LBLeaderboardResponseRaw,
+  fallbackPage: number,
+  fallbackPageSize: number,
+): LBLeaderboardResponse {
   const rawBuilds = Array.isArray(payload.builds) ? payload.builds : [];
   const builds: LBLeaderboardEntry[] = [];
 
@@ -1163,9 +1167,9 @@ export async function listLeaderboard(
     builds,
     ghostBuild,
     total: toFiniteNumber(payload.total, 0),
-    page: toFiniteNumber(payload.page, query.page ?? 1),
-    pageSize: toFiniteNumber(payload.pageSize, pageSize),
-    weaponIds: Array.isArray(payload.weaponIds) ? (payload.weaponIds as unknown[]).filter((v): v is string => typeof v === 'string') : [],
+    page: toFiniteNumber(payload.page, fallbackPage),
+    pageSize: toFiniteNumber(payload.pageSize, fallbackPageSize),
+    weaponIds: Array.isArray(payload.weaponIds) ? payload.weaponIds.filter((v): v is string => typeof v === 'string') : [],
     tracks: parseTracks(payload.tracks),
     teamCharacterIds: team.teamCharacterIds,
     teamMembers: team.teamMembers,
@@ -1175,6 +1179,21 @@ export async function listLeaderboard(
     erTarget: toFiniteNumber(payload.erTarget, 0),
     displayStats: parseLeaderboardDisplayStats(payload.displayStats),
   };
+}
+
+export async function listLeaderboard(
+  characterId: string,
+  query: LBLeaderboardQuery,
+  signal?: AbortSignal,
+): Promise<LBLeaderboardResponse> {
+  const params = buildLeaderboardSearchParams(query);
+  const pageSize = clampPageSize(query.pageSize);
+  const payload = await lbGetJSON<LBLeaderboardResponseRaw>(
+    `/leaderboard/${encodeURIComponent(characterId)}?${params.toString()}`,
+    'Failed to fetch leaderboard',
+    signal,
+  );
+  return parseLeaderboardResponsePayload(payload, query.page ?? 1, pageSize);
 }
 
 export function buildLeaderboardSearchParams(query: LBLeaderboardQuery): URLSearchParams {
@@ -1207,16 +1226,11 @@ export async function getBuildById(buildId: string, signal?: AbortSignal): Promi
     throw new Error('Build id is required.');
   }
 
-  const requestUrl = `${resolveLBBaseUrl()}/build/${encodeURIComponent(trimmedBuildId)}`;
-  const response = await fetch(requestUrl, {
-    method: 'GET',
+  const payload = await lbGetJSON(
+    `/build/${encodeURIComponent(trimmedBuildId)}`,
+    'Failed to fetch build detail',
     signal,
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch build detail (${response.status})`);
-  }
-
-  const payload = await response.json();
+  );
   return parseBuildDetailEntry(payload);
 }
 
@@ -1226,17 +1240,12 @@ export async function getBuildMoves(
   trackKey: string,
   signal?: AbortSignal,
 ): Promise<LBMoveEntry[]> {
-  const requestUrl = `${resolveLBBaseUrl()}/build/${encodeURIComponent(buildId)}/moves/${encodeURIComponent(weaponId)}/${encodeURIComponent(trackKey)}`;
-  const response = await fetch(requestUrl, {
-    method: 'GET',
-    signal,
-  });
-
+  const response = await lbFetch(
+    `/build/${encodeURIComponent(buildId)}/moves/${encodeURIComponent(weaponId)}/${encodeURIComponent(trackKey)}`,
+    { method: 'GET', signal, label: 'Failed to fetch build moves', allow: [404] },
+  );
   if (response.status === 404) {
     return [];
-  }
-  if (!response.ok) {
-    throw new Error(`Failed to fetch build moves (${response.status})`);
   }
 
   const payload = await response.json() as { moves?: unknown };
@@ -1263,17 +1272,12 @@ export async function getBuildSubstatUpgrades(
   trackKey: string,
   signal?: AbortSignal,
 ): Promise<LBSubstatUpgradeTierSet | null> {
-  const requestUrl = `${resolveLBBaseUrl()}/build/${encodeURIComponent(buildId)}/substat-upgrades/${encodeURIComponent(weaponId)}/${encodeURIComponent(trackKey)}`;
-  const response = await fetch(requestUrl, {
-    method: 'GET',
-    signal,
-  });
-
+  const response = await lbFetch(
+    `/build/${encodeURIComponent(buildId)}/substat-upgrades/${encodeURIComponent(weaponId)}/${encodeURIComponent(trackKey)}`,
+    { method: 'GET', signal, label: 'Failed to fetch substat upgrades', allow: [404] },
+  );
   if (response.status === 404) {
     return null;
-  }
-  if (!response.ok) {
-    throw new Error(`Failed to fetch substat upgrades (${response.status})`);
   }
 
   const payload = await response.json() as {
@@ -1328,14 +1332,12 @@ export async function getBuildStandings(
   buildId: string,
   signal?: AbortSignal,
 ): Promise<LBStandingEntry[]> {
-  const requestUrl = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}/build/${encodeURIComponent(buildId)}/standings`;
-  const response = await fetch(requestUrl, { method: 'GET', signal });
-
+  const response = await lbFetch(
+    `/leaderboard/${encodeURIComponent(characterId)}/build/${encodeURIComponent(buildId)}/standings`,
+    { method: 'GET', signal, label: 'Failed to fetch standings', allow: [404] },
+  );
   if (response.status === 404) {
     return [];
-  }
-  if (!response.ok) {
-    throw new Error(`Failed to fetch standings (${response.status})`);
   }
 
   const payload = await response.json() as { standings?: unknown };
@@ -1376,18 +1378,15 @@ export async function fetchSimulateRanks(
   buildState: SavedState,
   signal?: AbortSignal,
 ): Promise<LBSimulateBoard[]> {
-  const requestUrl = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}/simulate`;
-  const response = await fetch(requestUrl, {
+  const response = await lbFetch(`/leaderboard/${encodeURIComponent(characterId)}/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ buildState }),
     signal,
+    label: 'Failed to simulate ranks',
+    allow: [404],
   });
-
   if (response.status === 404) return [];
-  if (!response.ok) {
-    throw new Error(`Failed to simulate ranks (${response.status})`);
-  }
 
   const payload = await response.json() as { boards?: unknown };
   if (!Array.isArray(payload.boards)) return [];
@@ -1440,13 +1439,11 @@ export async function getProfileStandings(uid: string): Promise<LBProfileStandin
   if (!promise) {
     promise = (async () => {
       try {
-        const requestUrl = `${resolveLBBaseUrl()}/profile/${encodeURIComponent(cacheKey)}/standings`;
-        const response = await fetch(requestUrl, { method: 'GET' });
-
+        const response = await lbFetch(
+          `/profile/${encodeURIComponent(cacheKey)}/standings`,
+          { method: 'GET', label: 'Failed to fetch profile standings', allow: [404] },
+        );
         if (response.status === 404) return [];
-        if (!response.ok) {
-          throw new Error(`Failed to fetch profile standings (${response.status})`);
-        }
 
         const payload = await response.json() as { standings?: unknown };
         if (!Array.isArray(payload.standings)) return [];
@@ -1596,13 +1593,15 @@ export async function getBoardOptimality(
   const params = new URLSearchParams();
   if (buildId) params.set('buildId', buildId);
   const query = params.toString();
-  const base = `${resolveLBBaseUrl()}/leaderboard/${encodeURIComponent(characterId)}/optimality/${encodeURIComponent(weaponId)}/${encodeURIComponent(sequence)}`;
-  const url = query ? `${base}?${query}` : base;
-  const response = await fetch(url, { method: 'GET', signal });
+  const base = `/leaderboard/${encodeURIComponent(characterId)}/optimality/${encodeURIComponent(weaponId)}/${encodeURIComponent(sequence)}`;
+  const response = await lbFetch(query ? `${base}?${query}` : base, {
+    method: 'GET',
+    signal,
+    label: 'Failed to fetch board optimality',
+    allow: [404],
+  });
   if (response.status === 404) return null;
-  if (!response.ok) {
-    throw new Error(`Failed to fetch board optimality (${response.status})`);
-  }
+
   const raw = await response.json() as Record<string, unknown>;
   return {
     characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
@@ -1657,7 +1656,9 @@ export async function submitBuild(
   if (rawScanId && !scanId) {
     throw new Error('OCR scan ID is malformed.');
   }
-  const response = await fetch(`${resolveLBBaseUrl()}/build`, {
+  // Deliberately not routed through lbFetch: submit surfaces the API's own
+  // error/message from the response body, which a labeled throw would discard.
+  const response = await fetch(`${LB_API_BASE}/build`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1713,7 +1714,7 @@ export async function linkBuildImage(
     throw new Error('OCR scan ID is malformed.');
   }
 
-  const response = await fetch(`${resolveLBBaseUrl()}/build/link-image`, {
+  const response = await lbFetch('/build/link-image', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1724,11 +1725,8 @@ export async function linkBuildImage(
       ...(canonicalScanId ? { scanId: canonicalScanId } : {}),
     }),
     signal,
+    label: 'Failed to link build image',
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to link build image (${response.status})`);
-  }
 
   const raw = await response.json() as Record<string, unknown>;
   return {

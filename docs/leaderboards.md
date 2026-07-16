@@ -35,6 +35,7 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 ## Important Invariants
 
 - `lbServer.ts` is server-only. Never import in client components.
+- `lb.ts` owns both the transport (`lbFetch` / `lbGetJSON`, which prefix the gateway base URL and throw a labeled error on non-OK) and the payload parsers. `lbServer.ts` supplies only the SSR transport (`next: { revalidate }`, `null` on failure) and reuses the exported `parseBuildListResponsePayload` / `parseLeaderboardResponsePayload`. Do not re-implement row or response parsing there: the server and client must map a payload identically, and only the transport should differ.
 - `weaponId` selects which `damage_map` key to read. It does not filter eligible builds.
 - Row identity for leaderboard entries is `entry.id + ":" + entry.trackKey`.
 - In frontend rendering, treat `globalRank > 0` as a showable competitive rank and `globalRank === 0` as "do not show rank" (ghost rows and browse-only rows both land here).
