@@ -127,19 +127,20 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
 
         return (
           <div key={i} className={PANEL_CLASS} style={showCV ? { borderColor: `${frameBorderColor}b3` } : undefined}>
-            {/* Artwork sizes itself off the panel height and fades out under the substat column. */}
-            <div className="absolute inset-y-0 left-0 z-0">
+            {/* Artwork sizes itself off the panel height and fades out under the substat column.
+                The stat-source glow animates `filter` on this unmasked wrapper: putting it on the
+                masked img itself hits a Chromium filter+mask compositing bug that blanks the art. */}
+            <div
+              className={`absolute inset-y-0 left-0 z-0 origin-left transition-transform duration-200 ${
+                firstEchoBonusHoverMatch ? 'card-stat-source-art scale-[1.04]' : ''
+              }`}
+            >
               <img
                 src={getEchoPaths(echo, panel.phantom)}
                 alt={echoName}
-                className={`h-full w-auto max-w-none object-cover transition-all duration-200 ${
-                  firstEchoBonusHoverMatch ? 'brightness-110 saturate-110' : ''
-                }`}
+                className="h-full w-auto max-w-none object-cover"
                 style={ECHO_IMAGE_FADE_STYLE}
               />
-              {firstEchoBonusHoverMatch && (
-                <div className="pointer-events-none absolute inset-0 border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.24),0_0_16px_rgba(110,255,255,0.45)]" />
-              )}
             </div>
 
             {/* Echo identity hover sits beneath the content layer, over the artwork half. */}

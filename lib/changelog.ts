@@ -18,6 +18,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
+                text: 'Slightly better view when hovering on a stat to see sources in a build card'
+            },
+            {
+                kind: 'improved',
                 text: 'All assets migrated so downloads and loading should be slightly faster'
             }
         ]

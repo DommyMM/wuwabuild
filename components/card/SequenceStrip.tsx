@@ -5,6 +5,8 @@ import { HoverCard, HoverCardIcon, HoverCardDescription } from '@/components/ui/
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CDNChainEntry, I18nString } from '@/lib/character';
 import { ELEMENT_COLOR } from '@/lib/elementVisuals';
+import { getChainSequenceBonuses } from '@/lib/constants/statBonuses';
+import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
 
 interface SequenceStripProps {
@@ -17,13 +19,29 @@ interface SequenceStripProps {
    * every node gets a solid dark backing to survive arbitrary custom art.
    */
   overlay?: boolean;
+  activeHoverStat?: StatHoverKey | null;
+  onHoverStatChange?: (next: StatHoverKey | null) => void;
 }
 
 export const SequenceStrip: React.FC<SequenceStripProps> = ({
   chains, sequence, element, characterName, overlay = false,
+  activeHoverStat = null, onHoverStatChange,
 }) => {
   const { t } = useLanguage();
   const color = ELEMENT_COLOR[element] ?? '#ffffff';
+  const hasActiveHover = Boolean(activeHoverStat);
+
+  // Chains with an unconditional stat bonus (e.g. Zani S2 Crit Rate +20%)
+  // participate in the stat cross-link, keyed by their 1-based sequence.
+  const hoverKeysBySequence = React.useMemo(() => {
+    const keys = new Map<number, StatHoverKey[]>();
+    for (const bonus of getChainSequenceBonuses(chains)) {
+      const key = normalizeStatHoverKey(bonus.stat);
+      if (!key) continue;
+      keys.set(bonus.minSequence, [...(keys.get(bonus.minSequence) ?? []), key]);
+    }
+    return keys;
+  }, [chains]);
   const resolvedCharacterName = characterName ? t(characterName) : 'Resonator';
   const resolveLocalizedText = (value: I18nString | string | undefined): string => {
     if (!value) return '';
@@ -43,21 +61,29 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
         const active = i < sequence;
         const chainName = resolveLocalizedText(chain?.name);
         const chainDescription = resolveLocalizedText(chain?.description);
+        // Locked chains do not feed the stat panel, so only unlocked ones link.
+        const nodeHoverKeys = active ? (hoverKeysBySequence.get(i + 1) ?? []) : [];
+        const isHoverMatch = Boolean(activeHoverStat && nodeHoverKeys.includes(activeHoverStat));
+        const stateClass = active
+          ? (hasActiveHover && !isHoverMatch ? 'opacity-45 brightness-90' : 'opacity-100')
+          : overlay ? 'opacity-55 grayscale' : 'opacity-40 grayscale';
 
         const trigger = (
           <div
             className={`relative flex items-center justify-center rounded-full border transition-all duration-300 ${
               overlay ? 'h-10 w-10' : 'h-11.5 w-11.5'
-            } ${active ? 'opacity-100' : overlay ? 'opacity-55 grayscale' : 'opacity-40 grayscale'}`}
+            } ${stateClass} ${isHoverMatch ? 'card-seq-source' : ''}`}
             style={{
-              borderColor: active ? `${color}90` : 'rgba(255,255,255,0.15)',
+              borderColor: isHoverMatch ? color : active ? `${color}90` : 'rgba(255,255,255,0.15)',
               backgroundColor: overlay
                 ? 'rgba(8,10,14,0.55)'
-                : active ? `${color}15` : 'rgba(0,0,0,0.4)',
+                : active ? (isHoverMatch ? `${color}28` : `${color}15`) : 'rgba(0,0,0,0.4)',
               boxShadow: active
                 ? `0 0 10px ${color}30, inset 0 0 8px ${color}15`
                 : overlay ? '0 2px 8px rgba(0,0,0,0.45)' : 'none',
             }}
+            onMouseEnter={nodeHoverKeys.length > 0 ? () => onHoverStatChange?.(nodeHoverKeys[0]) : undefined}
+            onMouseLeave={nodeHoverKeys.length > 0 ? () => onHoverStatChange?.(null) : undefined}
           >
             {chain?.icon && (
               <img

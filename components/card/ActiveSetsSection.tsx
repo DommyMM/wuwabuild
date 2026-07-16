@@ -41,6 +41,7 @@ const getDisplaySetName = (setName: string, isCrowded: boolean): string => {
 export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   showCV = true,
   activeHoverStat = null,
+  onHoverStatChange,
 }) => {
   const { stats } = useStats();
   const { fettersByElement } = useGameData();
@@ -94,9 +95,10 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
           : 'flex-1';
         const setIcon = fetter?.icon ?? '';
         const setBonuses = getSetBonusesFromFetter(fetter, count);
-        const setHoverMatch = Boolean(
-          activeHoverStat && setBonuses.some((bonus) => normalizeStatHoverKey(bonus.stat) === activeHoverStat)
-        );
+        const setHoverKeys = setBonuses
+          .map((bonus) => normalizeStatHoverKey(bonus.stat))
+          .filter((key): key is NonNullable<typeof key> => key !== null);
+        const setHoverMatch = Boolean(activeHoverStat && setHoverKeys.includes(activeHoverStat));
         const interactionClass = !hasActiveHover
           ? ''
           : setHoverMatch
@@ -111,6 +113,8 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
           <div
             className={`flex min-h-8 w-full min-w-0 items-center bg-black/35 transition-all duration-200 ${triggerLayoutClass} ${interactionClass}`}
             title={fullDisplayName}
+            onMouseEnter={setHoverKeys.length > 0 ? () => onHoverStatChange?.(setHoverKeys[0]) : undefined}
+            onMouseLeave={setHoverKeys.length > 0 ? () => onHoverStatChange?.(null) : undefined}
           >
             {setIcon && <img src={setIcon} alt={setIcon} className={`${hasCrowdedActiveSets ? 'h-4.5 w-4.5' : 'h-5 w-5'} shrink-0 object-contain`} />}
             <span className={`min-w-0 ${chipTextSizeClass} text-center ${shouldUseCompactText ? 'text-xs' : 'text-sm'} ${chipTextClass}`}>

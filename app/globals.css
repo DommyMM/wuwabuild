@@ -97,6 +97,49 @@ body {
   opacity: 0.7;
 }
 
+/* Stat cross-link: a passive source matched by the hovered stat (echo art,
+   weapon icon) is emphasized directly — brightness lift plus a glow tracing the
+   cutout silhouette in the card's adaptive accent — with a slow breathe so the
+   source is findable at a glance without reading as an alert.
+   NEVER put this class on an element that carries a mask (the echo art fade):
+   animating `filter` there hits a Chromium filter+mask compositing bug that
+   blanks the image. Apply it to an unmasked wrapper instead. */
+.card-stat-source-art {
+  animation: card-stat-source-breathe 1.9s ease-in-out infinite;
+}
+
+@keyframes card-stat-source-breathe {
+  0%, 100% {
+    filter: brightness(1.14) saturate(1.10)
+      drop-shadow(0 0 4px rgba(255, 255, 255, 0.42))
+      drop-shadow(0 0 12px var(--card-element));
+  }
+  50% {
+    filter: brightness(1.22) saturate(1.16)
+      drop-shadow(0 0 6px rgba(255, 255, 255, 0.60))
+      drop-shadow(0 0 20px var(--card-element));
+  }
+}
+
+/* Sequence-node variant: the node is a circle, not a cutout, so the breathe
+   rides its ring instead of a drop-shadow silhouette. */
+.card-seq-source {
+  animation: card-seq-source-breathe 1.9s ease-in-out infinite;
+}
+
+@keyframes card-seq-source-breathe {
+  0%, 100% {
+    box-shadow:
+      0 0 8px color-mix(in srgb, var(--card-element) 42%, transparent),
+      inset 0 0 8px color-mix(in srgb, var(--card-element) 24%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 16px color-mix(in srgb, var(--card-element) 64%, transparent),
+      inset 0 0 10px color-mix(in srgb, var(--card-element) 34%, transparent);
+  }
+}
+
 .character-pane-adaptive-bg {
   background:
     radial-gradient(90% 78% at 54% 88%, var(--card-element-faint) 0%, transparent 70%),

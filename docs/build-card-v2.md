@@ -41,6 +41,14 @@ Module map:
 | Stat list | [components/card/StatsTableSection.tsx](../components/card/StatsTableSection.tsx) |
 | Echo cards | [components/card/EchoSection.tsx](../components/card/EchoSection.tsx) |
 
+## Stat cross-link (hover)
+
+One `activeHoverStat: StatHoverKey` lives in `BuildCard` and is shared by every module. Hovering a stat row (or any linked chip) lights every source feeding that stat and dims the rest of the card; stat names normalize through `lib/constants/statHover.ts`.
+
+Linked sources, mirroring `StatsContext` exactly: weapon ATK/main-stat chips and unconditional weapon passives, forte stat nodes (trees 1/2/4/5), inherent-skill bonuses (`character.inherentBonuses`, attributed to the circuit node whose EN description names the stat), unlocked sequence nodes with an unconditional chain bonus (`getChainSequenceBonuses`), sonata set chips (two-way), echo main stats and substats, and the slot-1 echo passive. Deliberately unlinked: per-echo default flat HP/ATK (would light all five artworks on every HP/ATK hover) and the per-panel set icons (the sonata chip is the set's single source of emphasis; lighting all pieces of a 5p set is noise).
+
+Highlight language: chips/rows/nodes use the white ring + dim treatment; passive sources with cutout art (weapon icon, slot-1 echo) are emphasized directly — slight scale-up, brightness lift, and a silhouette glow in the adaptive `--card-element` accent with a slow breathe (`.card-stat-source-art` / `.card-seq-source` in `globals.css`). The animated filter must live on an unmasked wrapper, never on the mask-faded echo img itself (Chromium filter+mask bug blanks the art). The old hard cyan box was retired 2026-07-15; cyan remains tooltip text emphasis only.
+
 ## Art panel
 
 The panel art defaults to the character's **splash** (the full illustration, like the reference bot cards), resolved client-side by `resolveSplashCardArt` in [lib/splashArt.ts](../lib/splashArt.ts): walks local `/images/splash/` URL candidates, applies the per-character `SPLASH_ART_TRANSFORMS` framing offset (or an auto-scale for short images), and falls back to the banner cutout when no splash file exists. **Both the editor and profile cards share this resolver and behavior**; the editor additionally lets the user toggle splash off (`splashDisabledIds`), switch normal/skin variants for characters with skins, upload custom art, and drag/zoom it (`CardArtTransform`, persisted per character while editing). On the profile card, removing the art opts that character out for the session and the banner sticks.

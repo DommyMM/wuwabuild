@@ -163,6 +163,8 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                         sequence={state.sequence}
                         element={selected.element}
                         characterName={selected.nameI18n}
+                        activeHoverStat={activeHoverStat}
+                        onHoverStatChange={setActiveHoverStat}
                       />
                       <div className="flex flex-1 flex-col space-y-2">
                         <NameGroup selected={selected} characterLevel={state.characterLevel} />

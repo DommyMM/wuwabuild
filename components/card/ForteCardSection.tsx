@@ -30,7 +30,8 @@ interface NodeBadgeProps {
   active: boolean;
   isCircuit: boolean;
   alt: string;
-  hoverKey: StatHoverKey | null;
+  /** Stats this node feeds; inherent nodes can carry several. Empty = not linked. */
+  hoverKeys: readonly StatHoverKey[];
   activeHoverStat: StatHoverKey | null;
   onHoverStatChange?: (next: StatHoverKey | null) => void;
 }
@@ -40,13 +41,14 @@ const NodeBadge: React.FC<NodeBadgeProps> = ({
   active,
   isCircuit,
   alt,
-  hoverKey,
+  hoverKeys,
   activeHoverStat,
   onHoverStatChange,
 }) => {
   if (!icon) return <div className="h-6 w-6 shrink-0" />;
+  const primaryHoverKey = hoverKeys[0] ?? null;
   const hasActiveHover = Boolean(activeHoverStat);
-  const isMatch = Boolean(activeHoverStat && hoverKey && activeHoverStat === hoverKey);
+  const isMatch = Boolean(activeHoverStat && hoverKeys.includes(activeHoverStat));
   const interactionClass = !hasActiveHover
     ? ''
     : isMatch
@@ -56,9 +58,9 @@ const NodeBadge: React.FC<NodeBadgeProps> = ({
   if (isCircuit) {
     return (
       <div
-        className={`relative flex h-7 w-7 shrink-0 items-center justify-center transition-all duration-200 ${interactionClass} ${hoverKey ? 'cursor-pointer' : ''}`}
-        onMouseEnter={hoverKey ? () => onHoverStatChange?.(hoverKey) : undefined}
-        onMouseLeave={hoverKey ? () => onHoverStatChange?.(null) : undefined}
+        className={`relative flex h-7 w-7 shrink-0 items-center justify-center transition-all duration-200 ${interactionClass} ${primaryHoverKey ? 'cursor-pointer' : ''}`}
+        onMouseEnter={primaryHoverKey ? () => onHoverStatChange?.(primaryHoverKey) : undefined}
+        onMouseLeave={primaryHoverKey ? () => onHoverStatChange?.(null) : undefined}
       >
         <div
           className={`flex h-6 w-6 rotate-45 items-center justify-center rounded-sm border transition-all duration-200 ${
@@ -79,9 +81,9 @@ const NodeBadge: React.FC<NodeBadgeProps> = ({
 
   return (
     <div
-      className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-background-secondary transition-all duration-200 ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'} ${interactionClass} ${hoverKey ? 'cursor-pointer' : ''}`}
-      onMouseEnter={hoverKey ? () => onHoverStatChange?.(hoverKey) : undefined}
-      onMouseLeave={hoverKey ? () => onHoverStatChange?.(null) : undefined}
+      className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-background-secondary transition-all duration-200 ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'} ${interactionClass} ${primaryHoverKey ? 'cursor-pointer' : ''}`}
+      onMouseEnter={primaryHoverKey ? () => onHoverStatChange?.(primaryHoverKey) : undefined}
+      onMouseLeave={primaryHoverKey ? () => onHoverStatChange?.(null) : undefined}
     >
       <img
         src={icon}
@@ -109,6 +111,21 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
   const resolveLocalizedText = (value: I18nString | string | undefined): string => {
     if (!value) return '';
     return typeof value === 'string' ? value : t(value);
+  };
+  // character.inherentBonuses carries no move pointer, so attribute each always-on
+  // bonus (e.g. Mornye ER +10%) to the inherent skill whose EN description names
+  // the stat — the sync parser only emits bonuses lifted verbatim from that text.
+  const inherentHoverKeysFor = (move: MoveEntry | undefined): StatHoverKey[] => {
+    const bonuses = character.inherentBonuses ?? [];
+    if (!move || bonuses.length === 0) return [];
+    const description = move.description;
+    const descEn = stripGameMarkup(
+      typeof description === 'string' ? description : description?.en ?? ''
+    ).toLowerCase();
+    return bonuses
+      .filter((bonus) => descEn.includes(bonus.stat.replace('%', '').toLowerCase()))
+      .map((bonus) => normalizeStatHoverKey(bonus.stat))
+      .filter((key): key is StatHoverKey => key !== null);
   };
   const getLevelValue = (values: string[] | undefined, level: number): string | null => {
     if (!Array.isArray(values) || values.length === 0) return null;
@@ -218,8 +235,6 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
           : (character.forteNodes?.[`${branch.treeKey}.middle`]?.icon ?? '');
         const topNodeName = character.forteNodes?.[`${branch.treeKey}.top`]?.name ?? '';
         const midNodeName = character.forteNodes?.[`${branch.treeKey}.middle`]?.name ?? '';
-        const topNodeHoverKey = normalizeStatHoverKey(topNodeName);
-        const midNodeHoverKey = normalizeStatHoverKey(midNodeName);
         const bottomInteractionClass = !activeHoverStat
           ? ''
           : 'opacity-45 brightness-90';
@@ -228,6 +243,15 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
         const selectedLevel = Math.max(1, Math.min(10, level));
         const topInherentMove = isCircuit ? inherentMoves[0] : undefined;
         const midInherentMove = isCircuit ? inherentMoves[1] : undefined;
+        // Stat nodes (trees 1/2/4/5) link by their own stat name; circuit nodes
+        // link by the inherent-skill bonuses attributed to their move.
+        const toHoverKeys = (key: StatHoverKey | null): StatHoverKey[] => (key ? [key] : []);
+        const topNodeHoverKeys = isCircuit
+          ? inherentHoverKeysFor(topInherentMove)
+          : toHoverKeys(normalizeStatHoverKey(topNodeName));
+        const midNodeHoverKeys = isCircuit
+          ? inherentHoverKeysFor(midInherentMove)
+          : toHoverKeys(normalizeStatHoverKey(midNodeName));
 
         const topNode = (
           <NodeBadge
@@ -235,7 +259,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
             active={topActive}
             isCircuit={isCircuit}
             alt={`${branch.skillName} top node`}
-            hoverKey={topNodeHoverKey}
+            hoverKeys={topNodeHoverKeys}
             activeHoverStat={activeHoverStat}
             onHoverStatChange={onHoverStatChange}
           />
@@ -246,7 +270,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
             active={midActive}
             isCircuit={isCircuit}
             alt={`${branch.skillName} middle node`}
-            hoverKey={midNodeHoverKey}
+            hoverKeys={midNodeHoverKeys}
             activeHoverStat={activeHoverStat}
             onHoverStatChange={onHoverStatChange}
           />

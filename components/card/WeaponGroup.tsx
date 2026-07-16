@@ -67,16 +67,15 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
         atkIcon={weaponAtkIcon}
         mainStatIcon={weaponMainIcon}
       >
-        <div className={`relative flex h-30 w-30 items-center justify-center overflow-hidden rounded-xl border shadow-[0_8px_18px_rgba(0,0,0,0.35)] transition-all duration-200 ${weaponPassiveHoverMatch ? 'brightness-110 saturate-110' : ''} ${rarityStyle?.border ?? 'border-white/28'} ${rarityStyle?.bg ?? 'bg-black/20'}`}>
+        <div className={`relative flex h-30 w-30 items-center justify-center overflow-hidden rounded-xl border shadow-[0_8px_18px_rgba(0,0,0,0.35)] transition-all duration-200 ${rarityStyle?.border ?? 'border-white/28'} ${rarityStyle?.bg ?? 'bg-black/20'}`}>
           <img
             src={weapon.iconUrl}
             alt={translatedWeaponName || weapon.name}
-            className="h-full w-full object-contain"
+            className={`h-full w-full object-contain transition-transform duration-200 ${
+              weaponPassiveHoverMatch ? 'card-stat-source-art scale-[1.06]' : ''
+            }`}
             loading="lazy"
           />
-          {weaponPassiveHoverMatch && (
-            <div className="pointer-events-none absolute inset-0 rounded-xl border-2 border-cyan-200/90 shadow-[inset_0_0_12px_rgba(110,255,255,0.22),0_0_14px_rgba(110,255,255,0.45)]" />
-          )}
         </div>
       </WeaponHoverCard>
       <div className="flex min-w-0 flex-col justify-center gap-1.5">

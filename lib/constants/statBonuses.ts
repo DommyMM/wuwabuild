@@ -1,5 +1,5 @@
 import { Echo } from '@/lib/echo';
-import { Character } from '@/lib/character';
+import { Character, CDNChainEntry } from '@/lib/character';
 import { StatName } from '@/lib/constants/statMappings';
 
 export const ROVER_ELEMENTS = ['Spectro', 'Aero', 'Electro', 'Havoc'] as const;
@@ -42,7 +42,7 @@ export const hasPhantomVariant = (echo: Echo): boolean =>
 
 // Unconditional passive stat bonuses from resonance chains
 
-interface SequenceBonus {
+export interface SequenceBonus {
   minSequence: number;
   stat: StatName;
   value: number;
@@ -63,11 +63,16 @@ const sequenceBonusMatchesHeadlineParam = (
   return Number.isFinite(paramValue) && paramValue === bonus.value;
 };
 
-export const getSequenceBonuses = (character: Character): readonly SequenceBonus[] => {
-  if (!character.chains) return [];
-  return character.chains.flatMap((chain, idx) => {
+export const getChainSequenceBonuses = (
+  chains: readonly CDNChainEntry[] | undefined
+): readonly SequenceBonus[] => {
+  if (!chains) return [];
+  return chains.flatMap((chain, idx) => {
     if (!chain.bonus) return [];
     if (!sequenceBonusMatchesHeadlineParam(chain.bonus, chain.param)) return [];
     return [{ minSequence: idx + 1, stat: chain.bonus.stat as StatName, value: chain.bonus.value }];
   });
 };
+
+export const getSequenceBonuses = (character: Character): readonly SequenceBonus[] =>
+  getChainSequenceBonuses(character.chains);
