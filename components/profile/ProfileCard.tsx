@@ -319,8 +319,13 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
       <StatsProvider>
         <div className="flex flex-col gap-3">
             {/* The cardRef wraps both the card AND the substat row so the download
-                captures them together (Akasha-style). */}
-            <div ref={cardRef} className="flex flex-col gap-3">
+                captures them together (Akasha-style). Below md the card keeps its
+                1440px design-space layout inside a horizontal scroller (same
+                treatment as BuildEditor's phone path): rendered fluid at phone
+                width, BuildCard's aspect-derived height starves the echo row and
+                its overflow-hidden clips the substat rows. */}
+            <div className="max-md:overflow-x-auto max-md:overflow-y-hidden max-md:pb-1">
+            <div ref={cardRef} className="flex flex-col gap-3 max-md:w-[1440px] max-md:min-w-[1440px]">
               <BuildCard
                 useAltSkin={false}
                 showCV
@@ -345,6 +350,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
                 selectedSubstats={selectedSubstats}
                 onToggleSubstat={toggleSubstat}
               />
+            </div>
             </div>
 
             <CardActionBar
