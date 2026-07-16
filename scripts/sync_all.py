@@ -43,6 +43,10 @@ def main() -> int:
         pretty_flags.append("--pretty")
 
     data_flags = [*dry_run_flags, *pretty_flags]
+    # sync_all's own --dry-run means "preview only" everywhere, including the
+    # image mirror: --apply is what actually downloads into public/game-images
+    # and rewrites the JSON, so it's only passed on a real run.
+    mirror_flags = [] if args.dry_run else ["--apply"]
     backend_icon_flags = [
         "--" + flag.replace("_", "-")
         for flag in (
@@ -62,6 +66,7 @@ def main() -> int:
             ("Echoes",     [sys.executable, str(scripts_dir / "sync_echoes.py"), "--fetch", *data_flags]),
             ("Fetters",    [sys.executable, str(scripts_dir / "sync_fetters.py"), *data_flags]),
             ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py"), *data_flags]),
+            ("Image mirror", [sys.executable, str(scripts_dir / "mirror_images_to_public.py"), *mirror_flags]),
             ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py"), *backend_flags]),
             ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py"), *data_flags]),
         ]
@@ -69,6 +74,7 @@ def main() -> int:
         scripts = [
             ("Encore Data", [sys.executable, str(scripts_dir / "sync_encore.py"), *data_flags]),
             ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py"), *data_flags]),
+            ("Image mirror", [sys.executable, str(scripts_dir / "mirror_images_to_public.py"), *mirror_flags]),
             ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py"), *backend_flags]),
             ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py"), *data_flags]),
         ]

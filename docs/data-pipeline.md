@@ -32,12 +32,45 @@ py sync_all.py --encore                       # Faster early-patch merge from En
 py sync_lb.py --weapons-only
 py sync_backend.py --force-echo-icons              # Refresh backend echo SIFT templates by CDN ID
 py sync_characters_encore.py --id 1608 --compare   # One-character diff prototype
+py mirror_images_to_public.py --apply              # Mirror image URLs into public/assets/, rewrite JSON to /assets/...
 ```
 
 Primary outputs include:
 - `public/Data/*.json`
+- `public/assets/**` — self-hosted WebP mirror of every image the data files (and a few hardcoded UI-chrome refs) point at
 - backend data outputs: `sync_backend.py` is the single source of truth for `backend/Data` — the OCR JSON schema plus every SIFT template (elements/characters/weapons/echoes) as id-keyed WebP (`--skip-*-icons` / `--force-*-icons` per set)
 - leaderboard calc data outputs
+
+## Image Mirror (public/assets)
+
+`mirror_images_to_public.py` runs as a step in `sync_all.py` right after the
+primary data sync and before `sync_backend.py`, so both `public/Data/*.json`
+and the backend's echo-template fetch (which reads icon refs out of the
+already-synced JSON) end up pointing at site-relative `/assets/...` paths
+instead of Wuthery/Encore. Images are committed to git and deploy with the
+site — at runtime the browser never touches an upstream CDN, so a Wuthery or
+Encore outage can only break a fresh sync, never the live site.
+
+Key properties (details in the script docstring):
+- Everything is stored as WebP: Encore sources pass through byte-for-byte,
+  Wuthery PNGs are converted locally at quality 90 (measured equal-or-better
+  than Encore's own encodes, and smaller), with an Encore-mapped URL as
+  automatic fallback when Wuthery won't serve a file.
+- No manifest: a file present under `public/assets/` *is* "already mirrored";
+  re-runs only fetch what's missing.
+- The JSON rewrite is all-or-nothing — it only happens once every reference
+  resolves to a file on disk, so partial/`--limit` runs can never publish
+  JSONs pointing at missing files.
+- UI-chrome images hardcoded in code (`app/globals.css`,
+  `components/forte/*`, `lib/paths.ts`) are mirrored via the script's
+  `EXTRA_ASSETS` list; keep those code refs and the list in sync.
+- `/assets/` gets a deliberately short edge TTL in `next.config.ts` (1 day +
+  SWR, vs 1 year for `/Data/*.json`) because Cloudflare edge-caches images
+  and a Vercel deploy does not purge Cloudflare.
+
+OG-image routes (`lib/server/og.tsx` `fetchArt`) read `/assets/...` art from
+disk in dev and fall back to fetching `https://wuwa.build/assets/...` on
+Vercel, where function bundles don't include `public/`.
 
 See `scripts/CDN_SYNC.md` for script-level flags and details. For the trade-offs between Wuthery's CDN and the alternative `encore.moe` API (and the dual-source catch-up strategy), see `sync-sources.md`.
 

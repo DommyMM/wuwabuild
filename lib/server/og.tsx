@@ -150,7 +150,12 @@ function loadCjkFonts(text: string | undefined): Promise<OgFont[]> {
 
 async function fetchArt(url: string | null | undefined): Promise<string | null> {
   if (!url || typeof url !== 'string') return null;
+  let remoteUrl = url;
   if (url.startsWith('/')) {
+    // Site-relative asset (public/assets mirror). Disk read works in dev and
+    // anywhere the file got traced into the bundle; on Vercel, functions only
+    // contain traced files and public/ is served from the CDN instead — so a
+    // failed read falls through to fetching our own origin.
     try {
       const filePath = path.join(process.cwd(), 'public', url.slice(1));
       const source = await readFile(filePath);
@@ -158,14 +163,14 @@ async function fetchArt(url: string | null | undefined): Promise<string | null> 
         .resize({ width: 900, height: 900, fit: 'inside', withoutEnlargement: true })
         .png()
         .toBuffer();
-      if (buf.byteLength === 0) return null;
-      return `data:image/png;base64,${buf.toString('base64')}`;
+      if (buf.byteLength > 0) return `data:image/png;base64,${buf.toString('base64')}`;
     } catch {
-      return null;
+      // fall through to origin fetch
     }
+    remoteUrl = `https://wuwa.build${url}`;
   }
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    const res = await fetch(remoteUrl, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) return null;
     const ct = res.headers.get('content-type') ?? '';
     if (!ct.toLowerCase().startsWith('image/')) return null;

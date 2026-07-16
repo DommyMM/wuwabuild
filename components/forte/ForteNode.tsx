@@ -30,7 +30,7 @@ export const ForteNode: React.FC<ForteNodeProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`group relative flex items-center justify-center cursor-pointer bg-[url('https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillBNor.png')] bg-contain bg-center bg-no-repeat transition-all duration-200 hover:scale-105 ${compact ? '-my-2 h-20 w-20' : '-my-6 h-32 w-32'} ${isActive ? '' : 'opacity-30'} ${className}`}
+      className={`group relative flex items-center justify-center cursor-pointer bg-[url('/assets/UIResources/UiRole/Atlas/SP_RoleSkillBNor.webp')] bg-contain bg-center bg-no-repeat transition-all duration-200 hover:scale-105 ${compact ? '-my-2 h-20 w-20' : '-my-6 h-32 w-32'} ${isActive ? '' : 'opacity-30'} ${className}`}
       aria-label={`${treeKey} ${nodePosition} node`}
       aria-pressed={isActive}
     >

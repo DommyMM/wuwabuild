@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-15',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'All character, weapon, echo, and stat images are now served directly from wuwa.build — faster loads and no more broken icons when an upstream image host goes down'
+            }
+        ]
+    },
+    {
         date: '2026-07-14',
         changes: [
             {

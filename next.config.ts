@@ -15,6 +15,20 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Mirrored game images (public/assets). Deliberately NOT the 1-year
+        // /Data pattern: Cloudflare edge-caches images (unlike JSON) and
+        // respects s-maxage, but a Vercel deploy doesn't purge Cloudflare —
+        // so keep the edge TTL short enough that an asset changed under the
+        // same path self-heals within a day without a manual CF purge.
+        source: '/assets/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
     ];
   },
   compiler: {

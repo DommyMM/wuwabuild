@@ -27,6 +27,7 @@ wuwabuilds/
 │   ├── stat_translations.py  # Stat i18n + icon URL sync -> Stats.json
 │   ├── cdn_config.py         # Shared retry, merge, and atomic-write helpers
 │   ├── sync_backend.py       # Single source of truth for ../backend/Data: OCR JSON schema + all SIFT templates (elements/characters/weapons/echoes), id-keyed WebP
+│   ├── mirror_images_to_public.py # Mirror all image refs into ../public/assets/ as WebP, rewrite Data JSONs to /assets/... (see docs/data-pipeline.md)
 │   ├── migrate_r2_png_to_jpg.py # Quarantined R2 copy-migration helper (preview by default)
 │   ├── sync_all.py           # Run full frontend + backend + LB pipeline (--encore for early patch catch-up)
 │   └── CDN_SYNC.md           # This file
@@ -72,15 +73,16 @@ wuwabuilds/
 3. `sync_echoes.py --fetch`
 4. `sync_fetters.py`
 5. `stat_translations.py`
-6. `sync_backend.py`
-7. `sync_lb.py`
+6. `mirror_images_to_public.py --apply`
+7. `sync_backend.py`
+8. `sync_lb.py`
 
 With `--encore`, the four source-fetch steps collapse into `sync_encore.py`, then
-`stat_translations.py`, `sync_backend.py`, and `sync_lb.py` still run as the final three steps. The backend template flags (`--skip-*-icons` / `--force-*-icons` for elements/characters/weapons/echoes) all route to `sync_backend.py`.
+`stat_translations.py`, the image mirror, `sync_backend.py`, and `sync_lb.py` still run as the final steps. The backend template flags (`--skip-*-icons` / `--force-*-icons` for elements/characters/weapons/echoes) all route to `sync_backend.py`.
 
 `sync_all.py` accepts only its declared flags and routes `--dry-run` / `--pretty` only to child CLIs that support them. Unknown flags fail before any child process runs.
 
-The sync environment requires `requests`. Backend template refresh additionally needs `opencv-python` and `numpy` when a non-WebP source must be re-encoded. The quarantined R2 maintenance helper requires `boto3`, `python-dotenv`, and Pillow.
+The sync environment requires `requests`. The image mirror additionally needs `Pillow` (PNG-to-WebP conversion). Backend template refresh additionally needs `opencv-python` and `numpy` when a non-WebP source must be re-encoded. The quarantined R2 maintenance helper requires `boto3`, `python-dotenv`, and Pillow.
 
 ### LB generation behavior
 

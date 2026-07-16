@@ -112,8 +112,8 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
             const inherentIcon = character.skillIcons?.[`inherent-${i + 1}`] ?? '';
             const active = isActive[pos];
             const frameBg = active
-              ? "bg-[url('https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillAHold.png')]"
-              : "bg-[url('https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillALockHold.png')]";
+              ? "bg-[url('/assets/UIResources/UiRole/Atlas/SP_RoleSkillAHold.webp')]"
+              : "bg-[url('/assets/UIResources/UiRole/Atlas/SP_RoleSkillALockHold.webp')]";
             return (
               <React.Fragment key={pos}>
                 <button
@@ -124,7 +124,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
                 >
                   {active && (
                     <img
-                      src="https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillANor.png"
+                      src="/assets/UIResources/UiRole/Atlas/SP_RoleSkillANor.webp"
                       alt=""
                       className="absolute inset-0 h-full w-full object-contain"
                       draggable={false}
@@ -147,7 +147,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
 
       {/* Skill icon */}
       <div
-        className={`relative ${skillFrameClass} flex items-center justify-center bg-[url('https://files.wuthery.com/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillANor.png')] bg-contain bg-center bg-no-repeat transition-all duration-300`}
+        className={`relative ${skillFrameClass} flex items-center justify-center bg-[url('/assets/UIResources/UiRole/Atlas/SP_RoleSkillANor.webp')] bg-contain bg-center bg-no-repeat transition-all duration-300`}
       >
         <img
           src={skillIcon}

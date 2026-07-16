@@ -49,7 +49,8 @@ except ImportError:
     np = None
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
-FRONTEND_DATA = SCRIPTS_DIR.parent / "public" / "Data"
+FRONTEND_PUBLIC = SCRIPTS_DIR.parent / "public"
+FRONTEND_DATA = FRONTEND_PUBLIC / "Data"
 BACKEND_DATA = SCRIPTS_DIR.parent.parent / "backend" / "Data"
 BACKEND_ELEMENTS = BACKEND_DATA / "Elements"
 BACKEND_CHARACTERS = BACKEND_DATA / "Characters"
@@ -101,16 +102,21 @@ def _encore_rows(payload) -> list:
     return []
 
 
-def _download_bytes(url: str) -> bytes:
-    req = urllib.request.Request(url, headers=UA)
+def _source_bytes(src: str | Path) -> bytes:
+    """src is either a URL or a local file mirrored into frontend public/assets/."""
+    if isinstance(src, Path):
+        return src.read_bytes()
+    req = urllib.request.Request(src, headers=UA)
     with urllib.request.urlopen(req, timeout=30) as resp:
         return resp.read()
 
 
-def _needs_reencode(url: str) -> bool:
-    """A source URL that isn't already WebP (e.g. a Wuthery PNG fallback) must be
-    decoded and re-encoded; Encore serves WebP, which we pass straight through."""
-    return Path(urlparse(url).path).suffix.lower() != ".webp"
+def _needs_reencode(src: str | Path) -> bool:
+    """A source that isn't already WebP (e.g. a Wuthery PNG fallback) must be
+    decoded and re-encoded; Encore URLs and mirrored /assets/ files are WebP,
+    which we pass straight through."""
+    suffix = src.suffix if isinstance(src, Path) else Path(urlparse(src).path).suffix
+    return suffix.lower() != ".webp"
 
 
 def _save_webp(raw: bytes, dest: Path, reencode: bool) -> None:
@@ -137,12 +143,13 @@ def _save_webp(raw: bytes, dest: Path, reencode: bool) -> None:
         temp_path.unlink(missing_ok=True)
 
 
-def _download_icons(tasks: list[tuple[str, str, Path]], force: bool, reencode, label: str) -> int:
-    """tasks = [(id, url, dest)]. Downloads missing (or all, if force). Returns count downloaded.
+def _download_icons(tasks: list[tuple[str, str | Path, Path]], force: bool, reencode, label: str) -> int:
+    """tasks = [(id, src, dest)] where src is a URL or a mirrored local file.
+    Fetches missing (or all, if force). Returns count fetched.
 
-    reencode: True/False, or "auto" to decide per-URL by suffix (WebP passthrough,
-    anything else re-encoded). "auto" lets echo icons take Encore WebP for free while
-    still handling a Wuthery PNG source.
+    reencode: True/False, or "auto" to decide per-source by suffix (WebP
+    passthrough, anything else re-encoded). "auto" lets echo icons take
+    Encore/mirrored WebP for free while still handling a Wuthery PNG source.
     """
     todo = [t for t in tasks if force or not t[2].exists()]
     skipped = len(tasks) - len(todo)
@@ -151,10 +158,10 @@ def _download_icons(tasks: list[tuple[str, str, Path]], force: bool, reencode, l
         return 0
 
     def work(item):
-        tid, url, dest = item
-        re = _needs_reencode(url) if reencode == "auto" else reencode
+        tid, src, dest = item
+        re = _needs_reencode(src) if reencode == "auto" else reencode
         try:
-            _save_webp(_download_bytes(url), dest, re)
+            _save_webp(_source_bytes(src), dest, re)
             return tid, None
         except Exception as exc:  # noqa: BLE001
             return tid, str(exc)
@@ -265,7 +272,12 @@ def sync_weapon_icons(dry_run: bool, force: bool) -> int:
     return _download_icons(tasks, force, reencode=False, label="Weapon icons")
 
 
-def _echo_icon_url(raw: str) -> str:
+def _echo_icon_source(raw: str) -> str | Path:
+    """Echoes.json icons are local /assets/ paths once mirror_images_to_public.py
+    has run (it runs before this script in sync_all.py), so the mirrored file on
+    disk is the source. CDN URLs still work as-is for pre-mirror snapshots."""
+    if raw.startswith("/assets/"):
+        return FRONTEND_PUBLIC / raw.lstrip("/")
     return raw if raw.startswith(("http://", "https://")) else CDN_BASE + raw
 
 
@@ -276,7 +288,7 @@ def sync_echo_icons(dry_run: bool, force: bool) -> int:
         eid = str(echo.get("id", "")).strip()
         raw = echo.get("icon")
         if eid and isinstance(raw, str) and raw:
-            tasks.append((eid, _echo_icon_url(raw), BACKEND_ECHOES / f"{eid}.webp"))
+            tasks.append((eid, _echo_icon_source(raw), BACKEND_ECHOES / f"{eid}.webp"))
     if dry_run:
         n = sum(1 for _, _, d in tasks if force or not d.exists())
         print(f"  Echo icons: {n}/{len(tasks)} to fetch -> {BACKEND_ECHOES}")

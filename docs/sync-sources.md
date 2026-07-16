@@ -257,6 +257,8 @@ Only refetch the IDs in those arrays, write delta into the canonical JSON, run `
 
 Wuthery-only mode is retained as a break-glass for the case where Encore goes down or stops shipping a needed field.
 
+**Images no longer reach production from either host.** `scripts/mirror_images_to_public.py` runs as a step in `sync_all.py` right after the primary data sync (either path), downloads every `icon`/`banner`/`iconRound`/skill-icon/etc. image into `public/assets/` as WebP, and rewrites the URLs in `public/Data/*.json` to site-relative `/assets/...` paths, regardless of which upstream produced them. The Wuthery-vs-Encore image-host distinction in the field tables above only matters at sync time now — a Wuthery or Encore outage no longer breaks images on the live site, only a fresh sync during the outage. See `docs/data-pipeline.md`.
+
 ## Open Questions
 
 - Does Encore expose ascension/material data (`ascensions`)? Yes for character breach mats through `Breaches[]`; still decide whether to sync them now or leave current public shape untouched.

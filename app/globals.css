@@ -51,7 +51,7 @@ body {
 .build-card-surface {
   background-image:
     linear-gradient(90deg, transparent 0%, rgba(8, 8, 10, 0.04) 68%, rgba(8, 8, 10, 0.10) 100%),
-    url("https://files.wuthery.com/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png");
+    url("/assets/UIResources/Common/Image/BgCg/T_Bg1_UI.webp");
   isolation: isolate;
 }
 
