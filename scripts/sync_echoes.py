@@ -25,22 +25,42 @@ ENCORE_ECHO_LIST_API = "https://api-v2.encore.moe/api/en/echo"
 OUTPUT_FILE = Path(__file__).parent.parent / "public/Data/Echoes.json"
 
 STAT_PATTERNS = [
-    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Glacio DMG Bonus", re.I), "Glacio DMG"),
-    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Fusion DMG Bonus", re.I), "Fusion DMG"),
-    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Electro DMG Bonus", re.I), "Electro DMG"),
-    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Aero DMG Bonus", re.I), "Aero DMG"),
-    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Spectro DMG Bonus", re.I), "Spectro DMG"),
-    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Havoc DMG Bonus", re.I), "Havoc DMG"),
-    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Resonance Skill DMG Bonus", re.I), "Resonance Skill DMG Bonus"),
-    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Resonance Liberation DMG Bonus", re.I), "Resonance Liberation DMG Bonus"),
-    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Basic Attack DMG Bonus", re.I), "Basic Attack DMG Bonus"),
-    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Heavy Attack DMG Bonus", re.I), "Heavy Attack DMG Bonus"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Glacio DMG(?: Bonus)?\b", re.I), "Glacio DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Fusion DMG(?: Bonus)?\b", re.I), "Fusion DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Electro DMG(?: Bonus)?\b", re.I), "Electro DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Aero DMG(?: Bonus)?\b", re.I), "Aero DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Spectro DMG(?: Bonus)?\b", re.I), "Spectro DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Havoc DMG(?: Bonus)?\b", re.I), "Havoc DMG"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Resonance Skill DMG(?: Bonus)?\b", re.I), "Resonance Skill DMG Bonus"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Resonance Liberation DMG(?: Bonus)?\b", re.I), "Resonance Liberation DMG Bonus"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Basic Attack DMG(?: Bonus)?\b", re.I), "Basic Attack DMG Bonus"),
+    (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Heavy Attack DMG(?: Bonus)?\b", re.I), "Heavy Attack DMG Bonus"),
     (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Energy Regen", re.I), "Energy Regen"),
     (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Healing Bonus", re.I), "Healing Bonus"),
     # Reversed phrasing, e.g. Adam Smasher: "their Crit. Rate is increased by {4}".
     (re.compile(r"Crit\.?\s*Rate\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), "Crit Rate"),
     (re.compile(r"Crit\.?\s*DMG\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), "Crit DMG"),
 ]
+
+_SENTENCE_BOUNDARY_RE = re.compile(r"(?<!Crit\.)(?<=[.!?])\s+(?=[A-Z])", re.I)
+_ECHO_EQUIP_SENTENCE_RE = re.compile(
+    r"\b(?:main\s+(?:Echo\s+)?slot|equips\s+this\s+Echo)\b",
+    re.I,
+)
+
+
+def _iter_echo_equip_sentences(desc: str):
+    """Yield only clauses that describe a bonus from equipping the Echo.
+
+    Restricting stat parsing to these clauses lets game text omit the word
+    "Bonus" (Thousand-Puppet Pavilion) without treating active-skill damage
+    placeholders elsewhere in the description as always-on stat bonuses.
+    """
+    for paragraph in re.split(r"\n+", desc):
+        for sentence in _SENTENCE_BOUNDARY_RE.split(paragraph.strip()):
+            sentence = sentence.strip()
+            if sentence and _ECHO_EQUIP_SENTENCE_RE.search(sentence):
+                yield sentence
 
 
 def _get_sentence_window(text: str, start: int, end: int) -> str:
@@ -87,24 +107,23 @@ def _extract_character_condition(desc: str, match_start: int, match_end: int) ->
 def extract_main_slot_bonuses(skill: dict) -> list[dict] | None:
     """Extract first-panel bonuses from echo skill description."""
     desc = (skill.get("descriptionEx") or {}).get("en") or ""
-    if "main slot" not in desc:
-        return None
     params = (skill.get("levelDescriptionStrArray") or [{}])[0].get("ArrayString") or []
     bonuses = []
-    for regex, stat in STAT_PATTERNS:
-        for m in regex.finditer(desc):
-            param_index = int(m.group(1))
-            if param_index < len(params):
-                val_str = params[param_index]
-                try:
-                    val = float(val_str.replace("%", ""))
-                    bonus: dict[str, Any] = {"stat": stat, "value": val}
-                    condition = _extract_character_condition(desc, m.start(), m.end())
-                    if condition:
-                        bonus["characterCondition"] = condition
-                    bonuses.append(bonus)
-                except ValueError:
-                    pass
+    for sentence in _iter_echo_equip_sentences(desc):
+        for regex, stat in STAT_PATTERNS:
+            for m in regex.finditer(sentence):
+                param_index = int(m.group(1))
+                if param_index < len(params):
+                    val_str = params[param_index]
+                    try:
+                        val = float(val_str.replace("%", ""))
+                        bonus: dict[str, Any] = {"stat": stat, "value": val}
+                        condition = _extract_character_condition(sentence, m.start(), m.end())
+                        if condition:
+                            bonus["characterCondition"] = condition
+                        bonuses.append(bonus)
+                    except ValueError:
+                        pass
     return bonuses if bonuses else None
 
 

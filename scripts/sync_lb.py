@@ -1627,6 +1627,9 @@ def _extract_echo_character_condition(sentence: str) -> list[str] | None:
         tokens = [t.strip() for t in re.split(r"\s+or\s+|,", has_match.group(1)) if t.strip()]
         if tokens:
             return tokens
+    by_match = re.search(r"\bby\s+([A-Z][A-Za-z]+)\b", sentence)
+    if by_match:
+        return [by_match.group(1)]
     resonator_match = re.search(r"\bResonator:\s*([^.]+?)\s+equips\b", sentence, re.I)
     if resonator_match:
         tokens = [t.strip() for t in re.split(r"\s+or\s+|,", resonator_match.group(1)) if t.strip()]
@@ -1654,6 +1657,12 @@ def _parse_echo_main_slot_bonuses(effect_en: str) -> list[dict]:
         condition = _extract_echo_character_condition(sentence)
         for buff in _extract_buffs(sentence):
             stat = buff.get("stat", "")
+            stat = {
+                "Basic Attack DMG": "Basic Attack DMG Bonus",
+                "Heavy Attack DMG": "Heavy Attack DMG Bonus",
+                "Resonance Skill DMG": "Resonance Skill DMG Bonus",
+                "Resonance Liberation DMG": "Resonance Liberation DMG Bonus",
+            }.get(stat, stat)
             value = float(buff.get("value", 0) or 0)
             if stat and value:
                 entry: dict = {"stat": stat, "value": value}

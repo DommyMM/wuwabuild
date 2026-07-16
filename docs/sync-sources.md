@@ -137,7 +137,7 @@ Validation:
 
 ## Field Coverage — Echoes
 
-`sync_encore.py` reproduces the `Echoes.json` shape. Validated against Wuthery: per-echo `bonuses` (30 echoes), `cost`, and `legacyId` all match, and `phantomIcon` merges to the same 35.
+`sync_encore.py` reproduces the `Echoes.json` shape. Validated against Wuthery: per-echo `bonuses`, `cost`, and `legacyId` match, and `phantomIcon` merges to the same 35.
 
 | `Echoes.json` field | Encore source |
 |---|---|
@@ -157,6 +157,8 @@ Validation:
 **Placeholder rewrite limitation:** when a description references the same param value more times than it appears in `DescParams` (e.g. Adam Smasher's Lucy press/hold bullets both say `273.60%` but the value is one param), only the first text occurrence becomes `{0}`; later occurrences stay as the literal max-level value. Cosmetic only — `sync_lb` resolves descriptions at `params[0]` (level 1), so such literals display the max-level number, but no bonus/buff parsing reads those clauses.
 
 **Character-conditional main-slot bonuses:** `extract_main_slot_bonuses` attaches `characterCondition` for restricted bonuses. Recognized phrasings: `"...main slot by <Name>"` (Aemeath), `"When Resonator: Aero or Cartethyia equips this Echo"` (Fleurdelys — also matches Rover elements), and `"When Lucy or Rebecca has this Echo equipped"` (Adam Smasher). Generic `"the Resonator with this Echo equipped"` is unconditional. `sync_lb._parse_echo_main_slot_bonuses` (the LB-side fallback parser on resolved text) mirrors the same detection so it never emits an unconditional duplicate of a restricted bonus; the LB engine gates these via `echoBonusConditionMatches` (`lb/internal/calc/standardize.go`).
+
+**Main-slot sentence scoping:** stat extraction only scans sentences that describe equipping the Echo in the main slot (plus directly stated conditional `equips this Echo` clauses). Inside that safe scope, `DMG` and `DMG Bonus` are equivalent. This covers wording such as Thousand-Puppet Pavilion's `12% Havoc DMG and 12% Heavy Attack DMG` without misreading active-skill damage placeholders elsewhere in the description as permanent stats.
 
 **Input-method tokens:** game text like `{Cus:Ipt,Touch=Tap PC=Press Gamepad=Press}` is rewritten to its PC label (`Press`) by `_sanitize_game_text` (`sync_characters.py`, shared by both sources) instead of being dropped, so sentences like "Press the Echo Skill button" keep their verb.
 

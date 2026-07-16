@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-16',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Thousand-Puppet Pavilion now adds and highlights its 12% Havoc and Heavy Attack bonuses'
+            },
+            {
+                kind: 'fixed',
+                text: 'Sigillum bonus now stays exclusive to Aemeath'
+            }
+        ]
+    },
+    {
         date: '2026-07-15',
         changes: [
             {
