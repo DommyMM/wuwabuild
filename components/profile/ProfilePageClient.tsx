@@ -27,7 +27,7 @@ import { ProfileEchoes } from './ProfileEchoes';
 
 // Profile table: no Owner column. Name gets the freed space (wider).
 // # | Name | Weapon | Seq | Sets | [CV + 4 stats]
-const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_72px_80px_88px_minmax(0,1fr)]';
+const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_72px_80px_112px_minmax(0,1fr)]';
 const PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS = 'max-w-360';
 const PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS = 'max-w-[1620px]';
 
