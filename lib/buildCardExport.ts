@@ -55,7 +55,6 @@ const captureBuildCard = async (
   }
 
   const canvas = await toCanvas(node, {
-    cacheBust: true,
     height: options.height,
     pixelRatio: BUILD_CARD_EXPORT_WIDTH / BUILD_CARD_DESIGN_WIDTH,
     style,
