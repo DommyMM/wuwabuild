@@ -35,30 +35,28 @@ const captureBuildCard = async (
   node: HTMLElement,
   options: BuildCardExportOptions,
 ): Promise<{ blob: Blob; format: BuildCardExportFormat }> => {
-  const { toCanvas } = await import('html-to-image');
+  const { snapdom } = await import('@zumer/snapdom');
 
   // Card controls update immediately before export. Give React and the browser
   // two frames to commit the non-editing state before cloning the DOM.
   await waitForAnimationFrame();
   await waitForAnimationFrame();
 
-  const style: Partial<CSSStyleDeclaration> = {
-    maxWidth: `${BUILD_CARD_DESIGN_WIDTH}px`,
-    minWidth: `${BUILD_CARD_DESIGN_WIDTH}px`,
-    width: `${BUILD_CARD_DESIGN_WIDTH}px`,
-  };
-  if (options.height !== undefined) {
-    const height = `${options.height}px`;
-    style.height = height;
-    style.maxHeight = height;
-    style.minHeight = height;
-  }
-
-  const canvas = await toCanvas(node, {
-    height: options.height,
-    pixelRatio: BUILD_CARD_EXPORT_WIDTH / BUILD_CARD_DESIGN_WIDTH,
-    style,
-    width: BUILD_CARD_DESIGN_WIDTH,
+  const exportScale = BUILD_CARD_EXPORT_WIDTH / BUILD_CARD_DESIGN_WIDTH;
+  const canvas = await snapdom.toCanvas(node, {
+    // The captured node is always laid out at design size
+    // CardScaler shrinks it with a transform, never a re-layout
+    // Stripping the outer transform captures the full design-space card on any screen width.
+    outerTransforms: false,
+    // SVG rasterized through an <img> can't see document fonts; embed them.
+    embedFonts: true,
+    // Never downsample card art to on-screen resolution
+    compress: false,
+    dpr: 1,
+    width: BUILD_CARD_EXPORT_WIDTH,
+    ...(options.height !== undefined
+      ? { height: Math.round(options.height * exportScale) }
+      : {}),
   });
 
   // Canvas encoders fall back to PNG when a requested type is unsupported.
