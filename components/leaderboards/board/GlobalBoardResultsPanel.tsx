@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
+import { getLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
 import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from '../constants';
@@ -11,6 +12,10 @@ import { BuildPagination } from '../BuildPagination';
 import { GlobalBoardRow, GlobalBoardRowExpandedProps } from './GlobalBoardRow';
 import { SortHeaderMenu, SortMenuOption } from '../SortHeaderMenu';
 import { StatSortKey } from '../types';
+
+// The gate re-arms daily: the stored value is the date it was last dismissed.
+const TABLE_GATE_STORAGE_KEY = 'builds_gate_dismissed';
+const todayStamp = (): string => new Date().toISOString().slice(0, 10);
 
 interface GlobalBoardResultsPanelProps {
   builds: LBBuildRowEntry[];
@@ -132,13 +137,8 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   useEffect(() => {
     if (!showTableGate) return;
     const frame = window.requestAnimationFrame(() => {
-      try {
-        const stored = localStorage.getItem('builds_gate_dismissed');
-        const today = new Date().toISOString().slice(0, 10);
-        setIsTableGateDismissed(stored === today);
-      } catch {
-        setIsTableGateDismissed(false);
-      }
+      const stored = getLocalStorageItem(TABLE_GATE_STORAGE_KEY);
+      setIsTableGateDismissed(stored === todayStamp());
     });
     return () => window.cancelAnimationFrame(frame);
   }, [showTableGate]);
@@ -198,9 +198,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
 
   const dismissTableGate = () => {
     setIsTableGateDismissed(true);
-    try {
-      localStorage.setItem('builds_gate_dismissed', new Date().toISOString().slice(0, 10));
-    } catch {}
+    setLocalStorageItem(TABLE_GATE_STORAGE_KEY, todayStamp());
   };
 
   return (

@@ -1,4 +1,5 @@
 import { SavedBuild, SavedState, ForteState, ForteEntry, createDefaultSavedState } from '@/lib/build';
+import { getLocalStorageItem, removeLocalStorageItem } from '@/lib/clientStorage';
 import { ELEMENT_SETS, ElementType, setIdForElement } from '@/lib/echo';
 
 const LEGACY_SAVED_BUILDS_STORAGE_KEY = 'saved_builds';
@@ -469,11 +470,7 @@ export function convertLegacyBuilds(payload: unknown, maps: LegacyIdMaps): Legac
 }
 
 export function getLegacySavesSummaryFromStorage(): LegacySavesSummary {
-  if (typeof window === 'undefined') {
-    return { found: false, buildCount: 0, parseError: false };
-  }
-
-  const raw = localStorage.getItem(LEGACY_SAVED_BUILDS_STORAGE_KEY);
+  const raw = getLocalStorageItem(LEGACY_SAVED_BUILDS_STORAGE_KEY);
   if (!raw) {
     return { found: false, buildCount: 0, parseError: false };
   }
@@ -487,14 +484,14 @@ export function getLegacySavesSummaryFromStorage(): LegacySavesSummary {
   }
 }
 
+// Parse errors deliberately propagate: the caller distinguishes "no legacy
+// saves" (null) from "legacy saves present but unreadable" (throw).
 export function readLegacySavesPayload(): unknown | null {
-  if (typeof window === 'undefined') return null;
-  const raw = localStorage.getItem(LEGACY_SAVED_BUILDS_STORAGE_KEY);
+  const raw = getLocalStorageItem(LEGACY_SAVED_BUILDS_STORAGE_KEY);
   if (!raw) return null;
   return JSON.parse(raw);
 }
 
 export function clearLegacySavesFromStorage(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(LEGACY_SAVED_BUILDS_STORAGE_KEY);
+  removeLocalStorageItem(LEGACY_SAVED_BUILDS_STORAGE_KEY);
 }

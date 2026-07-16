@@ -3,6 +3,8 @@
 // directory. localStorage only: nothing here is verified, sent to the
 // backend, or visible to anyone else.
 
+import { getLocalStorageItem, removeLocalStorageItem, setLocalStorageJSON } from '@/lib/clientStorage';
+
 export interface StoredProfile {
   uid: string;
   username: string;
@@ -15,8 +17,6 @@ const RECENTS_KEY = 'wuwabuilds_recent_profiles';
 const PINNED_KEY = 'wuwabuilds_pinned_profiles';
 /** Cap for both pinned and recent lists. */
 const MAX_PROFILES = 8;
-
-const hasStorage = (): boolean => typeof window !== 'undefined' && Boolean(window.localStorage);
 
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((listener) => listener());
@@ -48,21 +48,12 @@ function parseProfiles(raw: string | null, cap: number): StoredProfile[] {
 }
 
 function readProfiles(key: string, cap: number): StoredProfile[] {
-  if (!hasStorage()) return [];
-  try {
-    return parseProfiles(window.localStorage.getItem(key), cap);
-  } catch {
-    return [];
-  }
+  return parseProfiles(getLocalStorageItem(key), cap);
 }
 
 function writeProfiles(key: string, profiles: StoredProfile[]): void {
-  if (!hasStorage()) return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(profiles));
-  } catch {
-    // Quota or privacy mode; history is best-effort.
-  }
+  // Quota or privacy mode is tolerated; history is best-effort.
+  setLocalStorageJSON(key, profiles);
   emit();
 }
 
@@ -73,13 +64,7 @@ function makeSnapshot(key: string, cap: number): () => StoredProfile[] {
   let cacheRaw: string | null = null;
   let cache: StoredProfile[] = EMPTY;
   return () => {
-    if (!hasStorage()) return EMPTY;
-    let raw: string | null = null;
-    try {
-      raw = window.localStorage.getItem(key);
-    } catch {
-      return EMPTY;
-    }
+    const raw = getLocalStorageItem(key);
     if (raw !== cacheRaw) {
       cacheRaw = raw;
       cache = parseProfiles(raw, cap);
@@ -111,12 +96,7 @@ export function recordProfileVisit(profile: { uid: string; username: string; hea
 }
 
 export function clearRecentProfiles(): void {
-  if (!hasStorage()) return;
-  try {
-    window.localStorage.removeItem(RECENTS_KEY);
-  } catch {
-    // best-effort
-  }
+  removeLocalStorageItem(RECENTS_KEY);
   emit();
 }
 

@@ -1,4 +1,5 @@
 import { SavedBuild, SavedBuilds, SavedState, ForteState, ForteEntry, createDefaultSavedState } from '@/lib/build';
+import { getLocalStorageItem, removeLocalStorageItem, setLocalStorageItem, setLocalStorageJSON } from '@/lib/clientStorage';
 import { convertLegacyBuilds, LegacyIdMaps } from '@/lib/legacyMigration';
 
 // Storage keys
@@ -84,12 +85,8 @@ function decompress(data: string): string {
 
 // Load all saved builds from localStorage.
 export function loadBuilds(): SavedBuilds {
-  if (typeof window === 'undefined') {
-    return { builds: [], version: CURRENT_VERSION };
-  }
-
   try {
-    const stored = localStorage.getItem(SAVED_BUILDS_STORAGE_KEY);
+    const stored = getLocalStorageItem(SAVED_BUILDS_STORAGE_KEY);
     if (!stored) {
       return { builds: [], version: CURRENT_VERSION };
     }
@@ -115,25 +112,20 @@ export function loadBuilds(): SavedBuilds {
 }
 
 // Save all builds as plain JSON. loadBuilds still reads the legacy base64 shape.
+// Critical write: SaveBuildModal surfaces this error to the user, so a quota
+// failure must throw rather than drop the save silently. The SSR guard stays
+// so a server-side call still no-ops instead of throwing.
 function saveBuilds(data: SavedBuilds): void {
   if (typeof window === 'undefined') return;
 
-  try {
-    const json = JSON.stringify(data);
-    localStorage.setItem(SAVED_BUILDS_STORAGE_KEY, json);
-  } catch (error) {
-    console.error('Error saving builds to localStorage:', error);
+  if (!setLocalStorageJSON(SAVED_BUILDS_STORAGE_KEY, data)) {
     throw new Error('Failed to save build. Storage may be full.');
   }
 }
 
 export function loadDraftBuild(): SavedState | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
   try {
-    const raw = localStorage.getItem(DRAFT_BUILD_STORAGE_KEY);
+    const raw = getLocalStorageItem(DRAFT_BUILD_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
@@ -171,16 +163,22 @@ export function saveDraftBuild(state: SavedState): void {
   }
 
   const migrated = migrateSavedState(state as unknown as Record<string, unknown>);
-  localStorage.setItem(DRAFT_BUILD_STORAGE_KEY, JSON.stringify(migrated));
+  // Critical write: callers gate navigation to /edit on this succeeding (the
+  // saves list reports "Failed to load build."), so a quota failure must throw
+  // rather than silently hand the editor a stale draft.
+  if (!setLocalStorageJSON(DRAFT_BUILD_STORAGE_KEY, migrated)) {
+    throw new Error('Failed to save draft. Storage may be full.');
+  }
 
   // Baseline for edit detection: programmatic draft loads (import, saves,
   // leaderboard "open in editor") all come through here, while manual editing
   // in /edit writes the draft key directly from BuildContext. A draft whose
   // content drifted from this baseline therefore carries manual edits.
   try {
-    localStorage.setItem(DRAFT_BASELINE_HASH_KEY, hashSavedState(migrated));
+    setLocalStorageItem(DRAFT_BASELINE_HASH_KEY, hashSavedState(migrated));
   } catch {
-    // Non-critical: a missing baseline just means the draft counts as edited.
+    // Guards hashSavedState (the write cannot throw). Non-critical: a missing
+    // baseline just means the draft counts as edited.
   }
 }
 
@@ -189,10 +187,12 @@ export function saveDraftBuild(state: SavedState): void {
 // clients from before the marker existed) counts as edited so replacement
 // flows err toward preserving it.
 export function isDraftBuildEdited(draft: SavedState): boolean {
+  // SSR guard stays: on the server this must report false, whereas in the
+  // browser a missing baseline means "edited" (true).
   if (typeof window === 'undefined') return false;
 
   try {
-    const baseline = localStorage.getItem(DRAFT_BASELINE_HASH_KEY);
+    const baseline = getLocalStorageItem(DRAFT_BASELINE_HASH_KEY);
     if (!baseline) return true;
     return hashSavedState(draft) !== baseline;
   } catch {
@@ -310,8 +310,7 @@ export function renameBuild(id: string, newName: string): SavedBuild | null {
 
 // Clear all saved builds.
 export function clearAllBuilds(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(SAVED_BUILDS_STORAGE_KEY);
+  removeLocalStorageItem(SAVED_BUILDS_STORAGE_KEY);
 }
 
 // Export all builds to a downloadable JSON file.
