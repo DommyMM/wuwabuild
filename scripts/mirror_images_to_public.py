@@ -81,23 +81,34 @@ _ABSOLUTE_HOST_RE = re.compile(
     re.IGNORECASE,
 )
 _RELATIVE_WUTHERY_RE = re.compile(r"^/d/.+\.(?:png|webp|jpe?g)$", re.IGNORECASE)
+_LOCAL_ASSET_RE = re.compile(r"^/assets/.+\.webp$", re.IGNORECASE)
 _IMAGE_SUFFIX_RE = re.compile(r"\.(?:png|webp|jpe?g)$", re.IGNORECASE)
+
+# Frontend adapters derive some image paths at runtime by string replace
+# instead of carrying a second URL field — those derived files are referenced
+# by the site without ever appearing in the JSONs, so the mirror must derive
+# and fetch them the same way. Currently the only case is the square head
+# portrait (lib/character.ts adaptCDNCharacter): iconRound
+# .../IconRoleHeadCircle256/T_IconRoleHeadCircle256_N_UI -> Head256 variant.
+DERIVED_VARIANTS = [(re.compile(r"HeadCircle256"), "Head256")]
 
 
 def is_image_ref(value: str) -> bool:
     return bool(_ABSOLUTE_HOST_RE.match(value) or _RELATIVE_WUTHERY_RE.match(value))
 
 
-def collect_image_refs(obj: Any, found: set[str]) -> None:
+def collect_image_refs(obj: Any, found: set[str], found_local: set[str]) -> None:
     if isinstance(obj, str):
         if is_image_ref(obj):
             found.add(obj)
+        elif _LOCAL_ASSET_RE.match(obj):
+            found_local.add(obj)
     elif isinstance(obj, dict):
         for value in obj.values():
-            collect_image_refs(value, found)
+            collect_image_refs(value, found, found_local)
     elif isinstance(obj, list):
         for value in obj:
-            collect_image_refs(value, found)
+            collect_image_refs(value, found, found_local)
 
 
 def rewrite_image_refs(obj: Any, mapping: dict[str, str]) -> Any:
@@ -228,11 +239,28 @@ def main() -> int:
 
     loaded: dict[str, Any] = {}
     all_refs: set[str] = set(EXTRA_ASSETS)
+    local_refs: set[str] = set()
     for name in TARGET_FILES:
         path = DATA_DIR / name
         data = json.loads(path.read_text(encoding="utf-8"))
         loaded[name] = data
-        collect_image_refs(data, all_refs)
+        collect_image_refs(data, all_refs, local_refs)
+
+    # Derived variants ride along with their source ref, whichever form the
+    # JSON currently holds: an upstream URL derives an upstream URL, while an
+    # already-rewritten /assets/ ref derives a local key plus a reconstructed
+    # Wuthery source URL (fetch_webp's Encore fallback covers the rest) — so
+    # a re-run heals a missing derived file in any state.
+    for ref in sorted(all_refs):
+        for pattern, replacement in DERIVED_VARIANTS:
+            if pattern.search(ref):
+                all_refs.add(pattern.sub(replacement, ref))
+    derived_local: dict[str, str] = {}
+    for ref in sorted(local_refs):
+        for pattern, replacement in DERIVED_VARIANTS:
+            if pattern.search(ref):
+                key = pattern.sub(replacement, ref)[len(PUBLIC_PATH_PREFIX) + 1:]
+                derived_local[key] = f"{CDN_BASE}/d/GameData/{_IMAGE_SUFFIX_RE.sub('.png', key)}"
 
     # Resolving key + local path up front doubles as both the rewrite mapping
     # and the on-disk resumability check — no separate manifest to keep in sync.
@@ -241,14 +269,17 @@ def main() -> int:
         absolute = resolve_absolute(url)
         key = compute_key(absolute)
         ref_info[url] = {"absolute": absolute, "key": key, "local_path": local_path_for_key(key)}
+    for key, upstream in derived_local.items():
+        local_ref = f"{PUBLIC_PATH_PREFIX}/{key}"
+        ref_info.setdefault(local_ref, {"absolute": upstream, "key": key, "local_path": local_path_for_key(key)})
 
     pending = sorted(url for url, info in ref_info.items() if not info["local_path"].exists())
-    already = len(all_refs) - len(pending)
+    already = len(ref_info) - len(pending)
     if args.limit:
         pending = pending[: args.limit]
 
     print(
-        f"{len(all_refs)} unique image references ({len(TARGET_FILES)} data files + {len(EXTRA_ASSETS)} UI-chrome assets), "
+        f"{len(ref_info)} unique image references ({len(TARGET_FILES)} data files + {len(EXTRA_ASSETS)} UI-chrome assets + derived variants), "
         f"{already} already on disk, {len(pending)} selected to fetch this run"
     )
 
