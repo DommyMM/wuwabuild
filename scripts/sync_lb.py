@@ -374,6 +374,18 @@ def _stat_name_for_match(m: re.Match) -> str:
     return m.group(0)  # fallback: raw matched text
 
 
+# Damage the effect *deals*, as opposed to a stat bonus it grants. The two read
+# almost identically to the generic value+stat pass, because the elemental stat
+# patterns accept a bare "Havoc DMG" as well as "Havoc DMG Bonus" — so
+# "deal additional 480% Havoc DMG" would otherwise be emitted as a +480% Havoc
+# DMG Bonus. The verb is the only thing distinguishing them.
+_DAMAGE_INSTANCE_RE = re.compile(
+    r"\bdeal(?:s|ing)?\s+(?:an?\s+)?(?:additional\s+)?\d+(?:\.\d+)?\s*%\s+"
+    r"(?:Havoc|Spectro|Glacio|Fusion|Electro|Aero)\s+DMG\b",
+    re.I,
+)
+
+
 def _extract_buffs(text: str) -> list[dict]:
     """Find all (stat, value) buff pairs in *text*.
 
@@ -387,6 +399,11 @@ def _extract_buffs(text: str) -> list[dict]:
 
     def _overlaps(s: int, e: int) -> bool:
         return any(a < e and b > s for a, b in used)
+
+    # Pass 0 - claim damage instances before anything can read them as buffs.
+    # Nothing is emitted: the span is reserved purely so later passes skip it.
+    for dmg_m in _DAMAGE_INSTANCE_RE.finditer(text):
+        used.append(dmg_m.span())
 
     # Pass B2 - "MOVETYPE DMG ignores X% [of] DEF [and Y% Element RES on targets]".
     # Must run before Pass A so it claims the DEF/RES spans before the generic value+stat pass.
@@ -937,6 +954,12 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
                 b for b in _extract_buffs(sentence)
                 if trigger == "" or b["stat"] not in trigger
             ]
+            # Drop clauses that buff the incoming Resonator: `effects` is the
+            # wielder-facing list, and those bonuses are the swap-in target's.
+            # They still reach the team via _parse_party_scoped_buffs.
+            for b in _incoming_scoped_clause_buffs(sentence):
+                if b in buffs:
+                    buffs.remove(b)
         if not buffs:
             continue
 
@@ -1468,6 +1491,26 @@ def _self_scoped_clause_buffs(sentence: str) -> list[dict]:
             continue
         for b in _extract_buffs(clause):
             excluded.extend(_stat_to_party_buffs(b["stat"], b["value"]))
+    return excluded
+
+
+_INCOMING_SCOPE_RE = re.compile(r"\b(?:incoming|next)\s+Resonator\b", re.I)
+
+
+def _incoming_scoped_clause_buffs(sentence: str) -> list[dict]:
+    """Collect buffs from sub-clauses granted to the *incoming* Resonator.
+
+    The mirror of _self_scoped_clause_buffs: these belong to whoever swaps in
+    and never to the wielder, so they must be kept out of the wielder-facing
+    `effects` list (they are already emitted via `party_buffs`). Without this,
+    e.g. Moonlit Clouds' "increases the ATK of the next Resonator by 22.5%"
+    hands the wearer a phantom +22.5% ATK.
+    """
+    excluded: list[dict] = []
+    for clause in re.split(r",\s+(?:and\s+)?|;\s*", sentence):
+        if not _INCOMING_SCOPE_RE.search(clause):
+            continue
+        excluded.extend(_extract_buffs(clause))
     return excluded
 
 
