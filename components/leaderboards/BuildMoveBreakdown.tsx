@@ -1,42 +1,52 @@
 'use client';
 
-import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { LBMoveEntry } from '@/lib/lb';
 import { ELEMENT_COLOR } from '@/lib/elementVisuals';
-import { formatPercentStat } from './formatters';
 
-function formatMoveTypeLabel(moveType: string): string {
-  return moveType
+// Fixed move-type identity: every board colors a type the same way, so the
+// mapping is learnable across builds. Steps validated (CVD + contrast) against
+// the dark surface; the four most co-occurring types hold the four hues that
+// pass all-pairs colorblind checks. Red is reserved for penalties and never a
+// type color; echo is a deliberate neutral (external summon, not kit).
+const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
+  basic_attack: { label: 'Basic Attack', color: '#c98500' },
+  heavy_attack: { label: 'Heavy Attack', color: '#008300' },
+  resonance_skill: { label: 'Resonance Skill', color: '#3987e5' },
+  resonance_liberation: { label: 'Liberation', color: '#d55181' },
+  intro: { label: 'Intro', color: '#199e70' },
+  outro: { label: 'Outro', color: '#d95926' },
+  echo: { label: 'Echo', color: '#7f93a8' },
+  coordinated_attack: { label: 'Coordinated', color: '#9085e9' },
+};
+const FALLBACK_TYPE_COLOR = '#7f93a8';
+
+// Status pair for score modifiers — teal (not green) so the bonus/penalty
+// split stays distinguishable under red-green colorblindness.
+const BONUS_COLOR = '#5cc7c2';
+const PENALTY_COLOR = '#f87171';
+
+function typeMeta(moveType: string): { label: string; color: string } {
+  const known = MOVE_TYPE_META[moveType];
+  if (known) return known;
+  const label = moveType
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+  return { label, color: FALLBACK_TYPE_COLOR };
 }
-
-const CHART_COLORS = [
-  '#a69662',
-  '#ff8a65',
-  '#5cc7c2',
-  '#7aa2f7',
-  '#c792ea',
-  '#f6bd60',
-  '#8bd3dd',
-  '#90be6d',
-];
-
-// Adjustment ring + score-equation dots: teal (not green) for bonuses so the
-// bonus/penalty pair stays distinguishable under red-green colorblindness.
-const RING_BONUS_COLOR = '#5cc7c2';
-const RING_PENALTY_COLOR = '#f87171';
-
-const RING_RADIUS = 138;
-const RING_STROKE = 5;
-// Keeps a sub-percent adjustment from collapsing to an invisible hairline.
-const MIN_RING_ANGLE = 1.5;
 
 type ProcessedHit = {
   name: string;
   damage: number;
   percentage: number;
+  displayType: string;
+};
+
+type TypeSegment = {
+  type: string;
+  damage: number;
 };
 
 type ProcessedMove = {
@@ -44,17 +54,25 @@ type ProcessedMove = {
   damage: number;
   percentage: number;
   elemType?: string;
-  moveTypes?: string[];
+  moveTypes: string[];
+  rotationIndex: number;
   hits: ProcessedHit[];
+  // Damage split by move type. Derived from typed hits when the backend sends
+  // them (per-type sub-hit fold); otherwise a single primary-type segment.
+  typeSegments: TypeSegment[];
 };
 
-// Global score adjustments: ER scaling (negative), set/echo/sub-DPS bonuses
-// (positive). They scale or extend the whole rotation rather than being a part
-// of it, and a penalty cannot be drawn as a slice of a positive sum, so they are
-// never pie slices. They render as the score equation and as the adjustment ring
-// wrapped around the pie.
+// Global score adjustments (ER scaling, set/echo/sub-DPS bonuses). They scale
+// or extend the whole rotation rather than being a part of it — rendered as
+// the score equation and the waterfall, never as rotation rows.
 type ProcessedModifier = {
   name: string;
+  damage: number;
+  percentage: number;
+};
+
+type TypeTotal = {
+  type: string;
   damage: number;
   percentage: number;
 };
@@ -62,116 +80,11 @@ type ProcessedModifier = {
 type ProcessedBreakdown = {
   moves: ProcessedMove[];
   modifiers: ProcessedModifier[];
+  typeTotals: TypeTotal[];
+  dominantElement: string | null;
   rawDamage: number;
   totalScore: number;
 };
-
-type PieSegment = {
-  key: string;
-  moveIndex: number;
-  color: string;
-  opacity: number;
-  path: string;
-  tooltipAnchorX: number;
-  tooltipAnchorY: number;
-  hitSegments: HitSegment[];
-};
-
-type HitSegment = {
-  key: string;
-  title: string;
-  damage: number;
-  percentage: number;
-  path: string;
-  tooltipAnchorX: number;
-  tooltipAnchorY: number;
-};
-
-// One arc of the adjustment ring. Bonuses sweep clockwise from 12 o'clock,
-// penalties sweep counter-clockwise, so the ring reads as "what the rotation
-// gained or lost on the way to the final score".
-type RingSegment = {
-  key: string;
-  name: string;
-  damage: number;
-  percentage: number;
-  color: string;
-  path: string;
-  tooltipAnchorX: number;
-  tooltipAnchorY: number;
-};
-
-type TooltipState = {
-  title: string;
-  damage: number;
-  percentage: number;
-  elemType?: string;
-  moveTypes?: string[];
-  // Modifier tooltips carry a sign and take their color from the ring.
-  signed?: boolean;
-  anchorX: number;
-  anchorY: number;
-  left: number;
-  top: number;
-};
-
-const TOOLTIP_OFFSET = 18;
-const TOOLTIP_PADDING = 8;
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function resolveTooltipPosition(
-  anchorX: number,
-  anchorY: number,
-  boundsWidth: number,
-  boundsHeight: number,
-  tooltipWidth: number,
-  tooltipHeight: number,
-) {
-  const minLeft = TOOLTIP_PADDING;
-  const minTop = TOOLTIP_PADDING;
-  const maxLeft = Math.max(minLeft, boundsWidth - tooltipWidth - TOOLTIP_PADDING);
-  const maxTop = Math.max(minTop, boundsHeight - tooltipHeight - TOOLTIP_PADDING);
-
-  const rightLeft = anchorX + TOOLTIP_OFFSET;
-  const leftLeft = anchorX - TOOLTIP_OFFSET - tooltipWidth;
-  const bottomTop = anchorY + TOOLTIP_OFFSET;
-  const topTop = anchorY - TOOLTIP_OFFSET - tooltipHeight;
-
-  const fitsRight = rightLeft <= maxLeft;
-  const fitsLeft = leftLeft >= minLeft;
-  const fitsBottom = bottomTop <= maxTop;
-  const fitsTop = topTop >= minTop;
-
-  const clampedRightLeft = clamp(rightLeft, minLeft, maxLeft);
-  const clampedLeftLeft = clamp(leftLeft, minLeft, maxLeft);
-  const clampedBottomTop = clamp(bottomTop, minTop, maxTop);
-  const clampedTopTop = clamp(topTop, minTop, maxTop);
-
-  const rightOverflow = Math.abs(clampedRightLeft - rightLeft);
-  const leftOverflow = Math.abs(clampedLeftLeft - leftLeft);
-  const bottomOverflow = Math.abs(clampedBottomTop - bottomTop);
-  const topOverflow = Math.abs(clampedTopTop - topTop);
-
-  return {
-    left: fitsRight
-      ? rightLeft
-      : fitsLeft
-        ? leftLeft
-        : rightOverflow <= leftOverflow
-          ? clampedRightLeft
-          : clampedLeftLeft,
-    top: fitsBottom
-      ? bottomTop
-      : fitsTop
-        ? topTop
-        : bottomOverflow <= topOverflow
-          ? clampedBottomTop
-          : clampedTopTop,
-  };
-}
 
 function formatDamage(value: number): string {
   return Math.round(value).toLocaleString();
@@ -183,114 +96,133 @@ function formatModifierDamage(value: number): string {
   return rounded < 0 ? `−${abs}` : `+${abs}`;
 }
 
-// Share of move damage, signed. The ER factor (×0.94) rides in the label instead.
-function formatModifierPercent(value: number): string {
-  const abs = formatPercentStat(Math.abs(value));
-  return value < 0 ? `−${abs}` : `+${abs}`;
+function formatSignedPercent(value: number): string {
+  return `${value < 0 ? '−' : '+'}${Math.abs(value).toFixed(1)}%`;
 }
 
-// "ER Scaling (108% / 115% = ×0.94)" → "ER Scaling ×0.94" for the score card.
+// "ER Scaling (108% / 115% = ×0.94)" → "ER Scaling ×0.94" for the equation chip.
 function compactModifierLabel(name: string): string {
   const base = name.split(' (')[0]?.trim() || name;
   const factor = name.match(/×[\d.]+/)?.[0];
   return factor ? `${base} ${factor}` : base;
 }
 
-function polarToCartesian(cx: number, cy: number, radius: number, angle: number) {
-  const radians = ((angle - 90) * Math.PI) / 180;
-  return {
-    x: cx + (radius * Math.cos(radians)),
-    y: cy + (radius * Math.sin(radians)),
-  };
-}
-
-function getSliceTooltipAnchor(startAngle: number, endAngle: number, radius = 92) {
-  const midAngle = startAngle + ((endAngle - startAngle) / 2);
-  return polarToCartesian(150, 150, radius, midAngle);
-}
-
-// Stroked arc (no center point, unlike a pie wedge). Handles either direction:
-// endAngle below startAngle sweeps counter-clockwise.
-function describeRingArc(cx: number, cy: number, radius: number, startAngle: number, endAngle: number) {
-  const start = polarToCartesian(cx, cy, radius, startAngle);
-  const end = polarToCartesian(cx, cy, radius, endAngle);
-  const largeArcFlag = Math.abs(endAngle - startAngle) > 180 ? 1 : 0;
-  const sweepFlag = endAngle >= startAngle ? 1 : 0;
-
-  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y}`;
-}
-
-function describePieSlice(cx: number, cy: number, radius: number, startAngle: number, endAngle: number) {
-  const safeEndAngle = endAngle - 0.35;
-  const start = polarToCartesian(cx, cy, radius, startAngle);
-  const end = polarToCartesian(cx, cy, radius, safeEndAngle);
-  const largeArcFlag = safeEndAngle - startAngle > 180 ? 1 : 0;
-
-  return [
-    `M ${cx} ${cy}`,
-    `L ${start.x} ${start.y}`,
-    `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`,
-    'Z',
-  ].join(' ');
+// The type a hit renders as. A dual-typed hit (Cantarella's Phantom Sting
+// coordinated stage is [basic_attack, coordinated_attack]) shows its more
+// specific type — the one that differs from the move's primary.
+function hitDisplayType(hitTypes: string[] | undefined, primary: string): string {
+  if (!hitTypes || hitTypes.length === 0) return primary;
+  return hitTypes.find((t) => t !== primary) ?? hitTypes[0];
 }
 
 function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
   const grouped = new Map<string, {
     damage: number;
-    hits: Map<string, number>;
+    hits: Map<string, { name: string; damage: number; types?: string[] }>;
     elemType?: string;
     moveTypes?: string[];
     modifier: boolean;
+    rotationIndex: number;
   }>();
 
-  for (const move of moves) {
+  moves.forEach((move, index) => {
     const key = move.name?.trim() || 'Unnamed Move';
-    const existing = grouped.get(key) ?? { damage: 0, hits: new Map<string, number>(), modifier: false };
+    const existing = grouped.get(key) ?? {
+      damage: 0,
+      hits: new Map<string, { name: string; damage: number; types?: string[] }>(),
+      modifier: false,
+      // API row order is rotation order; a repeated cast keeps its first slot.
+      rotationIndex: index,
+    };
     existing.damage += move.damage;
     if (move.elemType) existing.elemType = move.elemType;
     if (move.moveTypes) existing.moveTypes = move.moveTypes;
     if (move.modifier) existing.modifier = true;
 
     for (const hit of move.hits ?? []) {
-      const hitKey = hit.name?.trim() || 'Hit';
-      existing.hits.set(hitKey, (existing.hits.get(hitKey) ?? 0) + hit.damage);
+      // Zero-damage hits are trigger bookkeeping (e.g. a 0-MV echo cast folded
+      // for rotation accounting), not damage — never rows or type segments.
+      if (!(hit.damage > 0)) continue;
+      const hitName = hit.name?.trim() || 'Hit';
+      // Key by name AND typing so two same-named casts with different types
+      // (possible under the per-type sub-hit fold) don't merge into one
+      // mis-attributed entry.
+      const hitKey = `${hitName}|${hit.moveTypes?.join(',') ?? ''}`;
+      const existingHit = existing.hits.get(hitKey) ?? { name: hitName, damage: 0 };
+      existingHit.damage += hit.damage;
+      if (hit.moveTypes) existingHit.types = hit.moveTypes;
+      existing.hits.set(hitKey, existingHit);
     }
 
     grouped.set(key, existing);
+  });
+
+  // The backend Modifier flag is the single source of truth for what is a
+  // global score adjustment versus a real rotation move.
+  const entries = Array.from(grouped.entries());
+  const rawDamage = entries.reduce((sum, [, move]) => (move.modifier ? sum : sum + move.damage), 0);
+  if (rawDamage <= 0) {
+    return { moves: [], modifiers: [], typeTotals: [], dominantElement: null, rawDamage: 0, totalScore: 0 };
   }
 
-  // The backend Modifier flag is the single source of truth for what is a global
-  // score adjustment (ER scaling, ScoreAdjust bonuses, healer set/echo bonuses)
-  // versus a real rotation move.
-  const entries = Array.from(grouped.entries());
-  const isModifier = (entry: { modifier: boolean }) => entry.modifier;
-  const rawDamage = entries.reduce((sum, [, move]) => (isModifier(move) ? sum : sum + move.damage), 0);
-  if (rawDamage <= 0) return { moves: [], modifiers: [], rawDamage: 0, totalScore: 0 };
-
   const processedMoves = entries
-    .filter(([, move]) => !isModifier(move))
+    .filter(([, move]) => !move.modifier)
     .map(([name, move]) => {
-      const hits = Array.from(move.hits.entries())
-        .map(([hitName, damage]) => ({
-          name: hitName,
-          damage,
-          percentage: (damage / rawDamage) * 100,
+      const primary = move.moveTypes?.[0] ?? 'unknown';
+      // A hit that repeats the row's own name at the row's own type carries no
+      // information (a DisplayGroup fold of extra casts of the same move, e.g.
+      // Phrolova's Fate/Finality ×3 or Hiyuki's repeated Glacio Bite lanes).
+      // Suppress it — its damage flows into the remainder, which is that type
+      // anyway — so those rows render as they did before the typed-hit fold.
+      const hits: ProcessedHit[] = Array.from(move.hits.values())
+        .map((hit) => ({
+          name: hit.name,
+          damage: hit.damage,
+          percentage: (hit.damage / rawDamage) * 100,
+          displayType: hitDisplayType(hit.types, primary),
         }))
+        .filter((hit) => !(hit.name === name && hit.displayType === primary))
         .sort((a, b) => b.damage - a.damage);
+
+      // Type split from typed hits only — untyped hits (older cached responses)
+      // can't vary from the primary, so the move stays a single segment.
+      const hasTypedHits = hits.length > 0
+        && Array.from(move.hits.values()).some((hit) => hit.types && hit.types.length > 0);
+      let typeSegments: TypeSegment[];
+      if (hasTypedHits) {
+        const byType = new Map<string, number>();
+        let hitsSum = 0;
+        for (const hit of hits) {
+          byType.set(hit.displayType, (byType.get(hit.displayType) ?? 0) + hit.damage);
+          hitsSum += hit.damage;
+        }
+        // Hits may not cover the whole move; the remainder stays primary-typed
+        // so segment sums keep matching move damage (and the profile keeps
+        // matching raw damage).
+        const remainder = move.damage - hitsSum;
+        if (remainder > 0.5) byType.set(primary, (byType.get(primary) ?? 0) + remainder);
+        typeSegments = Array.from(byType.entries())
+          .map(([type, damage]) => ({ type, damage }))
+          .sort((a, b) => b.damage - a.damage);
+      } else {
+        typeSegments = [{ type: primary, damage: move.damage }];
+      }
 
       return {
         name,
         damage: move.damage,
         percentage: (move.damage / rawDamage) * 100,
         elemType: move.elemType,
-        moveTypes: move.moveTypes,
+        moveTypes: move.moveTypes ?? [],
+        rotationIndex: move.rotationIndex,
         hits,
+        typeSegments,
       };
     })
     .sort((a, b) => b.damage - a.damage);
 
   const modifiers = entries
-    .filter(([, move]) => isModifier(move))
+    .filter(([, move]) => move.modifier)
     .map(([name, move]) => ({
       name,
       damage: move.damage,
@@ -298,83 +230,37 @@ function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
     }))
     .sort((a, b) => b.damage - a.damage);
 
+  const typeAggregate = new Map<string, number>();
+  for (const move of processedMoves) {
+    for (const segment of move.typeSegments) {
+      typeAggregate.set(segment.type, (typeAggregate.get(segment.type) ?? 0) + segment.damage);
+    }
+  }
+  const typeTotals = Array.from(typeAggregate.entries())
+    .map(([type, damage]) => ({ type, damage, percentage: (damage / rawDamage) * 100 }))
+    .sort((a, b) => b.damage - a.damage);
+
+  const elementDamage = new Map<string, number>();
+  for (const move of processedMoves) {
+    if (!move.elemType) continue;
+    elementDamage.set(move.elemType, (elementDamage.get(move.elemType) ?? 0) + move.damage);
+  }
+  const dominantElement = Array.from(elementDamage.entries())
+    .sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
   const totalScore = entries.reduce((sum, [, move]) => sum + move.damage, 0);
 
-  return { moves: processedMoves, modifiers, rawDamage, totalScore };
+  return { moves: processedMoves, modifiers, typeTotals, dominantElement, rawDamage, totalScore };
 }
 
-function buildPieSegments(moves: ProcessedMove[], activeMoveIndex: number | null): PieSegment[] {
-  let angle = 0;
+type TooltipState = {
+  x: number;
+  y: number;
+  title: string;
+  detail: string;
+};
 
-  return moves.map((move, moveIndex) => {
-    const segmentAngle = (move.percentage / 100) * 360;
-    const startAngle = angle;
-    const endAngle = angle + segmentAngle;
-    angle = endAngle;
-    const tooltipAnchor = getSliceTooltipAnchor(startAngle, endAngle);
-    let hitAngle = startAngle;
-    const hitSegments = move.hits.map((hit, hitIndex) => {
-      const nextHitAngle = hitAngle + ((hit.damage / move.damage) * segmentAngle);
-      const hitTooltipAnchor = getSliceTooltipAnchor(hitAngle, nextHitAngle, 76);
-      const hitSegment: HitSegment = {
-        key: `${moveIndex}:${hit.name}`,
-        title: hit.name,
-        damage: hit.damage,
-        percentage: hit.percentage,
-        path: describePieSlice(150, 150, 126, hitAngle, nextHitAngle),
-        tooltipAnchorX: hitTooltipAnchor.x,
-        tooltipAnchorY: hitTooltipAnchor.y,
-      };
-      hitAngle = nextHitAngle;
-      return {
-        ...hitSegment,
-        key: hitIndex === 0 ? hitSegment.key : `${hitSegment.key}:${hitIndex}`,
-      };
-    });
-
-    return {
-      key: `move-${move.name}-${moveIndex}`,
-      moveIndex,
-      color: CHART_COLORS[moveIndex % CHART_COLORS.length],
-      opacity: activeMoveIndex === null || activeMoveIndex === moveIndex ? 1 : 0.34,
-      path: describePieSlice(150, 150, 126, startAngle, endAngle),
-      tooltipAnchorX: tooltipAnchor.x,
-      tooltipAnchorY: tooltipAnchor.y,
-      hitSegments,
-    };
-  });
-}
-
-function buildRingSegments(modifiers: ProcessedModifier[]): RingSegment[] {
-  let bonusAngle = 0;
-  let penaltyAngle = 0;
-
-  return modifiers.map((modifier, index) => {
-    const isBonus = modifier.damage > 0;
-    const span = Math.min(
-      Math.max((Math.abs(modifier.percentage) / 100) * 360, MIN_RING_ANGLE),
-      359,
-    );
-    // Both directions start at 12 o'clock so the split reads instantly.
-    const startAngle = isBonus ? bonusAngle : -penaltyAngle;
-    const endAngle = isBonus ? startAngle + span : startAngle - span;
-    if (isBonus) bonusAngle += span;
-    else penaltyAngle += span;
-
-    const anchor = polarToCartesian(150, 150, RING_RADIUS, (startAngle + endAngle) / 2);
-
-    return {
-      key: `modifier-${modifier.name}-${index}`,
-      name: modifier.name,
-      damage: modifier.damage,
-      percentage: modifier.percentage,
-      color: isBonus ? RING_BONUS_COLOR : RING_PENALTY_COLOR,
-      path: describeRingArc(150, 150, RING_RADIUS, startAngle, endAngle),
-      tooltipAnchorX: anchor.x,
-      tooltipAnchorY: anchor.y,
-    };
-  });
-}
+type SortMode = 'damage' | 'rotation';
 
 interface BuildMoveBreakdownProps {
   isLoading: boolean;
@@ -389,104 +275,57 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   moves,
   onRetry,
 }) => {
-  const [activeMoveIndex, setActiveMoveIndex] = useState<number | null>(null);
-  const [activeHitKey, setActiveHitKey] = useState<string | null>(null);
-  const [activeModifierKey, setActiveModifierKey] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>('damage');
+  // Legend/profile hover: dims non-matching rows, segments, and chips.
+  const [typeFocus, setTypeFocus] = useState<string | null>(null);
+  // Row hover: dims non-matching profile segments only.
+  const [rowFocusTypes, setRowFocusTypes] = useState<string[] | null>(null);
+  const [expandedMoves, setExpandedMoves] = useState<Set<string>>(new Set());
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  const chartRef = useRef<HTMLDivElement | null>(null);
-  const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   const breakdown = useMemo(() => processMoves(moves), [moves]);
-  const processedMoves = breakdown.moves;
+  const sortedMoves = useMemo(() => {
+    if (sortMode === 'rotation') {
+      return [...breakdown.moves].sort((a, b) => a.rotationIndex - b.rotationIndex);
+    }
+    return breakdown.moves;
+  }, [breakdown.moves, sortMode]);
+  const maxMoveDamage = breakdown.moves[0]?.damage ?? 0;
   const totalHits = useMemo(
-    () => processedMoves.reduce((sum, move) => sum + move.hits.length, 0),
-    [processedMoves],
+    () => breakdown.moves.reduce((sum, move) => sum + move.hits.length, 0),
+    [breakdown.moves],
   );
-  const pieSegments = useMemo(
-    () => buildPieSegments(processedMoves, activeMoveIndex),
-    [activeMoveIndex, processedMoves],
-  );
-  const ringSegments = useMemo(
-    () => buildRingSegments(breakdown.modifiers),
-    [breakdown.modifiers],
-  );
-  const activeHitSegment = useMemo(() => {
-    if (activeMoveIndex === null || activeHitKey === null) return null;
-    const segment = pieSegments[activeMoveIndex];
-    if (!segment) return null;
-    return segment.hitSegments.find((hitSegment) => hitSegment.key === activeHitKey) ?? null;
-  }, [activeHitKey, activeMoveIndex, pieSegments]);
+  const bonusTotal = breakdown.modifiers.reduce((sum, m) => (m.damage > 0 ? sum + m.damage : sum), 0);
+  const penaltyTotal = breakdown.modifiers.reduce((sum, m) => (m.damage < 0 ? sum - m.damage : sum), 0);
 
-  function setTooltipFromAnchor(
-    anchorX: number,
-    anchorY: number,
-    nextTooltip: Omit<TooltipState, 'anchorX' | 'anchorY' | 'left' | 'top'>,
-  ) {
-    const bounds = chartRef.current?.getBoundingClientRect();
-    if (!bounds) return;
+  // Waterfall geometry: everything is a fraction of the widest quantity so the
+  // track never overflows. Penalty bites the raw tail; bonus extends past it.
+  const waterfallTop = Math.max(breakdown.rawDamage + bonusTotal, breakdown.rawDamage);
+  const rawPct = waterfallTop > 0 ? (breakdown.rawDamage / waterfallTop) * 100 : 0;
+  const penaltyPct = waterfallTop > 0 ? Math.max((penaltyTotal / waterfallTop) * 100, penaltyTotal > 0 ? 0.9 : 0) : 0;
+  const bonusPct = waterfallTop > 0 ? (bonusTotal / waterfallTop) * 100 : 0;
+  const scorePct = waterfallTop > 0 ? (breakdown.totalScore / waterfallTop) * 100 : 0;
 
-    const tooltipWidth = tooltipRef.current?.getBoundingClientRect().width ?? 0;
-    const tooltipHeight = tooltipRef.current?.getBoundingClientRect().height ?? 0;
-    const position = resolveTooltipPosition(
-      anchorX,
-      anchorY,
-      bounds.width,
-      bounds.height,
-      tooltipWidth,
-      tooltipHeight,
-    );
-
+  const showSegmentTooltip = (event: React.MouseEvent, total: TypeTotal) => {
     setTooltip({
-      ...nextTooltip,
-      anchorX,
-      anchorY,
-      left: position.left,
-      top: position.top,
+      x: event.clientX,
+      y: event.clientY,
+      title: typeMeta(total.type).label,
+      detail: `${formatDamage(total.damage)}  [${total.percentage.toFixed(1)}%]`,
     });
-  }
+  };
 
-  function setTooltipFromEvent(
-    event: React.MouseEvent<SVGPathElement>,
-    nextTooltip: Omit<TooltipState, 'anchorX' | 'anchorY' | 'left' | 'top'>,
-  ) {
-    const bounds = chartRef.current?.getBoundingClientRect()
-      ?? event.currentTarget.ownerSVGElement?.getBoundingClientRect();
-    if (!bounds) return;
-
-    const anchorX = event.clientX - bounds.left;
-    const anchorY = event.clientY - bounds.top;
-    setTooltipFromAnchor(anchorX, anchorY, nextTooltip);
-  }
-
-  useLayoutEffect(() => {
-    if (!tooltip || !chartRef.current || !tooltipRef.current) return;
-
-    const bounds = chartRef.current.getBoundingClientRect();
-    const tooltipRect = tooltipRef.current.getBoundingClientRect();
-    const nextPosition = resolveTooltipPosition(
-      tooltip.anchorX,
-      tooltip.anchorY,
-      bounds.width,
-      bounds.height,
-      tooltipRect.width,
-      tooltipRect.height,
-    );
-
-    if (nextPosition.left === tooltip.left && nextPosition.top === tooltip.top) return;
-
-    setTooltip((current) => (
-      current
-        ? {
-            ...current,
-            left: nextPosition.left,
-            top: nextPosition.top,
-          }
-        : current
-    ));
-  }, [tooltip]);
+  const toggleExpanded = (moveName: string) => {
+    setExpandedMoves((prev) => {
+      const next = new Set(prev);
+      if (next.has(moveName)) next.delete(moveName);
+      else next.add(moveName);
+      return next;
+    });
+  };
 
   return (
-    <section className="space-y-3">
+    <section className="mx-auto w-full max-w-5xl space-y-3">
       {isLoading && (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, index) => (
@@ -510,313 +349,232 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
         </div>
       )}
 
-      {!isLoading && !error && processedMoves.length === 0 && (
+      {!isLoading && !error && breakdown.moves.length === 0 && (
         <div className="py-1 text-sm text-text-primary/60">
           No move breakdown available for this board.
         </div>
       )}
 
-      {!isLoading && !error && processedMoves.length > 0 && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(340px,36%)_minmax(0,1fr)] lg:items-start">
-          <div className="space-y-3 lg:sticky lg:top-3">
-            <div ref={chartRef} className="relative mx-auto aspect-square w-full max-w-[420px]">
-              <svg viewBox="0 0 300 300" className="h-full w-full">
-                <circle cx="150" cy="150" r="126" fill="rgba(255,255,255,0.035)" />
-                {/* Pie recedes while a ring arc is hovered, so the arc reads first. */}
-                <g
-                  opacity={activeModifierKey === null ? 1 : 0.42}
-                  className="transition-opacity duration-150"
-                >
-                  {pieSegments.map((segment) => {
-                    const move = processedMoves[segment.moveIndex];
-                    return (
-                      <path
-                        key={segment.key}
-                        d={segment.path}
-                        fill={segment.color}
-                        opacity={segment.opacity}
-                        stroke="rgba(19,18,18,0.65)"
-                        strokeWidth="1.2"
-                        className="cursor-pointer transition-opacity duration-150"
-                        onMouseEnter={(event) => {
-                          setActiveMoveIndex(segment.moveIndex);
-                          setActiveHitKey(null);
-                          setActiveModifierKey(null);
-                          if (move) {
-                            setTooltipFromEvent(event, {
-                              title: move.name,
-                              damage: move.damage,
-                              percentage: move.percentage,
-                              elemType: move.elemType,
-                              moveTypes: move.moveTypes,
-                            });
-                          }
-                        }}
-                        onMouseMove={(event) => {
-                          if (move) {
-                            setTooltipFromEvent(event, {
-                              title: move.name,
-                              damage: move.damage,
-                              percentage: move.percentage,
-                              elemType: move.elemType,
-                              moveTypes: move.moveTypes,
-                            });
-                          }
-                        }}
-                        onMouseLeave={() => {
-                          setActiveMoveIndex(null);
-                          setTooltip(null);
-                        }}
+      {!isLoading && !error && breakdown.moves.length > 0 && (
+        <>
+          {/* Score equation + waterfall + damage profile */}
+          <div className="rounded-lg border border-border/45 bg-background-secondary/24 px-4 py-3.5">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/42">
+              Total Score
+            </div>
+
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+              {/* Without modifiers the raw total IS the score; showing both would
+                  read as a duplicated number. */}
+              {breakdown.modifiers.length > 0 && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-primary/40">Move damage</span>
+                  <span className="text-xl font-semibold tabular-nums text-white/85">{formatDamage(breakdown.rawDamage)}</span>
+                </div>
+              )}
+
+              {breakdown.modifiers.map((modifier) => {
+                const isBonus = modifier.damage > 0;
+                return (
+                  <div
+                    key={`modifier-${modifier.name}`}
+                    className="flex flex-col gap-0.5 rounded-md border border-border/45 bg-background-secondary/40 px-3 py-1.5"
+                    title={modifier.name}
+                  >
+                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-text-primary/62">
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: isBonus ? BONUS_COLOR : PENALTY_COLOR }}
                       />
-                    );
-                  })}
-                  {activeHitSegment && (
-                    <path
-                      d={activeHitSegment.path}
-                      fill={pieSegments[activeMoveIndex ?? 0]?.color ?? '#ffffff'}
-                      opacity={0.98}
-                      stroke="rgba(255,255,255,0.82)"
-                      strokeWidth="1.35"
-                      className="drop-shadow-[0_0_12px_rgba(0,0,0,0.28)]"
+                      {compactModifierLabel(modifier.name)}
+                    </span>
+                    <span className="flex items-baseline gap-2 text-sm font-semibold tabular-nums" style={{ color: isBonus ? BONUS_COLOR : PENALTY_COLOR }}>
+                      {formatModifierDamage(modifier.damage)}
+                      <span className="text-[11px] font-medium text-text-primary/40">{formatSignedPercent(modifier.percentage)}</span>
+                    </span>
+                  </div>
+                );
+              })}
+
+              <div className="ml-auto flex flex-col gap-0.5 text-right max-sm:ml-0 max-sm:w-full max-sm:text-left">
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-primary/40">Score</span>
+                <span className="text-2xl font-bold tabular-nums text-accent-hover">{formatDamage(breakdown.totalScore)}</span>
+                <span className="text-[11px] text-text-primary/42">{breakdown.moves.length} moves · {totalHits} hits</span>
+              </div>
+            </div>
+
+            {breakdown.modifiers.length > 0 && (
+              <div className="mt-3" aria-hidden="true">
+                <div className="relative h-3.5 rounded bg-white/5">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-l bg-linear-to-b from-accent/55 to-accent/35"
+                    style={{ width: `${rawPct}%`, borderRadius: bonusPct > 0 ? '4px 0 0 4px' : '4px' }}
+                  />
+                  {penaltyTotal > 0 && (
+                    <div
+                      className="absolute inset-y-0"
+                      style={{
+                        left: `${rawPct - penaltyPct}%`,
+                        width: `${penaltyPct}%`,
+                        background: `repeating-linear-gradient(135deg, ${PENALTY_COLOR}c0 0 3px, ${PENALTY_COLOR}40 3px 6px)`,
+                        borderRadius: bonusPct > 0 ? '0' : '0 4px 4px 0',
+                      }}
                     />
                   )}
-                </g>
-
-                {ringSegments.length > 0 && (
-                  <g>
-                    {/* Solid track = raw move damage. The colored arcs overwrite it, so a
-                        small penalty reads as a bite out of a whole rather than a stray
-                        tick floating on nothing. */}
-                    <circle
-                      cx="150"
-                      cy="150"
-                      r={RING_RADIUS}
-                      fill="none"
-                      stroke="rgba(255,255,255,0.18)"
-                      strokeWidth={RING_STROKE}
+                  {bonusTotal > 0 && (
+                    <div
+                      className="absolute inset-y-0 rounded-r"
+                      style={{
+                        left: `calc(${rawPct}% + 2px)`,
+                        width: `calc(${bonusPct}% - 2px)`,
+                        background: `linear-gradient(180deg, ${BONUS_COLOR}e6, ${BONUS_COLOR}a6)`,
+                      }}
                     />
-                    {ringSegments.map((segment) => {
-                      const isActive = activeModifierKey === null || activeModifierKey === segment.key;
-                      const enterTooltip = {
-                        title: segment.name,
-                        damage: segment.damage,
-                        percentage: segment.percentage,
-                        signed: true,
-                      };
+                  )}
+                  <div
+                    className="absolute -bottom-1 -top-1 w-0.5 rounded-full bg-white/85"
+                    style={{ left: `${scorePct}%` }}
+                  />
+                </div>
+                <div className="mt-1.5 flex justify-between text-[10.5px] text-text-primary/42">
+                  <span><span className="font-semibold text-text-primary/58">Move damage</span> {formatDamage(breakdown.rawDamage)}</span>
+                  <span><span className="font-semibold text-text-primary/58">Score</span> {formatDamage(breakdown.totalScore)}</span>
+                </div>
+              </div>
+            )}
 
-                      return (
-                        <g key={segment.key}>
-                          <path
-                            d={segment.path}
-                            fill="none"
-                            stroke={segment.color}
-                            strokeWidth={RING_STROKE}
-                            // Butt caps: round caps overshoot the 12 o'clock baseline and a
-                            // penalty would bleed into a bonus starting from the same origin.
-                            strokeLinecap="butt"
-                            opacity={isActive ? 1 : 0.28}
-                            className="transition-opacity duration-150"
-                          />
-                          {/* Widened invisible stroke so a 5px arc is actually hoverable. */}
-                          <path
-                            d={segment.path}
-                            fill="none"
-                            stroke="transparent"
-                            strokeWidth={16}
-                            strokeLinecap="butt"
-                            className="cursor-pointer"
-                            style={{ pointerEvents: 'stroke' }}
-                            onMouseEnter={(event) => {
-                              setActiveModifierKey(segment.key);
-                              setActiveMoveIndex(null);
-                              setActiveHitKey(null);
-                              setTooltipFromEvent(event, enterTooltip);
-                            }}
-                            onMouseMove={(event) => setTooltipFromEvent(event, enterTooltip)}
-                            onMouseLeave={() => {
-                              setActiveModifierKey(null);
-                              setTooltip(null);
-                            }}
-                          />
-                        </g>
-                      );
-                    })}
-                    {/* Baseline at 12 o'clock, drawn last so it reads over the arcs. Declares
-                        the origin: penalties run left of it, bonuses run right. */}
-                    <line
-                      x1="150"
-                      y1={150 - RING_RADIUS - RING_STROKE}
-                      x2="150"
-                      y2={150 - RING_RADIUS + RING_STROKE}
-                      stroke="rgba(255,255,255,0.55)"
-                      strokeWidth="1.2"
-                    />
-                  </g>
-                )}
-              </svg>
-
-              {tooltip && (
-                <div
-                  ref={tooltipRef}
-                  className="pointer-events-none absolute z-10 w-max min-w-36 rounded-md border border-accent/70 bg-[#131313]/95 px-3 py-2 shadow-[0_10px_28px_rgba(0,0,0,0.38)]"
-                  style={{ left: tooltip.left, top: tooltip.top }}
-                >
-                  <div className="whitespace-nowrap text-sm font-semibold text-white/96">{tooltip.title}</div>
-                  {(tooltip.elemType || tooltip.moveTypes?.[0]) && (
-                    <div className="mt-1 flex items-center gap-1">
-                      {tooltip.elemType && ELEMENT_COLOR[tooltip.elemType] && (
-                        <span
-                          className="rounded border px-1.5 py-px text-[10px] leading-4"
-                          style={{
-                            color: ELEMENT_COLOR[tooltip.elemType],
-                            borderColor: `${ELEMENT_COLOR[tooltip.elemType]}40`,
-                            backgroundColor: `${ELEMENT_COLOR[tooltip.elemType]}12`,
-                          }}
-                        >
-                          {tooltip.elemType}
-                        </span>
-                      )}
-                      {tooltip.moveTypes?.[0] && formatMoveTypeLabel(tooltip.moveTypes[0]) && (
-                        <span className="rounded border border-white/10 bg-white/5 px-1.5 py-px text-[10px] leading-4 text-text-primary/48">
-                          {formatMoveTypeLabel(tooltip.moveTypes[0])}
+            {/* Damage profile by move type */}
+            <div className="mt-4 border-t border-border/45 pt-3.5">
+              <div className="flex items-baseline gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/42">Damage profile</span>
+                <span className="ml-auto text-[11px] text-text-primary/38">by move type</span>
+              </div>
+              <div className="mt-2.5 flex h-6 gap-0.5 overflow-hidden rounded-[5px]">
+                {breakdown.typeTotals.map((total) => {
+                  const meta = typeMeta(total.type);
+                  const dimmed =
+                    (typeFocus !== null && typeFocus !== total.type)
+                    || (rowFocusTypes !== null && !rowFocusTypes.includes(total.type));
+                  return (
+                    <div
+                      key={`profile-${total.type}`}
+                      className={`relative min-w-[3px] cursor-pointer transition-opacity duration-150 ${dimmed ? 'opacity-30' : ''}`}
+                      style={{ width: `${total.percentage}%`, backgroundColor: meta.color }}
+                      onMouseEnter={(event) => {
+                        setTypeFocus(total.type);
+                        showSegmentTooltip(event, total);
+                      }}
+                      onMouseMove={(event) => showSegmentTooltip(event, total)}
+                      onMouseLeave={() => {
+                        setTypeFocus(null);
+                        setTooltip(null);
+                      }}
+                    >
+                      {total.percentage >= 14 && (
+                        <span className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-nowrap pl-2 text-[11px] font-bold text-black/75">
+                          {meta.label} · {total.percentage.toFixed(1)}%
                         </span>
                       )}
                     </div>
-                  )}
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span
-                      className={`text-base font-semibold ${
-                        tooltip.signed
-                          ? tooltip.damage > 0
-                            ? 'text-teal-300'
-                            : 'text-red-300'
-                          : 'text-accent'
-                      }`}
-                    >
-                      {tooltip.signed ? formatModifierDamage(tooltip.damage) : formatDamage(tooltip.damage)}
-                    </span>
-                    <span className="text-xs text-text-primary/74">
-                      [{tooltip.signed
-                        ? formatModifierPercent(tooltip.percentage)
-                        : formatPercentStat(tooltip.percentage)}]
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mx-auto max-w-[420px] rounded-lg border border-border/45 bg-background-secondary/24 px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/42">
-                Total Score
+                  );
+                })}
               </div>
-              {breakdown.modifiers.length > 0 && (
-                <div className="mt-2 space-y-1.5 border-b border-border/50 pb-2.5 text-[13px]">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-text-primary/62">Move Damage</span>
-                    <span className="font-medium tabular-nums text-white/80">{formatDamage(breakdown.rawDamage)}</span>
-                  </div>
-                  {breakdown.modifiers.map((modifier, modifierIndex) => {
-                    const isBonus = modifier.damage > 0;
-                    // The dot is the legend key for this modifier's ring arc.
-                    const segment = ringSegments[modifierIndex];
-                    const isActive = activeModifierKey === null || activeModifierKey === segment?.key;
-
-                    return (
-                      <div
-                        key={`equation-${modifier.name}`}
-                        className={`-mx-1.5 flex cursor-pointer items-baseline justify-between gap-3 rounded px-1.5 py-0.5 transition-colors ${
-                          isActive ? 'hover:bg-white/5' : 'opacity-45'
-                        }`}
-                        onMouseEnter={() => {
-                          if (!segment) return;
-                          setActiveModifierKey(segment.key);
-                          setActiveMoveIndex(null);
-                          setActiveHitKey(null);
-                          setTooltipFromAnchor(segment.tooltipAnchorX, segment.tooltipAnchorY, {
-                            title: segment.name,
-                            damage: segment.damage,
-                            percentage: segment.percentage,
-                            signed: true,
-                          });
-                        }}
-                        onMouseLeave={() => {
-                          setActiveModifierKey(null);
-                          setTooltip(null);
-                        }}
-                      >
-                        <span
-                          className={`flex min-w-0 items-center gap-1.5 ${isBonus ? 'text-teal-200/85' : 'text-red-200/85'}`}
-                        >
-                          <span
-                            className="h-1.5 w-1.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: isBonus ? RING_BONUS_COLOR : RING_PENALTY_COLOR }}
-                          />
-                          <span className="truncate">{compactModifierLabel(modifier.name)}</span>
-                        </span>
-                        <span className="flex shrink-0 items-baseline gap-2">
-                          <span className="tabular-nums text-text-primary/42">
-                            {formatModifierPercent(modifier.percentage)}
-                          </span>
-                          <span className={`font-medium tabular-nums ${isBonus ? 'text-teal-300' : 'text-red-300'}`}>
-                            {formatModifierDamage(modifier.damage)}
-                          </span>
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              <div className="mt-1.5 text-2xl font-semibold tabular-nums text-white/92">{formatDamage(breakdown.totalScore)}</div>
-              <div className="mt-1 text-xs text-text-primary/48">
-                {processedMoves.length} moves • {totalHits} hits
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {breakdown.typeTotals.map((total) => {
+                  const meta = typeMeta(total.type);
+                  const dimmed = typeFocus !== null && typeFocus !== total.type;
+                  return (
+                    <button
+                      key={`legend-${total.type}`}
+                      type="button"
+                      className={`flex items-baseline gap-1.5 rounded-md border border-border/45 bg-background-secondary/40 px-2.5 py-1 transition-all duration-150 hover:border-accent/50 ${dimmed ? 'opacity-35' : ''}`}
+                      onMouseEnter={() => setTypeFocus(total.type)}
+                      onMouseLeave={() => setTypeFocus(null)}
+                      onFocus={() => setTypeFocus(total.type)}
+                      onBlur={() => setTypeFocus(null)}
+                    >
+                      <span className="h-2 w-2 self-center rounded-[3px]" style={{ backgroundColor: meta.color }} />
+                      <span className="text-xs font-semibold text-text-primary/62">{meta.label}</span>
+                      <span className="text-xs font-bold tabular-nums text-white/82">{total.percentage.toFixed(1)}%</span>
+                      <span className="text-[10.5px] tabular-nums text-text-primary/40">{formatDamage(total.damage)}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            {processedMoves.map((move, moveIndex) => {
-              const isMoveActive = activeMoveIndex === null || activeMoveIndex === moveIndex;
-              const color = CHART_COLORS[moveIndex % CHART_COLORS.length];
-              const segment = pieSegments[moveIndex];
-
-              return (
-                <article
-                  key={`${move.name}-${moveIndex}`}
-                  className={`rounded-lg border px-3 py-2.5 transition-colors ${
-                    isMoveActive
-                      ? 'border-accent/25 bg-background-secondary/42'
-                      : 'border-border/55 bg-background-secondary/20 opacity-55'
-                  }`}
-                  onMouseEnter={() => {
-                    setActiveMoveIndex(moveIndex);
-                    setActiveHitKey(null);
-                    setActiveModifierKey(null);
-                    if (segment) {
-                      setTooltipFromAnchor(segment.tooltipAnchorX, segment.tooltipAnchorY, {
-                        title: move.name,
-                        damage: move.damage,
-                        percentage: move.percentage,
-                        elemType: move.elemType,
-                        moveTypes: move.moveTypes,
-                      });
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    setActiveMoveIndex(null);
-                    setActiveHitKey(null);
-                    setTooltip(null);
+          {/* Move rows */}
+          <div>
+            <div className="flex items-center gap-3 px-1 pb-2.5">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/42">Moves</span>
+              {breakdown.dominantElement && ELEMENT_COLOR[breakdown.dominantElement] && (
+                <span
+                  className="rounded border px-1.5 py-px text-[10px] leading-4"
+                  style={{
+                    color: ELEMENT_COLOR[breakdown.dominantElement],
+                    borderColor: `${ELEMENT_COLOR[breakdown.dominantElement]}40`,
+                    backgroundColor: `${ELEMENT_COLOR[breakdown.dominantElement]}12`,
                   }}
                 >
-                  <div className="flex items-start gap-3">
-                    <span className="mt-1 h-3.5 w-3.5 shrink-0 rounded-sm" style={{ backgroundColor: color }} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-3">
-                        <div className="truncate text-sm font-semibold text-text-primary">{move.name}</div>
-                        <div className="shrink-0 text-sm font-semibold text-accent">{formatDamage(move.damage)}</div>
-                      </div>
-                      <div className="flex items-center justify-between gap-3 mt-1">
-                        <div className="flex items-center gap-1">
-                          {move.elemType && ELEMENT_COLOR[move.elemType] && (
+                  {breakdown.dominantElement}
+                </span>
+              )}
+              <div className="ml-auto flex gap-1 rounded-md border border-border/45 bg-background-secondary/40 p-0.5">
+                {([['damage', 'By damage'], ['rotation', 'Rotation order']] as const).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={sortMode === mode}
+                    onClick={() => setSortMode(mode)}
+                    className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                      sortMode === mode
+                        ? 'bg-accent/16 text-accent-hover'
+                        : 'text-text-primary/55 hover:text-text-primary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              {sortedMoves.map((move, index) => {
+                const segmentTypes = move.typeSegments.map((segment) => segment.type);
+                const dimmed = typeFocus !== null && !segmentTypes.includes(typeFocus);
+                const isExpanded = expandedMoves.has(move.name);
+                const hasHits = move.hits.length > 0;
+                const maxHitDamage = hasHits ? Math.max(...move.hits.map((hit) => hit.damage)) : 0;
+                const spineColors = move.typeSegments.slice(0, 2).map((segment) => typeMeta(segment.type).color);
+                const showElementChip = Boolean(
+                  move.elemType && move.elemType !== breakdown.dominantElement && ELEMENT_COLOR[move.elemType],
+                );
+
+                return (
+                  <article
+                    key={move.name}
+                    className={`rounded-lg border border-border/45 bg-background-secondary/20 transition-all duration-150 hover:border-accent/40 hover:bg-background-secondary/40 ${dimmed ? 'opacity-30' : ''}`}
+                    onMouseEnter={() => setRowFocusTypes(segmentTypes)}
+                    onMouseLeave={() => setRowFocusTypes(null)}
+                  >
+                    <div className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 py-2 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]">
+                      <span className="text-center text-[11px] font-semibold tabular-nums text-text-primary/40">
+                        {sortMode === 'rotation' ? move.rotationIndex + 1 : index + 1}
+                      </span>
+
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span
+                          className="h-5 w-[3px] shrink-0 rounded-full"
+                          style={
+                            spineColors.length > 1
+                              ? { background: `linear-gradient(180deg, ${spineColors[0]} 0 55%, ${spineColors[1]} 55% 100%)` }
+                              : { backgroundColor: spineColors[0] ?? FALLBACK_TYPE_COLOR }
+                          }
+                        />
+                        <span className="truncate text-sm font-semibold text-text-primary">{move.name}</span>
+                        <span className="flex shrink-0 gap-1">
+                          {showElementChip && move.elemType && (
                             <span
                               className="rounded border px-1.5 py-px text-[10px] leading-4"
                               style={{
@@ -828,68 +586,96 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                               {move.elemType}
                             </span>
                           )}
-                          {move.moveTypes?.[0] && (
-                            <span className="rounded border border-white/10 bg-white/5 px-1.5 py-px text-[10px] leading-4 text-text-primary/48">
-                              {formatMoveTypeLabel(move.moveTypes[0])}
+                          {move.moveTypes.map((moveType) => (
+                            <span
+                              key={`${move.name}-chip-${moveType}`}
+                              className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 py-px text-[10px] leading-4 text-text-primary/50 max-sm:hidden"
+                            >
+                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: typeMeta(moveType).color }} />
+                              {typeMeta(moveType).label}
                             </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-text-primary/52">{move.percentage.toFixed(1)}%</div>
+                          ))}
+                        </span>
                       </div>
 
-                      {move.hits.length > 0 && (
-                        <div className="mt-2">
-                          {move.hits.map((hit, hitIndex) => {
-                            const hitSegment = segment?.hitSegments[hitIndex];
-                            const hitKey = hitSegment?.key ?? `${moveIndex}:${hit.name}`;
-                            const isHitActive = activeHitKey === null || activeHitKey === hitKey;
+                      <div className="flex h-2.5 gap-0.5 max-lg:hidden" style={{ width: `${maxMoveDamage > 0 ? (move.damage / maxMoveDamage) * 100 : 0}%` }}>
+                        {move.typeSegments.map((segment) => (
+                          <div
+                            key={`${move.name}-segment-${segment.type}`}
+                            className="lb-bar-grow min-w-[3px] rounded-[3px]"
+                            style={{
+                              flexGrow: segment.damage,
+                              backgroundColor: typeMeta(segment.type).color,
+                              animationDelay: `${Math.min(index, 12) * 40}ms`,
+                            }}
+                          />
+                        ))}
+                      </div>
 
-                            return (
-                              <div
-                                key={`${move.name}-${hit.name}-${hitIndex}`}
-                                className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3 rounded px-4 py-1.5 text-sm transition-colors cursor-pointer ${
-                                  isHitActive ? 'bg-black/10' : 'opacity-45'
-                                }`}
-                                onMouseEnter={() => {
-                                  setActiveMoveIndex(moveIndex);
-                                  setActiveHitKey(hitKey);
-                                  if (hitSegment) {
-                                    setTooltipFromAnchor(hitSegment.tooltipAnchorX, hitSegment.tooltipAnchorY, {
-                                      title: hitSegment.title,
-                                      damage: hitSegment.damage,
-                                      percentage: hitSegment.percentage,
-                                    });
-                                  }
-                                }}
-                                onMouseLeave={() => {
-                                  setActiveHitKey(null);
-                                  setActiveMoveIndex(moveIndex);
-                                  if (segment) {
-                                    setTooltipFromAnchor(segment.tooltipAnchorX, segment.tooltipAnchorY, {
-                                      title: move.name,
-                                      damage: move.damage,
-                                      percentage: move.percentage,
-                                      elemType: move.elemType,
-                                      moveTypes: move.moveTypes,
-                                    });
-                                  }
-                                }}
-                              >
-                                <div className="min-w-0 truncate text-text-primary/78">{hit.name}</div>
-                                <div className="text-text-primary/50">{formatPercentStat(hit.percentage)}</div>
-                                <div className="text-right font-medium text-white/84">{formatDamage(hit.damage)}</div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                      <span className="text-right text-xs tabular-nums text-text-primary/52">{move.percentage.toFixed(1)}%</span>
+                      <span className="text-right text-sm font-semibold tabular-nums text-accent">{formatDamage(move.damage)}</span>
+
+                      {hasHits ? (
+                        <button
+                          type="button"
+                          aria-expanded={isExpanded}
+                          aria-label={`Toggle ${move.name} hits`}
+                          onClick={() => toggleExpanded(move.name)}
+                          className="flex items-center justify-center text-text-primary/40 transition-colors hover:text-text-primary"
+                        >
+                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180 text-accent' : ''}`} />
+                        </button>
+                      ) : (
+                        <span />
                       )}
                     </div>
-                  </div>
-                </article>
-              );
-            })}
+
+                    {hasHits && isExpanded && (
+                      <div className="border-t border-border/45 bg-black/15 py-1.5 pl-11 pr-2.5">
+                        {move.hits.map((hit) => (
+                          <div
+                            key={`${move.name}-hit-${hit.name}-${hit.displayType}`}
+                            className="grid grid-cols-[minmax(0,1fr)_minmax(100px,240px)_52px_92px_24px] items-center gap-3 py-1 text-[13px] max-lg:grid-cols-[minmax(0,1fr)_52px_92px_24px]"
+                          >
+                            <span className="flex min-w-0 items-center gap-2 text-text-primary/72">
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: typeMeta(hit.displayType).color }} />
+                              <span className="truncate">{hit.name}</span>
+                            </span>
+                            <div className="max-lg:hidden">
+                              <div
+                                className="h-1.5 min-w-[3px] rounded-[3px] opacity-75"
+                                style={{
+                                  width: `${maxHitDamage > 0 ? (hit.damage / maxHitDamage) * 100 : 0}%`,
+                                  backgroundColor: typeMeta(hit.displayType).color,
+                                }}
+                              />
+                            </div>
+                            <span className="text-right text-[11px] tabular-nums text-text-primary/42">{hit.percentage.toFixed(1)}%</span>
+                            <span className="text-right font-medium tabular-nums text-white/80">{formatDamage(hit.damage)}</span>
+                            <span />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
           </div>
-        </div>
+
+          {tooltip && (
+            <div
+              className="pointer-events-none fixed z-50 rounded-md border border-accent/70 bg-[#131313]/95 px-3 py-2 shadow-[0_10px_28px_rgba(0,0,0,0.38)]"
+              style={{
+                left: Math.min(tooltip.x + 14, (typeof window !== 'undefined' ? window.innerWidth : 1280) - 190),
+                top: tooltip.y + 14,
+              }}
+            >
+              <div className="whitespace-nowrap text-sm font-semibold text-white/95">{tooltip.title}</div>
+              <div className="mt-0.5 whitespace-pre text-xs tabular-nums text-text-primary/72">{tooltip.detail}</div>
+            </div>
+          )}
+        </>
       )}
     </section>
   );

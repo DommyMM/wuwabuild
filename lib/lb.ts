@@ -291,6 +291,8 @@ interface LBMoveHitEntry {
   name: string;
   damage: number;
   percentage: number;
+  /** Per-hit typing from the lb per-type sub-hit fold; absent on older cached responses. */
+  moveTypes?: string[];
 }
 
 export interface LBMoveEntry {
@@ -453,11 +455,17 @@ function parseMoveEntry(raw: unknown): LBMoveEntry | null {
   const hits = Array.isArray(raw.hits)
     ? raw.hits
       .filter(isRecord)
-      .map((hit) => ({
-        name: typeof hit.name === 'string' ? hit.name : '',
-        damage: toFiniteNumber(hit.damage, 0),
-        percentage: toFiniteNumber(hit.percentage, 0),
-      }))
+      .map((hit) => {
+        const hitTypes = Array.isArray(hit.moveTypes)
+          ? hit.moveTypes.filter((t): t is string => typeof t === 'string')
+          : undefined;
+        return {
+          name: typeof hit.name === 'string' ? hit.name : '',
+          damage: toFiniteNumber(hit.damage, 0),
+          percentage: toFiniteNumber(hit.percentage, 0),
+          moveTypes: hitTypes && hitTypes.length > 0 ? hitTypes : undefined,
+        };
+      })
       .filter((hit) => hit.name.length > 0 || hit.damage > 0)
     : [];
 

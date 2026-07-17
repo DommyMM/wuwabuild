@@ -602,3 +602,15 @@ body {
 .seq-badge.s4 { border-color: rgba(232, 121, 249, 0.45); background: rgba(217, 70, 239, 0.15); color: #f5d0fe; }
 .seq-badge.s5 { border-color: rgba(251, 191, 36, 0.55); background: rgba(245, 158, 11, 0.2); color: #fde68a; }
 .seq-badge.s6 { border-color: rgba(248, 229, 108, 0.6); background: rgba(248, 229, 108, 0.2); color: #F8E56C; }
+
+/* Move breakdown: bars grow in from the left on mount. */
+@keyframes lb-bar-grow {
+  from { transform: scaleX(0); }
+}
+.lb-bar-grow {
+  transform-origin: left;
+  animation: lb-bar-grow 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lb-bar-grow { animation: none; }
+}

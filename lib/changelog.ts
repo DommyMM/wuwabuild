@@ -22,7 +22,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'improved',
-                text: 'Rebuilt the move breakdown: score equation with a bonus/penalty waterfall, a damage profile by move type, and type-colored move bars with a rotation-order toggle',
+                text: 'Move breakdown has new, hopefully cleaner UI',
             },
             {
                 kind: 'fixed',
@@ -30,7 +30,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
-                text: 'Filtering or sorting a leaderboard no longer renumbers the rank column from 1: every build now shows its true board position, so a set or stat filter tells you where those builds actually stand'
+                text: 'Filtering or sorting a leaderboard no longer renumbers the rank of the build'
             }
         ]
     },
