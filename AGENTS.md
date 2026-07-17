@@ -106,7 +106,7 @@ These are the easy-to-violate rules. Behavior context lives in the docs.
 - `lib/lbServer.ts` is **server-only** — never import from a client component. See `docs/leaderboards.md` for the prefetch/revalidate model.
 - `weaponId` selects the `damage_map` key — it does **not** filter eligible builds.
 - Leaderboard row identity is `` `${entry.id}:${entry.trackKey}` ``.
-- Treat `globalRank > 0` as a competitive rank to display, `0` as "do not show rank" (browse mode + ghost rows).
+- Treat `globalRank > 0` as a competitive rank to display, `0` as "do not show rank". `globalRank` is measured against the deduped canonical board (character + weapon + track), so filters and non-damage sorts never renumber it — only ghost rows and builds with no damage on the board are `0`.
 - Ghost build behavior, dedup rules, and standings expansion are all in `docs/leaderboards.md`.
 
 ---

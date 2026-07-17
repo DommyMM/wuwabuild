@@ -39,7 +39,7 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 - `lb.ts` owns both the transport (`lbFetch` / `lbGetJSON`, which prefix the gateway base URL and throw a labeled error on non-OK) and the payload parsers. `lbServer.ts` supplies only the SSR transport (`next: { revalidate }`, `null` on failure) and reuses the exported `parseBuildListResponsePayload` / `parseLeaderboardResponsePayload`. Do not re-implement row or response parsing there: the server and client must map a payload identically, and only the transport should differ.
 - `weaponId` selects which `damage_map` key to read. It does not filter eligible builds.
 - Row identity for leaderboard entries is `entry.id + ":" + entry.trackKey`.
-- In frontend rendering, treat `globalRank > 0` as a showable competitive rank and `globalRank === 0` as "do not show rank" (ghost rows and browse-only rows both land here).
+- In frontend rendering, treat `globalRank > 0` as a showable competitive rank and `globalRank === 0` as "do not show rank". `globalRank` is now a property of the build on its board (character + weapon + track), always measured against the deduped canonical board, so filters and non-damage sorts no longer renumber it — only a ghost row (a deep-linked build the current view does not contain) or a build with no damage on this board lands at `0`.
 
 ## Score / ER Target
 
@@ -49,18 +49,35 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 - Build standings (`/leaderboard/{characterId}/build/{buildId}/standings`), substat upgrade projections, and benchmark comparisons remain canonical Score rankings/calculations. When shown from a raw Damage page, the UI keeps `Score` labels or context notes instead of implying raw cross-board ranks.
 - Reigns and dedup are no longer conditioned on an `erMin` state; `showReignHold` in `LeaderboardRow` only checks rank/ghost.
 
-## Competitive vs Browse Behavior
+## Rank, Dedup, and the View
 
-- Competitive mode:
-  - Backend applies per-player dedup.
-  - `globalRank` reflects deduped standings.
-- Browse mode (non-damage sort or player filters):
-  - Dedup is disabled.
-  - `globalRank` is `0`.
+Three concepts are kept separate. Fusing them is what used to make "rank" mean
+different things depending on how you reached the page (a set filter renumbered
+from 1; a stat sort did not).
+
+- **Board identity** is character + weapon + track. Nothing else selects the
+  ranked list — this is exactly what the canonical URL encodes.
+- **Rank** (`globalRank`) is a property of a build on that board, always measured
+  against the deduped canonical board with no view filter applied. A filtered
+  view shows each matching build at its true board position (e.g. the top
+  Midnight Veil build reads its real rank, not `#1`), never a fresh 1..N.
+- **The view** (filters, sort, dedup) chooses which rows appear and in what
+  order, and nothing else. Filters still constrain the candidate pool *before*
+  dedup, so "Midnight Veil" shows each player's best Midnight Veil build.
+
+Dedup is its own axis, no longer inferred from the sort key. The board shows one
+representative row per player by default under any sort. `?dedup=0` shows every
+submitted build (each still carries its true board rank). A `uid`/`username`
+search defaults to `dedup=0`, because the point of that query is to see that
+player's builds; an explicit `?dedup=1` overrides.
+
+`total` is the count of rows the current view pages through, so it always agrees
+with the pagination shown ("X–Y of Z").
 
 ## Ghost Build Behavior
 
-- If a deep-linked `buildId` is deduped out in competitive mode:
+- If a deep-linked `buildId` is not in the current view (deduped out, or excluded
+  by a filter):
   - Backend returns a `ghostBuild`.
   - Frontend inserts it at its computed damage position.
   - No competitive rank is shown for that row (`globalRank === 0`).
@@ -77,6 +94,8 @@ On row expansion, frontend may fetch:
 - move breakdown
 - substat upgrades
 - standings across all weapon x track boards
+
+The move breakdown (`BuildMoveBreakdown.tsx`) renders a score equation (rows flagged `modifier: true` are global adjustments like ER scaling and set bonuses — never rotation moves), a damage profile aggregated by move type, and per-move rows with type-colored bars. Move-type colors are a fixed identity map inside the component. Per-hit `moveTypes` (lb per-type sub-hit fold) split mixed-type rows and make the profile lossless; hits without types fall back to the move's primary type. API row order is rotation order — the component preserves the first-occurrence index for its rotation-order sort; `lb/docs/move-breakdown-ui.md` is canonical for the response shape.
 
 The simulation section requires parent row context such as:
 - `weaponId`
