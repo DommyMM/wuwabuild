@@ -5,8 +5,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
-type OgCardVariant = 'site' | 'page' | 'leaderboard-overview' | 'character' | 'weapon' | 'leaderboard';
+type OgCardVariant = 'site' | 'page' | 'tool' | 'index' | 'leaderboard-overview' | 'character' | 'weapon' | 'leaderboard';
 type OgFont = { name: string; data: Buffer | ArrayBuffer; weight: 400 | 600 | 700 | 800; style: 'normal' };
+export type OgVerb = 'SCAN' | 'BUILD' | 'RANK';
+export type OgMotif = 'scan' | 'card' | 'stack' | 'search';
+
+/** One entry in the right-hand data column of an `index` card (e.g. a top board). */
+export interface OgRow {
+  iconUrl?: string | null;
+  label: string;
+  sub?: string;
+  value?: string;
+  valueSub?: string;
+}
 
 interface OgCardData {
   variant: OgCardVariant;
@@ -22,6 +33,12 @@ interface OgCardData {
   metricValue?: string;
   detailLabel?: string;
   artKind?: 'character' | 'scene' | 'weapon';
+  /** Lit verbs in the SCAN · BUILD · RANK tagline nav; omit to hide the nav. */
+  verbs?: readonly OgVerb[];
+  /** Abstract product motif for `tool` cards. */
+  motif?: OgMotif;
+  /** Live data rows for `index` cards; falls back to the centered card when empty. */
+  rows?: OgRow[];
 }
 
 export const OG_SIZE = { width: 1200, height: 630 } as const;
@@ -221,20 +238,393 @@ function Wordmark({ text, size }: { text: string; size: number }) {
   );
 }
 
-function Tagline() {
+// The tagline doubles as a nav: each tool family owns one verb, and the card
+// for that family lights its verb while the others stay dim. The root card
+// lights all three.
+const TAGLINE_VERBS = ['SCAN', 'BUILD', 'RANK'] as const;
+
+function TaglineNav({ active, marginTop = 24, size = 20 }: { active: readonly OgVerb[]; marginTop?: number; size?: number }) {
+  const items: React.ReactNode[] = [];
+  TAGLINE_VERBS.forEach((verb, i) => {
+    if (i > 0) {
+      items.push(
+        <div key={`dot-${i}`} style={{ display: 'flex', color: 'rgba(191,173,125,0.45)', fontSize: size - 2 }}>
+          ·
+        </div>,
+      );
+    }
+    const on = active.includes(verb);
+    items.push(
+      <div
+        key={verb}
+        style={{
+          display: 'flex',
+          color: on ? GOLD_SOFT : '#55555d',
+          ...(on ? { textShadow: '0 0 18px rgba(191,173,125,0.45)' } : {}),
+        }}
+      >
+        {verb}
+      </div>,
+    );
+  });
   return (
     <div
       style={{
         display: 'flex',
-        fontSize: 20,
+        alignItems: 'center',
+        gap: size >= 20 ? 20 : 14,
+        marginTop,
+        fontSize: size,
         fontWeight: 600,
         textTransform: 'uppercase',
-        letterSpacing: '0.42em',
-        color: GOLD_SOFT,
-        marginTop: 24,
+        letterSpacing: size >= 20 ? '0.42em' : '0.34em',
       }}
     >
-      SCAN&nbsp;&nbsp;·&nbsp;&nbsp;BUILD&nbsp;&nbsp;·&nbsp;&nbsp;RANK
+      {items}
+    </div>
+  );
+}
+
+// Frequency-ruler ticks along the bottom edge — instrument chrome.
+function TickRuler() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 64,
+        right: 64,
+        bottom: 26,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+      }}
+    >
+      {Array.from({ length: 61 }).map((_, i) => (
+        <div
+          key={i}
+          style={{
+            display: 'flex',
+            width: 1,
+            height: i % 10 === 0 ? 14 : i % 5 === 0 ? 10 : 6,
+            background: i % 10 === 0 ? 'rgba(191,173,125,0.38)' : 'rgba(191,173,125,0.18)',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// --- abstract product motifs (tool cards) ---
+// Wireframe abstractions of each tool's UI: neutral bars on plates, gold only
+// where the tool's "action" happens. No text, so they never fight the title.
+const BAR = 'rgba(255,255,255,0.11)';
+const BAR_SOFT = 'rgba(255,255,255,0.07)';
+const PLATE_BG = 'rgba(255,255,255,0.045)';
+const PLATE_BORDER = 'rgba(255,255,255,0.10)';
+
+function Bar({ w, h = 8, bg = BAR, r = 4 }: { w: number | string; h?: number; bg?: string; r?: number }) {
+  return <div style={{ display: 'flex', width: w, height: h, background: bg, borderRadius: r }} />;
+}
+
+function Dot({ size = 10, bg = BAR }: { size?: number; bg?: string }) {
+  return <div style={{ display: 'flex', width: size, height: size, borderRadius: 999, background: bg, flexShrink: 0 }} />;
+}
+
+function StatRows({ count, width, hot = -1 }: { count: number; width: number; hot?: number }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 13, width }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Dot bg={i === hot ? `${GOLD}cc` : BAR} />
+          <Bar w={width - 66} bg={i === hot ? `${GOLD}59` : BAR} />
+          <Bar w={36} bg={i === hot ? `${GOLD}cc` : BAR} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Import: viewfinder brackets + an echo panel mid-scan.
+function ScanMotif() {
+  const corners: React.CSSProperties[] = [
+    { top: 0, left: 0, borderTop: `3px solid ${GOLD}`, borderLeft: `3px solid ${GOLD}` },
+    { top: 0, right: 0, borderTop: `3px solid ${GOLD}`, borderRight: `3px solid ${GOLD}` },
+    { bottom: 0, left: 0, borderBottom: `3px solid ${GOLD}`, borderLeft: `3px solid ${GOLD}` },
+    { bottom: 0, right: 0, borderBottom: `3px solid ${GOLD}`, borderRight: `3px solid ${GOLD}` },
+  ];
+  return (
+    <div style={{ position: 'relative', display: 'flex', width: 360, height: 372, alignItems: 'center', justifyContent: 'center' }}>
+      {corners.map((style, i) => (
+        <div key={i} style={{ position: 'absolute', display: 'flex', width: 46, height: 46, opacity: 0.8, ...style }} />
+      ))}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          width: 252,
+          padding: '22px 24px',
+          borderRadius: 16,
+          background: PLATE_BG,
+          border: `1px solid ${PLATE_BORDER}`,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+          <Dot size={46} bg={BAR_SOFT} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Bar w={104} h={11} />
+            <Bar w={64} bg={BAR_SOFT} />
+          </div>
+        </div>
+        <StatRows count={4} width={204} />
+      </div>
+      {/* the scan line is the one gold action in the frame */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          top: 172,
+          height: 2,
+          display: 'flex',
+          background: `linear-gradient(90deg, transparent 0%, ${GOLD} 18%, ${GOLD} 82%, transparent 100%)`,
+          boxShadow: `0 0 18px ${GOLD}66`,
+        }}
+      />
+    </div>
+  );
+}
+
+// Edit: a showcase-card fragment mid-tune (one stat row hot) with its echo
+// afterimage behind it — same tilt, or it reads as a second panel.
+function CardMotif() {
+  return (
+    <div style={{ position: 'relative', display: 'flex', width: 330, height: 380 }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: 44,
+          left: 48,
+          width: 262,
+          height: 302,
+          display: 'flex',
+          borderRadius: 18,
+          border: `1px solid ${GOLD}3d`,
+          transform: 'rotate(-2deg)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          top: 26,
+          left: 28,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 17,
+          width: 262,
+          padding: '24px 26px',
+          borderRadius: 18,
+          background: 'rgba(255,255,255,0.06)',
+          border: `1px solid ${GOLD}66`,
+          transform: 'rotate(-2deg)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+          <Dot size={48} bg={BAR_SOFT} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Bar w={110} h={11} />
+            <Bar w={70} bg={BAR_SOFT} />
+          </div>
+        </div>
+        <StatRows count={5} width={210} hot={2} />
+        <div style={{ display: 'flex', gap: 9 }}>
+          <Bar w={52} h={16} bg={BAR_SOFT} r={999} />
+          <Bar w={52} h={16} bg={BAR_SOFT} r={999} />
+          <Bar w={52} h={16} bg={BAR_SOFT} r={999} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Saves: a cascade of stored cards.
+function StackMotif() {
+  const plate = (offset: number, opacity: number, content: boolean) => (
+    <div
+      key={offset}
+      style={{
+        position: 'absolute',
+        top: 40 + offset,
+        left: 40 + offset,
+        width: 280,
+        height: 210,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 15,
+        padding: '20px 24px',
+        borderRadius: 18,
+        background: content ? 'rgba(255,255,255,0.06)' : 'rgba(19,19,24,0.9)',
+        border: `1px solid ${content ? `${GOLD}66` : PLATE_BORDER}`,
+        opacity,
+      }}
+    >
+      {content && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Dot size={42} bg={BAR_SOFT} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <Bar w={96} h={10} />
+            <Bar w={58} bg={BAR_SOFT} />
+          </div>
+        </div>
+      )}
+      {content && <StatRows count={3} width={232} />}
+    </div>
+  );
+  return (
+    <div style={{ position: 'relative', display: 'flex', width: 400, height: 340 }}>
+      {plate(64, 0.35, false)}
+      {plate(32, 0.6, false)}
+      {plate(0, 1, true)}
+    </div>
+  );
+}
+
+// Profiles: a search pill over dimmed result rows.
+function SearchMotif() {
+  const resultRow = (opacity: number) => (
+    <div
+      key={opacity}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 13,
+        padding: '13px 18px',
+        borderRadius: 14,
+        background: PLATE_BG,
+        border: `1px solid ${PLATE_BORDER}`,
+        opacity,
+      }}
+    >
+      <Dot size={40} bg={BAR_SOFT} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
+        <Bar w={124} h={10} />
+        <Bar w={76} bg={BAR_SOFT} />
+      </div>
+      <Bar w={44} h={18} bg={`${GOLD}33`} r={999} />
+    </div>
+  );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: 396 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 15,
+          height: 62,
+          padding: '0 24px',
+          borderRadius: 999,
+          background: 'rgba(255,255,255,0.055)',
+          border: `1px solid ${GOLD}66`,
+        }}
+      >
+        <svg width={22} height={22} viewBox="0 0 24 24" style={{ display: 'flex' }}>
+          <circle cx="10" cy="10" r="7" fill="none" stroke={GOLD_SOFT} strokeWidth="2.5" />
+          <path d="M15.5 15.5 L21 21" stroke={GOLD_SOFT} strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+        <div style={{ display: 'flex', fontSize: 19, fontWeight: 600, color: TEXT_MUTED }}>UID or username</div>
+      </div>
+      {resultRow(1)}
+      {resultRow(0.55)}
+    </div>
+  );
+}
+
+const MOTIFS: Record<OgMotif, () => React.ReactElement> = {
+  scan: ScanMotif,
+  card: CardMotif,
+  stack: StackMotif,
+  search: SearchMotif,
+};
+
+// One live-data row on an index card (top boards, top builds).
+function RowPlate({ index, row, artSrc }: { index: number; row: OgRow; artSrc: string | null }) {
+  const cjk = CJK_RE.test(`${row.label} ${row.sub ?? ''}`);
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 15,
+        width: '100%',
+        padding: '13px 20px',
+        borderRadius: 16,
+        background: PLATE_BG,
+        border: `1px solid ${index === 0 ? `${GOLD}66` : PLATE_BORDER}`,
+        fontFamily: cjk ? 'Jakarta, Noto Sans JP, Noto Sans KR, Noto Sans SC' : 'Jakarta',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          width: 24,
+          justifyContent: 'center',
+          fontSize: 22,
+          fontWeight: 800,
+          color: index === 0 ? GOLD : '#6a6a72',
+        }}
+      >
+        {index + 1}
+      </div>
+      {artSrc && (
+        <img
+          alt=""
+          src={artSrc}
+          width={54}
+          height={54}
+          style={{ borderRadius: 999, flexShrink: 0, background: BAR_SOFT }}
+        />
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            fontSize: 22,
+            fontWeight: 700,
+            color: TEXT,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: 250,
+          }}
+        >
+          {row.label}
+        </div>
+        {row.sub && (
+          <div style={{ display: 'flex', fontSize: 14, fontWeight: 600, color: TEXT_MUTED, marginTop: 2 }}>
+            {row.sub}
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+        {row.value && (
+          <div style={{ display: 'flex', fontSize: 23, fontWeight: 800, color: TEXT }}>{row.value}</div>
+        )}
+        {row.valueSub && (
+          <div
+            style={{
+              display: 'flex',
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              color: GOLD_SOFT,
+              marginTop: 2,
+            }}
+          >
+            {row.valueSub}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -282,19 +672,23 @@ function renderImage(node: React.ReactElement, fonts: OgFont[]): ImageResponse {
 }
 
 export async function renderOgCard(data: OgCardData): Promise<ImageResponse> {
-  const cjkText = [data.detailLabel, data.secondaryLabel].filter(Boolean).join(' ');
-  const [fonts, cjkFonts, artSrc, secondaryArtSrc] = await Promise.all([
+  const rows = data.rows ?? [];
+  const cjkText = [data.detailLabel, data.secondaryLabel, ...rows.flatMap((row) => [row.label, row.sub])]
+    .filter(Boolean)
+    .join(' ');
+  const [fonts, cjkFonts, artSrc, secondaryArtSrc, rowArts] = await Promise.all([
     loadFonts(),
     loadCjkFonts(cjkText),
     fetchArt(data.artUrl),
     fetchArt(data.secondaryArtUrl),
+    Promise.all(rows.map((row) => fetchArt(row.iconUrl))),
   ]);
   const allFonts = [...fonts, ...cjkFonts];
   try {
-    return await build(data, artSrc, secondaryArtSrc, allFonts);
+    return await build(data, artSrc, secondaryArtSrc, rowArts, allFonts);
   } catch (error) {
     if (!artSrc) throw error;
-    return await build(data, null, secondaryArtSrc, allFonts);
+    return await build(data, null, secondaryArtSrc, rowArts, allFonts);
   }
 }
 
@@ -302,6 +696,7 @@ async function build(
   data: OgCardData,
   artSrc: string | null,
   secondaryArtSrc: string | null,
+  rowArts: (string | null)[],
   fonts: OgFont[],
 ): Promise<ImageResponse> {
   const accent = normalizeColor(data.accentColor);
@@ -310,16 +705,76 @@ async function build(
   // --- brand hero (homepage / fallback) ---
   if (data.variant === 'site') {
     const wave = await loadWave('gold');
-    const waveW = 520;
+    const waveW = 660;
     return renderImage(
       <div style={base()}>
         <Vignette />
-        {wave && <img alt="" src={wave} width={waveW} height={Math.round(waveW / WAVE_RATIO)} style={{ marginBottom: 8 }} />}
-        <Wordmark text="WuWaBuilds" size={82} />
-        <Tagline />
+        <TickRuler />
+        {wave && <img alt="" src={wave} width={waveW} height={Math.round(waveW / WAVE_RATIO)} />}
+        <Wordmark text="WuWaBuilds" size={88} />
+        <TaglineNav active={TAGLINE_VERBS} />
       </div>,
       fonts,
     );
+  }
+
+  // --- tool / index cards: left text column, right motif or live-data rows ---
+  if (data.variant === 'tool' || data.variant === 'index') {
+    const rows = (data.rows ?? []).slice(0, 3);
+    const hasRows = data.variant === 'index' && rows.length > 0;
+    const Motif = data.motif ? MOTIFS[data.motif] : null;
+    if (hasRows || Motif) {
+      const wave = await loadWave(waveKeyFor(data));
+      const waveW = 300;
+      const nameSize = data.title.length > 13 ? 52 : 60;
+      return renderImage(
+        <div style={{ ...base(), flexDirection: 'row', alignItems: 'stretch', justifyContent: 'flex-start' }}>
+          <Vignette />
+          <TickRuler />
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              padding: '10px 0 30px 56px',
+              flex: 1,
+              maxWidth: 620,
+            }}
+          >
+            <Wordmark text={data.title} size={nameSize} />
+            {wave && (
+              <img alt="" src={wave} width={waveW} height={Math.round(waveW / WAVE_RATIO)} style={{ marginTop: 14 }} />
+            )}
+            <div style={{ display: 'flex', fontSize: 21, color: TEXT_MUTED, marginTop: 15, maxWidth: 520 }}>
+              {data.subtitle}
+            </div>
+            {data.verbs && <TaglineNav active={data.verbs} size={16} marginTop={28} />}
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              width: 520,
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '10px 48px 30px 0',
+            }}
+          >
+            {hasRows ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 13, width: '100%' }}>
+                {rows.map((row, i) => (
+                  <RowPlate key={`${row.label}-${i}`} index={i} row={row} artSrc={rowArts[i] ?? null} />
+                ))}
+              </div>
+            ) : (
+              Motif && <Motif />
+            )}
+          </div>
+        </div>,
+        fonts,
+      );
+    }
+    // no data and no motif: fall through to the centered card
   }
 
   // --- entity cards with art (character / weapon / leaderboard) ---
@@ -602,17 +1057,19 @@ async function build(
     );
   }
 
-  // --- centered info card (no art, e.g. leaderboard overview) ---
+  // --- centered info card (no art / no data fallback) ---
   const wave = await loadWave(waveKeyFor(data));
   const waveW = 430;
   return renderImage(
     <div style={base()}>
       <Vignette />
+      <TickRuler />
       {wave && <img alt="" src={wave} width={waveW} height={Math.round(waveW / WAVE_RATIO)} style={{ marginBottom: 10 }} />}
       <Wordmark text={data.title} size={data.title.length > 18 ? 58 : 72} />
       <div style={{ display: 'flex', fontSize: 24, color: TEXT_MUTED, marginTop: 17, textAlign: 'center' }}>
         {data.subtitle}
       </div>
+      {data.verbs && <TaglineNav active={data.verbs} size={18} marginTop={26} />}
     </div>,
     fonts,
   );

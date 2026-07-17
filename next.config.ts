@@ -23,9 +23,13 @@ const nextConfig: NextConfig = {
       {
         // Mirrored game images (public/assets). Deliberately NOT the 1-year
         // /Data pattern: Cloudflare edge-caches images (unlike JSON) and
-        // respects s-maxage, but a Vercel deploy doesn't purge Cloudflare —
+        // respects s-maxage, but a Vercel deploy doesn't purge Cloudflare
         // so keep the edge TTL short enough that an asset changed under the
         // same path self-heals within a day without a manual CF purge.
+        // max-age here only survives while the Cloudflare zone keeps "Browser
+        // Cache TTL" on "Respect Existing Headers". Cloudflare caches this path,
+        // so any other value rewrites max-age (it was pinned to 4h until
+        // 2026-07-16). /Data below is immune only because CF doesn't cache json
         source: '/assets/:path*',
         headers: [
           {

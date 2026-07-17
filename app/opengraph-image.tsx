@@ -1,6 +1,6 @@
 import { OG_SIZE, OG_CONTENT_TYPE, renderFallbackCard } from '@/lib/server/og';
 
-export const alt = 'WuWa Builds – Wuthering Waves Build Creator';
+export const alt = 'WuWaBuilds - Scan, Build, Rank';
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 

@@ -4,10 +4,12 @@ export const revalidate = 604800;
 
 export async function GET() {
   const response = await renderOgCard({
-    variant: 'page',
+    variant: 'tool',
     title: 'Build Editor',
-    subtitle: 'Tune builds and export showcase cards',
+    subtitle: 'Tune stats and export showcase cards',
     chips: [],
+    verbs: ['BUILD'],
+    motif: 'card',
   });
   response.headers.set('Content-Type', OG_CONTENT_TYPE);
   response.headers.set('Cache-Control', 'public, s-maxage=604800, stale-while-revalidate=2592000');
