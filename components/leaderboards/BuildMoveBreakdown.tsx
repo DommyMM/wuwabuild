@@ -558,7 +558,12 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     onMouseEnter={() => setRowFocusTypes(segmentTypes)}
                     onMouseLeave={() => setRowFocusTypes(null)}
                   >
-                    <div className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 py-2 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]">
+                    {/* Whole row toggles the hits; the caret is the a11y/keyboard
+                        affordance and stops propagation to avoid double-toggling. */}
+                    <div
+                      className={`grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 py-2 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px] ${hasHits ? 'cursor-pointer' : ''}`}
+                      onClick={hasHits ? () => toggleExpanded(move.name) : undefined}
+                    >
                       <span className="text-center text-[11px] font-semibold tabular-nums text-text-primary/40">
                         {sortMode === 'rotation' ? move.rotationIndex + 1 : index + 1}
                       </span>
@@ -620,7 +625,10 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                           type="button"
                           aria-expanded={isExpanded}
                           aria-label={`Toggle ${move.name} hits`}
-                          onClick={() => toggleExpanded(move.name)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleExpanded(move.name);
+                          }}
                           className="flex items-center justify-center text-text-primary/40 transition-colors hover:text-text-primary"
                         >
                           <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180 text-accent' : ''}`} />
