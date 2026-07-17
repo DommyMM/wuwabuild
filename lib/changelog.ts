@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-17',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Cantarella leaderboards out',
+            },
+            {
+                kind: 'fixed',
+                text: 'Adjusted Phrolova board since she was getting both QY and Canta outro buffs even that would be impossible'
+            }
+        ]
+    },
+    {
         date: '2026-07-16',
         changes: [
             {
