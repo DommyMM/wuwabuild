@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     title: character.name,
     subtitle: 'Stats, skills, weapons, and reference data',
     chips: [character.element, character.weaponType, `${character.rarity}★`],
+    verbs: ['BUILD'],
     artUrl,
     accentColor: character.elementColor ?? undefined,
     element: character.element,

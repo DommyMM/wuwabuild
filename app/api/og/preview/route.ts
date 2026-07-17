@@ -1,11 +1,9 @@
-import { NextRequest } from 'next/server';
 import { loadCharacterDisplayMap, loadWeaponNames } from '@/lib/server/gameData';
 
 // Internal gallery for eyeballing every OG embed in one place, at Discord-ish
 // render width. Never cached, never indexed; image URLs get a ?v= cache-buster
 // so edits show up without fighting the edge cache.
-// Open in dev; in production it 404s unless OG_PREVIEW_KEY is set and the
-// request carries ?key=<OG_PREVIEW_KEY>.
+// Dev-only: production builds always 404.
 export const dynamic = 'force-dynamic';
 
 const STATIC_CARDS: Array<{ label: string; url: string }> = [
@@ -35,12 +33,9 @@ function options(entries: Array<{ id: string; name: string }>, selected: string,
   );
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   if (process.env.NODE_ENV === 'production') {
-    const key = process.env.OG_PREVIEW_KEY;
-    if (!key || request.nextUrl.searchParams.get('key') !== key) {
-      return new Response('Not found', { status: 404 });
-    }
+    return new Response('Not found', { status: 404 });
   }
   const characters = Object.entries(loadCharacterDisplayMap())
     .map(([id, c]) => ({ id, name: c.name }))

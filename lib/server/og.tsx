@@ -789,6 +789,7 @@ async function build(
     return renderImage(
       <div style={{ ...base(), flexDirection: 'row', alignItems: 'stretch', justifyContent: 'flex-start' }}>
         <Vignette />
+        <TickRuler />
         {/* left text column */}
         <div
           style={{
@@ -804,20 +805,39 @@ async function build(
           {wave && (
             <img alt="" src={wave} width={waveW} height={Math.round(waveW / WAVE_RATIO)} style={{ marginTop: 14 }} />
           )}
-          {/* track + sequence — a line of its own */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              maxWidth: 560,
-              fontSize: subtitleSize,
-              color: TEXT_MUTED,
-              marginTop: 15,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {data.subtitle}
-          </div>
+          {/* track + sequence — the board identity gets kicker treatment, wiki
+              subtitles stay a muted sentence */}
+          {data.variant === 'leaderboard' ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                fontSize: 17,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.18em',
+                color: GOLD_SOFT,
+                marginTop: 16,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {data.subtitle}
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                maxWidth: 560,
+                fontSize: subtitleSize,
+                color: TEXT_MUTED,
+                marginTop: 15,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {data.subtitle}
+            </div>
+          )}
           {/* weapon — promoted to its own row with a larger plate */}
           {secondaryArtSrc && data.secondaryLabel && (
             <div
@@ -879,23 +899,25 @@ async function build(
                     {data.metricLabel}
                   </div>
                 )}
-                <div style={{ display: 'flex', fontSize: 42, fontWeight: 800, lineHeight: 1.05, color: TEXT }}>
+                <div style={{ display: 'flex', fontSize: 48, fontWeight: 800, lineHeight: 1.05, color: TEXT }}>
                   {data.metricValue}
                 </div>
                 {data.detailLabel && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      fontFamily: CJK_RE.test(data.detailLabel)
-                        ? 'Jakarta, Noto Sans JP, Noto Sans KR, Noto Sans SC'
-                        : 'Jakarta',
-                      fontSize: 15,
-                      fontWeight: 600,
-                      color: TEXT_MUTED,
-                      marginTop: 3,
-                    }}
-                  >
-                    {data.detailLabel}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 5 }}>
+                    {data.variant === 'leaderboard' && <Star color={GOLD} size={13} />}
+                    <div
+                      style={{
+                        display: 'flex',
+                        fontFamily: CJK_RE.test(data.detailLabel)
+                          ? 'Jakarta, Noto Sans JP, Noto Sans KR, Noto Sans SC'
+                          : 'Jakarta',
+                        fontSize: data.variant === 'leaderboard' ? 16 : 15,
+                        fontWeight: 600,
+                        color: data.variant === 'leaderboard' ? TEXT : TEXT_MUTED,
+                      }}
+                    >
+                      {data.detailLabel}
+                    </div>
                   </div>
                 )}
               </div>
@@ -924,6 +946,7 @@ async function build(
               ))}
             </div>
           )}
+          {data.verbs && <TaglineNav active={data.verbs} size={16} marginTop={24} />}
         </div>
         {/* right art */}
         {isScene ? (

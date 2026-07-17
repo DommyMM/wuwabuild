@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     title: weapon.name,
     subtitle: 'Weapon details, stats, and resonator reference',
     chips: [weapon.weaponType, `${weapon.rarity}★`],
+    verbs: ['BUILD'],
     artUrl: weapon.iconUrl,
     accentColor: RARITY_ACCENT[weapon.rarity],
     artKind: 'weapon',
