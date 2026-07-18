@@ -77,8 +77,9 @@ const TierRow: React.FC<TierRowProps> = ({ label, ref_, currentDamage, ratio, is
     >
       <button
         type="button"
+        aria-pressed={isActive}
         onClick={onClick}
-        className={`flex w-full cursor-pointer items-center gap-2 rounded-md border px-1.5 py-1 text-left transition-colors ${
+        className={`flex w-full cursor-pointer items-center gap-2 rounded-md border px-1.5 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
           isActive ? 'border-white/18 bg-white/4' : 'border-transparent hover:border-white/10 hover:bg-white/2'
         }`}
       >
@@ -91,7 +92,7 @@ const TierRow: React.FC<TierRowProps> = ({ label, ref_, currentDamage, ratio, is
             style={{ width: `${fillPct}%` }}
           />
         </div>
-        <span className={`w-16 shrink-0 text-right font-mono text-[12px] font-semibold tabular-nums ${style.text}`}>
+        <span className={`w-16 shrink-0 text-right text-[12px] font-semibold tabular-nums ${style.text}`}>
           {fmtDmg(ref_.damage)}
         </span>
         <span className={`w-12 shrink-0 text-right text-[11px] font-semibold tabular-nums ${ratioColor}`}>
@@ -206,9 +207,9 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
 
   if (error) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/35 bg-red-500/8 px-3 py-2 text-[11px] text-red-200/80">
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
         <span>{error}</span>
-        <button type="button" onClick={onRetry} className="rounded border border-red-300/40 px-2 py-1 font-semibold text-red-100 transition-colors hover:bg-red-300/10">
+        <button type="button" onClick={onRetry} className="rounded border border-red-300/50 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/60">
           Retry
         </button>
       </div>
@@ -231,17 +232,17 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     : undefined;
 
   return (
-    <div className="space-y-2.5 rounded-lg border border-border/40 bg-background-secondary/20 px-3 py-2.5">
+    <div className="space-y-2.5 rounded-lg border border-border/45 bg-background-secondary/20 px-3 py-2.5">
       <div className="space-y-1">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-primary/45">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/55">
           Reference Benchmark
-        </div>
+        </h3>
         <div className="text-[11px] leading-relaxed text-text-primary/45">
           Best theoretical board result for this weapon and playstyle. Each bar shows how far this build fills toward that benchmark.
         </div>
       </div>
 
-      <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-text-primary/25">
+      <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-text-primary/45">
         <span className="w-18 shrink-0">Tier</span>
         <span className="flex-1" />
         <span className="w-16 shrink-0 text-right">Score</span>
@@ -281,10 +282,10 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
           {topLevelStats.map((entry) => (
             <div
               key={`${selectedTier}-tls-${entry.key}`}
-              className="rounded-full border border-border/45 bg-white/3 px-2.5 py-0.75 text-[10.5px] text-text-primary/60"
+              className="rounded-md border border-border/45 bg-background-secondary/40 px-2.5 py-1 text-[10.5px] tabular-nums"
             >
-              <span className="uppercase tracking-wider text-text-primary/30">{entry.label}</span>
-              <span className="ml-1.5 font-semibold text-text-primary/82">
+              <span className="uppercase tracking-wider text-text-primary/55">{entry.label}</span>
+              <span className="ml-1.5 font-semibold text-white/82">
                 {entry.kind === 'percent' ? formatPercentStat(entry.value) : formatFlatStat(entry.value)}
               </span>
             </div>

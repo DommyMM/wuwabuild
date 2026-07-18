@@ -64,7 +64,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
       <div className="flex items-center justify-center gap-2 text-xs text-text-primary/55">
         <span>{standingsError}</span>
         {onRetry && (
-          <button type="button" onClick={onRetry} className="rounded border border-border px-2 py-1 font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary">
+          <button type="button" onClick={onRetry} className="rounded border border-border px-2 py-1 font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60">
             Retry
           </button>
         )}
@@ -86,9 +86,9 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
           The standings shows ER-adjusted ranks. The raw damage view is cosmetic
         </p>
       )}
-      <table className="border-collapse text-sm">
+      <table className="border-collapse text-sm tabular-nums">
       <thead>
-        <tr className="border-b border-border/55 text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
+        <tr className="border-b border-border/55 text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/55">
           <th className="min-w-20 bg-background-secondary/48 py-2 pr-4 pl-3 text-left">Rank</th>
           <th className="min-w-16 py-2 px-3 text-left">Top%</th>
           <th className="min-w-36 py-2 px-3 text-left">Weapon</th>

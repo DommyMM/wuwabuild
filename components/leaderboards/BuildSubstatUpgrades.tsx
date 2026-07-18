@@ -119,18 +119,19 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <div className="inline-flex items-center rounded-md border border-border/60 bg-background-secondary/75 p-0.5">
+        <div className="inline-flex items-center rounded-md border border-border/45 bg-background-secondary/40 p-0.5">
           {tierOptions.map((option) => {
             const isActive = option.key === selectedTier;
             return (
               <button
                 key={option.key}
                 type="button"
+                aria-pressed={isActive}
                 onClick={() => onSelectTier(option.key)}
-                className={`rounded px-2.5 py-1 text-xs font-semibold tracking-wide transition-colors ${
+                className={`rounded px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
                   isActive
-                    ? 'bg-accent text-black'
-                    : 'text-text-primary/62 hover:text-text-primary'
+                    ? 'bg-accent/16 text-accent-hover'
+                    : 'text-text-primary/55 hover:text-text-primary'
                 }`}
               >
                 {option.label}
@@ -183,7 +184,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
       {!isLoading && error && (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           <span>{error}</span>
-          <button type="button" onClick={onRetry} className="rounded border border-red-300/50 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-300/10">
+          <button type="button" onClick={onRetry} className="rounded border border-red-300/50 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/60">
             Retry
           </button>
         </div>
@@ -205,9 +206,9 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
         <div className="min-w-0 w-full">
           <div className="scrollbar-thin overflow-x-auto pb-1">
             <div className="w-max min-w-full">
-              <table className="mx-auto border-separate border-spacing-0 text-sm">
+              <table className="mx-auto border-separate border-spacing-0 text-sm tabular-nums">
                 <thead>
-                  <tr className="text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/48">
+                  <tr className="text-xs font-semibold uppercase tracking-[0.18em] text-text-primary/55">
                     <th ref={labelColRef} className={`${PINNED} left-0 min-w-30 border-b border-r border-border/55 py-2 pr-4 pl-3 text-left`}>Substat</th>
                     <th className={`${PINNED} min-w-30 border-b border-r border-border/60 py-2 px-3 text-center text-accent`} style={originalStyle}>Original</th>
                     {orderedUpgradeColumns.map((column) => (
