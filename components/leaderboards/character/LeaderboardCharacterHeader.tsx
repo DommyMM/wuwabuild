@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { HoverCard, HoverCardBonusList, HoverCardDescription } from '@/components/ui/HoverCard';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LBTeamBuffs, LBTeamMemberConfig } from '@/lib/lb';
+import { LBBoardDisplay, LBTeamBuffs, LBTeamMemberConfig } from '@/lib/lb';
 import { CDNFetter } from '@/lib/echo';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
@@ -18,6 +18,8 @@ interface LeaderboardCharacterHeaderProps {
   characterName: string;
   characterHead?: string;
   characterElement?: string;
+  /** Server-resolved name/icon maps; SSR fallback for the team row. */
+  boardDisplay?: LBBoardDisplay | null;
   teamCharacterIds?: string[];
   teamMembers?: LBTeamMemberConfig[];
   teamBuffs?: LBTeamBuffs;
@@ -135,6 +137,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
   characterName,
   characterHead,
   characterElement,
+  boardDisplay,
   teamCharacterIds = [],
   teamMembers = [],
   teamBuffs,
@@ -192,8 +195,11 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
   const cleanTrackLabel = activeTrackLabel ? stripLBSeqPrefix(activeTrackLabel) : null;
   const elementClass = characterElement ? characterElement.toLowerCase() : '';
   const activeWeapon = getWeapon(activeWeaponId ?? null);
-  const activeWeaponIcon = activeWeapon ? getWeaponPaths(activeWeapon) : null;
-  const activeWeaponName = activeWeapon ? t(activeWeapon.nameI18n ?? { en: activeWeapon.name }) : null;
+  const activeWeaponFallback = activeWeaponId ? boardDisplay?.weapons[activeWeaponId] : undefined;
+  const activeWeaponIcon = activeWeapon ? getWeaponPaths(activeWeapon) : activeWeaponFallback?.iconUrl ?? null;
+  const activeWeaponName = activeWeapon
+    ? t(activeWeapon.nameI18n ?? { en: activeWeapon.name })
+    : activeWeaponFallback?.name ?? null;
 
   const wrapWeapon = React.useCallback((weaponId?: string, refinement?: number) => {
     const weapon = getWeapon(weaponId ?? null);
@@ -253,23 +259,35 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     const echo = getEcho(member.echoId ?? null);
     const set = fetters.find((entry) => String(entry.id) === member.setId);
 
+    // Server-resolved fallbacks, so the team row shows real portraits, icons, and
+    // accessible labels on first paint instead of blank boxes and raw ids. The
+    // hover cards still wait for the catalog, since those need rich objects.
+    const charFallback = boardDisplay?.characters[member.charId];
+    const weaponFallback = member.weaponId ? boardDisplay?.weapons[member.weaponId] : undefined;
+    const echoFallback = member.echoId ? boardDisplay?.echoes[member.echoId] : undefined;
+    const setFallback = member.setId ? boardDisplay?.sets[member.setId] : undefined;
+
+    const weaponIcon = weapon ? getWeaponPaths(weapon) : weaponFallback?.iconUrl ?? null;
+    const echoIcon = echo ? getEchoPaths(echo) : echoFallback?.iconUrl ?? null;
+    const setIcon = set?.icon ?? setFallback?.iconUrl ?? null;
+
     const loadoutIconCandidates: Array<LoadoutIcon | null> = [
-      weapon ? ({
+      weaponIcon ? ({
         key: 'weapon',
-        src: getWeaponPaths(weapon),
-        label: t(weapon.nameI18n ?? { en: weapon.name }),
+        src: weaponIcon,
+        label: weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponFallback?.name ?? 'Weapon',
         wrap: wrapWeapon(member.weaponId, member.refinement),
       }) : null,
-      echo ? ({
+      echoIcon ? ({
         key: 'echo',
-        src: getEchoPaths(echo),
-        label: t(echo.nameI18n ?? { en: echo.name }),
+        src: echoIcon,
+        label: echo ? t(echo.nameI18n ?? { en: echo.name }) : echoFallback?.name ?? 'Echo',
         wrap: wrapEcho(member.echoId, set),
       }) : null,
-      set?.icon ? ({
+      setIcon ? ({
         key: 'set',
-        src: set.icon,
-        label: t(set.name),
+        src: setIcon,
+        label: set ? t(set.name) : setFallback?.name ?? 'Set',
         wrap: wrapFetter(member.setId),
       }) : null,
     ];
@@ -277,15 +295,17 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
 
     return {
       id: member.charId,
-      head: character?.head,
-      name: character ? t(character.nameI18n ?? { en: character.name }) : member.charId,
+      head: character?.head ?? charFallback?.head ?? undefined,
+      name: character ? t(character.nameI18n ?? { en: character.name }) : charFallback?.name ?? member.charId,
       sequence: member.sequence ?? 0,
       loadoutIcons,
       buffEntries: buffsByCharId.get(member.charId) ?? [],
     };
   });
 
-  const leadLoadoutIcons: LoadoutIcon[] = activeWeapon && activeWeaponIcon
+  // Gated on the icon rather than the catalog object, so the server fallback can
+  // render the lead weapon before the client catalog resolves it.
+  const leadLoadoutIcons: LoadoutIcon[] = activeWeaponIcon
     ? [{
       key: 'weapon',
       src: activeWeaponIcon,

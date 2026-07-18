@@ -4,7 +4,7 @@ import { createContext, useContext, useMemo, ReactNode } from 'react';
 import { useGameData } from './GameDataContext';
 import { useBuild } from './BuildContext';
 import { StatName, BaseStatName, BASE_STATS, CALCULABLE_STATS, getPercentVariant } from '@/lib/constants/statMappings';
-import { activeElementForPanel, ELEMENT_SETS, ElementType } from '@/lib/echo';
+import { activeElementForPanel, ELEMENT_SETS, ElementType, UNKNOWN_SET_ACTIVATION_THRESHOLD } from '@/lib/echo';
 import { calculateCV } from '@/lib/calculations/rollValues';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
 import { calculateForteBonus } from '@/lib/calculations/stats';
@@ -121,7 +121,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     });
 
     Object.entries(counts).forEach(([element, count]) => {
-      const threshold = fettersByElement[element as ElementType]?.pieceCount ?? 2;
+      const threshold = fettersByElement[element as ElementType]?.pieceCount ?? UNKNOWN_SET_ACTIVATION_THRESHOLD;
       if (count >= threshold) {
         sets.push({ element: element as ElementType, count, setName: ELEMENT_SETS[element as ElementType] });
       }
@@ -154,7 +154,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
 
     const activeSetBonuses = Object.entries(elementCounts).flatMap(([element, count]) => {
       const fetter = fettersByElement[element as ElementType];
-      if (count < (fetter?.pieceCount ?? 2)) return [];
+      if (count < (fetter?.pieceCount ?? UNKNOWN_SET_ACTIVATION_THRESHOLD)) return [];
       return getSetBonusesFromFetter(fetter, count);
     });
 

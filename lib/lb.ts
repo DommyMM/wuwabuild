@@ -866,6 +866,27 @@ export interface LBCharacterDisplay {
   head: string | null;
 }
 
+/**
+ * Compact server-resolved name/icon maps for every id a leaderboard board can
+ * reference. Serialized into the page so the first paint renders real names,
+ * portraits, and set thresholds instead of raw ids and blank boxes while the
+ * ~12 MB client `GameDataContext` catalog is still downloading.
+ *
+ * Complete rather than scoped to the current response on purpose: switching
+ * track swaps in team members, and paging or filtering swaps in echo sets, that
+ * the initial payload never mentioned. ~5 KB brotli, so completeness is cheaper
+ * than tracking which ids a given view happens to need.
+ *
+ * English only, and strictly a fallback — every consumer prefers the localized
+ * `GameDataContext` object once it exists.
+ */
+export interface LBBoardDisplay {
+  characters: Record<string, LBCharacterDisplay>;
+  weapons: Record<string, { name: string; iconUrl: string | null }>;
+  echoes: Record<string, { name: string; iconUrl: string | null }>;
+  sets: Record<string, { name: string; iconUrl: string | null; pieceCount: number }>;
+}
+
 export interface LBCharacterOverview {
   id: string;
   trackKey: string;

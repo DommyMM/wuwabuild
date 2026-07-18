@@ -6,7 +6,7 @@ import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeader
 import { adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
 import type { LBTrack } from '@/lib/lb';
 import { prefetchLeaderboard } from '@/lib/lbServer';
-import { loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
+import { loadBoardDisplayCatalog, loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
 
 // Reads searchParams to determine weapon/track, must be dynamic.
 // Overrides the force-static default set in (game)/layout.tsx.
@@ -159,12 +159,7 @@ export default async function CharacterLeaderboardPage({ params, searchParams }:
       <LeaderboardCharacterClient
         characterId={characterId}
         initialData={initialData}
-        display={{
-          id: characterId,
-          name: characterName,
-          element: character.element ? String(character.element).toLowerCase() : '',
-          head: character.head ?? null,
-        }}
+        boardDisplay={loadBoardDisplayCatalog()}
       />
     </div>
   );

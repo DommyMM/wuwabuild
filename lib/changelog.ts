@@ -38,7 +38,11 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
-                text: 'Character leaderboards no longer show a raw ID like "Character 1108" in the title while the page is still loading'
+                text: 'Leaderboards now load with real character, weapon, team, and echo set names and icons instead of raw IDs and blank boxes'
+            },
+            {
+                kind: 'fixed',
+                text: 'Echo sets no longer briefly show as active at the wrong piece count while a page loads, which affected 3-piece sets and Shadow of Shattered Dreams'
             }
         ]
     },

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { LBCharacterDisplay, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBStatThreshold, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
+import { LBBoardDisplay, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBStatThreshold, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_SCORING, MAX_ITEMS_PER_PAGE, normalizeSequences, ScoringMode } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
@@ -40,7 +40,11 @@ function sameDisplayStats(a: readonly LBStatSortKey[], b: readonly LBStatSortKey
 interface LeaderboardCharacterClientProps {
   characterId: string;
   initialData?: LBLeaderboardResponse | null;
-  display?: LBCharacterDisplay | null;
+  /**
+   * Server-resolved English name/icon maps, used as the fallback tier while the
+   * client `GameDataContext` catalog downloads. See `LBBoardDisplay`.
+   */
+  boardDisplay?: LBBoardDisplay | null;
 }
 
 /**
@@ -58,7 +62,7 @@ interface DeepLink {
   needsResolve: boolean;
 }
 
-export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProps> = ({ characterId, initialData, display }) => {
+export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProps> = ({ characterId, initialData, boardDisplay }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { characters, fetters } = useGameData();
@@ -529,18 +533,36 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         baseName: t(character.nameI18n ?? { en: character.name }),
         roverElement: undefined,
       })
-    : display?.name ?? `Character ${characterId}`;
+    : boardDisplay?.characters[characterId]?.name ?? `Character ${characterId}`;
 
-  const setOptions = useMemo<SetOption[]>(() => (
-    fetters
-      .map((entry) => ({
+  const setOptions = useMemo<SetOption[]>(() => {
+    // Seed filters from the compact server catalog so set names, icons, and
+    // thresholds are available on first paint. Localized client entries replace
+    // matching ids once the full game-data catalog finishes loading.
+    const optionsById = new Map<number, SetOption>();
+    for (const [setId, display] of Object.entries(boardDisplay?.sets ?? {})) {
+      const id = Number(setId);
+      if (!Number.isInteger(id) || id <= 0) continue;
+      optionsById.set(id, {
+        id,
+        name: display.name,
+        pieceCount: display.pieceCount,
+        icon: display.iconUrl ?? '',
+      });
+    }
+
+    for (const entry of fetters) {
+      optionsById.set(entry.id, {
         id: entry.id,
         name: t(entry.name),
         pieceCount: entry.pieceCount,
         icon: entry.icon ?? '',
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name))
-  ), [fetters, t]);
+      });
+    }
+
+    return Array.from(optionsById.values())
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [boardDisplay?.sets, fetters, t]);
 
   const selectedSetEntries = useMemo<SelectedSetEntry[]>(() => (
     echoSets.map((entry) => {
@@ -583,8 +605,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
             <LeaderboardCharacterHeader
               characterId={characterId}
               characterName={characterName}
-              characterHead={character?.head ?? display?.head ?? undefined}
-              characterElement={character?.element ?? display?.element ?? undefined}
+              characterHead={character?.head ?? boardDisplay?.characters[characterId]?.head ?? undefined}
+              characterElement={character?.element ?? boardDisplay?.characters[characterId]?.element ?? undefined}
+              boardDisplay={boardDisplay}
               teamCharacterIds={configTeamCharacterIds}
               teamMembers={configTeamMembers}
               teamBuffs={configTeamBuffs}
@@ -596,6 +619,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
               <LeaderboardTabs
                 weaponIds={configWeaponIds}
+                weaponDisplay={boardDisplay?.weapons}
                 weaponIndex={weaponIndex}
                 onSelectWeapon={(idx) => {
                   const nextWeaponId = configWeaponIds[idx] ?? null;
@@ -693,7 +717,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               <LeaderboardResultsPanel
                 entries={displayEntries}
                 displayStats={boardDisplayStats}
-                characterDisplay={display}
+                boardDisplay={boardDisplay}
                 deepLinkBuildId={revealBuildId ?? ''}
                 activeWeaponId={weaponId}
                 activeTrackKey={track}

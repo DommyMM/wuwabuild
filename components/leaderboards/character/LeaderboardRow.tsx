@@ -6,8 +6,9 @@ import { ChevronDown, Crown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
+import { UNKNOWN_SET_ACTIVATION_THRESHOLD } from '@/lib/echo';
 import { getBuildCVRatingColor } from '@/lib/calculations/rollValues';
-import { getLBStatCode, LBBuildDetailEntry, LBBuildEchoSummary, LBBuildRowEntry, LBCharacterDisplay, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortKey } from '@/lib/lb';
+import { getLBStatCode, LBBoardDisplay, LBBuildDetailEntry, LBBuildEchoSummary, LBBuildRowEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortKey } from '@/lib/lb';
 import { ACTIVE_SORT_COLUMN_CLASS, ScoringMode, TABLE_ROW_HEIGHT_CLASS } from '../constants';
 import { formatReignHoldLabel, formatReignSinceDate, formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
@@ -30,11 +31,10 @@ const BuildExpanded = dynamic(loadBuildExpanded, {
 interface LeaderboardRowProps {
   entry: LBLeaderboardEntry;
   /**
-   * Server-resolved display fields for the board's character, used only while the
-   * client catalog is loading. Applied only when it matches this row's character id,
-   * so a foreign row can never inherit the board character's name.
+   * Server-resolved name/icon maps, used only while the client catalog is loading.
+   * Keyed by id, so a row can only ever read its own character's and sets' fields.
    */
-  characterDisplay?: LBCharacterDisplay | null;
+  boardDisplay?: LBBoardDisplay | null;
   isGhost?: boolean;
   activeWeaponId: string;
   activeTrackKey: string;
@@ -61,7 +61,7 @@ interface LeaderboardRowProps {
 
 const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
   entry,
-  characterDisplay,
+  boardDisplay,
   isGhost = false,
   activeWeaponId,
   activeTrackKey,
@@ -141,19 +141,22 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
     Object.entries(echoSetCounts)
       .map(([setId, count]) => {
         const fetter = fetters.find((f) => String(f.id) === setId);
-        const threshold = fetter?.pieceCount ?? 2;
+        // Falls back to the server catalog before the unknown-set default, so a
+        // 3-piece set is not briefly reported active at 2 pieces during load.
+        const fallbackSet = boardDisplay?.sets[setId];
+        const threshold = fetter?.pieceCount ?? fallbackSet?.pieceCount ?? UNKNOWN_SET_ACTIVATION_THRESHOLD;
         return {
           setId,
           count,
           active: count >= threshold,
-          icon: fetter?.icon ?? '',
-          name: fetter ? t(fetter.name) : `Set ${setId}`,
+          icon: fetter?.icon ?? fallbackSet?.iconUrl ?? '',
+          name: fetter ? t(fetter.name) : fallbackSet?.name ?? `Set ${setId}`,
         };
       })
       .filter((s) => s.active)
       .sort((a, b) => b.count - a.count)
       .slice(0, 3)
-  ), [echoSetCounts, fetters, t]);
+  ), [boardDisplay, echoSetCounts, fetters, t]);
 
   // Rank display
   const rank = entry.globalRank;
@@ -190,8 +193,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
     };
   }, [echoSetCounts, entry.character.id, entry.echoSummary.mainStats, entry.finalCV, entry.id, entry.owner, entry.sequence, entry.stats, entry.timestamp, entry.weapon]);
 
-  // Only trust the board-level display fallback when it describes this row's character.
-  const fallbackDisplay = characterDisplay?.id === entry.character.id ? characterDisplay : null;
+  const fallbackDisplay = boardDisplay?.characters[entry.character.id] ?? null;
   const characterName = useMemo(() => (
     character
       ? formatCharacterDisplayName(character, {
@@ -264,8 +266,8 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
 
           {/* Character */}
           <div className="flex min-w-0 items-center gap-1.5 py-2">
-            {character?.head ? (
-              <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" loading="lazy" />
+            {character?.head ?? fallbackDisplay?.head ? (
+              <img src={(character?.head ?? fallbackDisplay?.head) as string} alt={characterName} className="h-9 w-9 object-cover" loading="lazy" />
             ) : (
               <div className="h-9 w-9 bg-border" />
             )}

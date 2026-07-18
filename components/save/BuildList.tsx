@@ -7,7 +7,7 @@ import { SavedBuild } from '@/lib/build';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/rollValues';
-import { activeElementForPanel, ELEMENT_SETS } from '@/lib/echo';
+import { activeElementForPanel, ELEMENT_SETS, UNKNOWN_SET_ACTIVATION_THRESHOLD } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths, getWeaponPaths } from '@/lib/paths';
 import { EchoStatPreview } from '@/components/echo/EchoStatPreview';
@@ -135,7 +135,7 @@ const BuildItem: React.FC<BuildItemProps> = ({
   const setSummaries = useMemo(() => (
     getBuildSetCounts(build.state.echoPanels, getEcho).map(({ element, count }) => {
       const fetter = getFetterByElement(element);
-      const threshold = fetter?.pieceCount ?? 2;
+      const threshold = fetter?.pieceCount ?? UNKNOWN_SET_ACTIVATION_THRESHOLD;
       return {
         key: element,
         count,

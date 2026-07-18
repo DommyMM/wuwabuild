@@ -9,7 +9,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SavedBuild } from '@/lib/build';
 import { calculateCV, calculateEchoSubstatCV } from '@/lib/calculations/rollValues';
-import { activeElementForPanel, ELEMENT_SETS } from '@/lib/echo';
+import { activeElementForPanel, ELEMENT_SETS, UNKNOWN_SET_ACTIVATION_THRESHOLD } from '@/lib/echo';
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths } from '@/lib/paths';
 import { ELEMENT_TINT_CLASS } from '@/lib/elementVisuals';
@@ -68,7 +68,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
     getBuildSetCounts(state.echoPanels, getEcho)
       .map(({ element, count }) => {
         const fetter = getFetterByElement(element);
-        const threshold = fetter?.pieceCount ?? 2;
+        const threshold = fetter?.pieceCount ?? UNKNOWN_SET_ACTIVATION_THRESHOLD;
         return {
           key: element,
           count,

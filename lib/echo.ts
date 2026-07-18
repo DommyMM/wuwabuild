@@ -113,6 +113,20 @@ export const ELEMENT_SETS = {
 export const COST_SECTIONS = [4, 3, 1] as const;
 export type ElementType = keyof typeof ELEMENT_SETS;
 
+/**
+ * Activation threshold to assume when a set is missing from the catalog — either
+ * because the game data has not loaded yet, or because the backend knows a set id
+ * this build's `Fetters.json` predates.
+ *
+ * Deliberately the full echo slot count, so an unknown set can never be reported
+ * active on a partial build. Sets activate at 1, 2, or 3 pieces, so defaulting to
+ * 2 both invents bonuses (2 pieces of a 3-piece set) and hides real ones (the
+ * 1-piece Shadow of Shattered Dreams). Claiming a bonus the player does not have
+ * is the worse error, so unknown sets stay silent until the catalog confirms them.
+ * Mirrors the server-side default in `lib/server/leaderboardInsight.ts`.
+ */
+export const UNKNOWN_SET_ACTIVATION_THRESHOLD = 5;
+
 // Fetter ID → ElementType mapping (from Phantom repo analysis)
 export const FETTER_MAP: Record<number, ElementType> = {
   1: 'Glacio',

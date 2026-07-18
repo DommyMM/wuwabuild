@@ -12,7 +12,7 @@ import { getWeaponPaths } from '@/lib/paths';
 import { ACTIVE_SORT_COLUMN_CLASS, SEQUENCE_BADGE_STYLES, SORTABLE_GROUP_GRID, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS, RegionBadge } from '../constants';
 import { formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
-import { Echo } from '@/lib/echo';
+import { Echo, UNKNOWN_SET_ACTIVATION_THRESHOLD } from '@/lib/echo';
 import { Character } from '@/lib/character';
 import { OwnerProfileLink } from '../OwnerProfileLink';
 
@@ -130,7 +130,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
     Object.entries(entry.echoSummary.sets)
       .map(([setId, count]) => {
         const fetter = fetters.find((f) => String(f.id) === setId);
-        const threshold = fetter?.pieceCount ?? 2;
+        const threshold = fetter?.pieceCount ?? UNKNOWN_SET_ACTIVATION_THRESHOLD;
         return { setId, count, active: count >= threshold, icon: fetter?.icon ?? '', name: fetter ? t(fetter.name) : `Set ${setId}` };
       })
       .filter((s) => s.active)

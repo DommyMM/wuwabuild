@@ -5,6 +5,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LBTrack } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
+import type { LBBoardDisplay } from '@/lib/lb';
 import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix, ScoringMode } from '../constants';
 
 const BASE_GLASS_CARD =
@@ -137,11 +138,13 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
 
 interface WeaponTabsProps {
   weaponIds: string[];
+  /** Server-resolved weapon names/icons; SSR fallback until the catalog loads. */
+  weaponDisplay?: LBBoardDisplay['weapons'];
   weaponIndex: number;
   onSelect: (index: number) => void;
 }
 
-const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelect }) => {
+const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponDisplay, weaponIndex, onSelect }) => {
   const { getWeapon } = useGameData();
   const { t } = useLanguage();
 
@@ -153,7 +156,9 @@ const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelec
       <div className="flex flex-wrap justify-center gap-2.5" aria-label="Weapon">
         {weaponIds.map((weaponId, index) => {
           const weapon = getWeapon(weaponId);
-          const label = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
+          const fallback = weaponDisplay?.[weaponId];
+          const label = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : fallback?.name ?? weaponId;
+          const iconSrc = weapon ? getWeaponPaths(weapon) : fallback?.iconUrl ?? null;
           const isActive = index === weaponIndex;
 
           return (
@@ -165,9 +170,9 @@ const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelec
               className={`${BASE_GLASS_CARD} flex min-w-[156px] cursor-pointer items-center gap-3 ${isActive ? ACTIVE_GOLD_CARD : INACTIVE_GLASS_CARD}`}
             >
               <div className={CARD_SHEEN} />
-              {weapon ? (
+              {iconSrc ? (
                 <img
-                  src={getWeaponPaths(weapon)}
+                  src={iconSrc}
                   alt=""
                   className="relative h-10 w-10 shrink-0 object-contain"
                 />
@@ -191,6 +196,7 @@ const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponIndex, onSelec
 
 interface LeaderboardTabsProps {
   weaponIds: string[];
+  weaponDisplay?: LBBoardDisplay['weapons'];
   weaponIndex: number;
   onSelectWeapon: (index: number) => void;
   tracks: LBTrack[];
@@ -202,6 +208,7 @@ interface LeaderboardTabsProps {
 
 export const LeaderboardTabs: React.FC<LeaderboardTabsProps> = ({
   weaponIds,
+  weaponDisplay,
   weaponIndex,
   onSelectWeapon,
   tracks,
@@ -220,7 +227,7 @@ export const LeaderboardTabs: React.FC<LeaderboardTabsProps> = ({
   return (
     <div className="space-y-4">
       <TrackTabs tracks={tracks} activeTrack={activeTrack} onSelect={onSelectTrack} />
-      <WeaponTabs weaponIds={weaponIds} weaponIndex={weaponIndex} onSelect={onSelectWeapon} />
+      <WeaponTabs weaponIds={weaponIds} weaponDisplay={weaponDisplay} weaponIndex={weaponIndex} onSelect={onSelectWeapon} />
       {activeErTarget > 0 && (
         <ScoringRow erTarget={activeErTarget} scoring={scoring} onSelect={onSelectScoring} />
       )}

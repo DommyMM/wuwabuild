@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
-import { LBBuildDetailEntry, LBCharacterDisplay, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortDirection } from '@/lib/lb';
+import { LBBoardDisplay, LBBuildDetailEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortDirection } from '@/lib/lb';
 import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, ScoringMode, STAT_OPTION_KEYS, TABLE_ROW_HEIGHT_CLASS } from '../constants';
 import { getSortLabel } from '../formatters';
 import { BuildPagination } from '../BuildPagination';
@@ -19,8 +19,8 @@ const DAMAGE_SORT_KEY: LBLeaderboardSortKey = 'damage';
 interface LeaderboardResultsPanelProps {
   entries: LBLeaderboardEntry[];
   displayStats?: readonly StatSortKey[];
-  /** Server-resolved display fields for this board's character; SSR fallback for row names. */
-  characterDisplay?: LBCharacterDisplay | null;
+  /** Server-resolved name/icon maps; SSR fallback for row names and echo sets. */
+  boardDisplay?: LBBoardDisplay | null;
   deepLinkBuildId: string;
   activeWeaponId: string;
   activeTrackKey: string;
@@ -53,7 +53,7 @@ interface LeaderboardResultsPanelProps {
 export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = ({
   entries,
   displayStats,
-  characterDisplay,
+  boardDisplay,
   deepLinkBuildId,
   activeWeaponId,
   activeTrackKey,
@@ -372,7 +372,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                       <LeaderboardRow
                         key={entry.id}
                         entry={entry}
-                        characterDisplay={characterDisplay}
+                        boardDisplay={boardDisplay}
                         isGhost={entry.globalRank === 0 && entry.id === deepLinkBuildId}
                         activeWeaponId={activeWeaponId}
                         activeTrackKey={activeTrackKey}

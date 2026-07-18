@@ -2,7 +2,9 @@ import 'server-only';
 import fs from 'fs';
 import path from 'path';
 import { type CDNCharacter, adaptCDNCharacter, formatCharacterDisplayName, isRover } from '@/lib/character';
-import type { LBCharacterDisplay } from '@/lib/lb';
+import type { LBBoardDisplay, LBCharacterDisplay } from '@/lib/lb';
+import { UNKNOWN_SET_ACTIVATION_THRESHOLD, adaptCDNEcho, validateCDNEcho } from '@/lib/echo';
+import { adaptCDNWeapon, validateCDNWeapon } from '@/lib/weapon';
 import { getSplashUrlCandidates } from '@/lib/splashArt';
 
 type GenericRecord = Record<string, unknown>;
@@ -178,6 +180,73 @@ export function loadFetterSummaries(): Record<string, { name: string; pieceCount
 function toPositiveInteger(value: unknown, fallback: number): number {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+// --- Compact board display catalog ---
+
+let boardDisplayCatalog: LBBoardDisplay | null = null;
+
+function entriesOf(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object') return Object.values(data as GenericRecord);
+  return [];
+}
+
+/**
+ * Builds the compact id → name/icon maps described by `LBBoardDisplay`.
+ *
+ * Weapons and echoes run through the same `adaptCDN*` functions the client uses
+ * rather than reading icon fields directly, so an SSR icon is the identical URL
+ * the client will pick after hydration. Reading `icon.iconMiddle` here (as
+ * `loadWeaponSummary` does for OG images) would visibly swap the image on
+ * hydration, since `adaptCDNWeapon` resolves `icon.icon`.
+ *
+ * Memoized for the process: the maps are derived from JSON that only changes on
+ * deploy, and this runs on every dynamic leaderboard request.
+ */
+export function loadBoardDisplayCatalog(): LBBoardDisplay {
+  if (boardDisplayCatalog) return boardDisplayCatalog;
+
+  const weapons: LBBoardDisplay['weapons'] = {};
+  for (const raw of loadAllWeapons()) {
+    if (!validateCDNWeapon(raw)) continue;
+    try {
+      const weapon = adaptCDNWeapon(raw);
+      weapons[weapon.id] = { name: weapon.name, iconUrl: weapon.iconUrl ?? null };
+    } catch {
+      // skip malformed weapon entries
+    }
+  }
+
+  const echoes: LBBoardDisplay['echoes'] = {};
+  for (const raw of entriesOf(readJson('Echoes.json'))) {
+    if (!validateCDNEcho(raw)) continue;
+    try {
+      const echo = adaptCDNEcho(raw);
+      echoes[echo.id] = { name: echo.name, iconUrl: echo.iconUrl || null };
+    } catch {
+      // skip malformed echo entries
+    }
+  }
+
+  // Fetters carry a plain icon path with no adapter transform, matching how the
+  // client reads `fetter.icon` directly.
+  const sets: LBBoardDisplay['sets'] = {};
+  for (const entry of entriesOf(readJson('Fetters.json'))) {
+    if (!entry || typeof entry !== 'object' || !('id' in entry)) continue;
+    const record = entry as { id?: unknown; name?: unknown; icon?: unknown; pieceCount?: unknown };
+    const id = String(record.id);
+    const name = i18nEn(record.name);
+    if (!id || !name) continue;
+    sets[id] = {
+      name,
+      iconUrl: typeof record.icon === 'string' && record.icon ? record.icon : null,
+      pieceCount: toPositiveInteger(record.pieceCount, UNKNOWN_SET_ACTIVATION_THRESHOLD),
+    };
+  }
+
+  boardDisplayCatalog = { characters: loadCharacterDisplayMap(), weapons, echoes, sets };
+  return boardDisplayCatalog;
 }
 
 export function loadWeaponSummary(id: string) {
