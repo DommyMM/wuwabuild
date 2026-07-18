@@ -243,6 +243,7 @@ CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Character"
 CDN_ITEM_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Item"
 CDN_SKILL_CONFIG_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/Skill.json"
+CDN_ROLE_INFO_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/RoleInfo.json"
 
 # Known CDN path typos that need deterministic normalization.
 CDN_PATH_FIXUPS = {
@@ -272,14 +273,6 @@ SKIP_IDS = {9990, 9991}
 # Characters that do not use resonance energy. Keep them off ER-focused UI
 # defaults until the game has more cases that justify a data-driven source.
 ENERGYLESS_CHARACTER_IDS = {1608, 1109}  # Phrolova, Lucilla
-
-# Most characters expose a canonical waveband item at 1000<character_id>.
-# Rover variants reuse shared grouped Item ids instead of per-variant ids.
-ROVER_SEQUENCE_ITEM_IDS = {
-    "Rover: Aero": 10001406,
-    "Rover: Spectro": 10001500,
-    "Rover: Havoc": 10001604,
-}
 
 # Default schema for character files.
 #   True           = keep entire field as-is
@@ -577,17 +570,65 @@ def simplify_chains(chains: Any) -> list[dict] | None:
     return result if result else None
 
 
-def get_sequence_item_id(data: dict) -> int | None:
-    """Return the grouped Item ID that stores the canonical sequence icon."""
-    name_field = data.get("name", {})
-    en_name = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field or "")
-    if en_name in ROVER_SEQUENCE_ITEM_IDS:
-        return ROVER_SEQUENCE_ITEM_IDS[en_name]
+def extract_sequence_item_ids(role_info: Any) -> dict[int, int]:
+    """Extract character -> canonical waveband item ids from RoleInfo.json."""
+    if not isinstance(role_info, list):
+        raise ValueError(f"expected RoleInfo.json to be a list, got {type(role_info).__name__}")
 
-    char_id = data.get("id")
-    if not isinstance(char_id, int):
-        return None
-    return int(f"1000{char_id}")
+    result: dict[int, int] = {}
+    for row in role_info:
+        if not isinstance(row, dict):
+            continue
+        char_id = row.get("Id")
+        spillover = row.get("SpilloverItem")
+        if not isinstance(char_id, int) or not isinstance(spillover, dict):
+            continue
+
+        item_ids: list[int] = []
+        for raw_item_id in spillover:
+            try:
+                item_id = int(raw_item_id)
+            except (TypeError, ValueError):
+                continue
+            if item_id > 0:
+                item_ids.append(item_id)
+
+        # A character has exactly one canonical waveband item. Leave missing or
+        # ambiguous rows unresolved so the active-character validation below
+        # fails closed instead of silently choosing the wrong icon.
+        if len(item_ids) == 1:
+            result[char_id] = item_ids[0]
+
+    return result
+
+
+def match_sequence_item_ids(
+    raw_characters: list[dict],
+    role_item_ids: dict[int, int],
+) -> dict[int, int]:
+    """Match syncable characters to authoritative RoleInfo waveband items."""
+    char_to_item: dict[int, int] = {}
+    missing: list[int] = []
+    for data in raw_characters:
+        char_id = data.get("id")
+        name_field = data.get("name", {})
+        en_name = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field or "")
+        if not isinstance(char_id, int) or char_id in SKIP_IDS or not en_name:
+            continue
+
+        item_id = role_item_ids.get(char_id)
+        if item_id is None:
+            missing.append(char_id)
+        else:
+            char_to_item[char_id] = item_id
+
+    if missing:
+        raise RuntimeError(
+            "RoleInfo.SpilloverItem is missing or invalid for character IDs: "
+            + ", ".join(str(value) for value in sorted(missing))
+        )
+
+    return char_to_item
 
 
 def _fetch_sequence_icon(session: Any, item_id: int) -> tuple[int, str | None]:
@@ -605,24 +646,24 @@ def _fetch_sequence_icon(session: Any, item_id: int) -> tuple[int, str | None]:
 
 
 def fetch_sequence_icons(raw_characters: list[dict], workers: int | None = None) -> dict[int, str]:
-    """Fetch canonical sequence icons from grouped Item files for non-Rover characters."""
+    """Fetch canonical sequence icons using RoleInfo's waveband item mapping."""
     try:
         import requests
     except ImportError:
         print("Install requests library: pip install requests")
         return {}
 
-    char_to_item: dict[int, int] = {}
-    for data in raw_characters:
-        char_id = data.get("id")
-        item_id = get_sequence_item_id(data)
-        if isinstance(char_id, int) and isinstance(item_id, int):
-            char_to_item[char_id] = item_id
+    session = requests.Session()
+    try:
+        role_info = request_json_with_retry(session, "get", CDN_ROLE_INFO_URL)
+        role_item_ids = extract_sequence_item_ids(role_info)
+        char_to_item = match_sequence_item_ids(raw_characters, role_item_ids)
+    except Exception as error:
+        raise RuntimeError(f"Failed to resolve sequence item mappings from RoleInfo.json: {error}") from error
 
     if not char_to_item:
         return {}
 
-    session = requests.Session()
     item_ids = sorted(set(char_to_item.values()))
     actual_workers = workers if workers else 20
     print(f"Fetching {len(item_ids)} canonical sequence icons with {actual_workers} threads...")
