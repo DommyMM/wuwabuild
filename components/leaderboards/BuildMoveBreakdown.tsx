@@ -603,8 +603,6 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                 const dimmed = activeType !== null && !segmentTypes.includes(activeType);
                 const isExpanded = expandedMoves.has(move.key);
                 const hasHits = move.hits.length > 0;
-                const maxHitDamage = hasHits ? Math.max(...move.hits.map((hit) => hit.damage)) : 0;
-                const spineColors = move.typeSegments.slice(0, 2).map((segment) => typeMeta(segment.type).color);
                 const showElementChip = Boolean(
                   move.elemType && move.elemType !== breakdown.dominantElement && ELEMENT_COLOR[move.elemType],
                 );
@@ -629,25 +627,11 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       </span>
 
                       <div className="flex min-w-0 items-center gap-2.5">
-                        <span
-                          className="h-5 w-[3px] shrink-0 rounded-full"
-                          style={
-                            spineColors.length > 1
-                              ? { background: `linear-gradient(180deg, ${spineColors[0]} 0 55%, ${spineColors[1]} 55% 100%)` }
-                              : { backgroundColor: spineColors[0] ?? FALLBACK_TYPE_COLOR }
-                          }
-                        />
                         <span className="truncate text-sm font-semibold text-text-primary">
                           {move.name}
                         </span>
-                        {/* Simple rows show their MV inline (visible, not hover-only);
-                            fold rows omit it because the parent's own-cast MV is
-                            misleading — their per-hit MVs live in the expansion. */}
-                        {!hasHits && move.baseMV > 0 && (
-                          <span className="shrink-0 text-[10px] tabular-nums text-text-primary/45">
-                            {formatBaseMV(move.baseMV)} MV{move.scaleStat && move.scaleStat !== 'ATK' ? ` · ${move.scaleStat}` : ''}
-                          </span>
-                        )}
+                        {/* Type/element chips hug the name (stable identity, same
+                            position whether or not the row carries an MV). */}
                         <span className="flex shrink-0 gap-1">
                           {showElementChip && move.elemType && (
                             <span
@@ -671,6 +655,14 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                             </span>
                           ))}
                         </span>
+                        {/* MV trails as metadata after the identity chips. Simple rows
+                            only — fold rows carry per-hit MVs in the expansion, and the
+                            parent's own-cast MV there would mislead. */}
+                        {!hasHits && move.baseMV > 0 && (
+                          <span className="shrink-0 text-[10px] tabular-nums text-text-primary/45">
+                            {formatBaseMV(move.baseMV)} MV{move.scaleStat && move.scaleStat !== 'ATK' ? ` · ${move.scaleStat}` : ''}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex h-2.5 gap-0.5 max-lg:hidden" style={{ width: `${maxMoveDamage > 0 ? (move.damage / maxMoveDamage) * 100 : 0}%` }}>
@@ -709,13 +701,19 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     </div>
 
                     {hasHits && isExpanded && (
-                      <div className="border-t border-border/45 bg-black/15 py-1.5 pl-11 pr-2.5">
+                      <div className="border-t border-border/45 bg-black/15 py-1">
+                        {/* Same grid + global scale as the parent row so hit bars share
+                            one lane and one meaning (fraction of the top move); hierarchy
+                            reads via the empty number column, indented dot, and dim bg.
+                            Bars stay comparable to parents instead of drifting into a
+                            separate, locally-scaled lane. */}
                         {move.hits.map((hit) => (
                           <div
                             key={hit.key}
-                            className="grid grid-cols-[minmax(0,1fr)_minmax(100px,240px)_52px_92px_24px] items-center gap-3 py-1 text-[13px] max-lg:grid-cols-[minmax(0,1fr)_52px_92px_24px]"
+                            className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 py-1 text-[13px] max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]"
                           >
-                            <span className="flex min-w-0 items-center gap-2 text-text-primary/72">
+                            <span />
+                            <span className="flex min-w-0 items-center gap-2 pl-3 text-text-primary/72">
                               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: typeMeta(hit.displayType).color }} />
                               <span className="truncate">{hit.name}</span>
                               {hit.baseMV > 0 && (
@@ -724,9 +722,9 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                             </span>
                             <div className="max-lg:hidden">
                               <div
-                                className="h-1.5 min-w-[3px] rounded-[3px] opacity-75"
+                                className="h-1.5 min-w-[3px] rounded-[3px] opacity-80"
                                 style={{
-                                  width: `${maxHitDamage > 0 ? (hit.damage / maxHitDamage) * 100 : 0}%`,
+                                  width: `${maxMoveDamage > 0 ? (hit.damage / maxMoveDamage) * 100 : 0}%`,
                                   backgroundColor: typeMeta(hit.displayType).color,
                                 }}
                               />
