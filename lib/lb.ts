@@ -288,19 +288,26 @@ export interface LBBuildDetailEntry extends LBBuildRowEntry {
 }
 
 interface LBMoveHitEntry {
+  key: string;
   name: string;
   damage: number;
   percentage: number;
-  /** Per-hit typing from the lb per-type sub-hit fold; absent on older cached responses. */
-  moveTypes?: string[];
+  moveTypes: string[];
+  /** Per-cast base MV before sequence/forte multipliers. */
+  baseMV: number;
 }
 
 export interface LBMoveEntry {
+  key: string;
   name: string;
   damage: number;
-  elemType?: string;
-  moveTypes?: string[];
-  modifier?: boolean;
+  elemType: string;
+  moveTypes: string[];
+  modifier: boolean;
+  /** Per-cast base MV before sequence/forte multipliers. */
+  baseMV: number;
+  /** Scaling stat for attacks ("ATK", "HP", or "DEF"); empty for modifiers. */
+  scaleStat: string;
   hits: LBMoveHitEntry[];
 }
 
@@ -447,39 +454,6 @@ function parseBuildDetailEntry(raw: unknown): LBBuildDetailEntry {
   return {
     ...row,
     buildState: { ...buildState, forte },
-  };
-}
-
-function parseMoveEntry(raw: unknown): LBMoveEntry | null {
-  if (!isRecord(raw)) return null;
-  const hits = Array.isArray(raw.hits)
-    ? raw.hits
-      .filter(isRecord)
-      .map((hit) => {
-        const hitTypes = Array.isArray(hit.moveTypes)
-          ? hit.moveTypes.filter((t): t is string => typeof t === 'string')
-          : undefined;
-        return {
-          name: typeof hit.name === 'string' ? hit.name : '',
-          damage: toFiniteNumber(hit.damage, 0),
-          percentage: toFiniteNumber(hit.percentage, 0),
-          moveTypes: hitTypes && hitTypes.length > 0 ? hitTypes : undefined,
-        };
-      })
-      .filter((hit) => hit.name.length > 0 || hit.damage > 0)
-    : [];
-
-  const moveTypes = Array.isArray(raw.moveTypes)
-    ? raw.moveTypes.filter((t): t is string => typeof t === 'string')
-    : undefined;
-
-  return {
-    name: typeof raw.name === 'string' ? raw.name : '',
-    damage: toFiniteNumber(raw.damage, 0),
-    elemType: typeof raw.elemType === 'string' ? raw.elemType : undefined,
-    moveTypes: moveTypes && moveTypes.length > 0 ? moveTypes : undefined,
-    modifier: raw.modifier === true ? true : undefined,
-    hits,
   };
 }
 
@@ -1256,22 +1230,8 @@ export async function getBuildMoves(
     return [];
   }
 
-  const payload = await response.json() as { moves?: unknown };
-  let parsed: LBMoveEntry[] = [];
-  if (Array.isArray(payload.moves)) {
-    parsed = payload.moves
-      .map(parseMoveEntry)
-      .filter((entry): entry is LBMoveEntry => entry !== null && (entry.name.length > 0 || entry.damage > 0));
-  } else if (isRecord(payload.moves)) {
-    parsed = Object.entries(payload.moves)
-      .map(([name, damage]) => ({
-        name,
-        damage: toFiniteNumber(damage, 0),
-        hits: [],
-      }))
-      .filter((entry) => entry.name.length > 0 || entry.damage > 0);
-  }
-  return parsed;
+  const payload = await response.json() as { moves: LBMoveEntry[] };
+  return payload.moves;
 }
 
 export async function getBuildSubstatUpgrades(

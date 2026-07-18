@@ -22,7 +22,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'improved',
-                text: 'Move breakdown has new, hopefully cleaner UI',
+                text: 'Move breakdown has a cleaner damage profile, exact move typing, and expandable per-hit base multipliers',
             },
             {
                 kind: 'fixed',
@@ -31,6 +31,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Filtering or sorting a leaderboard no longer renumbers the rank of the build'
+            },
+            {
+                kind: 'fixed',
+                text: 'Corrected Lucy leaderboard damage after a data sync dropped parts of her damage'
             }
         ]
     },

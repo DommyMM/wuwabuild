@@ -38,10 +38,12 @@ function typeMeta(moveType: string): { label: string; color: string } {
 }
 
 type ProcessedHit = {
+  key: string;
   name: string;
   damage: number;
   percentage: number;
   displayType: string;
+  baseMV: number;
 };
 
 type TypeSegment = {
@@ -50,11 +52,14 @@ type TypeSegment = {
 };
 
 type ProcessedMove = {
+  key: string;
   name: string;
   damage: number;
   percentage: number;
-  elemType?: string;
+  elemType: string;
   moveTypes: string[];
+  baseMV: number;
+  scaleStat: string;
   rotationIndex: number;
   hits: ProcessedHit[];
   // Damage split by move type. Derived from typed hits when the backend sends
@@ -66,6 +71,7 @@ type ProcessedMove = {
 // or extend the whole rotation rather than being a part of it — rendered as
 // the score equation and the waterfall, never as rotation rows.
 type ProcessedModifier = {
+  key: string;
   name: string;
   damage: number;
   percentage: number;
@@ -100,6 +106,10 @@ function formatSignedPercent(value: number): string {
   return `${value < 0 ? '−' : '+'}${Math.abs(value).toFixed(1)}%`;
 }
 
+function formatBaseMV(value: number): string {
+  return `${value.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}%`;
+}
+
 // "ER Scaling (108% / 115% = ×0.94)" → "ER Scaling ×0.94" for the equation chip.
 function compactModifierLabel(name: string): string {
   const base = name.split(' (')[0]?.trim() || name;
@@ -110,48 +120,54 @@ function compactModifierLabel(name: string): string {
 // The type a hit renders as. A dual-typed hit (Cantarella's Phantom Sting
 // coordinated stage is [basic_attack, coordinated_attack]) shows its more
 // specific type — the one that differs from the move's primary.
-function hitDisplayType(hitTypes: string[] | undefined, primary: string): string {
-  if (!hitTypes || hitTypes.length === 0) return primary;
+function hitDisplayType(hitTypes: string[], primary: string): string {
+  if (hitTypes.length === 0) return primary;
   return hitTypes.find((t) => t !== primary) ?? hitTypes[0];
 }
 
 function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
   const grouped = new Map<string, {
+    name: string;
     damage: number;
-    hits: Map<string, { name: string; damage: number; types?: string[] }>;
-    elemType?: string;
-    moveTypes?: string[];
+    hits: Map<string, { key: string; name: string; damage: number; types: string[]; baseMV: number }>;
+    elemType: string;
+    moveTypes: string[];
+    baseMV: number;
+    scaleStat: string;
     modifier: boolean;
     rotationIndex: number;
   }>();
 
   moves.forEach((move, index) => {
-    const key = move.name?.trim() || 'Unnamed Move';
+    const key = move.key;
     const existing = grouped.get(key) ?? {
+      name: move.name,
       damage: 0,
-      hits: new Map<string, { name: string; damage: number; types?: string[] }>(),
+      hits: new Map<string, { key: string; name: string; damage: number; types: string[]; baseMV: number }>(),
+      elemType: move.elemType,
+      moveTypes: move.moveTypes,
+      baseMV: move.baseMV,
+      scaleStat: move.scaleStat,
       modifier: false,
       // API row order is rotation order; a repeated cast keeps its first slot.
       rotationIndex: index,
     };
     existing.damage += move.damage;
-    if (move.elemType) existing.elemType = move.elemType;
-    if (move.moveTypes) existing.moveTypes = move.moveTypes;
     if (move.modifier) existing.modifier = true;
 
-    for (const hit of move.hits ?? []) {
+    for (const hit of move.hits) {
       // Zero-damage hits are trigger bookkeeping (e.g. a 0-MV echo cast folded
       // for rotation accounting), not damage — never rows or type segments.
       if (!(hit.damage > 0)) continue;
-      const hitName = hit.name?.trim() || 'Hit';
-      // Key by name AND typing so two same-named casts with different types
-      // (possible under the per-type sub-hit fold) don't merge into one
-      // mis-attributed entry.
-      const hitKey = `${hitName}|${hit.moveTypes?.join(',') ?? ''}`;
-      const existingHit = existing.hits.get(hitKey) ?? { name: hitName, damage: 0 };
+      const existingHit = existing.hits.get(hit.key) ?? {
+        key: hit.key,
+        name: hit.name,
+        damage: 0,
+        types: hit.moveTypes,
+        baseMV: hit.baseMV,
+      };
       existingHit.damage += hit.damage;
-      if (hit.moveTypes) existingHit.types = hit.moveTypes;
-      existing.hits.set(hitKey, existingHit);
+      existing.hits.set(hit.key, existingHit);
     }
 
     grouped.set(key, existing);
@@ -167,8 +183,8 @@ function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
 
   const processedMoves = entries
     .filter(([, move]) => !move.modifier)
-    .map(([name, move]) => {
-      const primary = move.moveTypes?.[0] ?? 'unknown';
+    .map(([key, move]) => {
+      const primary = move.moveTypes[0] ?? 'unknown';
       // A hit that repeats the row's own name at the row's own type carries no
       // information (a DisplayGroup fold of extra casts of the same move, e.g.
       // Phrolova's Fate/Finality ×3 or Hiyuki's repeated Glacio Bite lanes).
@@ -176,18 +192,18 @@ function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
       // anyway — so those rows render as they did before the typed-hit fold.
       const hits: ProcessedHit[] = Array.from(move.hits.values())
         .map((hit) => ({
+          key: hit.key,
           name: hit.name,
           damage: hit.damage,
           percentage: (hit.damage / rawDamage) * 100,
           displayType: hitDisplayType(hit.types, primary),
+          baseMV: hit.baseMV,
         }))
-        .filter((hit) => !(hit.name === name && hit.displayType === primary))
+        .filter((hit) => !(hit.name === move.name && hit.displayType === primary))
         .sort((a, b) => b.damage - a.damage);
 
-      // Type split from typed hits only — untyped hits (older cached responses)
-      // can't vary from the primary, so the move stays a single segment.
       const hasTypedHits = hits.length > 0
-        && Array.from(move.hits.values()).some((hit) => hit.types && hit.types.length > 0);
+        && Array.from(move.hits.values()).some((hit) => hit.types.length > 0);
       let typeSegments: TypeSegment[];
       if (hasTypedHits) {
         const byType = new Map<string, number>();
@@ -209,11 +225,14 @@ function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
       }
 
       return {
-        name,
+        key,
+        name: move.name,
         damage: move.damage,
         percentage: (move.damage / rawDamage) * 100,
         elemType: move.elemType,
-        moveTypes: move.moveTypes ?? [],
+        moveTypes: move.moveTypes,
+        baseMV: move.baseMV,
+        scaleStat: move.scaleStat,
         rotationIndex: move.rotationIndex,
         hits,
         typeSegments,
@@ -223,8 +242,9 @@ function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
 
   const modifiers = entries
     .filter(([, move]) => move.modifier)
-    .map(([name, move]) => ({
-      name,
+    .map(([key, move]) => ({
+      key,
+      name: move.name,
       damage: move.damage,
       percentage: (move.damage / rawDamage) * 100,
     }))
@@ -315,11 +335,11 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     });
   };
 
-  const toggleExpanded = (moveName: string) => {
+  const toggleExpanded = (moveKey: string) => {
     setExpandedMoves((prev) => {
       const next = new Set(prev);
-      if (next.has(moveName)) next.delete(moveName);
-      else next.add(moveName);
+      if (next.has(moveKey)) next.delete(moveKey);
+      else next.add(moveKey);
       return next;
     });
   };
@@ -377,7 +397,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                 const isBonus = modifier.damage > 0;
                 return (
                   <div
-                    key={`modifier-${modifier.name}`}
+                    key={modifier.key}
                     className="flex flex-col gap-0.5 rounded-md border border-border/45 bg-background-secondary/40 px-3 py-1.5"
                     title={modifier.name}
                   >
@@ -543,7 +563,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
               {sortedMoves.map((move, index) => {
                 const segmentTypes = move.typeSegments.map((segment) => segment.type);
                 const dimmed = typeFocus !== null && !segmentTypes.includes(typeFocus);
-                const isExpanded = expandedMoves.has(move.name);
+                const isExpanded = expandedMoves.has(move.key);
                 const hasHits = move.hits.length > 0;
                 const maxHitDamage = hasHits ? Math.max(...move.hits.map((hit) => hit.damage)) : 0;
                 const spineColors = move.typeSegments.slice(0, 2).map((segment) => typeMeta(segment.type).color);
@@ -553,7 +573,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
                 return (
                   <article
-                    key={move.name}
+                    key={move.key}
                     className={`rounded-lg border border-border/45 bg-background-secondary/20 transition-all duration-150 hover:border-accent/40 hover:bg-background-secondary/40 ${dimmed ? 'opacity-30' : ''}`}
                     onMouseEnter={() => setRowFocusTypes(segmentTypes)}
                     onMouseLeave={() => setRowFocusTypes(null)}
@@ -562,7 +582,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         affordance and stops propagation to avoid double-toggling. */}
                     <div
                       className={`grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 py-2 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px] ${hasHits ? 'cursor-pointer' : ''}`}
-                      onClick={hasHits ? () => toggleExpanded(move.name) : undefined}
+                      onClick={hasHits ? () => toggleExpanded(move.key) : undefined}
                     >
                       <span className="text-center text-[11px] font-semibold tabular-nums text-text-primary/40">
                         {sortMode === 'rotation' ? move.rotationIndex + 1 : index + 1}
@@ -577,7 +597,20 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                               : { backgroundColor: spineColors[0] ?? FALLBACK_TYPE_COLOR }
                           }
                         />
-                        <span className="truncate text-sm font-semibold text-text-primary">{move.name}</span>
+                        {/* Rows with hits carry per-hit MVs instead; the row-level MV is
+                            only the fold parent's own cast there and would mislead. */}
+                        <span
+                          className="truncate text-sm font-semibold text-text-primary"
+                          onMouseEnter={move.baseMV > 0 && !hasHits ? (event) => setTooltip({
+                            x: event.clientX,
+                            y: event.clientY,
+                            title: move.name,
+                            detail: `Base MV ${formatBaseMV(move.baseMV)}${move.scaleStat !== 'ATK' ? ` · scales with ${move.scaleStat}` : ''}`,
+                          }) : undefined}
+                          onMouseLeave={move.baseMV > 0 && !hasHits ? () => setTooltip(null) : undefined}
+                        >
+                          {move.name}
+                        </span>
                         <span className="flex shrink-0 gap-1">
                           {showElementChip && move.elemType && (
                             <span
@@ -593,7 +626,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                           )}
                           {move.moveTypes.map((moveType) => (
                             <span
-                              key={`${move.name}-chip-${moveType}`}
+                              key={`${move.key}-chip-${moveType}`}
                               className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 py-px text-[10px] leading-4 text-text-primary/50 max-sm:hidden"
                             >
                               <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: typeMeta(moveType).color }} />
@@ -606,7 +639,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       <div className="flex h-2.5 gap-0.5 max-lg:hidden" style={{ width: `${maxMoveDamage > 0 ? (move.damage / maxMoveDamage) * 100 : 0}%` }}>
                         {move.typeSegments.map((segment) => (
                           <div
-                            key={`${move.name}-segment-${segment.type}`}
+                            key={`${move.key}-segment-${segment.type}`}
                             className="lb-bar-grow min-w-[3px] rounded-[3px]"
                             style={{
                               flexGrow: segment.damage,
@@ -627,7 +660,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                           aria-label={`Toggle ${move.name} hits`}
                           onClick={(event) => {
                             event.stopPropagation();
-                            toggleExpanded(move.name);
+                            toggleExpanded(move.key);
                           }}
                           className="flex items-center justify-center text-text-primary/40 transition-colors hover:text-text-primary"
                         >
@@ -642,12 +675,15 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       <div className="border-t border-border/45 bg-black/15 py-1.5 pl-11 pr-2.5">
                         {move.hits.map((hit) => (
                           <div
-                            key={`${move.name}-hit-${hit.name}-${hit.displayType}`}
+                            key={hit.key}
                             className="grid grid-cols-[minmax(0,1fr)_minmax(100px,240px)_52px_92px_24px] items-center gap-3 py-1 text-[13px] max-lg:grid-cols-[minmax(0,1fr)_52px_92px_24px]"
                           >
                             <span className="flex min-w-0 items-center gap-2 text-text-primary/72">
                               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: typeMeta(hit.displayType).color }} />
                               <span className="truncate">{hit.name}</span>
+                              {hit.baseMV > 0 && (
+                                <span className="shrink-0 text-[10px] tabular-nums text-text-primary/35">{formatBaseMV(hit.baseMV)}</span>
+                              )}
                             </span>
                             <div className="max-lg:hidden">
                               <div
