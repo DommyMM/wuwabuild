@@ -7,9 +7,17 @@ import { ELEMENT_COLOR } from '@/lib/elementVisuals';
 
 // Fixed move-type identity: every board colors a type the same way, so the
 // mapping is learnable across builds. Steps validated (CVD + contrast) against
-// the dark surface; the four most co-occurring types hold the four hues that
-// pass all-pairs colorblind checks. Red is reserved for penalties and never a
-// type color; echo is a deliberate neutral (external summon, not kit).
+// the dark surface; the most co-occurring types hold the hues that pass
+// all-pairs colorblind checks. Red is reserved for penalties and never a type
+// color; echo is a deliberate neutral (external summon, not kit).
+//
+// The reactive/status-damage family (forte_circuit, frazzle, erosion,
+// tune_rupture, glacio_bite, fusion_burst) is a deliberate second tier: 14
+// categorical hues is past where all-pairs CVD stays airtight, so these fill
+// the open arcs of the wheel and are tuned to differ from echo-slate and from
+// the types they most plausibly co-occur with. They rarely appear together, so
+// near-neighbours within the tier are acceptable; the textual label always
+// disambiguates. Retune hexes freely.
 const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
   basic_attack: { label: 'Basic Attack', color: '#c98500' },
   heavy_attack: { label: 'Heavy Attack', color: '#008300' },
@@ -19,6 +27,12 @@ const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
   outro: { label: 'Outro', color: '#d95926' },
   echo: { label: 'Echo', color: '#7f93a8' },
   coordinated_attack: { label: 'Coordinated', color: '#9085e9' },
+  forte_circuit: { label: 'Forte Circuit', color: '#a7bf46' },
+  glacio_bite: { label: 'Glacio Bite', color: '#59b9d4' },
+  frazzle: { label: 'Frazzle', color: '#c364c4' },
+  erosion: { label: 'Erosion', color: '#a06ee0' },
+  tune_rupture: { label: 'Tune Rupture', color: '#d3c23c' },
+  fusion_burst: { label: 'Fusion Burst', color: '#e08b4a' },
 };
 const FALLBACK_TYPE_COLOR = '#7f93a8';
 
@@ -296,12 +310,16 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   onRetry,
 }) => {
   const [sortMode, setSortMode] = useState<SortMode>('damage');
-  // Legend/profile hover: dims non-matching rows, segments, and chips.
+  // Legend/profile hover: transient dim of non-matching rows, segments, chips.
   const [typeFocus, setTypeFocus] = useState<string | null>(null);
+  // Legend click: sticky version of the same focus, so keyboard/touch users can
+  // reach the highlight and it survives pointer-leave. Hover previews over it.
+  const [pinnedType, setPinnedType] = useState<string | null>(null);
   // Row hover: dims non-matching profile segments only.
   const [rowFocusTypes, setRowFocusTypes] = useState<string[] | null>(null);
   const [expandedMoves, setExpandedMoves] = useState<Set<string>>(new Set());
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const activeType = typeFocus ?? pinnedType;
 
   const breakdown = useMemo(() => processMoves(moves), [moves]);
   const sortedMoves = useMemo(() => {
@@ -311,10 +329,6 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     return breakdown.moves;
   }, [breakdown.moves, sortMode]);
   const maxMoveDamage = breakdown.moves[0]?.damage ?? 0;
-  const totalHits = useMemo(
-    () => breakdown.moves.reduce((sum, move) => sum + move.hits.length, 0),
-    [breakdown.moves],
-  );
   const bonusTotal = breakdown.modifiers.reduce((sum, m) => (m.damage > 0 ? sum + m.damage : sum), 0);
   const penaltyTotal = breakdown.modifiers.reduce((sum, m) => (m.damage < 0 ? sum - m.damage : sum), 0);
 
@@ -363,7 +377,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
       {!isLoading && error && (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           <span>{error}</span>
-          <button type="button" onClick={onRetry} className="rounded border border-red-300/50 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-300/10">
+          <button type="button" onClick={onRetry} className="rounded border border-red-300/50 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/60">
             Retry
           </button>
         </div>
@@ -379,49 +393,57 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
         <>
           {/* Score equation + waterfall + damage profile */}
           <div className="rounded-lg border border-border/45 bg-background-secondary/24 px-4 py-3.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/42">
-              Total Score
-            </div>
-
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
-              {/* Without modifiers the raw total IS the score; showing both would
-                  read as a duplicated number. */}
-              {breakdown.modifiers.length > 0 && (
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-primary/40">Move damage</span>
-                  <span className="text-xl font-semibold tabular-nums text-white/85">{formatDamage(breakdown.rawDamage)}</span>
+            {/* Without modifiers the raw total IS the score; the equation row
+                would just restate one number, so the header carries it inline. */}
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/55">
+                Total Score
+              </h3>
+              {breakdown.modifiers.length === 0 && (
+                <div className="flex items-baseline gap-2.5">
+                  <span className="text-2xl font-bold tabular-nums text-accent-hover">{formatDamage(breakdown.totalScore)}</span>
+                  <span className="text-[11px] text-text-primary/50">{breakdown.moves.length} moves</span>
                 </div>
               )}
-
-              {breakdown.modifiers.map((modifier) => {
-                const isBonus = modifier.damage > 0;
-                return (
-                  <div
-                    key={modifier.key}
-                    className="flex flex-col gap-0.5 rounded-md border border-border/45 bg-background-secondary/40 px-3 py-1.5"
-                    title={modifier.name}
-                  >
-                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-text-primary/62">
-                      <span
-                        className="h-1.5 w-1.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: isBonus ? BONUS_COLOR : PENALTY_COLOR }}
-                      />
-                      {compactModifierLabel(modifier.name)}
-                    </span>
-                    <span className="flex items-baseline gap-2 text-sm font-semibold tabular-nums" style={{ color: isBonus ? BONUS_COLOR : PENALTY_COLOR }}>
-                      {formatModifierDamage(modifier.damage)}
-                      <span className="text-[11px] font-medium text-text-primary/40">{formatSignedPercent(modifier.percentage)}</span>
-                    </span>
-                  </div>
-                );
-              })}
-
-              <div className="ml-auto flex flex-col gap-0.5 text-right max-sm:ml-0 max-sm:w-full max-sm:text-left">
-                <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-primary/40">Score</span>
-                <span className="text-2xl font-bold tabular-nums text-accent-hover">{formatDamage(breakdown.totalScore)}</span>
-                <span className="text-[11px] text-text-primary/42">{breakdown.moves.length} moves · {totalHits} hits</span>
-              </div>
             </div>
+
+            {breakdown.modifiers.length > 0 && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-primary/45">Move damage</span>
+                  <span className="text-xl font-semibold tabular-nums text-white/85">{formatDamage(breakdown.rawDamage)}</span>
+                </div>
+
+                {breakdown.modifiers.map((modifier) => {
+                  const isBonus = modifier.damage > 0;
+                  return (
+                    <div
+                      key={modifier.key}
+                      className="flex flex-col gap-0.5 rounded-md border border-border/45 bg-background-secondary/40 px-3 py-1.5"
+                      title={modifier.name}
+                    >
+                      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-text-primary/62">
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: isBonus ? BONUS_COLOR : PENALTY_COLOR }}
+                        />
+                        {compactModifierLabel(modifier.name)}
+                      </span>
+                      <span className="flex items-baseline gap-2 text-sm font-semibold tabular-nums" style={{ color: isBonus ? BONUS_COLOR : PENALTY_COLOR }}>
+                        {formatModifierDamage(modifier.damage)}
+                        <span className="text-[11px] font-medium text-text-primary/45">{formatSignedPercent(modifier.percentage)}</span>
+                      </span>
+                    </div>
+                  );
+                })}
+
+                <div className="ml-auto flex flex-col gap-0.5 text-right max-sm:ml-0 max-sm:w-full max-sm:text-left">
+                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-primary/45">Score</span>
+                  <span className="text-2xl font-bold tabular-nums text-accent-hover">{formatDamage(breakdown.totalScore)}</span>
+                  <span className="text-[11px] text-text-primary/50">{breakdown.moves.length} moves</span>
+                </div>
+              </div>
+            )}
 
             {breakdown.modifiers.length > 0 && (
               <div className="mt-3" aria-hidden="true">
@@ -466,14 +488,14 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
             {/* Damage profile by move type */}
             <div className="mt-4 border-t border-border/45 pt-3.5">
               <div className="flex items-baseline gap-3">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/42">Damage profile</span>
-                <span className="ml-auto text-[11px] text-text-primary/38">by move type</span>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/55">Damage profile</h3>
+                <span className="ml-auto text-[11px] text-text-primary/52">by move type</span>
               </div>
               <div className="mt-2.5 flex h-6 gap-0.5 overflow-hidden rounded-[5px]">
                 {breakdown.typeTotals.map((total) => {
                   const meta = typeMeta(total.type);
                   const dimmed =
-                    (typeFocus !== null && typeFocus !== total.type)
+                    (activeType !== null && activeType !== total.type)
                     || (rowFocusTypes !== null && !rowFocusTypes.includes(total.type));
                   return (
                     <div
@@ -499,15 +521,20 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                   );
                 })}
               </div>
+              {/* Chips pin the highlight on click (keyboard/touch reach it too);
+                  hover still previews. */}
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {breakdown.typeTotals.map((total) => {
                   const meta = typeMeta(total.type);
-                  const dimmed = typeFocus !== null && typeFocus !== total.type;
+                  const isPinned = pinnedType === total.type;
+                  const dimmed = activeType !== null && activeType !== total.type;
                   return (
                     <button
                       key={`legend-${total.type}`}
                       type="button"
-                      className={`flex items-baseline gap-1.5 rounded-md border border-border/45 bg-background-secondary/40 px-2.5 py-1 transition-all duration-150 hover:border-accent/50 ${dimmed ? 'opacity-35' : ''}`}
+                      aria-pressed={isPinned}
+                      className={`flex items-baseline gap-1.5 rounded-md border bg-background-secondary/40 px-2.5 py-1 transition-[opacity,border-color] duration-150 hover:border-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${isPinned ? 'border-accent/70' : 'border-border/45'} ${dimmed ? 'opacity-35' : ''}`}
+                      onClick={() => setPinnedType((prev) => (prev === total.type ? null : total.type))}
                       onMouseEnter={() => setTypeFocus(total.type)}
                       onMouseLeave={() => setTypeFocus(null)}
                       onFocus={() => setTypeFocus(total.type)}
@@ -516,7 +543,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       <span className="h-2 w-2 self-center rounded-[3px]" style={{ backgroundColor: meta.color }} />
                       <span className="text-xs font-semibold text-text-primary/62">{meta.label}</span>
                       <span className="text-xs font-bold tabular-nums text-white/82">{total.percentage.toFixed(1)}%</span>
-                      <span className="text-[10.5px] tabular-nums text-text-primary/40">{formatDamage(total.damage)}</span>
+                      <span className="text-[10.5px] tabular-nums text-text-primary/45">{formatDamage(total.damage)}</span>
                     </button>
                   );
                 })}
@@ -527,7 +554,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
           {/* Move rows */}
           <div>
             <div className="flex items-center gap-3 px-1 pb-2.5">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/42">Moves</span>
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/55">Moves</h3>
               {breakdown.dominantElement && ELEMENT_COLOR[breakdown.dominantElement] && (
                 <span
                   className="rounded border px-1.5 py-px text-[10px] leading-4"
@@ -547,7 +574,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     type="button"
                     aria-pressed={sortMode === mode}
                     onClick={() => setSortMode(mode)}
-                    className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                    className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
                       sortMode === mode
                         ? 'bg-accent/16 text-accent-hover'
                         : 'text-text-primary/55 hover:text-text-primary'
@@ -559,10 +586,21 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
               </div>
             </div>
 
+            {/* Column labels for the two right-hand numbers, so share vs damage
+                doesn't need inference. Mirrors the row grid below. */}
+            <div className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-primary/42 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]">
+              <span />
+              <span />
+              <span className="max-lg:hidden" />
+              <span className="text-right">Share</span>
+              <span className="text-right">Damage</span>
+              <span />
+            </div>
+
             <div className="space-y-1.5">
               {sortedMoves.map((move, index) => {
                 const segmentTypes = move.typeSegments.map((segment) => segment.type);
-                const dimmed = typeFocus !== null && !segmentTypes.includes(typeFocus);
+                const dimmed = activeType !== null && !segmentTypes.includes(activeType);
                 const isExpanded = expandedMoves.has(move.key);
                 const hasHits = move.hits.length > 0;
                 const maxHitDamage = hasHits ? Math.max(...move.hits.map((hit) => hit.damage)) : 0;
@@ -574,7 +612,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                 return (
                   <article
                     key={move.key}
-                    className={`rounded-lg border border-border/45 bg-background-secondary/20 transition-all duration-150 hover:border-accent/40 hover:bg-background-secondary/40 ${dimmed ? 'opacity-30' : ''}`}
+                    className={`rounded-lg border border-border/45 bg-background-secondary/20 transition-[opacity,border-color,background-color] duration-150 hover:border-accent/40 hover:bg-background-secondary/40 ${dimmed ? 'opacity-30' : ''}`}
                     onMouseEnter={() => setRowFocusTypes(segmentTypes)}
                     onMouseLeave={() => setRowFocusTypes(null)}
                   >
@@ -584,8 +622,10 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       className={`grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 py-2 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px] ${hasHits ? 'cursor-pointer' : ''}`}
                       onClick={hasHits ? () => toggleExpanded(move.key) : undefined}
                     >
-                      <span className="text-center text-[11px] font-semibold tabular-nums text-text-primary/40">
-                        {sortMode === 'rotation' ? move.rotationIndex + 1 : index + 1}
+                      {/* Sequential in both sort modes; the raw rotation index skips
+                          slots (folded repeats, modifiers) and reads as missing rows. */}
+                      <span className="text-center text-[11px] font-semibold tabular-nums text-text-primary/52">
+                        {index + 1}
                       </span>
 
                       <div className="flex min-w-0 items-center gap-2.5">
@@ -597,20 +637,17 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                               : { backgroundColor: spineColors[0] ?? FALLBACK_TYPE_COLOR }
                           }
                         />
-                        {/* Rows with hits carry per-hit MVs instead; the row-level MV is
-                            only the fold parent's own cast there and would mislead. */}
-                        <span
-                          className="truncate text-sm font-semibold text-text-primary"
-                          onMouseEnter={move.baseMV > 0 && !hasHits ? (event) => setTooltip({
-                            x: event.clientX,
-                            y: event.clientY,
-                            title: move.name,
-                            detail: `Base MV ${formatBaseMV(move.baseMV)}${move.scaleStat !== 'ATK' ? ` · scales with ${move.scaleStat}` : ''}`,
-                          }) : undefined}
-                          onMouseLeave={move.baseMV > 0 && !hasHits ? () => setTooltip(null) : undefined}
-                        >
+                        <span className="truncate text-sm font-semibold text-text-primary">
                           {move.name}
                         </span>
+                        {/* Simple rows show their MV inline (visible, not hover-only);
+                            fold rows omit it because the parent's own-cast MV is
+                            misleading — their per-hit MVs live in the expansion. */}
+                        {!hasHits && move.baseMV > 0 && (
+                          <span className="shrink-0 text-[10px] tabular-nums text-text-primary/45">
+                            {formatBaseMV(move.baseMV)} MV{move.scaleStat && move.scaleStat !== 'ATK' ? ` · ${move.scaleStat}` : ''}
+                          </span>
+                        )}
                         <span className="flex shrink-0 gap-1">
                           {showElementChip && move.elemType && (
                             <span
@@ -662,7 +699,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                             event.stopPropagation();
                             toggleExpanded(move.key);
                           }}
-                          className="flex items-center justify-center text-text-primary/40 transition-colors hover:text-text-primary"
+                          className="flex items-center justify-center rounded text-text-primary/40 transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
                         >
                           <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180 text-accent' : ''}`} />
                         </button>
@@ -682,7 +719,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: typeMeta(hit.displayType).color }} />
                               <span className="truncate">{hit.name}</span>
                               {hit.baseMV > 0 && (
-                                <span className="shrink-0 text-[10px] tabular-nums text-text-primary/35">{formatBaseMV(hit.baseMV)}</span>
+                                <span className="shrink-0 text-[10px] tabular-nums text-text-primary/45">{formatBaseMV(hit.baseMV)} MV</span>
                               )}
                             </span>
                             <div className="max-lg:hidden">
