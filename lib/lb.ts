@@ -853,6 +853,19 @@ export function isHealTrackKey(trackKey: string | null | undefined): boolean {
   return typeof trackKey === 'string' && trackKey.startsWith('heal_');
 }
 
+/**
+ * Server-resolved English display fields for a character id. Rendered during SSR
+ * so leaderboard HTML ships real names instead of `Character {id}` while the
+ * client `GameDataContext` fetch is still in flight.
+ */
+export interface LBCharacterDisplay {
+  /** Character id these fields describe, so consumers can verify before applying them. */
+  id: string;
+  name: string;
+  element: string;
+  head: string | null;
+}
+
 export interface LBCharacterOverview {
   id: string;
   trackKey: string;
@@ -861,8 +874,8 @@ export interface LBCharacterOverview {
   weapons: LBWeaponTop[]; // Configured board weapons; can include a weapon that has no rank-1 row yet
   weaponIds: string[];
   teamCharacterIds: string[];
-  teamMembers: LBTeamMemberConfig[]; // Server-resolved English display fields (SSR/SEO)
-  display?: { name: string; element: string; head: string | null };
+  teamMembers: LBTeamMemberConfig[];
+  display?: LBCharacterDisplay; // Server-resolved English display fields (SSR/SEO)
 }
 
 export interface LBLeaderboardEntry {

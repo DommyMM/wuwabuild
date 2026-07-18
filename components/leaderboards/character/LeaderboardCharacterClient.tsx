@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBStatThreshold, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
+import { LBCharacterDisplay, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBStatThreshold, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_SCORING, MAX_ITEMS_PER_PAGE, normalizeSequences, ScoringMode } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
@@ -40,6 +40,7 @@ function sameDisplayStats(a: readonly LBStatSortKey[], b: readonly LBStatSortKey
 interface LeaderboardCharacterClientProps {
   characterId: string;
   initialData?: LBLeaderboardResponse | null;
+  display?: LBCharacterDisplay | null;
 }
 
 /**
@@ -57,7 +58,7 @@ interface DeepLink {
   needsResolve: boolean;
 }
 
-export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProps> = ({ characterId, initialData }) => {
+export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProps> = ({ characterId, initialData, display }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { characters, fetters } = useGameData();
@@ -528,7 +529,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         baseName: t(character.nameI18n ?? { en: character.name }),
         roverElement: undefined,
       })
-    : `Character ${characterId}`;
+    : display?.name ?? `Character ${characterId}`;
 
   const setOptions = useMemo<SetOption[]>(() => (
     fetters
@@ -582,8 +583,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
             <LeaderboardCharacterHeader
               characterId={characterId}
               characterName={characterName}
-              characterHead={character?.head}
-              characterElement={character?.element ?? undefined}
+              characterHead={character?.head ?? display?.head ?? undefined}
+              characterElement={character?.element ?? display?.element ?? undefined}
               teamCharacterIds={configTeamCharacterIds}
               teamMembers={configTeamMembers}
               teamBuffs={configTeamBuffs}
@@ -692,6 +693,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               <LeaderboardResultsPanel
                 entries={displayEntries}
                 displayStats={boardDisplayStats}
+                characterDisplay={display}
                 deepLinkBuildId={revealBuildId ?? ''}
                 activeWeaponId={weaponId}
                 activeTrackKey={track}

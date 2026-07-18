@@ -2,6 +2,7 @@ import 'server-only';
 import fs from 'fs';
 import path from 'path';
 import { type CDNCharacter, adaptCDNCharacter, formatCharacterDisplayName, isRover } from '@/lib/character';
+import type { LBCharacterDisplay } from '@/lib/lb';
 import { getSplashUrlCandidates } from '@/lib/splashArt';
 
 type GenericRecord = Record<string, unknown>;
@@ -89,7 +90,7 @@ export function loadCharacterSummary(id: string) {
  * `Character {id}` until the ~6 MB client JSON fetch lands). Built once per
  * call from the same adapters the client uses, so values match exactly.
  */
-export function loadCharacterDisplayMap(): Record<string, { name: string; element: string; head: string | null }> {
+export function loadCharacterDisplayMap(): Record<string, LBCharacterDisplay> {
   const rawData = readJson('Characters.json');
   const entries: unknown[] = Array.isArray(rawData)
     ? rawData
@@ -97,12 +98,13 @@ export function loadCharacterDisplayMap(): Record<string, { name: string; elemen
       ? Object.values(rawData as GenericRecord)
       : [];
 
-  const map: Record<string, { name: string; element: string; head: string | null }> = {};
+  const map: Record<string, LBCharacterDisplay> = {};
   for (const entry of entries) {
     if (!entry || typeof entry !== 'object' || !('id' in entry)) continue;
     try {
       const char = adaptCDNCharacter(entry as CDNCharacter);
       map[char.id] = {
+        id: char.id,
         name: formatCharacterDisplayName(char, { baseName: char.name, roverElement: undefined }),
         element: char.element ? String(char.element).toLowerCase() : '',
         head: char.head ?? null,

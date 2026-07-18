@@ -156,7 +156,16 @@ export default async function CharacterLeaderboardPage({ params, searchParams }:
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <LeaderboardCharacterClient characterId={characterId} initialData={initialData} />
+      <LeaderboardCharacterClient
+        characterId={characterId}
+        initialData={initialData}
+        display={{
+          id: characterId,
+          name: characterName,
+          element: character.element ? String(character.element).toLowerCase() : '',
+          head: character.head ?? null,
+        }}
+      />
     </div>
   );
 }

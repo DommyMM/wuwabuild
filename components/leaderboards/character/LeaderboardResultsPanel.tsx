@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
-import { LBBuildDetailEntry, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortDirection } from '@/lib/lb';
+import { LBBuildDetailEntry, LBCharacterDisplay, LBLeaderboardEntry, LBLeaderboardSortKey, LBSortDirection } from '@/lib/lb';
 import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, ScoringMode, STAT_OPTION_KEYS, TABLE_ROW_HEIGHT_CLASS } from '../constants';
 import { getSortLabel } from '../formatters';
 import { BuildPagination } from '../BuildPagination';
@@ -19,6 +19,8 @@ const DAMAGE_SORT_KEY: LBLeaderboardSortKey = 'damage';
 interface LeaderboardResultsPanelProps {
   entries: LBLeaderboardEntry[];
   displayStats?: readonly StatSortKey[];
+  /** Server-resolved display fields for this board's character; SSR fallback for row names. */
+  characterDisplay?: LBCharacterDisplay | null;
   deepLinkBuildId: string;
   activeWeaponId: string;
   activeTrackKey: string;
@@ -51,6 +53,7 @@ interface LeaderboardResultsPanelProps {
 export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = ({
   entries,
   displayStats,
+  characterDisplay,
   deepLinkBuildId,
   activeWeaponId,
   activeTrackKey,
@@ -167,11 +170,48 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
       )}
 
       <div className="relative">
-        <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
-          <div className="w-max min-w-full">
+        <div className="scrollbar-thin overflow-x-hidden overflow-y-hidden pb-1 lg:overflow-x-auto [--scrollbar-height:2px] [--scrollbar-width:6px]">
+          <div className="w-full lg:w-max lg:min-w-full">
             <div className="overflow-hidden rounded-lg border border-border bg-background/70">
+              {/* Small screens: column headers are the sort UI on the wide layout, so
+                  the card list needs its own control. A native select gets the OS
+                  picker plus keyboard/screen-reader support for free. */}
+              <div className="flex items-center gap-2 border-b border-border bg-background-secondary/95 px-3 py-2 lg:hidden">
+                <label htmlFor="lb-mobile-sort" className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/55">
+                  Sort
+                </label>
+                <select
+                  id="lb-mobile-sort"
+                  value={sort}
+                  onChange={(event) => onSortChange(event.target.value as LBLeaderboardSortKey)}
+                  className="ml-auto min-w-0 rounded-md border border-border/45 bg-background-secondary/40 px-2 py-1 text-xs font-semibold text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                >
+                  <option value={DAMAGE_SORT_KEY}>{metricLabel}</option>
+                  <optgroup label="Crit">
+                    {cvOptions.map((option) => (
+                      <option key={`mobile-cv-${option.key}`} value={option.key}>{option.label}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Stats">
+                    {statOptions
+                      .filter((option) => !cvOptions.some((cvOption) => cvOption.key === option.key))
+                      .map((option) => (
+                        <option key={`mobile-stat-${option.key}`} value={option.key}>{option.label}</option>
+                      ))}
+                  </optgroup>
+                </select>
+                <button
+                  type="button"
+                  onClick={onToggleDirection}
+                  aria-label={`Sorted ${direction === 'asc' ? 'ascending' : 'descending'}. Change direction.`}
+                  className="shrink-0 rounded-md border border-border/45 bg-background-secondary/40 p-1 text-text-primary/70 transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                >
+                  <ChevronDown className={`h-4 w-4 transition-transform ${direction === 'asc' ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
               {/* Table header: Rank | Owner | Character | Sets | [CV+Stats+Metric] */}
-              <div className={`grid ${LB_TABLE_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
+              <div className={`hidden ${LB_TABLE_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-lg text-text-primary lg:grid`}>
                 <div className="py-2 text-center text-text-primary/70">#</div>
                 <div className="py-2">Owner</div>
                 <div className="py-2">Name</div>
@@ -288,21 +328,32 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                 {showInitialSkeleton && (
                   <div className="divide-y divide-border/60">
                     {Array.from({ length: pageSize }).map((_, index) => (
-                      <div
-                        key={index}
-                        className={`grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
-                      >
-                        <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
-                        <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
-                        <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
-                        <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
-                        <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-200 gap-0`}>
-                          <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
-                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                          <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
-                          <div className="ml-auto mr-4 h-3.5 w-20 animate-pulse rounded bg-background-secondary/80" />
+                      <div key={index} className="odd:bg-background/30 even:bg-background-secondary/20">
+                        <div
+                          className={`hidden ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 px-2 lg:grid`}
+                        >
+                          <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
+                          <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
+                          <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
+                          <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
+                          <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-200 gap-0`}>
+                            <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
+                            <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                            <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                            <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                            <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
+                            <div className="ml-auto mr-4 h-3.5 w-20 animate-pulse rounded bg-background-secondary/80" />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 px-3 py-3 lg:hidden">
+                          <div className="flex items-center gap-2">
+                            <div className="h-3.5 w-6 animate-pulse rounded bg-background-secondary/80" />
+                            <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
+                            <div className="ml-auto h-3.5 w-20 animate-pulse rounded bg-background-secondary/80" />
+                          </div>
+                          <div className="h-3 w-40 animate-pulse rounded bg-background-secondary/80" />
+                          <div className="h-3 w-52 animate-pulse rounded bg-background-secondary/80" />
                         </div>
                       </div>
                     ))}
@@ -321,6 +372,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                       <LeaderboardRow
                         key={entry.id}
                         entry={entry}
+                        characterDisplay={characterDisplay}
                         isGhost={entry.globalRank === 0 && entry.id === deepLinkBuildId}
                         activeWeaponId={activeWeaponId}
                         activeTrackKey={activeTrackKey}

@@ -35,6 +35,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Corrected Lucy leaderboard damage after a data sync dropped parts of her damage'
+            },
+            {
+                kind: 'fixed',
+                text: 'Character leaderboards no longer show a raw ID like "Character 1108" in the title while the page is still loading'
             }
         ]
     },
