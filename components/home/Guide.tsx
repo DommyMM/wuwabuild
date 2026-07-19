@@ -56,24 +56,19 @@ export function Guide() {
                 How to use
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] items-start gap-x-12 gap-y-8">
-                <HomeLink
-                    href="/import"
-                    cta="import"
-                    section="guide"
-                    className="group block"
-                >
+                <figure>
                     <img
                         src="/images/wuwa-bot-card.webp"
                         alt="Example wuwa-bot build card: Hiyuki with weapon, forte, and five echoes"
                         width={1440}
                         height={810}
-                        className="w-full rounded-lg border border-border transition-colors group-hover:border-accent/40"
+                        className="w-full rounded-lg border border-border"
                         loading="lazy"
                     />
-                    <p className="mt-2.5 font-mono text-[11px] text-text-primary/45">
+                    <figcaption className="mt-2.5 font-mono text-[11px] text-text-primary/45">
                         Import accepts only 1920×1080 wuwa-bot output
-                    </p>
-                </HomeLink>
+                    </figcaption>
+                </figure>
                 <ol className="flex flex-col gap-6">
                     {STEPS.map((step, i) => (
                         <li key={step.title} className="flex gap-3.5">
