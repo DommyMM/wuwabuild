@@ -18,11 +18,19 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'new',
-                text: 'The home page record card now shows what that run is actually made of, broken down by move type, and clicking it opens that exact build on its board',
+                text: 'Home page redesign and example card for tutorial',
             },
             {
                 kind: 'improved',
-                text: 'Move breakdown shows base multipliers inline instead of only on hover, labels the share and damage columns, and gives every damage type its own colour',
+                text: 'Move breakdown shows base multipliers, damage types etc',
+            },
+            {
+                kind: 'fixed',
+                text: 'Healer leaderboards now show S6 properly and have multipliers instead of arbitrary additions',
+            },
+            {
+                kind: 'fixed',
+                text: 'Electro Rover imports now work and preserve gender',
             },
         ],
     },

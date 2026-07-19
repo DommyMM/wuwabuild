@@ -15,6 +15,8 @@ export interface HomeBoardRecord {
     /** Best damage across the board's weapons; 0 = no record yet. */
     topDamage: number;
     topOwner: string;
+    /** Record holder's UID; pairs with topOwner for the search example. */
+    topOwnerUid: string;
     /** Weapon holding the board record, used to resolve weapon display and the matching #1 row. */
     topWeaponId: string;
     /** Rank-1 build id for that weapon; empty when the board has no record yet. */
@@ -42,6 +44,8 @@ export interface HomeHeroSlide {
     weaponIcon: string | null;
     damage: number;
     owner: string;
+    /** Owner's UID, paired with the name in the search placeholder example. */
+    ownerUid: string;
     /** Pre-formatted reign text ("#1 for 12 days"), computed server-side; null when unknown. */
     reignLabel: string | null;
 }

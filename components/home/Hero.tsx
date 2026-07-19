@@ -13,7 +13,13 @@ interface HeroProps {
     slides: HomeHeroSlide[];
     totalBuilds: number;
     totalLeaderboards: number;
+    /** Server-fetched move profile for slides[0], so the first paint already has the bar. */
+    initialProfile: TypeTotal[] | null;
 }
+
+const profileKeyOf = (slide: HomeHeroSlide | null) => (
+    slide?.buildId && slide.weaponId ? `${slide.buildId}:${slide.weaponId}:${slide.trackKey}` : ''
+);
 
 const ROTATE_MS = 6500;
 // prefers-reduced-motion as an external store: SSR assumes reduced (no
@@ -41,7 +47,7 @@ const ELEMENT_GLOW_RGB: Record<string, string> = {
     rover: '120, 146, 161',
 };
 
-export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
+export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }: HeroProps) {
     const [index, setIndex] = useState(0);
     const [paused, setPaused] = useState(false);
     // Bumps on hover release so the timer hairline remounts and restarts in
@@ -80,11 +86,15 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
     // This is the one thing on the page only this site can render: the board's
     // rank-1 run broken down by move type, straight from the damage engine.
     // Purely additive, so a failed or slow fetch just omits the bar.
-    const [profiles, setProfiles] = useState<Record<string, TypeTotal[]>>({});
-    const requestedRef = useRef<Set<string>>(new Set());
-    const profileKeyOf = (slide: HomeHeroSlide | null) => (
-        slide?.buildId && slide.weaponId ? `${slide.buildId}:${slide.weaponId}:${slide.trackKey}` : ''
-    );
+    // Seeded with the server-fetched profile for slides[0]: the first paint
+    // renders the bar from the ISR HTML, and the seeded key never refetches.
+    const [profiles, setProfiles] = useState<Record<string, TypeTotal[]>>(() => {
+        const firstKey = profileKeyOf(slides[0] ?? null);
+        return firstKey && initialProfile && initialProfile.length > 0
+            ? { [firstKey]: initialProfile }
+            : {};
+    });
+    const requestedRef = useRef<Set<string>>(new Set(Object.keys(profiles)));
     const activeProfileKey = profileKeyOf(active);
 
     useEffect(() => {
@@ -180,7 +190,12 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                 )}
 
                 <div id="home-profile-search" className="mt-7 scroll-mt-24">
-                    <ProfileSearch />
+                    {/* The placeholder example is the first slide's record holder: a
+                        real, searchable name and UID that teach both input forms. */}
+                    <ProfileSearch
+                        exampleName={slides[0]?.owner || undefined}
+                        exampleUid={slides[0]?.ownerUid || undefined}
+                    />
                 </div>
 
                 {/* Search is the primary action (its gold submit is the only solid accent

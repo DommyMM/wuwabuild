@@ -45,6 +45,14 @@ interface ProfileSearchProps {
     showSavedProfiles?: boolean;
     /** Panel variant: called on Escape so the host can dismiss the popover. */
     onRequestClose?: () => void;
+    /**
+     * Real player shown in the placeholder as a format example. The home hero
+     * feeds it the current record holder so it stays live data, never an
+     * invented handle. With both, the placeholder teaches both accepted forms
+     * ("Username or UID, e.g. yuuhi or 500006092").
+     */
+    exampleName?: string;
+    exampleUid?: string;
 }
 
 /** Enka-style entry point: type a UID or username, land on the profile. Empty focus shows pinned + recent visits. */
@@ -54,10 +62,17 @@ export function ProfileSearch({
     autoFocus = false,
     showSavedProfiles = true,
     onRequestClose,
+    exampleName,
+    exampleUid,
 }: ProfileSearchProps) {
     const router = useRouter();
     const isPanel = variant === 'panel';
     const isInline = variant === 'inline';
+    const placeholder = exampleName
+        ? exampleUid
+            ? `Username or UID, e.g. ${exampleName} or ${exampleUid}`
+            : `UID or username, e.g. ${exampleName}`
+        : 'Enter UID or username';
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResults>({ forQuery: '', matches: [] });
     const [saved, setSaved] = useState<Array<StoredProfile & { isPinned: boolean }>>([]);
@@ -273,7 +288,7 @@ export function ProfileSearch({
         </ul>
     ) : (
         <p className="px-4 py-3 text-sm text-text-primary/50">
-            {searching ? 'Searching...' : 'No players found. Import a build and yours will be here.'}
+            {searching ? 'Searching' : 'No players found. Import a build and yours will be here.'}
         </p>
     );
 
@@ -316,7 +331,7 @@ export function ProfileSearch({
                             }}
                             onFocus={openPanel}
                             onKeyDown={onKeyDown}
-                            placeholder="Enter UID or username..."
+                            placeholder={placeholder}
                             aria-label="Search players by UID or username"
                             className="min-w-0 flex-1 bg-transparent text-[15px] text-text-primary placeholder:text-text-primary/40 outline-none"
                         />
@@ -355,7 +370,7 @@ export function ProfileSearch({
                             }}
                             onFocus={openPanel}
                             onKeyDown={onKeyDown}
-                            placeholder="Enter UID or username..."
+                            placeholder={placeholder}
                             aria-label="Search players by UID or username"
                             className="min-w-0 flex-1 bg-transparent text-[15px] text-text-primary placeholder:text-text-primary/40 outline-none"
                         />
@@ -387,7 +402,7 @@ export function ProfileSearch({
                         }}
                         onFocus={openPanel}
                         onKeyDown={onKeyDown}
-                        placeholder="Enter UID or username..."
+                        placeholder={placeholder}
                         aria-label="Search players by UID or username"
                         className="min-w-0 flex-1 bg-transparent text-[15px] text-text-primary placeholder:text-text-primary/40 outline-none"
                     />

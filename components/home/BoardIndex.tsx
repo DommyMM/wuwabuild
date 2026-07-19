@@ -76,18 +76,13 @@ export function BoardIndex({ records }: BoardIndexProps) {
                                         {board.trackLabel || 'Standard rotation'}
                                     </span>
                                 </span>
-                                <span className="text-right">
-                                    <span className="block font-gowun text-[15px] leading-tight text-accent tabular-nums">
-                                        {board.topDamage > 0 ? Math.round(board.topDamage).toLocaleString('en-US') : '-'}
-                                    </span>
-                                    {/* Entry count only: it is what the list is ordered by, and it
-                                        stays legible so the ordering is explicable. The owner used
-                                        to sit here joined by a "·", which read as a second metric
-                                        when it actually qualifies the damage above it. It is already
-                                        on the hero record card and on the board itself. */}
-                                    <span className="block font-mono text-[11px] leading-tight text-text-primary/55 tabular-nums">
-                                        {board.totalEntries.toLocaleString('en-US')} {board.totalEntries === 1 ? 'entry' : 'entries'}
-                                    </span>
+                                {/* Entries is the ONLY figure: it is what the list is sorted by,
+                                    so it needs no label beyond its own unit. Record damage and its
+                                    holder used to sit here too, but cross-board damage is not
+                                    comparable, it duplicated the hero card, and unlabeled it read
+                                    as the ranking. That story lives on the hero card and the board. */}
+                                <span className="text-right text-[15px] font-medium leading-tight text-text-primary/85 tabular-nums">
+                                    {board.totalEntries.toLocaleString('en-US')} <span className="text-[11px] font-normal text-text-primary/45">{board.totalEntries === 1 ? 'entry' : 'entries'}</span>
                                 </span>
                             </HomeLink>
                         </li>

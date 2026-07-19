@@ -5,7 +5,8 @@ import type { HomeBoardRecord, HomeHeroSlide } from '@/components/home/types';
 import { buildLeaderboardHref } from '@/components/leaderboards/character/leaderboardCharacterQuery';
 import { parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { isHealTrackKey } from '@/lib/lb';
-import { prefetchLeaderboardOverview, prefetchBuilds } from '@/lib/lbServer';
+import { processMoves, type TypeTotal } from '@/lib/moveBreakdown';
+import { prefetchLeaderboardOverview, prefetchBuilds, prefetchBuildMoves } from '@/lib/lbServer';
 import { loadCharacterSummary, loadWeaponSummary } from '@/lib/server/gameData';
 
 export const revalidate = 600; // ISR: full page HTML cached at edge, re-rendered at most once per 10 min
@@ -74,6 +75,7 @@ function resolveHeroSlide(record: HomeBoardRecord): HomeHeroSlide | null {
         weaponIcon: weapon?.iconUrl ?? null,
         damage: record.topDamage,
         owner: record.topOwner,
+        ownerUid: record.topOwnerUid,
         reignLabel: reignLabelFor(record.topReignSince),
     };
 }
@@ -89,7 +91,7 @@ export default async function Home() {
     };
 
     const records: HomeBoardRecord[] = (overview ?? []).map((entry) => {
-        let top: { weaponId: string; buildId: string; damage: number; owner: { username: string }; reignSince: string } | null = null;
+        let top: { weaponId: string; buildId: string; damage: number; owner: { username: string; uid: string }; reignSince: string } | null = null;
         for (const weapon of entry.weapons) {
             if (weapon.damage > 0 && (!top || weapon.damage > top.damage)) top = weapon;
         }
@@ -108,6 +110,7 @@ export default async function Home() {
             totalEntries: entry.totalEntries,
             topDamage: top?.damage ?? 0,
             topOwner: top?.owner.username ?? '',
+            topOwnerUid: top?.owner.uid ?? '',
             topWeaponId: top?.weaponId ?? '',
             topBuildId: top?.buildId ?? '',
             topReignSince: top?.reignSince ?? '',
@@ -123,6 +126,16 @@ export default async function Home() {
     );
     const slides = slideCandidates.map(resolveHeroSlide)
         .filter((slide): slide is HomeHeroSlide => slide !== null);
+
+    // The first slide is what every visitor sees at first paint, so its move
+    // profile is baked into the ISR HTML (one upstream call per revalidate
+    // window). Later slides keep the lazy client fetch.
+    const first = slides[0];
+    let initialProfile: TypeTotal[] | null = null;
+    if (first?.buildId && first.weaponId) {
+        const moves = await prefetchBuildMoves(first.buildId, first.weaponId, first.trackKey);
+        if (moves && moves.length > 0) initialProfile = processMoves(moves).typeTotals;
+    }
 
     const jsonLd = {
         "@context": "https://schema.org",
@@ -173,7 +186,7 @@ export default async function Home() {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <HomePage lbStats={lbStats} slides={slides} records={records} />
+            <HomePage lbStats={lbStats} slides={slides} records={records} initialProfile={initialProfile} />
         </>
     );
 }

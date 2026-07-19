@@ -195,9 +195,9 @@ export const LB_SEQ_BADGE_COLORS = [
   'border-spectro/60 bg-spectro/20 text-spectro',
 ] as const;
 
-/** Parse sequence level from a track key, e.g. "s2_solo" -> 2, "s0" -> 0. */
+/** Parse the sequence token from a track key, e.g. "s2_solo" or "nuke_s6". */
 export function parseLBSeqLevel(trackKey: string): number {
-  const m = trackKey.match(/^s(\d+)/);
+  const m = trackKey.match(/(?:^|_)s(\d+)(?:_|$)/i);
   return m ? Math.min(6, parseInt(m[1], 10)) : 0;
 }
 

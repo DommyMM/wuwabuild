@@ -1,6 +1,6 @@
 // Server-only module: SSR prefetch against the LB API via the Cloudflare gateway
 import 'server-only';
-import { buildLeaderboardSearchParams, toFiniteNumber, parseBuildListResponsePayload, parseLeaderboardOverviewPayload, parseLeaderboardResponsePayload, LBListBuildsResponse, LBListBuildsResponseRaw, LBCharacterOverview, LBLeaderboardQuery, LBLeaderboardResponse, LBLeaderboardResponseRaw } from './lb';
+import { buildLeaderboardSearchParams, toFiniteNumber, parseBuildListResponsePayload, parseLeaderboardOverviewPayload, parseLeaderboardResponsePayload, LBListBuildsResponse, LBListBuildsResponseRaw, LBCharacterOverview, LBLeaderboardQuery, LBLeaderboardResponse, LBLeaderboardResponseRaw, LBMoveEntry } from './lb';
 import { LB_API_BASE } from './apiEndpoints';
 import { loadCharacterDisplayMap } from './server/gameData';
 
@@ -38,6 +38,40 @@ export async function prefetchBuilds(
     return parseBuildListResponsePayload(payload, 1, 12);
   } catch (err) {
     console.error('[lbServer] prefetchBuilds failed', err);
+    return null;
+  }
+}
+
+// Move breakdown for one build on one board. The home page bakes the first hero
+// slide's profile bar into the ISR HTML with this, so the record card's
+// signature graphic is present at first paint instead of popping in after
+// hydration. 404 (no computed moves) and failures both resolve to null: the
+// bar is an enhancement, never a blocking dependency.
+export async function prefetchBuildMoves(
+  buildId: string,
+  weaponId: string,
+  trackKey: string,
+): Promise<LBMoveEntry[] | null> {
+  try {
+    const url = `${LB_API_BASE}/build/${encodeURIComponent(buildId)}/moves/${encodeURIComponent(weaponId)}/${encodeURIComponent(trackKey)}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      next: { revalidate: PREFETCH_TTL_S },
+    });
+    if (!response.ok) {
+      if (response.status !== 404) {
+        console.error('[lbServer] prefetchBuildMoves non-OK response', {
+          buildId,
+          status: response.status,
+        });
+      }
+      return null;
+    }
+
+    const payload = await response.json() as { moves?: LBMoveEntry[] };
+    return Array.isArray(payload.moves) ? payload.moves : null;
+  } catch (err) {
+    console.error('[lbServer] prefetchBuildMoves failed', err);
     return null;
   }
 }

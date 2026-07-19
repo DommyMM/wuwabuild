@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { HomeLink } from './HomeLink';
 
 export interface FaqItem {
     /** Question text, used verbatim for both the rendered FAQ and the FAQPage schema. */
@@ -11,32 +12,49 @@ export interface FaqItem {
 
 export const FAQS: FaqItem[] = [
     {
-        q: 'Is this affiliated with Kuro Games?',
+        q: 'Is this affiliated with Kuro Games',
         a: 'No, independent fan tool. All game content and assets belong to Kuro Games.',
         text: 'No, independent fan tool. All game content and assets belong to Kuro Games.',
     },
     {
-        q: 'Can I edit my build after submitting?',
+        q: 'Can I edit my build after submitting',
         a: 'No. The build data is locked to what was scanned. You can only update your display name or UID before hitting submit.',
         text: 'No. The build data is locked to what was scanned. You can only update your display name or UID before hitting submit.',
     },
     {
-        q: "What's the difference between Builds and Leaderboards?",
-        a: 'Builds is an archive of all builds without damage, while Leaderboards standardize to specific weapons and conditions with calculated damage.',
-        text: 'Builds is an archive of all builds without damage, while Leaderboards standardize to specific weapons and conditions with calculated damage.',
+        q: "What's the difference between Builds and Leaderboards",
+        a: 'Builds is an archive of all builds without damage, while Leaderboards standardize to specific weapons and conditions with calculated damage',
+        text: 'Builds is an archive of all builds without damage, while Leaderboards standardize to specific weapons and conditions with calculated damage',
     },
     {
-        q: 'What is CV?',
+        q: 'What is CV',
         a: 'Crit Value: (Crit Rate × 2) + Crit DMG. Standard way to measure how well your crit stats rolled. Separate from leaderboard rank, which is based on computed damage.',
         text: 'Crit Value: (Crit Rate × 2) + Crit DMG. Standard way to measure how well your crit stats rolled. Separate from leaderboard rank, which is based on computed damage.',
     },
     {
-        q: 'What screenshot format does Import accept?',
+        q: 'What screenshot format does Import accept',
         a: 'Exactly and only the 1920×1080 wuwa-bot output. Screenshots or crops will ruin results and accuracy.',
         text: 'Exactly and only the 1920×1080 wuwa-bot output. Screenshots or crops will ruin results and accuracy.',
     },
     {
-        q: 'When is <character> getting added to Leaderboards?',
+        q: 'How do I get a shareable build card',
+        a: (
+            <>
+                Open the{' '}
+                <HomeLink href="/edit" cta="edit" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
+                    editor
+                </HomeLink>{' '}
+                or your{' '}
+                <HomeLink href="/profiles" cta="profile" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
+                    profile
+                </HomeLink>{' '}
+                page to view and download the build card for any imported build
+            </>
+        ),
+        text: 'Open the editor or your profile page to view and download the build card for any imported build',
+    },
+    {
+        q: 'When is <character> getting added to Leaderboards',
         a: (
             <>
                 Whenever I feel like it. Ask in the{' '}

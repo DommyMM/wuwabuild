@@ -2,6 +2,7 @@ import { Hero } from './Hero';
 import { BoardIndex } from './BoardIndex';
 import { NewsLog } from './NewsLog';
 import { Guide } from './Guide';
+import type { TypeTotal } from '@/lib/moveBreakdown';
 import type { HomeBoardRecord, HomeHeroSlide } from './types';
 
 interface HomePageProps {
@@ -11,15 +12,18 @@ interface HomePageProps {
     };
     slides: HomeHeroSlide[];
     records: HomeBoardRecord[];
+    /** Server-fetched move profile for slides[0], baked into the ISR HTML. */
+    initialProfile: TypeTotal[] | null;
 }
 
-export function HomePage({ lbStats, slides, records }: HomePageProps) {
+export function HomePage({ lbStats, slides, records, initialProfile }: HomePageProps) {
     return (
         <main className="bg-background">
             <Hero
                 slides={slides}
                 totalBuilds={lbStats.totalBuilds}
                 totalLeaderboards={lbStats.totalLeaderboards}
+                initialProfile={initialProfile}
             />
 
             <div className="mx-auto max-w-260 px-6 md:px-10 pb-4">
@@ -29,7 +33,7 @@ export function HomePage({ lbStats, slides, records }: HomePageProps) {
                     <NewsLog />
                 </div>
 
-                <div className="mt-12 md:mt-16 pt-10 border-t border-border">
+                <div className="mt-12 md:mt-16">
                     <Guide />
                 </div>
             </div>
