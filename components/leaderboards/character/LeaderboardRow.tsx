@@ -2,7 +2,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { ChevronDown, Crown } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
@@ -222,7 +222,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
-        className={`relative cursor-pointer overflow-hidden text-sm transition-colors ${
+        className={`relative grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 overflow-hidden text-sm transition-colors ${
           isGhost
             ? 'border-l-2 border-l-accent/60 bg-accent/6 hover:bg-accent/12'
             : 'odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10'
@@ -237,8 +237,6 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
           handleToggleExpand();
         }}
       >
-        {/* Wide layout: the full sortable table row. */}
-        <div className={`hidden ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 lg:grid ${LB_TABLE_GRID}`}>
           {/* Rank */}
           <div className={`relative flex h-full items-center justify-center py-1 text-center ${rankColor}`}>
             {showReignHold && reignHoldLabel && reignTitle ? (
@@ -348,91 +346,6 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
               )}
             </div>
           </div>
-        </div>
-
-        {/* Small screens: stacked card, no horizontal scroll. The Character
-            column is dropped on purpose — every row on a character board is the
-            same character. Anything omitted stays one tap away in the expansion. */}
-        <div className="flex flex-col gap-1.5 px-3 py-2.5 lg:hidden">
-          <div className="flex items-center gap-2">
-            <span className={`shrink-0 text-sm font-semibold tabular-nums ${rankColor}`}>
-              {showReignHold && reignHoldLabel && reignTitle ? (
-                <span
-                  className="inline-flex items-center gap-0.5 rounded border border-amber-300/50 bg-amber-400/14 px-1 py-0.5 text-[10px] leading-none text-amber-100"
-                  title={reignTitle}
-                  aria-label={reignAriaLabel}
-                >
-                  <Crown className="h-3 w-3 shrink-0 text-amber-300" aria-hidden="true" strokeWidth={3} />
-                  <span suppressHydrationWarning>{reignHoldLabel}</span>
-                </span>
-              ) : (
-                <span className="inline-block w-6 text-center">{rank > 0 ? rank : '—'}</span>
-              )}
-            </span>
-            <div className="min-w-0 flex-1">
-              <OwnerProfileLink
-                uid={entry.owner.uid}
-                username={entry.owner.username}
-                regionBadge={regionBadge}
-              />
-            </div>
-            <span className="shrink-0 text-sm font-semibold tabular-nums">
-              {entry.damage > 0 ? (
-                <span className="text-accent">{Math.round(entry.damage).toLocaleString()}</span>
-              ) : (
-                <span className="text-text-primary/30">—</span>
-              )}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 pl-8">
-            {computedActiveSets.length === 0 ? (
-              <span className="text-[11px] text-text-primary/50">No set</span>
-            ) : (
-              computedActiveSets.map((setEntry) => (
-                <span key={setEntry.setId} className="flex items-end gap-0.5">
-                  {setEntry.icon ? (
-                    <img src={setEntry.icon} alt="" title={setEntry.name} className="h-5 w-5" loading="lazy" />
-                  ) : null}
-                  <span className="-mb-px text-[10px] font-semibold leading-none text-primary">
-                    {setEntry.count}
-                  </span>
-                </span>
-              ))
-            )}
-            <span
-              className={`text-xs tracking-wide ${isHighestCV ? 'cv-glow' : ''}`}
-              style={isHighestCV ? undefined : { color: finalCvColor }}
-            >
-              {entry.finalCV.toFixed(1)} CV
-            </span>
-            <ChevronDown
-              className={`ml-auto h-4 w-4 shrink-0 transition-transform ${isExpanded ? 'rotate-180 text-accent' : 'text-text-primary/40'}`}
-              aria-hidden="true"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-8">
-            {statCells.map((cell) => (
-              <span
-                key={`${entry.id}-card-${cell.key}`}
-                className="flex items-center gap-1 text-xs text-text-primary/80"
-                title={cell.title}
-              >
-                {cell.icon ? (
-                  <img
-                    src={cell.icon}
-                    alt=""
-                    className="h-3.5 w-3.5 shrink-0 object-contain"
-                    style={cell.iconFilter ? { filter: cell.iconFilter } : undefined}
-                    loading="lazy"
-                  />
-                ) : null}
-                <span className={`tabular-nums ${cell.valueClass}`}>{cell.formatted}</span>
-              </span>
-            ))}
-          </div>
-        </div>
       </div>
 
       {shouldRenderExpanded && (

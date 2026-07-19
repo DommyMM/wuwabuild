@@ -267,6 +267,17 @@ body {
   animation: char-sig-rover 8.6s linear infinite alternate;
 }
 
+/* Keeps the element gradient, drops the perpetual flow. For lists where many
+   names repeat (home board index): a dozen infinitely animating gradients is
+   continuous compositing for decoration, and it makes the showcase name in the
+   hero feel ordinary. Two classes so it outranks the .char-sig.<element> rules
+   above, which set their own animation; relies on source order at equal
+   specificity, so it must stay after them. */
+.char-sig.char-sig-static {
+  animation: none;
+  background-position: 50% 50%;
+}
+
 .level-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -448,8 +459,11 @@ body {
   to { transform: scale(1); }
 }
 
+/* Arrives and rests. A linear ramp across the full 6.5s slide never settles, so
+   the art drifts continuously and reads restless; an ease-out that finishes
+   early lets it land and hold for the remainder. */
 .hero-settle {
-  animation: hero-settle 6500ms linear both;
+  animation: hero-settle 2000ms cubic-bezier(0.16, 1, 0.3, 1) both;
   transform-origin: center bottom;
 }
 

@@ -811,6 +811,8 @@ export async function getEchoUsages(
 
 interface LBWeaponTop {
   weaponId: string;
+  /** Rank-1 build on this board; deep-links the record and keys its move breakdown. */
+  buildId: string;
   damage: number;
   owner: { username: string; uid: string };
   /** RFC3339 start of the current rank-1 hold for this weapon/track board. */
@@ -1088,6 +1090,7 @@ export function parseLeaderboardOverviewPayload(payload: unknown): LBCharacterOv
         const owner = isRecord(w.owner) ? w.owner : {};
         return {
           weaponId: typeof w.weaponId === 'string' ? w.weaponId : '',
+          buildId: typeof w.buildId === 'string' ? w.buildId : '',
           damage: toFiniteNumber(w.damage),
           owner: {
             username: typeof owner.username === 'string' ? owner.username : '',

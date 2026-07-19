@@ -28,7 +28,7 @@ export function BoardIndex({ records }: BoardIndexProps) {
         <section>
             <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 mb-5">
                 <h2 className="font-plus-jakarta text-xl md:text-2xl font-medium tracking-[-0.01em]">
-                    Top boards
+                    Top leaderboards
                 </h2>
                 <HomeLink
                     href="/leaderboards"
@@ -63,7 +63,7 @@ export function BoardIndex({ records }: BoardIndexProps) {
                                 )}
                                 <span className="min-w-0">
                                     <span className="flex items-center gap-2 min-w-0">
-                                        <span className={`truncate text-[15px] leading-tight font-semibold ${board.element ? `char-sig ${board.element}` : 'text-text-primary'}`}>
+                                        <span className={`truncate text-[15px] leading-tight font-semibold ${board.element ? `char-sig char-sig-static ${board.element}` : 'text-text-primary'}`}>
                                             {board.name}
                                         </span>
                                         {board.seqLevel > 0 && (
@@ -80,8 +80,12 @@ export function BoardIndex({ records }: BoardIndexProps) {
                                     <span className="block font-gowun text-[15px] leading-tight text-accent tabular-nums">
                                         {board.topDamage > 0 ? Math.round(board.topDamage).toLocaleString('en-US') : '-'}
                                     </span>
-                                    <span className="block font-mono text-[10px] leading-tight text-text-primary/40 tabular-nums">
-                                        {board.topDamage > 0 && board.topOwner ? `${board.topOwner} · ` : ''}
+                                    {/* Entry count only: it is what the list is ordered by, and it
+                                        stays legible so the ordering is explicable. The owner used
+                                        to sit here joined by a "·", which read as a second metric
+                                        when it actually qualifies the damage above it. It is already
+                                        on the hero record card and on the board itself. */}
+                                    <span className="block font-mono text-[11px] leading-tight text-text-primary/55 tabular-nums">
                                         {board.totalEntries.toLocaleString('en-US')} {board.totalEntries === 1 ? 'entry' : 'entries'}
                                     </span>
                                 </span>

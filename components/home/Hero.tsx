@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { HomeLink } from './HomeLink';
 import { ProfileSearch } from './ProfileSearch';
 import { LB_SEQ_BADGE_COLORS } from '../leaderboards/constants';
 import { getHeroSplashOffset } from '@/lib/splashArt';
+import { getBuildMoves } from '@/lib/lb';
+import { processMoves, typeMeta, type TypeTotal } from '@/lib/moveBreakdown';
 import type { HomeHeroSlide } from './types';
 
 interface HeroProps {
@@ -48,8 +50,12 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
     // The record being scanned out: held under the incoming slide for the
     // wipe's duration so the sweep replaces content instead of fading it.
     const [leaving, setLeaving] = useState<HomeHeroSlide | null>(null);
+    // Touch users cannot hover to pause, so the first deliberate touch on the
+    // record card stops rotation for good. The card is a link, and a swap timed
+    // under a thumb would open a board the user never chose.
+    const [stopped, setStopped] = useState(false);
     const reducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getReducedMotionServer);
-    const rotates = slides.length >= 2 && !reducedMotion;
+    const rotates = slides.length >= 2 && !reducedMotion && !stopped;
     const prevIndex = slides.length > 0 ? (index - 1 + slides.length) % slides.length : 0;
     const nextIndex = slides.length > 0 ? (index + 1) % slides.length : 0;
 
@@ -70,6 +76,41 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
 
     const active = slides[index] ?? null;
 
+    // The record's own damage profile, fetched for whichever slide is showing.
+    // This is the one thing on the page only this site can render: the board's
+    // rank-1 run broken down by move type, straight from the damage engine.
+    // Purely additive, so a failed or slow fetch just omits the bar.
+    const [profiles, setProfiles] = useState<Record<string, TypeTotal[]>>({});
+    const requestedRef = useRef<Set<string>>(new Set());
+    const profileKeyOf = (slide: HomeHeroSlide | null) => (
+        slide?.buildId && slide.weaponId ? `${slide.buildId}:${slide.weaponId}:${slide.trackKey}` : ''
+    );
+    const activeProfileKey = profileKeyOf(active);
+
+    useEffect(() => {
+        if (!activeProfileKey || !active) return;
+        if (requestedRef.current.has(activeProfileKey)) return;
+        requestedRef.current.add(activeProfileKey);
+
+        const controller = new AbortController();
+        void getBuildMoves(active.buildId, active.weaponId, active.trackKey, controller.signal)
+            .then((moves) => {
+                if (controller.signal.aborted) return;
+                setProfiles((prev) => ({ ...prev, [activeProfileKey]: processMoves(moves).typeTotals }));
+            })
+            .catch(() => {
+                // Let a later pass retry: rotating away aborts in-flight requests,
+                // and the bar is an enhancement, never a blocking failure.
+                requestedRef.current.delete(activeProfileKey);
+            });
+        return () => controller.abort();
+    }, [activeProfileKey, active]);
+
+    const profileFor = (slide: HomeHeroSlide | null): TypeTotal[] | null => {
+        const key = profileKeyOf(slide);
+        return key ? profiles[key] ?? null : null;
+    };
+
     return (
         <section className="relative overflow-visible border-b border-border">
             {/* Rotating splash art of each character's record holder */}
@@ -81,8 +122,10 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                         return (
                             <div
                                 key={`${slide.characterId}:${slide.trackKey}`}
+                                // Settle duration lives in CSS so the art can arrive and
+                                // rest. Pinning it to ROTATE_MS made it drift for the whole
+                                // slide and never come to rest.
                                 className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === index ? 'hero-settle opacity-100' : 'opacity-0'}`}
-                                style={{ animationDuration: `${ROTATE_MS}ms` }}
                             >
                                 {glowRgb && (
                                     <div
@@ -109,60 +152,68 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                 </div>
             )}
 
-            <div className="relative mx-auto max-w-260 px-6 md:px-10 py-12 md:py-24">
+            <div className="relative mx-auto max-w-260 px-6 md:px-10 py-14 md:py-28">
                 <h1 className="font-plus-jakarta font-medium text-text-primary max-w-3xl">
-                    <span className="block text-[10px] md:text-sm font-semibold uppercase tracking-[0.18em] md:tracking-[0.22em] text-text-primary/55 mb-4">
+                    <span className="block font-mono text-[10px] md:text-xs font-semibold uppercase tracking-[0.22em] text-text-primary/55 mb-4">
                         Wuthering Waves Character Builds &amp; Leaderboard
                     </span>
-                    <span className="block text-[38px] md:text-6xl leading-[1.04] tracking-[-0.03em]">
+                    <span className="block text-[40px] md:text-6xl leading-[1.02] tracking-[-0.03em]">
                         Scan your stats<br />
-                        <span className="text-accent italic font-normal">Rank</span> your damage
+                        {/* Italic leans right and the tracking is negative, so the word
+                            space optically collapses. Em-based padding scales with size. */}
+                        <span className="text-accent italic font-normal pr-[0.08em]">Rank</span> your damage
                     </span>
                 </h1>
 
-                <p className="mt-5 max-w-xl text-base md:text-lg leading-normal text-text-primary/65">
-                    Search any player, or import your own build from a wuwa-bot screenshot
-                    {totalBuilds > 0 && (
-                        <span className="block mt-1 font-mono text-xs text-text-primary/45 tabular-nums">
-                            {totalBuilds.toLocaleString('en-US')} builds across {totalLeaderboards} boards
-                        </span>
-                    )}
+                {/* State the differentiator plainly: this is a damage engine, not OCR
+                    plus a list. Search-by-UID is a genre convention, the simulation is not. */}
+                <p className="mt-5 max-w-xl text-base md:text-lg leading-normal text-text-primary/70">
+                    Search any player, or import your own from a wuwa-bot screenshot.
+                    Every board simulates one standardized rotation, move by move, so
+                    damage is comparable.
                 </p>
+
+                {totalBuilds > 0 && (
+                    <p className="mt-3 font-mono text-xs text-text-primary/55 tabular-nums">
+                        {totalBuilds.toLocaleString('en-US')} builds · {totalLeaderboards} boards
+                    </p>
+                )}
 
                 <div id="home-profile-search" className="mt-7 scroll-mt-24">
                     <ProfileSearch />
                 </div>
 
-                <div className="mt-6 flex items-center gap-5 md:gap-6">
+                {/* Search is the primary action (its gold submit is the only solid accent
+                    fill in the hero); import steps down to an outline so a first-timer with
+                    a screenshot still sees it without it outweighing search. */}
+                <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 md:gap-x-6">
                     <HomeLink
                         href="/import"
                         cta="import"
                         section="hero"
-                        className="gold-glow inline-flex items-center gap-2.5 rounded-sm bg-accent px-5 py-2.5 text-[15px] font-semibold tracking-[0.02em] text-background hover:bg-accent-hover"
+                        className="inline-flex items-center gap-2.5 rounded-sm border border-accent/50 px-5 py-2.5 text-[15px] font-semibold tracking-[0.02em] text-accent transition-colors hover:border-accent hover:bg-accent/10"
                     >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                             <path d="M12 15V3m0 0l-4 4m4-4l4 4M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3" />
                         </svg>
                         Import a build
                     </HomeLink>
-                    <div className="flex flex-col gap-y-1.5 md:flex-row md:items-center md:gap-x-6">
-                        <HomeLink
-                            href="/leaderboards"
-                            cta="leaderboards"
-                            section="hero"
-                            className="text-sm text-text-primary/70 transition-colors hover:text-accent"
-                        >
-                            Leaderboards →
-                        </HomeLink>
-                        <HomeLink
-                            href="/builds"
-                            cta="builds"
-                            section="hero"
-                            className="text-sm text-text-primary/70 transition-colors hover:text-accent"
-                        >
-                            All builds →
-                        </HomeLink>
-                    </div>
+                    <HomeLink
+                        href="/leaderboards"
+                        cta="leaderboards"
+                        section="hero"
+                        className="text-sm text-text-primary/70 transition-colors hover:text-accent"
+                    >
+                        Leaderboards →
+                    </HomeLink>
+                    <HomeLink
+                        href="/builds"
+                        cta="builds"
+                        section="hero"
+                        className="text-sm text-text-primary/70 transition-colors hover:text-accent"
+                    >
+                        All builds →
+                    </HomeLink>
                 </div>
 
                 {/* Record panel for the active slide */}
@@ -171,6 +222,12 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                         className="mt-8 max-w-95 md:absolute md:bottom-6 md:right-6 md:mt-0 md:w-90"
                         onMouseEnter={() => setPaused(true)}
                         onMouseLeave={() => {
+                            setPaused(false);
+                            setResumes((current) => current + 1);
+                        }}
+                        onTouchStart={() => setStopped(true)}
+                        onFocusCapture={() => setPaused(true)}
+                        onBlurCapture={() => {
                             setPaused(false);
                             setResumes((current) => current + 1);
                         }}
@@ -206,7 +263,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                                         style={{ animationDuration: `${SCAN_MS}ms` }}
                                         aria-hidden
                                     >
-                                        <RecordSlideContent slide={leaving} />
+                                        <RecordSlideContent slide={leaving} profile={profileFor(leaving)} />
                                     </div>
                                 )}
                                 <div
@@ -214,7 +271,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                                     className="hero-scan-in relative"
                                     style={{ animationDuration: `${SCAN_MS}ms` }}
                                 >
-                                    <RecordSlideContent slide={active} />
+                                    <RecordSlideContent slide={active} profile={profileFor(active)} />
                                 </div>
                                 <span
                                     key={`scan:${active.characterId}:${active.trackKey}`}
@@ -222,6 +279,13 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
                                     style={{ animationDuration: `${SCAN_MS}ms` }}
                                     aria-hidden
                                 />
+                            </div>
+                            {/* Stable footer under the swapping record: makes the card's
+                                clickability explicit (a cold visitor's zero-asset action). */}
+                            <div className="flex items-center justify-end border-t border-border/60 px-4 py-2">
+                                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-accent/70 transition-colors group-hover:text-accent">
+                                    Open board →
+                                </span>
                             </div>
                         </HomeLink>
                     </div>
@@ -233,32 +297,28 @@ export function Hero({ slides, totalBuilds, totalLeaderboards }: HeroProps) {
 
 /* Inner record rows, padding included, so the leaving and incoming copies
    stack pixel-identically and the clip reveal tracks the card's full width. */
-function RecordSlideContent({ slide }: { slide: HomeHeroSlide }) {
+function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile: TypeTotal[] | null }) {
     return (
         <div className="px-4 py-3.5">
-            <div className="flex items-baseline justify-between gap-3">
-                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-primary/45">
-                    Highest damage
-                </span>
-                {slide.reignLabel && (
-                    <span className="font-mono text-[10px] text-accent/80 tabular-nums">
-                        {slide.reignLabel}
-                    </span>
-                )}
-            </div>
-
-            <div className="mt-1.5 flex items-center gap-2 min-w-0">
+            {/* Title, sequence, and reign share one line. The old "Board record"
+                label was a static line of chrome, and "#1 for N days" already says
+                what this is. Character and track read as one char-sig title with the
+                sequence pill trailing, mirroring LeaderboardCharacterHeader. */}
+            <div className="flex items-center gap-2 min-w-0">
                 <span className={`truncate text-lg font-semibold leading-tight ${slide.element ? `char-sig ${slide.element}` : 'text-text-primary'}`}>
-                    {slide.name}
+                    {slide.trackLabel ? `${slide.name} - ${slide.trackLabel}` : slide.name}
                 </span>
                 {slide.seqLevel > 0 && (
-                    <span className={`shrink-0 rounded border px-1 py-0.5 text-[10px] font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[slide.seqLevel]}`}>
+                    // Caps and digits have no descenders, so in a leading-none box the
+                    // glyphs sit high and the empty descender space below reads as extra
+                    // bottom padding. 1px more top than bottom re-centers it optically.
+                    <span className={`shrink-0 rounded-full border px-2 pt-[5px] pb-[4px] text-[10px] font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[slide.seqLevel]}`}>
                         S{slide.seqLevel}
                     </span>
                 )}
-                {slide.trackLabel && (
-                    <span className="shrink-0 text-xs text-text-primary/50">
-                        {slide.trackLabel}
+                {slide.reignLabel && (
+                    <span className="ml-auto shrink-0 font-mono text-[10px] text-accent/80 tabular-nums">
+                        {slide.reignLabel}
                     </span>
                 )}
             </div>
@@ -268,8 +328,11 @@ function RecordSlideContent({ slide }: { slide: HomeHeroSlide }) {
                     <div className="font-gowun text-[26px] leading-none text-accent tabular-nums">
                         {Math.round(slide.damage).toLocaleString('en-US')}
                     </div>
+                    {/* No ↗ here: the whole card links to the board, not to this
+                        player's profile, and an arrow on the owner line promised a
+                        profile link it does not deliver. */}
                     <div className="mt-1.5 truncate font-mono text-[10px] text-text-primary/50">
-                        by {slide.owner || 'Anonymous'} ↗
+                        by {slide.owner || 'Anonymous'}
                     </div>
                 </div>
                 {slide.weaponIcon && (
@@ -288,6 +351,37 @@ function RecordSlideContent({ slide }: { slide: HomeHeroSlide }) {
                     </div>
                 )}
             </div>
+
+            {/* Where that damage came from, by move type, from the same engine and
+                the same palette as the full breakdown panel. Renders only once the
+                fetch lands, so the card never reserves space for missing data. */}
+            {profile && profile.length > 0 && (
+                <div className="mt-3">
+                    <div className="flex h-1.5 gap-px overflow-hidden rounded-full">
+                        {profile.map((total) => (
+                            <div
+                                key={total.type}
+                                className="min-w-[2px]"
+                                style={{ width: `${total.percentage}%`, backgroundColor: typeMeta(total.type).color }}
+                            />
+                        ))}
+                    </div>
+                    {/* Two labels, never wrapping: three long type names spill onto a
+                        second line and the card starts to look ragged. The bar above
+                        still carries every segment, so this is a key, not the data. */}
+                    <div className="mt-1.5 flex items-center gap-x-2.5 overflow-hidden font-mono text-[9.5px] uppercase tracking-widest text-text-primary/50">
+                        {profile.slice(0, 2).map((total) => (
+                            <span key={total.type} className="flex shrink-0 items-center gap-1 whitespace-nowrap">
+                                <span
+                                    className="h-1.5 w-1.5 shrink-0 rounded-[2px]"
+                                    style={{ backgroundColor: typeMeta(total.type).color }}
+                                />
+                                {typeMeta(total.type).label} {total.percentage.toFixed(0)}%
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

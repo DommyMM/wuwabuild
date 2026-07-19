@@ -182,7 +182,7 @@ export function Navigation() {
 
     return (
         <>
-            <nav className="sticky top-0 z-50 bg-background-secondary border-b border-border py-2 px-1 mb-2.5">
+            <nav className="sticky top-0 z-50 bg-background-secondary border-b border-border py-2 px-1">
                 <div className="flex items-center gap-5 w-[calc(100%-36px)] ml-10 font-gowun max-md:ml-4 max-md:w-[calc(100%-32px)] max-md:justify-between">
                     <Link
                         href="/"

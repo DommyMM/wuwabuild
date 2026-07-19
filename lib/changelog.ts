@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-18',
+        changes: [
+            {
+                kind: 'new',
+                text: 'The home page record card now shows what that run is actually made of, broken down by move type, and clicking it opens that exact build on its board',
+            },
+            {
+                kind: 'improved',
+                text: 'Move breakdown shows base multipliers inline instead of only on hover, labels the share and damage columns, and gives every damage type its own colour',
+            },
+        ],
+    },
+    {
         date: '2026-07-17',
         changes: [
             {

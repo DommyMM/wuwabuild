@@ -17,6 +17,8 @@ export interface HomeBoardRecord {
     topOwner: string;
     /** Weapon holding the board record, used to resolve weapon display and the matching #1 row. */
     topWeaponId: string;
+    /** Rank-1 build id for that weapon; empty when the board has no record yet. */
+    topBuildId: string;
     /** RFC3339 start of the selected weapon's current rank-1 hold; empty when unknown. */
     topReignSince: string;
     isHeal: boolean;
@@ -26,7 +28,11 @@ export interface HomeBoardRecord {
 export interface HomeHeroSlide {
     characterId: string;
     trackKey: string;
+    /** Deep link to this exact record: board href carrying weaponId + buildId. */
     href: string;
+    /** Record build + its weapon, so the client can fetch that run's move breakdown. */
+    buildId: string;
+    weaponId: string;
     name: string;
     element: string;
     seqLevel: number;

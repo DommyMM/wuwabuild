@@ -86,6 +86,13 @@ Everything we currently sync is reachable from Encore. The mapping isn't always 
 | `preferredStats` | derived locally from tags + skill-tree node names — same logic, just different inputs |
 | `sequenceIcon` | `SpilloverItem[].Key` → `/{lang}/item/{id}.Icon` |
 
+The default Wuthery path resolves the same relationship from
+`ConfigDBParsed/RoleInfo.json`: each active character's `SpilloverItem` key is
+the grouped Item id whose icon becomes `sequenceIcon`. Do not infer the item as
+`1000<character id>` or maintain Rover exceptions; several Rover variants share
+items or use ids that do not follow that convention. `Grouped/Character` omits
+this relationship even though the underlying `RoleInfo.json` retains it.
+
 ### Caveats
 
 - **Forte node `coordinate`/`parentNodes` are derived, not read.** Encore's `SkillTree[]` array order is inconsistent (some characters list the outer/coordinate-2 group first, others the inner/coordinate-1 group first) and the nodes carry no positional metadata. `transform_skill_trees` sorts the 8 nodes by `Id`: the four lowest-Id nodes are coordinate 1 / branches `[1,2,3,6]`, the four highest are coordinate 2 / branches `[9,10,11,12]`. This reproduces Wuthery's `coordinate`/`parentNodes` for every character (verified across all 53). `skillTrees[].value[].Id` is aligned to Wuthery's canonical stat IDs in `STAT_ID_BY_NODE_NAME`.

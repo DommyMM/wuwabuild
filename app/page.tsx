@@ -50,10 +50,21 @@ function resolveHeroSlide(record: HomeBoardRecord): HomeHeroSlide | null {
     const splashUrl = loadCharacterSummary(record.characterId)?.splashUrl ?? null;
     if (!splashUrl) return null;
     const weapon = record.topWeaponId ? loadWeaponSummary(record.topWeaponId) : null;
+    // Deep link to the record itself, not just its board: pin the weapon the record
+    // was set on and the build id, so the leaderboard opens with that row expanded.
+    const href = record.topBuildId
+        ? buildLeaderboardHref(record.characterId, {
+            track: record.trackKey,
+            weaponId: record.topWeaponId,
+            buildId: record.topBuildId,
+        })
+        : record.href;
     return {
         characterId: record.characterId,
         trackKey: record.trackKey,
-        href: record.href,
+        href,
+        buildId: record.topBuildId,
+        weaponId: record.topWeaponId,
         name: record.name,
         element: record.element,
         seqLevel: record.seqLevel,
@@ -78,7 +89,7 @@ export default async function Home() {
     };
 
     const records: HomeBoardRecord[] = (overview ?? []).map((entry) => {
-        let top: { weaponId: string; damage: number; owner: { username: string }; reignSince: string } | null = null;
+        let top: { weaponId: string; buildId: string; damage: number; owner: { username: string }; reignSince: string } | null = null;
         for (const weapon of entry.weapons) {
             if (weapon.damage > 0 && (!top || weapon.damage > top.damage)) top = weapon;
         }
@@ -98,6 +109,7 @@ export default async function Home() {
             topDamage: top?.damage ?? 0,
             topOwner: top?.owner.username ?? '',
             topWeaponId: top?.weaponId ?? '',
+            topBuildId: top?.buildId ?? '',
             topReignSince: top?.reignSince ?? '',
             isHeal: isHealTrackKey(entry.trackKey),
         };
