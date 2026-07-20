@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-20',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Hover details now close cleanly when their trigger is selected instead of sticking over nearby content',
+            },
+            {
+                kind: 'improved',
+                text: 'Reference benchmarks now optimize every roll tier independently, honor Energy Regen and score bonuses, and show a clearer loadout and final-stat summary',
+            },
+        ],
+    },
+    {
         date: '2026-07-18',
         changes: [
             {

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { ReactNode } from 'react';
+import React from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { HoverTooltip } from '@/components/ui/HoverTooltip';
 
-type TooltipPlacement = 'right' | 'left' | 'top' | 'bottom';
+export type HoverCardPlacement = 'right' | 'left' | 'top' | 'bottom';
 
 type ChipTone = 'default' | 'amber' | 'cyan';
 type BadgeTone = 'orange' | 'amber' | 'cyan' | 'muted';
@@ -19,7 +20,7 @@ export interface HoverCardChipModel {
 
 interface HoverCardProps {
   children: ReactNode;
-  placement?: TooltipPlacement;
+  placement?: HoverCardPlacement;
   strictPlacement?: boolean;
   disabled?: boolean;
   triggerClassName?: string;
@@ -35,9 +36,9 @@ interface HoverCardProps {
 }
 
 const WIDTH_CLASS: Record<NonNullable<HoverCardProps['width']>, string> = {
-  sm: 'w-[18rem]',
-  md: 'w-96',
-  lg: 'w-96',
+  sm: 'w-[18rem] max-w-[calc(100vw-1rem)]',
+  md: 'w-96 max-w-[calc(100vw-1rem)]',
+  lg: 'w-[30rem] max-w-[calc(100vw-1rem)]',
 };
 
 const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
@@ -74,7 +75,7 @@ interface HoverCardIconProps {
   imgClassName?: string;
 }
 
-export const HoverCardIcon: React.FC<HoverCardIconProps> = ({
+export function HoverCardIcon({
   src,
   alt = '',
   size = DEFAULT_ICON_SIZE,
@@ -83,69 +84,75 @@ export const HoverCardIcon: React.FC<HoverCardIconProps> = ({
   cornerBadge,
   bottomDecoration,
   imgClassName = 'h-full w-full object-contain',
-}) => (
-  <div
-    style={{ width: size, height: size }}
-    className={`relative flex items-center justify-center overflow-hidden rounded-xl border bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.09)_24%,transparent_58%),linear-gradient(145deg,rgba(120,90,54,0.88)_0%,rgba(47,48,48,0.96)_48%,rgba(20,21,22,0.98)_100%)] ${borderClass} ${bgClass} shadow-[0_10px_22px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.14)]`}
-  >
-    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.16)_0%,transparent_36%,rgba(0,0,0,0.20)_100%)]" />
-    {src && <img src={src} alt={alt} className={imgClassName} loading="lazy" />}
-    {cornerBadge && (
-      <div className="pointer-events-none absolute -top-1 -right-1 z-10">
-        {cornerBadge}
-      </div>
-    )}
-    {bottomDecoration && (
-      <div className="pointer-events-none absolute right-0 bottom-1 left-0 z-10 flex items-end justify-center leading-none [text-shadow:0_1px_2px_rgba(0,0,0,0.85)]">
-        {bottomDecoration}
-      </div>
-    )}
-  </div>
-);
+}: HoverCardIconProps) {
+  return (
+    <div
+      style={{ width: size, height: size }}
+      className={`relative flex items-center justify-center overflow-hidden rounded-xl border bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.09)_24%,transparent_58%),linear-gradient(145deg,rgba(120,90,54,0.88)_0%,rgba(47,48,48,0.96)_48%,rgba(20,21,22,0.98)_100%)] ${borderClass} ${bgClass} shadow-[0_10px_22px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.14)]`}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.16)_0%,transparent_36%,rgba(0,0,0,0.20)_100%)]" />
+      {src && <img src={src} alt={alt} width={size} height={size} className={imgClassName} loading="lazy" />}
+      {cornerBadge && (
+        <div className="pointer-events-none absolute -top-1 -right-1 z-10">
+          {cornerBadge}
+        </div>
+      )}
+      {bottomDecoration && (
+        <div className="pointer-events-none absolute right-0 bottom-1 left-0 z-10 flex items-end justify-center leading-none [text-shadow:0_1px_2px_rgba(0,0,0,0.85)]">
+          {bottomDecoration}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface HoverCardChipsProps {
   chips: HoverCardChipModel[];
 }
 
-const HoverCardChips: React.FC<HoverCardChipsProps> = ({ chips }) => (
-  <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
-    {chips.map((chip, i) => {
-      const toneClass = chip.color
-        ? ''
-        : chip.tone === 'amber'
-          ? 'border-amber-300/30 bg-amber-300/12 text-amber-100/95'
-          : chip.tone === 'cyan'
-            ? 'border-cyan-300/30 bg-cyan-300/12 text-cyan-100/95'
-            : 'border-white/10 bg-black/30 text-white/82';
-      const colorStyle: React.CSSProperties | undefined = chip.color
-        ? {
-          borderColor: `color-mix(in srgb, ${chip.color} 42%, transparent)`,
-          backgroundColor: `color-mix(in srgb, ${chip.color} 15%, transparent)`,
-          color: `color-mix(in srgb, ${chip.color} 80%, white)`,
-        }
-        : undefined;
-      return (
-        <span
-          key={i}
-          className={`flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${toneClass}`}
-          style={colorStyle}
-        >
-          {chip.icon && (
-            <img
-              src={chip.icon}
-              alt={chip.iconAlt ?? ''}
-              className="h-3.5 w-3.5 object-contain"
-              loading="lazy"
-            />
-          )}
-          {chip.label !== undefined && (
-            <span className="font-semibold">{chip.label}</span>
-          )}
-        </span>
-      );
-    })}
-  </div>
-);
+function HoverCardChips({ chips }: HoverCardChipsProps) {
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
+      {chips.map((chip, i) => {
+        const toneClass = chip.color
+          ? ''
+          : chip.tone === 'amber'
+            ? 'border-amber-300/30 bg-amber-300/12 text-amber-100/95'
+            : chip.tone === 'cyan'
+              ? 'border-cyan-300/30 bg-cyan-300/12 text-cyan-100/95'
+              : 'border-white/10 bg-black/30 text-white/82';
+        const colorStyle: CSSProperties | undefined = chip.color
+          ? {
+            borderColor: `color-mix(in srgb, ${chip.color} 42%, transparent)`,
+            backgroundColor: `color-mix(in srgb, ${chip.color} 15%, transparent)`,
+            color: `color-mix(in srgb, ${chip.color} 80%, white)`,
+          }
+          : undefined;
+        return (
+          <span
+            key={i}
+            className={`flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${toneClass}`}
+            style={colorStyle}
+          >
+            {chip.icon && (
+              <img
+                src={chip.icon}
+                alt={chip.iconAlt ?? ''}
+                width={14}
+                height={14}
+                className="h-3.5 w-3.5 object-contain"
+                loading="lazy"
+              />
+            )}
+            {chip.label !== undefined && (
+              <span className="font-semibold">{chip.label}</span>
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 interface HoverCardSectionProps {
   title?: ReactNode;
@@ -156,14 +163,14 @@ interface HoverCardSectionProps {
   className?: string;
 }
 
-export const HoverCardSection: React.FC<HoverCardSectionProps> = ({
+export function HoverCardSection({
   title,
   badge,
   eyebrow,
   children,
   variant = 'plain',
   className = '',
-}) => {
+}: HoverCardSectionProps) {
   const wrapperClass = variant === 'inset'
     ? 'rounded-lg border border-white/12 bg-black/30 px-2 py-1.5'
     : '';
@@ -188,7 +195,7 @@ export const HoverCardSection: React.FC<HoverCardSectionProps> = ({
       )}
     </div>
   );
-};
+}
 
 interface HoverCardBonusItem {
   name: ReactNode;
@@ -200,7 +207,7 @@ interface HoverCardBonusListProps {
   items: HoverCardBonusItem[];
 }
 
-export const HoverCardBonusList: React.FC<HoverCardBonusListProps> = ({ items }) => {
+export function HoverCardBonusList({ items }: HoverCardBonusListProps) {
   if (items.length === 0) return null;
   return (
     <div className="space-y-1">
@@ -214,23 +221,25 @@ export const HoverCardBonusList: React.FC<HoverCardBonusListProps> = ({ items })
       ))}
     </div>
   );
-};
+}
 
 interface HoverCardDescriptionProps {
   children: ReactNode;
   className?: string;
 }
 
-export const HoverCardDescription: React.FC<HoverCardDescriptionProps> = ({
+export function HoverCardDescription({
   children,
   className = '',
-}) => (
-  <p className={`whitespace-pre-line text-sm leading-relaxed text-white/86 ${className}`}>
-    {children}
-  </p>
-);
+}: HoverCardDescriptionProps) {
+  return (
+    <p className={`whitespace-pre-line text-sm leading-relaxed text-white/86 ${className}`}>
+      {children}
+    </p>
+  );
+}
 
-const HoverCardPanel: React.FC<{
+interface HoverCardPanelProps {
   icon?: ReactNode;
   eyebrow?: ReactNode;
   title: ReactNode;
@@ -239,7 +248,9 @@ const HoverCardPanel: React.FC<{
   chips?: HoverCardChipModel[];
   body?: ReactNode;
   width: NonNullable<HoverCardProps['width']>;
-}> = ({ icon, eyebrow, title, subtitle, badge, chips, body, width }) => {
+}
+
+function HoverCardPanel({ icon, eyebrow, title, subtitle, badge, chips, body, width }: HoverCardPanelProps) {
   const headerIndentClass = icon ? `${HEADER_INDENT_CLASS} min-h-[4.75rem]` : '';
   const badgeToneClass = badge ? BADGE_TONE_CLASS[badge.tone ?? 'orange'] : '';
 
@@ -265,9 +276,9 @@ const HoverCardPanel: React.FC<{
       {body && <div className="mt-3 space-y-1.5">{body}</div>}
     </div>
   );
-};
+}
 
-export const HoverCard: React.FC<HoverCardProps> = ({
+export function HoverCard({
   children,
   placement = 'right',
   strictPlacement = false,
@@ -282,7 +293,7 @@ export const HoverCard: React.FC<HoverCardProps> = ({
   body,
   width = 'md',
   maxRisePx,
-}) => {
+}: HoverCardProps) {
   const leadingNode = icon ? (
     <div
       className="pointer-events-none absolute z-10"
@@ -321,4 +332,4 @@ export const HoverCard: React.FC<HoverCardProps> = ({
       {children}
     </HoverTooltip>
   );
-};
+}

@@ -1489,6 +1489,7 @@ export interface LBOptimalityReference {
   echoIds: string[];
   topLevelStats: Record<string, number>;
   echoPanels: EchoPanelState[];
+  scoreModifiers: Array<{ key: string; name: string; delta: number }>;
 }
 
 export interface LBBoardOptimality {
@@ -1541,7 +1542,7 @@ function parseOptimalityEchoPanel(raw: unknown): EchoPanelState | null {
 
 function parseOptimalityReference(raw: unknown): LBOptimalityReference {
   if (!isRecord(raw)) {
-    return { tier: '', damage: 0, layout: '', setPattern: [], mainStats: [], substats: [], echoIds: [], topLevelStats: {}, echoPanels: [] };
+    return { tier: '', damage: 0, layout: '', setPattern: [], mainStats: [], substats: [], echoIds: [], topLevelStats: {}, echoPanels: [], scoreModifiers: [] };
   }
   return {
     tier: typeof raw.tier === 'string' ? raw.tier : '',
@@ -1554,6 +1555,16 @@ function parseOptimalityReference(raw: unknown): LBOptimalityReference {
     topLevelStats: isRecord(raw.topLevelStats) ? Object.fromEntries(
       Object.entries(raw.topLevelStats).map(([k, v]) => [k, toFiniteNumber(v)])
     ) : {},
+    scoreModifiers: Array.isArray(raw.scoreModifiers)
+      ? raw.scoreModifiers.flatMap((entry) => {
+        if (!isRecord(entry) || typeof entry.name !== 'string') return [];
+        return [{
+          key: typeof entry.key === 'string' ? entry.key : '',
+          name: entry.name,
+          delta: toFiniteNumber(entry.delta),
+        }];
+      })
+      : [],
     echoPanels: Array.isArray(raw.echoPanels)
       ? raw.echoPanels.map(parseOptimalityEchoPanel).filter((p): p is EchoPanelState => p !== null)
       : [],

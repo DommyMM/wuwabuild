@@ -1,6 +1,7 @@
 'use client';
 
-import React, { ReactNode, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 type TooltipPlacement = 'right' | 'left' | 'top' | 'bottom';
@@ -143,7 +144,7 @@ const getPositionForPlacement = (
   };
 };
 
-export const HoverTooltip: React.FC<HoverTooltipProps> = ({
+export function HoverTooltip({
   content,
   children,
   ariaLabel,
@@ -157,12 +158,15 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
   pinViewportBottom = false,
   leadingNode,
   visualOverflow,
-}) => {
+}: HoverTooltipProps) {
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pointerInsideRef = useRef(false);
   const focusWithinRef = useRef(false);
+  const suppressPointerFocusRef = useRef(false);
+  const suppressFocusFrameRef = useRef<number | null>(null);
+  const positionFrameRef = useRef<number | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0 });
   const [showBottomArrow, setShowBottomArrow] = useState(false);
@@ -176,19 +180,40 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
 
   const shouldShow = !disabled && hasContent;
 
-  const handleMouseEnter = useCallback(() => {
+  const handlePointerEnter = useCallback(() => {
     pointerInsideRef.current = true;
     setIsOpen(true);
   }, []);
 
-  const handleMouseLeave = useCallback(() => {
+  const handlePointerLeave = useCallback(() => {
     pointerInsideRef.current = false;
     if (!focusWithinRef.current) setIsOpen(false);
   }, []);
 
   const handleFocusCapture = useCallback(() => {
+    if (suppressPointerFocusRef.current) {
+      focusWithinRef.current = false;
+      return;
+    }
+
     focusWithinRef.current = true;
     setIsOpen(true);
+  }, []);
+
+  const handlePointerDownCapture = useCallback(() => {
+    // A pointer selection may move focus to the trigger. Suppress that synthetic
+    // focus-open for one frame so click/tap always dismisses; keyboard focus
+    // continues to open the tooltip through handleFocusCapture.
+    suppressPointerFocusRef.current = true;
+    focusWithinRef.current = false;
+    setIsOpen(false);
+    if (suppressFocusFrameRef.current !== null) {
+      window.cancelAnimationFrame(suppressFocusFrameRef.current);
+    }
+    suppressFocusFrameRef.current = window.requestAnimationFrame(() => {
+      suppressPointerFocusRef.current = false;
+      suppressFocusFrameRef.current = null;
+    });
   }, []);
 
   const handleBlurCapture = useCallback((event: React.FocusEvent<HTMLDivElement>) => {
@@ -258,6 +283,14 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
     });
   }, [maxRisePx, offset, pinViewportBottom, placement, strictPlacement, visualOverflow]);
 
+  const schedulePositionUpdate = useCallback(() => {
+    if (positionFrameRef.current !== null) return;
+    positionFrameRef.current = window.requestAnimationFrame(() => {
+      positionFrameRef.current = null;
+      updatePosition();
+    });
+  }, [updatePosition]);
+
   useLayoutEffect(() => {
     if (!isOpen) return;
     updatePosition();
@@ -274,20 +307,26 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
       setIsOpen(false);
     };
 
-    const handleViewportChange = () => {
-      updatePosition();
-    };
-
-    window.addEventListener('resize', handleViewportChange);
-    window.addEventListener('scroll', handleViewportChange, true);
+    window.addEventListener('resize', schedulePositionUpdate);
+    window.addEventListener('scroll', schedulePositionUpdate, true);
     window.addEventListener('keydown', handleEscape, true);
 
     return () => {
-      window.removeEventListener('resize', handleViewportChange);
-      window.removeEventListener('scroll', handleViewportChange, true);
+      window.removeEventListener('resize', schedulePositionUpdate);
+      window.removeEventListener('scroll', schedulePositionUpdate, true);
       window.removeEventListener('keydown', handleEscape, true);
+      if (positionFrameRef.current !== null) {
+        window.cancelAnimationFrame(positionFrameRef.current);
+        positionFrameRef.current = null;
+      }
     };
-  }, [isOpen, updatePosition]);
+  }, [isOpen, schedulePositionUpdate]);
+
+  useEffect(() => () => {
+    if (suppressFocusFrameRef.current !== null) {
+      window.cancelAnimationFrame(suppressFocusFrameRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -382,15 +421,16 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
     <>
       <div
         ref={triggerRef}
-        className={triggerClassName || 'inline-flex'}
+        className={`${triggerClassName || 'inline-flex'} [touch-action:manipulation]`}
         tabIndex={shouldFocusWrapper ? 0 : undefined}
         aria-label={shouldFocusWrapper
           ? ariaLabel ?? triggerElement?.props['aria-label'] ?? (typeof children === 'string' ? children : undefined)
           : undefined}
         aria-labelledby={shouldFocusWrapper ? triggerElement?.props['aria-labelledby'] : undefined}
         aria-describedby={shouldFocusWrapper && isOpen ? tooltipId : undefined}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
+        onPointerDownCapture={handlePointerDownCapture}
         onFocusCapture={handleFocusCapture}
         onBlurCapture={handleBlurCapture}
       >
@@ -428,4 +468,4 @@ export const HoverTooltip: React.FC<HoverTooltipProps> = ({
       )}
     </>
   );
-};
+}

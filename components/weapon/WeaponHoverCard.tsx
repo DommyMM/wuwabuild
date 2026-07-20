@@ -1,11 +1,12 @@
 'use client';
 
-import React, { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Weapon } from '@/lib/weapon';
 import { RARITY_ACCENTS } from '@/components/weapon/rarityStyles';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
 import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription } from '@/components/ui/HoverCard';
+import type { HoverCardChipModel, HoverCardPlacement } from '@/components/ui/HoverCard';
 
 interface WeaponHoverCardProps {
   children: ReactNode;
@@ -16,11 +17,11 @@ interface WeaponHoverCardProps {
   scaledMainStat: number;
   atkIcon?: string | null;
   mainStatIcon?: string | null;
-  placement?: 'right' | 'left' | 'top' | 'bottom';
+  placement?: HoverCardPlacement;
   triggerClassName?: string;
 }
 
-export const WeaponHoverCard: React.FC<WeaponHoverCardProps> = ({
+export function WeaponHoverCard({
   children,
   weapon,
   weaponLevel,
@@ -31,7 +32,7 @@ export const WeaponHoverCard: React.FC<WeaponHoverCardProps> = ({
   mainStatIcon,
   placement = 'right',
   triggerClassName,
-}) => {
+}: WeaponHoverCardProps) {
   const { t } = useLanguage();
   const weaponName = t(weapon.nameI18n ?? { en: weapon.name });
   const passiveName = t(weapon.effectName ?? { en: '' });
@@ -59,13 +60,13 @@ export const WeaponHoverCard: React.FC<WeaponHoverCardProps> = ({
     />
   );
 
-  const chips = [
+  const chips: HoverCardChipModel[] = [
     { label: `Lv ${weaponLevel}` },
     { icon: atkIcon ?? undefined, iconAlt: 'ATK', label: String(scaledAtk) },
-    weapon.main_stat
-      ? { icon: mainStatIcon ?? undefined, iconAlt: mainStatName, label: `${scaledMainStat}%` }
-      : null,
-  ].filter(Boolean) as { label?: string; icon?: string; iconAlt?: string }[];
+  ];
+  if (weapon.main_stat) {
+    chips.push({ icon: mainStatIcon ?? undefined, iconAlt: mainStatName, label: `${scaledMainStat}%` });
+  }
 
   return (
     <HoverCard
@@ -89,4 +90,4 @@ export const WeaponHoverCard: React.FC<WeaponHoverCardProps> = ({
       {children}
     </HoverCard>
   );
-};
+}

@@ -1,16 +1,17 @@
 'use client';
 
-import React, { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Echo, CDNFetter } from '@/lib/echo';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
-import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription, HoverCardChipModel } from '@/components/ui/HoverCard';
+import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription } from '@/components/ui/HoverCard';
+import type { HoverCardChipModel, HoverCardPlacement } from '@/components/ui/HoverCard';
 
 interface EchoHoverCardProps {
   children: ReactNode;
   echo: Echo;
-  placement?: 'right' | 'left' | 'top' | 'bottom';
+  placement?: HoverCardPlacement;
   triggerClassName?: string;
   // The sonata set this echo is actually equipped into. When provided, the card
   // shows only that set (colorized) instead of every set the echo can roll.
@@ -29,7 +30,7 @@ const DMG_PROP_ID_TO_COLOR: Record<number, string> = {
 
 // A sonata set's accent color comes from its damage-element bonus, if it has one.
 // Utility sets (Energy Regen, Healing, ATK%) have no element color → undefined.
-export const getFetterElementColor = (fetter: CDNFetter): string | undefined => {
+export function getFetterElementColor(fetter: CDNFetter): string | undefined {
   const propGroups: Array<Array<{ id: number }>> = [];
   for (const effect of Object.values(fetter.pieceEffects ?? {})) {
     if (Array.isArray(effect.addProp)) propGroups.push(effect.addProp);
@@ -42,15 +43,15 @@ export const getFetterElementColor = (fetter: CDNFetter): string | undefined => 
     }
   }
   return undefined;
-};
+}
 
-export const EchoHoverCard: React.FC<EchoHoverCardProps> = ({
+export function EchoHoverCard({
   children,
   echo,
   placement = 'right',
   triggerClassName,
   resolvedFetter,
-}) => {
+}: EchoHoverCardProps) {
   const { t } = useLanguage();
   const { getFetterByElement } = useGameData();
 
@@ -108,4 +109,4 @@ export const EchoHoverCard: React.FC<EchoHoverCardProps> = ({
       {children}
     </HoverCard>
   );
-};
+}

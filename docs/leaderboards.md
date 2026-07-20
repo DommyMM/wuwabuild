@@ -97,6 +97,12 @@ On row expansion, frontend may fetch:
 
 The move breakdown (`BuildMoveBreakdown.tsx`) renders a score equation (rows flagged `modifier: true` are global adjustments like ER scaling and set bonuses — never rotation moves), a damage profile aggregated by move type, and per-move rows with type-colored bars. Move-type colors are a fixed identity map inside the component. Per-hit `moveTypes` (lb per-type sub-hit fold) split mixed-type rows and make the profile lossless; hits without types fall back to the move's primary type. API row order is rotation order — the component preserves the first-occurrence index for its rotation-order sort; `lb/docs/move-breakdown-ui.md` is canonical for the response shape.
 
+The reference benchmark (`BuildOptimalityPanel.tsx`) treats ceiling, median, and
+minimum rolls as independent optimized loadouts. Selecting a tier changes its
+layout, main stats, sets, final statline, active `scoreModifiers`, and full Echo
+blueprint together. `scoreModifiers` are already included in the reference
+score; the UI lists them as an explanation, never adds them client-side.
+
 The simulation section requires parent row context such as:
 - `weaponId`
 - `track`

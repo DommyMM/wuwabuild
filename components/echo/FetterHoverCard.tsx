@@ -1,17 +1,18 @@
 'use client';
 
-import React, { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { CDNFetter } from '@/lib/echo';
 import { getSetBonusesFromPieceEffect } from '@/lib/constants/setBonuses';
 import { FetterPieceEffect, resolveFetterPieceDescription } from '@/lib/text/gameText';
 import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardBonusList } from '@/components/ui/HoverCard';
+import type { HoverCardPlacement } from '@/components/ui/HoverCard';
 
 interface FetterHoverCardProps {
   children: ReactNode;
   fetter: CDNFetter;
-  placement?: 'right' | 'left' | 'top' | 'bottom';
+  placement?: HoverCardPlacement;
   triggerClassName?: string;
 }
 
@@ -61,12 +62,12 @@ export const getFetterPieceModels = (fetter: CDNFetter): PieceTooltipModel[] => 
   return standardEntries.length > 0 ? standardEntries : entries;
 };
 
-export const FetterHoverCard: React.FC<FetterHoverCardProps> = ({
+export function FetterHoverCard({
   children,
   fetter,
   placement = 'right',
   triggerClassName,
-}) => {
+}: FetterHoverCardProps) {
   const { t } = useLanguage();
   const { statTranslations } = useGameData();
   const pieceModels = getFetterPieceModels(fetter);
@@ -124,4 +125,4 @@ export const FetterHoverCard: React.FC<FetterHoverCardProps> = ({
       {children}
     </HoverCard>
   );
-};
+}
