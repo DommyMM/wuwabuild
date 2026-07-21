@@ -1,14 +1,18 @@
 'use client';
 
 import React, { useId, useMemo, useState } from 'react';
-import { Check, Gauge, Layers3, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Character, Element } from '@/lib/character';
 import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
 import { formatFlatStat, formatPercentStat } from './formatters';
-import { RegionBadge, ELEMENT_STAT_KEYS, PERCENT_STAT_KEYS, SORT_OPTIONS } from './constants';
+import { RegionBadge, PERCENT_STAT_KEYS, SORT_OPTIONS } from './constants';
+import { resolveCharacterBaseScaling } from './statColumns';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
+
+// Status pair mirrors BuildMoveBreakdown
+const POSITIVE_COLOR = '#5cc7c2';
+const NEGATIVE_COLOR = '#f87171';
 
 const SCORE_FORMATTER = new Intl.NumberFormat('en-US', {
   notation: 'compact',
@@ -19,6 +23,18 @@ function fmtDmg(value: number): string {
   return SCORE_FORMATTER.format(value);
 }
 
+const SECTION_HEADING = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/55';
+
+type OptimalityTier = 'ceiling' | 'standardized' | 'low_roll';
+
+// Tiers are differentiated by label and order (best → floor), not by hue.
+// Selection is the only accent, matching the Min/Mid/Max precedent in
+// BuildSubstatUpgrades where the active tier alone carries the gold accent.
+const TIER_META: Record<OptimalityTier, { label: string; rollLabel: string }> = {
+  ceiling: { label: 'Ceiling', rollLabel: 'Maximum rolls' },
+  standardized: { label: 'Median', rollLabel: 'Median rolls' },
+  low_roll: { label: 'Minimum', rollLabel: 'Minimum rolls' },
+};
 
 interface TierRowProps {
   ref_: LBOptimalityReference;
@@ -27,47 +43,6 @@ interface TierRowProps {
   isActive: boolean;
   onClick: () => void;
 }
-
-type OptimalityTier = 'ceiling' | 'standardized' | 'low_roll';
-
-const TIER_STYLES: Record<OptimalityTier, {
-  label: string;
-  rollLabel: string;
-  accent: string;
-  border: string;
-  surface: string;
-  track: string;
-  fill: string;
-}> = {
-  ceiling: {
-    label: 'Ceiling',
-    rollLabel: 'Maximum rolls',
-    accent: 'text-amber-200',
-    border: 'border-amber-300/45',
-    surface: 'bg-amber-300/7',
-    track: 'bg-amber-400/20',
-    fill: 'bg-amber-200/90',
-  },
-  standardized: {
-    label: 'Median',
-    rollLabel: 'Median rolls',
-    accent: 'text-cyan-100',
-    border: 'border-cyan-300/45',
-    surface: 'bg-cyan-300/7',
-    track: 'bg-cyan-400/16',
-    fill: 'bg-cyan-200/85',
-  },
-  low_roll: {
-    label: 'Minimum',
-    rollLabel: 'Minimum rolls',
-    accent: 'text-zinc-200',
-    border: 'border-zinc-300/35',
-    surface: 'bg-white/4',
-    track: 'bg-zinc-400/16',
-    fill: 'bg-zinc-200/75',
-  },
-};
-
 
 const EMPTY_REFERENCE: LBOptimalityReference = {
   tier: '',
@@ -82,51 +57,50 @@ const EMPTY_REFERENCE: LBOptimalityReference = {
   scoreModifiers: [],
 };
 
+function ratioColor(ratio: number | undefined): string {
+  if (ratio === undefined) return 'rgba(224,224,224,0.35)';
+  if (ratio >= 1) return POSITIVE_COLOR;
+  if (ratio >= 0.95) return 'var(--color-accent)';
+  return 'rgba(224,224,224,0.5)';
+}
+
 function TierRow({ ref_, currentDamage, ratio, isActive, onClick }: TierRowProps) {
-  const tier = (ref_.tier in TIER_STYLES ? ref_.tier : 'standardized') as OptimalityTier;
-  const style = TIER_STYLES[tier];
+  const tier = (ref_.tier in TIER_META ? ref_.tier : 'standardized') as OptimalityTier;
+  const meta = TIER_META[tier];
   const fillPct = currentDamage && ref_.damage > 0
     ? Math.min(100, (currentDamage / ref_.damage) * 100)
     : 0;
-
-  const ratioColor =
-    ratio === undefined ? 'text-text-primary/30'
-      : ratio >= 1 ? 'text-emerald-400'
-        : ratio >= 0.95 ? 'text-accent'
-          : ratio >= 0.90 ? 'text-amber-200/70'
-            : 'text-text-primary/50';
 
   return (
     <button
       type="button"
       aria-pressed={isActive}
       onClick={onClick}
-      className={`group min-w-0 cursor-pointer rounded-lg border p-2.5 text-left touch-manipulation transition-[border-color,background-color,transform] hover:-translate-y-0.5 hover:border-white/30 motion-reduce:transition-none motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
-        isActive ? `${style.border} ${style.surface}` : 'border-white/9 bg-black/14'
+      className={`min-w-0 cursor-pointer rounded-lg border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+        isActive
+          ? 'border-accent/70 bg-accent/9'
+          : 'border-border/45 bg-black/15 hover:border-accent/40 hover:bg-background-secondary/40'
       }`}
     >
-      <span className="flex items-start justify-between gap-2">
-        <span className="min-w-0">
-          <span className={`block whitespace-nowrap text-xs font-semibold uppercase tracking-[0.14em] ${style.accent}`}>
-            {style.label}
-          </span>
-          <span className="mt-0.5 block whitespace-nowrap text-[10px] text-text-primary/45">
-            {style.rollLabel}
-          </span>
+      <span className="block min-w-0">
+        <span className={`block whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.16em] ${isActive ? 'text-accent-hover' : 'text-text-primary/60'}`}>
+          {meta.label}
         </span>
-        {isActive && <Check aria-hidden="true" className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${style.accent}`} />}
+        <span className="mt-0.5 block whitespace-nowrap text-[10px] text-text-primary/40">
+          {meta.rollLabel}
+        </span>
       </span>
       <span className="mt-2.5 flex items-end justify-between gap-2">
-        <span className={`text-base font-semibold tabular-nums ${style.accent}`}>
+        <span className={`text-base font-semibold tabular-nums ${isActive ? 'text-accent-hover' : 'text-text-primary/75'}`}>
           {fmtDmg(ref_.damage)}
         </span>
-        <span className={`text-xs font-semibold tabular-nums ${ratioColor}`}>
-          {ratio !== undefined ? `${(ratio * 100).toFixed(1)}% yours` : 'Reference'}
+        <span className="text-xs font-semibold tabular-nums" style={{ color: ratioColor(ratio) }}>
+          {ratio !== undefined ? `${(ratio * 100).toFixed(1)}% of ${meta.label.toLowerCase()}` : 'Reference'}
         </span>
       </span>
-      <span className={`relative mt-2 block h-1 overflow-hidden rounded-full ${style.track}`}>
+      <span className="relative mt-2 block h-1 overflow-hidden rounded-full bg-white/8">
         <div
-          className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 motion-reduce:transition-none ${style.fill}`}
+          className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 motion-reduce:transition-none ${isActive ? 'bg-accent/75' : 'bg-white/25'}`}
           style={{ width: `${fillPct}%` }}
         />
       </span>
@@ -181,23 +155,40 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
   ), [fetters, selectedSetIds]);
 
   const topLevelStats = useMemo(() => {
-    const allowedElementKey = character?.element && character.element !== Element.Rover
+    const stats = selectedRef.topLevelStats;
+
+    // Scaling stat drives which flat stat is worth showing: ATK/DEF are noise on
+    // an HP scaler like Cartethyia, so only the character's own scaling flat is
+    // kept (the other two flats are never in the order list below, so they drop).
+    const scaling = resolveCharacterBaseScaling(character);
+    const scalingKey = scaling === 'HP' ? 'hp' : scaling === 'DEF' ? 'def' : 'atk';
+    const elementKey = character?.element && character.element !== Element.Rover
       ? `${character.element.toLowerCase()}_dmg`
       : null;
 
-    return Object.entries(selectedRef.topLevelStats)
-      .filter(([, v]) => v > 0)
-      .filter(([key]) => {
-        if (!(ELEMENT_STAT_KEYS as readonly string[]).includes(key)) return true;
-        if (!allowedElementKey) return true;
-        return key === allowedElementKey;
-      })
-      .flatMap(([key, value]) => {
-        const option = SORT_OPTIONS.find((o) => o.key === key);
-        if (!option) return [];
-        const icon = statIcons?.[option.label] ?? statIcons?.[option.label.replace('%', '')] ?? '';
-        return [{ key, label: option.label, value, icon, kind: (PERCENT_STAT_KEYS as ReadonlySet<string>).has(key) ? 'percent' as const : 'flat' as const }];
-      });
+    // Same priority the build-row stat columns use (statColumns.ts), adapted for a
+    // full sheet: crits lead (the row folds them into CV), then scaling stat,
+    // element, offensive move-type bonuses, ER, healing. Off-element DMG and the
+    // non-scaling flats are intentionally absent.
+    const order: string[] = [
+      'crit_rate', 'crit_dmg',
+      scalingKey,
+      ...(elementKey ? [elementKey] : []),
+      'basic_attack_dmg', 'heavy_attack_dmg', 'resonance_skill_dmg', 'resonance_liberation_dmg',
+      'energy_regen', 'healing_bonus',
+    ];
+
+    const seen = new Set<string>();
+    return order.flatMap((key) => {
+      if (seen.has(key)) return [];
+      seen.add(key);
+      const value = stats[key];
+      if (!(value > 0)) return [];
+      const option = SORT_OPTIONS.find((o) => o.key === key);
+      if (!option) return [];
+      const icon = statIcons?.[option.label] ?? statIcons?.[option.label.replace('%', '')] ?? '';
+      return [{ key, label: option.label, value, icon, kind: (PERCENT_STAT_KEYS as ReadonlySet<string>).has(key) ? 'percent' as const : 'flat' as const }];
+    });
   }, [character, selectedRef.topLevelStats, statIcons]);
 
   const highlightedSubstats = useMemo(
@@ -220,7 +211,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
 
   if (loading) {
     return (
-      <div className="space-y-2 rounded-lg border border-border/40 bg-background-secondary/20 p-3">
+      <div className="space-y-2 rounded-lg border border-border/45 bg-background-secondary/20 p-3">
         <div className="h-3 w-32 animate-pulse rounded bg-white/8" />
         <div className="space-y-2.5">
           {[0, 1, 2].map((i) => (
@@ -267,25 +258,17 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     : selectedTier === 'low_roll'
       ? vsLowRoll
       : vsStd;
-  const selectedStyle = TIER_STYLES[selectedTier];
   const energyRegen = selectedRef.topLevelStats.energy_regen ?? 0;
   const meetsErTarget = data.erTarget <= 0 || energyRegen >= data.erTarget;
   const layoutLabel = selectedRef.layout;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/45 bg-[radial-gradient(circle_at_top_left,rgba(103,232,249,0.055),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.025),rgba(0,0,0,0.08))]">
-      <div className="border-b border-white/7 px-3 py-3 sm:px-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <Gauge aria-hidden="true" className="h-4 w-4 text-cyan-200/75" />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/65">
-              Reference Benchmark
-            </h3>
-          </div>
-          <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-text-primary/45">
-            Best legal loadout found for each roll quality. Select a tier to inspect its independently optimized stats and Echo blueprint.
-          </p>
-        </div>
+    <div className="overflow-hidden rounded-lg border border-border/45 bg-background-secondary/20">
+      <div className="border-b border-border/45 px-3 py-3 sm:px-4">
+        <h3 className={SECTION_HEADING}>Reference Benchmark</h3>
+        <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-text-primary/45">
+          Best legal loadout found for each roll quality. Select a tier to inspect its independently optimized stats and Echo blueprint.
+        </p>
 
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
           <TierRow
@@ -313,105 +296,93 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
       </div>
 
       <div className="space-y-4 px-3 py-3 sm:px-4">
-        <section aria-labelledby={`${panelId}-loadout`} className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(15rem,0.65fr)]">
-          <div className="min-w-0 rounded-lg border border-white/8 bg-black/18 p-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <Layers3 aria-hidden="true" className="h-4 w-4 text-text-primary/55" />
-                  <h4 id={`${panelId}-loadout`} className="text-xs font-semibold uppercase tracking-[0.14em] text-text-primary/65">
-                    {selectedStyle.label} Loadout
-                  </h4>
-                </div>
-                <p className="mt-1 text-xs text-text-primary/45">
-                  {layoutLabel || 'Echo'} layout · {selectedRef.mainStats.join(' / ') || 'No main stats available'}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className={`text-xl font-semibold tabular-nums ${selectedStyle.accent}`}>
-                  {fmtDmg(selectedRef.damage)}
-                </div>
-                <div className="text-[10px] uppercase tracking-[0.14em] text-text-primary/40">
-                  {selectedRatio !== undefined ? `${(selectedRatio * 100).toFixed(1)}% of reference` : 'Reference score'}
-                </div>
+        <section aria-labelledby={`${panelId}-summary`} className="rounded-lg border border-border/45 bg-black/15 p-3">
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0">
+              <h4 id={`${panelId}-summary`} className={SECTION_HEADING}>
+                {TIER_META[selectedTier].label}{layoutLabel ? ` · ${layoutLabel} layout` : ''}
+              </h4>
+              <div className="mt-1.5 flex items-baseline gap-2.5">
+                <span className="text-2xl font-bold tabular-nums text-accent-hover">{fmtDmg(selectedRef.damage)}</span>
+                <span className="text-[11px] text-text-primary/45">
+                  {selectedRatio !== undefined ? `${(selectedRatio * 100).toFixed(1)}% of ${TIER_META[selectedTier].label.toLowerCase()}` : 'Reference score'}
+                </span>
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               {selectedSetEntries.map(({ id, fetter }) => (
-                <div key={id} className="flex min-w-0 items-center gap-2 rounded-md border border-white/9 bg-white/3 px-2 py-1.5">
+                <div key={id} className="flex items-center gap-2 rounded-md border border-border/45 bg-background-secondary/40 px-2 py-1.5">
                   {fetter?.icon ? (
                     <img src={fetter.icon} alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" loading="lazy" />
                   ) : (
                     <span aria-hidden="true" className="h-5 w-5 shrink-0 rounded bg-white/8" />
                   )}
-                  <span className="truncate text-xs font-semibold text-text-primary/75">
+                  <span className="whitespace-nowrap text-xs font-semibold text-text-primary/75">
                     {fetter ? t(fetter.name) : `Set ${id}`}
                   </span>
                 </div>
               ))}
               {selectedSetEntries.length === 0 && (
-                <span className="text-xs text-text-primary/40">No active set bonus</span>
+                <span className="self-center text-xs text-text-primary/40">No active set bonus</span>
               )}
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/8 bg-black/18 p-3">
-            <div className="flex items-center gap-2">
-              <Sparkles aria-hidden="true" className="h-4 w-4 text-amber-200/70" />
-              <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-text-primary/65">
-                Score Model
-              </h4>
-            </div>
-            <div className="mt-2 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between gap-3 text-text-primary/60">
-                <span>Rotation score</span>
-                <span className="font-semibold text-text-primary/75">Included</span>
-              </div>
+          {/* The score is always the full scored rotation, so stating that adds
+              nothing. What actually varies is the ER target the tier is built to
+              and any team-facing score modifiers (Danjin's Moonlit/Heron, healers,
+              Cantarella) — show only those, and drop the row entirely when neither
+              applies. */}
+          {(data.erTarget > 0 || selectedRef.scoreModifiers.length > 0) && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/45 pt-3 text-xs">
               {data.erTarget > 0 && (
-                <div className="flex items-center justify-between gap-3 text-text-primary/60">
-                  <span>Energy target</span>
-                  <span className={`font-semibold tabular-nums ${meetsErTarget ? 'text-emerald-300' : 'text-red-300'}`}>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-primary/50">Energy target</span>
+                  <span className="font-semibold tabular-nums" style={{ color: meetsErTarget ? POSITIVE_COLOR : NEGATIVE_COLOR }}>
                     {formatPercentStat(energyRegen)} / {formatPercentStat(data.erTarget)}
                   </span>
                 </div>
               )}
               {selectedRef.scoreModifiers.map((modifier) => (
-                <div key={modifier.key || modifier.name} className="flex items-start justify-between gap-3 border-t border-white/7 pt-1.5 text-text-primary/60">
-                  <span className="min-w-0 wrap-break-word">{modifier.name}</span>
-                  <span className={`shrink-0 font-semibold tabular-nums ${modifier.delta >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                <div key={modifier.key || modifier.name} className="flex items-center gap-1.5">
+                  <span className="text-text-primary/50">{modifier.name}</span>
+                  <span className="shrink-0 font-semibold tabular-nums" style={{ color: modifier.delta >= 0 ? POSITIVE_COLOR : NEGATIVE_COLOR }}>
                     {modifier.delta >= 0 ? '+' : '−'}{fmtDmg(Math.abs(modifier.delta))}
                   </span>
                 </div>
               ))}
             </div>
-          </div>
+          )}
         </section>
 
         <section aria-labelledby={`${panelId}-stats`}>
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal aria-hidden="true" className="h-4 w-4 text-text-primary/55" />
-            <h4 id={`${panelId}-stats`} className="text-xs font-semibold uppercase tracking-[0.14em] text-text-primary/65">
-              Final Build Stats
-            </h4>
-          </div>
-          <dl className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4 xl:grid-cols-8">
+          <h4 id={`${panelId}-stats`} className={SECTION_HEADING}>Final Build Stats</h4>
+          {/* flex-auto lets each badge start at its own content width and then grow
+              to share the row: short stats (Crit Rate, ATK) stay compact while a long
+              one (Resonance Liberation DMG Bonus) keeps its label on one line via
+              whitespace-nowrap, instead of every badge being forced to a single width
+              and wrapping the long label. At realistic stat counts the whole sheet
+              fits one row (~1264px inner); it wraps only when it genuinely can't. */}
+          <dl className="mt-2 flex flex-wrap gap-1.5">
             {topLevelStats.map((entry) => (
               <div
                 key={`${selectedTier}-tls-${entry.key}`}
-                className="min-w-0 rounded-md border border-white/8 bg-black/18 px-2.5 py-2"
+                className="flex flex-auto flex-col rounded-md border border-border/45 bg-black/15 px-2.5 py-2"
               >
-                <dt className="flex min-w-0 items-center gap-1.5 text-[9.5px] uppercase tracking-[0.12em] text-text-primary/45">
-                  {entry.icon && <img src={entry.icon} alt="" width={14} height={14} className="h-3.5 w-3.5 shrink-0 object-contain opacity-70" loading="lazy" />}
-                  <span className="truncate">{entry.label}</span>
-                </dt>
-                <dd className="mt-1 text-sm font-semibold tabular-nums text-white/82">
+                {/* Value + icon lead so the number line is the aligned anchor across a
+                    row; the label rides below as a single-line caption. */}
+                <dd className="flex items-center gap-1.5 text-sm font-semibold tabular-nums text-white/85">
+                  {entry.icon && <img src={entry.icon} alt="" width={16} height={16} className="h-4 w-4 shrink-0 object-contain opacity-80" loading="lazy" />}
                   {entry.kind === 'percent' ? formatPercentStat(entry.value) : formatFlatStat(entry.value)}
                 </dd>
+                <dt className="mt-1 whitespace-nowrap text-[10px] uppercase tracking-widest text-text-primary/45">
+                  {entry.label}
+                </dt>
               </div>
             ))}
             {topLevelStats.length === 0 && (
-              <div className="col-span-full rounded-md border border-white/8 bg-black/18 px-3 py-2 text-xs text-text-primary/40">
+              <div className="w-full rounded-md border border-border/45 bg-black/15 px-3 py-2 text-xs text-text-primary/40">
                 <dt className="sr-only">Status</dt>
                 <dd>Final stats are unavailable for this reference.</dd>
               </div>
@@ -419,9 +390,9 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
           </dl>
         </section>
 
-        <section aria-labelledby={`${panelId}-echoes`} className="font-ropa tracking-wide">
-          <h4 id={`${panelId}-echoes`} className="sr-only">Echo Blueprint</h4>
-          <div className="mx-auto w-full max-w-330 space-y-4 pt-1 sm:px-4 xl:px-8">
+        <section aria-labelledby={`${panelId}-echoes`}>
+          <h4 id={`${panelId}-echoes`} className={SECTION_HEADING}>Echo Blueprint</h4>
+          <div className="mx-auto mt-2 w-full max-w-330 space-y-4 font-ropa tracking-wide sm:px-4 xl:px-8">
             <BuildExpandedEchoPanels
               detail={syntheticDetail}
               character={character}
