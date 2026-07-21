@@ -7,6 +7,7 @@ import type { LBTrack } from '@/lib/lb';
 import { prefetchLeaderboard } from '@/lib/lbServer';
 import { loadBoardDisplayCatalog, loadCharacterDisplayMap, loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
 
+export const dynamic = 'force-static';
 // ISR: one canonical board per character (the default weapon/track). Weapon/track/
 // filter variants are client-side UI state under that canonical, so the route no
 // longer reads searchParams and no longer renders a Vercel function per request. The
