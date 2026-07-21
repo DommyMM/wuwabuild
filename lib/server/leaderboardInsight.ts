@@ -31,8 +31,8 @@ function mostCommon(counts: Record<string, number>): { key: string; count: numbe
  *
  * Reads only the default board (top builds by damage)
  */
-export async function getLeaderboardInsight(characterId: string): Promise<LeaderboardInsight | null> {
-    const data = await prefetchLeaderboard(characterId);
+export async function getLeaderboardInsight(characterId: string, revalidateS?: number | false): Promise<LeaderboardInsight | null> {
+    const data = await prefetchLeaderboard(characterId, {}, revalidateS);
     const builds = data?.builds ?? [];
     if (builds.length < MIN_SAMPLE) return null;
 

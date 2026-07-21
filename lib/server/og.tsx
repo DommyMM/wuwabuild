@@ -7,8 +7,8 @@ import sharp from 'sharp';
 
 type OgCardVariant = 'site' | 'page' | 'tool' | 'index' | 'leaderboard-overview' | 'character' | 'weapon' | 'leaderboard';
 type OgFont = { name: string; data: Buffer | ArrayBuffer; weight: 400 | 600 | 700 | 800; style: 'normal' };
-export type OgVerb = 'SCAN' | 'BUILD' | 'RANK';
-export type OgMotif = 'scan' | 'card' | 'stack' | 'search';
+type OgVerb = 'SCAN' | 'BUILD' | 'RANK';
+type OgMotif = 'scan' | 'card' | 'stack' | 'search';
 
 /** One entry in the right-hand data column of an `index` card (e.g. a top board). */
 export interface OgRow {

@@ -81,9 +81,3 @@ export const getSubstatTierInfo = (
     isMax: index === SUBSTAT_ROLL_TIER_COLORS.length,
   };
 };
-
-export const getSubstatTierColor = (
-  _statType: string,
-  value: number,
-  rollValues: number[] | null | undefined,
-): string | null => getSubstatTierInfo(value, rollValues)?.color ?? null;

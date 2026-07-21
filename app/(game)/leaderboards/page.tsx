@@ -2,7 +2,10 @@ import type { Metadata } from 'next';
 import { LeaderboardOverviewClient } from '@/components/leaderboards/overview/LeaderboardOverviewClient';
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 
-export const revalidate = 600;
+// ISR page cadence (cost lever). The overview client already background-refreshes on
+// mount through the short Cloudflare API cache, so a longer HTML window costs no
+// freshness. Pass `revalidate` to the prefetch so it doesn't drag the page below hourly.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Wuthering Waves Leaderboards',
@@ -22,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Leaderboards() {
-  const initialData = await prefetchLeaderboardOverview();
+  const initialData = await prefetchLeaderboardOverview(revalidate);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

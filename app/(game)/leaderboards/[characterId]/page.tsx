@@ -1,20 +1,22 @@
 import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { LeaderboardCharacterClient } from '@/components/leaderboards/character/LeaderboardCharacterClient';
 import { DEFAULT_LB_TRACK, parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
-import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeaderboardQuery, serializeLeaderboardQuery, toURLSearchParams } from '@/components/leaderboards/character/leaderboardCharacterQuery';
 import { adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
 import type { LBTrack } from '@/lib/lb';
 import { prefetchLeaderboard } from '@/lib/lbServer';
 import { loadBoardDisplayCatalog, loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
 
-// Reads searchParams to determine weapon/track, must be dynamic.
-// Overrides the force-static default set in (game)/layout.tsx.
-export const dynamic = 'force-dynamic';
+// ISR: one canonical board per character (the default weapon/track). Weapon/track/
+// filter variants are client-side UI state under that canonical, so the route no
+// longer reads searchParams and no longer renders a Vercel function per request. The
+// client background-refreshes the board on mount through the short Cloudflare API
+// cache. `revalidate` is passed to the prefetch so no nested fetch drags the page
+// below hourly.
+export const revalidate = 3600;
 
 interface Props {
   params: Promise<{ characterId: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 function getCharacterPageCopy(characterId: string) {
@@ -28,14 +30,6 @@ function getCharacterPageCopy(characterId: string) {
     : `Character ${characterId}`;
 
   return { rawCharacter, character, characterName };
-}
-
-function getCoreLeaderboardCanonical(characterId: string, weaponId: string, trackKey: string): string {
-  const query = new URLSearchParams();
-  if (weaponId) query.set('weaponId', weaponId);
-  if (trackKey) query.set('track', trackKey);
-  const search = query.toString();
-  return search ? `/leaderboards/${characterId}?${search}` : `/leaderboards/${characterId}`;
 }
 
 function getLeaderboardOgImageUrl(characterId: string, weaponId: string, trackKey: string): string {
@@ -71,20 +65,20 @@ function getLeaderboardDescription(characterName: string, trackKey: string, trac
   return `${characterName}${sequenceText} ${playstyle} damage rankings${weaponText} in Wuthering Waves. Compare standardized damage, the best echo sets, stats, and top-player builds on WuWaBuilds.`;
 }
 
-export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { characterId } = await params;
-  const rawSearchParams = toURLSearchParams(await searchParams);
-  const parsedQuery = parseInitialLeaderboardQuery(rawSearchParams);
   const { character, characterName } = getCharacterPageCopy(characterId);
   if (!character) notFound();
 
-  const initialData = await prefetchLeaderboard(characterId, leaderboardSnapshotToApiQuery(parsedQuery));
-  const activeWeaponId = initialData?.activeWeaponId || parsedQuery.weaponId || initialData?.weaponIds[0] || '';
-  const activeTrack = initialData?.activeTrack || parsedQuery.track || initialData?.tracks[0]?.key || DEFAULT_LB_TRACK;
+  // Metadata describes the default board (weapon/track variants are client-side state
+  // under this one canonical), so no searchParams are read here.
+  const initialData = await prefetchLeaderboard(characterId, {}, revalidate);
+  const activeWeaponId = initialData?.activeWeaponId || initialData?.weaponIds[0] || '';
+  const activeTrack = initialData?.activeTrack || initialData?.tracks[0]?.key || DEFAULT_LB_TRACK;
   const tracks = initialData?.tracks ?? [];
   const title = getLeaderboardTitle(characterName, activeTrack, tracks);
   const description = getLeaderboardDescription(characterName, activeTrack, tracks, activeWeaponId);
-  const canonical = getCoreLeaderboardCanonical(characterId, activeWeaponId, activeTrack);
+  const canonical = `/leaderboards/${characterId}`;
   const image = getLeaderboardOgImageUrl(characterId, activeWeaponId, activeTrack);
 
   return {
@@ -96,34 +90,15 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   };
 }
 
-export default async function CharacterLeaderboardPage({ params, searchParams }: Props) {
+export default async function CharacterLeaderboardPage({ params }: Props) {
   const { characterId } = await params;
-  const rawSearchParams = toURLSearchParams(await searchParams);
-  const parsedQuery = parseInitialLeaderboardQuery(rawSearchParams);
   const { character, characterName } = getCharacterPageCopy(characterId);
   if (!character) notFound();
 
-  const initialData = await prefetchLeaderboard(characterId, leaderboardSnapshotToApiQuery(parsedQuery));
-
-  if (initialData) {
-    const canonicalQuery = parseInitialLeaderboardQuery(rawSearchParams, {
-      weaponIds: initialData.weaponIds,
-      tracks: initialData.tracks,
-      defaultWeaponId: initialData.activeWeaponId || initialData.weaponIds[0] || '',
-      defaultTrack: initialData.activeTrack || initialData.tracks[0]?.key || DEFAULT_LB_TRACK,
-    });
-    const canonicalSearch = serializeLeaderboardQuery(canonicalQuery, {
-      defaultWeaponId: initialData.activeWeaponId || initialData.weaponIds[0] || '',
-      defaultTrack: initialData.activeTrack || initialData.tracks[0]?.key || DEFAULT_LB_TRACK,
-    });
-
-    if (rawSearchParams.toString() !== canonicalSearch) {
-      redirect(buildLeaderboardHref(characterId, canonicalQuery, {
-        defaultWeaponId: initialData.activeWeaponId || initialData.weaponIds[0] || '',
-        defaultTrack: initialData.activeTrack || initialData.tracks[0]?.key || DEFAULT_LB_TRACK,
-      }));
-    }
-  }
+  // Always the default board. The client reads the URL's weapon/track/filter/buildId
+  // and fetches the requested variant on mount; it also normalizes the address bar
+  // (replacing the old server-side canonical redirect for human navigation).
+  const initialData = await prefetchLeaderboard(characterId, {}, revalidate);
 
   const jsonLd = {
     "@context": "https://schema.org",

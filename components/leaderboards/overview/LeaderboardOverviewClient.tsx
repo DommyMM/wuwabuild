@@ -261,7 +261,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                           defaultTrack,
                                         })}
                                         title={chipTitle}
-                                        className="group relative flex min-w-[128px] flex-1 basis-[140px] items-center gap-2.5 overflow-hidden rounded-lg border border-accent/15 bg-black/20 px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-all hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+                                        className="group relative flex min-w-32 flex-1 basis-35 items-center gap-2.5 overflow-hidden rounded-lg border border-accent/15 bg-black/20 px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-all hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
                                       >
                                         {/* Glassmorphic inner highlight */}
                                         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06)_0%,transparent_50%)] opacity-70 transition-opacity group-hover:opacity-100" />

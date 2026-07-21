@@ -130,7 +130,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
     }
 
     const charName = char ? char.name : '';
-    const insight = char ? await getLeaderboardInsight(id) : null;
+    const insight = char ? await getLeaderboardInsight(id, revalidate) : null;
     const insightProse = char && insight ? formatInsightProse(charName, insight) : null;
     const weaponType = char ? char.weaponType : '';
     const element = char ? char.element : '';
@@ -198,12 +198,12 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
                     <div className="relative overflow-hidden rounded-xl border border-white/10 bg-background-secondary/72 shadow-[0_6px_16px_rgba(0,0,0,0.26)]">
                         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(56%_120%_at_14%_0%,color-mix(in_srgb,var(--seo-element-color)_18%,transparent)_0%,transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.035)_0%,transparent_48%,rgba(0,0,0,0.24)_100%)]" />
                         <div className="relative grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
-                            <div className="relative min-h-[250px] border-b border-white/10 bg-black/20 lg:border-r lg:border-b-0">
+                            <div className="relative min-h-62.5 border-b border-white/10 bg-black/20 lg:border-r lg:border-b-0">
                                 {rawChar.icon?.banner && (
                                     <img
                                         src={rawChar.icon.banner}
                                         alt=""
-                                        className="absolute inset-x-0 bottom-0 mx-auto h-[270px] w-full object-contain object-bottom opacity-90"
+                                        className="absolute inset-x-0 bottom-0 mx-auto h-67.5 w-full object-contain object-bottom opacity-90"
                                         loading="eager"
                                     />
                                 )}

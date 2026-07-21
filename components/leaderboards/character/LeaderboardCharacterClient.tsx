@@ -97,11 +97,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const initialPage = initialData?.page ?? initialSnapshot.page;
   const initialPageSize = initialData?.pageSize ?? initialSnapshot.pageSize;
   const initialEntries = mergeGhostBuild(initialData?.builds ?? [], initialData?.ghostBuild);
-  const initialQuerySnapshot = {
-    ...initialSnapshot,
-    page: initialPage,
-    pageSize: initialPageSize,
-  };
 
   // State initialized from URL, with backend page overrides applied for buildId ghost resolution.
   const [page, setPage] = useState(() => initialPage);
@@ -130,26 +125,25 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   // Board-level stat columns from the backend (same four for every row on this board). Empty array → rows fall back to the per-row heuristic.
   const [boardDisplayStats, setBoardDisplayStats] = useState<LBStatSortKey[]>(() => initialData?.displayStats ?? []);
 
-  // See DeepLink doc above. SSR already resolved the page/build via the buildId query, so an initial load
-  // starts 'resolved'; a load with no initialData (rare) resolves client-side.
+  // See DeepLink doc above. initialData is the default board and never carries a buildId
+  // resolution, so resolve on the client whenever the deep-linked build isn't already in
+  // the default rows (the fetch effect re-fetches with its buildId to pin the page/ghost).
   const [deepLink, setDeepLink] = useState<DeepLink | null>(() => {
     const id = initialSnapshot.buildId;
     if (!id) return null;
     const entry = initialEntries.find((e) => e.id === id) ?? initialData?.ghostBuild ?? null;
-    return { id, entry, homeSig: null, needsResolve: !initialData };
+    return { id, entry, homeSig: null, needsResolve: !entry };
   });
   // Auto-expand a deep-linked build exactly once per reveal.
   const expandedDeepLinkRef = useRef<string | null>(null);
   // Used to suppress the URL sync effect for one cycle when a standings click updates weapon/track state.
   const suppressUrlSyncRef = useRef(false);
-  const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
-    if (!initialData) return null;
-    // buildId is never part of the query key (it's resolved out-of-band), so seed it without one.
-    return JSON.stringify({
-      characterId,
-      ...leaderboardSnapshotToApiQuery({ ...initialQuerySnapshot, buildId: '' }),
-    });
-  });
+  // Never pre-settle. initialData is always the *default* board (the route is ISR, not
+  // per-query dynamic), so leave the query pending and let the fetch effect run on mount:
+  // for the default view it's a silent background refresh through the short Cloudflare
+  // API cache; for a ?weaponId/?track variant URL it loads the actually requested board.
+  // createRowsSignature diffs the result so an unchanged default board never re-renders.
+  const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const { expandedIds, toggleExpandedId } = useExpandedRows();
   const autoExpandRowRef = useRef<HTMLDivElement | null>(null);

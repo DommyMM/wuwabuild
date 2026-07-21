@@ -17,7 +17,7 @@ import { LBMoveEntry } from '@/lib/lb';
 // This lives outside the panel because the home hero renders the same profile
 // bar for a board record. One palette and one aggregation, so the two surfaces
 // can never disagree on a color or a percentage.
-export const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
+const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
   basic_attack: { label: 'Basic Attack', color: '#c98500' },
   heavy_attack: { label: 'Heavy Attack', color: '#008300' },
   resonance_skill: { label: 'Resonance Skill', color: '#3987e5' },
@@ -33,7 +33,7 @@ export const MOVE_TYPE_META: Record<string, { label: string; color: string }> = 
   tune_rupture: { label: 'Tune Rupture', color: '#d3c23c' },
   fusion_burst: { label: 'Fusion Burst', color: '#e08b4a' },
 };
-export const FALLBACK_TYPE_COLOR = '#7f93a8';
+const FALLBACK_TYPE_COLOR = '#7f93a8';
 
 export function typeMeta(moveType: string): { label: string; color: string } {
   const known = MOVE_TYPE_META[moveType];
@@ -45,7 +45,7 @@ export function typeMeta(moveType: string): { label: string; color: string } {
   return { label, color: FALLBACK_TYPE_COLOR };
 }
 
-export type ProcessedHit = {
+type ProcessedHit = {
   key: string;
   name: string;
   damage: number;
@@ -54,12 +54,12 @@ export type ProcessedHit = {
   baseMV: number;
 };
 
-export type TypeSegment = {
+type TypeSegment = {
   type: string;
   damage: number;
 };
 
-export type ProcessedMove = {
+type ProcessedMove = {
   key: string;
   name: string;
   damage: number;
@@ -78,7 +78,7 @@ export type ProcessedMove = {
 // Global score adjustments (ER scaling, set/echo/sub-DPS bonuses). They scale
 // or extend the whole rotation rather than being a part of it — rendered as
 // the score equation and the waterfall, never as rotation rows.
-export type ProcessedModifier = {
+type ProcessedModifier = {
   key: string;
   name: string;
   damage: number;

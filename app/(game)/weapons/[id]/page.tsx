@@ -204,7 +204,7 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
                     <div className="relative overflow-hidden rounded-xl border border-white/10 bg-background-secondary/72 shadow-[0_6px_16px_rgba(0,0,0,0.26)]">
                         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(46%_120%_at_12%_0%,rgba(166,150,98,0.18)_0%,transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.035)_0%,transparent_48%,rgba(0,0,0,0.24)_100%)]" />
                         <div className="relative grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
-                            <div className="relative min-h-[250px] border-b border-white/10 bg-black/20 lg:border-r lg:border-b-0">
+                            <div className="relative min-h-62.5 border-b border-white/10 bg-black/20 lg:border-r lg:border-b-0">
                                 {weaponIcon && (
                                     <img
                                         src={weaponIcon}

@@ -9,7 +9,7 @@ import { processMoves, type TypeTotal } from '@/lib/moveBreakdown';
 import { prefetchLeaderboardOverview, prefetchBuilds, prefetchBuildMoves } from '@/lib/lbServer';
 import { loadCharacterSummary, loadWeaponSummary } from '@/lib/server/gameData';
 
-export const revalidate = 600; // ISR: full page HTML cached at edge, re-rendered at most once per 10 min
+export const revalidate = 3600; // ISR page cadence (cost lever), decoupled from data freshness: the prefetches below pass this same window so no nested fetch drags the page below hourly; live panels refresh client-side through the short Cloudflare API cache.
 
 export const metadata: Metadata = {
     title: { absolute: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards' },
@@ -82,8 +82,8 @@ function resolveHeroSlide(record: HomeBoardRecord): HomeHeroSlide | null {
 
 export default async function Home() {
     const [overview, buildsRes] = await Promise.all([
-        prefetchLeaderboardOverview(),
-        prefetchBuilds(),
+        prefetchLeaderboardOverview(revalidate),
+        prefetchBuilds('finalCV', revalidate),
     ]);
     const lbStats = {
         totalBuilds: buildsRes?.total ?? 0,
@@ -133,7 +133,7 @@ export default async function Home() {
     const first = slides[0];
     let initialProfile: TypeTotal[] | null = null;
     if (first?.buildId && first.weaponId) {
-        const moves = await prefetchBuildMoves(first.buildId, first.weaponId, first.trackKey);
+        const moves = await prefetchBuildMoves(first.buildId, first.weaponId, first.trackKey, revalidate);
         if (moves && moves.length > 0) initialProfile = processMoves(moves).typeTotals;
     }
 

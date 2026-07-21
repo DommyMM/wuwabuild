@@ -3,10 +3,12 @@ import { GlobalBoardPageClient } from '@/components/leaderboards/board/GlobalBoa
 import { prefetchBuilds } from '@/lib/lbServer';
 
 export const dynamic = 'force-static';
-// Matches the LB service's cacheList window (s-maxage=120) and the client-side
-// globalBoardCache TTL, so the prerendered HTML is never staler than the data a
-// client fetch would return for the same board.
-export const revalidate = 120;
+// ISR page cadence (cost lever), decoupled from data freshness. The board client
+// (GlobalBoardPageClient) background-refreshes the default query on mount through the
+// short Cloudflare API cache (s-maxage=120), so a longer HTML window costs no
+// freshness. `prefetchBuilds` is passed this same window so it doesn't drag the page
+// back down to the API TTL.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Wuthering Waves Builds',
@@ -34,7 +36,7 @@ export default async function Builds({ searchParams }: BuildsPageProps) {
   const hasScopedQuery = Object.values(resolvedSearchParams).some((value) => (
     Array.isArray(value) ? value.length > 0 : typeof value === 'string' && value.length > 0
   ));
-  const initialData = hasScopedQuery ? null : await prefetchBuilds();
+  const initialData = hasScopedQuery ? null : await prefetchBuilds('finalCV', revalidate);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

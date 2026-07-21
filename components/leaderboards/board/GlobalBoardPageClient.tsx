@@ -60,8 +60,12 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   const [total, setTotal] = useState(() => ssrData?.total ?? 0);
   const buildsRef = useRef<LBBuildRowEntry[]>(builds);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
-    // Pre-settle only when SSR data matches the current URL (default query).
-    return ssrData ? '' : null;
+    // Never pre-settle. Even when SSR data covers the default query, leave it pending
+    // so the effect runs one silent background refresh on mount: the page's ISR HTML
+    // is now hourly, so this pulls near-live data through the short Cloudflare API
+    // cache. SSR rows stay visible (builds.length > 0 → isRefreshing, not a skeleton)
+    // and createRowsSignature diffs the result so an unchanged board never re-renders.
+    return null;
   });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const { expandedIds: expandedBuildIds, toggleExpandedId } = useExpandedRows();
