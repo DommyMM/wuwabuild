@@ -5,18 +5,24 @@ import { DEFAULT_LB_TRACK, parseLBSeqLevel, stripLBSeqPrefix } from '@/component
 import { adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
 import type { LBTrack } from '@/lib/lb';
 import { prefetchLeaderboard } from '@/lib/lbServer';
-import { loadBoardDisplayCatalog, loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
+import { loadBoardDisplayCatalog, loadCharacterDisplayMap, loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
 
 // ISR: one canonical board per character (the default weapon/track). Weapon/track/
 // filter variants are client-side UI state under that canonical, so the route no
 // longer reads searchParams and no longer renders a Vercel function per request. The
 // client background-refreshes the board on mount through the short Cloudflare API
-// cache. `revalidate` is passed to the prefetch so no nested fetch drags the page
-// below hourly.
+// cache. `revalidate` is passed to the prefetch so no nested fetch drags the page below hourly.
 export const revalidate = 3600;
 
 interface Props {
   params: Promise<{ characterId: string }>;
+}
+
+// Prerender every character's board at build so the route is ISR. A dynamic segment
+// WITHOUT generateStaticParams renders per-request (dynamic) even with `revalidate` set
+// `revalidate` alone does not make it static. Mirrors /characters/[id] and /weapons/[id], which are ISR for exactly this reason.
+export function generateStaticParams(): { characterId: string }[] {
+  return Object.keys(loadCharacterDisplayMap()).map((characterId) => ({ characterId }));
 }
 
 function getCharacterPageCopy(characterId: string) {
