@@ -35,13 +35,15 @@ interface LeaderboardOverviewClientProps {
 export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps> = ({ initialData }) => {
   const { getCharacter, getWeapon } = useGameData();
   const { t } = useLanguage();
-  const [overview, setOverview] = useState<LBCharacterOverview[]>(() => initialData ?? readCachedLeaderboardOverview() ?? []);
-  const [fetchState, setFetchState] = useState<{ isLoading: boolean; error: string | null }>(() => ({
-    isLoading: !(initialData ?? readCachedLeaderboardOverview()),
+  const [initialOverview] = useState<LBCharacterOverview[]>(() => initialData ?? readCachedLeaderboardOverview() ?? []);
+  const [overview, setOverview] = useState<LBCharacterOverview[]>(initialOverview);
+  const [fetchState, setFetchState] = useState<{ isLoading: boolean; isRefreshing: boolean; error: string | null }>(() => ({
+    isLoading: initialOverview.length === 0,
+    isRefreshing: initialOverview.length > 0,
     error: null,
   }));
   // Ref tracks the current signature to diff-check without adding overview to effect deps.
-  const overviewSigRef = useRef(overviewSignature(initialData ?? readCachedLeaderboardOverview() ?? []));
+  const overviewSigRef = useRef(overviewSignature(initialOverview));
 
   useEffect(() => {
     if (initialData) {
@@ -53,7 +55,10 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
   useEffect(() => {
     let cancelled = false;
 
-    void getCachedLeaderboardOverview()
+    // The ISR/local cache is a fast first-paint seed, not a reason to skip the
+    // gateway. Force one deduplicated background request so Cloudflare's 10-minute
+    // cache, rather than the hourly HTML window, controls visible freshness.
+    void getCachedLeaderboardOverview(true)
       .then((data) => {
         if (cancelled) return;
         // Diff check: skip setState if data hasn't changed.
@@ -62,12 +67,13 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
           overviewSigRef.current = newSig;
           setOverview(data);
         }
-        setFetchState({ isLoading: false, error: null });
+        setFetchState({ isLoading: false, isRefreshing: false, error: null });
       })
       .catch((err) => {
         if (cancelled) return;
         setFetchState({
           isLoading: false,
+          isRefreshing: false,
           error: err instanceof Error ? err.message : String(err),
         });
       });
@@ -82,14 +88,17 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
   return (
     <div className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
       <div className="mx-auto w-full max-w-360 space-y-4 p-3 px-0 md:p-5">
-        <section className="relative overflow-visible rounded-xl border border-border bg-background-secondary px-4 py-2">
+        <section aria-busy={fetchState.isLoading || fetchState.isRefreshing} className="relative overflow-visible rounded-xl border border-border bg-background-secondary px-4 py-2">
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
           <div className="relative">
             <LeaderboardOverviewHeader />
+            <span className="sr-only" aria-live="polite" aria-atomic="true">
+              {fetchState.isLoading ? 'Loading leaderboard…' : fetchState.isRefreshing ? 'Updating leaderboard…' : ''}
+            </span>
 
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
               {fetchState.error && (
-                <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-300">
+                <div role="alert" className="rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-300">
                   Failed to load leaderboard data: {fetchState.error}
                 </div>
               )}
@@ -177,6 +186,8 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                       <img
                                         src={headSrc}
                                         alt={characterName}
+                                        width={48}
+                                        height={48}
                                         className="h-12 w-12 object-cover object-top"
                                         loading="lazy"
                                       />
@@ -203,6 +214,8 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                       src={headSrc}
                                       alt={characterName}
                                       title={characterName}
+                                      width={44}
+                                      height={44}
                                       className="h-11 w-11 object-cover object-top"
                                       loading="lazy"
                                     />
@@ -217,6 +230,8 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                         src={teamChar.head}
                                         alt={teamChar.name}
                                         title={teamChar.name}
+                                        width={44}
+                                        height={44}
                                         className="h-11 w-11 object-cover object-top"
                                         loading="lazy"
                                       />
@@ -261,7 +276,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                           defaultTrack,
                                         })}
                                         title={chipTitle}
-                                        className="group relative flex min-w-32 flex-1 basis-35 items-center gap-2.5 overflow-hidden rounded-lg border border-accent/15 bg-black/20 px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-all hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+                                        className="group relative flex min-w-32 flex-1 basis-35 items-center gap-2.5 overflow-hidden rounded-lg border border-accent/15 bg-black/20 px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-[transform,border-color,background-color,box-shadow] hover:-translate-y-0.5 hover:border-accent/35 hover:bg-accent/10 hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
                                       >
                                         {/* Glassmorphic inner highlight */}
                                         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06)_0%,transparent_50%)] opacity-70 transition-opacity group-hover:opacity-100" />
@@ -269,6 +284,8 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                           <img
                                             src={getWeaponPaths(weapon)}
                                             alt={weaponName}
+                                            width={40}
+                                            height={40}
                                             className="relative h-10 w-10 shrink-0 object-contain"
                                             loading="lazy"
                                           />

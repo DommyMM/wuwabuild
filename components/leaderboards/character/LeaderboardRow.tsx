@@ -265,7 +265,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
           {/* Character */}
           <div className="flex min-w-0 items-center gap-1.5 py-2">
             {character?.head ?? fallbackDisplay?.head ? (
-              <img src={(character?.head ?? fallbackDisplay?.head) as string} alt={characterName} className="h-9 w-9 object-cover" loading="lazy" />
+              <img src={(character?.head ?? fallbackDisplay?.head) as string} alt={characterName} width={36} height={36} className="h-9 w-9 object-cover" loading="lazy" />
             ) : (
               <div className="h-9 w-9 bg-border" />
             )}
@@ -282,7 +282,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
               computedActiveSets.map((setEntry) => (
                 <div key={setEntry.setId} className="flex items-end gap-0.5">
                   {setEntry.icon ? (
-                    <img src={setEntry.icon} alt="" title={setEntry.name} className="h-7 w-7" loading="lazy" />
+                    <img src={setEntry.icon} alt="" title={setEntry.name} width={28} height={28} className="h-7 w-7" loading="lazy" />
                   ) : (
                     <div className="h-8 w-8" />
                   )}
@@ -324,6 +324,8 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
                       <img
                         src={cell.icon}
                         alt=""
+                        width={20}
+                        height={20}
                         className="w-5 h-5 shrink-0 object-contain"
                         style={cell.iconFilter ? { filter: cell.iconFilter } : undefined}
                         loading="lazy"

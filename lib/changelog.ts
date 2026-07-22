@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-21',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Numbered attack chains in move breakdowns now appear as one expandable move with every stage and its damage shown inside',
+            },
+        ],
+    },
+    {
         date: '2026-07-20',
         changes: [
             {

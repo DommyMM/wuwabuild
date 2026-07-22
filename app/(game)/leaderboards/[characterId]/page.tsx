@@ -19,9 +19,9 @@ interface Props {
   params: Promise<{ characterId: string }>;
 }
 
-// Prerender every character's board at build so the route is ISR. A dynamic segment
-// WITHOUT generateStaticParams renders per-request (dynamic) even with `revalidate` set
-// `revalidate` alone does not make it static. Mirrors /characters/[id] and /weapons/[id], which are ISR for exactly this reason.
+// Seed every known character board during the production build. Together with
+// force-static and revalidate, this avoids a cold per-request render for known ids;
+// generateStaticParams itself does not run during ISR regeneration.
 export function generateStaticParams(): { characterId: string }[] {
   return Object.keys(loadCharacterDisplayMap()).map((characterId) => ({ characterId }));
 }

@@ -9,7 +9,10 @@ import { processMoves, type TypeTotal } from '@/lib/moveBreakdown';
 import { prefetchLeaderboardOverview, prefetchBuilds, prefetchBuildMoves } from '@/lib/lbServer';
 import { loadCharacterSummary, loadWeaponSummary } from '@/lib/server/gameData';
 
-export const revalidate = 3600; // ISR page cadence (cost lever), decoupled from data freshness: the prefetches below pass this same window so no nested fetch drags the page below hourly; live panels refresh client-side through the short Cloudflare API cache.
+// The homepage is an hourly editorial/stat snapshot. Unlike the interactive build
+// and leaderboard tables, it does not refetch after hydration; this avoids an API
+// request per landing-page visit for content where hourly freshness is sufficient.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
     title: { absolute: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards' },

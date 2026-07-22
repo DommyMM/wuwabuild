@@ -27,16 +27,10 @@ export const metadata: Metadata = {
   alternates: { canonical: '/builds' },
 };
 
-interface BuildsPageProps {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}
-
-export default async function Builds({ searchParams }: BuildsPageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : {};
-  const hasScopedQuery = Object.values(resolvedSearchParams).some((value) => (
-    Array.isArray(value) ? value.length > 0 : typeof value === 'string' && value.length > 0
-  ));
-  const initialData = hasScopedQuery ? null : await prefetchBuilds('finalCV', revalidate);
+export default async function Builds() {
+  // One canonical static payload only. The client reads query state and ignores this default snapshot for
+  // scoped URLs, so reading searchParams here would add dynamic route work without improving the rendered result
+  const initialData = await prefetchBuilds('finalCV', revalidate);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

@@ -140,13 +140,12 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
 
   const hasRows = entries.length > 0;
   const showInitialSkeleton = isLoading && !hasRows;
-  const showRefreshingOverlay = isRefreshing && hasRows;
   const firstShown = total === 0 ? 0 : Math.min(total, rankStart);
   const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(entries.length - 1, 0));
   const statusText = showInitialSkeleton
     ? ''
     : isRefreshing
-      ? 'Updating...'
+      ? 'Updating…'
       : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;
 
   const handleSortRequest = (nextSort: LBLeaderboardSortKey) => {
@@ -155,7 +154,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   };
 
   return (
-    <section>
+    <section aria-busy={isLoading || isRefreshing}>
       {error && (
         <div role="alert" className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-300">
           <span>Failed to load leaderboard: {error}</span>
@@ -345,14 +344,6 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         rowRef={entry.id === deepLinkBuildId ? autoExpandRowRef : undefined}
                       />
                     ))}
-                    {showRefreshingOverlay && (
-                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 backdrop-blur-[1.5px]">
-                        <div className="flex items-center gap-3 rounded-md border border-accent/35 bg-background/80 px-4 py-2 text-sm text-text-primary">
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
-                          Updating...
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

@@ -16,21 +16,32 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 
 ## Fetch Model
 
-- **`/`** — server component prefetches overview + global build stats via `lbServer.ts` (ISR on the page).
-- **`/builds`** — `force-static`. Server component prefetches the default build query through `lbServer.ts`; the client uses that payload only when the URL has no search params. Query changes, non-default initial URLs, and revalidation fetch the gateway (`api.wuwa.build`) directly, with a small localStorage cache keyed by serialized query.
-- **`/leaderboards`** — server component prefetches overview data through `lbServer.ts`; the client overview cache (`leaderboardOverviewCache.ts`) avoids redundant fetches across mounts. Server and client use the same overview parser, and `weaponIds` is the configured board list (including a weapon with no rank-1 row yet), while `weapons` contains the available rank-1 summaries. Overview/reign surfaces intentionally use a longer 10-minute cache window than character boards.
-- **`/leaderboards/[characterId]`** — `force-dynamic`. The route validates the character before contacting LB and returns the real not-found page for unknown IDs. For valid characters, the server prefetches the first board payload via `lbServer.ts`, canonicalizes the incoming query string against the returned weapon/track config, and `redirect()`s when the URL doesn't match. The payload is passed to the client as `initialData`.
+- **`/`** — an hourly ISR snapshot. The server prefetches overview, global build stats, and the first hero move profile through `lbServer.ts`. These editorial/stat panels do not refetch after hydration; hourly freshness is intentional because a request per landing-page visit would add origin work without meaningful UX value.
+- **`/builds`** — `force-static`, with one canonical default snapshot regenerated hourly. The server never reads `searchParams`. The client uses the snapshot only for the empty/default query, then performs a non-blocking gateway refresh. Scoped initial URLs and query changes fetch `api.wuwa.build` directly, with a small localStorage cache keyed by the serialized query.
+- **`/leaderboards`** — an hourly ISR overview snapshot followed by one non-blocking gateway refresh after mount. `leaderboardOverviewCache.ts` supplies fast cross-mount seed data and request deduplication, but does not suppress that refresh. Cloudflare's 10-minute overview cache therefore controls visible freshness. Server and client use the same parser; `weaponIds` is the configured board list (including a weapon with no rank-1 row yet), while `weapons` contains available rank-1 summaries.
+- **`/leaderboards/[characterId]`** — `force-static`, hourly ISR, and one canonical server payload per character (the default weapon/track). `generateStaticParams()` enumerates known characters during the production build; it does not run during ISR. The server validates the character but deliberately does not read the query string. The client reads `weaponId`, `track`, filters, pagination, and `buildId`, then fetches the exact board through the gateway. The server snapshot stays visible during a default-board refresh; a non-default URL with no matching rows shows the initial loading state.
 - **`/profile/[uid]`** — server component fetches profile metadata through `fetchProfileSummary()`. Build rows are fetched client-side from `/profile/{uid}/builds`, which returns the same compact row shape as `/build` but is scoped by route UID in the LB service.
-- Prefetch always calls LB through the configured LB gateway. Character-board/build/profile prefetches are cached via `next: { revalidate: 120 }` (2 minutes), while overview/reign prefetches use `next: { revalidate: 600 }` (10 minutes). See `PREFETCH_TTL_S` and `OVERVIEW_PREFETCH_TTL_S` in `lbServer.ts`.
-- Those windows are not chosen here. They mirror the `s-maxage` the LB service emits for the same resource (`cachePolicy` in lb `internal/api/helpers.go`: `cacheList` = 120s, `cacheOverview` = 600s). lb owns the number; every other layer follows it. See "Cache windows" below.
-- Where revalidation exists, client fetches after mount; signature checks cover the complete normalized row payload so owner, stat, equipment, reign, and configuration changes are not discarded as unchanged.
+- Server prefetches always call LB through the configured gateway. Interactive ISR pages pass their page `revalidate` value into `lbServer.ts`; otherwise a shorter nested `fetch(..., { next: { revalidate } })` would lower the whole route's ISR cadence and recreate the ISR-write cost this layout is meant to avoid.
+- Browser refreshes do not rebuild these pages. A request receives the current static/ISR artifact; after its one-hour window, the first eligible request triggers regeneration. Interactive clients independently fetch the exact API resource, which Cloudflare serves according to LB's `s-maxage` (`cacheList` = 120s and `cacheOverview` = 600s).
+- Client refreshes keep existing rows interactive. A compact `Updating…` status is announced rather than covering the table. Signature checks cover the complete normalized payload so unchanged data does not rerender.
+
+### Cache Layers
+
+| Layer | What it caches | What a user visit does |
+| --- | --- | --- |
+| Vercel static/ISR page | Canonical HTML/RSC payload | Serves the existing artifact; only an expired artifact can cause regeneration. Query-only selections do not request another RSC payload. |
+| Cloudflare gateway | LB GET responses using origin `s-maxage` | Usually serves the cached API response; one miss per POP/window reaches Railway. |
+| Browser/local client cache | Recently viewed build-list/overview payloads | Seeds the UI immediately, then the interactive pages revalidate through Cloudflare. |
+| Railway/LB | Source of current leaderboard data and computation | Runs only when Cloudflare misses/bypasses cache or for uncached/on-demand endpoints. |
 
 ## Query State Model
 
 - On `/builds`, `/profile/[uid]`, and `/leaderboards/[characterId]`, the URL is the source of truth for shareable table state.
-- Client components seed from `useSearchParams()`, then push canonical state back with `window.history.replaceState(...)`. `router.replace` is avoided because it no-ops on `force-static` routes when the page was first loaded with non-empty search params.
+- Character boards seed from `useSearchParams()` and write query-only changes with the native History API. Weapon, track, and pagination selections use `pushState` so Back/Forward restores the prior board; rapid filters, sorting, and canonical cleanup use `replaceState` so they do not flood browser history.
+- Do not use `router.push`/`router.replace` for character-board query state. The server artifact is identical for every query variant, so a Next navigation only adds an Edge/RSC request alongside the API request the client actually needs. Native history keeps the URL shareable without requesting that duplicate payload.
+- `/builds` uses `replaceState` for its filter-heavy query surface and fetches only its gateway data when state changes.
 - Structured build filters share the search dropdown: `seq=0,4,6` is a discrete selected sequence set, and `stats=energy_regen:gte:130.crit_rate:gte:70` is a dot-joined list of stat thresholds.
-- Browser back/forward, same-route deep links, and manual query edits resync visible controls from the URL.
+- On character boards, Browser Back/Forward, same-route deep links, and manual query edits resync visible controls from the URL.
 - Character leaderboards preserve deep-link support for `buildId`, but only show the auto-expanded build while the matching weapon + track are active. Deep-linked rows use `scrollToElementBelowNav()` so the target lands below the sticky navigation and respects reduced-motion preferences.
 
 ## Important Invariants

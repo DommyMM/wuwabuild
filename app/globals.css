@@ -32,6 +32,10 @@ body {
   max-width: 100%;
 }
 
+html {
+  color-scheme: dark;
+}
+
 body {
   color: var(--color-text-primary);
   font-family: var(--font-ropa);
@@ -442,6 +446,13 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .animate-spin,
+  .animate-ping,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
+
   .char-sig {
     animation: none;
     background-size: 100% 100%;

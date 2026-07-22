@@ -183,12 +183,11 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
 
   const hasBuildRows = builds.length > 0;
   const showInitialSkeleton = isLoading && !hasBuildRows;
-  const showRefreshingOverlay = isRefreshing && hasBuildRows;
   const firstShown = total === 0 ? 0 : Math.min(total, rankStart);
   const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(realBuildCount - 1, 0));
   const statusText = showInitialSkeleton
-    ? 'Loading builds...'
-    : isRefreshing ? 'Updating...' : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;
+    ? 'Loading builds…'
+    : isRefreshing ? 'Updating…' : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;
   const showBuildTableGate = showTableGate && !error && isTableGateDismissed === false;
 
   const handleSortRequest = (nextSort: LBSortKey) => {
@@ -202,7 +201,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   };
 
   return (
-    <section className="relative">
+    <section className="relative" aria-busy={isLoading || isRefreshing}>
       {error && (
         <div role="alert" className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-300">
           <span>Failed to load leaderboard data: {error}</span>
@@ -228,7 +227,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                 <div className="py-2" aria-hidden="true" />
                 <div className="py-2 text-text-primary/70">Sequences</div>
                 <div className="py-2">Sets</div>
-                <div className={`grid ${SORTABLE_GROUP_GRID} min-w-[652px] self-stretch gap-0`}>
+                <div className={`grid ${SORTABLE_GROUP_GRID} min-w-163 self-stretch gap-0`}>
                   <div className="self-stretch">
                     <SortHeaderMenu
                       menuId="sort-cv"
@@ -343,7 +342,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                           <div className="flex items-center py-2">
                             <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
                           </div>
-                          <div className={`grid ${SORTABLE_GROUP_GRID} min-w-[652px] self-stretch gap-0`}>
+                          <div className={`grid ${SORTABLE_GROUP_GRID} min-w-163 self-stretch gap-0`}>
                             <div className="flex h-full items-center px-2.5">
                               <div className="h-3.5 w-24 animate-pulse rounded bg-background-secondary/80" />
                             </div>
@@ -393,14 +392,6 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                           showOwner={showOwner}
                         />
                       ))}
-                      {showRefreshingOverlay && (
-                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 backdrop-blur-[1.5px]">
-                          <div className="flex items-center gap-3 rounded-md border border-accent/35 bg-background/80 px-4 py-2 text-sm text-text-primary">
-                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
-                            Updating builds...
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>

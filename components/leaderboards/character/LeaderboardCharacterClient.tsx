@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
@@ -63,7 +63,6 @@ interface DeepLink {
 }
 
 export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProps> = ({ characterId, initialData, boardDisplay }) => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { characters, fetters } = useGameData();
   const { t } = useLanguage();
@@ -138,6 +137,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const expandedDeepLinkRef = useRef<string | null>(null);
   // Used to suppress the URL sync effect for one cycle when a standings click updates weapon/track state.
   const suppressUrlSyncRef = useRef(false);
+  // Material board/page selections should create useful browser history. Rapid filter
+  // edits and canonical cleanup replace the current entry instead.
+  const pendingHistoryModeRef = useRef<'push' | 'replace'>('replace');
+  const observedSearchParamsRef = useRef(searchParamsString);
   // Never pre-settle. initialData is always the *default* board (the route is ISR, not
   // per-query dynamic), so leave the query pending and let the fetch effect run on mount:
   // for the default view it's a silent background refresh through the short Cloudflare
@@ -216,6 +219,46 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     [deepLink, entries, onDeepLinkHome],
   );
 
+  // Native History API changes are integrated with Next's useSearchParams without
+  // requesting a new RSC payload. Resync state only when the address bar changed
+  // independently (Back/Forward, a same-route Link, or a manual query edit).
+  useEffect(() => {
+    if (observedSearchParamsRef.current === searchParamsString) return;
+    observedSearchParamsRef.current = searchParamsString;
+
+    const stateSnapshot = { ...currentQuerySnapshot, buildId: revealBuildId ?? '' };
+    const stateSearch = serializeLeaderboardQuery(stateSnapshot, {
+      defaultWeaponId,
+      defaultTrack: defaultTrackKey,
+    });
+    if (stateSearch === searchParamsString) return;
+
+    suppressUrlSyncRef.current = true;
+    const urlWeaponIndex = initialSnapshot.weaponId
+      ? configWeaponIds.indexOf(initialSnapshot.weaponId)
+      : 0;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (urlWeaponIndex >= 0) setWeaponIndex(urlWeaponIndex);
+      setTrack(initialSnapshot.track);
+      setPage(initialSnapshot.page);
+      setPageSize(initialSnapshot.pageSize);
+      setSort(initialSnapshot.sort);
+      setDirection(initialSnapshot.direction);
+      setUid(initialSnapshot.uid);
+      setUsername(initialSnapshot.username);
+      setRegionPrefixes(initialSnapshot.regionPrefixes);
+      setEchoSets(initialSnapshot.echoSets);
+      setEchoMains(initialSnapshot.echoMains);
+      setSequences(initialSnapshot.sequences);
+      setStatFilters(initialSnapshot.statFilters);
+      setScoring(initialSnapshot.scoring ?? DEFAULT_SCORING);
+      if (!initialSnapshot.buildId && revealBuildId) setDeepLink(null);
+    });
+    return () => { cancelled = true; };
+  }, [configWeaponIds, currentQuerySnapshot, defaultTrackKey, defaultWeaponId, initialSnapshot, revealBuildId, searchParamsString]);
+
   // Capture a deep link that arrives via client navigation (a standings click on the same route).
   // MUST be registered before the URL sync effect (effects run in order) so suppressing it prevents the
   // URL sync from immediately reverting the buildId / weapon / track the click navigated to.
@@ -258,8 +301,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     return () => { cancelled = true; };
   }, [deepLink, viewSig]);
 
-  // URL sync — buildId is written only while on the reveal's home view (revealBuildId), so navigating away
-  // drops it and returning re-adds it.
+  // URL sync — buildId is written only while on the reveal's home view (revealBuildId),
+  // so navigating away drops it and returning re-adds it. Native history keeps this
+  // shareable without the redundant Next/RSC navigation that router.replace caused.
   useEffect(() => {
     if (suppressUrlSyncRef.current) {
       suppressUrlSyncRef.current = false;
@@ -271,12 +315,16 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       defaultTrack: defaultTrackKey,
     });
     if (searchParamsString !== next) {
-      router.replace(buildLeaderboardHref(characterId, urlSnapshot, {
+      const href = buildLeaderboardHref(characterId, urlSnapshot, {
         defaultWeaponId,
         defaultTrack: defaultTrackKey,
-      }), { scroll: false });
+      });
+      const historyMode = pendingHistoryModeRef.current;
+      pendingHistoryModeRef.current = 'replace';
+      observedSearchParamsRef.current = next;
+      window.history[historyMode === 'push' ? 'pushState' : 'replaceState'](null, '', href);
     }
-  }, [characterId, currentQuerySnapshot, defaultTrackKey, defaultWeaponId, revealBuildId, router, searchParamsString]);
+  }, [characterId, currentQuerySnapshot, defaultTrackKey, defaultWeaponId, revealBuildId, searchParamsString]);
 
   // Query key for effect dependency
   const queryKey = useMemo(() => JSON.stringify({
@@ -623,6 +671,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                     track_key: track,
                     tab_kind: 'weapon',
                   });
+                  pendingHistoryModeRef.current = 'push';
                   setWeaponIndex(idx);
                   setPage(1);
                 }}
@@ -635,6 +684,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                     track_key: trackKey,
                     tab_kind: 'track',
                   });
+                  pendingHistoryModeRef.current = 'push';
                   setTrack(trackKey);
                   setPage(1);
                 }}
@@ -735,7 +785,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 direction={direction}
                 onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
                 onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
-                onPageChange={setPage}
+                onPageChange={(nextPage) => {
+                  pendingHistoryModeRef.current = 'push';
+                  setPage(nextPage);
+                }}
                 autoExpandRowRef={autoExpandRowRef}
                 onToggleExpand={handleToggleExpand}
                 onRetryDetail={handleRetryDetail}

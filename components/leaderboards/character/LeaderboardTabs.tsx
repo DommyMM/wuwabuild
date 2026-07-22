@@ -9,7 +9,7 @@ import type { LBBoardDisplay } from '@/lib/lb';
 import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix, ScoringMode } from '../constants';
 
 const BASE_GLASS_CARD =
-  'group relative overflow-hidden rounded-xl border px-3 py-2.5 shadow-[0_3px_12px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40';
+  'group relative overflow-hidden rounded-xl border px-3 py-2.5 shadow-[0_3px_12px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-[transform,border-color,background-color,box-shadow,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40';
 const INACTIVE_GLASS_CARD =
   'border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.015)_32%,rgba(0,0,0,0.26)_100%)] hover:-translate-y-0.5 hover:border-accent/30 hover:bg-accent/10 motion-reduce:hover:translate-y-0';
 const ACTIVE_GOLD_CARD =
@@ -20,7 +20,7 @@ const CARD_SHEEN =
 // Compact bracket-row buttons (the old ER-bracket treatment): lighter than the
 // board selector cards, so Scoring reads as a metric lens instead of a board.
 const SCORING_SEGMENT =
-  'relative inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold leading-none tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60';
+  'relative inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold leading-none tracking-wide transition-[transform,border-color,background-color,box-shadow,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60';
 const SCORING_SEGMENT_ACTIVE =
   'border-amber-300/45 bg-[linear-gradient(180deg,rgba(251,191,36,0.15)_0%,rgba(251,191,36,0.07)_100%)] text-amber-50 shadow-[0_2px_10px_rgba(0,0,0,0.25)]';
 const SCORING_SEGMENT_IDLE =
@@ -174,6 +174,8 @@ const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponDisplay, weapo
                 <img
                   src={iconSrc}
                   alt=""
+                  width={40}
+                  height={40}
                   className="relative h-10 w-10 shrink-0 object-contain"
                 />
               ) : (
