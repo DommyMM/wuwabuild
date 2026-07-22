@@ -29,8 +29,8 @@ export function Footer() {
                         WuWaBuilds
                     </Link>
                     <p className="mt-2 max-w-96 text-sm leading-relaxed text-text-primary/55">
-                        Build cards, imports, and damage leaderboards for Wuthering Waves.
-                        Independent fan tool made by one person, unaffiliated with Kuro Games.
+                        Import a wuwa-bot card, find a player, or see where a build ranks.
+                        Independent fan tool, unaffiliated with Kuro Games.
                         Records refresh every five minutes. Bugs, requests, and complaints go to the{' '}
                         <a
                             href="https://discord.gg/puZSXRKTPC"
@@ -86,7 +86,7 @@ export function Footer() {
 
             <div className="border-t border-border/70">
                 <div className="mx-auto flex max-w-360 flex-col gap-2 px-6 py-4 text-xs text-text-primary/60 md:flex-row md:items-center md:justify-between md:px-16">
-                    <span>© {new Date().getFullYear()} WuWa Builds</span>
+                    <span>© {new Date().getFullYear()} WuWaBuilds</span>
                     <span>Game assets, names, and trademarks belong to their respective owners.</span>
                 </div>
             </div>

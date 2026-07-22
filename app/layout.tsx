@@ -40,8 +40,7 @@ export const metadata: Metadata = {
         default: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards',
         template: '%s | WuWaBuilds'
     },
-    description: 'Scan, build, and rank Wuthering Waves characters with imported stats, editable builds, showcase cards, and damage leaderboards.',
-    keywords: ['Wuthering Waves', 'WuWa', 'wuwa builds', 'WuWaBuilds', 'wuwa build maker', 'wuwa leaderboards', 'showcase card', 'screenshot scanner', 'damage calculator', 'build creator', 'character builds', 'echo builds'],
+    description: 'Search any Wuthering Waves player, or import your own from a wuwa-bot screenshot. Every board runs one standardized rotation, so builds are ranked on echoes alone.',
     authors: [{ name: 'WuWaBuilds' }],
     creator: 'WuWaBuilds',
     openGraph: {
@@ -50,12 +49,12 @@ export const metadata: Metadata = {
         url: 'https://wuwa.build',
         siteName: 'WuWaBuilds',
         title: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards',
-        description: 'Scan, build, and rank Wuthering Waves characters with imported stats, editable builds, showcase cards, and damage leaderboards.',
+        description: 'Search any Wuthering Waves player, or import your own from a wuwa-bot screenshot. Every board runs one standardized rotation, so builds are ranked on echoes alone.',
     },
     twitter: {
         card: 'summary_large_image',
         title: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards',
-        description: 'Scan, build, and rank Wuthering Waves characters with imported stats, editable builds, showcase cards, and damage leaderboards.',
+        description: 'Search any Wuthering Waves player, or import your own from a wuwa-bot screenshot. Every board runs one standardized rotation, so builds are ranked on echoes alone.',
     },
     robots: {
         index: true,

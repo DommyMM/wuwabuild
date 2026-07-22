@@ -5,6 +5,7 @@ import path from 'path';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { adaptCDNCharacter } from '@/lib/character';
+import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 import { loadCharacterRaw } from '@/lib/server/gameData';
 import { getLeaderboardInsight, formatInsightProse } from '@/lib/server/leaderboardInsight';
 import { CharacterReferenceSections } from './CharacterReferenceSections';
@@ -96,7 +97,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     if (rawChar) {
         const char = adaptCDNCharacter(rawChar);
         title = `${char.name} Build, Stats & Calculator - Wuthering Waves`;
-        description = `Build ${char.name} in Wuthering Waves and calculate optimal damage. Compare the best echo sets, stats, and weapons, plus top-player leaderboard rankings on WuWaBuilds.`;
+        description = `${char.name} builds in Wuthering Waves: echo sets, stats, weapons, forte, and where the top players rank.`;
     }
 
     return {
@@ -130,8 +131,13 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
     }
 
     const charName = char ? char.name : '';
-    const insight = char ? await getLeaderboardInsight(id, revalidate) : null;
+    const [insight, leaderboardOverview] = await Promise.all([
+        char ? getLeaderboardInsight(id, revalidate) : Promise.resolve(null),
+        prefetchLeaderboardOverview(revalidate),
+    ]);
     const insightProse = char && insight ? formatInsightProse(charName, insight) : null;
+    const hasLeaderboard = leaderboardOverview === null
+        || leaderboardOverview.some((entry) => entry.id === id);
     const weaponType = char ? char.weaponType : '';
     const element = char ? char.element : '';
     const matchingWeaponRefs = matchingWeapons.map((weapon) => ({
@@ -171,28 +177,12 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
         ]
     };
 
-    const jsonLdProfile = charName ? {
-        "@context": "https://schema.org",
-        "@type": "ProfilePage",
-        "mainEntity": {
-            "@type": "Person",
-            "name": charName,
-            "description": `${charName} in Wuthering Waves. ${element} ${weaponType} Resonator.`
-        }
-    } : null;
-
     return (
         <main className="bg-background">
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumbs) }}
             />
-            {jsonLdProfile && (
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdProfile) }}
-                />
-            )}
             {char && rawChar && (
                 <section className="mx-auto max-w-360 px-3 pt-4 md:px-16 md:pt-8" style={heroStyle}>
                     <div className="relative overflow-hidden rounded-xl border border-white/10 bg-background-secondary/72 shadow-[0_6px_16px_rgba(0,0,0,0.26)]">
@@ -235,9 +225,11 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
                                             ))}
                                         </div>
                                         <div className="mt-6 flex flex-wrap gap-2">
-                                            <Link className="gold-glow rounded-sm border border-accent/45 bg-accent px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover" href={`/leaderboards/${id}`}>
-                                                View leaderboard
-                                            </Link>
+                                            {hasLeaderboard && (
+                                                <Link className="gold-glow rounded-sm border border-accent/45 bg-accent px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover" href={`/leaderboards/${id}`}>
+                                                    View leaderboard
+                                                </Link>
+                                            )}
                                             <Link className="gold-glow rounded-sm border border-white/10 bg-white/3 px-4 py-2 text-sm font-semibold text-text-primary/82 transition-colors hover:border-accent/45 hover:text-accent" href="/builds">
                                                 Browse builds
                                             </Link>

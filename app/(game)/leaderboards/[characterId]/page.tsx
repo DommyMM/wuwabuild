@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import { LeaderboardCharacterClient } from '@/components/leaderboards/character/LeaderboardCharacterClient';
 import { DEFAULT_LB_TRACK, parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
-import type { LBTrack } from '@/lib/lb';
-import { prefetchLeaderboard } from '@/lib/lbServer';
+import type { LBLeaderboardResponse, LBTrack } from '@/lib/lb';
+import { prefetchLeaderboard, prefetchLeaderboardOverview } from '@/lib/lbServer';
 import { loadBoardDisplayCatalog, loadCharacterDisplayMap, loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
 
 export const dynamic = 'force-static';
@@ -22,8 +22,17 @@ interface Props {
 // Seed every known character board during the production build. Together with
 // force-static and revalidate, this avoids a cold per-request render for known ids;
 // generateStaticParams itself does not run during ISR regeneration.
-export function generateStaticParams(): { characterId: string }[] {
+export async function generateStaticParams(): Promise<{ characterId: string }[]> {
+  const overview = await prefetchLeaderboardOverview(revalidate);
+  if (overview) {
+    return [...new Set(overview.map((entry) => entry.id).filter(Boolean))]
+      .map((characterId) => ({ characterId }));
+  }
   return Object.keys(loadCharacterDisplayMap()).map((characterId) => ({ characterId }));
+}
+
+function hasConfiguredLeaderboard(data: LBLeaderboardResponse | null): boolean {
+  return data !== null && data.tracks.length > 0;
 }
 
 function getCharacterPageCopy(characterId: string) {
@@ -69,7 +78,7 @@ function getLeaderboardDescription(characterName: string, trackKey: string, trac
   const weapon = weaponId ? loadWeaponSummary(weaponId) : null;
   const sequenceText = sequence > 0 ? ` S${sequence}` : '';
   const weaponText = weapon?.name ? ` with ${weapon.name}` : '';
-  return `${characterName}${sequenceText} ${playstyle} damage rankings${weaponText} in Wuthering Waves. Compare standardized damage, the best echo sets, stats, and top-player builds on WuWaBuilds.`;
+  return `Compare ranked ${characterName}${sequenceText} ${playstyle} builds${weaponText} in Wuthering Waves. Every build runs the same standardized rotation, so the only difference is your echoes.`;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -80,6 +89,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // Metadata describes the default board (weapon/track variants are client-side state
   // under this one canonical), so no searchParams are read here.
   const initialData = await prefetchLeaderboard(characterId, {}, revalidate);
+  if (initialData && !hasConfiguredLeaderboard(initialData)) notFound();
   const activeWeaponId = initialData?.activeWeaponId || initialData?.weaponIds[0] || '';
   const activeTrack = initialData?.activeTrack || initialData?.tracks[0]?.key || DEFAULT_LB_TRACK;
   const tracks = initialData?.tracks ?? [];
@@ -106,6 +116,7 @@ export default async function CharacterLeaderboardPage({ params }: Props) {
   // and fetches the requested variant on mount; it also normalizes the address bar
   // (replacing the old server-side canonical redirect for human navigation).
   const initialData = await prefetchLeaderboard(characterId, {}, revalidate);
+  if (initialData && !hasConfiguredLeaderboard(initialData)) notFound();
 
   const jsonLd = {
     "@context": "https://schema.org",

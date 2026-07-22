@@ -4,11 +4,12 @@ Next.js App Router frontend for [wuwa.build](https://wuwa.build), a Wuthering Wa
 
 **Stack**: Next.js 16 · React 19 · TypeScript 6 · Tailwind CSS 4 · Motion (`motion` on npm)
 
-For full technical context, see [AGENTS.md](./AGENTS.md).
+For repository routing, see [AGENTS.md](./AGENTS.md). For technical context,
+start with [docs/README.md](./docs/README.md).
 
 ---
 
-## Status Snapshot (July 11, 2026)
+## Status Snapshot (July 21, 2026)
 
 - Core routes: `/`, `/edit`, `/import`, `/bulk-import`, `/saves`, `/builds`, `/leaderboards`, `/leaderboards/[characterId]`, `/profile/[uid]`, `/profiles`, `/characters/[id]`, `/weapons/[id]`, `/changelog`, `/tos`, `/privacy`.
 - **Home (`/`)** uses ISR (`revalidate = 300`) and server-prefetched LB stats. **`/builds`** is `force-static` with a server-prefetched default build page, then client-side query changes/revalidation go through the LB gateway. **`/leaderboards/[characterId]`** is `force-dynamic`: it server-prefetches the first board payload, canonicalizes the incoming query string against the returned weapon/track config and `redirect()`s to it, then keeps URL state in sync on the client. **`/leaderboards`** prefetches overview data server-side and also keeps an overview cache on the client.

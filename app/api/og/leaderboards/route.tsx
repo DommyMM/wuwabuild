@@ -29,7 +29,7 @@ export async function GET() {
   const response = await renderOgCard({
     variant: 'index',
     title: 'Leaderboards',
-    subtitle: 'Standardized damage rankings for every character',
+    subtitle: 'Ranked builds across standardized rotations',
     chips: [],
     verbs: ['RANK'],
     rows,

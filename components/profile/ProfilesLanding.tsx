@@ -59,7 +59,7 @@ export function ProfilesLanding() {
         Find a player.
       </h1>
       <p className="mt-4 max-w-140 text-sm md:text-base leading-relaxed text-text-primary/60">
-        Search by UID or username. Star a profile to pin it
+        Search by UID or username. Star a profile to keep it here.
       </p>
 
       <div id="profiles-page-search" className="mt-8 scroll-mt-24">

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { HomePage } from '@/components/home/HomePage';
-import { FAQS } from '@/components/home/faqs';
 import type { HomeBoardRecord, HomeHeroSlide } from '@/components/home/types';
 import { buildLeaderboardHref } from '@/components/leaderboards/character/leaderboardCharacterQuery';
 import { parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
@@ -16,11 +15,11 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
     title: { absolute: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards' },
-    description: 'Scan, build, and rank Wuthering Waves characters. Import screenshots, view builds, compare damage on leaderboards, and export showcase cards.',
+    description: 'Search any Wuthering Waves player, or import your own from a wuwa-bot screenshot. Every board runs one standardized rotation, so builds are ranked on echoes alone.',
     twitter: {
         card: 'summary_large_image',
         title: 'WuWaBuilds - Wuthering Waves Builds & Leaderboards',
-        description: 'Scan, build, and rank Wuthering Waves characters. Import screenshots, view builds, compare damage on leaderboards, and export showcase cards',
+        description: 'Search any Wuthering Waves player, or import your own from a wuwa-bot screenshot. Every board runs one standardized rotation, so builds are ranked on echoes alone.',
     },
     alternates: { canonical: '/' },
 };
@@ -146,39 +145,18 @@ export default async function Home() {
             {
                 "@type": "WebSite",
                 "@id": "https://wuwa.build/#website",
-                "name": "WuWa Builds",
+                "name": "WuWaBuilds",
+                "alternateName": ["WuWa Builds", "wuwa.build"],
                 "url": "https://wuwa.build",
                 "publisher": { "@id": "https://wuwa.build/#organization" }
             },
             {
                 "@type": "Organization",
                 "@id": "https://wuwa.build/#organization",
-                "name": "WuWa Builds",
+                "name": "WuWaBuilds",
+                "alternateName": ["WuWa Builds", "wuwa.build"],
                 "url": "https://wuwa.build",
                 "logo": "https://wuwa.build/logo512.png"
-            },
-            {
-                "@type": "SoftwareApplication",
-                "name": "WuWa Builds - Wuthering Waves Build Editor",
-                "operatingSystem": "Any",
-                "applicationCategory": "GameApplication",
-                "url": "https://wuwa.build",
-                "offers": {
-                    "@type": "Offer",
-                    "price": "0",
-                    "priceCurrency": "USD"
-                }
-            },
-            {
-                "@type": "FAQPage",
-                "mainEntity": FAQS.map((faq) => ({
-                    "@type": "Question",
-                    "name": faq.q,
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": faq.text
-                    }
-                }))
             }
         ]
     };

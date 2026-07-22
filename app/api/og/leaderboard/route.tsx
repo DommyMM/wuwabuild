@@ -13,7 +13,7 @@ function compactNumber(value: number): string {
 
 function resolveTrackLabel(trackKey: string, tracks: { key: string; label: string }[]): string {
   const track = tracks.find((entry) => entry.key === trackKey);
-  return stripLBSeqPrefix(track?.label?.trim() || trackKey || 'Damage') || 'Damage';
+  return stripLBSeqPrefix(track?.label?.trim() || trackKey || 'Rank') || 'Rank';
 }
 
 function resolveHolderLabel(owner: { username: string; uid: string } | undefined): string | undefined {

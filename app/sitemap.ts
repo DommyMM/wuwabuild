@@ -95,7 +95,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             }));
             const lbRoutes = chars.filter((char) => leaderboardCharacterIds.has(String(char.id))).map((char) => ({
                 url: `${baseUrl}/leaderboards/${char.id}`,
-                lastModified: characterDataModified,
                 changeFrequency: 'daily' as const,
                 priority: 0.9,
             }));

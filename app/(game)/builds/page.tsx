@@ -12,16 +12,16 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Wuthering Waves Builds',
-  description: 'Browse and search every community-submitted Wuthering Waves build. Filter by character, weapon, echo set, and stats to discover setups and load them into the editor.',
+  description: 'Browse and search every community-submitted Wuthering Waves build. Filter and sort by character, weapon, Sonata set, Crit Value, or any stat, then open any build in the editor.',
   openGraph: {
     title: 'Wuthering Waves Builds',
-    description: 'Browse and search every community-submitted Wuthering Waves build. Filter by character, weapon, echo set, and stats to discover setups and load them into the editor.',
+    description: 'Browse and search every community-submitted Wuthering Waves build. Filter and sort by character, weapon, Sonata set, Crit Value, or any stat, then open any build in the editor.',
     url: 'https://wuwa.build/builds',
     images: [{ url: 'https://wuwa.build/api/og/builds', width: 1200, height: 630, alt: 'Wuthering Waves Builds' }],
   },
   twitter: {
     title: 'Wuthering Waves Builds',
-    description: 'Browse and search every community-submitted Wuthering Waves build. Filter by character, weapon, echo set, and stats to discover setups and load them into the editor.',
+    description: 'Browse and search every community-submitted Wuthering Waves build. Filter and sort by character, weapon, Sonata set, Crit Value, or any stat, then open any build in the editor.',
     images: ['https://wuwa.build/api/og/builds'],
   },
   alternates: { canonical: '/builds' },

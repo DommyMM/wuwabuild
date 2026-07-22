@@ -41,7 +41,7 @@ export function BoardIndex({ records }: BoardIndexProps) {
             </div>
 
             {boards.length > 0 ? (
-                <ol className="border-t border-border">
+                <ol className="-mx-3 border-t border-border">
                     {boards.map((board) => (
                         <li key={`${board.characterId}:${board.trackKey}`} className="border-b border-border/60">
                             <HomeLink
@@ -49,7 +49,7 @@ export function BoardIndex({ records }: BoardIndexProps) {
                                 cta="leaderboards"
                                 section="boards_index"
                                 characterId={board.characterId}
-                                className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 py-2.5 hover:bg-accent/6 transition-colors"
+                                className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 transition-colors hover:bg-accent/6 focus-visible:bg-accent/6 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent/75"
                             >
                                 {board.head ? (
                                     <img

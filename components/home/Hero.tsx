@@ -165,22 +165,21 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
             <div className="relative mx-auto max-w-260 px-6 md:px-10 py-14 md:py-28">
                 <h1 className="font-plus-jakarta font-medium text-text-primary max-w-3xl">
                     <span className="block font-mono text-[10px] md:text-xs font-semibold uppercase tracking-[0.22em] text-text-primary/55 mb-4">
-                        Wuthering Waves Character Builds &amp; Leaderboard
+                        Wuthering Waves Character Builds &amp; Leaderboards
                     </span>
                     <span className="block text-[40px] md:text-6xl leading-[1.02] tracking-[-0.03em]">
-                        Scan your stats<br />
+                        Scan your build<br />
                         {/* Italic leans right and the tracking is negative, so the word
                             space optically collapses. Em-based padding scales with size. */}
                         <span className="text-accent italic font-normal pr-[0.08em]">Rank</span> your damage
                     </span>
                 </h1>
 
-                {/* State the differentiator plainly: this is a damage engine, not OCR
+                {/* State the differentiator plainly: this is a ranking engine, not OCR
                     plus a list. Search-by-UID is a genre convention, the simulation is not. */}
                 <p className="mt-5 max-w-xl text-base md:text-lg leading-normal text-text-primary/70">
-                    Search any player, or import your own from a wuwa-bot screenshot.
-                    Every board simulates one standardized rotation, move by move, so
-                    damage is comparable.
+                    Search any player, or import your own from a wuwa-bot image.
+                    Every board runs the same rotation, weapon, and team, so your echoes are the only differentiating factor.
                 </p>
 
                 {totalBuilds > 0 && (
@@ -327,7 +326,7 @@ function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile:
                     // Caps and digits have no descenders, so in a leading-none box the
                     // glyphs sit high and the empty descender space below reads as extra
                     // bottom padding. 1px more top than bottom re-centers it optically.
-                    <span className={`shrink-0 rounded-full border px-2 pt-[5px] pb-[4px] text-[10px] font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[slide.seqLevel]}`}>
+                    <span className={`shrink-0 rounded-full border px-2 pt-1.25 pb-1 text-[10px] font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[slide.seqLevel]}`}>
                         S{slide.seqLevel}
                     </span>
                 )}
@@ -376,7 +375,7 @@ function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile:
                         {profile.map((total) => (
                             <div
                                 key={total.type}
-                                className="min-w-[2px]"
+                                className="min-w-0.5"
                                 style={{ width: `${total.percentage}%`, backgroundColor: typeMeta(total.type).color }}
                             />
                         ))}
@@ -388,7 +387,7 @@ function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile:
                         {profile.slice(0, 2).map((total) => (
                             <span key={total.type} className="flex shrink-0 items-center gap-1 whitespace-nowrap">
                                 <span
-                                    className="h-1.5 w-1.5 shrink-0 rounded-[2px]"
+                                    className="h-1.5 w-1.5 shrink-0 rounded-xs"
                                     style={{ backgroundColor: typeMeta(total.type).color }}
                                 />
                                 {typeMeta(total.type).label} {total.percentage.toFixed(0)}%

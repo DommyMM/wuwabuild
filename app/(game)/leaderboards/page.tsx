@@ -9,16 +9,16 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Wuthering Waves Leaderboards',
-  description: 'Wuthering Waves damage leaderboards — compare the best echoes, stats, and weapons, see which characters hit hardest in a rotation, and study move-by-move breakdowns.',
+  description: 'Compare Wuthering Waves builds on standardized character rotations. Everyone runs the same optimal rotation, weapon, and team, so the only difference is your echoes.',
   openGraph: {
     title: 'Wuthering Waves Leaderboards',
-    description: 'Wuthering Waves damage leaderboards — compare the best echoes, stats, and weapons, see which characters hit hardest in a rotation, and study move-by-move breakdowns.',
+    description: 'Compare Wuthering Waves builds on standardized character rotations. Everyone runs the same optimal rotation, weapon, and team, so the only difference is your echoes.',
     url: 'https://wuwa.build/leaderboards',
     images: [{ url: 'https://wuwa.build/api/og/leaderboards', width: 1200, height: 630, alt: 'Wuthering Waves Leaderboards' }],
   },
   twitter: {
     title: 'Wuthering Waves Leaderboards',
-    description: 'Wuthering Waves damage leaderboards — compare the best echoes, stats, and weapons, see which characters hit hardest in a rotation, and study move-by-move breakdowns.',
+    description: 'Compare Wuthering Waves builds on standardized character rotations. Everyone runs the same optimal rotation, weapon, and team, so the only difference is your echoes.',
     images: ['https://wuwa.build/api/og/leaderboards'],
   },
   alternates: { canonical: '/leaderboards' },
