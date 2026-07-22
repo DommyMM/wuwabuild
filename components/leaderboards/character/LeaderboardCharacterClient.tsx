@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
-import { LBBoardDisplay, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBStatThreshold, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
+import { isHealTrackKey, LBBoardDisplay, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardEntry, LBLeaderboardResponse, LBLeaderboardSortKey, LBSortDirection, LBStatSortKey, LBStatThreshold, LBTeamBuffs, LBTeamMemberConfig, LBTrack, listLeaderboard } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_SCORING, MAX_ITEMS_PER_PAGE, normalizeSequences, ScoringMode } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
@@ -122,9 +122,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [sequences, setSequences] = useState<number[]>(() => initialSnapshot.sequences);
   const [statFilters, setStatFilters] = useState<LBStatThreshold[]>(() => initialSnapshot.statFilters);
   const [filterQuery, setFilterQuery] = useState('');
-  // Scoring lens (client-side view mode over the same board): 'adjusted' = canonical
-  // ER-scaled Score, 'raw' = pure damage. Raw re-sorts the visible page client-side;
-  // cross-page raw ranking is a backend sort=raw follow-up.
+  // Scoring lens over the same board: 'adjusted' is the canonical ER-scaled
+  // Score, while 'raw' asks the backend for the tracked damage before ER scaling.
+  // Heal tracks are normalized back to adjusted mode by the query resolver.
   const [scoring, setScoring] = useState<ScoringMode>(() => initialSnapshot.scoring ?? DEFAULT_SCORING);
 
   const leaderboardSigRef = useRef(createRowsSignature(initialEntries, initialData?.total ?? 0));
@@ -199,7 +199,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     [configTracks, track],
   );
   const configMatchesCurrentBoard = configBoardKey === createBoardConfigKey(weaponId, track);
-  // Active track's ER target: scores are damage × min(1, ER/target); 0 = no requirement.
+  // Active track's ER target: Score = tracked value × min(1, ER/target); 0 = no requirement.
   const erTarget = activeTrackConfig?.erTarget ?? 0;
   // The query snapshot is buildId-free: buildId is a transient command, not part of the view state.
   const currentQuerySnapshot = useMemo(() => resolveLeaderboardQuerySnapshot({
@@ -735,6 +735,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                   });
                   pendingHistoryModeRef.current = 'push';
                   setTrack(trackKey);
+                  if (isHealTrackKey(trackKey)) setScoring(DEFAULT_SCORING);
                   setPage(1);
                 }}
                 scoring={scoring}

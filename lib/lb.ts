@@ -295,6 +295,10 @@ interface LBMoveHitEntry {
   moveTypes: string[];
   /** Per-cast base MV before sequence/forte multipliers. */
   baseMV: number;
+  /** Flat healing per represented event; zero for damage hits. */
+  flatHeal: number;
+  /** Number of identical events folded into this source row. */
+  count: number;
 }
 
 export interface LBMoveEntry {
@@ -306,6 +310,8 @@ export interface LBMoveEntry {
   modifier: boolean;
   /** Per-cast base MV before sequence/forte multipliers. */
   baseMV: number;
+  /** Total flat healing represented by the row; zero for damage moves. */
+  flatHeal: number;
   /** Scaling stat for attacks ("ATK", "HP", or "DEF"); empty for modifiers. */
   scaleStat: string;
   hits: LBMoveHitEntry[];
@@ -832,7 +838,7 @@ export interface LBTrack {
   key: string;
   label: string;
   note?: string;
-  /** Board ER target: score = damage × min(1, ER/target). Absent = no ER requirement. */
+  /** Board ER target: Score = tracked value × min(1, ER/target). Absent = no ER requirement. */
   erTarget?: number;
 }
 
@@ -949,7 +955,7 @@ export interface LBLeaderboardResponse {
   teamBuffs: LBTeamBuffs;
   activeWeaponId: string;
   activeTrack: string;
-  erTarget: number;   // Scores are damage × min(1, ER/target)
+  erTarget: number;   // Score = tracked value × min(1, ER/target)
   displayStats: LBStatSortKey[];  // Canonical stat-sort keys, e.g. ['hp','aero_dmg','basic_attack_dmg','resonance_liberation_dmg']. Empty when no board reference is available
 }
 

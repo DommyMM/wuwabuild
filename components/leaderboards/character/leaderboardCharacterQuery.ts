@@ -1,5 +1,5 @@
 import { clampItemsPerPage, DEFAULT_SCORING, ITEMS_PER_PAGE, ScoringMode } from '../constants';
-import { LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardQuery, LBLeaderboardSortKey, LBSortDirection, LBStatThreshold, LBTrack, normalizeLBLeaderboardSortKey, toLBApiSortKey } from '@/lib/lb';
+import { isHealTrackKey, LBEchoMainFilter, LBEchoSetFilter, LBLeaderboardQuery, LBLeaderboardSortKey, LBSortDirection, LBStatThreshold, LBTrack, normalizeLBLeaderboardSortKey, toLBApiSortKey } from '@/lib/lb';
 import { parsePositiveInt, parseCSV, parseEchoSetCSV, parseEchoMainCSV, parseSequences, parseStatThresholds, serializeStatThresholds } from '../queryHelpers';
 import { DEFAULT_LB_SORT, DEFAULT_LB_TRACK } from '../constants';
 
@@ -86,6 +86,7 @@ export function resolveLeaderboardQuerySnapshot(
   const defaultDirection = defaults.defaultDirection ?? 'desc';
   const defaultWeaponId = defaults.defaultWeaponId ?? '';
   const defaultTrack = defaults.defaultTrack ?? DEFAULT_LB_TRACK;
+  const resolvedTrack = snapshot.track?.trim() || defaultTrack;
 
   return {
     page: Number.isFinite(snapshot.page) && (snapshot.page ?? 0) > 0 ? Math.trunc(snapshot.page as number) : defaultPage,
@@ -93,7 +94,7 @@ export function resolveLeaderboardQuerySnapshot(
     sort: normalizeLBLeaderboardSortKey(snapshot.sort, defaultSort),
     direction: resolveDirection(snapshot.direction, defaultDirection),
     weaponId: snapshot.weaponId?.trim() || defaultWeaponId,
-    track: snapshot.track?.trim() || defaultTrack,
+    track: resolvedTrack,
     uid: snapshot.uid?.trim() ?? '',
     username: snapshot.username?.trim() ?? '',
     regionPrefixes: snapshot.regionPrefixes?.map((entry) => entry.trim()).filter(Boolean) ?? [],
@@ -101,7 +102,7 @@ export function resolveLeaderboardQuerySnapshot(
     echoMains: snapshot.echoMains ?? [],
     sequences: snapshot.sequences ?? [],
     statFilters: snapshot.statFilters ?? [],
-    scoring: resolveScoringMode(snapshot.scoring),
+    scoring: isHealTrackKey(resolvedTrack) ? DEFAULT_SCORING : resolveScoringMode(snapshot.scoring),
     buildId: snapshot.buildId?.trim() ?? '',
   };
 }

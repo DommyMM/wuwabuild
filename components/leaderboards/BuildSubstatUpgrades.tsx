@@ -147,7 +147,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
             <div className="max-w-xs space-y-1.5 text-left">
               <p className="text-sm font-semibold text-text-primary">Substat upgrades</p>
               <p className="text-xs leading-relaxed text-text-primary/72">
-                Projects the damage and rank this build would reach if you added one more
+                Projects the Score and rank this build would reach if you added one more
                 substat roll.
               </p>
               <p className="text-xs leading-relaxed text-text-primary/72">

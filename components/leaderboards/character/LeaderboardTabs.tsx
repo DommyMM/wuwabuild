@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LBTrack } from '@/lib/lb';
+import { isHealTrackKey, LBTrack } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 import type { LBBoardDisplay } from '@/lib/lb';
 import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix, ScoringMode } from '../constants';
@@ -42,7 +42,7 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 // The board's metric lens, as its own labeled row (like Playstyle / Weapon,
 // mirroring the old ER-bracket row). Score is the canonical ER-adjusted ranking;
-// Damage is the raw rotation-damage lens over the same board. The ER detail lives
+// Damage is the raw tracked-damage lens over the same board. The ER detail lives
 // in the native title tooltip so the buttons stay clean.
 const ScoringRow: React.FC<{
   erTarget: number;
@@ -51,7 +51,7 @@ const ScoringRow: React.FC<{
 }> = ({ erTarget, scoring, onSelect }) => {
   const isRaw = scoring === 'raw';
   const scoreTitle = `Score: default ER-adjusted ranking. Builds below ${formatErTarget(erTarget)}% ER are scaled down.`;
-  const damageTitle = 'Damage: raw rotation damage before ER scaling. ER still shows, but does not lower this value.';
+  const damageTitle = 'Damage: raw tracked damage before ER scaling. ER still shows, but does not lower this value.';
   return (
     <div className="space-y-2">
       <SectionLabel>Scoring</SectionLabel>
@@ -230,7 +230,7 @@ export const LeaderboardTabs: React.FC<LeaderboardTabsProps> = ({
     <div className="space-y-4">
       <TrackTabs tracks={tracks} activeTrack={activeTrack} onSelect={onSelectTrack} />
       <WeaponTabs weaponIds={weaponIds} weaponDisplay={weaponDisplay} weaponIndex={weaponIndex} onSelect={onSelectWeapon} />
-      {activeErTarget > 0 && (
+      {activeErTarget > 0 && !isHealTrackKey(activeTrack) && (
         <ScoringRow erTarget={activeErTarget} scoring={scoring} onSelect={onSelectScoring} />
       )}
     </div>

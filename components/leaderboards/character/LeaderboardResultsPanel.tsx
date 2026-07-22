@@ -113,7 +113,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   const isStatSortActive = STAT_OPTION_KEYS.includes(sort as StatSortKey);
 
   // Raw lens: the backend (scoring=raw) already returns rows ordered, ranked, and
-  // valued by pure rotation damage, so the panel only drops the ER cell tint (ER
+  // valued by tracked damage, so the panel only drops the ER cell tint (ER
   // is shown but not scored). erTarget === 0 boards have no penalty, so raw ≡ Score.
   const isRawMode = scoring === 'raw' && erTarget > 0;
 

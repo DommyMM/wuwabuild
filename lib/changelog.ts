@@ -18,6 +18,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
+                text: 'Healer boards now score the full healing rotation and break it down by each contributing heal, with utility and Energy Regen adjustments shown separately',
+            },
+            {
+                kind: 'improved',
                 text: 'Numbered attack chains in move breakdowns now appear as one expandable move with children',
             },
         ],

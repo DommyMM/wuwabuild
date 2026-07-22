@@ -54,9 +54,9 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 
 ## Score / ER Target
 
-- `entry.damage` is the board Score: rotation damage × `min(1, ER / track.erTarget)`. There is no separate "unfiltered" vs "bracketed" board anymore — one ranked list per weapon/track, ER-scaled in place. The old ER bracket tabs (`?erMin=`) are gone.
-- `LBTrack.erTarget` (0/absent = no ER requirement) drives the ER stat cell tint in `LeaderboardRow` (green at/above target, red below). Character boards expose two metric lenses: `Score` is the default ER-adjusted value, while `Damage` is the raw pre-ER-scaling lens. Raw damage is derived from Score and the row's ER value; it is not stored separately.
-- Raw mode is shareable as `?scoring=raw`; default Score mode omits `scoring` from the URL. `entry.damage` follows the active lens on character-board rows.
+- `entry.damage` is the board Score. Damage tracks use rotation damage, while `heal_` tracks use their full healing window plus declared utility modifiers; both apply `min(1, ER / track.erTarget)`. There is no separate "unfiltered" vs "bracketed" board anymore: one ranked list per weapon/track, ER-scaled in place. The old ER bracket tabs (`?erMin=`) are gone.
+- `LBTrack.erTarget` (0/absent = no ER requirement) drives the ER stat cell tint in `LeaderboardRow` (green at/above target, red below). Damage tracks expose two metric lenses: `Score` is the default ER-adjusted value, while `Damage` is the raw pre-ER-scaling lens. Raw damage is derived from Score and the row's ER value; it is not stored separately.
+- Raw mode is shareable as `?scoring=raw`; default Score mode omits `scoring` from the URL. `entry.damage` follows the active lens on character-board rows. Tracks whose key starts with `heal_` stay in canonical Score mode and hide the raw selector because reversing only the ER factor would produce a pre-ER score that still includes utility, not literal damage or raw healing.
 - Build standings (`/leaderboard/{characterId}/build/{buildId}/standings`), substat upgrade projections, and benchmark comparisons remain canonical Score rankings/calculations. When shown from a raw Damage page, the UI keeps `Score` labels or context notes instead of implying raw cross-board ranks.
 - Reigns and dedup are no longer conditioned on an `erMin` state; `showReignHold` in `LeaderboardRow` only checks rank/ghost.
 
@@ -106,7 +106,7 @@ On row expansion, frontend may fetch:
 - substat upgrades
 - standings across all weapon x track boards
 
-The move breakdown (`BuildMoveBreakdown.tsx`) renders a score equation (rows flagged `modifier: true` are global adjustments like ER scaling and set bonuses — never rotation moves), a damage profile aggregated by move type, and per-move rows with type-colored bars. Move-type colors are a fixed identity map inside the component. Per-hit `moveTypes` (lb per-type sub-hit fold) split mixed-type rows and make the profile lossless; hits without types fall back to the move's primary type. API row order is rotation order — the component preserves the first-occurrence index for its rotation-order sort; `lb/docs/move-breakdown-ui.md` is canonical for the response shape.
+The move breakdown (`BuildMoveBreakdown.tsx`) renders a score equation (rows flagged `modifier: true` are global adjustments like ER scaling and set bonuses — never rotation moves), a damage profile aggregated by move type, and per-move rows with type-colored bars. Move-type colors are a fixed identity map inside the component. Per-hit `moveTypes` (lb per-type sub-hit fold) split mixed-type rows and make the profile lossless; hits without types fall back to the move's primary type. Heal tracks hide the damage profile and flatten the backend's full-window source children into numbered peer rows; each source shows its per-event flat + scaling formula, repeat count, share, and total healing, and supports the same value/rotation sorting as damage moves. API row order is rotation order — the component preserves the first-occurrence index for its rotation-order sort; `lb/docs/move-breakdown-ui.md` is canonical for the response shape.
 
 The reference benchmark (`BuildOptimalityPanel.tsx`) treats ceiling, median, and
 minimum rolls as independent optimized loadouts. Selecting a tier changes its

@@ -52,6 +52,9 @@ type ProcessedHit = {
   percentage: number;
   displayType: string;
   baseMV: number;
+  flatHeal: number;
+  count: number;
+  rotationIndex: number;
 };
 
 type TypeSegment = {
@@ -67,6 +70,7 @@ type ProcessedMove = {
   elemType: string;
   moveTypes: string[];
   baseMV: number;
+  flatHeal: number;
   scaleStat: string;
   rotationIndex: number;
   hits: ProcessedHit[];
@@ -112,10 +116,11 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
   const grouped = new Map<string, {
     name: string;
     damage: number;
-    hits: Map<string, { key: string; name: string; damage: number; types: string[]; baseMV: number }>;
+    hits: Map<string, { key: string; name: string; damage: number; types: string[]; baseMV: number; flatHeal: number; count: number; rotationIndex: number }>;
     elemType: string;
     moveTypes: string[];
     baseMV: number;
+    flatHeal: number;
     scaleStat: string;
     modifier: boolean;
     rotationIndex: number;
@@ -126,10 +131,11 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
     const existing = grouped.get(key) ?? {
       name: move.name,
       damage: 0,
-      hits: new Map<string, { key: string; name: string; damage: number; types: string[]; baseMV: number }>(),
+      hits: new Map<string, { key: string; name: string; damage: number; types: string[]; baseMV: number; flatHeal: number; count: number; rotationIndex: number }>(),
       elemType: move.elemType,
       moveTypes: move.moveTypes,
       baseMV: move.baseMV,
+      flatHeal: move.flatHeal,
       scaleStat: move.scaleStat,
       modifier: false,
       // API row order is rotation order; a repeated cast keeps its first slot.
@@ -138,20 +144,24 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
     existing.damage += move.damage;
     if (move.modifier) existing.modifier = true;
 
-    for (const hit of move.hits) {
+    move.hits.forEach((hit, hitIndex) => {
       // Zero-damage hits are trigger bookkeeping (e.g. a 0-MV echo cast folded
       // for rotation accounting), not damage — never rows or type segments.
-      if (!(hit.damage > 0)) continue;
+      if (!(hit.damage > 0)) return;
       const existingHit = existing.hits.get(hit.key) ?? {
         key: hit.key,
         name: hit.name,
         damage: 0,
         types: hit.moveTypes,
         baseMV: hit.baseMV,
+        flatHeal: hit.flatHeal,
+        count: 0,
+        rotationIndex: hitIndex,
       };
       existingHit.damage += hit.damage;
+      existingHit.count += hit.count;
       existing.hits.set(hit.key, existingHit);
-    }
+    });
 
     grouped.set(key, existing);
   });
@@ -181,6 +191,9 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
           percentage: (hit.damage / rawDamage) * 100,
           displayType: hitDisplayType(hit.types, primary),
           baseMV: hit.baseMV,
+          flatHeal: hit.flatHeal,
+          count: hit.count,
+          rotationIndex: hit.rotationIndex,
         }))
         .filter((hit) => !(hit.name === move.name && hit.displayType === primary))
         .sort((a, b) => b.damage - a.damage);
@@ -215,6 +228,7 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
         elemType: move.elemType,
         moveTypes: move.moveTypes,
         baseMV: move.baseMV,
+        flatHeal: move.flatHeal,
         scaleStat: move.scaleStat,
         rotationIndex: move.rotationIndex,
         hits,

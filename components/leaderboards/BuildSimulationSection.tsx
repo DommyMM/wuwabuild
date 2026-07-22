@@ -7,7 +7,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
 import { Character } from '@/lib/character';
-import { getBoardOptimality, getBuildMoves, getBuildStandings, getBuildSubstatUpgrades, LBBoardOptimality, LBBuildDetailEntry, LBMoveEntry, LBStandingEntry, LBSubstatUpgradeTierSet } from '@/lib/lb';
+import { getBoardOptimality, getBuildMoves, getBuildStandings, getBuildSubstatUpgrades, isHealTrackKey, LBBoardOptimality, LBBuildDetailEntry, LBMoveEntry, LBStandingEntry, LBSubstatUpgradeTierSet } from '@/lib/lb';
 import { BuildMoveBreakdown } from './BuildMoveBreakdown';
 import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
 import { BuildStandingsTable } from './BuildStandingsTable';
@@ -225,6 +225,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const weapon = getWeapon(activeWeaponId);
   const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : activeWeaponId;
   const trackLabel = formatTrackLabel(activeTrackKey);
+  const isHealing = isHealTrackKey(activeTrackKey);
   const moves = movesByKey[moveKey] ?? [];
   const moveError = moveErrorsByKey[moveKey] ?? null;
   const isMoveLoading = loadingMoveKeys[moveKey] ?? false;
@@ -521,7 +522,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               className={actionButtonClassName}
               title={`${weaponName} • ${trackLabel}`}
             >
-              <span>{isMovesOpen ? 'Hide' : 'Show'} move breakdown</span>
+              <span>{isMovesOpen ? 'Hide' : 'Show'} {isHealing ? 'heal' : 'move'} breakdown</span>
               <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isMovesOpen ? 'rotate-180 text-accent' : ''}`} />
             </button>
           </div>
@@ -531,6 +532,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               isLoading={isMoveLoading}
               error={moveError}
               moves={moves}
+              isHealing={isHealing}
               onRetry={retryMoves}
             />
           )}
