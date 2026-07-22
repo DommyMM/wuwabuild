@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-22',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'The leaderboards index now shows team and weapon icons immediately on load instead of blank boxes that fill in one by one',
+            },
+        ],
+    },
+    {
         date: '2026-07-21',
         changes: [
             {

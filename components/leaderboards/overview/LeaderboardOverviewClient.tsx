@@ -8,7 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { getCachedLeaderboardOverview, primeLeaderboardOverviewCache, readCachedLeaderboardOverview } from '@/lib/leaderboardOverviewCache';
 import { buildLeaderboardHref } from '../character/leaderboardCharacterQuery';
-import { LBCharacterOverview } from '@/lib/lb';
+import { LBCharacterOverview, LBBoardDisplay } from '@/lib/lb';
 import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix } from '../constants';
 import { formatReignHoldLabel, formatReignSinceDate } from '../formatters';
 import { getWeaponPaths } from '@/lib/paths';
@@ -30,9 +30,10 @@ function formatOverviewMetric(value: number): string {
 
 interface LeaderboardOverviewClientProps {
   initialData?: LBCharacterOverview[] | null;
+  boardDisplay?: LBBoardDisplay | null;
 }
 
-export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps> = ({ initialData }) => {
+export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps> = ({ initialData, boardDisplay }) => {
   const { getCharacter, getWeapon } = useGameData();
   const { t } = useLanguage();
   const [initialOverview] = useState<LBCharacterOverview[]>(() => initialData ?? readCachedLeaderboardOverview() ?? []);
@@ -151,15 +152,19 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                             const character = getCharacter(entry.id);
                             // Prefer the client name once game data has loaded
                             // until then fall back to the server-resolved English display fields so SSR/pre-hydration HTML shows real names instead of `Character {id}`.
+                            // Stable server-resolved fallback (superset of `entry.display`),
+                            // read from a prop the background refresh can't drop, so the primary
+                            // never reverts to `Character {id}` when a ranking field changes.
+                            const charDisplay = boardDisplay?.characters[entry.id] ?? entry.display;
                             const characterName = character
                               ? formatCharacterDisplayName(character, {
                                   baseName: t(character.nameI18n ?? { en: character.name }),
                                   roverElement: undefined,
                                 })
-                              : entry.display?.name ?? `Character ${entry.id}`;
+                              : charDisplay?.name ?? `Character ${entry.id}`;
 
-                            const element = character?.element?.toLowerCase() || entry.display?.element || '';
-                            const headSrc = character?.head ?? entry.display?.head ?? null;
+                            const element = character?.element?.toLowerCase() || charDisplay?.element || '';
+                            const headSrc = character?.head ?? charDisplay?.head ?? null;
                             const totalEntries = entry.totalEntries;
 
                             const weaponTopByWeaponId = new Map(
@@ -224,12 +229,15 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                   )}
                                   {(entry.teamMembers.length > 0 ? entry.teamMembers : entry.teamCharacterIds.map((charId) => ({ charId }))).map((member, index) => {
                                     const teamChar = getCharacter(member.charId);
-                                    return teamChar?.head ? (
+                                    const teamFallback = boardDisplay?.characters[member.charId];
+                                    const teamHead = teamChar?.head ?? teamFallback?.head ?? null;
+                                    const teamName = teamChar?.name ?? teamFallback?.name ?? member.charId;
+                                    return teamHead ? (
                                       <img
                                         key={`${member.charId}-${index}`}
-                                        src={teamChar.head}
-                                        alt={teamChar.name}
-                                        title={teamChar.name}
+                                        src={teamHead}
+                                        alt={teamName}
+                                        title={teamName}
                                         width={44}
                                         height={44}
                                         className="h-11 w-11 object-cover object-top"
@@ -257,8 +265,10 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                 <div className="flex flex-wrap gap-2">
                                   {entry.weaponIds.map((weaponId) => {
                                     const weapon = getWeapon(weaponId);
+                                    const weaponFallback = boardDisplay?.weapons[weaponId];
                                     const top = weaponTopByWeaponId.get(weaponId);
-                                    const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponId;
+                                    const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : weaponFallback?.name ?? weaponId;
+                                    const weaponIcon = weapon ? getWeaponPaths(weapon) : weaponFallback?.iconUrl ?? null;
                                     const ownerLabel = top?.owner.username || 'Anonymous';
                                     const hasTopDamage = Boolean(top && top.damage > 0);
                                     const reignHoldLabel = hasTopDamage && top?.reignSince
@@ -280,9 +290,9 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                       >
                                         {/* Glassmorphic inner highlight */}
                                         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06)_0%,transparent_50%)] opacity-70 transition-opacity group-hover:opacity-100" />
-                                        {weapon ? (
+                                        {weaponIcon ? (
                                           <img
-                                            src={getWeaponPaths(weapon)}
+                                            src={weaponIcon}
                                             alt={weaponName}
                                             width={40}
                                             height={40}

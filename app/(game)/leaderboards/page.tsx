@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { LeaderboardOverviewClient } from '@/components/leaderboards/overview/LeaderboardOverviewClient';
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
+import { loadBoardDisplayCatalog } from '@/lib/server/gameData';
 
 // ISR page cadence (cost lever). The overview client already background-refreshes on
 // mount through the short Cloudflare API cache, so a longer HTML window costs no
@@ -51,7 +52,7 @@ export default async function Leaderboards() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <LeaderboardOverviewClient initialData={initialData} />
+      <LeaderboardOverviewClient initialData={initialData} boardDisplay={loadBoardDisplayCatalog()} />
     </main>
   );
 }
