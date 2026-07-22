@@ -87,14 +87,8 @@ export default async function RootLayout({
         >
             <body className="flex min-h-screen flex-col bg-background text-text-primary">
                 <RootProviders>
-                    <a
-                        href="#main-content"
-                        className="fixed left-3 top-3 z-100 -translate-y-20 rounded-md bg-accent px-3 py-2 font-semibold text-background shadow-lg transition-transform focus:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                    >
-                        Skip to Main Content
-                    </a>
                     <Navigation />
-                    <div id="main-content" tabIndex={-1} className="flex-1">
+                    <div className="flex-1">
                         {children}
                     </div>
                     <Footer />

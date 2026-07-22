@@ -23,7 +23,7 @@ This doc explains how leaderboard data is fetched, cached, query-synced, and ren
 - **`/profile/[uid]`** — server component fetches profile metadata through `fetchProfileSummary()`. Build rows are fetched client-side from `/profile/{uid}/builds`, which returns the same compact row shape as `/build` but is scoped by route UID in the LB service.
 - Server prefetches always call LB through the configured gateway. Interactive ISR pages pass their page `revalidate` value into `lbServer.ts`; otherwise a shorter nested `fetch(..., { next: { revalidate } })` would lower the whole route's ISR cadence and recreate the ISR-write cost this layout is meant to avoid.
 - Browser refreshes do not rebuild these pages. A request receives the current static/ISR artifact; after its one-hour window, the first eligible request triggers regeneration. Interactive clients independently fetch the exact API resource, which Cloudflare serves according to LB's `s-maxage` (`cacheList` = 120s and `cacheOverview` = 600s).
-- Client refreshes keep existing rows interactive. A compact `Updating…` status is announced rather than covering the table. Signature checks cover the complete normalized payload so unchanged data does not rerender.
+- Same-query client refreshes keep existing rows interactive and announce a compact `Updating…` status. When the requested query differs from the query that produced the visible rows, those mismatched rows are hidden behind the loading skeleton until the gateway response arrives. Signature checks cover the complete normalized payload so unchanged data does not rerender.
 
 ### Cache Layers
 

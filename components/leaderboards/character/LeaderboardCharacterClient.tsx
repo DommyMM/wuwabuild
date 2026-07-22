@@ -37,6 +37,12 @@ function sameDisplayStats(a: readonly LBStatSortKey[], b: readonly LBStatSortKey
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
+const EMPTY_TEAM_BUFFS: LBTeamBuffs = { total: {}, bySupport: [] };
+
+function createBoardConfigKey(weaponId: string, track: string): string {
+  return `${weaponId}\u0000${track}`;
+}
+
 interface LeaderboardCharacterClientProps {
   characterId: string;
   initialData?: LBLeaderboardResponse | null;
@@ -90,16 +96,20 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [configTracks, setConfigTracks] = useState<LBTrack[]>(() => initialData?.tracks ?? []);
   const [configTeamCharacterIds, setConfigTeamCharacterIds] = useState<string[]>(() => initialData?.teamCharacterIds ?? []);
   const [configTeamMembers, setConfigTeamMembers] = useState<LBTeamMemberConfig[]>(() => initialData?.teamMembers ?? []);
-  const [configTeamBuffs, setConfigTeamBuffs] = useState<LBTeamBuffs>(() => initialData?.teamBuffs ?? { total: {}, bySupport: [] });
+  const [configTeamBuffs, setConfigTeamBuffs] = useState<LBTeamBuffs>(() => initialData?.teamBuffs ?? EMPTY_TEAM_BUFFS);
+  const [configBoardKey, setConfigBoardKey] = useState<string | null>(() => (
+    initialData
+      ? createBoardConfigKey(initialData.activeWeaponId, initialData.activeTrack)
+      : null
+  ));
   const lastTrackedFilterSignatureRef = useRef<string | null>(null);
 
-  const initialPage = initialData?.page ?? initialSnapshot.page;
-  const initialPageSize = initialData?.pageSize ?? initialSnapshot.pageSize;
   const initialEntries = mergeGhostBuild(initialData?.builds ?? [], initialData?.ghostBuild);
 
-  // State initialized from URL, with backend page overrides applied for buildId ghost resolution.
-  const [page, setPage] = useState(() => initialPage);
-  const [pageSize, setPageSize] = useState(() => initialPageSize);
+  // View state comes from the URL. A later buildId response may intentionally
+  // override the page after the backend locates the requested build.
+  const [page, setPage] = useState(() => initialSnapshot.page);
+  const [pageSize, setPageSize] = useState(() => initialSnapshot.pageSize);
   const [sort, setSort] = useState<LBLeaderboardSortKey>(() => initialSnapshot.sort);
   const [direction, setDirection] = useState<LBSortDirection>(() => initialSnapshot.direction);
   const [weaponIndex, setWeaponIndex] = useState(() => initialWeaponIndex);
@@ -119,6 +129,21 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
 
   const leaderboardSigRef = useRef(createRowsSignature(initialEntries, initialData?.total ?? 0));
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialEntries);
+  // Identifies the exact API query that produced `entries`. The ISR payload is
+  // always the canonical default query, even when the address bar requests a
+  // different weapon, track, filter, sort, or page.
+  const [entriesQueryKey, setEntriesQueryKey] = useState<string | null>(() => {
+    if (!initialData) return null;
+    const initialServerSnapshot = parseInitialLeaderboardQuery(new URLSearchParams(), {
+      defaultPage: initialData.page,
+      defaultPageSize: initialData.pageSize,
+      weaponIds: initialData.weaponIds,
+      tracks: initialData.tracks,
+      defaultWeaponId: initialData.activeWeaponId || initialData.weaponIds[0] || '',
+      defaultTrack: initialData.activeTrack || initialData.tracks[0]?.key || DEFAULT_LB_TRACK,
+    });
+    return JSON.stringify({ characterId, ...leaderboardSnapshotToApiQuery(initialServerSnapshot) });
+  });
   const entriesRef = useRef<LBLeaderboardEntry[]>(initialEntries);
   const [total, setTotal] = useState(() => initialData?.total ?? 0);
   // Board-level stat columns from the backend (same four for every row on this board). Empty array → rows fall back to the per-row heuristic.
@@ -142,10 +167,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const pendingHistoryModeRef = useRef<'push' | 'replace'>('replace');
   const observedSearchParamsRef = useRef(searchParamsString);
   // Never pre-settle. initialData is always the *default* board (the route is ISR, not
-  // per-query dynamic), so leave the query pending and let the fetch effect run on mount:
-  // for the default view it's a silent background refresh through the short Cloudflare
-  // API cache; for a ?weaponId/?track variant URL it loads the actually requested board.
-  // createRowsSignature diffs the result so an unchanged default board never re-renders.
+  // per-query dynamic), so leave the query pending and let the fetch effect run on mount.
+  // Query identity below decides whether those server rows are a valid background-refresh
+  // seed or must be hidden while the requested variant loads.
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const { expandedIds, toggleExpandedId } = useExpandedRows();
@@ -174,6 +198,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     () => configTracks.find((entry) => entry.key === track),
     [configTracks, track],
   );
+  const configMatchesCurrentBoard = configBoardKey === createBoardConfigKey(weaponId, track);
   // Active track's ER target: scores are damage × min(1, ER/target); 0 = no requirement.
   const erTarget = activeTrackConfig?.erTarget ?? 0;
   // The query snapshot is buildId-free: buildId is a transient command, not part of the view state.
@@ -307,6 +332,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   useEffect(() => {
     if (suppressUrlSyncRef.current) {
       suppressUrlSyncRef.current = false;
+      pendingHistoryModeRef.current = 'replace';
       return;
     }
     const urlSnapshot = { ...currentQuerySnapshot, buildId: revealBuildId ?? '' };
@@ -331,9 +357,14 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     characterId,
     ...leaderboardQuery,
   }), [characterId, leaderboardQuery]);
+  const entriesMatchCurrentQuery = entriesQueryKey === queryKey;
+  const visibleEntries = useMemo(
+    () => (entriesMatchCurrentQuery ? displayEntries : []),
+    [displayEntries, entriesMatchCurrentQuery],
+  );
   const isPendingQuery = settledQueryKey !== queryKey;
-  const isLoading = isPendingQuery && entries.length === 0;
-  const isRefreshing = isPendingQuery && entries.length > 0;
+  const isLoading = isPendingQuery && !entriesMatchCurrentQuery;
+  const isRefreshing = isPendingQuery && entriesMatchCurrentQuery;
   const error = fetchError?.queryKey === queryKey ? fetchError.message : null;
   const filterSignature = useMemo(() => JSON.stringify({
     characterId,
@@ -406,6 +437,15 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         // Insert ghost build at the correct position by damage if present.
         // Skip if the build already appears in the regular results (e.g. deep-linked to its own page).
         const mergedBuilds = mergeGhostBuild(response.builds, response.ghostBuild);
+        const responseQueryKey = JSON.stringify({
+          characterId,
+          ...leaderboardSnapshotToApiQuery({
+            ...currentQuerySnapshot,
+            page: response.page,
+            weaponId: response.activeWeaponId || currentQuerySnapshot.weaponId,
+            track: response.activeTrack || currentQuerySnapshot.track,
+          }),
+        });
 
         const nextSig = createRowsSignature(mergedBuilds, response.total);
         if (nextSig !== leaderboardSigRef.current) {
@@ -413,11 +453,15 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
           setEntries(mergedBuilds);
           setTotal(response.total);
         }
+        // Set even when the row signature is unchanged: identical content returned
+        // for a different query is still now a valid result for that query.
+        setEntriesQueryKey(responseQueryKey);
         if (response.weaponIds.length > 0) setConfigWeaponIds(response.weaponIds);
         setConfigTracks(response.tracks);
         setConfigTeamCharacterIds(response.teamCharacterIds);
         setConfigTeamMembers(response.teamMembers);
         setConfigTeamBuffs(response.teamBuffs);
+        setConfigBoardKey(createBoardConfigKey(response.activeWeaponId, response.activeTrack));
         setBoardDisplayStats((prev) => (
           sameDisplayStats(prev, response.displayStats) ? prev : response.displayStats
         ));
@@ -454,7 +498,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       active = false;
       controller.abort();
     };
-  }, [characterId, fetchError?.queryKey, leaderboardQuery, page, pageSize, queryKey, resolveBuildId, settledQueryKey, track]);
+  }, [characterId, currentQuerySnapshot, fetchError?.queryKey, leaderboardQuery, page, pageSize, queryKey, resolveBuildId, settledQueryKey, track]);
 
   const retryCurrentQuery = useCallback(() => {
     setFetchError(null);
@@ -481,7 +525,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   useEffect(() => {
     const id = deepLink?.id;
     if (!id || expandedDeepLinkRef.current === id) return;
-    if (!displayEntries.some((e) => e.id === id)) return;
+    if (!visibleEntries.some((e) => e.id === id)) return;
     expandedDeepLinkRef.current = id;
     void Promise.resolve().then(() => {
       if (!expandedIds.has(id)) handleToggleExpand(id);
@@ -495,7 +539,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         });
       });
     });
-  }, [deepLink?.id, displayEntries, expandedIds, handleToggleExpand]);
+  }, [deepLink?.id, expandedIds, handleToggleExpand, visibleEntries]);
 
   // Filter helpers
   const addRegion = useCallback((value: string) => {
@@ -630,11 +674,14 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     statFilters.length > 0
   );
 
-  const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
+  const visibleTotal = entriesMatchCurrentQuery ? total : 0;
+  const normalizedPageCount = entriesMatchCurrentQuery
+    ? Math.max(1, Math.ceil(visibleTotal / pageSize))
+    : Math.max(1, page);
   const activeMetricLabel = scoring === 'raw' ? 'Damage' : 'Score';
   const rankStart = (() => {
-    if (total <= 0) return 1;
-    if (page === normalizedPageCount) return Math.max(1, total - displayEntries.length + 1);
+    if (visibleTotal <= 0) return 1;
+    if (page === normalizedPageCount) return Math.max(1, visibleTotal - visibleEntries.length + 1);
     return (page - 1) * pageSize + 1;
   })();
 
@@ -650,9 +697,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               characterHead={character?.head ?? boardDisplay?.characters[characterId]?.head ?? undefined}
               characterElement={character?.element ?? boardDisplay?.characters[characterId]?.element ?? undefined}
               boardDisplay={boardDisplay}
-              teamCharacterIds={configTeamCharacterIds}
-              teamMembers={configTeamMembers}
-              teamBuffs={configTeamBuffs}
+              teamCharacterIds={configMatchesCurrentBoard ? configTeamCharacterIds : []}
+              teamMembers={configMatchesCurrentBoard ? configTeamMembers : []}
+              teamBuffs={configMatchesCurrentBoard ? configTeamBuffs : EMPTY_TEAM_BUFFS}
               activeWeaponId={weaponId}
               activeTrackKey={track}
               activeTrackLabel={activeTrackConfig?.label}
@@ -664,6 +711,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 weaponDisplay={boardDisplay?.weapons}
                 weaponIndex={weaponIndex}
                 onSelectWeapon={(idx) => {
+                  if (idx === weaponIndex) return;
                   const nextWeaponId = configWeaponIds[idx] ?? null;
                   posthog.capture('leaderboard_tab_change', {
                     character_id: characterId,
@@ -678,6 +726,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 tracks={configTracks}
                 activeTrack={track}
                 onSelectTrack={(trackKey) => {
+                  if (trackKey === track) return;
                   posthog.capture('leaderboard_tab_change', {
                     character_id: characterId,
                     weapon_id: weaponId || null,
@@ -759,8 +808,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 />
               </div>
               <LeaderboardResultsPanel
-                entries={displayEntries}
-                displayStats={boardDisplayStats}
+                entries={visibleEntries}
+                displayStats={configMatchesCurrentBoard ? boardDisplayStats : []}
                 boardDisplay={boardDisplay}
                 deepLinkBuildId={revealBuildId ?? ''}
                 activeWeaponId={weaponId}
@@ -772,7 +821,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 detailById={detailById}
                 detailLoadingById={detailLoadingById}
                 detailErrorById={detailErrorById}
-                total={total}
+                total={visibleTotal}
                 page={page}
                 pageCount={normalizedPageCount}
                 pageSize={pageSize}
@@ -786,6 +835,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
                 onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}
                 onPageChange={(nextPage) => {
+                  if (nextPage === page) return;
                   pendingHistoryModeRef.current = 'push';
                   setPage(nextPage);
                 }}

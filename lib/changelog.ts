@@ -18,7 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
-                text: 'Numbered attack chains in move breakdowns now appear as one expandable move with every stage and its damage shown inside',
+                text: 'Numbered attack chains in move breakdowns now appear as one expandable move with children',
             },
         ],
     },
