@@ -44,10 +44,25 @@ const buildStandingKey = (s: LBStandingEntry): string => (
   s.key && s.key.length > 0 ? s.key : `${s.weaponId}:${s.trackKey}`
 );
 
-const pickDefaultBoard = (boards: RankBoard[], equippedWeaponId?: string): RankBoard | null => {
+const pickDefaultBoard = (
+  boards: RankBoard[],
+  equippedWeaponId?: string,
+  buildSequence = 0,
+): RankBoard | null => {
   if (boards.length === 0) return null;
-  const sorted = [...boards].sort((a, b) => a.topPercent - b.topPercent);
-  return sorted.find((board) => board.weaponId === equippedWeaponId) ?? sorted[0] ?? null;
+  const equipped = boards.filter((board) => board.weaponId === equippedWeaponId);
+  const eligible = equipped.filter((board) => board.sequence <= buildSequence);
+  const closestSequence = eligible.reduce(
+    (highest, board) => Math.max(highest, board.sequence),
+    -1,
+  );
+  const representative = eligible
+    .filter((board) => board.sequence === closestSequence)
+    .sort((a, b) => a.topPercent - b.topPercent)[0];
+  if (representative) return representative;
+
+  const equippedFallback = [...equipped].sort((a, b) => a.topPercent - b.topPercent)[0];
+  return equippedFallback ?? [...boards].sort((a, b) => a.topPercent - b.topPercent)[0] ?? null;
 };
 
 const getImageNaturalHeight = async (file: File): Promise<number> => {
@@ -200,13 +215,13 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
           weaponId: s.weaponId,
           weaponName,
           weaponIcon: boardWeapon ? getWeaponPaths(boardWeapon) : undefined,
-          sequence: entry.sequence,
+          sequence: seqLevel,
           trackKey: s.trackKey,
           trackLabel,
           damage: s.damage,
         };
       });
-  }, [standings, getWeapon, t, entry.sequence]);
+  }, [standings, getWeapon, t]);
 
   const showOriginalForte = selectedStandingKey === NO_RANKING_KEY;
   const showProfileRankSection = !showOriginalForte && (standingsLoading || availableBoards.length > 0);
@@ -218,14 +233,14 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
       const match = availableBoards.find((b) => b.key === selectedStandingKey);
       if (match) return match;
     }
-    // Default to the equipped weapon's best board so card and bench stay anchored
-    // to the build, then fall back to the best placement overall.
-    return pickDefaultBoard(availableBoards, equippedWeaponId);
-  }, [showOriginalForte, availableBoards, selectedStandingKey, equippedWeaponId]);
+    // Anchor the card to the uploaded weapon and closest eligible sequence
+    // board before allowing explicit comparison selections.
+    return pickDefaultBoard(availableBoards, equippedWeaponId, entry.sequence);
+  }, [showOriginalForte, availableBoards, selectedStandingKey, equippedWeaponId, entry.sequence]);
 
   const analysisBoard = useMemo<RankBoard | null>(() => (
-    activeBoard ?? pickDefaultBoard(availableBoards, equippedWeaponId)
-  ), [activeBoard, availableBoards, equippedWeaponId]);
+    activeBoard ?? pickDefaultBoard(availableBoards, equippedWeaponId, entry.sequence)
+  ), [activeBoard, availableBoards, equippedWeaponId, entry.sequence]);
 
   // Let the expansion shell mirror the picker for ranked cards. When the user
   // hides ranking for original forte, keep the bench on an equipped/best board.
@@ -372,6 +387,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
                     activeBoard={activeBoard}
                     showOriginalForte={showOriginalForte}
                     equippedWeaponId={equippedWeaponId}
+                    buildSequence={entry.sequence}
                     onSelect={setSelectedStandingKey}
                   />
                   {uploadedLabel && (

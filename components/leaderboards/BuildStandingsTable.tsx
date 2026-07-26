@@ -81,6 +81,9 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
 
   return (
     <div className={alignClass ? `${alignClass} w-fit` : 'w-fit'}>
+      <p className="mb-2 text-center text-[10px] leading-snug text-text-primary/40">
+        Same echoes; weapon, sequence, team, and rotation are standardized per board.
+      </p>
       {showScoreContext && (
         <p className="mb-2 text-center text-xs leading-snug text-text-primary/45">
           The standings shows ER-adjusted ranks. The raw damage view is cosmetic

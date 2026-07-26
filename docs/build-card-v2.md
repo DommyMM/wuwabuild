@@ -81,7 +81,7 @@ Deliberately absent: **damage**. Cross-board damage is incomparable (a 9M S6 hyp
 
 ### Canonical board
 
-The card always shows the rank for the **equipped weapon**: `standings.find(s => s.weaponId === state.weaponId)`, falling back to the first ranked standing. Without this anchor, standings sorted by rank ascending surface phantom boards, because `damage_map` carries values for every weapon variant the LB tracks. `AdjustRankingButton` in the action bar switches the active board; the RV substat summary row renders below the card in `ProfileBuildExpanded`, not inside the frame (one readout, not two).
+The card defaults to the **uploaded weapon** and the highest configured sequence breakpoint at or below the uploaded character sequence, choosing the best matching playstyle only when more than one track shares that breakpoint. It falls back to the uploaded weapon's best board, then the first ranked standing, only when no eligible board exists. Without this anchor, standings sorted by rank ascending surface hypothetical future-sequence or alternate-weapon boards, because `damage_map` carries values for every weapon and sequence variant the LB tracks. `AdjustRankingButton` groups the uploaded-loadout default ahead of other standardized boards; the RV substat summary row renders below the card in `ProfileBuildExpanded`, not inside the frame (one readout, not two).
 
 ## Export
 

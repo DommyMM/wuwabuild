@@ -1427,6 +1427,7 @@ export async function fetchSimulateRanks(
 export interface LBProfileStandingEntry {
   characterId: string;
   weaponId: string;
+  weaponRank: number;
   trackKey: string;
   trackLabel: string;
   sequence: number;
@@ -1465,6 +1466,7 @@ export async function getProfileStandings(uid: string): Promise<LBProfileStandin
           result.push({
             characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
             weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
+            weaponRank: toFiniteNumber(raw.weaponRank, 1),
             trackKey: typeof raw.trackKey === 'string' ? raw.trackKey : '',
             trackLabel: typeof raw.trackLabel === 'string' ? raw.trackLabel : '',
             sequence: toFiniteNumber(raw.sequence, 0),

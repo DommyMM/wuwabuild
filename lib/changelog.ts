@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-26',
+        changes: [
+            {
+                kind: 'improved',
+                text: "Profile ranking cards now show equipped weapons and relevant sequences first and foremost",
+            },
+        ],
+    },
+    {
         date: '2026-07-23',
         changes: [
             {

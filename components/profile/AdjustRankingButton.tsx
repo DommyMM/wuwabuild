@@ -14,6 +14,7 @@ interface AdjustRankingButtonProps {
   activeBoard: RankBoard | null;
   showOriginalForte: boolean;
   equippedWeaponId?: string;
+  buildSequence: number;
   onSelect: (key: string) => void;
 }
 
@@ -34,6 +35,7 @@ interface PopoverProps {
   boards: RankBoard[];
   activeKey: string | null;
   equippedWeaponId?: string;
+  buildSequence: number;
   onSelect: (key: string) => void;
   onClose: () => void;
 }
@@ -45,6 +47,7 @@ const Popover: React.FC<PopoverProps> = ({
   boards,
   activeKey,
   equippedWeaponId,
+  buildSequence,
   onSelect,
   onClose,
 }) => {
@@ -69,8 +72,70 @@ const Popover: React.FC<PopoverProps> = ({
     };
   }, [onClose, popoverRef, buttonRef]);
 
-  const sorted = [...boards].sort((a, b) => a.topPercent - b.topPercent);
+  const equippedEligible = boards.filter((board) => (
+    board.weaponId === equippedWeaponId && board.sequence <= buildSequence
+  ));
+  const closestSequence = equippedEligible.reduce(
+    (highest, board) => Math.max(highest, board.sequence),
+    -1,
+  );
+  const uploadedBoards = equippedEligible
+    .filter((board) => board.sequence === closestSequence)
+    .sort((a, b) => a.topPercent - b.topPercent);
+  const uploadedKeys = new Set(uploadedBoards.map((board) => board.key));
+  const comparisonBoards = boards
+    .filter((board) => !uploadedKeys.has(board.key))
+    .sort((a, b) => a.topPercent - b.topPercent);
   const isOriginalActive = activeKey === NO_RANKING_KEY;
+
+  const renderBoardOption = (b: RankBoard) => {
+    const isActive = b.key === activeKey;
+    const isEquipped = equippedWeaponId === b.weaponId;
+    const tier = getRankTier(b.topPercent);
+    return (
+      <button
+        key={b.key}
+        role="option"
+        aria-selected={isActive}
+        onClick={() => { onSelect(b.key); onClose(); }}
+        className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
+          isActive ? 'bg-accent/10' : 'hover:bg-accent/6'
+        }`}
+      >
+        {b.weaponIcon && (
+          <div
+            className="h-6 w-6 shrink-0 rounded bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url("${b.weaponIcon}")` }}
+          />
+        )}
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-xs text-text-primary/90">{b.weaponName}</span>
+            {isEquipped && (
+              <span className="rounded-full bg-accent/20 px-1.5 py-px text-[8px] font-semibold uppercase tracking-wider text-accent">
+                Uploaded weapon
+              </span>
+            )}
+          </div>
+          <span className="font-ropa text-[9px] uppercase tracking-[0.18em] text-text-primary/45">
+            {b.trackLabel || b.trackKey}
+          </span>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-0.5">
+          <span
+            className="font-gowun text-xs leading-none tabular-nums"
+            style={{ color: tier.color, textShadow: tier.glow ? `0 0 8px ${tier.glow}` : undefined }}
+          >
+            TOP {formatPct(b.topPercent)}%
+          </span>
+          <span className="font-gowun text-[10px] tabular-nums text-text-primary/45">
+            #{formatNumber(b.rank)} / {formatNumber(b.total)}
+          </span>
+        </div>
+        {isActive && <Check size={12} className="shrink-0 text-accent-hover" />}
+      </button>
+    );
+  };
 
   // Native-select-style positioning: prefer below the button, but flip above
   // when there's clearly more room up there. Also clamp horizontally so we
@@ -132,56 +197,27 @@ const Popover: React.FC<PopoverProps> = ({
           {isOriginalActive && <Check size={12} className="shrink-0 text-accent-hover" />}
         </button>
 
-        {sorted.length > 0 && <div className="h-px bg-border/70" />}
+        {uploadedBoards.length > 0 && (
+          <>
+            <div className="border-y border-border/70 bg-background/35 px-3 py-1.5 text-[8px] font-semibold tracking-[0.18em] text-text-primary/40 uppercase">
+              Uploaded loadout
+            </div>
+            {uploadedBoards.map(renderBoardOption)}
+          </>
+        )}
 
-        {sorted.map((b) => {
-          const isActive = b.key === activeKey;
-          const isEquipped = equippedWeaponId === b.weaponId;
-          const tier = getRankTier(b.topPercent);
-          return (
-            <button
-              key={b.key}
-              role="option"
-              aria-selected={isActive}
-              onClick={() => { onSelect(b.key); onClose(); }}
-              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
-                isActive ? 'bg-accent/10' : 'hover:bg-accent/6'
-              }`}
-            >
-              {b.weaponIcon && (
-                <div
-                  className="h-6 w-6 shrink-0 rounded bg-cover bg-center bg-no-repeat"
-                  style={{ backgroundImage: `url("${b.weaponIcon}")` }}
-                />
-              )}
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="truncate text-xs text-text-primary/90">{b.weaponName}</span>
-                  {isEquipped && (
-                    <span className="rounded-full bg-accent/20 px-1.5 py-px text-[8px] font-semibold uppercase tracking-wider text-accent">
-                      Equipped
-                    </span>
-                  )}
-                </div>
-                <span className="font-ropa text-[9px] uppercase tracking-[0.18em] text-text-primary/45">
-                  {b.trackLabel || b.trackKey}
-                </span>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-0.5">
-                <span
-                  className="font-gowun text-xs tabular-nums leading-none"
-                  style={{ color: tier.color, textShadow: tier.glow ? `0 0 8px ${tier.glow}` : undefined }}
-                >
-                  TOP {formatPct(b.topPercent)}%
-                </span>
-                <span className="font-gowun text-[10px] tabular-nums text-text-primary/45">
-                  #{formatNumber(b.rank)} / {formatNumber(b.total)}
-                </span>
-              </div>
-              {isActive && <Check size={12} className="shrink-0 text-accent-hover" />}
-            </button>
-          );
-        })}
+        {comparisonBoards.length > 0 && (
+          <>
+            <div className="border-y border-border/70 bg-background/35 px-3 py-1.5 text-[8px] font-semibold tracking-[0.18em] text-text-primary/40 uppercase">
+              Other standardized boards
+            </div>
+            {comparisonBoards.map(renderBoardOption)}
+          </>
+        )}
+
+        <p className="border-t border-border/70 px-3 py-2 text-[9px] leading-relaxed text-text-primary/38">
+          Same echoes; weapon, sequence, team, and rotation are standardized per board.
+        </p>
       </div>
     </div>,
     document.body,
@@ -193,6 +229,7 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
   activeBoard,
   showOriginalForte,
   equippedWeaponId,
+  buildSequence,
   onSelect,
 }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -236,12 +273,14 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
         onClick={() => setIsOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-label="Compare leaderboard boards"
         className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background-secondary px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
         {showOriginalForte ? (
           <span className="text-text-primary/80">Original forte</span>
         ) : activeBoard ? (
           <>
+            <span className="font-ropa text-[9px] tracking-[0.16em] text-text-primary/40 uppercase">Compare</span>
             {activeBoard.weaponIcon && (
               <div
                 role="img"
@@ -273,6 +312,7 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
           boards={availableBoards}
           activeKey={showOriginalForte ? NO_RANKING_KEY : (activeBoard?.key ?? null)}
           equippedWeaponId={equippedWeaponId}
+          buildSequence={buildSequence}
           onSelect={onSelect}
           onClose={() => setIsOpen(false)}
         />
