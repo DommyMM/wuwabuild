@@ -43,7 +43,7 @@ export function LanguageSwitcher() {
         aria-expanded={isOpen}
       >
         <span className={`fi fi-${currentLang.countryCode} rounded-sm`} />
-        <span className="text-sm font-medium text-text-primary hidden sm:inline">
+        <span className="inline max-sm:hidden text-sm font-medium text-text-primary">
           {language.toUpperCase()}
         </span>
         <svg

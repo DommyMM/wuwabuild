@@ -39,7 +39,7 @@ export const BuildActionBar: React.FC<BuildActionBarProps> = ({
     >
       {isDirty && (
         <span className={compact
-          ? 'hidden md:inline rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400'
+          ? 'inline max-md:hidden rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400'
           : 'rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400'}
         >
           Unsaved
@@ -60,7 +60,7 @@ export const BuildActionBar: React.FC<BuildActionBarProps> = ({
                 : 'flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm font-medium text-red-400 cursor-pointer transition-colors hover:bg-red-500/20 md:px-4 md:py-2'}
           >
             <Icon size={compact ? 14 : 16} />
-            <span className="hidden md:inline">{label}</span>
+            <span className="inline max-md:hidden">{label}</span>
           </button>
         ))}
       </div>

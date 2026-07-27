@@ -57,6 +57,7 @@ Glacio `#41AEFB` · Fusion `#F0744E` · Electro `#B46BFF` · Aero `#55FFB5` · S
 - Gold accent is the only "hot" color. Don't introduce additional brand colors; use opacity steps instead.
 - Element colors belong to gameplay data, not interface decoration.
 - Desktop-first but must work down to ~375px mobile.
+- Global desktop navigation controls use a base display utility plus `max-md:hidden`, not an unqualified `hidden` plus a desktop override. This keeps browser-injected unlayered `.hidden` styles from suppressing the navigation at desktop widths.
 - No heavy imagery the site has to host — carousel pulls user build screenshots, that's enough visual weight.
 
 ## What I'm asking for

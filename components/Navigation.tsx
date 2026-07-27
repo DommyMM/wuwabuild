@@ -196,15 +196,17 @@ export function Navigation() {
                         WuWaBuilds
                     </Link>
 
-                    {/* Desktop Nav */}
-                    <div className="hidden md:flex -mb-2 flex-1">
+                    {/* Desktop-only controls stay visible by default and hide below md.
+                        Avoid the unqualified `hidden` utility here: unlayered styles
+                        injected by browser tools can otherwise override md:flex/block. */}
+                    <div className="flex max-md:hidden -mb-2 flex-1">
                         {navLinks.map(({ href, label }) => (
                             <Link
                                 key={href}
                                 href={href}
                                 onClick={closeSidebar}
                                 className={`
-                                    group relative text-2xl font-medium px-4 pt-2 pb-[calc(0.5rem+2px)] rounded text-center no-underline transition-colors duration-200
+                                    group relative text-2xl font-medium px-4 pt-2 pb-2.5 rounded text-center no-underline transition-colors duration-200
                                     ${isActive(href)
                                         ? 'text-accent bg-accent/15 font-semibold'
                                         : 'text-text-primary hover:text-accent-hover hover:bg-accent/8'
@@ -284,7 +286,7 @@ export function Navigation() {
                         href="https://discord.gg/puZSXRKTPC"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hidden md:flex items-center justify-center p-2 text-text-primary hover:text-accent transition-colors duration-200"
+                        className="flex max-md:hidden items-center justify-center p-2 text-text-primary hover:text-accent transition-colors duration-200"
                         title="Join our Discord"
                         aria-label="Discord"
                     >
@@ -304,7 +306,7 @@ export function Navigation() {
                     </a>
 
                     {/* Language Switcher - Desktop */}
-                    <div className="hidden md:block mr-4">
+                    <div className="block max-md:hidden mr-4">
                         <LanguageSwitcher />
                     </div>
 

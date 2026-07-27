@@ -358,7 +358,7 @@ function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile:
                             loading="lazy"
                         />
                         {slide.weaponName && (
-                            <span className="hidden sm:block max-w-28 text-right text-xs leading-tight text-text-primary/55">
+                            <span className="block max-sm:hidden max-w-28 text-right text-xs leading-tight text-text-primary/55">
                                 {slide.weaponName}
                             </span>
                         )}

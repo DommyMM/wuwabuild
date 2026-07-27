@@ -473,7 +473,7 @@ export const BuildEditor: React.FC = () => {
   return (
     <div className="mx-auto flex max-w-360 min-w-0 flex-col overflow-x-clip">
       {/* Action Bar */}
-      <div className="hidden md:flex md:justify-end">
+      <div className="flex justify-end max-md:hidden">
         <BuildActionBar
           containerRef={actionBarRef}
           isDirty={state.isDirty}
