@@ -161,7 +161,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                   <HoverCard
                     placement="top"
                     width="md"
-                    triggerClassName="pointer-events-auto inline-flex cursor-pointer"
+                    triggerClassName="pointer-events-auto inline-flex shrink-0 cursor-pointer"
                     title="Crit Value"
                     subtitle="2 × Crit Rate + Crit DMG"
                     body={<EchoCVBar cv={echoCV} />}
@@ -174,7 +174,10 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                         backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
                       }}
                     >
-                      <span className="text-xs font-bold leading-tight">{echoCV.toFixed(1)} CV</span>
+                      {/* nowrap + shrink-0 above: this is the only wrappable text
+                          in the panel, so without them it is the first thing to
+                          deform under any width pressure. */}
+                      <span className="whitespace-nowrap text-xs font-bold leading-tight">{echoCV.toFixed(1)} CV</span>
                     </div>
                   </HoverCard>
                 ) : <span />}

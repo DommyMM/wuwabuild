@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-07-27',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Fixed navbar disappearing on some browsers like Brave',
+            },
+            {
+                kind: 'fixed',
+                text: 'Fixed profile build card slightly breaking on resolutions smaller than 1440px',
+            },
+        ],
+    },
+    {
         date: '2026-07-26',
         changes: [
             {

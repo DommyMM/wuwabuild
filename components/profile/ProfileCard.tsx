@@ -16,12 +16,13 @@ import { SavedState } from '@/lib/build';
 import { parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { formatDateLabel } from '@/components/leaderboards/formatters';
 import { BuildCard } from '@/components/edit/BuildCard';
+import { CardScaler } from '@/components/edit/CardScaler';
 import { CardActionBar } from '@/components/card/CardActionBar';
 import { RankBoard } from '@/components/card/RankModule';
 import { ProfileRankSection } from './ProfileRankSection';
 import { SubstatSummaryRow } from './SubstatSummaryRow';
 import { AdjustRankingButton, NO_RANKING_KEY } from './AdjustRankingButton';
-import { BUILD_CARD_EXPORT_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
+import { BUILD_CARD_DESIGN_WIDTH, BUILD_CARD_EXPORT_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
 import { DEFAULT_PREFERRED_STATS, getAvailablePreferredSubstats } from '@/lib/calculations/rollValues';
 import posthog from 'posthog-js';
 
@@ -110,6 +111,16 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedStandingKey, setSelectedStandingKey] = useState<string | null>(null);
   const [manualSubstatSelection, setManualSubstatSelection] = useState<Set<string> | null>(null);
+  const [isPhoneViewport, setIsPhoneViewport] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsPhoneViewport(media.matches);
+    onChange();
+
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
 
   // Standings fetch lives at the orchestrator level (not inside BuildProvider)
   // because the AdjustRankingButton in the action bar also needs the full board
@@ -329,44 +340,65 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
     }
   }, [characterId, characterName, entry.id, isDownloading, toastError]);
 
+  const cardContent = (
+    <>
+      <BuildCard
+        useAltSkin={false}
+        showCV
+        showRollQuality
+        artTransform={artTransform}
+        artSourceMode={artSourceMode}
+        customArtUrl={customArtUrl}
+        isArtEditMode={isArtEditMode}
+        onCustomArtUpload={handleCustomArtUpload}
+        onArtTransformChange={setArtTransform}
+        selectedSubstats={selectedSubstats}
+        forteSection={showProfileRankSection ? (
+          <ProfileRankSection
+            availableBoards={availableBoards}
+            activeBoard={activeBoard}
+            standings={standings}
+            standingsLoading={standingsLoading}
+          />
+        ) : undefined}
+      />
+      <SubstatSummaryRow
+        selectedSubstats={selectedSubstats}
+        onToggleSubstat={toggleSubstat}
+      />
+    </>
+  );
+
   return (
     <BuildProvider initialState={initialState} persistDraft={false}>
       <StatsProvider>
         <div className="flex flex-col gap-3">
             {/* The cardRef wraps both the card AND the substat row so the download
-                captures them together (Akasha-style). Below md the card keeps its
-                1440px design-space layout inside a horizontal scroller (same
-                treatment as BuildEditor's phone path): rendered fluid at phone
-                width, BuildCard's aspect-derived height starves the echo row and
-                its overflow-hidden clips the substat rows. */}
-            <div className="max-md:overflow-x-auto max-md:overflow-y-hidden max-md:pb-1">
-            <div ref={cardRef} className="flex flex-col gap-3 max-md:w-[1440px] max-md:min-w-[1440px]">
-              <BuildCard
-                useAltSkin={false}
-                showCV
-                showRollQuality
-                artTransform={artTransform}
-                artSourceMode={artSourceMode}
-                customArtUrl={customArtUrl}
-                isArtEditMode={isArtEditMode}
-                onCustomArtUpload={handleCustomArtUpload}
-                onArtTransformChange={setArtTransform}
-                selectedSubstats={selectedSubstats}
-                forteSection={showProfileRankSection ? (
-                  <ProfileRankSection
-                    availableBoards={availableBoards}
-                    activeBoard={activeBoard}
-                    standings={standings}
-                    standingsLoading={standingsLoading}
-                  />
-                ) : undefined}
-              />
-              <SubstatSummaryRow
-                selectedSubstats={selectedSubstats}
-                onToggleSubstat={toggleSubstat}
-              />
-            </div>
-            </div>
+                captures them together (Akasha-style). The card is a 1440px
+                design-space artifact and must never be re-laid-out at the host's
+                width: the art (w-3/10), stats table (flex-1) and echo row shrink
+                while the w-120 column and every font/icon/padding stay fixed, so
+                a narrower host crushes the echo panels and wraps their CV badges.
+                Above md CardScaler pins 1440 and shrinks with a transform (never a
+                re-layout), matching BuildEditor. Below md the same design-space
+                layout goes in a horizontal scroller instead, since scaling 1440
+                down to phone width would be unreadable. Either way the exporter
+                captures a true design-space node. */}
+            {isPhoneViewport ? (
+              <div className="overflow-x-auto overflow-y-hidden pb-1">
+                <div ref={cardRef} className="flex w-360 min-w-360 flex-col gap-3">
+                  {cardContent}
+                </div>
+              </div>
+            ) : (
+              <CardScaler
+                ref={cardRef}
+                designWidth={BUILD_CARD_DESIGN_WIDTH}
+                contentClassName="flex flex-col gap-3"
+              >
+                {cardContent}
+              </CardScaler>
+            )}
 
             <CardActionBar
               className="flex flex-col"

@@ -198,7 +198,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                       <HoverCard
                         placement="top"
                         width="md"
-                        triggerClassName="pointer-events-auto inline-flex cursor-pointer"
+                        triggerClassName="pointer-events-auto inline-flex shrink-0 cursor-pointer"
                         title="Crit Value"
                         subtitle="2 × Crit Rate + Crit DMG"
                         body={<EchoCVBar cv={echoCV} />}
@@ -211,7 +211,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                             backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
                           }}
                         >
-                          <span className="text-xs font-bold leading-tight">{echoCV.toFixed(1)} CV</span>
+                          <span className="whitespace-nowrap text-xs font-bold leading-tight">{echoCV.toFixed(1)} CV</span>
                         </div>
                       </HoverCard>
                     )}

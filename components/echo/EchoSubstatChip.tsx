@@ -94,7 +94,7 @@ export function getEchoChipVisuals(state: EchoChipState): ChipVisuals {
 }
 
 const SIZE_CLASS = {
-  sm: { row: 'gap-1 px-1.5 py-1 text-[13px]', icon: 'h-3. w-3.5' },
+  sm: { row: 'gap-1 px-1.5 py-1 text-[13px]', icon: 'h-3.5 w-3.5' },
   md: { row: 'gap-1 px-1.5 py-1.5 text-base', icon: 'h-4.5 w-4.5' },
 } as const;
 

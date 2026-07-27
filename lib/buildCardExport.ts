@@ -44,8 +44,12 @@ const captureBuildCard = async (
 
   const exportScale = BUILD_CARD_EXPORT_WIDTH / BUILD_CARD_DESIGN_WIDTH;
   const canvas = await snapdom.toCanvas(node, {
-    // The captured node is always laid out at design size
-    // CardScaler shrinks it with a transform, never a re-layout
+    // INVARIANT: the captured node must already be laid out at BUILD_CARD_DESIGN_WIDTH.
+    // snapdom serializes computed styles off the live DOM, so unlike the html-to-image
+    // path it replaced there is no way to force a design-space re-layout at capture
+    // time — whatever width the node has on screen is what ships. Every host is
+    // therefore responsible for pinning 1440: CardScaler shrinks with a transform
+    // (never a re-layout), and the phone paths use a 1440 horizontal scroller.
     // Stripping the outer transform captures the full design-space card on any screen width.
     outerTransforms: false,
     // SVG rasterized through an <img> can't see document fonts; embed them.
