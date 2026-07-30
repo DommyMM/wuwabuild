@@ -1514,11 +1514,69 @@ def _incoming_scoped_clause_buffs(sentence: str) -> list[dict]:
     return excluded
 
 
+# Named states handed to the whole team, e.g. Firstlight's Herald:
+#   "Casting Intro Skill or Resonance Skill grants nearby Resonators in the team
+#    Kingfisher for 30s. ... Resonators with Kingfisher have their ATK increased by 20%."
+# The grant sentence is party-scoped but carries no number; the sentence that
+# carries the number names its audience by token instead of by any of
+# _PARTY_SCOPE_PHRASES. Without linking the two, the payload is dropped entirely.
+_RE_TOKEN_GRANT_TRAILING = re.compile(
+    r"grants?\s+(?:all\s+)?(?:nearby\s+)?(?:party members|Resonators)"
+    r"(?:\s+(?:in|on)\s+(?:the\s+)?team)?\s+"
+    r"([A-Z][A-Za-z']*(?:\s+[A-Z][A-Za-z']*)*)"
+)
+_RE_TOKEN_GRANT_LEADING = re.compile(
+    r"[Gg]rants?\s+([A-Z][A-Za-z']*(?:\s+[A-Z][A-Za-z']*)*)\s+to\s+"
+    r"(?:all\s+)?(?:nearby\s+)?(?:party members|Resonators)"
+)
+
+
+def _party_buff_tokens(text: str) -> list[str]:
+    """Collect names of buff states this text grants to the whole team."""
+    tokens: list[str] = []
+    for pattern in (_RE_TOKEN_GRANT_TRAILING, _RE_TOKEN_GRANT_LEADING):
+        for m in pattern.finditer(text):
+            token = m.group(1).strip()
+            if token and token not in tokens:
+                tokens.append(token)
+    return tokens
+
+
+def _targets_party_token(sentence: str, tokens: list[str]) -> bool:
+    """True when the sentence addresses holders of a team-granted buff token."""
+    lower = sentence.lower()
+    return any(
+        f"resonator with {token.lower()}" in lower
+        or f"resonators with {token.lower()}" in lower
+        for token in tokens
+    )
+
+
+def _capped_party_dmg_value(text: str, match_end: int, value: float) -> float:
+    """Resolve a "DMG dealt is increased by X%" figure to the buff's real ceiling.
+
+    Two suffixes can follow the figure, and they mean opposite things:
+      "…by 0.2%, up to 12%"      -> 0.2 is a per-unit scaling rate; 12 is the buff.
+      "…by 8%, up to 3 stacks"   -> 8 is per stack; the buff is 8 x 3.
+    Without the first case, an ER-scaled tier (Suisui's outro) syncs as +0.2%.
+    """
+    cap_m = _RE_UP_TO_CAP.match(text[match_end:].lstrip(" ,"))
+    if cap_m:
+        return float(cap_m.group(1))
+    stack_m = re.search(r"up\s+to\s+(\d+)\s+stacks?", text, re.I)
+    if stack_m:
+        return value * int(stack_m.group(1))
+    return value
+
+
 def _parse_party_scoped_buffs(text: str) -> list[dict]:
     out: list[dict] = []
+    tokens = _party_buff_tokens(text)
     for sentence in _split_buff_sentences(text):
         lower = sentence.lower()
-        if not any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES):
+        if not any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES) and not _targets_party_token(
+            sentence, tokens
+        ):
             continue
         emitted_types: set[tuple[str, str, str]] = set()
         self_scoped = _self_scoped_clause_buffs(sentence)
@@ -1578,9 +1636,7 @@ def _parse_party_scoped_buffs(text: str) -> list[dict]:
         # Generic "increases/increased DMG dealt by X%" (e.g. Spectrum Blaster, Lynae Liberation).
         for m in _RE_PARTY_DMG_INCREASE.finditer(sentence):
             val = float(m.group(1) if m.group(1) is not None else m.group(2))
-            stack_m = re.search(r"up\s+to\s+(\d+)\s+stacks?", sentence, re.I)
-            if stack_m:
-                val *= int(stack_m.group(1))
+            val = _capped_party_dmg_value(sentence, m.end(), val)
             _append_unique_party_buff(out, {"type": "elementalDMG", "value": val})
 
     return out
@@ -1815,29 +1871,28 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
                 if stripped.startswith("if there are ") or stripped.startswith("if there is "):
                     continue
 
+                # "…, up to X%" states the buff's ceiling; the bare percentage earlier in
+                # the same sentence is only the per-unit scaling rate. Emit the cap and
+                # record its type so the rate is not also emitted below — otherwise e.g.
+                # Suisui's "for every 0.12% of Energy Regen over 200%, ATK is increased by
+                # 0.1%, up to 50%" lands as a +0.1% ATK party buff instead of +50%.
+                emitted_types: set[tuple[str, str, str]] = set()
+
                 for cap_m in _RE_UP_TO_CAP.finditer(sentence):
                     cap_val = float(cap_m.group(1))
                     after_cap = sentence[cap_m.end():cap_m.end() + 60].lstrip()
                     stat_m = _STAT_RE.match(after_cap)
-                    if stat_m:
-                        stat_name = _stat_name_for_match(stat_m)
-                        if stat_name == "Crit Rate":
-                            party_buffs.append({"type": "critRate", "value": cap_val})
-                            continue
-                        if stat_name == "Crit DMG":
-                            party_buffs.append({"type": "critDMG", "value": cap_val})
-                            continue
-
-                    before_cap = sentence[max(0, cap_m.start() - 60):cap_m.start()]
-                    stat_back_m = None
-                    for sm in _STAT_RE.finditer(before_cap):
-                        stat_back_m = sm
-                    if stat_back_m:
-                        stat_name = _stat_name_for_match(stat_back_m)
-                        if stat_name == "Crit Rate":
-                            party_buffs.append({"type": "critRate", "value": cap_val})
-                        elif stat_name == "Crit DMG":
-                            party_buffs.append({"type": "critDMG", "value": cap_val})
+                    if stat_m is None:
+                        before_cap = sentence[max(0, cap_m.start() - 60):cap_m.start()]
+                        for sm in _STAT_RE.finditer(before_cap):
+                            stat_m = sm
+                    if stat_m is None:
+                        continue
+                    for entry in _stat_to_party_buffs(_stat_name_for_match(stat_m), cap_val):
+                        _append_unique_party_buff(party_buffs, entry)
+                        emitted_types.add(
+                            (entry.get("type", ""), entry.get("element", ""), entry.get("move_type", ""))
+                        )
 
                 for cap_m in _RE_UP_TO_POINTS.finditer(sentence):
                     cap_val = float(cap_m.group(1))
@@ -1851,6 +1906,11 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
                 for b in _extract_buffs(sentence):
                     stat = b["stat"]
                     val = b["value"]
+                    if any(
+                        (e.get("type", ""), e.get("element", ""), e.get("move_type", "")) in emitted_types
+                        for e in _stat_to_party_buffs(stat, val)
+                    ):
+                        continue
                     if stat == "Crit Rate":
                         if not any(pb["type"] == "critRate" for pb in party_buffs):
                             party_buffs.append({"type": "critRate", "value": val})
@@ -1889,9 +1949,7 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
             # Generic "increases/increased DMG dealt by X%" (e.g. Lynae Liberation +24%).
             for m in _RE_PARTY_DMG_INCREASE.finditer(resolved):
                 val = float(m.group(1) if m.group(1) is not None else m.group(2))
-                stack_m = re.search(r"up\s+to\s+(\d+)\s+stacks?", resolved, re.I)
-                if stack_m:
-                    val *= int(stack_m.group(1))
+                val = _capped_party_dmg_value(resolved, m.end(), val)
                 _append_unique_party_buff(party_buffs, {"type": "elementalDMG", "value": val})
 
         for entry in _extract_team_debuff_buffs(resolved):
