@@ -253,7 +253,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
                 onCustomArtUpload(file);
               }}
             >
-              <span className="max-w-[220px] text-center text-sm font-medium text-white/90">
+              <span className="max-w-55 text-center text-sm font-medium text-white/90">
                 Drag and Drop or Click to Upload Image
               </span>
             </button>

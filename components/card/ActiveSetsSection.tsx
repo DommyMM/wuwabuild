@@ -57,7 +57,8 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
     <div className={`flex w-full min-w-0 overflow-visible pt-2 pb-1 text-sm font-semibold leading-none ${hasCrowdedActiveSets ? 'justify-center gap-1 px-0' : 'gap-2 pl-4'}`}>
       {showCV && (
         <div className={`flex shrink-0 items-center justify-center bg-black/35 ${hasCrowdedActiveSets ? 'min-h-8 w-20 rounded-lg px-1 py-1' : 'rounded-xl p-1.5'}`}>
-          <span className="rounded-md">
+          {/* snapdom bakes its measured width into the export, so without nowrap a hair of font drift at capture time splits "220.4 CV" across two lines */}
+          <span className="whitespace-nowrap rounded-md tabular-nums">
             {stats.cv.toFixed(1)} CV
           </span>
         </div>

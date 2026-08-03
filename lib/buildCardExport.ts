@@ -35,12 +35,30 @@ const captureBuildCard = async (
   node: HTMLElement,
   options: BuildCardExportOptions,
 ): Promise<{ blob: Blob; format: BuildCardExportFormat }> => {
-  const { snapdom } = await import('@zumer/snapdom');
+  const { preCache, snapdom } = await import('@zumer/snapdom');
 
   // Card controls update immediately before export. Give React and the browser
   // two frames to commit the non-editing state before cloning the DOM.
   await waitForAnimationFrame();
   await waitForAnimationFrame();
+
+  // snapdom copies each element's on-screen used width onto the clone and then
+  // rasterizes through an SVG <img>, which cannot see document fonts. A face
+  // that is missing from the embed renders in a wider system fallback inside
+  // boxes pinned to the narrower measurement, so text wraps or ellipsizes even
+  // though the geometry is correct. next/font loads every family with
+  // display:swap and snapdom awaits document.fonts.ready only inside preCache,
+  // never on the toCanvas path — so warm fonts and images here. Regression
+  // 2026-08-02: an Android profile download shipped with the stat labels, the
+  // flat-stat sub-line and the CV badge each split across two lines.
+  try {
+    await document.fonts.ready;
+    await preCache(node);
+  } catch (error) {
+    // Best-effort: a cold capture still produces a file, just with more risk of
+    // fallback metrics. Never block the download on warmup.
+    console.warn('Build card export warmup failed:', error);
+  }
 
   const exportScale = BUILD_CARD_EXPORT_WIDTH / BUILD_CARD_DESIGN_WIDTH;
   const canvas = await snapdom.toCanvas(node, {

@@ -110,16 +110,17 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
               style={elementalIconFilter ? { filter: elementalIconFilter } : undefined}
             />
           )}
-          <span className="min-w-0 text-lg leading-tight">
+          {/* fix weird snapdom spilling text into new row */}
+          <span className="min-w-0 whitespace-nowrap text-lg leading-tight">
             {formatLabel(key)}
           </span>
         </div>
-        <div className="flex flex-col items-end">
-          <span className="text-lg text-white/95 leading-tight">
+        <div className="flex shrink-0 flex-col items-end">
+          <span className="whitespace-nowrap text-lg tabular-nums text-white/95 leading-tight">
             {formatValue(key, value)}
           </span>
           {isFlatStat && bonus > 0 && (
-            <span className="text-[10px] text-white/72">
+            <span className="whitespace-nowrap text-[10px] tabular-nums text-white/72">
               {formatFlat(base)}{' '}
               <span className="text-emerald-300">
                 +{formatFlat(bonus)}

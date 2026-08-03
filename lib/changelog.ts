@@ -24,6 +24,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'fixed',
                 text: 'Minor buffs on some after fixing Law of Harmony and Tune Strain',
             },
+            {
+                kind: 'fixed',
+                text: 'Downloaded cards no longer break their stat lines and CV badge onto two lines on mobile',
+            },
         ],
     },
     {
