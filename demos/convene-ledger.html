@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Convene Ledger — Pull history, told honestly</title>
+  <style>
+    :root {
+      --ink: #080b0d;
+      --panel: #101518;
+      --panel-2: #151b1e;
+      --paper: #e8e4da;
+      --muted: #8e999b;
+      --line: rgba(232, 228, 218, .12);
+      --gold: #e8c66a;
+      --gold-soft: #7e6a36;
+      --jade: #57d6ad;
+      --coral: #ff786d;
+      --blue: #7ab8ff;
+      --radius: 5px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--paper);
+      background:
+        radial-gradient(circle at 78% -10%, rgba(44, 98, 89, .25), transparent 30rem),
+        radial-gradient(circle at -10% 35%, rgba(122, 184, 255, .07), transparent 26rem),
+        var(--ink);
+      font-family: Bahnschrift, "Avenir Next Condensed", "Arial Narrow", sans-serif;
+      font-size: 16px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .16;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+      z-index: 20;
+      mix-blend-mode: soft-light;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    .shell {
+      width: min(1440px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 26px 0 72px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 0 0 25px;
+      border-bottom: 1px solid var(--line);
+      animation: rise .65s both;
+    }
+
+    .wordmark {
+      display: flex;
+      align-items: baseline;
+      gap: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .wordmark strong {
+      font-family: "Palatino Linotype", Palatino, Georgia, serif;
+      font-size: 19px;
+      letter-spacing: .02em;
+      font-weight: 500;
+    }
+
+    .wordmark span,
+    .eyebrow,
+    .micro,
+    .section-kicker {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+
+    .privacy {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #abb5b5;
+      font-size: 12px;
+      letter-spacing: .04em;
+    }
+
+    .privacy::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--jade);
+      box-shadow: 0 0 16px var(--jade);
+    }
+
+    .hero {
+      min-height: 385px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(340px, .75fr);
+      gap: 40px;
+      align-items: end;
+      padding: 67px 0 49px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero-copy { animation: rise .7s .08s both; }
+
+    .hero h1 {
+      margin: 12px 0 19px;
+      max-width: 830px;
+      font-family: "Palatino Linotype", Palatino, Georgia, serif;
+      font-size: clamp(47px, 6.4vw, 94px);
+      font-weight: 400;
+      line-height: .91;
+      letter-spacing: -.055em;
+    }
+
+    .hero h1 em {
+      color: var(--gold);
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    .hero-deck {
+      max-width: 670px;
+      margin: 0;
+      color: #adb6b5;
+      font-family: "Palatino Linotype", Palatino, Georgia, serif;
+      font-size: clamp(17px, 1.7vw, 22px);
+      line-height: 1.5;
+    }
+
+    .import-card {
+      position: relative;
+      padding: 25px;
+      border: 1px solid var(--line);
+      background: linear-gradient(145deg, rgba(21, 27, 30, .9), rgba(11, 15, 17, .92));
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .25);
+      animation: rise .7s .16s both;
+    }
+
+    .import-card::before {
+      content: "";
+      position: absolute;
+      left: -1px;
+      top: -1px;
+      width: 44px;
+      height: 3px;
+      background: var(--gold);
+    }
+
+    .import-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .file-button {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 17px;
+      border: 1px solid var(--gold-soft);
+      background: var(--gold);
+      color: #17160f;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      transition: transform .2s, background .2s;
+    }
+
+    .file-button:hover { transform: translateY(-2px); background: #f6dc91; }
+    .file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+    .source-meta {
+      text-align: right;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .source-meta strong { display: block; color: var(--paper); font-size: 14px; font-weight: 500; }
+
+    .ledger {
+      padding: 47px 0 0;
+      animation: rise .7s .22s both;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .section-head h2 {
+      margin: 7px 0 0;
+      font-family: "Palatino Linotype", Palatino, Georgia, serif;
+      font-size: clamp(28px, 3.2vw, 44px);
+      font-weight: 400;
+      letter-spacing: -.03em;
+    }
+
+    .ratio-note {
+      max-width: 520px;
+      color: #929c9e;
+      font-family: "Palatino Linotype", Palatino, Georgia, serif;
+      line-height: 1.5;
+      text-align: right;
+    }
+
+    .ratio-note strong { color: var(--paper); font-weight: 400; }
+
+    .truth-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      border: 1px solid var(--line);
+      background: rgba(16, 21, 24, .72);
+    }
+
+    .truth-cell {
+      min-height: 198px;
+      padding: 24px 27px 25px;
+      border-right: 1px solid var(--line);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .truth-cell:last-child { border-right: 0; }
+
+    .truth-cell::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 4px;
+      background: var(--tone);
+      transform-origin: left;
+      animation: grow .9s .4s both;
+    }
+
+    .truth-cell .num {
+      display: block;
+      margin: 21px 0 2px;
+      font-family: "Palatino Linotype", Palatino, Georgia, serif;
+      font-size: clamp(53px, 6vw, 82px);
+      line-height: .86;
+      letter-spacing: -.06em;
+      color: var(--tone);
+    }
+
+    .truth-cell .label { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+    .truth-cell p { margin: 11px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+    .win { --tone: var(--jade); }
+    .loss { --tone: var(--coral); }
+    .guarantee { --tone: var(--gold); }
+
+    .equation {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 17px;
+      padding: 18px 22px;
+      border: 1px solid var(--line);
+      border-top: 0;
+      background: rgba(7, 10, 11, .5);
+      color: #abb3b2;
+      font-family: "Palatino Linotype", Palatino, Georgia, serif;
+    }
+
+    .equation strong { color: var(--paper); font-weight: 400; }
+    .equation-line { height: 1px; background: var(--line); }
+    .equation-result { color: var(--gold); font-family: Bahnschrift, sans-serif; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(330px, .65fr);
+      gap: 18px;
+      margin-top: 52px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: linear-gradient(145deg, rgba(18, 24, 27, .88), rgba(10, 14, 16, .9));
+      min-width: 0;
+    }
+
+    .panel-head {
+      min-height: 79px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 20px 23px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title { margin: 0; font-family: "Palatino Linotype", Palatino, Georgia, serif; font-size: 22px; font-weight: 400; }
+    .panel-title small { display: block; margin-bottom: 5px; color: var(--muted); font-family: Bahnschrift, sans-serif; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+
+    .segmented { display: inline-flex; padding: 3px; border: 1px solid var(--line); background: #090d0f; }
+    .segmented button {
+      min-width: 38px;
+      height: 30px;
+      padding: 0 9px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .segmented button[aria-pressed="true"] { background: var(--paper); color: #101416; }
+
+    .chart-wrap { position: relative; padding: 23px 19px 16px 13px; }
+    #trendChart { display: block; width: 100%; height: 278px; overflow: visible; }
+    .grid-line { stroke: rgba(232, 228, 218, .09); stroke-width: 1; }
+    .baseline { stroke: rgba(232, 198, 106, .55); stroke-width: 1; stroke-dasharray: 5 7; }
+    .trend-area { fill: url(#area); }
+    .trend-line { fill: none; stroke: var(--jade); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+    .trend-end { fill: var(--jade); stroke: var(--panel); stroke-width: 4; vector-effect: non-scaling-stroke; }
+    .axis-text { fill: #7e898a; font-size: 10px; font-family: Bahnschrift, sans-serif; }
+
+    .chart-tooltip {
+      position: absolute;
+      z-index: 3;
+      pointer-events: none;
+      padding: 8px 10px;
+      background: #ece7da;
+      color: #111618;
+      font-size: 11px;
+      line-height: 1.3;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+      opacity: 0;
+      transform: translate(-50%, -115%);
+      transition: opacity .12s;
+    }
+
+    .chart-caption {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 23px 22px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .chart-caption strong { color: var(--paper); font-weight: 500; }
+    .delta-up { color: var(--jade) !important; }
+    .delta-down { color: var(--coral) !important; }
+
+    .insight-panel { display: flex; flex-direction: column; }
+    .signal { padding: 27px 25px 24px; border-bottom: 1px solid var(--line); }
+    .signal:last-child { border-bottom: 0; }
+    .signal-value {
+      display: block;
+      margin: 8px 0 4px;
+      font-family: "Palatino Linotype", Palatino, Georgia, serif;
+      font-size: 42px;
+      font-weight: 400;
+      letter-spacing: -.04em;
+    }
+    .signal p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+    .lower-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .pity-body { padding: 29px 24px 25px; }
+    .pity-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 28px; }
+    .pity-stat strong { display: block; font-family: "Palatino Linotype", Palatino, Georgia, serif; font-size: 33px; font-weight: 400; }
+    .pity-stat span { color: var(--muted); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    .hist-row { display: grid; grid-template-columns: 48px 1fr 30px; gap: 12px; align-items: center; margin: 12px 0; font-size: 11px; color: var(--muted); }
+    .hist-track { height: 7px; background: #090d0f; overflow: hidden; }
+    .hist-fill { width: var(--w); height: 100%; background: linear-gradient(90deg, var(--gold-soft), var(--gold)); transform-origin: left; animation: grow .8s .55s both; }
+    .hist-row b { color: var(--paper); font-weight: 500; text-align: right; }
+
+    .tape { padding: 8px 23px 16px; }
+    .result-row {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) 78px 54px;
+      align-items: center;
+      gap: 13px;
+      min-height: 58px;
+      border-bottom: 1px solid rgba(232, 228, 218, .075);
+    }
+    .result-row:last-child { border-bottom: 0; }
+    .result-index { color: #596365; font-size: 10px; }
+    .result-name { min-width: 0; font-family: "Palatino Linotype", Palatino, Georgia, serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .result-name small { display: block; margin-top: 2px; color: #667173; font-family: Bahnschrift, sans-serif; font-size: 9px; letter-spacing: .08em; }
+    .outcome-pill { justify-self: start; padding: 5px 7px 4px; border: 1px solid color-mix(in srgb, var(--tone), transparent 55%); color: var(--tone); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+    .pity-chip { justify-self: end; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--tone), transparent 82%); color: var(--tone); font-weight: 600; font-size: 12px; }
+
+    .method {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      gap: 42px;
+      margin-top: 57px;
+      padding: 42px 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .method h2 { margin: 8px 0 0; font-family: "Palatino Linotype", Palatino, Georgia, serif; font-size: 40px; font-weight: 400; line-height: 1.05; letter-spacing: -.035em; }
+    .method-copy { columns: 2; column-gap: 34px; color: #9aa4a4; font-family: "Palatino Linotype", Palatino, Georgia, serif; line-height: 1.58; }
+    .method-copy p { margin: 0 0 16px; break-inside: avoid; }
+    .method-copy strong { color: var(--paper); font-weight: 400; }
+
+    footer { display: flex; justify-content: space-between; gap: 20px; padding-top: 24px; color: #657073; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    footer span:last-child { text-align: right; }
+
+    .drop-active::after {
+      content: "Drop your WuWaTracker export";
+      position: fixed;
+      inset: 18px;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--gold);
+      background: rgba(8, 11, 13, .94);
+      color: var(--gold);
+      font-family: "Palatino Linotype", Palatino, Georgia, serif;
+      font-size: clamp(28px, 5vw, 68px);
+    }
+
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; padding-top: 48px; }
+      .dashboard, .lower-grid { grid-template-columns: 1fr; }
+      .truth-grid { grid-template-columns: 1fr; }
+      .truth-cell { min-height: 148px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .truth-cell:last-child { border-bottom: 0; }
+      .truth-cell .num { margin-top: 15px; }
+      .method { grid-template-columns: 1fr; gap: 28px; }
+    }
+
+    @media (max-width: 620px) {
+      .shell { width: min(100% - 24px, 1440px); padding-top: 16px; }
+      .topbar { align-items: flex-start; }
+      .privacy { max-width: 120px; text-align: right; justify-content: flex-end; }
+      .hero { min-height: auto; padding: 44px 0 37px; gap: 31px; }
+      .hero h1 { font-size: 50px; }
+      .section-head { align-items: flex-start; flex-direction: column; }
+      .ratio-note { text-align: left; }
+      .equation { grid-template-columns: 1fr; gap: 7px; }
+      .equation-line { display: none; }
+      .panel-head { align-items: flex-start; }
+      .pity-stats { gap: 10px; }
+      .pity-stat strong { font-size: 28px; }
+      .result-row { grid-template-columns: 26px minmax(0, 1fr) 65px 38px; gap: 8px; }
+      .method-copy { columns: 1; }
+      footer { flex-direction: column; }
+      footer span:last-child { text-align: left; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="wordmark"><strong>Convene Ledger</strong><span>Personal pull intelligence</span></div>
+      <div class="privacy">Private by default · analyzed in your browser</div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Featured resonator archive · UID <span id="uid">500006092</span></div>
+        <h1>Your luck, without the <em>fine print.</em></h1>
+        <p class="hero-deck">A clearer read of every five-star: the coin flips you won, the ones you lost, and the guarantees those losses bought.</p>
+      </div>
+
+      <aside class="import-card" id="importCard">
+        <div class="section-kicker">Live source</div>
+        <div class="import-row">
+          <label class="file-button">Load export<input id="fileInput" type="file" accept=".json,application/json"></label>
+          <div class="source-meta"><strong id="sourceName">WuWaTracker export</strong><span id="sourceDate">updated Aug 2, 2026</span></div>
+        </div>
+        <p class="micro" style="margin:19px 0 0; line-height:1.6">Drag and drop works too. Nothing leaves this page.</p>
+      </aside>
+    </section>
+
+    <section class="ledger">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">The honest accounting</div>
+          <h2><span id="fiveCount">232</span> five-stars. Three different stories.</h2>
+        </div>
+        <div class="ratio-note"><strong id="flipRate">48.37%</strong> is your win rate, but only across <strong id="flipCount">153 real 50/50 attempts</strong>. The other <span id="guaranteeInline">79</span> were already guaranteed.</div>
+      </div>
+
+      <div class="truth-grid">
+        <article class="truth-cell win">
+          <span class="micro">Unassisted</span>
+          <span class="num" id="winCount">74</span>
+          <span class="label">Direct wins</span>
+          <p>Featured five-stars won while the 50/50 was live.</p>
+        </article>
+        <article class="truth-cell loss">
+          <span class="micro">Coin flip missed</span>
+          <span class="num" id="lossCount">79</span>
+          <span class="label">Losses</span>
+          <p>Standard five-stars that created a guarantee.</p>
+        </article>
+        <article class="truth-cell guarantee">
+          <span class="micro">Debt collected</span>
+          <span class="num" id="guaranteeCount">79</span>
+          <span class="label">Guaranteed pulls</span>
+          <p>Featured five-stars paid out after those losses.</p>
+        </article>
+      </div>
+
+      <div class="equation">
+        <span><strong id="equationText">74 wins + 79 losses</strong> = 153 coin flips</span>
+        <span class="equation-line"></span>
+        <span class="equation-result" id="featuredShare">153 featured results · 65.95% of all five-stars</span>
+      </div>
+    </section>
+
+    <section class="dashboard">
+      <article class="panel">
+        <div class="panel-head">
+          <h3 class="panel-title"><small>Rolling form</small>Are you winning more lately?</h3>
+          <div class="segmented" id="windowPicker" aria-label="Moving average window">
+            <button data-window="10" aria-pressed="false">10</button>
+            <button data-window="20" aria-pressed="true">20</button>
+            <button data-window="30" aria-pressed="false">30</button>
+            <button data-window="50" aria-pressed="false">50</button>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chartWrap">
+          <svg id="trendChart" viewBox="0 0 760 278" preserveAspectRatio="none" role="img" aria-label="Rolling 50/50 win rate chart"></svg>
+          <div class="chart-tooltip" id="chartTooltip"></div>
+        </div>
+        <div class="chart-caption">
+          <span id="trendSummary">Last 20: <strong>10–10 · exactly even</strong></span>
+          <span id="trendDelta">Previous 20: <strong>50%</strong></span>
+        </div>
+      </article>
+
+      <aside class="panel insight-panel">
+        <div class="signal">
+          <span class="micro">Long-run balance</span>
+          <strong class="signal-value" id="netFlip">−5</strong>
+          <p id="netCopy">Five more losses than direct wins across the full archive.</p>
+        </div>
+        <div class="signal">
+          <span class="micro">Recent 50</span>
+          <strong class="signal-value" id="recent50">26–24</strong>
+          <p id="recentCopy">52% wins. Your recent form is outperforming your lifetime rate.</p>
+        </div>
+        <div class="signal">
+          <span class="micro">Current coin-flip streak</span>
+          <strong class="signal-value" id="currentStreak">1 loss</strong>
+          <p id="streakCopy">Historical best: 5 wins. Historical worst: 5 losses.</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="lower-grid">
+      <article class="panel">
+        <div class="panel-head">
+          <h3 class="panel-title"><small>Cost of arrival</small>Pity profile</h3>
+          <span class="micro" id="pullTotal">12,710 pulls</span>
+        </div>
+        <div class="pity-body">
+          <div class="pity-stats">
+            <div class="pity-stat"><strong id="avgPity">54.78</strong><span>Average</span></div>
+            <div class="pity-stat"><strong id="medianPity">68</strong><span>Median</span></div>
+            <div class="pity-stat"><strong id="bestPity">2</strong><span>Earliest</span></div>
+          </div>
+          <div id="histogram"></div>
+          <p class="micro" id="pityFoot" style="margin:26px 0 0; line-height:1.55">39 early five-stars at 20 pity or less · 143 arrived at 66+</p>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h3 class="panel-title"><small>Latest five-stars</small>The result tape</h3>
+          <div class="segmented" id="tapePicker" aria-label="Recent result filter">
+            <button data-filter="all" aria-pressed="true">All</button>
+            <button data-filter="flips" aria-pressed="false">Coin flips</button>
+          </div>
+        </div>
+        <div class="tape" id="resultTape"></div>
+      </article>
+    </section>
+
+    <section class="method">
+      <div>
+        <div class="section-kicker">How this reads the export</div>
+        <h2>A loss is an event.<br>A guarantee is its consequence.</h2>
+      </div>
+      <div class="method-copy">
+        <p><strong>Direct win:</strong> a limited resonator appears while your next five-star is still a live 50/50.</p>
+        <p><strong>Loss:</strong> one of the standard resonators appears, turning the next limited five-star into a guarantee.</p>
+        <p><strong>Guarantee:</strong> that next limited resonator pays the debt. It belongs in your five-star total, but not in the denominator of your coin-flip win rate.</p>
+        <p>The moving average also excludes guarantees. That makes it answer one clean question: <strong>among recent chances to win or lose, which happened more often?</strong></p>
+      </div>
+    </section>
+
+    <footer>
+      <span>Standalone demo · no uploads · no account connection</span>
+      <span id="footerRange">Featured resonator history · Jun 2024—Jul 2026</span>
+    </footer>
+  </main>
+
+  <script>
+    const STANDARD_RESONATORS = new Set(["Calcharo", "Encore", "Lingyang", "Verina", "Jianxin"]);
+
+    const DEFAULT = {
+      uid: "500006092",
+      exportedAt: "2026-08-02T05:14:20.431Z",
+      sourceName: "WuWaTracker export",
+      totalPulls: 12710,
+      counts: { win: 74, loss: 79, guarantee: 79, five: 232 },
+      pity: {
+        average: 54.78, median: 68, best: 2, hard: 76, early20: 39, soft66: 143,
+        histogram: { "01–20": 39, "21–40": 19, "41–60": 23, "61–70": 81, "71–80": 70 }
+      },
+      flipBits: "LWWWWLWLWWWLWWLLWLWLLWLWLWWLWLWLWLLWLWLWLLWLWWWWWLWLLLLWLLLWWLLWWLLLWWLWLWLLLLWWLLLLLWLLLWLLWWLLLWWWLLWWWWLWWLLWLLWWLLWWLLWWLLWWLWWLLLLWLWWLWWLWLLLWWWLWL",
+      recent: [
+        { n: "Suisui", d: "2026-07-30", p: 73, o: "guarantee" },
+        { n: "Calcharo", d: "2026-07-30", p: 68, o: "loss" },
+        { n: "Suisui", d: "2026-07-30", p: 56, o: "win" },
+        { n: "Suisui", d: "2026-07-30", p: 74, o: "guarantee" },
+        { n: "Encore", d: "2026-07-30", p: 69, o: "loss" },
+        { n: "Suisui", d: "2026-07-30", p: 19, o: "win" },
+        { n: "Suisui", d: "2026-07-30", p: 73, o: "win" },
+        { n: "Suisui", d: "2026-07-30", p: 71, o: "win" },
+        { n: "Suisui", d: "2026-07-30", p: 7, o: "guarantee" },
+        { n: "Lingyang", d: "2026-07-30", p: 70, o: "loss" },
+        { n: "Yangyang: Xuanling", d: "2026-07-10", p: 67, o: "guarantee" },
+        { n: "Calcharo", d: "2026-07-10", p: 56, o: "loss" },
+        { n: "Yangyang: Xuanling", d: "2026-07-10", p: 69, o: "guarantee" },
+        { n: "Encore", d: "2026-07-10", p: 49, o: "loss" },
+        { n: "Yangyang: Xuanling", d: "2026-07-10", p: 69, o: "win" },
+        { n: "Yangyang: Xuanling", d: "2026-07-10", p: 25, o: "guarantee" },
+        { n: "Lingyang", d: "2026-07-10", p: 52, o: "loss" },
+        { n: "Yangyang: Xuanling", d: "2026-07-10", p: 71, o: "win" }
+      ],
+      range: ["2024-06-06", "2026-07-30"]
+    };
+
+    let state = structuredClone(DEFAULT);
+    let trendWindow = 20;
+    let tapeFilter = "all";
+
+    const $ = (id) => document.getElementById(id);
+    const fmt = new Intl.NumberFormat("en-US");
+    const pct = (n) => `${n.toFixed(2)}%`;
+
+    function median(values) {
+      const sorted = [...values].sort((a, b) => a - b);
+      const middle = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+
+    function analyzeExport(data, fileName) {
+      if (!Array.isArray(data?.pulls)) throw new Error("This JSON does not contain a WuWaTracker pulls array.");
+      const featured = data.pulls.filter((pull) => Number(pull.cardPoolType) === 1).slice().reverse();
+      if (!featured.length) throw new Error("No featured resonator pulls were found.");
+
+      let pity = 0;
+      let guaranteed = false;
+      const fiveStars = [];
+
+      for (const pull of featured) {
+        pity += 1;
+        if (Number(pull.qualityLevel) !== 5) continue;
+
+        let outcome;
+        if (STANDARD_RESONATORS.has(pull.name)) {
+          outcome = "loss";
+          guaranteed = true;
+        } else if (guaranteed) {
+          outcome = "guarantee";
+          guaranteed = false;
+        } else {
+          outcome = "win";
+        }
+
+        fiveStars.push({ n: pull.name, d: pull.time.slice(0, 10), p: pity, o: outcome });
+        pity = 0;
+      }
+
+      if (!fiveStars.length) throw new Error("No five-stars were found on the featured resonator banner.");
+
+      const counts = { win: 0, loss: 0, guarantee: 0, five: fiveStars.length };
+      fiveStars.forEach((result) => counts[result.o] += 1);
+      const pities = fiveStars.map((result) => result.p);
+      const histogram = { "01–20": 0, "21–40": 0, "41–60": 0, "61–70": 0, "71–80": 0 };
+      for (const value of pities) {
+        const bucket = value <= 20 ? "01–20" : value <= 40 ? "21–40" : value <= 60 ? "41–60" : value <= 70 ? "61–70" : "71–80";
+        histogram[bucket] += 1;
+      }
+
+      return {
+        uid: String(data.playerId || "unknown"),
+        exportedAt: data.date || new Date().toISOString(),
+        sourceName: fileName || "Local export",
+        totalPulls: featured.length,
+        counts,
+        pity: {
+          average: pities.reduce((sum, value) => sum + value, 0) / pities.length,
+          median: median(pities), best: Math.min(...pities), hard: Math.max(...pities),
+          early20: pities.filter((value) => value <= 20).length,
+          soft66: pities.filter((value) => value >= 66).length,
+          histogram
+        },
+        flipBits: fiveStars.filter((result) => result.o !== "guarantee").map((result) => result.o === "win" ? "W" : "L").join(""),
+        recent: fiveStars.slice(-18).reverse(),
+        range: [fiveStars[0].d, fiveStars.at(-1).d]
+      };
+    }
+
+    function rollingRates(bits, windowSize) {
+      return [...bits].map((_, index) => {
+        const segment = bits.slice(Math.max(0, index - windowSize + 1), index + 1);
+        return 100 * [...segment].filter((bit) => bit === "W").length / segment.length;
+      });
+    }
+
+    function record(bits, windowSize, offset = 0) {
+      const end = bits.length - offset;
+      const segment = bits.slice(Math.max(0, end - windowSize), end);
+      return { wins: [...segment].filter((bit) => bit === "W").length, losses: [...segment].filter((bit) => bit === "L").length, total: segment.length };
+    }
+
+    function streaks(bits) {
+      let maxW = 0, maxL = 0, runW = 0, runL = 0;
+      for (const bit of bits) {
+        if (bit === "W") { runW += 1; runL = 0; } else { runL += 1; runW = 0; }
+        maxW = Math.max(maxW, runW); maxL = Math.max(maxL, runL);
+      }
+      const last = bits.at(-1);
+      let current = 0;
+      for (let i = bits.length - 1; i >= 0 && bits[i] === last; i -= 1) current += 1;
+      return { maxW, maxL, current, type: last === "W" ? "win" : "loss" };
+    }
+
+    function renderChart() {
+      const svg = $("trendChart");
+      const values = rollingRates(state.flipBits, trendWindow);
+      const width = 760, height = 278, left = 37, right = 13, top = 13, bottom = 25;
+      const plotW = width - left - right, plotH = height - top - bottom;
+      const x = (index) => left + (values.length === 1 ? 0 : index / (values.length - 1)) * plotW;
+      const y = (value) => top + (100 - value) / 100 * plotH;
+      const line = values.map((value, index) => `${index ? "L" : "M"}${x(index).toFixed(2)},${y(value).toFixed(2)}`).join(" ");
+      const area = `${line} L${x(values.length - 1)},${height - bottom} L${left},${height - bottom} Z`;
+      const grid = [25, 50, 75].map((value) => `
+        <line class="${value === 50 ? "baseline" : "grid-line"}" x1="${left}" x2="${width - right}" y1="${y(value)}" y2="${y(value)}"></line>
+        <text class="axis-text" x="0" y="${y(value) + 3}">${value}%</text>`).join("");
+      svg.innerHTML = `
+        <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#57d6ad" stop-opacity=".25"/><stop offset="1" stop-color="#57d6ad" stop-opacity="0"/></linearGradient></defs>
+        ${grid}<path class="trend-area" d="${area}"></path><path class="trend-line" d="${line}"></path>
+        <circle class="trend-end" cx="${x(values.length - 1)}" cy="${y(values.at(-1))}" r="5"></circle>
+        <rect x="${left}" y="${top}" width="${plotW}" height="${plotH}" fill="transparent" data-hit-area="true"></rect>`;
+
+      svg.onpointermove = (event) => {
+        const rect = svg.getBoundingClientRect();
+        const localX = (event.clientX - rect.left) / rect.width * width;
+        const index = Math.max(0, Math.min(values.length - 1, Math.round((localX - left) / plotW * (values.length - 1))));
+        const tip = $("chartTooltip");
+        tip.innerHTML = `<strong>${values[index].toFixed(1)}%</strong><br>after coin flip ${index + 1}`;
+        tip.style.left = `${event.clientX - $("chartWrap").getBoundingClientRect().left}px`;
+        tip.style.top = `${event.clientY - $("chartWrap").getBoundingClientRect().top}px`;
+        tip.style.opacity = "1";
+      };
+      svg.onpointerleave = () => $("chartTooltip").style.opacity = "0";
+
+      const current = record(state.flipBits, trendWindow);
+      const previous = record(state.flipBits, trendWindow, trendWindow);
+      const currentRate = 100 * current.wins / current.total;
+      const previousRate = previous.total ? 100 * previous.wins / previous.total : 0;
+      const even = current.wins === current.losses ? " · exactly even" : "";
+      $("trendSummary").innerHTML = `Last ${current.total}: <strong>${current.wins}–${current.losses}${even}</strong>`;
+      const delta = currentRate - previousRate;
+      $("trendDelta").innerHTML = `Previous ${previous.total}: <strong class="${delta > 0 ? "delta-up" : delta < 0 ? "delta-down" : ""}">${previousRate.toFixed(0)}% · ${delta > 0 ? "+" : ""}${delta.toFixed(0)} pts</strong>`;
+    }
+
+    function renderTape() {
+      const rows = tapeFilter === "flips" ? state.recent.filter((row) => row.o !== "guarantee") : state.recent;
+      $("resultTape").innerHTML = rows.slice(0, 10).map((row, index) => {
+        const labels = { win: "Direct win", loss: "Loss", guarantee: "Guaranteed" };
+        return `<div class="result-row ${row.o}">
+          <span class="result-index">${String(index + 1).padStart(2, "0")}</span>
+          <span class="result-name">${escapeHtml(row.n)}<small>${formatDay(row.d)}</small></span>
+          <span class="outcome-pill">${labels[row.o]}</span>
+          <span class="pity-chip" title="${row.p} pity">${row.p}</span>
+        </div>`;
+      }).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+    }
+
+    function formatDay(value) {
+      return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+    }
+
+    function render() {
+      const { counts, pity } = state;
+      const flips = counts.win + counts.loss;
+      const rate = 100 * counts.win / flips;
+      const featured = counts.win + counts.guarantee;
+      $("uid").textContent = state.uid;
+      $("sourceName").textContent = state.sourceName;
+      $("sourceDate").textContent = `updated ${formatDay(state.exportedAt.slice(0, 10))}`;
+      $("fiveCount").textContent = fmt.format(counts.five);
+      $("flipRate").textContent = pct(rate);
+      $("flipCount").textContent = `${fmt.format(flips)} real 50/50 attempts`;
+      $("guaranteeInline").textContent = fmt.format(counts.guarantee);
+      $("winCount").textContent = fmt.format(counts.win);
+      $("lossCount").textContent = fmt.format(counts.loss);
+      $("guaranteeCount").textContent = fmt.format(counts.guarantee);
+      $("equationText").textContent = `${counts.win} wins + ${counts.loss} losses`;
+      $("featuredShare").textContent = `${featured} featured results · ${(100 * featured / counts.five).toFixed(2)}% of all five-stars`;
+
+      const net = counts.win - counts.loss;
+      $("netFlip").textContent = `${net >= 0 ? "+" : "−"}${Math.abs(net)}`;
+      $("netCopy").textContent = net === 0 ? "Direct wins and losses are perfectly balanced." : `${Math.abs(net)} more ${net > 0 ? "direct wins than losses" : "losses than direct wins"} across the full archive.`;
+      const fifty = record(state.flipBits, 50);
+      const rate50 = 100 * fifty.wins / fifty.total;
+      $("recent50").textContent = `${fifty.wins}–${fifty.losses}`;
+      $("recentCopy").textContent = `${rate50.toFixed(0)}% wins. Your recent form is ${rate50 > rate ? "outperforming" : rate50 < rate ? "underperforming" : "matching"} your lifetime rate.`;
+      const runs = streaks(state.flipBits);
+      $("currentStreak").textContent = `${runs.current} ${runs.type}${runs.current === 1 ? "" : "s"}`;
+      $("streakCopy").textContent = `Historical best: ${runs.maxW} wins. Historical worst: ${runs.maxL} losses.`;
+
+      $("pullTotal").textContent = `${fmt.format(state.totalPulls)} pulls`;
+      $("avgPity").textContent = pity.average.toFixed(2);
+      $("medianPity").textContent = pity.median;
+      $("bestPity").textContent = pity.best;
+      $("pityFoot").textContent = `${pity.early20} early five-stars at 20 pity or less · ${pity.soft66} arrived at 66+`;
+      const maxBucket = Math.max(...Object.values(pity.histogram));
+      $("histogram").innerHTML = Object.entries(pity.histogram).map(([label, value]) => `<div class="hist-row"><span>${label}</span><div class="hist-track"><div class="hist-fill" style="--w:${100 * value / maxBucket}%"></div></div><b>${value}</b></div>`).join("");
+      $("footerRange").textContent = `Featured resonator history · ${formatDay(state.range[0])}—${formatDay(state.range[1])}`;
+      renderChart();
+      renderTape();
+    }
+
+    async function loadFile(file) {
+      try {
+        const data = JSON.parse(await file.text());
+        state = analyzeExport(data, file.name);
+        render();
+        $("importCard").animate([{ borderColor: "#57d6ad" }, { borderColor: "rgba(232,228,218,.12)" }], { duration: 900 });
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "Could not read that export.");
+      }
+    }
+
+    $("fileInput").addEventListener("change", (event) => event.target.files[0] && loadFile(event.target.files[0]));
+    $("windowPicker").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-window]");
+      if (!button) return;
+      trendWindow = Number(button.dataset.window);
+      $("windowPicker").querySelectorAll("button").forEach((item) => item.setAttribute("aria-pressed", item === button));
+      renderChart();
+    });
+    $("tapePicker").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-filter]");
+      if (!button) return;
+      tapeFilter = button.dataset.filter;
+      $("tapePicker").querySelectorAll("button").forEach((item) => item.setAttribute("aria-pressed", item === button));
+      renderTape();
+    });
+
+    let dragDepth = 0;
+    window.addEventListener("dragenter", (event) => { event.preventDefault(); dragDepth += 1; document.body.classList.add("drop-active"); });
+    window.addEventListener("dragleave", () => { dragDepth -= 1; if (dragDepth <= 0) document.body.classList.remove("drop-active"); });
+    window.addEventListener("dragover", (event) => event.preventDefault());
+    window.addEventListener("drop", (event) => {
+      event.preventDefault(); dragDepth = 0; document.body.classList.remove("drop-active");
+      if (event.dataTransfer.files[0]) loadFile(event.dataTransfer.files[0]);
+    });
+
+    render();
+  </script>
+</body>
+</html>

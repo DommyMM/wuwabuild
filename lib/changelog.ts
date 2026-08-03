@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-08-02',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Updated Phrolova, Carlotta, and Luuk leaderboards',
+            },
+            {
+                kind: 'fixed',
+                text: 'Minor buffs on some after fixing Law of Harmony and Tune Strain',
+            },
+        ],
+    },
+    {
         date:'2026-07-30',
         changes: [
             {
