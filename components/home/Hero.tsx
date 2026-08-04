@@ -164,7 +164,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
 
             <div className="relative mx-auto max-w-260 px-6 md:px-10 py-14 md:py-28">
                 <h1 className="font-plus-jakarta font-medium text-text-primary max-w-3xl">
-                    <span className="block font-mono text-[10px] md:text-xs font-semibold uppercase tracking-[0.22em] text-text-primary/55 mb-4">
+                    <span className="block font-mono text-3xs md:text-xs font-semibold uppercase tracking-[0.22em] text-text-primary/55 mb-4">
                         Wuthering Waves Character Builds &amp; Leaderboards
                     </span>
                     <span className="block text-[40px] md:text-6xl leading-[1.02] tracking-[-0.03em]">
@@ -205,7 +205,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                         href="/import"
                         cta="import"
                         section="hero"
-                        className="inline-flex items-center gap-2.5 rounded-sm border border-accent/50 px-5 py-2.5 text-[15px] font-semibold tracking-[0.02em] text-accent transition-colors hover:border-accent hover:bg-accent/10"
+                        className="inline-flex items-center gap-2.5 rounded border border-accent/50 px-5 py-2.5 text-[15px] font-semibold tracking-[0.02em] text-accent transition-colors hover:border-accent hover:bg-accent/10"
                     >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                             <path d="M12 15V3m0 0l-4 4m4-4l4 4M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3" />
@@ -297,7 +297,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                             {/* Stable footer under the swapping record: makes the card's
                                 clickability explicit (a cold visitor's zero-asset action). */}
                             <div className="flex items-center justify-end border-t border-border/60 px-4 py-2">
-                                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-accent/70 transition-colors group-hover:text-accent">
+                                <span className="font-mono text-3xs uppercase tracking-[0.16em] text-accent/70 transition-colors group-hover:text-accent">
                                     Open board →
                                 </span>
                             </div>
@@ -326,12 +326,12 @@ function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile:
                     // Caps and digits have no descenders, so in a leading-none box the
                     // glyphs sit high and the empty descender space below reads as extra
                     // bottom padding. 1px more top than bottom re-centers it optically.
-                    <span className={`shrink-0 rounded-full border px-2 pt-1.25 pb-1 text-[10px] font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[slide.seqLevel]}`}>
+                    <span className={`shrink-0 rounded-full border px-2 pt-1.25 pb-1 text-3xs font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[slide.seqLevel]}`}>
                         S{slide.seqLevel}
                     </span>
                 )}
                 {slide.reignLabel && (
-                    <span className="ml-auto shrink-0 font-mono text-[10px] text-accent/80 tabular-nums">
+                    <span className="ml-auto shrink-0 font-mono text-3xs text-accent/80 tabular-nums">
                         {slide.reignLabel}
                     </span>
                 )}
@@ -345,7 +345,7 @@ function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile:
                     {/* No ↗ here: the whole card links to the board, not to this
                         player's profile, and an arrow on the owner line promised a
                         profile link it does not deliver. */}
-                    <div className="mt-1.5 truncate font-mono text-[10px] text-text-primary/50">
+                    <div className="mt-1.5 truncate font-mono text-3xs text-text-primary/50">
                         by {slide.owner || 'Anonymous'}
                     </div>
                 </div>
@@ -383,7 +383,7 @@ function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile:
                     {/* Two labels, never wrapping: three long type names spill onto a
                         second line and the card starts to look ragged. The bar above
                         still carries every segment, so this is a key, not the data. */}
-                    <div className="mt-1.5 flex items-center gap-x-2.5 overflow-hidden font-mono text-[9.5px] uppercase tracking-widest text-text-primary/50">
+                    <div className="mt-1.5 flex items-center gap-x-2.5 overflow-hidden font-mono text-3xs uppercase tracking-widest text-text-primary/50">
                         {profile.slice(0, 2).map((total) => (
                             <span key={total.type} className="flex shrink-0 items-center gap-1 whitespace-nowrap">
                                 <span

@@ -30,7 +30,7 @@ export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
   return (
     <nav aria-label="Pinned and recently opened profiles" className="relative">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-accent/25 to-transparent" />
-      <div className="scrollbar-thin ml-4 flex items-end gap-2.5 overflow-x-auto pr-4 pt-1 [--scrollbar-height:2px] md:ml-5 md:pr-5">
+      <div className="ml-4 flex items-end gap-2.5 overflow-x-auto pr-4 pt-1 md:ml-5 md:pr-5">
         {entries.map((entry) => {
           const isCurrent = entry.uid === currentUid;
           const badge = resolveRegionBadge(entry.uid);
@@ -52,7 +52,7 @@ export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
                 {entry.head ? (
                   <img src={entry.head} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover object-top" loading="lazy" />
                 ) : (
-                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-border/30 text-[11px] font-bold text-text-primary/45">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-border/30 text-2xs font-bold text-text-primary/45">
                     {(entry.username || entry.uid).charAt(0).toUpperCase()}
                   </span>
                 )}
@@ -66,7 +66,7 @@ export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
                         {badge.label}
                       </span>
                     )}
-                    <span className="font-mono text-[10px] text-text-primary/42 tabular-nums">
+                    <span className="font-mono text-3xs text-text-primary/42 tabular-nums">
                       {entry.uid}
                     </span>
                   </span>

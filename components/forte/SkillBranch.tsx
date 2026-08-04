@@ -175,7 +175,7 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
               onBlur={finalize}
               onKeyDown={handleKeyDown}
               autoFocus
-              className={`${compact ? 'w-7 text-xs' : 'w-8 text-sm'} rounded border border-accent bg-background px-0.5 py-0.5 text-center font-semibold text-accent focus:outline-none`}
+              className={`${compact ? 'w-7 text-xs' : 'w-8 text-sm'} rounded border border-accent bg-background px-0.5 py-0.5 text-center font-semibold text-accent`}
             />
           ) : (
             <button

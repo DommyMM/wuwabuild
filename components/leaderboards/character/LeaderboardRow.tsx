@@ -14,7 +14,7 @@ import { formatReignHoldLabel, formatReignSinceDate, formatStatByKey, getSortLab
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
 import { StatSortKey } from '../types';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
-import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from '../constants';
+import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID, LB_STAT_GROUP_MIN } from '../constants';
 import { OwnerProfileLink } from '../OwnerProfileLink';
 
 const loadBuildExpanded = () => import('../BuildExpanded').then((module) => module.BuildExpanded);
@@ -222,7 +222,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
-        className={`relative grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 overflow-hidden text-sm transition-colors ${
+        className={`relative grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 overflow-hidden text-sm transition-colors ${
           isGhost
             ? 'border-l-2 border-l-accent/60 bg-accent/6 hover:bg-accent/12'
             : 'odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10'
@@ -286,7 +286,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
                   ) : (
                     <div className="h-8 w-8" />
                   )}
-                  <span className="text-xs -mb-1 -ml-px font-semibold leading-none text-primary">
+                  <span className="text-xs -mb-1 -ml-px font-semibold leading-none text-text-primary">
                     {setEntry.count}
                   </span>
                 </div>
@@ -295,7 +295,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
           </div>
 
           {/* CV + Stats + Damage */}
-          <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-[796px] self-stretch gap-0`}>
+          <div className={`grid ${LB_SORTABLE_GROUP_GRID} ${LB_STAT_GROUP_MIN} self-stretch gap-0`}>
             <div className={`self-stretch ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
               <div className="flex h-full items-center justify-between px-2.5 text-lg">
                 <span className="text-text-primary">

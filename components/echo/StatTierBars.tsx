@@ -64,7 +64,7 @@ export const SubstatRollBar: React.FC<{
           return (
             <div
               key={index}
-              className="min-w-0 flex-1 rounded-[2px]"
+              className="min-w-0 flex-1 rounded-xs"
               style={{
                 backgroundColor: tierColors[index],
                 height: isCurrent ? 18 : 7,
@@ -103,7 +103,7 @@ export const QualityTierBar: React.FC<{ currentLabel: string; valueText: string 
           return (
             <div
               key={tier.label}
-              className="min-w-0 flex-1 rounded-[2px]"
+              className="min-w-0 flex-1 rounded-xs"
               style={{
                 backgroundColor: tier.color,
                 height: isCurrent ? 18 : 7,

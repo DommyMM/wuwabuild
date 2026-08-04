@@ -7,6 +7,7 @@ import { Character } from '@/lib/character';
 import { Echo } from '@/lib/echo';
 import { RegionBadge } from '@/components/leaderboards/constants';
 import { BuildSimulationSection } from '@/components/leaderboards/BuildSimulationSection';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { RankBoard } from '@/components/card/RankModule';
 import { ProfileCard } from './ProfileCard';
 
@@ -51,7 +52,7 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
           transition={{ duration: 0.22, ease: 'easeInOut' }}
           className="overflow-x-visible overflow-y-hidden border-t border-border/50 bg-black/15 tracking-wide"
         >
-          <div className="mx-auto w-full max-w-[1472px] space-y-4 px-4 pt-5 pb-3">
+          <div className="mx-auto w-full max-w-368 space-y-4 px-4 pt-5 pb-3">
             {isDetailLoading && (
               <div className="flex items-center justify-center gap-3 py-8 text-sm text-text-primary/55">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
@@ -60,16 +61,7 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
             )}
 
             {!isDetailLoading && detailError && (
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 p-3 text-sm text-red-200">
-                <span>{detailError}</span>
-                <button
-                  type="button"
-                  className="rounded border border-red-300/60 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-400/15"
-                  onClick={() => onRetryDetail(entry.id)}
-                >
-                  Retry
-                </button>
-              </div>
+              <ErrorBanner onRetry={() => onRetryDetail(entry.id)}>{detailError}</ErrorBanner>
             )}
 
             {!isDetailLoading && !detailError && detail && (

@@ -26,7 +26,7 @@ function ProfileCardLink({ profile, pinned }: { profile: StoredProfile; pinned?:
         <span className="block truncate text-[15px] text-text-primary">
           {profile.username || 'Anonymous'}
         </span>
-        <span className="block font-mono text-[10px] text-text-primary/45 tabular-nums">
+        <span className="block font-mono text-3xs text-text-primary/45 tabular-nums">
           {profile.uid}
         </span>
       </span>
@@ -52,11 +52,11 @@ export function ProfilesLanding() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12 md:py-16">
-      <div className="text-[11px] tracking-[0.22em] uppercase text-text-primary/50 mb-2.5">
+      <div className="text-2xs tracking-[0.22em] uppercase text-text-primary/50 mb-2.5">
         Profiles
       </div>
       <h1 className="font-plus-jakarta text-3xl md:text-5xl leading-[1.05] font-medium text-balance">
-        Find a player.
+        Find a player
       </h1>
       <p className="mt-4 max-w-140 text-sm md:text-base leading-relaxed text-text-primary/60">
         Search by UID or username. Star a profile to keep it here.
@@ -68,7 +68,7 @@ export function ProfilesLanding() {
 
       {pinned.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-text-primary/45">
+          <h2 className="mb-3 font-mono text-2xs uppercase tracking-[0.18em] text-text-primary/45">
             Pinned
           </h2>
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -83,7 +83,7 @@ export function ProfilesLanding() {
 
       <section className="mt-10">
         <div className="mb-3 flex items-baseline justify-between gap-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-primary/45">
+          <h2 className="font-mono text-2xs uppercase tracking-[0.18em] text-text-primary/45">
             Recently opened
           </h2>
           {others.length > 0 && (

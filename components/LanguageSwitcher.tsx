@@ -42,12 +42,12 @@ export function LanguageSwitcher() {
         aria-label="Select language"
         aria-expanded={isOpen}
       >
-        <span className={`fi fi-${currentLang.countryCode} rounded-sm`} />
+        <span className={`fi fi-${currentLang.countryCode} rounded`} />
         <span className="inline max-sm:hidden text-sm font-medium text-text-primary">
           {language.toUpperCase()}
         </span>
         <svg
-          className={`w-3 h-3 text-text-secondary transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-3 h-3 text-text-primary/60 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -75,10 +75,10 @@ export function LanguageSwitcher() {
                 }
               `}
             >
-              <span className={`fi fi-${lang.countryCode} text-lg rounded-sm`} />
+              <span className={`fi fi-${lang.countryCode} text-lg rounded`} />
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{lang.nativeName}</span>
-                <span className="text-xs text-text-secondary">{lang.name}</span>
+                <span className="text-xs text-text-primary/60">{lang.name}</span>
               </div>
               {language === code && (
                 <svg

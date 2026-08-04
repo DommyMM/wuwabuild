@@ -14,11 +14,14 @@ interface BuildPaginationProps {
 }
 
 export const BuildPagination: React.FC<BuildPaginationProps> = ({ page, pageCount, statusText, leftText, onPageChange }) => (
-  <div className="grid grid-cols-[1fr_auto_1fr] items-start">
-    <div className="justify-self-start self-start text-left text-xs text-text-primary/50">
+  // Desktop: caption | controls | status on one grid row. Below md the side
+  // columns collapse to ~60px and squeeze the caption to one word per line,
+  // so the whole strip stacks instead.
+  <div className="flex flex-col items-center md:grid md:grid-cols-[1fr_auto_1fr] md:items-start">
+    <div className="order-2 w-full text-center text-xs text-text-primary/50 md:order-0 md:w-auto md:justify-self-start md:self-start md:text-left">
       {leftText}
     </div>
-    <div className="justify-self-center flex items-start gap-2 text-text-primary/75 my-4 md:my-2">
+    <div className="order-1 md:order-0 md:justify-self-center flex items-start gap-2 text-text-primary/75 my-4 md:my-2">
       <div className="flex flex-col items-center gap-1">
         <button type="button" aria-label="First page" onClick={() => onPageChange(1)} disabled={page <= 1} className={PAGINATION_BUTTON_CLASS}>
           <ChevronFirst className="h-4 w-4" aria-hidden="true" />
@@ -60,7 +63,7 @@ export const BuildPagination: React.FC<BuildPaginationProps> = ({ page, pageCoun
         <span className="text-xs leading-none">last</span>
       </div>
     </div>
-    <div aria-live="polite" aria-atomic="true" className="justify-self-end self-start text-right text-xs text-text-primary/60">
+    <div aria-live="polite" aria-atomic="true" className="order-3 w-full text-center text-xs text-text-primary/60 md:order-0 md:w-auto md:justify-self-end md:self-start md:text-right">
       {statusText}
     </div>
   </div>

@@ -16,6 +16,7 @@ import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW
 import { formatFlatStat, formatPercentStat } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import posthog from 'posthog-js';
 
 type SubstatSummaryEntry = {
@@ -330,16 +331,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
             {isDetailLoading && <BuildExpandedSkeleton showForte={surface !== 'leaderboard_character'} />}
 
             {!isDetailLoading && detailError && (
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 p-3 text-sm text-red-200">
-                <span>{detailError}</span>
-                <button
-                  type="button"
-                  className="rounded border border-red-300/60 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-400/15"
-                  onClick={() => onRetryDetail(entry.id)}
-                >
-                  Retry
-                </button>
-              </div>
+              <ErrorBanner onRetry={() => onRetryDetail(entry.id)}>{detailError}</ErrorBanner>
             )}
 
             {!isDetailLoading && !detailError && detail && (

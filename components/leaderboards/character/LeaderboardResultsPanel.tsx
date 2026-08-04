@@ -11,8 +11,9 @@ import { BuildPagination } from '../BuildPagination';
 import { SortHeaderMenu, SortMenuOption } from '../SortHeaderMenu';
 import { StatSortKey } from '../types';
 import { resolveBoardDisplayColumns } from '../statColumns';
-import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID } from '../constants';
+import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID, LB_STAT_GROUP_MIN } from '../constants';
 import { LeaderboardRow } from './LeaderboardRow';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 
 const DAMAGE_SORT_KEY: LBLeaderboardSortKey = 'damage';
 
@@ -156,30 +157,24 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   return (
     <section aria-busy={isLoading || isRefreshing}>
       {error && (
-        <div role="alert" className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-300">
-          <span>Failed to load leaderboard: {error}</span>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="rounded-md border border-red-300/40 px-2.5 py-1 font-semibold text-red-100 transition-colors hover:bg-red-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorBanner className="mb-2" onRetry={onRetry}>Failed to load leaderboard: {error}</ErrorBanner>
       )}
 
       <div className="relative">
-        <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
+        {/* Mobile-only hint that the table continues past the right edge; the
+            thin scrollbar is invisible on touch until a scroll starts. */}
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-linear-to-l from-background to-transparent md:hidden" />
+        <div className="overflow-x-auto overflow-y-hidden pb-1">
           <div className="w-max min-w-full">
             <div className="overflow-hidden rounded-lg border border-border bg-background/70">
               {/* Table header: Rank | Owner | Character | Sets | [CV+Stats+Metric] */}
-              <div className={`grid ${LB_TABLE_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
+              <div className={`grid ${LB_TABLE_GRID} items-center gap-4 rounded-t-lg border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
                 <div className="py-2 text-center text-text-primary/70">#</div>
                 <div className="py-2">Owner</div>
                 <div className="py-2">Name</div>
                 <div className="py-2">Sets</div>
                 {/* CV + Stats + Metric group */}
-                <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-200 self-stretch gap-0`}>
+                <div className={`grid ${LB_SORTABLE_GROUP_GRID} ${LB_STAT_GROUP_MIN} self-stretch gap-0`}>
                   <div className="self-stretch">
                     <SortHeaderMenu
                       menuId="lb-sort-cv"
@@ -292,13 +287,13 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                     {Array.from({ length: pageSize }).map((_, index) => (
                       <div
                         key={index}
-                        className={`grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
+                        className={`grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
                       >
                         <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
                         <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
                         <div className="h-3.5 w-30 animate-pulse rounded bg-background-secondary/80" />
                         <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
-                        <div className={`grid ${LB_SORTABLE_GROUP_GRID} min-w-200 gap-0`}>
+                        <div className={`grid ${LB_SORTABLE_GROUP_GRID} ${LB_STAT_GROUP_MIN} gap-0`}>
                           <div className="h-3.5 w-24 self-center animate-pulse rounded bg-background-secondary/80" />
                           <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />
                           <div className="h-3.5 w-16 self-center animate-pulse rounded bg-background-secondary/80" />

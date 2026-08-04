@@ -37,17 +37,17 @@ export function NewsLog() {
                         <span className="text-accent" aria-hidden># </span>updates
                     </HomeLink>
                 </h2>
-                <span className="font-mono text-[11px] text-text-primary/40">from the changelog</span>
+                <span className="font-mono text-2xs text-text-primary/40">from the changelog</span>
             </div>
 
             {/* Height budget pairs with BoardIndex (VISIBLE_BOARDS 60px rows): 544 + header + link ≈ 9 rows + header + footer. */}
-            <div className="border-t border-border pt-5 flex flex-col gap-7 max-h-[544px] overflow-hidden mask-[linear-gradient(to_bottom,black_78%,transparent)]">
+            <div className="border-t border-border pt-5 flex flex-col gap-7 max-h-136 overflow-hidden mask-[linear-gradient(to_bottom,black_78%,transparent)]">
                 {entries.map((entry) => (
                     <article key={entry.date}>
                         <div className="flex items-baseline gap-3 mb-2.5">
                             <time
                                 dateTime={entry.date}
-                                className="font-mono text-[11px] text-text-primary/45 tabular-nums"
+                                className="font-mono text-2xs text-text-primary/45 tabular-nums"
                             >
                                 {formatDate(entry.date)}
                             </time>
@@ -61,7 +61,7 @@ export function NewsLog() {
                             {entry.changes.map((change, i) => (
                                 <li key={i} className="flex gap-3 text-sm leading-relaxed">
                                     <span
-                                        className={`mt-0.5 inline-flex h-5 min-w-20 items-center justify-center rounded border px-2 text-[10px] font-semibold uppercase leading-none tracking-wider ${kindStyles[change.kind].className}`}
+                                        className={`mt-0.5 inline-flex h-5 min-w-20 items-center justify-center rounded border px-2 text-3xs font-semibold uppercase leading-none tracking-wider ${kindStyles[change.kind].className}`}
                                     >
                                         {kindStyles[change.kind].label}
                                     </span>

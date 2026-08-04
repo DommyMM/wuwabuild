@@ -128,7 +128,7 @@ const Popover: React.FC<PopoverProps> = ({
           >
             TOP {formatPct(b.topPercent)}%
           </span>
-          <span className="font-gowun text-[10px] tabular-nums text-text-primary/45">
+          <span className="font-gowun text-3xs tabular-nums text-text-primary/45">
             #{formatNumber(b.rank)} / {formatNumber(b.total)}
           </span>
         </div>
@@ -294,7 +294,7 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
             <span className="font-gowun text-[13px] tabular-nums text-accent">
               TOP {formatPct(activeBoard.topPercent)}%
             </span>
-            <span className="font-ropa text-[10px] uppercase tracking-[0.18em] text-text-primary/65">
+            <span className="font-ropa text-3xs uppercase tracking-[0.18em] text-text-primary/65">
               {activeBoard.trackLabel || activeBoard.trackKey}
             </span>
           </>

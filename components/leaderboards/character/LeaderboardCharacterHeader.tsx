@@ -392,7 +392,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
                         className="absolute -right-1.5 -top-1.5 rounded-full bg-black/80 shadow-[0_2px_8px_rgba(0,0,0,0.55)] backdrop-blur-sm"
                       >
                         <span
-                          className={`block rounded-full border px-2 py-0.5 text-[11px] font-bold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[member.sequence]}`}
+                          className={`block rounded-full border px-2 py-0.5 text-2xs font-bold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[member.sequence]}`}
                         >
                           S{member.sequence}
                         </span>

@@ -80,8 +80,10 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
   const showScoreContext = currentScoring === 'raw';
 
   return (
-    <div className={alignClass ? `${alignClass} w-fit` : 'w-fit'}>
-      <p className="mb-2 text-center text-[10px] leading-snug text-text-primary/40">
+    // max-w + overflow keeps the ~720px table swipeable on phones instead of
+    // clipping at the viewport edge (the only board table without a scroller).
+    <div className={`${alignClass ? `${alignClass} ` : ''}w-fit max-w-full overflow-x-auto`}>
+      <p className="mb-2 text-center text-3xs leading-snug text-text-primary/40">
         Same echoes; weapon, sequence, team, and rotation are standardized per board.
       </p>
       {showScoreContext && (
@@ -144,7 +146,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
                   )}
                   <div className="leading-tight">
                     <div className="text-xs font-medium text-text-primary/85">{weaponName}</div>
-                    <div className="text-[11px] text-text-primary/40">{isR1 ? 'R1' : 'R5'}</div>
+                    <div className="text-2xs text-text-primary/40">{isR1 ? 'R1' : 'R5'}</div>
                   </div>
                 </div>
               </td>
@@ -165,7 +167,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
                   href={boardHref}
                   className={`text-xs transition-colors hover:text-accent ${isActiveBoard ? 'font-semibold text-accent/80' : 'text-text-primary/65'}`}
                 >
-                  {characterName} — {standingEntry.trackLabel}
+                  {characterName} - {standingEntry.trackLabel}
                 </Link>
               </td>
               <td className="py-2.5 pl-3 pr-3 text-right font-semibold tabular-nums text-accent">

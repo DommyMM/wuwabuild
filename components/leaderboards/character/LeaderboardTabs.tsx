@@ -26,7 +26,7 @@ const SCORING_SEGMENT_ACTIVE =
 const SCORING_SEGMENT_IDLE =
   'border-border/75 bg-black/20 text-text-primary/60 hover:border-accent/30 hover:text-text-primary/85';
 const SCORING_DEFAULT_BADGE =
-  'rounded-full border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em]';
+  'rounded-full border px-1.5 py-0.5 text-3xs font-bold uppercase tracking-[0.16em]';
 const SCORING_DEFAULT_BADGE_ACTIVE = 'border-amber-200/25 bg-black/20 text-amber-100/70';
 const SCORING_DEFAULT_BADGE_IDLE = 'border-border/50 bg-black/15 text-text-primary/35';
 
@@ -167,7 +167,7 @@ const WeaponTabs: React.FC<WeaponTabsProps> = ({ weaponIds, weaponDisplay, weapo
               type="button"
               aria-pressed={isActive}
               onClick={() => onSelect(index)}
-              className={`${BASE_GLASS_CARD} flex min-w-[156px] cursor-pointer items-center gap-3 ${isActive ? ACTIVE_GOLD_CARD : INACTIVE_GLASS_CARD}`}
+              className={`${BASE_GLASS_CARD} flex min-w-39 cursor-pointer items-center gap-3 ${isActive ? ACTIVE_GOLD_CARD : INACTIVE_GLASS_CARD}`}
             >
               <div className={CARD_SHEEN} />
               {iconSrc ? (

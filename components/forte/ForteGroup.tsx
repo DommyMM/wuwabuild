@@ -110,7 +110,7 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
         {onMaxAll && (
           <button
             onClick={onMaxAll}
-            className={`absolute bottom-0 left-1/2 z-10 -translate-x-1/2 rounded-md border border-border bg-background ${compact ? 'px-3 py-1 text-[10px]' : 'px-4 py-1.5 text-xs'} font-medium text-text-primary/50 transition-colors hover:border-accent/50 hover:text-accent`}
+            className={`absolute bottom-0 left-1/2 z-10 -translate-x-1/2 rounded-md border border-border bg-background ${compact ? 'px-3 py-1 text-3xs' : 'px-4 py-1.5 text-xs'} font-medium text-text-primary/50 transition-colors hover:border-accent/50 hover:text-accent`}
           >
             Max All
           </button>

@@ -388,7 +388,7 @@ export function Navigation() {
 
                         {/* Community Section - Mobile */}
                         <div className="px-4 pt-4 mt-4 border-t border-border">
-                            <div className="text-xs text-text-secondary uppercase tracking-wider mb-2 px-3">
+                            <div className="text-xs text-text-primary/60 uppercase tracking-wider mb-2 px-3">
                                 Community
                             </div>
                             <a
@@ -416,7 +416,7 @@ export function Navigation() {
 
                         {/* Language Switcher - Mobile */}
                         <div className="px-4 pt-4 mt-4 border-t border-border">
-                            <div className="text-xs text-text-secondary uppercase tracking-wider mb-2 px-3">
+                            <div className="text-xs text-text-primary/60 uppercase tracking-wider mb-2 px-3">
                                 Language
                             </div>
                             <LanguageSwitcher />

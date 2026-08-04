@@ -210,10 +210,10 @@ export function ProfileSearch({
     // Shared results body — identical rows in both variants; only the chrome differs.
     const body = showRecents ? (
         <>
-            <div className="px-4 pt-2.5 pb-1 font-mono text-[10px] uppercase tracking-[0.16em] text-text-primary/40">
+            <div className="px-4 pt-2.5 pb-1 font-mono text-3xs uppercase tracking-[0.16em] text-text-primary/40">
                 Profiles
             </div>
-            <ul className="scrollbar-thin max-h-[min(18rem,calc(100vh-17rem))] overflow-y-auto [--scrollbar-width:4px]">
+            <ul className="max-h-[min(18rem,calc(100vh-17rem))] overflow-y-auto">
                 {saved.map((recent, i) => {
                     const badge = resolveRegionBadge(recent.uid);
                     const isActive = activeIndex === i;
@@ -246,7 +246,7 @@ export function ProfileSearch({
                                     {badge.label}
                                 </span>
                             )}
-                            <span className="shrink-0 font-mono text-[11px] text-text-primary/45 tabular-nums">
+                            <span className="shrink-0 font-mono text-2xs text-text-primary/45 tabular-nums">
                                 {recent.uid}
                             </span>
                         </button>
@@ -256,7 +256,7 @@ export function ProfileSearch({
             </ul>
         </>
     ) : matches.length > 0 ? (
-        <ul className="scrollbar-thin max-h-[min(18rem,calc(100vh-17rem))] overflow-y-auto [--scrollbar-width:4px]">
+        <ul className="max-h-[min(18rem,calc(100vh-17rem))] overflow-y-auto">
             {matches.map((match, i) => {
                 const badge = resolveRegionBadge(match.uid);
                 const isActive = activeIndex === i;
@@ -277,7 +277,7 @@ export function ProfileSearch({
                                 {badge.label}
                             </span>
                         )}
-                        <span className="shrink-0 font-mono text-[11px] text-text-primary/45 tabular-nums">
+                        <span className="shrink-0 font-mono text-2xs text-text-primary/45 tabular-nums">
                             {match.uid}
                             {match.buildCount > 0 ? ` · ${match.buildCount} ${match.buildCount === 1 ? 'build' : 'builds'}` : ''}
                         </span>
@@ -335,7 +335,7 @@ export function ProfileSearch({
                             aria-label="Search players by UID or username"
                             className="min-w-0 flex-1 bg-transparent text-[15px] text-text-primary placeholder:text-text-primary/40 outline-none"
                         />
-                        <kbd className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] leading-none text-text-primary/40">
+                        <kbd className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-3xs leading-none text-text-primary/40">
                             {trimmed.length > 0 ? '↵' : shortcutHint}
                         </kbd>
                     </div>
@@ -374,7 +374,7 @@ export function ProfileSearch({
                             aria-label="Search players by UID or username"
                             className="min-w-0 flex-1 bg-transparent text-[15px] text-text-primary placeholder:text-text-primary/40 outline-none"
                         />
-                        <kbd className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] leading-none text-text-primary/40">
+                        <kbd className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-3xs leading-none text-text-primary/40">
                             {trimmed.length > 0 ? '↵' : shortcutHint}
                         </kbd>
                     </div>

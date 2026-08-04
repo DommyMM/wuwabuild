@@ -93,7 +93,7 @@ const SupportAvatar: React.FC<{ member: RankTeamMember }> = ({ member }) => (
               role="img"
               aria-label={icon.label}
               title={icon.label}
-              className="h-4 w-4 rounded-sm border border-white/14 bg-black/80 bg-cover bg-center bg-no-repeat shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
+              className="h-4 w-4 rounded border border-white/14 bg-black/80 bg-cover bg-center bg-no-repeat shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
               style={{ backgroundImage: `url("${icon.src}")` }}
             />
           );
@@ -135,7 +135,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
 
   return (
     <div
-      className="relative flex h-22.5 w-fit max-w-105 items-stretch gap-2.5 overflow-visible rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] py-2.5 pr-3.5 pl-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
+      className="panel-glass relative flex h-22.5 w-fit max-w-105 items-stretch gap-2.5 overflow-visible py-2.5 pr-3.5 pl-4"
     >
       {/* Tier-tinted glow bloom behind the hero number, reinforcing the tier-colored percentile. */}
       {rankGlow && !loading && board && (
@@ -169,10 +169,10 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
             </div>
             {!loading && board && (
               <div className="mt-1.5 flex items-baseline gap-1 font-gowun tabular-nums">
-                <span className="text-[14px] leading-none font-bold text-text-primary/90">
+                <span className="text-sm leading-none font-bold text-text-primary/90">
                   #{formatNumber(board.rank)}
                 </span>
-                <span className="text-[10px] text-text-primary/40">/ {formatTotal(board.total)}</span>
+                <span className="text-3xs text-text-primary/40">/ {formatTotal(board.total)}</span>
               </div>
             )}
           </>
@@ -207,7 +207,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
                   S{board.sequence}
                 </span>
                 {(board.erBracket ?? 0) > 0 && (
-                  <span className="font-ropa text-[10px] leading-none tracking-[0.12em] text-text-primary/45 uppercase">
+                  <span className="font-ropa text-3xs leading-none tracking-[0.12em] text-text-primary/45 uppercase">
                     {board.erBracket}% ER
                   </span>
                 )}

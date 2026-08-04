@@ -43,7 +43,7 @@ function ChangelogEntryCard({ entry }: { entry: ChangelogEntry }) {
                 <div className="flex flex-col gap-0.5">
                     <time
                         dateTime={entry.date}
-                        className="text-[11px] tracking-[0.14em] uppercase text-text-primary/45 tabular-nums transition-colors duration-200 group-hover:text-text-primary/65"
+                        className="text-2xs tracking-[0.14em] uppercase text-text-primary/45 tabular-nums transition-colors duration-200 group-hover:text-text-primary/65"
                     >
                         {formatDate(entry.date)}
                     </time>
@@ -62,10 +62,10 @@ function ChangelogEntryCard({ entry }: { entry: ChangelogEntry }) {
                     {entry.changes.map((change, j) => (
                         <li
                             key={j}
-                            className="flex gap-3 rounded-sm border border-transparent px-2 py-1.5 text-sm leading-relaxed transition-colors duration-150 hover:border-border/80 hover:bg-background/45"
+                            className="flex gap-3 rounded border border-transparent px-2 py-1.5 text-sm leading-relaxed transition-colors duration-150 hover:border-border/80 hover:bg-background/45"
                         >
                             <span
-                                className={`mt-0.5 inline-flex h-5 min-w-20 items-center justify-center rounded border px-2 text-[10px] font-semibold uppercase leading-none tracking-wider ${kindStyles[change.kind].className}`}
+                                className={`mt-0.5 inline-flex h-5 min-w-20 items-center justify-center rounded border px-2 text-3xs font-semibold uppercase leading-none tracking-wider ${kindStyles[change.kind].className}`}
                             >
                                 {kindStyles[change.kind].label}
                             </span>
@@ -83,7 +83,7 @@ function ChangelogEntryCard({ entry }: { entry: ChangelogEntry }) {
 export function ChangelogPage() {
     return (
         <main className="max-w-3xl mx-auto px-6 py-12 md:py-16">
-            <div className="text-[11px] tracking-[0.22em] uppercase text-text-primary/50 mb-2.5">
+            <div className="text-2xs tracking-[0.22em] uppercase text-text-primary/50 mb-2.5">
                 Changelog
             </div>
             <h1 className="font-plus-jakarta text-3xl md:text-5xl leading-[1.05] font-medium text-balance">

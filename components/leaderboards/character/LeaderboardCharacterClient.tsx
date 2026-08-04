@@ -686,7 +686,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   })();
 
   return (
-    <main className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
+    <main className="bg-background">
       <div className="mx-auto w-full max-w-360 space-y-4 p-3 md:p-5">
         <section className="relative overflow-visible rounded-xl border border-border bg-background-secondary px-4 py-2">
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />

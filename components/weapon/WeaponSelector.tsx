@@ -155,7 +155,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
         {/* Rank slider, vertical 1-5, right edge */}
         {selectedWeapon && (
           <div className={`absolute ${compact ? '-right-4 -top-4' : 'right-4 top-0'} flex flex-col items-center`}>
-            <span className={`font-bold text-text-primary/40 ${compact ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'}`}>5</span>
+            <span className={`font-bold text-text-primary/40 ${compact ? 'mb-0.5 text-3xs' : 'mb-1 text-xs'}`}>5</span>
             <div className="relative">
               <input
                 type="range"
@@ -168,7 +168,7 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
                 style={{ '--fill': `${((state.weaponRank - 1) / 4) * 100}%` } as React.CSSProperties}
               />
             </div>
-            <span className={`font-bold text-text-primary/40 ${compact ? 'text-[10px]' : 'text-xs'}`}>1</span>
+            <span className={`font-bold text-text-primary/40 ${compact ? 'text-3xs' : 'text-xs'}`}>1</span>
           </div>
         )}
 

@@ -67,7 +67,7 @@ export function BoardIndex({ records }: BoardIndexProps) {
                                             {board.name}
                                         </span>
                                         {board.seqLevel > 0 && (
-                                            <span className={`shrink-0 rounded border px-1 py-0.5 text-[10px] font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[board.seqLevel]}`}>
+                                            <span className={`shrink-0 rounded border px-1 py-0.5 text-3xs font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[board.seqLevel]}`}>
                                                 S{board.seqLevel}
                                             </span>
                                         )}
@@ -82,7 +82,7 @@ export function BoardIndex({ records }: BoardIndexProps) {
                                     comparable, it duplicated the hero card, and unlabeled it read
                                     as the ranking. That story lives on the hero card and the board. */}
                                 <span className="text-right text-[15px] font-medium leading-tight text-text-primary/85 tabular-nums">
-                                    {board.totalEntries.toLocaleString('en-US')} <span className="text-[11px] font-normal text-text-primary/45">{board.totalEntries === 1 ? 'entry' : 'entries'}</span>
+                                    {board.totalEntries.toLocaleString('en-US')} <span className="text-2xs font-normal text-text-primary/45">{board.totalEntries === 1 ? 'entry' : 'entries'}</span>
                                 </span>
                             </HomeLink>
                         </li>

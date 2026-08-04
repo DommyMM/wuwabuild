@@ -14,6 +14,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-08-03',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'The builds-table intro message now actually shows up on phones, with a real button to dismiss it',
+            },
+            {
+                kind: 'improved',
+                text: 'Stat explanations (roll bars, team buffs, CV) now open on tap on touch screens instead of being hover-only',
+            },
+            {
+                kind: 'improved',
+                text: 'Mobile polish on leaderboards: bigger page buttons, a hint that tables scroll sideways, and standings no longer clip',
+            },
+            {
+                kind: 'improved',
+                text: 'Better keyboard support: dialogs keep focus inside them and controls show a visible focus outline',
+            },
+        ],
+    },
+    {
         date: '2026-08-02',
         changes: [
             {

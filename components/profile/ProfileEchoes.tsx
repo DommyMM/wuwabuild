@@ -223,11 +223,11 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
         />
 
         {/* Table */}
-        <div className="scrollbar-thin mt-3 overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
+        <div className="mt-3 overflow-x-auto overflow-y-hidden pb-1">
           <div className="w-max min-w-full">
             <div className="overflow-visible rounded-lg border border-border bg-background/70">
               {/* Header */}
-              <div className={`grid ${ECHO_TABLE_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
+              <div className={`grid ${ECHO_TABLE_GRID} items-center gap-4 rounded-t-lg border-b border-border bg-background-secondary/95 text-lg text-text-primary`}>
                 <div className="py-2 text-center text-text-primary/70">#</div>
                 <div className="py-2 pl-3">Name</div>
                 <div className="py-2">Main Stat</div>
@@ -329,7 +329,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
                 {isInitialLoading ? (
                   <div className="divide-y divide-border/60">
                     {Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className={`grid ${ECHO_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4.5 odd:bg-background/30 even:bg-background-secondary/20`}>
+                      <div key={i} className={`grid ${ECHO_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4 odd:bg-background/30 even:bg-background-secondary/20`}>
                         <div className="mx-auto h-3 w-5 animate-pulse rounded bg-background-secondary/80" />
                         <div className="flex items-center gap-2 py-2 pl-3">
                           <div className="h-9 w-9 animate-pulse rounded bg-background-secondary/80" />
@@ -392,9 +392,10 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
                         <div
                           role="button"
                           tabIndex={0}
+                          aria-expanded={isExpanded}
                           onClick={toggleExpand}
                           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(); } }}
-                          className={`grid ${ECHO_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 ${isExpanded ? 'bg-accent/12' : ''}`}
+                          className={`grid ${ECHO_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 ${isExpanded ? 'bg-accent/12' : ''}`}
                         >
                           <div className="py-2 text-center text-text-primary/75">{rankStart + index}</div>
 
@@ -649,7 +650,7 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
       </div>
 
       {open && visibleItems.length > 0 && (
-        <div className="scrollbar-thin absolute left-0 right-0 z-30 mt-1 max-h-132 overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
+        <div className="absolute left-0 right-0 z-30 mt-1 max-h-132 overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
           {visibleItems.map((item, index) => {
             const previous = index > 0 ? visibleItems[index - 1] : null;
             const showSection = index === 0 || previous?.section !== item.section;
@@ -672,7 +673,7 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     {item.type === 'cost' ? (
-                      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-border text-[11px] font-semibold tabular-nums">{item.value}</span>
+                      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-border text-2xs font-semibold tabular-nums">{item.value}</span>
                     ) : item.icon ? (
                       <img src={item.icon} alt="" className="h-5 w-5 shrink-0 object-contain" />
                     ) : (
@@ -680,7 +681,7 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
                     )}
                     <span className="truncate">{item.label}</span>
                   </span>
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${isActiveRow ? 'bg-cyan-500/20 text-cyan-100' : 'bg-border text-text-primary/70'}`}>
+                  <span className={`rounded px-1.5 py-0.5 text-3xs uppercase tracking-wide ${isActiveRow ? 'bg-cyan-500/20 text-cyan-100' : 'bg-border text-text-primary/70'}`}>
                     {item.type === 'main' ? 'stat' : item.type}
                   </span>
                 </button>

@@ -34,7 +34,7 @@ function formatStatValue(stat: string | null | undefined, value: number | null |
   return isPercentStat(stat) ? `${Number(value).toFixed(1)}%` : String(Math.round(Number(value)));
 }
 
-const EYEBROW_CLASS = 'font-ropa text-[11px] leading-none uppercase tracking-[0.14em] text-text-primary/60';
+const EYEBROW_CLASS = 'font-ropa text-2xs leading-none uppercase tracking-[0.14em] text-text-primary/60';
 
 // Lazy "Equipped by" strip, phrased like the in-game panel: which of this
 // player's builds equip this echo. Mounts only when a row is expanded, so the
@@ -89,7 +89,7 @@ const EquippedByStrip: React.FC<{
                 {character?.head ? (
                   <img src={character.head} alt={charName} className="h-full w-full object-cover" />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center text-[10px] text-text-primary/50">{charName.slice(0, 3)}</span>
+                  <span className="flex h-full w-full items-center justify-center text-3xs text-text-primary/50">{charName.slice(0, 3)}</span>
                 )}
                 {weapon && (
                   <img
@@ -103,7 +103,7 @@ const EquippedByStrip: React.FC<{
                   className="absolute inset-0 flex flex-col items-center justify-center bg-black/72 opacity-0 transition-opacity group-hover/usage:opacity-100"
                   style={{ color: borderColor }}
                 >
-                  <span className="text-[11px] font-bold leading-none tabular-nums">{u.cv.toFixed(1)}</span>
+                  <span className="text-2xs font-bold leading-none tabular-nums">{u.cv.toFixed(1)}</span>
                   <span className="mt-0.5 text-[8px] font-semibold leading-none tracking-wide text-text-primary/70 uppercase">
                     {u.sequence > 0 ? `S${u.sequence} · CV` : 'CV'}
                   </span>
@@ -258,11 +258,11 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
                   <span className="rounded bg-white/8 px-1.5 py-1 font-gowun text-xs leading-none font-semibold tabular-nums text-text-primary/85 ring-1 ring-white/8">
                     +{level}
                   </span>
-                  <span className="rounded bg-white/6 px-1.5 py-1 font-ropa text-[10px] leading-none uppercase tracking-[0.14em] text-text-primary/65 ring-1 ring-white/8">
+                  <span className="rounded bg-white/6 px-1.5 py-1 font-ropa text-3xs leading-none uppercase tracking-[0.14em] text-text-primary/65 ring-1 ring-white/8">
                     {echo.cost} Cost
                   </span>
                   {phantom && (
-                    <span className="rounded bg-cyan-300/8 px-1.5 py-1 text-[10px] leading-none font-semibold text-cyan-200 ring-1 ring-cyan-200/15">
+                    <span className="rounded bg-cyan-300/8 px-1.5 py-1 text-3xs leading-none font-semibold text-cyan-200 ring-1 ring-cyan-200/15">
                       Phantom
                     </span>
                   )}
@@ -323,7 +323,7 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
                   return (
                     <div
                       key={`${echo.echoKey}-detail-sub-${i}`}
-                      className="flex items-center gap-2.5 rounded-sm bg-black/35 py-1.5 pr-3 pl-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                      className="flex items-center gap-2.5 rounded bg-black/35 py-1.5 pr-3 pl-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
                     >
                       {icon ? (
                         <img src={icon} alt="" className="h-4.5 w-4.5 shrink-0 object-contain" />
@@ -371,7 +371,7 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
               {skillTemplate && (
                 <div className="mt-4 border-t border-white/8 pt-4">
                   <div className={`mb-2 ${EYEBROW_CLASS}`}>Echo Skill</div>
-                  <div className="scrollbar-thin max-h-48 overflow-y-auto pr-1 text-sm leading-relaxed whitespace-pre-line text-text-primary/80 [--scrollbar-width:4px]">
+                  <div className="max-h-48 overflow-y-auto pr-1 text-sm leading-relaxed whitespace-pre-line text-text-primary/80">
                     {renderGameTemplateWithHighlights({
                       template: skillTemplate,
                       getParamValue: (index) => skillParams[index] ?? null,
@@ -390,7 +390,7 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
                   is the upload date of the first build carrying this exact echo. */}
               {firstSeenLabel && (
                 <div
-                  className="mt-3 shrink-0 font-ropa text-[10px] leading-none uppercase tracking-[0.14em] text-text-primary/45"
+                  className="mt-3 shrink-0 font-ropa text-3xs leading-none uppercase tracking-[0.14em] text-text-primary/45"
                   title={`First seen in an upload ${firstSeenLabel}${lastSeenLabel && lastSeenLabel !== firstSeenLabel ? `, last seen ${lastSeenLabel}` : ''}.`}
                 >
                   Added <span className="text-text-primary/60">{firstSeenLabel}</span>

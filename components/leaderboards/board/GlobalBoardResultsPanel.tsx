@@ -6,10 +6,11 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { getLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
-import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS } from '../constants';
+import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS, TABLE_STAT_GROUP_MIN } from '../constants';
 import { getSortLabel } from '../formatters';
 import { BuildPagination } from '../BuildPagination';
 import { GlobalBoardRow, GlobalBoardRowExpandedProps } from './GlobalBoardRow';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { SortHeaderMenu, SortMenuOption } from '../SortHeaderMenu';
 import { StatSortKey } from '../types';
 
@@ -203,31 +204,25 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   return (
     <section className="relative" aria-busy={isLoading || isRefreshing}>
       {error && (
-        <div role="alert" className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-300">
-          <span>Failed to load leaderboard data: {error}</span>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="rounded-md border border-red-300/40 px-2.5 py-1 font-semibold text-red-100 transition-colors hover:bg-red-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorBanner className="mb-2" onRetry={onRetry}>Failed to load leaderboard data: {error}</ErrorBanner>
       )}
 
       <div className="relative">
-        <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
+        {/* Mobile-only hint that the table continues past the right edge; the
+            thin scrollbar is invisible on touch until a scroll starts. */}
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-linear-to-l from-background to-transparent md:hidden" />
+        <div className="overflow-x-auto overflow-y-hidden pb-1">
           <div className="w-max min-w-full">
             <div className="overflow-visible rounded-lg border border-border bg-background/70">
               {/* Table header */}
-              <div className={`grid ${tableGrid} items-center gap-4.5 border-b border-border bg-background-secondary/95 text-lg text-text-primary rounded-t-lg`}>
+              <div className={`grid ${tableGrid} items-center gap-4 border-b border-border bg-background-secondary/95 text-lg text-text-primary rounded-t-lg`}>
                 <div className="py-2 text-center text-text-primary/70">#</div>
                 {showOwner && <div className="py-2">Owner</div>}
                 <div className="py-2">Name</div>
                 <div className="py-2" aria-hidden="true" />
                 <div className="py-2 text-text-primary/70">Sequences</div>
                 <div className="py-2">Sets</div>
-                <div className={`grid ${SORTABLE_GROUP_GRID} min-w-163 self-stretch gap-0`}>
+                <div className={`grid ${SORTABLE_GROUP_GRID} ${TABLE_STAT_GROUP_MIN} self-stretch gap-0`}>
                   <div className="self-stretch">
                     <SortHeaderMenu
                       menuId="sort-cv"
@@ -320,7 +315,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                       {Array.from({ length: pageSize }).map((_, index) => (
                         <div
                           key={index}
-                          className={`grid ${tableGrid} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20`}
+                          className={`grid ${tableGrid} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20`}
                         >
                           <div className="py-2 text-center">
                             <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
@@ -342,7 +337,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                           <div className="flex items-center py-2">
                             <div className="h-5 w-16 animate-pulse rounded bg-background-secondary/80" />
                           </div>
-                          <div className={`grid ${SORTABLE_GROUP_GRID} min-w-163 self-stretch gap-0`}>
+                          <div className={`grid ${SORTABLE_GROUP_GRID} ${TABLE_STAT_GROUP_MIN} self-stretch gap-0`}>
                             <div className="flex h-full items-center px-2.5">
                               <div className="h-3.5 w-24 animate-pulse rounded bg-background-secondary/80" />
                             </div>
@@ -396,52 +391,53 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                   )}
                 </div>
 
-                {showBuildTableGate && (
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={dismissTableGate}
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter' && event.key !== ' ') return;
-                      event.preventDefault();
-                      dismissTableGate();
-                    }}
-                    className="group absolute inset-0 z-30 flex cursor-pointer items-center justify-center bg-background/15 px-4 text-left transition-colors duration-200 hover:bg-background/22 focus-visible:outline-none focus-visible:bg-background/22"
-                  >
-                    <div className="max-w-3xl space-y-4 rounded-xl border border-border/70 bg-background/72 p-5 text-center shadow-[0_18px_48px_rgba(0,0,0,0.28)] backdrop-blur-xs transition-[border-color,background-color,box-shadow,transform] duration-200 group-hover:border-accent/40 group-hover:bg-background/80 group-hover:shadow-[0_22px_56px_rgba(0,0,0,0.34)] group-hover:-translate-y-0.5 group-focus-visible:border-accent/40 group-focus-visible:bg-background/80 group-focus-visible:shadow-[0_22px_56px_rgba(0,0,0,0.34)] group-focus-visible:-translate-y-0.5">
-                      <p className="text-sm tracking-wide text-text-primary md:text-lg">
-                        Builds do not show leaderboards or rankings, those are{' '}
-                        <Link
-                          href="/leaderboards"
-                          onClick={(event) => event.stopPropagation()}
-                          className="pointer-events-auto text-accent underline decoration-accent/65 underline-offset-3 transition-colors hover:text-accent-hover"
-                        >
-                          here
-                        </Link>
-                      </p>
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-text-primary/55 md:text-sm">
-                          Example use cases
-                        </p>
-                        <BuildTableGateOverlay
-                          characters={characters}
-                          fetters={fetters}
-                          weaponList={weaponList}
-                        />
-                      </div>
-                      <p className="text-xs text-text-primary/55 md:text-sm">
-                        Click anywhere around this message to reveal the builds table.
-                      </p>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
         </div>
 
-        <BuildPagination page={page} pageCount={pageCount} statusText={statusText} onPageChange={onPageChange} />
+        {showBuildTableGate && (
+          /* Anchored to this viewport-width wrapper, NOT the w-max scroll
+             content: inside the scroller the card centers within ~1360px of
+             table and lands entirely off-screen on phones. */
+          <div
+            onClick={dismissTableGate}
+            className="absolute inset-0 z-30 flex cursor-pointer items-center justify-center bg-background/15 px-4 transition-colors duration-200 hover:bg-background/22"
+          >
+            <div className="max-w-3xl space-y-4 rounded-xl border border-border/70 bg-background/72 p-5 text-center shadow-[0_18px_48px_rgba(0,0,0,0.28)] backdrop-blur-xs">
+              <p className="text-sm tracking-wide text-text-primary md:text-lg">
+                Builds do not show leaderboards or rankings, those are{' '}
+                <Link
+                  href="/leaderboards"
+                  onClick={(event) => event.stopPropagation()}
+                  className="pointer-events-auto text-accent underline decoration-accent/65 underline-offset-3 transition-colors hover:text-accent-hover"
+                >
+                  here
+                </Link>
+              </p>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-text-primary/55 md:text-sm">
+                  Example use cases
+                </p>
+                <BuildTableGateOverlay
+                  characters={characters}
+                  fetters={fetters}
+                  weaponList={weaponList}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={dismissTableGate}
+                className="rounded-md border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent/20 hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+              >
+                Show the builds table
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      <BuildPagination page={page} pageCount={pageCount} statusText={statusText} onPageChange={onPageChange} />
     </section>
   );
 };

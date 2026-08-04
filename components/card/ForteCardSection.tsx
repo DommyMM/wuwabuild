@@ -63,7 +63,7 @@ const NodeBadge: React.FC<NodeBadgeProps> = ({
         onMouseLeave={primaryHoverKey ? () => onHoverStatChange?.(null) : undefined}
       >
         <div
-          className={`flex h-6 w-6 rotate-45 items-center justify-center rounded-sm border transition-all duration-200 ${
+          className={`flex h-6 w-6 rotate-45 items-center justify-center rounded border transition-all duration-200 ${
             active
               ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]'
               : 'border-white/30 bg-background-secondary'
@@ -276,8 +276,8 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
           />
         );
         const skillButton = (
-          <div className={`flex flex-col items-center rounded-sm transition-all duration-200 ${bottomInteractionClass}`}>
-            <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded-sm border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-all duration-200">
+          <div className={`flex flex-col items-center rounded transition-all duration-200 ${bottomInteractionClass}`}>
+            <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-all duration-200">
               {skillIcon && (
                 <img src={skillIcon} alt={branch.skillName} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
               )}

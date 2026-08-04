@@ -2,6 +2,7 @@
 
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Info } from 'lucide-react';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HoverTooltip } from '@/components/ui/HoverTooltip';
 
 export interface BuildUpgradeColumn {
@@ -128,7 +129,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
                 type="button"
                 aria-pressed={isActive}
                 onClick={() => onSelectTier(option.key)}
-                className={`rounded px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                className={`rounded px-2.5 py-1 text-2xs font-semibold tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
                   isActive
                     ? 'bg-accent/16 text-accent-hover'
                     : 'text-text-primary/55 hover:text-text-primary'
@@ -182,12 +183,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
       )}
 
       {!isLoading && error && (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-          <span>{error}</span>
-          <button type="button" onClick={onRetry} className="rounded border border-red-300/50 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/60">
-            Retry
-          </button>
-        </div>
+        <ErrorBanner onRetry={onRetry}>{error}</ErrorBanner>
       )}
 
       {!isLoading && !error && !hasUpgradeData && (
@@ -204,7 +200,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
 
       {!isLoading && !error && hasUpgradeData && hasBaseDamage && orderedUpgradeColumns.length > 0 && (
         <div className="min-w-0 w-full">
-          <div className="scrollbar-thin overflow-x-auto pb-1">
+          <div className="overflow-x-auto pb-1">
             <div className="w-max min-w-full">
               <table className="mx-auto border-separate border-spacing-0 text-sm tabular-nums">
                 <thead>

@@ -153,7 +153,7 @@ export const EchoSubstatChip: React.FC<EchoSubstatChipProps> = ({
       )}
     >
       <div
-        className={`flex w-full items-center rounded-sm font-semibold leading-none transition-all duration-200 ${sizeClass.row} ${visuals.className}`}
+        className={`flex w-full items-center rounded font-semibold leading-none transition-all duration-200 ${sizeClass.row} ${visuals.className}`}
         style={{ ...(tierInfo ? { color: tierInfo.color } : {}), ...visuals.style }}
         onMouseEnter={onHoverChange ? () => onHoverChange(true) : undefined}
         onMouseLeave={onHoverChange ? () => onHoverChange(false) : undefined}

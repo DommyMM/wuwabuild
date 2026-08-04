@@ -171,7 +171,7 @@ export function ImportResults({
               ].join(' ')}
             >
               <ProgressDot status={status} />
-              <span className="text-[10px] text-text-primary/50 capitalize">{key}</span>
+              <span className="text-3xs text-text-primary/50 capitalize">{key}</span>
             </div>
           ))}
         </div>

@@ -6,13 +6,13 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { Character, Element } from '@/lib/character';
 import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
 import { formatFlatStat, formatPercentStat } from './formatters';
-import { RegionBadge, PERCENT_STAT_KEYS, SORT_OPTIONS } from './constants';
+import { RegionBadge, PERCENT_STAT_KEYS, SORT_OPTIONS, STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
 import { resolveCharacterBaseScaling } from './statColumns';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 
-// Status pair mirrors BuildMoveBreakdown
-const POSITIVE_COLOR = '#5cc7c2';
-const NEGATIVE_COLOR = '#f87171';
+const POSITIVE_COLOR = STATUS_POSITIVE_COLOR;
+const NEGATIVE_COLOR = STATUS_NEGATIVE_COLOR;
 
 const SCORE_FORMATTER = new Intl.NumberFormat('en-US', {
   notation: 'compact',
@@ -23,7 +23,7 @@ function fmtDmg(value: number): string {
   return SCORE_FORMATTER.format(value);
 }
 
-const SECTION_HEADING = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/55';
+const SECTION_HEADING = 'text-2xs font-semibold uppercase tracking-[0.18em] text-text-primary/55';
 
 type OptimalityTier = 'ceiling' | 'standardized' | 'low_roll';
 
@@ -83,10 +83,10 @@ function TierRow({ ref_, currentDamage, ratio, isActive, onClick }: TierRowProps
       }`}
     >
       <span className="block min-w-0">
-        <span className={`block whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.16em] ${isActive ? 'text-accent-hover' : 'text-text-primary/60'}`}>
+        <span className={`block whitespace-nowrap text-2xs font-semibold uppercase tracking-[0.16em] ${isActive ? 'text-accent-hover' : 'text-text-primary/60'}`}>
           {meta.label}
         </span>
-        <span className="mt-0.5 block whitespace-nowrap text-[10px] text-text-primary/40">
+        <span className="mt-0.5 block whitespace-nowrap text-3xs text-text-primary/40">
           {meta.rollLabel}
         </span>
       </span>
@@ -229,12 +229,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
 
   if (error) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-        <span>{error}</span>
-        <button type="button" onClick={onRetry} className="rounded border border-red-300/50 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/60">
-          Retry
-        </button>
-      </div>
+      <ErrorBanner onRetry={onRetry}>{error}</ErrorBanner>
     );
   }
 
@@ -266,7 +261,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     <div className="overflow-hidden rounded-lg border border-border/45 bg-background-secondary/20">
       <div className="border-b border-border/45 px-3 py-3 sm:px-4">
         <h3 className={SECTION_HEADING}>Reference Benchmark</h3>
-        <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-text-primary/45">
+        <p className="mt-1 max-w-3xl text-2xs leading-relaxed text-text-primary/45">
           Best legal loadout found for each roll quality. Select a tier to inspect its independently optimized stats and Echo blueprint.
         </p>
 
@@ -304,7 +299,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
               </h4>
               <div className="mt-1.5 flex items-baseline gap-2.5">
                 <span className="text-2xl font-bold tabular-nums text-accent-hover">{fmtDmg(selectedRef.damage)}</span>
-                <span className="text-[11px] text-text-primary/45">
+                <span className="text-2xs text-text-primary/45">
                   {selectedRatio !== undefined ? `${(selectedRatio * 100).toFixed(1)}% of ${TIER_META[selectedTier].label.toLowerCase()}` : 'Reference score'}
                 </span>
               </div>
@@ -376,7 +371,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
                   {entry.icon && <img src={entry.icon} alt="" width={16} height={16} className="h-4 w-4 shrink-0 object-contain opacity-80" loading="lazy" />}
                   {entry.kind === 'percent' ? formatPercentStat(entry.value) : formatFlatStat(entry.value)}
                 </dd>
-                <dt className="mt-1 whitespace-nowrap text-[10px] uppercase tracking-widest text-text-primary/45">
+                <dt className="mt-1 whitespace-nowrap text-3xs uppercase tracking-widest text-text-primary/45">
                   {entry.label}
                 </dt>
               </div>

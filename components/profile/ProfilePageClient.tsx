@@ -394,7 +394,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   ), []);
 
   return (
-    <main className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
+    <main className="bg-background">
       <div
         className={`mx-auto w-full p-3 px-0 transition-[max-width] duration-300 ease-out md:p-5 ${
           hasExpandedBuild ? PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS : PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS
@@ -426,12 +426,12 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                   <div className="flex flex-wrap items-center gap-2.5">
                     <h1 className="truncate text-3xl font-bold tracking-wide text-text-primary">{profileUsername}</h1>
                     {regionBadge && (
-                      <span className={`rounded px-2 py-0.5 text-[11px] font-semibold tracking-wider uppercase ${regionBadge.className}`}>
+                      <span className={`rounded px-2 py-0.5 text-2xs font-semibold tracking-wider uppercase ${regionBadge.className}`}>
                         {regionBadge.label}
                       </span>
                     )}
                   </div>
-                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-text-primary/45 uppercase">
+                  <div className="mt-1.5 flex items-center gap-1.5 text-2xs font-semibold tracking-wider text-text-primary/45 uppercase">
                     <span>UID</span>
                     <span className="font-mono tabular-nums font-normal tracking-normal text-text-primary/55 normal-case">{uid}</span>
                   </div>
@@ -456,7 +456,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                       <span className="text-2xl leading-none font-bold tabular-nums text-text-primary">
                         {profileBuildCount.toLocaleString()}
                       </span>
-                      <span className="mt-1 text-[11px] tracking-wider text-text-primary/45 uppercase">
+                      <span className="mt-1 text-2xs tracking-wider text-text-primary/45 uppercase">
                         build{profileBuildCount !== 1 ? 's' : ''}
                       </span>
                     </div>

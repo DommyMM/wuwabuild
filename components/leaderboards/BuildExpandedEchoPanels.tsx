@@ -76,7 +76,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                 return (
                   <span
                     key={`${detail.id}-forte-${label}`}
-                    className="rounded border border-border bg-background-secondary px-2 py-1 text-[11px] font-semibold text-text-primary/85"
+                    className="rounded border border-border bg-background-secondary px-2 py-1 text-2xs font-semibold text-text-primary/85"
                   >
                     {label} {level}
                   </span>
@@ -140,7 +140,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
             return (
               <div
                 key={`${detail.id}-panel-empty-${panelIndex}`}
-                className="relative flex min-w-0 items-center justify-center aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)]"
+                className="panel-glass relative flex min-w-0 items-center justify-center aspect-6/5"
               >
                 <div className="h-7 w-7 rounded-full border-2 border-dashed border-white/20" />
               </div>
@@ -150,7 +150,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
           return (
             <div
               key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
-              className="relative min-w-0 aspect-6/5 rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200"
+              className="panel-glass relative min-w-0 aspect-6/5 transition-all duration-200"
               style={{ borderColor: `${frameBorderColor}b3` }}
             >
               {fetterIcon && (
@@ -303,7 +303,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
                         )}
                       >
                         <div
-                          className={`flex w-full items-center gap-1 rounded-sm bg-black/40 px-1.5 py-1.5 text-base font-semibold leading-none shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] transition-opacity duration-200 ${
+                          className={`flex w-full items-center gap-1 rounded bg-black/40 px-1.5 py-1.5 text-base font-semibold leading-none shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] transition-opacity duration-200 ${
                             isDimmed ? 'opacity-35' : 'opacity-100'
                           }`}
                           style={combinedStyle}

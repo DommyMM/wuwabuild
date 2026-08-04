@@ -5,11 +5,11 @@ import { ChevronDown } from 'lucide-react';
 import { LBMoveEntry } from '@/lib/lb';
 import { processMoves, typeMeta, TypeTotal } from '@/lib/moveBreakdown';
 import { ELEMENT_COLOR } from '@/lib/elementVisuals';
+import { STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 
-// Status pair for score modifiers — teal (not green) so the bonus/penalty
-// split stays distinguishable under red-green colorblindness.
-const BONUS_COLOR = '#5cc7c2';
-const PENALTY_COLOR = '#f87171';
+const BONUS_COLOR = STATUS_POSITIVE_COLOR;
+const PENALTY_COLOR = STATUS_NEGATIVE_COLOR;
 const HEAL_COLOR = '#67d4a7';
 
 function formatDamage(value: number): string {
@@ -161,12 +161,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
       )}
 
       {!isLoading && error && (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-          <span>{error}</span>
-          <button type="button" onClick={onRetry} className="rounded border border-red-300/50 px-2 py-1 text-xs font-semibold text-red-100 transition-colors hover:bg-red-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/60">
-            Retry
-          </button>
-        </div>
+        <ErrorBanner onRetry={onRetry}>{error}</ErrorBanner>
       )}
 
       {!isLoading && !error && breakdown.moves.length === 0 && (
@@ -182,13 +177,13 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
             {/* Without modifiers the raw total IS the score; the equation row
                 would just restate one number, so the header carries it inline. */}
             <div className="flex items-baseline justify-between gap-3">
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/55">
+              <h3 className="text-2xs font-semibold uppercase tracking-[0.18em] text-text-primary/55">
                 Total Score
               </h3>
               {breakdown.modifiers.length === 0 && (
                 <div className="flex items-baseline gap-2.5">
                   <span className="text-2xl font-bold tabular-nums text-accent-hover">{formatDamage(breakdown.totalScore)}</span>
-                  <span className="text-[11px] text-text-primary/50">{sourceCountLabel}</span>
+                  <span className="text-2xs text-text-primary/50">{sourceCountLabel}</span>
                 </div>
               )}
             </div>
@@ -196,7 +191,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
             {breakdown.modifiers.length > 0 && (
               <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-primary/45">{isHealing ? 'Raw healing' : 'Move damage'}</span>
+                  <span className="text-2xs font-semibold uppercase tracking-[0.08em] text-text-primary/45">{isHealing ? 'Raw healing' : 'Move damage'}</span>
                   <span className="text-xl font-semibold tabular-nums text-white/85">{formatDamage(breakdown.rawDamage)}</span>
                 </div>
 
@@ -208,7 +203,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       className="flex flex-col gap-0.5 rounded-md border border-border/45 bg-background-secondary/40 px-3 py-1.5"
                       title={modifier.name}
                     >
-                      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-text-primary/62">
+                      <span className="flex items-center gap-1.5 text-2xs font-semibold text-text-primary/62">
                         <span
                           className="h-1.5 w-1.5 shrink-0 rounded-full"
                           style={{ backgroundColor: isBonus ? BONUS_COLOR : PENALTY_COLOR }}
@@ -217,16 +212,16 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       </span>
                       <span className="flex items-baseline gap-2 text-sm font-semibold tabular-nums" style={{ color: isBonus ? BONUS_COLOR : PENALTY_COLOR }}>
                         {formatModifierDamage(modifier.damage)}
-                        <span className="text-[11px] font-medium text-text-primary/45">{formatSignedPercent(modifier.percentage)}</span>
+                        <span className="text-2xs font-medium text-text-primary/45">{formatSignedPercent(modifier.percentage)}</span>
                       </span>
                     </div>
                   );
                 })}
 
                 <div className="ml-auto flex flex-col gap-0.5 text-right max-sm:ml-0 max-sm:w-full max-sm:text-left">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-primary/45">Score</span>
+                  <span className="text-2xs font-semibold uppercase tracking-[0.08em] text-text-primary/45">Score</span>
                   <span className="text-2xl font-bold tabular-nums text-accent-hover">{formatDamage(breakdown.totalScore)}</span>
-                  <span className="text-[11px] text-text-primary/50">{sourceCountLabel}</span>
+                  <span className="text-2xs text-text-primary/50">{sourceCountLabel}</span>
                 </div>
               </div>
             )}
@@ -264,7 +259,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     style={{ left: `${scorePct}%` }}
                   />
                 </div>
-                <div className="mt-1.5 flex justify-between text-[10.5px] text-text-primary/42">
+                <div className="mt-1.5 flex justify-between text-2xs text-text-primary/42">
                   <span><span className="font-semibold text-text-primary/58">{isHealing ? 'Raw healing' : 'Move damage'}</span> {formatDamage(breakdown.rawDamage)}</span>
                   <span><span className="font-semibold text-text-primary/58">Score</span> {formatDamage(breakdown.totalScore)}</span>
                 </div>
@@ -275,10 +270,10 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
             {!isHealing && (
               <div className="mt-4 border-t border-border/45 pt-3.5">
                 <div className="flex items-baseline gap-3">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/55">Damage profile</h3>
-                  <span className="ml-auto text-[11px] text-text-primary/52">by move type</span>
+                  <h3 className="text-2xs font-semibold uppercase tracking-[0.18em] text-text-primary/55">Damage profile</h3>
+                  <span className="ml-auto text-2xs text-text-primary/52">by move type</span>
                 </div>
-                <div className="mt-2.5 flex h-6 gap-0.5 overflow-hidden rounded-[5px]">
+                <div className="mt-2.5 flex h-6 gap-0.5 overflow-hidden rounded-md">
                   {breakdown.typeTotals.map((total) => {
                     const meta = typeMeta(total.type);
                     const dimmed =
@@ -300,7 +295,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         }}
                       >
                         {total.percentage >= 14 && (
-                          <span className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-nowrap pl-2 text-[11px] font-bold text-black/75">
+                          <span className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-nowrap pl-2 text-2xs font-bold text-black/75">
                             {meta.label} · {total.percentage.toFixed(1)}%
                           </span>
                         )}
@@ -327,10 +322,10 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         onFocus={() => setTypeFocus(total.type)}
                         onBlur={() => setTypeFocus(null)}
                       >
-                        <span className="h-2 w-2 self-center rounded-[3px]" style={{ backgroundColor: meta.color }} />
+                        <span className="h-2 w-2 self-center rounded-xs" style={{ backgroundColor: meta.color }} />
                         <span className="text-xs font-semibold text-text-primary/62">{meta.label}</span>
                         <span className="text-xs font-bold tabular-nums text-white/82">{total.percentage.toFixed(1)}%</span>
-                        <span className="text-[10.5px] tabular-nums text-text-primary/45">{formatDamage(total.damage)}</span>
+                        <span className="text-2xs tabular-nums text-text-primary/45">{formatDamage(total.damage)}</span>
                       </button>
                     );
                   })}
@@ -342,10 +337,10 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
           {/* Move rows */}
           <div>
             <div className="flex items-center gap-3 px-1 pb-2.5">
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-primary/55">{isHealing ? 'Healing sources' : 'Moves'}</h3>
+              <h3 className="text-2xs font-semibold uppercase tracking-[0.18em] text-text-primary/55">{isHealing ? 'Healing sources' : 'Moves'}</h3>
               {breakdown.dominantElement && ELEMENT_COLOR[breakdown.dominantElement] && (
                 <span
-                  className="rounded border px-1.5 py-px text-[10px] leading-4"
+                  className="rounded border px-1.5 py-px text-3xs leading-4"
                   style={{
                     color: ELEMENT_COLOR[breakdown.dominantElement],
                     borderColor: `${ELEMENT_COLOR[breakdown.dominantElement]}40`,
@@ -362,7 +357,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     type="button"
                     aria-pressed={sortMode === mode}
                     onClick={() => setSortMode(mode)}
-                    className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                    className={`rounded px-2.5 py-1 text-2xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
                       sortMode === mode
                         ? 'bg-accent/16 text-accent-hover'
                         : 'text-text-primary/55 hover:text-text-primary'
@@ -376,7 +371,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
             {/* Column labels for the two right-hand numbers, so share vs damage
                 doesn't need inference. Mirrors the row grid below. */}
-            <div className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-primary/42 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]">
+            <div className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 pb-1.5 text-3xs font-semibold uppercase tracking-[0.08em] text-text-primary/42 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]">
               <span />
               <span />
               <span className="max-lg:hidden" />
@@ -405,13 +400,15 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                   >
                     {/* Whole row toggles nested damage hits. Healing sources are
                         flattened into peer rows before rendering. */}
+                    {/* Row click is a convenience; the chevron button below is the
+                        accessible toggle (keyboard + aria-expanded). */}
                     <div
                       className={`grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 py-2 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px] ${canToggle ? 'cursor-pointer' : ''}`}
                       onClick={canToggle ? () => toggleExpanded(move.key) : undefined}
                     >
                       {/* Sequential in both sort modes; the raw rotation index skips
                           slots (folded repeats, modifiers) and reads as missing rows. */}
-                      <span className="text-center text-[11px] font-semibold tabular-nums text-text-primary/52">
+                      <span className="text-center text-2xs font-semibold tabular-nums text-text-primary/52">
                         {index + 1}
                       </span>
 
@@ -424,7 +421,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         <span className="flex shrink-0 gap-1">
                           {showElementChip && move.elemType && (
                             <span
-                              className="rounded border px-1.5 py-px text-[10px] leading-4"
+                              className="rounded border px-1.5 py-px text-3xs leading-4"
                               style={{
                                 color: ELEMENT_COLOR[move.elemType],
                                 borderColor: `${ELEMENT_COLOR[move.elemType]}40`,
@@ -437,7 +434,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                           {move.moveTypes.map((moveType) => (
                             <span
                               key={`${move.key}-chip-${moveType}`}
-                              className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 py-px text-[10px] leading-4 text-text-primary/50 max-sm:hidden"
+                              className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 py-px text-3xs leading-4 text-text-primary/50 max-sm:hidden"
                             >
                               <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: typeMeta(moveType).color }} />
                               {typeMeta(moveType).label}
@@ -448,12 +445,12 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                             only — fold rows carry per-hit MVs in the expansion, and the
                             parent's own-cast MV there would mislead. */}
                         {!hasHits && isHealing && (move.flatHeal > 0 || move.baseMV > 0) && (
-                          <span className="shrink-0 text-[10px] tabular-nums text-text-primary/45 max-sm:hidden">
+                          <span className="shrink-0 text-3xs tabular-nums text-text-primary/45 max-sm:hidden">
                             {formatHealFormula(move.flatHeal, move.baseMV, move.scaleStat)}
                           </span>
                         )}
                         {!hasHits && !isHealing && move.baseMV > 0 && (
-                          <span className="shrink-0 text-[10px] tabular-nums text-text-primary/45">
+                          <span className="shrink-0 text-3xs tabular-nums text-text-primary/45">
                             {formatBaseMV(move.baseMV)} MV{move.scaleStat && move.scaleStat !== 'ATK' ? ` · ${move.scaleStat}` : ''}
                           </span>
                         )}
@@ -463,7 +460,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         {move.typeSegments.map((segment) => (
                           <div
                             key={`${move.key}-segment-${segment.type}`}
-                            className="lb-bar-grow min-w-0.75 rounded-[3px]"
+                            className="lb-bar-grow min-w-0.75 rounded-xs"
                             style={{
                               flexGrow: segment.damage,
                               backgroundColor: isHealing ? HEAL_COLOR : typeMeta(segment.type).color,
@@ -511,19 +508,19 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: typeMeta(hit.displayType).color }} />
                               <span className="truncate">{hit.name}{hit.count > 1 ? ` ×${hit.count}` : ''}</span>
                               {hit.baseMV > 0 && (
-                                <span className="shrink-0 text-[10px] tabular-nums text-text-primary/45">{formatBaseMV(hit.baseMV)} MV</span>
+                                <span className="shrink-0 text-3xs tabular-nums text-text-primary/45">{formatBaseMV(hit.baseMV)} MV</span>
                               )}
                             </span>
                             <div className="max-lg:hidden">
                               <div
-                                className="h-1.5 min-w-0.75 rounded-[3px] opacity-80"
+                                className="h-1.5 min-w-0.75 rounded-xs opacity-80"
                                 style={{
                                   width: `${maxMoveDamage > 0 ? (hit.damage / maxMoveDamage) * 100 : 0}%`,
                                   backgroundColor: typeMeta(hit.displayType).color,
                                 }}
                               />
                             </div>
-                            <span className="text-right text-[11px] tabular-nums text-text-primary/42">{hit.percentage.toFixed(1)}%</span>
+                            <span className="text-right text-2xs tabular-nums text-text-primary/42">{hit.percentage.toFixed(1)}%</span>
                             <span className="text-right font-medium tabular-nums text-white/80">{formatDamage(hit.damage)}</span>
                             <span />
                           </div>

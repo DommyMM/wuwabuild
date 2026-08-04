@@ -120,7 +120,7 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
             {formatValue(key, value)}
           </span>
           {isFlatStat && bonus > 0 && (
-            <span className="whitespace-nowrap text-[10px] tabular-nums text-white/72">
+            <span className="whitespace-nowrap text-3xs tabular-nums text-white/72">
               {formatFlat(base)}{' '}
               <span className="text-emerald-300">
                 +{formatFlat(bonus)}

@@ -17,6 +17,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Design-sync tooling and its generated artifacts (gitignored, not app
+    // source). Their bundled output otherwise fails lint and the build.
+    ".design-sync/**",
+    ".ds-sync/**",
+    "ds-bundle/**",
+    "types/**",
   ]),
 ]);
 

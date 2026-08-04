@@ -9,7 +9,7 @@ import { getBuildCVRatingColor } from '@/lib/calculations/rollValues';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { getLBStatCode, LBBuildDetailEntry, LBBuildRowEntry, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
-import { ACTIVE_SORT_COLUMN_CLASS, SEQUENCE_BADGE_STYLES, SORTABLE_GROUP_GRID, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS, RegionBadge } from '../constants';
+import { ACTIVE_SORT_COLUMN_CLASS, SEQUENCE_BADGE_STYLES, SORTABLE_GROUP_GRID, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS, TABLE_STAT_GROUP_MIN, RegionBadge } from '../constants';
 import { formatStatByKey, getSortLabel, resolveRegionBadge } from '../formatters';
 import { resolveCharacterBaseScaling, resolveBuildRowStatKeys } from '../statColumns';
 import { Echo, UNKNOWN_SET_ACTIVATION_THRESHOLD } from '@/lib/echo';
@@ -157,7 +157,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
-        className={`grid ${tableGrid} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4.5 text-sm transition-colors ${
+        className={`grid ${tableGrid} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 text-sm transition-colors ${
           isGhost
             ? 'border-l-2 border-l-accent/60 bg-accent/6 hover:bg-accent/12'
             : 'odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10'
@@ -225,7 +225,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
                 ) : (
                   <div className="h-8 w-8" />
                 )}
-                <span className="text-xs -mb-1 -ml-px font-semibold leading-none text-primary">
+                <span className="text-xs -mb-1 -ml-px font-semibold leading-none text-text-primary">
                   {setEntry.count}
                 </span>
               </div>
@@ -233,7 +233,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
           )}
         </div>
 
-        <div className={`grid ${SORTABLE_GROUP_GRID} min-w-[652px] self-stretch gap-0`}>
+        <div className={`grid ${SORTABLE_GROUP_GRID} ${TABLE_STAT_GROUP_MIN} self-stretch gap-0`}>
           <div className={`self-stretch ${isCvColumnActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
             <div className="flex h-full items-center justify-between px-2.5 text-lg">
               <span className="text-text-primary">

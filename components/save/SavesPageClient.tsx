@@ -585,7 +585,7 @@ export const SavesPageClient: React.FC = () => {
                       <img src={item.icon} alt={item.name} className="h-5 w-5 shrink-0 rounded object-cover" />
                       <span className="truncate">{item.name}</span>
                     </span>
-                    <span className="rounded bg-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-text-primary/70">
+                    <span className="rounded bg-border px-1.5 py-0.5 text-3xs uppercase tracking-wide text-text-primary/70">
                       {item.type}
                     </span>
                   </button>

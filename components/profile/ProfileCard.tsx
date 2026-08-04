@@ -424,7 +424,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
                   />
                   {uploadedLabel && (
                     <span
-                      className="ml-auto font-ropa text-[11px] uppercase tracking-[0.14em] text-text-primary/50"
+                      className="ml-auto font-ropa text-2xs uppercase tracking-[0.14em] text-text-primary/50"
                       title={`First uploaded ${uploadedLabel}. Re-submitting the same build keeps this date.`}
                     >
                       Uploaded{' '}

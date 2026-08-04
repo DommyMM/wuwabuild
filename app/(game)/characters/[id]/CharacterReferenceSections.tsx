@@ -84,10 +84,10 @@ export function CharacterReferenceSections({
     return (
         <section className="mx-auto mb-10 mt-4 max-w-360 px-3 md:mt-6 md:px-16">
             {matchingWeapons.length > 0 && (
-                <div className="mb-4 rounded-xl border border-white/10 bg-background-secondary/70 p-4">
+                <div className="mb-4 rounded-xl border border-border bg-background-secondary/70 p-4">
                     <div className="flex flex-wrap items-end justify-between gap-3">
                         <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-primary/38">Compatible weapons</p>
+                            <p className="text-2xs font-semibold uppercase tracking-[0.24em] text-text-primary/38">Compatible weapons</p>
                             <p className="mt-1 text-sm text-text-primary/55">
                                 {weaponType} options that can be opened from this reference page.
                             </p>
@@ -99,11 +99,11 @@ export function CharacterReferenceSections({
                     <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                         {matchingWeapons.slice(0, 8).map((weapon) => (
                             <Link
-                                className="group grid grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-sm border border-white/10 bg-black/24 p-2 transition-colors hover:border-accent/45 hover:bg-accent/8"
+                                className="group grid grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded border border-border bg-black/24 p-2 transition-colors hover:border-accent/45 hover:bg-accent/8"
                                 href={`/weapons/${weapon.id}`}
                                 key={weapon.id}
                             >
-                                <span className="flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-black/35">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-black/35">
                                     {weapon.icon && <img src={weapon.icon} alt="" className="h-9 w-9 object-contain" loading="lazy" />}
                                 </span>
                                 <span className="min-w-0">
@@ -116,17 +116,17 @@ export function CharacterReferenceSections({
                 </div>
             )}
 
-            <div className="rounded-xl border border-white/10 bg-background-secondary/70 p-5">
-                <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
+            <div className="rounded-xl border border-border bg-background-secondary/70 p-5">
+                <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
                     <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-primary/38">Parsed data</p>
+                        <p className="text-2xs font-semibold uppercase tracking-[0.24em] text-text-primary/38">Parsed data</p>
                         <h2 className="mt-1 font-plus-jakarta text-2xl font-semibold tracking-[-0.02em] text-text-primary">
                             Skills and resonance chains
                         </h2>
                     </div>
-                    <div className="min-w-[220px]">
+                    <div className="min-w-55">
                         <div className="flex items-center justify-between gap-4">
-                            <label htmlFor="skill-level" className="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-primary/38">
+                            <label htmlFor="skill-level" className="text-2xs font-semibold uppercase tracking-[0.2em] text-text-primary/38">
                                 Skill level
                             </label>
                             <span className="font-gowun text-xl text-accent tabular-nums">Lv {skillLevel}</span>
@@ -153,11 +153,11 @@ export function CharacterReferenceSections({
                         const valueRows = move.values?.filter((value) => getI18nText(value.name) && value.values?.length) ?? [];
 
                         return (
-                            <article key={move.id} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                            <article key={move.id} className="rounded-lg border border-border bg-black/20 p-4">
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                     <h3 className="font-plus-jakarta text-lg font-semibold tracking-[-0.01em] text-text-primary">{moveName}</h3>
                                     {move.maxLevel ? (
-                                        <span className="rounded-sm border border-accent/25 bg-accent/8 px-2 py-1 text-xs font-semibold text-accent">
+                                        <span className="rounded border border-accent/25 bg-accent/8 px-2 py-1 text-xs font-semibold text-accent">
                                             Lv {skillLevel}/{move.maxLevel}
                                         </span>
                                     ) : null}
@@ -172,7 +172,7 @@ export function CharacterReferenceSections({
                                 {valueRows.length > 0 && (
                                     <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                                         {valueRows.map(val => (
-                                            <div key={val.id} className="rounded-sm border border-white/8 bg-white/[0.025] p-2">
+                                            <div key={val.id} className="rounded border border-white/8 bg-white/2.5 p-2">
                                                 <p className="truncate text-xs text-text-primary/45">{getI18nText(val.name)}</p>
                                                 <p className="mt-1 font-gowun text-sm text-text-primary tabular-nums">{getLevelValue(val.values, skillLevel)}</p>
                                             </div>
@@ -189,9 +189,9 @@ export function CharacterReferenceSections({
                                 const name = getI18nText(chain.name);
                                 const description = getI18nText(chain.description);
                                 return (
-                                    <article key={chain.id} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                                    <article key={chain.id} className="rounded-lg border border-border bg-black/20 p-4">
                                         <div className="flex items-center gap-3">
-                                            {chain.icon && <img src={chain.icon} alt="" className="h-10 w-10 rounded-md border border-white/10 bg-black/30 object-contain" loading="lazy" />}
+                                            {chain.icon && <img src={chain.icon} alt="" className="h-10 w-10 rounded-md border border-border bg-black/30 object-contain" loading="lazy" />}
                                             <div>
                                                 <p className={`seq-badge s${index + 1}`}>S{index + 1}</p>
                                                 <h3 className="mt-1 font-plus-jakarta text-base font-semibold tracking-[-0.01em] text-text-primary">{name}</h3>

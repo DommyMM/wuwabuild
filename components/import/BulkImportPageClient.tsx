@@ -424,15 +424,15 @@ export function BulkImportPageClient() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold text-text-primary">Bulk Import</h1>
-            <p className="mt-1 text-sm text-text-secondary">
+            <p className="mt-1 text-sm text-text-primary/60">
               Local batch OCR and leaderboard submit for exported build screenshots.
             </p>
-            <p className="mt-1 text-xs text-text-secondary">
+            <p className="mt-1 text-xs text-text-primary/60">
               Requests are automatically paced to the public OCR limit of 10 starts per minute per IP.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary hover:bg-surface-hover">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-text-primary hover:bg-border/50">
               <FolderOpen className="h-4 w-4" />
               Folder
               <input
@@ -444,7 +444,7 @@ export function BulkImportPageClient() {
                 {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
               />
             </label>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary hover:bg-surface-hover">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-text-primary hover:bg-border/50">
               <UploadCloud className="h-4 w-4" />
               Files
               <input
@@ -459,9 +459,9 @@ export function BulkImportPageClient() {
         </div>
 
         {/* Date window — file mtime == R2 upload date, so this is "uploaded between". */}
-        <div className="flex flex-col gap-3 rounded-md border border-border bg-surface/40 p-3">
+        <div className="flex flex-col gap-3 rounded-md border border-border bg-background-secondary/40 p-3">
           <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-xs text-text-secondary">
+            <label className="flex flex-col gap-1 text-xs text-text-primary/60">
               Uploaded from
               <input
                 type="date"
@@ -469,10 +469,10 @@ export function BulkImportPageClient() {
                 max={dateTo || undefined}
                 disabled={isRunning || allItems.length === 0}
                 onChange={event => applySelection({ from: event.target.value })}
-                className="rounded-md border border-border bg-surface px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md border border-border bg-background-secondary px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
               />
             </label>
-            <label className="flex flex-col gap-1 text-xs text-text-secondary">
+            <label className="flex flex-col gap-1 text-xs text-text-primary/60">
               Uploaded to
               <input
                 type="date"
@@ -480,19 +480,19 @@ export function BulkImportPageClient() {
                 min={dateFrom || undefined}
                 disabled={isRunning || allItems.length === 0}
                 onChange={event => applySelection({ to: event.target.value })}
-                className="rounded-md border border-border bg-surface px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md border border-border bg-background-secondary px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
               />
             </label>
             <button
               type="button"
               disabled={isRunning || (!dateFrom && !dateTo)}
               onClick={() => applySelection({ from: '', to: '' })}
-              className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md border border-border bg-background-secondary px-3 py-1.5 text-sm text-text-primary hover:bg-border/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Clear dates
             </button>
             {loadedSpan && (
-              <span className="text-xs text-text-secondary">
+              <span className="text-xs text-text-primary/60">
                 {dateFrom || dateTo
                   ? `${dateMatchCount} of ${allItems.length} match`
                   : `loaded span ${toDateInput(loadedSpan.min)} → ${toDateInput(loadedSpan.max)}`}
@@ -502,7 +502,7 @@ export function BulkImportPageClient() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-text-secondary">
+          <label className="flex items-center gap-2 text-sm text-text-primary/60">
             Limit
             <input
               type="number"
@@ -515,14 +515,14 @@ export function BulkImportPageClient() {
                 const value = event.target.value.trim();
                 applySelection({ limit: value ? Math.max(1, Math.min(10000, Number(value) || 1)) : null });
               }}
-              className="w-20 rounded-md border border-border bg-surface px-2 py-1 text-text-primary"
+              className="w-20 rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary"
             />
           </label>
           <button
             type="button"
             disabled={isRunning}
             onClick={() => applySelection({ limit: null })}
-            className="rounded-md border border-border bg-surface px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-border bg-background-secondary px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             All
           </button>
@@ -530,11 +530,11 @@ export function BulkImportPageClient() {
             type="button"
             disabled={isRunning}
             onClick={() => applySelection({ limit: 100 })}
-            className="rounded-md border border-border bg-surface px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-border bg-background-secondary px-2 py-1 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             100
           </button>
-          <label className="flex items-center gap-2 text-sm text-text-secondary">
+          <label className="flex items-center gap-2 text-sm text-text-primary/60">
             Image workers
             <input
               type="number"
@@ -543,7 +543,7 @@ export function BulkImportPageClient() {
               value={imageConcurrency}
               disabled={isRunning}
               onChange={event => setImageConcurrency(Math.max(1, Math.min(8, Number(event.target.value) || 1)))}
-              className="w-16 rounded-md border border-border bg-surface px-2 py-1 text-text-primary"
+              className="w-16 rounded-md border border-border bg-background-secondary px-2 py-1 text-text-primary"
             />
           </label>
           <button
@@ -562,7 +562,7 @@ export function BulkImportPageClient() {
               pauseRef.current = !pauseRef.current;
               setIsPaused(pauseRef.current);
             }}
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Pause className="h-4 w-4" />
             {isPaused ? 'Resume' : 'Pause'}
@@ -571,7 +571,7 @@ export function BulkImportPageClient() {
             type="button"
             disabled={isRunning && !isPaused}
             onClick={reset}
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RotateCcw className="h-4 w-4" />
             Reset
@@ -589,10 +589,10 @@ export function BulkImportPageClient() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <div className="h-2 overflow-hidden rounded-full bg-surface">
+        <div className="h-2 overflow-hidden rounded-full bg-background-secondary">
           <div className="h-full bg-accent transition-all" style={{ width: `${progress}%` }} />
         </div>
-        <div className="flex justify-between text-xs text-text-secondary">
+        <div className="flex justify-between text-xs text-text-primary/60">
           <span>{progress}% complete</span>
           <span>
             {pendingCount} pending · {items.length} queued / {allItems.length} loaded
@@ -603,13 +603,13 @@ export function BulkImportPageClient() {
       </section>
 
       {items.length === 0 ? (
-        <section className="flex min-h-72 items-center justify-center rounded-md border border-dashed border-border text-sm text-text-secondary">
+        <section className="flex min-h-72 items-center justify-center rounded-md border border-dashed border-border text-sm text-text-primary/60">
           Choose the local r2-backup folder or select image files to start.
         </section>
       ) : (
         <>
           <section className="overflow-hidden rounded-md border border-border">
-            <div className="grid grid-cols-[120px_1fr_96px_160px] border-b border-border bg-surface px-3 py-2 text-xs font-medium uppercase text-text-secondary">
+            <div className="grid grid-cols-[120px_1fr_96px_160px] border-b border-border bg-background-secondary px-3 py-2 text-xs font-medium uppercase text-text-primary/60">
               <span>Status</span>
               <span>File</span>
               <span>Uploaded</span>
@@ -622,10 +622,10 @@ export function BulkImportPageClient() {
                   <span className="truncate text-text-primary" title={(item.file as File & { webkitRelativePath?: string }).webkitRelativePath || item.file.name}>
                     {(item.file as File & { webkitRelativePath?: string }).webkitRelativePath || item.file.name}
                   </span>
-                  <span className="truncate text-text-secondary" title={new Date(item.file.lastModified).toLocaleString()}>
+                  <span className="truncate text-text-primary/60" title={new Date(item.file.lastModified).toLocaleString()}>
                     {toDateInput(item.file.lastModified)}
                   </span>
-                  <span className="truncate text-text-secondary" title={item.message}>{item.message}</span>
+                  <span className="truncate text-text-primary/60" title={item.message}>{item.message}</span>
                 </div>
               ))}
             </div>
@@ -640,8 +640,8 @@ export function BulkImportPageClient() {
 
 function Metric({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-md border border-border bg-surface px-3 py-2">
-      <div className="text-xs text-text-secondary">{label}</div>
+    <div className="rounded-md border border-border bg-background-secondary px-3 py-2">
+      <div className="text-xs text-text-primary/60">{label}</div>
       <div className="mt-1 text-lg font-semibold text-text-primary">{value}</div>
     </div>
   );
@@ -650,7 +650,7 @@ function Metric({ label, value }: { label: string; value: number | string }) {
 function StatusBadge({ status }: { status: BulkStatus }) {
   const iconClass = 'h-4 w-4';
   if (status === 'processing') {
-    return <span className="inline-flex items-center gap-2 text-text-secondary"><Loader2 className={`${iconClass} animate-spin`} />Processing</span>;
+    return <span className="inline-flex items-center gap-2 text-text-primary/60"><Loader2 className={`${iconClass} animate-spin`} />Processing</span>;
   }
   if (status === 'submitted') {
     return <span className="inline-flex items-center gap-2 text-green-500"><CheckCircle2 className={iconClass} />Submitted</span>;
@@ -661,7 +661,7 @@ function StatusBadge({ status }: { status: BulkStatus }) {
   if (status === 'failed') {
     return <span className="inline-flex items-center gap-2 text-red-500"><XCircle className={iconClass} />Failed</span>;
   }
-  return <span className="text-text-secondary">Pending</span>;
+  return <span className="text-text-primary/60">Pending</span>;
 }
 
 function IssuePanel({ items }: { items: BulkItem[] }) {
@@ -697,17 +697,17 @@ function IssuePanel({ items }: { items: BulkItem[] }) {
   };
 
   return (
-    <section className="flex flex-col gap-3 rounded-md border border-border bg-surface/40 p-3">
+    <section className="flex flex-col gap-3 rounded-md border border-border bg-background-secondary/40 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-text-primary">Issues</h2>
-          <p className="text-xs text-text-secondary">{items.length} failed or skipped images</p>
+          <p className="text-xs text-text-primary/60">{items.length} failed or skipped images</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={exportIssues}
-            className="rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-text-primary hover:bg-surface-hover"
+            className="rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs text-text-primary hover:bg-border/50"
           >
             Export JSON
           </button>
@@ -715,7 +715,7 @@ function IssuePanel({ items }: { items: BulkItem[] }) {
           <button
             type="button"
             onClick={() => setExpanded(value => !value)}
-            className="rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-text-primary hover:bg-surface-hover"
+            className="rounded-md border border-border bg-background-secondary px-3 py-1.5 text-xs text-text-primary hover:bg-border/50"
           >
             {expanded ? 'Show fewer' : `Show all ${items.length}`}
           </button>
@@ -741,7 +741,7 @@ function IssueCard({ item }: { item: BulkItem }) {
 
   return (
     <article className="grid grid-cols-[112px_1fr] gap-3 rounded-md border border-border bg-background p-2">
-      <div className="aspect-video overflow-hidden rounded border border-border bg-surface">
+      <div className="aspect-video overflow-hidden rounded border border-border bg-background-secondary">
         <img src={previewUrl} alt="" className="h-full w-full object-cover" />
       </div>
       <div className="min-w-0">
@@ -749,7 +749,7 @@ function IssueCard({ item }: { item: BulkItem }) {
           <StatusBadge status={item.status} />
         </div>
         <div className="mt-1 truncate text-sm text-text-primary" title={fileName}>{fileName}</div>
-        <p className="mt-1 wrap-break-word text-xs leading-5 text-text-secondary">{item.message || 'No message'}</p>
+        <p className="mt-1 wrap-break-word text-xs leading-5 text-text-primary/60">{item.message || 'No message'}</p>
       </div>
     </article>
   );

@@ -171,6 +171,12 @@ export function HoverTooltip({
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0 });
   const [showBottomArrow, setShowBottomArrow] = useState(false);
   const tooltipId = useId();
+  // Mirror of isOpen for the tap-toggle below: a touch pointerdown must read
+  // the pre-tap state without re-binding the handler on every open/close.
+  const isOpenRef = useRef(false);
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
 
   const hasContent = useMemo(() => {
     if (content === null || content === undefined) return false;
@@ -180,12 +186,19 @@ export function HoverTooltip({
 
   const shouldShow = !disabled && hasContent;
 
-  const handlePointerEnter = useCallback(() => {
+  const handlePointerEnter = useCallback((event: React.PointerEvent) => {
+    // A tap fires enter and down in the same gesture, so on touch the
+    // open/close decision lives in handlePointerDownCapture (tap toggles);
+    // reacting here would make every tap insta-close what it just opened.
+    if (event.pointerType === 'touch') return;
     pointerInsideRef.current = true;
     setIsOpen(true);
   }, []);
 
-  const handlePointerLeave = useCallback(() => {
+  const handlePointerLeave = useCallback((event: React.PointerEvent) => {
+    // Touch synthesizes leave right after pointerup; ignoring it keeps the
+    // tap-opened tooltip up. Tap-away dismissal is the document listener below.
+    if (event.pointerType === 'touch') return;
     pointerInsideRef.current = false;
     if (!focusWithinRef.current) setIsOpen(false);
   }, []);
@@ -200,13 +213,19 @@ export function HoverTooltip({
     setIsOpen(true);
   }, []);
 
-  const handlePointerDownCapture = useCallback(() => {
+  const handlePointerDownCapture = useCallback((event: React.PointerEvent) => {
     // A pointer selection may move focus to the trigger. Suppress that synthetic
-    // focus-open for one frame so click/tap always dismisses; keyboard focus
-    // continues to open the tooltip through handleFocusCapture.
+    // focus-open for one frame so the pointer decision below always wins;
+    // keyboard focus continues to open the tooltip through handleFocusCapture.
     suppressPointerFocusRef.current = true;
     focusWithinRef.current = false;
-    setIsOpen(false);
+    if (event.pointerType === 'touch') {
+      // Touch has no hover: the first tap opens, a second tap on the trigger
+      // closes. Without this, hover-only content is unreachable on phones.
+      setIsOpen(!isOpenRef.current);
+    } else {
+      setIsOpen(false);
+    }
     if (suppressFocusFrameRef.current !== null) {
       window.cancelAnimationFrame(suppressFocusFrameRef.current);
     }
@@ -295,6 +314,25 @@ export function HoverTooltip({
     if (!isOpen) return;
     updatePosition();
   }, [isOpen, updatePosition, content]);
+
+  // Tap-away dismissal for the touch toggle. Mouse already closes on
+  // pointerleave; for touch the trigger never sees the outside tap.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleDocumentPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (triggerRef.current?.contains(target)) return;
+      if (tooltipRef.current?.contains(target)) return;
+      pointerInsideRef.current = false;
+      focusWithinRef.current = false;
+      setIsOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handleDocumentPointerDown, true);
+    return () => document.removeEventListener('pointerdown', handleDocumentPointerDown, true);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -421,7 +459,7 @@ export function HoverTooltip({
     <>
       <div
         ref={triggerRef}
-        className={`${triggerClassName || 'inline-flex'} [touch-action:manipulation]`}
+        className={`${triggerClassName || 'inline-flex'} touch-manipulation`}
         tabIndex={shouldFocusWrapper ? 0 : undefined}
         aria-label={shouldFocusWrapper
           ? ariaLabel ?? triggerElement?.props['aria-label'] ?? (typeof children === 'string' ? children : undefined)

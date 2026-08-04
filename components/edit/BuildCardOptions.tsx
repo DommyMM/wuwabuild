@@ -20,7 +20,7 @@ interface BuildCardOptionsProps {
 }
 
 const INPUT_BASE = 'rounded-md border border-border bg-background-secondary px-3 py-2 text-sm text-text-primary placeholder:text-text-primary/25 focus:border-accent/60 focus:outline-none';
-const LABEL_BASE = 'text-[10px] font-medium uppercase tracking-wider text-text-primary/40';
+const LABEL_BASE = 'text-3xs font-medium uppercase tracking-wider text-text-primary/40';
 const CHECKBOX_BOX_BASE = 'flex h-[38px] w-[42px] cursor-pointer items-center justify-center rounded-md border border-border bg-background-secondary transition-colors hover:border-accent/50 has-disabled:cursor-not-allowed has-disabled:opacity-50';
 const CHECKBOX_INPUT_BASE = 'h-4 w-4 accent-accent';
 
@@ -88,7 +88,7 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({
               type="button"
               onClick={() => setUseAltSkin(false)}
               aria-pressed={!useAltSkin}
-              className={`rounded-[4px] px-2 transition-colors ${
+              className={`rounded px-2 transition-colors ${
                 !useAltSkin
                   ? 'bg-accent text-background'
                   : 'text-text-primary/55 hover:text-text-primary/85'
@@ -100,7 +100,7 @@ export const BuildCardOptions: React.FC<BuildCardOptionsProps> = ({
               type="button"
               onClick={() => setUseAltSkin(true)}
               aria-pressed={useAltSkin}
-              className={`rounded-[4px] px-2 transition-colors ${
+              className={`rounded px-2 transition-colors ${
                 useAltSkin
                   ? 'bg-accent text-background'
                   : 'text-text-primary/55 hover:text-text-primary/85'

@@ -704,7 +704,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                 setIsPageSizeMenuOpen((prev) => !prev);
                 setIsDropdownOpen(false);
               }}
-              className={`inline-flex min-w-30 items-center justify-between gap-2 border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none ${
+              className={`inline-flex min-w-30 items-center justify-between gap-2 border px-3 py-1.5 text-xs font-medium transition-colors ${
                 isPageSizeMenuOpen
                   ? 'rounded-t-lg rounded-b-none border-accent/70 bg-black/35 text-accent'
                   : 'rounded-lg border-border bg-background text-text-primary hover:border-accent/50 hover:bg-background-secondary/80'
@@ -787,7 +787,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
               key={entry.key}
               className="inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-text-primary"
             >
-              {entry.character.head ? <img src={entry.character.head} alt="" className="h-5 w-5 rounded-sm object-cover" /> : null}
+              {entry.character.head ? <img src={entry.character.head} alt="" className="h-5 w-5 rounded object-cover" /> : null}
               <span>{entry.label}</span>
               <button
                 type="button"
@@ -950,7 +950,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
         </div>
 
         {isDropdownOpen && (showStatSection || showSequenceSection || visibleItems.length > 0) && (
-          <div className="scrollbar-thin absolute left-0 right-0 z-30 flex max-h-132 flex-col overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
+          <div className="absolute left-0 right-0 z-30 flex max-h-132 flex-col overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
             {visibleItems.map((item, index) => {
               const previous = index > 0 ? visibleItems[index - 1] : null;
               const showSection = index === 0 || previous?.section !== item.section;
@@ -994,9 +994,9 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                     {item.type === 'character' && (
                       <span className="flex min-w-0 items-center gap-2">
                         {item.character.head ? (
-                          <img src={item.character.head} alt="" className="h-6 w-6 rounded-sm object-cover" />
+                          <img src={item.character.head} alt="" className="h-6 w-6 rounded object-cover" />
                         ) : (
-                          <div className="h-6 w-6 rounded-sm bg-border" />
+                          <div className="h-6 w-6 rounded bg-border" />
                         )}
                         <span className="truncate">{item.label}</span>
                       </span>
@@ -1034,7 +1034,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                       <span className="truncate">{item.label}</span>
                     )}
 
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
+                    <span className={`rounded px-1.5 py-0.5 text-3xs uppercase tracking-wide ${
                       isActiveRow
                         ? 'bg-cyan-500/20 text-cyan-100'
                         : 'bg-border text-text-primary/70'
@@ -1051,7 +1051,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-background-secondary px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold uppercase tracking-wide text-accent">Card Sequence</span>
-                    <span className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-text-primary/55">
+                    <span className="rounded border border-border bg-background px-1.5 py-0.5 text-3xs font-medium uppercase tracking-wide text-text-primary/55">
                       {sequenceActive ? `${sequences.length} selected` : 'All sequences'}
                     </span>
                   </div>
@@ -1067,7 +1067,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                         type="button"
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => onSetSequences(preset.levels)}
-                        className="rounded border border-border bg-background px-2 py-1 text-[11px] font-medium text-text-primary/60 transition-colors hover:border-accent/45 hover:text-text-primary"
+                        className="rounded border border-border bg-background px-2 py-1 text-2xs font-medium text-text-primary/60 transition-colors hover:border-accent/45 hover:text-text-primary"
                       >
                         {preset.label}
                       </button>

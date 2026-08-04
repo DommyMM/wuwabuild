@@ -72,10 +72,10 @@ export function WeaponReferenceSections({
     return (
         <section className="mx-auto mb-10 mt-4 max-w-360 px-3 md:mt-6 md:px-16">
             {matchingCharacters.length > 0 && (
-                <div className="mb-4 rounded-xl border border-white/10 bg-background-secondary/70 p-4">
+                <div className="mb-4 rounded-xl border border-border bg-background-secondary/70 p-4">
                     <div className="flex flex-wrap items-end justify-between gap-3">
                         <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-primary/38">Compatible resonators</p>
+                            <p className="text-2xs font-semibold uppercase tracking-[0.24em] text-text-primary/38">Compatible resonators</p>
                             <p className="mt-1 text-sm text-text-primary/55">
                                 {typeName} users that can equip {weaponName}.
                             </p>
@@ -89,11 +89,11 @@ export function WeaponReferenceSections({
                             const name = getI18nText(character.name);
                             return (
                                 <Link
-                                    className="group grid grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-sm border border-white/10 bg-black/24 p-2 transition-colors hover:border-accent/45 hover:bg-accent/8"
+                                    className="group grid grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded border border-border bg-black/24 p-2 transition-colors hover:border-accent/45 hover:bg-accent/8"
                                     href={`/characters/${character.id}`}
                                     key={character.id}
                                 >
-                                    <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-black/35">
+                                    <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border border-border bg-black/35">
                                         {character.icon?.iconRound && <img src={character.icon.iconRound} alt="" className="h-10 w-10 object-cover" loading="lazy" />}
                                     </span>
                                     <span className="min-w-0">
@@ -107,17 +107,17 @@ export function WeaponReferenceSections({
                 </div>
             )}
 
-            <div className="rounded-xl border border-white/10 bg-background-secondary/70 p-5">
-                <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
+            <div className="rounded-xl border border-border bg-background-secondary/70 p-5">
+                <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
                     <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-primary/38">Parsed data</p>
+                        <p className="text-2xs font-semibold uppercase tracking-[0.24em] text-text-primary/38">Parsed data</p>
                         <h2 className="mt-1 font-plus-jakarta text-2xl font-semibold tracking-[-0.02em] text-text-primary">
                             Passive and rank scaling
                         </h2>
                     </div>
-                    <div className="min-w-[220px]">
+                    <div className="min-w-55">
                         <div className="flex items-center justify-between gap-4">
-                            <label htmlFor="weapon-rank" className="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-primary/38">
+                            <label htmlFor="weapon-rank" className="text-2xs font-semibold uppercase tracking-[0.2em] text-text-primary/38">
                                 Weapon rank
                             </label>
                             <span className="font-gowun text-xl text-accent tabular-nums">R{rank}</span>
@@ -139,7 +139,7 @@ export function WeaponReferenceSections({
 
                 <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
                     {effectTemplate && (
-                        <article className="rounded-lg border border-white/10 bg-black/20 p-4">
+                        <article className="rounded-lg border border-border bg-black/20 p-4">
                             <p className="seq-badge">{`R${rank}`}</p>
                             <h3 className="mt-3 font-plus-jakarta text-lg font-semibold tracking-[-0.01em] text-text-primary">
                                 {effectName || 'Passive'}
@@ -154,11 +154,11 @@ export function WeaponReferenceSections({
                     )}
 
                     {passiveBonuses.length > 0 && (
-                        <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-text-primary/38">Static passive bonuses</p>
+                        <div className="rounded-lg border border-border bg-black/20 p-4">
+                            <p className="text-2xs font-semibold uppercase tracking-[0.22em] text-text-primary/38">Static passive bonuses</p>
                             <div className="mt-3 grid gap-2">
                                 {passiveBonuses.map(([stat, values]) => (
-                                    <div key={stat} className="rounded-sm border border-white/8 bg-white/[0.025] p-3">
+                                    <div key={stat} className="rounded border border-white/8 bg-white/2.5 p-3">
                                         <p className="truncate text-xs text-text-primary/45">{stat}</p>
                                         <p className="mt-1 font-gowun text-2xl leading-none text-text-primary tabular-nums">
                                             <span className="text-accent">+</span>{formatBonusValue(values[rankIndex])}

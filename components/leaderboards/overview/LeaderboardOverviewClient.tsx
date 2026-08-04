@@ -13,6 +13,7 @@ import { LB_SEQ_BADGE_COLORS, parseLBSeqLevel, stripLBSeqPrefix } from '../const
 import { formatReignHoldLabel, formatReignSinceDate } from '../formatters';
 import { getWeaponPaths } from '@/lib/paths';
 import { LeaderboardOverviewHeader } from './LeaderboardOverviewHeader';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 
 // Overview table grid: # | Character | Team | Entries | Weapon Rankings
 const OVERVIEW_GRID = 'grid-cols-[44px_280px_144px_76px_1fr]';
@@ -87,7 +88,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
   const showSkeleton = fetchState.isLoading;
 
   return (
-    <div className="scrollbar-thin bg-background [--scrollbar-height:2px] [--scrollbar-width:6px]">
+    <div className="bg-background">
       <div className="mx-auto w-full max-w-360 space-y-4 p-3 px-0 md:p-5">
         <section aria-busy={fetchState.isLoading || fetchState.isRefreshing} className="relative overflow-visible rounded-xl border border-border bg-background-secondary px-4 py-2">
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(166,150,98,0.12),transparent_58%)]" />
@@ -99,16 +100,14 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
 
             <div className="mt-4 space-y-3 border-t border-border/65 pt-4">
               {fetchState.error && (
-                <div role="alert" className="rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-300">
-                  Failed to load leaderboard data: {fetchState.error}
-                </div>
+                <ErrorBanner>Failed to load leaderboard data: {fetchState.error}</ErrorBanner>
               )}
 
-              <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
+              <div className="overflow-x-auto overflow-y-hidden pb-1">
                 <div className="w-max min-w-full">
                   <div className="overflow-hidden rounded-lg border border-border bg-background/70">
                     {/* Header matches LeaderboardResultsPanel style */}
-                    <div className={`grid ${OVERVIEW_GRID} items-center gap-4.5 rounded-t-lg border-b border-border bg-background-secondary/95 px-3 text-base text-text-primary`}>
+                    <div className={`grid ${OVERVIEW_GRID} items-center gap-4 rounded-t-lg border-b border-border bg-background-secondary/95 px-3 text-base text-text-primary`}>
                       <div className="py-2 text-center text-text-primary/55">#</div>
                       <div className="py-2 text-text-primary/70">Leaderboard</div>
                       <div className="py-2 text-center text-text-primary/70">Team</div>
@@ -122,7 +121,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                         ? Array.from({ length: 8 }).map((_, index) => (
                             <div
                               key={index}
-                              className={`grid ${OVERVIEW_GRID} items-center gap-4.5 px-3 py-3 odd:bg-background/30 even:bg-background-secondary/20`}
+                              className={`grid ${OVERVIEW_GRID} items-center gap-4 px-3 py-3 odd:bg-background/30 even:bg-background-secondary/20`}
                             >
                               <div className="mx-auto h-3 w-5 animate-pulse rounded bg-background-secondary/80" />
                               <div className="flex items-center gap-3">
@@ -179,7 +178,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                             return (
                               <div
                                 key={`${entry.id}:${entry.trackKey}`}
-                                className={`grid ${OVERVIEW_GRID} items-center gap-4.5 px-3 py-3 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/8`}
+                                className={`grid ${OVERVIEW_GRID} items-center gap-4 px-3 py-3 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/8`}
                               >
                                 {/* # */}
                                 <div className="py-2 text-center text-text-primary/55">{rowIndex + 1}</div>
@@ -254,7 +253,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                                   {totalEntries > 0 ? (
                                     <>
                                       <div className="text-base font-semibold text-text-primary">{totalEntries.toLocaleString()}</div>
-                                      <div className="text-[10px] uppercase tracking-[0.16em] text-text-primary/35">builds</div>
+                                      <div className="text-3xs uppercase tracking-[0.16em] text-text-primary/35">builds</div>
                                     </>
                                   ) : (
                                     <span className="text-xs text-text-primary/30">-</span>
@@ -330,7 +329,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                             );
                           })}
                       {!showSkeleton && overview.length === 0 && (
-                        <div className={`grid ${OVERVIEW_GRID} items-center gap-4.5 px-3 py-8 text-sm text-text-primary/45`}>
+                        <div className={`grid ${OVERVIEW_GRID} items-center gap-4 px-3 py-8 text-sm text-text-primary/45`}>
                           <div />
                           <div>No leaderboard entries found.</div>
                           <div className="text-center text-text-primary/30">-</div>

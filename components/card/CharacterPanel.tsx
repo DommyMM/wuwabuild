@@ -205,11 +205,11 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
               value={artSource}
               onChange={e => onArtSourceChange(e.target.value)}
               size={Math.max(1, artSource.length)}
-              className="bg-transparent text-sm italic text-white/70 focus:outline-none"
+              className="bg-transparent text-sm italic text-white/70"
             />
           </div>
         )}
-        <div className="text-[11px] font-semibold leading-none tracking-[0.14em] text-white/75 lowercase [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+        <div className="text-2xs font-semibold leading-none tracking-[0.14em] text-white/75 lowercase [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
           wuwa<span className="text-accent-hover">.build</span>
         </div>
       </div>

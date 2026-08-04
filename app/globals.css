@@ -19,6 +19,8 @@
   --color-rarity-4: #E400F0;
   --color-rarity-5: #CFB17F;
   --color-cv: #ff00ff;
+  --text-2xs: 0.6875rem;
+  --text-3xs: 0.625rem;
   --font-ropa: var(--font-ropa-next), sans-serif;
   --font-gowun: var(--font-gowun-next), sans-serif;
   --font-plus-jakarta: var(--font-plus-jakarta-next), sans-serif;
@@ -44,6 +46,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+}
+
+/* Baseline keyboard focus indicator. Components that draw their own
+   focus-visible ring also declare focus-visible:outline-none, so this only
+   surfaces where nothing else does. */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 75%, transparent);
+  outline-offset: 2px;
 }
 
 .build-card-frame,
@@ -571,39 +581,15 @@ body {
   box-shadow: 0 0 28px -4px rgba(166, 150, 98, 0.35);
 }
 
-.glass-card {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(51, 51, 51, 0.8);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 32%, rgba(0, 0, 0, 0.26) 100%);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: transform 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
-}
-.glass-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 46%);
-  opacity: 0.55;
-  transition: opacity 0.2s;
-}
-.glass-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(166, 150, 98, 0.3);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 32%, rgba(0, 0, 0, 0.26) 100%),
-    rgba(166, 150, 98, 0.08);
-}
-.glass-card:hover::before {
-  opacity: 0.75;
-}
-.glass-card > * {
-  position: relative;
-  z-index: 1;
+/* Gold glass panel frame shared by the build-card echo section, the rank module, and the expanded-row echo panels */
+.panel-glass {
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, #fcd34d 45%, transparent);
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.06) 28%, rgba(0, 0, 0, 0.44) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 -14px 24px rgba(0, 0, 0, 0.18),
+    0 8px 16px rgba(0, 0, 0, 0.38);
 }
 
 .seq-badge {

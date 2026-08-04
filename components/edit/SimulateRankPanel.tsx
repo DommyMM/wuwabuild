@@ -91,7 +91,7 @@ export const SimulateRankPanel: React.FC = () => {
       const weaponIcon = weapon ? getWeaponPaths(weapon) : null;
       return (
         <div className="flex flex-col gap-2">
-          <span className="font-ropa text-[10px] uppercase tracking-[0.2em] text-text-primary/40">
+          <span className="font-ropa text-3xs uppercase tracking-[0.2em] text-text-primary/40">
             Best placement
           </span>
           <div className="flex items-baseline gap-1.5">
@@ -109,7 +109,7 @@ export const SimulateRankPanel: React.FC = () => {
             )}
             <div className="min-w-0 leading-tight">
               <div className="truncate text-xs font-medium text-text-primary/80">{weaponName}</div>
-              <div className="truncate text-[11px] text-text-primary/45">{visibleBest.trackLabel}</div>
+              <div className="truncate text-2xs text-text-primary/45">{visibleBest.trackLabel}</div>
             </div>
           </div>
           <span className="text-xs font-semibold tabular-nums text-accent/90">
@@ -232,7 +232,7 @@ export const SimulateRankPanel: React.FC = () => {
               {renderRailSummary()}
 
               <div className="flex flex-col gap-2.5">
-                <span className="font-ropa text-[10px] uppercase tracking-[0.2em] text-text-primary/40">
+                <span className="font-ropa text-3xs uppercase tracking-[0.2em] text-text-primary/40">
                   Simulate as
                 </span>
                 <CharacterSelector compact className="w-full" />
@@ -244,7 +244,7 @@ export const SimulateRankPanel: React.FC = () => {
                 >
                   {buttonLabel}
                 </button>
-                <p className="text-[11px] leading-relaxed text-text-primary/35">
+                <p className="text-2xs leading-relaxed text-text-primary/35">
                   Nothing is submitted. This only checks where your equipped echoes would land.
                 </p>
               </div>

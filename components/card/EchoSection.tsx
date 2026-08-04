@@ -38,7 +38,7 @@ export const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
 };
 
 const PANEL_CLASS =
-  'relative min-w-0 flex-1 overflow-hidden rounded-xl border border-amber-300/45 bg-[linear-gradient(170deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.06)_28%,rgba(0,0,0,0.44)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.38)] transition-all duration-200';
+  'panel-glass relative min-w-0 flex-1 overflow-hidden transition-all duration-200';
 
 export const EchoSection: React.FC<EchoSectionProps> = ({
   echoPanels,

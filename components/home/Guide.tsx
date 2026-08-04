@@ -65,7 +65,7 @@ export function Guide() {
                         className="w-full rounded-lg border border-border"
                         loading="lazy"
                     />
-                    <figcaption className="mt-2.5 font-mono text-[11px] text-text-primary/45">
+                    <figcaption className="mt-2.5 font-mono text-2xs text-text-primary/45">
                         Import accepts only 1920×1080 wuwa-bot output
                     </figcaption>
                 </figure>

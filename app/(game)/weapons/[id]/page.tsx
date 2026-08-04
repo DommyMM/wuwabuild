@@ -89,7 +89,7 @@ function CompactStat({
 }) {
     return (
         <div className="rounded-md border border-white/8 bg-white/2.5 px-3 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-text-primary/32">{label}</p>
+            <p className="text-3xs font-semibold uppercase tracking-[0.22em] text-text-primary/32">{label}</p>
             <p className="mt-1 font-gowun text-xl leading-none text-text-primary tabular-nums">{value}</p>
             {detail && <p className="mt-1 text-xs text-text-primary/42">{detail}</p>}
         </div>
@@ -201,10 +201,10 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
             )}
             {weaponInfo && (
                 <section className="mx-auto max-w-360 px-3 pt-4 md:px-16 md:pt-8">
-                    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-background-secondary/72 shadow-[0_6px_16px_rgba(0,0,0,0.26)]">
+                    <div className="relative overflow-hidden rounded-xl border border-border bg-background-secondary/72 shadow-[0_6px_16px_rgba(0,0,0,0.26)]">
                         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(46%_120%_at_12%_0%,rgba(166,150,98,0.18)_0%,transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.035)_0%,transparent_48%,rgba(0,0,0,0.24)_100%)]" />
                         <div className="relative grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
-                            <div className="relative min-h-62.5 border-b border-white/10 bg-black/20 lg:border-r lg:border-b-0">
+                            <div className="relative min-h-62.5 border-b border-border bg-black/20 lg:border-r lg:border-b-0">
                                 {weaponIcon && (
                                     <img
                                         src={weaponIcon}
@@ -217,7 +217,7 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
                             <div className="p-5 md:p-7">
                                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
                                     <div>
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">Weapon dossier</p>
+                                        <p className="text-2xs font-semibold uppercase tracking-[0.24em] text-accent">Weapon dossier</p>
                                         <h1 className="mt-2 font-plus-jakarta text-4xl font-semibold leading-[1.02] tracking-[-0.02em] text-text-primary md:text-6xl">
                                             {wepName}
                                         </h1>
@@ -225,17 +225,17 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
                                             {weaponInfo.rarity?.id || 5}-star {typeName} reference page with parsed passive ranks, base stats, and compatible resonators.
                                         </p>
                                         <div className="mt-6 flex flex-wrap gap-2">
-                                            <Link className="gold-glow rounded-sm border border-accent/45 bg-accent px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover" href="/builds">
+                                            <Link className="gold-glow rounded border border-accent/45 bg-accent px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-accent-hover" href="/builds">
                                                 Browse top builds
                                             </Link>
                                             {matchingCharacters[0] && (
-                                                <Link className="gold-glow rounded-sm border border-white/10 bg-white/3 px-4 py-2 text-sm font-semibold text-text-primary/82 transition-colors hover:border-accent/45 hover:text-accent" href={`/characters/${matchingCharacters[0].id}`}>
+                                                <Link className="gold-glow rounded border border-border bg-white/3 px-4 py-2 text-sm font-semibold text-text-primary/82 transition-colors hover:border-accent/45 hover:text-accent" href={`/characters/${matchingCharacters[0].id}`}>
                                                     Open {getI18nText(matchingCharacters[0].name)}
                                                 </Link>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="grid gap-2 rounded-lg border border-white/10 bg-black/18 p-2 md:grid-cols-3 xl:grid-cols-2">
+                                    <div className="grid gap-2 rounded-lg border border-border bg-black/18 p-2 md:grid-cols-3 xl:grid-cols-2">
                                         <CompactStat label="Rarity" value={`${weaponInfo.rarity?.id || 5} star`} />
                                         <CompactStat label="Type" value={typeName} />
                                         <CompactStat label="Base ATK" value={baseAtk.toLocaleString('en-US')} />

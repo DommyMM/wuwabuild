@@ -108,9 +108,9 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
   return (
     <div className="border-b border-border/70 px-6 py-4">
       <div className="mb-3 flex items-baseline gap-2.5">
-        <h2 className="text-[11px] font-semibold tracking-wider text-text-primary/55 uppercase">Rankings</h2>
+        <h2 className="text-2xs font-semibold tracking-wider text-text-primary/55 uppercase">Rankings</h2>
         {!loading && entries.length > 0 && (
-          <span className="text-[10px] tabular-nums text-text-primary/35">
+          <span className="text-3xs tabular-nums text-text-primary/35">
             {entries.length} character{entries.length === 1 ? '' : 's'}
           </span>
         )}
@@ -130,7 +130,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
               className={
                 showAll
                   ? 'flex flex-wrap gap-2 max-[560px]:grid max-[560px]:grid-cols-2'
-                  : 'flex snap-x snap-proximity flex-nowrap gap-2 overflow-x-auto pb-1.5 scrollbar-none hover:scrollbar-thin [&::-webkit-scrollbar]:h-0 hover:[&::-webkit-scrollbar]:h-1.5'
+                  : 'flex snap-x snap-proximity flex-nowrap gap-2 overflow-x-auto pb-1.5 scrollbar-none hover:[&::-webkit-scrollbar]:h-0 hover:[&::-webkit-scrollbar]:h-1.5'
               }
             >
               {entries.map((entry) => {
@@ -218,14 +218,14 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
                   <div className="relative z-10 flex h-full flex-col justify-between p-3">
                     <div className="flex min-w-0 items-start gap-1.5">
                       <div className="min-w-0 flex-1">
-                        <span className={`block truncate font-bold text-text-primary/90 uppercase ${compactCharacterName ? 'text-[10px] tracking-[0.04em]' : 'text-[11px] tracking-wider'}`}>
+                        <span className={`block truncate font-bold text-text-primary/90 uppercase ${compactCharacterName ? 'text-3xs tracking-[0.04em]' : 'text-2xs tracking-wider'}`}>
                           {characterName}
                         </span>
                         <span className="mt-0.5 block truncate text-[8px] font-semibold tracking-[0.16em] text-text-primary/45 uppercase">
                           {baseLabel}
                         </span>
                       </div>
-                      <span className={`shrink-0 rounded-sm border px-2 py-0.5 text-[8px] font-semibold tracking-wide shadow-sm backdrop-blur-sm ${boardSequenceClass}`}>
+                      <span className={`shrink-0 rounded border px-2 py-0.5 text-[8px] font-semibold tracking-wide shadow-sm backdrop-blur-sm ${boardSequenceClass}`}>
                         S{entry.sequence} BOARD
                       </span>
                     </div>
@@ -239,7 +239,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
 
                     <div className="flex w-[63%] items-baseline gap-1">
                       <span className="text-sm font-bold tabular-nums text-text-primary/85">#{entry.rank.toLocaleString()}</span>
-                      <span className="text-[10px] tabular-nums text-text-primary/40">/ {formatCount(entry.total)}</span>
+                      <span className="text-3xs tabular-nums text-text-primary/40">/ {formatCount(entry.total)}</span>
                     </div>
                   </div>
                 </Link>

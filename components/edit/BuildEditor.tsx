@@ -645,7 +645,7 @@ export const BuildEditor: React.FC = () => {
           />
           <button
             onClick={handleGenerateCard}
-            className="w-full rounded-lg bg-accent px-4 py-3 text-base font-semibold tracking-wide text-background transition-all hover:brightness-110 hover:shadow-[0_0_16px_rgba(var(--color-accent),0.4)] active:scale-[0.97] lg:absolute lg:left-1/2 lg:w-auto lg:-translate-x-1/2"
+            className="w-full rounded-lg bg-accent px-4 py-3 text-base font-semibold tracking-wide text-background transition-all hover:brightness-110 hover:shadow-[0_0_16px_rgba(166,150,98,0.4)] active:scale-[0.97] lg:absolute lg:left-1/2 lg:w-auto lg:-translate-x-1/2"
           >
             Generate
           </button>
@@ -654,7 +654,7 @@ export const BuildEditor: React.FC = () => {
               <>
                 <div className="min-w-0 pt-4 md:pt-0">
                   {isPhoneViewport ? (
-                    <div className="scrollbar-thin overflow-x-auto overflow-y-hidden pb-1 [--scrollbar-height:2px] [--scrollbar-width:6px]">
+                    <div className="overflow-x-auto overflow-y-hidden pb-1">
                       <div style={{ width: BUILD_CARD_DESIGN_WIDTH, minWidth: BUILD_CARD_DESIGN_WIDTH }}>
                         <BuildCard
                           ref={cardRef}
