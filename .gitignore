@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 __pycache__/
 .claude/
+# design-sync (claude.ai/design system export)
+.ds-sync/
+ds-bundle/
+types/
+.design-sync/

@@ -93,7 +93,7 @@ const SupportAvatar: React.FC<{ member: RankTeamMember }> = ({ member }) => (
               role="img"
               aria-label={icon.label}
               title={icon.label}
-              className="h-4 w-4 rounded-[4px] border border-white/14 bg-black/80 bg-cover bg-center bg-no-repeat shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
+              className="h-4 w-4 rounded-sm border border-white/14 bg-black/80 bg-cover bg-center bg-no-repeat shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
               style={{ backgroundImage: `url("${icon.src}")` }}
             />
           );
