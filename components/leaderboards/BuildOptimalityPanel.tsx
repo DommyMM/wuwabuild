@@ -14,13 +14,33 @@ import { ErrorBanner } from '@/components/ui/ErrorBanner';
 const POSITIVE_COLOR = STATUS_POSITIVE_COLOR;
 const NEGATIVE_COLOR = STATUS_NEGATIVE_COLOR;
 
+// Tier scores are read side by side, so they hold two decimals even when the
+// last is a zero — otherwise "11.28M / 9.63M / 8.4M" breaks the decimal
+// alignment that makes the three cards comparable at a glance.
 const SCORE_FORMATTER = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+// Modifier deltas are read one at a time; padding them adds noise.
+const DELTA_FORMATTER = new Intl.NumberFormat('en-US', {
   notation: 'compact',
   maximumFractionDigits: 2,
 });
 
-function fmtDmg(value: number): string {
+function fmtScore(value: number): string {
   return SCORE_FORMATTER.format(value);
+}
+
+function fmtDelta(value: number): string {
+  return DELTA_FORMATTER.format(value);
+}
+
+// Backend layout keys are echo cost strings ("43311"). Hyphenate so they read
+// as a cost split rather than an opaque id; anything else passes through.
+function formatLayoutLabel(layout: string): string {
+  return /^\d+$/.test(layout) ? layout.split('').join('-') : layout;
 }
 
 const SECTION_HEADING = 'text-2xs font-semibold uppercase tracking-[0.18em] text-text-primary/55';
@@ -76,7 +96,7 @@ function TierRow({ ref_, currentDamage, ratio, isActive, onClick }: TierRowProps
       type="button"
       aria-pressed={isActive}
       onClick={onClick}
-      className={`min-w-0 cursor-pointer rounded-lg border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+      className={`min-w-0 cursor-pointer rounded-lg border p-2.5 text-left transition-[color,background-color,border-color,transform] duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
         isActive
           ? 'border-accent/70 bg-accent/9'
           : 'border-border/45 bg-black/15 hover:border-accent/40 hover:bg-background-secondary/40'
@@ -92,7 +112,7 @@ function TierRow({ ref_, currentDamage, ratio, isActive, onClick }: TierRowProps
       </span>
       <span className="mt-2.5 flex items-end justify-between gap-2">
         <span className={`text-base font-semibold tabular-nums ${isActive ? 'text-accent-hover' : 'text-text-primary/75'}`}>
-          {fmtDmg(ref_.damage)}
+          {fmtScore(ref_.damage)}
         </span>
         <span className="text-xs font-semibold tabular-nums" style={{ color: ratioColor(ratio) }}>
           {ratio !== undefined ? `${(ratio * 100).toFixed(1)}% of ${meta.label.toLowerCase()}` : 'Reference'}
@@ -255,7 +275,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
       : vsStd;
   const energyRegen = selectedRef.topLevelStats.energy_regen ?? 0;
   const meetsErTarget = data.erTarget <= 0 || energyRegen >= data.erTarget;
-  const layoutLabel = selectedRef.layout;
+  const layoutLabel = formatLayoutLabel(selectedRef.layout);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border/45 bg-background-secondary/20">
@@ -298,7 +318,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
                 {TIER_META[selectedTier].label}{layoutLabel ? ` · ${layoutLabel} layout` : ''}
               </h4>
               <div className="mt-1.5 flex items-baseline gap-2.5">
-                <span className="text-2xl font-bold tabular-nums text-accent-hover">{fmtDmg(selectedRef.damage)}</span>
+                <span className="text-2xl font-bold tabular-nums text-accent-hover">{fmtScore(selectedRef.damage)}</span>
                 <span className="text-2xs text-text-primary/45">
                   {selectedRatio !== undefined ? `${(selectedRatio * 100).toFixed(1)}% of ${TIER_META[selectedTier].label.toLowerCase()}` : 'Reference score'}
                 </span>
@@ -343,7 +363,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
                 <div key={modifier.key || modifier.name} className="flex items-center gap-1.5">
                   <span className="text-text-primary/50">{modifier.name}</span>
                   <span className="shrink-0 font-semibold tabular-nums" style={{ color: modifier.delta >= 0 ? POSITIVE_COLOR : NEGATIVE_COLOR }}>
-                    {modifier.delta >= 0 ? '+' : '−'}{fmtDmg(Math.abs(modifier.delta))}
+                    {modifier.delta >= 0 ? '+' : '−'}{fmtDelta(Math.abs(modifier.delta))}
                   </span>
                 </div>
               ))}
@@ -387,7 +407,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
 
         <section aria-labelledby={`${panelId}-echoes`}>
           <h4 id={`${panelId}-echoes`} className={SECTION_HEADING}>Echo Blueprint</h4>
-          <div className="mx-auto mt-2 w-full max-w-330 space-y-4 font-ropa tracking-wide sm:px-4 xl:px-8">
+          <div className="mt-2 w-full space-y-4 font-ropa tracking-wide">
             <BuildExpandedEchoPanels
               detail={syntheticDetail}
               character={character}

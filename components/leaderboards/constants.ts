@@ -161,16 +161,57 @@ export const ACTIVE_SORT_COLUMN_CLASS = 'bg-black/28';
 export const STATUS_POSITIVE_COLOR = '#5cc7c2';
 export const STATUS_NEGATIVE_COLOR = '#f87171';
 
+// "No signal" tone: a zero delta, an inapplicable cell, a negligible gain.
+export const STATUS_NEUTRAL_COLOR = 'rgba(224,224,224,0.6)';
+
+/**
+ * Magnitude ramp for "better is bigger" figures (upgrade gain, rank improvement).
+ *
+ * Saturation carries the signal and lightness stays near-flat: the low end is a
+ * near-neutral gray-green that reads as "negligible" next to plain white
+ * numbers, and the top holds the hue and saturation these figures have always
+ * used (129, 73%), a shade deeper so it stays vivid on the dark surface.
+ * Ramping lightness alone (the previous 61%→75% on that fixed 73% saturation)
+ * was imperceptible — a 250x spread in gain rendered as effectively one color.
+ *
+ * Green, not the teal of STATUS_POSITIVE_COLOR. That teal exists so a bonus and
+ * a penalty stay apart under red-green colorblindness; it is for signed pairs.
+ * These figures are unsigned (gain is filtered to > 0, and an added roll cannot
+ * push a rank down), so there is no pair to disambiguate, green carries the
+ * plain "gain" convention, and teal would collide with the Glacio element tint.
+ *
+ * @param ratio value as a fraction of the strongest value in the same group.
+ */
+export function statusRampColor(ratio: number): string {
+  const clamped = Math.min(1, Math.max(0, Number.isFinite(ratio) ? ratio : 0));
+  return `hsl(129 ${Math.round(10 + (clamped * 63))}% ${Math.round(64 - (clamped * 5))}%)`;
+}
+
+// Shared measure for every section of an expanded leaderboard build row: echo
+// panels, summary pills, move breakdown, upgrade table, standings, benchmark.
+// One constraint on the shell means the sections share a left edge down the
+// column instead of each carrying its own max-width.
+export const LB_EXPANDED_SHELL = 'mx-auto w-full max-w-330 px-12';
+
+// Opaque stand-in for the expanded-row surface, used by the frozen rail in the
+// substat upgrade table so scrolling columns tuck cleanly underneath. Sits
+// between --color-background (#121212) and --color-background-secondary
+// (#1E1E1E), which is what the row's translucent stack resolves to.
+export const LB_EXPANDED_OPAQUE_SURFACE = 'bg-[#191919]';
+// Same colour as a gradient origin, for the scroll-edge fade over a wide table.
+// Kept as a separate literal because Tailwind scans for whole class names.
+export const LB_EXPANDED_OPAQUE_SURFACE_FROM = 'from-[#191919]';
+
 // # | Owner | Character | Sets | [CV+Stats+Damage]
 export const LB_TABLE_GRID = 'grid-cols-[48px_178px_154px_112px_minmax(0,1fr)]';
 export const LB_SORTABLE_GROUP_GRID = 'grid-cols-[172px_repeat(4,121px)_minmax(140px,1fr)]';
 export const DEFAULT_LB_SORT = 'damage';
 export const DEFAULT_LB_TRACK = 's0';
 
-// Expanded build substat summary row (leaderboard + profile).
-export const LB_SUMMARY_ROW = 'mx-auto flex w-max max-w-none flex-nowrap items-center justify-center gap-2';
+// Expanded build substat summary row (leaderboard + profile) that wraps rather than overflow
+export const LB_SUMMARY_ROW = 'mx-auto flex w-full flex-wrap items-center justify-center gap-2';
 
-export const LB_SUMMARY_PILL = 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 cursor-pointer hover:border-amber-200/65';
+export const LB_SUMMARY_PILL = 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-[border-color,opacity,transform] duration-200 active:scale-[0.97] cursor-pointer hover:border-amber-200/65';
 
 export const LB_SUMMARY_VAL = 'text-base';
 
@@ -178,7 +219,7 @@ export const LB_SUMMARY_ICON = 'h-4 w-4 object-contain';
 
 export const LB_SUMMARY_ICON_EMPTY = 'h-4 w-4 rounded bg-white/18';
 
-export const LB_SUMMARY_RV = 'inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-all duration-200 select-none';
+export const LB_SUMMARY_RV = 'inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-[border-color,opacity] duration-200 select-none';
 
 // Sequence badge border/bg/text colors. Index = sequence level 0-6.
 // This is the single source for the S1-S6 color ramp; SEQUENCE_BADGE_STYLES

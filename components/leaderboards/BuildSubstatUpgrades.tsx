@@ -4,6 +4,8 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Info } from 'lucide-react';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HoverTooltip } from '@/components/ui/HoverTooltip';
+import { LB_EXPANDED_OPAQUE_SURFACE, LB_EXPANDED_OPAQUE_SURFACE_FROM, STATUS_NEGATIVE_COLOR, STATUS_NEUTRAL_COLOR, statusRampColor } from './constants';
+import { formatDamage } from './formatters';
 
 export interface BuildUpgradeColumn {
   key: string;
@@ -38,13 +40,10 @@ interface BuildSubstatUpgradesProps {
   orderedUpgradeColumns: BuildUpgradeColumn[];
 }
 
-function formatDamage(value: number): string {
-  return Math.round(value).toLocaleString();
-}
-
 function formatSignedPercent(value: number): string {
   if (!Number.isFinite(value)) return '—';
-  return `+${value.toFixed(value >= 10 ? 1 : 2)}%`;
+  const magnitude = Math.abs(value);
+  return `${value < 0 ? '−' : '+'}${magnitude.toFixed(magnitude >= 10 ? 1 : 2)}%`;
 }
 
 function formatUpgradeValue(value: number, isPercent: boolean): string {
@@ -57,24 +56,23 @@ function formatSignedUpgradeValue(value: number, isPercent: boolean): string {
   return value > 0 ? `+${formatted}` : formatted;
 }
 
+// Both columns rank the same way — bigger is better — so they share one ramp,
+// scaled against the strongest value in their own row. A rank that got worse is
+// the one signed case and takes the shared negative tone.
 function getRankDeltaColor(rankDelta: number, maxDelta: number): string {
-  if (!Number.isFinite(rankDelta) || rankDelta === 0) return 'rgba(224,224,224,0.6)';
-  if (rankDelta < 0) return 'hsl(0 72% 65%)';
-  const ratio = maxDelta > 0 ? Math.min(1, rankDelta / maxDelta) : 0;
-  const lightness = 61 + (ratio * 14);
-  return `hsl(129 73% ${lightness}%)`;
+  if (!Number.isFinite(rankDelta) || rankDelta === 0) return STATUS_NEUTRAL_COLOR;
+  if (rankDelta < 0) return STATUS_NEGATIVE_COLOR;
+  return statusRampColor(maxDelta > 0 ? rankDelta / maxDelta : 0);
 }
 
 function getGainColor(percentGain: number, maxPercentGain: number): string {
-  if (!Number.isFinite(percentGain) || percentGain <= 0) return 'rgba(224,224,224,0.6)';
-  const ratio = maxPercentGain > 0 ? Math.min(1, percentGain / maxPercentGain) : 0;
-  const lightness = 61 + (ratio * 14);
-  return `hsl(129 73% ${lightness}%)`;
+  if (!Number.isFinite(percentGain) || percentGain <= 0) return STATUS_NEUTRAL_COLOR;
+  return statusRampColor(maxPercentGain > 0 ? percentGain / maxPercentGain : 0);
 }
 
 // Frozen "rail" of the first two columns (row labels + Original baseline).
 // Opaque so the scrolling upgrade columns tuck cleanly underneath.
-const PINNED = 'sticky z-20 bg-[#191919]';
+const PINNED = `sticky z-20 ${LB_EXPANDED_OPAQUE_SURFACE}`;
 const ROW_DIVIDER = 'border-t border-border/45';
 
 export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
@@ -117,6 +115,30 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
 
   const originalStyle: React.CSSProperties = { left: labelColWidth };
 
+  // The table is wider than the row on any build with a full spread of upgrade
+  // columns, so it cuts a value mid-glyph at the right edge with only a hairline
+  // scrollbar to explain it. Fade that edge while there is more to reach. The
+  // left edge needs no equivalent: the pinned rail is already opaque.
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const remaining = el.scrollWidth - el.clientWidth - el.scrollLeft;
+      setCanScrollRight(remaining > 1);
+    };
+    measure();
+    el.addEventListener('scroll', measure, { passive: true });
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener('scroll', measure);
+      observer.disconnect();
+    };
+  }, [orderedUpgradeColumns.length, hasUpgradeData, hasBaseDamage]);
+
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-center gap-2">
@@ -129,7 +151,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
                 type="button"
                 aria-pressed={isActive}
                 onClick={() => onSelectTier(option.key)}
-                className={`rounded px-2.5 py-1 text-2xs font-semibold tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                className={`rounded px-2.5 py-1 text-2xs font-semibold tracking-wide transition-[color,background-color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
                   isActive
                     ? 'bg-accent/16 text-accent-hover'
                     : 'text-text-primary/55 hover:text-text-primary'
@@ -199,8 +221,14 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
       )}
 
       {!isLoading && !error && hasUpgradeData && hasBaseDamage && orderedUpgradeColumns.length > 0 && (
-        <div className="min-w-0 w-full">
-          <div className="overflow-x-auto pb-1">
+        <div className="relative min-w-0 w-full">
+          {canScrollRight && (
+            <div
+              aria-hidden
+              className={`pointer-events-none absolute inset-y-0 right-0 z-30 w-10 bg-linear-to-l ${LB_EXPANDED_OPAQUE_SURFACE_FROM} to-transparent`}
+            />
+          )}
+          <div ref={scrollerRef} className="overflow-x-auto pb-1">
             <div className="w-max min-w-full">
               <table className="mx-auto border-separate border-spacing-0 text-sm tabular-nums">
                 <thead>
@@ -240,7 +268,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
                     <td className={`${PINNED} ${ROW_DIVIDER} border-r border-border/60 px-3 py-2.5 text-center text-text-primary/35`} style={originalStyle}>—</td>
                     {orderedUpgradeColumns.map((column) => (
                       <td key={`upgrade-gain-${column.key}`} className={`${ROW_DIVIDER} px-3 py-2.5 text-center font-semibold`} style={{ color: getGainColor(column.percentGain, strongestPercentGain) }}>
-                        +{formatDamage(column.gain)}
+                        {column.gain < 0 ? '−' : '+'}{formatDamage(Math.abs(column.gain))}
                       </td>
                     ))}
                   </tr>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -12,6 +12,7 @@ import { BuildMoveBreakdown } from './BuildMoveBreakdown';
 import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
 import { BuildStandingsTable } from './BuildStandingsTable';
 import { RegionBadge, ScoringMode } from './constants';
+import { transportError, useKeyedResource } from './useKeyedResource';
 
 const BuildOptimalityPanel = dynamic(() => import('./BuildOptimalityPanel').then((module) => module.BuildOptimalityPanel), {
   ssr: false,
@@ -159,9 +160,12 @@ function canonicalUpgradeSort(
   return [...ordered, ...leftovers];
 }
 
-function hasCacheKey<T>(record: Record<string, T>, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(record, key);
-}
+// Centred and sized to their own label, so the chevron sits beside the text it
+// belongs to and the stack reads as one column of controls with "View in
+// Editor". Spanning the full measure left ~1000px of dead space between label
+// and chevron; the old fixed 192px jammed them together instead.
+const SECTION_TOGGLE_CLASS = 'mx-auto flex w-fit items-center gap-2 rounded border border-border bg-background-secondary px-4 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color,transform] duration-150 hover:border-accent/60 hover:text-text-primary active:scale-[0.97] cursor-pointer';
+const ACTION_BUTTON_CLASS = 'flex w-full items-center justify-center rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color,transform] duration-150 hover:border-accent/60 hover:text-text-primary active:scale-[0.97] cursor-pointer';
 
 interface BuildSimulationSectionProps {
   buildId: string;
@@ -196,48 +200,51 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
 }) => {
   const { getWeapon, getSubstatValues, getSubstatRollProbabilities, statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
-  const moveControllerRef = useRef<AbortController | null>(null);
-  const upgradeControllerRef = useRef<AbortController | null>(null);
-  const standingsControllerRef = useRef<AbortController | null>(null);
-  const optimalityControllerRef = useRef<AbortController | null>(null);
 
-  const [movesByKey, setMovesByKey] = useState<Record<string, LBMoveEntry[]>>({});
-  const [moveErrorsByKey, setMoveErrorsByKey] = useState<Record<string, string | null>>({});
-  const [loadingMoveKeys, setLoadingMoveKeys] = useState<Record<string, boolean>>({});
-  const [upgradesByKey, setUpgradesByKey] = useState<Record<string, LBSubstatUpgradeTierSet | null>>({});
-  const [upgradeErrorsByKey, setUpgradeErrorsByKey] = useState<Record<string, string | null>>({});
-  const [loadingUpgradeKeys, setLoadingUpgradeKeys] = useState<Record<string, boolean>>({});
-  const [optimalityByKey, setOptimalityByKey] = useState<Record<string, LBBoardOptimality | null>>({});
-  const [optimalityErrorsByKey, setOptimalityErrorsByKey] = useState<Record<string, string | null>>({});
-  const [loadingOptimalityKeys, setLoadingOptimalityKeys] = useState<Record<string, boolean>>({});
   const [isMovesOpen, setIsMovesOpen] = useState(false);
   const [isUpgradesOpen, setIsUpgradesOpen] = useState(false);
   const [isOptimalityOpen, setIsOptimalityOpen] = useState(false);
-  const [selectedUpgradeTier, setSelectedUpgradeTier] = useState<UpgradeTierKey>('median');
-  const [standings, setStandings] = useState<LBStandingEntry[] | null>(null);
-  const [standingsLoading, setStandingsLoading] = useState(false);
-  const [standingsError, setStandingsError] = useState<string | null>(null);
   const [isStandingsOpen, setIsStandingsOpen] = useState(false);
+  const [selectedUpgradeTier, setSelectedUpgradeTier] = useState<UpgradeTierKey>('median');
+
   const hasBoardContext = buildId.length > 0 && activeWeaponId.length > 0 && activeTrackKey.length > 0;
-  const moveKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
-  const upgradeKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
-  const optimalityKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
+  // Moves, upgrades and the benchmark are all scoped to one build on one board.
+  const boardKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
   const weapon = getWeapon(activeWeaponId);
   const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : activeWeaponId;
   const trackLabel = formatTrackLabel(activeTrackKey);
   const isHealing = isHealTrackKey(activeTrackKey);
-  const moves = movesByKey[moveKey] ?? [];
-  const moveError = moveErrorsByKey[moveKey] ?? null;
-  const isMoveLoading = loadingMoveKeys[moveKey] ?? false;
-  const activeUpgrades = upgradesByKey[upgradeKey] ?? null;
-  const upgradesError = upgradeErrorsByKey[upgradeKey] ?? null;
-  const upgradesLoading = loadingUpgradeKeys[upgradeKey] ?? false;
-  const optimality = optimalityByKey[optimalityKey] ?? null;
-  const optimalityError = optimalityErrorsByKey[optimalityKey] ?? null;
-  const optimalityLoading = loadingOptimalityKeys[optimalityKey] ?? false;
-  const shouldLoadMoves = isExpanded && isMovesOpen;
-  const shouldLoadUpgrades = isExpanded && isUpgradesOpen;
-  const shouldLoadOptimality = isExpanded && isOptimalityOpen && hasBoardContext;
+
+  const movesResource = useKeyedResource<LBMoveEntry[]>({
+    key: boardKey,
+    enabled: isExpanded && isMovesOpen && hasBoardContext,
+    fetch: (signal) => getBuildMoves(buildId, activeWeaponId, activeTrackKey, signal),
+    errorMessage: transportError('Failed to load move breakdown.'),
+  });
+  const upgradesResource = useKeyedResource<LBSubstatUpgradeTierSet | null>({
+    key: boardKey,
+    enabled: isExpanded && isUpgradesOpen && buildId.length > 0,
+    fetch: (signal) => getBuildSubstatUpgrades(buildId, activeWeaponId, activeTrackKey, signal),
+    errorMessage: transportError('Failed to load substat upgrades.'),
+  });
+  const optimalityResource = useKeyedResource<LBBoardOptimality | null>({
+    key: boardKey,
+    enabled: isExpanded && isOptimalityOpen && hasBoardContext,
+    fetch: (signal) => getBoardOptimality(characterId, activeWeaponId, activeTrackKey, buildId, signal),
+    errorMessage: transportError('Failed to load reference benchmark.'),
+  });
+  // Standings span every board this build appears on, so they key on the build
+  // alone. The transport error is swallowed for a reader-facing message.
+  const standingsResource = useKeyedResource<LBStandingEntry[]>({
+    key: characterId && buildId ? `${characterId}:${buildId}` : '',
+    enabled: isExpanded && isStandingsOpen,
+    fetch: (signal) => getBuildStandings(characterId, buildId, signal),
+    errorMessage: () => 'Could not load leaderboard rankings.',
+  });
+
+  const moves = movesResource.data ?? [];
+  const activeUpgrades = upgradesResource.data ?? null;
+  const optimality = optimalityResource.data ?? null;
   const scoreBaseDamage = activeUpgrades?.baseDamage && activeUpgrades.baseDamage > 0
     ? activeUpgrades.baseDamage
     : currentScoring === 'raw'
@@ -249,180 +256,6 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       ? undefined
       : globalRank;
   const showUpgradeRankDelta = (scoreGlobalRank ?? 0) > 0;
-
-  const loadMoves = useCallback((controller: AbortController) => {
-    setLoadingMoveKeys((prev) => ({ ...prev, [moveKey]: true }));
-    setMoveErrorsByKey((prev) => ({ ...prev, [moveKey]: null }));
-
-    void getBuildMoves(buildId, activeWeaponId, activeTrackKey, controller.signal)
-      .then((payload) => {
-        setMovesByKey((prev) => ({ ...prev, [moveKey]: payload }));
-      })
-      .catch((error) => {
-        if (controller.signal.aborted) return;
-        setMoveErrorsByKey((prev) => ({
-          ...prev,
-          [moveKey]: error instanceof Error ? error.message : 'Failed to load move breakdown.',
-        }));
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return;
-        setLoadingMoveKeys((prev) => ({ ...prev, [moveKey]: false }));
-        if (moveControllerRef.current === controller) {
-          moveControllerRef.current = null;
-        }
-      });
-  }, [activeTrackKey, activeWeaponId, buildId, moveKey]);
-
-  const loadUpgrades = useCallback((controller: AbortController) => {
-    setLoadingUpgradeKeys((prev) => ({ ...prev, [upgradeKey]: true }));
-    setUpgradeErrorsByKey((prev) => ({ ...prev, [upgradeKey]: null }));
-
-    void getBuildSubstatUpgrades(buildId, activeWeaponId, activeTrackKey, controller.signal)
-      .then((payload) => {
-        setUpgradesByKey((prev) => ({ ...prev, [upgradeKey]: payload }));
-      })
-      .catch((error) => {
-        if (controller.signal.aborted) return;
-        setUpgradeErrorsByKey((prev) => ({
-          ...prev,
-          [upgradeKey]: error instanceof Error ? error.message : 'Failed to load substat upgrades.',
-        }));
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return;
-        setLoadingUpgradeKeys((prev) => ({ ...prev, [upgradeKey]: false }));
-        if (upgradeControllerRef.current === controller) {
-          upgradeControllerRef.current = null;
-        }
-      });
-  }, [activeTrackKey, activeWeaponId, buildId, upgradeKey]);
-
-  const loadOptimality = useCallback((controller: AbortController) => {
-    setLoadingOptimalityKeys((prev) => ({ ...prev, [optimalityKey]: true }));
-    setOptimalityErrorsByKey((prev) => ({ ...prev, [optimalityKey]: null }));
-
-    void getBoardOptimality(characterId, activeWeaponId, activeTrackKey, buildId, controller.signal)
-      .then((payload) => {
-        if (controller.signal.aborted) return;
-        setOptimalityByKey((prev) => ({ ...prev, [optimalityKey]: payload }));
-      })
-      .catch((error) => {
-        if (controller.signal.aborted) return;
-        setOptimalityErrorsByKey((prev) => ({
-          ...prev,
-          [optimalityKey]: error instanceof Error ? error.message : 'Failed to load reference benchmark.',
-        }));
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return;
-        setLoadingOptimalityKeys((prev) => ({ ...prev, [optimalityKey]: false }));
-        if (optimalityControllerRef.current === controller) {
-          optimalityControllerRef.current = null;
-        }
-      });
-  }, [activeTrackKey, activeWeaponId, buildId, characterId, optimalityKey]);
-
-  const retryMoves = useCallback(() => {
-    setMoveErrorsByKey((prev) => ({ ...prev, [moveKey]: null }));
-  }, [moveKey]);
-
-  const retryUpgrades = useCallback(() => {
-    setUpgradeErrorsByKey((prev) => ({ ...prev, [upgradeKey]: null }));
-  }, [upgradeKey]);
-
-  const retryOptimality = useCallback(() => {
-    setOptimalityErrorsByKey((prev) => ({ ...prev, [optimalityKey]: null }));
-  }, [optimalityKey]);
-
-  useEffect(() => {
-    if (!shouldLoadMoves || !hasBoardContext) return;
-    if (hasCacheKey(movesByKey, moveKey) || loadingMoveKeys[moveKey] || moveErrorsByKey[moveKey]) return;
-
-    moveControllerRef.current?.abort();
-    const controller = new AbortController();
-    moveControllerRef.current = controller;
-    void Promise.resolve().then(() => {
-      if (controller.signal.aborted) return;
-      loadMoves(controller);
-    });
-  }, [hasBoardContext, loadMoves, loadingMoveKeys, moveErrorsByKey, moveKey, movesByKey, shouldLoadMoves]);
-
-  useEffect(() => {
-    if (!shouldLoadUpgrades || !buildId) return;
-    if (hasCacheKey(upgradesByKey, upgradeKey) || loadingUpgradeKeys[upgradeKey] || upgradeErrorsByKey[upgradeKey]) return;
-
-    upgradeControllerRef.current?.abort();
-    const controller = new AbortController();
-    upgradeControllerRef.current = controller;
-    void Promise.resolve().then(() => {
-      if (controller.signal.aborted) return;
-      loadUpgrades(controller);
-    });
-  }, [buildId, loadUpgrades, loadingUpgradeKeys, shouldLoadUpgrades, upgradeErrorsByKey, upgradeKey, upgradesByKey]);
-
-  useEffect(() => {
-    if (!shouldLoadOptimality) return;
-    if (hasCacheKey(optimalityByKey, optimalityKey) || loadingOptimalityKeys[optimalityKey] || optimalityErrorsByKey[optimalityKey]) return;
-
-    optimalityControllerRef.current?.abort();
-    const controller = new AbortController();
-    optimalityControllerRef.current = controller;
-    void Promise.resolve().then(() => {
-      if (controller.signal.aborted) return;
-      loadOptimality(controller);
-    });
-  }, [loadOptimality, loadingOptimalityKeys, optimalityByKey, optimalityErrorsByKey, optimalityKey, shouldLoadOptimality]);
-
-  const loadStandings = useCallback((controller: AbortController) => {
-    setStandingsLoading(true);
-    setStandingsError(null);
-
-    void getBuildStandings(characterId, buildId, controller.signal)
-      .then((data) => {
-        if (controller.signal.aborted) return;
-        setStandings(data);
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        void err;
-        setStandingsError('Could not load leaderboard rankings.');
-      })
-      .finally(() => {
-        // Always null the ref so re-opens can start a new request.
-        if (standingsControllerRef.current === controller) {
-          standingsControllerRef.current = null;
-        }
-        if (controller.signal.aborted) return;
-        setStandingsLoading(false);
-      });
-  }, [characterId, buildId]);
-
-  const retryStandings = useCallback(() => {
-    setStandingsError(null);
-  }, []);
-
-  useEffect(() => {
-    if (!isExpanded || !isStandingsOpen || !characterId || !buildId) return;
-    // Use the ref (not standingsLoading state) as the in-flight guard so this effect
-    // doesn't re-run when standingsLoading changes and abort its own in-flight request.
-    if (standings !== null || standingsControllerRef.current || standingsError) return;
-
-    const controller = new AbortController();
-    standingsControllerRef.current = controller;
-    void Promise.resolve().then(() => {
-      if (controller.signal.aborted) return;
-      loadStandings(controller);
-    });
-    return () => { controller.abort(); };
-  }, [isExpanded, isStandingsOpen, characterId, buildId, loadStandings, standings, standingsError]);
-
-  useEffect(() => (() => {
-    moveControllerRef.current?.abort();
-    upgradeControllerRef.current?.abort();
-    standingsControllerRef.current?.abort();
-    optimalityControllerRef.current?.abort();
-  }), []);
 
   const upgradeRows = useMemo<UpgradeRow[]>(() => {
     if (!activeUpgrades) return [];
@@ -499,14 +332,13 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     [statTranslations, upgradeColumns],
   );
 
-  const actionButtonClassName = 'flex w-full items-center justify-between rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-colors hover:border-accent/60 hover:text-text-primary cursor-pointer';
-  const viewInEditorButtonClassName = actionButtonClassName.replace('justify-between', 'justify-center');
-
   return (
-    <div className="relative space-y-3 font-plus-jakarta max-w-333">
+    // Width comes from the host shell so every section of the expanded row
+    // shares one measure; this component never sets its own max-width.
+    <div className="relative w-full space-y-3 font-plus-jakarta">
       {onViewInEditor && (
         <div className="mx-auto w-48">
-          <button type="button" onClick={onViewInEditor} className={viewInEditorButtonClassName}>
+          <button type="button" onClick={onViewInEditor} className={ACTION_BUTTON_CLASS}>
             View in Editor
           </button>
         </div>
@@ -514,12 +346,12 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
 
       {hasBoardContext && (
         <>
-          <div className="mx-auto w-48">
+          <div>
             <button
               type="button"
               aria-expanded={isMovesOpen}
               onClick={() => setIsMovesOpen((prev) => !prev)}
-              className={actionButtonClassName}
+              className={SECTION_TOGGLE_CLASS}
               title={`${weaponName} • ${trackLabel}`}
             >
               <span>{isMovesOpen ? 'Hide' : 'Show'} {isHealing ? 'heal' : 'move'} breakdown</span>
@@ -529,20 +361,21 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
 
           {isMovesOpen && (
             <BuildMoveBreakdown
-              isLoading={isMoveLoading}
-              error={moveError}
+              isLoading={movesResource.isLoading}
+              error={movesResource.error}
               moves={moves}
               isHealing={isHealing}
-              onRetry={retryMoves}
+              scoreOverride={scoreBaseDamage}
+              onRetry={movesResource.retry}
             />
           )}
 
-          <div className="mx-auto w-48">
+          <div>
             <button
               type="button"
               aria-expanded={isUpgradesOpen}
               onClick={() => setIsUpgradesOpen((prev) => !prev)}
-              className={actionButtonClassName}
+              className={SECTION_TOGGLE_CLASS}
               title={`${weaponName} • ${trackLabel}`}
             >
               <span>{isUpgradesOpen ? 'Hide' : 'Show'} substat upgrades</span>
@@ -558,8 +391,8 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
                 </p>
               )}
               <BuildSubstatUpgrades
-                isLoading={upgradesLoading}
-                error={upgradesError}
+                isLoading={upgradesResource.isLoading}
+                error={upgradesResource.error}
                 hasUpgradeData={upgradeRows.length > 0}
                 hasBaseDamage={Boolean(scoreBaseDamage)}
                 baseDamage={scoreBaseDamage}
@@ -569,19 +402,19 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
                 selectedTier={selectedUpgradeTier}
                 onSelectTier={(tier) => setSelectedUpgradeTier(tier as UpgradeTierKey)}
                 orderedUpgradeColumns={orderedUpgradeColumns}
-                onRetry={retryUpgrades}
+                onRetry={upgradesResource.retry}
               />
             </div>
           )}
         </>
       )}
 
-      <div className="mx-auto w-48">
+      <div>
         <button
           type="button"
           aria-expanded={isStandingsOpen}
           onClick={() => setIsStandingsOpen((prev) => !prev)}
-          className={actionButtonClassName}
+          className={SECTION_TOGGLE_CLASS}
         >
           <span>{isStandingsOpen ? 'Hide' : 'Show'} leaderboard rank</span>
           <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isStandingsOpen ? 'rotate-180 text-accent' : ''}`} />
@@ -591,9 +424,9 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       {isStandingsOpen && (
         <section className="space-y-2">
           <BuildStandingsTable
-            standings={standings}
-            standingsLoading={standingsLoading}
-            standingsError={standingsError}
+            standings={standingsResource.data ?? null}
+            standingsLoading={standingsResource.isLoading}
+            standingsError={standingsResource.error}
             characterId={characterId}
             characterName={characterName}
             buildId={buildId}
@@ -601,19 +434,19 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
             activeWeaponId={activeWeaponId}
             activeTrackKey={activeTrackKey}
             currentScoring={currentScoring}
-            onRetry={retryStandings}
+            onRetry={standingsResource.retry}
           />
         </section>
       )}
 
       {hasBoardContext && (
         <>
-          <div className="mx-auto w-48">
+          <div>
             <button
               type="button"
               aria-expanded={isOptimalityOpen}
               onClick={() => setIsOptimalityOpen((prev) => !prev)}
-              className={actionButtonClassName}
+              className={SECTION_TOGGLE_CLASS}
               title={`${weaponName} • ${trackLabel}`}
             >
               <span>{isOptimalityOpen ? 'Hide' : 'Show'} theoretical bench</span>
@@ -624,14 +457,14 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           {isOptimalityOpen && (
             <BuildOptimalityPanel
               data={optimality}
-              loading={optimalityLoading}
-              error={optimalityError}
+              loading={optimalityResource.isLoading}
+              error={optimalityResource.error}
               baseDamage={scoreBaseDamage}
               buildDetail={buildDetail}
               character={character}
               characterName={characterName}
               regionBadge={regionBadge}
-              onRetry={retryOptimality}
+              onRetry={optimalityResource.retry}
             />
           )}
         </>

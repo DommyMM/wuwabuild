@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { calculateSelectedStatsRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
 import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
@@ -12,8 +12,8 @@ import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { loadDraftBuild, saveDraftBuild } from '@/lib/storage';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
-import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL, RegionBadge, ScoringMode } from './constants';
-import { formatFlatStat, formatPercentStat } from './formatters';
+import { LB_EXPANDED_SHELL, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL, RegionBadge, ScoringMode } from './constants';
+import { formatFlatStat, formatPercentStat, normalizeSubstatKey } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -128,12 +128,6 @@ interface BuildExpandedProps {
   animateInitialExpand?: boolean;
 }
 
-function normalizeSubstatKey(type: string | null | undefined): string | null {
-  if (!type) return null;
-  const trimmed = type.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
 export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   entry,
   detail,
@@ -156,6 +150,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   animateInitialExpand = false,
 }) => {
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion();
   const { getSubstatValues, statTranslations } = useGameData();
   const [selectedSubstats, setSelectedSubstats] = useState<Set<string>>(new Set());
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
@@ -324,10 +319,19 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.22, ease: 'easeInOut' }}
-          className="overflow-x-visible overflow-y-hidden border-t border-border/50 bg-black/15 tracking-wide"
+          // Entering panel: ease-out so the first frame moves immediately.
+          // Under reduced motion the height step is instant and only the
+          // opacity crossfade remains.
+          transition={prefersReducedMotion
+            ? { duration: 0.12, ease: 'linear' }
+            : { duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+          // Both axes clip: `overflow-x-visible` alongside a hidden y computes
+          // to `auto` per spec, which silently made this a second horizontal
+          // scroller nested inside the table's own. Hover cards portal out to
+          // the body, so nothing here needs to escape the box.
+          className="overflow-hidden border-t border-border/50 bg-black/15 tracking-wide"
         >
-          <div className="mx-auto w-full max-w-330 space-y-4 px-12 pt-3">
+          <div className={`${LB_EXPANDED_SHELL} min-w-0 space-y-4 py-4`}>
             {isDetailLoading && <BuildExpandedSkeleton showForte={surface !== 'leaderboard_character'} />}
 
             {!isDetailLoading && detailError && (
@@ -349,78 +353,71 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   showForte={surface !== 'leaderboard_character'}
                 />
 
-              </>
-            )}
-          </div>
+                {detailSubstatSummary.length > 0 && (
+                  <div className={LB_SUMMARY_ROW}>
+                    {detailSubstatSummary.map((summary) => {
+                      const isSelected = activeSelectedSubstats.has(summary.type);
+                      const isDimmed = hasSelectedSubstats && !isSelected;
+                      const totalText = summary.isPercent
+                        ? formatPercentStat(summary.total)
+                        : formatFlatStat(summary.total);
 
-          {!isDetailLoading && !detailError && detail && (
-            <div className="min-w-0 space-y-4 overflow-hidden px-4 pb-3 pt-4">
-              {detailSubstatSummary.length > 0 && (
-                <div className={LB_SUMMARY_ROW}>
-                  {detailSubstatSummary.map((summary) => {
-                    const isSelected = activeSelectedSubstats.has(summary.type);
-                    const isDimmed = hasSelectedSubstats && !isSelected;
-                    const totalText = summary.isPercent
-                      ? formatPercentStat(summary.total)
-                      : formatFlatStat(summary.total);
+                      return (
+                        <button
+                          key={`${detail.id}-summary-${summary.type}`}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => toggleSubstatSelection(summary.type)}
+                          className={`${LB_SUMMARY_PILL} ${
+                            isSelected
+                              ? 'border-amber-300/75 opacity-100'
+                              : isDimmed
+                                ? 'border-amber-300/45 opacity-40'
+                                : 'border-amber-300/45 opacity-100'
+                          }`}
+                          title={summary.type}
+                        >
+                          <span className="text-amber-300">x{summary.count}</span>
+                          {summary.icon ? (
+                            <img src={summary.icon} alt="" className={LB_SUMMARY_ICON} />
+                          ) : (
+                            <span className={LB_SUMMARY_ICON_EMPTY} />
+                          )}
+                          <span className={LB_SUMMARY_VAL}>{totalText}</span>
+                        </button>
+                      );
+                    })}
 
-                    return (
-                      <button
-                        key={`${detail.id}-summary-${summary.type}`}
-                        type="button"
-                        aria-pressed={isSelected}
-                        onClick={() => toggleSubstatSelection(summary.type)}
-                        className={`${LB_SUMMARY_PILL} ${
-                          isSelected
-                            ? 'border-amber-300/75 opacity-100'
-                            : isDimmed
-                              ? 'border-amber-300/45 opacity-40'
-                              : 'border-amber-300/45 opacity-100'
-                        }`}
-                        title={summary.type}
-                      >
-                        <span className="text-amber-300">x{summary.count}</span>
-                        {summary.icon ? (
-                          <img src={summary.icon} alt="" className={LB_SUMMARY_ICON} />
-                        ) : (
-                          <span className={LB_SUMMARY_ICON_EMPTY} />
-                        )}
-                        <span className={LB_SUMMARY_VAL}>{totalText}</span>
-                      </button>
-                    );
-                  })}
-
-                  <HoverCard
-                    placement="top"
-                    width="md"
-                    title="Roll Value"
-                    subtitle={`${totalSelectedRolls} roll${totalSelectedRolls === 1 ? '' : 's'} selected`}
-                    body={(
-                      <HoverCardDescription>
-                        Roll Value grades how well your substats rolled. Each roll is scored
-                        against the highest value that stat can roll, and a perfect roll is 100%.
-                        The figure shown sums every selected roll. Use the stat pills to choose
-                        which substats count.
-                      </HoverCardDescription>
-                    )}
-                  >
-                    <div
-                      className={`${LB_SUMMARY_RV} ${
-                        hasSelectedSubstats
-                          ? 'border border-amber-300/75 opacity-100'
-                          : 'border border-amber-300/45 opacity-70'
-                      }`}
+                    <HoverCard
+                      placement="top"
+                      width="md"
+                      title="Roll Value"
+                      subtitle={`${totalSelectedRolls} roll${totalSelectedRolls === 1 ? '' : 's'} selected`}
+                      body={(
+                        <HoverCardDescription>
+                          Roll Value grades how well your substats rolled. Each roll is scored
+                          against the highest value that stat can roll, and a perfect roll is 100%.
+                          The figure shown sums every selected roll. Use the stat pills to choose
+                          which substats count.
+                        </HoverCardDescription>
+                      )}
                     >
-                      <span className="text-amber-300">x{totalSelectedRolls}</span>
-                      <span>•</span>
-                      <span className="text-amber-300">RV</span>
-                      <span className={LB_SUMMARY_VAL}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
-                    </div>
-                  </HoverCard>
-                </div>
-              )}
+                      <div
+                        className={`${LB_SUMMARY_RV} ${
+                          hasSelectedSubstats
+                            ? 'border border-amber-300/75 opacity-100'
+                            : 'border border-amber-300/45 opacity-70'
+                        }`}
+                      >
+                        <span className="text-amber-300">x{totalSelectedRolls}</span>
+                        <span>•</span>
+                        <span className="text-amber-300">RV</span>
+                        <span className={LB_SUMMARY_VAL}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
+                      </div>
+                    </HoverCard>
+                  </div>
+                )}
 
-              {detail && (
                 <BuildSimulationSection
                   buildId={detail.id}
                   buildDetail={detail}
@@ -436,9 +433,9 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   currentScoring={currentScoring}
                   onViewInEditor={handleViewBuild}
                 />
-              )}
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </motion.div>
         )}
       </AnimatePresence>

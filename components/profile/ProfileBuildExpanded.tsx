@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { Character } from '@/lib/character';
 import { Echo } from '@/lib/echo';
@@ -41,6 +41,7 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
   // selected, ProfileCard still reports an equipped/best fallback board so the
   // bench remains usable while the card itself shows the original forte grid.
   const [activeBoard, setActiveBoard] = useState<RankBoard | null>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <AnimatePresence initial={false}>
@@ -49,8 +50,13 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.22, ease: 'easeInOut' }}
-          className="overflow-x-visible overflow-y-hidden border-t border-border/50 bg-black/15 tracking-wide"
+          // Matches the leaderboard expansion: ease-out on enter, and only an
+          // opacity crossfade under reduced motion. `overflow-x-visible` beside
+          // a hidden y computes to `auto`, so both axes clip explicitly.
+          transition={prefersReducedMotion
+            ? { duration: 0.12, ease: 'linear' }
+            : { duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+          className="overflow-hidden border-t border-border/50 bg-black/15 tracking-wide"
         >
           <div className="mx-auto w-full max-w-368 space-y-4 px-4 pt-5 pb-3">
             {isDetailLoading && (

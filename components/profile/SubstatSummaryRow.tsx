@@ -6,7 +6,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { calculateSelectedStatsRV } from '@/lib/calculations/rollValues';
 import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
 import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL } from '@/components/leaderboards/constants';
-import { formatFlatStat, formatPercentStat } from '@/components/leaderboards/formatters';
+import { formatFlatStat, formatPercentStat, normalizeSubstatKey } from '@/components/leaderboards/formatters';
 
 const BASE_STATS_SET = new Set<string>(BASE_STATS);
 
@@ -21,11 +21,6 @@ type SubstatSummaryEntry = {
 interface SubstatSummaryRowProps {
   selectedSubstats: ReadonlySet<string>;
   onToggleSubstat: (type: string) => void;
-}
-
-function normalizeSubstatKey(type: string | null | undefined): string | null {
-  const trimmed = type?.trim();
-  return trimmed ? trimmed : null;
 }
 
 /**

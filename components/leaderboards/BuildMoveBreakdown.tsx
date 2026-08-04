@@ -6,15 +6,12 @@ import { LBMoveEntry } from '@/lib/lb';
 import { processMoves, typeMeta, TypeTotal } from '@/lib/moveBreakdown';
 import { ELEMENT_COLOR } from '@/lib/elementVisuals';
 import { STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
+import { formatDamage } from './formatters';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 
 const BONUS_COLOR = STATUS_POSITIVE_COLOR;
 const PENALTY_COLOR = STATUS_NEGATIVE_COLOR;
 const HEAL_COLOR = '#67d4a7';
-
-function formatDamage(value: number): string {
-  return Math.round(value).toLocaleString();
-}
 
 function formatModifierDamage(value: number): string {
   const rounded = Math.round(value);
@@ -49,11 +46,15 @@ function compactModifierLabel(name: string): string {
 }
 
 type TooltipState = {
+  /** Viewport x of the anchoring segment's centre. */
   x: number;
+  /** Viewport y of the anchoring segment's top edge. */
   y: number;
   title: string;
   detail: string;
 };
+
+const TOOLTIP_EDGE_MARGIN = 96;
 
 type SortMode = 'damage' | 'rotation';
 
@@ -62,6 +63,14 @@ interface BuildMoveBreakdownProps {
   error: string | null;
   moves: LBMoveEntry[];
   isHealing?: boolean;
+  /**
+   * The board's own score for this build. The local sum of per-move floats
+   * lands an integer or two away from the backend total after rounding, which
+   * showed up as the row and this panel disagreeing about the same figure.
+   * Ignored unless it agrees with the local sum, so a stale or mismatched
+   * board can never be presented as this rotation's total.
+   */
+  scoreOverride?: number;
   onRetry: () => void;
 }
 
@@ -70,6 +79,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   error,
   moves,
   isHealing = false,
+  scoreOverride,
   onRetry,
 }) => {
   const [sortMode, setSortMode] = useState<SortMode>('damage');
@@ -112,6 +122,11 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     }
     return [...displayMoves].sort((a, b) => b.damage - a.damage);
   }, [displayMoves, sortMode]);
+  const localScore = breakdown.totalScore;
+  const agreesWithBoard = scoreOverride !== undefined
+    && scoreOverride > 0
+    && Math.abs(scoreOverride - localScore) <= Math.max(1, localScore * 0.001);
+  const totalScore = agreesWithBoard ? scoreOverride : localScore;
   const maxMoveDamage = displayMoves.reduce((max, move) => Math.max(max, move.damage), 0);
   const bonusTotal = breakdown.modifiers.reduce((sum, m) => (m.damage > 0 ? sum + m.damage : sum), 0);
   const penaltyTotal = breakdown.modifiers.reduce((sum, m) => (m.damage < 0 ? sum - m.damage : sum), 0);
@@ -122,14 +137,18 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   const rawPct = waterfallTop > 0 ? (breakdown.rawDamage / waterfallTop) * 100 : 0;
   const penaltyPct = waterfallTop > 0 ? Math.max((penaltyTotal / waterfallTop) * 100, penaltyTotal > 0 ? 0.9 : 0) : 0;
   const bonusPct = waterfallTop > 0 ? (bonusTotal / waterfallTop) * 100 : 0;
-  const scorePct = waterfallTop > 0 ? (breakdown.totalScore / waterfallTop) * 100 : 0;
+  const scorePct = waterfallTop > 0 ? (totalScore / waterfallTop) * 100 : 0;
   const displayedSourceCount = displayMoves.length;
   const sourceCountLabel = `${displayedSourceCount} ${isHealing ? 'healing source' : 'move'}${displayedSourceCount === 1 ? '' : 's'}`;
 
-  const showSegmentTooltip = (event: React.MouseEvent, total: TypeTotal) => {
+  // Anchored to the segment, not the cursor: a segment can be 1000px wide, so a
+  // tooltip parked at the entry point drifts far from the pointer, and following
+  // the pointer meant a setState (and a re-render of every row) per mousemove.
+  const showSegmentTooltip = (element: HTMLElement, total: TypeTotal) => {
+    const rect = element.getBoundingClientRect();
     setTooltip({
-      x: event.clientX,
-      y: event.clientY,
+      x: rect.left + (rect.width / 2),
+      y: rect.top,
       title: typeMeta(total.type).label,
       detail: `${formatDamage(total.damage)}  [${total.percentage.toFixed(1)}%]`,
     });
@@ -145,7 +164,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   };
 
   return (
-    <section className="mx-auto w-full max-w-5xl space-y-3">
+    <section className="w-full space-y-3">
       {isLoading && (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, index) => (
@@ -182,7 +201,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
               </h3>
               {breakdown.modifiers.length === 0 && (
                 <div className="flex items-baseline gap-2.5">
-                  <span className="text-2xl font-bold tabular-nums text-accent-hover">{formatDamage(breakdown.totalScore)}</span>
+                  <span className="text-2xl font-bold tabular-nums text-accent-hover">{formatDamage(totalScore)}</span>
                   <span className="text-2xs text-text-primary/50">{sourceCountLabel}</span>
                 </div>
               )}
@@ -220,7 +239,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
                 <div className="ml-auto flex flex-col gap-0.5 text-right max-sm:ml-0 max-sm:w-full max-sm:text-left">
                   <span className="text-2xs font-semibold uppercase tracking-[0.08em] text-text-primary/45">Score</span>
-                  <span className="text-2xl font-bold tabular-nums text-accent-hover">{formatDamage(breakdown.totalScore)}</span>
+                  <span className="text-2xl font-bold tabular-nums text-accent-hover">{formatDamage(totalScore)}</span>
                   <span className="text-2xs text-text-primary/50">{sourceCountLabel}</span>
                 </div>
               </div>
@@ -261,7 +280,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                 </div>
                 <div className="mt-1.5 flex justify-between text-2xs text-text-primary/42">
                   <span><span className="font-semibold text-text-primary/58">{isHealing ? 'Raw healing' : 'Move damage'}</span> {formatDamage(breakdown.rawDamage)}</span>
-                  <span><span className="font-semibold text-text-primary/58">Score</span> {formatDamage(breakdown.totalScore)}</span>
+                  <span><span className="font-semibold text-text-primary/58">Score</span> {formatDamage(totalScore)}</span>
                 </div>
               </div>
             )}
@@ -286,9 +305,8 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         style={{ width: `${total.percentage}%`, backgroundColor: meta.color }}
                         onMouseEnter={(event) => {
                           setTypeFocus(total.type);
-                          showSegmentTooltip(event, total);
+                          showSegmentTooltip(event.currentTarget, total);
                         }}
-                        onMouseMove={(event) => showSegmentTooltip(event, total)}
                         onMouseLeave={() => {
                           setTypeFocus(null);
                           setTooltip(null);
@@ -315,7 +333,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         key={`legend-${total.type}`}
                         type="button"
                         aria-pressed={isPinned}
-                        className={`flex items-baseline gap-1.5 rounded-md border bg-background-secondary/40 px-2.5 py-1 transition-[opacity,border-color] duration-150 hover:border-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${isPinned ? 'border-accent/70' : 'border-border/45'} ${dimmed ? 'opacity-35' : ''}`}
+                        className={`flex items-baseline gap-1.5 rounded-md border bg-background-secondary/40 px-2.5 py-1 transition-[opacity,border-color,transform] duration-150 active:scale-[0.97] hover:border-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${isPinned ? 'border-accent/70' : 'border-border/45'} ${dimmed ? 'opacity-35' : ''}`}
                         onClick={() => setPinnedType((prev) => (prev === total.type ? null : total.type))}
                         onMouseEnter={() => setTypeFocus(total.type)}
                         onMouseLeave={() => setTypeFocus(null)}
@@ -357,7 +375,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     type="button"
                     aria-pressed={sortMode === mode}
                     onClick={() => setSortMode(mode)}
-                    className={`rounded px-2.5 py-1 text-2xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                    className={`rounded px-2.5 py-1 text-2xs font-semibold transition-[color,background-color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
                       sortMode === mode
                         ? 'bg-accent/16 text-accent-hover'
                         : 'text-text-primary/55 hover:text-text-primary'
@@ -371,7 +389,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
             {/* Column labels for the two right-hand numbers, so share vs damage
                 doesn't need inference. Mirrors the row grid below. */}
-            <div className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 pb-1.5 text-3xs font-semibold uppercase tracking-[0.08em] text-text-primary/42 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]">
+            <div className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,420px)_52px_92px_24px] items-center gap-3 px-2.5 pb-1.5 text-3xs font-semibold uppercase tracking-[0.08em] text-text-primary/42 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]">
               <span />
               <span />
               <span className="max-lg:hidden" />
@@ -403,7 +421,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     {/* Row click is a convenience; the chevron button below is the
                         accessible toggle (keyboard + aria-expanded). */}
                     <div
-                      className={`grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 py-2 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px] ${canToggle ? 'cursor-pointer' : ''}`}
+                      className={`grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,420px)_52px_92px_24px] items-center gap-3 px-2.5 py-2 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px] ${canToggle ? 'cursor-pointer' : ''}`}
                       onClick={canToggle ? () => toggleExpanded(move.key) : undefined}
                     >
                       {/* Sequential in both sort modes; the raw rotation index skips
@@ -501,7 +519,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         {move.hits.map((hit) => (
                           <div
                             key={hit.key}
-                            className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,300px)_52px_92px_24px] items-center gap-3 px-2.5 py-1 text-[13px] max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]"
+                            className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,420px)_52px_92px_24px] items-center gap-3 px-2.5 py-1 text-[13px] max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]"
                           >
                             <span />
                             <span className="flex min-w-0 items-center gap-2 pl-3 text-text-primary/72">
@@ -535,10 +553,12 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
           {tooltip && (
             <div
-              className="pointer-events-none fixed z-50 rounded-md border border-accent/70 bg-[#131313]/95 px-3 py-2 shadow-[0_10px_28px_rgba(0,0,0,0.38)]"
+              className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-md border border-accent/70 bg-[#131313]/95 px-3 py-2 shadow-[0_10px_28px_rgba(0,0,0,0.38)]"
               style={{
-                left: Math.min(tooltip.x + 14, (typeof window !== 'undefined' ? window.innerWidth : 1280) - 190),
-                top: tooltip.y + 14,
+                left: typeof window !== 'undefined'
+                  ? Math.min(Math.max(tooltip.x, TOOLTIP_EDGE_MARGIN), window.innerWidth - TOOLTIP_EDGE_MARGIN)
+                  : tooltip.x,
+                top: tooltip.y - 8,
               }}
             >
               <div className="whitespace-nowrap text-sm font-semibold text-white/95">{tooltip.title}</div>

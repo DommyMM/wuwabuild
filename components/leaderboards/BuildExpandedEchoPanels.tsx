@@ -17,6 +17,7 @@ import { FetterHoverCard } from '@/components/echo/FetterHoverCard';
 import { EchoCVBar, formatStatRoll, StatHoverRow, SubstatRollBar } from '@/components/echo/StatTierBars';
 import { HoverCard } from '@/components/ui/HoverCard';
 import { RegionBadge } from './constants';
+import { normalizeSubstatKey } from './formatters';
 
 interface BuildExpandedEchoPanelsProps {
   detail: LBBuildDetailEntry;
@@ -30,12 +31,6 @@ interface BuildExpandedEchoPanelsProps {
   hasSelectedSubstats: boolean;
   showHeader?: boolean;
   showForte?: boolean;
-}
-
-function normalizeSubstatKey(type: string | null | undefined): string | null {
-  if (!type) return null;
-  const trimmed = type.trim();
-  return trimmed.length > 0 ? trimmed : null;
 }
 
 export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = ({
@@ -150,7 +145,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
           return (
             <div
               key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
-              className="panel-glass relative min-w-0 aspect-6/5 transition-all duration-200"
+              className="panel-glass relative min-w-0 aspect-6/5 transition-[border-color] duration-200"
               style={{ borderColor: `${frameBorderColor}b3` }}
             >
               {fetterIcon && (
@@ -180,7 +175,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
               <img
                 src={getEchoPaths(echo, panel.phantom)}
                 alt={echoName}
-                className="absolute h-full object-cover transition-all duration-200 rounded-xl"
+                className="absolute h-full object-cover transition-opacity duration-200 rounded-xl"
                 style={ECHO_IMAGE_FADE_STYLE}
               />
 
