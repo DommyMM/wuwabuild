@@ -18,19 +18,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'fixed',
-                text: 'The builds-table intro message now actually shows up on phones, with a real button to dismiss it',
+                text: 'Builds table intro shows up on mobile now',
             },
             {
                 kind: 'improved',
-                text: 'Stat explanations (roll bars, team buffs, CV) now open on tap on touch screens instead of being hover-only',
+                text: 'Stat explanations (roll bars, team buffs, CV) open on tap for touch screens instead of being hover-only',
             },
             {
                 kind: 'improved',
-                text: 'Mobile polish on leaderboards: bigger page buttons, a hint that tables scroll sideways, and standings no longer clip',
-            },
-            {
-                kind: 'improved',
-                text: 'Better keyboard support: dialogs keep focus inside them and controls show a visible focus outline',
+                text: 'Slightly better leaderboard layout and clipping on mobile',
             },
         ],
     },
@@ -43,7 +39,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
-                text: 'Minor buffs on some after fixing Law of Harmony and Tune Strain',
+                text: 'Fixed Law of Harmony and Tune Strain buffs',
             },
             {
                 kind: 'fixed',

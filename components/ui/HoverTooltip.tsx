@@ -483,7 +483,7 @@ export function HoverTooltip({
           className="pointer-events-none fixed z-60"
         >
           <div
-            className={`relative max-h-[90vh] max-w-xl overflow-hidden rounded-2xl border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${tooltipClassName}`}
+            className={`relative max-h-[90vh] max-w-xl overflow-hidden rounded-xl p-2.5 md:rounded-2xl md:p-3 border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${tooltipClassName}`}
           >
             <div
               ref={scrollRef}

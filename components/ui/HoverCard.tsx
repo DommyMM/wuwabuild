@@ -35,10 +35,12 @@ interface HoverCardProps {
   maxRisePx?: number;
 }
 
+// Each size steps down below md: the desktop widths clamp to ~full-bleed on a
+// 390px phone, where the tap-opened card should read as a compact popover.
 const WIDTH_CLASS: Record<NonNullable<HoverCardProps['width']>, string> = {
-  sm: 'w-[18rem] max-w-[calc(100vw-1rem)]',
-  md: 'w-96 max-w-[calc(100vw-1rem)]',
-  lg: 'w-[30rem] max-w-[calc(100vw-1rem)]',
+  sm: 'w-60 md:w-72 max-w-[calc(100vw-1rem)]',
+  md: 'w-72 md:w-96 max-w-[calc(100vw-1rem)]',
+  lg: 'w-80 md:w-120 max-w-[calc(100vw-1rem)]',
 };
 
 const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
@@ -262,7 +264,7 @@ function HoverCardPanel({ icon, eyebrow, title, subtitle, badge, chips, body, wi
             {eyebrow}
           </p>
         )}
-        <p className={`${eyebrow ? 'mt-0.5' : ''} text-base font-semibold leading-tight text-white/96`}>
+        <p className={`${eyebrow ? 'mt-0.5' : ''} text-sm md:text-base font-semibold leading-tight text-white/96`}>
           {title}
           {badge && <span className={`ml-1.5 ${badgeToneClass}`}>{badge.text}</span>}
         </p>
