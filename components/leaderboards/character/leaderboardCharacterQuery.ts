@@ -36,8 +36,6 @@ interface ParseInitialLeaderboardQueryOptions extends LeaderboardQueryDefaults {
   tracks?: LBTrack[];
 }
 
-type SearchParamRecord = Record<string, string | string[] | undefined>;
-
 function resolveDirection(value: string | null | undefined, fallback: LBSortDirection): LBSortDirection {
   return value === 'asc' || value === 'desc' ? value : fallback;
 }
@@ -208,24 +206,4 @@ export function leaderboardSnapshotToApiQuery(
     scoring: resolved.scoring === 'raw' ? 'raw' : undefined,
     buildId: resolved.buildId || undefined,
   };
-}
-
-export function toURLSearchParams(input: URLSearchParams | SearchParamRecord): URLSearchParams {
-  if (input instanceof URLSearchParams) {
-    return new URLSearchParams(input.toString());
-  }
-
-  const params = new URLSearchParams();
-  for (const [key, rawValue] of Object.entries(input)) {
-    if (Array.isArray(rawValue)) {
-      rawValue.forEach((value) => {
-        if (typeof value === 'string') params.append(key, value);
-      });
-      continue;
-    }
-    if (typeof rawValue === 'string') {
-      params.set(key, rawValue);
-    }
-  }
-  return params;
 }

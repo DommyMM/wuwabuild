@@ -18,27 +18,23 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'fixed',
-                text: 'The move breakdown total now matches the Score shown on the row and in substat upgrades, instead of being a point off from rounding',
+                text: 'The move breakdown total now matches the Score shown on the row and in substat upgrades',
             },
             {
                 kind: 'fixed',
-                text: 'Substat tally pills on an expanded build wrap instead of being cut off when a build carries a lot of different substats, so the Roll Value total stays visible',
+                text: 'Substat pills wrap instead of being cut off when a build has a bunch, so the Roll Value stays visible',
             },
             {
                 kind: 'improved',
-                text: 'Every section of an expanded build (echoes, move breakdown, substat upgrades, rankings, theoretical bench) now lines up on one width instead of each having its own',
+                text: 'Substat upgrade color now more distinct depending on how big it is',
             },
             {
                 kind: 'improved',
-                text: 'Substat upgrade gains and rank changes ramp in color by how big they are, so a huge upgrade no longer looks the same as a negligible one',
+                text: 'Section toggles sit closer to their chevron and respond to a press',
             },
             {
                 kind: 'improved',
-                text: 'Section toggles sit closer to their chevron and respond to a press, wide substat upgrade tables fade at the edge they scroll past, damage-type tooltips sit still over their bar, and the expand animation respects reduced-motion settings',
-            },
-            {
-                kind: 'improved',
-                text: 'Theoretical bench tier scores align on their decimals and the echo layout reads as 4-3-3-1-1 instead of 43311',
+                text: 'Wide substat upgrade tables fade at the edge they scroll past',
             },
         ],
     },
