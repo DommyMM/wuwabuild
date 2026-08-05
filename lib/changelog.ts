@@ -18,7 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'fixed',
-                text: 'The move breakdown total now matches the Score shown on the row and in substat upgrades',
+                text: 'Move breakdown total now matches the Score shown on the row and in substat upgrades',
             },
             {
                 kind: 'fixed',
@@ -26,15 +26,15 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'improved',
-                text: 'Substat upgrade color now more distinct depending on how big it is',
+                text: 'Substat upgrade color now more distinct',
             },
             {
                 kind: 'improved',
-                text: 'Section toggles sit closer to their chevron and respond to a press',
+                text: 'Build extensions animated now',
             },
             {
                 kind: 'improved',
-                text: 'Wide substat upgrade tables fade at the edge they scroll past',
+                text: 'Wide substat upgrade tables fade at the edge',
             },
         ],
     },

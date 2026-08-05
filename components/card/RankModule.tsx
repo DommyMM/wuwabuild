@@ -198,8 +198,9 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
             </WeaponHoverCard>
           ) : boardWeaponTrigger}
           {board && !loading && (
-            <div className="flex min-w-0 flex-col justify-center gap-1.5">
-              <span className="truncate font-ropa text-[13px] leading-none tracking-[0.08em] text-text-primary/90 uppercase">
+            /* The module is w-fit, so this column sits at max-content and its width IS the label's width */
+            <div className="flex min-w-fit flex-col justify-center gap-1.5">
+              <span className="max-w-40 truncate font-ropa text-[13px] leading-none tracking-[0.08em] text-text-primary/90 uppercase">
                 {cleanBoardTrackLabel(board)}
               </span>
               <div className="flex items-center gap-1.5">
