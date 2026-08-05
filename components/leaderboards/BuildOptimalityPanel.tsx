@@ -96,7 +96,7 @@ function TierRow({ ref_, currentDamage, ratio, isActive, onClick }: TierRowProps
       type="button"
       aria-pressed={isActive}
       onClick={onClick}
-      className={`min-w-0 cursor-pointer rounded-lg border p-2.5 text-left transition-[color,background-color,border-color,transform] duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+      className={`min-w-0 cursor-pointer rounded-lg border p-2.5 text-left transition-[color,background-color,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
         isActive
           ? 'border-accent/70 bg-accent/9'
           : 'border-border/45 bg-black/15 hover:border-accent/40 hover:bg-background-secondary/40'

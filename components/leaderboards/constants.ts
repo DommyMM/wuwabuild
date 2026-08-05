@@ -211,7 +211,7 @@ export const DEFAULT_LB_TRACK = 's0';
 // Expanded build substat summary row (leaderboard + profile) that wraps rather than overflow
 export const LB_SUMMARY_ROW = 'mx-auto flex w-full flex-wrap items-center justify-center gap-2';
 
-export const LB_SUMMARY_PILL = 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-[border-color,opacity,transform] duration-200 active:scale-[0.97] cursor-pointer hover:border-amber-200/65';
+export const LB_SUMMARY_PILL = 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-[border-color,opacity] duration-200 cursor-pointer hover:border-amber-200/65';
 
 export const LB_SUMMARY_VAL = 'text-base';
 

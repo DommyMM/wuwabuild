@@ -20,7 +20,7 @@ const CARD_SHEEN =
 // Compact bracket-row buttons (the old ER-bracket treatment): lighter than the
 // board selector cards, so Scoring reads as a metric lens instead of a board.
 const SCORING_SEGMENT =
-  'relative inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold leading-none tracking-wide transition-[transform,border-color,background-color,box-shadow,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60';
+  'relative inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold leading-none tracking-wide transition-[border-color,background-color,box-shadow,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60';
 const SCORING_SEGMENT_ACTIVE =
   'border-amber-300/45 bg-[linear-gradient(180deg,rgba(251,191,36,0.15)_0%,rgba(251,191,36,0.07)_100%)] text-amber-50 shadow-[0_2px_10px_rgba(0,0,0,0.25)]';
 const SCORING_SEGMENT_IDLE =

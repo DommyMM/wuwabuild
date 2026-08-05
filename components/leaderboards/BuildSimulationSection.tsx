@@ -164,8 +164,8 @@ function canonicalUpgradeSort(
 // belongs to and the stack reads as one column of controls with "View in
 // Editor". Spanning the full measure left ~1000px of dead space between label
 // and chevron; the old fixed 192px jammed them together instead.
-const SECTION_TOGGLE_CLASS = 'mx-auto flex w-fit items-center gap-2 rounded border border-border bg-background-secondary px-4 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color,transform] duration-150 hover:border-accent/60 hover:text-text-primary active:scale-[0.97] cursor-pointer';
-const ACTION_BUTTON_CLASS = 'flex w-full items-center justify-center rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color,transform] duration-150 hover:border-accent/60 hover:text-text-primary active:scale-[0.97] cursor-pointer';
+const SECTION_TOGGLE_CLASS = 'mx-auto flex w-fit items-center gap-2 rounded border border-border bg-background-secondary px-4 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color] duration-150 hover:border-accent/60 hover:text-text-primary cursor-pointer';
+const ACTION_BUTTON_CLASS = 'flex w-full items-center justify-center rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color] duration-150 hover:border-accent/60 hover:text-text-primary cursor-pointer';
 
 interface BuildSimulationSectionProps {
   buildId: string;

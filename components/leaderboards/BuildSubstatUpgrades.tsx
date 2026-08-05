@@ -151,7 +151,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
                 type="button"
                 aria-pressed={isActive}
                 onClick={() => onSelectTier(option.key)}
-                className={`rounded px-2.5 py-1 text-2xs font-semibold tracking-wide transition-[color,background-color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                className={`rounded px-2.5 py-1 text-2xs font-semibold tracking-wide transition-[color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
                   isActive
                     ? 'bg-accent/16 text-accent-hover'
                     : 'text-text-primary/55 hover:text-text-primary'

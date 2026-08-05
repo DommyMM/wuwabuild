@@ -333,7 +333,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         key={`legend-${total.type}`}
                         type="button"
                         aria-pressed={isPinned}
-                        className={`flex items-baseline gap-1.5 rounded-md border bg-background-secondary/40 px-2.5 py-1 transition-[opacity,border-color,transform] duration-150 active:scale-[0.97] hover:border-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${isPinned ? 'border-accent/70' : 'border-border/45'} ${dimmed ? 'opacity-35' : ''}`}
+                        className={`flex items-baseline gap-1.5 rounded-md border bg-background-secondary/40 px-2.5 py-1 transition-[opacity,border-color] duration-150 hover:border-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${isPinned ? 'border-accent/70' : 'border-border/45'} ${dimmed ? 'opacity-35' : ''}`}
                         onClick={() => setPinnedType((prev) => (prev === total.type ? null : total.type))}
                         onMouseEnter={() => setTypeFocus(total.type)}
                         onMouseLeave={() => setTypeFocus(null)}
@@ -375,7 +375,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                     type="button"
                     aria-pressed={sortMode === mode}
                     onClick={() => setSortMode(mode)}
-                    className={`rounded px-2.5 py-1 text-2xs font-semibold transition-[color,background-color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                    className={`rounded px-2.5 py-1 text-2xs font-semibold transition-[color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
                       sortMode === mode
                         ? 'bg-accent/16 text-accent-hover'
                         : 'text-text-primary/55 hover:text-text-primary'
