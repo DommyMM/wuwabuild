@@ -1760,3 +1760,143 @@ export async function linkBuildImage(
     reason: typeof raw.reason === 'string' ? raw.reason : undefined,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Board stat distribution
+// ---------------------------------------------------------------------------
+
+/**
+ * One stat's shape across a cohort.
+ *
+ * `quantiles` is positional against `LBBoardDistribution.quantileLadder`, not a
+ * keyed object: the backend picks the ladder and can lengthen it without a
+ * client change.
+ */
+export interface LBDistributionAxis {
+  key: LBStatSortKey;
+  mean: number;
+  min: number;
+  max: number;
+  quantiles: number[];
+}
+
+export interface LBDistributionCohort {
+  key: string;
+  sampleSize: number;
+  axes: LBDistributionAxis[];
+}
+
+export interface LBBoardDistribution {
+  characterId: string;
+  weaponId: string;
+  track: string;
+  axisKeys: LBStatSortKey[];
+  quantileLadder: number[];
+  cohorts: LBDistributionCohort[];
+}
+
+function parseDistributionAxis(raw: unknown): LBDistributionAxis | null {
+  if (!isRecord(raw) || !isLBStatSortKey(raw.key)) return null;
+  const quantiles = Array.isArray(raw.quantiles)
+    ? raw.quantiles.map((value) => toFiniteNumber(value))
+    : [];
+  return {
+    key: raw.key,
+    mean: toFiniteNumber(raw.mean),
+    min: toFiniteNumber(raw.min),
+    max: toFiniteNumber(raw.max),
+    quantiles,
+  };
+}
+
+/**
+ * How the board's stats are spread, for reading a build against the field.
+ *
+ * Takes no build id on purpose: the response is one cacheable object per board
+ * and the caller interpolates its own percentile from the ladder, so a shared
+ * edge cache entry serves every row of the board.
+ *
+ * Returns null on 404, which is a board with no optimality reference — the axes
+ * are derived from it, so there is nothing to plot.
+ */
+export async function getBoardDistribution(
+  characterId: string,
+  weaponId: string,
+  sequence: string,
+  signal?: AbortSignal,
+): Promise<LBBoardDistribution | null> {
+  const path = `/leaderboard/${encodeURIComponent(characterId)}/distribution/${encodeURIComponent(weaponId)}/${encodeURIComponent(sequence)}`;
+  const response = await lbFetch(path, {
+    method: 'GET',
+    signal,
+    label: 'Failed to fetch board distribution',
+    allow: [404],
+  });
+  if (response.status === 404) return null;
+
+  const raw = await response.json() as Record<string, unknown>;
+  const axisKeys = Array.isArray(raw.axisKeys)
+    ? raw.axisKeys.filter(isLBStatSortKey)
+    : [];
+  const quantileLadder = Array.isArray(raw.quantileLadder)
+    ? raw.quantileLadder.map((value) => toFiniteNumber(value))
+    : [];
+
+  const cohorts = Array.isArray(raw.cohorts)
+    ? raw.cohorts.flatMap((entry) => {
+      if (!isRecord(entry)) return [];
+      const axes = Array.isArray(entry.axes)
+        ? entry.axes.map(parseDistributionAxis).filter((axis): axis is LBDistributionAxis => axis !== null)
+        : [];
+      // An axis whose ladder does not line up with the published one cannot be
+      // read positionally, so the cohort is dropped rather than plotted wrong.
+      if (axes.length === 0 || axes.some((axis) => axis.quantiles.length !== quantileLadder.length)) return [];
+      return [{
+        key: typeof entry.key === 'string' ? entry.key : '',
+        sampleSize: Math.max(0, Math.trunc(toFiniteNumber(entry.sampleSize))),
+        axes,
+      }];
+    })
+    : [];
+
+  return {
+    characterId: typeof raw.characterId === 'string' ? raw.characterId : '',
+    weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
+    track: typeof raw.track === 'string' ? raw.track : '',
+    axisKeys,
+    quantileLadder,
+    cohorts,
+  };
+}
+
+/**
+ * Where `value` falls on a quantile ladder, as a 0-1 fraction.
+ *
+ * Linear interpolation between the two bracketing ladder points, clamped at the
+ * ends. This is why the endpoint does not need a build id: the ladder is enough
+ * to place any value on it client-side.
+ *
+ * Returns null when the ladder has no spread (every published quantile equal),
+ * which is a real case — Healing Bonus is 0 for every build on a DPS board, and
+ * a percentile there would be fiction.
+ */
+export function interpolatePercentile(value: number, ladder: number[], quantiles: number[]): number | null {
+  if (ladder.length === 0 || ladder.length !== quantiles.length) return null;
+  const first = quantiles[0];
+  const last = quantiles[quantiles.length - 1];
+  if (!Number.isFinite(value) || last - first <= 0) return null;
+
+  if (value <= first) return ladder[0];
+  if (value >= last) return ladder[ladder.length - 1];
+
+  for (let i = 1; i < quantiles.length; i += 1) {
+    const lo = quantiles[i - 1];
+    const hi = quantiles[i];
+    if (value <= hi) {
+      const span = hi - lo;
+      const t = span > 0 ? (value - lo) / span : 0;
+      return ladder[i - 1] + ((ladder[i] - ladder[i - 1]) * t);
+    }
+  }
+  return ladder[ladder.length - 1];
+}

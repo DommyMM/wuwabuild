@@ -14,6 +14,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-08-12',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Stat comparison: expand a build and see how each of its stats sits against the rest of the board, against the whole field or just the top 10%',
+            },
+            {
+                kind: 'improved',
+                text: 'Sorting a leaderboard by a stat column is no longer slow on large boards',
+            },
+            {
+                kind: 'fixed',
+                text: 'Leaderboard rows now show the same stat values the board was sorted by',
+            },
+        ],
+    },
+    {
         date: '2026-08-04',
         changes: [
             {

@@ -105,6 +105,7 @@ On row expansion, frontend may fetch:
 - move breakdown
 - substat upgrades
 - standings across all weapon x track boards
+- the board stat distribution
 
 The profile card defaults those standings to the uploaded weapon and the closest
 eligible sequence board. The comparison selector and standings table still show
@@ -118,6 +119,32 @@ minimum rolls as independent optimized loadouts. Selecting a tier changes its
 layout, main stats, sets, final statline, active `scoreModifiers`, and full Echo
 blueprint together. `scoreModifiers` are already included in the reference
 score; the UI lists them as an explanation, never adds them client-side.
+
+The stat comparison (`BuildStatDistribution.tsx`) shows where a build sits
+against its board on eight axes. Three things about it are deliberate:
+
+- **It keys on the board, not the build.** The endpoint takes no build id, so
+  every row of a board shares one payload and one edge-cache entry; the build's
+  own percentile is interpolated client-side from the quantile ladder
+  (`interpolatePercentile` in `lib/lb.ts`). The `useKeyedResource` key is
+  therefore `character:weapon:track`, unlike the other three sections.
+- **The chart carries one series, not two.** Brand accent and a neutral gray
+  measure ΔE 7.4 for normal vision, under the 15 floor, so a second gray polygon
+  for the cohort would have been hard to tell from the build's own. The cohort is
+  the backdrop instead — percentile rings, a shaded middle half, a dashed median —
+  and the build is the only coloured mark on it.
+- **Radius is percentile, not value.** Centre is p1 and rim is p99, so all eight
+  axes are comparable and the median lands on the 50% ring by construction. Flat
+  stats vary about ±10% across a board, so a raw or ratio-to-mean radius would
+  render every build as a circle.
+
+An axis whose published quantiles are all equal (Healing Bonus on a DPS board)
+is greyed, its vertex pinned to the centre, and labelled "no spread" rather than
+drawn at a fictional 50th. The numeric table is always rendered beside the chart,
+not behind a breakpoint: a polygon cannot be read back to a value.
+
+Boards below the backend's publish floor return no cohorts, and the section says
+so instead of drawing a shape from a handful of builds.
 
 The simulation section requires parent row context such as:
 - `weaponId`
@@ -141,4 +168,5 @@ The shared hooks only cover generic row state. Domain semantics stay separate:
 - Global board behavior: `components/leaderboards/board/`
 - Shared row expansion/detail/scroll behavior: `components/leaderboards/useExpandedRows.ts`, `components/leaderboards/useBuildDetails.ts`, `components/leaderboards/scrollToElementBelowNav.ts`
 - Shared expansion and details: `components/leaderboards/BuildExpanded.tsx`
+- Stat comparison chart and table: `components/leaderboards/BuildStatDistribution.tsx`
 - Profile leaderboard rendering: `components/profile/`

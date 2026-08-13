@@ -7,8 +7,9 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
 import { Character } from '@/lib/character';
-import { getBoardOptimality, getBuildMoves, getBuildStandings, getBuildSubstatUpgrades, isHealTrackKey, LBBoardOptimality, LBBuildDetailEntry, LBMoveEntry, LBStandingEntry, LBSubstatUpgradeTierSet } from '@/lib/lb';
+import { getBoardDistribution, getBoardOptimality, getBuildMoves, getBuildStandings, getBuildSubstatUpgrades, isHealTrackKey, LBBoardDistribution, LBBoardOptimality, LBBuildDetailEntry, LBMoveEntry, LBStandingEntry, LBSubstatUpgradeTierSet } from '@/lib/lb';
 import { BuildMoveBreakdown } from './BuildMoveBreakdown';
+import { BuildStatDistribution } from './BuildStatDistribution';
 import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
 import { BuildStandingsTable } from './BuildStandingsTable';
 import { RegionBadge, ScoringMode } from './constants';
@@ -205,6 +206,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const [isUpgradesOpen, setIsUpgradesOpen] = useState(false);
   const [isOptimalityOpen, setIsOptimalityOpen] = useState(false);
   const [isStandingsOpen, setIsStandingsOpen] = useState(false);
+  const [isDistributionOpen, setIsDistributionOpen] = useState(false);
   const [selectedUpgradeTier, setSelectedUpgradeTier] = useState<UpgradeTierKey>('median');
 
   const hasBoardContext = buildId.length > 0 && activeWeaponId.length > 0 && activeTrackKey.length > 0;
@@ -232,6 +234,14 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     enabled: isExpanded && isOptimalityOpen && hasBoardContext,
     fetch: (signal) => getBoardOptimality(characterId, activeWeaponId, activeTrackKey, buildId, signal),
     errorMessage: transportError('Failed to load reference benchmark.'),
+  });
+  // The distribution describes the board, not the build, so it keys on the board
+  // alone: every row of a board shares one payload and one cache entry.
+  const distributionResource = useKeyedResource<LBBoardDistribution | null>({
+    key: hasBoardContext ? `${characterId}:${activeWeaponId}:${activeTrackKey}` : '',
+    enabled: isExpanded && isDistributionOpen && hasBoardContext,
+    fetch: (signal) => getBoardDistribution(characterId, activeWeaponId, activeTrackKey, signal),
+    errorMessage: transportError('Failed to load board distribution.'),
   });
   // Standings span every board this build appears on, so they key on the build
   // alone. The transport error is swallowed for a reader-facing message.
@@ -441,6 +451,29 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
 
       {hasBoardContext && (
         <>
+          <div>
+            <button
+              type="button"
+              aria-expanded={isDistributionOpen}
+              onClick={() => setIsDistributionOpen((prev) => !prev)}
+              className={SECTION_TOGGLE_CLASS}
+              title={`${weaponName} • ${trackLabel}`}
+            >
+              <span>{isDistributionOpen ? 'Hide' : 'Show'} stat comparison</span>
+              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isDistributionOpen ? 'rotate-180 text-accent' : ''}`} />
+            </button>
+          </div>
+
+          {isDistributionOpen && (
+            <BuildStatDistribution
+              data={distributionResource.data ?? null}
+              buildDetail={buildDetail}
+              loading={distributionResource.isLoading}
+              error={distributionResource.error}
+              onRetry={distributionResource.retry}
+            />
+          )}
+
           <div>
             <button
               type="button"
