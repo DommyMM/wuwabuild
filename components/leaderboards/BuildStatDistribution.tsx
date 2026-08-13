@@ -171,7 +171,7 @@ const AxisTooltip: React.FC<AxisTooltipProps> = ({ view, cohortLabel, sampleSize
           <dd className="font-semibold text-text-primary">{formatStat(view.key, view.value)}</dd>
         </div>
         {view.degenerate ? (
-          <p className="pt-1 text-text-primary/55">No spread on this board.</p>
+          <p className="pt-1 text-text-primary/55">No spread on this board</p>
         ) : (
           <>
             <div className="flex items-baseline justify-between gap-3">
@@ -199,6 +199,20 @@ const AxisTooltip: React.FC<AxisTooltipProps> = ({ view, cohortLabel, sampleSize
   >
     {children}
   </HoverCard>
+);
+
+/**
+ * A one-line status where the section's content would be.
+ *
+ * Deliberately not a bordered full-width panel. These states are an absence —
+ * nothing loaded, nothing to compare — and a card spanning the whole expanded-row
+ * measure frames that absence as if it were content. Sized to its text and
+ * centred, it reads as a continuation of the toggle column above it instead.
+ */
+const SectionNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <p className="mx-auto w-fit max-w-full px-4 py-1.5 text-center text-xs text-text-primary/45">
+    {children}
+  </p>
 );
 
 interface BuildStatDistributionProps {
@@ -246,23 +260,21 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
   }, [buildDetail.stats, cohort, data]);
 
   if (loading) {
-    return (
-      <div className="rounded border border-border bg-background-secondary/70 p-3 text-center text-xs text-text-primary/55">
-        Loading distribution...
-      </div>
-    );
+    return <SectionNote>Loading comparison...</SectionNote>;
   }
   if (error) {
     return <ErrorBanner onRetry={onRetry}>{error}</ErrorBanner>;
   }
-  // A board under the publish floor returns no cohorts. Saying so beats drawing
-  // a shape from a dozen builds.
-  if (!data || !cohort || views.length === 0) {
-    return (
-      <div className="rounded border border-border bg-background-secondary/70 p-3 text-center text-xs text-text-primary/55">
-        Not enough builds on this board to compare against yet.
-      </div>
-    );
+  // Two different absences, and conflating them would misreport a brand-new
+  // board as an unpopular one. A null payload is a 404: the axes come from the
+  // board's optimality reference, and a board that has never been evaluated has
+  // none. An empty cohort list is a board that exists but sits under the
+  // backend's publish floor.
+  if (!data) {
+    return <SectionNote>No reference build for this board yet, so there is nothing to compare against.</SectionNote>;
+  }
+  if (!cohort || views.length === 0) {
+    return <SectionNote>Not enough builds on this board to compare against yet.</SectionNote>;
   }
 
   const cohortLabel = COHORT_LABELS[cohort.key] ?? cohort.key;

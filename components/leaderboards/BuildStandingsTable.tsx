@@ -74,7 +74,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
 
   if (!standings) return null;
   if (standings.length === 0) {
-    return <p className="text-center text-xs text-text-primary/40">This build isn&apos;t on any leaderboard yet.</p>;
+    return <p className="text-center text-xs text-text-primary/40">This build isn&apos;t on any leaderboard yet</p>;
   }
 
   const showScoreContext = currentScoring === 'raw';
@@ -84,11 +84,11 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
     // clipping at the viewport edge (the only board table without a scroller).
     <div className={`${alignClass ? `${alignClass} ` : ''}w-fit max-w-full overflow-x-auto`}>
       <p className="mb-2 text-center text-3xs leading-snug text-text-primary/40">
-        Same echoes; weapon, sequence, team, and rotation are standardized per board.
+        Echoes stay the same while weapon, sequence, team, and rotation are standardized per board
       </p>
       {showScoreContext && (
         <p className="mb-2 text-center text-xs leading-snug text-text-primary/45">
-          The standings shows ER-adjusted ranks. The raw damage view is cosmetic
+          Standings always rank by ER-adjusted Score; the raw damage view is cosmetic
         </p>
       )}
       <table className="border-collapse text-sm tabular-nums">

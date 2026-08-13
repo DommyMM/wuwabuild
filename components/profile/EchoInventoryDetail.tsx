@@ -69,7 +69,7 @@ const EquippedByStrip: React.FC<{
           ))}
         </div>
       ) : error ? (
-        <div className="text-xs text-red-300/80">Could not load builds.</div>
+        <div className="text-xs text-red-300/80">Could not load builds</div>
       ) : usages && usages.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {usages.map((u) => {
@@ -113,7 +113,7 @@ const EquippedByStrip: React.FC<{
           })}
         </div>
       ) : (
-        <div className="text-xs text-text-primary/45">Not equipped in any build.</div>
+        <div className="text-xs text-text-primary/45">Not equipped in any build</div>
       )}
     </div>
   );

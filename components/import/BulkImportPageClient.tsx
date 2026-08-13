@@ -428,7 +428,7 @@ export function BulkImportPageClient() {
               Local batch OCR and leaderboard submit for exported build screenshots.
             </p>
             <p className="mt-1 text-xs text-text-primary/60">
-              Requests are automatically paced to the public OCR limit of 10 starts per minute per IP.
+              Requests are automatically paced to the public OCR limit of 10 starts per minute per IP
             </p>
           </div>
           <div className="flex items-center gap-2">

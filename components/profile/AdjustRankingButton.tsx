@@ -216,7 +216,7 @@ const Popover: React.FC<PopoverProps> = ({
         )}
 
         <p className="border-t border-border/70 px-3 py-2 text-[9px] leading-relaxed text-text-primary/38">
-          Same echoes; weapon, sequence, team, and rotation are standardized per board.
+          Echoes stay the same while weapon, sequence, team, and rotation are standardized per board
         </p>
       </div>
     </div>,

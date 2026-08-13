@@ -397,7 +397,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
             <div className="space-y-2">
               {currentScoring === 'raw' && (
                 <p className="text-center text-xs leading-snug text-text-primary/45">
-                  Substat projections use Score, matching official ranks and upgrade deltas.
+                  Substat projections use Score, matching official ranks and upgrade deltas
                 </p>
               )}
               <BuildSubstatUpgrades

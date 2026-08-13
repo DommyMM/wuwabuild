@@ -331,10 +331,10 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                       {!showSkeleton && overview.length === 0 && (
                         <div className={`grid ${OVERVIEW_GRID} items-center gap-4 px-3 py-8 text-sm text-text-primary/45`}>
                           <div />
-                          <div>No leaderboard entries found.</div>
+                          <div>No leaderboard entries found</div>
                           <div className="text-center text-text-primary/30">-</div>
                           <div className="text-center text-text-primary/30">0</div>
-                          <div className="text-text-primary/30">No weapon rankings available yet.</div>
+                          <div className="text-text-primary/30">No weapon rankings available yet</div>
                         </div>
                       )}
                     </div>

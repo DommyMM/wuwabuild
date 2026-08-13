@@ -123,7 +123,7 @@ export const SimulateRankPanel: React.FC = () => {
       return <p className="text-sm text-rose-300/80">Couldn’t simulate this build’s rank. Please try again.</p>;
     }
     if (wouldBeFirst) {
-      return <p className="text-sm text-text-primary/45">No ranked builds here yet, you’d place #1.</p>;
+      return <p className="text-sm text-text-primary/45">No ranked builds here yet, you’d place #1</p>;
     }
     if (noBoard) {
       return <p className="text-sm text-text-primary/45">No leaderboard exists for this resonator</p>;
