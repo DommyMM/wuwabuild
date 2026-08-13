@@ -674,6 +674,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     statFilters.length > 0
   );
 
+  // Mirrors the backend dedup policy (db.DedupMode.resolve) so the footer can say
+  // which list the reader is looking at. Score is the only sort a weapon board
+  // ranks by, and a uid/username search is the one filter that turns dedup off —
+  // board filters narrow the pool but still show one row per player.
+  const isDeduped = sort === DEFAULT_LB_SORT && !uid.trim() && !username.trim();
+
   const visibleTotal = entriesMatchCurrentQuery ? total : 0;
   const normalizedPageCount = entriesMatchCurrentQuery
     ? Math.max(1, Math.ceil(visibleTotal / pageSize))
@@ -832,6 +838,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 error={error}
                 onRetry={retryCurrentQuery}
                 sort={sort}
+                isDeduped={isDeduped}
                 direction={direction}
                 onSortChange={(nextSort) => { setSort(nextSort); setPage(1); }}
                 onToggleDirection={() => { setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc')); setPage(1); }}

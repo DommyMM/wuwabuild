@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-08-13',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Refined sorting behavior so any sort not on Score will show all builds (they used to filter out lower ranked builds)',
+            },
+        ],
+    },
+    {
         date: '2026-08-12',
         changes: [
             {

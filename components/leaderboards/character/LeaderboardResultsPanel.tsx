@@ -351,7 +351,9 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
         page={page}
         pageCount={pageCount}
         statusText={statusText}
-        leftText="Rankings show each player's best build. Other uploads stay on their profile."
+        leftText={isDamageSort
+          ? "Rankings show each player's best build. Other uploads stay on their profile."
+          : 'Sorting by a stat lists every uploaded build. Ranks still come from the damage board.'}
         onPageChange={onPageChange}
       />
     </section>

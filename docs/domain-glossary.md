@@ -18,12 +18,12 @@ Common terms used by the frontend and leaderboard backend.
 - **`calculations`**: Per-weapon detailed output (`stats`, `moves`, `upgrades`).
 - **`globalRank`** (for `/leaderboard/{characterId}` rows):
   - Always returned in responses.
-  - A property of the build on its board (character + weapon + track), always measured against the deduped canonical board. Filters and non-damage sorts reorder/hide rows but never renumber rank.
+  - A property of the build on its board (character + weapon + track), always measured against the deduped canonical board. Filters hide rows and sorts reorder them; neither renumbers rank, so a browse row carries the same rank it would on the default board.
   - `> 0` means frontend can show a competitive rank badge.
   - `0` means frontend should treat the row as unranked: a ghost row, or a build with no damage on this board.
 - **Ghost build**: Deep-linked build returned even when the current view does not contain it (deduped out or excluded by a filter).
 - **Standings**: Rank/damage of one build across all weapon x track boards.
-- **Dedup**: One representative row per player, on by default under any sort. `?dedup=0` shows every submitted build (each still with its true board rank); a `uid`/`username` search defaults to `dedup=0`. Dedup selects which rows appear; it never changes rank.
+- **Dedup**: One representative row per player, picked by the board's ranked metric (Score, or CV with no weapon). On by default for a Score sort, including with board filters applied; off for any other sort and for a `uid`/`username` search, where every submitted build appears with its true board rank. `?dedup=0` / `?dedup=1` override either way. Dedup selects which rows appear; it never changes rank.
 
 ## Key Conventions
 

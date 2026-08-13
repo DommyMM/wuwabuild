@@ -76,11 +76,24 @@ from 1; a stat sort did not).
   order, and nothing else. Filters still constrain the candidate pool *before*
   dedup, so "Midnight Veil" shows each player's best Midnight Veil build.
 
-Dedup is its own axis, no longer inferred from the sort key. The board shows one
-representative row per player by default under any sort. `?dedup=0` shows every
-submitted build (each still carries its true board rank). A `uid`/`username`
-search defaults to `dedup=0`, because the point of that query is to see that
-player's builds; an explicit `?dedup=1` overrides.
+Dedup shows one representative row per player, and the representative is that
+player's best build **on the ranked metric** (Score, or CV with no weapon
+selected). It therefore only means something while the ranked metric is what
+orders the page:
+
+| view | dedup |
+| --- | --- |
+| Score sort | on |
+| Score sort + board filters (set, main, sequence, region, stat) | on, filters narrow the pool first |
+| Score sort + `uid`/`username` | off |
+| any other sort (ER, CV on a weapon board, crit, timestamp, ...) | off |
+| explicit `?dedup=0` / `?dedup=1` | wins either way |
+
+A stat sort is a browse view: every submitted build appears, each still carrying
+its true board rank, so the same player can legitimately hold several adjacent
+rows. Keeping dedup on there used to hide the actual answer — sorting Suisui's
+`heal_s0` board by ER showed 306.6 at #1 while a 307.4 build was suppressed
+behind its owner's higher-scoring 303.4 build.
 
 `total` is the count of rows the current view pages through, so it always agrees
 with the pagination shown ("X–Y of Z").
