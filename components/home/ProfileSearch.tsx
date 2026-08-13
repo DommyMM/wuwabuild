@@ -217,7 +217,12 @@ export function ProfileSearch({
                 {saved.map((recent, i) => {
                     const badge = resolveRegionBadge(recent.uid);
                     const isActive = activeIndex === i;
-                    const rowBg = isActive ? 'bg-accent/12' : recent.isPinned ? 'bg-accent/4' : '';
+                    // Hover is only offered when the row is not already the keyboard
+                    // cursor: `hover:` outranks a plain background utility, so leaving
+                    // both on would dim the active row from 12% to 8% under the pointer.
+                    const rowBg = isActive
+                        ? 'bg-accent/12'
+                        : `hover:bg-accent/8 ${recent.isPinned ? 'bg-accent/4' : ''}`;
                     return (
                     <li key={recent.uid} className="border-b border-border/50 last:border-b-0">
                         <button
@@ -225,7 +230,7 @@ export function ProfileSearch({
                             type="button"
                             onClick={() => go(recent.uid)}
                             onMouseEnter={() => setActiveIndex(i)}
-                            className={`relative flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-accent/8 cursor-pointer ${rowBg}`}
+                            className={`relative flex w-full items-center gap-3 px-4 py-2 text-left transition-colors cursor-pointer ${rowBg}`}
                         >
                             {/* Starred rows signal with an accent edge (same vocabulary as the
                                 ranking tiles' tier edge) so names stay aligned across rows. */}
@@ -267,7 +272,7 @@ export function ProfileSearch({
                         type="button"
                         onClick={() => go(match.uid)}
                         onMouseEnter={() => setActiveIndex(i)}
-                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-accent/8 cursor-pointer ${isActive ? 'bg-accent/12' : ''}`}
+                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${isActive ? 'bg-accent/12' : 'hover:bg-accent/8'}`}
                     >
                         <span className="min-w-0 flex-1 truncate text-[15px] text-text-primary">
                             {match.username || 'Anonymous'}

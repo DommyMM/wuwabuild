@@ -296,6 +296,12 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   }, [maxPageSize]);
   const pageSizeMenuRef = useRef<HTMLDivElement | null>(null);
   const filterAreaRef = useRef<HTMLDivElement | null>(null);
+  const activeRowRef = useRef<HTMLButtonElement | null>(null);
+  // Scrolling the list moves rows under a stationary cursor, which still emits
+  // pointer events. Both refs keep that from stealing the cursor back from the
+  // keyboard, and keep hover off the scroll path entirely.
+  const pointerPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const navIntentRef = useRef<'keyboard' | 'pointer'>('keyboard');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPageSizeMenuOpen, setIsPageSizeMenuOpen] = useState(false);
   const [statDrafts, setStatDrafts] = useState<Partial<Record<LBStatSortKey, StatRequirementDraft>>>({});
@@ -630,16 +636,21 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     handleFilterQueryChange('');
   };
 
+  // No cursor until the user navigates: opening the dropdown must not look like a
+  // row is already hovered. Enter still falls back to the first item.
   const normalizedActiveItemIndex = useMemo(() => {
     if (!isDropdownOpen || visibleItems.length === 0) return -1;
-    if (activeItemIndex < 0 || activeItemIndex >= visibleItems.length) return 0;
+    if (activeItemIndex < 0 || activeItemIndex >= visibleItems.length) return -1;
     return activeItemIndex;
   }, [activeItemIndex, isDropdownOpen, visibleItems.length]);
 
+  // Keyboard-only: `block: 'nearest'` is a no-op for fully visible rows, so
+  // scrolling on hover would only ever fire on the partially visible first/last
+  // row and nudge the list out from under the pointer.
   useEffect(() => {
     if (!isDropdownOpen || normalizedActiveItemIndex < 0) return;
-    const activeRow = document.querySelector<HTMLButtonElement>(`button[data-filter-index="${normalizedActiveItemIndex}"]`);
-    activeRow?.scrollIntoView({ block: 'nearest' });
+    if (navIntentRef.current !== 'keyboard') return;
+    activeRowRef.current?.scrollIntoView({ block: 'nearest' });
   }, [isDropdownOpen, normalizedActiveItemIndex]);
 
   useEffect(() => {
@@ -903,16 +914,10 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
               onFocus={() => {
                 setIsDropdownOpen(true);
                 setIsFilterMode(true);
-                if (visibleItems.length > 0) {
-                  setActiveItemIndex((prev) => (prev >= 0 ? prev : 0));
-                }
               }}
               onClick={() => {
                 setIsDropdownOpen(true);
                 setIsFilterMode(true);
-                if (visibleItems.length > 0) {
-                  setActiveItemIndex((prev) => (prev >= 0 ? prev : 0));
-                }
               }}
               onKeyDown={(event) => {
                 if (event.key === 'Backspace' && !filterQuery.trim()) {
@@ -920,15 +925,17 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                 }
                 if (event.key === 'ArrowDown' && visibleItems.length > 0) {
                   event.preventDefault();
+                  navIntentRef.current = 'keyboard';
                   setIsFilterMode(true);
                   setIsDropdownOpen(true);
-                  setActiveItemIndex((normalizedActiveItemIndex + 1 + visibleItems.length) % visibleItems.length);
+                  setActiveItemIndex(normalizedActiveItemIndex >= visibleItems.length - 1 ? 0 : normalizedActiveItemIndex + 1);
                 }
                 if (event.key === 'ArrowUp' && visibleItems.length > 0) {
                   event.preventDefault();
+                  navIntentRef.current = 'keyboard';
                   setIsFilterMode(true);
                   setIsDropdownOpen(true);
-                  setActiveItemIndex((normalizedActiveItemIndex - 1 + visibleItems.length) % visibleItems.length);
+                  setActiveItemIndex(normalizedActiveItemIndex <= 0 ? visibleItems.length - 1 : normalizedActiveItemIndex - 1);
                 }
                 if (event.key === 'Escape') {
                   event.preventDefault();
@@ -940,7 +947,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                   event.preventDefault();
                   const selectedIndex = normalizedActiveItemIndex >= 0 ? normalizedActiveItemIndex : 0;
                   handleSelectItem(visibleItems[selectedIndex]);
-                  setActiveItemIndex(0);
+                  setActiveItemIndex(-1);
                 }
               }}
               placeholder="Search filters (e.g. region, character, weapon, username, UID)"
@@ -962,9 +969,10 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                   previous.subSection !== item.subSection
                 )
               );
-              // Roving cursor, not a persisted choice, so it reads as an inset gold pill.
-              // Menus that hold a selected value (Max Rows, SortHeaderMenu) use the
-              // full-bleed accent left-rail instead; the two states stay visually distinct.
+              // Full-bleed like every other row in this panel (Max Rows, SortHeaderMenu,
+              // LeaderboardRow). An inset pill needs a gutter, and a gutter has nothing
+              // to sit against at the first and last row, where it meets a section rule
+              // on one side and the container's rounded corner on the other.
               const isActiveRow = isFilterMode && index === normalizedActiveItemIndex;
 
               return (
@@ -980,20 +988,28 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                     </div>
                   )}
                   <button
+                    ref={isActiveRow ? activeRowRef : undefined}
                     data-filter-index={index}
                     type="button"
                     onMouseDown={(event) => event.preventDefault()}
-                    onMouseEnter={() => {
-                      setActiveItemIndex(index);
+                    onPointerMove={(event) => {
+                      const last = pointerPositionRef.current;
+                      if (last && last.x === event.clientX && last.y === event.clientY) return;
+                      pointerPositionRef.current = { x: event.clientX, y: event.clientY };
+                      navIntentRef.current = 'pointer';
+                      setActiveItemIndex((prev) => (prev === index ? prev : index));
                       setIsFilterMode(true);
                     }}
                     onClick={() => handleSelectItem(item)}
-                    className={`mx-1 my-0.5 flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
+                    className={`relative flex items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors duration-75 ${
                       isActiveRow
-                        ? 'bg-accent/18 text-accent'
-                        : 'text-text-primary hover:bg-accent/10'
+                        ? 'bg-accent/12 text-accent'
+                        : 'text-text-primary'
                     }`}
                   >
+                    {isActiveRow && (
+                      <span className="absolute inset-y-0 left-0 w-0.5 bg-accent/80" aria-hidden />
+                    )}
                     {item.type === 'character' && (
                       <span className="flex min-w-0 items-center gap-2">
                         {item.character.head ? (
