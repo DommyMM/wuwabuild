@@ -17,8 +17,12 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-08-12',
         changes: [
             {
+                kind: 'fixed',
+                text: 'Phrolova uses Cantarella instead of Lucilla, and modeled off-field buff removal on specific buffs',
+            },
+            {
                 kind: 'new',
-                text: 'Stat comparison graph against average of each board',
+                text: 'Stat comparison chart showing where each of your stats lands on its board, against three groups',
             },
             {
                 kind: 'improved',
@@ -27,6 +31,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Leaderboard rows now show the same stat values the board was sorted by',
+            },
+            {
+                kind: 'fixed',
+                text: 'Move breakdown slightly more accurate and better looking',
             },
         ],
     },

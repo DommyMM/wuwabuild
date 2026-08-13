@@ -32,6 +32,14 @@ const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
   erosion: { label: 'Erosion', color: '#a06ee0' },
   tune_rupture: { label: 'Tune Rupture', color: '#d3c23c' },
   fusion_burst: { label: 'Fusion Burst', color: '#e08b4a' },
+  // Tune Break is the break-damage instance, not the Tune Rupture status, and
+  // it carries no element of its own (Aero on Sigrika, Physical on Hiyuki), so
+  // it gets a hue rather than a step of the tune_rupture yellow. Magenta is the
+  // last genuinely open arc: a sweep of the whole HSL space against the other
+  // fourteen tops out here (ΔE 11.6), and on the two boards that render it,
+  // Sigrika and Hiyuki, its weakest neighbour pair is 13.1 — comfortably better
+  // than the pre-existing pairs on those same boards.
+  tune_break: { label: 'Tune Break', color: '#a4379d' },
 };
 const FALLBACK_TYPE_COLOR = '#7f93a8';
 

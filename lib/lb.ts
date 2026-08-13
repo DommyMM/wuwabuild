@@ -287,11 +287,13 @@ export interface LBBuildDetailEntry extends LBBuildRowEntry {
   buildState: SavedState;
 }
 
+// No damage share on the wire: processMoves computes every percentage it renders
+// against the rotation total, so a stored per-row share was both unread and a
+// different number than anything the UI draws.
 interface LBMoveHitEntry {
   key: string;
   name: string;
   damage: number;
-  percentage: number;
   moveTypes: string[];
   /** Per-cast base MV before sequence/forte multipliers. */
   baseMV: number;

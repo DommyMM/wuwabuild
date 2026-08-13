@@ -161,11 +161,8 @@ function canonicalUpgradeSort(
   return [...ordered, ...leftovers];
 }
 
-// Centred and sized to their own label, so the chevron sits beside the text it
-// belongs to and the stack reads as one column of controls with "View in
-// Editor". Spanning the full measure left ~1000px of dead space between label
-// and chevron; the old fixed 192px jammed them together instead.
-const SECTION_TOGGLE_CLASS = 'mx-auto flex w-fit items-center gap-2 rounded border border-border bg-background-secondary px-4 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color] duration-150 hover:border-accent/60 hover:text-text-primary cursor-pointer';
+const SECTION_CONTROL_WIDTH = 'w-43';
+const SECTION_TOGGLE_CLASS = `mx-auto flex ${SECTION_CONTROL_WIDTH} items-center justify-center gap-2 rounded border border-border bg-background-secondary px-4 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color] duration-150 hover:border-accent/60 hover:text-text-primary cursor-pointer`;
 const ACTION_BUTTON_CLASS = 'flex w-full items-center justify-center rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color] duration-150 hover:border-accent/60 hover:text-text-primary cursor-pointer';
 
 interface BuildSimulationSectionProps {
@@ -347,7 +344,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     // shares one measure; this component never sets its own max-width.
     <div className="relative w-full space-y-3 font-plus-jakarta">
       {onViewInEditor && (
-        <div className="mx-auto w-48">
+        <div className={`mx-auto ${SECTION_CONTROL_WIDTH}`}>
           <button type="button" onClick={onViewInEditor} className={ACTION_BUTTON_CLASS}>
             View in Editor
           </button>
@@ -364,7 +361,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               className={SECTION_TOGGLE_CLASS}
               title={`${weaponName} • ${trackLabel}`}
             >
-              <span>{isMovesOpen ? 'Hide' : 'Show'} {isHealing ? 'heal' : 'move'} breakdown</span>
+              <span>{isHealing ? 'Heal' : 'Move'} breakdown</span>
               <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isMovesOpen ? 'rotate-180 text-accent' : ''}`} />
             </button>
           </div>
@@ -388,7 +385,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               className={SECTION_TOGGLE_CLASS}
               title={`${weaponName} • ${trackLabel}`}
             >
-              <span>{isUpgradesOpen ? 'Hide' : 'Show'} substat upgrades</span>
+              <span>Substat upgrades</span>
               <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isUpgradesOpen ? 'rotate-180 text-accent' : ''}`} />
             </button>
           </div>
@@ -426,7 +423,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           onClick={() => setIsStandingsOpen((prev) => !prev)}
           className={SECTION_TOGGLE_CLASS}
         >
-          <span>{isStandingsOpen ? 'Hide' : 'Show'} leaderboard rank</span>
+          <span>Leaderboard rank</span>
           <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isStandingsOpen ? 'rotate-180 text-accent' : ''}`} />
         </button>
       </div>
@@ -459,7 +456,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               className={SECTION_TOGGLE_CLASS}
               title={`${weaponName} • ${trackLabel}`}
             >
-              <span>{isDistributionOpen ? 'Hide' : 'Show'} stat comparison</span>
+              <span>Stat comparison</span>
               <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isDistributionOpen ? 'rotate-180 text-accent' : ''}`} />
             </button>
           </div>
@@ -482,7 +479,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               className={SECTION_TOGGLE_CLASS}
               title={`${weaponName} • ${trackLabel}`}
             >
-              <span>{isOptimalityOpen ? 'Hide' : 'Show'} theoretical bench</span>
+              <span>Theoretical bench</span>
               <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isOptimalityOpen ? 'rotate-180 text-accent' : ''}`} />
             </button>
           </div>
