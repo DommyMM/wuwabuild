@@ -42,6 +42,7 @@ interface LeaderboardResultsPanelProps {
   error: string | null;
   onRetry: () => void;
   sort: LBLeaderboardSortKey;
+  isDeduped: boolean;
   direction: LBSortDirection;
   onSortChange: (sort: LBLeaderboardSortKey) => void;
   onToggleDirection: () => void;
@@ -75,6 +76,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   error,
   onRetry,
   sort,
+  isDeduped,
   direction,
   onSortChange,
   onToggleDirection,
@@ -351,9 +353,9 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
         page={page}
         pageCount={pageCount}
         statusText={statusText}
-        leftText={isDamageSort
+        leftText={isDeduped
           ? "Rankings show each player's best build. Other uploads stay on their profile."
-          : 'Sorting by a stat lists every uploaded build. Ranks still come from the damage board.'}
+          : 'This view lists every uploaded build. Ranks still come from the damage board.'}
         onPageChange={onPageChange}
       />
     </section>

@@ -10,7 +10,7 @@ import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_SCORING, MAX_ITEMS_PER_PAGE, normalizeSequences, ScoringMode } from '../constants';
 import { BuildFiltersPanel } from '../BuildFiltersPanel';
 import { SelectedMainEntry, SelectedSetEntry, SetOption } from '../types';
-import { DEFAULT_LB_TRACK } from '../constants';
+import { DEFAULT_LB_SORT, DEFAULT_LB_TRACK } from '../constants';
 import { buildLeaderboardHref, leaderboardSnapshotToApiQuery, parseInitialLeaderboardQuery, resolveLeaderboardQuerySnapshot, serializeLeaderboardQuery } from './leaderboardCharacterQuery';
 import { LeaderboardCharacterHeader } from './LeaderboardCharacterHeader';
 import { LeaderboardTabs } from './LeaderboardTabs';
