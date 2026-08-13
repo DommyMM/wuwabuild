@@ -606,7 +606,7 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
 
   return (
     <div className="relative z-20">
-      <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-border bg-background px-2 py-2">
+      <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-border bg-background px-2 py-2 transition-colors focus-within:border-accent/60">
         {costs.map((cost) => (
           <FilterChip key={`c-${cost}`} label={`Cost ${cost}`} onRemove={() => onRemoveCost(cost)} />
         ))}
@@ -650,7 +650,7 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
       </div>
 
       {open && visibleItems.length > 0 && (
-        <div className="absolute left-0 right-0 z-30 mt-1 max-h-132 overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
+        <div className="absolute left-0 right-0 z-30 mt-1 flex max-h-132 flex-col overflow-y-auto rounded-lg border border-border bg-background shadow-xl">
           {visibleItems.map((item, index) => {
             const previous = index > 0 ? visibleItems[index - 1] : null;
             const showSection = index === 0 || previous?.section !== item.section;
@@ -667,8 +667,8 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
                   onMouseDown={(event) => event.preventDefault()}
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => selectItem(item)}
-                  className={`flex w-full items-center justify-between gap-2 border-b border-border/60 px-3 py-2 text-left text-sm transition-colors last:border-b-0 ${
-                    isActiveRow ? 'bg-cyan-500/18 text-cyan-100' : 'text-text-primary hover:bg-amber-400/16 hover:text-amber-100'
+                  className={`mx-1 my-0.5 flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
+                    isActiveRow ? 'bg-accent/18 text-accent' : 'text-text-primary hover:bg-accent/10'
                   }`}
                 >
                   <span className="flex min-w-0 items-center gap-2">
@@ -681,7 +681,7 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
                     )}
                     <span className="truncate">{item.label}</span>
                   </span>
-                  <span className={`rounded px-1.5 py-0.5 text-3xs uppercase tracking-wide ${isActiveRow ? 'bg-cyan-500/20 text-cyan-100' : 'bg-border text-text-primary/70'}`}>
+                  <span className={`rounded px-1.5 py-0.5 text-3xs uppercase tracking-wide ${isActiveRow ? 'bg-accent/20 text-accent' : 'bg-border text-text-primary/70'}`}>
                     {item.type === 'main' ? 'stat' : item.type}
                   </span>
                 </button>

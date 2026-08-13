@@ -48,12 +48,12 @@ body {
   overflow-x: hidden;
 }
 
-/* Baseline keyboard focus indicator. Components that draw their own
-   focus-visible ring also declare focus-visible:outline-none, so this only
-   surfaces where nothing else does. */
-:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 75%, transparent);
-  outline-offset: 2px;
+/* @layer so that it can draw the outline and not be overriden by native behavior */
+@layer base {
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 75%, transparent);
+    outline-offset: 2px;
+  }
 }
 
 .build-card-frame,

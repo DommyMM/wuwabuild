@@ -765,7 +765,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
       </div>
 
       <div ref={filterAreaRef} className="relative">
-        <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-border bg-background px-2 py-2">
+        <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-border bg-background px-2 py-2 transition-colors focus-within:border-accent/60">
           {regionPrefixes.map((value) => (
             <span
               key={`region-${value}`}
@@ -962,6 +962,9 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                   previous.subSection !== item.subSection
                 )
               );
+              // Roving cursor, not a persisted choice, so it reads as an inset gold pill.
+              // Menus that hold a selected value (Max Rows, SortHeaderMenu) use the
+              // full-bleed accent left-rail instead; the two states stay visually distinct.
               const isActiveRow = isFilterMode && index === normalizedActiveItemIndex;
 
               return (
@@ -985,10 +988,10 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                       setIsFilterMode(true);
                     }}
                     onClick={() => handleSelectItem(item)}
-                    className={`flex w-full items-center justify-between gap-2 border-b border-border/60 px-3 py-2 text-left text-sm transition-colors last:border-b-0 ${
+                    className={`mx-1 my-0.5 flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
                       isActiveRow
-                        ? 'bg-cyan-500/18 text-cyan-100'
-                        : 'text-text-primary hover:bg-amber-400/16 hover:text-amber-100'
+                        ? 'bg-accent/18 text-accent'
+                        : 'text-text-primary hover:bg-accent/10'
                     }`}
                   >
                     {item.type === 'character' && (
@@ -1036,7 +1039,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
 
                     <span className={`rounded px-1.5 py-0.5 text-3xs uppercase tracking-wide ${
                       isActiveRow
-                        ? 'bg-cyan-500/20 text-cyan-100'
+                        ? 'bg-accent/20 text-accent'
                         : 'bg-border text-text-primary/70'
                     }`}>
                       {getTypeTagLabel(item.type)}
