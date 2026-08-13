@@ -618,7 +618,7 @@ body {
   them. Expanding a leaderboard row is a many-times-per-session action, so
   these are kept short: 260ms with a 24ms stagger capped at 8 rows lands the
   whole table inside ~450ms, where the old 500ms + 480ms stagger ran ~980ms
-   and started to read as waiting. */
+  and started to read as waiting. */
 @keyframes lb-bar-grow {
   from { transform: scaleX(0); }
 }
@@ -632,7 +632,19 @@ body {
 .lb-row-in {
   animation: lb-row-in 0.22s cubic-bezier(0.23, 1, 0.32, 1) backwards;
 }
+
+/* Reference benchmark: switching tier replaces the summary, the stat sheet and
+  five echo cards at once. A plain crossfade shows the old and new sheets as
+  two overlapping objects; the blur bridges them into one sheet changing */
+@keyframes lb-tier-swap {
+  from { opacity: 0; filter: blur(3px); }
+}
+.lb-tier-swap {
+  animation: lb-tier-swap 0.18s cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lb-bar-grow,
-  .lb-row-in { animation: none; }
+  .lb-row-in,
+  .lb-tier-swap { animation: none; }
 }

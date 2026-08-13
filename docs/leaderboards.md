@@ -122,6 +122,18 @@ layout, main stats, sets, final statline, active `scoreModifiers`, and full Echo
 blueprint together. `scoreModifiers` are already included in the reference
 score; the UI lists them as an explanation, never adds them client-side.
 
+Its measurement is one track, not three. `BenchmarkTrack` runs 0 → `max(build,
+ceiling)`, the fill is the build, and each tier is a tick on that same ruler;
+the tier cards below are a selector in ascending order so card N sits under tick
+N. Do not give each tier its own meter again: the previous version divided by
+each tier's own damage and clamped at 100%, so a build that cleared median and
+minimum drew two identical full bars and the graphic carried less the better the
+build got. Three colour channels stay separate — gold is the selected tier (card
+chrome and its tick), white is the build (fill and score), teal marks clearing
+the selected reference — and the ratio is printed once, against whichever tier is
+selected, rather than once per card. Falling short of a reference is neutral, not
+`STATUS_NEGATIVE_COLOR`: every build is under the ceiling by definition.
+
 The stat comparison (`BuildStatDistribution.tsx`) is an interactive radar showing
 where a build sits against its board on eight axes. It is the whole section:
 there is no numeric table beside it, because a polygon cannot be read back to a

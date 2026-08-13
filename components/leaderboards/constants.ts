@@ -211,7 +211,14 @@ export const DEFAULT_LB_TRACK = 's0';
 // Expanded build substat summary row (leaderboard + profile) that wraps rather than overflow
 export const LB_SUMMARY_ROW = 'mx-auto flex w-full flex-wrap items-center justify-center gap-2';
 
-export const LB_SUMMARY_PILL = 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-[border-color,opacity] duration-200 cursor-pointer hover:border-amber-200/65';
+const LB_SUMMARY_PILL_BASE = 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-[border-color,opacity] duration-200';
+
+export const LB_SUMMARY_PILL = `${LB_SUMMARY_PILL_BASE} cursor-pointer hover:border-amber-200/65`;
+
+// Non-interactive twin, for the reference benchmark's Echo blueprint: its
+// substats are fixed by the tier, so there is nothing to select and a pointer
+// cursor would promise a filter that does not exist.
+export const LB_SUMMARY_PILL_STATIC = LB_SUMMARY_PILL_BASE;
 
 export const LB_SUMMARY_VAL = 'text-base';
 

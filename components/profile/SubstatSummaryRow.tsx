@@ -4,19 +4,9 @@ import React, { useMemo } from 'react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { calculateSelectedStatsRV } from '@/lib/calculations/rollValues';
-import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
 import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL } from '@/components/leaderboards/constants';
-import { formatFlatStat, formatPercentStat, normalizeSubstatKey } from '@/components/leaderboards/formatters';
-
-const BASE_STATS_SET = new Set<string>(BASE_STATS);
-
-type SubstatSummaryEntry = {
-  type: string;
-  total: number;
-  count: number;
-  icon: string;
-  isPercent: boolean;
-};
+import { formatFlatStat, formatPercentStat } from '@/components/leaderboards/formatters';
+import { buildSubstatSummary, SubstatSummaryEntry } from '@/components/leaderboards/substatSummary';
 
 interface SubstatSummaryRowProps {
   selectedSubstats: ReadonlySet<string>;
@@ -39,42 +29,9 @@ export const SubstatSummaryRow: React.FC<SubstatSummaryRowProps> = ({
   const { getSubstatValues, statTranslations, statIcons } = useGameData();
   const hasSelectedSubstats = selectedSubstats.size > 0;
 
-  const detailSubstatSummary = useMemo<SubstatSummaryEntry[]>(() => {
-    const map = new Map<string, SubstatSummaryEntry>();
-    for (const panel of state.echoPanels) {
-      for (const sub of panel.stats.subStats) {
-        const key = normalizeSubstatKey(sub.type);
-        if (!key || sub.value === null) continue;
-        const cur = map.get(key);
-        if (cur) { cur.count += 1; cur.total += Number(sub.value); continue; }
-        map.set(key, {
-          type: key,
-          total: Number(sub.value),
-          count: 1,
-          icon: statIcons?.[key] ?? statIcons?.[key.replace('%', '')] ?? '',
-          isPercent: isPercentStat(key),
-        });
-      }
-    }
-    const statOrder: string[] = [];
-    if (statTranslations) {
-      const seen = new Set<string>();
-      for (const rawKey of Object.keys(statTranslations)) {
-        if (seen.has(rawKey) || !map.has(rawKey)) continue;
-        statOrder.push(rawKey);
-        seen.add(rawKey);
-      }
-    } else {
-      statOrder.push(...map.keys());
-    }
-    const crits: string[] = [], flats: string[] = [], rest: string[] = [];
-    for (const key of statOrder) {
-      if (key === 'Crit Rate' || key === 'Crit DMG') crits.push(key);
-      else if (BASE_STATS_SET.has(key)) flats.push(key);
-      else rest.push(key);
-    }
-    return [...crits, ...rest, ...flats].map((key) => map.get(key)!);
-  }, [state.echoPanels, statIcons, statTranslations]);
+  const detailSubstatSummary = useMemo<SubstatSummaryEntry[]>(() => (
+    buildSubstatSummary(state.echoPanels, statIcons, statTranslations)
+  ), [state.echoPanels, statIcons, statTranslations]);
 
   const totalSelectedRolls = useMemo(() => (
     detailSubstatSummary

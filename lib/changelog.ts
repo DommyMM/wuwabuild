@@ -36,6 +36,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'fixed',
                 text: 'Move breakdown slightly more accurate and better looking',
             },
+            {
+                kind: 'improved',
+                text: 'Theoretical bench now one bar with three marks to look cleaner',
+            },
         ],
     },
     {

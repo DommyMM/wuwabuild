@@ -358,15 +358,25 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                         onPointerEnter={(event) => {
                           if (event.pointerType !== 'mouse') return;
                           setTypeFocus(total.type);
+                          showSegmentTooltip(event.currentTarget, total);
                         }}
-                        onPointerLeave={() => setTypeFocus(null)}
-                        onFocus={() => setTypeFocus(total.type)}
-                        onBlur={() => setTypeFocus(null)}
+                        onPointerLeave={() => {
+                          setTypeFocus(null);
+                          setTooltip(null);
+                        }}
+                        // Keyboard reaches the same readout the pointer does.
+                        onFocus={(event) => {
+                          setTypeFocus(total.type);
+                          showSegmentTooltip(event.currentTarget, total);
+                        }}
+                        onBlur={() => {
+                          setTypeFocus(null);
+                          setTooltip(null);
+                        }}
                       >
                         <span className="h-2 w-2 self-center rounded-xs" style={{ backgroundColor: meta.color }} />
                         <span className="text-xs font-semibold text-text-primary/62">{meta.label}</span>
                         <span className="text-xs font-bold tabular-nums text-white/82">{total.percentage.toFixed(1)}%</span>
-                        <span className="text-2xs tabular-nums text-text-primary/58">{formatDamage(total.damage)}</span>
                       </button>
                     );
                   })}

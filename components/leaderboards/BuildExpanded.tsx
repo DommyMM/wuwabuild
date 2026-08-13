@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { calculateSelectedStatsRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
-import { isPercentStat, BASE_STATS } from '@/lib/constants/statMappings';
+import { BASE_STATS } from '@/lib/constants/statMappings';
 import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
@@ -16,16 +16,9 @@ import { LB_EXPANDED_SHELL, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_P
 import { formatFlatStat, formatPercentStat, normalizeSubstatKey } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
+import { buildSubstatSummary, SubstatSummaryEntry } from './substatSummary';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import posthog from 'posthog-js';
-
-type SubstatSummaryEntry = {
-  type: string;
-  total: number;
-  count: number;
-  icon: string;
-  isPercent: boolean;
-};
 
 const BASE_STATS_SET = new Set<string>(BASE_STATS);
 
@@ -215,61 +208,9 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     return toSelect;
   }, [detail, character]);
 
-  const detailSubstatSummary = useMemo<SubstatSummaryEntry[]>(() => {
-    if (!detail) return [];
-    const summaryMap = new Map<string, SubstatSummaryEntry>();
-    for (const panel of detail.buildState.echoPanels) {
-      for (const sub of panel.stats.subStats) {
-        const normalizedType = normalizeSubstatKey(sub.type);
-        if (!normalizedType || sub.value === null) continue;
-        const current = summaryMap.get(normalizedType);
-        if (current) {
-          current.count += 1;
-          current.total += Number(sub.value);
-          continue;
-        }
-        summaryMap.set(normalizedType, {
-          type: normalizedType,
-          total: Number(sub.value),
-          count: 1,
-          icon: statIcons?.[normalizedType] ?? statIcons?.[normalizedType.replace('%', '')] ?? '',
-          isPercent: isPercentStat(normalizedType),
-        });
-      }
-    }
-
-    // Use natural order from statTranslations, with crits first and flat stats last
-    const statOrder: string[] = [];
-    if (statTranslations) {
-      const seen = new Set<string>();
-      for (const rawKey of Object.keys(statTranslations)) {
-        if (seen.has(rawKey)) continue;
-        if (summaryMap.has(rawKey)) {
-          statOrder.push(rawKey);
-          seen.add(rawKey);
-        }
-      }
-    } else {
-      statOrder.push(...summaryMap.keys()); // Else just use map order
-    }
-
-    // Crit first and flats last, rest is natural
-    const crits: string[] = [];
-    const flats: string[] = [];
-    const rest: string[] = [];
-
-    for (const key of statOrder) {
-      if (key === 'Crit Rate' || key === 'Crit DMG') {
-        crits.push(key);
-      } else if (BASE_STATS_SET.has(key)) {
-        flats.push(key);
-      } else {
-        rest.push(key);
-      }
-    }
-
-    return [...crits, ...rest, ...flats].map((key) => summaryMap.get(key)!);
-  }, [detail, statIcons, statTranslations]);
+  const detailSubstatSummary = useMemo<SubstatSummaryEntry[]>(() => (
+    detail ? buildSubstatSummary(detail.buildState.echoPanels, statIcons, statTranslations) : []
+  ), [detail, statIcons, statTranslations]);
 
   const activeSelectedSubstats = hasManuallyInteracted ? selectedSubstats : autoSelectedSubstats;
   const hasSelectedSubstats = activeSelectedSubstats.size > 0;

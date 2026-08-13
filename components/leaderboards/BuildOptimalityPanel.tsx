@@ -6,17 +6,16 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { Character, Element } from '@/lib/character';
 import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
 import { formatFlatStat, formatPercentStat } from './formatters';
-import { RegionBadge, PERCENT_STAT_KEYS, SORT_OPTIONS, STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
+import { RegionBadge, PERCENT_STAT_KEYS, SORT_OPTIONS, STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL_STATIC, LB_SUMMARY_ROW, LB_SUMMARY_VAL } from './constants';
 import { resolveCharacterBaseScaling } from './statColumns';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
+import { buildSubstatSummary } from './substatSummary';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 
 const POSITIVE_COLOR = STATUS_POSITIVE_COLOR;
 const NEGATIVE_COLOR = STATUS_NEGATIVE_COLOR;
 
-// Tier scores are read side by side, so they hold two decimals even when the
-// last is a zero — otherwise "11.28M / 9.63M / 8.4M" breaks the decimal
-// alignment that makes the three cards comparable at a glance.
+// Tier scores are read side by side, so they hold two decimals
 const SCORE_FORMATTER = new Intl.NumberFormat('en-US', {
   notation: 'compact',
   minimumFractionDigits: 2,
@@ -47,19 +46,25 @@ const SECTION_HEADING = 'text-2xs font-semibold uppercase tracking-[0.18em] text
 
 type OptimalityTier = 'ceiling' | 'standardized' | 'low_roll';
 
-// Tiers are differentiated by label and order (best → floor), not by hue.
-// Selection is the only accent, matching the Min/Mid/Max precedent in
-// BuildSubstatUpgrades where the active tier alone carries the gold accent.
+// Tiers are differentiated by label and order, not by hue. Selection is the
+// only accent, matching the Min/Mid/Max precedent in BuildSubstatUpgrades where
+// the active tier alone carries the gold accent.
+//
+// Three colour channels, deliberately non-overlapping:
+//   gold  = the tier you selected (card chrome and its tick on the track)
+//   white = this build (the track fill and its score)
+//   teal  = this build clears the selected reference
 const TIER_META: Record<OptimalityTier, { label: string; rollLabel: string }> = {
   ceiling: { label: 'Ceiling', rollLabel: 'Maximum rolls' },
   standardized: { label: 'Median', rollLabel: 'Median rolls' },
   low_roll: { label: 'Minimum', rollLabel: 'Minimum rolls' },
 };
 
+const TIER_ORDER: OptimalityTier[] = ['low_roll', 'standardized', 'ceiling'];
+const TICK_RING = '0 0 0 2px #1a1a1a';
+
 interface TierRowProps {
   ref_: LBOptimalityReference;
-  currentDamage?: number;
-  ratio?: number;
   isActive: boolean;
   onClick: () => void;
 }
@@ -77,52 +82,101 @@ const EMPTY_REFERENCE: LBOptimalityReference = {
   scoreModifiers: [],
 };
 
-function ratioColor(ratio: number | undefined): string {
-  if (ratio === undefined) return 'rgba(224,224,224,0.35)';
-  if (ratio >= 1) return POSITIVE_COLOR;
-  if (ratio >= 0.95) return 'var(--color-accent)';
-  return 'rgba(224,224,224,0.5)';
+// Beating a reference is worth marking; falling short of one is not a failure, so the low side is neutral
+function ratioTextColor(ratio: number | undefined): string {
+  if (ratio === undefined) return 'rgba(224,224,224,0.7)';
+  return ratio >= 1 ? POSITIVE_COLOR : 'rgba(224,224,224,0.7)';
 }
 
-function TierRow({ ref_, currentDamage, ratio, isActive, onClick }: TierRowProps) {
+interface BenchmarkTrackProps {
+  currentDamage: number;
+  marks: Array<{ tier: OptimalityTier; damage: number }>;
+  selectedTier: OptimalityTier;
+  selectedRatio?: number;
+}
+
+/**
+ * One scale for the whole benchmark: the track runs 0 → ceiling, the fill is
+ * this build, and each reference tier is a tick on the same ruler.
+ *
+ * This replaces three per-card meters that each used their own tier as the
+ * denominator and clamped at 100%. Any build that cleared median and minimum
+ * therefore rendered two identical full bars, so the graphic said less the
+ * better the build got, and no two of the three bar lengths were comparable.
+ */
+function BenchmarkTrack({ currentDamage, marks, selectedTier, selectedRatio }: BenchmarkTrackProps) {
+  // A build can in principle land past the ceiling (rounding, or an off-model
+  // loadout); extend the ruler rather than clamp, so that stays visible.
+  const trackMax = Math.max(currentDamage, ...marks.map((m) => m.damage));
+  if (!(trackMax > 0)) return null;
+  const pct = (value: number) => (value / trackMax) * 100;
+  const selectedLabel = TIER_META[selectedTier].label.toLowerCase();
+
+  return (
+    <div className="mt-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className="text-2xs font-semibold uppercase tracking-[0.16em] text-text-primary/55">This build</span>
+        <span className="flex items-baseline gap-2.5">
+          {/* Proportional figures: this is a standalone display number. */}
+          <span className="text-lg font-semibold text-white/88">{fmtScore(currentDamage)}</span>
+          {selectedRatio !== undefined && (
+            <span className="text-xs font-semibold tabular-nums" style={{ color: ratioTextColor(selectedRatio) }}>
+              {(selectedRatio * 100).toFixed(1)}% of {selectedLabel}
+            </span>
+          )}
+        </span>
+      </div>
+      <div className="relative mt-2 h-3.5 rounded bg-white/6">
+        <div
+          className="lb-bar-grow absolute inset-y-0 left-0 rounded bg-linear-to-b from-white/80 to-white/52"
+          style={{ width: `${pct(currentDamage)}%` }}
+        />
+        {marks.map((mark) => {
+          const isSelected = mark.tier === selectedTier;
+          return (
+            <span
+              key={mark.tier}
+              // The selected tick overhangs the track so its colour reads
+              // against the panel rather than against the white fill.
+              className={`absolute w-0.5 -translate-x-1/2 rounded-full transition-colors duration-150 ${isSelected ? '-top-1.5 -bottom-1.5' : 'inset-y-0'}`}
+              style={{
+                left: `${pct(mark.damage)}%`,
+                backgroundColor: isSelected ? 'var(--color-accent)' : 'rgba(224,224,224,0.5)',
+                boxShadow: TICK_RING,
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TierRow({ ref_, isActive, onClick }: TierRowProps) {
   const tier = (ref_.tier in TIER_META ? ref_.tier : 'standardized') as OptimalityTier;
   const meta = TIER_META[tier];
-  const fillPct = currentDamage && ref_.damage > 0
-    ? Math.min(100, (currentDamage / ref_.damage) * 100)
-    : 0;
 
   return (
     <button
       type="button"
       aria-pressed={isActive}
       onClick={onClick}
-      className={`min-w-0 cursor-pointer rounded-lg border p-2.5 text-left transition-[color,background-color,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
+      className={`min-w-0 cursor-pointer rounded-lg border p-2.5 text-left transition-[color,background-color,border-color,transform] duration-150 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
         isActive
           ? 'border-accent/70 bg-accent/9'
           : 'border-border/45 bg-black/15 hover:border-accent/40 hover:bg-background-secondary/40'
       }`}
     >
-      <span className="block min-w-0">
-        <span className={`block whitespace-nowrap text-2xs font-semibold uppercase tracking-[0.16em] ${isActive ? 'text-accent-hover' : 'text-text-primary/60'}`}>
+      <span className="flex items-baseline justify-between gap-2">
+        <span className={`whitespace-nowrap text-2xs font-semibold uppercase tracking-[0.16em] ${isActive ? 'text-accent-hover' : 'text-text-primary/60'}`}>
           {meta.label}
         </span>
-        <span className="mt-0.5 block whitespace-nowrap text-3xs text-text-primary/40">
-          {meta.rollLabel}
-        </span>
-      </span>
-      <span className="mt-2.5 flex items-end justify-between gap-2">
         <span className={`text-base font-semibold tabular-nums ${isActive ? 'text-accent-hover' : 'text-text-primary/75'}`}>
           {fmtScore(ref_.damage)}
         </span>
-        <span className="text-xs font-semibold tabular-nums" style={{ color: ratioColor(ratio) }}>
-          {ratio !== undefined ? `${(ratio * 100).toFixed(1)}% of ${meta.label.toLowerCase()}` : 'Reference'}
-        </span>
       </span>
-      <span className="relative mt-2 block h-1 overflow-hidden rounded-full bg-white/8">
-        <div
-          className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 motion-reduce:transition-none ${isActive ? 'bg-accent/75' : 'bg-white/25'}`}
-          style={{ width: `${fillPct}%` }}
-        />
+      <span className="mt-0.5 block whitespace-nowrap text-3xs text-text-primary/55">
+        {meta.rollLabel}
       </span>
     </button>
   );
@@ -152,7 +206,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
   regionBadge,
 }) => {
   const { t } = useLanguage();
-  const { fetters, getEcho, statIcons } = useGameData();
+  const { fetters, getEcho, statIcons, statTranslations } = useGameData();
   const panelId = useId();
   const [selectedTier, setSelectedTier] = useState<OptimalityTier>('standardized');
 
@@ -215,6 +269,12 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     () => new Set(selectedRef.substats.filter((value): value is string => Boolean(value))),
     [selectedRef.substats],
   );
+  // Same tally, same order, same pills as the build's own row above, so the two
+  // can be read chip against chip.
+  const blueprintSubstats = useMemo(
+    () => buildSubstatSummary(selectedRef.echoPanels, statIcons, statTranslations),
+    [selectedRef.echoPanels, statIcons, statTranslations],
+  );
   const syntheticDetail = useMemo<LBBuildDetailEntry>(() => ({
     ...buildDetail,
     id: `${buildDetail.id}-optimality-${selectedTier}`,
@@ -231,17 +291,29 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
 
   if (loading) {
     return (
-      <div className="space-y-2 rounded-lg border border-border/45 bg-background-secondary/20 p-3">
-        <div className="h-3 w-32 animate-pulse rounded bg-white/8" />
-        <div className="space-y-2.5">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="h-2.5 w-18 animate-pulse rounded bg-white/8" />
-              <div className="h-1 flex-1 animate-pulse rounded-full bg-white/8" />
-              <div className="h-2.5 w-16 animate-pulse rounded bg-white/8" />
-              <div className="h-2.5 w-12 animate-pulse rounded bg-white/8" />
-            </div>
-          ))}
+      // Mirrors the real layout (track, tier selector, summary, stat sheet) so
+      // the panel does not jump when the data lands.
+      <div className="animate-pulse overflow-hidden rounded-lg border border-border/45 bg-background-secondary/20">
+        <div className="border-b border-border/45 px-3 py-3 sm:px-4">
+          <div className="h-3 w-40 rounded bg-white/8" />
+          <div className="mt-3 flex items-baseline justify-between">
+            <div className="h-2.5 w-20 rounded bg-white/8" />
+            <div className="h-4 w-24 rounded bg-white/10" />
+          </div>
+          <div className="mt-2 h-3.5 rounded bg-white/8" />
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-14 rounded-lg border border-border/45 bg-black/15" />
+            ))}
+          </div>
+        </div>
+        <div className="space-y-4 px-3 py-3 sm:px-4">
+          <div className="h-20 rounded-lg border border-border/45 bg-black/15" />
+          <div className="flex flex-wrap gap-1.5">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-12 flex-auto rounded-md border border-border/45 bg-black/15" />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -273,6 +345,14 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     : selectedTier === 'low_roll'
       ? vsLowRoll
       : vsStd;
+  const refByTier: Record<OptimalityTier, LBOptimalityReference> = {
+    low_roll: data.lowRoll,
+    standardized: data.standardized,
+    ceiling: data.ceiling,
+  };
+  const marks = TIER_ORDER
+    .map((tier) => ({ tier, damage: refByTier[tier].damage }))
+    .filter((mark) => mark.damage > 0);
   const energyRegen = selectedRef.topLevelStats.energy_regen ?? 0;
   const meetsErTarget = data.erTarget <= 0 || energyRegen >= data.erTarget;
   const layoutLabel = formatLayoutLabel(selectedRef.layout);
@@ -281,48 +361,45 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     <div className="overflow-hidden rounded-lg border border-border/45 bg-background-secondary/20">
       <div className="border-b border-border/45 px-3 py-3 sm:px-4">
         <h3 className={SECTION_HEADING}>Reference Benchmark</h3>
-        <p className="mt-1 max-w-3xl text-2xs leading-relaxed text-text-primary/45">
+        <p className="mt-1 max-w-3xl text-2xs leading-relaxed text-text-primary/55">
           Best legal loadout found for each roll quality. Select a tier to inspect its independently optimized stats and Echo blueprint.
         </p>
 
+        {hasCurrent && (
+          <BenchmarkTrack
+            currentDamage={currentDamage}
+            marks={marks}
+            selectedTier={selectedTier}
+            selectedRatio={selectedRatio}
+          />
+        )}
+
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <TierRow
-            ref_={data.ceiling}
-            currentDamage={hasCurrent ? currentDamage : undefined}
-            ratio={vsCeiling}
-            isActive={selectedTier === 'ceiling'}
-            onClick={() => setSelectedTier('ceiling')}
-          />
-          <TierRow
-            ref_={data.standardized}
-            currentDamage={hasCurrent ? currentDamage : undefined}
-            ratio={vsStd}
-            isActive={selectedTier === 'standardized'}
-            onClick={() => setSelectedTier('standardized')}
-          />
-          <TierRow
-            ref_={data.lowRoll}
-            currentDamage={hasCurrent ? currentDamage : undefined}
-            ratio={vsLowRoll}
-            isActive={selectedTier === 'low_roll'}
-            onClick={() => setSelectedTier('low_roll')}
-          />
+          {TIER_ORDER.map((tier) => (
+            <TierRow
+              key={tier}
+              ref_={refByTier[tier]}
+              isActive={selectedTier === tier}
+              onClick={() => setSelectedTier(tier)}
+            />
+          ))}
         </div>
       </div>
 
-      <div className="space-y-4 px-3 py-3 sm:px-4">
+      {/* Keyed on the tier so switching crossfades the summary, stat sheet and
+          Echo blueprint together. Blur bridges the two states: without it the
+          old and new stat sheets read as two objects overlapping rather than
+          one sheet changing. */}
+      <div key={selectedTier} className="lb-tier-swap space-y-4 px-3 py-3 sm:px-4">
         <section aria-labelledby={`${panelId}-summary`} className="rounded-lg border border-border/45 bg-black/15 p-3">
           <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+            {/* The tier's score is already the figure on its selector card and
+                the ratio is already on the track, so this heading names the
+                loadout rather than restating either number. */}
             <div className="min-w-0">
               <h4 id={`${panelId}-summary`} className={SECTION_HEADING}>
                 {TIER_META[selectedTier].label}{layoutLabel ? ` · ${layoutLabel} layout` : ''}
               </h4>
-              <div className="mt-1.5 flex items-baseline gap-2.5">
-                <span className="text-2xl font-bold tabular-nums text-accent-hover">{fmtScore(selectedRef.damage)}</span>
-                <span className="text-2xs text-text-primary/45">
-                  {selectedRatio !== undefined ? `${(selectedRatio * 100).toFixed(1)}% of ${TIER_META[selectedTier].label.toLowerCase()}` : 'Reference score'}
-                </span>
-              </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -339,7 +416,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
                 </div>
               ))}
               {selectedSetEntries.length === 0 && (
-                <span className="self-center text-xs text-text-primary/40">No active set bonus</span>
+                <span className="self-center text-xs text-text-primary/55">No active set bonus</span>
               )}
             </div>
           </div>
@@ -353,7 +430,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/45 pt-3 text-xs">
               {data.erTarget > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <span className="text-text-primary/50">Energy target</span>
+                  <span className="text-text-primary/55">Energy target</span>
                   <span className="font-semibold tabular-nums" style={{ color: meetsErTarget ? POSITIVE_COLOR : NEGATIVE_COLOR }}>
                     {formatPercentStat(energyRegen)} / {formatPercentStat(data.erTarget)}
                   </span>
@@ -361,7 +438,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
               )}
               {selectedRef.scoreModifiers.map((modifier) => (
                 <div key={modifier.key || modifier.name} className="flex items-center gap-1.5">
-                  <span className="text-text-primary/50">{modifier.name}</span>
+                  <span className="text-text-primary/55">{modifier.name}</span>
                   <span className="shrink-0 font-semibold tabular-nums" style={{ color: modifier.delta >= 0 ? POSITIVE_COLOR : NEGATIVE_COLOR }}>
                     {modifier.delta >= 0 ? '+' : '−'}{fmtDelta(Math.abs(modifier.delta))}
                   </span>
@@ -391,13 +468,13 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
                   {entry.icon && <img src={entry.icon} alt="" width={16} height={16} className="h-4 w-4 shrink-0 object-contain opacity-80" loading="lazy" />}
                   {entry.kind === 'percent' ? formatPercentStat(entry.value) : formatFlatStat(entry.value)}
                 </dd>
-                <dt className="mt-1 whitespace-nowrap text-3xs uppercase tracking-widest text-text-primary/45">
+                <dt className="mt-1 whitespace-nowrap text-3xs uppercase tracking-widest text-text-primary/55">
                   {entry.label}
                 </dt>
               </div>
             ))}
             {topLevelStats.length === 0 && (
-              <div className="w-full rounded-md border border-border/45 bg-black/15 px-3 py-2 text-xs text-text-primary/40">
+              <div className="w-full rounded-md border border-border/45 bg-black/15 px-3 py-2 text-xs text-text-primary/55">
                 <dt className="sr-only">Status</dt>
                 <dd>Final stats are unavailable for this reference.</dd>
               </div>
@@ -405,9 +482,18 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
           </dl>
         </section>
 
-        <section aria-labelledby={`${panelId}-echoes`}>
-          <h4 id={`${panelId}-echoes`} className={SECTION_HEADING}>Echo Blueprint</h4>
-          <div className="mt-2 w-full space-y-4 font-ropa tracking-wide">
+        <section aria-labelledby={`${panelId}-echoes`} className="pt-1">
+          {/* Visually hidden. Each echo card's set icon is absolutely positioned
+              above its own top edge, so the first card's icon sat on top of this
+              heading. The row is unmistakable without it: it renders the same
+              echo cards as the build row, under a stat sheet that already names
+              the tier. The label stays for the section's accessible name. */}
+          <h4 id={`${panelId}-echoes`} className="sr-only">Echo Blueprint</h4>
+          <div className="w-full space-y-4 font-ropa tracking-wide">
+            {/* Identical to the build's own row, because the two are read slot
+                against slot. The per-echo substats stay: the tally below is an
+                aggregate, and an aggregate does not tell you what one echo has
+                to look like when you go farming for it. */}
             <BuildExpandedEchoPanels
               detail={syntheticDetail}
               character={character}
@@ -420,6 +506,31 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
               hasSelectedSubstats={highlightedSubstats.size > 0}
               showHeader={false}
             />
+
+            {/* No RV pill: a reference rolls every substat at exactly its tier
+                value, so its Roll Value is 100 / 50 / 0 by construction and
+                would state the tier a third time. */}
+            {blueprintSubstats.length > 0 && (
+              <div className={LB_SUMMARY_ROW}>
+                {blueprintSubstats.map((summary) => (
+                  <span
+                    key={`blueprint-${selectedTier}-${summary.type}`}
+                    className={`${LB_SUMMARY_PILL_STATIC} border-amber-300/45`}
+                    title={summary.type}
+                  >
+                    <span className="text-amber-300">x{summary.count}</span>
+                    {summary.icon ? (
+                      <img src={summary.icon} alt="" className={LB_SUMMARY_ICON} />
+                    ) : (
+                      <span className={LB_SUMMARY_ICON_EMPTY} />
+                    )}
+                    <span className={LB_SUMMARY_VAL}>
+                      {summary.isPercent ? formatPercentStat(summary.total) : formatFlatStat(summary.total)}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </div>
