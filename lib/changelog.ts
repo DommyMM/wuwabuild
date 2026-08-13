@@ -18,7 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'new',
-                text: 'Stat comparison: expand a build and see how each of its stats sits against the rest of the board, against the whole field or just the top 10%',
+                text: 'Stat comparison graph against average of each board',
             },
             {
                 kind: 'improved',
