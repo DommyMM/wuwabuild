@@ -615,7 +615,7 @@ export function BulkImportPageClient() {
               <span>Uploaded</span>
               <span>Result</span>
             </div>
-            <div className="max-h-[420px] overflow-auto">
+            <div className="max-h-105 overflow-auto">
               {recentRows.map(item => (
                 <div key={item.id} className="grid grid-cols-[120px_1fr_96px_160px] gap-3 border-b border-border/60 px-3 py-2 text-sm last:border-b-0">
                   <StatusBadge status={item.status} />

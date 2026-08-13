@@ -168,7 +168,7 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
           className="overflow-x-visible overflow-y-hidden border-t border-border/50 bg-black/15"
         >
           <div className="px-4 py-4">
-            <div className="mx-auto w-full max-w-[1320px]">
+            <div className="mx-auto w-full max-w-330">
         <div
           className="relative overflow-hidden rounded-xl border border-white/12 bg-[linear-gradient(170deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.035)_34%,rgba(0,0,0,0.46)_100%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),inset_0_-14px_24px_rgba(0,0,0,0.18),0_8px_16px_rgba(0,0,0,0.35)]"
         >

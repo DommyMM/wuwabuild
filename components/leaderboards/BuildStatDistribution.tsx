@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState } from 'react';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
-import { HoverCard } from '@/components/ui/HoverCard';
 import {
   getLBStatCode,
   interpolatePercentile,
@@ -47,10 +46,14 @@ const BAND_FILL = 'color-mix(in srgb, var(--color-text-primary) 7%, transparent)
 const CHROME_STROKE = 'color-mix(in srgb, var(--color-text-primary) 16%, transparent)';
 const MEDIAN_STROKE = 'color-mix(in srgb, var(--color-text-primary) 34%, transparent)';
 
-const SIZE = 260;
-const CENTER = SIZE / 2;
-const RADIUS = 96;
-// Room for the outermost labels; the viewBox is wider than the plot.
+// The viewBox is wider than it is tall because the left and right labels extend
+// horizontally from the rim and the top/bottom ones do not. A square box clips
+// the widest label ("Crit DMG") at the 3 o'clock position.
+const VIEW_W = 340;
+const VIEW_H = 260;
+const CX = VIEW_W / 2;
+const CY = VIEW_H / 2;
+const RADIUS = 100;
 const LABEL_RADIUS = RADIUS + 22;
 
 const AXIS_LABELS: Partial<Record<LBStatSortKey, string>> = {
@@ -125,7 +128,7 @@ function radiusFraction(view: AxisView): number {
 }
 
 function pointOn(angle: number, radius: number): [number, number] {
-  return [CENTER + (Math.cos(angle) * radius), CENTER + (Math.sin(angle) * radius)];
+  return [CX + (Math.cos(angle) * radius), CY + (Math.sin(angle) * radius)];
 }
 
 /** Angles start at 12 o'clock and run clockwise. */
@@ -148,58 +151,8 @@ function wedgePath(index: number, count: number): string {
   const mid = axisAngle(index, count);
   const [x1, y1] = pointOn(mid - half, RADIUS + 16);
   const [x2, y2] = pointOn(mid + half, RADIUS + 16);
-  return `M ${CENTER} ${CENTER} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${RADIUS + 16} ${RADIUS + 16} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+  return `M ${CX} ${CY} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${RADIUS + 16} ${RADIUS + 16} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
 }
-
-interface AxisTooltipProps {
-  view: AxisView;
-  cohortLabel: string;
-  sampleSize: number;
-  children: React.ReactNode;
-}
-
-const AxisTooltip: React.FC<AxisTooltipProps> = ({ view, cohortLabel, sampleSize, children }) => (
-  <HoverCard
-    title={view.label}
-    subtitle={`${cohortLabel} · ${sampleSize.toLocaleString()} builds`}
-    width="sm"
-    placement="top"
-    body={(
-      <dl className="space-y-1 text-2xs">
-        <div className="flex items-baseline justify-between gap-3">
-          <dt className="text-text-primary/55">This build</dt>
-          <dd className="font-semibold text-text-primary">{formatStat(view.key, view.value)}</dd>
-        </div>
-        {view.degenerate ? (
-          <p className="pt-1 text-text-primary/55">No spread on this board</p>
-        ) : (
-          <>
-            <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-text-primary/55">Percentile</dt>
-              <dd className="font-semibold text-text-primary">
-                {view.percentile === null ? '—' : formatPercentile(view.percentile)}
-              </dd>
-            </div>
-            {/* Mean and median are labelled separately on purpose: crit
-                distributions are skewed enough that "average" alone misleads. */}
-            <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-text-primary/55">Board median</dt>
-              <dd className="text-text-primary/80">{formatStat(view.key, view.p50)}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-text-primary/55">Middle half</dt>
-              <dd className="text-text-primary/80">
-                {formatStat(view.key, view.p25)} – {formatStat(view.key, view.p75)}
-              </dd>
-            </div>
-          </>
-        )}
-      </dl>
-    )}
-  >
-    {children}
-  </HoverCard>
-);
 
 /**
  * A one-line status where the section's content would be.
@@ -231,6 +184,10 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
   onRetry,
 }) => {
   const [cohortKey, setCohortKey] = useState('all');
+  // Shared between the chart and the table so hovering either one highlights
+  // both. That link is the point of having the two side by side: a spoke shows
+  // shape, the row shows the number, and neither is much use without the other.
+  const [activeAxis, setActiveAxis] = useState<number | null>(null);
 
   const cohort: LBDistributionCohort | null = useMemo(() => {
     if (!data || data.cohorts.length === 0) return null;
@@ -279,6 +236,7 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
 
   const cohortLabel = COHORT_LABELS[cohort.key] ?? cohort.key;
   const count = views.length;
+  const active = activeAxis === null ? null : views[activeAxis] ?? null;
 
   return (
     <section className="space-y-3">
@@ -312,33 +270,26 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
 
       <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-6">
         <svg
-          viewBox={`0 0 ${SIZE} ${SIZE}`}
-          className="h-64 w-64 shrink-0"
+          viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+          className="w-full max-w-[340px] shrink-0"
           role="img"
           aria-label={`Stat distribution against ${cohortLabel.toLowerCase()}. Exact values are in the table beside this chart.`}
+          onMouseLeave={() => setActiveAxis(null)}
         >
           {/* Recessive chrome: rings at the quarter marks, then one spoke per axis. */}
           {[0.25, 0.5, 0.75, 1].map((ring) => (
-            <circle
-              key={ring}
-              cx={CENTER}
-              cy={CENTER}
-              r={RADIUS * ring}
-              fill="none"
-              stroke={CHROME_STROKE}
-              strokeWidth={1}
-            />
+            <circle key={ring} cx={CX} cy={CY} r={RADIUS * ring} fill="none" stroke={CHROME_STROKE} strokeWidth={1} />
           ))}
           {views.map((view, i) => {
             const [x, y] = pointOn(axisAngle(i, count), RADIUS);
             return (
               <line
                 key={view.key}
-                x1={CENTER}
-                y1={CENTER}
+                x1={CX}
+                y1={CY}
                 x2={x}
                 y2={y}
-                stroke={CHROME_STROKE}
+                stroke={i === activeAxis ? YOU_STROKE : CHROME_STROKE}
                 strokeWidth={1}
               />
             );
@@ -347,17 +298,9 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
           {/* The middle half of the field, and its median. Backdrop, not a series:
               on a percentile radius these are the same ring on every axis, so
               they read as the frame the build is measured in. */}
-          <circle cx={CENTER} cy={CENTER} r={RADIUS * 0.75} fill={BAND_FILL} />
-          <circle cx={CENTER} cy={CENTER} r={RADIUS * 0.25} fill="var(--color-background-secondary)" />
-          <circle
-            cx={CENTER}
-            cy={CENTER}
-            r={RADIUS * 0.5}
-            fill="none"
-            stroke={MEDIAN_STROKE}
-            strokeWidth={1}
-            strokeDasharray="3 3"
-          />
+          <circle cx={CX} cy={CY} r={RADIUS * 0.75} fill={BAND_FILL} />
+          <circle cx={CX} cy={CY} r={RADIUS * 0.25} fill="var(--color-background-secondary)" />
+          <circle cx={CX} cy={CY} r={RADIUS * 0.5} fill="none" stroke={MEDIAN_STROKE} strokeWidth={1} strokeDasharray="3 3" />
 
           {/* The one series. */}
           <polygon
@@ -369,24 +312,24 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
           />
           {views.map((view, i) => {
             const [x, y] = pointOn(axisAngle(i, count), radiusFraction(view) * RADIUS);
+            const isActive = i === activeAxis;
             return (
               <circle
                 key={view.key}
                 cx={x}
                 cy={y}
-                r={view.degenerate ? 2.5 : 4}
+                r={view.degenerate ? 2.5 : isActive ? 6 : 4}
                 fill={view.degenerate ? STATUS_NEUTRAL_COLOR : YOU_STROKE}
+                stroke={isActive ? 'var(--color-background-secondary)' : 'none'}
+                strokeWidth={isActive ? 2 : 0}
               />
             );
           })}
 
-          {/* Labels, then invisible wedges on top so the whole chart is hoverable
-              rather than only the vertex dots. Each is focusable, because a
-              polygon is otherwise unreachable by keyboard. */}
           {views.map((view, i) => {
-            const angle = axisAngle(i, count);
-            const [lx, ly] = pointOn(angle, LABEL_RADIUS);
-            const anchor = Math.abs(lx - CENTER) < 4 ? 'middle' : lx > CENTER ? 'start' : 'end';
+            const [lx, ly] = pointOn(axisAngle(i, count), LABEL_RADIUS);
+            const anchor = Math.abs(lx - CX) < 4 ? 'middle' : lx > CX ? 'start' : 'end';
+            const isActive = i === activeAxis;
             return (
               <text
                 key={view.key}
@@ -394,26 +337,36 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
                 y={ly}
                 textAnchor={anchor}
                 dominantBaseline="middle"
-                className="fill-current text-[9px] font-medium"
-                style={{ color: view.degenerate ? STATUS_NEUTRAL_COLOR : 'var(--color-text-primary)', opacity: view.degenerate ? 0.45 : 0.7 }}
+                className="pointer-events-none text-[9px] font-medium"
+                fill={view.degenerate ? STATUS_NEUTRAL_COLOR : isActive ? YOU_STROKE : 'var(--color-text-primary)'}
+                opacity={view.degenerate ? 0.45 : isActive ? 1 : 0.7}
               >
                 {view.label}
               </text>
             );
           })}
+
+          {/* Invisible wedges last, so they sit above everything and the whole
+              chart is hoverable rather than only the vertex dots. Handlers are on
+              the SVG elements themselves: an HTML tooltip wrapper cannot live
+              inside an <svg>, and wrapping these in one silently produced no
+              hover at all. Each is focusable because a polygon is otherwise
+              unreachable by keyboard. */}
           {views.map((view, i) => (
-            <AxisTooltip key={view.key} view={view} cohortLabel={cohortLabel} sampleSize={cohort.sampleSize}>
-              <path
-                d={wedgePath(i, count)}
-                fill="transparent"
-                tabIndex={0}
-                role="button"
-                aria-label={`${view.label}: ${formatStat(view.key, view.value)}${
-                  view.degenerate || view.percentile === null ? ', no spread on this board' : `, ${formatPercentile(view.percentile)}`
-                }`}
-                className="cursor-pointer outline-none focus-visible:fill-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]"
-              />
-            </AxisTooltip>
+            <path
+              key={view.key}
+              d={wedgePath(i, count)}
+              fill="transparent"
+              tabIndex={0}
+              role="button"
+              aria-label={`${view.label}: ${formatStat(view.key, view.value)}${
+                view.degenerate || view.percentile === null ? ', no spread on this board' : `, ${formatPercentile(view.percentile)}`
+              }`}
+              onMouseEnter={() => setActiveAxis(i)}
+              onFocus={() => setActiveAxis(i)}
+              onBlur={() => setActiveAxis(null)}
+              className="cursor-pointer outline-none"
+            />
           ))}
         </svg>
 
@@ -432,8 +385,15 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
             </tr>
           </thead>
           <tbody>
-            {views.map((view) => (
-              <tr key={view.key} className="border-t border-border/35">
+            {views.map((view, i) => (
+              <tr
+                key={view.key}
+                className={`border-t border-border/35 transition-colors duration-100 ${
+                  i === activeAxis ? 'bg-accent/10' : ''
+                }`}
+                onMouseEnter={() => setActiveAxis(i)}
+                onMouseLeave={() => setActiveAxis(null)}
+              >
                 <th scope="row" className="py-1 pr-2 text-left font-medium text-text-primary/70">
                   {view.label}
                 </th>
@@ -454,10 +414,14 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
         </table>
       </div>
 
-      <p className="text-center text-2xs text-text-primary/40">
-        Rings are percentiles of this board, not raw values: the centre is the 1st
-        percentile and the rim the 99th, so every stat is comparable. The dashed
-        ring is the median.
+      {/* Doubles as the hover readout, so the middle-half range has somewhere to
+          live without widening the table on a phone. */}
+      <p className="min-h-8 text-center text-2xs text-text-primary/40">
+        {active
+          ? active.degenerate
+            ? `${active.label}: every build on this board has the same value, so there is no spread to place you in.`
+            : `${active.label}: this build ${formatStat(active.key, active.value)} · board median ${formatStat(active.key, active.p50)} · middle half ${formatStat(active.key, active.p25)} to ${formatStat(active.key, active.p75)}`
+          : 'Rings are percentiles of this board, not raw values: the centre is the 1st percentile and the rim the 99th, so every stat is comparable. The dashed ring is the median.'}
       </p>
     </section>
   );
