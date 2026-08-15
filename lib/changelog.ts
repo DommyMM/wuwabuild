@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-08-14',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Sequence scanning more reliable',
+            },
+        ],
+    },
+    {
         date: '2026-08-13',
         changes: [
             {
