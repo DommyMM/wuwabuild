@@ -33,7 +33,7 @@
     "eslint-config-next": "^16.2.10",
     "knip": "^6.26.0",
     "postcss": "^8.5.19",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "typescript": "^6.0.3"
   },
