@@ -16,7 +16,6 @@ import functools
 import json
 import re
 import sys
-import time
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -27,10 +26,13 @@ import requests
 SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from cdn_config import merge_records_by_id, write_json_atomic  # noqa: E402
+from cdn_config import (  # noqa: E402
+    encore_request_json,
+    merge_records_by_id,
+    write_json_atomic,
+)
 from sync_characters import get_preferred_substats  # noqa: E402
 from sync_characters_encore import (  # noqa: E402
-    ENCORE_API_BASE,
     ENCORE_LANGS,
     LANGS,
     RARITY_COLORS,
@@ -124,26 +126,15 @@ def _merge_by_id(
 
 
 def _get(session: requests.Session, lang: str, route: str) -> dict:
-    url = f"{ENCORE_API_BASE}/{lang}/{route.lstrip('/')}"
-    last_error: Exception | None = None
-    for attempt in range(3):
-        try:
-            resp = session.get(url, timeout=45)
-            resp.raise_for_status()
-            data = resp.json()
-            clean_route = route.strip("/")
-            if isinstance(data, list) and clean_route == "echo":
-                return {"Echo": data}
-            if isinstance(data, list) and clean_route == "new":
-                return {"_list": data}
-            if not isinstance(data, dict):
-                raise ValueError(f"Unexpected response for {lang}/{route}")
-            return data
-        except Exception as error:
-            last_error = error
-            if attempt < 2:
-                time.sleep(0.75 * (attempt + 1))
-    raise last_error or RuntimeError(f"Failed to fetch {url}")
+    data = encore_request_json(session, lang, route)
+    clean_route = route.strip("/")
+    if isinstance(data, list) and clean_route == "echo":
+        return {"Echo": data}
+    if isinstance(data, list) and clean_route == "new":
+        return {"_list": data}
+    if not isinstance(data, dict):
+        raise ValueError(f"Unexpected response for {lang}/{route}")
+    return data
 
 
 def _fetch_locales(route: str, workers: int) -> dict[str, dict]:

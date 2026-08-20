@@ -31,6 +31,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from cdn_config import (
     CDN_BASE,
+    encore_request_json,
     request_json_with_retry,
     write_bytes_atomic,
     write_json_atomic,
@@ -57,24 +58,17 @@ BACKEND_CHARACTERS = BACKEND_DATA / "Characters"
 BACKEND_WEAPONS = BACKEND_DATA / "Weapons"
 BACKEND_ECHOES = BACKEND_DATA / "Echoes"
 
-ENCORE_API = "https://api-v2.encore.moe/api/en"
-ENCORE_ECHO_LIST_URL = f"{ENCORE_API}/echo"
 UA = {"User-Agent": "wuwabuilds-backend-sync/1.0"}
 ICON_WORKERS = 16
 WEBP_QUALITY = 95
 
 # --- Shared download helpers --------------------------------------------------
 
-def _encore_json(url: str):
+def _encore_json(route: str):
+    """Fetch an Encore English route, failing over between Encore hosts."""
     if requests is None:
         raise RuntimeError("requests is required to fetch Encore data")
-    return request_json_with_retry(
-        requests,
-        "get",
-        url,
-        headers=UA,
-        timeout=45,
-    )
+    return encore_request_json(requests, "en", route, headers=UA)
 
 
 def _frontend_fetter_ids() -> frozenset[int]:
@@ -183,7 +177,7 @@ def _download_icons(tasks: list[tuple[str, str | Path, Path]], force: bool, reen
 # --- Element templates (Encore FetterGroup icons) -----------------------------
 
 def _encore_fetter_groups() -> dict[int, dict]:
-    data = _encore_json(ENCORE_ECHO_LIST_URL)
+    data = _encore_json("echo")
     rows = data.get("Echo") if isinstance(data, dict) else data
     groups: dict[int, dict] = {}
     for echo in rows or []:
@@ -222,7 +216,7 @@ def sync_element_templates(dry_run: bool, force: bool) -> int:
 # --- Character / weapon / echo SIFT templates ---------------------------------
 
 def sync_character_icons(dry_run: bool, force: bool) -> int:
-    ids = [str(c.get("Id", "")).strip() for c in _encore_rows(_encore_json(f"{ENCORE_API}/character"))]
+    ids = [str(c.get("Id", "")).strip() for c in _encore_rows(_encore_json("character"))]
     ids = [i for i in ids if i]
     # Each splash URL is a per-character detail call, so resolve only the ids we need.
     needed = [i for i in ids if force or not (BACKEND_CHARACTERS / f"{i}.webp").exists()]
@@ -237,7 +231,7 @@ def sync_character_icons(dry_run: bool, force: bool) -> int:
 
     def resolve(cid: str) -> tuple[str, str | None]:
         try:
-            detail = _encore_json(f"{ENCORE_API}/character/{cid}")
+            detail = _encore_json(f"character/{cid}")
             url = detail.get("FormationRoleCard") if isinstance(detail, dict) else None
             return cid, (url if isinstance(url, str) and url else None)
         except Exception:  # noqa: BLE001
@@ -257,7 +251,7 @@ def sync_character_icons(dry_run: bool, force: bool) -> int:
 
 
 def sync_weapon_icons(dry_run: bool, force: bool) -> int:
-    rows = _encore_rows(_encore_json(f"{ENCORE_API}/weapon"))
+    rows = _encore_rows(_encore_json("weapon"))
     tasks: list[tuple[str, str, Path]] = []
     for weapon in rows:
         wid = str(weapon.get("Id", "")).strip()

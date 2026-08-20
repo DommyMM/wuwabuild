@@ -16,11 +16,15 @@ import argparse
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from cdn_config import CDN_BASE, request_json_with_retry, write_json_atomic
+from cdn_config import (
+    CDN_BASE,
+    encore_request_json,
+    request_json_with_retry,
+    write_json_atomic,
+)
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Phantom"
-ENCORE_ECHO_LIST_API = "https://api-v2.encore.moe/api/en/echo"
 # Scripts in /scripts; output in /public/Data
 OUTPUT_FILE = Path(__file__).parent.parent / "public/Data/Echoes.json"
 
@@ -47,6 +51,23 @@ _ECHO_EQUIP_SENTENCE_RE = re.compile(
     r"\b(?:main\s+(?:Echo\s+)?slot|equips\s+this\s+Echo)\b",
     re.I,
 )
+_TIMED_EXTRA_CLAUSE_RE = re.compile(r",?\s+and\s+additionally\s+gains\b", re.I)
+_BUFF_DURATION_RE = re.compile(r"for\s*\{\d+\}s\b", re.I)
+
+
+def _trim_timed_extra_clause(sentence: str) -> str:
+    """Drop a trailing "and additionally gains X for {N}s when ..." clause.
+
+    Calamity Effigy states a permanent main-slot bonus and a trigger-gated,
+    duration-limited second bonus of the same stat in one sentence. Only the
+    first is a first-panel stat; keeping both publishes the temporary buff as
+    an always-on echo bonus, and as an identical stat/value pair it is
+    indistinguishable from the permanent one downstream.
+    """
+    match = _TIMED_EXTRA_CLAUSE_RE.search(sentence)
+    if match and _BUFF_DURATION_RE.search(sentence[match.end():]):
+        return sentence[: match.start()].strip()
+    return sentence
 
 
 def _iter_echo_equip_sentences(desc: str):
@@ -58,7 +79,7 @@ def _iter_echo_equip_sentences(desc: str):
     """
     for paragraph in re.split(r"\n+", desc):
         for sentence in _SENTENCE_BOUNDARY_RE.split(paragraph.strip()):
-            sentence = sentence.strip()
+            sentence = _trim_timed_extra_clause(sentence.strip())
             if sentence and _ECHO_EQUIP_SENTENCE_RE.search(sentence):
                 yield sentence
 
@@ -141,22 +162,23 @@ def fetch_encore_echo_name_index() -> dict[int, str]:
         raise RuntimeError("requests is required for the Encore name fallback")
 
     try:
-        payload = request_json_with_retry(
-            requests,
-            "get",
-            ENCORE_ECHO_LIST_API,
-        )
+        payload = encore_request_json(requests, "en", "echo")
     except Exception as exc:
         raise RuntimeError(
             "Failed to fetch the required Encore echo-name fallback; refusing "
             "to write echoes with blank names"
         ) from exc
 
-    if not isinstance(payload, dict):
-        raise ValueError("Unexpected Encore echo-name payload; expected an object")
+    # api-v2 answers with a bare array; the legacy host wraps it in {"Echo": [...]}.
+    if isinstance(payload, dict):
+        rows = payload.get("Echo", [])
+    elif isinstance(payload, list):
+        rows = payload
+    else:
+        raise ValueError("Unexpected Encore echo-name payload; expected a list or object")
 
     out: dict[int, str] = {}
-    for item in payload.get("Echo", []):
+    for item in rows:
         try:
             echo_id = int(item.get("Id"))
         except (TypeError, ValueError):

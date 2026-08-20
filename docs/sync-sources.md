@@ -43,8 +43,10 @@ Images:   served at /d/<UE asset path>.png
 ### Encore (early-patch catch-up)
 
 ```
-Base v2:  https://api-v2.encore.moe/api      (Nuxt backend)
-Base v1:  https://api.encore.moe              (legacy fallback)
+Base v2:  https://api-v2.encore.moe/api      (Nuxt backend, routes mounted under /api)
+Base v1:  https://api.encore.moe              (legacy fallback, same routes, NO /api prefix)
+Hosts:    GET https://api.encore.moe/  ->  {"apiList": [{url, P}], "language": [...]}
+New page: https://encore.moe/new?lang=en      (human-readable view of /{lang}/new)
 Routes (require {lang}):
   /{lang}                    route catalogue
   /{lang}/character          list (roleList[])
@@ -61,6 +63,36 @@ Images:   many detail fields are already absolute `https://api.encore.moe/resour
 ```
 
 The OpenAPI spec for Encore is in [encore_api.json](../scripts/encore_api.json) for reference (vendored from `https://api-v2.encore.moe/api`).
+
+### Encore host failover
+
+Encore publishes its own host list at `GET https://api.encore.moe/`
+(`apiList` entries ordered by `P`), and the site itself carries both as
+`apiDataPrimaryUrl` / `apiDataFallbackUrls` in its Nuxt config. Both hosts serve
+the same routes and the same payload shapes; only the path prefix differs, and
+a couple of list routes are shaped slightly differently:
+
+| | api-v2 (`P=1`) | api (`P=2`) |
+|---|---|---|
+| Base | `https://api-v2.encore.moe/api` | `https://api.encore.moe` |
+| Echo list | bare array | `{"Echo": [...]}` |
+| `/new` | object | 2-element array (`[{GameVer…}, {character: […]…}]`) |
+
+`cdn_config.encore_request_json()` walks `ENCORE_API_BASES` in order and caches
+the first host that answers, so a dead primary costs one round of retries per
+process instead of per call. Every Encore call in `sync_encore.py`,
+`sync_characters_encore.py`, `sync_echoes.py` and `sync_backend.py` goes through
+it. The callers already normalize both list shapes.
+
+This is not theoretical: on **2026-08-20** api-v2 returned `502` for every
+route for hours while the legacy host stayed healthy, so the Qingxiao sync ran
+entirely off `https://api.encore.moe`.
+
+**Spotting new content:** <https://encore.moe/new?lang=en> is the browsable
+version of `/{lang}/new` — same `GameVer` / `ResVer` / `Changelist` and the same
+per-kind ID arrays, but readable (names and icons) so you can tell which of the
+listed IDs is the character that actually released. The page is client-rendered,
+so scripts should read the API route, not scrape the HTML.
 
 ## Field Coverage — Characters
 
@@ -169,6 +201,8 @@ Validation:
 
 **Input-method tokens:** game text like `{Cus:Ipt,Touch=Tap PC=Press Gamepad=Press}` is rewritten to its PC label (`Press`) by `_sanitize_game_text` (`sync_characters.py`, shared by both sources) instead of being dropped, so sentences like "Press the Echo Skill button" keep their verb.
 
+**Singular/plural tokens:** `{Cus:Sap,S=stack P=stacks SapTag=A}` picks its form from the count the game wraps as `<SapTag=A>1</SapTag>` nearby — `1` takes the singular, anything else (including an unresolved `{N}` placeholder) takes the plural. `_resolve_sap_tokens` reads that pairing; dropping the token as a generic brace token instead left the noun out of the sentence ("1 of Swordlight Ward"). A handful of source strings already spell the noun out right after the token ("applies 2 {Cus:Sap,…} stacks of Havoc Bane"), so a word that would immediately repeat itself is skipped. 35 occurrences across 11 characters as of 3.6; only re-synced characters carry the resolved text.
+
 **Known Encore echo gap:** `Cuddle Wuddle` (cost 3) and `Lottie Lost` (cost 1) — the cute Somnoire-event echoes — are classified `PhantomType: 2` / `QualityId: 2` in Encore and so fall outside the `PhantomType==1 && QualityId==5` filter. `Cuddle Wuddle` has a 5-star `Phantom: Cuddle Wuddle` *skin* (ItemId `601…`) but no 5-star base; `Lottie Lost` has no 5-star entry at all. Result: Encore yields 161 base echoes vs Wuthery's 162 (net of the new `Reminiscence - Nightmare: Adam Smasher`). If these two are needed they must be backfilled from Wuthery — they cannot be sourced from Encore as canonical echoes.
 
 **Fetters prefer Wuthery structure.** Encore's echo `FetterGroups` carry the set bonus mostly as free text, with no structured `AddProp`/`pieceCount`, so the LB-critical 2pc/3pc stat bonuses should come from Wuthery whenever available. Sonata sets are a small, stable dataset served by Wuthery as three localization-index files (`PhantomFetters.json` / `PhantomFetterGroups.json` / `ConfigDBParsed/PhantomFetter.json`) — a cheap, reliable fetch, not the flaky large-parallel pattern. `sync_encore.py` therefore starts with Wuthery's `fetch_and_build()` and only appends Encore-only groups while Wuthery is behind; those temporary groups may carry small hand-synthesized `AddProp` entries for stable 2pc stats until Wuthery catches up.
@@ -244,6 +278,68 @@ come straight from Encore; echo icons follow the icon URL in the synced
 `public/Data/Echoes.json` (Encore WebP passed through, a Wuthery PNG fallback re-encoded).
 Each set has a `--skip-*-icons` / `--force-*-icons` flag. The character/weapon loader reads
 WebP only; element/echo loaders accept PNG or WebP.
+
+### 3.6 Delta Sync Path (Qingxiao)
+
+Run on 2026-08-20 with api-v2 down, so every Encore call fell through to the
+legacy host (see *Encore host failover*). `GET https://api.encore.moe/en/new`
+reported `GameVer 3.6.0` / `ResVer 3.6.6` / `Changelist 8499915` and listed
+`character: [1212, 1413]`, `weapon: [21010076, 21020106]`,
+`echo: [6000221, 6010217, 602006xx...]`.
+
+```powershell
+py scripts\sync_encore.py --new-only --only all --workers 2 --lang-workers 2
+py scripts\mirror_images_to_public.py --apply
+py scripts\sync_backend.py
+py scripts\sync_lb.py
+```
+
+```text
+Characters.json: 62  (adds Qingxiao 1413 Aero/Sword, Jingran 1212 Fusion/Broadblade)
+Weapons.json:   122  (adds Glint of Clouds 21020106, Thousandfold Deliverance 21010076)
+Echoes.json:    181  (adds Calamity Effigy 60002215; 6010217 merges as the
+                      phantomIcon of Myriad Snare: Rustfire Chassis 60002175;
+                      the 602006xx/602007xx ids are PhantomType 2 and filtered)
+Fetters.json:    34  (unchanged - groups 34/35 already present)
+```
+
+**Sync everything `/new` lists, then gate what has not released.** `/new` covers
+the whole res version, so a mid-patch sync routinely picks up the next phase's
+character and weapon. The data is kept everywhere - `public/Data`,
+`backend/Data` + SIFT templates, and the LB calc data - and only the pickers
+hide it, via `DISABLED_CHARACTER_IDS` / `DISABLED_WEAPON_IDS` in
+`lib/constants/disabledEntries.ts` (`CharacterSelector` and `WeaponSelector` are
+the only consumers). Remove the id on release day; the OCR side never needs a
+second pass, because the templates and mappings are already there for whoever
+scans first. For 3.6 that meant disabling Jingran `1212` and Thousandfold
+Deliverance `21010076`.
+
+Gotchas from this run:
+
+- **Unreleased entities can carry placeholder stats.** Jingran's Encore
+  `Properties` read `DEF 0` (and `Tune Break Boost 0`) while Qingxiao's are all
+  populated. Nothing consumes it while he is disabled, but re-run the delta at
+  release before dropping the id from `disabledEntries.ts`, otherwise a zero DEF
+  base reaches the calculator, LB and the optimizer.
+- **`sync_backend.py` templates are Encore-list-driven, not JSON-driven.** It
+  fetches a SIFT template for *every* id Encore lists, so cherry-picking a
+  subset of `/new` into `public/Data` leaves stray templates for entities the
+  JSON does not know about, and a SIFT hit on one of those resolves to an empty
+  name. Syncing everything and disabling in the UI avoids that mismatch too.
+- **Qingxiao's second tag is `36 "Tune Strain Response"`**, a mechanic tag
+  (`TAG_PRIORITIES` puts it at 6), not one of the damage-type tags 4-7. So
+  `get_preferred_substats` finds no priority-2 damage tag, and her kit text
+  carries no `considered X DMG` clause either. She lands on
+  `["Crit Rate", "Crit DMG", "ATK", "Energy Regen"]` - correct per the
+  documented rule, even though her sequences lean on Heavy Attack - Stringblade.
+- **`stats.DamageChangeNormalSkill` is non-zero for the first time** (Qingxiao
+  reports Encore's `Tune Break Boost` of 10, every Wuthery-sourced character has
+  0). Still unconsumed downstream; it is typed optional in `lib/character.ts`.
+- Neither character has an LB board - that is hand-authored work, see
+  `lb/docs/character-implementation-guide.md`.
+- `kurobot/data/name_id_lookup.json` is built from the **live** `wuwa.build`
+  CDN, so re-run `py scripts/sync_lookup.py` in `kurobot/` only after this
+  deploys, or convene imports will not resolve the new names.
 
 ### Option A — Dual-mode with fallback (recommended)
 

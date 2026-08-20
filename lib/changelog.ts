@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-08-20',
+        patch: '3.6',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Qingxiao, Glint of Clouds, and the Calamity Effigy echo added',
+            },
+        ],
+    },
+    {
         date: '2026-08-14',
         changes: [
             {

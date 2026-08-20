@@ -36,6 +36,14 @@ INPUT_TOKEN_PATTERN = re.compile(r"\{Cus:Ipt[^{}]*?PC=([^,}\s]+)[^{}]*\}", re.IG
 SIZE_TAG_PATTERN = re.compile(r"</?size(?:=[^>]+)?>", re.IGNORECASE)
 TEXT_ENTRY_TAG_PATTERN = re.compile(r"</?te\b[^>]*>", re.IGNORECASE)
 SAP_TAG_PATTERN = re.compile(r"</?SapTag[^>]*>", re.IGNORECASE)
+# Singular/plural tokens like {Cus:Sap,S=stack P=stacks SapTag=A}: the count that
+# decides the form is wrapped nearby as <SapTag=A>1</SapTag>. Dropping the token
+# leaves the noun out of the sentence ("1 of Swordlight Ward"), so resolve it.
+SAP_COUNT_PATTERN = re.compile(r"<SapTag=([A-Za-z]+)>(.*?)</SapTag>", re.IGNORECASE | re.DOTALL)
+SAP_TOKEN_PATTERN = re.compile(
+    r"\{Cus:Sap,\s*S=(.*?)\s+P=(.*?)\s+SapTag=([A-Za-z]+)\s*\}",
+    re.IGNORECASE,
+)
 
 # Sequence bonus parsing, embedded into each chain entry at sync time.
 # Maps game description text patterns to our StatName values.
@@ -1112,11 +1120,43 @@ def _format_rounded_number(value: float) -> str:
     return f"{rounded:.2f}".rstrip("0").rstrip(".")
 
 
+def _resolve_sap_tokens(value: str) -> str:
+    """Replace {Cus:Sap,...} tokens with the singular or plural noun.
+
+    The form is chosen from the count the token points at (`<SapTag=A>1</SapTag>`
+    → singular, anything else → plural, including an unresolved `{N}` placeholder).
+    Some source strings already spell the noun out right after the token
+    ("applies 2 {Cus:Sap,S=stack P=stacks SapTag=A} stacks of ..."), so a word
+    that would immediately repeat itself is dropped instead of duplicated.
+    """
+    if "{Cus:Sap" not in value:
+        return value
+
+    counts = {
+        tag.upper(): re.sub(r"[^0-9.]", "", NON_PARAM_BRACE_TOKEN_PATTERN.sub("", count))
+        for tag, count in SAP_COUNT_PATTERN.findall(value)
+    }
+
+    out: list[str] = []
+    position = 0
+    for match in SAP_TOKEN_PATTERN.finditer(value):
+        singular, plural, tag = (group.strip() for group in match.groups())
+        word = singular if counts.get(tag.upper()) == "1" else plural
+        out.append(value[position:match.start()])
+        following = value[match.end():]
+        if not re.match(rf"\s*{re.escape(word)}\b", following, re.IGNORECASE):
+            out.append(word)
+        position = match.end()
+    out.append(value[position:])
+    return "".join(out)
+
+
 def _sanitize_game_text(value: str) -> str:
     """Remove control tokens like {Cus:Ipt,...} while keeping numeric placeholders."""
     if not value:
         return ""
     cleaned = INPUT_TOKEN_PATTERN.sub(r"\1", value)
+    cleaned = _resolve_sap_tokens(cleaned)
     cleaned = NON_PARAM_BRACE_TOKEN_PATTERN.sub("", cleaned)
     cleaned = SIZE_TAG_PATTERN.sub("", cleaned)
     cleaned = TEXT_ENTRY_TAG_PATTERN.sub("", cleaned)

@@ -6,7 +6,8 @@ For the comparison with the alternative `encore.moe` API (different host, differ
 
 ## Data Sources
 
-- **Encore API Base**: `https://api-v2.encore.moe/api`
+- **Encore API Base**: `https://api-v2.encore.moe/api`, falling back to `https://api.encore.moe` (same `/{lang}/...` routes without the `/api` prefix). `cdn_config.encore_request_json()` walks `ENCORE_API_BASES` and caches the first host that answers; every Encore caller goes through it.
+- **Encore new-content changelog**: `GET /{lang}/new`, browsable at <https://encore.moe/new?lang=en> — start a patch sync here to see which IDs are new and which of them actually released.
 - **Encore Resources**: `https://api.encore.moe/resource/Data`
 - **Legacy Wuthery CDN Base**: `https://files.wuthery.com`
 - **Legacy List API**: `POST /api/fs/list` (AList/OpenList server)
@@ -285,7 +286,7 @@ python stat_translations.py --pretty   # Pretty-print output
 python sync_backend.py                     # Transform public/Data → ../backend/Data
 python sync_backend.py --dry-run           # Preview backend transform
 
-python sync_lb.py                          # Generate ../lb/internal/calc/data + weapon_buffs_gen.go
+python sync_lb.py                          # Generate ../lb/internal/calc/data
 python sync_lb.py --pretty                 # Pretty JSON outputs
 python sync_lb.py --weapons-only           # Regenerate weapon base data + weapon maps only
 python sync_lb.py --weapons-only --pretty
@@ -458,6 +459,15 @@ Eligible echoes have first-panel bonuses extracted from skill description templa
 ```
 
 The `{N}` placeholders are resolved from `skill.levelDescriptionStrArray[0].ArrayString`. These bonuses replaced legacy hardcoded echo bonus tables and now flow directly from CDN data.
+
+Only the permanent part of a main-slot sentence counts. `_trim_timed_extra_clause`
+cuts a trailing `", and additionally gains {2} X for {3}s when ..."` clause before
+stat extraction: that second bonus is trigger-gated and duration-limited, so it is
+not a first-panel stat. Calamity Effigy (`60002215`) is the case this exists for —
+its two clauses carry the same stat *and* the same value, so without the trim it
+publishes as a permanent 20% Aero DMG and is indistinguishable from the real 10%
+downstream (`sync_lb._append_unique_echo_bonus` dedupes identical entries, so the
+frontend and the LB would have disagreed).
 
 ### Echo Icon URLs
 

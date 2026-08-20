@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,20 @@ from typing import Any
 CDN_BASE = "https://files.wuthery.com"
 DEFAULT_FETCH_ATTEMPTS = 3
 DEFAULT_RETRY_BACKOFF_SECONDS = 0.75
+
+# Encore publishes its own host list at ``GET https://api.encore.moe/`` as
+# ``apiList`` entries ordered by ``P``. Both hosts serve the same ``/{lang}/...``
+# routes and the same payload shapes; only the path prefix differs (v2 mounts
+# them under ``/api``). api-v2 is the faster primary but has been observed
+# returning 502 for hours at a time, so every Encore call falls over to the
+# legacy host instead of failing the sync.
+ENCORE_API_BASES = (
+    "https://api-v2.encore.moe/api",  # apiList P=1
+    "https://api.encore.moe",         # apiList P=2
+)
+
+_encore_base_lock = threading.Lock()
+_encore_active_base = ENCORE_API_BASES[0]
 
 
 def request_json_with_retry(
@@ -84,3 +99,58 @@ def merge_records_by_id(
                 raise ValueError(f"{source} record is missing an id: {record!r}")
             merged[str(record["id"])] = record
     return list(merged.values())
+
+
+def encore_active_base() -> str:
+    """Return the Encore host that most recently answered successfully."""
+    with _encore_base_lock:
+        return _encore_active_base
+
+
+def encore_url(lang: str, route: str, base: str | None = None) -> str:
+    """Build an Encore route URL against the active (or given) host."""
+    return f"{base or encore_active_base()}/{lang}/{route.lstrip('/')}"
+
+
+def encore_request_json(
+    session: Any,
+    lang: str,
+    route: str,
+    *,
+    attempts: int = DEFAULT_FETCH_ATTEMPTS,
+    timeout: float = 45,
+    **request_kwargs: Any,
+) -> Any:
+    """Fetch an Encore ``/{lang}/{route}`` payload, failing over between hosts.
+
+    The first host that answers becomes the active one for later calls, so a
+    dead primary costs one round of retries per process rather than per call.
+    """
+    global _encore_active_base
+
+    active = encore_active_base()
+    ordered = [active] + [base for base in ENCORE_API_BASES if base != active]
+    last_error: Exception | None = None
+    for base in ordered:
+        url = encore_url(lang, route, base)
+        try:
+            data = request_json_with_retry(
+                session,
+                "get",
+                url,
+                attempts=attempts,
+                timeout=timeout,
+                **request_kwargs,
+            )
+        except Exception as error:  # Host-level failure: try the next host.
+            last_error = error
+            continue
+        if base != active:
+            with _encore_base_lock:
+                _encore_active_base = base
+        return data
+
+    raise RuntimeError(
+        f"Failed to fetch Encore route {lang}/{route.lstrip('/')} from any host: "
+        f"{', '.join(ENCORE_API_BASES)}"
+    ) from last_error

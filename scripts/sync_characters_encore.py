@@ -15,12 +15,13 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
 import requests
+
+from cdn_config import encore_request_json
 
 from sync_characters import (
     _normalize_param_value,
@@ -30,7 +31,6 @@ from sync_characters import (
     parse_inherent_bonuses,
 )
 
-ENCORE_API_BASE = "https://api-v2.encore.moe/api"
 ENCORE_RESOURCE_BASE = "https://api.encore.moe/resource/Data"
 OUTPUT_DIR = Path(__file__).parent.parent / "public/Data"
 
@@ -178,21 +178,10 @@ LEGACY_ID_RE = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI")
 
 
 def encore_get(session: requests.Session, lang: str, route: str) -> dict:
-    url = f"{ENCORE_API_BASE}/{lang}/{route.lstrip('/')}"
-    last_error: Exception | None = None
-    for attempt in range(3):
-        try:
-            resp = session.get(url, timeout=45)
-            resp.raise_for_status()
-            data = resp.json()
-            if not isinstance(data, dict):
-                raise ValueError(f"Unexpected non-object response from {url}")
-            return data
-        except Exception as error:
-            last_error = error
-            if attempt < 2:
-                time.sleep(0.75 * (attempt + 1))
-    raise last_error or RuntimeError(f"Failed to fetch {url}")
+    data = encore_request_json(session, lang, route)
+    if not isinstance(data, dict):
+        raise ValueError(f"Unexpected non-object response for {lang}/{route}")
+    return data
 
 
 def fetch_character_locales(char_id: int, workers: int) -> dict[str, dict]:
