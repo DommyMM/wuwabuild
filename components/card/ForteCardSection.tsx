@@ -282,15 +282,18 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
                 <img src={skillIcon} alt={branch.skillName} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
               )}
             </div>
-            <span
-              className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 transition-all duration-200 ${
+            {/* A <div>, not a <span>: snapdom drops `width` from text-carrying
+                inline tags and skips its min-width fallback for flex children,
+                so a span here exports as a pill collapsed to the digits. */}
+            <div
+              className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none whitespace-nowrap tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 transition-all duration-200 ${
                 isMaxLevel
                   ? 'border-amber-300/55 bg-amber-300/92 text-[#4a3400]'
                   : 'border-black/35 bg-black/55 text-white/92'
               }`}
             >
               {level}
-            </span>
+            </div>
           </div>
         );
 

@@ -123,14 +123,17 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
   const boardWeaponAtkIcon = statIcons?.ATK;
   const boardWeaponMainIcon = boardWeapon?.main_stat ? (statIcons?.[boardWeapon.main_stat] ?? null) : null;
   const boardWeaponTrigger = board?.weaponIcon ? (
-    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/12 bg-black/40 shadow-[0_5px_14px_rgba(0,0,0,0.35)]">
+    /* <div> so the card export keeps the 44px frame: snapdom strips `width`
+       from inline tags that carry content and does not restore it on a flex
+       child, which collapsed this box to the 32px icon inside it. */
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/12 bg-black/40 shadow-[0_5px_14px_rgba(0,0,0,0.35)]">
       <span
         role="img"
         aria-label={board.weaponName}
         className="h-8 w-8 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url("${board.weaponIcon}")` }}
       />
-    </span>
+    </div>
   ) : null;
 
   return (
@@ -200,9 +203,11 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
           {board && !loading && (
             /* The module is w-fit, so this column sits at max-content and its width IS the label's width */
             <div className="flex min-w-fit flex-col justify-center gap-1.5">
-              <span className="max-w-40 truncate font-ropa text-[13px] leading-none tracking-[0.08em] text-text-primary/90 uppercase">
+              {/* <div>: snapdom also drops max-width from inline tags, so a
+                  span here exports untruncated and overruns the module. */}
+              <div className="max-w-40 truncate font-ropa text-[13px] leading-none tracking-[0.08em] text-text-primary/90 uppercase">
                 {cleanBoardTrackLabel(board)}
-              </span>
+              </div>
               <div className="flex items-center gap-1.5">
                 <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] leading-none font-bold tracking-wide ${boardSeqClass}`}>
                   S{board.sequence}

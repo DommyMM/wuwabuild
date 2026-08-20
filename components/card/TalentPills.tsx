@@ -83,9 +83,9 @@ export const TalentPills: React.FC<TalentPillsProps> = ({ character, forte, maxL
                 className={`h-5 w-5 object-contain ${isMax ? '' : 'opacity-80'}`}
               />
             ) : (
-              <span className="grid h-4 w-4 place-items-center text-[9px] text-text-primary/40">
+              <div className="grid h-4 w-4 place-items-center text-[9px] text-text-primary/40">
                 {SKILL_LABEL_FALLBACK[key]}
-              </span>
+              </div>
             )}
             <span
               className={`font-gowun text-[13px] leading-none tabular-nums ${

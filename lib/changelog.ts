@@ -21,6 +21,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'new',
                 text: 'Qingxiao, Glint of Clouds, and the Calamity Effigy echo added',
             },
+            {
+                kind: 'fixed',
+                text: 'Forte level badges no longer squash in downloaded cards',
+            },
         ],
     },
     {

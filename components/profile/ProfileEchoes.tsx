@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -570,6 +570,12 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const activeRowRef = useRef<HTMLButtonElement | null>(null);
+  // Scrolling the list moves rows under a stationary cursor, which still emits
+  // pointer events. Both refs keep that from stealing the cursor back from the
+  // keyboard, and keep hover off the scroll path entirely.
+  const pointerPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const navIntentRef = useRef<'keyboard' | 'pointer'>('keyboard');
   const normalized = query.trim().toLowerCase();
 
   const visibleItems = useMemo<EchoFilterItem[]>(() => {
@@ -593,9 +599,20 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
     return items;
   }, [normalized, costs, setIds, mainStatTypes, setOptions, mainStatOptions, statIcons]);
 
+  // No cursor until the user navigates: opening the dropdown must not look like a
+  // row is already hovered. Enter still falls back to the first item.
   const activeIdx = (!open || visibleItems.length === 0)
     ? -1
-    : (activeIndex < 0 || activeIndex >= visibleItems.length ? 0 : activeIndex);
+    : (activeIndex < 0 || activeIndex >= visibleItems.length ? -1 : activeIndex);
+
+  // Keyboard-only: `block: 'nearest'` is a no-op for fully visible rows, so
+  // scrolling on hover would only ever fire on the partially visible first/last
+  // row and nudge the list out from under the pointer.
+  useEffect(() => {
+    if (!open || activeIdx < 0) return;
+    if (navIntentRef.current !== 'keyboard') return;
+    activeRowRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [open, activeIdx]);
 
   const selectItem = (item: EchoFilterItem) => {
     if (item.type === 'cost') onAddCost(item.value);
@@ -623,23 +640,25 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
           <input
             value={query}
             onChange={(event) => { setQuery(event.target.value); setOpen(true); }}
-            onFocus={() => { setOpen(true); setActiveIndex((prev) => (prev >= 0 ? prev : 0)); }}
+            onFocus={() => setOpen(true)}
             onClick={() => setOpen(true)}
             onBlur={() => window.setTimeout(() => setOpen(false), 120)}
             onKeyDown={(event) => {
               if (event.key === 'Backspace' && !query) { onBackspaceRemove(); return; }
               if (event.key === 'ArrowDown' && visibleItems.length > 0) {
                 event.preventDefault(); setOpen(true);
-                setActiveIndex((activeIdx + 1 + visibleItems.length) % visibleItems.length);
+                navIntentRef.current = 'keyboard';
+                setActiveIndex(activeIdx >= visibleItems.length - 1 ? 0 : activeIdx + 1);
               }
               if (event.key === 'ArrowUp' && visibleItems.length > 0) {
                 event.preventDefault(); setOpen(true);
-                setActiveIndex((activeIdx - 1 + visibleItems.length) % visibleItems.length);
+                navIntentRef.current = 'keyboard';
+                setActiveIndex(activeIdx <= 0 ? visibleItems.length - 1 : activeIdx - 1);
               }
               if (event.key === 'Enter' && visibleItems.length > 0) {
                 event.preventDefault();
                 selectItem(visibleItems[activeIdx >= 0 ? activeIdx : 0]);
-                setActiveIndex(0);
+                setActiveIndex(-1);
               }
               if (event.key === 'Escape') { event.preventDefault(); setOpen(false); }
             }}
@@ -663,14 +682,24 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
                   </div>
                 )}
                 <button
+                  ref={isActiveRow ? activeRowRef : undefined}
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
-                  onMouseEnter={() => setActiveIndex(index)}
+                  onPointerMove={(event) => {
+                    const last = pointerPositionRef.current;
+                    if (last && last.x === event.clientX && last.y === event.clientY) return;
+                    pointerPositionRef.current = { x: event.clientX, y: event.clientY };
+                    navIntentRef.current = 'pointer';
+                    setActiveIndex((prev) => (prev === index ? prev : index));
+                  }}
                   onClick={() => selectItem(item)}
-                  className={`mx-1 my-0.5 flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
-                    isActiveRow ? 'bg-accent/18 text-accent' : 'text-text-primary hover:bg-accent/10'
+                  className={`relative flex items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors duration-75 ${
+                    isActiveRow ? 'bg-accent/12 text-accent' : 'text-text-primary'
                   }`}
                 >
+                  {isActiveRow && (
+                    <span className="absolute inset-y-0 left-0 w-0.5 bg-accent/80" aria-hidden />
+                  )}
                   <span className="flex min-w-0 items-center gap-2">
                     {item.type === 'cost' ? (
                       <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-border text-2xs font-semibold tabular-nums">{item.value}</span>
