@@ -14,12 +14,25 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-08-21',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Qingxiao leaderboards are live with the Tune Strain team',
+            },
+            {
+                kind: 'fixed',
+                text: 'Tune Break calculation fixed because it was not using the right scaling',
+            },
+        ],
+    },
+    {
         date: '2026-08-20',
         patch: '3.6',
         changes: [
             {
                 kind: 'new',
-                text: 'Qingxiao, Glint of Clouds, and the Calamity Effigy echo added',
+                text: 'Qingxiao, Glint of Clouds, and the Calamity Effigy echo added and Splash Art',
             },
             {
                 kind: 'fixed',

@@ -733,10 +733,13 @@ _TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
     (r"while\s+both\s+effects?\s+are\s+active",    "Passive"),
     (r"(?:targets?|enemies?)\s+with\s+spectro\s+frazzle", "Passive"),
     (r"negative\s+statuses",                       "Passive"),
-    # FB/Strain-applier weapons (Forged Dwarf Star etc.): wielder keeps the
-    # debuff up across nearly every move in their rotation, so model as Passive.
-    (r"inflicts?\s+fusion\s+burst",                "Passive"),
-    (r"inflicts?\s+tune\s+strain",                 "Passive"),
+    # FB/Strain-applier weapons (Forged Dwarf Star, Glint of Clouds etc.): wielder
+    # keeps the debuff up across nearly every move in their rotation, so model as
+    # Passive. Both "inflicts" and "inflicting" appear in tooltip triggers — Glint
+    # of Clouds reads "Inflicting Tune Strain - Shifting", and matching only the
+    # "-s" form silently dropped its whole conditional.
+    (r"inflict(?:s|ing)?\s+fusion\s+burst",        "Passive"),
+    (r"inflict(?:s|ing)?\s+tune\s+strain",         "Passive"),
     (r"concerto\s+energy",                         "forte"),
     (r"\becho\s+skill\b",                          "echoSkill"),
     (r"\boutro\s+skill\b",                         "outro"),
