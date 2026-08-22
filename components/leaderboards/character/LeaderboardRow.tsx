@@ -126,8 +126,8 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
       valueClass: isErColumn ? (erMet ? 'text-emerald-300/90' : 'text-rose-300/90') : '',
       title: isErColumn
         ? erMet
-          ? `Meets the ${erTarget}% ER target, full score.`
-          : `Below the ${erTarget}% ER target, score scaled by ER/${erTarget}.`
+          ? `Meets the ${erTarget}% ER target`
+          : `Below the ${erTarget}% ER target, score scaled by ER/${erTarget}`
         : undefined,
     };
   }), [entry.stats, erScored, erTarget, rowStatColumns, statIcons]);

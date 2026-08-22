@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-08-22',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Leaderboard stat columns now follow the same shape on every board: scaling stat, element damage, the best attack type bonus, then Energy Regen',
+            },
+            {
+                kind: 'fixed',
+                text: 'Boards that showed two attack type bonuses no longer hide Energy Regen',
+            },
+        ],
+    },
+    {
         date: '2026-08-21',
         changes: [
             {
