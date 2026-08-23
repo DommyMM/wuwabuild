@@ -59,11 +59,47 @@ const getActivationTierProps = (
   return Array.isArray(fetter.addProp) ? fetter.addProp : [];
 };
 
+// A set's 2-piece tier is a bare stat line and reaches the panel through addProp
+// above. Every 3- and 5-piece clause lives in free text instead, and nearly all of
+// them need an in-combat action (casting, dealing, inflicting, gaining a shield),
+// so they belong to the damage engine and not to a panel read out of combat. The
+// few that need nothing are declared by hand in scripts/sync_fetters.py's
+// DISPLAY_BONUSES and arrive on the tier as `displayBonuses`.
+//
+// `requires` carries the character gate as data so this file needs no notion of
+// Resonance Energy: Dream of the Lost's "Holding 0 Resonance Energy" is
+// permanently true for the two characters who hold 0 max energy, and durably true
+// for nobody else. lb asserts that list against its own engine-side gate.
+const getDisplayBonuses = (
+  fetter: CDNFetter,
+  pieceCount: number,
+  characterId: string | undefined
+): SetBonusEntry[] => {
+  const tiers = fetter.pieceEffects;
+  if (!tiers) return [];
+
+  // Unlike addProp this reads every tier the piece count reaches, not just the
+  // activation tier: Tidebreaking Courage activates at 2 pieces but its
+  // unconditional ATK clause sits on the 5-piece tier.
+  return Object.entries(tiers).flatMap(([tier, pieceEffect]) => {
+    const tierCount = Number(tier);
+    if (!Number.isFinite(tierCount) || pieceCount < tierCount) return [];
+
+    return (pieceEffect.displayBonuses ?? []).filter((bonus) => (
+      !bonus.requires?.length || (characterId != null && bonus.requires.includes(characterId))
+    ));
+  });
+};
+
 export const getSetBonusesFromFetter = (
   fetter: CDNFetter | null | undefined,
-  pieceCount: number
+  pieceCount: number,
+  characterId?: string
 ): SetBonusEntry[] => {
   if (!fetter) return [];
 
-  return getSetBonusesFromProps(getActivationTierProps(fetter, pieceCount));
+  return [
+    ...getSetBonusesFromProps(getActivationTierProps(fetter, pieceCount)),
+    ...getDisplayBonuses(fetter, pieceCount, characterId),
+  ];
 };

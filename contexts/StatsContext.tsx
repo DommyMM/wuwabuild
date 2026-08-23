@@ -155,7 +155,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     const activeSetBonuses = Object.entries(elementCounts).flatMap(([element, count]) => {
       const fetter = fettersByElement[element as ElementType];
       if (count < (fetter?.pieceCount ?? UNKNOWN_SET_ACTIVATION_THRESHOLD)) return [];
-      return getSetBonusesFromFetter(fetter, count);
+      return getSetBonusesFromFetter(fetter, count, character.id);
     });
 
     const seqBonuses = getSequenceBonuses(character);

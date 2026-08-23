@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-08-23',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Dream of Lost now shows full passive stats (calculations already considered but did not surface them)',
+            },
+            {
+                kind: 'fixed',
+                text: 'Tidebreaking Courage now shows its unconditional 15% ATK in the stats',
+            },
+        ],
+    },
+    {
         date: '2026-08-22',
         changes: [
             {

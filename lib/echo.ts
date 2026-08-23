@@ -20,6 +20,11 @@ export interface CDNFetter {
     buffIds: number[];
     effectDescription: I18nString;
     effectDescriptionParam?: string[];
+    // Clauses of this tier that hold without an in-combat action, so the stat
+    // panel shows them alongside the 2-piece bonuses. Hand-declared in
+    // scripts/sync_fetters.py; `requires` lists the character IDs a clause is
+    // unconditional for, or is null when it holds for everyone.
+    displayBonuses?: Array<{ stat: StatName; value: number; requires: string[] | null }>;
   }>;
   fetterIcon: string;
   effectDefineDescription: I18nString;

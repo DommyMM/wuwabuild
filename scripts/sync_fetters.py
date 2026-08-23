@@ -24,6 +24,8 @@ Output shape per entry:
       "2": { "pieceCount": 2, "fetterId": ..., "addProp": [...], "buffIds": [...], "effectDescription": {...}, "effectDescriptionParam": [...] },
       "5": { "pieceCount": 5, "fetterId": ..., "addProp": [...], "buffIds": [...], "effectDescription": {...}, "effectDescriptionParam": [...] }
     },
+    "pieceEffects[tier].displayBonuses": [{ "stat": "Crit Rate", "value": 20, "requires": ["1109"] }],
+                                     -- optional; panel-visible clauses from DISPLAY_BONUSES below
     "fetterIcon": "https://...",
     "effectDefineDescription": { "en": ..., ... }  -- lore text
   }
@@ -50,6 +52,82 @@ GROUPS_URL   = f"{CDN_BASE}/d/GameData/Grouped/LocalizationIndex/PhantomFetterGr
 FETTERS_CONFIG_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/PhantomFetter.json"
 
 OUTPUT = Path(__file__).parent.parent / "public/Data/Fetters.json"
+
+
+# --- Panel-visible set clauses -------------------------------------------------
+#
+# A sonata set's 2-piece tier is a bare stat line, so it lands in `addProp` and
+# both the leaderboard columns and the build editor already show it. Every 3- and
+# 5-piece clause instead lives in free text, and the overwhelming majority of them
+# require an in-combat action (casting, dealing, inflicting, gaining a shield,
+# healing). Those correctly stay out of a static stat panel and are modelled only
+# by the damage engine.
+#
+# A handful do not require anything. Those are listed here so the panel shows the
+# number a player actually plays with. Two filters decide membership:
+#
+#   1. The clause's condition is not an action. Either it has no condition at all,
+#      or the condition is a permanent property of the wearer.
+#   2. The stat exists in the panel. HP/ATK/DEF(+%), Crit Rate, Crit DMG, Energy
+#      Regen, the six elemental DMG, Basic/Heavy/Resonance Skill/Resonance
+#      Liberation DMG Bonus, Healing Bonus. This is the same list the in-game
+#      character attribute screen shows, so Echo Skill / Outro Skill / Coordinated
+#      Attack DMG clauses are deliberately absent: they have nowhere to display.
+#
+# This table is hand-authored on purpose. Deriving it from the parsed trigger
+# field does not work: of the eight 3pc/5pc clauses that parse with an empty
+# trigger, five are triggers the parser dropped (Eternal Radiance "Attacking
+# enemies inflicted with 10 stacks...", Law of Harmony "Additionally...", Rite of
+# Gilded Revelation "With 3 stacks, casting Resonance Liberation...", Wishes of
+# Quiet Snowfall's Snowfall bullet, Lamp of Nether Road "At max stacks..."). An
+# automatic rule would surface four phantom bonuses. Anaphora, aggregation
+# conditions and bullet-list structure are not reliably parseable, the same reason
+# move typing stays hand-authored.
+#
+# `requires` is a list of character IDs when the clause is unconditional only for
+# specific characters, or None when it is unconditional for everyone. Keeping the
+# gate here rather than in each consumer means the frontend needs no concept of
+# max Resonance Energy; lb asserts this list against its own engine-side gate.
+#
+# Values are duplicated from the set text rather than derived, and lb's
+# TestEchoSetDisplayBonusesMatchEngine asserts each one still matches the parsed
+# effect it came from, so a CDN value change cannot silently desync the two.
+DISPLAY_BONUSES: dict[int, list[dict]] = {
+    14: [
+        {
+            "tier": "5",
+            "stat": "ATK%",
+            "value": 15,
+            "requires": None,
+            "prose": "Increase the Resonator's ATK by 15%.",
+        },
+    ],
+    19: [
+        {
+            # Lucilla (1109) "holds up to 0 Resonance Energy" and Phrolova (1608)
+            # has "max Resonance Energy is 0", so the condition is permanently
+            # true for them and never durably true for anyone else.
+            "tier": "3",
+            "stat": "Crit Rate",
+            "value": 20,
+            "requires": ["1109", "1608"],
+            "prose": "Holding 0 Resonance Energy increases Crit. Rate by 20% and grants 35% Echo Skill DMG Bonus.",
+        },
+    ],
+}
+
+
+def display_bonuses_for(group_id: int, tier: str) -> list[dict]:
+    """Panel-visible clauses declared for one set tier, in output shape."""
+    return [
+        {
+            "stat": entry["stat"],
+            "value": entry["value"],
+            "requires": entry["requires"],
+        }
+        for entry in DISPLAY_BONUSES.get(group_id, [])
+        if entry["tier"] == tier
+    ]
 
 
 def prepend_cdn(path: str) -> str:
@@ -155,6 +233,9 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
                 continue
             tier_config_fetter = config_fetters_by_id.get(int(fid))
             piece_effects[key] = build_piece_effect(int(key), tier_fetter, tier_config_fetter)
+            declared = display_bonuses_for(group_id, key)
+            if declared:
+                piece_effects[key]["displayBonuses"] = declared
 
         # Lore text is consistent across pieces, take from primary entry.
         lore = fetter.get("EffectDefineDescription", {})
@@ -179,6 +260,23 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
         output.append(entry)
 
     output.sort(key=lambda e: e["id"])
+
+    # A typo in DISPLAY_BONUSES would otherwise drop a clause silently, and the
+    # panel would quietly go back to under-reporting the stat.
+    emitted = {
+        (entry["id"], tier)
+        for entry in output
+        for tier, pe in entry["pieceEffects"].items()
+        if pe.get("displayBonuses")
+    }
+    for group_id, declared in DISPLAY_BONUSES.items():
+        for clause in declared:
+            if (group_id, clause["tier"]) not in emitted:
+                raise ValueError(
+                    f"DISPLAY_BONUSES declares set {group_id} tier {clause['tier']} "
+                    f"({clause['stat']}) but no such tier was built"
+                )
+
     return output
 
 

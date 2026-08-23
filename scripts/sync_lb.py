@@ -11,7 +11,8 @@ Outputs:
 - lb/internal/calc/data/character_bases.json
 - lb/internal/calc/data/weapon_bases.json    (lv1 ATK + secondary, effect_en, params_r1/params_r5)
 - lb/internal/calc/data/echo_bases.json
-- lb/internal/calc/data/fetter_bases.json    (piece_effects include parsed `effects` arrays)
+- lb/internal/calc/data/fetter_bases.json    (piece_effects include parsed `effects` arrays
+                                              and hand-declared `display_bonuses`)
 - lb/internal/calc/data/character_curve.json
 - lb/internal/calc/data/level_curve.json
 - lb/internal/calc/data/echo_stats.json
@@ -2440,12 +2441,19 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
             effect_obj = piece_data.get("effectDescription", {})
             effect_en_raw = (effect_obj.get("en", "") if isinstance(effect_obj, dict) else "").strip()
             effect_en = _resolve_effect_placeholders(effect_en_raw, add_prop, effect_params)
-            normalized_piece_effects[piece_key] = {
+            normalized = {
                 "effect_en": effect_en,
                 "add_prop": add_prop,
                 "party_buffs": _parse_support_text_buffs(effect_en),
                 "effects": _parse_effect_en(effect_en),
             }
+            # Panel-visible clauses are declared by hand in sync_fetters.py and
+            # carried through verbatim; see DISPLAY_BONUSES there for why they
+            # cannot be derived from the parsed trigger field.
+            display_bonuses = piece_data.get("displayBonuses")
+            if isinstance(display_bonuses, list) and display_bonuses:
+                normalized["display_bonuses"] = display_bonuses
+            normalized_piece_effects[piece_key] = normalized
 
         out[set_key] = {
             "group_id": group_id,

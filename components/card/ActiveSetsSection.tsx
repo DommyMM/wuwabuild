@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useStats } from '@/contexts/StatsContext';
+import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getSetBonusesFromFetter } from '@/lib/constants/setBonuses';
@@ -44,6 +45,9 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   onHoverStatChange,
 }) => {
   const { stats } = useStats();
+  // Some set clauses hold only for specific characters, so the chip has to be
+  // resolved against the same wearer StatsContext used.
+  const { state: { characterId } } = useBuild();
   const { fettersByElement } = useGameData();
   const { t } = useLanguage();
   const hasActiveSets = stats.activeSets.length > 0;
@@ -95,7 +99,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
             : 'flex-1'
           : 'flex-1';
         const setIcon = fetter?.icon ?? '';
-        const setBonuses = getSetBonusesFromFetter(fetter, count);
+        const setBonuses = getSetBonusesFromFetter(fetter, count, characterId ?? undefined);
         const setHoverKeys = setBonuses
           .map((bonus) => normalizeStatHoverKey(bonus.stat))
           .filter((key): key is NonNullable<typeof key> => key !== null);
