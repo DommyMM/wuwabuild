@@ -681,9 +681,12 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const isDeduped = sort === DEFAULT_LB_SORT && !uid.trim() && !username.trim();
 
   const visibleTotal = entriesMatchCurrentQuery ? total : 0;
+  // While a switch is in flight `total` still holds the previous board's count, and
+  // leaning on it keeps next/skip/last enabled across the fetch. Collapsing to the
+  // current page instead greyed the controls out and snapped them back every time.
   const normalizedPageCount = entriesMatchCurrentQuery
     ? Math.max(1, Math.ceil(visibleTotal / pageSize))
-    : Math.max(1, page);
+    : Math.max(1, Math.ceil(total / pageSize), page);
   const activeMetricLabel = scoring === 'raw' ? 'Damage' : 'Score';
   const rankStart = (() => {
     if (visibleTotal <= 0) return 1;
@@ -703,9 +706,10 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
               characterHead={character?.head ?? boardDisplay?.characters[characterId]?.head ?? undefined}
               characterElement={character?.element ?? boardDisplay?.characters[characterId]?.element ?? undefined}
               boardDisplay={boardDisplay}
-              teamCharacterIds={configMatchesCurrentBoard ? configTeamCharacterIds : []}
-              teamMembers={configMatchesCurrentBoard ? configTeamMembers : []}
+              teamCharacterIds={configTeamCharacterIds}
+              teamMembers={configTeamMembers}
               teamBuffs={configMatchesCurrentBoard ? configTeamBuffs : EMPTY_TEAM_BUFFS}
+              teamPending={!configMatchesCurrentBoard}
               activeWeaponId={weaponId}
               activeTrackKey={track}
               activeTrackLabel={activeTrackConfig?.label}

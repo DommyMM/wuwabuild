@@ -203,6 +203,14 @@ export const LB_EXPANDED_OPAQUE_SURFACE = 'bg-[#191919]';
 export const LB_EXPANDED_OPAQUE_SURFACE_FROM = 'from-[#191919]';
 
 // # | Owner | Character | Sets | [CV+Stats+Damage]
+//
+// Width budget: every track is fixed, so the table has a hard 1352px footprint
+// (48+178+154+112 tracks + 4x16 gap + 796 LB_STAT_GROUP_MIN). Its container tops
+// out at 1366px (max-w-360 page - md:p-5 - section px-4 - section border), so
+// there are 14px of headroom and nothing in the scroll subtree may exceed 1352.
+// Padding on a row, one wider track, or an extra gap puts a horizontal scrollbar
+// under the table at 1080p. Header, skeleton and rows must all carry this grid
+// with no horizontal padding of their own.
 export const LB_TABLE_GRID = 'grid-cols-[48px_178px_154px_112px_minmax(0,1fr)]';
 export const LB_SORTABLE_GROUP_GRID = 'grid-cols-[172px_repeat(4,121px)_minmax(140px,1fr)]';
 export const DEFAULT_LB_SORT = 'damage';

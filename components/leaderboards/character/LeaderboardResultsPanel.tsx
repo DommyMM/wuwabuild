@@ -99,13 +99,21 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
     () => boardColumns ?? [...DEFAULT_STAT_COLUMNS],
   );
 
+  // Latched once the backend has ever named this board's columns. displayStats
+  // goes empty for the length of a track switch, and without the latch the rows
+  // fall back to the per-row heuristic while the header keeps the old columns,
+  // so the cells briefly show stats their own header does not name.
+  const [hasBoardColumns, setHasBoardColumns] = useState<boolean>(() => boardColumns !== null);
+
   // Re-seed the header columns whenever the board's columns actually change
   // (new character/weapon/track). User column edits persist within a board.
   useEffect(() => {
     if (!boardColumns) return;
     let cancelled = false;
     queueMicrotask(() => {
-      if (!cancelled) setStatColumns(boardColumns);
+      if (cancelled) return;
+      setStatColumns(boardColumns);
+      setHasBoardColumns(true);
     });
     return () => { cancelled = true; };
   }, [boardColumns]);
@@ -145,11 +153,9 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   const showInitialSkeleton = isLoading && !hasRows;
   const firstShown = total === 0 ? 0 : Math.min(total, rankStart);
   const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(entries.length - 1, 0));
-  const statusText = showInitialSkeleton
-    ? ''
-    : isRefreshing
-      ? 'Updating…'
-      : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;
+  const statusText = showInitialSkeleton || isRefreshing
+    ? 'Updating…'
+    : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;
 
   const handleSortRequest = (nextSort: LBLeaderboardSortKey) => {
     if (sort === nextSort) { onToggleDirection(); return; }
@@ -289,7 +295,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                     {Array.from({ length: pageSize }).map((_, index) => (
                       <div
                         key={index}
-                        className={`grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4 px-2 odd:bg-background/30 even:bg-background-secondary/20`}
+                        className={`grid ${LB_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} items-center gap-4 odd:bg-background/30 even:bg-background-secondary/20`}
                       >
                         <div className="mx-auto h-3 w-6 animate-pulse rounded bg-background-secondary/80" />
                         <div className="h-3.5 w-28 animate-pulse rounded bg-background-secondary/80" />
@@ -327,7 +333,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
                         erTarget={erTarget}
                         erScored={!isRawMode}
                         scoring={scoring}
-                        boardStatColumns={boardColumns ? displayStatColumns : null}
+                        boardStatColumns={hasBoardColumns ? displayStatColumns : null}
                         sort={sort}
                         isCvColumnActive={isCvColumnActive}
                         isStatSortActive={isStatSortActive}

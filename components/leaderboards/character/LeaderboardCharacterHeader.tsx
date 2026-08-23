@@ -23,6 +23,8 @@ interface LeaderboardCharacterHeaderProps {
   teamCharacterIds?: string[];
   teamMembers?: LBTeamMemberConfig[];
   teamBuffs?: LBTeamBuffs;
+  /** Board config still refetching: the team belongs to the previous track, so hold the slots as placeholders. */
+  teamPending?: boolean;
   activeWeaponId?: string;
   activeTrackKey?: string;
   activeTrackLabel?: string;
@@ -141,6 +143,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
   teamCharacterIds = [],
   teamMembers = [],
   teamBuffs,
+  teamPending = false,
   activeWeaponId,
   activeTrackKey,
   activeTrackLabel,
@@ -253,7 +256,15 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     ? teamMembers
     : teamCharacterIds.map((charId) => ({ charId }));
 
-  const supportMembers = supportConfigs.map((member) => {
+  // Slot geometry for the pending state, read straight off the stale config so it
+  // needs no catalog lookup. Dropping the supports outright made the lead avatar
+  // slide to centre and back on every track switch; holding the slots keeps the
+  // row still while the new board's portraits resolve.
+  const pendingSlots = teamPending
+    ? supportConfigs.map((member) => [member.weaponId, member.echoId, member.setId].filter(Boolean).length)
+    : [];
+
+  const supportMembers = teamPending ? [] : supportConfigs.map((member) => {
     const character = getCharacter(member.charId);
     const weapon = getWeapon(member.weaponId ?? null);
     const echo = getEcho(member.echoId ?? null);
@@ -370,6 +381,22 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
             )}
             <LoadoutIconRow icons={leadLoadoutIcons} keyPrefix="lead" />
           </div>
+
+          {pendingSlots.map((iconCount, slotIndex) => (
+            <div key={`team-slot-${slotIndex}`} aria-hidden className="flex flex-col items-center">
+              <div className="h-25 w-25 animate-pulse rounded-3xl border border-white/12 bg-black/16 shadow-[0_8px_24px_rgba(0,0,0,0.18)]" />
+              {iconCount > 0 && (
+                <div className="relative z-10 -mt-4 flex items-center justify-center gap-1">
+                  {Array.from({ length: iconCount }).map((_, iconIndex) => (
+                    <div
+                      key={`team-slot-${slotIndex}-icon-${iconIndex}`}
+                      className="h-10 w-10 animate-pulse rounded-xl border border-white/10 bg-black/60"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
 
           {supportMembers.map((member) => {
             return (
