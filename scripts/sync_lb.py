@@ -554,6 +554,49 @@ def _extract_buffs(text: str) -> list[dict]:
             })
             used.append(span)
 
+    # Pass A3 - move-type-scoped Crit Rate / Crit DMG.
+    #
+    # "Dealing Echo Skill DMG increases Heavy Attack Crit. Rate by 20% for 6s"
+    # is NOT a flat +20% Crit Rate: it only applies to Heavy Attack hits. Emitting
+    # it unscoped is how Flamewing's Shadow ended up granting its Heavy Attack and
+    # Echo Skill clauses to every hit at once (+40 instead of +20).
+    #
+    # Must run before Passes B/C so the span is claimed before the generic
+    # "<stat> by <value>%" matcher truncates it to a bare "Crit Rate".
+    # The move type has to sit immediately before "Crit", because the same
+    # sentence usually names another move type in its trigger clause
+    # ("Dealing *Echo Skill* DMG increases *Heavy Attack* Crit. Rate").
+    _CRIT_STAT_NAME = {"rate": "Crit Rate", "dmg": "Crit DMG"}
+    _MOVE_TYPE_ALT = "Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation|Echo Skill"
+    for scoped_crit_m in re.finditer(
+        rf"\b({_MOVE_TYPE_ALT})\s+Crit\.?\s*(Rate|DMG)\b"
+        r"(?:[^.]{0,40}?\bby\b)?\s*(\d+(?:\.\d+)?)\s*%",
+        text, re.I,
+    ):
+        move_type = move_type_map.get(scoped_crit_m.group(1).strip().lower())
+        span = scoped_crit_m.span()
+        if move_type and not _overlaps(*span):
+            buffs.append({
+                "stat": _CRIT_STAT_NAME[scoped_crit_m.group(2).lower()],
+                "move_type": move_type,
+                "value": float(scoped_crit_m.group(3)),
+            })
+            used.append(span)
+    # Value-first wording: "grants 20% Heavy Attack Crit. Rate".
+    for scoped_crit_pre_m in re.finditer(
+        rf"(\d+(?:\.\d+)?)\s*%\s+({_MOVE_TYPE_ALT})\s+Crit\.?\s*(Rate|DMG)\b",
+        text, re.I,
+    ):
+        move_type = move_type_map.get(scoped_crit_pre_m.group(2).strip().lower())
+        span = scoped_crit_pre_m.span()
+        if move_type and not _overlaps(*span):
+            buffs.append({
+                "stat": _CRIT_STAT_NAME[scoped_crit_pre_m.group(3).lower()],
+                "move_type": move_type,
+                "value": float(scoped_crit_pre_m.group(1)),
+            })
+            used.append(span)
+
     # Pass B – "X% StatName" (value precedes stat)
     for pct_m in _RE_PCT.finditer(text):
         val = float(pct_m.group(1))
