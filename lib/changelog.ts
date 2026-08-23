@@ -24,6 +24,14 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'fixed',
                 text: 'Boards that showed two attack type bonuses no longer hide Energy Regen',
             },
+            {
+                kind: 'improved',
+                text: 'Hiyuki, Aemeath, and Yangyang board ER adjusted to be quickswap ER reqs (lower, like Hiyuki 120->107ish)'
+            },
+            {
+                kind: 'fixed',
+                text: 'Flamewing set miscounted 40CR instead of 20 for heavy and echo, now fixed and re-adjusted'
+            }
         ],
     },
     {
