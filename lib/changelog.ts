@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-08-30',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Cartethyia boards now run the proper quickswap rotation, and has her missing Aero Erosion and Tune Break damage',
+            },
+            {
+                kind: 'fixed',
+                text: 'Zani ER req lowered to 110 for quickswap rotation, and Outro more accurate',
+            },
+        ],
+    },
+    {
         date: '2026-08-23',
         changes: [
             {
