@@ -17,6 +17,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-08-30',
         changes: [
             {
+                kind: 'fixed',
+                text: 'Reference tiers relabeled: every tier is the best possible build at a given roll quality, so "Median" now reads "Median Rolls" (it is a top 1% build, not a median one) and "Minimum" reads "Minimum Rolls"',
+            },
+            {
                 kind: 'improved',
                 text: 'Cartethyia boards now run the proper quickswap rotation, and has her missing Aero Erosion and Tune Break damage',
             },
