@@ -14,13 +14,13 @@ import { resolveBoardDisplayColumns } from '../statColumns';
 import { LB_TABLE_GRID, LB_SORTABLE_GROUP_GRID, LB_STAT_GROUP_MIN } from '../constants';
 import { LeaderboardRow } from './LeaderboardRow';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { useScrollportVar } from '../useScrollportVar';
 
 const DAMAGE_SORT_KEY: LBLeaderboardSortKey = 'damage';
 
 interface LeaderboardResultsPanelProps {
   entries: LBLeaderboardEntry[];
   displayStats?: readonly StatSortKey[];
-  /** Server-resolved name/icon maps; SSR fallback for row names and echo sets. */
   boardDisplay?: LBBoardDisplay | null;
   deepLinkBuildId: string;
   activeWeaponId: string;
@@ -86,6 +86,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   autoExpandRowRef,
 }) => {
   const { statIcons } = useGameData();
+  const scrollportRef = useScrollportVar();
 
   // Backend board columns (sort-independent, content-stable across refetches).
   // When present they seed the header and drive the rows; otherwise the rows
@@ -172,7 +173,8 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
         {/* Mobile-only hint that the table continues past the right edge; the
             thin scrollbar is invisible on touch until a scroll starts. */}
         <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-linear-to-l from-background to-transparent md:hidden" />
-        <div className="overflow-x-auto overflow-y-hidden pb-1">
+        {/* Publishes --scrollport: expansion rows pin to this scrollport's width. */}
+        <div ref={scrollportRef} className="overflow-x-auto overflow-y-hidden pb-1">
           <div className="w-max min-w-full">
             <div className="overflow-hidden rounded-lg border border-border bg-background/70">
               {/* Table header: Rank | Owner | Character | Sets | [CV+Stats+Metric] */}
@@ -289,7 +291,7 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
               </div>
 
               {/* Rows area */}
-              <div className="relative overflow-hidden rounded-b-lg">
+              <div className="relative overflow-clip rounded-b-lg">
                 {showInitialSkeleton && (
                   <div className="divide-y divide-border/60">
                     {Array.from({ length: pageSize }).map((_, index) => (

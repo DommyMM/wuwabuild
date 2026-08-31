@@ -24,6 +24,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'fixed',
                 text: 'Zani ER req lowered to 110 for quickswap rotation, and Outro more accurate',
             },
+            {
+                kind: 'improved',
+                text: 'Echo section in profile looks cleaner',
+            }
         ],
     },
     {

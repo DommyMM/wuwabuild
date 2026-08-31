@@ -13,6 +13,7 @@ import { GlobalBoardRow, GlobalBoardRowExpandedProps } from './GlobalBoardRow';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { SortHeaderMenu, SortMenuOption } from '../SortHeaderMenu';
 import { StatSortKey } from '../types';
+import { useScrollportVar } from '../useScrollportVar';
 
 // The gate re-arms daily: the stored value is the date it was last dismissed.
 const TABLE_GATE_STORAGE_KEY = 'builds_gate_dismissed';
@@ -134,6 +135,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   const { characters, fetters, statIcons, weaponList } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
   const [isTableGateDismissed, setIsTableGateDismissed] = useState<boolean | null>(null);
+  const scrollportRef = useScrollportVar();
 
   useEffect(() => {
     if (!showTableGate) return;
@@ -211,7 +213,10 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
         {/* Mobile-only hint that the table continues past the right edge; the
             thin scrollbar is invisible on touch until a scroll starts. */}
         <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-linear-to-l from-background to-transparent md:hidden" />
-        <div className="overflow-x-auto overflow-y-hidden pb-1">
+        {/* Publishes --scrollport: expansion rows pin themselves to this
+            scrollport's width, so an expanded card can never widen the w-max
+            wrapper or get clipped by horizontal scroll. */}
+        <div ref={scrollportRef} className="overflow-x-auto overflow-y-hidden pb-1">
           <div className="w-max min-w-full">
             <div className="overflow-visible rounded-lg border border-border bg-background/70">
               {/* Table header */}
@@ -307,7 +312,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                 </div>
               </div>
               {/* Rows with overlay */}
-              <div className="relative overflow-hidden rounded-b-lg">
+              <div className="relative overflow-clip rounded-b-lg">
                 <div className={showBuildTableGate ? 'select-none blur-[5px] saturate-[0.82]' : ''}>
                   {/* Skeleton rows */}
                   {showInitialSkeleton && (

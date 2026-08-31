@@ -266,12 +266,16 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           transition={prefersReducedMotion
             ? { duration: 0.12, ease: 'linear' }
             : { duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-          // Both axes clip: `overflow-x-visible` alongside a hidden y computes
-          // to `auto` per spec, which silently made this a second horizontal
-          // scroller nested inside the table's own. Hover cards portal out to
-          // the body, so nothing here needs to escape the box.
-          className="overflow-hidden border-t border-border/50 bg-black/15 tracking-wide"
+          // `overflow-clip`, not `hidden`: clip does not create a scroll box,
+          // so the sticky pin below tracks the table's horizontal scroller.
+          // Hover cards portal out to the body, so nothing needs to escape.
+          className="overflow-clip border-t border-border/50 bg-black/15 tracking-wide"
         >
+          {/* w-full like any row (a definite width would re-add the shell's 2px
+              borders to the w-max wrapper and force 2px of scroll), capped at
+              the measured scrollport (--scrollport, useScrollportVar) and pinned
+              sticky so the content stays visible when the rows overflow. */}
+          <div className="sticky left-0 w-full max-w-(--scrollport,none)">
           <div className={`${LB_EXPANDED_SHELL} min-w-0 space-y-4 py-4`}>
             {isDetailLoading && <BuildExpandedSkeleton showForte={surface !== 'leaderboard_character'} />}
 
@@ -376,6 +380,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                 />
               </>
             )}
+          </div>
           </div>
         </motion.div>
         )}

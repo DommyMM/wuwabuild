@@ -1,7 +1,7 @@
 import { EchoPanelState } from '@/lib/echo';
 import { BASE_STATS } from '@/lib/constants/statMappings';
 
-const ECHO_SUBSTAT_CV_MAX = 42;
+export const ECHO_SUBSTAT_CV_MAX = 42;
 const BUILD_SUBSTAT_CV_MAX = ECHO_SUBSTAT_CV_MAX * 5;
 const MAX_FOUR_COST_CRIT_MAIN_CV = 44;
 

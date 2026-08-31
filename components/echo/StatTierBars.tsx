@@ -16,9 +16,7 @@ export const StatHoverRow: React.FC<{ label: string; children: React.ReactNode }
   </div>
 );
 
-// Discrete bar of every possible roll for a substat, tinted by quality tier.
-// The roll this build landed is enlarged, brightened and labelled. Pass
-// showValueLabel={false} where the value already renders next to the bar.
+// Discrete bar of every possible roll for a substat, tinted by quality tier
 export const SubstatRollBar: React.FC<{
   rollValues: number[];
   currentValue: number;
@@ -68,7 +66,8 @@ export const SubstatRollBar: React.FC<{
               style={{
                 backgroundColor: tierColors[index],
                 height: isCurrent ? 18 : 7,
-                opacity: isCurrent ? 1 : 0.4,
+                opacity: isCurrent ? 1 : 0.55,
+                boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
               }}
             />
           );
@@ -78,40 +77,57 @@ export const SubstatRollBar: React.FC<{
   );
 };
 
-// A value plotted on the shared quality-tier ladder; the landed tier is enlarged.
-// CV and RV both grade on QUALITY_TIERS, so the ladder only needs the tier label.
-export const QualityTierBar: React.FC<{ currentLabel: string; valueText: string }> = ({ currentLabel, valueText }) => {
+// Segment strip of the shared quality-tier ladder
+export const TierLadder: React.FC<{ currentLabel: string }> = ({ currentLabel }) => {
   const tiers = QUALITY_TIERS.slice().reverse(); // low -> high
   const currentIndex = tiers.findIndex((tier) => tier.label === currentLabel);
 
   return (
-    <div>
-      <div className="flex items-end gap-0.5">
-        {tiers.map((tier, index) => (
-          <span
+    <div className="flex items-end gap-0.5">
+      {tiers.map((tier, index) => {
+        const isCurrent = index === currentIndex;
+        return (
+          <div
             key={tier.label}
-            className="min-w-0 flex-1 text-center text-xs font-bold leading-none tabular-nums"
-            style={{ color: index === currentIndex ? tier.color : 'transparent' }}
+            className="min-w-0 flex-1 rounded-xs"
+            style={{
+              backgroundColor: tier.color,
+              height: isCurrent ? 18 : 7,
+              opacity: isCurrent ? 1 : 0.55,
+              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+// A value plotted on the ladder with the value text floated over the landed tier
+export const QualityTierBar: React.FC<{ currentLabel: string; valueText: string }> = ({ currentLabel, valueText }) => {
+  const tiers = QUALITY_TIERS.slice().reverse(); // low -> high
+  const currentIndex = tiers.findIndex((tier) => tier.label === currentLabel);
+  const current = currentIndex >= 0 ? tiers[currentIndex] : null;
+  // Center of the landed segment, as a fraction of the strip width
+  const centerPct = currentIndex >= 0 ? ((currentIndex + 0.5) / tiers.length) * 100 : 50;
+
+  return (
+    <div>
+      <div className="relative h-3.5">
+        {current && (
+          <span
+            className="absolute top-0 -translate-x-1/2 text-xs font-bold leading-none whitespace-nowrap tabular-nums"
+            style={{
+              color: current.color,
+              left: `clamp(1.25rem, ${centerPct}%, calc(100% - 1.25rem))`,
+            }}
           >
             {valueText}
           </span>
-        ))}
+        )}
       </div>
-      <div className="mt-1 flex items-end gap-0.5">
-        {tiers.map((tier, index) => {
-          const isCurrent = index === currentIndex;
-          return (
-            <div
-              key={tier.label}
-              className="min-w-0 flex-1 rounded-xs"
-              style={{
-                backgroundColor: tier.color,
-                height: isCurrent ? 18 : 7,
-                opacity: isCurrent ? 1 : 0.4,
-              }}
-            />
-          );
-        })}
+      <div className="mt-0.5">
+        <TierLadder currentLabel={currentLabel} />
       </div>
     </div>
   );

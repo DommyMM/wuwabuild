@@ -51,13 +51,20 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
           // Matches the leaderboard expansion: ease-out on enter, and only an
-          // opacity crossfade under reduced motion. `overflow-x-visible` beside
-          // a hidden y computes to `auto`, so both axes clip explicitly.
+          // opacity crossfade under reduced motion. `overflow-clip`, not
+          // `hidden`: clip does not create a scroll box, so the sticky pin
+          // below tracks the table's own horizontal scroller.
           transition={prefersReducedMotion
             ? { duration: 0.12, ease: 'linear' }
             : { duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-          className="overflow-hidden border-t border-border/50 bg-black/15 tracking-wide"
+          className="overflow-clip border-t border-border/50 bg-black/15 tracking-wide"
         >
+          {/* w-full like any row (so a fitting table stays exactly min-w-full;
+              a definite width here would re-add the shell's 2px borders to the
+              w-max wrapper and force 2px of scroll), capped at the measured
+              scrollport (--scrollport, useScrollportVar) and pinned sticky so
+              the card stays visible when the rows genuinely overflow. */}
+          <div className="sticky left-0 w-full max-w-(--scrollport,none)">
           <div className="mx-auto w-full max-w-368 space-y-4 px-4 pt-5 pb-3">
             {isDetailLoading && (
               <div className="flex items-center justify-center gap-3 py-8 text-sm text-text-primary/55">
@@ -91,6 +98,7 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
                 />
               </>
             )}
+          </div>
           </div>
         </motion.div>
       )}

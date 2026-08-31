@@ -54,10 +54,13 @@ type OptimalityTier = 'ceiling' | 'standardized' | 'low_roll';
 //   gold  = the tier you selected (card chrome and its tick on the track)
 //   white = this build (the track fill and its score)
 //   teal  = this build clears the selected reference
+// Every tier is a searched-optimal build; only the substat roll quality
+// differs. Never label a tier "Median" alone: measured against the live
+// population, the median-roll optimum sits in the top ~1% of real builds.
 const TIER_META: Record<OptimalityTier, { label: string; rollLabel: string }> = {
-  ceiling: { label: 'Ceiling', rollLabel: 'Maximum rolls' },
-  standardized: { label: 'Median', rollLabel: 'Median rolls' },
-  low_roll: { label: 'Minimum', rollLabel: 'Minimum rolls' },
+  ceiling: { label: 'Ceiling', rollLabel: 'Optimal at maximum rolls' },
+  standardized: { label: 'Median Rolls', rollLabel: 'Optimal at median rolls' },
+  low_roll: { label: 'Minimum Rolls', rollLabel: 'Optimal at minimum rolls' },
 };
 
 const TIER_ORDER: OptimalityTier[] = ['low_roll', 'standardized', 'ceiling'];

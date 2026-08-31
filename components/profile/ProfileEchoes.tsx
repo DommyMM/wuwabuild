@@ -6,21 +6,27 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getLBStatLabel, getLBStatSortKeyForLabel, isLBEchoSubstatSortKey, LBEcho, LB_ECHO_SUBSTAT_SORT_KEYS, LBEchoSortKey, LBSortDirection, LBSortKey, LBStatSortKey, listProfileEchoes } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
-import { calculateEchoRV, getEchoCVTierStyle, getEchoRVTierStyle } from '@/lib/calculations/rollValues';
+import { getEchoCVTierStyle } from '@/lib/calculations/rollValues';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { isPercentStat } from '@/lib/constants/statMappings';
 import { BuildPagination } from '@/components/leaderboards/BuildPagination';
 import { SortHeaderMenu, SortMenuOption } from '@/components/leaderboards/SortHeaderMenu';
 import { ACTIVE_SORT_COLUMN_CLASS, TABLE_ROW_HEIGHT_CLASS } from '@/components/leaderboards/constants';
+import { useScrollportVar } from '@/components/leaderboards/useScrollportVar';
 import { EchoInventoryDetail } from './EchoInventoryDetail';
 
 const PAGE_SIZE = 20;
 const ECHO_COSTS = [4, 3, 1] as const;
 
-// # | Name (echo art + set badge + name) | Main Stat | [CV + 5 flexed substats]
+// # | Name (echo art + set badge + name) | Main Stat | [CV/RV + 5 flexed substats]
 const ECHO_TABLE_GRID = 'grid-cols-[48px_384px_96px_minmax(0,1fr)]';
-const ECHO_STAT_GROUP_GRID = 'grid-cols-[128px_repeat(5,minmax(0,1fr))]';
+const ECHO_STAT_GROUP_GRID = 'grid-cols-[144px_repeat(5,minmax(0,1fr))]';
 const ECHO_STAT_GROUP_MIN_W = 'min-w-[640px]';
+
+// Quality column: CV only, with the tier ramp (the one deliberately colored data
+// column, like element tints in Main Stat). Roll Value lives in the expanded
+// inspection card, not the table.
+const CV_TITLE = "Crit Value: 2×Crit Rate + Crit DMG from this echo's substats, out of 42";
 
 const SUBSTAT_COLUMN_KEYS = LB_ECHO_SUBSTAT_SORT_KEYS;
 
@@ -59,8 +65,9 @@ interface ProfileEchoesProps {
 }
 
 export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }) => {
-  const { getEcho, getMainStatsByCost, getSubstatValues, fetters, statIcons } = useGameData();
+  const { getEcho, getMainStatsByCost, fetters, statIcons } = useGameData();
   const { t } = useLanguage();
+  const scrollportRef = useScrollportVar();
 
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<LBEchoSortKey>('cv');
@@ -68,7 +75,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
   const [costs, setCosts] = useState<number[]>([]);
   const [setIds, setSetIds] = useState<string[]>([]);
   const [mainStatTypes, setMainStatTypes] = useState<string[]>([]);
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(new Set());
 
   const [echoes, setEchoes] = useState<LBEcho[]>([]);
   const [total, setTotal] = useState(0);
@@ -109,11 +116,6 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
   );
 
   const isCvActive = sort === 'cv';
-  const isRvActive = sort === 'rv';
-  const isCvGroupActive = isCvActive || isRvActive;
-  // Sorting by RV promotes it to the emphasized (large, tier-colored) metric in
-  // both the header and each row; otherwise CV leads and RV is the muted line.
-  const rvFocus = isRvActive;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -166,8 +168,6 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
   const selectSubstatSort = (key: LBEchoSortKey) => {
     handleSort(key);
   };
-  const sortByCV = () => handleSort('cv');
-  const sortByRV = () => handleSort('rv');
 
   const addCost = (cost: number) => { setPage(1); setCosts((prev) => (prev.includes(cost) ? prev : [...prev, cost])); };
   const removeCost = (cost: number) => { setPage(1); setCosts((prev) => prev.filter((c) => c !== cost)); };
@@ -223,7 +223,8 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
         />
 
         {/* Table */}
-        <div className="mt-3 overflow-x-auto overflow-y-hidden pb-1">
+        {/* Publishes --scrollport: the expansion card pins to this scrollport's width. */}
+        <div ref={scrollportRef} className="mt-3 overflow-x-auto overflow-y-hidden pb-1">
           <div className="w-max min-w-full">
             <div className="overflow-visible rounded-lg border border-border bg-background/70">
               {/* Header */}
@@ -232,54 +233,29 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
                 <div className="py-2 pl-3">Name</div>
                 <div className="py-2">Main Stat</div>
                 <div className={`grid ${ECHO_STAT_GROUP_GRID} ${ECHO_STAT_GROUP_MIN_W} self-stretch gap-0`}>
-                  <div className={`flex self-stretch border-t-2 transition-colors ${isCvGroupActive ? 'border-accent/85 bg-black/35' : 'border-transparent'}`}>
-                    <div className="flex h-full w-full flex-col items-stretch justify-center gap-0.5 px-4 py-1.5">
-                      <button
-                        type="button"
-                        onClick={sortByCV}
-                        title="Sort by Crit Value"
-                        className={`group flex items-center justify-between gap-2 leading-tight transition-[color,font-size] duration-200 ${
-                          rvFocus ? 'text-xs' : 'text-lg'
-                        } ${
-                          isCvActive
-                            ? 'text-accent'
-                            : rvFocus
-                              ? 'text-text-primary/45 hover:text-text-primary/75'
-                              : 'text-text-primary/85 hover:text-text-primary'
-                        }`}
-                      >
-                        <span>Crit Value</span>
+                  {/* CV header */}
+                  <div className="self-stretch">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('cv')}
+                      title={CV_TITLE}
+                      className={`flex h-full w-full items-center justify-between gap-2 border-t-2 px-4 py-2 text-lg transition-colors ${
+                        isCvActive
+                          ? 'border-accent/85 bg-black/35 text-accent'
+                          : 'border-transparent text-text-primary/85 hover:border-border hover:bg-background/60 hover:text-text-primary'
+                      }`}
+                    >
+                      <span>
+                        Crit Value <span className="text-sm opacity-50">/ 42</span>
+                      </span>
+                      {isCvActive && (
                         <ChevronDown
-                          className={`${rvFocus ? 'h-3 w-3' : 'h-3.5 w-3.5'} shrink-0 transition-all duration-200 ${
-                            isCvActive
-                              ? `opacity-100 ${direction === 'asc' ? 'rotate-180' : ''}`
-                              : 'opacity-0 group-hover:opacity-45'
-                          }`}
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${direction === 'asc' ? 'rotate-180' : ''}`}
                         />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={sortByRV}
-                        title="Sort by Roll Value"
-                        className={`group flex items-center justify-between gap-2 leading-tight transition-[color,font-size] duration-200 ${
-                          rvFocus ? 'text-lg' : 'text-xs'
-                        } ${
-                          isRvActive ? 'text-accent' : 'text-text-primary/45 hover:text-text-primary/75'
-                        }`}
-                      >
-                        <span>Roll Value</span>
-                        <ChevronDown
-                          className={`${rvFocus ? 'h-3.5 w-3.5' : 'h-3 w-3'} shrink-0 transition-all duration-200 ${
-                            isRvActive
-                              ? `opacity-100 ${direction === 'asc' ? 'rotate-180' : ''}`
-                              : 'opacity-0 group-hover:opacity-45'
-                          }`}
-                        />
-                      </button>
-                    </div>
+                      )}
+                    </button>
                   </div>
-                  {/* Substat sort headers: placeholder lines until a stat is picked,
-                      then the selected stat pins across the substat header area. */}
+                  {/* Substat sort headers */}
                   {isSubstatSortActive ? (
                     <div className="col-span-5 self-stretch flex items-stretch">
                       <SortHeaderMenu
@@ -325,7 +301,8 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
               </div>
 
               {/* Body */}
-              <div className="relative overflow-hidden rounded-b-lg">
+              {/* overflow-clip, not hidden cos it does weird stuff when expanded otherwise */}
+              <div className="relative overflow-clip rounded-b-lg">
                 {isInitialLoading ? (
                   <div className="divide-y divide-border/60">
                     {Array.from({ length: 8 }).map((_, i) => (
@@ -357,12 +334,10 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
                     {echoes.map((echo, index) => {
                       const echoMeta = getEcho(echo.echoId);
                       const echoName = echoMeta ? t(echoMeta.nameI18n ?? { en: echoMeta.name }) : echo.echoId;
-                      const cvStyle = echo.cv > 0 ? getEchoCVTierStyle(echo.cv) : null;
                       const set = setById.get(echo.activeSetId);
                       const mainIcon = echo.mainStatType ? statIconFor(statIcons, echo.mainStatType) : '';
                       const subs = (echo.panel?.stats.subStats ?? []).filter((s) => s.type && s.value != null);
-                      const rv = echo.rv > 0 ? echo.rv : calculateEchoRV(subs, getSubstatValues);
-                      const rvStyle = rv > 0 ? getEchoRVTierStyle(rv) : null;
+                      const cvStyle = echo.cv > 0 ? getEchoCVTierStyle(echo.cv) : null;
                       const displaySubs = isSubstatSortActive
                         ? [
                             {
@@ -385,17 +360,23 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
                             value: sub.value,
                           }));
 
-                      const isExpanded = expandedKey === echo.echoKey;
-                      const toggleExpand = () => setExpandedKey((k) => (k === echo.echoKey ? null : echo.echoKey));
+                      const isExpanded = expandedKeys.has(echo.echoKey);
+                      const toggleExpand = () => setExpandedKeys((prev) => {
+                        const next = new Set(prev);
+                        if (!next.delete(echo.echoKey)) next.add(echo.echoKey);
+                        return next;
+                      });
+                      const detailId = `echo-detail-${rankStart + index}`;
                       return (
                         <div key={echo.echoKey}>
                         <div
                           role="button"
                           tabIndex={0}
                           aria-expanded={isExpanded}
+                          aria-controls={detailId}
                           onClick={toggleExpand}
                           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(); } }}
-                          className={`grid ${ECHO_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 ${isExpanded ? 'bg-accent/12' : ''}`}
+                          className={`grid ${ECHO_TABLE_GRID} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent/70 ${isExpanded ? 'bg-accent/12' : ''}`}
                         >
                           <div className="py-2 text-center text-text-primary/75">{rankStart + index}</div>
 
@@ -442,29 +423,14 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
 
                           {/* CV + 5 positional substat columns */}
                           <div className={`grid ${ECHO_STAT_GROUP_GRID} ${ECHO_STAT_GROUP_MIN_W} self-stretch gap-0`}>
-                            <div className={`self-stretch ${isCvGroupActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
-                              <div className="flex h-full flex-col items-start justify-center px-4">
+                            <div className={`self-stretch ${isCvActive ? ACTIVE_SORT_COLUMN_CLASS : ''}`}>
+                              <div className="flex h-full items-center px-4">
                                 <span
-                                  className={`leading-tight tabular-nums transition-[color,font-size] duration-200 ${
-                                    rvFocus
-                                      ? 'text-xs text-text-primary/45'
-                                      : `text-lg ${cvStyle?.isMax ? 'cv-glow' : ''}`
-                                  }`}
-                                  style={!rvFocus && cvStyle && !cvStyle.isMax ? { color: cvStyle.color } : undefined}
-                                  title="Crit Value: 2×Crit Rate + Crit DMG from this echo's substats"
+                                  className={`text-lg leading-tight tabular-nums text-text-primary ${cvStyle?.isMax ? 'cv-glow' : ''}`}
+                                  style={cvStyle && !cvStyle.isMax ? { color: cvStyle.color } : undefined}
+                                  title={CV_TITLE}
                                 >
                                   {echo.cv.toFixed(1)} CV
-                                </span>
-                                <span
-                                  className={`leading-tight tabular-nums transition-[color,font-size] duration-200 ${
-                                    rvFocus
-                                      ? `text-lg ${rvStyle?.isMax ? 'cv-glow' : ''}`
-                                      : 'text-xs text-text-primary/45'
-                                  }`}
-                                  style={rvFocus && rvStyle && !rvStyle.isMax ? { color: rvStyle.color } : undefined}
-                                  title="Roll Value: full-sheet average of each substat vs its max roll; missing lines count as zero"
-                                >
-                                  {rv.toFixed(0)}% RV
                                 </span>
                               </div>
                             </div>
@@ -505,7 +471,9 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
                             })}
                           </div>
                         </div>
-                        <EchoInventoryDetail echo={echo} uid={uid} isExpanded={isExpanded} onOpenBuild={onOpenBuild} />
+                        <div id={detailId}>
+                          <EchoInventoryDetail echo={echo} uid={uid} isExpanded={isExpanded} onOpenBuild={onOpenBuild} />
+                        </div>
                         </div>
                       );
                     })}
@@ -524,10 +492,6 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
   );
 };
 
-// ---------------------------------------------------------------------------
-// Search-driven filter combobox (mirrors the builds BuildFiltersPanel UX):
-// type to search, pick from sectioned headings (Cost / Echo Sets / Main Stats),
-// selected items become removable chips.
 
 type EchoFilterItem =
   | { key: string; type: 'cost'; section: 'Cost'; value: number; label: string }
@@ -599,8 +563,7 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
     return items;
   }, [normalized, costs, setIds, mainStatTypes, setOptions, mainStatOptions, statIcons]);
 
-  // No cursor until the user navigates: opening the dropdown must not look like a
-  // row is already hovered. Enter still falls back to the first item.
+  // No cursor until the user navigates so that opening the dropdown doesn't look like a row is already hovered
   const activeIdx = (!open || visibleItems.length === 0)
     ? -1
     : (activeIndex < 0 || activeIndex >= visibleItems.length ? -1 : activeIndex);
