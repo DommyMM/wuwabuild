@@ -203,9 +203,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
           {board && !loading && (
             /* The module is w-fit, so this column sits at max-content and its width IS the label's width */
             <div className="flex min-w-fit flex-col justify-center gap-1.5">
-              {/* <div>: snapdom also drops max-width from inline tags, so a
-                  span here exports untruncated and overruns the module. */}
-              <div className="max-w-40 truncate font-ropa text-[13px] leading-none tracking-[0.08em] text-text-primary/90 uppercase">
+              <div className="-mx-2 -my-1.5 max-w-44 truncate px-2 py-1.5 font-ropa text-[13px] leading-none tracking-[0.08em] text-text-primary/90 uppercase">
                 {cleanBoardTrackLabel(board)}
               </div>
               <div className="flex items-center gap-1.5">

@@ -79,7 +79,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
         </div>
       </WeaponHoverCard>
       <div className="flex min-w-0 flex-col justify-center gap-1.5">
-        <span className={`truncate text-2xl font-semibold leading-tight text-white/95 transition-[color,filter,opacity,transform] duration-200 ${nameInteractionClass}`}>
+        <span className={`-mx-2 -my-1.5 truncate px-2 py-1.5 text-2xl font-semibold leading-tight text-white/95 transition-[color,filter,opacity,transform] duration-200 ${nameInteractionClass}`}>
           {translatedWeaponName || weapon.name}
         </span>
         <div className="flex items-center gap-2.5">
