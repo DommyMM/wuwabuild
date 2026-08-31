@@ -852,18 +852,30 @@ def _trigger_to_move_keys(trigger: str) -> list[str]:
     return keys
 
 
-def _derive_go_weapon_effects(
-    effects: list[dict],
-    rarity: str,
-) -> list[dict]:
-    """Produce Go-ready weapon effect dicts from parsed effects_r1/r5 data.
+# Fields that identify *which* effect an entry is, as opposed to how strong it
+# is at a given refinement. Two entries with the same signature at the same list
+# position are the same effect parsed at R1 and at R5, so their values and
+# durations can be paired as refinement endpoints. Duration is deliberately
+# excluded: it is a scaling quantity here, not structure (see Autumntrace, whose
+# duration is mis-parsed off the ATK clause and therefore differs by rank).
+_GO_EFFECT_STRUCTURAL_KEYS = (
+    "type", "triggerMove", "element", "moveType", "maxStacks", "stacking",
+)
+
+
+def _go_effect_signature(entry: dict) -> tuple:
+    """Structural identity of one Go-ready weapon effect entry."""
+    return tuple(entry.get(key, "") for key in _GO_EFFECT_STRUCTURAL_KEYS)
+
+
+def _derive_go_weapon_effects_at_rank(effects: list[dict]) -> list[dict]:
+    """Produce Go-ready weapon effect dicts from one parsed effects_rN list.
 
     Each output dict has keys: type, triggerMove, value, and optionally
     element, moveType, duration, maxStacks, stacking.
 
     Skips effects whose stat maps to None (amplify, defIgnore, unsupported).
     Skips effects containing "amplif" in the trigger text (DMG Amplification).
-    Uses R5 values for 4-star weapons (caller should pass effects_r5 when rarity="4-star").
     """
     out: list[dict] = []
     for eff in effects:
@@ -919,6 +931,62 @@ def _derive_go_weapon_effects(
             if stacking:
                 entry["stacking"] = stacking
             out.append(entry)
+    return out
+
+
+def _derive_go_weapon_effects(
+    effects_r1: list[dict],
+    effects_r5: list[dict],
+    rarity: str,
+) -> list[dict]:
+    """Produce Go-ready weapon effects carrying BOTH refinement endpoints.
+
+    Each entry keeps the historical baked fields (`value`, `duration`) — taken
+    from R5 for 4-star weapons and from R1 for everything else, exactly as before
+    — and adds `valueR1`/`valueR5` plus, where a duration is parsed,
+    `durationR1`/`durationR5`. The Go loader interpolates linearly between the
+    endpoints in four equal steps, so a weapon resolved at its standard rank
+    reproduces the historical value exactly and no stored score moves.
+
+    When the R1 and R5 parses do not line up structurally (a clause that only one
+    refinement's text produced, say), the standard-rank value is written to both
+    endpoints so that weapon simply does not scale — the same behavior it had
+    before endpoints existed — rather than pairing unrelated clauses.
+
+    The same flat fallback covers 3-star weapons. The bake source has always been
+    R5 for 4-star weapons and R1 for everything else, while Go's
+    StandardWeaponRank is R1 for 5-star weapons and R5 for everything else. Those
+    agree for 5-star and 4-star weapons but not for 3-star ones, whose R1 values
+    have always been read at R5. Handing them honest endpoints would double the
+    "of Night" starter weapons' Intro ATK buff and move stored board scores, so
+    they stay flat until that mismatch is fixed deliberately with a recalc.
+    """
+    entries_r1 = _derive_go_weapon_effects_at_rank(effects_r1)
+    entries_r5 = _derive_go_weapon_effects_at_rank(effects_r5)
+    baked_from_r5 = rarity == "4-star"
+    standard_rank_is_r5 = rarity != "5-star"
+    standard = entries_r5 if baked_from_r5 else entries_r1
+
+    aligned = (
+        baked_from_r5 == standard_rank_is_r5
+        and len(entries_r1) == len(entries_r5)
+        and all(
+            _go_effect_signature(a) == _go_effect_signature(b)
+            for a, b in zip(entries_r1, entries_r5)
+        )
+    )
+
+    out: list[dict] = []
+    for idx, entry in enumerate(standard):
+        low = entries_r1[idx] if aligned else entry
+        high = entries_r5[idx] if aligned else entry
+        merged = dict(entry)
+        merged["valueR1"] = low.get("value", 0.0)
+        merged["valueR5"] = high.get("value", 0.0)
+        if "duration" in entry:
+            merged["durationR1"] = low.get("duration", entry["duration"])
+            merged["durationR5"] = high.get("duration", entry["duration"])
+        out.append(merged)
     return out
 
 
@@ -2290,9 +2358,10 @@ def _build_weapon_bases(
         effects_r1 = _parse_effect_en(resolved_r1)
         effects_r5 = _parse_effect_en(resolved_r5)
 
-        # For 4-star weapons, use R5 values in the Go effects (easier to obtain at R5).
-        go_effects_source = effects_r5 if rarity_str == "4-star" else effects_r1
-        weapon_effects = _derive_go_weapon_effects(go_effects_source, rarity_str)
+        # Go effects carry both refinement endpoints. `value`/`duration` keep the
+        # historical bake (R5 for 4-star weapons, R1 otherwise) so no stored score
+        # moves; valueR1/valueR5 let the engine interpolate between refinements.
+        weapon_effects = _derive_go_weapon_effects(effects_r1, effects_r5, rarity_str)
         party_buffs_by_rank = _parse_weapon_party_buffs_by_rank(w)
 
         out[wid] = {
