@@ -21,6 +21,8 @@ import { useExpandedRows } from '@/components/leaderboards/useExpandedRows';
 import { scrollToElementBelowNav } from '@/components/leaderboards/scrollToElementBelowNav';
 import { createRowsSignature } from '@/components/leaderboards/queryHelpers';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/leaderboards/types';
+import { isRover } from '@/lib/character';
+import { warmBundledSplashArt } from '@/lib/splashArt';
 import { ProfileBuildExpanded } from './ProfileBuildExpanded';
 import { ProfileShowcase } from './ProfileShowcase';
 import { ProfileEchoes } from './ProfileEchoes';
@@ -260,8 +262,21 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     if (expandedBuildIds.size === 0 && !expandedBuildIds.has(id)) {
       setIsExpandedLayoutSettled(false);
     }
+    if (!expandedBuildIds.has(id)) {
+      // Art identity is already known from the row, so start the splash
+      // download at click, in parallel with the build-detail request.
+      const entry = buildsRef.current.find((build) => build.id === id);
+      const characterRef = entry ? getCharacter(entry.character.id) : null;
+      if (characterRef) {
+        warmBundledSplashArt(
+          String(characterRef.id),
+          characterRef.legacyId ?? null,
+          isRover(characterRef),
+        );
+      }
+    }
     toggleExpandedId(id, loadBuildDetail);
-  }, [expandedBuildIds, loadBuildDetail, toggleExpandedId]);
+  }, [expandedBuildIds, getCharacter, loadBuildDetail, toggleExpandedId]);
 
   const handleRetryDetail = useCallback((buildId: string) => {
     retryBuildDetail(buildId);

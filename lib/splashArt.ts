@@ -144,6 +144,31 @@ export const getBundledSplashCardArt = (
   };
 };
 
+const warmedSplashUrls = new Set<string>();
+
+/**
+ * Starts fetching and decoding a bundled splash the moment intent is known
+ * (profile row click), in parallel with the build-detail request, so the
+ * card's first paint doesn't wait on the art download. Errors are ignored;
+ * the card's own art pipeline stays the authoritative loader.
+ */
+export const warmBundledSplashArt = (
+  characterId: string,
+  legacyId: string | null,
+  isRover: boolean,
+  options: SplashUrlCandidateOptions = {},
+): void => {
+  if (typeof window === 'undefined') return;
+  const art = getBundledSplashCardArt(characterId, legacyId, isRover, options);
+  if (!art || warmedSplashUrls.has(art.url)) return;
+  warmedSplashUrls.add(art.url);
+
+  const image = new Image();
+  image.decoding = 'async';
+  image.src = art.url;
+  void image.decode().catch(() => {});
+};
+
 const formatSplashArtTransformEntry = (
   characterId: string,
   variant: SplashArtVariant,

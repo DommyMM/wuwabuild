@@ -30,7 +30,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
-                text: 'Profile build cards now open smoothly without flashing',
+                text: 'Profile build cards now open smoothly without flashing, and their art loads several times faster',
             }
         ],
     },

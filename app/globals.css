@@ -168,9 +168,12 @@ body {
   opacity: 0.56;
 }
 
+/* Text-free loading indicator for the profile card stage: accent-gold dots,
+   opacity pulse only (house motion is fades, not bounces). Mounted after a
+   200ms show-delay, so fast opens never see it. */
 .profile-build-loading-dot {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
   border-radius: 9999px;
   background: var(--color-accent);
   box-shadow: 0 0 6px rgba(166, 150, 98, 0.35);
