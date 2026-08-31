@@ -67,7 +67,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
         atkIcon={weaponAtkIcon}
         mainStatIcon={weaponMainIcon}
       >
-        <div className={`relative flex h-30 w-30 items-center justify-center overflow-hidden rounded-xl border shadow-[0_8px_18px_rgba(0,0,0,0.35)] transition-all duration-200 ${rarityStyle?.border ?? 'border-white/28'} ${rarityStyle?.bg ?? 'bg-black/20'}`}>
+        <div className={`relative flex h-30 w-30 items-center justify-center overflow-hidden rounded-xl border shadow-[0_8px_18px_rgba(0,0,0,0.35)] transition-[background-color,border-color,box-shadow,filter,opacity,transform] duration-200 ${rarityStyle?.border ?? 'border-white/28'} ${rarityStyle?.bg ?? 'bg-black/20'}`}>
           <img
             src={weapon.iconUrl}
             alt={translatedWeaponName || weapon.name}
@@ -79,12 +79,12 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
         </div>
       </WeaponHoverCard>
       <div className="flex min-w-0 flex-col justify-center gap-1.5">
-        <span className={`truncate text-2xl font-semibold leading-tight text-white/95 transition-all duration-200 ${nameInteractionClass}`}>
+        <span className={`truncate text-2xl font-semibold leading-tight text-white/95 transition-[color,filter,opacity,transform] duration-200 ${nameInteractionClass}`}>
           {translatedWeaponName || weapon.name}
         </span>
         <div className="flex items-center gap-2.5">
           <div
-            className={`flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-0.5 transition-all duration-200 ${getChipClass(weaponAtkHoverKey)}`}
+            className={`flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-0.5 transition-[background-color,box-shadow,filter,opacity,transform] duration-200 ${getChipClass(weaponAtkHoverKey)}`}
             onMouseEnter={weaponAtkHoverKey ? () => onHoverStatChange?.(weaponAtkHoverKey) : undefined}
             onMouseLeave={weaponAtkHoverKey ? () => onHoverStatChange?.(null) : undefined}
           >
@@ -92,7 +92,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
             <span className="text-lg font-semibold text-white/88">{weaponStats.scaledAtk}</span>
           </div>
           <div
-            className={`flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-0.5 transition-all duration-200 ${getChipClass(weaponMainHoverKey)}`}
+            className={`flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-0.5 transition-[background-color,box-shadow,filter,opacity,transform] duration-200 ${getChipClass(weaponMainHoverKey)}`}
             onMouseEnter={weaponMainHoverKey ? () => onHoverStatChange?.(weaponMainHoverKey) : undefined}
             onMouseLeave={weaponMainHoverKey ? () => onHoverStatChange?.(null) : undefined}
           >

@@ -57,7 +57,7 @@ export const CardActionBar: React.FC<CardActionBarProps> = ({
         <button
           onClick={onDownload}
           disabled={isDownloading}
-          className="flex items-center gap-2 rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-background transition-all duration-300 hover:brightness-110 disabled:cursor-wait disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-background transition-[filter,opacity,transform] duration-200 hover:brightness-110 disabled:cursor-wait disabled:opacity-50"
         >
           <Download size={14} />
           {isDownloading ? (

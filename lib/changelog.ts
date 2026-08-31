@@ -27,6 +27,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Echo section in profile looks cleaner',
+            },
+            {
+                kind: 'fixed',
+                text: 'Profile build cards now open smoothly without flashing',
             }
         ],
     },

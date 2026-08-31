@@ -58,12 +58,12 @@ const NodeBadge: React.FC<NodeBadgeProps> = ({
   if (isCircuit) {
     return (
       <div
-        className={`relative flex h-7 w-7 shrink-0 items-center justify-center transition-all duration-200 ${interactionClass} ${primaryHoverKey ? 'cursor-pointer' : ''}`}
+        className={`relative flex h-7 w-7 shrink-0 items-center justify-center transition-[filter,opacity,transform] duration-200 ${interactionClass} ${primaryHoverKey ? 'cursor-pointer' : ''}`}
         onMouseEnter={primaryHoverKey ? () => onHoverStatChange?.(primaryHoverKey) : undefined}
         onMouseLeave={primaryHoverKey ? () => onHoverStatChange?.(null) : undefined}
       >
         <div
-          className={`flex h-6 w-6 rotate-45 items-center justify-center rounded border transition-all duration-200 ${
+          className={`flex h-6 w-6 rotate-45 items-center justify-center rounded border transition-[background-color,border-color,box-shadow,filter,opacity,transform] duration-200 ${
             active
               ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]'
               : 'border-white/30 bg-background-secondary'
@@ -81,7 +81,7 @@ const NodeBadge: React.FC<NodeBadgeProps> = ({
 
   return (
     <div
-      className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-background-secondary transition-all duration-200 ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'} ${interactionClass} ${primaryHoverKey ? 'cursor-pointer' : ''}`}
+      className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-background-secondary transition-[background-color,border-color,box-shadow,filter,opacity,transform] duration-200 ${active ? 'border-black/60 bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]' : 'border-white/30'} ${interactionClass} ${primaryHoverKey ? 'cursor-pointer' : ''}`}
       onMouseEnter={primaryHoverKey ? () => onHoverStatChange?.(primaryHoverKey) : undefined}
       onMouseLeave={primaryHoverKey ? () => onHoverStatChange?.(null) : undefined}
     >
@@ -276,8 +276,8 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
           />
         );
         const skillButton = (
-          <div className={`flex flex-col items-center rounded transition-all duration-200 ${bottomInteractionClass}`}>
-            <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-all duration-200">
+          <div className={`flex flex-col items-center rounded transition-[filter,opacity,transform] duration-200 ${bottomInteractionClass}`}>
+            <div className="flex h-8 w-8 rotate-45 items-center justify-center rounded border border-black/60 bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-[background-color,border-color,box-shadow,filter,opacity,transform] duration-200">
               {skillIcon && (
                 <img src={skillIcon} alt={branch.skillName} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
               )}
@@ -286,7 +286,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
                 inline tags and skips its min-width fallback for flex children,
                 so a span here exports as a pill collapsed to the digits. */}
             <div
-              className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none whitespace-nowrap tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 transition-all duration-200 ${
+              className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none whitespace-nowrap tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 transition-[background-color,border-color,box-shadow,color,filter,opacity,transform] duration-200 ${
                 isMaxLevel
                   ? 'border-amber-300/55 bg-amber-300/92 text-[#4a3400]'
                   : 'border-black/35 bg-black/55 text-white/92'

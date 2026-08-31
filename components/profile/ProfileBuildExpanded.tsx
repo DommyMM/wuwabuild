@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import React, { useCallback, useState } from 'react';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { Character } from '@/lib/character';
 import { Echo } from '@/lib/echo';
@@ -24,7 +23,22 @@ interface ProfileBuildExpandedProps {
   getEcho: (id: string | null) => Echo | null;
   translateText: (i18n: Record<string, string> | undefined, fallback: string) => string;
   onRetryDetail: (buildId: string) => void;
+  isLayoutSettled: boolean;
 }
+
+const ProfileBuildLoading: React.FC = () => (
+  <div
+    className="flex min-h-24 items-center justify-center gap-2.5 font-ropa text-2xs uppercase tracking-[0.18em] text-text-primary/50"
+    role="status"
+  >
+    <span>Loading build</span>
+    <span className="flex items-center gap-1" aria-hidden="true">
+      <span className="profile-build-loading-dot" />
+      <span className="profile-build-loading-dot [animation-delay:120ms]" />
+      <span className="profile-build-loading-dot [animation-delay:240ms]" />
+    </span>
+  </div>
+);
 
 export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
   entry,
@@ -36,53 +50,57 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
   characterName,
   regionBadge,
   onRetryDetail,
+  isLayoutSettled,
 }) => {
   // Mirrors the card's board picker for ranked cards. When "Original forte" is
   // selected, ProfileCard still reports an equipped/best fallback board so the
   // bench remains usable while the card itself shows the original forte grid.
   const [activeBoard, setActiveBoard] = useState<RankBoard | null>(null);
-  const prefersReducedMotion = useReducedMotion();
+  const [isCardVisualReady, setIsCardVisualReady] = useState(false);
+  const handleVisualReady = useCallback(() => setIsCardVisualReady(true), []);
+
+  if (!isExpanded) return null;
+
+  const canMountCard = isLayoutSettled && !isDetailLoading && !detailError && Boolean(detail);
+  const showLoading = !isLayoutSettled || isDetailLoading || (canMountCard && !isCardVisualReady);
 
   return (
-    <AnimatePresence initial={false}>
-      {isExpanded && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          // Matches the leaderboard expansion: ease-out on enter, and only an
-          // opacity crossfade under reduced motion. `overflow-clip`, not
-          // `hidden`: clip does not create a scroll box, so the sticky pin
-          // below tracks the table's own horizontal scroller.
-          transition={prefersReducedMotion
-            ? { duration: 0.12, ease: 'linear' }
-            : { duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-          className="overflow-clip border-t border-border/50 bg-black/15 tracking-wide"
-        >
-          {/* w-full like any row (so a fitting table stays exactly min-w-full;
-              a definite width here would re-add the shell's 2px borders to the
-              w-max wrapper and force 2px of scroll), capped at the measured
-              scrollport (--scrollport, useScrollportVar) and pinned sticky so
-              the card stays visible when the rows genuinely overflow. */}
-          <div className="sticky left-0 w-full max-w-(--scrollport,none)">
-          <div className="mx-auto w-full max-w-368 space-y-4 px-4 pt-5 pb-3">
-            {isDetailLoading && (
-              <div className="flex items-center justify-center gap-3 py-8 text-sm text-text-primary/55">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/40 border-t-accent" />
-                Loading build details...
-              </div>
-            )}
+    <div
+      className="profile-build-expanded-shell overflow-clip border-t border-border/50 bg-black/15 tracking-wide"
+      aria-busy={showLoading}
+    >
+      {/* w-full like any row (so a fitting table stays exactly min-w-full;
+          a definite width here would re-add the shell's 2px borders to the
+          w-max wrapper and force 2px of scroll), capped at the measured
+          scrollport (--scrollport, useScrollportVar) and pinned sticky so
+          the card stays visible when the rows genuinely overflow. */}
+      <div className="sticky left-0 w-full max-w-(--scrollport,none)">
+        <div className="relative mx-auto w-full max-w-368 px-4 pt-5 pb-3">
+          {showLoading && (
+            <div className={canMountCard ? 'absolute inset-x-4 top-5 z-20' : ''}>
+              <ProfileBuildLoading />
+            </div>
+          )}
 
-            {!isDetailLoading && detailError && (
-              <ErrorBanner onRetry={() => onRetryDetail(entry.id)}>{detailError}</ErrorBanner>
-            )}
+          {isLayoutSettled && !isDetailLoading && detailError && (
+            <ErrorBanner onRetry={() => onRetryDetail(entry.id)}>{detailError}</ErrorBanner>
+          )}
 
-            {!isDetailLoading && !detailError && detail && (
-              <>
-                {/* ── ProfileCard the hero visual (includes substat row + action bar) ── */}
-                <ProfileCard entry={entry} detail={detail} onActiveBoardChange={setActiveBoard} />
+          {canMountCard && detail && (
+            <div
+              className="profile-build-card-stage space-y-4"
+              data-ready={isCardVisualReady}
+            >
+              {/* ProfileCard is mounted only after width settles. Its first
+                  visible frame already has the splash palette. */}
+              <ProfileCard
+                entry={entry}
+                detail={detail}
+                onActiveBoardChange={setActiveBoard}
+                onVisualReady={handleVisualReady}
+              />
 
-                {/* ── Full breakdown bench (same as the boards), scoped to the picked board ── */}
+              {isCardVisualReady && (
                 <BuildSimulationSection
                   buildId={detail.id}
                   buildDetail={detail}
@@ -96,12 +114,11 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
                   baseDamage={activeBoard?.damage}
                   globalRank={activeBoard?.rank}
                 />
-              </>
-            )}
-          </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };

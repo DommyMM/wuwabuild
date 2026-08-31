@@ -96,7 +96,7 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
     return (
       <div
         key={key}
-        className={`flex items-center justify-between rounded-md font-medium transition-all duration-200 ${isDense ? 'min-h-0 flex-1 gap-1.5' : `gap-2 ${isFlatStat ? 'h-9' : 'h-8.5'}`} ${interactionClass}`}
+        className={`flex items-center justify-between rounded-md font-medium transition-[background-color,box-shadow,filter,opacity,transform] duration-200 ${isDense ? 'min-h-0 flex-1 gap-1.5' : `gap-2 ${isFlatStat ? 'h-9' : 'h-8.5'}`} ${interactionClass}`}
         style={isDense ? { flexGrow: 1, flexShrink: 1, flexBasis: isFlatStat ? `${DENSE_FLAT_ROW_EXTRA_PX}px` : '0px' } : undefined}
         onMouseEnter={hoverKey ? () => onHoverStatChange?.(hoverKey) : undefined}
         onMouseLeave={hoverKey ? () => onHoverStatChange?.(null) : undefined}

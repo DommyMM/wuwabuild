@@ -38,7 +38,7 @@ export const ECHO_IMAGE_FADE_STYLE: React.CSSProperties = {
 };
 
 const PANEL_CLASS =
-  'panel-glass relative min-w-0 flex-1 overflow-hidden transition-all duration-200';
+  'panel-glass relative min-w-0 flex-1 overflow-hidden transition-[background-color,box-shadow,filter,opacity,transform] duration-200';
 
 export const EchoSection: React.FC<EchoSectionProps> = ({
   echoPanels,
@@ -227,7 +227,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                     }
                   >
                     <div
-                      className={`flex max-w-full items-center gap-1 rounded-md border border-white/10 px-1.5 py-1 leading-none transition-all duration-200 ${mainPlateClassName}`}
+                      className={`flex max-w-full items-center gap-1 rounded-md border border-white/10 px-1.5 py-1 leading-none transition-[background-color,border-color,box-shadow,filter,opacity,transform] duration-200 ${mainPlateClassName}`}
                       style={mainVisuals.style}
                       onMouseEnter={() => onHoverStatChange?.(mainHoverKey)}
                       onMouseLeave={() => onHoverStatChange?.(null)}

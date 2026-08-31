@@ -70,7 +70,7 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
 
         const trigger = (
           <div
-            className={`relative flex items-center justify-center rounded-full border transition-all duration-300 ${
+            className={`relative flex items-center justify-center rounded-full border transition-[background-color,border-color,box-shadow,filter,opacity,transform] duration-300 ${
               overlay ? 'h-10 w-10' : 'h-11.5 w-11.5'
             } ${stateClass} ${isHoverMatch ? 'card-seq-source' : ''}`}
             style={{
@@ -89,7 +89,7 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
               <img
                 src={chain.icon}
                 alt={`Sequence ${i + 1}`}
-                className="h-2/3 w-2/3 object-contain transition-all duration-300"
+                className="h-2/3 w-2/3 object-contain transition-[filter,opacity,transform] duration-300"
               />
             )}
           </div>

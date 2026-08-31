@@ -51,11 +51,13 @@ Highlight language: chips/rows/nodes use the white ring + dim treatment; passive
 
 ## Art panel
 
-The panel art defaults to the character's **splash** (the full illustration, like the reference bot cards), resolved client-side by `resolveSplashCardArt` in [lib/splashArt.ts](../lib/splashArt.ts): walks local `/images/splash/` URL candidates, applies the per-character `SPLASH_ART_TRANSFORMS` framing offset (or an auto-scale for short images), and falls back to the banner cutout when no splash file exists. **Both the editor and profile cards share this resolver and behavior**; the editor additionally lets the user toggle splash off (`splashDisabledIds`), switch normal/skin variants for characters with skins, upload custom art, and drag/zoom it (`CardArtTransform`, persisted per character while editing). On the profile card, removing the art opts that character out for the session and the banner sticks.
+The panel art defaults to the character's **splash** (the full illustration, like the reference bot cards). `getBundledSplashCardArt` in [lib/splashArt.ts](../lib/splashArt.ts) synchronously maps known bundled files in `/images/splash/` to their per-character `SPLASH_ART_TRANSFORMS` framing offset. The browser does not probe image candidates before choosing the art, so a profile card's first render already points at its splash instead of painting the banner and replacing it. Characters without a bundled splash fall back to the banner cutout. **Both the editor and profile cards share the bundled descriptor**; the editor additionally lets the user toggle splash off (`splashDisabledIds`), switch normal/skin variants for characters with skins, upload custom art, and drag/zoom it (`CardArtTransform`, persisted per character while editing).
 
 Normal splash files use the character id stem as WebP, e.g. `1107.webp`. Skin splash files use the same stem with `-skin`, e.g. `1107-skin.webp`. Rover uses the shared `Rover.webp` and optional `Rover-skin.webp`. If a skin splash is missing, the resolver falls back to the normal splash before falling back to the banner cutout.
 
 Rover splash candidates try legacy-id and gendered filenames first; see `getSplashUrlCandidates`.
+
+Profile expansion is deliberately staged. The page widens over 150ms while only a lightweight loading indicator is mounted. Once that layout is stable and build details are available, `ProfileCard` mounts at its final width but remains invisible until `useAdaptiveCardColors` has sampled the initial art. The prepared card then reveals downward using only `clip-path`, opacity, and transform over 220ms. Do not reintroduce a simultaneous `height: 0` to `height: auto` animation around the 1440px card: it makes `CardScaler`, the table scrollport observer, and the expansion animation chase one another's layout measurements.
 
 ## Rank module (profile cards)
 

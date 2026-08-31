@@ -9,6 +9,22 @@ interface SplashUrlCandidateOptions {
 const SKIN_SPLASH_SUFFIX = '-skin';
 const SPLASH_EXTENSION = 'webp';
 
+// Bundled splash art is part of the deployed application, so its identity is
+// build-time data rather than something the browser needs to discover by
+// loading candidate URLs. Keep this list in sync with public/images/splash.
+const BUNDLED_SPLASH_STEMS = new Set([
+  '1102-skin', '1105', '1107', '1107-skin', '1108', '1109', '1110',
+  '1203', '1205', '1205-skin', '1206', '1207', '1208', '1209',
+  '1209-skin', '1210', '1211', '1212', '1302', '1304', '1304-skin',
+  '1305', '1306', '1308', '1404', '1407', '1409', '1410', '1411',
+  '1412', '1413', '1503', '1504', '1505', '1506', '1507',
+  '1507-skin', '1508', '1508-skin', '1509', '1509-skin', '1510',
+  '1511', '1603', '1606', '1607', '1608', '1610', 'Rover',
+]);
+const BUNDLED_ROVER_CHARACTER_IDS = new Set([
+  '1309', '1310', '1406', '1408', '1501', '1502', '1604', '1605',
+]);
+
 const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1102-skin': { x: 36, y: 0, scale: 1 },
   '1105': { x: -40, y: 0, scale: 1.1 },
@@ -96,6 +112,38 @@ const getSplashArtTransform = (
   SPLASH_ART_TRANSFORMS[getSplashArtTransformKey(characterId, variant)] ?? null
 );
 
+export interface BundledSplashCardArt {
+  url: string;
+  transform: CardArtTransform;
+}
+
+/**
+ * Synchronous descriptor for splash art shipped in public/images/splash.
+ * Profile cards use this during their first render, avoiding the banner-first
+ * paint and the duplicate Image probe performed by the legacy async resolver.
+ */
+export const getBundledSplashCardArt = (
+  characterId: string,
+  legacyId: string | null,
+  isRover: boolean,
+  options: SplashUrlCandidateOptions = {},
+): BundledSplashCardArt | null => {
+  const usesSharedRoverSplash = isRover || BUNDLED_ROVER_CHARACTER_IDS.has(characterId);
+  const candidate = getSplashUrlCandidates(characterId, legacyId, usesSharedRoverSplash, options)
+    .find((url) => {
+      const filename = url.split('/').pop();
+      const stem = filename?.replace(`.${SPLASH_EXTENSION}`, '') ?? '';
+      return BUNDLED_SPLASH_STEMS.has(stem);
+    });
+  if (!candidate) return null;
+
+  return {
+    url: candidate,
+    transform: getSplashArtTransform(characterId, options.variant ?? 'normal')
+      ?? { x: 0, y: 0, scale: 1 },
+  };
+};
+
 const formatSplashArtTransformEntry = (
   characterId: string,
   variant: SplashArtVariant,
@@ -136,49 +184,15 @@ export const getHeroSplashOffset = (
   };
 };
 
-const MIN_SPLASH_IMAGE_HEIGHT = 600;
-const MIN_SPLASH_ZOOM = 1;
-const MAX_SPLASH_ZOOM = 4;
-
-const getImageNaturalHeightFromUrl = async (url: string): Promise<number> => (
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img.naturalHeight || img.height || 0);
-    img.onerror = () => reject(new Error('Failed to load image metadata.'));
-    img.src = url;
-  })
-);
-
 /**
- * Browser-side splash resolution for the build card: walks the URL candidates,
- * returns the first that loads plus its card transform (configured per
- * character, or auto-scaled for short source images). Null when the character
- * has no local splash. Shared by the editor and profile cards so both render
- * the same art.
+ * Compatibility wrapper for editor call sites that already await resolution.
+ * Bundled asset identity is synchronous; no browser Image probe is needed.
  */
 export const resolveSplashCardArt = async (
   characterId: string,
   legacyId: string | null,
   isRover: boolean,
   options: SplashUrlCandidateOptions = {},
-): Promise<{ url: string; transform: CardArtTransform } | null> => {
-  for (const candidate of getSplashUrlCandidates(characterId, legacyId, isRover, options)) {
-    try {
-      const naturalHeight = await getImageNaturalHeightFromUrl(candidate);
-      let autoScale = MIN_SPLASH_ZOOM;
-      if (naturalHeight > 0 && naturalHeight < MIN_SPLASH_IMAGE_HEIGHT) {
-        autoScale = Math.min(
-          MAX_SPLASH_ZOOM,
-          Number((MIN_SPLASH_IMAGE_HEIGHT / naturalHeight).toFixed(2)),
-        );
-      }
-      return {
-        url: candidate,
-        transform: getSplashArtTransform(characterId, options.variant ?? 'normal') ?? { x: 0, y: 0, scale: autoScale },
-      };
-    } catch {
-      // Try next fallback candidate.
-    }
-  }
-  return null;
-};
+): Promise<BundledSplashCardArt | null> => (
+  getBundledSplashCardArt(characterId, legacyId, isRover, options)
+);

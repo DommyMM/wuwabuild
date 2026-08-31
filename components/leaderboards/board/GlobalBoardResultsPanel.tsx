@@ -47,6 +47,7 @@ interface GlobalBoardResultsPanelProps {
   tableGrid?: string;
   showOwner?: boolean;
   showTableGate?: boolean;
+  hideHorizontalScrollbar?: boolean;
 }
 
 interface BuildTableGateOverlayProps {
@@ -131,6 +132,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   tableGrid = TABLE_GRID,
   showOwner = true,
   showTableGate = true,
+  hideHorizontalScrollbar = false,
 }) => {
   const { characters, fetters, statIcons, weaponList } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
@@ -216,7 +218,10 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
         {/* Publishes --scrollport: expansion rows pin themselves to this
             scrollport's width, so an expanded card can never widen the w-max
             wrapper or get clipped by horizontal scroll. */}
-        <div ref={scrollportRef} className="overflow-x-auto overflow-y-hidden pb-1">
+        <div
+          ref={scrollportRef}
+          className={`overflow-x-auto overflow-y-hidden pb-1 ${hideHorizontalScrollbar ? 'scrollbar-none' : ''}`}
+        >
           <div className="w-max min-w-full">
             <div className="overflow-visible rounded-lg border border-border bg-background/70">
               {/* Table header */}

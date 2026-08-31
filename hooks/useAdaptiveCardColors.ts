@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CardArtTransform } from '@/lib/cardArt';
 
 type Rgb = { r: number; g: number; b: number };
@@ -14,6 +14,10 @@ export interface AdaptiveCardColors {
   top: string;
   middle: string;
   bottom: string;
+}
+
+export interface AdaptiveCardColorResult extends AdaptiveCardColors {
+  isReady: boolean;
 }
 
 const PANEL_WIDTH = 432;
@@ -260,31 +264,41 @@ export const useAdaptiveCardColors = (
   artUrl: string | null,
   transform: CardArtTransform,
   fallbackHex: string,
-): AdaptiveCardColors => {
+): AdaptiveCardColorResult => {
   const fallbackColors = useMemo(() => toColorSet(fallbackHex), [fallbackHex]);
   const { x, y, scale } = transform;
   const sampleKey = `${artUrl ?? 'none'}:${fallbackHex}:${x}:${y}:${scale}`;
   const [sampled, setSampled] = useState<{ key: string; colors: AdaptiveCardColors } | null>(null);
+  const [failedSampleKey, setFailedSampleKey] = useState<string | null>(null);
+  const hasCompletedInitialSampleRef = useRef(false);
 
   useEffect(() => {
     if (!artUrl) return;
 
     let cancelled = false;
-    // Art transforms can update every pointer-move while dragging. Wait for a
-    // short idle window so color sampling does not reload and scan the image on
-    // every frame, then reuse settled transforms across remounts.
+    // Sample initial art immediately. Only debounce subsequent transform
+    // changes, which can update every pointer-move while dragging.
+    const delay = hasCompletedInitialSampleRef.current ? SAMPLE_DEBOUNCE_MS : 0;
     const timeoutId = window.setTimeout(() => {
       void sampleImageCached(
         sampleKey,
         () => sampleImage(artUrl, { x, y, scale }, fallbackHex),
       )
         .then((next) => {
-          if (!cancelled) setSampled({ key: sampleKey, colors: next });
+          if (!cancelled) {
+            hasCompletedInitialSampleRef.current = true;
+            setFailedSampleKey(null);
+            setSampled({ key: sampleKey, colors: next });
+          }
         })
         .catch(() => {
-          if (!cancelled) setSampled(null);
+          if (!cancelled) {
+            hasCompletedInitialSampleRef.current = true;
+            setFailedSampleKey(sampleKey);
+            setSampled(null);
+          }
         });
-    }, SAMPLE_DEBOUNCE_MS);
+    }, delay);
 
     return () => {
       cancelled = true;
@@ -292,5 +306,9 @@ export const useAdaptiveCardColors = (
     };
   }, [artUrl, fallbackHex, sampleKey, scale, x, y]);
 
-  return sampled?.key === sampleKey ? sampled.colors : fallbackColors;
+  const isReady = !artUrl || sampled?.key === sampleKey || failedSampleKey === sampleKey;
+  return useMemo(() => ({
+    ...(isReady && sampled ? sampled.colors : fallbackColors),
+    isReady,
+  }), [fallbackColors, isReady, sampled]);
 };

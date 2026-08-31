@@ -30,6 +30,7 @@ import { ProfileEchoes } from './ProfileEchoes';
 const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_72px_80px_112px_minmax(0,1fr)]';
 const PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS = 'max-w-360';
 const PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS = 'max-w-[1620px]';
+const PROFILE_EXPANSION_WIDTH_MS = 150;
 
 interface ProfilePageClientProps {
   uid: string;
@@ -80,6 +81,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const [requestRevision, setRequestRevision] = useState(0);
   const { expandedIds: expandedBuildIds, toggleExpandedId, hasExpandedRows } = useExpandedRows();
+  const [isExpandedLayoutSettled, setIsExpandedLayoutSettled] = useState(false);
   const {
     detailById,
     detailLoadingById,
@@ -255,8 +257,11 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const handleToggleExpand = useCallback((buildId: string) => {
     const id = buildId.trim();
     if (!id) return;
+    if (expandedBuildIds.size === 0 && !expandedBuildIds.has(id)) {
+      setIsExpandedLayoutSettled(false);
+    }
     toggleExpandedId(id, loadBuildDetail);
-  }, [loadBuildDetail, toggleExpandedId]);
+  }, [expandedBuildIds, loadBuildDetail, toggleExpandedId]);
 
   const handleRetryDetail = useCallback((buildId: string) => {
     retryBuildDetail(buildId);
@@ -339,6 +344,15 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
   const hasExpandedBuild = hasExpandedRows;
+  useEffect(() => {
+    if (!hasExpandedBuild) return;
+
+    const timeoutId = window.setTimeout(
+      () => setIsExpandedLayoutSettled(true),
+      PROFILE_EXPANSION_WIDTH_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [hasExpandedBuild]);
   const realBuildCount = ghostBuildId
     ? builds.filter((build) => build.id !== ghostBuildId).length
     : builds.length;
@@ -377,7 +391,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   // Custom renderExpanded for profile, renders ProfileCard inside
   const renderExpanded = useCallback((props: GlobalBoardRowExpandedProps) => (
     <ProfileBuildExpanded
-      key={props.entry.id}
+      key={`${props.entry.id}:${props.isExpanded ? 'open' : 'closed'}`}
       entry={props.entry}
       detail={props.detail}
       isExpanded={props.isExpanded}
@@ -390,13 +404,14 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       getEcho={props.getEcho}
       translateText={props.translateText}
       onRetryDetail={props.onRetryDetail}
+      isLayoutSettled={isExpandedLayoutSettled}
     />
-  ), []);
+  ), [isExpandedLayoutSettled]);
 
   return (
     <main className="bg-background">
       <div
-        className={`mx-auto w-full p-3 px-0 transition-[max-width] duration-300 ease-out md:p-5 ${
+        className={`mx-auto w-full p-3 px-0 transition-[max-width] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] md:p-5 ${
           hasExpandedBuild ? PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS : PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS
         }`}
       >
@@ -584,6 +599,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                     tableGrid={PROFILE_TABLE_GRID}
                     showOwner={false}
                     showTableGate={false}
+                    hideHorizontalScrollbar={!isExpandedLayoutSettled && hasExpandedBuild}
                   />
                 </div>
               </div>

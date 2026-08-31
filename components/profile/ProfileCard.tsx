@@ -11,7 +11,7 @@ import { CardArtSourceMode, CardArtTransform, DEFAULT_CARD_ART_TRANSFORM, MAX_AR
 import { isRover } from '@/lib/character';
 import { getBuildStandings, LBBuildDetailEntry, LBBuildRowEntry, LBStandingEntry } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
-import { resolveSplashCardArt } from '@/lib/splashArt';
+import { getBundledSplashCardArt } from '@/lib/splashArt';
 import { SavedState } from '@/lib/build';
 import { parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { formatDateLabel } from '@/components/leaderboards/formatters';
@@ -34,6 +34,8 @@ interface ProfileCardProps {
   detail: LBBuildDetailEntry;
   /** Reports the board the expanded bench should analyze. May differ when ranking is hidden. */
   onActiveBoardChange?: (board: RankBoard | null) => void;
+  /** Fires after the initial art palette is ready for a flash-free reveal. */
+  onVisualReady?: () => void;
 }
 
 interface StandingsResult {
@@ -89,7 +91,7 @@ const readFileAsDataUrl = (file: File): Promise<string> => (
   })
 );
 
-export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiveBoardChange }) => {
+export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiveBoardChange, onVisualReady }) => {
   const { error: toastError } = useToast();
   const { getWeapon, getCharacter } = useGameData();
   const { t } = useLanguage();
@@ -103,10 +105,28 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
     },
   }), [detail.buildState, entry.owner.uid, entry.owner.username]);
 
+  const characterId = entry.character.id;
+  const characterRef = getCharacter(characterId);
+  const initialSplash = useMemo(() => (
+    characterRef
+      ? getBundledSplashCardArt(
+          String(characterRef.id),
+          characterRef.legacyId ?? null,
+          isRover(characterRef),
+        )
+      : null
+  ), [characterRef]);
+
   const cardRef = useRef<HTMLDivElement>(null);
-  const [artTransform, setArtTransform] = useState<CardArtTransform>(DEFAULT_CARD_ART_TRANSFORM);
-  const [artSourceMode, setArtSourceMode] = useState<CardArtSourceMode>('default');
-  const [customArtUrl, setCustomArtUrl] = useState<string | null>(null);
+  const [artTransform, setArtTransform] = useState<CardArtTransform>(
+    () => initialSplash?.transform ?? DEFAULT_CARD_ART_TRANSFORM,
+  );
+  const [artSourceMode, setArtSourceMode] = useState<CardArtSourceMode>(
+    () => initialSplash ? 'splash' : 'default',
+  );
+  const [customArtUrl, setCustomArtUrl] = useState<string | null>(
+    () => initialSplash?.url ?? null,
+  );
   const [isArtEditMode, setIsArtEditMode] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedStandingKey, setSelectedStandingKey] = useState<string | null>(null);
@@ -128,14 +148,12 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
   const [standingsResult, setStandingsResult] = useState<StandingsResult>({ key: '', standings: [] });
   const abortRef = useRef<AbortController | null>(null);
 
-  const characterId = entry.character.id;
   const standingsRequestKey = characterId && entry.id ? `${characterId}:${entry.id}` : '';
   const standings = useMemo(
     () => standingsResult.key === standingsRequestKey ? standingsResult.standings : [],
     [standingsRequestKey, standingsResult.key, standingsResult.standings],
   );
   const standingsLoading = Boolean(standingsRequestKey && standingsResult.key !== standingsRequestKey);
-  const characterRef = getCharacter(characterId);
   const automaticSubstatSelection = useMemo(
     () => getAvailablePreferredSubstats(
       initialState.echoPanels,
@@ -179,31 +197,6 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
 
     return () => controller.abort();
   }, [characterId, entry.id, standingsRequestKey]);
-
-  // Default the panel art to the character's splash, matching the editor card.
-  // Removing the art opts this card out so the banner fallback sticks.
-  const splashOptOutRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!characterRef || !characterId) return;
-    if (splashOptOutRef.current.has(characterId)) return;
-    if (artSourceMode !== 'default' || customArtUrl) return;
-
-    let cancelled = false;
-    resolveSplashCardArt(
-      String(characterRef.id),
-      characterRef.legacyId ?? null,
-      isRover(characterRef),
-    ).then((splash) => {
-      if (cancelled || !splash) return;
-      setCustomArtUrl(splash.url);
-      setArtSourceMode('splash');
-      setArtTransform(splash.transform);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [artSourceMode, characterId, characterRef, customArtUrl]);
 
   const availableBoards = useMemo<RankBoard[]>(() => {
     return standings
@@ -272,11 +265,10 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
     });
   }, []);
   const handleRemoveCustomArt = useCallback(() => {
-    if (characterId) splashOptOutRef.current.add(characterId);
     setCustomArtUrl(null);
     setArtSourceMode('default');
     setArtTransform(DEFAULT_CARD_ART_TRANSFORM);
-  }, [characterId]);
+  }, []);
 
   const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
@@ -352,6 +344,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
         isArtEditMode={isArtEditMode}
         onCustomArtUpload={handleCustomArtUpload}
         onArtTransformChange={setArtTransform}
+        onVisualReady={onVisualReady}
         selectedSubstats={selectedSubstats}
         forteSection={showProfileRankSection ? (
           <ProfileRankSection

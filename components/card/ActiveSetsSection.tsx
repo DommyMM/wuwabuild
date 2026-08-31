@@ -116,7 +116,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
           : 'gap-2 rounded-xl px-2 py-1';
         const trigger = (
           <div
-            className={`flex min-h-8 w-full min-w-0 items-center bg-black/35 transition-all duration-200 ${triggerLayoutClass} ${interactionClass}`}
+            className={`flex min-h-8 w-full min-w-0 items-center bg-black/35 transition-[background-color,box-shadow,filter,opacity,transform] duration-200 ${triggerLayoutClass} ${interactionClass}`}
             title={fullDisplayName}
             onMouseEnter={setHoverKeys.length > 0 ? () => onHoverStatChange?.(setHoverKeys[0]) : undefined}
             onMouseLeave={setHoverKeys.length > 0 ? () => onHoverStatChange?.(null) : undefined}

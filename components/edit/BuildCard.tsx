@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useSelectedCharacter } from '@/hooks/useSelectedCharacter';
 import { useBuild } from '@/contexts/BuildContext';
@@ -31,6 +31,7 @@ interface BuildCardProps {
   isArtEditMode: boolean;
   onCustomArtUpload: (file: File) => void;
   onArtTransformChange: (next: CardArtTransform) => void;
+  onVisualReady?: () => void;
   selectedSubstats?: ReadonlySet<string>;
   /**
    * Replaces the default <ForteCardSection> slot. Profile cards pass
@@ -63,6 +64,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   isArtEditMode,
   onCustomArtUpload,
   onArtTransformChange,
+  onVisualReady,
   selectedSubstats,
   forteSection,
 }, ref) => {
@@ -85,6 +87,9 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
   const baseArtUrl = selected ? (useAltSkin && altBanner ? altBanner : selected.banner) : null;
   const adaptiveArtUrl = artSourceMode !== 'default' && customArtUrl ? customArtUrl : baseArtUrl;
   const adaptiveColors = useAdaptiveCardColors(adaptiveArtUrl, artTransform, elementColor);
+  useEffect(() => {
+    if (adaptiveColors.isReady) onVisualReady?.();
+  }, [adaptiveColors.isReady, onVisualReady]);
   const elementCardStyle = useMemo<ElementCardStyle>(() => ({
     '--card-element': adaptiveColors.primary,
     '--card-element-soft': adaptiveColors.soft,
