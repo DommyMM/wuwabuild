@@ -131,16 +131,6 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedStandingKey, setSelectedStandingKey] = useState<string | null>(null);
   const [manualSubstatSelection, setManualSubstatSelection] = useState<Set<string> | null>(null);
-  const [isPhoneViewport, setIsPhoneViewport] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia('(max-width: 767px)');
-    const onChange = () => setIsPhoneViewport(media.matches);
-    onChange();
-
-    media.addEventListener('change', onChange);
-    return () => media.removeEventListener('change', onChange);
-  }, []);
 
   // Standings fetch lives at the orchestrator level (not inside BuildProvider)
   // because the AdjustRankingButton in the action bar also needs the full board
@@ -372,26 +362,19 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
                 width: the art (w-3/10), stats table (flex-1) and echo row shrink
                 while the w-120 column and every font/icon/padding stay fixed, so
                 a narrower host crushes the echo panels and wraps their CV badges.
-                Above md CardScaler pins 1440 and shrinks with a transform (never a
-                re-layout), matching BuildEditor. Below md the same design-space
-                layout goes in a horizontal scroller instead, since scaling 1440
-                down to phone width would be unreadable. Either way the exporter
-                captures a true design-space node. */}
-            {isPhoneViewport ? (
-              <div className="overflow-x-auto overflow-y-hidden pb-1">
-                <div ref={cardRef} className="flex w-360 min-w-360 flex-col gap-3">
-                  {cardContent}
-                </div>
-              </div>
-            ) : (
-              <CardScaler
-                ref={cardRef}
-                designWidth={BUILD_CARD_DESIGN_WIDTH}
-                contentClassName="flex flex-col gap-3"
-              >
-                {cardContent}
-              </CardScaler>
-            )}
+                CardScaler pins 1440 and shrinks with a transform (never a
+                re-layout), matching BuildEditor, and the exporter still captures
+                a true design-space node. This runs at every width: the host is
+                the build row, which is table-width on phones too, so a phone
+                gets the desktop layout and reaches it with the table's own
+                horizontal scroll rather than a second nested scroller. */}
+            <CardScaler
+              ref={cardRef}
+              designWidth={BUILD_CARD_DESIGN_WIDTH}
+              contentClassName="flex flex-col gap-3"
+            >
+              {cardContent}
+            </CardScaler>
 
             <CardActionBar
               className="flex flex-col"

@@ -163,7 +163,14 @@ function canonicalUpgradeSort(
 
 const SECTION_CONTROL_WIDTH = 'w-43';
 const SECTION_TOGGLE_CLASS = `mx-auto flex ${SECTION_CONTROL_WIDTH} items-center justify-center gap-2 rounded border border-border bg-background-secondary px-4 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color] duration-150 hover:border-accent/60 hover:text-text-primary cursor-pointer`;
-const ACTION_BUTTON_CLASS = 'flex w-full items-center justify-center rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color] duration-150 hover:border-accent/60 hover:text-text-primary cursor-pointer';
+const ACTION_BUTTON_CLASS = `mx-auto flex ${SECTION_CONTROL_WIDTH} items-center justify-center rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color] duration-150 hover:border-accent/60 hover:text-text-primary cursor-pointer`;
+// The expanded row can be wider than the viewport (its design-space content is
+// reached by the table's horizontal scroll), so a control row centered in the
+// row would sit half a screen off. Sizing it to the scroller's visible width
+// (--scrollport, useScrollportVar) puts the button's own `mx-auto` centre on
+// screen at rest; scroll sideways and the controls scroll away with everything
+// else. Inert when the table fits, where the cap is wider than the row.
+const CONTROL_ROW_CLASS = 'w-full max-w-(--scrollport,none)';
 
 interface BuildSimulationSectionProps {
   buildId: string;
@@ -344,7 +351,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     // shares one measure; this component never sets its own max-width.
     <div className="relative w-full space-y-3 font-plus-jakarta">
       {onViewInEditor && (
-        <div className={`mx-auto ${SECTION_CONTROL_WIDTH}`}>
+        <div className={CONTROL_ROW_CLASS}>
           <button type="button" onClick={onViewInEditor} className={ACTION_BUTTON_CLASS}>
             View in Editor
           </button>
@@ -353,7 +360,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
 
       {hasBoardContext && (
         <>
-          <div>
+          <div className={CONTROL_ROW_CLASS}>
             <button
               type="button"
               aria-expanded={isMovesOpen}
@@ -377,7 +384,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
             />
           )}
 
-          <div>
+          <div className={CONTROL_ROW_CLASS}>
             <button
               type="button"
               aria-expanded={isUpgradesOpen}
@@ -416,7 +423,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
         </>
       )}
 
-      <div>
+      <div className={CONTROL_ROW_CLASS}>
         <button
           type="button"
           aria-expanded={isStandingsOpen}
@@ -448,7 +455,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
 
       {hasBoardContext && (
         <>
-          <div>
+          <div className={CONTROL_ROW_CLASS}>
             <button
               type="button"
               aria-expanded={isDistributionOpen}
@@ -471,7 +478,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
             />
           )}
 
-          <div>
+          <div className={CONTROL_ROW_CLASS}>
             <button
               type="button"
               aria-expanded={isOptimalityOpen}

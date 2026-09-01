@@ -166,7 +166,7 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
             : { duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
           className="overflow-clip border-t border-border/50 bg-black/15"
         >
-          <div className="sticky left-0 w-full max-w-(--scrollport,none)">
+          <div className="w-full max-w-(--scrollport,none)">
           <div className="px-4 py-5 md:px-6">
             <div className="mx-auto w-full max-w-330">
               <div className="flex flex-col gap-5 md:flex-row">

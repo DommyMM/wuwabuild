@@ -271,11 +271,14 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           // Hover cards portal out to the body, so nothing needs to escape.
           className="overflow-clip border-t border-border/50 bg-black/15 tracking-wide"
         >
-          {/* w-full like any row (a definite width would re-add the shell's 2px
-              borders to the w-max wrapper and force 2px of scroll), capped at
-              the measured scrollport (--scrollport, useScrollportVar) and pinned
-              sticky so the content stays visible when the rows overflow. */}
-          <div className="sticky left-0 w-full max-w-(--scrollport,none)">
+          {/* w-full like any row: a definite width would re-add the shell's 2px
+              borders to the w-max wrapper and force 2px of scroll. The
+              expansion is a fixed design-space layout (a 5-column echo grid),
+              so it is never capped to the visible scrollport at any width —
+              that crushes the panels into each other. It keeps the desktop
+              layout and is reached by the table's own horizontal scroll, and
+              only the controls in BuildSimulationSection follow the scroller. */}
+          <div className="w-full">
           <div className={`${LB_EXPANDED_SHELL} min-w-0 space-y-4 py-4`}>
             {isDetailLoading && <BuildExpandedSkeleton showForte={surface !== 'leaderboard_character'} />}
 

@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-09-01',
+        changes: [
+            
+            {
+                kind: 'fixed',
+                text: 'Build expansion echoes etc no longer broken on mobile',
+            },
+        ],
+    },
+    {
         date: '2026-08-31',
         changes: [
             {
@@ -27,7 +37,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'fixed',
-                text: 'Reference tiers relabeled: every tier is the best possible build at a given roll quality, so "Median" now reads "Median Rolls" (it is a top 1% build, not a median one) and "Minimum" reads "Minimum Rolls"',
+                text: 'Reference tiers relabeled to be more intuitive"',
             },
             {
                 kind: 'improved',
@@ -73,7 +83,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'improved',
-                text: 'Hiyuki, Aemeath, and Yangyang board ER adjusted to be quickswap ER reqs (lower, like Hiyuki 120->107ish)'
+                text: 'Hiyuki, Aemeath, and Yangyang board ER adjusted to be quickswap (lower) ER reqs'
             },
             {
                 kind: 'fixed',
@@ -421,7 +431,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'improved',
-                text: 'Move breakdowns now show score bonuses and the ER penalty in the Total Score summary and as a ring around the pie chart, instead of distorting the pie itself, so move percentages reflect actual damage dealt'
+                text: 'Move breakdowns now show score bonuses and penality and look better'
             },
             {
                 kind: 'improved',
@@ -997,7 +1007,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2026-05-02',
         changes: [
-            { kind: 'new', text: 'Hiyuki added to the editor and leaderboards' },
+            { kind: 'new', text: 'Hiyuki leaderboards' },
             { kind: 'improved', text: 'Scroll to zoom when hovering build card images' },
         ],
     },
@@ -1023,13 +1033,13 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2026-04-12',
         changes: [
-            { kind: 'new', text: 'Chisa added to the editor and leaderboards' },
+            { kind: 'new', text: 'Chisa leaderboards' },
         ],
     },
     {
         date: '2026-04-05',
         changes: [
-            { kind: 'new', text: 'Galbrena added to the editor and leaderboards' },
+            { kind: 'new', text: 'Galbrena leaderboards' },
         ],
     },
     {
@@ -1041,7 +1051,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2026-04-03',
         changes: [
-            { kind: 'improved', text: 'More reliable echo element detection on import, especially for sets that are hard to tell apart by color' },
+            { kind: 'improved', text: 'More reliable echo element detection on import, especially for sets hard to tell apart by color' },
         ],
     },
     {
@@ -1073,7 +1083,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2026-03-21',
         changes: [
-            { kind: 'new', text: 'More characters added to the damage leaderboards: Camellya, Changli, Jinhsi, Cartethyia, Zani, Jiyan, Phoebe, Lupa, Aemeath, Augusta, and Iuno' },
+            { kind: 'new', text: 'More characters added to the damage leaderboards' },
         ],
     },
     {
@@ -1102,15 +1112,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-03-15',
         changes: [
             { kind: 'new', text: 'Substat upgrade suggestions show how each substat roll would move a leaderboard build' },
-            { kind: 'new', text: 'Leaderboard standings, ranks, team buff details, and tooltips for sets, weapons, sequences, and forte' },
+            { kind: 'new', text: 'Leaderboard standings, ranks, team buff details, and tooltips for sets, weapons, sequences, etc' },
         ],
     },
     {
         date: '2026-03-12',
-        title: 'WuWa Builds, rebuilt',
+        title: 'Website Rebuilt',
         changes: [
             { kind: 'new', text: 'The whole site has been rebuilt from scratch and relaunched at wuwa.build. Ideally faster, more accurate, and more reliable' },
-            { kind: 'new', text: 'Damage leaderboards scoped per character, weapon, and playstyle, with team comps and breakdowns' },
+            { kind: 'new', text: 'Damage leaderboards scoped per weapon and playstyle, with teams and breakdowns' },
             { kind: 'new', text: 'Rebuilt builds board with filtering by character, weapon, set, and stat' },
             { kind: 'new', text: 'Redesigned build editor and build cards, with full language support' },
             { kind: 'improved', text: 'Import rebuilt with a faster streaming pipeline, and you can report a bad scan in one click' },
@@ -1154,7 +1164,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2025-09-07',
         changes: [
-            { kind: 'improved', text: 'Fewer wrong echo matches on import. Color is used as a tiebreaker, and you are warned when a screenshot is cropped too tightly' },
+            { kind: 'improved', text: 'More reliable echo detection, especially around nightmares and echo sets with similar colors' },
         ],
     },
     {
@@ -1319,12 +1329,12 @@ export const CHANGELOG: ChangelogEntry[] = [
     {
         date: '2024-12-11',
         changes: [
-            { kind: 'new', text: 'Build cards now show a Crit Value (CV) counter, a watermark, and support custom background images' },
+            { kind: 'new', text: 'Build cards now show a Crit Value counter, a watermark, and support custom images' },
         ],
     },
     {
         date: '2024-11-28',
-        title: 'Where it started',
+        title: 'Initial launch',
         changes: [
             { kind: 'new', text: 'WuWa Builds launched as a build editor for Wuthering Waves' },
             { kind: 'new', text: 'Builds and echoes save to your browser, so your work persists between visits' },

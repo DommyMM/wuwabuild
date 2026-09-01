@@ -191,7 +191,9 @@ export function statusRampColor(ratio: number): string {
 // panels, summary pills, move breakdown, upgrade table, standings, benchmark.
 // One constraint on the shell means the sections share a left edge down the
 // column instead of each carrying its own max-width.
-export const LB_EXPANDED_SHELL = 'mx-auto w-full max-w-330 px-12';
+// Below md the 1320px cap comes off so the shell is exactly the row, and the
+// gutter drops to px-4 so the echo panels are not shoved a quarter-screen in.
+export const LB_EXPANDED_SHELL = 'mx-auto w-full px-4 md:max-w-330 md:px-12';
 
 // Opaque stand-in for the expanded-row surface, used by the frozen rail in the
 // substat upgrade table so scrolling columns tuck cleanly underneath. Sits

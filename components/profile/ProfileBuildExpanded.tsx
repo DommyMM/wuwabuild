@@ -116,12 +116,14 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
       className="profile-build-expanded-shell overflow-clip border-t border-border/50 bg-black/15 tracking-wide"
       aria-busy={isLoadingActive}
     >
-      {/* w-full like any row (so a fitting table stays exactly min-w-full;
-          a definite width here would re-add the shell's 2px borders to the
-          w-max wrapper and force 2px of scroll), capped at the measured
-          scrollport (--scrollport, useScrollportVar) and pinned sticky so
-          the card stays visible when the rows genuinely overflow. */}
-      <div className="sticky left-0 w-full max-w-(--scrollport,none)">
+      {/* w-full like any row (so a fitting table stays exactly min-w-full; a
+          definite width here would re-add the shell's 2px borders to the w-max
+          wrapper and force 2px of scroll). The card is a 1440px design-space
+          artifact, so it is never capped to the visible scrollport at any
+          width — that crushes it. It keeps the desktop layout and is reached by
+          the table's own horizontal scroll, and only the controls in
+          BuildSimulationSection follow the scroller. */}
+      <div className="w-full">
         <div className="relative mx-auto w-full max-w-368 px-4 pt-5 pb-3">
           {!isStageRevealed && !showError && (
             <div className={canMountCard ? 'absolute inset-x-4 top-5 z-20' : ''}>
