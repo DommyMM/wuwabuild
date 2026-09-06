@@ -105,13 +105,14 @@ with the pagination shown ("X–Y of Z").
   - Backend returns a `ghostBuild`.
   - Frontend inserts it at its computed damage position.
   - No competitive rank is shown for that row (`globalRank === 0`).
-- Profile deep links can also inject a build outside its natural filtered/sorted page. That row is display-only: it does not increment real-row ranks, page ranges, or totals.
+- The profile never injects rows. A build that arrives without a table row (a rankings tile, a `?buildId=` deep link, the echo inventory's "Equipped by" strip) opens in the featured-build region between the rankings shelf and the filters (`ProfileFeaturedBuild`), outside the build query, so the table's ranks, page ranges and totals are always the server's. `?board=weaponId:trackKey` seeds the card's board so a reader coming from a leaderboard sees the number they clicked. A rankings tile is one button (no secondary link, no hover lift); the way from any profile card to its board is the rank module, which links to the build's row there.
 
 ## Build Expansion
 
 `/builds`, `/profile/[uid]`, and `/leaderboards/[characterId]` share:
 
-- `useExpandedRows()` for expanded row ids and pure toggle behavior
+- `useExpandedRows()` for expanded row ids and pure toggle behavior. Rows stack freely on every surface, and on the profile the featured region stays open alongside them; a card closes only when the reader closes it (owner decision 2026-09-05, do not add a one-at-a-time rule).
+- The expansion's action slot differs by surface: leaderboards render `View in Profile` (`/profile/{uid}?buildId=&board=`), the profile renders `Open in Editor`. Only a build with no profile to go to (redacted uid) opens in the editor from a leaderboard.
 - `useBuildDetails()` for detail fetches, request aborts, retry state, and per-build detail caching. It also normalizes Rover identity: the row's `character.id` is authoritative, so `buildState.characterId`/`roverElement` are re-derived from character data (`roverElementName`) before the detail is cached — historical build JSON may carry a stale element.
 
 On row expansion, frontend may fetch:

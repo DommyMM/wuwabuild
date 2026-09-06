@@ -220,8 +220,16 @@ Current init settings:
   - `track_key`: string | null
   - `tab_kind`: `weapon` | `track`
 
+#### `discovery_view_in_profile_click`
+- Purpose: user follows a discovered build to its owner's profile (the primary action on leaderboard expansions).
+- Properties:
+  - `surface`: `builds` | `leaderboard_character`
+  - `character_id`: string | null
+  - `track_key`: string | null
+  - `weapon_id`: string | null
+
 #### `discovery_open_in_editor_click`
-- Purpose: user opens discovered build in editor.
+- Purpose: user opens discovered build in editor. Only offered when the build has no profile to go to (redacted uid).
 - Properties:
   - `surface`: `builds` | `leaderboard_character`
   - `character_id`: string | null

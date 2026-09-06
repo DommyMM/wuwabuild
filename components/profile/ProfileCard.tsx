@@ -13,7 +13,8 @@ import { getBuildStandings, LBBuildDetailEntry, LBBuildRowEntry, LBStandingEntry
 import { getWeaponPaths } from '@/lib/paths';
 import { getBundledSplashCardArt } from '@/lib/splashArt';
 import { SavedState } from '@/lib/build';
-import { parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
+import { ITEMS_PER_PAGE, parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
+import { buildLeaderboardHref } from '@/components/leaderboards/character/leaderboardCharacterQuery';
 import { formatDateLabel } from '@/components/leaderboards/formatters';
 import { BuildCard } from '@/components/edit/BuildCard';
 import { CardScaler } from '@/components/edit/CardScaler';
@@ -36,6 +37,12 @@ interface ProfileCardProps {
   onActiveBoardChange?: (board: RankBoard | null) => void;
   /** Fires after the initial art palette is ready for a flash-free reveal. */
   onVisualReady?: () => void;
+  /**
+   * Board (`weaponId:trackKey`) to open on. A reader arriving from a
+   * leaderboard or a rankings tile has just looked at one specific board, so
+   * the card shows that number rather than re-picking its own default.
+   */
+  initialStandingKey?: string | null;
 }
 
 interface StandingsResult {
@@ -91,7 +98,13 @@ const readFileAsDataUrl = (file: File): Promise<string> => (
   })
 );
 
-export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiveBoardChange, onVisualReady }) => {
+export const ProfileCard: React.FC<ProfileCardProps> = ({
+  entry,
+  detail,
+  onActiveBoardChange,
+  onVisualReady,
+  initialStandingKey = null,
+}) => {
   const { error: toastError } = useToast();
   const { getWeapon, getCharacter } = useGameData();
   const { t } = useLanguage();
@@ -129,7 +142,8 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
   );
   const [isArtEditMode, setIsArtEditMode] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [selectedStandingKey, setSelectedStandingKey] = useState<string | null>(null);
+  // An unknown key falls through to pickDefaultBoard in activeBoard below.
+  const [selectedStandingKey, setSelectedStandingKey] = useState<string | null>(initialStandingKey);
   const [manualSubstatSelection, setManualSubstatSelection] = useState<Set<string> | null>(null);
 
   // Standings fetch lives at the orchestrator level (not inside BuildProvider)
@@ -231,6 +245,19 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
     // board before allowing explicit comparison selections.
     return pickDefaultBoard(availableBoards, equippedWeaponId, entry.sequence);
   }, [showOriginalForte, availableBoards, selectedStandingKey, equippedWeaponId, entry.sequence]);
+
+  // Deep link to this build's row on the shown board: the rank module is the
+  // way from a card to its leaderboard.
+  const activeBoardHref = useMemo(() => (
+    activeBoard
+      ? buildLeaderboardHref(characterId, {
+          page: Math.max(1, Math.ceil(activeBoard.rank / ITEMS_PER_PAGE)),
+          weaponId: activeBoard.weaponId,
+          track: activeBoard.trackKey,
+          buildId: entry.id,
+        })
+      : null
+  ), [activeBoard, characterId, entry.id]);
 
   const analysisBoard = useMemo<RankBoard | null>(() => (
     activeBoard ?? pickDefaultBoard(availableBoards, equippedWeaponId, entry.sequence)
@@ -342,6 +369,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ entry, detail, onActiv
             activeBoard={activeBoard}
             standings={standings}
             standingsLoading={standingsLoading}
+            boardHref={activeBoardHref}
           />
         ) : undefined}
       />

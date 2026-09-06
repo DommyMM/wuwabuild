@@ -4,8 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useGameData } from '@/contexts/GameDataContext';
-import { calculateSelectedStatsRV, DEFAULT_PREFERRED_STATS } from '@/lib/calculations/rollValues';
-import { BASE_STATS } from '@/lib/constants/statMappings';
+import { calculateSelectedStatsRV, DEFAULT_PREFERRED_STATS, getAvailablePreferredSubstats } from '@/lib/calculations/rollValues';
 import { Echo } from '@/lib/echo';
 import { Character } from '@/lib/character';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
@@ -19,8 +18,6 @@ import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
 import { buildSubstatSummary, SubstatSummaryEntry } from './substatSummary';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import posthog from 'posthog-js';
-
-const BASE_STATS_SET = new Set<string>(BASE_STATS);
 
 const SkeletonBlock: React.FC<{ className: string }> = ({ className }) => (
   <div className={`animate-pulse rounded bg-white/8 ${className}`} />
@@ -92,12 +89,6 @@ const BuildExpandedSkeleton: React.FC<{ showForte?: boolean }> = ({ showForte = 
   </>
 );
 
-// Returns the paired variant: "ATK" <-> "ATK%", "HP" <-> "HP%", "DEF" <-> "DEF%", else null
-function getBasePercentVariant(stat: string): string | null {
-  if (BASE_STATS_SET.has(stat)) return `${stat}%`;
-  if (stat.endsWith('%') && BASE_STATS_SET.has(stat.slice(0, -1))) return stat.slice(0, -1);
-  return null;
-}
 
 interface BuildExpandedProps {
   entry: LBBuildRowEntry;
@@ -149,6 +140,25 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
   const [isReplaceDraftOpen, setIsReplaceDraftOpen] = useState(false);
 
+  // The full card lives on the owner's profile, so that is where a discovered
+  // build goes. Only a build with no profile to go to (redacted uid) opens in
+  // the editor from here.
+  const profileHref = useMemo(() => {
+    if (!entry.owner.uid) return null;
+    const params = new URLSearchParams({ buildId: entry.id });
+    if (activeBoardWeaponId && activeTrackKey) params.set('board', `${activeBoardWeaponId}:${activeTrackKey}`);
+    return `/profile/${encodeURIComponent(entry.owner.uid)}?${params.toString()}`;
+  }, [activeBoardWeaponId, activeTrackKey, entry.id, entry.owner.uid]);
+
+  const trackViewProfile = () => {
+    posthog.capture('discovery_view_in_profile_click', {
+      surface,
+      character_id: detail?.buildState.characterId ?? entry.character.id ?? null,
+      track_key: activeTrackKey ?? null,
+      weapon_id: activeBoardWeaponId ?? null,
+    });
+  };
+
   const openBuildInEditor = () => {
     if (!detail) return;
     posthog.capture('discovery_open_in_editor_click', {
@@ -176,37 +186,17 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   };
 
 
-  // Derive character default substat selections without effect-driven state updates.
-  const autoSelectedSubstats = useMemo(() => {
-    if (!detail) return new Set<string>();
-
-    const preferredStats = character?.preferredStats ?? DEFAULT_PREFERRED_STATS;
-
-    // Find which of the preferred stats are actually present in this build.
-    const availableStats = new Set<string>();
-    for (const panel of detail.buildState.echoPanels) {
-      for (const sub of panel.stats.subStats) {
-        const normalizedType = normalizeSubstatKey(sub.type);
-        if (normalizedType && sub.value !== null) {
-          availableStats.add(normalizedType);
-        }
-      }
-    }
-
-    // Select preferred stats that are present, including their base/percent variant.
-    const toSelect = new Set<string>();
-    for (const stat of preferredStats) {
-      if (availableStats.has(stat)) {
-        toSelect.add(stat);
-      }
-      const variant = getBasePercentVariant(stat);
-      if (variant && availableStats.has(variant)) {
-        toSelect.add(variant);
-      }
-    }
-
-    return toSelect;
-  }, [detail, character]);
+  // Default selection: the character's preferred substats that this build
+  // actually rolled. Same helper as ProfileCard and the editor card, so every
+  // surface highlights the same chips for the same build.
+  const autoSelectedSubstats = useMemo(() => (
+    detail
+      ? getAvailablePreferredSubstats(
+          detail.buildState.echoPanels,
+          character?.preferredStats ?? DEFAULT_PREFERRED_STATS,
+        )
+      : new Set<string>()
+  ), [character?.preferredStats, detail]);
 
   const detailSubstatSummary = useMemo<SubstatSummaryEntry[]>(() => (
     detail ? buildSubstatSummary(detail.buildState.echoPanels, statIcons, statTranslations) : []
@@ -379,7 +369,9 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   baseDamage={activeBoardDamage}
                   globalRank={globalRank}
                   currentScoring={currentScoring}
-                  onViewInEditor={handleViewBuild}
+                  viewProfileHref={profileHref ?? undefined}
+                  onViewProfile={profileHref ? trackViewProfile : undefined}
+                  onOpenInEditor={profileHref ? undefined : handleViewBuild}
                 />
               </>
             )}

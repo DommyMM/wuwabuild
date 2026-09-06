@@ -45,9 +45,6 @@ export interface GlobalBoardRowExpandedProps {
 interface GlobalBoardRowProps {
   entry: LBBuildRowEntry;
   rank: number;
-  /** True when this row was injected client-side (deep link / cross-link) rather than
-   * returned in its real sorted position. Rank is suppressed rather than shown as a lie. */
-  isGhost?: boolean;
   isExpanded: boolean;
   detail: LBBuildDetailEntry | undefined;
   isDetailLoading: boolean;
@@ -65,7 +62,6 @@ interface GlobalBoardRowProps {
 const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
   entry,
   rank,
-  isGhost = false,
   isExpanded,
   detail,
   isDetailLoading,
@@ -157,11 +153,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
-        className={`grid ${tableGrid} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 text-sm transition-colors ${
-          isGhost
-            ? 'border-l-2 border-l-accent/60 bg-accent/6 hover:bg-accent/12'
-            : 'odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10'
-        } focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
+        className={`grid ${tableGrid} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
         onFocus={preloadExpanded}
         onClick={handleToggleExpand}
         onPointerDown={preloadExpanded}
@@ -172,7 +164,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
           handleToggleExpand();
         }}
       >
-        <div className="py-2 text-center text-text-primary/75">{isGhost ? '—' : rank}</div>
+        <div className="py-2 text-center text-text-primary/75">{rank}</div>
 
         {showOwner && (
           <div className="min-w-0 py-2">

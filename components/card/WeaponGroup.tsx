@@ -79,7 +79,12 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
         </div>
       </WeaponHoverCard>
       <div className="flex min-w-0 flex-col justify-center gap-1.5">
-        <span className={`-mx-2 -my-1.5 truncate px-2 py-1.5 text-2xl font-semibold leading-tight text-white/95 transition-[color,filter,opacity,transform] duration-200 ${nameInteractionClass}`}>
+        {/* Same weight and color as the character name in NameGroup. Size stays
+            2xl: the slot beside the icon is ~250px in design space ("Blazing
+            Brilliance" at 3xl fills it exactly). Measured 2026-09-06 in Plus
+            Jakarta: 43 of 122 English weapon names truncate at 3xl, 9 at 2xl
+            (from "Gauntlets of Voyager" up to "Thousandfold Deliverance"). */}
+        <span className={`-mx-2 -my-1.5 truncate px-2 py-1.5 text-2xl leading-tight text-white transition-[color,filter,opacity,transform] duration-200 ${nameInteractionClass}`}>
           {translatedWeaponName || weapon.name}
         </span>
         <div className="flex items-center gap-2.5">

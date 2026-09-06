@@ -14,6 +14,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-09-05',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Leaderboard builds now open in the profile with the full card, on the board you clicked from',
+            },
+            {
+                kind: 'improved',
+                text: 'Profile ranking tiles open the build card right under the rankings',
+            },
+            {
+                kind: 'improved',
+                text: 'Build editor cards highlight the preferred substats like profile cards do',
+            },
+        ],
+    },
+    {
         date: '2026-09-01',
         changes: [
             

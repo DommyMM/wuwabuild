@@ -52,7 +52,7 @@ export const CardActionBar: React.FC<CardActionBarProps> = ({
           }`}
         >
           <Pencil size={14} />
-          {isArtEditMode ? 'Done' : 'Edit'}
+          {isArtEditMode ? 'Done' : 'Edit art'}
         </button>
         <button
           onClick={onDownload}

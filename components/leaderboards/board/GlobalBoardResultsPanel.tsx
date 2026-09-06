@@ -30,8 +30,6 @@ interface GlobalBoardResultsPanelProps {
   pageCount: number;
   pageSize: number;
   rankStart: number;
-  /** Id of a row injected client-side (deep link / cross-link) outside its real sorted position. */
-  ghostBuildId?: string | null;
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
@@ -116,7 +114,6 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   pageCount,
   pageSize,
   rankStart,
-  ghostBuildId = null,
   isLoading,
   isRefreshing,
   error,
@@ -172,24 +169,10 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   const activeCvOption = cvOptions.find((entry) => entry.key === cvSort) ?? cvOptions[0];
   const activePinnedStatKey = (isStatSortActive ? sort : displayStatColumns[0]) as StatSortKey;
   const activePinnedStatOption = statOptions.find((entry) => entry.key === activePinnedStatKey);
-  const { rankedBuilds, realBuildCount } = useMemo(() => {
-    const ghostIndex = ghostBuildId
-      ? builds.findIndex((entry) => entry.id === ghostBuildId)
-      : -1;
-    return {
-      realBuildCount: builds.length - (ghostIndex >= 0 ? 1 : 0),
-      rankedBuilds: builds.map((entry, index) => {
-        const isGhost = ghostBuildId != null && entry.id === ghostBuildId;
-        const precedingGhostRows = ghostIndex >= 0 && ghostIndex < index ? 1 : 0;
-        return { entry, isGhost, rank: rankStart + index - precedingGhostRows };
-      }),
-    };
-  }, [builds, ghostBuildId, rankStart]);
-
   const hasBuildRows = builds.length > 0;
   const showInitialSkeleton = isLoading && !hasBuildRows;
   const firstShown = total === 0 ? 0 : Math.min(total, rankStart);
-  const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(realBuildCount - 1, 0));
+  const lastShown = total === 0 ? 0 : Math.min(total, rankStart + Math.max(builds.length - 1, 0));
   const statusText = showInitialSkeleton
     ? 'Loading builds…'
     : isRefreshing ? 'Updating…' : `${firstShown}-${lastShown} of ${total.toLocaleString()}`;
@@ -377,12 +360,11 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
 
                   {!error && builds.length > 0 && (
                     <div className="relative divide-y divide-border/60">
-                      {rankedBuilds.map(({ entry, isGhost, rank }) => (
+                      {builds.map((entry, index) => (
                         <GlobalBoardRow
                           key={entry.id}
                           entry={entry}
-                          rank={rank}
-                          isGhost={isGhost}
+                          rank={rankStart + index}
                           isExpanded={expandedBuildIds.has(entry.id)}
                           detail={detailById[entry.id]}
                           isDetailLoading={detailLoadingById[entry.id] ?? false}

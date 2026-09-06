@@ -209,7 +209,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
             />
           </div>
         )}
-        <div className="text-2xs font-semibold leading-none tracking-[0.14em] text-white/75 lowercase [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+        <div className="text-sm font-semibold leading-none tracking-[0.14em] text-white/75 lowercase [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
           wuwa<span className="text-accent-hover">.build</span>
         </div>
       </div>

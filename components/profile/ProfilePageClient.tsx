@@ -7,7 +7,8 @@ import { getPinnedProfilesSnapshot, getProfilesServerSnapshot, recordProfileVisi
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getBuildById, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, LBStatThreshold, listProfileBuilds } from '@/lib/lb';
+import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, LBStatThreshold, listProfileBuilds } from '@/lib/lb';
+import { computeTopPercent } from '@/lib/calculations/rankTier';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE, normalizeSequences } from '@/components/leaderboards/constants';
 import { getSortLabel, resolveRegionBadge } from '@/components/leaderboards/formatters';
@@ -18,12 +19,12 @@ import { GlobalBoardResultsPanel } from '@/components/leaderboards/board/GlobalB
 import { GlobalBoardRowExpandedProps } from '@/components/leaderboards/board/GlobalBoardRow';
 import { useBuildDetails } from '@/components/leaderboards/useBuildDetails';
 import { useExpandedRows } from '@/components/leaderboards/useExpandedRows';
-import { scrollToElementBelowNav } from '@/components/leaderboards/scrollToElementBelowNav';
 import { createRowsSignature } from '@/components/leaderboards/queryHelpers';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/leaderboards/types';
 import { isRover } from '@/lib/character';
 import { warmBundledSplashArt } from '@/lib/splashArt';
 import { ProfileBuildExpanded } from './ProfileBuildExpanded';
+import { FeaturedBuildSelection, ProfileFeaturedBuild } from './ProfileFeaturedBuild';
 import { ProfileShowcase } from './ProfileShowcase';
 import { ProfileEchoes } from './ProfileEchoes';
 
@@ -54,13 +55,17 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     () => parseInitialQuery(new URLSearchParams(searchParams.toString())),
     [searchParams],
   );
-  // `?buildId=` is a transient one-shot "reveal this build" command (post-import deep link),
-  // not persistent view state — kept as local state (not re-derived from searchParams) so it
-  // can be cleared once consumed instead of sticking in the URL across every later query change.
-  const [revealBuildId, setRevealBuildId] = useState<string>(() => searchParams.get('buildId')?.trim() ?? '');
-  // Id of a build injected client-side outside its real sorted position (deep link or the
-  // echo inventory's "Equipped by" cross-link). Suppresses the fake rank instead of showing one.
-  const [ghostBuildId, setGhostBuildId] = useState<string | null>(null);
+  // The featured build: the card opened from a rankings tile, a `?buildId=` deep link
+  // (post-import, or "View in Profile" on a leaderboard), or the echo inventory's
+  // "Equipped by" strip. It renders above the filters, outside the build query, so
+  // sorting and paging the table never disturb it; it stays until closed. `?board=`
+  // names the board the reader was just looking at so the card opens on that number.
+  const [featured, setFeatured] = useState<FeaturedBuildSelection | null>(() => {
+    const buildId = searchParams.get('buildId')?.trim() ?? '';
+    if (!buildId) return null;
+    const board = searchParams.get('board')?.trim() ?? '';
+    return { buildId, standingKey: board || null, characterId: null, topPercent: null };
+  });
 
   const [page, setPage] = useState<number>(() => initialQuery.page);
   const [pageSize, setPageSize] = useState<number>(() => clampItemsPerPage(initialQuery.pageSize));
@@ -92,6 +97,12 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     retryBuildDetail,
     resetBuildDetailRequestState,
   } = useBuildDetails();
+  // A pasted deep link can name someone else's build; that counts as no selection.
+  const featuredDetail = featured ? detailById[featured.buildId] : undefined;
+  const activeFeatured = featuredDetail && featuredDetail.owner.uid !== uid ? null : featured;
+  const featuredBuildId = activeFeatured?.buildId ?? null;
+  // Either placement widens the page and runs the settle timer.
+  const hasOpenCard = hasExpandedRows || activeFeatured !== null;
   const [featuredStanding, setFeaturedStanding] = useState<LBProfileStandingEntry | null>(null);
 
   const selectedCharacters = useMemo(() => (
@@ -168,27 +179,16 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(serializeQuery({ ...querySnapshot, uid: '' }));
-    if (revealBuildId) params.set('buildId', revealBuildId);
+    // The featured build is shareable state: keep it in the URL while it is open.
+    if (activeFeatured) {
+      params.set('buildId', activeFeatured.buildId);
+      if (activeFeatured.standingKey) params.set('board', activeFeatured.standingKey);
+    }
     const withoutUid = params.toString();
     const currentSearch = window.location.search.replace(/^\?/, '');
     if (currentSearch === withoutUid) return;
     window.history.replaceState(null, '', withoutUid ? `/profile/${uid}?${withoutUid}` : `/profile/${uid}`);
-  }, [revealBuildId, querySnapshot, uid]);
-
-  // Drop the reveal once the user moves off the view it arrived on (sort/filter/page change) —
-  // the injected row won't survive the next natural refetch anyway, so stop lying in the URL too.
-  const revealHomeQueryKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (revealBuildId && revealHomeQueryKeyRef.current === null) {
-      revealHomeQueryKeyRef.current = currentQueryKey;
-    }
-  }, [revealBuildId, currentQueryKey]);
-  useEffect(() => {
-    if (!revealBuildId || revealHomeQueryKeyRef.current === null) return;
-    if (currentQueryKey === revealHomeQueryKeyRef.current) return;
-    setRevealBuildId('');
-    setGhostBuildId(null);
-  }, [currentQueryKey, revealBuildId]);
+  }, [activeFeatured, querySnapshot, uid]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -259,10 +259,9 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const handleToggleExpand = useCallback((buildId: string) => {
     const id = buildId.trim();
     if (!id) return;
-    if (expandedBuildIds.size === 0 && !expandedBuildIds.has(id)) {
-      setIsExpandedLayoutSettled(false);
-    }
     if (!expandedBuildIds.has(id)) {
+      // Opening from a fully closed page starts the width transition.
+      if (!hasOpenCard) setIsExpandedLayoutSettled(false);
       // Art identity is already known from the row, so start the splash
       // download at click, in parallel with the build-detail request.
       const entry = buildsRef.current.find((build) => build.id === id);
@@ -276,104 +275,70 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       }
     }
     toggleExpandedId(id, loadBuildDetail);
-  }, [expandedBuildIds, getCharacter, loadBuildDetail, toggleExpandedId]);
+  }, [expandedBuildIds, getCharacter, hasOpenCard, loadBuildDetail, toggleExpandedId]);
 
   const handleRetryDetail = useCallback((buildId: string) => {
     retryBuildDetail(buildId);
   }, [retryBuildDetail]);
 
-  // Deep link from the echo inventory's "Equipped by" strip: surface the build
-  // in this page's own table instead of leaving the profile.
-  const openBuildControllerRef = useRef<AbortController | null>(null);
-  const openedLinkedBuildRef = useRef('');
+  // Opens a build in the featured region. Open rows stay open: every card
+  // closes only when the reader closes it. The detail fetch is the effect below.
+  const openFeatured = useCallback((selection: FeaturedBuildSelection) => {
+    if (!hasOpenCard) setIsExpandedLayoutSettled(false);
+    setFeatured(selection);
+    const characterRef = getCharacter(selection.characterId);
+    if (characterRef) {
+      warmBundledSplashArt(
+        String(characterRef.id),
+        characterRef.legacyId ?? null,
+        isRover(characterRef),
+      );
+    }
+  }, [getCharacter, hasOpenCard]);
 
-  const scrollToBuildRow = useCallback((buildId: string) => {
-    const scroll = () => {
-      const row = document.querySelector<HTMLElement>(`[data-build-id="${buildId}"]`);
-      if (row) scrollToElementBelowNav(row);
-    };
-    // Two frames + the expansion's animation window, so the row has its final position.
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        window.setTimeout(scroll, 240);
-      });
-    });
-  }, []);
+  const closeFeatured = useCallback(() => setFeatured(null), []);
 
-  useEffect(() => {
-    if (!revealBuildId || !settledQueryKey || openedLinkedBuildRef.current === revealBuildId) return;
-    const controller = new AbortController();
-    let active = true;
-
-    void getBuildById(revealBuildId, controller.signal)
-      .then((linkedBuild) => {
-        if (!active || linkedBuild.owner.uid !== uid) return;
-        openedLinkedBuildRef.current = linkedBuild.id;
-        const alreadyOnPage = buildsRef.current.some((build) => build.id === linkedBuild.id);
-        if (!alreadyOnPage) {
-          setBuilds((current) => current.some((build) => build.id === linkedBuild.id)
-            ? current
-            : [linkedBuild, ...current]);
-          setGhostBuildId(linkedBuild.id);
-        }
-        if (!expandedBuildIds.has(linkedBuild.id)) handleToggleExpand(linkedBuild.id);
-        scrollToBuildRow(linkedBuild.id);
-      })
-      .catch(() => { /* The normal profile remains usable if the deep link is stale. */ });
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [expandedBuildIds, handleToggleExpand, revealBuildId, scrollToBuildRow, settledQueryKey, uid]);
-
-  const handleOpenBuild = useCallback((buildId: string) => {
-    if (builds.some((b) => b.id === buildId)) {
-      if (!expandedBuildIds.has(buildId)) handleToggleExpand(buildId);
-      scrollToBuildRow(buildId);
+  // Rankings tile: the active tile toggles its card closed, any other opens.
+  const handleSelectStanding = useCallback((entry: LBProfileStandingEntry) => {
+    if (featuredBuildId === entry.buildId) {
+      setFeatured(null);
       return;
     }
+    openFeatured({
+      buildId: entry.buildId,
+      standingKey: `${entry.weaponId}:${entry.trackKey}`,
+      characterId: entry.characterId,
+      topPercent: computeTopPercent(entry.rank, entry.total),
+    });
+  }, [featuredBuildId, openFeatured]);
 
-    // The equipped build may live on any filtered page. Resolve the exact
-    // authorized row instead of assuming a character filter will put it on page 1.
-    openBuildControllerRef.current?.abort();
-    const controller = new AbortController();
-    openBuildControllerRef.current = controller;
-    void getBuildById(buildId, controller.signal)
-      .then((resolvedBuild) => {
-        if (controller.signal.aborted || resolvedBuild.owner.uid !== uid) return;
-        setBuilds((current) => current.some((build) => build.id === resolvedBuild.id)
-          ? current
-          : [resolvedBuild, ...current]);
-        setGhostBuildId(resolvedBuild.id);
-        if (!expandedBuildIds.has(resolvedBuild.id)) handleToggleExpand(resolvedBuild.id);
-        scrollToBuildRow(resolvedBuild.id);
-      })
-      .catch(() => { /* Keep the current profile usable if the equipped build is stale. */ })
-      .finally(() => {
-        if (openBuildControllerRef.current === controller) openBuildControllerRef.current = null;
-      });
-  }, [builds, expandedBuildIds, handleToggleExpand, scrollToBuildRow, uid]);
+  // Echo inventory's "Equipped by" strip.
+  const handleOpenBuild = useCallback((buildId: string, characterId: string) => {
+    openFeatured({ buildId, standingKey: null, characterId, topPercent: null });
+  }, [openFeatured]);
 
-  useEffect(() => () => openBuildControllerRef.current?.abort(), []);
+  // Fetch the featured build once the page's own list has settled: the list
+  // effect resets every in-flight detail request when the query changes, so a
+  // fetch started earlier would be aborted. Re-running after each settle
+  // restarts one that was, and is a cached no-op otherwise.
+  useEffect(() => {
+    if (!featuredBuildId || !settledQueryKey) return;
+    loadBuildDetail(featuredBuildId);
+  }, [featuredBuildId, loadBuildDetail, settledQueryKey]);
 
   const normalizedPageCount = Math.max(1, Math.ceil(total / pageSize));
-  const hasExpandedBuild = hasExpandedRows;
   useEffect(() => {
-    if (!hasExpandedBuild) return;
+    if (!hasOpenCard) return;
 
     const timeoutId = window.setTimeout(
       () => setIsExpandedLayoutSettled(true),
       PROFILE_EXPANSION_WIDTH_MS,
     );
     return () => window.clearTimeout(timeoutId);
-  }, [hasExpandedBuild]);
-  const realBuildCount = ghostBuildId
-    ? builds.filter((build) => build.id !== ghostBuildId).length
-    : builds.length;
+  }, [hasOpenCard]);
   const rankStart = (() => {
     if (total <= 0) return 1;
-    if (page === normalizedPageCount) return Math.max(1, total - realBuildCount + 1);
+    if (page === normalizedPageCount) return Math.max(1, total - builds.length + 1);
     return (page - 1) * pageSize + 1;
   })();
 
@@ -415,9 +380,6 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       character={props.character}
       characterName={props.characterName}
       regionBadge={props.regionBadge}
-      statIcons={props.statIcons}
-      getEcho={props.getEcho}
-      translateText={props.translateText}
       onRetryDetail={props.onRetryDetail}
       isLayoutSettled={isExpandedLayoutSettled}
     />
@@ -427,7 +389,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     <main className="bg-background">
       <div
         className={`mx-auto w-full p-3 px-0 transition-[max-width] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] md:p-5 ${
-          hasExpandedBuild ? PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS : PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS
+          hasOpenCard ? PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS : PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS
         }`}
       >
         <ProfileSwitcher currentUid={uid} />
@@ -495,7 +457,26 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
               </div>
             </div>
 
-            <ProfileShowcase uid={uid} onFeaturedEntry={setFeaturedStanding} />
+            <ProfileShowcase
+              uid={uid}
+              onFeaturedEntry={setFeaturedStanding}
+              activeBuildId={featuredBuildId}
+              onSelectBuild={handleSelectStanding}
+            />
+
+            {activeFeatured && (
+              <ProfileFeaturedBuild
+                key={activeFeatured.buildId}
+                uid={uid}
+                selection={activeFeatured}
+                detail={featuredDetail}
+                isDetailLoading={detailLoadingById[activeFeatured.buildId] ?? false}
+                detailError={detailErrorById[activeFeatured.buildId]}
+                isLayoutSettled={isExpandedLayoutSettled}
+                onRetryDetail={handleRetryDetail}
+                onClose={closeFeatured}
+              />
+            )}
 
             <div className="px-4 py-3">
               <div className="space-y-3">
@@ -598,7 +579,6 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                     pageCount={normalizedPageCount}
                     pageSize={pageSize}
                     rankStart={rankStart}
-                    ghostBuildId={ghostBuildId}
                     isLoading={isLoading}
                     isRefreshing={isRefreshing}
                     error={error}
@@ -614,7 +594,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                     tableGrid={PROFILE_TABLE_GRID}
                     showOwner={false}
                     showTableGate={false}
-                    hideHorizontalScrollbar={!isExpandedLayoutSettled && hasExpandedBuild}
+                    hideHorizontalScrollbar={!isExpandedLayoutSettled && hasOpenCard}
                   />
                 </div>
               </div>

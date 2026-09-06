@@ -1,20 +1,22 @@
 'use client';
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getProfileStandings, LBProfileStandingEntry } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 import { computeTopPercent, getRankTier } from '@/lib/calculations/rankTier';
-import { ITEMS_PER_PAGE, stripLBSeqPrefix } from '@/components/leaderboards/constants';
-import { buildLeaderboardHref } from '@/components/leaderboards/character/leaderboardCharacterQuery';
+import { stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
 
 interface ProfileShowcaseProps {
   uid: string;
   onFeaturedEntry?: (entry: LBProfileStandingEntry | null) => void;
+  /** Build currently open in the featured region, so its tile reads as selected. */
+  activeBuildId: string | null;
+  /** Tile click: open (or, on the active tile, close) that build's card below the shelf. */
+  onSelectBuild: (entry: LBProfileStandingEntry) => void;
 }
 
 const TILE_W = 184;
@@ -43,7 +45,7 @@ function formatCount(n: number): string {
   return String(n);
 }
 
-export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeaturedEntry }) => {
+export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeaturedEntry, activeBuildId, onSelectBuild }) => {
   const { getCharacter, getWeapon, statIcons } = useGameData();
   const { t } = useLanguage();
   const [state, setState] = useState<{ uid: string; entries: LBProfileStandingEntry[]; loading: boolean }>(() => ({
@@ -143,20 +145,8 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
               const tier = getRankTier(topPercent);
               const boardSequenceClass = PROFILE_SEQUENCE_BADGE_COLORS[entry.sequence]
                 || 'border-slate-400/45 bg-slate-500/15 text-slate-200';
-              const highlightPercent = topPercent <= 10;
-              const percentStyle = highlightPercent
-                ? {
-                    color: tier.color,
-                    textShadow: tier.glow ? `0 0 8px ${tier.glow}` : undefined,
-                  }
-                : undefined;
               const baseLabel = stripLBSeqPrefix(entry.trackLabel || entry.trackKey) || 'DMG';
-              const href = buildLeaderboardHref(entry.characterId, {
-                page: Math.max(1, Math.ceil(entry.rank / ITEMS_PER_PAGE)),
-                weaponId: entry.weaponId,
-                track: entry.trackKey,
-                buildId: entry.buildId,
-              });
+              const isActive = activeBuildId === entry.buildId;
               const atkIcon = statIcons?.ATK;
               const mainStatIcon = weapon?.main_stat ? (statIcons?.[weapon.main_stat] ?? null) : null;
               const weaponBadge = (
@@ -164,19 +154,25 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
                   <img src={getWeaponPaths(weapon)} alt={weaponName} className="h-9 w-9 object-contain" />
                 </span>
               );
-              const tileClassName = showAll
-                ? 'group relative h-[116px] w-[184px] shrink-0 overflow-hidden rounded-md border border-border bg-background-secondary/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 max-[560px]:w-full'
-                : 'group relative h-[116px] w-[184px] shrink-0 snap-start overflow-hidden rounded-md border border-border bg-background-secondary/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70';
+              // The whole tile is one target: it opens the card beneath the
+              // shelf. The way on to the board is the rank module inside that
+              // card, so nothing here competes with the tile click.
+              const tileClassName = `group relative h-[116px] w-[184px] shrink-0 cursor-pointer overflow-hidden rounded-md border bg-background-secondary/80 text-left transition-[border-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
+                isActive
+                  ? 'border-accent/60 shadow-[0_0_16px_rgba(166,150,98,0.35)]'
+                  : 'border-border hover:border-accent/40'
+              } ${showAll ? 'max-[560px]:w-full' : 'snap-start'}`;
 
               return (
-                <Link
+                <button
                   key={`${entry.characterId}:${entry.buildId}`}
-                  href={href}
-                  title={`${characterName} · ${weaponName} R${entry.weaponRank} · ${baseLabel} S${entry.sequence}`}
-                  aria-label={`${characterName}, ${weaponName} R${entry.weaponRank}, ${baseLabel} board S${entry.sequence}, top ${formatPercent(topPercent)} percent, rank ${entry.rank.toLocaleString()} of ${entry.total.toLocaleString()}`}
+                  type="button"
+                  onClick={() => onSelectBuild(entry)}
+                  aria-pressed={isActive}
+                  aria-label={`${characterName}, ${weaponName} R${entry.weaponRank}, ${baseLabel} board S${entry.sequence}, top ${formatPercent(topPercent)} percent, rank ${entry.rank.toLocaleString()} of ${entry.total.toLocaleString()}. ${isActive ? 'Close build' : 'Show build'}`}
                   className={tileClassName}
                 >
-                  {/* Character face — right-anchored hero art, full color, faded into the card. */}
+                  {/* Character face: right-anchored hero art, full color, faded into the card. */}
                   {character?.head && (
                     <img
                       src={character.head}
@@ -186,17 +182,17 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
                     />
                   )}
 
-                  {/* Scrim — darkens the text column so data stays legible over the art. */}
+                  {/* Scrim: darkens the text column so data stays legible over the art. */}
                   <span className="pointer-events-none absolute inset-0 bg-linear-to-r from-background-secondary from-22% via-background-secondary/48 to-transparent" />
 
-                  {/* Tier-colored top edge — the achievement signal. */}
+                  {/* Tier-colored top edge: the one place the tile carries its tier. */}
                   <span
-                    className="absolute inset-x-0 top-0 z-10 h-[2px]"
+                    className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[2px]"
                     style={{ background: tier.color, boxShadow: tier.glow ? `0 0 10px ${tier.glow}` : undefined }}
                   />
 
-                  {/* Weapon — constrained to an uploaded weapon for this summary. */}
-                  <span className="absolute right-2 bottom-2 z-10 flex">
+                  {/* Weapon: constrained to an uploaded weapon for this summary. The hover card carries its name and refinement. */}
+                  <span className="absolute right-2 bottom-2 z-20 flex">
                     {weapon ? (
                       <WeaponHoverCard
                         placement="top"
@@ -214,8 +210,8 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
                     ) : weaponBadge}
                   </span>
 
-                  {/* Data column: character + track · percentile (hero) · exact rank. */}
-                  <div className="relative z-10 flex h-full flex-col justify-between p-3">
+                  {/* Data column: character + track, percentile (hero), exact rank. */}
+                  <div className="pointer-events-none relative z-20 flex h-full flex-col justify-between p-3">
                     <div className="flex min-w-0 items-start gap-1.5">
                       <div className="min-w-0 flex-1">
                         <span className={`block truncate font-bold text-text-primary/90 uppercase ${compactCharacterName ? 'text-3xs tracking-[0.04em]' : 'text-2xs tracking-wider'}`}>
@@ -231,10 +227,10 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
                     </div>
 
                     <div className="flex w-[63%] items-baseline gap-0.5 leading-none">
-                      <span className="text-[25px] font-bold tabular-nums text-text-primary/90" style={percentStyle}>
+                      <span className="text-[25px] font-bold tabular-nums text-text-primary/90">
                         {formatPercent(topPercent)}
                       </span>
-                      <span className="text-sm font-semibold text-text-primary/75" style={percentStyle}>%</span>
+                      <span className="text-sm font-semibold text-text-primary/75">%</span>
                     </div>
 
                     <div className="flex w-[63%] items-baseline gap-1">
@@ -242,7 +238,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
                       <span className="text-3xs tabular-nums text-text-primary/40">/ {formatCount(entry.total)}</span>
                     </div>
                   </div>
-                </Link>
+                </button>
               );
               })}
             </div>

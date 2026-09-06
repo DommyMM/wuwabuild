@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { LB_SEQ_BADGE_COLORS, stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { getRankTier, RankTier } from '@/lib/calculations/rankTier';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -44,6 +45,8 @@ interface RankModuleProps {
   board: RankBoard | null;
   team?: RankTeamMember[];
   loading?: boolean;
+  /** Leaderboard deep link for the shown board. Makes the grade + board identity one link. */
+  boardHref?: string | null;
 }
 
 const formatNumber = (value: number): string => Math.round(value).toLocaleString();
@@ -108,7 +111,7 @@ const SupportAvatar: React.FC<{ member: RankTeamMember }> = ({ member }) => (
   </div>
 );
 
-export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loading = false }) => {
+export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loading = false, boardHref = null }) => {
   const { getWeapon, statIcons } = useGameData();
   const tierStyle = board ? getRankTier(board.topPercent) : null;
   const rankColor = tierStyle?.color ?? 'rgba(224,224,224,0.4)';
@@ -148,6 +151,13 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
         />
       )}
 
+      {/* The grade and the board identity are one target: the board this rank
+          was measured on. As a link it lights the track label and the rank on
+          hover and puts the board URL in the status bar; the supports stay
+          outside it since they carry their own hover cards. */}
+      {(() => {
+        const zones = (
+          <>
       {/* Zone 1, the grade: percentile (tier color) + absolute rank. */}
       <div className="relative flex w-20 shrink-0 flex-col justify-center">
         {empty ? (
@@ -172,7 +182,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
             </div>
             {!loading && board && (
               <div className="mt-1.5 flex items-baseline gap-1 font-gowun tabular-nums">
-                <span className="text-sm leading-none font-bold text-text-primary/90">
+                <span className="text-sm leading-none font-bold text-text-primary/90 transition-colors group-hover/board:text-accent">
                   #{formatNumber(board.rank)}
                 </span>
                 <span className="text-3xs text-text-primary/40">/ {formatTotal(board.total)}</span>
@@ -203,7 +213,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
           {board && !loading && (
             /* The module is w-fit, so this column sits at max-content and its width IS the label's width */
             <div className="flex min-w-fit flex-col justify-center gap-1.5">
-              <div className="-mx-2 -my-1.5 max-w-44 truncate px-2 py-1.5 font-ropa text-[13px] leading-none tracking-[0.08em] text-text-primary/90 uppercase">
+              <div className="-mx-2 -my-1.5 max-w-44 truncate px-2 py-1.5 font-ropa text-[13px] leading-none tracking-[0.08em] text-text-primary/90 uppercase decoration-accent/70 underline-offset-4 transition-colors group-hover/board:text-accent group-hover/board:underline">
                 {cleanBoardTrackLabel(board)}
               </div>
               <div className="flex items-center gap-1.5">
@@ -220,6 +230,21 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
           )}
         </div>
       )}
+          </>
+        );
+        const zoneClass = 'flex min-w-0 items-stretch gap-2.5';
+        return boardHref && board && !loading ? (
+          <Link
+            href={boardHref}
+            title={`View on the ${cleanBoardTrackLabel(board)} S${board.sequence} leaderboard`}
+            className={`group/board ${zoneClass} rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75`}
+          >
+            {zones}
+          </Link>
+        ) : (
+          <div className={zoneClass}>{zones}</div>
+        );
+      })()}
 
       {/* Supports for the active board (lead omitted). */}
       {supports.length > 0 && (

@@ -19,6 +19,7 @@ import { WeaponSelector } from '@/components/weapon/WeaponSelector';
 import { LevelSlider } from '@/components/ui/LevelSlider';
 import { ForteGroup } from '@/components/forte/ForteGroup';
 import { EchoGrid, EchoCostBadge } from '@/components/echo/EchoGrid';
+import { DEFAULT_PREFERRED_STATS, getAvailablePreferredSubstats } from '@/lib/calculations/rollValues';
 import { BuildCardOptions, CardOptions } from './BuildCardOptions';
 import { BuildCard } from './BuildCard';
 import { SimulateRankPanel } from './SimulateRankPanel';
@@ -121,6 +122,16 @@ export const BuildEditor: React.FC = () => {
   const { t } = useLanguage();
   const { success: toastSuccess, error: toastError } = useToast();
   const selected = useSelectedCharacter();
+  // The same highlight the profile card and leaderboard expansions apply: the
+  // character's preferred substats, gold on the echo chips. Fixed here on
+  // purpose; the editor has no summary row to retune the selection.
+  const selectedSubstats = useMemo(
+    () => getAvailablePreferredSubstats(
+      state.echoPanels,
+      selected?.character.preferredStats ?? DEFAULT_PREFERRED_STATS,
+    ),
+    [selected?.character.preferredStats, state.echoPanels],
+  );
   const selectedWeapon = getWeapon(state.weaponId);
   const leaderboardLink = useResolvedLeaderboardLink({
     characterId: selected?.character.id ?? state.characterId,
@@ -667,6 +678,7 @@ export const BuildEditor: React.FC = () => {
                           isArtEditMode={isArtEditMode}
                           onCustomArtUpload={handleCustomArtUpload}
                           onArtTransformChange={setArtTransform}
+                          selectedSubstats={selectedSubstats}
                         />
                       </div>
                     </div>
@@ -687,6 +699,7 @@ export const BuildEditor: React.FC = () => {
                           isArtEditMode={isArtEditMode}
                           onCustomArtUpload={handleCustomArtUpload}
                           onArtTransformChange={setArtTransform}
+                          selectedSubstats={selectedSubstats}
                         />
                     </CardScaler>
                   )}

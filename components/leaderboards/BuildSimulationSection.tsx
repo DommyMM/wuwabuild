@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -185,7 +186,12 @@ interface BuildSimulationSectionProps {
   baseDamage?: number;
   globalRank?: number;
   currentScoring?: ScoringMode;
-  onViewInEditor?: () => void;
+  /** Leaderboard surfaces: hand the reader to the owner's profile, where the full card lives. */
+  viewProfileHref?: string;
+  /** Analytics hook for the profile link; navigation is the Link's own. */
+  onViewProfile?: () => void;
+  /** Profile surface (or an anonymous build with no profile to go to): load the build into the editor. */
+  onOpenInEditor?: () => void;
 }
 
 export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
@@ -201,7 +207,9 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   baseDamage,
   globalRank,
   currentScoring = 'adjusted',
-  onViewInEditor,
+  viewProfileHref,
+  onViewProfile,
+  onOpenInEditor,
 }) => {
   const { getWeapon, getSubstatValues, getSubstatRollProbabilities, statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
@@ -350,13 +358,19 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     // Width comes from the host shell so every section of the expanded row
     // shares one measure; this component never sets its own max-width.
     <div className="relative w-full space-y-3 font-plus-jakarta">
-      {onViewInEditor && (
+      {viewProfileHref ? (
         <div className={CONTROL_ROW_CLASS}>
-          <button type="button" onClick={onViewInEditor} className={ACTION_BUTTON_CLASS}>
-            View in Editor
+          <Link href={viewProfileHref} onClick={onViewProfile} className={ACTION_BUTTON_CLASS}>
+            View in Profile
+          </Link>
+        </div>
+      ) : onOpenInEditor ? (
+        <div className={CONTROL_ROW_CLASS}>
+          <button type="button" onClick={onOpenInEditor} className={ACTION_BUTTON_CLASS}>
+            Open in Editor
           </button>
         </div>
-      )}
+      ) : null}
 
       {hasBoardContext && (
         <>

@@ -19,6 +19,7 @@ interface ProfileRankSectionProps {
   activeBoard: RankBoard | null;
   standings: LBStandingEntry[];
   standingsLoading: boolean;
+  boardHref?: string | null;
 }
 
 /**
@@ -32,6 +33,7 @@ export const ProfileRankSection: React.FC<ProfileRankSectionProps> = ({
   activeBoard,
   standings,
   standingsLoading,
+  boardHref = null,
 }) => {
   const selected = useSelectedCharacter();
   const { state } = useBuild();
@@ -166,6 +168,7 @@ export const ProfileRankSection: React.FC<ProfileRankSectionProps> = ({
         board={activeBoard}
         team={team}
         loading={standingsLoading && availableBoards.length === 0}
+        boardHref={boardHref}
       />
     </div>
   );
