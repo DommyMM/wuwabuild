@@ -46,7 +46,7 @@ interface CDNSkillTreeNode {
   parentNodes: number[];
   name: string; // English stat name (e.g. "Crit. Rate+", "ATK+")
   icon: string; // CDN stat icon URL
-  value: Array<{ Id: number; Value: number; IsRatio: boolean }>;
+  value: Array<{ id: number; value: number; isRatio: boolean }>;
   valueText: string[];
 }
 
@@ -93,7 +93,7 @@ export interface CDNCharacter {
   icon: { iconRound: string; banner: string };
   skins: Array<{ id: number; icon: { iconRound: string; banner: string }; color: Record<string, string | null> }>;
   tags: Array<{ id: number; name: I18nString; icon: string }>;
-  stats: { Life: number; Atk: number; Def: number; Crit: number; CritDamage: number; DamageChangeNormalSkill?: number };
+  stats: { life: number; atk: number; def: number; crit: number; critDamage: number; damageChangeNormalSkill?: number };
   skillIcons?: Record<string, string>;
   skillTrees?: CDNSkillTreeNode[];
   chains?: CDNChainEntry[];
@@ -349,9 +349,9 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     Role: role,
     Bonus1: bonus1,
     Bonus2: bonus2,
-    HP: cdn.stats.Life,
-    ATK: cdn.stats.Atk,
-    DEF: cdn.stats.Def,
+    HP: cdn.stats.life,
+    ATK: cdn.stats.atk,
+    DEF: cdn.stats.def,
     ER: 100,
     cdnId: cdn.id,
     iconRound: cdn.icon.iconRound,
@@ -388,8 +388,8 @@ export const validateCDNCharacter = (value: unknown): value is CDNCharacter => {
     typeof char.icon?.banner === 'string' &&
     Array.isArray(char.skins) &&
     Array.isArray(char.tags) &&
-    typeof char.stats?.Life === 'number' && char.stats.Life > 0 &&
-    typeof char.stats?.Atk === 'number' && char.stats.Atk > 0 &&
-    typeof char.stats?.Def === 'number' && char.stats.Def > 0
+    typeof char.stats?.life === 'number' && char.stats.life > 0 &&
+    typeof char.stats?.atk === 'number' && char.stats.atk > 0 &&
+    typeof char.stats?.def === 'number' && char.stats.def > 0
   );
 };

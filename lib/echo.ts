@@ -42,7 +42,7 @@ export interface CDNEcho {
   bonuses?: Array<{ stat: string; value: number; characterCondition?: string[] }>;
   skill: {
     description: I18nString;
-    params: Array<{ ArrayString: string[] }>;
+    params: Array<{ arrayString: string[] }>;
   };
 }
 
@@ -225,7 +225,7 @@ export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
     ? {
       description: cdn.skill.description,
       params: Array.isArray(cdn.skill.params)
-        ? cdn.skill.params.map((entry) => Array.isArray(entry.ArrayString) ? entry.ArrayString.map((value) => String(value)) : [])
+        ? cdn.skill.params.map((entry) => Array.isArray(entry.arrayString) ? entry.arrayString.map((value) => String(value)) : [])
         : [],
     }
     : undefined,

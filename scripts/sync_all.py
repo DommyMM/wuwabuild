@@ -1,8 +1,8 @@
 """
 Run all sync scripts with default options.
 
-Fetches characters, weapons, echoes, fetters (element/sonata sets), and stat
-translations and writes them to public/Data. Wuthery is the default source;
+Fetches characters, weapons, echoes, fetters (element/sonata sets), stat
+translations and the in-game glossary, and writes them to public/Data. Wuthery is the default source;
 pass --encore to use Encore's faster early-patch sync path.
 Also generates backend OCR data and LB constants.
 Supported flags are routed only to child scripts that declare them.
@@ -66,6 +66,9 @@ def main() -> int:
             ("Echoes",     [sys.executable, str(scripts_dir / "sync_echoes.py"), "--fetch", *data_flags]),
             ("Fetters",    [sys.executable, str(scripts_dir / "sync_fetters.py"), *data_flags]),
             ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py"), *data_flags]),
+            # Terms reads the entity JSON that just landed to decide which
+            # glossary entries are reachable, so it has to follow them.
+            ("Terms",      [sys.executable, str(scripts_dir / "sync_terms.py"), *data_flags]),
             ("Image mirror", [sys.executable, str(scripts_dir / "mirror_images_to_public.py"), *mirror_flags]),
             ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py"), *backend_flags]),
             ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py"), *data_flags]),
@@ -74,6 +77,7 @@ def main() -> int:
         scripts = [
             ("Encore Data", [sys.executable, str(scripts_dir / "sync_encore.py"), *data_flags]),
             ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py"), *data_flags]),
+            ("Terms",      [sys.executable, str(scripts_dir / "sync_terms.py"), *data_flags]),
             ("Image mirror", [sys.executable, str(scripts_dir / "mirror_images_to_public.py"), *mirror_flags]),
             ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py"), *backend_flags]),
             ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py"), *data_flags]),

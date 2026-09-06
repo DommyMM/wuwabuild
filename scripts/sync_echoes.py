@@ -16,11 +16,14 @@ import argparse
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from game_text import normalize_param_value, sanitize_i18n_value
 from cdn_config import (
+    pick,
     CDN_BASE,
     encore_request_json,
     request_json_with_retry,
     write_json_atomic,
+    write_records_atomic,
 )
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
@@ -128,7 +131,7 @@ def _extract_character_condition(desc: str, match_start: int, match_end: int) ->
 def extract_main_slot_bonuses(skill: dict) -> list[dict] | None:
     """Extract first-panel bonuses from echo skill description."""
     desc = (skill.get("descriptionEx") or {}).get("en") or ""
-    params = (skill.get("levelDescriptionStrArray") or [{}])[0].get("ArrayString") or []
+    params = pick((skill.get("levelDescriptionStrArray") or [{}])[0], "arrayString", "ArrayString", default=[]) or []
     bonuses = []
     for sentence in _iter_echo_equip_sentences(desc):
         for regex, stat in STAT_PATTERNS:
@@ -198,6 +201,23 @@ def _apply_name_fallback(raw: dict, encore_names: dict[int, str]) -> dict:
     return name
 
 
+def _sanitize_skill_params(params: Any) -> Any:
+    """Normalize the per-level value arrays that fill the description's {N} slots.
+
+    Emitted as ``arrayString`` regardless of how the source spelled it, so the
+    frontend has one key to read.
+    """
+    if not isinstance(params, list):
+        return params
+    out = []
+    for entry in params:
+        values = pick(entry, "arrayString", "ArrayString")
+        if isinstance(values, list):
+            entry = {"arrayString": [normalize_param_value(v) for v in values]}
+        out.append(entry)
+    return out
+
+
 def transform_echo(raw: dict, encore_names: dict[int, str] | None = None) -> dict:
     """Transform raw Phantom JSON to our Echo schema."""
     icon_path = raw["icon"].get("icon", "")
@@ -212,8 +232,11 @@ def transform_echo(raw: dict, encore_names: dict[int, str] | None = None) -> dic
         "icon": icon_path,
         "skill": {
             # Keep the full i18n object so the frontend can localize; was .en-only.
-            "description": raw["skill"].get("descriptionEx") or {},
-            "params": raw["skill"].get("levelDescriptionStrArray"),
+            # Sanitized for the same reason weapon effects are: echo skill text
+            # carries {Cus:Ipt,...} / {Cus:Sap,...} tokens that would otherwise
+            # render literally in the echo hover card.
+            "description": sanitize_i18n_value(raw["skill"].get("descriptionEx") or {}),
+            "params": _sanitize_skill_params(raw["skill"].get("levelDescriptionStrArray")),
         },
         "legacyId": legacy_id or str(raw.get("id", "") or ""),
     }
@@ -450,7 +473,7 @@ def main() -> int:
                 print(f"  {e['name']['en']} (cost {e['cost']}): {e['bonuses']}")
     else:
         kwargs = {"indent": 2, "ensure_ascii": False} if args.pretty else {"separators": (",", ":"), "ensure_ascii": False}
-        write_json_atomic(OUTPUT_FILE, echoes, **kwargs)
+        write_records_atomic(OUTPUT_FILE, echoes, **kwargs)
         print(f"\nWrote {len(echoes)} echoes to {OUTPUT_FILE}")
     return 0
 

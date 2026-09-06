@@ -24,9 +24,11 @@ wuwabuilds/
 │   ├── sync_echoes.py        # Echo sync (Python, Wuthery Grouped/Phantom, with Encore name fallback)
 │   ├── sync_fetters.py       # Sonata/element set sync (Python, Wuthery LocalizationIndex)
 │   ├── sync_encore.py        # Combined characters/weapons/echoes/fetters sync via Encore API (--encore)
+│   ├── sync_terms.py         # In-game glossary (TermConfig) via Encore -> Terms.json
 │   ├── sync_lb.py            # Generate LB calculator data from the canonical frontend JSON
 │   ├── stat_translations.py  # Stat i18n + icon URL sync -> Stats.json
-│   ├── cdn_config.py         # Shared retry, merge, and atomic-write helpers
+│   ├── cdn_config.py         # Shared retry, merge, casing-tolerant reads, atomic writes
+│   ├── game_text.py          # Shared game-text sanitizer + Encore markup normalizer
 │   ├── sync_backend.py       # Single source of truth for ../backend/Data: OCR JSON schema + all SIFT templates (elements/characters/weapons/echoes), id-keyed WebP
 │   ├── mirror_images_to_public.py # Mirror all image refs into ../public/assets/ as WebP, rewrite Data JSONs to /assets/... (see docs/data-pipeline.md)
 │   ├── migrate_r2_png_to_jpg.py # Quarantined R2 copy-migration helper (preview by default)
@@ -39,6 +41,7 @@ wuwabuilds/
 │   ├── Weapons/              # Individual weapon JSONs (--individual)
 │   ├── Echoes.json           # Combined echo data
 │   ├── Fetters.json          # Sonata/element set data — see below
+│   ├── Terms.json            # In-game glossary entries linked by <te href=N> — see below
 │   ├── EchoStats.json        # Echo main-stat ranges + substat roll tables
 │   ├── Stats.json            # Localized stat labels + icon URLs
 │   ├── CharacterCurve.json   # Static character scaling curve (copied to lb)
@@ -178,6 +181,63 @@ The `chains` field is a flat array of 6 localized resonance chain entries (S1–
 
 - `description`: Contains markup tags like `<color=Highlight>` and `<te href=...>` (game text formatting)
 - `param`: Array of string values that fill `{0}`, `{1}`, etc. placeholders in the description
+
+### Game text: what survives the sync
+
+Every description we ship goes through `game_text.sanitize_game_text`, which
+resolves the game's own control tokens and keeps the markup the frontend can
+render:
+
+| In the source | Shipped as | Why |
+|---|---|---|
+| `{0}` | `{0}` | Paired with the entry's `param` array so the frontend can highlight resolved values |
+| `<color=Highlight>` | kept | Maps onto our palette in `lib/text/gameText.tsx` |
+| `<te href=850008>` | kept | The id is a `TermConfig` row; it opens the glossary card |
+| `{Cus:Ipt,…PC=Press…}` | `Press` | Platform-input token; dropping it loses the verb |
+| `{Cus:Sap,S=point P=points SapTag=0}` | `points` | Singular/plural noun; the count comes from the matching `<SapTag=0>` wrapper. **Tags are usually numeric**, so the pattern must accept `\w+`, not `[A-Za-z]+` |
+| `<SapTag=…>`, `<size=…>` | dropped | Layout/control only |
+
+`sync_weapons.py` and `sync_echoes.py` run the same sanitizer. Without it those
+files ship raw `{Cus:…}` tokens, and `renderGameTemplateWithHighlights` only
+resolves `{N}` placeholders, so the token shows up verbatim in the UI.
+
+### Terms.json (In-Game Glossary)
+
+Character, weapon and echo text links keywords as `<te href=850008>Spectro
+Frazzle</te>`. The id is a row in the game's `TermConfig` table.
+
+**Encore is the only usable source.** Wuthery dumps the table at
+`ConfigDBParsed/TermConfig.json`, but only with its Chinese key and no resolved
+title or body, and there is no TextMaps entry for it. Encore's `/{lang}/term`
+returns all 593 rows fully localized in one call per language.
+
+Scope is reachability, not the whole table: `sync_terms.py` collects every id our
+shipped JSON links, follows ids linked from those terms' own bodies, and writes
+just those. That is ~223 of 593 entries — sequences, weapons and combat statuses,
+without the ~370 lore rows nothing points at.
+
+Encore's HTML is rewritten back into the game's own markup by
+`game_text.normalize_encore_markup` before it is stored.
+
+Languages: the nine the site offers that the game actually translates. There is
+no `uk` glossary in the game, and the frontend's `t()` falls back to English.
+
+### Source casing and lost languages
+
+Two things about Wuthery have bitten every sync in this directory:
+
+1. **Field names migrate to camelCase in stages.** `Grouped/*` flipped first;
+   `LocalizationIndex/*`, `stats.Life`, `value[].IsRatio`, `arrayString` and
+   `PropertyIndexs` followed later. A read of the old spelling does not error, it
+   silently yields `None`, which is how forte-node values quietly became `0` and
+   `Stats.json` became `{}`. All reads therefore go through `cdn_config.pick`,
+   which accepts either spelling; writes always emit camelCase.
+2. **The dumper stopped emitting Ukrainian.** A full sync replaces every record,
+   so without help `uk` disappears even though nothing upstream said it was
+   wrong. `write_records_atomic` (id-keyed lists) and `write_mapping_atomic`
+   (`Stats.json`) backfill language keys the incoming payload no longer carries.
+   Only empty-or-absent leaves are touched, so a language the source still
+   provides always wins.
 
 ### preferredStats (Recommended Echo Substats)
 

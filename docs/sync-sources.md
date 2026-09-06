@@ -6,11 +6,45 @@ The script-level reference is [`scripts/CDN_SYNC.md`](../scripts/CDN_SYNC.md). T
 
 ## TL;DR
 
-- Wuthery is one polyglot JSON per entity (all 14 languages in a single file) but slow, flaky, and can lag current patches — list calls take 10–17s and parallel fetches drop connections mid-stream.
+- Wuthery is one polyglot JSON per entity but slow and flaky — list calls take 10–17s and parallel fetches drop connections mid-stream.
 - Encore is a real REST API: tiny per-language responses, ~200–400ms per call, no observed flakiness, exposes a `/new` changelog endpoint with `GameVer` / `ResVer` / list of newly-added IDs.
-- Earlier measurements had both sources on the same game version, but newer patch catch-up has favored Encore. Keep Wuthery as the default source and use Encore for targeted catch-up when freshness matters.
+- **Wuthery is the source of record for entity text. Encore does two narrow jobs: `/new` as the freshness trigger, and `/term` as the glossary.** See the verdict below.
 - Schemas differ enough that we need a transformer layer; field coverage on Encore is a superset of what we currently consume.
 - Wuthery can still have per-field localization gaps even when it has the new entity. Example: echo item `60001995` has blank `name.en` in Wuthery, while Encore exposes the English name through its echo list/detail keyed by `MonsterId`.
+
+## Verdict (re-measured 2026-09-06)
+
+Freshness is a tie, so the choice comes down to text shape. Both sources were on
+the same game version: Wuthery's dump reported `packageVersion 3.6.0`,
+changeList 8619629, generated 2026-09-04, and a fresh sanitize of its raw text
+matched Encore on 345 of 372 chain strings, with the 27 exceptions all above a
+0.965 similarity ratio (wording noise, not content).
+
+| | Wuthery | Encore |
+|---|---|---|
+| Languages the game actually translates | 10 | 10 (`id`/`ru`/`vi` return `"???"`, `uk` 400s) |
+| Ukrainian | names only, from older dumps | none |
+| Text form | `{0}` templates + param array | pre-substituted; templates must be regex-reconstructed |
+| Highlights | semantic `<color=Highlight>` | inline hex spans |
+| Structure | `
+
+` section breaks | no newlines at all |
+| Markup validity | balanced | stray `</span>` in most long strings |
+| Glossary | `TermConfig.json` ids only, no resolved text | `/{lang}/term`, all 593 rows localized |
+| Sonata sets | structured `addProp` | free text only |
+| Version signal | none | `/{lang}/new` |
+
+The Encore path is not free. Jingran and Qingxiao were its only two characters,
+and both showed the cost: **zero** parseable description sections in
+`lb/internal/calc/data/character_bases.json` (every Wuthery-sourced character has
+5–28), because `move_types.go` splits sections on blank lines that Encore's text
+does not have. They also rendered with no highlight colour, since the frontend
+palette only understands `<color=Name>`. Both were re-synced from Wuthery.
+
+`game_text.normalize_encore_markup` now rewrites Encore's HTML back into the
+game's conventions — `<br>` to newlines, hex spans to semantic colour names,
+surplus closers dropped — so the `--encore` path stays usable for catch-up
+without re-introducing those defects.
 
 ## Empirical Comparison
 

@@ -30,9 +30,6 @@ interface HoverTooltipProps {
   triggerClassName?: string;
   maxRisePx?: number;
   pinViewportBottom?: boolean;
-  // Optional node rendered as a sibling of the panel, outside its overflow-hidden box.
-  // Use this for decorations that should visually "hang" off the panel (e.g. an entity icon
-  // protruding top-left). Absolute positioning is up to the caller.
   leadingNode?: ReactNode;
   visualOverflow?: TooltipVisualOverflow;
 }
@@ -44,6 +41,7 @@ type TooltipTriggerProps = React.HTMLAttributes<HTMLElement> & {
 };
 
 const VIEWPORT_PADDING = 8;
+const CLOSE_DELAY_MS = 120;
 
 const NATIVE_FOCUSABLE_ELEMENTS = new Set([
   'button',
@@ -163,6 +161,8 @@ export function HoverTooltip({
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pointerInsideRef = useRef(false);
+  const pointerInPanelRef = useRef(false);
+  const closeTimerRef = useRef<number | null>(null);
   const focusWithinRef = useRef(false);
   const suppressPointerFocusRef = useRef(false);
   const suppressFocusFrameRef = useRef<number | null>(null);
@@ -186,22 +186,53 @@ export function HoverTooltip({
 
   const shouldShow = !disabled && hasContent;
 
+  const cancelScheduledClose = useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  // Closing is deferred so the pointer can travel from the trigger into the
+  // panel (and back) without the card disappearing mid-gesture.
+  const scheduleClose = useCallback(() => {
+    cancelScheduledClose();
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      if (pointerInsideRef.current || pointerInPanelRef.current || focusWithinRef.current) return;
+      setIsOpen(false);
+    }, CLOSE_DELAY_MS);
+  }, [cancelScheduledClose]);
+
   const handlePointerEnter = useCallback((event: React.PointerEvent) => {
     // A tap fires enter and down in the same gesture, so on touch the
     // open/close decision lives in handlePointerDownCapture (tap toggles);
     // reacting here would make every tap insta-close what it just opened.
     if (event.pointerType === 'touch') return;
+    cancelScheduledClose();
     pointerInsideRef.current = true;
     setIsOpen(true);
-  }, []);
+  }, [cancelScheduledClose]);
 
   const handlePointerLeave = useCallback((event: React.PointerEvent) => {
     // Touch synthesizes leave right after pointerup; ignoring it keeps the
     // tap-opened tooltip up. Tap-away dismissal is the document listener below.
     if (event.pointerType === 'touch') return;
     pointerInsideRef.current = false;
-    if (!focusWithinRef.current) setIsOpen(false);
-  }, []);
+    scheduleClose();
+  }, [scheduleClose]);
+
+  const handlePanelPointerEnter = useCallback((event: React.PointerEvent) => {
+    if (event.pointerType === 'touch') return;
+    cancelScheduledClose();
+    pointerInPanelRef.current = true;
+  }, [cancelScheduledClose]);
+
+  const handlePanelPointerLeave = useCallback((event: React.PointerEvent) => {
+    if (event.pointerType === 'touch') return;
+    pointerInPanelRef.current = false;
+    scheduleClose();
+  }, [scheduleClose]);
 
   const handleFocusCapture = useCallback(() => {
     if (suppressPointerFocusRef.current) {
@@ -238,9 +269,12 @@ export function HoverTooltip({
   const handleBlurCapture = useCallback((event: React.FocusEvent<HTMLDivElement>) => {
     const nextTarget = event.relatedTarget;
     if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) return;
+    // Focus can also move into the panel itself, which lives in a portal and so
+    // is not a DOM descendant of the trigger.
+    if (nextTarget instanceof Node && tooltipRef.current?.contains(nextTarget)) return;
 
     focusWithinRef.current = false;
-    if (!pointerInsideRef.current) setIsOpen(false);
+    if (!pointerInsideRef.current && !pointerInPanelRef.current) setIsOpen(false);
   }, []);
 
   const updateScrollHint = useCallback(() => {
@@ -364,7 +398,16 @@ export function HoverTooltip({
     if (suppressFocusFrameRef.current !== null) {
       window.cancelAnimationFrame(suppressFocusFrameRef.current);
     }
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+    }
   }, []);
+
+  // A closed panel is unmounted, so the pointer can never leave it: reset the
+  // flag or a later open would think the pointer is still inside.
+  useEffect(() => {
+    if (!isOpen) pointerInPanelRef.current = false;
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -479,8 +522,10 @@ export function HoverTooltip({
           id={tooltipId}
           ref={tooltipRef}
           role="tooltip"
-          style={{ top: position.top, left: position.left, pointerEvents: 'none' }}
-          className="pointer-events-none fixed z-60"
+          style={{ top: position.top, left: position.left }}
+          className="fixed z-60"
+          onPointerEnter={handlePanelPointerEnter}
+          onPointerLeave={handlePanelPointerLeave}
         >
           <div
             className={`relative max-h-[90vh] max-w-xl overflow-hidden rounded-xl p-2.5 md:rounded-2xl md:p-3 border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${tooltipClassName}`}

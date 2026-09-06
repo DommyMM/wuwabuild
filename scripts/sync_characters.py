@@ -20,31 +20,21 @@ from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from cdn_config import (
     CDN_BASE,
+    pick,
     merge_records_by_id,
     request_json_with_retry,
     write_json_atomic,
+    write_records_atomic,
+)
+from game_text import (
+    normalize_param_value as _normalize_param_value,
+    sanitize_game_text as _sanitize_game_text,
+    sanitize_i18n_value as _sanitize_i18n_value,
 )
 
 # Regex to extract legacy ID from iconRound URL
 # e.g. "T_IconRoleHeadCircle256_26_UI.png" -> 26
 LEGACY_ID_PATTERN = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI\.png")
-NUMBER_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
-NON_PARAM_BRACE_TOKEN_PATTERN = re.compile(r"\{(?!\d+\})[^{}]+\}")
-# Platform-input tokens like {Cus:Ipt,Touch=Tap PC=Press Gamepad=Press}: keep the
-# PC label ("Press") instead of dropping the verb from the sentence.
-INPUT_TOKEN_PATTERN = re.compile(r"\{Cus:Ipt[^{}]*?PC=([^,}\s]+)[^{}]*\}", re.IGNORECASE)
-SIZE_TAG_PATTERN = re.compile(r"</?size(?:=[^>]+)?>", re.IGNORECASE)
-TEXT_ENTRY_TAG_PATTERN = re.compile(r"</?te\b[^>]*>", re.IGNORECASE)
-SAP_TAG_PATTERN = re.compile(r"</?SapTag[^>]*>", re.IGNORECASE)
-# Singular/plural tokens like {Cus:Sap,S=stack P=stacks SapTag=A}: the count that
-# decides the form is wrapped nearby as <SapTag=A>1</SapTag>. Dropping the token
-# leaves the noun out of the sentence ("1 of Swordlight Ward"), so resolve it.
-SAP_COUNT_PATTERN = re.compile(r"<SapTag=([A-Za-z]+)>(.*?)</SapTag>", re.IGNORECASE | re.DOTALL)
-SAP_TOKEN_PATTERN = re.compile(
-    r"\{Cus:Sap,\s*S=(.*?)\s+P=(.*?)\s+SapTag=([A-Za-z]+)\s*\}",
-    re.IGNORECASE,
-)
-
 # Sequence bonus parsing, embedded into each chain entry at sync time.
 # Maps game description text patterns to our StatName values.
 # More-specific patterns must appear before shorter overlapping ones.
@@ -409,14 +399,39 @@ def prune_default_skins(skins: Any, base_icon: Any) -> list[dict]:
     ]
 
 
+# The source has renamed these keys between dumps ("Life" -> "life"), so the
+# output spelling is pinned here rather than inherited from whatever arrives.
+_STAT_KEYS = ("life", "atk", "def", "crit", "critDamage", "damageChangeNormalSkill")
+_STAT_KEY_BY_LOWER = {key.lower(): key for key in _STAT_KEYS}
+
+
+def _camel_stat_key(key: str) -> str:
+    return _STAT_KEY_BY_LOWER.get(str(key).lower(), str(key))
+
+
 def extract_stats(value: Any) -> Any:
-    """Extract just the numeric value from each stat entry."""
+    """Extract just the numeric value from each stat entry, on stable keys."""
     if isinstance(value, dict):
         return {
-            k: (v.get("value") if isinstance(v, dict) and "value" in v else v)
+            _camel_stat_key(k): (pick(v, "value", "Value") if isinstance(v, dict) else v)
             for k, v in value.items()
         }
     return value
+
+
+def _normalize_node_values(values: Any) -> Any:
+    """Forte-node stat entries, pinned to camelCase for the same reason."""
+    if not isinstance(values, list):
+        return values
+    return [
+        {
+            "id": pick(entry, "id", "Id"),
+            "value": pick(entry, "value", "Value"),
+            "isRatio": bool(pick(entry, "isRatio", "IsRatio", default=False)),
+        }
+        if isinstance(entry, dict) else entry
+        for entry in values
+    ]
 
 
 def extract_legacy_id(data: dict) -> str | None:
@@ -472,7 +487,7 @@ def simplify_skill_trees(trees: Any) -> list[dict] | None:
             "parentNodes": node.get("parentNodes"),
             "name": name,
             "icon": icon,
-            "value": params.get("value"),
+            "value": _normalize_node_values(pick(params, "value", "Value")),
             "valueText": params.get("valueText"),
         })
 
@@ -1108,88 +1123,6 @@ def _extract_skill_tree_substats(skill_trees: dict | list[dict] | None) -> list[
     return [stat for stat in ("HP", "ATK", "DEF") if stat in found_stats]
 
 
-def _round2(value: float) -> float:
-    # Normalize float noise from CDN values (e.g. 262.4999999999997 -> 262.5)
-    return round(value, 2)
-
-
-def _format_rounded_number(value: float) -> str:
-    rounded = _round2(value)
-    if float(rounded).is_integer():
-        return str(int(rounded))
-    return f"{rounded:.2f}".rstrip("0").rstrip(".")
-
-
-def _resolve_sap_tokens(value: str) -> str:
-    """Replace {Cus:Sap,...} tokens with the singular or plural noun.
-
-    The form is chosen from the count the token points at (`<SapTag=A>1</SapTag>`
-    → singular, anything else → plural, including an unresolved `{N}` placeholder).
-    Some source strings already spell the noun out right after the token
-    ("applies 2 {Cus:Sap,S=stack P=stacks SapTag=A} stacks of ..."), so a word
-    that would immediately repeat itself is dropped instead of duplicated.
-    """
-    if "{Cus:Sap" not in value:
-        return value
-
-    counts = {
-        tag.upper(): re.sub(r"[^0-9.]", "", NON_PARAM_BRACE_TOKEN_PATTERN.sub("", count))
-        for tag, count in SAP_COUNT_PATTERN.findall(value)
-    }
-
-    out: list[str] = []
-    position = 0
-    for match in SAP_TOKEN_PATTERN.finditer(value):
-        singular, plural, tag = (group.strip() for group in match.groups())
-        word = singular if counts.get(tag.upper()) == "1" else plural
-        out.append(value[position:match.start()])
-        following = value[match.end():]
-        if not re.match(rf"\s*{re.escape(word)}\b", following, re.IGNORECASE):
-            out.append(word)
-        position = match.end()
-    out.append(value[position:])
-    return "".join(out)
-
-
-def _sanitize_game_text(value: str) -> str:
-    """Remove control tokens like {Cus:Ipt,...} while keeping numeric placeholders."""
-    if not value:
-        return ""
-    cleaned = INPUT_TOKEN_PATTERN.sub(r"\1", value)
-    cleaned = _resolve_sap_tokens(cleaned)
-    cleaned = NON_PARAM_BRACE_TOKEN_PATTERN.sub("", cleaned)
-    cleaned = SIZE_TAG_PATTERN.sub("", cleaned)
-    cleaned = TEXT_ENTRY_TAG_PATTERN.sub("", cleaned)
-    cleaned = SAP_TAG_PATTERN.sub("", cleaned)
-    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
-    cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
-    return cleaned
-
-
-def _sanitize_i18n_value(value: Any) -> Any:
-    if isinstance(value, dict):
-        return {
-            key: _sanitize_game_text(text) if isinstance(text, str) else text
-            for key, text in value.items()
-        }
-    if isinstance(value, str):
-        return _sanitize_game_text(value)
-    return value
-
-
-def _normalize_param_value(value: Any) -> str:
-    text = _sanitize_game_text(str(value))
-
-    def repl(match: re.Match[str]) -> str:
-        raw = match.group(0)
-        try:
-            return _format_rounded_number(float(raw))
-        except (TypeError, ValueError):
-            return raw
-
-    return NUMBER_TOKEN_PATTERN.sub(repl, text)
-
-
 def _resanitize_existing_character_text_fields(character: dict[str, Any]) -> None:
     for chain in character.get("chains") or []:
         if not isinstance(chain, dict):
@@ -1571,7 +1504,7 @@ def main():
             print(f"\nDone: {len(characters)} characters → {args.output}")
         else:
             # Default: combined Characters.json
-            write_json_atomic(combined_path, combined_characters, **json_kwargs)
+            write_records_atomic(combined_path, combined_characters, **json_kwargs)
             size_kb = combined_path.stat().st_size / 1024
             print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(combined_characters)} characters)")
             print(f"\nDone: {len(combined_characters)} characters → {combined_path}")

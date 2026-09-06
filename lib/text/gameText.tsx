@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { CDNFetter } from '@/lib/echo';
+import { TermHoverCard } from '@/components/ui/TermHoverCard';
 
 const PLACEHOLDER_PATTERN = /\{(\d+)\}/g;
 const MARKUP_TAG_PATTERN = /<\/?[a-zA-Z][^>]*>|<br\s*\/?>/giu;
@@ -9,6 +10,7 @@ const OPEN_SIZE_PATTERN = /^<size=([^>]+)>$/iu;
 const CLOSE_SIZE_PATTERN = /^<\/size>$/iu;
 const OPEN_TEXT_ENTRY_PATTERN = /^<te\b[^>]*>$/iu;
 const CLOSE_TEXT_ENTRY_PATTERN = /^<\/te>$/iu;
+const TEXT_ENTRY_ID_PATTERN = /href=(\d+)/iu;
 
 const GAME_COLOR_STYLES: Record<string, React.CSSProperties> = {
   Highlight: { color: '#f8e39a' },
@@ -24,6 +26,8 @@ const GAME_COLOR_STYLES: Record<string, React.CSSProperties> = {
 interface MarkupState {
   colorName?: string;
   sizePx?: number;
+  // TermConfig id from a <te href=N> glossary link wrapping this run of text.
+  termId?: number;
 }
 
 interface TextSegment {
@@ -37,6 +41,8 @@ interface RenderTemplateWithHighlightsArgs {
   highlightClassName?: string;
   keepUnknownPlaceholders?: boolean;
   unknownPlaceholderClassName?: string;
+  /** Nesting level when rendering a glossary card's own body. */
+  termDepth?: number;
 }
 
 interface FetterPieceDescriptionResult {
@@ -102,6 +108,7 @@ const parseGameMarkupSegments = (input: string): TextSegment[] => {
   const state: MarkupState = {};
   const colorStack: Array<string | undefined> = [];
   const sizeStack: Array<number | undefined> = [];
+  const termStack: Array<number | undefined> = [];
   let cursor = 0;
 
   const pushText = (text: string) => {
@@ -134,8 +141,13 @@ const parseGameMarkupSegments = (input: string): TextSegment[] => {
         state.sizePx = Number.isFinite(parsedSize) ? parsedSize : state.sizePx;
       } else if (CLOSE_SIZE_PATTERN.test(rawTag)) {
         state.sizePx = sizeStack.pop();
-      } else if (OPEN_TEXT_ENTRY_PATTERN.test(rawTag) || CLOSE_TEXT_ENTRY_PATTERN.test(rawTag)) {
-        // Drop game glossary link wrappers but keep their contents.
+      } else if (OPEN_TEXT_ENTRY_PATTERN.test(rawTag)) {
+        // Keep the glossary link: the id is what opens the term card.
+        termStack.push(state.termId);
+        const parsedTerm = Number(rawTag.match(TEXT_ENTRY_ID_PATTERN)?.[1]);
+        state.termId = Number.isFinite(parsedTerm) ? parsedTerm : state.termId;
+      } else if (CLOSE_TEXT_ENTRY_PATTERN.test(rawTag)) {
+        state.termId = termStack.pop();
       }
     }
 
@@ -152,13 +164,20 @@ const parseGameMarkupSegments = (input: string): TextSegment[] => {
 const renderTextSegmentWithHighlights = (
   segment: TextSegment,
   getParamValue: (index: number) => string | null,
-  options: Pick<RenderTemplateWithHighlightsArgs, 'highlightClassName' | 'keepUnknownPlaceholders' | 'unknownPlaceholderClassName'>,
+  options: Pick<RenderTemplateWithHighlightsArgs, 'highlightClassName' | 'keepUnknownPlaceholders' | 'unknownPlaceholderClassName' | 'termDepth'>,
   keyPrefix: string
 ): ReactNode[] => {
   const style = getGameTextStyle(segment.state);
-  const renderChunk = (content: ReactNode, key: string): ReactNode => (
-    style ? <span key={key} style={style}>{content}</span> : <React.Fragment key={key}>{content}</React.Fragment>
-  );
+  const termId = segment.state.termId;
+  const renderChunk = (content: ReactNode, key: string): ReactNode => {
+    const styled = style ? <span style={style}>{content}</span> : content;
+    // A glossary keyword is one run of text, so the card wraps the whole
+    // segment rather than each placeholder-split chunk inside it.
+    const linked = termId != null
+      ? <TermHoverCard termId={termId} depth={options.termDepth ?? 0}>{styled}</TermHoverCard>
+      : styled;
+    return <React.Fragment key={key}>{linked}</React.Fragment>;
+  };
 
   const parts: ReactNode[] = [];
   let cursor = 0;
@@ -254,6 +273,7 @@ export const renderGameTemplateWithHighlights = ({
   highlightClassName = 'text-cyan-200 font-semibold',
   keepUnknownPlaceholders = true,
   unknownPlaceholderClassName = 'text-amber-200/90 font-semibold',
+  termDepth = 0,
 }: RenderGameTemplateWithHighlightsArgs): ReactNode => {
   if (!template) return null;
 
@@ -271,6 +291,7 @@ export const renderGameTemplateWithHighlights = ({
           highlightClassName,
           keepUnknownPlaceholders,
           unknownPlaceholderClassName,
+          termDepth,
         },
         `segment-${index}`,
       ))}

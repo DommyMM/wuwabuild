@@ -39,7 +39,8 @@ Usage:
 import json
 import argparse
 from pathlib import Path
-from cdn_config import CDN_BASE, request_json_with_retry, write_json_atomic
+from cdn_config import CDN_BASE, pick, request_json_with_retry, write_records_atomic
+from game_text import sanitize_i18n_value
 
 try:
     import requests
@@ -136,13 +137,13 @@ def prepend_cdn(path: str) -> str:
 
 
 def normalise_prop(prop: dict) -> dict:
-    """Normalise AddProp entry: camelCase keys, value as percentage if IsRatio."""
-    raw_value = prop["Value"]
-    is_ratio = prop["IsRatio"]
+    """Normalise an addProp entry: camelCase keys, value as percentage if a ratio."""
+    raw_value = pick(prop, "value", "Value")
+    is_ratio = bool(pick(prop, "isRatio", "IsRatio", default=False))
     # CDN stores ratios as e.g. 0.1 (= 10%), multiply to get human-readable %
     value = round(raw_value * 100, 4) if is_ratio else raw_value / 10
     return {
-        "id":      prop["Id"],
+        "id":      pick(prop, "id", "Id"),
         "value":   value,
         "isRatio": is_ratio,
     }
@@ -150,16 +151,16 @@ def normalise_prop(prop: dict) -> dict:
 
 def build_piece_effect(piece_count: int, fetter: dict, config_fetter: dict | None) -> dict:
     """Build one activation-tier payload from a PhantomFetter row."""
-    effect_description_param = config_fetter.get("EffectDescriptionParam", []) if isinstance(config_fetter, dict) else []
+    effect_description_param = pick(config_fetter, "effectDescriptionParam", "EffectDescriptionParam", default=[]) if isinstance(config_fetter, dict) else []
     if not isinstance(effect_description_param, list):
         effect_description_param = []
 
     return {
         "pieceCount": piece_count,
-        "fetterId": fetter["Id"],
-        "addProp": [normalise_prop(p) for p in fetter.get("AddProp", [])],
-        "buffIds": fetter.get("BuffIds", []),
-        "effectDescription": fetter.get("EffectDescription", {}),
+        "fetterId": pick(fetter, "id", "Id"),
+        "addProp": [normalise_prop(p) for p in pick(fetter, "addProp", "AddProp", default=[])],
+        "buffIds": pick(fetter, "buffIds", "BuffIds", default=[]),
+        "effectDescription": sanitize_i18n_value(pick(fetter, "effectDescription", "EffectDescription", default={})),
         "effectDescriptionParam": [str(v) for v in effect_description_param],
     }
 
@@ -198,20 +199,20 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
     print(f"  {len(fetters_config_raw)} config fetter entries")
 
     # Index individual fetter entries by their Id
-    fetters_by_id: dict[int, dict] = {f["Id"]: f for f in fetters_raw}
+    fetters_by_id: dict[int, dict] = {pick(f, "id", "Id"): f for f in fetters_raw}
     config_fetters_by_id: dict[int, dict] = {
-        int(f["Id"]): f for f in fetters_config_raw
-        if isinstance(f, dict) and "Id" in f
+        int(pick(f, "id", "Id")): f for f in fetters_config_raw
+        if isinstance(f, dict) and pick(f, "id", "Id") is not None
     }
 
     output: list[dict] = []
 
     for group in groups_raw:
-        group_id   = group["Id"]
-        fetter_map = group["FetterMap"]   # e.g. {"2": 1, "5": 2} or {"3": 192}
-        icon       = prepend_cdn(group["Icon"])
-        color      = group.get("FetterElementColor", "")
-        name       = group["FetterGroupName"]
+        group_id   = pick(group, "id", "Id")
+        fetter_map = pick(group, "fetterMap", "FetterMap")   # e.g. {"2": 1, "5": 2} or {"3": 192}
+        icon       = prepend_cdn(pick(group, "icon", "Icon", default=""))
+        color      = pick(group, "fetterElementColor", "FetterElementColor", default="")
+        name       = pick(group, "fetterGroupName", "FetterGroupName")
 
         # Pick the smallest piece count (2 for standard sets, 3 for 3-piece-only)
         sorted_keys = sorted(fetter_map.keys(), key=int)
@@ -238,7 +239,7 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
                 piece_effects[key]["displayBonuses"] = declared
 
         # Lore text is consistent across pieces, take from primary entry.
-        lore = fetter.get("EffectDefineDescription", {})
+        lore = pick(fetter, "effectDefineDescription", "EffectDefineDescription", default={})
         primary_config_fetter = config_fetters_by_id.get(int(fetter_id))
         primary_effect = piece_effects.get(piece_count_str, build_piece_effect(int(piece_count_str), fetter, primary_config_fetter))
 
@@ -254,7 +255,7 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
             "effectDescription": primary_effect["effectDescription"],
             "effectDescriptionParam": primary_effect["effectDescriptionParam"],
             "pieceEffects": piece_effects,
-            "fetterIcon": prepend_cdn(fetter.get("FetterIcon", "")),
+            "fetterIcon": prepend_cdn(pick(fetter, "fetterIcon", "FetterIcon", default="")),
             "effectDefineDescription": lore,
         }
         output.append(entry)
@@ -299,7 +300,7 @@ def main():
         print(f"\n(dry-run) {len(output)} groups, not written")
         return
 
-    write_json_atomic(OUTPUT, output, **json_kwargs)
+    write_records_atomic(OUTPUT, output, **json_kwargs)
 
     size_kb = OUTPUT.stat().st_size / 1024
     print(f"\nWrote {OUTPUT} [{size_kb:.1f} KB], {len(output)} fetter groups")

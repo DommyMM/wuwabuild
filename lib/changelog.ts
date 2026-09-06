@@ -14,6 +14,39 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-09-06',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Keywords like Spectro Frazzle and Floral Epistle are underlined in skill and sequence text, and explain themselves on hover',
+            },
+            {
+                kind: 'improved',
+                text: 'Hover cards stay open when you move onto them, so you can read, scroll and follow the keywords inside',
+            },
+            {
+                kind: 'fixed',
+                text: 'Suisui, Xuanling and Electro Rover were showing an older version of their kit text',
+            },
+            {
+                kind: 'fixed',
+                text: 'Skill text was dropping words like "points" and "stacks" after a number',
+            },
+            {
+                kind: 'fixed',
+                text: 'Six weapons and five echoes were printing raw markup in their descriptions',
+            },
+            {
+                kind: 'improved',
+                text: 'Profile header now lists UID, builds, ranked characters and the last update in one line',
+            },
+            {
+                kind: 'improved',
+                text: 'Build card tools sit in one row under the card',
+            },
+        ],
+    },
+    {
         date: '2026-09-05',
         changes: [
             {

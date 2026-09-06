@@ -28,7 +28,7 @@ import unicodedata
 _MARKUP_RE = re.compile(r"<[^>]+>")
 from pathlib import Path
 from typing import Any
-from cdn_config import write_bytes_atomic, write_json_atomic
+from cdn_config import pick, write_bytes_atomic, write_json_atomic
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPTS_DIR.parent / "public" / "Data"
@@ -1136,8 +1136,8 @@ def _parse_forte_node_value(node: dict) -> float:
     if isinstance(value_arr, list) and value_arr:
         first = value_arr[0]
         if isinstance(first, dict):
-            raw_val = float(first.get("Value", 0) or 0)
-            is_ratio = bool(first.get("IsRatio", False))
+            raw_val = float(pick(first, "value", "Value", default=0) or 0)
+            is_ratio = bool(pick(first, "isRatio", "IsRatio", default=False))
             return round((raw_val * 100) if is_ratio else (raw_val / 100), 4)
     return 0.0
 
@@ -2194,9 +2194,14 @@ def _build_character_bases(
         legacy_id = str(char.get("legacyId", "") or "").strip() or cdn_id
 
         stats = char.get("stats", {})
-        hp = int(round(float(stats.get("Life", 0) or 0)))
-        atk = int(round(float(stats.get("Atk", 0) or 0)))
-        defense = int(round(float(stats.get("Def", 0) or 0)))
+        hp = int(round(float(pick(stats, "life", "Life", default=0) or 0)))
+        atk = int(round(float(pick(stats, "atk", "Atk", default=0) or 0)))
+        defense = int(round(float(pick(stats, "def", "Def", default=0) or 0)))
+        # A renamed source key reads as 0 rather than failing, and a character
+        # with no base HP or ATK scores 0 damage on every board. DEF is exempt:
+        # some unreleased entries (Jingran) really do ship with 0.
+        if not hp or not atk:
+            raise ValueError(f"{name}: missing base stats in Characters.json (got {stats!r})")
 
         forte_nodes = _extract_forte_nodes(char)
         sequence_bonuses = _extract_sequence_bonuses(char)
@@ -2424,7 +2429,7 @@ def _build_echo_bases(
         if isinstance(raw_skill_params, list):
             for row in raw_skill_params:
                 if isinstance(row, dict):
-                    arr = row.get("ArrayString", [])
+                    arr = pick(row, "arrayString", "ArrayString", default=[])
                 elif isinstance(row, list):
                     arr = row
                 else:

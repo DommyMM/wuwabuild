@@ -18,7 +18,7 @@ Usage:
 import json
 import argparse
 from pathlib import Path
-from cdn_config import CDN_BASE, request_json_with_retry, write_json_atomic
+from cdn_config import CDN_BASE, pick, request_json_with_retry, write_mapping_atomic
 
 try:
     import requests
@@ -78,7 +78,7 @@ PCT_AFTER: dict[str, str] = {
 
 def get_icon_url(entry: dict) -> str:
     """Return full CDN icon URL from a PropertyIndexs entry, or empty string."""
-    icon = entry.get("Icon") or ""
+    icon = pick(entry, "icon", "Icon", default="") or ""
     return f"{CDN_BASE}{icon}" if icon.startswith("/d/") else ""
 
 
@@ -105,10 +105,10 @@ def main():
     # Index by Name.en, prefer IsShow=True entries when names collide (e.g. HP appears twice)
     by_en: dict[str, dict] = {}
     for p in props_raw:
-        en = p.get("Name", {}).get("en", "")
+        en = (pick(p, "name", "Name", default={}) or {}).get("en", "")
         if not en:
             continue
-        if en not in by_en or p.get("IsShow", False):
+        if en not in by_en or pick(p, "isShow", "IsShow", default=False):
             by_en[en] = p
 
     # Build ordered output, inserting % variants right after their base
@@ -121,7 +121,7 @@ def main():
             continue
 
         # Translations only (no icon yet, keep derive_percent clean)
-        i18n = {lang: entry["Name"].get(lang, "") for lang in LANGS}
+        i18n = {lang: (pick(entry, "name", "Name", default={}) or {}).get(lang, "") for lang in LANGS}
 
         # Icon URL from PropertyIndexs
         icon_url = get_icon_url(entry)
@@ -145,7 +145,7 @@ def main():
         print(f"\n(dry-run) {len(output)} stats, not written")
         return
 
-    write_json_atomic(OUTPUT, output, **json_kwargs)
+    write_mapping_atomic(OUTPUT, output, **json_kwargs)
 
     size_kb = OUTPUT.stat().st_size / 1024
     print(f"\nWrote {OUTPUT} [{size_kb:.1f} KB], {len(output)} stat entries")

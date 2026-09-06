@@ -18,11 +18,13 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from game_text import normalize_param_value, sanitize_i18n_value
 from cdn_config import (
     CDN_BASE,
     merge_records_by_id,
     request_json_with_retry,
     write_json_atomic,
+    write_records_atomic,
 )
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
@@ -75,7 +77,9 @@ CONDITIONAL_TRIGGER_PATTERN = re.compile(
 PASSIVE_PATTERNS: list[tuple[re.Pattern[str], list[str]]] = [
     (re.compile(r"\b(all-attribute dmg bonus|attribute dmg bonus)\b", re.IGNORECASE), ELEMENTAL_DMG_STATS),
     (re.compile(r"\benergy regen\b", re.IGNORECASE), ["Energy Regen"]),
-    (re.compile(r"\b(max hp is increased|increases? hp|hp is increased|increase hp)\b", re.IGNORECASE), ["HP%"]),
+    # "Max HP" and plain "HP" both appear, on either side of the verb:
+    # "Max HP is increased by X" and "Increases Max HP by X" are the same passive.
+    (re.compile(r"\b(?:(?:max\s+)?hp\s+is\s+increased|increases?\s+(?:max\s+)?hp)\b", re.IGNORECASE), ["HP%"]),
     (re.compile(r"\b(increases? atk|atk is increased|atk increased by|increase atk)\b", re.IGNORECASE), ["ATK%"]),
     (re.compile(r"\b(increases? def|def is increased|def increased by|increase def)\b", re.IGNORECASE), ["DEF%"]),
     (re.compile(r"\b(increases?|increase)\s+crit\.?\s*rate\b", re.IGNORECASE), ["Crit Rate"]),
@@ -290,11 +294,30 @@ def extract_by_schema(data: dict, schema: dict) -> dict:
     return output
 
 
+def _sanitize_weapon_text(output: dict) -> None:
+    """Resolve the game's control tokens in the player-facing passive text.
+
+    Weapon effects carry the same {Cus:Sap,...} / {Cus:Ipt,...} tokens as
+    character skills. Left in, they render literally in the weapon hover card.
+    """
+    for field in ("effect", "effectName"):
+        if field in output:
+            output[field] = sanitize_i18n_value(output[field])
+    params = output.get("params")
+    if isinstance(params, dict):
+        output["params"] = {
+            key: [normalize_param_value(value) for value in values]
+            if isinstance(values, list) else values
+            for key, values in params.items()
+        }
+
+
 def transform_weapon(data: dict, schema: dict, legacy_name_index: dict[str, list[str]]) -> dict | None:
     """Transform raw CDN weapon data using schema."""
     if should_skip(data):
         return None
     output = extract_by_schema(data, schema)
+    _sanitize_weapon_text(output)
     legacy_id = _resolve_legacy_weapon_id(data, legacy_name_index)
     output["legacyId"] = legacy_id or str(output.get("id", "") or "")
     passive_bonuses = extract_unconditional_passive_bonuses(data)
@@ -542,7 +565,7 @@ def main():
 
     else:
         # Default: combined Weapons.json
-        write_json_atomic(combined_path, combined_weapons, **json_kwargs)
+        write_records_atomic(combined_path, combined_weapons, **json_kwargs)
         size_kb = combined_path.stat().st_size / 1024
         print(f"  Saved Weapons.json [{size_kb:.1f}KB] ({len(combined_weapons)} weapons)")
         print(f"\nDone: {len(combined_weapons)} weapons → {combined_path}")
