@@ -112,7 +112,7 @@ const SupportAvatar: React.FC<{ member: RankTeamMember }> = ({ member }) => (
 );
 
 export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loading = false, boardHref = null }) => {
-  const { getWeapon, statIcons } = useGameData();
+  const { getWeapon } = useGameData();
   const tierStyle = board ? getRankTier(board.topPercent) : null;
   const rankColor = tierStyle?.color ?? 'rgba(224,224,224,0.4)';
   const rankGlow = tierStyle?.glow;
@@ -123,8 +123,6 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
     ? LB_SEQ_BADGE_COLORS[board.sequence]
     : 'border-white/14 bg-black/35 text-text-primary/55';
   const boardWeapon = getWeapon(board?.weaponId ?? null);
-  const boardWeaponAtkIcon = statIcons?.ATK;
-  const boardWeaponMainIcon = boardWeapon?.main_stat ? (statIcons?.[boardWeapon.main_stat] ?? null) : null;
   const boardWeaponTrigger = board?.weaponIcon ? (
     /* <div> so the card export keeps the 44px frame: snapdom strips `width`
        from inline tags that carry content and does not restore it on a flex
@@ -200,12 +198,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
               placement="top"
               triggerClassName="flex"
               weapon={boardWeapon}
-              weaponLevel={90}
               weaponRank={1}
-              scaledAtk={Math.floor(boardWeapon.ATK * 12.5)}
-              scaledMainStat={parseFloat((boardWeapon.base_main * 4.5).toFixed(1))}
-              atkIcon={boardWeaponAtkIcon}
-              mainStatIcon={boardWeaponMainIcon}
             >
               {boardWeaponTrigger}
             </WeaponHoverCard>

@@ -37,7 +37,7 @@ export const ProfileRankSection: React.FC<ProfileRankSectionProps> = ({
 }) => {
   const selected = useSelectedCharacter();
   const { state } = useBuild();
-  const { getWeapon, getCharacter, getEcho, fetters, statIcons } = useGameData();
+  const { getWeapon, getCharacter, getEcho, fetters } = useGameData();
   const { t } = useLanguage();
 
   const wrapWeapon = React.useCallback((weaponId?: string, refinement?: number) => {
@@ -45,29 +45,15 @@ export const ProfileRankSection: React.FC<ProfileRankSectionProps> = ({
     if (!weapon) return undefined;
 
     const rank = refinement && refinement > 0 ? refinement : 1;
-    const atk90 = Math.floor(weapon.ATK * 12.5);
-    const mainStat90 = parseFloat((weapon.base_main * 4.5).toFixed(1));
-    const atkIcon = statIcons?.ATK;
-    const mainStatIcon = weapon.main_stat ? (statIcons?.[weapon.main_stat] ?? null) : null;
 
     return function wrapWeaponTrigger(trigger: React.ReactNode) {
       return (
-        <WeaponHoverCard
-          placement="top"
-          triggerClassName="flex"
-          weapon={weapon}
-          weaponLevel={90}
-          weaponRank={rank}
-          scaledAtk={atk90}
-          scaledMainStat={mainStat90}
-          atkIcon={atkIcon}
-          mainStatIcon={mainStatIcon}
-        >
+        <WeaponHoverCard placement="top" triggerClassName="flex" weapon={weapon} weaponRank={rank}>
           {trigger}
         </WeaponHoverCard>
       );
     };
-  }, [getWeapon, statIcons]);
+  }, [getWeapon]);
 
   const wrapEcho = React.useCallback((echoId?: string, fetter?: CDNFetter | null) => {
     const echo = getEcho(echoId ?? null);

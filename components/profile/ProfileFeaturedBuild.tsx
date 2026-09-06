@@ -80,7 +80,7 @@ export const ProfileFeaturedBuild: React.FC<ProfileFeaturedBuildProps> = ({
     >
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0 z-10 h-[2px]"
+        className="absolute inset-x-0 top-0 z-10 h-0.5"
         style={tier
           ? { background: tier.color, boxShadow: tier.glow ? `0 0 10px ${tier.glow}` : undefined }
           : { background: 'color-mix(in srgb, var(--color-accent) 45%, transparent)' }}
@@ -93,7 +93,7 @@ export const ProfileFeaturedBuild: React.FC<ProfileFeaturedBuildProps> = ({
           onClick={onClose}
           aria-label="Close build"
           title="Close"
-          className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-md text-text-primary/50 transition-colors hover:bg-background/60 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+          className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-md text-text-primary/50 transition-[background-color,color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-background/60 hover:text-text-primary active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
         >
           <X size={16} aria-hidden />
         </button>
@@ -104,7 +104,7 @@ export const ProfileFeaturedBuild: React.FC<ProfileFeaturedBuildProps> = ({
           one); from md up CardScaler shrinks it to fit. --scrollport keeps the
           bench controls over the visible strip while scrolled. */}
       <div ref={scrollportRef} className="-mt-3 w-full max-md:overflow-x-auto">
-        <div className="max-md:min-w-[1440px]">
+        <div className="max-md:min-w-360">
           <ProfileBuildCardStage
             buildId={selection.buildId}
             detail={detail}

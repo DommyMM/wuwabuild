@@ -46,7 +46,7 @@ function formatCount(n: number): string {
 }
 
 export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeaturedEntry, activeBuildId, onSelectBuild }) => {
-  const { getCharacter, getWeapon, statIcons } = useGameData();
+  const { getCharacter, getWeapon } = useGameData();
   const { t } = useLanguage();
   const [state, setState] = useState<{ uid: string; entries: LBProfileStandingEntry[]; loading: boolean }>(() => ({
     uid,
@@ -121,7 +121,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
       {loading ? (
         <div className="flex gap-2 overflow-hidden">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-[116px] w-[184px] shrink-0 animate-pulse rounded-md border border-border bg-background/50" />
+            <div key={i} className="h-29 w-46 shrink-0 animate-pulse rounded-md border border-border bg-background/50" />
           ))}
         </div>
       ) : (
@@ -132,7 +132,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
               className={
                 showAll
                   ? 'flex flex-wrap gap-2 max-[560px]:grid max-[560px]:grid-cols-2'
-                  : 'flex snap-x snap-proximity flex-nowrap gap-2 overflow-x-auto pb-1.5 scrollbar-none hover:[&::-webkit-scrollbar]:h-0 hover:[&::-webkit-scrollbar]:h-1.5'
+                  : 'flex snap-x snap-proximity flex-nowrap gap-2 overflow-x-auto pb-1.5 scrollbar-none hover:[&::-webkit-scrollbar]:h-0'
               }
             >
               {entries.map((entry) => {
@@ -147,8 +147,6 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
                 || 'border-slate-400/45 bg-slate-500/15 text-slate-200';
               const baseLabel = stripLBSeqPrefix(entry.trackLabel || entry.trackKey) || 'DMG';
               const isActive = activeBuildId === entry.buildId;
-              const atkIcon = statIcons?.ATK;
-              const mainStatIcon = weapon?.main_stat ? (statIcons?.[weapon.main_stat] ?? null) : null;
               const weaponBadge = (
                 <span className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background/75 backdrop-blur-sm">
                   <img src={getWeaponPaths(weapon)} alt={weaponName} className="h-9 w-9 object-contain" />
@@ -156,11 +154,14 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
               );
               // The whole tile is one target: it opens the card beneath the
               // shelf. The way on to the board is the rank module inside that
-              // card, so nothing here competes with the tile click.
-              const tileClassName = `group relative h-[116px] w-[184px] shrink-0 cursor-pointer overflow-hidden rounded-md border bg-background-secondary/80 text-left transition-[border-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
+              // card, so nothing here competes with the tile click. Hover is the
+              // site's gold glow and nothing more: a strip of 27 tiles is
+              // crossed by the pointer constantly, so the tile's only motion is
+              // the press. The open tile holds the glow with a firmer border.
+              const tileClassName = `relative h-[116px] w-[184px] shrink-0 cursor-pointer overflow-hidden rounded-md border bg-background-secondary/80 text-left transition-[border-color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 motion-reduce:transition-none ${
                 isActive
                   ? 'border-accent/60 shadow-[0_0_16px_rgba(166,150,98,0.35)]'
-                  : 'border-border hover:border-accent/40'
+                  : 'border-border hover:border-accent/40 hover:shadow-[0_0_16px_rgba(166,150,98,0.35)]'
               } ${showAll ? 'max-[560px]:w-full' : 'snap-start'}`;
 
               return (
@@ -185,26 +186,16 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
                   {/* Scrim: darkens the text column so data stays legible over the art. */}
                   <span className="pointer-events-none absolute inset-0 bg-linear-to-r from-background-secondary from-22% via-background-secondary/48 to-transparent" />
 
-                  {/* Tier-colored top edge: the one place the tile carries its tier. */}
+                  {/* Tier-colored top edge: the one place the tile carries its tier at rest. */}
                   <span
-                    className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[2px]"
+                    className="pointer-events-none absolute inset-x-0 top-0 z-20 h-0.5"
                     style={{ background: tier.color, boxShadow: tier.glow ? `0 0 10px ${tier.glow}` : undefined }}
                   />
 
-                  {/* Weapon: constrained to an uploaded weapon for this summary. The hover card carries its name and refinement. */}
+                  {/* Weapon: constrained to an uploaded weapon for this summary. The hover card carries its name, refinement and Lv.90 stats. */}
                   <span className="absolute right-2 bottom-2 z-20 flex">
                     {weapon ? (
-                      <WeaponHoverCard
-                        placement="top"
-                        triggerClassName="flex"
-                        weapon={weapon}
-                        weaponLevel={90}
-                        weaponRank={entry.weaponRank}
-                        scaledAtk={Math.floor(weapon.ATK * 12.5)}
-                        scaledMainStat={parseFloat((weapon.base_main * 4.5).toFixed(1))}
-                        atkIcon={atkIcon}
-                        mainStatIcon={mainStatIcon}
-                      >
+                      <WeaponHoverCard placement="top" triggerClassName="flex" weapon={weapon} weaponRank={entry.weaponRank}>
                         {weaponBadge}
                       </WeaponHoverCard>
                     ) : weaponBadge}

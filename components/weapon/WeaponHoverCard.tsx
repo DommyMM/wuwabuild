@@ -1,7 +1,9 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { calculateWeaponStats } from '@/lib/calculations/stats';
 import { Weapon } from '@/lib/weapon';
 import { RARITY_ACCENTS } from '@/components/weapon/rarityStyles';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
@@ -11,29 +13,32 @@ import type { HoverCardChipModel, HoverCardPlacement } from '@/components/ui/Hov
 interface WeaponHoverCardProps {
   children: ReactNode;
   weapon: Weapon;
-  weaponLevel: number;
+  /** Level the ATK and main stat are shown at. Defaults to 90, the only level board and shelf surfaces care about. */
+  weaponLevel?: number;
   weaponRank: number;
-  scaledAtk: number;
-  scaledMainStat: number;
-  atkIcon?: string | null;
-  mainStatIcon?: string | null;
   placement?: HoverCardPlacement;
   triggerClassName?: string;
 }
 
+/**
+ * ATK and the main stat are derived here from the shared level curves
+ * (`calculateWeaponStats`), the same call the card's WeaponGroup makes. Every
+ * weapon scales on the one ATK_CURVE / STAT_CURVE in LevelCurve.json (x12.5 and
+ * x4.5 at 90/90), so callers only say which level, never the multiplier.
+ */
 export function WeaponHoverCard({
   children,
   weapon,
-  weaponLevel,
+  weaponLevel = 90,
   weaponRank,
-  scaledAtk,
-  scaledMainStat,
-  atkIcon,
-  mainStatIcon,
   placement = 'right',
   triggerClassName,
 }: WeaponHoverCardProps) {
   const { t } = useLanguage();
+  const { levelCurves, statIcons } = useGameData();
+  const { scaledAtk, scaledMainStat } = calculateWeaponStats(weapon, weaponLevel, levelCurves);
+  const atkIcon = statIcons?.ATK ?? null;
+  const mainStatIcon = weapon.main_stat ? (statIcons?.[weapon.main_stat] ?? null) : null;
   const weaponName = t(weapon.nameI18n ?? { en: weapon.name });
   const passiveName = t(weapon.effectName ?? { en: '' });
   const passiveTemplate = t(weapon.effect ?? { en: '' });
