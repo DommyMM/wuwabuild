@@ -87,6 +87,8 @@ export interface ProfileSummary {
   username: string;
   uid: string;
   buildCount: number;
+  /** RFC3339 time of the profile's last submission, or null when lb has none. */
+  updatedAt: string | null;
 }
 
 // Reads the canonical profiles table (uid = immutable identity, username = latest
@@ -103,11 +105,12 @@ export async function fetchProfileSummary(uid: string): Promise<ProfileSummary |
     });
     if (!response.ok) return null;
 
-    const payload = await response.json() as { uid?: string; username?: string; buildCount?: number };
+    const payload = await response.json() as { uid?: string; username?: string; buildCount?: number; updatedAt?: string };
     return {
       username: typeof payload.username === 'string' ? payload.username : '',
       uid: typeof payload.uid === 'string' && payload.uid ? payload.uid : trimmedUid,
       buildCount: toFiniteNumber(payload.buildCount, 0),
+      updatedAt: typeof payload.updatedAt === 'string' && payload.updatedAt ? payload.updatedAt : null,
     };
   } catch (err) {
     console.error('[lbServer] fetchProfileSummary failed', err);

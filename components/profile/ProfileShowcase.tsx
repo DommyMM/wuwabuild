@@ -12,7 +12,8 @@ import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
 
 interface ProfileShowcaseProps {
   uid: string;
-  onFeaturedEntry?: (entry: LBProfileStandingEntry | null) => void;
+  /** The ranked standings once loaded (best board per character, best first); the header reads its facts from them. */
+  onStandingsLoaded?: (entries: LBProfileStandingEntry[]) => void;
   /** Build currently open in the featured region, so its tile reads as selected. */
   activeBuildId: string | null;
   /** Tile click: open (or, on the active tile, close) that build's card below the shelf. */
@@ -21,14 +22,17 @@ interface ProfileShowcaseProps {
 
 const TILE_W = 184;
 const TILE_GAP = 8;
+// The site's sequence ramp at a whisper: the chip says which board the number
+// is on, but on a shelf where most tiles share one sequence it must not
+// outshout the percentile or the tier edge. Same hues, lower alpha.
 const PROFILE_SEQUENCE_BADGE_COLORS = [
-  'border-slate-300/65 bg-slate-500/30 text-slate-100',
-  'border-cyan-300/65 bg-cyan-500/30 text-cyan-100',
-  'border-blue-300/65 bg-blue-500/30 text-blue-100',
-  'border-violet-300/65 bg-violet-500/30 text-violet-100',
-  'border-fuchsia-300/65 bg-fuchsia-500/30 text-fuchsia-100',
-  'border-amber-300/70 bg-amber-500/35 text-amber-100',
-  'border-spectro/80 bg-spectro/35 text-spectro',
+  'border-slate-300/35 bg-slate-500/15 text-slate-200/85',
+  'border-cyan-300/35 bg-cyan-500/15 text-cyan-100/85',
+  'border-blue-300/35 bg-blue-500/15 text-blue-100/85',
+  'border-violet-300/35 bg-violet-500/15 text-violet-100/85',
+  'border-fuchsia-300/35 bg-fuchsia-500/15 text-fuchsia-100/85',
+  'border-amber-300/40 bg-amber-500/15 text-amber-100/85',
+  'border-spectro/45 bg-spectro/15 text-spectro/85',
 ] as const;
 
 // Bare percentile, scaled precision: the number is the hero, so it should read
@@ -45,7 +49,7 @@ function formatCount(n: number): string {
   return String(n);
 }
 
-export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeaturedEntry, activeBuildId, onSelectBuild }) => {
+export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onStandingsLoaded, activeBuildId, onSelectBuild }) => {
   const { getCharacter, getWeapon } = useGameData();
   const { t } = useLanguage();
   const [state, setState] = useState<{ uid: string; entries: LBProfileStandingEntry[]; loading: boolean }>(() => ({
@@ -81,8 +85,8 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
 
   useEffect(() => {
     if (loading) return;
-    onFeaturedEntry?.(entries[0] ?? null);
-  }, [entries, loading, onFeaturedEntry]);
+    onStandingsLoaded?.(entries);
+  }, [entries, loading, onStandingsLoaded]);
 
   // The condense/expand toggle is only meaningful when the tiles can't all sit
   // in a single row at the current width.
@@ -108,15 +112,11 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
   const showToggle = !loading && overflows;
 
   return (
-    <div className="border-b border-border/70 px-6 py-4">
-      <div className="mb-3 flex items-baseline gap-2.5">
-        <h2 className="text-2xs font-semibold tracking-wider text-text-primary/55 uppercase">Rankings</h2>
-        {!loading && entries.length > 0 && (
-          <span className="text-3xs tabular-nums text-text-primary/35">
-            {entries.length} character{entries.length === 1 ? '' : 's'}
-          </span>
-        )}
-      </div>
+    // group/shelf: the strip's scrollbar shows only while the pointer is over
+    // the shelf (or a tile has focus). The character count lives in the
+    // header's fact row, not here.
+    <div className="group/shelf border-b border-border/70 px-6 py-4">
+      <h2 className="mb-3 text-2xs font-semibold tracking-wider text-text-primary/55 uppercase">Rankings</h2>
 
       {loading ? (
         <div className="flex gap-2 overflow-hidden">
@@ -132,7 +132,10 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
               className={
                 showAll
                   ? 'flex flex-wrap gap-2 max-[560px]:grid max-[560px]:grid-cols-2'
-                  : 'flex snap-x snap-proximity flex-nowrap gap-2 overflow-x-auto pb-1.5 scrollbar-none hover:[&::-webkit-scrollbar]:h-0'
+                  // The bar keeps its 6px so nothing shifts; only its colour
+                  // comes and goes. scrollbar-color for Chrome/Firefox, the
+                  // thumb rule for Safari (which uses overlay bars anyway).
+                  : 'flex snap-x snap-proximity flex-nowrap gap-2 overflow-x-auto pb-1.5 [scrollbar-color:transparent_transparent] group-hover/shelf:[scrollbar-color:rgba(191,173,125,0.6)_transparent] group-focus-within/shelf:[scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar-thumb]:bg-transparent group-hover/shelf:[&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)] group-focus-within/shelf:[&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]'
               }
             >
               {entries.map((entry) => {
@@ -212,7 +215,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onFeature
                           {baseLabel}
                         </span>
                       </div>
-                      <span className={`shrink-0 rounded border px-2 py-0.5 text-[8px] font-semibold tracking-wide shadow-sm backdrop-blur-sm ${boardSequenceClass}`}>
+                      <span className={`shrink-0 rounded border px-1.5 py-px text-[8px] font-semibold tracking-wide backdrop-blur-sm ${boardSequenceClass}`}>
                         S{entry.sequence} BOARD
                       </span>
                     </div>

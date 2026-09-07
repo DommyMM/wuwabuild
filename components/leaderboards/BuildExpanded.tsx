@@ -11,7 +11,7 @@ import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { loadDraftBuild, saveDraftBuild } from '@/lib/storage';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
-import { LB_EXPANDED_SHELL, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL, RegionBadge, ScoringMode } from './constants';
+import { getSummaryRowClasses, LB_EXPANDED_SHELL, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_ROW, RegionBadge, ScoringMode } from './constants';
 import { formatFlatStat, formatPercentStat, normalizeSubstatKey } from './formatters';
 import { BuildSimulationSection } from './BuildSimulationSection';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
@@ -242,6 +242,9 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     return calculateSelectedStatsRV(selectedMap, getSubstatValues);
   }, [activeSelectedSubstats, detailSubstatSummary, getSubstatValues]);
 
+  // Stat pills plus the RV pill decide how tightly the row is set.
+  const summaryClasses = getSummaryRowClasses(detailSubstatSummary.length + 1, 'expansion');
+
   return (
     <>
       <AnimatePresence initial={animateInitialExpand}>
@@ -292,7 +295,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                 />
 
                 {detailSubstatSummary.length > 0 && (
-                  <div className={LB_SUMMARY_ROW}>
+                  <div className={summaryClasses.row}>
                     {detailSubstatSummary.map((summary) => {
                       const isSelected = activeSelectedSubstats.has(summary.type);
                       const isDimmed = hasSelectedSubstats && !isSelected;
@@ -306,7 +309,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                           type="button"
                           aria-pressed={isSelected}
                           onClick={() => toggleSubstatSelection(summary.type)}
-                          className={`${LB_SUMMARY_PILL} ${
+                          className={`${summaryClasses.pill} ${
                             isSelected
                               ? 'border-amber-300/75 opacity-100'
                               : isDimmed
@@ -321,7 +324,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                           ) : (
                             <span className={LB_SUMMARY_ICON_EMPTY} />
                           )}
-                          <span className={LB_SUMMARY_VAL}>{totalText}</span>
+                          <span className={summaryClasses.val}>{totalText}</span>
                         </button>
                       );
                     })}
@@ -341,7 +344,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                       )}
                     >
                       <div
-                        className={`${LB_SUMMARY_RV} ${
+                        className={`${summaryClasses.rv} ${
                           hasSelectedSubstats
                             ? 'border border-amber-300/75 opacity-100'
                             : 'border border-amber-300/45 opacity-70'
@@ -350,7 +353,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                         <span className="text-amber-300">x{totalSelectedRolls}</span>
                         <span>•</span>
                         <span className="text-amber-300">RV</span>
-                        <span className={LB_SUMMARY_VAL}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
+                        <span className={summaryClasses.val}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
                       </div>
                     </HoverCard>
                   </div>

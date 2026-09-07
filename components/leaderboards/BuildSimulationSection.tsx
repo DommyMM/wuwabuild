@@ -162,16 +162,40 @@ function canonicalUpgradeSort(
   return [...ordered, ...leftovers];
 }
 
-const SECTION_CONTROL_WIDTH = 'w-43';
-const SECTION_TOGGLE_CLASS = `mx-auto flex ${SECTION_CONTROL_WIDTH} items-center justify-center gap-2 rounded border border-border bg-background-secondary px-4 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color] duration-150 hover:border-accent/60 hover:text-text-primary cursor-pointer`;
-const ACTION_BUTTON_CLASS = `mx-auto flex ${SECTION_CONTROL_WIDTH} items-center justify-center rounded border border-border bg-background-secondary px-3 py-2 text-xs font-semibold text-text-primary/75 transition-[color,border-color] duration-150 hover:border-accent/60 hover:text-text-primary cursor-pointer`;
+// One row of equal-width controls under the card: the surface's action first
+// (View in Profile / Open in Editor), then the bench sections. The sections are
+// disclosures, not tabs: any number can be open, and their panels stack below
+// the row in the same left-to-right order as the buttons. An open button holds
+// the accent border so the row itself says what is open.
+const CONTROL_CLASS = 'flex w-43 cursor-pointer items-center justify-center gap-2 rounded border bg-background-secondary px-4 py-2 text-xs font-semibold transition-[color,border-color,transform] duration-150 hover:border-accent/60 hover:text-text-primary active:scale-[0.98] motion-reduce:transition-none';
+const CONTROL_REST_CLASS = 'border-border text-text-primary/75';
+const CONTROL_OPEN_CLASS = 'border-accent/60 text-text-primary';
+const ACTION_BUTTON_CLASS = `${CONTROL_CLASS} ${CONTROL_REST_CLASS}`;
 // The expanded row can be wider than the viewport (its design-space content is
-// reached by the table's horizontal scroll), so a control row centered in the
-// row would sit half a screen off. Sizing it to the scroller's visible width
-// (--scrollport, useScrollportVar) puts the button's own `mx-auto` centre on
-// screen at rest; scroll sideways and the controls scroll away with everything
-// else. Inert when the table fits, where the cap is wider than the row.
+// reached by the table's horizontal scroll), so a row centered in it would sit
+// half a screen off. Capping the row to the scroller's visible width
+// (--scrollport, useScrollportVar) puts its centre on screen at rest; scroll
+// sideways and the controls scroll away with everything else. Inert when the
+// table fits, where the cap is wider than the row.
 const CONTROL_ROW_CLASS = 'w-full max-w-(--scrollport,none)';
+
+const SectionToggle: React.FC<{
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  title?: string;
+}> = ({ label, isOpen, onToggle, title }) => (
+  <button
+    type="button"
+    aria-expanded={isOpen}
+    onClick={onToggle}
+    className={`${CONTROL_CLASS} ${isOpen ? CONTROL_OPEN_CLASS : CONTROL_REST_CLASS}`}
+    title={title}
+  >
+    <span>{label}</span>
+    <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-150 motion-reduce:transition-none ${isOpen ? 'rotate-180 text-accent' : ''}`} />
+  </button>
+);
 
 interface BuildSimulationSectionProps {
   buildId: string;
@@ -354,100 +378,100 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     [statTranslations, upgradeColumns],
   );
 
+  const boardTitle = `${weaponName} \u2022 ${trackLabel}`;
+
   return (
     // Width comes from the host shell so every section of the expanded row
     // shares one measure; this component never sets its own max-width.
     <div className="relative w-full space-y-3 font-plus-jakarta">
-      {viewProfileHref ? (
-        <div className={CONTROL_ROW_CLASS}>
-          <Link href={viewProfileHref} onClick={onViewProfile} className={ACTION_BUTTON_CLASS}>
-            View in Profile
-          </Link>
-        </div>
-      ) : onOpenInEditor ? (
-        <div className={CONTROL_ROW_CLASS}>
-          <button type="button" onClick={onOpenInEditor} className={ACTION_BUTTON_CLASS}>
-            Open in Editor
-          </button>
-        </div>
-      ) : null}
-
-      {hasBoardContext && (
-        <>
-          <div className={CONTROL_ROW_CLASS}>
-            <button
-              type="button"
-              aria-expanded={isMovesOpen}
-              onClick={() => setIsMovesOpen((prev) => !prev)}
-              className={SECTION_TOGGLE_CLASS}
-              title={`${weaponName} • ${trackLabel}`}
-            >
-              <span>{isHealing ? 'Heal' : 'Move'} breakdown</span>
-              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isMovesOpen ? 'rotate-180 text-accent' : ''}`} />
+      <div className={CONTROL_ROW_CLASS}>
+        <div className="flex flex-wrap justify-center gap-2">
+          {viewProfileHref ? (
+            <Link href={viewProfileHref} onClick={onViewProfile} className={ACTION_BUTTON_CLASS}>
+              View in Profile
+            </Link>
+          ) : onOpenInEditor ? (
+            <button type="button" onClick={onOpenInEditor} className={ACTION_BUTTON_CLASS}>
+              Open in Editor
             </button>
-          </div>
+          ) : null}
 
-          {isMovesOpen && (
-            <BuildMoveBreakdown
-              isLoading={movesResource.isLoading}
-              error={movesResource.error}
-              moves={moves}
-              isHealing={isHealing}
-              scoreOverride={scoreBaseDamage}
-              onRetry={movesResource.retry}
-            />
-          )}
-
-          <div className={CONTROL_ROW_CLASS}>
-            <button
-              type="button"
-              aria-expanded={isUpgradesOpen}
-              onClick={() => setIsUpgradesOpen((prev) => !prev)}
-              className={SECTION_TOGGLE_CLASS}
-              title={`${weaponName} • ${trackLabel}`}
-            >
-              <span>Substat upgrades</span>
-              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isUpgradesOpen ? 'rotate-180 text-accent' : ''}`} />
-            </button>
-          </div>
-
-          {isUpgradesOpen && (
-            <div className="space-y-2">
-              {currentScoring === 'raw' && (
-                <p className="text-center text-xs leading-snug text-text-primary/45">
-                  Substat projections use Score, matching official ranks and upgrade deltas
-                </p>
-              )}
-              <BuildSubstatUpgrades
-                isLoading={upgradesResource.isLoading}
-                error={upgradesResource.error}
-                hasUpgradeData={upgradeRows.length > 0}
-                hasBaseDamage={Boolean(scoreBaseDamage)}
-                baseDamage={scoreBaseDamage}
-                globalRank={scoreGlobalRank}
-                showRankDelta={showUpgradeRankDelta}
-                tierOptions={UPGRADE_TIER_OPTIONS}
-                selectedTier={selectedUpgradeTier}
-                onSelectTier={(tier) => setSelectedUpgradeTier(tier as UpgradeTierKey)}
-                orderedUpgradeColumns={orderedUpgradeColumns}
-                onRetry={upgradesResource.retry}
+          {hasBoardContext && (
+            <>
+              <SectionToggle
+                label={`${isHealing ? 'Heal' : 'Move'} breakdown`}
+                isOpen={isMovesOpen}
+                onToggle={() => setIsMovesOpen((prev) => !prev)}
+                title={boardTitle}
               />
-            </div>
+              <SectionToggle
+                label="Substat upgrades"
+                isOpen={isUpgradesOpen}
+                onToggle={() => setIsUpgradesOpen((prev) => !prev)}
+                title={boardTitle}
+              />
+            </>
           )}
-        </>
+
+          <SectionToggle
+            label="Leaderboard rank"
+            isOpen={isStandingsOpen}
+            onToggle={() => setIsStandingsOpen((prev) => !prev)}
+          />
+
+          {hasBoardContext && (
+            <>
+              <SectionToggle
+                label="Stat comparison"
+                isOpen={isDistributionOpen}
+                onToggle={() => setIsDistributionOpen((prev) => !prev)}
+                title={boardTitle}
+              />
+              <SectionToggle
+                label="Theoretical bench"
+                isOpen={isOptimalityOpen}
+                onToggle={() => setIsOptimalityOpen((prev) => !prev)}
+                title={boardTitle}
+              />
+            </>
+          )}
+        </div>
+      </div>
+
+      {hasBoardContext && isMovesOpen && (
+        <BuildMoveBreakdown
+          isLoading={movesResource.isLoading}
+          error={movesResource.error}
+          moves={moves}
+          isHealing={isHealing}
+          scoreOverride={scoreBaseDamage}
+          onRetry={movesResource.retry}
+        />
       )}
 
-      <div className={CONTROL_ROW_CLASS}>
-        <button
-          type="button"
-          aria-expanded={isStandingsOpen}
-          onClick={() => setIsStandingsOpen((prev) => !prev)}
-          className={SECTION_TOGGLE_CLASS}
-        >
-          <span>Leaderboard rank</span>
-          <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isStandingsOpen ? 'rotate-180 text-accent' : ''}`} />
-        </button>
-      </div>
+      {hasBoardContext && isUpgradesOpen && (
+        <div className="space-y-2">
+          {currentScoring === 'raw' && (
+            <p className="text-center text-xs leading-snug text-text-primary/45">
+              Substat projections use Score, matching official ranks and upgrade deltas
+            </p>
+          )}
+          <BuildSubstatUpgrades
+            isLoading={upgradesResource.isLoading}
+            error={upgradesResource.error}
+            hasUpgradeData={upgradeRows.length > 0}
+            hasBaseDamage={Boolean(scoreBaseDamage)}
+            baseDamage={scoreBaseDamage}
+            globalRank={scoreGlobalRank}
+            showRankDelta={showUpgradeRankDelta}
+            tierOptions={UPGRADE_TIER_OPTIONS}
+            selectedTier={selectedUpgradeTier}
+            onSelectTier={(tier) => setSelectedUpgradeTier(tier as UpgradeTierKey)}
+            orderedUpgradeColumns={orderedUpgradeColumns}
+            onRetry={upgradesResource.retry}
+          />
+        </div>
+      )}
 
       {isStandingsOpen && (
         <section className="space-y-2">
@@ -467,58 +491,28 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
         </section>
       )}
 
-      {hasBoardContext && (
-        <>
-          <div className={CONTROL_ROW_CLASS}>
-            <button
-              type="button"
-              aria-expanded={isDistributionOpen}
-              onClick={() => setIsDistributionOpen((prev) => !prev)}
-              className={SECTION_TOGGLE_CLASS}
-              title={`${weaponName} • ${trackLabel}`}
-            >
-              <span>Stat comparison</span>
-              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isDistributionOpen ? 'rotate-180 text-accent' : ''}`} />
-            </button>
-          </div>
+      {hasBoardContext && isDistributionOpen && (
+        <BuildStatDistribution
+          data={distributionResource.data ?? null}
+          buildDetail={buildDetail}
+          loading={distributionResource.isLoading}
+          error={distributionResource.error}
+          onRetry={distributionResource.retry}
+        />
+      )}
 
-          {isDistributionOpen && (
-            <BuildStatDistribution
-              data={distributionResource.data ?? null}
-              buildDetail={buildDetail}
-              loading={distributionResource.isLoading}
-              error={distributionResource.error}
-              onRetry={distributionResource.retry}
-            />
-          )}
-
-          <div className={CONTROL_ROW_CLASS}>
-            <button
-              type="button"
-              aria-expanded={isOptimalityOpen}
-              onClick={() => setIsOptimalityOpen((prev) => !prev)}
-              className={SECTION_TOGGLE_CLASS}
-              title={`${weaponName} • ${trackLabel}`}
-            >
-              <span>Theoretical bench</span>
-              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isOptimalityOpen ? 'rotate-180 text-accent' : ''}`} />
-            </button>
-          </div>
-
-          {isOptimalityOpen && (
-            <BuildOptimalityPanel
-              data={optimality}
-              loading={optimalityResource.isLoading}
-              error={optimalityResource.error}
-              baseDamage={scoreBaseDamage}
-              buildDetail={buildDetail}
-              character={character}
-              characterName={characterName}
-              regionBadge={regionBadge}
-              onRetry={optimalityResource.retry}
-            />
-          )}
-        </>
+      {hasBoardContext && isOptimalityOpen && (
+        <BuildOptimalityPanel
+          data={optimality}
+          loading={optimalityResource.isLoading}
+          error={optimalityResource.error}
+          baseDamage={scoreBaseDamage}
+          buildDetail={buildDetail}
+          character={character}
+          characterName={characterName}
+          regionBadge={regionBadge}
+          onRetry={optimalityResource.retry}
+        />
       )}
     </div>
   );

@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { calculateSelectedStatsRV } from '@/lib/calculations/rollValues';
-import { LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL, LB_SUMMARY_ROW, LB_SUMMARY_RV, LB_SUMMARY_VAL } from '@/components/leaderboards/constants';
+import { getSummaryRowClasses, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY } from '@/components/leaderboards/constants';
 import { formatFlatStat, formatPercentStat } from '@/components/leaderboards/formatters';
 import { buildSubstatSummary, SubstatSummaryEntry } from '@/components/leaderboards/substatSummary';
 
@@ -50,8 +50,11 @@ export const SubstatSummaryRow: React.FC<SubstatSummaryRowProps> = ({
 
   if (detailSubstatSummary.length === 0) return null;
 
+  // Stat pills plus the RV pill decide how tightly the row is set.
+  const summaryClasses = getSummaryRowClasses(detailSubstatSummary.length + 1, 'card');
+
   return (
-    <div className={LB_SUMMARY_ROW}>
+    <div className={summaryClasses.row}>
       {detailSubstatSummary.map((summary) => {
         const isSelected = selectedSubstats.has(summary.type);
         const isDimmed = hasSelectedSubstats && !isSelected;
@@ -64,7 +67,7 @@ export const SubstatSummaryRow: React.FC<SubstatSummaryRowProps> = ({
             type="button"
             aria-pressed={isSelected}
             onClick={() => onToggleSubstat(summary.type)}
-            className={`${LB_SUMMARY_PILL} ${
+            className={`${summaryClasses.pill} ${
               isSelected
                 ? 'border-amber-300/75 opacity-100'
                 : isDimmed
@@ -79,13 +82,13 @@ export const SubstatSummaryRow: React.FC<SubstatSummaryRowProps> = ({
             ) : (
               <span className={LB_SUMMARY_ICON_EMPTY} />
             )}
-            <span className={LB_SUMMARY_VAL}>{totalText}</span>
+            <span className={summaryClasses.val}>{totalText}</span>
           </button>
         );
       })}
 
       <div
-        className={`${LB_SUMMARY_RV} ${
+        className={`${summaryClasses.rv} ${
           hasSelectedSubstats
             ? 'border border-amber-300/75 opacity-100'
             : 'border border-amber-300/45 opacity-70'
@@ -94,7 +97,7 @@ export const SubstatSummaryRow: React.FC<SubstatSummaryRowProps> = ({
         <span className="text-amber-300">x{totalSelectedRolls}</span>
         <span>•</span>
         <span className="text-amber-300">RV</span>
-        <span className={LB_SUMMARY_VAL}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
+        <span className={summaryClasses.val}>{(totalSelectedRolls * overallRV).toFixed(1)}%</span>
       </div>
     </div>
   );

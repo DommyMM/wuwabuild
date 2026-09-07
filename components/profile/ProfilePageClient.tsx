@@ -41,13 +41,41 @@ interface ProfilePageClientProps {
     username: string;
     uid: string;
     buildCount: number;
+    updatedAt?: string | null;
   } | null;
 }
+
+// "Updated 17 days ago" needs a clock, and a clock read during server render
+// can disagree with the one at hydration across a day boundary. The server
+// snapshot is null (the fact is simply absent in the HTML) and the client
+// reads the clock once per page load.
+let clientNow: number | null = null;
+const subscribeNever = () => () => {};
+const getClientNow = () => (clientNow ??= Date.now());
+const getServerNow = () => null;
+
+const DAY_MS = 86_400_000;
+const formatUpdatedAgo = (iso: string | null | undefined, now: number | null, locale: string): string | null => {
+  if (!iso || now === null) return null;
+  const then = Date.parse(iso);
+  if (!Number.isFinite(then)) return null;
+  const days = Math.max(0, Math.floor((now - then) / DAY_MS));
+  let rtf: Intl.RelativeTimeFormat;
+  try {
+    rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  } catch {
+    rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  }
+  if (days < 1) return rtf.format(0, 'day');
+  if (days < 30) return rtf.format(-days, 'day');
+  if (days < 365) return rtf.format(-Math.floor(days / 30), 'month');
+  return rtf.format(-Math.floor(days / 365), 'year');
+};
 
 export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profileSummary }) => {
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters, getCharacter } = useGameData();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const buildListSigRef = useRef(createRowsSignature<LBBuildRowEntry>([], 0));
 
@@ -103,7 +131,10 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const featuredBuildId = activeFeatured?.buildId ?? null;
   // Either placement widens the page and runs the settle timer.
   const hasOpenCard = hasExpandedRows || activeFeatured !== null;
-  const [featuredStanding, setFeaturedStanding] = useState<LBProfileStandingEntry | null>(null);
+  // Best board per character, best first, once the shelf has loaded them. The
+  // header's fact row and the avatar both read from here.
+  const [standings, setStandings] = useState<LBProfileStandingEntry[] | null>(null);
+  const featuredStanding = standings?.[0] ?? null;
 
   const selectedCharacters = useMemo(() => (
     characterIds.reduce<typeof characters>((acc, id) => {
@@ -346,6 +377,9 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const profileUsername = profileSummary?.username || builds[0]?.owner.username || uid;
   const profileBuildCount = profileSummary?.buildCount ?? total;
   const regionBadge = resolveRegionBadge(profileSummary?.uid || uid);
+  const rankedCharacterCount = standings?.length ?? null;
+  const clientNowValue = useSyncExternalStore(subscribeNever, getClientNow, getServerNow);
+  const updatedAgoLabel = formatUpdatedAgo(profileSummary?.updatedAt, clientNowValue, language);
   const featuredCharacter = useMemo(
     () => getCharacter(featuredStanding?.characterId ?? builds[0]?.character.id ?? null),
     [builds, featuredStanding, getCharacter],
@@ -423,10 +457,36 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                       </span>
                     )}
                   </div>
-                  <div className="mt-1.5 flex items-center gap-1.5 text-2xs font-semibold tracking-wider text-text-primary/45 uppercase">
-                    <span>UID</span>
-                    <span className="font-mono tabular-nums font-normal tracking-normal text-text-primary/55 normal-case">{uid}</span>
-                  </div>
+                  {/* One row of facts about the profile, each in one place: the
+                      shelf below no longer repeats the character count, and the
+                      build count is no longer a slab of its own. */}
+                  <ul
+                    aria-label="Profile facts"
+                    className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-2xs font-semibold tracking-wider text-text-primary/45 uppercase [&>li]:flex [&>li]:items-baseline [&>li]:gap-1.5 [&>li:not(:first-child)]:before:mr-0.5 [&>li:not(:first-child)]:before:text-text-primary/25 [&>li:not(:first-child)]:before:content-['·']"
+                  >
+                    <li>
+                      <span>UID</span>
+                      <span className="font-mono tabular-nums font-normal tracking-normal text-text-primary/55 normal-case">{uid}</span>
+                    </li>
+                    {profileBuildCount > 0 && (
+                      <li>
+                        <span className="tabular-nums text-text-primary/70">{profileBuildCount.toLocaleString()}</span>
+                        <span>build{profileBuildCount !== 1 ? 's' : ''}</span>
+                      </li>
+                    )}
+                    {rankedCharacterCount !== null && rankedCharacterCount > 0 && (
+                      <li>
+                        <span className="tabular-nums text-text-primary/70">{rankedCharacterCount}</span>
+                        <span>character{rankedCharacterCount !== 1 ? 's' : ''}</span>
+                      </li>
+                    )}
+                    {updatedAgoLabel && (
+                      <li title={profileSummary?.updatedAt ? new Date(profileSummary.updatedAt).toLocaleString() : undefined}>
+                        <span>Updated</span>
+                        <span className="text-text-primary/70">{updatedAgoLabel}</span>
+                      </li>
+                    )}
+                  </ul>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <button
@@ -443,23 +503,13 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                   >
                     <Star size={15} className={isPinned ? 'fill-current' : ''} aria-hidden />
                   </button>
-                  {profileBuildCount > 0 && (
-                    <div className="flex flex-col items-end rounded-lg border border-border bg-background/55 px-4 py-2 ring-1 ring-inset ring-white/5">
-                      <span className="text-2xl leading-none font-bold tabular-nums text-text-primary">
-                        {profileBuildCount.toLocaleString()}
-                      </span>
-                      <span className="mt-1 text-2xs tracking-wider text-text-primary/45 uppercase">
-                        build{profileBuildCount !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
 
             <ProfileShowcase
               uid={uid}
-              onFeaturedEntry={setFeaturedStanding}
+              onStandingsLoaded={setStandings}
               activeBuildId={featuredBuildId}
               onSelectBuild={handleSelectStanding}
             />

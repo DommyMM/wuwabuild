@@ -218,25 +218,78 @@ export const LB_SORTABLE_GROUP_GRID = 'grid-cols-[172px_repeat(4,121px)_minmax(1
 export const DEFAULT_LB_SORT = 'damage';
 export const DEFAULT_LB_TRACK = 's0';
 
-// Expanded build substat summary row (leaderboard + profile) that wraps rather than overflow
-export const LB_SUMMARY_ROW = 'mx-auto flex w-full flex-wrap items-center justify-center gap-2';
+// ---- Substat summary row (leaderboard expansion, profile card, blueprint) ----
+// One row, always. On the profile the row sits inside the card's capture area,
+// and on a leaderboard it sits under the echo grid; a wrapped RV pill reads as
+// a second row of stats in both. The row is centred and nowrap, so a row a
+// little wider than its frame spills evenly into the side padding instead of
+// wrapping, and only when even that would not do does it tighten.
+//
+// Frames:  expansion  leaderboard shell content 1,224px, box 1,320px, table >= 1,288px
+//          card       profile card design frame 1,440px
+//
+// Measured against the Ropa Sans metrics the row inherits from the body
+// (fontTools, 2026-09-06, calibrated to a production card within 2%): a stat
+// pill is 75-95px, the RV pill ~120px. Row totals, realistic / worst case:
+//
+//   pills   normal          compact
+//   12      1,208 / 1,221   1,138 / 1,151
+//   13      1,287 / 1,316   1,211 / 1,240
+//   14      1,366 / 1,411   1,284 / 1,329
+//
+// So the card never tightens: 14 pills (every substat type plus RV) is 1,411px
+// at worst inside 1,440. The expansion holds 12 in its content box, lets 13
+// spill into the 48px padding (still inside the shell box), and goes compact
+// only at 14, where normal would run past the narrowest table.
+export type SummaryDensity = 'normal' | 'compact';
+export type SummaryHost = 'expansion' | 'card';
 
-const LB_SUMMARY_PILL_BASE = 'inline-flex items-center gap-1 rounded-full border bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-[border-color,opacity] duration-200';
+const SUMMARY_COMPACT_AT: Record<SummaryHost, number> = {
+  expansion: 14,
+  card: Number.POSITIVE_INFINITY,
+};
 
-export const LB_SUMMARY_PILL = `${LB_SUMMARY_PILL_BASE} cursor-pointer hover:border-amber-200/65`;
+export const getSummaryDensity = (pillCount: number, host: SummaryHost): SummaryDensity => (
+  pillCount >= SUMMARY_COMPACT_AT[host] ? 'compact' : 'normal'
+);
 
-// Non-interactive twin, for the reference benchmark's Echo blueprint: its
-// substats are fixed by the tier, so there is nothing to select and a pointer
-// cursor would promise a filter that does not exist.
-export const LB_SUMMARY_PILL_STATIC = LB_SUMMARY_PILL_BASE;
+const SUMMARY_ROW_BASE = 'mx-auto flex w-full flex-nowrap items-center justify-center';
+const SUMMARY_PILL_BASE = 'inline-flex shrink-0 items-center gap-1 rounded-full border bg-black/45 py-1 text-sm font-semibold text-white/92 transition-[border-color,opacity] duration-200';
+const SUMMARY_RV_BASE = 'inline-flex shrink-0 items-center gap-1 rounded-full bg-black/45 py-1 text-sm font-semibold text-white/92 transition-[border-color,opacity] duration-200 select-none';
 
-export const LB_SUMMARY_VAL = 'text-base';
+const SUMMARY_DENSITY_CLASSES: Record<SummaryDensity, { gap: string; pad: string }> = {
+  normal: { gap: 'gap-2', pad: 'px-2.5' },
+  compact: { gap: 'gap-1.5', pad: 'px-2' },
+};
+
+export interface SummaryRowClasses {
+  row: string;
+  pill: string;
+  /** Non-interactive twin for the reference benchmark's Echo blueprint: its substats are fixed by the tier, so a pointer cursor would promise a filter that does not exist. */
+  pillStatic: string;
+  rv: string;
+  val: string;
+}
+
+/** `pillCount` includes the RV pill where the host renders one. */
+export const getSummaryRowClasses = (pillCount: number, host: SummaryHost): SummaryRowClasses => {
+  const d = SUMMARY_DENSITY_CLASSES[getSummaryDensity(pillCount, host)];
+  const pillStatic = `${SUMMARY_PILL_BASE} ${d.pad}`;
+  return {
+    row: `${SUMMARY_ROW_BASE} ${d.gap}`,
+    pill: `${pillStatic} cursor-pointer hover:border-amber-200/65`,
+    pillStatic,
+    rv: `${SUMMARY_RV_BASE} ${d.pad}`,
+    val: 'text-base',
+  };
+};
+
+/** Normal-density row, for skeletons that render a fixed handful of pills. */
+export const LB_SUMMARY_ROW = getSummaryRowClasses(0, 'expansion').row;
 
 export const LB_SUMMARY_ICON = 'h-4 w-4 object-contain';
 
 export const LB_SUMMARY_ICON_EMPTY = 'h-4 w-4 rounded bg-white/18';
-
-export const LB_SUMMARY_RV = 'inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-sm font-semibold text-white/92 transition-[border-color,opacity] duration-200 select-none';
 
 // Sequence badge border/bg/text colors. Index = sequence level 0-6.
 // This is the single source for the S1-S6 color ramp; SEQUENCE_BADGE_STYLES

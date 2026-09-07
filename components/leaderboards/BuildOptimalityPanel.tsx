@@ -6,7 +6,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { Character, Element } from '@/lib/character';
 import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
 import { formatFlatStat, formatPercentStat } from './formatters';
-import { RegionBadge, PERCENT_STAT_KEYS, SORT_OPTIONS, STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, LB_SUMMARY_PILL_STATIC, LB_SUMMARY_ROW, LB_SUMMARY_VAL } from './constants';
+import { getSummaryRowClasses, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, PERCENT_STAT_KEYS, RegionBadge, SORT_OPTIONS, STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
 import { resolveCharacterBaseScaling } from './statColumns';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
 import { buildSubstatSummary } from './substatSummary';
@@ -278,6 +278,10 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     () => buildSubstatSummary(selectedRef.echoPanels, statIcons, statTranslations),
     [selectedRef.echoPanels, statIcons, statTranslations],
   );
+  // Blueprint rows never carry an RV pill, so the count is the stat pills alone.
+  // The bench renders under both hosts without knowing which; the expansion
+  // ladder is the narrower one and is safe in the card's frame too.
+  const blueprintClasses = getSummaryRowClasses(blueprintSubstats.length, 'expansion');
   const syntheticDetail = useMemo<LBBuildDetailEntry>(() => ({
     ...buildDetail,
     id: `${buildDetail.id}-optimality-${selectedTier}`,
@@ -514,11 +518,11 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
                 value, so its Roll Value is 100 / 50 / 0 by construction and
                 would state the tier a third time. */}
             {blueprintSubstats.length > 0 && (
-              <div className={LB_SUMMARY_ROW}>
+              <div className={blueprintClasses.row}>
                 {blueprintSubstats.map((summary) => (
                   <span
                     key={`blueprint-${selectedTier}-${summary.type}`}
-                    className={`${LB_SUMMARY_PILL_STATIC} border-amber-300/45`}
+                    className={`${blueprintClasses.pillStatic} border-amber-300/45`}
                     title={summary.type}
                   >
                     <span className="text-amber-300">x{summary.count}</span>
@@ -527,7 +531,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
                     ) : (
                       <span className={LB_SUMMARY_ICON_EMPTY} />
                     )}
-                    <span className={LB_SUMMARY_VAL}>
+                    <span className={blueprintClasses.val}>
                       {summary.isPercent ? formatPercentStat(summary.total) : formatFlatStat(summary.total)}
                     </span>
                   </span>
