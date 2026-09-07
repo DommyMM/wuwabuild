@@ -211,6 +211,10 @@ def normalize_encore_markup(value: str) -> str:
     out.append(text[cursor:])
     out.append("</color>" * len(open_colors))
 
-    normalized = re.sub(r"[ \t]*\n[ \t]*", "\n", "".join(out))
+    normalized = "".join(out)
+    # A truncated payload can end mid-tag. Nothing downstream recognizes an
+    # unterminated tag, so it would render as literal "<span style=..." text.
+    normalized = re.sub(r"<[^<>]*$", "", normalized)
+    normalized = re.sub(r"[ \t]*\n[ \t]*", "\n", normalized)
     normalized = re.sub(r"\n{3,}", "\n\n", normalized)
     return sanitize_game_text(normalized).strip()

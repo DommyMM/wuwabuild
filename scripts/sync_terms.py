@@ -22,8 +22,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import requests
 
@@ -50,41 +52,54 @@ def _linked_term_ids() -> set[int]:
     return found
 
 
-def _fetch_language(session: requests.Session, lang: str) -> dict[int, dict[str, str]]:
-    payload = encore_request_json(session, lang, "term")
-    rows = payload.get("termList") if isinstance(payload, dict) else payload
-    if not isinstance(rows, list):
-        raise ValueError(f"Unexpected /term payload for {lang}: {type(payload).__name__}")
-    out: dict[int, dict[str, str]] = {}
-    for row in rows:
-        if not isinstance(row, dict) or row.get("Id") is None:
-            continue
-        title = str(row.get("TermTitle") or "").strip()
-        description = str(row.get("TermDesc") or "").strip()
-        # Untranslated rows come back as literal "???" rather than blank.
-        if title in ("", "???") and description in ("", "???"):
-            continue
-        out[int(row["Id"])] = {
-            "title": "" if title == "???" else title,
-            "description": "" if description == "???" else normalize_encore_markup(description),
-        }
-    return out
+def _term_entry(payload: Any) -> dict[str, str] | None:
+    """One term's title and body, or None when the game has no translation."""
+    if not isinstance(payload, dict):
+        return None
+    title = str(payload.get("TermTitle") or "").strip()
+    description = str(payload.get("TermDesc") or "").strip()
+    # Untranslated rows come back as literal "???" rather than blank.
+    if title in ("", "???") and description in ("", "???"):
+        return None
+    return {
+        "title": "" if title == "???" else title,
+        "description": "" if description == "???" else normalize_encore_markup(description),
+    }
+
+
+def _fetch_term(session: requests.Session, lang: str, term_id: int) -> tuple[int, dict[str, str] | None]:
+    """One term from the per-id route.
+
+    The `/term` list route truncates every description mid-sentence (and often
+    mid-tag, which is how a raw `<span ...` reached the UI), so the id-addressed
+    route is the only complete source. That costs one request per term per
+    language, which is why the reachable set is kept small.
+    """
+    try:
+        return term_id, _term_entry(encore_request_json(session, lang, f"term/{term_id}"))
+    except Exception as exc:  # a single missing term must not fail the sync
+        print(f"  WARNING: {lang}/term/{term_id} failed: {exc}")
+        return term_id, None
+
+
+def _fetch_terms(session: requests.Session, lang: str, ids: Iterable[int]) -> dict[int, dict[str, str]]:
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = pool.map(lambda term_id: _fetch_term(session, lang, term_id), ids)
+    return {term_id: entry for term_id, entry in results if entry is not None}
 
 
 def build(languages: tuple[str, ...]) -> list[dict[str, Any]]:
     session = requests.Session()
-    by_lang: dict[str, dict[int, dict[str, str]]] = {}
-    for lang in languages:
-        by_lang[lang] = _fetch_language(session, lang)
-        print(f"  {lang}: {len(by_lang[lang])} terms")
 
     wanted = _linked_term_ids()
     print(f"Linked from shipped data: {len(wanted)} terms")
 
-    # A term's own body links further terms; keep following until it closes.
-    english = by_lang.get("en", {})
+    # A term's own body links further terms, and only the full body shows them,
+    # so the closure walks English details until it stops finding new ids.
+    english: dict[int, dict[str, str]] = {}
     frontier = set(wanted)
     while frontier:
+        english.update(_fetch_terms(session, "en", sorted(frontier)))
         nested: set[int] = set()
         for term_id in frontier:
             entry = english.get(term_id)
@@ -96,16 +111,37 @@ def build(languages: tuple[str, ...]) -> list[dict[str, Any]]:
 
     missing = sorted(term_id for term_id in wanted if term_id not in english)
     if missing:
-        print(f"  WARNING: {len(missing)} linked ids absent from Encore: {missing[:10]}")
+        print(f"  WARNING: {len(missing)} linked ids have no English entry: {missing[:10]}")
+
+    keep = sorted(wanted & set(english))
+    by_lang: dict[str, dict[int, dict[str, str]]] = {"en": english}
+    for lang in languages:
+        if lang == "en":
+            continue
+        by_lang[lang] = _fetch_terms(session, lang, keep)
+        print(f"  {lang}: {len(by_lang[lang])} terms")
 
     records: list[dict[str, Any]] = []
-    for term_id in sorted(wanted & set(english)):
-        title = {lang: rows[term_id]["title"] for lang, rows in by_lang.items() if term_id in rows}
-        description = {
-            lang: rows[term_id]["description"]
-            for lang, rows in by_lang.items() if term_id in rows
-        }
-        records.append({"id": term_id, "name": title, "description": description})
+    for term_id in keep:
+        records.append({
+            "id": term_id,
+            "name": {lang: rows[term_id]["title"] for lang, rows in by_lang.items() if term_id in rows},
+            "description": {
+                lang: rows[term_id]["description"]
+                for lang, rows in by_lang.items() if term_id in rows
+            },
+        })
+
+    # Normalization should leave only the game's own markup. Anything else with
+    # a "<" in it is a tag that survived, which is what a truncated source looks
+    # like by the time it reaches the page.
+    known_markup = re.compile(r"</?color(?:=[^>]+)?>|</?te(?:\s+href=\d+)?\s*>", re.IGNORECASE)
+    broken = [
+        r["id"] for r in records
+        if any("<" in known_markup.sub("", text) for text in r["description"].values())
+    ]
+    if broken:
+        raise ValueError(f"{len(broken)} terms still carry raw markup: {broken[:10]}")
     return records
 
 
