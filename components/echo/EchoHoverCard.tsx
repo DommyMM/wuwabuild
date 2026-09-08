@@ -91,7 +91,7 @@ export function EchoHoverCard({
         {renderGameTemplateWithHighlights({
           template: skillTemplate,
           getParamValue: (index) => levelOneParams[index] ?? null,
-          highlightClassName: 'text-cyan-200 font-semibold',
+          highlightClassName: 'font-semibold text-white',
           keepUnknownPlaceholders: true,
               })}
       </HoverCardDescription>

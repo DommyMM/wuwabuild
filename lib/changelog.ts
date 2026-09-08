@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-09-08',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Hover tooltips cleaner and more solid to block background bleed',
+            },
+        ],
+    },
+    {
         date: '2026-09-06',
         changes: [
             {

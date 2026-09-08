@@ -238,6 +238,20 @@ body {
   scrollbar-color: rgba(191, 173, 125, 0.6) transparent;
 }
 
+/* Opt-out for scroll containers that carry their own cue (the hover card's
+   arrow). This must live here, unlayered: the `*` rule above is unlayered too,
+   and unlayered styles beat every Tailwind utility regardless of specificity,
+   so `[scrollbar-width:none]` never wins. Chromium 121+ also ignores every
+   `::-webkit-scrollbar` rule on an element once `scrollbar-width` is set, which
+   is why `[&::-webkit-scrollbar]:w-0` has never hidden anything on this site. */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 .char-sig {
   --char-gradient: linear-gradient(to right, #ffffff, #ffffff);
   --char-glow: rgba(255, 255, 255, 0.22);
@@ -632,6 +646,45 @@ body {
 }
 .gold-glow:hover {
   box-shadow: 0 0 28px -4px rgba(166, 150, 98, 0.35);
+}
+
+/* Hover cards (components/ui/HoverTooltip.tsx). Enter only: 120ms ease-out fade
+   and a settle from the trigger side; the panel unmounts on close, so there is
+   no exit. A card opened inside the warm window after another closed carries
+   data-instant and skips the motion. Reduced motion keeps the fade. */
+@keyframes hover-card-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes hover-card-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.hover-card-enter {
+  animation: hover-card-in 120ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.hover-card-enter[data-instant] {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hover-card-enter {
+    animation-name: hover-card-fade;
+  }
+}
+/* Opaque ground with one subject-tint fade from the top-left corner, where the
+   icon hangs (Enka's tooltip ground). --hover-tint is set inline by the caller;
+   without it the corner stays neutral. */
+.hover-card-panel {
+  background-color: #161616;
+}
+.hover-card-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(195deg, color-mix(in srgb, var(--hover-tint, transparent) 34%, transparent) 0, transparent 9rem);
 }
 
 /* Gold glass panel frame shared by the build-card echo section, the rank module, and the expanded-row echo panels */

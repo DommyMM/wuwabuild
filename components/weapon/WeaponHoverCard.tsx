@@ -53,7 +53,7 @@ export function WeaponHoverCard({
       if (!slotValues?.length) return null;
       return slotValues[Math.min(rankIndex, slotValues.length - 1)] ?? null;
     },
-    highlightClassName: 'text-cyan-200 font-semibold',
+    highlightClassName: 'font-semibold text-white',
     keepUnknownPlaceholders: true,
   });
 

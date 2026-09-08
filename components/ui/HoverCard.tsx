@@ -34,14 +34,16 @@ interface HoverCardProps {
   width?: 'sm' | 'md' | 'lg';
   maxRisePx?: number;
   openDelayMs?: number;
+  // Subject colour for the panel's corner fade; see HoverTooltip.
+  tint?: string;
 }
 
 // Each size steps down below md: the desktop widths clamp to ~full-bleed on a
 // 390px phone, where the tap-opened card should read as a compact popover.
 const WIDTH_CLASS: Record<NonNullable<HoverCardProps['width']>, string> = {
-  sm: 'w-60 md:w-72 max-w-[calc(100vw-1rem)]',
-  md: 'w-72 md:w-96 max-w-[calc(100vw-1rem)]',
-  lg: 'w-80 md:w-120 max-w-[calc(100vw-1rem)]',
+  sm: 'w-60 md:w-64 max-w-[calc(100vw-1rem)]',
+  md: 'w-72 md:w-[340px] max-w-[calc(100vw-1rem)]',
+  lg: 'w-80 md:w-[420px] max-w-[calc(100vw-1rem)]',
 };
 
 const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
@@ -123,7 +125,7 @@ function HoverCardChips({ chips }: HoverCardChipsProps) {
             ? 'border-amber-300/30 bg-amber-300/12 text-amber-100/95'
             : chip.tone === 'cyan'
               ? 'border-cyan-300/30 bg-cyan-300/12 text-cyan-100/95'
-              : 'border-white/10 bg-black/30 text-white/82';
+              : 'border-white/10 bg-white/6 text-white/80';
         const colorStyle: CSSProperties | undefined = chip.color
           ? {
             borderColor: `color-mix(in srgb, ${chip.color} 42%, transparent)`,
@@ -148,7 +150,7 @@ function HoverCardChips({ chips }: HoverCardChipsProps) {
               />
             )}
             {chip.label !== undefined && (
-              <span className="font-semibold">{chip.label}</span>
+              <span>{chip.label}</span>
             )}
           </span>
         );
@@ -181,18 +183,18 @@ export function HoverCardSection({
   return (
     <div className={`${wrapperClass} ${className}`}>
       {eyebrow && (
-        <p className="text-xs font-semibold uppercase tracking-wide text-white/65">
+        <p className="text-2xs uppercase tracking-[0.1em] text-white/55">
           {eyebrow}
         </p>
       )}
       {title && (
-        <p className={`${eyebrow ? 'mt-0.5' : ''} text-sm font-semibold text-white/95`}>
+        <p className={`${eyebrow ? 'mt-0.5' : ''} font-plus-jakarta text-[13px] font-semibold text-white/95`}>
           {title}
           {badge && <span className={`ml-1 ${badgeToneClass}`}>{badge.text}</span>}
         </p>
       )}
       {children && (
-        <div className={`${title || eyebrow ? 'mt-0.5' : ''} text-sm leading-relaxed text-white/86`}>
+        <div className={`${title || eyebrow ? 'mt-0.5' : ''} text-[13px] leading-normal text-white/82`}>
           {children}
         </div>
       )}
@@ -215,12 +217,56 @@ export function HoverCardBonusList({ items }: HoverCardBonusListProps) {
   return (
     <div className="space-y-1">
       {items.map((item, i) => (
-        <p key={i} className="text-sm leading-relaxed text-white/86">
+        <p key={i} className="text-[13px] leading-normal text-white/82">
           <span>{item.name}</span>{' '}
-          <span className="font-semibold text-cyan-200">
+          <span className="font-gowun tabular-nums text-white/95">
             {item.prefix ?? ''}{item.value}
           </span>
         </p>
+      ))}
+    </div>
+  );
+}
+
+interface HoverCardTableRow {
+  key?: string;
+  label: ReactNode;
+  value: ReactNode;
+}
+
+// A value like "79.31%×2+158.61%" has no spaces, so it gets a break
+// opportunity after each operator instead of breaking inside a number.
+const breakAtOperators = (value: ReactNode): ReactNode => {
+  if (typeof value !== 'string') return value;
+  const parts = value.split(/(?<=[+×*])/u);
+  if (parts.length < 2) return value;
+  return parts.map((part, i) => (
+    <React.Fragment key={i}>
+      {i > 0 && <wbr />}
+      {part}
+    </React.Fragment>
+  ));
+};
+
+// Two-column value rows (a move's scaling at its level, a weapon's stats).
+// The label owns the row and wraps first; the value is capped so a long
+// expression wraps at its operators, right-aligned, instead of crushing the
+// label into a column of single words. Gowun at its one real weight: the
+// face and the alpha lift are the emphasis, not a synthesised bold.
+export function HoverCardTable({ rows }: { rows: HoverCardTableRow[] }) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="space-y-1">
+      {rows.map((row, i) => (
+        <div
+          key={row.key ?? i}
+          className="flex items-baseline justify-between gap-3 rounded-md bg-white/6 px-2 py-1"
+        >
+          <span className="min-w-0 flex-1 text-white/62">{row.label}</span>
+          <span className="max-w-[58%] text-right font-gowun tabular-nums text-white/95">
+            {breakAtOperators(row.value)}
+          </span>
+        </div>
       ))}
     </div>
   );
@@ -236,7 +282,7 @@ export function HoverCardDescription({
   className = '',
 }: HoverCardDescriptionProps) {
   return (
-    <p className={`whitespace-pre-line text-sm leading-relaxed text-white/86 ${className}`}>
+    <p className={`whitespace-pre-line text-[13px] leading-normal text-white/82 ${className}`}>
       {children}
     </p>
   );
@@ -258,25 +304,25 @@ function HoverCardPanel({ icon, eyebrow, title, subtitle, badge, chips, body, wi
   const badgeToneClass = badge ? BADGE_TONE_CLASS[badge.tone ?? 'orange'] : '';
 
   return (
-    <div className={`font-plus-jakarta ${WIDTH_CLASS[width]} text-white/90`}>
+    <div className={`font-ropa ${WIDTH_CLASS[width]} text-[13px] leading-normal text-white/90`}>
       <div className={headerIndentClass}>
         {eyebrow && (
-          <p className="text-xs font-semibold uppercase tracking-wide text-white/65">
+          <p className="text-2xs uppercase tracking-[0.1em] text-white/55">
             {eyebrow}
           </p>
         )}
-        <p className={`${eyebrow ? 'mt-0.5' : ''} text-sm md:text-base font-semibold leading-tight text-white/96`}>
+        <p className={`${eyebrow ? 'mt-0.5' : ''} font-plus-jakarta text-base font-semibold leading-tight text-white/96`}>
           {title}
           {badge && <span className={`ml-1.5 ${badgeToneClass}`}>{badge.text}</span>}
         </p>
         {subtitle && (
-          <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-white/65">
+          <p className="mt-0.5 text-2xs uppercase tracking-[0.1em] text-white/55">
             {subtitle}
           </p>
         )}
         {chips && chips.length > 0 && <HoverCardChips chips={chips} />}
       </div>
-      {body && <div className="mt-3 space-y-1.5">{body}</div>}
+      {body && <div className="mt-2.5 space-y-2">{body}</div>}
     </div>
   );
 }
@@ -297,6 +343,7 @@ export function HoverCard({
   width = 'md',
   maxRisePx,
   openDelayMs,
+  tint,
 }: HoverCardProps) {
   const leadingNode = icon ? (
     <div
@@ -316,6 +363,7 @@ export function HoverCard({
       triggerClassName={triggerClassName}
       openDelayMs={openDelayMs}
       maxRisePx={maxRisePx}
+      tint={tint}
       leadingNode={leadingNode}
       visualOverflow={icon ? {
         top: Math.abs(Math.min(0, ICON_HANG_TOP)),

@@ -125,13 +125,13 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
             title={chainName}
             chips={[{ label: `Resonance Chain ${i + 1}`, tone: 'amber' }]}
             openDelayMs={NODE_OPEN_DELAY_MS}
+            tint={ELEMENT_COLOR[element]}
             body={chainDescription ? (
               <>
                 <HoverCardDescription>
                   {renderGameTemplateWithHighlights({
                     template: chainDescription,
                     getParamValue: (index) => chain.param?.[index] ?? null,
-                    highlightClassName: 'text-cyan-200 font-semibold',
                     keepUnknownPlaceholders: true,
                     unknownPlaceholderClassName: 'text-amber-200/90 font-semibold',
                                   })}

@@ -11,8 +11,8 @@ export function formatStatRoll(value: number, isPercent: boolean): string {
 // A label/value pair used inside hover tooltip bodies on the echo panels.
 export const StatHoverRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="flex items-baseline justify-between gap-4">
-    <span className="text-xs font-semibold uppercase tracking-wide text-white/55">{label}</span>
-    <span className="text-sm font-semibold text-white/90">{children}</span>
+    <span className="text-2xs uppercase tracking-[0.1em] text-white/55">{label}</span>
+    <span className="font-gowun text-sm tabular-nums text-white/90">{children}</span>
   </div>
 );
 
@@ -25,7 +25,7 @@ export const SubstatRollBar: React.FC<{
 }> = ({ rollValues, currentValue, isPercent, showValueLabel = true }) => {
   const sorted = rollValues.filter((value) => Number.isFinite(value)).slice().sort((a, b) => a - b);
   if (sorted.length < 2) {
-    return <span className="text-sm font-semibold text-white/90">{formatStatRoll(currentValue, isPercent)}</span>;
+    return <span className="font-gowun text-sm tabular-nums text-white/90">{formatStatRoll(currentValue, isPercent)}</span>;
   }
 
   let currentIndex = 0;

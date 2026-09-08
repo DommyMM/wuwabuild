@@ -370,7 +370,7 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
                         {renderGameTemplateWithHighlights({
                           template: skillTemplate,
                           getParamValue: (index) => skillParams[index] ?? null,
-                          highlightClassName: 'text-cyan-200 font-semibold',
+                          highlightClassName: 'font-semibold text-white',
                           keepUnknownPlaceholders: true,
                         })}
                         <GlossaryNotes template={skillTemplate} />

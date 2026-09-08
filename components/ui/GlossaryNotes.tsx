@@ -43,7 +43,7 @@ export function GlossaryNotes({ template, className = '' }: GlossaryNotesProps) 
           if (!name && !description) return null;
           return (
             <div key={term.id}>
-              <dt className="text-xs font-semibold" style={{ color: HEADWORD_COLOR }}>{name}</dt>
+              <dt className="text-xs" style={{ color: HEADWORD_COLOR }}>{name}</dt>
               {description && (
                 <dd className="mt-0.5 whitespace-pre-line text-xs leading-relaxed text-white/70">
                   {renderGameTemplateWithHighlights({

@@ -3,15 +3,15 @@
 import React from 'react';
 import { ForteState } from '@/lib/build';
 import { Character, I18nString } from '@/lib/character';
-import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription, HoverCardChipModel } from '@/components/ui/HoverCard';
+import { HoverCard, HoverCardIcon, HoverCardTable, HoverCardDescription, HoverCardChipModel } from '@/components/ui/HoverCard';
+import { ELEMENT_COLOR } from '@/lib/elementVisuals';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { resolveGameTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
+import { compactMoveValue, resolveGameTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
 import { GlossaryNotes } from '@/components/ui/GlossaryNotes';
 
 interface TalentPillsProps {
   character: Character;
   forte: ForteState;
-  /** Max level for the "max" highlight; defaults to 10. */
   maxLevel?: number;
 }
 
@@ -128,6 +128,7 @@ export const TalentPills: React.FC<TalentPillsProps> = ({ character, forte, maxL
           />
         ) : undefined;
 
+        // The level chip labels the value rows below, which are read at this level.
         const chips: HoverCardChipModel[] = [{ label: SKILL_LABEL[key] || key }];
         chips.push({ label: `Lv.${selectedLevel}` });
 
@@ -139,26 +140,19 @@ export const TalentPills: React.FC<TalentPillsProps> = ({ character, forte, maxL
                   template: moveDescription,
                   values: descriptionParams.length > 0 ? descriptionParams : fallbackParams,
                   keepUnknownPlaceholders: true,
-                  highlightClassName: 'text-cyan-200 font-semibold',
                 })}
               </HoverCardDescription>
             )}
             <GlossaryNotes template={moveDescription} />
-            {selectedMoveValues.length > 0 && (
-              <div className="space-y-1.5">
-                {selectedMoveValues.map((entry) => (
-                  <HoverCardSection
-                    key={`${move.id}-${entry.id}`}
-                    variant="inset"
-                    eyebrow={entry.name || (SKILL_LABEL[key] || key)}
-                  >
-                    {entry.value && (
-                      <p className="text-sm font-semibold text-cyan-200">{entry.value}</p>
-                    )}
-                  </HoverCardSection>
-                ))}
-              </div>
-            )}
+            <HoverCardTable
+              rows={selectedMoveValues
+                .filter((entry) => entry.value)
+                .map((entry) => ({
+                  key: `${move.id}-${entry.id}`,
+                  label: entry.name || (SKILL_LABEL[key] || key),
+                  value: compactMoveValue(entry.value),
+                }))}
+            />
           </>
         );
 
@@ -171,6 +165,7 @@ export const TalentPills: React.FC<TalentPillsProps> = ({ character, forte, maxL
             title={moveName || (SKILL_LABEL[key] || key)}
             chips={chips}
             body={body}
+            tint={ELEMENT_COLOR[character.element]}
           >
             {pill}
           </HoverCard>

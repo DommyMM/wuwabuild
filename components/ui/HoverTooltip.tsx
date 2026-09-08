@@ -40,6 +40,9 @@ interface HoverTooltipProps {
   // over a trigger on the way somewhere else does not open it; a trigger with
   // room around it does not, and opens immediately.
   openDelayMs?: number;
+  // Subject colour for the panel's corner fade: an element colour for
+  // character content, a rarity colour for items. Absent means neutral.
+  tint?: string;
 }
 
 type TooltipTriggerProps = React.HTMLAttributes<HTMLElement> & {
@@ -49,6 +52,24 @@ type TooltipTriggerProps = React.HTMLAttributes<HTMLElement> & {
 };
 
 const VIEWPORT_PADDING = 8;
+
+// Hover intent. A first card waits so a pointer crossing a trigger on its way
+// elsewhere does not open it. A card opened inside the warm window after any
+// card closed skips both the wait and the enter animation, so browsing
+// adjacent triggers feels instant (the toolbar rule). The clock is shared by
+// every tooltip on the page.
+const DEFAULT_OPEN_DELAY_MS = 80;
+const WARM_REOPEN_WINDOW_MS = 250;
+let lastCloseAt = Number.NEGATIVE_INFINITY;
+const isWarm = (): boolean => performance.now() - lastCloseAt < WARM_REOPEN_WINDOW_MS;
+
+// The enter settle grows out of the trigger's side.
+const TRANSFORM_ORIGIN: Record<TooltipPlacement, string> = {
+  right: 'left center',
+  left: 'right center',
+  top: 'center bottom',
+  bottom: 'center top',
+};
 
 const NATIVE_FOCUSABLE_ELEMENTS = new Set([
   'button',
@@ -163,7 +184,8 @@ export function HoverTooltip({
   pinViewportBottom = false,
   leadingNode,
   visualOverflow,
-  openDelayMs = 0,
+  openDelayMs = DEFAULT_OPEN_DELAY_MS,
+  tint,
 }: HoverTooltipProps) {
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
@@ -177,12 +199,23 @@ export function HoverTooltip({
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0 });
   const [showBottomArrow, setShowBottomArrow] = useState(false);
+  // Overflowing content gets bottom room so the last line clears the arrow;
+  // keyed on overflow, not on the arrow, so reaching the bottom does not jump.
+  const [overflowing, setOverflowing] = useState(false);
+  // Instant opens (warm re-open, keyboard focus) skip the enter animation.
+  const [instant, setInstant] = useState(false);
+  const [resolvedPlacement, setResolvedPlacement] = useState<TooltipPlacement>(placement);
+  const wasOpenRef = useRef(false);
   const tooltipId = useId();
   // Mirror of isOpen for the tap-toggle below: a touch pointerdown must read
   // the pre-tap state without re-binding the handler on every open/close.
   const isOpenRef = useRef(false);
   useEffect(() => {
     isOpenRef.current = isOpen;
+  }, [isOpen]);
+  useEffect(() => {
+    if (wasOpenRef.current && !isOpen) lastCloseAt = performance.now();
+    wasOpenRef.current = isOpen;
   }, [isOpen]);
 
   const hasContent = useMemo(() => {
@@ -206,14 +239,18 @@ export function HoverTooltip({
     // reacting here would make every tap insta-close what it just opened.
     if (event.pointerType === 'touch') return;
     pointerInsideRef.current = true;
-    if (openDelayMs <= 0) {
+    const warm = isWarm();
+    if (warm || openDelayMs <= 0) {
+      setInstant(warm);
       setIsOpen(true);
       return;
     }
     cancelScheduledOpen();
     openTimerRef.current = window.setTimeout(() => {
       openTimerRef.current = null;
-      if (pointerInsideRef.current) setIsOpen(true);
+      if (!pointerInsideRef.current) return;
+      setInstant(false);
+      setIsOpen(true);
     }, openDelayMs);
   }, [cancelScheduledOpen, openDelayMs]);
 
@@ -233,6 +270,8 @@ export function HoverTooltip({
     }
 
     focusWithinRef.current = true;
+    // Keyboard-initiated: no wait, no motion.
+    setInstant(true);
     setIsOpen(true);
   }, []);
 
@@ -245,6 +284,7 @@ export function HoverTooltip({
     if (event.pointerType === 'touch') {
       // Touch has no hover: the first tap opens, a second tap on the trigger
       // closes. Without this, hover-only content is unreachable on phones.
+      setInstant(false);
       setIsOpen(!isOpenRef.current);
     } else {
       setIsOpen(false);
@@ -270,6 +310,7 @@ export function HoverTooltip({
     const scrollEl = scrollRef.current;
     if (!scrollEl) {
       setShowBottomArrow(false);
+      setOverflowing(false);
       return;
     }
 
@@ -277,6 +318,7 @@ export function HoverTooltip({
     const isOverflowing = maxScrollTop > 1;
     const canScrollDown = scrollEl.scrollTop < maxScrollTop - 1;
 
+    setOverflowing(isOverflowing);
     setShowBottomArrow(isOverflowing && canScrollDown);
   }, []);
 
@@ -291,6 +333,7 @@ export function HoverTooltip({
     const usableTop = getUsableViewportTop();
 
     let resolved = getPositionForPlacement(triggerRect, tooltipRect, placement, offset);
+    let resolvedSide: TooltipPlacement = placement;
 
     if (!strictPlacement) {
       const candidates = getCandidateOrder(placement);
@@ -298,10 +341,12 @@ export function HoverTooltip({
         const next = getPositionForPlacement(triggerRect, tooltipRect, candidate, offset);
         if (isInsideViewport(next, tooltipRect, overflow, usableTop)) {
           resolved = next;
+          resolvedSide = candidate;
           break;
         }
       }
     }
+    setResolvedPlacement(resolvedSide);
 
     const minLeft = VIEWPORT_PADDING + overflow.left;
     const minTop = usableTop + overflow.top;
@@ -508,25 +553,34 @@ export function HoverTooltip({
           style={{ top: position.top, left: position.left, pointerEvents: 'none' }}
           className="pointer-events-none fixed z-60"
         >
+          {/* The motion lives one level in so the measured box above stays unscaled while positioning. */}
           <div
-            className={`relative max-h-[90vh] max-w-xl overflow-hidden rounded-xl p-2.5 md:rounded-2xl md:p-3 border border-amber-200/30 bg-[linear-gradient(160deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.05)_25%,rgba(10,10,10,0.92)_100%)] shadow-[0_18px_40px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-md ${tooltipClassName}`}
+            className="hover-card-enter relative"
+            data-instant={instant ? '' : undefined}
+            style={{ transformOrigin: TRANSFORM_ORIGIN[resolvedPlacement] }}
+          >
+          <div
+            style={tint ? ({ '--hover-tint': tint } as React.CSSProperties) : undefined}
+            className={`hover-card-panel relative isolate max-h-[90vh] max-w-xl overflow-hidden rounded-xl border border-white/10 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] ${tooltipClassName}`}
           >
             <div
               ref={scrollRef}
-              className="max-h-[calc(90vh-48px)] overflow-x-hidden overflow-y-auto scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0"
+              className={`scrollbar-hidden max-h-[calc(90vh-48px)] overflow-x-hidden overflow-y-auto ${overflowing ? 'pb-5' : ''}`}
             >
               {content}
             </div>
             {showBottomArrow && (
               <>
-                <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-10 bg-linear-to-t from-black/58 to-transparent" />
-                <span className="pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 text-sm leading-none font-semibold text-white/74">
+                {/* Solid for the bottom third so the arrow sits on ground, not on fading text. */}
+                <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-14 bg-linear-to-t from-[#161616] from-30% to-transparent" />
+                <span className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 text-sm leading-none font-semibold text-white/74">
                   ⌄
                 </span>
               </>
             )}
           </div>
           {leadingNode}
+          </div>
         </div>,
         document.body
       )}

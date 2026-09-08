@@ -14,6 +14,30 @@ const TEXT_ENTRY_ID_SCAN = /<te\s+href=(\d+)/giu;
 
 export type TermMode = 'mark' | 'plain';
 
+// A resolved parameter is content, not decoration: it lifts to full white
+// against the body's 82% and nothing else, so the only coloured text in a
+// description is the game's own element markup and the gold glossary terms.
+// (Ropa loads at one weight, so a weight step here would be synthesised.)
+export const PARAM_HIGHLIGHT_CLASS = 'text-white';
+
+// Move scaling values arrive in the game's own notation, sometimes already
+// compact ("4.92%*5+98.37%"), sometimes spelled out hit by hit
+// ("29.93%+29.93%+29.93%+29.93%+29.93%"). Runs of identical terms fold into
+// the compact form so both read the same way, and the multiplier shows as ×.
+export const compactMoveValue = (value: string | null | undefined): string => {
+  if (!value) return '';
+  const terms = value.split('+').map((term) => term.trim()).filter(Boolean);
+  const folded: string[] = [];
+  let i = 0;
+  while (i < terms.length) {
+    let run = 1;
+    while (i + run < terms.length && terms[i + run] === terms[i]) run += 1;
+    folded.push(run > 1 ? `${terms[i]}*${run}` : terms[i]);
+    i += run;
+  }
+  return folded.join('+').replace(/\*/gu, '×');
+};
+
 // The underline is what says "this word is defined below".
 export const TERM_UNDERLINE_CLASS = 'underline decoration-dotted decoration-current/45 underline-offset-3';
 
@@ -47,6 +71,8 @@ interface MarkupState {
   sizePx?: number;
   // TermConfig id from a <te href=N> glossary link wrapping this run of text.
   termId?: number;
+  // A Title-coloured run that starts a line: rendered as a block sub-heading.
+  heading?: boolean;
 }
 
 interface TextSegment {
@@ -115,6 +141,32 @@ export const stripGameMarkup = (input: string): string => {
 };
 
 const cloneState = (state: MarkupState): MarkupState => ({ ...state });
+
+// WuWa skill text marks its sections ("Basic Attack - Present Self") with the
+// Title colour and spaces them with blank lines. A Title run that starts a
+// line becomes a block heading so a long description sections itself; the
+// newlines around it are dropped because the block carries its own margin.
+// A Title run inside a sentence stays inline.
+const sectionTitleRuns = (segments: TextSegment[]): TextSegment[] => {
+  const flagged = segments.map((segment, index) => {
+    const startsLine = index === 0 || segments[index - 1].text.endsWith('\n');
+    const isHeading = segment.state.colorName === 'Title'
+      && segment.state.termId == null
+      && !segment.text.includes('\n')
+      && segment.text.trim().length > 0
+      && startsLine;
+    return isHeading ? { ...segment, state: { ...segment.state, heading: true } } : segment;
+  });
+  return flagged
+    .map((segment, index) => {
+      if (segment.state.heading) return segment;
+      let text = segment.text;
+      if (flagged[index + 1]?.state.heading) text = text.replace(/\n+$/u, '');
+      if (flagged[index - 1]?.state.heading) text = text.replace(/^\n/u, '');
+      return text === segment.text ? segment : { ...segment, text };
+    })
+    .filter((segment) => segment.text.length > 0);
+};
 
 const getGameTextStyle = (state: MarkupState): React.CSSProperties | undefined => {
   const style: React.CSSProperties = {};
@@ -247,13 +299,21 @@ const renderTextSegmentWithHighlights = (
     parts.push(renderChunk(segment.text, `${keyPrefix}-full`));
   }
 
+  if (segment.state.heading) {
+    return [
+      <span key={`${keyPrefix}-heading`} className="mt-2.5 block font-plus-jakarta font-semibold text-white first:mt-0">
+        {parts}
+      </span>,
+    ];
+  }
+
   return parts;
 };
 
 const renderTemplateWithHighlights = ({
   template,
   getParamValue,
-  highlightClassName = 'text-cyan-200 font-semibold',
+  highlightClassName = PARAM_HIGHLIGHT_CLASS,
   keepUnknownPlaceholders = true,
   unknownPlaceholderClassName = 'text-amber-200/90 font-semibold',
 }: RenderTemplateWithHighlightsArgs): ReactNode => {
@@ -301,16 +361,16 @@ const renderTemplateWithHighlights = ({
 export const renderGameTemplateWithHighlights = ({
   template,
   getParamValue,
-  highlightClassName = 'text-cyan-200 font-semibold',
+  highlightClassName = PARAM_HIGHLIGHT_CLASS,
   keepUnknownPlaceholders = true,
   unknownPlaceholderClassName = 'text-amber-200/90 font-semibold',
   termMode = 'mark',
 }: RenderGameTemplateWithHighlightsArgs): ReactNode => {
   if (!template) return null;
 
-  const segments = parseGameMarkupSegments(
+  const segments = sectionTitleRuns(parseGameMarkupSegments(
     template.replace(/\r\n/gu, '\n').replace(/\{(?!\d+\})[^{}]+\}/gu, ''),
-  );
+  ));
   if (segments.length === 0) return null;
 
   return (
@@ -360,7 +420,7 @@ export const resolveFetterPieceDescription = (
       template: description,
       getParamValue,
       keepUnknownPlaceholders: true,
-      highlightClassName: 'text-cyan-200 font-semibold',
+      highlightClassName: PARAM_HIGHLIGHT_CLASS,
       unknownPlaceholderClassName: 'text-amber-200/90 font-semibold',
     }),
     unresolvedCount,
@@ -371,7 +431,7 @@ export const resolveGameTemplateFromValues = ({
   template,
   values,
   keepUnknownPlaceholders = true,
-  highlightClassName = 'text-cyan-200 font-semibold',
+  highlightClassName = PARAM_HIGHLIGHT_CLASS,
   unknownPlaceholderClassName = 'text-amber-200/90 font-semibold',
 }: ResolveTemplateFromValuesOptions): ReactNode => renderGameTemplateWithHighlights({
   template,

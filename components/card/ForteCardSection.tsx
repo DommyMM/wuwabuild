@@ -1,13 +1,14 @@
 'use client';
 
 import React, { ReactNode } from 'react';
-import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription, HoverCardChipModel } from '@/components/ui/HoverCard';
+import { HoverCard, HoverCardIcon, HoverCardTable, HoverCardDescription, HoverCardChipModel } from '@/components/ui/HoverCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Character, I18nString } from '@/lib/character';
+import { ELEMENT_COLOR } from '@/lib/elementVisuals';
 import { ForteState } from '@/lib/build';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { SKILL_BRANCHES } from '@/lib/constants/skillBranches';
-import { resolveGameTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
+import { compactMoveValue, resolveGameTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
 import { GlossaryNotes } from '@/components/ui/GlossaryNotes';
 
 const BRANCH_MOVE_TYPE: Record<string, number> = {
@@ -31,7 +32,6 @@ interface NodeBadgeProps {
   active: boolean;
   isCircuit: boolean;
   alt: string;
-  /** Stats this node feeds; inherent nodes can carry several. Empty = not linked. */
   hoverKeys: readonly StatHoverKey[];
   activeHoverStat: StatHoverKey | null;
   onHoverStatChange?: (next: StatHoverKey | null) => void;
@@ -138,7 +138,6 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
     label: string;
     level: number;
     fallbackTitle: string;
-    showLevelChip?: boolean;
   };
 
   const buildMoveCard = (
@@ -172,10 +171,9 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
       />
     ) : undefined;
 
+    // The level chip labels the value rows below, which are read at this level.
     const chips: HoverCardChipModel[] = [{ label: options.label }];
-    if (options.showLevelChip !== false) {
-      chips.push({ label: `Lv.${level}` });
-    }
+    chips.push({ label: `Lv.${level}` });
 
     const body = (
       <>
@@ -185,26 +183,19 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
               template: moveDescription,
               values: descriptionParams.length > 0 ? descriptionParams : fallbackParams,
               keepUnknownPlaceholders: true,
-              highlightClassName: 'text-cyan-200 font-semibold',
             })}
           </HoverCardDescription>
         )}
         <GlossaryNotes template={moveDescription} />
-        {selectedMoveValues.length > 0 && (
-          <div className="space-y-1.5">
-            {selectedMoveValues.map((entry) => (
-              <HoverCardSection
-                key={`${move.id}-${entry.id}`}
-                variant="inset"
-                eyebrow={entry.name || options.fallbackTitle}
-              >
-                {entry.value && (
-                  <p className="text-sm font-semibold text-cyan-200">{entry.value}</p>
-                )}
-              </HoverCardSection>
-            ))}
-          </div>
-        )}
+        <HoverCardTable
+          rows={selectedMoveValues
+            .filter((entry) => entry.value)
+            .map((entry) => ({
+              key: `${move.id}-${entry.id}`,
+              label: entry.name || options.fallbackTitle,
+              value: compactMoveValue(entry.value),
+            }))}
+        />
       </>
     );
 
@@ -216,6 +207,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
         title={moveName || options.fallbackTitle}
         chips={chips}
         body={body}
+        tint={ELEMENT_COLOR[character.element]}
       >
         {trigger}
       </HoverCard>
@@ -307,7 +299,6 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
                   label: 'Inherent Skill',
                   level: 1,
                   fallbackTitle: topNodeName || 'Inherent Skill',
-                  showLevelChip: false,
                 }, topNode)
               : topNode}
 
@@ -319,7 +310,6 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
                   label: 'Inherent Skill',
                   level: 1,
                   fallbackTitle: midNodeName || 'Inherent Skill',
-                  showLevelChip: false,
                 }, midNode)
               : midNode}
 
