@@ -8,6 +8,7 @@ import { ELEMENT_COLOR } from '@/lib/elementVisuals';
 import { getChainSequenceBonuses } from '@/lib/constants/statBonuses';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
+import { GlossaryNotes } from '@/components/ui/GlossaryNotes';
 
 interface SequenceStripProps {
   chains: CDNChainEntry[];
@@ -22,6 +23,11 @@ interface SequenceStripProps {
   activeHoverStat?: StatHoverKey | null;
   onHoverStatChange?: (next: StatHoverKey | null) => void;
 }
+
+// The nodes are stacked a few pixels apart, so a card opened from one covers
+// its neighbour. Waiting for the pointer to settle means reaching for the card
+// does not open the node it passes over on the way.
+const NODE_OPEN_DELAY_MS = 120;
 
 export const SequenceStrip: React.FC<SequenceStripProps> = ({
   chains, sequence, element, characterName, overlay = false,
@@ -118,16 +124,20 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
             eyebrow={resolvedCharacterName}
             title={chainName}
             chips={[{ label: `Resonance Chain ${i + 1}`, tone: 'amber' }]}
+            openDelayMs={NODE_OPEN_DELAY_MS}
             body={chainDescription ? (
-              <HoverCardDescription>
-                {renderGameTemplateWithHighlights({
-                  template: chainDescription,
-                  getParamValue: (index) => chain.param?.[index] ?? null,
-                  highlightClassName: 'text-cyan-200 font-semibold',
-                  keepUnknownPlaceholders: true,
-                  unknownPlaceholderClassName: 'text-amber-200/90 font-semibold',
-                })}
-              </HoverCardDescription>
+              <>
+                <HoverCardDescription>
+                  {renderGameTemplateWithHighlights({
+                    template: chainDescription,
+                    getParamValue: (index) => chain.param?.[index] ?? null,
+                    highlightClassName: 'text-cyan-200 font-semibold',
+                    keepUnknownPlaceholders: true,
+                    unknownPlaceholderClassName: 'text-amber-200/90 font-semibold',
+                                  })}
+                </HoverCardDescription>
+                <GlossaryNotes template={chainDescription} />
+              </>
             ) : undefined}
           >
             {trigger}

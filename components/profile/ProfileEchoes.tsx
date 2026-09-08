@@ -20,7 +20,7 @@ const ECHO_COSTS = [4, 3, 1] as const;
 
 // # | Name (echo art + set badge + name) | Main Stat | [CV/RV + 5 flexed substats]
 const ECHO_TABLE_GRID = 'grid-cols-[48px_384px_96px_minmax(0,1fr)]';
-const ECHO_STAT_GROUP_GRID = 'grid-cols-[144px_repeat(5,minmax(0,1fr))]';
+const ECHO_STAT_GROUP_GRID = 'grid-cols-[128px_repeat(5,minmax(0,1fr))]';
 const ECHO_STAT_GROUP_MIN_W = 'min-w-[640px]';
 
 // Quality column: CV only, with the tier ramp (the one deliberately colored data
@@ -246,7 +246,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
                       }`}
                     >
                       <span>
-                        Crit Value <span className="text-sm opacity-50">/ 42</span>
+                        Crit Value
                       </span>
                       {isCvActive && (
                         <ChevronDown

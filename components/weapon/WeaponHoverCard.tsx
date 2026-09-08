@@ -7,6 +7,7 @@ import { calculateWeaponStats } from '@/lib/calculations/stats';
 import { Weapon } from '@/lib/weapon';
 import { RARITY_ACCENTS } from '@/components/weapon/rarityStyles';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
+import { GlossaryNotes } from '@/components/ui/GlossaryNotes';
 import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription } from '@/components/ui/HoverCard';
 import type { HoverCardChipModel, HoverCardPlacement } from '@/components/ui/HoverCard';
 
@@ -87,7 +88,10 @@ export function WeaponHoverCard({
           badge={{ text: `R${weaponRank}`, tone: 'orange' }}
         >
           {passiveTemplate && (
-            <HoverCardDescription>{renderedPassive}</HoverCardDescription>
+            <>
+              <HoverCardDescription>{renderedPassive}</HoverCardDescription>
+              <GlossaryNotes template={passiveTemplate} />
+            </>
           )}
         </HoverCardSection>
       ) : undefined}

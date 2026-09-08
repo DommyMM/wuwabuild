@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
 import { Echo, CDNFetter } from '@/lib/echo';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
+import { GlossaryNotes } from '@/components/ui/GlossaryNotes';
 import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription } from '@/components/ui/HoverCard';
 import type { HoverCardChipModel, HoverCardPlacement } from '@/components/ui/HoverCard';
 
@@ -92,8 +93,9 @@ export function EchoHoverCard({
           getParamValue: (index) => levelOneParams[index] ?? null,
           highlightClassName: 'text-cyan-200 font-semibold',
           keepUnknownPlaceholders: true,
-        })}
+              })}
       </HoverCardDescription>
+      <GlossaryNotes template={skillTemplate} />
     </HoverCardSection>
   ) : undefined;
 

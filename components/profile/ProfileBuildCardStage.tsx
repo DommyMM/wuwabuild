@@ -156,7 +156,7 @@ export const ProfileBuildCardStage: React.FC<ProfileBuildCardStageProps> = ({
   const isStageRevealed = isCardVisualReady && !showIndicator;
 
   return (
-    <div className="relative mx-auto w-full max-w-368 px-4 pt-5 pb-3" aria-busy={isLoadingActive}>
+    <div className="relative mx-auto w-full max-w-368 px-4 py-5" aria-busy={isLoadingActive}>
       {!isStageRevealed && !showError && (
         <div className={canMountCard ? 'absolute inset-x-4 top-5 z-20' : ''}>
           <ProfileBuildLoading showIndicator={showIndicator} />

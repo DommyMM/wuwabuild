@@ -33,6 +33,7 @@ interface HoverCardProps {
   body?: ReactNode;
   width?: 'sm' | 'md' | 'lg';
   maxRisePx?: number;
+  openDelayMs?: number;
 }
 
 // Each size steps down below md: the desktop widths clamp to ~full-bleed on a
@@ -295,6 +296,7 @@ export function HoverCard({
   body,
   width = 'md',
   maxRisePx,
+  openDelayMs,
 }: HoverCardProps) {
   const leadingNode = icon ? (
     <div
@@ -312,6 +314,7 @@ export function HoverCard({
       strictPlacement={strictPlacement}
       disabled={disabled}
       triggerClassName={triggerClassName}
+      openDelayMs={openDelayMs}
       maxRisePx={maxRisePx}
       leadingNode={leadingNode}
       visualOverflow={icon ? {

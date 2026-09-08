@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CDNChainEntry } from '@/lib/character';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
+import { GlossaryNotes } from '@/components/ui/GlossaryNotes';
 
 type I18nLike = string | { en?: string };
 
@@ -52,7 +53,12 @@ function RichGameText({
         keepUnknownPlaceholders: false,
     });
 
-    return <p className={`whitespace-pre-line leading-relaxed text-text-primary/72 ${className}`}>{rendered}</p>;
+    return (
+        <div className={className}>
+            <p className="whitespace-pre-line leading-relaxed text-text-primary/72">{rendered}</p>
+            <GlossaryNotes template={template} />
+        </div>
+    );
 }
 
 function getLevelValue(values: string[] | undefined, level: number): string {

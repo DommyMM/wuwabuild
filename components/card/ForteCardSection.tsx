@@ -8,6 +8,7 @@ import { ForteState } from '@/lib/build';
 import { normalizeStatHoverKey, StatHoverKey } from '@/lib/constants/statHover';
 import { SKILL_BRANCHES } from '@/lib/constants/skillBranches';
 import { resolveGameTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
+import { GlossaryNotes } from '@/components/ui/GlossaryNotes';
 
 const BRANCH_MOVE_TYPE: Record<string, number> = {
   'normal-attack': 1,
@@ -188,6 +189,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
             })}
           </HoverCardDescription>
         )}
+        <GlossaryNotes template={moveDescription} />
         {selectedMoveValues.length > 0 && (
           <div className="space-y-1.5">
             {selectedMoveValues.map((entry) => (

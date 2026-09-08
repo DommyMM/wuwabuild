@@ -13,6 +13,7 @@ import { isPercentStat } from '@/lib/constants/statMappings';
 import { getSetBonusesFromPieceEffect } from '@/lib/constants/setBonuses';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
 import { renderGameTemplateWithHighlights, resolveFetterPieceDescription } from '@/lib/text/gameText';
+import { GlossaryNotes } from '@/components/ui/GlossaryNotes';
 import { formatDateLabel } from '@/components/leaderboards/formatters';
 import { SubstatRollBar, TierLadder } from '@/components/echo/StatTierBars';
 import { formatFetterBonusValue, getFetterPieceModels } from '@/components/echo/FetterHoverCard';
@@ -372,6 +373,7 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
                           highlightClassName: 'text-cyan-200 font-semibold',
                           keepUnknownPlaceholders: true,
                         })}
+                        <GlossaryNotes template={skillTemplate} />
                       </div>
                     </div>
                   )}

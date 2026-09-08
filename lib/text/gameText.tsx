@@ -1,6 +1,5 @@
 import React, { ReactNode } from 'react';
 import { CDNFetter } from '@/lib/echo';
-import { TermHoverCard } from '@/components/ui/TermHoverCard';
 
 const PLACEHOLDER_PATTERN = /\{(\d+)\}/g;
 const MARKUP_TAG_PATTERN = /<\/?[a-zA-Z][^>]*>|<br\s*\/?>/giu;
@@ -11,6 +10,26 @@ const CLOSE_SIZE_PATTERN = /^<\/size>$/iu;
 const OPEN_TEXT_ENTRY_PATTERN = /^<te\b[^>]*>$/iu;
 const CLOSE_TEXT_ENTRY_PATTERN = /^<\/te>$/iu;
 const TEXT_ENTRY_ID_PATTERN = /href=(\d+)/iu;
+const TEXT_ENTRY_ID_SCAN = /<te\s+href=(\d+)/giu;
+
+export type TermMode = 'mark' | 'plain';
+
+// The underline is what says "this word is defined below".
+export const TERM_UNDERLINE_CLASS = 'underline decoration-dotted decoration-current/45 underline-offset-3';
+
+/** Glossary ids referenced by a template, in the order they are first mentioned. */
+export const collectTemplateTermIds = (template: string): number[] => {
+  if (!template) return [];
+  const seen = new Set<number>();
+  const ids: number[] = [];
+  for (const match of template.matchAll(TEXT_ENTRY_ID_SCAN)) {
+    const id = Number(match[1]);
+    if (!Number.isFinite(id) || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+  return ids;
+};
 
 const GAME_COLOR_STYLES: Record<string, React.CSSProperties> = {
   Highlight: { color: '#f8e39a' },
@@ -41,8 +60,20 @@ interface RenderTemplateWithHighlightsArgs {
   highlightClassName?: string;
   keepUnknownPlaceholders?: boolean;
   unknownPlaceholderClassName?: string;
-  /** Nesting level when rendering a glossary card's own body. */
-  termDepth?: number;
+  /**
+   * How a glossary keyword is presented.
+   *
+   * - `mark` underlines it, pointing at the glossary printed under the text.
+   * - `plain` leaves it as ordinary text, for a definition that is already
+   *   inside a glossary block: an underline there would promise a footnote to
+   *   a footnote.
+   *
+   * Keywords never open a card of their own. Hover panels on this site do not
+   * survive the pointer leaving their trigger, so a definition reached that way
+   * could not be read, and a card opened over a neighbouring trigger flickers
+   * between the two. The glossary block underneath is the definition surface.
+   */
+  termMode?: TermMode;
 }
 
 interface FetterPieceDescriptionResult {
@@ -142,7 +173,7 @@ const parseGameMarkupSegments = (input: string): TextSegment[] => {
       } else if (CLOSE_SIZE_PATTERN.test(rawTag)) {
         state.sizePx = sizeStack.pop();
       } else if (OPEN_TEXT_ENTRY_PATTERN.test(rawTag)) {
-        // Keep the glossary link: the id is what opens the term card.
+        // Keep the glossary link: the id is what the footnote block resolves.
         termStack.push(state.termId);
         const parsedTerm = Number(rawTag.match(TEXT_ENTRY_ID_PATTERN)?.[1]);
         state.termId = Number.isFinite(parsedTerm) ? parsedTerm : state.termId;
@@ -164,19 +195,19 @@ const parseGameMarkupSegments = (input: string): TextSegment[] => {
 const renderTextSegmentWithHighlights = (
   segment: TextSegment,
   getParamValue: (index: number) => string | null,
-  options: Pick<RenderTemplateWithHighlightsArgs, 'highlightClassName' | 'keepUnknownPlaceholders' | 'unknownPlaceholderClassName' | 'termDepth'>,
+  options: Pick<RenderTemplateWithHighlightsArgs, 'highlightClassName' | 'keepUnknownPlaceholders' | 'unknownPlaceholderClassName' | 'termMode'>,
   keyPrefix: string
 ): ReactNode[] => {
   const style = getGameTextStyle(segment.state);
-  const termId = segment.state.termId;
+  const isTerm = segment.state.termId != null;
   const renderChunk = (content: ReactNode, key: string): ReactNode => {
     const styled = style ? <span style={style}>{content}</span> : content;
-    // A glossary keyword is one run of text, so the card wraps the whole
+    // A glossary keyword is one run of text, so the treatment wraps the whole
     // segment rather than each placeholder-split chunk inside it.
-    const linked = termId != null
-      ? <TermHoverCard termId={termId} depth={options.termDepth ?? 0}>{styled}</TermHoverCard>
+    const marked = isTerm && (options.termMode ?? 'mark') === 'mark'
+      ? <span className={TERM_UNDERLINE_CLASS}>{styled}</span>
       : styled;
-    return <React.Fragment key={key}>{linked}</React.Fragment>;
+    return <React.Fragment key={key}>{marked}</React.Fragment>;
   };
 
   const parts: ReactNode[] = [];
@@ -273,7 +304,7 @@ export const renderGameTemplateWithHighlights = ({
   highlightClassName = 'text-cyan-200 font-semibold',
   keepUnknownPlaceholders = true,
   unknownPlaceholderClassName = 'text-amber-200/90 font-semibold',
-  termDepth = 0,
+  termMode = 'mark',
 }: RenderGameTemplateWithHighlightsArgs): ReactNode => {
   if (!template) return null;
 
@@ -291,7 +322,7 @@ export const renderGameTemplateWithHighlights = ({
           highlightClassName,
           keepUnknownPlaceholders,
           unknownPlaceholderClassName,
-          termDepth,
+          termMode,
         },
         `segment-${index}`,
       ))}

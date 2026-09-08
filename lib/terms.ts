@@ -69,12 +69,20 @@ const getSnapshot = (): TermIndex => index ?? EMPTY;
 const getServerSnapshot = (): TermIndex => EMPTY;
 
 /**
- * One term, or null while the glossary is still loading or if it has no entry.
- * Reading a term is what triggers the fetch, so nothing loads until a keyword
- * is actually rendered.
+ * Every term in `ids` that the glossary has, in the order given.
+ *
+ * One subscription for the whole list, so a footnote block with six entries
+ * costs the same as one: hooks cannot be called per id when the list length
+ * changes between blocks. Reading terms is also what triggers the fetch, so
+ * nothing loads until a block of text with keywords is actually rendered.
  */
-export function useTerm(id: number | null | undefined): GameTerm | null {
+export function useTerms(ids: readonly number[]): GameTerm[] {
   const terms = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  if (typeof window !== 'undefined' && id != null) loadTerms();
-  return id == null ? null : terms.get(id) ?? null;
+  if (typeof window !== 'undefined' && ids.length > 0) loadTerms();
+  const found: GameTerm[] = [];
+  for (const id of ids) {
+    const term = terms.get(id);
+    if (term) found.push(term);
+  }
+  return found;
 }

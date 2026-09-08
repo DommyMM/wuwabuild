@@ -6,6 +6,7 @@ import { Character, I18nString } from '@/lib/character';
 import { HoverCard, HoverCardIcon, HoverCardSection, HoverCardDescription, HoverCardChipModel } from '@/components/ui/HoverCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { resolveGameTemplateFromValues, stripGameMarkup } from '@/lib/text/gameText';
+import { GlossaryNotes } from '@/components/ui/GlossaryNotes';
 
 interface TalentPillsProps {
   character: Character;
@@ -142,6 +143,7 @@ export const TalentPills: React.FC<TalentPillsProps> = ({ character, forte, maxL
                 })}
               </HoverCardDescription>
             )}
+            <GlossaryNotes template={moveDescription} />
             {selectedMoveValues.length > 0 && (
               <div className="space-y-1.5">
                 {selectedMoveValues.map((entry) => (
