@@ -8,6 +8,7 @@ import { activeElementForPanel, ELEMENT_SETS, ElementType, UNKNOWN_SET_ACTIVATIO
 import { calculateCV } from '@/lib/calculations/rollValues';
 import { sumMainStats, sumSubStats, sumEchoDefaultStats } from '@/lib/calculations/echoes';
 import { calculateForteBonus } from '@/lib/calculations/stats';
+import { applyStatConversions } from '@/lib/calculations/statConversions';
 import { getUnconditionalWeaponPassiveBonuses } from '@/lib/calculations/weaponPassives';
 import { getSetBonusesFromFetter } from '@/lib/constants/setBonuses';
 import { getEchoBonus, getSequenceBonuses, matchesEchoBonusCondition } from '@/lib/constants/statBonuses';
@@ -260,6 +261,11 @@ export function StatsProvider({ children }: StatsProviderProps) {
       updates[stat] = result.update;
       baseValues[stat] = result.baseValue;
     });
+
+    // Always-on kit conversions run last, because they read finished stats:
+    // Jingran's ATK is derived from his Max HP after every HP% source has
+    // landed. Mirrors stat_conversions.go on the lb side.
+    applyStatConversions(character.id, values, updates);
 
     return {
       values,
