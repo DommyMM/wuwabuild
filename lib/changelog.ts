@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-09-11',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Calcharo S6 was not counting the two phantoms each Death Messenger summons',
+            },
+            {
+                kind: 'improved',
+                text: 'Hiyuki Liberation now splits into its two hits in the move breakdown',
+            },
+        ],
+    },
+    {
         date: '2026-09-10',
         changes: [
             {
