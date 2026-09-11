@@ -101,16 +101,27 @@ const emptyState: GameDataState = {
 let cachedGameDataState: GameDataState | null = null;
 let gameDataLoadPromise: Promise<GameDataState> | null = null;
 
+function warnDroppedRecords(label: string, all: readonly unknown[], kept: readonly unknown[]): void {
+  if (process.env.NODE_ENV === 'production' || all.length === kept.length) return;
+  const keptRecords = new Set<unknown>(kept);
+  const droppedIds = all
+    .filter((entry) => !keptRecords.has(entry))
+    .map((entry) => (entry && typeof entry === 'object' && 'id' in entry ? String((entry as { id: unknown }).id) : '<unidentifiable>'));
+  console.warn(`[GameData] dropped ${droppedIds.length} ${label} record(s) that failed validation: ${droppedIds.join(', ')}`);
+}
+
 function processRawGameData(raw: RawGameData): GameDataState {
   // Process characters
-  const charactersData = raw.characters;
-  const validCharacters: Character[] = Array.isArray(charactersData)
-    ? charactersData.filter(validateCDNCharacter).map(adaptCDNCharacter)
-    : [];
+  const cdnCharacters: unknown[] = Array.isArray(raw.characters) ? raw.characters : [];
+  const validCDNCharacters = cdnCharacters.filter(validateCDNCharacter);
+  warnDroppedRecords('character', cdnCharacters, validCDNCharacters);
+  const validCharacters: Character[] = validCDNCharacters.map(adaptCDNCharacter);
 
   // Process echoes
   const cdnEchoes: unknown[] = Array.isArray(raw.echoes) ? raw.echoes : [];
-  const echoes: Echo[] = cdnEchoes.filter(validateCDNEcho).map(adaptCDNEcho);
+  const validCDNEchoes = cdnEchoes.filter(validateCDNEcho);
+  warnDroppedRecords('echo', cdnEchoes, validCDNEchoes);
+  const echoes: Echo[] = validCDNEchoes.map(adaptCDNEcho);
   const echoesByCost: Record<number, Echo[]> = Object.fromEntries(
     COST_SECTIONS.map((cost) => [cost, [] as Echo[]]),
   );
@@ -125,8 +136,9 @@ function processRawGameData(raw: RawGameData): GameDataState {
   const weaponMap = new Map<WeaponType, Weapon[]>();
   const weaponList: Weapon[] = [];
   const cdnWeapons: unknown[] = Array.isArray(raw.weapons) ? raw.weapons : [];
-  for (const w of cdnWeapons) {
-    if (!validateCDNWeapon(w)) continue;
+  const validCDNWeapons = cdnWeapons.filter(validateCDNWeapon);
+  warnDroppedRecords('weapon', cdnWeapons, validCDNWeapons);
+  for (const w of validCDNWeapons) {
     const weapon = adaptCDNWeapon(w);
     weaponList.push(weapon);
     const existing = weaponMap.get(weapon.type) ?? [];

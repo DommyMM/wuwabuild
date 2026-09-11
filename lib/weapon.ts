@@ -132,7 +132,6 @@ export const adaptCDNWeapon = (cdn: CDNWeapon): Weapon => ({
   ATK: cdn.stats.first.value,
   main_stat: STAT_NAME_MAP[cdn.stats.second.attribute] ?? cdn.stats.second.attribute,
   base_main: convertStatValue(cdn.stats.second.value, cdn.stats.second.isRatio),
-
   // CDN-native fields
   nameI18n: cdn.name,
   cdnId: cdn.id,
@@ -151,12 +150,10 @@ export const validateCDNWeapon = (value: unknown): value is CDNWeapon => {
   return (
   typeof w.id === 'number' &&
   typeof w.name?.en === 'string' &&
-  w.name.en.length > 0 &&
   typeof w.type?.id === 'number' &&
   typeof w.rarity?.id === 'number' &&
   typeof w.icon?.icon === 'string' &&
   typeof w.stats?.first?.value === 'number' &&
-  w.stats.first.value > 0 &&
   typeof w.stats?.second?.attribute === 'string' &&
   typeof w.stats.second.value === 'number' &&
   typeof w.stats.second.isRatio === 'boolean'

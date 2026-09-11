@@ -20,6 +20,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'new',
                 text: 'Jingran is out with his splash and leaderboard',
             },
+            {
+                kind: 'fixed',
+                text: 'Fixed Jingran having 0 defense causing a bug that removed him from the database',
+            }
         ]
     },
     {

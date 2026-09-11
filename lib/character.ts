@@ -85,7 +85,7 @@ interface CDNMoveEntry {
 
 export interface CDNCharacter {
   id: number;
-  legacyId: string;
+  legacyId?: string | null; // derived from the icon URL at sync time, so it can be absent
   name: I18nString;
   rarity: { id: number; color: string };
   weapon: { id: number; name: I18nString; icon: string };
@@ -342,7 +342,7 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     elementI18n: cdn.element.name,
     weaponI18n: cdn.weapon.name,
     id: String(cdn.id),
-    legacyId: cdn.legacyId,
+    legacyId: cdn.legacyId ?? undefined,
     title: '',
     weaponType: WEAPON_ID_MAP[cdn.weapon.id] ?? WeaponType.Sword,
     element,
@@ -379,7 +379,6 @@ export const validateCDNCharacter = (value: unknown): value is CDNCharacter => {
   const char = value as Partial<CDNCharacter>;
   return (
     typeof char.id === 'number' &&
-    typeof char.legacyId === 'string' &&
     typeof char.name?.en === 'string' &&
     typeof char.rarity?.id === 'number' &&
     typeof char.weapon?.id === 'number' &&
@@ -388,8 +387,8 @@ export const validateCDNCharacter = (value: unknown): value is CDNCharacter => {
     typeof char.icon?.banner === 'string' &&
     Array.isArray(char.skins) &&
     Array.isArray(char.tags) &&
-    typeof char.stats?.life === 'number' && char.stats.life > 0 &&
-    typeof char.stats?.atk === 'number' && char.stats.atk > 0 &&
-    typeof char.stats?.def === 'number' && char.stats.def > 0
+    typeof char.stats?.life === 'number' &&
+    typeof char.stats?.atk === 'number' &&
+    typeof char.stats?.def === 'number'
   );
 };
