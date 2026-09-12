@@ -21,25 +21,10 @@ const getPieceLabel = (count: number, threshold: number): string => {
   return count >= 5 ? '5' : '2';
 };
 
-// Design-space font sizes for a set name. Two chips share the row's 364.9px of
-// chip budget, so each gets ~182px, which is ~113px of text after the icon,
-// gaps and piece badge. Measured 2026-09-11 in Plus Jakarta at wght 600: 32 of
-// the 34 English set names balance onto two lines at 14px in that slot. Only
-// "Song of Feathered Trace" (13px) and "Shadow of Shattered Dreams" (12px) need
-// to step down, so the ladder is a fallback, not the common path.
-//
-// The 9px floor is for three-set rows, where each chip is only ~66px of text:
-// "Tidebreaking" and "Rejuvenating" are unbreakable single words that still
-// overflow that at 10px, by 1.0px and 0.3px. 9px clears every English name
-// except "Song of Feathered Trace", which needs a COMPACT_SET_NAMES entry
-// rather than a smaller size. Wider locales land here too.
-const SET_NAME_SIZES_PX = [14, 13, 12, 11, 10, 9] as const;
+// Design-space font sizes for a set name, in the order the fit pass tries them.
+const SET_NAME_ONE_LINE_SIZES_PX = [14, 13, 12] as const;
+const SET_NAME_WRAPPED_SIZES_PX = [14, 13, 12, 11, 10, 9] as const;
 const SET_NAME_MAX_LINES = 2;
-
-// Three active sets is always Adam + 2pc + 2pc (verified against all 37,954
-// stored builds: every 3-set row contains Shadow of Shattered Dreams). Three
-// chips share ~129px each, which no full name reaches on two lines, so the
-// crowded row trades the "X of Y" prefix away before it trades size.
 const COMPACT_SET_NAMES: Record<string, string> = {
   'Shadow of Shattered Dreams': 'Shattered Dreams',
   'Rite of Gilded Revelation': 'Gilded Revelation',
@@ -48,7 +33,6 @@ const COMPACT_SET_NAMES: Record<string, string> = {
   'Pact of Neonlight Leap': 'Neonlight Leap',
   'Halo of Starry Radiance': 'Starry Radiance',
   'Sound of True Name': 'True Name',
-  'Thread of Severed Fate': 'Severed Fate',
 };
 
 export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
@@ -65,9 +49,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   const activeSets = stats.activeSets;
   const hasActiveSets = activeSets.length > 0;
   const hasActiveHover = Boolean(activeHoverStat);
-  // Chips split the row evenly from two sets up, so neither can be the one that
-  // absorbs every pixel of overflow.
-  const sharesRowWidth = activeSets.length > 1;
+  const hasMultipleSets = activeSets.length > 1;
   const isCrowded = activeSets.length >= 3;
 
   const chips = useMemo(() => activeSets.map(({ element, count, setName }) => {
@@ -88,12 +70,6 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   const nameRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const fitKey = chips.map((chip) => chip.displayName).join('|');
 
-  // One size for the whole row: the largest that keeps every name inside
-  // SET_NAME_MAX_LINES. Sizing per chip would put two different sizes side by
-  // side, which is what made the old length threshold read as a glitch rather
-  // than a decision. Written straight onto the nodes the way WeaponGroup does,
-  // because it is a layout fact rather than app state, and re-run once web
-  // fonts land since the first paint can be in the fallback face.
   useLayoutEffect(() => {
     let cancelled = false;
     const measure = () => {
@@ -102,23 +78,33 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
         .slice(0, chips.length)
         .filter((node): node is HTMLSpanElement => node !== null);
       if (nodes.length === 0) return;
-      let chosen = SET_NAME_SIZES_PX[SET_NAME_SIZES_PX.length - 1];
-      for (const px of SET_NAME_SIZES_PX) {
-        nodes.forEach((node) => { node.style.fontSize = `${px}px`; });
-        // 1px of slack on both axes: line boxes land on sub-pixel values and
-        // snapdom's clone rounds them up, which would otherwise shrink the
-        // export a step below what the live card shows.
-        const fits = nodes.every((node) => {
-          const lineHeight = parseFloat(getComputedStyle(node).lineHeight) || px;
-          return node.scrollHeight <= lineHeight * SET_NAME_MAX_LINES + 1
-            && node.scrollWidth <= node.clientWidth + 1;
+
+      // 1px of slack on both axes
+      const apply = (px: number, wrap: boolean) => {
+        nodes.forEach((node) => {
+          node.style.fontSize = `${px}px`;
+          node.style.whiteSpace = wrap ? 'normal' : 'nowrap';
         });
-        if (fits) {
+      };
+      const withinWidth = (node: HTMLSpanElement) => node.scrollWidth <= node.clientWidth + 1;
+      const withinLines = (node: HTMLSpanElement, px: number) => {
+        const lineHeight = parseFloat(getComputedStyle(node).lineHeight) || px;
+        return node.scrollHeight <= lineHeight * SET_NAME_MAX_LINES + 1;
+      };
+
+      for (const px of SET_NAME_ONE_LINE_SIZES_PX) {
+        apply(px, false);
+        if (nodes.every(withinWidth)) return;
+      }
+      let chosen = SET_NAME_WRAPPED_SIZES_PX[SET_NAME_WRAPPED_SIZES_PX.length - 1];
+      for (const px of SET_NAME_WRAPPED_SIZES_PX) {
+        apply(px, true);
+        if (nodes.every((node) => withinWidth(node) && withinLines(node, px))) {
           chosen = px;
           break;
         }
       }
-      nodes.forEach((node) => { node.style.fontSize = `${chosen}px`; });
+      apply(chosen, true);
     };
     measure();
     if (typeof document !== 'undefined' && document.fonts?.ready) {
@@ -154,7 +140,14 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
           : setHoverMatch
             ? 'opacity-100 ring-1 ring-white/34 bg-white/12 shadow-[0_0_10px_rgba(255,255,255,0.22)]'
             : 'opacity-45 brightness-90';
-        const chipSizeClass = sharesRowWidth ? 'flex-1' : 'w-fit shrink-0';
+        // Two chips size to their own names and give back what they do not use.
+        // Three are all long and all wrap, so an even split is the tidier read
+        // there and is what the 9px floor was measured against.
+        const chipSizeClass = isCrowded
+          ? 'flex-1'
+          : hasMultipleSets
+            ? 'shrink'
+            : 'w-fit shrink-0';
         const triggerLayoutClass = isCrowded
           ? isOnePieceSet
             ? 'justify-center gap-1 rounded-lg px-1.5 py-1'
@@ -168,12 +161,9 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
             onMouseLeave={setHoverKeys.length > 0 ? () => onHoverStatChange?.(null) : undefined}
           >
             {setIcon && <img src={setIcon} alt={setIcon} className={`${isCrowded ? 'h-4.5 w-4.5' : 'h-5 w-5'} shrink-0 object-contain`} />}
-            {/* overflow-hidden is what makes scrollWidth/scrollHeight report the
-                real overflow for the fit pass above, and it is the floor's
-                safety net when even 10px cannot hold a name in two lines. */}
             <span
               ref={(node) => { nameRefs.current[index] = node; }}
-              className={`min-w-0 flex-1 overflow-hidden text-center text-sm leading-tight text-balance ${sharesRowWidth ? 'whitespace-normal' : 'whitespace-nowrap'}`}
+              className="min-w-0 flex-1 overflow-hidden text-center text-sm leading-tight whitespace-nowrap text-balance"
             >
               {displayName}
             </span>
