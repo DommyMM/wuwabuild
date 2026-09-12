@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useLayoutEffect, useMemo, useRef } from 'react';
 import { useStats } from '@/contexts/StatsContext';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -21,8 +21,25 @@ const getPieceLabel = (count: number, threshold: number): string => {
   return count >= 5 ? '5' : '2';
 };
 
-const WRAPPING_SET_NAME_LENGTH = 18;
-const CROWDED_SET_NAME_LENGTH = 16;
+// Design-space font sizes for a set name. Two chips share the row's 364.9px of
+// chip budget, so each gets ~182px, which is ~113px of text after the icon,
+// gaps and piece badge. Measured 2026-09-11 in Plus Jakarta at wght 600: 32 of
+// the 34 English set names balance onto two lines at 14px in that slot. Only
+// "Song of Feathered Trace" (13px) and "Shadow of Shattered Dreams" (12px) need
+// to step down, so the ladder is a fallback, not the common path.
+//
+// The 9px floor is for three-set rows, where each chip is only ~66px of text:
+// "Tidebreaking" and "Rejuvenating" are unbreakable single words that still
+// overflow that at 10px, by 1.0px and 0.3px. 9px clears every English name
+// except "Song of Feathered Trace", which needs a COMPACT_SET_NAMES entry
+// rather than a smaller size. Wider locales land here too.
+const SET_NAME_SIZES_PX = [14, 13, 12, 11, 10, 9] as const;
+const SET_NAME_MAX_LINES = 2;
+
+// Three active sets is always Adam + 2pc + 2pc (verified against all 37,954
+// stored builds: every 3-set row contains Shadow of Shattered Dreams). Three
+// chips share ~129px each, which no full name reaches on two lines, so the
+// crowded row trades the "X of Y" prefix away before it trades size.
 const COMPACT_SET_NAMES: Record<string, string> = {
   'Shadow of Shattered Dreams': 'Shattered Dreams',
   'Rite of Gilded Revelation': 'Gilded Revelation',
@@ -32,11 +49,6 @@ const COMPACT_SET_NAMES: Record<string, string> = {
   'Halo of Starry Radiance': 'Starry Radiance',
   'Sound of True Name': 'True Name',
   'Thread of Severed Fate': 'Severed Fate',
-};
-
-const getDisplaySetName = (setName: string, isCrowded: boolean): string => {
-  if (!isCrowded) return setName;
-  return COMPACT_SET_NAMES[setName] ?? setName;
 };
 
 export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
@@ -50,54 +62,87 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   const { state: { characterId } } = useBuild();
   const { fettersByElement } = useGameData();
   const { t } = useLanguage();
-  const hasActiveSets = stats.activeSets.length > 0;
+  const activeSets = stats.activeSets;
+  const hasActiveSets = activeSets.length > 0;
   const hasActiveHover = Boolean(activeHoverStat);
-  const hasMultipleActiveSets = stats.activeSets.length > 1;
-  const hasCrowdedActiveSets = stats.activeSets.length >= 3;
+  // Chips split the row evenly from two sets up, so neither can be the one that
+  // absorbs every pixel of overflow.
+  const sharesRowWidth = activeSets.length > 1;
+  const isCrowded = activeSets.length >= 3;
+
+  const chips = useMemo(() => activeSets.map(({ element, count, setName }) => {
+    const fetter = fettersByElement[element];
+    const threshold = fetter?.pieceCount ?? 2;
+    const fullName = fetter ? t(fetter.name) : setName;
+    return {
+      element,
+      count,
+      fetter,
+      isOnePieceSet: threshold === 1,
+      pieceLabel: getPieceLabel(count, threshold),
+      fullName,
+      displayName: isCrowded ? COMPACT_SET_NAMES[fullName] ?? fullName : fullName,
+    };
+  }), [activeSets, fettersByElement, isCrowded, t]);
+
+  const nameRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const fitKey = chips.map((chip) => chip.displayName).join('|');
+
+  // One size for the whole row: the largest that keeps every name inside
+  // SET_NAME_MAX_LINES. Sizing per chip would put two different sizes side by
+  // side, which is what made the old length threshold read as a glitch rather
+  // than a decision. Written straight onto the nodes the way WeaponGroup does,
+  // because it is a layout fact rather than app state, and re-run once web
+  // fonts land since the first paint can be in the fallback face.
+  useLayoutEffect(() => {
+    let cancelled = false;
+    const measure = () => {
+      if (cancelled) return;
+      const nodes = nameRefs.current
+        .slice(0, chips.length)
+        .filter((node): node is HTMLSpanElement => node !== null);
+      if (nodes.length === 0) return;
+      let chosen = SET_NAME_SIZES_PX[SET_NAME_SIZES_PX.length - 1];
+      for (const px of SET_NAME_SIZES_PX) {
+        nodes.forEach((node) => { node.style.fontSize = `${px}px`; });
+        // 1px of slack on both axes: line boxes land on sub-pixel values and
+        // snapdom's clone rounds them up, which would otherwise shrink the
+        // export a step below what the live card shows.
+        const fits = nodes.every((node) => {
+          const lineHeight = parseFloat(getComputedStyle(node).lineHeight) || px;
+          return node.scrollHeight <= lineHeight * SET_NAME_MAX_LINES + 1
+            && node.scrollWidth <= node.clientWidth + 1;
+        });
+        if (fits) {
+          chosen = px;
+          break;
+        }
+      }
+      nodes.forEach((node) => { node.style.fontSize = `${chosen}px`; });
+    };
+    measure();
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      void document.fonts.ready.then(measure);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [fitKey, chips.length]);
 
   if (!hasActiveSets && !showCV) return null;
 
   return (
-    <div className={`flex w-full min-w-0 overflow-visible pt-2 pb-1 text-sm font-semibold leading-none ${hasCrowdedActiveSets ? 'justify-center gap-1 px-0' : 'gap-2 pl-4'}`}>
+    <div className={`flex w-full min-w-0 items-stretch overflow-visible pt-2 pb-1 text-sm font-semibold leading-none ${isCrowded ? 'justify-center gap-1 px-0' : 'gap-2 pl-4'}`}>
       {showCV && (
-        <div className={`flex shrink-0 items-center justify-center bg-black/35 ${hasCrowdedActiveSets ? 'min-h-8 w-20 rounded-lg px-1 py-1' : 'rounded-xl p-1.5'}`}>
+        <div className={`flex shrink-0 items-center justify-center bg-black/35 ${isCrowded ? 'min-h-8 w-20 rounded-lg px-1 py-1' : 'min-h-8 rounded-xl px-1.5'}`}>
           {/* snapdom bakes its measured width into the export, so without nowrap a hair of font drift at capture time splits "220.4 CV" across two lines */}
           <span className="whitespace-nowrap rounded-md tabular-nums">
             {stats.cv.toFixed(1)} CV
           </span>
         </div>
       )}
-      {stats.activeSets.map(({ element, count, setName }, index) => {
-        const fetter = fettersByElement[element];
-        const threshold = fetter?.pieceCount ?? 2;
-        const isOnePieceSet = threshold === 1;
-        const pieceLabel = getPieceLabel(count, threshold);
-        const shouldShowPieceLabel = !isOnePieceSet;
-        const fullDisplayName = fetter ? t(fetter.name) : setName;
-        const displayName = getDisplaySetName(fullDisplayName, hasCrowdedActiveSets);
-        const shouldFlexSet = !hasMultipleActiveSets || index === stats.activeSets.length - 1;
-        const shouldUseCompactText = hasMultipleActiveSets && displayName.length >= (
-          hasCrowdedActiveSets ? CROWDED_SET_NAME_LENGTH : WRAPPING_SET_NAME_LENGTH
-        );
-        const chipSizeClass = hasCrowdedActiveSets
-          ? isOnePieceSet
-            ? 'w-28 shrink-0'
-            : 'w-32 shrink-0'
-          : hasMultipleActiveSets
-          ? `${shouldFlexSet ? 'shrink' : 'w-fit shrink-0'} ${shouldUseCompactText ? 'max-w-42' : 'max-w-50'}`
-          : 'w-fit shrink-0';
-        const chipTextClass = hasMultipleActiveSets
-          ? hasCrowdedActiveSets
-            ? 'whitespace-normal leading-[0.78rem]'
-            : 'whitespace-normal leading-tight'
-          : 'whitespace-nowrap leading-none';
-        const chipTextSizeClass = hasMultipleActiveSets
-          ? hasCrowdedActiveSets
-            ? isOnePieceSet
-              ? 'flex-none max-w-17'
-              : 'flex-none max-w-17'
-            : 'flex-1'
-          : 'flex-1';
+      {chips.map((chip, index) => {
+        const { element, count, fetter, isOnePieceSet, pieceLabel, fullName, displayName } = chip;
         const setIcon = fetter?.icon ?? '';
         const setBonuses = getSetBonusesFromFetter(fetter, count, characterId ?? undefined);
         const setHoverKeys = setBonuses
@@ -109,7 +154,8 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
           : setHoverMatch
             ? 'opacity-100 ring-1 ring-white/34 bg-white/12 shadow-[0_0_10px_rgba(255,255,255,0.22)]'
             : 'opacity-45 brightness-90';
-        const triggerLayoutClass = hasCrowdedActiveSets
+        const chipSizeClass = sharesRowWidth ? 'flex-1' : 'w-fit shrink-0';
+        const triggerLayoutClass = isCrowded
           ? isOnePieceSet
             ? 'justify-center gap-1 rounded-lg px-1.5 py-1'
             : 'justify-center gap-1.5 rounded-lg px-2 py-1'
@@ -117,15 +163,21 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
         const trigger = (
           <div
             className={`flex min-h-8 w-full min-w-0 items-center bg-black/35 transition-[background-color,box-shadow,filter,opacity,transform] duration-200 ${triggerLayoutClass} ${interactionClass}`}
-            title={fullDisplayName}
+            title={fullName}
             onMouseEnter={setHoverKeys.length > 0 ? () => onHoverStatChange?.(setHoverKeys[0]) : undefined}
             onMouseLeave={setHoverKeys.length > 0 ? () => onHoverStatChange?.(null) : undefined}
           >
-            {setIcon && <img src={setIcon} alt={setIcon} className={`${hasCrowdedActiveSets ? 'h-4.5 w-4.5' : 'h-5 w-5'} shrink-0 object-contain`} />}
-            <span className={`min-w-0 ${chipTextSizeClass} text-center ${shouldUseCompactText ? 'text-xs' : 'text-sm'} ${chipTextClass}`}>
+            {setIcon && <img src={setIcon} alt={setIcon} className={`${isCrowded ? 'h-4.5 w-4.5' : 'h-5 w-5'} shrink-0 object-contain`} />}
+            {/* overflow-hidden is what makes scrollWidth/scrollHeight report the
+                real overflow for the fit pass above, and it is the floor's
+                safety net when even 10px cannot hold a name in two lines. */}
+            <span
+              ref={(node) => { nameRefs.current[index] = node; }}
+              className={`min-w-0 flex-1 overflow-hidden text-center text-sm leading-tight text-balance ${sharesRowWidth ? 'whitespace-normal' : 'whitespace-nowrap'}`}
+            >
               {displayName}
             </span>
-            {shouldShowPieceLabel && (
+            {!isOnePieceSet && (
               <span className="shrink-0 rounded-md border border-amber-300/55 bg-amber-300/18 px-1 text-xs">
                 {pieceLabel}
               </span>

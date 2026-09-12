@@ -24,6 +24,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'improved',
                 text: 'Hiyuki Liberation now splits into its two hits in the move breakdown',
             },
+            {
+                kind: 'fixed',
+                text: 'Set names on the build card no longer wrap unevenly when two sets are active',
+            },
         ],
     },
     {
